@@ -649,6 +649,15 @@ them until tagged releases begin.
     `Navigator.SetAppBadge(3)`, `Notification.Create(title, new() { Body = … })`, `Navigator.GetGamepads()`,
     `Window.ShowOpenFilePicker(…)`, `Navigator.Storage.GetDirectory()`, `Navigator.Serial.RequestPort(…)`,
     `Navigator.Bluetooth.RequestDevice(…)`. The site's demos use them.
+  - **Live objects cross everywhere they appear.** A method takes a kept object (`await SpeechSynthesis.Speak(utterance)`);
+    element refs gain the members that hand over or answer with one (`await _video.RequestPictureInPicture()`,
+    `_box.Animate([new() { ["opacity"] = 0 }, new() { ["opacity"] = 1 }], 300)`, `GetAnimations()`,
+    `SetSrcObject(stream)`); an element the browser names reads as your `ElementRef`
+    (`await Document.FullscreenElement == _stage` — **`ElementRef` now compares by id**); an event's class carries its
+    statics (`await DeviceOrientationEvent.RequestPermission()`, WebAssembly). A short, named list of non-standard APIs
+    is generated too, marked "Non-standard." — the first is the install prompt:
+    `Window.OnBeforeInstallPrompt(e => _deferred = e)` keeps the event, and `await _deferred.Prompt()` (WebAssembly, in a
+    click) answers with the user's choice.
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

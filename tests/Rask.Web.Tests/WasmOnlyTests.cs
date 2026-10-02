@@ -25,7 +25,7 @@ public sealed class WasmOnlyTests
             var inSnapshot = interfaces.TryGetProperty(iface, out var i) && Members(i).Contains(idl);
             var method = Pascal(idl);
             var onServer = Declares(Web.GetType("Rask.Web.Types." + iface), method) || Declares(Web.GetType("Rask.Web." + iface), method)
-                           || OnRef(typeof(ElementRefMembers), iface, method);
+                           || OnRef(typeof(ElementRefMembers), iface, method) || OnRef(typeof(WebElementRefMembers), iface, method);
             if (!inSnapshot || onServer)
             {
                 misplaced.Add(gated);
@@ -35,8 +35,8 @@ public sealed class WasmOnlyTests
         Assert.Empty(misplaced);
     }
 
-    // The list also holds calls nothing generates yet, because what they hand back is a live object (window.open's
-    // WindowProxy, a video's PictureInPictureWindow): the day one is, it lands in WebAssembly. These are generated.
+    // The list also holds calls nothing generates yet, because what they hand back is a live object the C# side cannot
+    // name (window.open's WindowProxy): the day one is, it lands in WebAssembly. These are generated.
     [Theory]
     [InlineData("Navigator", "share")]
     [InlineData("PaymentRequest", "show")]
@@ -46,6 +46,10 @@ public sealed class WasmOnlyTests
     [InlineData("HTMLInputElement", "showPicker")]
     [InlineData("USB", "requestDevice")]
     [InlineData("IdleDetector", "requestPermission")]
+    [InlineData("HTMLVideoElement", "requestPictureInPicture")]
+    [InlineData("DeviceOrientationEvent", "requestPermission")]
+    [InlineData("DeviceMotionEvent", "requestPermission")]
+    [InlineData("BeforeInstallPromptEvent", "prompt")]
     public void A_generated_call_that_needs_the_click_is_in_WebAssembly(string iface, string idl)
     {
         var method = Pascal(idl);

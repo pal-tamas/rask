@@ -4469,6 +4469,7 @@
   "BarcodeDetector",
   "BaseAudioContext",
   "BatteryManager",
+  "BeforeInstallPromptEvent",
   "BeforeUnloadEvent",
   "BiquadFilterNode",
   "Blob",
@@ -9755,6 +9756,52 @@
     {
      "type": "levelchange",
      "interface": "Event"
+    }
+   ]
+  },
+  "BeforeInstallPromptEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "exposed": true,
+   "experimental": true,
+   "nonStandard": true,
+   "support": {
+    "chrome": "44"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/BeforeInstallPromptEvent",
+   "members": [
+    {
+     "kind": "operation",
+     "name": "prompt",
+     "returns": "Promise<PromptResponseObject>",
+     "args": [],
+     "experimental": true,
+     "nonStandard": true,
+     "support": {
+      "chrome": "76"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/BeforeInstallPromptEvent/prompt"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "type",
+       "type": "DOMString"
+      },
+      {
+       "name": "eventInitDict",
+       "type": "EventInit",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "nonStandard": true,
+     "support": {
+      "chrome": "44"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/BeforeInstallPromptEvent/BeforeInstallPromptEvent"
     }
    ]
   },
@@ -118878,6 +118925,10 @@
    "removed",
    "persisted"
   ],
+  "AppBannerPromptOutcome": [
+   "accepted",
+   "dismissed"
+  ],
   "AppendMode": [
    "segments",
    "sequence"
@@ -128514,6 +128565,14 @@
     {
      "name": "reason",
      "type": "any"
+    }
+   ]
+  },
+  "PromptResponseObject": {
+   "members": [
+    {
+     "name": "userChoice",
+     "type": "AppBannerPromptOutcome"
     }
    ]
   },

@@ -47,6 +47,7 @@ internal static class WebEmitter
         var proxies = Proxies(root, types);
         var payloads = new WebPayloads(root, types, proxies);
         var model = Build(root, types, payloads, proxies);
+        var elements = ElementMembers(root, types, proxies);
         var files = new List<KeyValuePair<string, string>>();
         foreach (var name in model.ProxyNames.Where(n => WebHost.IsWasmInterface(n) == wasm).OrderBy(n => n, StringComparer.Ordinal))
         {
@@ -58,13 +59,14 @@ internal static class WebEmitter
 
         if (wasm)
         {
-            files.Add(new KeyValuePair<string, string>("WasmMembers.g.cs", WasmMembers(model)));
+            files.Add(new KeyValuePair<string, string>("WasmMembers.g.cs", WasmMembers(model, elements, payloads)));
             files.AddRange(wasmRefs);
             return files;
         }
 
         files.Add(new KeyValuePair<string, string>("WebEvents.g.cs", payloads.Declarations()));
         files.Add(new KeyValuePair<string, string>("Globals.g.cs", Globals(model)));
+        files.Add(new KeyValuePair<string, string>("WebElementRefMembers.g.cs", WebElementRefMembers(elements)));
         files.Add(new KeyValuePair<string, string>("WebValues.g.cs", types.Declarations("Rask.Web.Types", "RaskWebJsonContext", "global::Rask.Web.BytesJsonConverter")));
         return files;
     }
@@ -91,11 +93,87 @@ internal static class WebEmitter
             extras[name] = WebMember.StaticsOf(name, interfaces[name]!, types, proxies, taken);
             if (!taken.Contains("Create"))
             {
-                extras[name].AddRange(WebMember.ConstructorsOf(name, interfaces[name]!, types, creates, root["callbacks"]));
+                extras[name].AddRange(WebMember.ConstructorsOf(name, interfaces[name]!, types, proxies, creates, root["callbacks"]));
             }
         }
 
+        // An event is the payload its handler gets, not a proxy, but its class can have statics of its own all the same:
+        // `await DeviceOrientationEvent.RequestPermission()`, which iOS asks before it fires one.
+        foreach (var name in (root["web"]?.Items ?? new List<JsonNode>()).Select(n => n.AsString()!)
+                     .Where(n => interfaces[n]?["statics"] is not null && DomValueTypes.Derives(interfaces, n, "Event")))
+        {
+            extras[name] = WebMember.StaticsOf(name, interfaces[name]!, types, proxies, new HashSet<string>(Reserved, StringComparer.Ordinal));
+        }
+
         return new Model(interfaces, proxies, members, extras);
+    }
+
+    // The members of element refs Core cannot write (DomRefEmitter), since they hand over or answer with a live object —
+    // a video's PictureInPictureWindow, an element's Animation, a media element's srcObject — each over a chain from the
+    // ref's element, bases first so a derived ref never declares a name again. Only calls and writes: a read of a live
+    // attribute is a view of the element's own state (its classList, style, dataset), which is Rask's render's. Nor
+    // anything that holds the page's nodes (an HTMLCollection, a Document): the render owns those too.
+    private static Dictionary<string, List<WebMember>> ElementMembers(JsonNode root, DomValueTypes types, HashSet<string> proxies)
+    {
+        var interfaces = root["interfaces"]!;
+        var live = new HashSet<string>(proxies.Where(p => !HoldsNodes(interfaces, p, types)), StringComparer.Ordinal);
+        var result = new Dictionary<string, List<WebMember>>(StringComparer.Ordinal);
+        var names = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var name in DomEmitter.ElementInterfaces(root))
+        {
+            var parent = interfaces[name]?["parent"]?.AsString();
+            var taken = new HashSet<string>(parent is not null && names.TryGetValue(parent, out var inherited) ? inherited : DomRefEmitter.RefMembers, StringComparer.Ordinal);
+            names[name] = taken;
+            var denied = new HashSet<string>(DomRefEmitter.RenderOwned.Select(m => name + "." + m), StringComparer.Ordinal);
+            // Only the members that name a live object are written at all, so no other one declares a record nobody uses.
+            var own = (interfaces[name]!["members"]?.Items ?? new List<JsonNode>()).Where(m => IdlTypes(m).Any(live.Contains));
+            result[name] = WebMember.Of(name, WebMember.Holding(own), types, proxies, taken, denied, root["callbacks"])
+                .Where(m => !m.IsRead && m.WebTypes.Any(live.Contains)).ToList();
+        }
+
+        return result;
+    }
+
+    // Every interface or dictionary a member's IDL names: its type, what it returns, and its arguments', overloads too.
+    private static IEnumerable<string> IdlTypes(JsonNode member)
+    {
+        var args = (member["args"]?.Items ?? new List<JsonNode>()).Concat((member["overloads"]?.Items ?? new List<JsonNode>()).SelectMany(o => o.Items));
+        return new[] { member["type"], member["returns"] }.Concat(args.Select(a => a["type"]))
+            .Select(t => t?.AsString()).OfType<string>()
+            .SelectMany(DomValueTypes.Alternatives).Select(DomValueTypes.ItemOf);
+    }
+
+    // Whether an interface hands out the page's nodes, itself or through a base: a member of a node's type.
+    private static bool HoldsNodes(JsonNode interfaces, string name, DomValueTypes types)
+    {
+        for (var n = name; n is not null && interfaces[n] is { } i; n = i["parent"]?.AsString())
+        {
+            if ((i["members"]?.Items ?? new List<JsonNode>()).Select(m => DomValueTypes.ItemOf((m["type"] ?? m["returns"])?.AsString() ?? ""))
+                .Any(t => types.IsElement(t) || DomValueTypes.Derives(interfaces, t, "Node")))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // The receiver an element ref's members extend: an IElementRef of Core's element type.
+    private static string ElementRef(string name) => $"global::Rask.Core.IElementRef<global::Rask.Core.{name}> element";
+
+    private static string WebElementRefMembers(Dictionary<string, List<WebMember>> elements)
+    {
+        var sb = Open("Rask.Web");
+        sb.AppendLine("/// <summary>The DOM members of an <see cref=\"global::Rask.Core.IElementRef{T}\" /> that hand over or answer with a live web object, generated from MDN.</summary>");
+        sb.AppendLine("public static class WebElementRefMembers");
+        sb.AppendLine("{");
+        foreach (var element in elements)
+        {
+            Extension(sb, ElementRef(element.Key), element.Value.Where(m => !m.Wasm), m => m.WriteOnElement(sb));
+        }
+
+        sb.AppendLine("}");
+        return sb.ToString();
     }
 
     // The interfaces that become live proxies: the web ones that are not values, not DOM nodes, since Rask owns the DOM,
@@ -327,7 +405,7 @@ internal static class WebEmitter
 
     // Rask.Wasm's side: the per-frame families' own classes, and in one static class the members only WebAssembly runs,
     // as extension members: instance ones on Rask.Web's proxies, static ones on its globals and classes.
-    private static string WasmMembers(Model model)
+    private static string WasmMembers(Model model, Dictionary<string, List<WebMember>> elements, WebPayloads payloads)
     {
         var sb = Open("Rask.Web");
         foreach (var name in model.Extras.Keys.Where(n => model.Extras[n].Count > 0 && WebHost.IsWasmInterface(n)).OrderBy(n => n, StringComparer.Ordinal))
@@ -341,6 +419,17 @@ internal static class WebEmitter
         foreach (var name in model.ProxyNames.Where(n => !WebHost.IsWasmInterface(n)).OrderBy(n => n, StringComparer.Ordinal))
         {
             Extension(sb, TypesNs + name + " self", model.Members[name].Where(m => m.Wasm), m => m.WriteExtension(sb, "self"));
+        }
+
+        foreach (var element in elements)
+        {
+            Extension(sb, ElementRef(element.Key), element.Value.Where(m => m.Wasm), m => m.WriteOnElement(sb));
+        }
+
+        // A kept event's methods (BeforeInstallPromptEvent.Prompt()), over the event its handler was handed.
+        foreach (var payload in payloads.Methods())
+        {
+            Extension(sb, TypesNs + payload.Key + " self", payload.Value.Where(m => m.Wasm), m => m.WriteExtension(sb, "self"));
         }
 
         sb.AppendLine("}");

@@ -21,6 +21,7 @@ internal static class WebHost
         "USB.requestDevice", "HID.requestDevice", "Bluetooth.requestDevice", "EyeDropper.open", "IdleDetector.requestPermission",
         "Window.showOpenFilePicker", "Window.showSaveFilePicker", "Window.showDirectoryPicker", "Window.queryLocalFonts",
         "DocumentPictureInPicture.requestWindow", "PresentationRequest.start", "ContactsManager.select",
+        "DeviceOrientationEvent.requestPermission", "DeviceMotionEvent.requestPermission", "BeforeInstallPromptEvent.prompt",
     };
 
     private static readonly string[] Families = { "WebGL", "GPU", "AudioWorklet" };
@@ -35,7 +36,10 @@ internal static class WebHost
     public static bool IsWasmMember(string iface, string idl) => Activation.Contains(iface + "." + idl);
 
     // Whether generated C# names a per-frame family's type: a member that hands one out, or takes one, runs in WebAssembly.
-    public static bool Mentions(string csharp) =>
+    public static bool Mentions(string csharp) => TypesIn(csharp).Any(IsWasmInterface);
+
+    // The Rask.Web types generated C# names, by MDN name.
+    public static IEnumerable<string> TypesIn(string csharp) =>
         Regex.Matches(csharp, @"Types\.(?<type>\w+)", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, TimeSpan.FromSeconds(1))
-            .Cast<Match>().Any(m => IsWasmInterface(m.Groups["type"].Value));
+            .Cast<Match>().Select(m => m.Groups["type"].Value);
 }

@@ -138,7 +138,7 @@ internal static class DomEmitter
             Get(root, "elements").Items.Where(e => string.Equals(Str(e, "namespace"), "html", StringComparison.Ordinal)).Select(e => Str(e, "tag")!),
             StringComparer.Ordinal);
         var rootOf = DomInterfaces(interfaces, tagsByInterface.Keys);
-        var dom = rootOf.Keys.OrderBy(n => Depth(interfaces, n)).ThenBy(n => n, StringComparer.Ordinal).ToList();
+        var dom = BasesFirst(interfaces, rootOf.Keys);
         var declared = DeclaredAttributes(interfaces, dom);
 
         var files = new List<KeyValuePair<string, string>>();
@@ -252,6 +252,19 @@ internal static class DomEmitter
 
         return rootOf;
     }
+
+    // The element interfaces a ref can be typed to, Element and then the rest bases first: what Rask.Web's element-ref
+    // members extend.
+    internal static List<string> ElementInterfaces(JsonNode root)
+    {
+        var interfaces = Get(root, "interfaces");
+        var names = BasesFirst(interfaces, DomInterfaces(interfaces, TagsByInterface(root).Keys).Keys);
+        names.Insert(0, "Element");
+        return names;
+    }
+
+    private static List<string> BasesFirst(JsonNode interfaces, IEnumerable<string> names) =>
+        names.OrderBy(n => Depth(interfaces, n)).ThenBy(n => n, StringComparer.Ordinal).ToList();
 
     // How far below its root an interface sits, so each is emitted after its bases.
     private static int Depth(JsonNode interfaces, string name)
@@ -616,6 +629,12 @@ internal static class DomEmitter
         if (data["experimental"]?.AsBoolean() == true)
         {
             remarks.Add("<b>Experimental.</b>");
+        }
+
+        // On no standards track: scripts/mdn/refresh.mjs admits these by name only (NON_STANDARD).
+        if (data["nonStandard"]?.AsBoolean() == true)
+        {
+            remarks.Add("<b>Non-standard.</b>");
         }
 
         if (data["secure"]?.AsBoolean() == true)

@@ -909,3 +909,320 @@ static Rask.Web.GPUOutOfMemoryError.IsSupported.get -> System.Threading.Tasks.Va
 static Rask.Web.GPUPipelineError.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.GPUValidationError.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.GPUDevice.PopErrorScope() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUError?>
+Rask.Web.AudioWorkletNode
+Rask.Web.DeviceMotionEventWasmMembers
+Rask.Web.DeviceMotionEventWasmMembers.extension(Rask.Web.DeviceMotionEvent!)
+Rask.Web.DeviceOrientationEventWasmMembers
+Rask.Web.DeviceOrientationEventWasmMembers.extension(Rask.Web.DeviceOrientationEvent!)
+Rask.Web.Types.EXT_disjoint_timer_query_webgl2.QueryCounterEXT(Rask.Web.Types.WebGLQuery! query, int target) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.ClearBuffer(Rask.Web.Types.GPUBuffer! buffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.ClearBuffer(Rask.Web.Types.GPUBuffer! buffer, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.ClearBuffer(Rask.Web.Types.GPUBuffer! buffer, long offset, long size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.CopyBufferToBuffer(Rask.Web.Types.GPUBuffer! source, Rask.Web.Types.GPUBuffer! destination) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.CopyBufferToBuffer(Rask.Web.Types.GPUBuffer! source, Rask.Web.Types.GPUBuffer! destination, long size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.CopyBufferToBuffer(Rask.Web.Types.GPUBuffer! source, long sourceOffset, Rask.Web.Types.GPUBuffer! destination, long destinationOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.CopyBufferToBuffer(Rask.Web.Types.GPUBuffer! source, long sourceOffset, Rask.Web.Types.GPUBuffer! destination, long destinationOffset, long size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.ResolveQuerySet(Rask.Web.Types.GPUQuerySet! querySet, int firstQuery, int queryCount, Rask.Web.Types.GPUBuffer! destination, long destinationOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.DispatchWorkgroupsIndirect(Rask.Web.Types.GPUBuffer! indirectBuffer, long indirectOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.SetBindGroup(int index, Rask.Web.Types.GPUBindGroup? bindGroup) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.SetBindGroup(int index, Rask.Web.Types.GPUBindGroup? bindGroup, int[]! dynamicOffsets) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.SetPipeline(Rask.Web.Types.GPUComputePipeline! pipeline) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUQueue.WriteBuffer(Rask.Web.Types.GPUBuffer! buffer, long bufferOffset, byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUQueue.WriteBuffer(Rask.Web.Types.GPUBuffer! buffer, long bufferOffset, byte[]! data, long dataOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUQueue.WriteBuffer(Rask.Web.Types.GPUBuffer! buffer, long bufferOffset, byte[]! data, long dataOffset, long size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.DrawIndexedIndirect(Rask.Web.Types.GPUBuffer! indirectBuffer, long indirectOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.DrawIndirect(Rask.Web.Types.GPUBuffer! indirectBuffer, long indirectOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetBindGroup(int index, Rask.Web.Types.GPUBindGroup? bindGroup) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetBindGroup(int index, Rask.Web.Types.GPUBindGroup? bindGroup, int[]! dynamicOffsets) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetIndexBuffer(Rask.Web.Types.GPUBuffer! buffer, Rask.Web.Types.GPUIndexFormat indexFormat) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetIndexBuffer(Rask.Web.Types.GPUBuffer! buffer, Rask.Web.Types.GPUIndexFormat indexFormat, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetIndexBuffer(Rask.Web.Types.GPUBuffer! buffer, Rask.Web.Types.GPUIndexFormat indexFormat, long offset, long size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetPipeline(Rask.Web.Types.GPURenderPipeline! pipeline) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetVertexBuffer(int slot, Rask.Web.Types.GPUBuffer? buffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetVertexBuffer(int slot, Rask.Web.Types.GPUBuffer? buffer, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetVertexBuffer(int slot, Rask.Web.Types.GPUBuffer? buffer, long offset, long size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.DrawIndexedIndirect(Rask.Web.Types.GPUBuffer! indirectBuffer, long indirectOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.DrawIndirect(Rask.Web.Types.GPUBuffer! indirectBuffer, long indirectOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetBindGroup(int index, Rask.Web.Types.GPUBindGroup? bindGroup) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetBindGroup(int index, Rask.Web.Types.GPUBindGroup? bindGroup, int[]! dynamicOffsets) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetIndexBuffer(Rask.Web.Types.GPUBuffer! buffer, Rask.Web.Types.GPUIndexFormat indexFormat) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetIndexBuffer(Rask.Web.Types.GPUBuffer! buffer, Rask.Web.Types.GPUIndexFormat indexFormat, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetIndexBuffer(Rask.Web.Types.GPUBuffer! buffer, Rask.Web.Types.GPUIndexFormat indexFormat, long offset, long size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetPipeline(Rask.Web.Types.GPURenderPipeline! pipeline) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetVertexBuffer(int slot, Rask.Web.Types.GPUBuffer? buffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetVertexBuffer(int slot, Rask.Web.Types.GPUBuffer? buffer, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetVertexBuffer(int slot, Rask.Web.Types.GPUBuffer? buffer, long offset, long size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OES_vertex_array_object.BindVertexArrayOES(Rask.Web.Types.WebGLVertexArrayObjectOES? arrayObject) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OES_vertex_array_object.DeleteVertexArrayOES(Rask.Web.Types.WebGLVertexArrayObjectOES? arrayObject) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OES_vertex_array_object.IsVertexArrayOES(Rask.Web.Types.WebGLVertexArrayObjectOES? arrayObject) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.OVR_multiview2.FramebufferTextureMultiviewOVR(int target, int attachment, Rask.Web.Types.WebGLTexture? texture, int level, int baseViewIndex, int numViews) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WEBGL_debug_shaders.GetTranslatedShaderSource(Rask.Web.Types.WebGLShader! shader) -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.WebGL2RenderingContext.AttachShader(Rask.Web.Types.WebGLProgram! program, Rask.Web.Types.WebGLShader! shader) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BeginQuery(int target, Rask.Web.Types.WebGLQuery! query) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BindAttribLocation(Rask.Web.Types.WebGLProgram! program, int index, string! name) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BindBuffer(int target, Rask.Web.Types.WebGLBuffer? buffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BindBufferBase(int target, int index, Rask.Web.Types.WebGLBuffer? buffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BindBufferRange(int target, int index, Rask.Web.Types.WebGLBuffer? buffer, long offset, long size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BindFramebuffer(int target, Rask.Web.Types.WebGLFramebuffer? framebuffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BindRenderbuffer(int target, Rask.Web.Types.WebGLRenderbuffer? renderbuffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BindSampler(int unit, Rask.Web.Types.WebGLSampler? sampler) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BindTexture(int target, Rask.Web.Types.WebGLTexture? texture) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BindTransformFeedback(int target, Rask.Web.Types.WebGLTransformFeedback? tf) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BindVertexArray(Rask.Web.Types.WebGLVertexArrayObject? array) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ClientWaitSync(Rask.Web.Types.WebGLSync! sync, int flags, long timeout) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGL2RenderingContext.CompileShader(Rask.Web.Types.WebGLShader! shader) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DeleteBuffer(Rask.Web.Types.WebGLBuffer? buffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DeleteFramebuffer(Rask.Web.Types.WebGLFramebuffer? framebuffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DeleteProgram(Rask.Web.Types.WebGLProgram? program) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DeleteQuery(Rask.Web.Types.WebGLQuery? query) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DeleteRenderbuffer(Rask.Web.Types.WebGLRenderbuffer? renderbuffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DeleteSampler(Rask.Web.Types.WebGLSampler? sampler) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DeleteShader(Rask.Web.Types.WebGLShader? shader) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DeleteSync(Rask.Web.Types.WebGLSync? sync) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DeleteTexture(Rask.Web.Types.WebGLTexture? texture) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DeleteTransformFeedback(Rask.Web.Types.WebGLTransformFeedback? tf) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DeleteVertexArray(Rask.Web.Types.WebGLVertexArrayObject? vertexArray) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DetachShader(Rask.Web.Types.WebGLProgram! program, Rask.Web.Types.WebGLShader! shader) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.FramebufferRenderbuffer(int target, int attachment, int renderbuffertarget, Rask.Web.Types.WebGLRenderbuffer? renderbuffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.FramebufferTexture2D(int target, int attachment, int textarget, Rask.Web.Types.WebGLTexture? texture, int level) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.FramebufferTextureLayer(int target, int attachment, Rask.Web.Types.WebGLTexture? texture, int level, int layer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.GetActiveAttrib(Rask.Web.Types.WebGLProgram! program, int index) -> Rask.Web.Types.WebGLActiveInfo!
+Rask.Web.Types.WebGL2RenderingContext.GetActiveUniform(Rask.Web.Types.WebGLProgram! program, int index) -> Rask.Web.Types.WebGLActiveInfo!
+Rask.Web.Types.WebGL2RenderingContext.GetActiveUniformBlockName(Rask.Web.Types.WebGLProgram! program, int uniformBlockIndex) -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.WebGL2RenderingContext.GetActiveUniformBlockParameter<T>(Rask.Web.Types.WebGLProgram! program, int uniformBlockIndex, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetActiveUniforms<T>(Rask.Web.Types.WebGLProgram! program, int[]! uniformIndices, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetAttachedShaders(Rask.Web.Types.WebGLProgram! program) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebGLShader![]!>
+Rask.Web.Types.WebGL2RenderingContext.GetAttribLocation(Rask.Web.Types.WebGLProgram! program, string! name) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGL2RenderingContext.GetFragDataLocation(Rask.Web.Types.WebGLProgram! program, string! name) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGL2RenderingContext.GetProgramInfoLog(Rask.Web.Types.WebGLProgram! program) -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.WebGL2RenderingContext.GetProgramParameter<T>(Rask.Web.Types.WebGLProgram! program, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetQueryParameter<T>(Rask.Web.Types.WebGLQuery! query, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetSamplerParameter<T>(Rask.Web.Types.WebGLSampler! sampler, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetShaderInfoLog(Rask.Web.Types.WebGLShader! shader) -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.WebGL2RenderingContext.GetShaderParameter<T>(Rask.Web.Types.WebGLShader! shader, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetShaderSource(Rask.Web.Types.WebGLShader! shader) -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.WebGL2RenderingContext.GetSyncParameter<T>(Rask.Web.Types.WebGLSync! sync, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetTransformFeedbackVarying(Rask.Web.Types.WebGLProgram! program, int index) -> Rask.Web.Types.WebGLActiveInfo!
+Rask.Web.Types.WebGL2RenderingContext.GetUniform<T>(Rask.Web.Types.WebGLProgram! program, Rask.Web.Types.WebGLUniformLocation! location) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetUniformBlockIndex(Rask.Web.Types.WebGLProgram! program, string! uniformBlockName) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGL2RenderingContext.GetUniformIndices(Rask.Web.Types.WebGLProgram! program, string![]! uniformNames) -> System.Threading.Tasks.ValueTask<int[]?>
+Rask.Web.Types.WebGL2RenderingContext.GetUniformLocation(Rask.Web.Types.WebGLProgram! program, string! name) -> Rask.Web.Types.WebGLUniformLocation!
+Rask.Web.Types.WebGL2RenderingContext.IsBuffer(Rask.Web.Types.WebGLBuffer? buffer) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.IsFramebuffer(Rask.Web.Types.WebGLFramebuffer? framebuffer) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.IsProgram(Rask.Web.Types.WebGLProgram? program) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.IsQuery(Rask.Web.Types.WebGLQuery? query) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.IsRenderbuffer(Rask.Web.Types.WebGLRenderbuffer? renderbuffer) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.IsSampler(Rask.Web.Types.WebGLSampler? sampler) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.IsShader(Rask.Web.Types.WebGLShader? shader) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.IsSync(Rask.Web.Types.WebGLSync? sync) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.IsTexture(Rask.Web.Types.WebGLTexture? texture) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.IsTransformFeedback(Rask.Web.Types.WebGLTransformFeedback? tf) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.IsVertexArray(Rask.Web.Types.WebGLVertexArrayObject? vertexArray) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.LinkProgram(Rask.Web.Types.WebGLProgram! program) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.SamplerParameterf(Rask.Web.Types.WebGLSampler! sampler, int pname, double param) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.SamplerParameteri(Rask.Web.Types.WebGLSampler! sampler, int pname, int param) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ShaderSource(Rask.Web.Types.WebGLShader! shader, string! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int format, int type, Rask.Web.Types.ImageBitmap! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int format, int type, Rask.Web.Types.ImageData! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int format, int type, Rask.Web.Types.OffscreenCanvas! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int format, int type, Rask.Web.Types.VideoFrame! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, Rask.Web.Types.ImageBitmap! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, Rask.Web.Types.ImageData! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, Rask.Web.Types.OffscreenCanvas! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, Rask.Web.Types.VideoFrame! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int format, int type, Rask.Web.Types.ImageBitmap! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int format, int type, Rask.Web.Types.ImageData! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int format, int type, Rask.Web.Types.OffscreenCanvas! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int format, int type, Rask.Web.Types.VideoFrame! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int format, int type, Rask.Web.Types.ImageBitmap! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int format, int type, Rask.Web.Types.ImageData! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int format, int type, Rask.Web.Types.OffscreenCanvas! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int format, int type, Rask.Web.Types.VideoFrame! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, Rask.Web.Types.ImageBitmap! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, Rask.Web.Types.ImageData! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, Rask.Web.Types.OffscreenCanvas! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, Rask.Web.Types.VideoFrame! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, Rask.Web.Types.ImageBitmap! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, Rask.Web.Types.ImageData! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, Rask.Web.Types.OffscreenCanvas! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, Rask.Web.Types.VideoFrame! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TransformFeedbackVaryings(Rask.Web.Types.WebGLProgram! program, string![]! varyings, int bufferMode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1f(Rask.Web.Types.WebGLUniformLocation? location, double x) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1i(Rask.Web.Types.WebGLUniformLocation? location, int x) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1ui(Rask.Web.Types.WebGLUniformLocation? location, int v0) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform1uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2f(Rask.Web.Types.WebGLUniformLocation? location, double x, double y) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2i(Rask.Web.Types.WebGLUniformLocation? location, int x, int y) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2ui(Rask.Web.Types.WebGLUniformLocation? location, int v0, int v1) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform2uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3f(Rask.Web.Types.WebGLUniformLocation? location, double x, double y, double z) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3i(Rask.Web.Types.WebGLUniformLocation? location, int x, int y, int z) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3ui(Rask.Web.Types.WebGLUniformLocation? location, int v0, int v1, int v2) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform3uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4f(Rask.Web.Types.WebGLUniformLocation? location, double x, double y, double z, double w) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4i(Rask.Web.Types.WebGLUniformLocation? location, int x, int y, int z, int w) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4ui(Rask.Web.Types.WebGLUniformLocation? location, int v0, int v1, int v2, int v3) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Uniform4uiv(Rask.Web.Types.WebGLUniformLocation? location, int[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformBlockBinding(Rask.Web.Types.WebGLProgram! program, int uniformBlockIndex, int uniformBlockBinding) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix2fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix2fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix2fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix2x3fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix2x3fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix2x3fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix2x4fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix2x4fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix2x4fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix3fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix3fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix3fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix3x2fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix3x2fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix3x2fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix3x4fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix3x4fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix3x4fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix4fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix4fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix4fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix4x2fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix4x2fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix4x2fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix4x3fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix4x3fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UniformMatrix4x3fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! data, long srcOffset, int srcLength) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UseProgram(Rask.Web.Types.WebGLProgram? program) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ValidateProgram(Rask.Web.Types.WebGLProgram! program) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.WaitSync(Rask.Web.Types.WebGLSync! sync, int flags, long timeout) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.AttachShader(Rask.Web.Types.WebGLProgram! program, Rask.Web.Types.WebGLShader! shader) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BindAttribLocation(Rask.Web.Types.WebGLProgram! program, int index, string! name) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BindBuffer(int target, Rask.Web.Types.WebGLBuffer? buffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BindFramebuffer(int target, Rask.Web.Types.WebGLFramebuffer? framebuffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BindRenderbuffer(int target, Rask.Web.Types.WebGLRenderbuffer? renderbuffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BindTexture(int target, Rask.Web.Types.WebGLTexture? texture) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.CompileShader(Rask.Web.Types.WebGLShader! shader) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DeleteBuffer(Rask.Web.Types.WebGLBuffer? buffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DeleteFramebuffer(Rask.Web.Types.WebGLFramebuffer? framebuffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DeleteProgram(Rask.Web.Types.WebGLProgram? program) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DeleteRenderbuffer(Rask.Web.Types.WebGLRenderbuffer? renderbuffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DeleteShader(Rask.Web.Types.WebGLShader? shader) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DeleteTexture(Rask.Web.Types.WebGLTexture? texture) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DetachShader(Rask.Web.Types.WebGLProgram! program, Rask.Web.Types.WebGLShader! shader) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.FramebufferRenderbuffer(int target, int attachment, int renderbuffertarget, Rask.Web.Types.WebGLRenderbuffer? renderbuffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.FramebufferTexture2D(int target, int attachment, int textarget, Rask.Web.Types.WebGLTexture? texture, int level) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.GetActiveAttrib(Rask.Web.Types.WebGLProgram! program, int index) -> Rask.Web.Types.WebGLActiveInfo!
+Rask.Web.Types.WebGLRenderingContext.GetActiveUniform(Rask.Web.Types.WebGLProgram! program, int index) -> Rask.Web.Types.WebGLActiveInfo!
+Rask.Web.Types.WebGLRenderingContext.GetAttachedShaders(Rask.Web.Types.WebGLProgram! program) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebGLShader![]!>
+Rask.Web.Types.WebGLRenderingContext.GetAttribLocation(Rask.Web.Types.WebGLProgram! program, string! name) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGLRenderingContext.GetProgramInfoLog(Rask.Web.Types.WebGLProgram! program) -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.WebGLRenderingContext.GetProgramParameter<T>(Rask.Web.Types.WebGLProgram! program, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGLRenderingContext.GetShaderInfoLog(Rask.Web.Types.WebGLShader! shader) -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.WebGLRenderingContext.GetShaderParameter<T>(Rask.Web.Types.WebGLShader! shader, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGLRenderingContext.GetShaderSource(Rask.Web.Types.WebGLShader! shader) -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.WebGLRenderingContext.GetUniform<T>(Rask.Web.Types.WebGLProgram! program, Rask.Web.Types.WebGLUniformLocation! location) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGLRenderingContext.GetUniformLocation(Rask.Web.Types.WebGLProgram! program, string! name) -> Rask.Web.Types.WebGLUniformLocation!
+Rask.Web.Types.WebGLRenderingContext.IsBuffer(Rask.Web.Types.WebGLBuffer? buffer) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGLRenderingContext.IsFramebuffer(Rask.Web.Types.WebGLFramebuffer? framebuffer) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGLRenderingContext.IsProgram(Rask.Web.Types.WebGLProgram? program) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGLRenderingContext.IsRenderbuffer(Rask.Web.Types.WebGLRenderbuffer? renderbuffer) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGLRenderingContext.IsShader(Rask.Web.Types.WebGLShader? shader) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGLRenderingContext.IsTexture(Rask.Web.Types.WebGLTexture? texture) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGLRenderingContext.LinkProgram(Rask.Web.Types.WebGLProgram! program) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.ShaderSource(Rask.Web.Types.WebGLShader! shader, string! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexImage2D(int target, int level, int internalformat, int format, int type, Rask.Web.Types.ImageBitmap! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexImage2D(int target, int level, int internalformat, int format, int type, Rask.Web.Types.ImageData! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexImage2D(int target, int level, int internalformat, int format, int type, Rask.Web.Types.OffscreenCanvas! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexImage2D(int target, int level, int internalformat, int format, int type, Rask.Web.Types.VideoFrame! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int format, int type, Rask.Web.Types.ImageBitmap! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int format, int type, Rask.Web.Types.ImageData! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int format, int type, Rask.Web.Types.OffscreenCanvas! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int format, int type, Rask.Web.Types.VideoFrame! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform1f(Rask.Web.Types.WebGLUniformLocation? location, double x) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform1fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! v) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform1i(Rask.Web.Types.WebGLUniformLocation? location, int x) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform1iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! v) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform2f(Rask.Web.Types.WebGLUniformLocation? location, double x, double y) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform2fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! v) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform2i(Rask.Web.Types.WebGLUniformLocation? location, int x, int y) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform2iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! v) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform3f(Rask.Web.Types.WebGLUniformLocation? location, double x, double y, double z) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform3fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! v) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform3i(Rask.Web.Types.WebGLUniformLocation? location, int x, int y, int z) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform3iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! v) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform4f(Rask.Web.Types.WebGLUniformLocation? location, double x, double y, double z, double w) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform4fv(Rask.Web.Types.WebGLUniformLocation? location, double[]! v) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform4i(Rask.Web.Types.WebGLUniformLocation? location, int x, int y, int z, int w) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Uniform4iv(Rask.Web.Types.WebGLUniformLocation? location, int[]! v) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.UniformMatrix2fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.UniformMatrix3fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.UniformMatrix4fv(Rask.Web.Types.WebGLUniformLocation? location, bool transpose, double[]! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.UseProgram(Rask.Web.Types.WebGLProgram? program) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.ValidateProgram(Rask.Web.Types.WebGLProgram! program) -> System.Threading.Tasks.ValueTask
+Rask.Web.WasmMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLVideoElement!>!)
+Rask.Web.WasmMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLVideoElement!>!).RequestPictureInPicture() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PictureInPictureWindow!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.BeforeInstallPromptEvent!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.BeforeInstallPromptEvent!).Prompt() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PromptResponseObject!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.XRWebGLBinding!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.XRWebGLBinding!).GetCameraImage(Rask.Web.Types.XRCamera! camera) -> Rask.Web.Types.WebGLTexture!
+Rask.Web.WasmMembers.extension(Rask.Web.Types.XRWebGLBinding!).GetReflectionCubeMap(Rask.Web.Types.XRLightProbe! lightProbe) -> Rask.Web.Types.WebGLTexture!
+Rask.Web.XRWebGLBindingWasmMembers
+Rask.Web.XRWebGLBindingWasmMembers.extension(Rask.Web.XRWebGLBinding!)
+Rask.Web.XRWebGLLayerWasmMembers
+Rask.Web.XRWebGLLayerWasmMembers.extension(Rask.Web.XRWebGLLayer!)
+static Rask.Web.AudioWorkletNode.Create(Rask.Web.Types.BaseAudioContext! context, string! name) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioWorkletNode!>
+static Rask.Web.AudioWorkletNode.Create(Rask.Web.Types.BaseAudioContext! context, string! name, Rask.Web.Types.AudioWorkletNodeOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioWorkletNode!>
+static Rask.Web.AudioWorkletNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DeviceMotionEventWasmMembers.RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PermissionState>
+static Rask.Web.DeviceMotionEventWasmMembers.extension(Rask.Web.DeviceMotionEvent!).RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PermissionState>
+static Rask.Web.DeviceOrientationEventWasmMembers.RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PermissionState>
+static Rask.Web.DeviceOrientationEventWasmMembers.RequestPermission(bool absolute) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PermissionState>
+static Rask.Web.DeviceOrientationEventWasmMembers.extension(Rask.Web.DeviceOrientationEvent!).RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PermissionState>
+static Rask.Web.DeviceOrientationEventWasmMembers.extension(Rask.Web.DeviceOrientationEvent!).RequestPermission(bool absolute) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PermissionState>
+static Rask.Web.WasmMembers.GetCameraImage(this Rask.Web.Types.XRWebGLBinding! self, Rask.Web.Types.XRCamera! camera) -> Rask.Web.Types.WebGLTexture!
+static Rask.Web.WasmMembers.GetReflectionCubeMap(this Rask.Web.Types.XRWebGLBinding! self, Rask.Web.Types.XRLightProbe! lightProbe) -> Rask.Web.Types.WebGLTexture!
+static Rask.Web.WasmMembers.Prompt(this Rask.Web.Types.BeforeInstallPromptEvent! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PromptResponseObject!>
+static Rask.Web.WasmMembers.RequestPictureInPicture(this Rask.Core.IElementRef<Rask.Core.HTMLVideoElement!>! element) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PictureInPictureWindow!>
+static Rask.Web.XRWebGLBindingWasmMembers.Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGL2RenderingContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLBinding!>
+static Rask.Web.XRWebGLBindingWasmMembers.Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGLRenderingContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLBinding!>
+static Rask.Web.XRWebGLBindingWasmMembers.extension(Rask.Web.XRWebGLBinding!).Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGL2RenderingContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLBinding!>
+static Rask.Web.XRWebGLBindingWasmMembers.extension(Rask.Web.XRWebGLBinding!).Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGLRenderingContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLBinding!>
+static Rask.Web.XRWebGLLayerWasmMembers.Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGL2RenderingContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLLayer!>
+static Rask.Web.XRWebGLLayerWasmMembers.Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGL2RenderingContext! context, Rask.Web.Types.XRWebGLLayerInit! layerInit) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLLayer!>
+static Rask.Web.XRWebGLLayerWasmMembers.Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGLRenderingContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLLayer!>
+static Rask.Web.XRWebGLLayerWasmMembers.Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGLRenderingContext! context, Rask.Web.Types.XRWebGLLayerInit! layerInit) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLLayer!>
+static Rask.Web.XRWebGLLayerWasmMembers.extension(Rask.Web.XRWebGLLayer!).Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGL2RenderingContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLLayer!>
+static Rask.Web.XRWebGLLayerWasmMembers.extension(Rask.Web.XRWebGLLayer!).Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGL2RenderingContext! context, Rask.Web.Types.XRWebGLLayerInit! layerInit) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLLayer!>
+static Rask.Web.XRWebGLLayerWasmMembers.extension(Rask.Web.XRWebGLLayer!).Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGLRenderingContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLLayer!>
+static Rask.Web.XRWebGLLayerWasmMembers.extension(Rask.Web.XRWebGLLayer!).Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGLRenderingContext! context, Rask.Web.Types.XRWebGLLayerInit! layerInit) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLLayer!>

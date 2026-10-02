@@ -12,4 +12,15 @@ internal static class WebObjectArgs
     {
         ["Permissions.query.permissionDesc"] = "PermissionDescriptor",
     };
+
+    // …and where no dictionary can say it, the C# type: keyframes are CSS property names to values, any property at
+    // all, one map per keyframe (MDN's "Keyframe formats"), each value a string or a number as in JavaScript —
+    // `_box.Animate([new() { ["opacity"] = 0 }, new() { ["opacity"] = 1 }], 300)`.
+    public static readonly Dictionary<string, string> Shapes = new(StringComparer.Ordinal)
+    {
+        ["Element.animate.keyframes"] = Keyframes,
+        ["KeyframeEffect.setKeyframes.keyframes"] = Keyframes,
+    };
+
+    private const string Keyframes = "global::System.Collections.Generic.Dictionary<string, object>[]";
 }

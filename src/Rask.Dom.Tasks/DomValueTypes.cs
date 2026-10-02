@@ -97,6 +97,21 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         return false;
     }
 
+    // A C# type the generator names itself (WebObjectArgs' keyframes), registered with the JSON context like any it mapped.
+    public string Serializes(string type)
+    {
+        Serializable(type);
+        return type;
+    }
+
+    // The type an element the browser names reads as: the app's ElementRef to it, which Rask.Web's runtime sends as the
+    // element's data-rask-ref, or null.
+    public string ElementRead()
+    {
+        _serializable.Add(CorePrefix + "ElementRef");
+        return CorePrefix + "ElementRef?";
+    }
+
     // Whether a C# type this mapped (bare or qualified) is one of MDN's enums: a value type, as a C# enum is.
     public bool IsEnum(string type) => _enums[type.Substring(type.LastIndexOf('.') + 1)] is not null;
 
@@ -234,14 +249,15 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
 
     internal static readonly string[] Arrays = { "sequence<", "FrozenArray<" };
 
-    private static bool IsStringOrNumber(List<string> alternatives)
+    // A live alternative beside them (an animation's duration, `300` or a CSSNumericValue) is one C# never hands over.
+    private bool IsStringOrNumber(List<string> alternatives)
     {
-        var mapped = alternatives.Select(Primitive).ToList();
+        var mapped = alternatives.Where(a => _interfaces[a] is null || IsValue(a)).Select(Primitive).ToList();
         return mapped.Contains("string") && mapped.Any(t => t is "int" or "long" or "double") && mapped.All(t => t is "string" or "int" or "long" or "double");
     }
 
     // Whether a field's IDL type is a string or a number, alone or in a list: what StringOrNumber carries.
-    private static bool IsStringOrNumber(string idl)
+    private bool IsStringOrNumber(string idl)
     {
         var bare = ItemOf(idl);
         return bare.StartsWith("(", StringComparison.Ordinal) && IsStringOrNumber(Alternatives(bare).ToList());
@@ -338,7 +354,7 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
 
     // The converter a field's union needs, if any: a string or a number (StringOrNumber); a value or a list of it, which
     // the browser may answer with as the lone value it was set to (OneOrMany, an ICE server's urls).
-    private static string? Converter(string idl, string type)
+    private string? Converter(string idl, string type)
     {
         if (IsStringOrNumber(idl))
         {
@@ -457,7 +473,7 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
     }
 
     // `sequence<MutationRecord>?` → MutationRecord.
-    private static string ItemOf(string idl)
+    internal static string ItemOf(string idl)
     {
         var bare = idl.TrimEnd('?');
         var open = bare.IndexOf('<');

@@ -47,18 +47,56 @@ per await. `Window.MatchMedia(q).Matches` wants exactly that; a method you call 
 `Performance.Mark("start")`, wants awaiting on its own, which runs it once and keeps what it returns:
 `await using var mark = await Performance.Mark("start");`.
 
-A writable attribute that holds an object is set with one you kept, which crosses as its handle — or `null`, where MDN
-allows it:
+A method that takes an object, and a writable attribute that holds one, take one you kept, which crosses as its handle —
+or `null`, where MDN allows it. A path you have not awaited is refused with "await it first":
 
 ```csharp
+await using var hello = await SpeechSynthesisUtterance.Create("Hello");
+await hello.SetRate(1.2);
+await SpeechSynthesis.Speak(hello);
+
 await Navigator.MediaSession.SetMetadata(await MediaMetadata.Create(new() { Title = "Song" }));
 await Navigator.MediaSession.SetMetadata(null);
 ```
+
+An attribute that holds one of several kinds of object is the first MDN lists, as a call's answer is: a media element's
+`srcObject` is a `MediaStream`, so `SetSrcObject(null)` names one overload.
 
 ## Constructors and static members
 
 `new X(…)` is `X.Create(…)`, and the new object is kept: `await using var channel = await BroadcastChannel.Create("updates")`.
 A static member is on the class, as in JavaScript: `await URL.CanParse(link)`, `await Notification.RequestPermission()`.
+An event's class has its statics too, though the event itself is what a handler gets — iOS asks before it fires a
+device's motion: `var state = await DeviceOrientationEvent.RequestPermission();` (WebAssembly: in the click).
+
+## On an element ref
+
+What an element's members hand over or answer with as a live object is on its typed
+[element ref](js-interop-runtime.md#element-refs) once `Rask.Web` is imported, a chain from the element like any other:
+
+```csharp
+await using var pip = await _video.RequestPictureInPicture();     // PictureInPictureWindow — WebAssembly: in the click
+await _video.SetSrcObject(stream);                                // a MediaStream you kept; SetSrcObject(null) clears it
+await using var fade = await _box.Animate([new() { ["opacity"] = 0 }, new() { ["opacity"] = 1 }], 300);
+await using var slide = await _box.Animate(frames, new KeyframeAnimationOptions { Duration = "300", Easing = "ease-out" });
+var running = await _box.GetAnimations();                         // Animation[], each one kept
+await using var camera = await _canvas.CaptureStream();
+```
+
+Keyframes are CSS property names to values, one map per keyframe, each value a string or a number as in JavaScript.
+The options' `new()` has to name its type, since `Animate(frames, 300)` takes the duration alone too. Only calls and
+writes are here: a read of the element's own state (its `classList`, `style`, `dataset`) is the render's, and
+nothing that holds the page's nodes (an `HTMLCollection`) is generated. A ref whose element has left the page is an
+error, never the window in its place.
+
+An element the browser names — `document.fullscreenElement`, `activeElement`, `pictureInPictureElement` — cannot cross,
+but whether it is yours can: it reads as an `ElementRef` equal to the ref you rendered it with, and `null` for none or
+for one you gave no ref. A ref is its id, so `==` compares the element it names:
+
+```csharp
+var current = await Document.FullscreenElement;
+bool mine = current == _stage;                                   // readonly ElementRef<HTMLDivElement> _stage = new();
+```
 
 ## Bytes, your own types, lists and loose objects
 
@@ -175,6 +213,18 @@ await using var _ = await Navigator.Usb.OnDisconnect(async e =>
 });
 ```
 
+An event made to be acted on later — a `BeforeInstallPromptEvent`, for a PWA's own install button — is kept whole, and
+its method runs on it when you call it, in a click (WebAssembly):
+
+```csharp
+_install = await Window.OnBeforeInstallPrompt(e => _deferred = e);
+// … in the install button's click:
+var answer = await _deferred.Prompt();                            // PromptResponseObject
+var accepted = answer.UserChoice == AppBannerPromptOutcome.Accepted;
+```
+
+The spec moved the outcome from the old `userChoice` promise onto what `prompt()` answers with, so it is read there.
+
 Each one is a handle the browser holds until you dispose of it, or until the handler's component unmounts — so dispose
 of what you do not keep. An event that only ever fires on the object it names (a HID device's `inputreport`, many a
 second) leaves that field out: you are holding it already. A method or constructor
@@ -223,6 +273,10 @@ if (await Navigator.Usb.IsSupported)
 
 Elements and their attributes stay cross-engine: markup only gets what two engines ship.
 
+What is on no standards track is left out, except a short list named one by one in `scripts/mdn/refresh.mjs`
+(`NON_STANDARD`), each something a real app needs and nothing standard does: today `BeforeInstallPromptEvent`. Their
+doc comments say **Non-standard.**
+
 ## Testing
 
 `Fake()` stands in for a web object in a test, for the test's own flow, until disposed of: every chain that starts at
@@ -258,7 +312,8 @@ they read like any other and in a server app they do not compile:
 
 - **A call the browser allows only during the user's click** — `Navigator.Share(…)`,
   `Notification.RequestPermission()`, `MediaDevices.GetDisplayMedia(…)`, `ScreenOrientation.Lock(…)`,
-  `PaymentRequest.Show()`, and on element refs `RequestFullscreen()`, `RequestPointerLock()` and `ShowPicker()`.
+  `PaymentRequest.Show()`, `DeviceOrientationEvent.RequestPermission()`, and on element refs `RequestFullscreen()`,
+  `RequestPointerLock()`, `ShowPicker()` and `RequestPictureInPicture()`.
   On the server host the click's frame crosses the socket first, the browser lets the
   click go, and the call would fail with `NotAllowedError`. The IDL does not mark these; the list is Rask's
   (`src/Rask.Dom.Tasks/WebHost.cs`).

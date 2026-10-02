@@ -15,7 +15,7 @@ internal static class DomRefEmitter
 {
     // Rask owns the DOM tree, the attributes it renders and the content it diffs: a member that rewrites any of them
     // would be undone by the next render, or would undo the render. Node and EventTarget are left out whole.
-    private static readonly HashSet<string> RenderOwned = new(StringComparer.Ordinal)
+    internal static readonly HashSet<string> RenderOwned = new(StringComparer.Ordinal)
     {
         "innerHTML", "outerHTML", "innerText", "outerText", "textContent", "setAttribute", "setAttributeNS", "removeAttribute",
         "removeAttributeNS", "toggleAttribute", "setAttributeNode", "setAttributeNodeNS", "removeAttributeNode", "attachShadow",
@@ -25,7 +25,7 @@ internal static class DomRefEmitter
     };
 
     // Names an ElementRef answers itself: an extension of the same name would never be reached.
-    private static readonly HashSet<string> RefMembers = new(StringComparer.Ordinal)
+    internal static readonly HashSet<string> RefMembers = new(StringComparer.Ordinal)
     {
         "Id", "ToString", "Equals", "GetHashCode", "GetType", "Target", "Element", "Runtime",
     };

@@ -31,10 +31,23 @@ const VOID = ["area", "base", "br", "col", "embed", "hr", "img", "input", "link"
 // Specs whose elements are HTML or SVG. MathML is out of scope.
 const SPECS = { html: "html", "html-ruby-extensions": "html", SVG2: "svg", "filter-effects-1": "svg", "css-masking-1": "svg", "svg-animations": "svg" };
 
+// What BCD files as on no standards track is left out, except these web APIs, named one by one: each is what a real
+// app needs and nothing standard does instead. Its interface, members and events ship as any other, and their doc
+// comments say "Non-standard.".
+//   BeforeInstallPromptEvent  a PWA's own install button (Chromium): keep the event, call prompt() in a click later.
+const NON_STANDARD = ["BeforeInstallPromptEvent"];
+const admitted = new WeakSet();
+const admit = node => {
+  if (!node || typeof node !== "object") return;
+  if (node.__compat) admitted.add(node.__compat);
+  for (const [key, child] of Object.entries(node)) if (key !== "__compat") admit(child);
+};
+for (const name of NON_STANDARD) admit(bcd.api[name]);
+
 function ships(compat, engines = 2) {
   if (!compat) return false;
   const s = compat.status ?? {};
-  if (s.deprecated || s.standard_track === false) return false;
+  if (s.deprecated || (s.standard_track === false && !admitted.has(compat))) return false;
   let found = 0;
   for (const browsers of Object.values(ENGINES)) {
     const ok = browsers.some(browser => [compat.support?.[browser]].flat().filter(Boolean).some(e =>
@@ -63,7 +76,8 @@ function support(compat) {
   }
   return out;
 }
-const meta = compat => ({ experimental: experimental(compat), support: support(compat), mdn: mdnUrl(compat), spec: specUrl(compat) });
+const nonStandard = compat => (admitted.has(compat) && compat.status?.standard_track === false) || undefined;
+const meta = compat => ({ experimental: experimental(compat), nonStandard: nonStandard(compat), support: support(compat), mdn: mdnUrl(compat), spec: specUrl(compat) });
 
 // ---- The spec's own index of content attributes per element --------------------------------------
 // webref publishes it from the specs MDN is written from; not on npm, so it comes from webref's curated

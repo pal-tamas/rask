@@ -78,6 +78,45 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types, HashSet<st
 
         var inherited = new HashSet<string>(parent is null ? Enumerable.Empty<string>() : Fields(parent).Select(f => f.TrimStart('*')), StringComparer.Ordinal);
         _declared[name] = Own(name).Where(f => !inherited.Contains(f.Json)).ToList();
+        _methods[name] = Methods(name);
+    }
+
+    // An event's own methods, called on the event itself later — a BeforeInstallPromptEvent kept from the handler and
+    // prompted in a click (CalledLater). An event that has any is kept whole for its handler, `*` (the event itself) in
+    // its listener's list, and its methods run over that handle until the handler's component unmounts.
+    private readonly Dictionary<string, List<WebMember>> _methods = new(StringComparer.Ordinal);
+
+    public IReadOnlyDictionary<string, List<WebMember>> Methods() => _methods;
+
+    // The events whose methods are made to be called after the event: most must run while it dispatches (a navigation's
+    // intercept(), preventDefault()), which a handler on the far side of a round trip has already missed.
+    private static readonly HashSet<string> CalledLater = new(StringComparer.Ordinal) { "BeforeInstallPromptEvent" };
+
+    private List<WebMember> Methods(string name)
+    {
+        if (!CalledLater.Contains(name))
+        {
+            return new List<WebMember>();
+        }
+
+        var operations = (_interfaces[name]!["members"]?.Items ?? new List<JsonNode>())
+            .Where(m => string.Equals(m["kind"]?.AsString(), "operation", StringComparison.Ordinal));
+        var taken = new HashSet<string>(_declared[name].Select(f => f.Property), StringComparer.Ordinal) { "Chain", name };
+        return WebMember.Of(name, WebMember.Holding(operations), types, proxies, taken, new HashSet<string>(StringComparer.Ordinal), root["callbacks"]);
+    }
+
+    // Whether the event, or one it derives from, is kept whole for its methods.
+    private bool Keeps(string name)
+    {
+        for (var n = name; n is not null && _methods.TryGetValue(n, out var methods); n = _interfaces[n]!["parent"]?.AsString())
+        {
+            if (methods.Count > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // An interface's attributes whose types are values, its `any` ones (a message's data) as Any, and its live ones.
@@ -135,10 +174,16 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types, HashSet<st
         return result;
     }
 
-    // Every field the payload reads, its own and its ancestors', as its listener asks for them: a live one as `*name`.
+    // Every field the payload reads, its own and its ancestors', as its listener asks for them: a live one as `*name`,
+    // and the event itself as `*` where it is kept for its methods.
     private List<string> Fields(string name)
     {
         var result = new List<string>();
+        if (Keeps(name))
+        {
+            result.Add("*");
+        }
+
         for (var n = name; n is not null && _interfaces[n] is not null; n = _interfaces[n]!["parent"]?.AsString())
         {
             result.AddRange(Own(n).Select(f => (IsLive(f.Type) ? "*" : "") + f.Json).Where(f => !result.Contains(f)));
@@ -151,6 +196,8 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types, HashSet<st
     {
         var sb = new StringBuilder();
         DomValueTypes.Header(sb);
+        sb.AppendLine("using System.Threading.Tasks;");
+        sb.AppendLine();
         sb.AppendLine("namespace Rask.Web.Types;");
         var parents = new HashSet<string>(_declared.Keys.Select(n => _interfaces[n]!["parent"]?.AsString()).OfType<string>(), StringComparer.Ordinal);
         foreach (var payload in _declared)
@@ -176,6 +223,12 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types, HashSet<st
         sb.AppendLine();
         sb.Append("    internal ").Append(name).Append("(global::System.Text.Json.JsonElement p)").AppendLine(parent is null ? "" : " : base(p)");
         sb.AppendLine("    {");
+        var keepsItself = Keeps(name) && (parent is null || !Keeps(parent));
+        if (keepsItself)
+        {
+            sb.AppendLine("        Chain = global::Rask.Web.JsChain.KeptField(p, \"\", static c => c);");
+        }
+
         foreach (var (property, type, json, _) in fields)
         {
             sb.Append("        ").Append(string.Equals(type, Any, StringComparison.Ordinal) ? "_" + json : property).Append(" = global::Rask.Web.JsChain.");
@@ -184,6 +237,19 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types, HashSet<st
         }
 
         sb.AppendLine("    }");
+        if (keepsItself)
+        {
+            // Only an event the browser fired has one: a test's empty one has no event to call its methods on.
+            sb.AppendLine();
+            sb.AppendLine("    internal global::Rask.Web.JsChain Chain { get; } = null!;");
+        }
+
+        foreach (var method in _methods[name].Where(m => !m.Wasm))
+        {
+            sb.AppendLine();
+            method.WriteInstance(sb);
+        }
+
         foreach (var (property, type, json, data) in fields)
         {
             sb.AppendLine();

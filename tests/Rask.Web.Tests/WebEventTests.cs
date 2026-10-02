@@ -157,6 +157,27 @@ public sealed class WebEventTests
         Assert.Equal("[5]", browser.Calls[^1].ArgsJson);
     }
 
+    [Fact]
+    public async Task An_install_prompt_event_is_kept_whole_so_it_can_be_prompted_later()
+    {
+        var browser = new HostedBrowser();
+        var widget = new Widget();
+        using (FakeBrowser.Enter(browser))
+        {
+            await widget.WatchInstall();
+        }
+
+        var listen = JsonDocument.Parse(browser.Calls[0].ArgsJson!).RootElement;
+        await ScopedScript.Invoke(listen[4].GetProperty("__raskCb__").GetInt32(), JsonDocument.Parse("""[{"":{"__jsObjectId":7}}]""").RootElement);
+        browser.Answer = """{"userChoice":"accepted"}""";
+        var choice = await widget.Deferred!.Prompt();
+
+        var prompt = JsonDocument.Parse(browser.Calls[^1].ArgsJson!).RootElement;
+        Assert.StartsWith("""["*","type",""", listen[3].GetString(), StringComparison.Ordinal);
+        Assert.Equal(AppBannerPromptOutcome.Accepted, choice.UserChoice);
+        Assert.Equal((7, """[["c","prompt"]]"""), (prompt[0].GetProperty("__jsObjectId").GetInt32(), prompt[1].GetString()));
+    }
+
     // What the browser does when it fires: calls the function it was handed, with the listener's payload.
     private static Task Fire(object? callback, string args) =>
         ScopedScript.Invoke(((ScopedScript.ScriptCallback)callback!).Id, JsonDocument.Parse(args).RootElement);
@@ -166,6 +187,10 @@ public sealed class WebEventTests
         public USBDevice? Left { get; private set; }
 
         public ValueTask<IAsyncDisposable> WatchUsb() => Navigator.Usb.OnDisconnect(e => Left = e.Device);
+
+        public BeforeInstallPromptEvent? Deferred { get; private set; }
+
+        public ValueTask<IAsyncDisposable> WatchInstall() => Window.OnBeforeInstallPrompt(e => Deferred = e);
 
         public bool Wide { get; private set; }
 

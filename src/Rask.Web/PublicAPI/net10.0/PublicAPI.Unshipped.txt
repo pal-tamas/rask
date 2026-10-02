@@ -13130,8 +13130,6 @@ Rask.Web.Types.Window.OnAppInstalled(System.Action<Rask.Core.Event!>! handler) -
 Rask.Web.Types.Window.OnAppInstalled(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Web.Types.Window.OnAppInstalled(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Web.Types.Window.OnBeforeInstallPrompt(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Web.Types.Window.OnBeforeInstallPrompt(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Web.Types.Window.OnBeforeInstallPrompt(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Web.Types.Window.OnBeforeInstallPrompt(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Web.Types.Window.OnPageSwap(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Web.Types.Window.OnPageSwap(System.Action<Rask.Web.Types.PageSwapEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
@@ -14388,8 +14386,6 @@ static Rask.Web.Window.OnAppInstalled(System.Action<Rask.Core.Event!>! handler) 
 static Rask.Web.Window.OnAppInstalled(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 static Rask.Web.Window.OnAppInstalled(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 static Rask.Web.Window.OnBeforeInstallPrompt(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-static Rask.Web.Window.OnBeforeInstallPrompt(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-static Rask.Web.Window.OnBeforeInstallPrompt(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 static Rask.Web.Window.OnBeforeInstallPrompt(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 static Rask.Web.Window.OnPageSwap(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 static Rask.Web.Window.OnPageSwap(System.Action<Rask.Web.Types.PageSwapEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
@@ -16196,3 +16192,583 @@ virtual Rask.Web.Types.GPUError.PrintMembers(System.Text.StringBuilder! builder)
 Rask.Web.CookieCulturePersistence
 Rask.Web.CookieCulturePersistence.CookieCulturePersistence(System.IServiceProvider! services, Rask.Core.Globalization.RaskCultureOptions! options) -> void
 Rask.Web.CookieCulturePersistence.SaveAsync(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Web.AnalyserNode
+Rask.Web.AudioBufferSourceNode
+Rask.Web.BiquadFilterNode
+Rask.Web.CSSMatrixComponent
+Rask.Web.CSSRotate
+Rask.Web.CSSSkew
+Rask.Web.CSSSkewX
+Rask.Web.CSSSkewY
+Rask.Web.CSSTranslate
+Rask.Web.ChannelMergerNode
+Rask.Web.ChannelSplitterNode
+Rask.Web.ConstantSourceNode
+Rask.Web.ConvolverNode
+Rask.Web.DelayNode
+Rask.Web.DeviceMotionEvent
+Rask.Web.DeviceOrientationEvent
+Rask.Web.DynamicsCompressorNode
+Rask.Web.GainNode
+Rask.Web.IIRFilterNode
+Rask.Web.ImageCapture
+Rask.Web.KeyframeEffect
+Rask.Web.MediaStreamAudioDestinationNode
+Rask.Web.OscillatorNode
+Rask.Web.PannerNode
+Rask.Web.PeriodicWave
+Rask.Web.RTCEncodedAudioFrame
+Rask.Web.RTCEncodedVideoFrame
+Rask.Web.ReadableStreamBYOBReader
+Rask.Web.ReadableStreamDefaultReader
+Rask.Web.StereoPannerNode
+Rask.Web.Types.AppBannerPromptOutcome
+Rask.Web.Types.AppBannerPromptOutcome.Accepted = 0 -> Rask.Web.Types.AppBannerPromptOutcome
+Rask.Web.Types.AppBannerPromptOutcome.Dismissed = 1 -> Rask.Web.Types.AppBannerPromptOutcome
+Rask.Web.Types.AudioContext.CreateMediaStreamSource(Rask.Web.Types.MediaStream! mediaStream) -> Rask.Web.Types.MediaStreamAudioSourceNode!
+Rask.Web.Types.AudioContext.CreateMediaStreamTrackSource(Rask.Web.Types.MediaStreamTrack! mediaStreamTrack) -> Rask.Web.Types.MediaStreamTrackAudioSourceNode!
+Rask.Web.Types.AudioDecoder.Decode(Rask.Web.Types.EncodedAudioChunk! chunk) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AudioEncoder.Encode(Rask.Web.Types.AudioData! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AudioNode.Connect(Rask.Web.Types.AudioNode! destinationNode) -> Rask.Web.Types.AudioNode!
+Rask.Web.Types.AudioNode.Connect(Rask.Web.Types.AudioNode! destinationNode, int output) -> Rask.Web.Types.AudioNode!
+Rask.Web.Types.AudioNode.Connect(Rask.Web.Types.AudioNode! destinationNode, int output, int input) -> Rask.Web.Types.AudioNode!
+Rask.Web.Types.AudioNode.Connect(Rask.Web.Types.AudioParam! destinationParam) -> Rask.Web.Types.AudioNode!
+Rask.Web.Types.AudioNode.Connect(Rask.Web.Types.AudioParam! destinationParam, int output) -> Rask.Web.Types.AudioNode!
+Rask.Web.Types.AudioNode.Disconnect(Rask.Web.Types.AudioNode! destinationNode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AudioNode.Disconnect(Rask.Web.Types.AudioNode! destinationNode, int output) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AudioNode.Disconnect(Rask.Web.Types.AudioNode! destinationNode, int output, int input) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AudioNode.Disconnect(Rask.Web.Types.AudioParam! destinationParam) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AudioNode.Disconnect(Rask.Web.Types.AudioParam! destinationParam, int output) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.BackgroundFetchManager.Fetch(string! id, Rask.Web.Types.Request! requests) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRegistration!>
+Rask.Web.Types.BackgroundFetchManager.Fetch(string! id, Rask.Web.Types.Request! requests, Rask.Web.Types.BackgroundFetchOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRegistration!>
+Rask.Web.Types.BackgroundFetchRegistration.Match(Rask.Web.Types.Request! request) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRecord!>
+Rask.Web.Types.BackgroundFetchRegistration.Match(Rask.Web.Types.Request! request, Rask.Web.Types.CacheQueryOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRecord!>
+Rask.Web.Types.BackgroundFetchRegistration.MatchAll(Rask.Web.Types.Request! request) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRecord![]!>
+Rask.Web.Types.BackgroundFetchRegistration.MatchAll(Rask.Web.Types.Request! request, Rask.Web.Types.CacheQueryOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRecord![]!>
+Rask.Web.Types.BarcodeDetector.Detect(Rask.Web.Types.Blob! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DetectedBarcode![]!>
+Rask.Web.Types.BarcodeDetector.Detect(Rask.Web.Types.ImageBitmap! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DetectedBarcode![]!>
+Rask.Web.Types.BarcodeDetector.Detect(Rask.Web.Types.ImageData! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DetectedBarcode![]!>
+Rask.Web.Types.BarcodeDetector.Detect(Rask.Web.Types.OffscreenCanvas! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DetectedBarcode![]!>
+Rask.Web.Types.BarcodeDetector.Detect(Rask.Web.Types.VideoFrame! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DetectedBarcode![]!>
+Rask.Web.Types.BeforeInstallPromptEvent
+Rask.Web.Types.BeforeInstallPromptEvent.BeforeInstallPromptEvent() -> void
+Rask.Web.Types.BrowserCaptureMediaStreamTrack.CropTo(Rask.Web.Types.CropTarget? cropTarget) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.BrowserCaptureMediaStreamTrack.RestrictTo(Rask.Web.Types.RestrictionTarget? RestrictionTarget) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Cache.Add(Rask.Web.Types.Request! request) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Cache.Delete(Rask.Web.Types.Request! request) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Cache.Delete(Rask.Web.Types.Request! request, Rask.Web.Types.CacheQueryOptions! options) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Cache.Keys(Rask.Web.Types.Request! request) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Request![]!>
+Rask.Web.Types.Cache.Keys(Rask.Web.Types.Request! request, Rask.Web.Types.CacheQueryOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Request![]!>
+Rask.Web.Types.Cache.MatchAll(Rask.Web.Types.Request! request) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response![]!>
+Rask.Web.Types.Cache.MatchAll(Rask.Web.Types.Request! request, Rask.Web.Types.CacheQueryOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response![]!>
+Rask.Web.Types.Cache.Put(Rask.Web.Types.Request! request, Rask.Web.Types.Response! response) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Cache.Put(string! request, Rask.Web.Types.Response! response) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.Clip(Rask.Web.Types.Path2D! path) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.Clip(Rask.Web.Types.Path2D! path, Rask.Web.Types.CanvasFillRule fillRule) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.CreateImageData(Rask.Web.Types.ImageData! imageData) -> Rask.Web.Types.ImageData!
+Rask.Web.Types.CanvasRenderingContext2D.CreatePattern(Rask.Web.Types.ImageBitmap! image, string! repetition) -> Rask.Web.Types.CanvasPattern!
+Rask.Web.Types.CanvasRenderingContext2D.CreatePattern(Rask.Web.Types.OffscreenCanvas! image, string! repetition) -> Rask.Web.Types.CanvasPattern!
+Rask.Web.Types.CanvasRenderingContext2D.CreatePattern(Rask.Web.Types.VideoFrame! image, string! repetition) -> Rask.Web.Types.CanvasPattern!
+Rask.Web.Types.CanvasRenderingContext2D.DrawFocusIfNeeded(Rask.Web.Types.Path2D! path, Rask.Core.ElementRef! element) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Web.Types.ImageBitmap! image, double dx, double dy) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Web.Types.ImageBitmap! image, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Web.Types.ImageBitmap! image, double sx, double sy, double sw, double sh, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Web.Types.OffscreenCanvas! image, double dx, double dy) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Web.Types.OffscreenCanvas! image, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Web.Types.OffscreenCanvas! image, double sx, double sy, double sw, double sh, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Web.Types.VideoFrame! image, double dx, double dy) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Web.Types.VideoFrame! image, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Web.Types.VideoFrame! image, double sx, double sy, double sw, double sh, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.Fill(Rask.Web.Types.Path2D! path) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.Fill(Rask.Web.Types.Path2D! path, Rask.Web.Types.CanvasFillRule fillRule) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.IsPointInPath(Rask.Web.Types.Path2D! path, double x, double y) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.CanvasRenderingContext2D.IsPointInPath(Rask.Web.Types.Path2D! path, double x, double y, Rask.Web.Types.CanvasFillRule fillRule) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.CanvasRenderingContext2D.IsPointInStroke(Rask.Web.Types.Path2D! path, double x, double y) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.CanvasRenderingContext2D.PutImageData(Rask.Web.Types.ImageData! imageData, int dx, int dy) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.PutImageData(Rask.Web.Types.ImageData! imageData, int dx, int dy, int dirtyX, int dirtyY, int dirtyWidth, int dirtyHeight) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.Stroke(Rask.Web.Types.Path2D! path) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CredentialsContainer.Store(Rask.Web.Types.Credential! credential) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.DataTransferItemList.Add(Rask.Web.Types.File! data) -> Rask.Web.Types.DataTransferItem!
+Rask.Web.Types.DelegatedInkTrailPresenter.PresentationArea.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Document.ActiveElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Document.Body.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Document.DocumentElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Document.FirstElementChild.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Document.FullscreenElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Document.Head.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Document.LastElementChild.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Document.PictureInPictureElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Document.PointerLockElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Document.ScrollingElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.EffectTiming.Duration.get -> string?
+Rask.Web.Types.EffectTiming.Duration.init -> void
+Rask.Web.Types.ElementInternals.AriaActiveDescendantElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.ElementInternals.Form.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.ElementInternals.SetFormValue(Rask.Web.Types.File? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ElementInternals.SetFormValue(Rask.Web.Types.File? value, Rask.Web.Types.File? state) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ElementInternals.SetFormValue(Rask.Web.Types.File? value, Rask.Web.Types.FormData? state) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ElementInternals.SetFormValue(Rask.Web.Types.File? value, string? state) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ElementInternals.SetFormValue(Rask.Web.Types.FormData? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ElementInternals.SetFormValue(Rask.Web.Types.FormData? value, Rask.Web.Types.File? state) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ElementInternals.SetFormValue(Rask.Web.Types.FormData? value, Rask.Web.Types.FormData? state) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ElementInternals.SetFormValue(Rask.Web.Types.FormData? value, string? state) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ElementInternals.SetFormValue(string? value, Rask.Web.Types.File? state) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ElementInternals.SetFormValue(string? value, Rask.Web.Types.FormData? state) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.EncapsulatedBits
+Rask.Web.Types.EncapsulatedBits.<Clone>$() -> Rask.Web.Types.EncapsulatedBits!
+Rask.Web.Types.EncapsulatedBits.Ciphertext.get -> byte[]?
+Rask.Web.Types.EncapsulatedBits.Ciphertext.init -> void
+Rask.Web.Types.EncapsulatedBits.EncapsulatedBits() -> void
+Rask.Web.Types.EncapsulatedBits.Equals(Rask.Web.Types.EncapsulatedBits? other) -> bool
+Rask.Web.Types.EncapsulatedBits.SharedKey.get -> byte[]?
+Rask.Web.Types.EncapsulatedBits.SharedKey.init -> void
+Rask.Web.Types.EncapsulatedKey
+Rask.Web.Types.EncapsulatedKey.<Clone>$() -> Rask.Web.Types.EncapsulatedKey!
+Rask.Web.Types.EncapsulatedKey.Ciphertext.get -> byte[]?
+Rask.Web.Types.EncapsulatedKey.Ciphertext.init -> void
+Rask.Web.Types.EncapsulatedKey.EncapsulatedKey() -> void
+Rask.Web.Types.EncapsulatedKey.Equals(Rask.Web.Types.EncapsulatedKey? other) -> bool
+Rask.Web.Types.FileReader.ReadAsArrayBuffer(Rask.Web.Types.Blob! blob) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileReader.ReadAsDataURL(Rask.Web.Types.Blob! blob) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileReader.ReadAsText(Rask.Web.Types.Blob! blob) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileReader.ReadAsText(Rask.Web.Types.Blob! blob, string! encoding) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemDirectoryHandle.Resolve(Rask.Web.Types.FileSystemHandle! possibleDescendant) -> System.Threading.Tasks.ValueTask<string![]?>
+Rask.Web.Types.FileSystemHandle.IsSameEntry(Rask.Web.Types.FileSystemHandle! other) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.FileSystemWritableFileStream.Write(Rask.Web.Types.Blob! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FontFaceSet.Add(Rask.Web.Types.FontFace! font) -> Rask.Web.Types.FontFaceSet!
+Rask.Web.Types.FontFaceSet.Delete(Rask.Web.Types.FontFace! font) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.FormData.Append(string! name, Rask.Web.Types.Blob! blobValue) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FormData.Append(string! name, Rask.Web.Types.Blob! blobValue, string! filename) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FormData.Set(string! name, Rask.Web.Types.Blob! blobValue) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FormData.Set(string! name, Rask.Web.Types.Blob! blobValue, string! filename) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GetAnimationsOptions
+Rask.Web.Types.GetAnimationsOptions.<Clone>$() -> Rask.Web.Types.GetAnimationsOptions!
+Rask.Web.Types.GetAnimationsOptions.Equals(Rask.Web.Types.GetAnimationsOptions? other) -> bool
+Rask.Web.Types.GetAnimationsOptions.GetAnimationsOptions() -> void
+Rask.Web.Types.GetAnimationsOptions.PseudoElement.get -> string?
+Rask.Web.Types.GetAnimationsOptions.PseudoElement.init -> void
+Rask.Web.Types.GetAnimationsOptions.Subtree.get -> bool?
+Rask.Web.Types.GetAnimationsOptions.Subtree.init -> void
+Rask.Web.Types.IDBCursor.Source.get -> Rask.Web.Types.IDBObjectStore!
+Rask.Web.Types.IDBRequest.Source.get -> Rask.Web.Types.IDBObjectStore!
+Rask.Web.Types.ImageBitmapRenderingContext.TransferFromImageBitmap(Rask.Web.Types.ImageBitmap? bitmap) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.KeyframeAnimationOptions
+Rask.Web.Types.KeyframeAnimationOptions.Equals(Rask.Web.Types.KeyframeAnimationOptions? other) -> bool
+Rask.Web.Types.KeyframeAnimationOptions.Id.get -> string?
+Rask.Web.Types.KeyframeAnimationOptions.Id.init -> void
+Rask.Web.Types.KeyframeAnimationOptions.KeyframeAnimationOptions() -> void
+Rask.Web.Types.KeyframeEffect.SetKeyframes(System.Collections.Generic.Dictionary<string!, object!>![]? keyframes) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.KeyframeEffect.Target.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.MediaSource.RemoveSourceBuffer(Rask.Web.Types.SourceBuffer! sourceBuffer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.MediaStream.AddTrack(Rask.Web.Types.MediaStreamTrack! track) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.MediaStream.RemoveTrack(Rask.Web.Types.MediaStreamTrack! track) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Navigator.GetAutoplayPolicy(Rask.Web.Types.AudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AutoplayPolicy>
+Rask.Web.Types.Navigator.SendBeacon(string! url, Rask.Web.Types.Blob? data) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Navigator.SendBeacon(string! url, Rask.Web.Types.FormData? data) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Navigator.SendBeacon(string! url, Rask.Web.Types.ReadableStream? data) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Navigator.SendBeacon(string! url, Rask.Web.Types.URLSearchParams? data) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.Clip(Rask.Web.Types.Path2D! path) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.Clip(Rask.Web.Types.Path2D! path, Rask.Web.Types.CanvasFillRule fillRule) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.CreateImageData(Rask.Web.Types.ImageData! imageData) -> Rask.Web.Types.ImageData!
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.CreatePattern(Rask.Web.Types.ImageBitmap! image, string! repetition) -> Rask.Web.Types.CanvasPattern!
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.CreatePattern(Rask.Web.Types.OffscreenCanvas! image, string! repetition) -> Rask.Web.Types.CanvasPattern!
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.CreatePattern(Rask.Web.Types.VideoFrame! image, string! repetition) -> Rask.Web.Types.CanvasPattern!
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Web.Types.ImageBitmap! image, double dx, double dy) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Web.Types.ImageBitmap! image, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Web.Types.ImageBitmap! image, double sx, double sy, double sw, double sh, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Web.Types.OffscreenCanvas! image, double dx, double dy) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Web.Types.OffscreenCanvas! image, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Web.Types.OffscreenCanvas! image, double sx, double sy, double sw, double sh, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Web.Types.VideoFrame! image, double dx, double dy) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Web.Types.VideoFrame! image, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Web.Types.VideoFrame! image, double sx, double sy, double sw, double sh, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.Fill(Rask.Web.Types.Path2D! path) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.Fill(Rask.Web.Types.Path2D! path, Rask.Web.Types.CanvasFillRule fillRule) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.IsPointInPath(Rask.Web.Types.Path2D! path, double x, double y) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.IsPointInPath(Rask.Web.Types.Path2D! path, double x, double y, Rask.Web.Types.CanvasFillRule fillRule) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.IsPointInStroke(Rask.Web.Types.Path2D! path, double x, double y) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.PutImageData(Rask.Web.Types.ImageData! imageData, int dx, int dy) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.PutImageData(Rask.Web.Types.ImageData! imageData, int dx, int dy, int dirtyX, int dirtyY, int dirtyWidth, int dirtyHeight) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.Stroke(Rask.Web.Types.Path2D! path) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OrientationSensor.PopulateMatrix(Rask.Web.Types.DOMMatrix! targetMatrix) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Origin.IsSameOrigin(Rask.Web.Types.Origin! other) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Origin.IsSameSite(Rask.Web.Types.Origin! other) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.OscillatorNode.SetPeriodicWave(Rask.Web.Types.PeriodicWave! periodicWave) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Path2D.AddPath(Rask.Web.Types.Path2D! path) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Path2D.AddPath(Rask.Web.Types.Path2D! path, Rask.Web.Types.DOMMatrix2DInit! transform) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.PresentationConnection.Send(Rask.Web.Types.Blob! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.PromptResponseObject
+Rask.Web.Types.PromptResponseObject.<Clone>$() -> Rask.Web.Types.PromptResponseObject!
+Rask.Web.Types.PromptResponseObject.Equals(Rask.Web.Types.PromptResponseObject? other) -> bool
+Rask.Web.Types.PromptResponseObject.PromptResponseObject() -> void
+Rask.Web.Types.PromptResponseObject.UserChoice.get -> Rask.Web.Types.AppBannerPromptOutcome?
+Rask.Web.Types.PromptResponseObject.UserChoice.init -> void
+Rask.Web.Types.RTCDataChannel.Send(Rask.Web.Types.Blob! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.RTCPeerConnection.AddTransceiver(Rask.Web.Types.MediaStreamTrack! trackOrKind) -> Rask.Web.Types.RTCRtpTransceiver!
+Rask.Web.Types.RTCPeerConnection.AddTransceiver(Rask.Web.Types.MediaStreamTrack! trackOrKind, Rask.Web.Types.RTCRtpTransceiverInit! init) -> Rask.Web.Types.RTCRtpTransceiver!
+Rask.Web.Types.RTCPeerConnection.GetStats(Rask.Web.Types.MediaStreamTrack? selector) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCStatsReport!>
+Rask.Web.Types.RTCPeerConnection.RemoveTrack(Rask.Web.Types.RTCRtpSender! sender) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.RTCRtpSender.ReplaceTrack(Rask.Web.Types.MediaStreamTrack? withTrack) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Range.CompareBoundaryPoints(int how, Rask.Web.Types.Range! sourceRange) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.ReadableStream.PipeTo(Rask.Web.Types.WritableStream! destination) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStream.PipeTo(Rask.Web.Types.WritableStream! destination, Rask.Web.Types.StreamPipeOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.SVGLengthList.AppendItem(Rask.Web.Types.SVGLength! newItem) -> Rask.Web.Types.SVGLength!
+Rask.Web.Types.SVGLengthList.Initialize(Rask.Web.Types.SVGLength! newItem) -> Rask.Web.Types.SVGLength!
+Rask.Web.Types.SVGLengthList.InsertItemBefore(Rask.Web.Types.SVGLength! newItem, int index) -> Rask.Web.Types.SVGLength!
+Rask.Web.Types.SVGLengthList.ReplaceItem(Rask.Web.Types.SVGLength! newItem, int index) -> Rask.Web.Types.SVGLength!
+Rask.Web.Types.SVGNumberList.AppendItem(Rask.Web.Types.SVGNumber! newItem) -> Rask.Web.Types.SVGNumber!
+Rask.Web.Types.SVGNumberList.Initialize(Rask.Web.Types.SVGNumber! newItem) -> Rask.Web.Types.SVGNumber!
+Rask.Web.Types.SVGNumberList.InsertItemBefore(Rask.Web.Types.SVGNumber! newItem, int index) -> Rask.Web.Types.SVGNumber!
+Rask.Web.Types.SVGNumberList.ReplaceItem(Rask.Web.Types.SVGNumber! newItem, int index) -> Rask.Web.Types.SVGNumber!
+Rask.Web.Types.SVGTransformList.AppendItem(Rask.Web.Types.SVGTransform! newItem) -> Rask.Web.Types.SVGTransform!
+Rask.Web.Types.SVGTransformList.Initialize(Rask.Web.Types.SVGTransform! newItem) -> Rask.Web.Types.SVGTransform!
+Rask.Web.Types.SVGTransformList.InsertItemBefore(Rask.Web.Types.SVGTransform! newItem, int index) -> Rask.Web.Types.SVGTransform!
+Rask.Web.Types.SVGTransformList.ReplaceItem(Rask.Web.Types.SVGTransform! newItem, int index) -> Rask.Web.Types.SVGTransform!
+Rask.Web.Types.ScrollTimeline.Source.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Selection.AddRange(Rask.Web.Types.Range! range) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Selection.RemoveRange(Rask.Web.Types.Range! range) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.SpeechRecognition.Start(Rask.Web.Types.MediaStreamTrack! audioTrack) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.SpeechSynthesis.Speak(Rask.Web.Types.SpeechSynthesisUtterance! utterance) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.StorageAccessHandle.CreateObjectURL(Rask.Web.Types.Blob! obj) -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.StorageAccessHandle.CreateObjectURL(Rask.Web.Types.MediaSource! obj) -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.SubtleCrypto.DecapsulateBits(string! decapsulationAlgorithm, Rask.Web.Types.CryptoKey! decapsulationKey, byte[]! ciphertext) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.SubtleCrypto.DecapsulateKey(string! decapsulationAlgorithm, Rask.Web.Types.CryptoKey! decapsulationKey, byte[]! ciphertext, string! sharedKeyAlgorithm, bool extractable, Rask.Web.Types.KeyUsage[]! keyUsages) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CryptoKey!>
+Rask.Web.Types.SubtleCrypto.Decrypt(string! algorithm, Rask.Web.Types.CryptoKey! key, byte[]! data) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.SubtleCrypto.DeriveBits(string! algorithm, Rask.Web.Types.CryptoKey! baseKey) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.SubtleCrypto.DeriveBits(string! algorithm, Rask.Web.Types.CryptoKey! baseKey, int? length) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.SubtleCrypto.DeriveKey(string! algorithm, Rask.Web.Types.CryptoKey! baseKey, string! derivedKeyType, bool extractable, Rask.Web.Types.KeyUsage[]! keyUsages) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CryptoKey!>
+Rask.Web.Types.SubtleCrypto.EncapsulateBits(string! encapsulationAlgorithm, Rask.Web.Types.CryptoKey! encapsulationKey) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.EncapsulatedBits!>
+Rask.Web.Types.SubtleCrypto.EncapsulateKey(string! encapsulationAlgorithm, Rask.Web.Types.CryptoKey! encapsulationKey, string! sharedKeyAlgorithm, bool extractable, Rask.Web.Types.KeyUsage[]! keyUsages) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.EncapsulatedKey!>
+Rask.Web.Types.SubtleCrypto.Encrypt(string! algorithm, Rask.Web.Types.CryptoKey! key, byte[]! data) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.SubtleCrypto.GetPublicKey(Rask.Web.Types.CryptoKey! key, Rask.Web.Types.KeyUsage[]! keyUsages) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CryptoKey!>
+Rask.Web.Types.SubtleCrypto.Sign(string! algorithm, Rask.Web.Types.CryptoKey! key, byte[]! data) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.SubtleCrypto.UnwrapKey(Rask.Web.Types.KeyFormat format, byte[]! wrappedKey, Rask.Web.Types.CryptoKey! unwrappingKey, string! unwrapAlgorithm, string! unwrappedKeyAlgorithm, bool extractable, Rask.Web.Types.KeyUsage[]! keyUsages) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CryptoKey!>
+Rask.Web.Types.SubtleCrypto.Verify(string! algorithm, Rask.Web.Types.CryptoKey! key, byte[]! signature, byte[]! data) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.SubtleCrypto.WrapKey(Rask.Web.Types.KeyFormat format, Rask.Web.Types.CryptoKey! key, Rask.Web.Types.CryptoKey! wrappingKey, string! wrapAlgorithm) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.TextTrack.AddCue(Rask.Web.Types.TextTrackCue! cue) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.TextTrack.RemoveCue(Rask.Web.Types.TextTrackCue! cue) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.VideoDecoder.Decode(Rask.Web.Types.EncodedVideoChunk! chunk) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.VideoEncoder.Encode(Rask.Web.Types.VideoFrame! frame) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.VideoEncoder.Encode(Rask.Web.Types.VideoFrame! frame, Rask.Web.Types.VideoEncoderEncodeOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebSocket.Send(Rask.Web.Types.Blob! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.Blob! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.Blob! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.Blob! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.Blob! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.ImageBitmap! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.ImageBitmap! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.ImageBitmap! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.ImageBitmap! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.ImageData! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.ImageData! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.ImageData! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.ImageData! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.OffscreenCanvas! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.OffscreenCanvas! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.OffscreenCanvas! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.OffscreenCanvas! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.VideoFrame! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.VideoFrame! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.VideoFrame! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Web.Types.VideoFrame! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.Fetch(Rask.Web.Types.Request! input) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+Rask.Web.Types.Window.Fetch(Rask.Web.Types.Request! input, Rask.Web.Types.RequestInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+Rask.Web.Types.Window.FetchLater(Rask.Web.Types.Request! input) -> Rask.Web.Types.FetchLaterResult!
+Rask.Web.Types.Window.FetchLater(Rask.Web.Types.Request! input, Rask.Web.Types.DeferredRequestInit! init) -> Rask.Web.Types.FetchLaterResult!
+Rask.Web.Types.Window.FrameElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+Rask.Web.Types.Window.OnBeforeInstallPrompt(System.Action<Rask.Web.Types.BeforeInstallPromptEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnBeforeInstallPrompt(System.Func<Rask.Web.Types.BeforeInstallPromptEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.XMLHttpRequest.Send(Rask.Web.Types.Blob? body) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XMLHttpRequest.Send(Rask.Web.Types.Document? body) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XMLHttpRequest.Send(Rask.Web.Types.FormData? body) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XMLHttpRequest.Send(Rask.Web.Types.URLSearchParams? body) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XPathExpression.Evaluate(Rask.Core.ElementRef! contextNode, int type, Rask.Web.Types.XPathResult? result) -> Rask.Web.Types.XPathResult!
+Rask.Web.Types.XRFrame.CreateAnchor(Rask.Web.Types.XRRigidTransform! pose, Rask.Web.Types.XRSpace! space) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRAnchor!>
+Rask.Web.Types.XRFrame.GetDepthInformation(Rask.Web.Types.XRView! view) -> Rask.Web.Types.XRCPUDepthInformation!
+Rask.Web.Types.XRFrame.GetHitTestResults(Rask.Web.Types.XRHitTestSource! hitTestSource) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRHitTestResult![]!>
+Rask.Web.Types.XRFrame.GetHitTestResultsForTransientInput(Rask.Web.Types.XRTransientInputHitTestSource! hitTestSource) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRTransientInputHitTestResult![]!>
+Rask.Web.Types.XRFrame.GetJointPose(Rask.Web.Types.XRJointSpace! joint, Rask.Web.Types.XRSpace! baseSpace) -> Rask.Web.Types.XRJointPose!
+Rask.Web.Types.XRFrame.GetLightEstimate(Rask.Web.Types.XRLightProbe! lightProbe) -> Rask.Web.Types.XRLightEstimate!
+Rask.Web.Types.XRFrame.GetPose(Rask.Web.Types.XRSpace! space, Rask.Web.Types.XRSpace! baseSpace) -> Rask.Web.Types.XRPose!
+Rask.Web.Types.XRFrame.GetViewerPose(Rask.Web.Types.XRReferenceSpace! referenceSpace) -> Rask.Web.Types.XRViewerPose!
+Rask.Web.Types.XRHitTestResult.GetPose(Rask.Web.Types.XRSpace! baseSpace) -> Rask.Web.Types.XRPose!
+Rask.Web.Types.XRReferenceSpace.GetOffsetReferenceSpace(Rask.Web.Types.XRRigidTransform! originOffset) -> Rask.Web.Types.XRReferenceSpace!
+Rask.Web.Types.XRWebGLBinding.GetDepthInformation(Rask.Web.Types.XRView! view) -> Rask.Web.Types.XRWebGLDepthInformation!
+Rask.Web.Types.XRWebGLBinding.GetSubImage(Rask.Web.Types.XRCompositionLayer! layer, Rask.Web.Types.XRFrame! frame) -> Rask.Web.Types.XRWebGLSubImage!
+Rask.Web.Types.XRWebGLBinding.GetSubImage(Rask.Web.Types.XRCompositionLayer! layer, Rask.Web.Types.XRFrame! frame, Rask.Web.Types.XREye eye) -> Rask.Web.Types.XRWebGLSubImage!
+Rask.Web.Types.XRWebGLBinding.GetViewSubImage(Rask.Web.Types.XRProjectionLayer! layer, Rask.Web.Types.XRView! view) -> Rask.Web.Types.XRWebGLSubImage!
+Rask.Web.Types.XRWebGLLayer.GetViewport(Rask.Web.Types.XRView! view) -> Rask.Web.Types.XRViewport!
+Rask.Web.WaveShaperNode
+Rask.Web.WebElementRefMembers
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!)
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Animate(System.Collections.Generic.Dictionary<string!, object!>![]? keyframes) -> Rask.Web.Types.Animation!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Animate(System.Collections.Generic.Dictionary<string!, object!>![]? keyframes, Rask.Web.Types.KeyframeAnimationOptions! options) -> Rask.Web.Types.Animation!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Animate(System.Collections.Generic.Dictionary<string!, object!>![]? keyframes, double options) -> Rask.Web.Types.Animation!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ComputedStyleMap() -> Rask.Web.Types.StylePropertyMapReadOnly!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).GetAnimations() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Animation![]!>
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).GetAnimations(Rask.Web.Types.GetAnimationsOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Animation![]!>
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).GetClientRects() -> Rask.Web.Types.DOMRectList!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLCanvasElement!>!)
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLCanvasElement!>!).CaptureStream() -> Rask.Web.Types.MediaStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLCanvasElement!>!).CaptureStream(double frameRequestRate) -> Rask.Web.Types.MediaStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLCanvasElement!>!).TransferControlToOffscreen() -> Rask.Web.Types.OffscreenCanvas!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!)
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).SetFiles(Rask.Web.Types.FileList? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>!)
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>!).AddTextTrack(Rask.Web.Types.TextTrackKind kind) -> Rask.Web.Types.TextTrack!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>!).AddTextTrack(Rask.Web.Types.TextTrackKind kind, string! label) -> Rask.Web.Types.TextTrack!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>!).AddTextTrack(Rask.Web.Types.TextTrackKind kind, string! label, string! language) -> Rask.Web.Types.TextTrack!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>!).CaptureStream() -> Rask.Web.Types.MediaStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>!).SetMediaKeys(Rask.Web.Types.MediaKeys? mediaKeys) -> System.Threading.Tasks.ValueTask
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>!).SetSrcObject(Rask.Web.Types.MediaStream? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLVideoElement!>!)
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLVideoElement!>!).GetVideoPlaybackQuality() -> Rask.Web.Types.VideoPlaybackQuality!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGMarkerElement!>!)
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGMarkerElement!>!).SetOrientToAngle(Rask.Web.Types.SVGAngle! angle) -> System.Threading.Tasks.ValueTask
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>!)
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>!).CreateSVGAngle() -> Rask.Web.Types.SVGAngle!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>!).CreateSVGLength() -> Rask.Web.Types.SVGLength!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>!).CreateSVGNumber() -> Rask.Web.Types.SVGNumber!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>!).CreateSVGTransform() -> Rask.Web.Types.SVGTransform!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>!).CreateSVGTransformFromMatrix() -> Rask.Web.Types.SVGTransform!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>!).CreateSVGTransformFromMatrix(Rask.Web.Types.DOMMatrix2DInit! matrix) -> Rask.Web.Types.SVGTransform!
+Rask.Web.WritableStreamDefaultWriter
+Rask.Web.XRWebGLBinding
+Rask.Web.XRWebGLLayer
+override Rask.Web.Types.EncapsulatedBits.Equals(object? obj) -> bool
+override Rask.Web.Types.EncapsulatedBits.GetHashCode() -> int
+override Rask.Web.Types.EncapsulatedBits.ToString() -> string!
+override Rask.Web.Types.EncapsulatedKey.Equals(object? obj) -> bool
+override Rask.Web.Types.EncapsulatedKey.GetHashCode() -> int
+override Rask.Web.Types.EncapsulatedKey.ToString() -> string!
+override Rask.Web.Types.GetAnimationsOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.GetAnimationsOptions.GetHashCode() -> int
+override Rask.Web.Types.GetAnimationsOptions.ToString() -> string!
+override Rask.Web.Types.KeyframeAnimationOptions.<Clone>$() -> Rask.Web.Types.KeyframeAnimationOptions!
+override Rask.Web.Types.KeyframeAnimationOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.KeyframeAnimationOptions.GetHashCode() -> int
+override Rask.Web.Types.KeyframeAnimationOptions.ToString() -> string!
+override Rask.Web.Types.PromptResponseObject.Equals(object? obj) -> bool
+override Rask.Web.Types.PromptResponseObject.GetHashCode() -> int
+override Rask.Web.Types.PromptResponseObject.ToString() -> string!
+override sealed Rask.Web.Types.KeyframeAnimationOptions.Equals(Rask.Web.Types.KeyframeEffectOptions? other) -> bool
+static Rask.Web.AnalyserNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AnalyserNode!>
+static Rask.Web.AnalyserNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.AnalyserOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AnalyserNode!>
+static Rask.Web.AnalyserNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Animation.Create(Rask.Web.Types.AnimationEffect? effect) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Animation!>
+static Rask.Web.Animation.Create(Rask.Web.Types.AnimationEffect? effect, Rask.Web.Types.AnimationTimeline? timeline) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Animation!>
+static Rask.Web.AudioBufferSourceNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioBufferSourceNode!>
+static Rask.Web.AudioBufferSourceNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.AudioBufferSourceOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioBufferSourceNode!>
+static Rask.Web.AudioBufferSourceNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.BiquadFilterNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BiquadFilterNode!>
+static Rask.Web.BiquadFilterNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.BiquadFilterOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BiquadFilterNode!>
+static Rask.Web.BiquadFilterNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSMathClamp.Create(Rask.Web.Types.CSSNumericValue! lower, Rask.Web.Types.CSSNumericValue! value, Rask.Web.Types.CSSNumericValue! upper) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSMathClamp!>
+static Rask.Web.CSSMathClamp.Create(Rask.Web.Types.CSSNumericValue! lower, Rask.Web.Types.CSSNumericValue! value, double upper) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSMathClamp!>
+static Rask.Web.CSSMathClamp.Create(Rask.Web.Types.CSSNumericValue! lower, double value, Rask.Web.Types.CSSNumericValue! upper) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSMathClamp!>
+static Rask.Web.CSSMathClamp.Create(Rask.Web.Types.CSSNumericValue! lower, double value, double upper) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSMathClamp!>
+static Rask.Web.CSSMathClamp.Create(double lower, Rask.Web.Types.CSSNumericValue! value, Rask.Web.Types.CSSNumericValue! upper) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSMathClamp!>
+static Rask.Web.CSSMathClamp.Create(double lower, Rask.Web.Types.CSSNumericValue! value, double upper) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSMathClamp!>
+static Rask.Web.CSSMathClamp.Create(double lower, double value, Rask.Web.Types.CSSNumericValue! upper) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSMathClamp!>
+static Rask.Web.CSSMathInvert.Create(Rask.Web.Types.CSSNumericValue! arg) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSMathInvert!>
+static Rask.Web.CSSMathNegate.Create(Rask.Web.Types.CSSNumericValue! arg) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSMathNegate!>
+static Rask.Web.CSSMatrixComponent.Create(Rask.Web.Types.DOMMatrixReadOnly! matrix) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSMatrixComponent!>
+static Rask.Web.CSSMatrixComponent.Create(Rask.Web.Types.DOMMatrixReadOnly! matrix, Rask.Web.Types.CSSMatrixComponentOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSMatrixComponent!>
+static Rask.Web.CSSMatrixComponent.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSPerspective.Create(Rask.Web.Types.CSSKeywordValue! length) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSPerspective!>
+static Rask.Web.CSSPerspective.Create(Rask.Web.Types.CSSNumericValue! length) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSPerspective!>
+static Rask.Web.CSSRotate.Create(Rask.Web.Types.CSSNumericValue! angle) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSRotate!>
+static Rask.Web.CSSRotate.Create(Rask.Web.Types.CSSNumericValue! x, Rask.Web.Types.CSSNumericValue! y, Rask.Web.Types.CSSNumericValue! z, Rask.Web.Types.CSSNumericValue! angle) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSRotate!>
+static Rask.Web.CSSRotate.Create(Rask.Web.Types.CSSNumericValue! x, Rask.Web.Types.CSSNumericValue! y, double z, Rask.Web.Types.CSSNumericValue! angle) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSRotate!>
+static Rask.Web.CSSRotate.Create(Rask.Web.Types.CSSNumericValue! x, double y, Rask.Web.Types.CSSNumericValue! z, Rask.Web.Types.CSSNumericValue! angle) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSRotate!>
+static Rask.Web.CSSRotate.Create(Rask.Web.Types.CSSNumericValue! x, double y, double z, Rask.Web.Types.CSSNumericValue! angle) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSRotate!>
+static Rask.Web.CSSRotate.Create(double x, Rask.Web.Types.CSSNumericValue! y, Rask.Web.Types.CSSNumericValue! z, Rask.Web.Types.CSSNumericValue! angle) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSRotate!>
+static Rask.Web.CSSRotate.Create(double x, Rask.Web.Types.CSSNumericValue! y, double z, Rask.Web.Types.CSSNumericValue! angle) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSRotate!>
+static Rask.Web.CSSRotate.Create(double x, double y, Rask.Web.Types.CSSNumericValue! z, Rask.Web.Types.CSSNumericValue! angle) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSRotate!>
+static Rask.Web.CSSRotate.Create(double x, double y, double z, Rask.Web.Types.CSSNumericValue! angle) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSRotate!>
+static Rask.Web.CSSRotate.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSScale.Create(Rask.Web.Types.CSSNumericValue! x, Rask.Web.Types.CSSNumericValue! y) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSScale!>
+static Rask.Web.CSSScale.Create(Rask.Web.Types.CSSNumericValue! x, Rask.Web.Types.CSSNumericValue! y, Rask.Web.Types.CSSNumericValue! z) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSScale!>
+static Rask.Web.CSSScale.Create(Rask.Web.Types.CSSNumericValue! x, Rask.Web.Types.CSSNumericValue! y, double z) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSScale!>
+static Rask.Web.CSSScale.Create(Rask.Web.Types.CSSNumericValue! x, double y) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSScale!>
+static Rask.Web.CSSScale.Create(Rask.Web.Types.CSSNumericValue! x, double y, Rask.Web.Types.CSSNumericValue! z) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSScale!>
+static Rask.Web.CSSScale.Create(Rask.Web.Types.CSSNumericValue! x, double y, double z) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSScale!>
+static Rask.Web.CSSScale.Create(double x, Rask.Web.Types.CSSNumericValue! y) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSScale!>
+static Rask.Web.CSSScale.Create(double x, Rask.Web.Types.CSSNumericValue! y, Rask.Web.Types.CSSNumericValue! z) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSScale!>
+static Rask.Web.CSSScale.Create(double x, Rask.Web.Types.CSSNumericValue! y, double z) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSScale!>
+static Rask.Web.CSSScale.Create(double x, double y, Rask.Web.Types.CSSNumericValue! z) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSScale!>
+static Rask.Web.CSSSkew.Create(Rask.Web.Types.CSSNumericValue! ax, Rask.Web.Types.CSSNumericValue! ay) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSSkew!>
+static Rask.Web.CSSSkew.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSSkewX.Create(Rask.Web.Types.CSSNumericValue! ax) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSSkewX!>
+static Rask.Web.CSSSkewX.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSSkewY.Create(Rask.Web.Types.CSSNumericValue! ay) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSSkewY!>
+static Rask.Web.CSSSkewY.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSTranslate.Create(Rask.Web.Types.CSSNumericValue! x, Rask.Web.Types.CSSNumericValue! y) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSTranslate!>
+static Rask.Web.CSSTranslate.Create(Rask.Web.Types.CSSNumericValue! x, Rask.Web.Types.CSSNumericValue! y, Rask.Web.Types.CSSNumericValue! z) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSTranslate!>
+static Rask.Web.CSSTranslate.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSVariableReferenceValue.Create(string! variable, Rask.Web.Types.CSSUnparsedValue? fallback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSVariableReferenceValue!>
+static Rask.Web.ChannelMergerNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ChannelMergerNode!>
+static Rask.Web.ChannelMergerNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.ChannelMergerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ChannelMergerNode!>
+static Rask.Web.ChannelMergerNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ChannelSplitterNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ChannelSplitterNode!>
+static Rask.Web.ChannelSplitterNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.ChannelSplitterOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ChannelSplitterNode!>
+static Rask.Web.ChannelSplitterNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ConstantSourceNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ConstantSourceNode!>
+static Rask.Web.ConstantSourceNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.ConstantSourceOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ConstantSourceNode!>
+static Rask.Web.ConstantSourceNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ConvolverNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ConvolverNode!>
+static Rask.Web.ConvolverNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.ConvolverOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ConvolverNode!>
+static Rask.Web.ConvolverNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DelayNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DelayNode!>
+static Rask.Web.DelayNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.DelayOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DelayNode!>
+static Rask.Web.DelayNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DeviceMotionEvent.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DeviceOrientationEvent.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Document.ActiveElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+static Rask.Web.Document.Body.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+static Rask.Web.Document.DocumentElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+static Rask.Web.Document.FirstElementChild.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+static Rask.Web.Document.FullscreenElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+static Rask.Web.Document.Head.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+static Rask.Web.Document.LastElementChild.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+static Rask.Web.Document.PictureInPictureElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+static Rask.Web.Document.PointerLockElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+static Rask.Web.Document.ScrollingElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+static Rask.Web.DynamicsCompressorNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DynamicsCompressorNode!>
+static Rask.Web.DynamicsCompressorNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.DynamicsCompressorOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DynamicsCompressorNode!>
+static Rask.Web.DynamicsCompressorNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.GainNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GainNode!>
+static Rask.Web.GainNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.GainOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GainNode!>
+static Rask.Web.GainNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.IIRFilterNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.IIRFilterOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.IIRFilterNode!>
+static Rask.Web.IIRFilterNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ImageCapture.Create(Rask.Web.Types.MediaStreamTrack! videoTrack) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageCapture!>
+static Rask.Web.ImageCapture.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.KeyframeEffect.Create(Rask.Web.Types.KeyframeEffect! source) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.KeyframeEffect!>
+static Rask.Web.KeyframeEffect.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.MediaRecorder.Create(Rask.Web.Types.MediaStream! stream) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaRecorder!>
+static Rask.Web.MediaRecorder.Create(Rask.Web.Types.MediaStream! stream, Rask.Web.Types.MediaRecorderOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaRecorder!>
+static Rask.Web.MediaStream.Create(Rask.Web.Types.MediaStream! stream) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStream!>
+static Rask.Web.MediaStreamAudioDestinationNode.Create(Rask.Web.Types.AudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStreamAudioDestinationNode!>
+static Rask.Web.MediaStreamAudioDestinationNode.Create(Rask.Web.Types.AudioContext! context, Rask.Web.Types.AudioNodeOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStreamAudioDestinationNode!>
+static Rask.Web.MediaStreamAudioDestinationNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Navigator.GetAutoplayPolicy(Rask.Web.Types.AudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AutoplayPolicy>
+static Rask.Web.Navigator.SendBeacon(string! url, Rask.Web.Types.Blob? data) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Navigator.SendBeacon(string! url, Rask.Web.Types.FormData? data) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Navigator.SendBeacon(string! url, Rask.Web.Types.ReadableStream? data) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Navigator.SendBeacon(string! url, Rask.Web.Types.URLSearchParams? data) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.OscillatorNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.OscillatorNode!>
+static Rask.Web.OscillatorNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.OscillatorOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.OscillatorNode!>
+static Rask.Web.OscillatorNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.PannerNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PannerNode!>
+static Rask.Web.PannerNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.PannerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PannerNode!>
+static Rask.Web.PannerNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Path2D.Create(Rask.Web.Types.Path2D! path) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Path2D!>
+static Rask.Web.PeriodicWave.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PeriodicWave!>
+static Rask.Web.PeriodicWave.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.PeriodicWaveOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PeriodicWave!>
+static Rask.Web.PeriodicWave.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.RTCEncodedAudioFrame.Create(Rask.Web.Types.RTCEncodedAudioFrame! originalFrame) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCEncodedAudioFrame!>
+static Rask.Web.RTCEncodedAudioFrame.Create(Rask.Web.Types.RTCEncodedAudioFrame! originalFrame, Rask.Web.Types.RTCEncodedAudioFrameOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCEncodedAudioFrame!>
+static Rask.Web.RTCEncodedAudioFrame.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.RTCEncodedVideoFrame.Create(Rask.Web.Types.RTCEncodedVideoFrame! originalFrame) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCEncodedVideoFrame!>
+static Rask.Web.RTCEncodedVideoFrame.Create(Rask.Web.Types.RTCEncodedVideoFrame! originalFrame, Rask.Web.Types.RTCEncodedVideoFrameOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCEncodedVideoFrame!>
+static Rask.Web.RTCEncodedVideoFrame.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.RTCRtpScriptTransform.Create(Rask.Web.Types.Worker! workerOrWorkerAndParameters) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpScriptTransform!>
+static Rask.Web.RTCRtpScriptTransform.Create<TOptions>(Rask.Web.Types.Worker! workerOrWorkerAndParameters, TOptions options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpScriptTransform!>
+static Rask.Web.ReadableStreamBYOBReader.Create(Rask.Web.Types.ReadableStream! stream) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStreamBYOBReader!>
+static Rask.Web.ReadableStreamBYOBReader.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ReadableStreamDefaultReader.Create(Rask.Web.Types.ReadableStream! stream) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStreamDefaultReader!>
+static Rask.Web.ReadableStreamDefaultReader.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Request.Create(Rask.Web.Types.Request! input) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Request!>
+static Rask.Web.Request.Create(Rask.Web.Types.Request! input, Rask.Web.Types.RequestInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Request!>
+static Rask.Web.Response.Create(Rask.Web.Types.Blob? body) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Response.Create(Rask.Web.Types.Blob? body, Rask.Web.Types.ResponseInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Response.Create(Rask.Web.Types.FormData? body) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Response.Create(Rask.Web.Types.FormData? body, Rask.Web.Types.ResponseInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Response.Create(Rask.Web.Types.ReadableStream? body) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Response.Create(Rask.Web.Types.ReadableStream? body, Rask.Web.Types.ResponseInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Response.Create(Rask.Web.Types.URLSearchParams? body) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Response.Create(Rask.Web.Types.URLSearchParams? body, Rask.Web.Types.ResponseInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.SpeechSynthesis.Speak(Rask.Web.Types.SpeechSynthesisUtterance! utterance) -> System.Threading.Tasks.ValueTask
+static Rask.Web.StereoPannerNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.StereoPannerNode!>
+static Rask.Web.StereoPannerNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.StereoPannerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.StereoPannerNode!>
+static Rask.Web.StereoPannerNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Types.EncapsulatedBits.operator !=(Rask.Web.Types.EncapsulatedBits? left, Rask.Web.Types.EncapsulatedBits? right) -> bool
+static Rask.Web.Types.EncapsulatedBits.operator ==(Rask.Web.Types.EncapsulatedBits? left, Rask.Web.Types.EncapsulatedBits? right) -> bool
+static Rask.Web.Types.EncapsulatedKey.operator !=(Rask.Web.Types.EncapsulatedKey? left, Rask.Web.Types.EncapsulatedKey? right) -> bool
+static Rask.Web.Types.EncapsulatedKey.operator ==(Rask.Web.Types.EncapsulatedKey? left, Rask.Web.Types.EncapsulatedKey? right) -> bool
+static Rask.Web.Types.GetAnimationsOptions.operator !=(Rask.Web.Types.GetAnimationsOptions? left, Rask.Web.Types.GetAnimationsOptions? right) -> bool
+static Rask.Web.Types.GetAnimationsOptions.operator ==(Rask.Web.Types.GetAnimationsOptions? left, Rask.Web.Types.GetAnimationsOptions? right) -> bool
+static Rask.Web.Types.KeyframeAnimationOptions.operator !=(Rask.Web.Types.KeyframeAnimationOptions? left, Rask.Web.Types.KeyframeAnimationOptions? right) -> bool
+static Rask.Web.Types.KeyframeAnimationOptions.operator ==(Rask.Web.Types.KeyframeAnimationOptions? left, Rask.Web.Types.KeyframeAnimationOptions? right) -> bool
+static Rask.Web.Types.PromptResponseObject.operator !=(Rask.Web.Types.PromptResponseObject? left, Rask.Web.Types.PromptResponseObject? right) -> bool
+static Rask.Web.Types.PromptResponseObject.operator ==(Rask.Web.Types.PromptResponseObject? left, Rask.Web.Types.PromptResponseObject? right) -> bool
+static Rask.Web.URL.CreateObjectURL(Rask.Web.Types.Blob! obj) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Web.URL.CreateObjectURL(Rask.Web.Types.MediaSource! obj) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Web.VideoFrame.Create(Rask.Web.Types.ImageBitmap! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoFrame!>
+static Rask.Web.VideoFrame.Create(Rask.Web.Types.ImageBitmap! image, Rask.Web.Types.VideoFrameInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoFrame!>
+static Rask.Web.VideoFrame.Create(Rask.Web.Types.OffscreenCanvas! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoFrame!>
+static Rask.Web.VideoFrame.Create(Rask.Web.Types.OffscreenCanvas! image, Rask.Web.Types.VideoFrameInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoFrame!>
+static Rask.Web.VideoFrame.Create(Rask.Web.Types.VideoFrame! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoFrame!>
+static Rask.Web.VideoFrame.Create(Rask.Web.Types.VideoFrame! image, Rask.Web.Types.VideoFrameInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoFrame!>
+static Rask.Web.WaveShaperNode.Create(Rask.Web.Types.BaseAudioContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WaveShaperNode!>
+static Rask.Web.WaveShaperNode.Create(Rask.Web.Types.BaseAudioContext! context, Rask.Web.Types.WaveShaperOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WaveShaperNode!>
+static Rask.Web.WaveShaperNode.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.WebElementRefMembers.AddTextTrack(this Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>! element, Rask.Web.Types.TextTrackKind kind) -> Rask.Web.Types.TextTrack!
+static Rask.Web.WebElementRefMembers.AddTextTrack(this Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>! element, Rask.Web.Types.TextTrackKind kind, string! label) -> Rask.Web.Types.TextTrack!
+static Rask.Web.WebElementRefMembers.AddTextTrack(this Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>! element, Rask.Web.Types.TextTrackKind kind, string! label, string! language) -> Rask.Web.Types.TextTrack!
+static Rask.Web.WebElementRefMembers.Animate(this Rask.Core.IElementRef<Rask.Core.Element!>! element, System.Collections.Generic.Dictionary<string!, object!>![]? keyframes) -> Rask.Web.Types.Animation!
+static Rask.Web.WebElementRefMembers.Animate(this Rask.Core.IElementRef<Rask.Core.Element!>! element, System.Collections.Generic.Dictionary<string!, object!>![]? keyframes, Rask.Web.Types.KeyframeAnimationOptions! options) -> Rask.Web.Types.Animation!
+static Rask.Web.WebElementRefMembers.Animate(this Rask.Core.IElementRef<Rask.Core.Element!>! element, System.Collections.Generic.Dictionary<string!, object!>![]? keyframes, double options) -> Rask.Web.Types.Animation!
+static Rask.Web.WebElementRefMembers.CaptureStream(this Rask.Core.IElementRef<Rask.Core.HTMLCanvasElement!>! element) -> Rask.Web.Types.MediaStream!
+static Rask.Web.WebElementRefMembers.CaptureStream(this Rask.Core.IElementRef<Rask.Core.HTMLCanvasElement!>! element, double frameRequestRate) -> Rask.Web.Types.MediaStream!
+static Rask.Web.WebElementRefMembers.CaptureStream(this Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>! element) -> Rask.Web.Types.MediaStream!
+static Rask.Web.WebElementRefMembers.ComputedStyleMap(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.StylePropertyMapReadOnly!
+static Rask.Web.WebElementRefMembers.CreateSVGAngle(this Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>! element) -> Rask.Web.Types.SVGAngle!
+static Rask.Web.WebElementRefMembers.CreateSVGLength(this Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>! element) -> Rask.Web.Types.SVGLength!
+static Rask.Web.WebElementRefMembers.CreateSVGNumber(this Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>! element) -> Rask.Web.Types.SVGNumber!
+static Rask.Web.WebElementRefMembers.CreateSVGTransform(this Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>! element) -> Rask.Web.Types.SVGTransform!
+static Rask.Web.WebElementRefMembers.CreateSVGTransformFromMatrix(this Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>! element) -> Rask.Web.Types.SVGTransform!
+static Rask.Web.WebElementRefMembers.CreateSVGTransformFromMatrix(this Rask.Core.IElementRef<Rask.Core.SVGSVGElement!>! element, Rask.Web.Types.DOMMatrix2DInit! matrix) -> Rask.Web.Types.SVGTransform!
+static Rask.Web.WebElementRefMembers.GetAnimations(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Animation![]!>
+static Rask.Web.WebElementRefMembers.GetAnimations(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Web.Types.GetAnimationsOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Animation![]!>
+static Rask.Web.WebElementRefMembers.GetClientRects(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.DOMRectList!
+static Rask.Web.WebElementRefMembers.GetVideoPlaybackQuality(this Rask.Core.IElementRef<Rask.Core.HTMLVideoElement!>! element) -> Rask.Web.Types.VideoPlaybackQuality!
+static Rask.Web.WebElementRefMembers.SetFiles(this Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>! element, Rask.Web.Types.FileList? value) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WebElementRefMembers.SetMediaKeys(this Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>! element, Rask.Web.Types.MediaKeys? mediaKeys) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WebElementRefMembers.SetOrientToAngle(this Rask.Core.IElementRef<Rask.Core.SVGMarkerElement!>! element, Rask.Web.Types.SVGAngle! angle) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WebElementRefMembers.SetSrcObject(this Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>! element, Rask.Web.Types.MediaStream? value) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WebElementRefMembers.TransferControlToOffscreen(this Rask.Core.IElementRef<Rask.Core.HTMLCanvasElement!>! element) -> Rask.Web.Types.OffscreenCanvas!
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.Blob! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.Blob! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.Blob! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.Blob! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.ImageBitmap! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.ImageBitmap! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.ImageBitmap! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.ImageBitmap! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.ImageData! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.ImageData! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.ImageData! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.ImageData! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.OffscreenCanvas! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.OffscreenCanvas! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.OffscreenCanvas! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.OffscreenCanvas! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.VideoFrame! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.VideoFrame! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.VideoFrame! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Web.Types.VideoFrame! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.Fetch(Rask.Web.Types.Request! input) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Window.Fetch(Rask.Web.Types.Request! input, Rask.Web.Types.RequestInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Window.FetchLater(Rask.Web.Types.Request! input) -> Rask.Web.Types.FetchLaterResult!
+static Rask.Web.Window.FetchLater(Rask.Web.Types.Request! input, Rask.Web.Types.DeferredRequestInit! init) -> Rask.Web.Types.FetchLaterResult!
+static Rask.Web.Window.FrameElement.get -> System.Threading.Tasks.ValueTask<Rask.Core.ElementRef?>
+static Rask.Web.Window.OnBeforeInstallPrompt(System.Action<Rask.Web.Types.BeforeInstallPromptEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnBeforeInstallPrompt(System.Func<Rask.Web.Types.BeforeInstallPromptEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.WritableStreamDefaultWriter.Create(Rask.Web.Types.WritableStream! stream) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WritableStreamDefaultWriter!>
+static Rask.Web.WritableStreamDefaultWriter.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.XRRay.Create(Rask.Web.Types.XRRigidTransform! transform) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRRay!>
+static Rask.Web.XRWebGLBinding.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.XRWebGLLayer.GetNativeFramebufferScaleFactor(Rask.Web.Types.XRSession! session) -> System.Threading.Tasks.ValueTask<double>
+static Rask.Web.XRWebGLLayer.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>

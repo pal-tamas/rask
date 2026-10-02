@@ -58,6 +58,23 @@ public class ElementRef : IElementRef<Element>
 
     public override string ToString() => Id;
 
+    // A ref IS its id: the one the browser names back (Rask.Web's `await Document.FullscreenElement`) is a new
+    // ElementRef with your ref's id, and equal to it — `current == _stage` asks "is it my element?".
+
+    /// <summary>Whether <paramref name="obj" /> is a ref to the same element: one with the same <see cref="Id" />.</summary>
+    public override bool Equals(object? obj) => obj is ElementRef other && string.Equals(Id, other.Id, StringComparison.Ordinal);
+
+    /// <summary>A hash of the <see cref="Id" />, consistent with <see cref="Equals(object)" />.</summary>
+    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Id);
+
+#pragma warning disable S3875 // an identity token, as Uri is: == that compared instances would answer the browser's "is it mine?" with false
+    /// <summary>Whether both are refs to the same element, or both null.</summary>
+    public static bool operator ==(ElementRef? left, ElementRef? right) => left?.Equals(right) ?? right is null;
+#pragma warning restore S3875
+
+    /// <summary>Whether they are refs to different elements.</summary>
+    public static bool operator !=(ElementRef? left, ElementRef? right) => !(left == right);
+
     internal void AttachTo(Element element)
     {
         if (!Accepts(element))

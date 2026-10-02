@@ -13367,3 +13367,7 @@ Rask.Core.DOMRectReadOnly.Top.get -> double
 Rask.Core.DOMRectReadOnly.Width.get -> double
 Rask.Core.DOMRectReadOnly.X.get -> double
 Rask.Core.DOMRectReadOnly.Y.get -> double
+override Rask.Core.ElementRef.Equals(object? obj) -> bool
+override Rask.Core.ElementRef.GetHashCode() -> int
+static Rask.Core.ElementRef.operator !=(Rask.Core.ElementRef? left, Rask.Core.ElementRef? right) -> bool
+static Rask.Core.ElementRef.operator ==(Rask.Core.ElementRef? left, Rask.Core.ElementRef? right) -> bool

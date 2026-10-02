@@ -31,6 +31,7 @@ internal sealed class JsChain
     internal const char StepCall = 'c';
     internal const char StepWrite = 's';
     internal const char StepNew = 'n';
+    internal const char StepElement = 'e';
 
     // What JSInterop's InvokeAsync<T> asks of a result type, so the trimmer keeps it deserializable.
     private const DynamicallyAccessedMemberTypes Json =
@@ -72,6 +73,10 @@ internal sealed class JsChain
     }
 
     internal static JsChain Window { get; } = new(null, StepRoot, null, null);
+
+    // A path from an element ref's element (`_video.RequestPictureInPicture()`): the ref rides beside the steps, as an
+    // element argument does, and runs in the browser its element was rendered in.
+    internal static JsChain Element(ElementRef element) => new(Window, StepElement, "", [element]);
 
     // A chain that is an object the browser holds for us rather than a path to one.
     internal bool IsKept => _kind == StepRoot && (_handle is not null || _faked is not null);
@@ -423,6 +428,21 @@ internal sealed class JsChain
         return [Start._handle, steps, .. extras];
     }
 
+    // The element ref a chain starts from, if it does: its first step.
+    private ElementRef? FromElement
+    {
+        get
+        {
+            var chain = this;
+            while (chain._parent is { _kind: not StepRoot } parent)
+            {
+                chain = parent;
+            }
+
+            return chain._kind == StepElement ? (ElementRef)chain._args![0]! : null;
+        }
+    }
+
     private JsChain Start
     {
         get
@@ -437,9 +457,10 @@ internal sealed class JsChain
         }
     }
 
-    // The runtime of the object the chain started from, else the page handling the current event.
+    // The runtime of the object the chain started from, or of the element, else the page handling the current event.
     private IJSRuntime Runtime =>
         Start._runtime
+        ?? FromElement?.Runtime
         ?? AmbientServices.Current?.GetService<IJSRuntime>()
         ?? throw new InvalidOperationException(
             "A web API was called outside a page: call it from an event handler or from OnRendered, where the page is live.");

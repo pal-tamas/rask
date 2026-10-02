@@ -27,6 +27,18 @@ public partial class ElementRefTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_ref_read_back_from_the_browser_equals_the_one_you_rendered_with()
+    {
+        var stage = new ElementRef<HTMLDivElement>();
+
+        var back = JsonSerializer.Deserialize<ElementRef>($"{{\"__raskRef__\":\"{stage.Id}\"}}");
+
+        Assert.True(back == stage);
+        Assert.Equal(stage.GetHashCode(), back!.GetHashCode());
+        Assert.True(back != ElementRef.New());
+    }
+
+    [Fact]
     public void An_element_with_a_ref_emits_data_rask_ref()
     {
         var r = ElementRef.New();

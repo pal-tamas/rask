@@ -37,17 +37,21 @@ window.__raskEl = window.__raskEl || {
 };
 
 // Rask.Web's generated globals and MDN interfaces (`Navigator.Clipboard.WriteText("hi")`): a chain of property reads
-// ("g"), method calls ("c"), constructors ("n") and one write ("s") from the window, or from an object a chain kept (an IJSObjectReference,
-// revived to the object), run in one round trip. The steps arrive as JSON Rask.Web wrote with its own metadata; their
+// ("g"), method calls ("c"), constructors ("n") and one write ("s") from the window, from an object a chain kept (an IJSObjectReference,
+// revived to the object), or from an element ref's element ("e", the ref revived beside the steps), run in one round trip. The steps arrive as JSON Rask.Web wrote with its own metadata; their
 // names come from its generated code, so only MDN's members are ever reached.
-type RaskWebStep = [kind: "g" | "c" | "n" | "s", name: string, args?: unknown[]];
+type RaskWebStep = [kind: "e" | "g" | "c" | "n" | "s", name: string, args?: unknown[]];
 const raskWebUnsafe = new Set(["__proto__", "prototype", "constructor"]);
 const raskWebWalk = (root: unknown, steps: RaskWebStep[]): unknown => {
     let target = (root ?? window) as Record<string, unknown> | null | undefined;
     for (const [kind, name, args] of steps) {
         if (raskWebUnsafe.has(name)) throw new Error(`Rask: ${name} is not a web API member`);
         if (target == null) throw new Error(`Rask: there is no object to read ${name} from`);
-        if (kind === "g") {
+        if (kind === "e") {
+            // Never the window in its place: a ref whose element has left the page is an error, not a write to window.
+            target = args?.[0] as Record<string, unknown> | null | undefined;
+            if (target == null) throw new Error("Rask: an element ref found no element on the page");
+        } else if (kind === "g") {
             target = target[name] as Record<string, unknown> | null | undefined;
         } else if (kind === "c") {
             const fn = target[name];
@@ -103,7 +107,8 @@ const raskWebSteps = (steps: string, extras: unknown[]): RaskWebStep[] =>
 // What crosses back to C# as a value. An object that serializes itself (DOMRect's toJSON) or is plain stays as it is;
 // one that is only the browser's — an IntersectionObserverEntry, a DOMException — crosses as the fields it can be
 // read for, which JSON alone would turn into {}. A buffer, or a view of one, crosses as its bytes in base64, which C#
-// reads as a byte[]. A node, a window or a function does not cross.
+// reads as a byte[]. An element crosses as the app's ElementRef to it, by its data-rask-ref, or not at all; another node,
+// a window or a function does not cross.
 const raskWebBase64 = (value: ArrayBuffer | ArrayBufferView): string => {
     const bytes = value instanceof ArrayBuffer ? new Uint8Array(value) : new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
     let binary = "";
@@ -114,6 +119,7 @@ const raskWebData = (value: unknown, depth = 0): unknown => {
     if (typeof value === "function") return undefined;
     if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return raskWebBase64(value);
     if (value === null || typeof value !== "object") return value;
+    if (value instanceof Element && value.hasAttribute("data-rask-ref")) return { __raskRef__: value.getAttribute("data-rask-ref") };
     if (depth > 4 || value instanceof Node || value === window) return undefined;
     if (Array.isArray(value)) return value.map(v => raskWebData(v, depth + 1));
     if (typeof (value as { toJSON?: unknown }).toJSON === "function") return value;
@@ -162,7 +168,8 @@ window.__raskWeb = window.__raskWeb || {
             const payload: Record<string, unknown> = {};
             for (const field of names) {
                 const name = field.replace(/^\*/, "");
-                const value = (event as unknown as Record<string, unknown>)[name];
+                // A bare `*` is the event itself, kept for its own methods (a BeforeInstallPromptEvent's prompt()).
+                const value = name ? (event as unknown as Record<string, unknown>)[name] : event;
                 payload[name] = field === name ? raskWebData(value)
                     : value == null ? null : window.DotNet.createJSObjectReference?.(value);
             }

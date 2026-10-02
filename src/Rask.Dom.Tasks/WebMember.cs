@@ -92,15 +92,24 @@ internal sealed class WebMember
     public static List<WebMember> StaticsOf(string iface, JsonNode data, DomValueTypes types, HashSet<string> proxies, HashSet<string> taken)
     {
         var root = $"global::Rask.Web.JsChain.Window.Get(\"{iface}\")";
-        var statics = new JsonNode(JsonKind.Object, 0, 0);
-        statics.Members.Add(new KeyValuePair<string, JsonNode>("members", data["statics"] ?? new JsonNode(JsonKind.Array, 0, 0)));
-        return Of(iface, statics, types, proxies, taken, new HashSet<string>(StringComparer.Ordinal))
+        return Of(iface, Holding(data["statics"]?.Items ?? new List<JsonNode>()), types, proxies, taken, new HashSet<string>(StringComparer.Ordinal))
             .Select(m => m.AsStatic(root)).ToList();
+    }
+
+    // An interface's data holding only these members, for Of to write: its statics, or a subset of its members.
+    public static JsonNode Holding(IEnumerable<JsonNode> members)
+    {
+        var list = new JsonNode(JsonKind.Array, 0, 0);
+        list.Items.AddRange(members);
+        var data = new JsonNode(JsonKind.Object, 0, 0);
+        data.Members.Add(new KeyValuePair<string, JsonNode>("members", list));
+        return data;
     }
 
     // `new X(…)` as X.Create(…): the new object, kept in the browser. `hidden` holds the parameter types of a base's
     // Create this one hides (EventTarget has a constructor too).
-    public static List<WebMember> ConstructorsOf(string iface, JsonNode data, DomValueTypes types, HashSet<string> hidden, JsonNode? callbacks)
+    public static List<WebMember> ConstructorsOf(
+        string iface, JsonNode data, DomValueTypes types, HashSet<string> proxies, HashSet<string> hidden, JsonNode? callbacks)
     {
         var result = new List<WebMember>();
         var proxy = TypesNs + iface;
@@ -113,7 +122,7 @@ internal sealed class WebMember
                 continue;
             }
 
-            var distinct = DomRefEmitter.Prefixes(args).SelectMany(prefix => Expand(prefix, types, callbacks))
+            var distinct = DomRefEmitter.Prefixes(args).SelectMany(prefix => Expand(prefix, types, callbacks, proxies))
                 .Where(p => signatures.Add(string.Join(",", p.Select(x => x.Type))));
             foreach (var parameters in distinct)
             {
@@ -124,7 +133,7 @@ internal sealed class WebMember
                     $"ValueTask<{proxy}>", "Create", string.Join(", ", parameters.Select(p => p.Type + " " + p.Name)), names,
                     $"global::Rask.Web.JsChain.Window.New(\"{iface}\"{array}).Keep(static c => new {proxy}(c))",
                     hidden.Contains(typesOnly) ? "static new " : "static ", typesOnly)
-                { Generics = GenericsOf(parameters) });
+                { Generics = GenericsOf(parameters), Wasm = WebHost.Mentions(typesOnly) });
             }
         }
 
@@ -132,12 +141,12 @@ internal sealed class WebMember
     }
 
     // Every combination of the arguments' types that crosses the wire, each with how it goes into the call: a value
-    // as itself, an element as its ElementRef, a callback as a C# handler handed over by JsChain's Callback, or Awaited
-    // for one whose result the browser waits on. A method with one callback takes it sync or async; with more, each is
+    // as itself, an element as its ElementRef, a live object as one you kept (`proxies`), which crosses as its handle,
+    // a callback as a C# handler handed over by JsChain's Callback, or Awaited for one whose result the browser waits on. A method with one callback takes it sync or async; with more, each is
     // an Action. An `any` is the caller's own type, TMessage, which JsChain's Any hands the host's runtime to write; an
     // `object` is the dictionary WebObjectArgs names for it (`owner` is Interface.member), else nothing.
     internal static IEnumerable<List<(string Type, string Name, string Arg)>> Expand(
-        List<JsonNode> args, DomValueTypes types, JsonNode? callbacks, string? owner = null)
+        List<JsonNode> args, DomValueTypes types, JsonNode? callbacks, HashSet<string> proxies, string? owner = null)
     {
         IEnumerable<List<(string Type, string Name, string Arg)>> combos = new[] { new List<(string Type, string Name, string Arg)>() };
         foreach (var a in args)
@@ -160,9 +169,17 @@ internal sealed class WebMember
                     alternatives.Add((types.CSharp(dictionary + (t.EndsWith("?", StringComparison.Ordinal) ? "?" : ""), returned: false)
                                       ?? throw new DomEmitException($"WebObjectArgs names {dictionary} for {owner}.{idlName}, which the snapshot does not have."), name));
                 }
+                else if (string.Equals(t.TrimEnd('?'), "object", StringComparison.Ordinal) && owner is not null && WebObjectArgs.Shapes.TryGetValue(owner + "." + idlName, out var shape))
+                {
+                    alternatives.Add((types.Serializes(shape) + (t.EndsWith("?", StringComparison.Ordinal) ? "?" : ""), name));
+                }
                 else if (types.IsElement(t))
                 {
                     alternatives.Add((ElementRef + (t.EndsWith("?", StringComparison.Ordinal) ? "?" : ""), name));
+                }
+                else if (proxies.Contains(t.TrimEnd('?')))
+                {
+                    alternatives.Add((TypesNs + t, name));
                 }
                 else
                 {
@@ -287,9 +304,15 @@ internal sealed class WebMember
         var result = new List<WebMember>();
         var idlType = m["type"]!.AsString()!;
         var prop = DomRefEmitter.Pascal(idl);
-        if (proxies.Contains(idlType.TrimEnd('?')))
+        if (ElementRead(m, idl, prop, types) is { } element)
         {
-            result.Add(new WebMember(m, $"MDN's <c>{idl}</c>: the object, one step further along the chain.", TypesNs + idlType.TrimEnd('?'), prop, null, "",
+            result.Add(element);
+            return result;
+        }
+
+        if (LiveOf(idlType, proxies) is { } live)
+        {
+            result.Add(new WebMember(m, $"MDN's <c>{idl}</c>: the object, one step further along the chain.", TypesNs + live, prop, null, "",
                 $"new(Chain.Get(\"{idl}\"))"));
 
             // Written with an object you kept (a new MediaMetadata), which crosses as its handle; null where MDN allows it.
@@ -297,7 +320,7 @@ internal sealed class WebMember
             {
                 var nullable = idlType.EndsWith("?", StringComparison.Ordinal) ? "?" : "";
                 result.Add(new WebMember(m, $"Sets MDN's <c>{idl}</c> in the browser, to an object you kept.", "ValueTask", "Set" + prop,
-                    TypesNs + idlType.TrimEnd('?') + nullable + " value", "value", $"Chain.Write(\"{idl}\", value)"));
+                    TypesNs + live + nullable + " value", "value", $"Chain.Write(\"{idl}\", value)"));
             }
 
             return result;
@@ -336,6 +359,30 @@ internal sealed class WebMember
         return result;
     }
 
+    // An element the browser names (document.fullscreenElement) cannot cross, but whether it is one of yours can: it
+    // reads as an ElementRef equal to your ref to it, else null. `await Document.FullscreenElement == _stage`.
+    private static WebMember? ElementRead(JsonNode m, string idl, string prop, DomValueTypes types)
+    {
+        // A Node (a selection's anchor) is a text node as often as not, which no ref names.
+        var idlType = m["type"]!.AsString()!;
+        if (!idlType.EndsWith("?", StringComparison.Ordinal) || !types.IsElement(idlType) || string.Equals(idlType, "Node?", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var element = types.ElementRead();
+        return new WebMember(m, $"MDN's <c>{idl}</c>: your ref to the element, equal to the one you rendered it with; null for none, or one you gave no ref.",
+            $"ValueTask<{element}>", prop, null, "", $"Chain.Read<{element}>(\"{idl}\")");
+    }
+
+    // The live object an attribute holds: its type, or for a union of live objects the first MDN lists, as a call's
+    // answer is — a media element's srcObject is a MediaStream, so `SetSrcObject(null)` names one overload.
+    private static string? LiveOf(string idlType, HashSet<string> proxies)
+    {
+        var alternatives = DomValueTypes.Alternatives(idlType).Select(a => a.TrimEnd('?')).ToList();
+        return alternatives.All(proxies.Contains) ? alternatives[0] : null;
+    }
+
     // `owner` is Interface.member, as WebObjectArgs names an argument's dictionary.
     private static List<WebMember> Operation(JsonNode m, string owner, DomValueTypes types, HashSet<string> proxies, JsonNode? callbacks)
     {
@@ -348,7 +395,7 @@ internal sealed class WebMember
         lists.AddRange((m["overloads"]?.Items ?? new List<JsonNode>()).Select(o => o.Items));
         foreach (var args in lists.Where(a => !a.Any(x => x["variadic"]?.AsBoolean() == true)))
         {
-            var distinct = DomRefEmitter.Prefixes(args).SelectMany(prefix => Expand(prefix, types, callbacks, owner))
+            var distinct = DomRefEmitter.Prefixes(args).SelectMany(prefix => Expand(prefix, types, callbacks, proxies, owner))
                 .Where(p => !Fills.Contains(owner) || !p.Any(x => x.Type.StartsWith("byte[]", StringComparison.Ordinal)))
                 .Where(p => signatures.Add(string.Join(",", p.Select(x => x.Type))));
             foreach (var parameters in distinct)
@@ -456,6 +503,17 @@ internal sealed class WebMember
 
     // An instance member only WebAssembly runs, in Rask.Wasm: an extension member of the proxy, over its chain.
     public void WriteExtension(StringBuilder sb, string receiver) => Write(sb, "        ", "public ", Rechain(receiver + ".Chain."));
+
+    // Whether it is an attribute's read: a property, where a write or a call takes parameters.
+    public bool IsRead => _parameters is null;
+
+    // The Rask.Web types it hands over or answers with, by MDN name: a live object among them is what an element ref in
+    // Core cannot reach.
+    public IEnumerable<string> WebTypes => WebHost.TypesIn(_returns + " " + _parameters);
+
+    // An element ref's member, an extension of IElementRef<T> named `element`, over a chain from its element.
+    public void WriteOnElement(StringBuilder sb) =>
+        Write(sb, "        ", "public ", Rechain("global::Rask.Web.JsChain.Element(element.Target)."));
 
     // A static or constructor on its class in Rask.Web, no base to hide there, so plainly static; or, indented, inside
     // Rask.Wasm's static extension of that class.
