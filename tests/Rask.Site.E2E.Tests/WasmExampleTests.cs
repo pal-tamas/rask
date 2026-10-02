@@ -116,7 +116,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator("#fullscreen-enter")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         // CodeSample shows the demo's real source beside the live result.
-        await Expect(Page.Locator("[data-section=fullscreen] .sample-code").First).ToContainTextAsync("IFullscreen",
+        await Expect(Page.Locator("[data-section=fullscreen] .sample-code").First).ToContainTextAsync("RequestFullscreen",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
@@ -153,7 +153,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         await Expect(Page.Locator("#pip-enter")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("[data-section=picture-in-picture] .sample-code").First).ToContainTextAsync("IPictureInPicture",
+        await Expect(Page.Locator("[data-section=picture-in-picture] .sample-code").First).ToContainTextAsync("RequestPictureInPicture",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 

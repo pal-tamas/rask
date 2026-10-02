@@ -81,31 +81,10 @@ because the browser lacks the API or the reader asked for less motion.
 await _viewTransitions.SetEnabledAsync(true);
 ```
 
-**`IWebAnimations`** — run and control an animation on an element from C#, no stylesheet and no
-animation library.
-
-Keyframes use the API's *object* form — a property name to the values it moves through — which is what
-`Element.animate()` takes natively:
-
-```csharp
-var id = await _anim.StartAsync(_card, new Dictionary<string, string[]>
-{
-    ["opacity"] = ["0", "1"],
-    ["transform"] = ["translateY(8px)", "none"],
-}, new AnimationOptions(DurationMs: 200, Easing: "ease-out", Fill: "forwards"));
-
-await _anim.WaitAsync(id);   // true if it finished, false if it was cancelled — never throws
-```
-
-`StartAsync` returns a handle (`AnimationId`) because an `Animation` object cannot cross interop — the
-same shape `MediaStreamId` uses. On a browser without the API the handle is simply invalid rather than
-an error, so you can animate without feature-testing first. `Iterations: -1` means forever (JSON has no
-`Infinity` literal). `Cancel`/`Finish`/`Pause`/`Play` are all harmless on a handle that has already
-finished.
-
-Unlike `IViewTransitions`, **reduced motion is yours to decide here** — these are your animations, and
-only you know whether a given one is a loading affordance or decoration. Read the preference with
-`await Window.MatchMedia("(prefers-reduced-motion: reduce)").Matches` and skip what should be skipped.
+**Animations** — `await using var fade = await _box.Animate([new() { ["opacity"] = 0 }, new() { ["opacity"] = 1 }], 300)`
+on a typed element ref, from [Rask.Web](web-apis.md#on-an-element-ref); `await fade.Finished`, `await fade.Cancel()`, and
+`await _box.GetAnimations()` lists what runs. Reduced motion is yours to honour: read
+`await Window.MatchMedia("(prefers-reduced-motion: reduce)").Matches` first.
 
 **Performance** — `await Performance.Now()`, a high-resolution monotonic clock, from [Rask.Web](web-apis.md).
 
@@ -163,7 +142,8 @@ data and re-renders its component.
 
 <!-- demo:browser-clipboard -->
 
-**`ISpeechSynthesis`** — speak text aloud from C#.
+**Speech synthesis** — `await using var u = await SpeechSynthesisUtterance.Create("Hello")`, then
+`await SpeechSynthesis.Speak(u)` and `await SpeechSynthesis.Cancel()`, from [Rask.Web](web-apis.md#keeping-an-object).
 
 <!-- demo:browser-speech -->
 

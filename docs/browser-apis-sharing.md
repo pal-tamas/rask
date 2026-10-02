@@ -9,13 +9,12 @@ Where each wrapper lives, how declarative and imperative sharing differ, and how
 Work identically on Server and WASM. **Shape** is *one-shot* (a request/response call) or
 *subscription* (you hold an `IAsyncDisposable` and the browser **pushes** updates to a C# handler — see
 [Subscriptions](#subscriptions--the-push-pattern)). Storage, clipboard, geolocation, `matchMedia`, the screen, crypto,
-permissions, `BroadcastChannel`, media session, files, gamepads, notifications, the app badge and the rest of what the
+permissions, `BroadcastChannel`, media session, speech synthesis, animations, files, gamepads, notifications, the app badge and the rest of what the
 browser ships are MDN's own surface in [`Rask.Web`](web-apis.md), not wrappers.
 
 | Service | Wraps | What it does | Shape |
 | --- | --- | --- | --- |
 | `ICookies` | `document.cookie` | Read/write cookies with typed `CookieOptions` | one-shot |
-| `ISpeechSynthesis` | `window.speechSynthesis` | Speak text aloud; cancel | one-shot |
 | `ISpeechRecognition` | `webkitSpeechRecognition` | Dictation — spoken audio → text | **subscription** |
 | `IDeviceOrientation` | `deviceorientation` | Gyroscope/compass tilt angles (tilt UI, AR, compass) | **subscription** |
 | `IDeviceMotion` | `devicemotion` | Accelerometer / rotation rate (shake, step counter, motion games) | **subscription** |
@@ -92,14 +91,13 @@ All six ship: `Trigger.Fullscreen`, `Trigger.ScreenOrientation`, `Trigger.EyeDro
 Registered only by the WASM host. Each needs something the Server transport cannot provide — the
 installed-PWA instance / live document, or a browser-only device API. WebUSB, WebHID, Web Serial and Web Bluetooth are
 `Navigator.Usb`, `Navigator.Hid`, `Navigator.Serial` and `Navigator.Bluetooth` in
-[`Rask.Web`](web-apis.md#what-only-webassembly-runs).
+[`Rask.Web`](web-apis.md#what-only-webassembly-runs). Fullscreen and Picture-in-Picture are
+`await _stage.RequestFullscreen()` and `await _video.RequestPictureInPicture()` on an element ref there.
 
 | Service | Wraps | What it does | Why WASM-only |
 | --- | --- | --- | --- |
-| `IFullscreen` | Fullscreen API | Present an element/page fullscreen | transient activation |
 | `IInstallPrompt` | `beforeinstallprompt` | Custom "Install app" button: capture + replay the deferred prompt | live document + activation |
 | `IMediaDevices` | `getUserMedia` / `getDisplayMedia` | Capture camera / mic / screen into a `<video>` (calls, capture) | transient activation + secure context |
-| `IPictureInPicture` | Picture-in-Picture API | Float a `<video>` into an always-on-top miniplayer | transient activation |
 | `IBackgroundSync` | Background Sync + Periodic Background Sync | Ask the browser to wake the app when connectivity returns, or on a schedule, to drain an offline queue | service-worker registration |
 
 PWA infrastructure (the typed `WebAppManifest`, the default service worker, `--pwa` templates) is

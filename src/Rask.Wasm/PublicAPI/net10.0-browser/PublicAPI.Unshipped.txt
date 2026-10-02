@@ -24,12 +24,6 @@ Rask.Wasm.Browser.BackgroundSyncEvent.Periodic.init -> void
 Rask.Wasm.Browser.BackgroundSyncEvent.Tag.get -> string!
 Rask.Wasm.Browser.BackgroundSyncEvent.Tag.init -> void
 Rask.Wasm.Browser.BackgroundSyncInterop
-Rask.Wasm.Browser.Fullscreen
-Rask.Wasm.Browser.Fullscreen.ExitAsync() -> System.Threading.Tasks.ValueTask
-Rask.Wasm.Browser.Fullscreen.Fullscreen(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Wasm.Browser.Fullscreen.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.Fullscreen.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.Fullscreen.RequestAsync(Rask.Core.ElementRef? element = null) -> System.Threading.Tasks.ValueTask
 Rask.Wasm.Browser.IBackgroundSync
 Rask.Wasm.Browser.IBackgroundSync.GetPendingTagsAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
 Rask.Wasm.Browser.IBackgroundSync.GetPeriodicPermissionAsync() -> System.Threading.Tasks.ValueTask<string!>
@@ -40,11 +34,6 @@ Rask.Wasm.Browser.IBackgroundSync.OnSyncAsync(System.Func<Rask.Wasm.Browser.Back
 Rask.Wasm.Browser.IBackgroundSync.RequestPeriodicSyncAsync(string! tag, System.TimeSpan minInterval) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Wasm.Browser.IBackgroundSync.RequestSyncAsync(string! tag) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Wasm.Browser.IBackgroundSync.UnregisterPeriodicAsync(string! tag) -> System.Threading.Tasks.ValueTask
-Rask.Wasm.Browser.IFullscreen
-Rask.Wasm.Browser.IFullscreen.ExitAsync() -> System.Threading.Tasks.ValueTask
-Rask.Wasm.Browser.IFullscreen.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.IFullscreen.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.IFullscreen.RequestAsync(Rask.Core.ElementRef? element = null) -> System.Threading.Tasks.ValueTask
 Rask.Wasm.Browser.IInstallPrompt
 Rask.Wasm.Browser.IInstallPrompt.CanInstallAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Wasm.Browser.IInstallPrompt.IsInstalledAsync() -> System.Threading.Tasks.ValueTask<bool>
@@ -58,11 +47,6 @@ Rask.Wasm.Browser.IMediaStreamHandle
 Rask.Wasm.Browser.IMediaStreamHandle.AttachToAsync(Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
 Rask.Wasm.Browser.IMediaStreamHandle.Id.get -> Rask.Core.Browser.MediaStreamId
 Rask.Wasm.Browser.IMediaStreamHandle.StopAsync() -> System.Threading.Tasks.ValueTask
-Rask.Wasm.Browser.IPictureInPicture
-Rask.Wasm.Browser.IPictureInPicture.ExitAsync() -> System.Threading.Tasks.ValueTask
-Rask.Wasm.Browser.IPictureInPicture.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.IPictureInPicture.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.IPictureInPicture.RequestAsync(Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
 Rask.Wasm.Browser.InstallOutcome
 Rask.Wasm.Browser.InstallOutcome.Accepted = 0 -> Rask.Wasm.Browser.InstallOutcome
 Rask.Wasm.Browser.InstallOutcome.Dismissed = 1 -> Rask.Wasm.Browser.InstallOutcome
@@ -102,12 +86,6 @@ Rask.Wasm.Browser.MediaDevices.GetDisplayMediaAsync() -> System.Threading.Tasks.
 Rask.Wasm.Browser.MediaDevices.GetUserMediaAsync(Rask.Wasm.Browser.MediaConstraints! constraints) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IMediaStreamHandle!>
 Rask.Wasm.Browser.MediaDevices.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Wasm.Browser.MediaDevices.MediaDevices(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Wasm.Browser.PictureInPicture
-Rask.Wasm.Browser.PictureInPicture.ExitAsync() -> System.Threading.Tasks.ValueTask
-Rask.Wasm.Browser.PictureInPicture.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.PictureInPicture.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.PictureInPicture.PictureInPicture(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Wasm.Browser.PictureInPicture.RequestAsync(Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
 Rask.Wasm.Browser.RaskWasmBrowserApis
 Rask.Wasm.RaskWasmBatteryRegistry
 Rask.Wasm.WasmHostBuilder

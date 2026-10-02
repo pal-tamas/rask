@@ -3,7 +3,7 @@ namespace Rask.Core.Browser;
 /// <summary>
 ///     Typed access to speech recognition / dictation (the SpeechRecognition API,
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition" />) — turn spoken audio
-///     into text, e.g. for voice input or hands-free control. The counterpart to <see cref="ISpeechSynthesis" />.
+///     into text, e.g. for voice input or hands-free control. The counterpart to <c>SpeechSynthesis</c>.
 ///     Works on <b>both transports</b>; inject it through a component constructor.
 /// </summary>
 /// <remarks>

@@ -331,7 +331,7 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
 > offline app**: the service worker deliberately does **not** cache the server-rendered shell (it
 > carries a one-shot session id and is served `no-store`), so offline navigations show `offline.html`
 > rather than a dead cached page. The **install-prompt replay** (`IInstallPrompt`) and the
-> activation-bound imperative device APIs (`IFullscreen`, `IMediaDevices`, …) are not
+> activation-bound imperative device APIs (`IMediaDevices`, `RequestFullscreen()`, …) are not
 > registered on Server, and neither is [**background sync**](#background-sync-ibackgroundsync) — it rides
 > the service-worker registration and needs a client-side runtime to wake into, which a WebSocket-rendered
 > app does not have. The honest framing: *installable + push + native-feel, not an offline app.* (Sharing
@@ -364,7 +364,7 @@ device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server
 | **Online status** | `Navigator.OnLine` *(Rask.Web)* | An offline indicator |
 | **Network quality** | `Navigator.Connection` *(Rask.Web)* | `EffectiveType` / `Downlink` / `SaveData`, to adapt loading |
 | **Media queries** | `Window.MatchMedia(query)` *(Rask.Web)* | `.Matches`, and `OnChange` to follow it |
-| **Speech (text-to-speech)** | `ISpeechSynthesis` | `SpeakAsync(text, SpeechOptions?)` / `CancelAsync` |
+| **Speech (text-to-speech)** | `SpeechSynthesis.Speak(utterance)` *(Rask.Web)* | Speak a `SpeechSynthesisUtterance`; `Cancel()` stops it |
 | **Screen info** | `Screen` *(Rask.Web)* | `Width` / `Height` / `ColorDepth`; `Window.DevicePixelRatio` for retina |
 | **Storage estimate** | `IStorageEstimator` | `EstimateAsync()` → quota / usage, to budget offline caches |
 | **Visual viewport** | `Window.VisualViewport` *(Rask.Web)* | Visible size/offset/zoom, e.g. above the soft keyboard |
@@ -373,9 +373,9 @@ device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server
 | **App badge** | `Navigator.SetAppBadge(3)` *(Rask.Web)* | Unread count on the installed icon (`SetAppBadge(3)` / `ClearAppBadge()`) |
 | **Wake lock** | `IWakeLock` | Keep the screen awake; dispose the sentinel to release |
 | **Screen orientation** | `Screen.Orientation` *(Rask.Web)* | Read orientation; `Lock(…)` *(WASM)* / `Unlock()` (needs fullscreen) |
-| **Fullscreen** | `IFullscreen` *(WASM)* | Present an element/page fullscreen (`RequestAsync(ElementRef?)` / `ExitAsync`) |
+| **Fullscreen** | `_stage.RequestFullscreen()` *(Rask.Web, WASM)* | Present an element fullscreen; `Document.ExitFullscreen()` leaves |
 | **Camera / mic / screen** | `IMediaDevices` *(WASM)* | Capture into a `<video>` (`GetUserMediaAsync` / `GetDisplayMediaAsync`) |
-| **Picture-in-Picture** | `IPictureInPicture` *(WASM)* | Float a `<video>` into an always-on-top miniplayer |
+| **Picture-in-Picture** | `_video.RequestPictureInPicture()` *(Rask.Web, WASM)* | Float a `<video>` into an always-on-top miniplayer |
 | **Gamepad** | `Navigator.GetGamepads()` *(Rask.Web)* | Read connected controllers — `Buttons` / `Axes`; `Window.OnGamepadConnected` |
 | **Idle detection** | `IdleDetector.Create()` *(Rask.Web, WASM)* | Auto-lock / presence when the user goes idle or the screen locks |
 | **EyeDropper** | `EyeDropper.Create()` *(Rask.Web, WASM)* | Pick a color from anywhere on screen (`Open()`) |
@@ -398,11 +398,11 @@ becomes visible again, so a sentinel stays effective until you dispose it.
 `await Screen.Orientation.Lock(…)` (WASM, in a click) and `Unlock()` lock it — locking usually requires fullscreen
 and is often unsupported on desktop, so wrap it in `try/catch`. On the Server host, use `Trigger.ScreenOrientation`.
 
-**Fullscreen.** `IFullscreen.RequestAsync(element)` presents an `ElementRef` (or, with no argument, the
-whole page) fullscreen; `ExitAsync()` leaves and `IsActiveAsync()` reports state. `requestFullscreen`
-needs a live user gesture, so call it from an event handler and gate on `IsSupportedAsync()`. Request
-fullscreen first when you also want to **lock the orientation** — most browsers only allow the lock in
-fullscreen.
+**Fullscreen.** `await _stage.RequestFullscreen()` from [`Rask.Web`](web-apis.md#on-an-element-ref) presents an
+element ref fullscreen (WASM, in the click). `await Document.ExitFullscreen()` leaves. `await Document.FullscreenEnabled`
+says whether it can, and `await Document.FullscreenElement == _stage` whether it is yours. On the Server host, use
+`Trigger.Fullscreen`. Request fullscreen first when you also want to **lock the orientation** — most browsers only
+allow the lock in fullscreen.
 
 **Local vs push notifications.** `Notification` from [`Rask.Web`](web-apis.md) shows a notification directly from
 the running page. Ask first with `await Notification.RequestPermission()` (WASM, in the click), then

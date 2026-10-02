@@ -54,7 +54,6 @@ later step on the same pattern.
 | Service | Wraps | Key members |
 | --- | --- | --- |
 | `ICookies` | `document.cookie` | `GetAsync`, `SetAsync(name, value, CookieOptions?)`, `DeleteAsync`, `GetAllAsync` |
-| `ISpeechSynthesis` | `window.speechSynthesis` | `IsSupportedAsync`, `SpeakAsync(text, SpeechOptions?)`, `CancelAsync` |
 | `IStorageEstimator` | `navigator.storage.estimate` | `IsSupportedAsync`, `EstimateAsync()` → `StorageEstimate?` (quota / usage bytes + `UsageRatio`) |
 | `IDeviceOrientation` | `deviceorientation` | `RequestPermissionAsync()` + `WatchAsync(Func<OrientationReading,Task>)` → `IAsyncDisposable` — gyroscope/compass tilt |
 | `IDeviceMotion` | `devicemotion` | `RequestPermissionAsync()` + `WatchAsync(Func<MotionReading,Task>)` → `IAsyncDisposable` — accelerometer / rotation |
@@ -93,14 +92,16 @@ transient activation has expired. The practical effect:
   share from *code* (a lifecycle hook, after an `await`), which needs the in-process transport to keep the
   activation — so it compiles only in a **WASM** app (on Server `navigator.share` would reject with
   "Must be handling a user gesture").
-- **`IFullscreen`** (present an element/page fullscreen — like `navigator.share`, `requestFullscreen` needs
-  transient activation), **`IPictureInPicture`**, **`IMediaDevices`** and **`IInstallPrompt`** (capture/replay the deferred
+- **Fullscreen** and **Picture-in-Picture** need transient activation too. They are `await _stage.RequestFullscreen()`
+  and `await _video.RequestPictureInPicture()` on an element ref in [`Rask.Web`](web-apis.md#on-an-element-ref),
+  generated into WASM only. On Server, `Trigger.Fullscreen` and `Trigger.PictureInPicture` run them in the click.
+- **`IMediaDevices`** and **`IInstallPrompt`** (capture/replay the deferred
   `beforeinstallprompt` for a custom install button) are likewise **WASM-only** in `Rask.Wasm.Browser` —
   they depend on the installed-PWA instance or the live document the Server round-trip can't carry. See
   the [Mobile & PWA guide](pwa.md#device-capabilities-for-mobile).
 - **`IWakeLock`** (keep the screen awake) needs no transient activation, so it is shared; its JS helper ships on
   the Server client under `AddRaskPwa`. The app badge is `await Navigator.SetAppBadge(3)` in [`Rask.Web`](web-apis.md).
-- Everything else here (cookies, speech synthesis, storage estimate, indexeddb) is unaffected by activation and
+- Everything else here (cookies, storage estimate, indexeddb) is unaffected by activation and
   behaves identically on both transports.
 
 Most of these are one-shot request/response calls. **`IDeviceOrientation`** and **`IDeviceMotion`** are the

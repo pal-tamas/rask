@@ -350,13 +350,11 @@ public sealed partial class HomePage : Component
 
     /// <summary>How many typed browser-API wrappers ship, as the Frontend section counts them.</summary>
     /// <remarks>
-    /// Every injectable wrapper service: the 40 every host registers
-    /// (<c>RaskHostContracts.BrowserApis</c>) plus the 13 only the WASM host can run
-    /// (<c>RaskWasmBrowserApis</c>). The capability matrix lists 51 of them — <c>IViewTransitions</c> and
-    /// <c>IWebAnimations</c> have no page of their own under docs/apis/ and are documented in the reference
-    /// guide instead. <c>BrowserApiCountTests</c> recounts the source and fails when this goes stale.
+    /// Every injectable wrapper service: the ones every host registers (<c>RaskHostContracts.BrowserApis</c>) plus
+    /// the ones only the WASM host can run (<c>RaskWasmBrowserApis</c>); the rest of the browser is MDN's own, from
+    /// Rask.Web. <c>BrowserApiCountTests</c> recounts the source and fails when this goes stale.
     /// </remarks>
-    internal const int BrowserApiCount = 21;
+    internal const int BrowserApiCount = 17;
 
     // ---- install ----
     private static Component InstallSection() =>

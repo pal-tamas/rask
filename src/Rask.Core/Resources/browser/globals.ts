@@ -32,7 +32,6 @@ import * as pictureInPicture from "./pictureInPicture.js";
 import * as screenOrientation from "./screenOrientation.js";
 import * as signaling from "./signaling.js";
 import * as speechRecognition from "./speechRecognition.js";
-import * as speechSynthesis from "./speechSynthesis.js";
 import * as storageManager from "./storageManager.js";
 import * as wakeLock from "./wakeLock.js";
 import * as webAuthn from "./webAuthn.js";
@@ -66,13 +65,7 @@ window.__raskApi = window.__raskApi || {
     storageSupported: () => storageManager.isSupported(),
     storageEstimate: () => storageManager.estimate(),
     storagePersisted: () => storageManager.persisted(),
-    storagePersist: () => storageManager.persist(),
-
-    // ISpeechSynthesis.
-    speechSupported: () => speechSynthesis.isSupported(),
-    speak: (text: string, options?: RaskSpeakOptions | null) =>
-        speechSynthesis.speak(text, options || undefined),
-    cancelSpeech: () => speechSynthesis.cancel()
+    storagePersist: () => storageManager.persist()
 };
 
 // IIndexedDb / IKeyValueStore. C# addresses a store by name on every call rather than holding a

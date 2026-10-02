@@ -79,31 +79,6 @@ Rask.Core.Authorization.RouteAuthorizationResult.Outcome.get -> Rask.Core.Author
 Rask.Core.AutoCallback
 Rask.Core.AutoCallbackAttribute
 Rask.Core.AutoCallbackAttribute.AutoCallbackAttribute() -> void
-Rask.Core.Browser.AnimationId
-Rask.Core.Browser.AnimationId.AnimationId() -> void
-Rask.Core.Browser.AnimationId.AnimationId(int Value) -> void
-Rask.Core.Browser.AnimationId.Deconstruct(out int Value) -> void
-Rask.Core.Browser.AnimationId.Equals(Rask.Core.Browser.AnimationId other) -> bool
-Rask.Core.Browser.AnimationId.IsValid.get -> bool
-Rask.Core.Browser.AnimationId.Value.get -> int
-Rask.Core.Browser.AnimationId.Value.init -> void
-Rask.Core.Browser.AnimationOptions
-Rask.Core.Browser.AnimationOptions.<Clone>$() -> Rask.Core.Browser.AnimationOptions!
-Rask.Core.Browser.AnimationOptions.AnimationOptions(double DurationMs = 400, double DelayMs = 0, string? Easing = null, int Iterations = 1, string? Direction = null, string? Fill = null) -> void
-Rask.Core.Browser.AnimationOptions.Deconstruct(out double DurationMs, out double DelayMs, out string? Easing, out int Iterations, out string? Direction, out string? Fill) -> void
-Rask.Core.Browser.AnimationOptions.DelayMs.get -> double
-Rask.Core.Browser.AnimationOptions.DelayMs.init -> void
-Rask.Core.Browser.AnimationOptions.Direction.get -> string?
-Rask.Core.Browser.AnimationOptions.Direction.init -> void
-Rask.Core.Browser.AnimationOptions.DurationMs.get -> double
-Rask.Core.Browser.AnimationOptions.DurationMs.init -> void
-Rask.Core.Browser.AnimationOptions.Easing.get -> string?
-Rask.Core.Browser.AnimationOptions.Easing.init -> void
-Rask.Core.Browser.AnimationOptions.Equals(Rask.Core.Browser.AnimationOptions? other) -> bool
-Rask.Core.Browser.AnimationOptions.Fill.get -> string?
-Rask.Core.Browser.AnimationOptions.Fill.init -> void
-Rask.Core.Browser.AnimationOptions.Iterations.get -> int
-Rask.Core.Browser.AnimationOptions.Iterations.init -> void
 Rask.Core.Browser.AssertionResult
 Rask.Core.Browser.AssertionResult.<Clone>$() -> Rask.Core.Browser.AssertionResult!
 Rask.Core.Browser.AssertionResult.AssertionResult(string! Id, string! RawId, string! ClientDataJson, string! AuthenticatorData, string! Signature, string? UserHandle, string! Type = "public-key") -> void
@@ -265,10 +240,6 @@ Rask.Core.Browser.ISignalingConnection.SendAsync(string! toPeerId, string! paylo
 Rask.Core.Browser.ISpeechRecognition
 Rask.Core.Browser.ISpeechRecognition.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.ISpeechRecognition.StartAsync(System.Func<Rask.Core.Browser.RecognitionResult!, System.Threading.Tasks.Task!>! onResult, Rask.Core.Browser.SpeechRecognitionOptions? options = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Core.Browser.ISpeechSynthesis
-Rask.Core.Browser.ISpeechSynthesis.CancelAsync() -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.ISpeechSynthesis.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.ISpeechSynthesis.SpeakAsync(string! text, Rask.Core.Browser.SpeechOptions? options = null) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IStorageEstimator
 Rask.Core.Browser.IStorageEstimator.EstimateAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.StorageEstimate?>
 Rask.Core.Browser.IStorageEstimator.IsPersistedAsync() -> System.Threading.Tasks.ValueTask<bool>
@@ -282,14 +253,6 @@ Rask.Core.Browser.IWakeLock
 Rask.Core.Browser.IWakeLock.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IWakeLock.RequestAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IWakeLockSentinel!>
 Rask.Core.Browser.IWakeLockSentinel
-Rask.Core.Browser.IWebAnimations
-Rask.Core.Browser.IWebAnimations.CancelAsync(Rask.Core.Browser.AnimationId animation) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IWebAnimations.FinishAsync(Rask.Core.Browser.AnimationId animation) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IWebAnimations.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IWebAnimations.PauseAsync(Rask.Core.Browser.AnimationId animation) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IWebAnimations.PlayAsync(Rask.Core.Browser.AnimationId animation) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IWebAnimations.StartAsync(Rask.Core.ElementRef! element, System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>! keyframes, Rask.Core.Browser.AnimationOptions? options = null) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AnimationId>
-Rask.Core.Browser.IWebAnimations.WaitAsync(Rask.Core.Browser.AnimationId animation) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IWebAuthn
 Rask.Core.Browser.IWebAuthn.CreateAsync(Rask.Core.Browser.PublicKeyCredentialCreationOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AttestationResult?>
 Rask.Core.Browser.IWebAuthn.GetAsync(Rask.Core.Browser.PublicKeyCredentialRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AssertionResult?>
@@ -661,18 +624,6 @@ Rask.Core.Browser.SignalingSignal.To.get -> string!
 Rask.Core.Browser.SignalingSignal.To.init -> void
 Rask.Core.Browser.SignalingSignal.Type.get -> string!
 Rask.Core.Browser.SignalingSignal.Type.init -> void
-Rask.Core.Browser.SpeechOptions
-Rask.Core.Browser.SpeechOptions.<Clone>$() -> Rask.Core.Browser.SpeechOptions!
-Rask.Core.Browser.SpeechOptions.Equals(Rask.Core.Browser.SpeechOptions? other) -> bool
-Rask.Core.Browser.SpeechOptions.Lang.get -> string?
-Rask.Core.Browser.SpeechOptions.Lang.init -> void
-Rask.Core.Browser.SpeechOptions.Pitch.get -> double?
-Rask.Core.Browser.SpeechOptions.Pitch.init -> void
-Rask.Core.Browser.SpeechOptions.Rate.get -> double?
-Rask.Core.Browser.SpeechOptions.Rate.init -> void
-Rask.Core.Browser.SpeechOptions.SpeechOptions() -> void
-Rask.Core.Browser.SpeechOptions.Volume.get -> double?
-Rask.Core.Browser.SpeechOptions.Volume.init -> void
 Rask.Core.Browser.SpeechRecognition
 Rask.Core.Browser.SpeechRecognition.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.SpeechRecognition.SpeechRecognition(Microsoft.JSInterop.IJSRuntime! js) -> void
@@ -688,11 +639,6 @@ Rask.Core.Browser.SpeechRecognitionOptions.InterimResults.init -> void
 Rask.Core.Browser.SpeechRecognitionOptions.Lang.get -> string?
 Rask.Core.Browser.SpeechRecognitionOptions.Lang.init -> void
 Rask.Core.Browser.SpeechRecognitionOptions.SpeechRecognitionOptions() -> void
-Rask.Core.Browser.SpeechSynthesis
-Rask.Core.Browser.SpeechSynthesis.CancelAsync() -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.SpeechSynthesis.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.SpeechSynthesis.SpeakAsync(string! text, Rask.Core.Browser.SpeechOptions? options = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.SpeechSynthesis.SpeechSynthesis(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.StorageEstimate
 Rask.Core.Browser.StorageEstimate.<Clone>$() -> Rask.Core.Browser.StorageEstimate!
 Rask.Core.Browser.StorageEstimate.Deconstruct(out long Quota, out long Usage) -> void
@@ -718,15 +664,6 @@ Rask.Core.Browser.WakeLock
 Rask.Core.Browser.WakeLock.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.WakeLock.RequestAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IWakeLockSentinel!>
 Rask.Core.Browser.WakeLock.WakeLock(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.WebAnimations
-Rask.Core.Browser.WebAnimations.CancelAsync(Rask.Core.Browser.AnimationId animation) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.WebAnimations.FinishAsync(Rask.Core.Browser.AnimationId animation) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.WebAnimations.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.WebAnimations.PauseAsync(Rask.Core.Browser.AnimationId animation) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.WebAnimations.PlayAsync(Rask.Core.Browser.AnimationId animation) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.WebAnimations.StartAsync(Rask.Core.ElementRef! element, System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>! keyframes, Rask.Core.Browser.AnimationOptions? options = null) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AnimationId>
-Rask.Core.Browser.WebAnimations.WaitAsync(Rask.Core.Browser.AnimationId animation) -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.WebAnimations.WebAnimations(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.WebAppManifest
 Rask.Core.Browser.WebAppManifest.<Clone>$() -> Rask.Core.Browser.WebAppManifest!
 Rask.Core.Browser.WebAppManifest.BackgroundColor.get -> string?
@@ -1896,10 +1833,6 @@ override Rask.Core.Authentication.AuthInstruction.ToString() -> string!
 override Rask.Core.Authentication.PendingAuth.Equals(object? obj) -> bool
 override Rask.Core.Authentication.PendingAuth.GetHashCode() -> int
 override Rask.Core.Authentication.PendingAuth.ToString() -> string!
-override Rask.Core.Browser.AnimationId.GetHashCode() -> int
-override Rask.Core.Browser.AnimationOptions.Equals(object? obj) -> bool
-override Rask.Core.Browser.AnimationOptions.GetHashCode() -> int
-override Rask.Core.Browser.AnimationOptions.ToString() -> string!
 override Rask.Core.Browser.AssertionResult.Equals(object? obj) -> bool
 override Rask.Core.Browser.AssertionResult.GetHashCode() -> int
 override Rask.Core.Browser.AssertionResult.ToString() -> string!
@@ -1994,9 +1927,6 @@ override Rask.Core.Browser.SignalingJoin.ToString() -> string!
 override Rask.Core.Browser.SignalingSignal.Equals(object? obj) -> bool
 override Rask.Core.Browser.SignalingSignal.GetHashCode() -> int
 override Rask.Core.Browser.SignalingSignal.ToString() -> string!
-override Rask.Core.Browser.SpeechOptions.Equals(object? obj) -> bool
-override Rask.Core.Browser.SpeechOptions.GetHashCode() -> int
-override Rask.Core.Browser.SpeechOptions.ToString() -> string!
 override Rask.Core.Browser.SpeechRecognitionOptions.Equals(object? obj) -> bool
 override Rask.Core.Browser.SpeechRecognitionOptions.GetHashCode() -> int
 override Rask.Core.Browser.SpeechRecognitionOptions.ToString() -> string!
@@ -2069,10 +1999,6 @@ static Rask.Core.AutoCallback.Wrap<T1, T2>(System.Action<T1, T2>? d) -> System.A
 static Rask.Core.AutoCallback.Wrap<T1, T2>(System.Func<T1, T2, System.Threading.Tasks.Task!>? d) -> System.Func<T1, T2, System.Threading.Tasks.Task!>?
 static Rask.Core.AutoCallback.Wrap<T>(System.Action<T>? d) -> System.Action<T>?
 static Rask.Core.AutoCallback.Wrap<T>(System.Func<T, System.Threading.Tasks.Task!>? d) -> System.Func<T, System.Threading.Tasks.Task!>?
-static Rask.Core.Browser.AnimationId.operator !=(Rask.Core.Browser.AnimationId left, Rask.Core.Browser.AnimationId right) -> bool
-static Rask.Core.Browser.AnimationId.operator ==(Rask.Core.Browser.AnimationId left, Rask.Core.Browser.AnimationId right) -> bool
-static Rask.Core.Browser.AnimationOptions.operator !=(Rask.Core.Browser.AnimationOptions? left, Rask.Core.Browser.AnimationOptions? right) -> bool
-static Rask.Core.Browser.AnimationOptions.operator ==(Rask.Core.Browser.AnimationOptions? left, Rask.Core.Browser.AnimationOptions? right) -> bool
 static Rask.Core.Browser.AssertionResult.operator !=(Rask.Core.Browser.AssertionResult? left, Rask.Core.Browser.AssertionResult? right) -> bool
 static Rask.Core.Browser.AssertionResult.operator ==(Rask.Core.Browser.AssertionResult? left, Rask.Core.Browser.AssertionResult? right) -> bool
 static Rask.Core.Browser.AttestationResult.operator !=(Rask.Core.Browser.AttestationResult? left, Rask.Core.Browser.AttestationResult? right) -> bool
@@ -2143,8 +2069,6 @@ static Rask.Core.Browser.SignalingJoin.operator !=(Rask.Core.Browser.SignalingJo
 static Rask.Core.Browser.SignalingJoin.operator ==(Rask.Core.Browser.SignalingJoin? left, Rask.Core.Browser.SignalingJoin? right) -> bool
 static Rask.Core.Browser.SignalingSignal.operator !=(Rask.Core.Browser.SignalingSignal? left, Rask.Core.Browser.SignalingSignal? right) -> bool
 static Rask.Core.Browser.SignalingSignal.operator ==(Rask.Core.Browser.SignalingSignal? left, Rask.Core.Browser.SignalingSignal? right) -> bool
-static Rask.Core.Browser.SpeechOptions.operator !=(Rask.Core.Browser.SpeechOptions? left, Rask.Core.Browser.SpeechOptions? right) -> bool
-static Rask.Core.Browser.SpeechOptions.operator ==(Rask.Core.Browser.SpeechOptions? left, Rask.Core.Browser.SpeechOptions? right) -> bool
 static Rask.Core.Browser.SpeechRecognitionInterop.Result(int id, Rask.Core.Browser.RecognitionResult! result) -> System.Threading.Tasks.Task!
 static Rask.Core.Browser.SpeechRecognitionOptions.operator !=(Rask.Core.Browser.SpeechRecognitionOptions? left, Rask.Core.Browser.SpeechRecognitionOptions? right) -> bool
 static Rask.Core.Browser.SpeechRecognitionOptions.operator ==(Rask.Core.Browser.SpeechRecognitionOptions? left, Rask.Core.Browser.SpeechRecognitionOptions? right) -> bool
@@ -2572,8 +2496,6 @@ virtual Rask.Core.Component.TagName.get -> string?
 virtual Rask.Core.Component.WriteAttributes(System.Text.StringBuilder! sb) -> void
 virtual Rask.Core.Element.ResolveClass() -> string?
 virtual Rask.Core.Forms.Validate<T>.Invoke(T value) -> System.Collections.Generic.IEnumerable<string!>!
-~override Rask.Core.Browser.AnimationId.Equals(object obj) -> bool
-~override Rask.Core.Browser.AnimationId.ToString() -> string
 ~override Rask.Core.Browser.MediaStreamId.Equals(object obj) -> bool
 ~override Rask.Core.Browser.MediaStreamId.ToString() -> string
 ~override Rask.Core.Diagnostics.DevTools.DescribedProp.Equals(object obj) -> bool

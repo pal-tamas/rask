@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-/// <summary>Present an element/page fullscreen from a click gesture (works on Server, unlike the imperative <c>IFullscreen</c>).</summary>
+/// <summary>Present an element/page fullscreen from a click gesture (works on Server, unlike an imperative <c>RequestFullscreen()</c>).</summary>
 [RaskChainGroup(typeof(global::Rask.Trigger))]
 public sealed class FullscreenTrigger : Component
 {

@@ -229,7 +229,7 @@ interface Navigator {
     webkitConnection?: NetworkInformationLike;
 }
 
-/** The options ISpeechSynthesis passes to `speak`. */
+/** Options for speaking text. */
 interface RaskSpeakOptions {
     lang?: string;
     rate?: number;

@@ -441,11 +441,6 @@ public static class GuideCatalog
             SearchTitle = "DeviceOrientation Events in C# (IDeviceOrientation)",
             Description = "Receive alpha, beta and gamma tilt from device orientation events in a C# callback. Works on Server and WebAssembly; iOS needs a gesture-triggered grant.",
         },
-        new("fullscreen", "IFullscreen", "Typed browser API: IFullscreen.", "Browser API reference", "apis/fullscreen.md")
-        {
-            SearchTitle = "Fullscreen API in C# and .NET (IFullscreen)",
-            Description = "Present an element or the whole page fullscreen from C# with the Fullscreen API. IFullscreen is WASM-only; on Server, Trigger.Fullscreen runs it in a click.",
-        },
         new("indexeddb", "IIndexedDb", "Typed browser API: IIndexedDb.", "Browser API reference", "apis/indexeddb.md")
         {
             SearchTitle = "IndexedDB in C# and .NET (IIndexedDb)",
@@ -466,20 +461,10 @@ public static class GuideCatalog
             SearchTitle = "MediaStream in C#: Attach and Stop (IMediaStreams)",
             Description = "Attach a live MediaStream to a video element or stop its tracks from C#, whether from capture or a WebRTC peer. Works on every host without a gesture.",
         },
-        new("picture-in-picture", "IPictureInPicture", "Typed browser API: IPictureInPicture.", "Browser API reference", "apis/picture-in-picture.md")
-        {
-            SearchTitle = "Picture-in-Picture API in C# (IPictureInPicture)",
-            Description = "Float a video element into a Picture-in-Picture mini-player from C#: IPictureInPicture on WebAssembly, or the Trigger.PictureInPicture component on Server.",
-        },
         new("speech-recognition", "ISpeechRecognition", "Typed browser API: ISpeechRecognition.", "Browser API reference", "apis/speech-recognition.md")
         {
             SearchTitle = "Speech Recognition API in C# (ISpeechRecognition)",
             Description = "Turn speech into text from C# with ISpeechRecognition, which pushes final or interim transcripts to a callback. SpeechRecognition is Chromium-only.",
-        },
-        new("speech-synthesis", "ISpeechSynthesis", "Typed browser API: ISpeechSynthesis.", "Browser API reference", "apis/speech-synthesis.md")
-        {
-            SearchTitle = "Speech Synthesis API in C# (ISpeechSynthesis)",
-            Description = "Speak text aloud and cancel the speech queue from C# with ISpeechSynthesis, a SpeechSynthesis API wrapper that uses the browser's own voices on every host.",
         },
         new("storage-estimator", "IStorageEstimator", "Typed browser API: IStorageEstimator.", "Browser API reference", "apis/storage-estimator.md")
         {

@@ -658,6 +658,10 @@ them until tagged releases begin.
     is generated too, marked "Non-standard." — the first is the install prompt:
     `Window.OnBeforeInstallPrompt(e => _deferred = e)` keeps the event, and `await _deferred.Prompt()` (WebAssembly, in a
     click) answers with the user's choice.
+  - **BREAKING: `ISpeechSynthesis`, `IWebAnimations`, and on WebAssembly `IFullscreen` and `IPictureInPicture`, are
+    gone** — `await SpeechSynthesis.Speak(await SpeechSynthesisUtterance.Create("Hello"))`, `await _stage.RequestFullscreen()`
+    with `await Document.FullscreenElement == _stage`, `await _video.RequestPictureInPicture()`,
+    `_box.Animate(frames, 300)`. The declarative `Trigger.Fullscreen` / `Trigger.PictureInPicture` are unchanged.
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

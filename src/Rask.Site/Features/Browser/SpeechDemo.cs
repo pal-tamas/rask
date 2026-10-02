@@ -1,9 +1,10 @@
-using Rask.Core.Browser;
+using Microsoft.JSInterop;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary><see cref="ISpeechSynthesis" /> — speak text aloud (text-to-speech).</summary>
-public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
+/// <summary>MDN's <c>SpeechSynthesis</c> from Rask.Web — speak text aloud (text-to-speech) in the browser's own voices.</summary>
+public sealed partial class SpeechDemo : Component
 {
     private string _text = "Hello from Rask — spoken straight from C#.";
     private string? _status;
@@ -29,21 +30,33 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
     {
         try
         {
-            if (!await speech.IsSupportedAsync())
+            if (!await SpeechSynthesis.IsSupported)
             {
                 _status = "Speech synthesis not supported in this browser";
                 return;
             }
 
-            await speech.SpeakAsync(_text, new SpeechOptions { Lang = "en-US", Rate = 1 });
+            await using var utterance = await SpeechSynthesisUtterance.Create(_text);
+            await utterance.SetLang("en-US");
+            await SpeechSynthesis.Speak(utterance);
             _status = "Speaking";
         }
-        catch (Exception ex) { _status = "Failed: " + ex.Message; }
+        catch (JSException ex)
+        {
+            _status = "Failed: " + ex.Message;
+        }
     }
 
     private async Task Cancel()
     {
-        await speech.CancelAsync();
-        _status = "Stopped";
+        try
+        {
+            await SpeechSynthesis.Cancel();
+            _status = "Stopped";
+        }
+        catch (JSException ex)
+        {
+            _status = "Failed: " + ex.Message;
+        }
     }
 }

@@ -1,15 +1,13 @@
-using Rask.Wasm.Browser;
+using Microsoft.JSInterop;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary>
-///     <see cref="IPictureInPicture" /> — float a <c>&lt;video&gt;</c> into an always-on-top miniplayer.
-///     The video is synthesized from an animated canvas by the sibling scoped JS
-///     (<c>PictureInPictureDemo.js</c>) so the demo needs no shipped video file.
-/// </summary>
-public sealed partial class PictureInPictureDemo(IPictureInPicture pip) : Component
+/// <summary>MDN's Picture-in-Picture API from Rask.Web — float a canvas-fed <c>&lt;video&gt;</c> (sibling scoped TS) into a miniplayer.</summary>
+public sealed partial class PictureInPictureDemo : Component
 {
-    private readonly ElementRef _video = ElementRef.New();
+    private readonly ElementRef<HTMLVideoElement> _video = new();
+    private Rask.Web.Types.PictureInPictureWindow? _window;
     private string _status = "(idle)";
 
     protected override async Task OnFirstRender()
@@ -17,11 +15,11 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip) : Compon
         try
         {
             await Start(_video);
-            _status = await pip.IsSupportedAsync()
+            _status = await Document.PictureInPictureEnabled
                 ? "Playing — click \"Open miniplayer\""
                 : "Picture-in-Picture not supported in this browser";
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
             _status = "Setup failed: " + ex.Message;
         }
@@ -46,22 +44,48 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip) : Compon
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pip-status")[_status]]
             ];
 
+    // requestPictureInPicture() rejects without a user gesture, so it runs in the click.
     private async Task Enter()
     {
         try
         {
-            await pip.RequestAsync(_video);
-            _status = "In the miniplayer — drag it anywhere, then Exit to bring it back";
+            await Release();
+            _window = await _video.RequestPictureInPicture();
+            _status = $"In a {await _window.Width}×{await _window.Height} miniplayer — drag it anywhere, then Exit to bring it back";
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
             _status = "Failed: " + ex.Message;
         }
     }
 
+    // exitPictureInPicture() rejects when nothing is in the miniplayer, so ask first.
     private async Task Exit()
     {
-        await pip.ExitAsync();
-        _status = await pip.IsActiveAsync() ? "Still in miniplayer" : "Back in the page";
+        try
+        {
+            if (await Document.PictureInPictureElement == _video)
+            {
+                await Document.ExitPictureInPicture();
+            }
+
+            await Release();
+            _status = await Document.PictureInPictureElement == _video ? "Still in miniplayer" : "Back in the page";
+        }
+        catch (JSException ex)
+        {
+            _status = "Failed: " + ex.Message;
+        }
+    }
+
+    protected override Task OnUnmount() => Release();
+
+    private async Task Release()
+    {
+        if (_window is not null)
+        {
+            await _window.DisposeAsync();
+            _window = null;
+        }
     }
 }

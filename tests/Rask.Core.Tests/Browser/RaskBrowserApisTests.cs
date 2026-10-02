@@ -13,7 +13,6 @@ public class RaskBrowserApisTests
     // Keep in sync with the registrar; AddCoreBrowserApis_registers_nothing_beyond_the_pinned_set enforces it.
     private static readonly (Type Service, Type Impl)[] CoreApis =
     [
-        (typeof(ISpeechSynthesis), typeof(SpeechSynthesis)),
         (typeof(ISpeechRecognition), typeof(SpeechRecognition)),
         (typeof(IStorageEstimator), typeof(StorageEstimator)),
         (typeof(IDeviceOrientation), typeof(DeviceOrientation)),
@@ -22,7 +21,6 @@ public class RaskBrowserApisTests
         (typeof(IWebAuthn), typeof(WebAuthn)),
         (typeof(ICookies), typeof(Cookies)),
         (typeof(IViewTransitions), typeof(ViewTransitions)),
-        (typeof(IWebAnimations), typeof(WebAnimations)),
         (typeof(IWebLocks), typeof(WebLocks)),
         (typeof(IMediaStreams), typeof(MediaStreams)),
         (typeof(ISignaling), typeof(Signaling)),

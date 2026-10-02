@@ -17,7 +17,6 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(Rask.Core.Components.GesturePayload))]
 [JsonSerializable(typeof(Rask.Core.Components.GestureMediaConstraints))]
 [JsonSerializable(typeof(PushSubscription))]
-[JsonSerializable(typeof(SpeechOptions))]
 [JsonSerializable(typeof(SpeechRecognitionOptions))]
 [JsonSerializable(typeof(RecognitionResult))]
 [JsonSerializable(typeof(StorageEstimate))]
@@ -40,5 +39,4 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(RtcMessageWire[]))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 [JsonSerializable(typeof(Dictionary<string, string[]>))]
-[JsonSerializable(typeof(AnimationOptions))]
 internal sealed partial class RaskBrowserJsonContext : JsonSerializerContext;

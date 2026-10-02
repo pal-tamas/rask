@@ -76,14 +76,14 @@ window.__raskPwa = window.__raskPwa || {
 // they also ship to the Server client — the declarative InstallTrigger / ScreenOrientationTrigger /
 // MediaCaptureTrigger / PictureInPictureTrigger drive them inside the click gesture there (and __raskInstall
 // must self-arm its beforeinstallprompt listener at boot on both transports). The imperative IInstallPrompt /
-// IMediaDevices / IPictureInPicture services stay WASM-only.
+// IMediaDevices service stays WASM-only.
 
 // __raskWakeLock is transport-agnostic and live in
 // Rask.Core/Resources/rask-pwa.js (spliced into both clients) — they are not duplicated here.
 
 // __raskFullscreen / __raskEyeDropper also moved to Rask.Core/Resources/rask-api.js (same reason — the
 // declarative FullscreenTrigger / EyeDropperTrigger drive them on the Server client). The imperative
-// IFullscreen service stays WASM-only.
+// imperative fullscreen is Rask.Web's, WASM-only.
 
 // Background Sync + Periodic Background Sync (driven by IBackgroundSync). WASM-only: the registration
 // lives on the service worker, and a Server app's SW has no client-side runtime to wake into.

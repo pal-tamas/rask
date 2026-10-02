@@ -15,7 +15,7 @@ namespace Rask.Core.Components;
 ///     <see cref="EyeDropperTrigger" />, <see cref="ScreenOrientationTrigger" />,
 ///     <see cref="PictureInPictureTrigger" />, <see cref="InstallTrigger" />, <see cref="MediaCaptureTrigger" />).
 ///     For a <b>code-driven</b> call on the in-process WASM host, inject the matching service
-///     (<c>IFullscreen</c>, <c>IEyeDropper</c>, …) instead.
+///     (<c>RequestFullscreen()</c>, <c>EyeDropper.Open()</c>, …) instead.
 /// </summary>
 [RaskChainGroup(typeof(global::Rask.Trigger))]
 public sealed class GestureTrigger : Component

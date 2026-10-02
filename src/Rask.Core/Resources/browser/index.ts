@@ -27,7 +27,6 @@ export * as pictureInPicture from "./pictureInPicture.js";
 export * as screenOrientation from "./screenOrientation.js";
 export * as signaling from "./signaling.js";
 export * as speechRecognition from "./speechRecognition.js";
-export * as speechSynthesis from "./speechSynthesis.js";
 export * as storageManager from "./storageManager.js";
 export * as wakeLock from "./wakeLock.js";
 export * as webAuthn from "./webAuthn.js";

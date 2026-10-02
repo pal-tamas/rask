@@ -13,8 +13,6 @@ public class RaskWasmBrowserApisTests
 {
     private static readonly (Type Service, Type Impl)[] WasmOnlyApis =
     [
-        (typeof(IFullscreen), typeof(Fullscreen)),
-        (typeof(IPictureInPicture), typeof(PictureInPicture)),
         (typeof(IMediaDevices), typeof(MediaDevices)),
         (typeof(IInstallPrompt), typeof(InstallPrompt)),
         (typeof(IBackgroundSync), typeof(BackgroundSync)),
@@ -53,28 +51,26 @@ public class RaskWasmBrowserApisTests
     }
 
     // Every wrapper here goes in through AddBrowserApi's TryAdd, so an app that wants its own
-    // implementation registers it first and keeps it. Pinned on IFullscreen because that is the one an app is
+    // implementation registers it first and keeps it. Pinned on IInstallPrompt because that is the one an app is
     // most likely to replace, and because the assertion moved here with it from Rask.Client.Tests.
     [Fact]
-    public void AddWasmBrowserApis_is_fallback_only_so_an_app_supplied_fullscreen_registered_first_wins()
+    public void AddWasmBrowserApis_is_fallback_only_so_an_app_supplied_install_prompt_registered_first_wins()
     {
         var services = new ServiceCollection();
 
-        services.AddSingleton<IFullscreen, FakeAppFullscreen>();
+        services.AddSingleton<IInstallPrompt, FakeAppInstallPrompt>();
         services.AddWasmBrowserApis(ServiceLifetime.Singleton);
 
-        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IFullscreen));
-        Assert.Equal(typeof(FakeAppFullscreen), descriptor.ImplementationType);
+        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IInstallPrompt));
+        Assert.Equal(typeof(FakeAppInstallPrompt), descriptor.ImplementationType);
     }
 
-    private sealed class FakeAppFullscreen : IFullscreen
+    private sealed class FakeAppInstallPrompt : IInstallPrompt
     {
-        public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(true);
+        public ValueTask<bool> CanInstallAsync() => ValueTask.FromResult(false);
 
-        public ValueTask<bool> IsActiveAsync() => ValueTask.FromResult(false);
+        public ValueTask<InstallOutcome> PromptAsync() => ValueTask.FromResult(default(InstallOutcome));
 
-        public ValueTask RequestAsync(Rask.Core.ElementRef? element = null) => default;
-
-        public ValueTask ExitAsync() => default;
+        public ValueTask<bool> IsInstalledAsync() => ValueTask.FromResult(false);
     }
 }

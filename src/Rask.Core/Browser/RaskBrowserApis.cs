@@ -55,12 +55,10 @@ public static class RaskBrowserApis
         services.AddBrowserApi<IDeviceOrientation, DeviceOrientation>(lifetime);
         services.AddBrowserApi<IDeviceMotion, DeviceMotion>(lifetime);
         services.AddBrowserApi<IViewTransitions, ViewTransitions>(lifetime);
-        services.AddBrowserApi<IWebAnimations, WebAnimations>(lifetime);
     }
 
     private static void AddObserverAndMediaApis(IServiceCollection services, ServiceLifetime lifetime)
     {
-        services.AddBrowserApi<ISpeechSynthesis, SpeechSynthesis>(lifetime);
         services.AddBrowserApi<ISpeechRecognition, SpeechRecognition>(lifetime);
         services.AddBrowserApi<IMediaStreams, MediaStreams>(lifetime);
         services.AddBrowserApi<ISignaling, Signaling>(lifetime);

@@ -209,14 +209,14 @@ public sealed partial class PwaPage : Component
         new("fullscreen", "Fullscreen", () =>
         [
             P.Class("text-ui-muted")[
-                "Present an element — or the whole page — fullscreen via IFullscreen (the Fullscreen API), ",
-                "passing an ElementRef to target one box. WASM-only: requestFullscreen needs a live user ",
+                "Present an element fullscreen with MDN's Fullscreen API: RequestFullscreen() on its ElementRef, ",
+                "Document.ExitFullscreen() to leave. WASM-only: requestFullscreen needs a live user ",
                 "gesture. Pairs with Orientation — locking the orientation generally requires fullscreen first."
             ],
             CodeSample
                 .Files(["FullscreenDemo.cs"])
-                .Notes("RequestAsync(ElementRef?) fullscreens that element (or the page when null); ExitAsync "
-                    + "leaves. Gate on IsSupportedAsync and wrap in try/catch — a request without activation rejects.")
+                .Notes("await Document.FullscreenElement == _stage says which ref is showing (null for none). Gate on "
+                    + "Document.FullscreenEnabled and catch JSException — a request without activation rejects.")
                 .Result(FullscreenDemo)
         ]);
 
@@ -225,14 +225,15 @@ public sealed partial class PwaPage : Component
         [
             P.Class("text-ui-muted")[
                 "Float a video into an always-on-top miniplayer the user keeps visible while they scroll or ",
-                "switch tabs, via IPictureInPicture (the Picture-in-Picture API). WASM-only: ",
+                "switch tabs, via RequestPictureInPicture() on the video's ElementRef (MDN's Picture-in-Picture API). WASM-only: ",
                 "requestPictureInPicture needs a live user gesture. This demo synthesizes its video from an ",
                 "animated canvas (sibling scoped JS), so it needs no shipped media file."
             ],
             CodeSample
                 .Files(["PictureInPictureDemo.cs", "PictureInPictureDemo.ts"])
-                .Notes("RequestAsync(ElementRef) sends that <video> to the miniplayer; ExitAsync brings it back. "
-                    + "Gate on IsSupportedAsync and wrap in try/catch — a request without activation rejects.")
+                .Notes("RequestPictureInPicture() answers with the kept PictureInPictureWindow; Document.ExitPictureInPicture() "
+                    + "brings it back. Gate on Document.PictureInPictureEnabled and catch JSException — a request without "
+                    + "activation rejects.")
                 .Result(PictureInPictureDemo)
         ]);
 
