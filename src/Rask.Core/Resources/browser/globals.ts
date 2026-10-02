@@ -21,9 +21,7 @@
 // anywhere in the path to notice.
 
 import * as badge from "./badge.js";
-import * as broadcastChannel from "./broadcastChannel.js";
 import * as cookies from "./cookies.js";
-import * as crypto from "./crypto.js";
 import * as deviceMotion from "./deviceMotion.js";
 import * as deviceOrientation from "./deviceOrientation.js";
 import * as eyeDropper from "./eyeDropper.js";
@@ -33,10 +31,8 @@ import * as gamepad from "./gamepad.js";
 import * as installPrompt from "./installPrompt.js";
 import * as indexedDb from "./indexedDb.js";
 import * as mediaDevices from "./mediaDevices.js";
-import * as mediaSession from "./mediaSession.js";
 import * as notifications from "./notifications.js";
 import * as opfs from "./originPrivateFileSystem.js";
-import * as permissions from "./permissions.js";
 import * as pictureInPicture from "./pictureInPicture.js";
 import * as screenOrientation from "./screenOrientation.js";
 import * as signaling from "./signaling.js";
@@ -49,9 +45,6 @@ import * as webLocks from "./webLocks.js";
 import * as webPush from "./webPush.js";
 
 window.__raskApi = window.__raskApi || {
-    // IPermissions.QueryAsync — the live PermissionStatus flattened to its state string.
-    permissionState: (name: PermissionName) => permissions.query(name),
-
     // ICookies. Positional here, an options object in the module.
     cookieGet: (name: string) => cookies.get(name),
     cookieAll: () => cookies.getAll(),
@@ -141,14 +134,6 @@ window.__raskIdb = window.__raskIdb || (() => {
         clear: (name: string) => store(name).then((s) => s.clear())
     };
 })();
-
-// ICrypto. randomBytes crosses as a plain number array — a Uint8Array does not survive the JSON hop
-// the Server transport takes, and the module hands back the typed array a TypeScript caller wants.
-window.__raskCrypto = window.__raskCrypto || {
-    randomUuid: () => crypto.randomUuid(),
-    randomBytes: (length: number) => Array.from(crypto.randomBytes(length)),
-    digestHex: (algorithm: AlgorithmIdentifier, text: string) => crypto.digestHex(algorithm, text)
-};
 
 // The PWA four — IWebPush, INotifications, IBadge, IWakeLock. These used to live in rask-pwa.ts, which
 // is now gone: they are transport-agnostic browser APIs like the rest, and there was no reason for
@@ -492,62 +477,6 @@ window.__raskLocks = window.__raskLocks || (() => {
             }
         },
         query: () => webLocks.query()
-    };
-})();
-
-// IMediaSession. The browser holds one handler per action, while C# hands out a disposable per
-// registration — so the id that currently OWNS each action is tracked here. Without that, disposing an
-// older registration would clear a handler a newer one had since installed.
-window.__raskMediaSession = window.__raskMediaSession || (() => {
-    const actions = new Map<number, MediaSessionAction>();
-    const owners = new Map<MediaSessionAction, number>();
-    return {
-        isSupported: () => mediaSession.isSupported(),
-        setMetadata: (m: RaskMediaMetadata) => mediaSession.setMetadata(m),
-        setPlaybackState: (state: MediaSessionPlaybackState) => mediaSession.setPlaybackState(state),
-        setActionHandler: (id: number, action: MediaSessionAction) => {
-            mediaSession.setActionHandler(action, () =>
-                window.DotNet.invokeMethodAsync("Rask.Core", "RaskMediaSessionAction", id));
-            actions.set(id, action);
-            owners.set(action, id);
-        },
-        removeActionHandler: (id: number) => {
-            const action = actions.get(id);
-            if (action === undefined) {
-                return;
-            }
-            actions.delete(id);
-            if (owners.get(action) === id) {
-                owners.delete(action);
-                mediaSession.setActionHandler(action, null);
-            }
-        },
-        clear: () => mediaSession.clear()
-    };
-})();
-
-// IBroadcastChannel. C# holds an integer id rather than the channel object, which cannot cross.
-window.__raskBroadcast = window.__raskBroadcast || (() => {
-    const channels = new Map<number, broadcastChannel.Channel>();
-    return {
-        open: (id: number, name: string) => {
-            channels.set(id, broadcastChannel.open(name, (message) =>
-                window.DotNet.invokeMethodAsync("Rask.Core", "RaskBroadcastReceive", id, message)));
-        },
-        post: (id: number, message: string) => {
-            const channel = channels.get(id);
-            if (channel) {
-                channel.post(message);
-            }
-        },
-        close: (id: number) => {
-            const channel = channels.get(id);
-            if (!channel) {
-                return;
-            }
-            channels.delete(id);
-            channel.close();
-        }
     };
 })();
 

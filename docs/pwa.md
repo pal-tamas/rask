@@ -359,7 +359,7 @@ device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server
 | **Large storage** | `IIndexedDb` | Async key/value store backed by IndexedDB — cache app data offline |
 | **Files on disk** | `IFileSystemAccess` | Open/save a file back to disk + directory access (editors, file managers) |
 | **Passkeys** | `IWebAuthn` | Passwordless register / sign-in with a biometric or security key |
-| **Permissions** | `IPermissions` | Check before prompting |
+| **Permissions** | `Navigator.Permissions.Query(…)` *(Rask.Web)* | Check before prompting |
 | **Page visibility** | `Document.VisibilityState` *(Rask.Web)* | Pause work when backgrounded |
 | **Online status** | `Navigator.OnLine` *(Rask.Web)* | An offline indicator |
 | **Network quality** | `Navigator.Connection` *(Rask.Web)* | `EffectiveType` / `Downlink` / `SaveData`, to adapt loading |
@@ -368,7 +368,7 @@ device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server
 | **Screen info** | `Screen` *(Rask.Web)* | `Width` / `Height` / `ColorDepth`; `Window.DevicePixelRatio` for retina |
 | **Storage estimate** | `IStorageEstimator` | `EstimateAsync()` → quota / usage, to budget offline caches |
 | **Visual viewport** | `Window.VisualViewport` *(Rask.Web)* | Visible size/offset/zoom, e.g. above the soft keyboard |
-| **Cross-tab messaging** | `IBroadcastChannel` | `OpenAsync(name, onMessage)` / `PostAsync` — sync sign-out, theme, "data updated" across tabs |
+| **Cross-tab messaging** | `BroadcastChannel.Create(name)` *(Rask.Web)* | `PostMessage` / `OnMessage` — sync sign-out, theme, "data updated" across tabs |
 | **Local notifications** | `INotifications` | Show a notification from the page (no server) |
 | **App badge** | `IBadge` | Unread count on the installed icon (`SetAsync(3)` / `ClearAsync()`) |
 | **Wake lock** | `IWakeLock` | Keep the screen awake; dispose the sentinel to release |
@@ -380,8 +380,8 @@ device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server
 | **Idle detection** | `IdleDetector.Create()` *(Rask.Web, WASM)* | Auto-lock / presence when the user goes idle or the screen locks |
 | **EyeDropper** | `EyeDropper.Create()` *(Rask.Web, WASM)* | Pick a color from anywhere on screen (`Open()`) |
 | **Serial device** | `ISerial` *(WASM)* | Talk to an Arduino / serial device — `RequestPortAsync(options, onData, onClosed?)` → `ISerialPort?` |
-| **USB device** | `IUsb` *(WASM)* | Pair with and drive a USB device — `RequestDeviceAsync(filters)` → `IUsbDevice?` (open, claim, transfer) |
-| **HID device** | `IHid` *(WASM)* | Talk to a HID device — `RequestDevicesAsync(filters)` → devices (output/feature reports + pushed input reports) |
+| **USB device** | `Navigator.Usb` *(Rask.Web, WASM)* | Pair with and drive a USB device — `RequestDevice(…)`, then `Open()` / `TransferIn` / `TransferOut` |
+| **HID device** | `Navigator.Hid` *(Rask.Web, WASM)* | Talk to a HID device — `RequestDevice(…)`, then `SendReport` / `OnInputReport` |
 | **Bluetooth (BLE)** | `IBluetooth` *(WASM)* | Pair with a BLE device — `RequestDeviceAsync(options)` → connect GATT, read/write/notify characteristics |
 | **Background sync** | `IBackgroundSync` *(WASM)* | Wake the app to drain an offline queue when connectivity returns, or on a schedule |
 

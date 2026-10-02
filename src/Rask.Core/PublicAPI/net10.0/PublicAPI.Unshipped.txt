@@ -155,10 +155,6 @@ Rask.Core.Browser.Badge.Badge(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.Badge.ClearAsync() -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.Badge.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.Badge.SetAsync(int? count = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.BroadcastChannelService
-Rask.Core.Browser.BroadcastChannelService.BroadcastChannelService(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.BroadcastChannelService.OpenAsync(string! name, System.Func<string!, System.Threading.Tasks.Task!>! onMessage) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IBroadcastChannelConnection!>
-Rask.Core.Browser.BroadcastInterop
 Rask.Core.Browser.CookieOptions
 Rask.Core.Browser.CookieOptions.<Clone>$() -> Rask.Core.Browser.CookieOptions!
 Rask.Core.Browser.CookieOptions.CookieOptions() -> void
@@ -192,11 +188,6 @@ Rask.Core.Browser.CredentialDescriptor.Transports.get -> string![]?
 Rask.Core.Browser.CredentialDescriptor.Transports.init -> void
 Rask.Core.Browser.CredentialDescriptor.Type.get -> string!
 Rask.Core.Browser.CredentialDescriptor.Type.init -> void
-Rask.Core.Browser.Crypto
-Rask.Core.Browser.Crypto.Crypto(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.Crypto.DigestHexAsync(Rask.Core.Browser.HashAlgorithm algorithm, string! text) -> System.Threading.Tasks.ValueTask<string!>
-Rask.Core.Browser.Crypto.RandomBytesAsync(int length) -> System.Threading.Tasks.ValueTask<byte[]!>
-Rask.Core.Browser.Crypto.RandomUuidAsync() -> System.Threading.Tasks.ValueTask<string!>
 Rask.Core.Browser.DeviceMotion
 Rask.Core.Browser.DeviceMotion.DeviceMotion(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.DeviceMotion.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
@@ -273,28 +264,15 @@ Rask.Core.Browser.GamepadReading.Id.get -> string!
 Rask.Core.Browser.GamepadReading.Id.init -> void
 Rask.Core.Browser.GamepadReading.Index.get -> int
 Rask.Core.Browser.GamepadReading.Index.init -> void
-Rask.Core.Browser.HashAlgorithm
-Rask.Core.Browser.HashAlgorithm.Sha1 = 0 -> Rask.Core.Browser.HashAlgorithm
-Rask.Core.Browser.HashAlgorithm.Sha256 = 1 -> Rask.Core.Browser.HashAlgorithm
-Rask.Core.Browser.HashAlgorithm.Sha384 = 2 -> Rask.Core.Browser.HashAlgorithm
-Rask.Core.Browser.HashAlgorithm.Sha512 = 3 -> Rask.Core.Browser.HashAlgorithm
 Rask.Core.Browser.IBadge
 Rask.Core.Browser.IBadge.ClearAsync() -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IBadge.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IBadge.SetAsync(int? count = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IBroadcastChannel
-Rask.Core.Browser.IBroadcastChannel.OpenAsync(string! name, System.Func<string!, System.Threading.Tasks.Task!>! onMessage) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IBroadcastChannelConnection!>
-Rask.Core.Browser.IBroadcastChannelConnection
-Rask.Core.Browser.IBroadcastChannelConnection.PostAsync(string! message) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.ICookies
 Rask.Core.Browser.ICookies.DeleteAsync(string! name, string? path = null) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.ICookies.GetAllAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>
 Rask.Core.Browser.ICookies.GetAsync(string! name) -> System.Threading.Tasks.ValueTask<string?>
 Rask.Core.Browser.ICookies.SetAsync(string! name, string! value, Rask.Core.Browser.CookieOptions? options = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.ICrypto
-Rask.Core.Browser.ICrypto.DigestHexAsync(Rask.Core.Browser.HashAlgorithm algorithm, string! text) -> System.Threading.Tasks.ValueTask<string!>
-Rask.Core.Browser.ICrypto.RandomBytesAsync(int length) -> System.Threading.Tasks.ValueTask<byte[]!>
-Rask.Core.Browser.ICrypto.RandomUuidAsync() -> System.Threading.Tasks.ValueTask<string!>
 Rask.Core.Browser.IDeviceMotion
 Rask.Core.Browser.IDeviceMotion.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IDeviceMotion.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermissionState>
@@ -333,12 +311,6 @@ Rask.Core.Browser.IKeyValueStore.GetBytesAsync(string! key) -> System.Threading.
 Rask.Core.Browser.IKeyValueStore.KeysAsync() -> System.Threading.Tasks.ValueTask<string![]!>
 Rask.Core.Browser.IKeyValueStore.SetAsync(string! key, string! value) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IKeyValueStore.SetBytesAsync(string! key, byte[]! value) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IMediaSession
-Rask.Core.Browser.IMediaSession.ClearAsync() -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IMediaSession.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IMediaSession.SetActionHandlerAsync(Rask.Core.Browser.MediaSessionAction action, System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Core.Browser.IMediaSession.SetMetadataAsync(Rask.Core.Browser.MediaMetadata! metadata) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IMediaSession.SetPlaybackStateAsync(Rask.Core.Browser.PlaybackState state) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IMediaStreams
 Rask.Core.Browser.IMediaStreams.AttachAsync(Rask.Core.Browser.MediaStreamId stream, Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IMediaStreams.StopAsync(Rask.Core.Browser.MediaStreamId stream) -> System.Threading.Tasks.ValueTask
@@ -367,8 +339,6 @@ Rask.Core.Browser.IPeerConnection.CreateOfferAsync() -> System.Threading.Tasks.V
 Rask.Core.Browser.IPeerConnection.RemoveStreamAsync(Rask.Core.Browser.MediaStreamId stream) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IPeerConnection.SetLocalDescriptionAsync(Rask.Core.Browser.RtcDescription! description) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IPeerConnection.SetRemoteDescriptionAsync(Rask.Core.Browser.RtcDescription! description) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IPermissions
-Rask.Core.Browser.IPermissions.QueryAsync(Rask.Core.Browser.PermissionName name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.PermissionState>
 Rask.Core.Browser.IRtcDataChannel
 Rask.Core.Browser.IRtcDataChannel.Label.get -> string!
 Rask.Core.Browser.IRtcDataChannel.ListenAsync(System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Browser.RtcMessage!>!, System.Threading.Tasks.Task!>! onMessages) -> System.Threading.Tasks.ValueTask
@@ -499,45 +469,6 @@ Rask.Core.Browser.ManifestShortcut.ShortName.get -> string?
 Rask.Core.Browser.ManifestShortcut.ShortName.init -> void
 Rask.Core.Browser.ManifestShortcut.Url.get -> string!
 Rask.Core.Browser.ManifestShortcut.Url.init -> void
-Rask.Core.Browser.MediaArtwork
-Rask.Core.Browser.MediaArtwork.<Clone>$() -> Rask.Core.Browser.MediaArtwork!
-Rask.Core.Browser.MediaArtwork.Deconstruct(out string! Src, out string? Sizes, out string? Type) -> void
-Rask.Core.Browser.MediaArtwork.Equals(Rask.Core.Browser.MediaArtwork? other) -> bool
-Rask.Core.Browser.MediaArtwork.MediaArtwork(string! Src, string? Sizes = null, string? Type = null) -> void
-Rask.Core.Browser.MediaArtwork.Sizes.get -> string?
-Rask.Core.Browser.MediaArtwork.Sizes.init -> void
-Rask.Core.Browser.MediaArtwork.Src.get -> string!
-Rask.Core.Browser.MediaArtwork.Src.init -> void
-Rask.Core.Browser.MediaArtwork.Type.get -> string?
-Rask.Core.Browser.MediaArtwork.Type.init -> void
-Rask.Core.Browser.MediaMetadata
-Rask.Core.Browser.MediaMetadata.<Clone>$() -> Rask.Core.Browser.MediaMetadata!
-Rask.Core.Browser.MediaMetadata.Album.get -> string?
-Rask.Core.Browser.MediaMetadata.Album.init -> void
-Rask.Core.Browser.MediaMetadata.Artist.get -> string?
-Rask.Core.Browser.MediaMetadata.Artist.init -> void
-Rask.Core.Browser.MediaMetadata.Artwork.get -> System.Collections.Generic.IReadOnlyList<Rask.Core.Browser.MediaArtwork!>!
-Rask.Core.Browser.MediaMetadata.Artwork.init -> void
-Rask.Core.Browser.MediaMetadata.Equals(Rask.Core.Browser.MediaMetadata? other) -> bool
-Rask.Core.Browser.MediaMetadata.MediaMetadata() -> void
-Rask.Core.Browser.MediaMetadata.Title.get -> string?
-Rask.Core.Browser.MediaMetadata.Title.init -> void
-Rask.Core.Browser.MediaSession
-Rask.Core.Browser.MediaSession.ClearAsync() -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.MediaSession.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.MediaSession.MediaSession(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.MediaSession.SetActionHandlerAsync(Rask.Core.Browser.MediaSessionAction action, System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Core.Browser.MediaSession.SetMetadataAsync(Rask.Core.Browser.MediaMetadata! metadata) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.MediaSession.SetPlaybackStateAsync(Rask.Core.Browser.PlaybackState state) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.MediaSessionAction
-Rask.Core.Browser.MediaSessionAction.NextTrack = 3 -> Rask.Core.Browser.MediaSessionAction
-Rask.Core.Browser.MediaSessionAction.Pause = 1 -> Rask.Core.Browser.MediaSessionAction
-Rask.Core.Browser.MediaSessionAction.Play = 0 -> Rask.Core.Browser.MediaSessionAction
-Rask.Core.Browser.MediaSessionAction.PreviousTrack = 4 -> Rask.Core.Browser.MediaSessionAction
-Rask.Core.Browser.MediaSessionAction.SeekBackward = 5 -> Rask.Core.Browser.MediaSessionAction
-Rask.Core.Browser.MediaSessionAction.SeekForward = 6 -> Rask.Core.Browser.MediaSessionAction
-Rask.Core.Browser.MediaSessionAction.Stop = 2 -> Rask.Core.Browser.MediaSessionAction
-Rask.Core.Browser.MediaSessionInterop
 Rask.Core.Browser.MediaStreamId
 Rask.Core.Browser.MediaStreamId.Deconstruct(out int Value) -> void
 Rask.Core.Browser.MediaStreamId.Equals(Rask.Core.Browser.MediaStreamId other) -> bool
@@ -619,25 +550,6 @@ Rask.Core.Browser.OriginPrivateFileSystem.ReadAsync(string! path, long offset, i
 Rask.Core.Browser.OriginPrivateFileSystem.TruncateAsync(string! path, long size) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.OriginPrivateFileSystem.WriteAllBytesAsync(string! path, byte[]! bytes) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.OriginPrivateFileSystem.WriteAsync(string! path, long offset, byte[]! bytes) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.PermissionName
-Rask.Core.Browser.PermissionName.Camera = 2 -> Rask.Core.Browser.PermissionName
-Rask.Core.Browser.PermissionName.ClipboardRead = 4 -> Rask.Core.Browser.PermissionName
-Rask.Core.Browser.PermissionName.ClipboardWrite = 5 -> Rask.Core.Browser.PermissionName
-Rask.Core.Browser.PermissionName.Geolocation = 0 -> Rask.Core.Browser.PermissionName
-Rask.Core.Browser.PermissionName.Microphone = 3 -> Rask.Core.Browser.PermissionName
-Rask.Core.Browser.PermissionName.Notifications = 1 -> Rask.Core.Browser.PermissionName
-Rask.Core.Browser.PermissionName.PersistentStorage = 6 -> Rask.Core.Browser.PermissionName
-Rask.Core.Browser.PermissionState
-Rask.Core.Browser.PermissionState.Denied = 2 -> Rask.Core.Browser.PermissionState
-Rask.Core.Browser.PermissionState.Granted = 1 -> Rask.Core.Browser.PermissionState
-Rask.Core.Browser.PermissionState.Prompt = 0 -> Rask.Core.Browser.PermissionState
-Rask.Core.Browser.Permissions
-Rask.Core.Browser.Permissions.Permissions(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.Permissions.QueryAsync(Rask.Core.Browser.PermissionName name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.PermissionState>
-Rask.Core.Browser.PlaybackState
-Rask.Core.Browser.PlaybackState.None = 0 -> Rask.Core.Browser.PlaybackState
-Rask.Core.Browser.PlaybackState.Paused = 1 -> Rask.Core.Browser.PlaybackState
-Rask.Core.Browser.PlaybackState.Playing = 2 -> Rask.Core.Browser.PlaybackState
 Rask.Core.Browser.PubKeyCredParam
 Rask.Core.Browser.PubKeyCredParam.<Clone>$() -> Rask.Core.Browser.PubKeyCredParam!
 Rask.Core.Browser.PubKeyCredParam.Alg.get -> int
@@ -2157,12 +2069,6 @@ override Rask.Core.Browser.ManifestScreenshot.ToString() -> string!
 override Rask.Core.Browser.ManifestShortcut.Equals(object? obj) -> bool
 override Rask.Core.Browser.ManifestShortcut.GetHashCode() -> int
 override Rask.Core.Browser.ManifestShortcut.ToString() -> string!
-override Rask.Core.Browser.MediaArtwork.Equals(object? obj) -> bool
-override Rask.Core.Browser.MediaArtwork.GetHashCode() -> int
-override Rask.Core.Browser.MediaArtwork.ToString() -> string!
-override Rask.Core.Browser.MediaMetadata.Equals(object? obj) -> bool
-override Rask.Core.Browser.MediaMetadata.GetHashCode() -> int
-override Rask.Core.Browser.MediaMetadata.ToString() -> string!
 override Rask.Core.Browser.MediaStreamId.GetHashCode() -> int
 override Rask.Core.Browser.MotionReading.Equals(object? obj) -> bool
 override Rask.Core.Browser.MotionReading.GetHashCode() -> int
@@ -2318,7 +2224,6 @@ static Rask.Core.Browser.AttestationResult.operator !=(Rask.Core.Browser.Attesta
 static Rask.Core.Browser.AttestationResult.operator ==(Rask.Core.Browser.AttestationResult? left, Rask.Core.Browser.AttestationResult? right) -> bool
 static Rask.Core.Browser.AuthenticatorSelection.operator !=(Rask.Core.Browser.AuthenticatorSelection? left, Rask.Core.Browser.AuthenticatorSelection? right) -> bool
 static Rask.Core.Browser.AuthenticatorSelection.operator ==(Rask.Core.Browser.AuthenticatorSelection? left, Rask.Core.Browser.AuthenticatorSelection? right) -> bool
-static Rask.Core.Browser.BroadcastInterop.Receive(int id, string! message) -> System.Threading.Tasks.Task!
 static Rask.Core.Browser.CookieOptions.operator !=(Rask.Core.Browser.CookieOptions? left, Rask.Core.Browser.CookieOptions? right) -> bool
 static Rask.Core.Browser.CookieOptions.operator ==(Rask.Core.Browser.CookieOptions? left, Rask.Core.Browser.CookieOptions? right) -> bool
 static Rask.Core.Browser.CredentialDescriptor.operator !=(Rask.Core.Browser.CredentialDescriptor? left, Rask.Core.Browser.CredentialDescriptor? right) -> bool
@@ -2342,11 +2247,6 @@ static Rask.Core.Browser.ManifestScreenshot.operator !=(Rask.Core.Browser.Manife
 static Rask.Core.Browser.ManifestScreenshot.operator ==(Rask.Core.Browser.ManifestScreenshot? left, Rask.Core.Browser.ManifestScreenshot? right) -> bool
 static Rask.Core.Browser.ManifestShortcut.operator !=(Rask.Core.Browser.ManifestShortcut? left, Rask.Core.Browser.ManifestShortcut? right) -> bool
 static Rask.Core.Browser.ManifestShortcut.operator ==(Rask.Core.Browser.ManifestShortcut? left, Rask.Core.Browser.ManifestShortcut? right) -> bool
-static Rask.Core.Browser.MediaArtwork.operator !=(Rask.Core.Browser.MediaArtwork? left, Rask.Core.Browser.MediaArtwork? right) -> bool
-static Rask.Core.Browser.MediaArtwork.operator ==(Rask.Core.Browser.MediaArtwork? left, Rask.Core.Browser.MediaArtwork? right) -> bool
-static Rask.Core.Browser.MediaMetadata.operator !=(Rask.Core.Browser.MediaMetadata? left, Rask.Core.Browser.MediaMetadata? right) -> bool
-static Rask.Core.Browser.MediaMetadata.operator ==(Rask.Core.Browser.MediaMetadata? left, Rask.Core.Browser.MediaMetadata? right) -> bool
-static Rask.Core.Browser.MediaSessionInterop.Invoke(int id) -> System.Threading.Tasks.Task!
 static Rask.Core.Browser.MediaStreamId.operator !=(Rask.Core.Browser.MediaStreamId left, Rask.Core.Browser.MediaStreamId right) -> bool
 static Rask.Core.Browser.MediaStreamId.operator ==(Rask.Core.Browser.MediaStreamId left, Rask.Core.Browser.MediaStreamId right) -> bool
 static Rask.Core.Browser.MotionReading.operator !=(Rask.Core.Browser.MotionReading? left, Rask.Core.Browser.MotionReading? right) -> bool

@@ -622,6 +622,15 @@ them until tagged releases begin.
     await Navigator.Share(new() { Url = url });          // WebAssembly
     ```
     The site's demos use them. The declarative `Shareable`, `ScreenOrientationTrigger` and gesture components are unchanged.
+  - **BREAKING: `ICrypto`, `IPermissions`, `IBroadcastChannel`, `IMediaSession`, and on WebAssembly `IUsb` and `IHid`,
+    are gone** — Rask.Web now crosses bytes, your own types and live lists, so MDN's own APIs cover them:
+    ```csharp
+    var hash = await Crypto.Subtle.Digest("SHA-256", bytes);                      // was DigestHexAsync(HashAlgorithm.Sha256, text)
+    await using var status = await Navigator.Permissions.Query(new() { Name = "geolocation" });
+    await using var channel = await BroadcastChannel.Create("cart"); await channel.PostMessage(new CartChanged(42));
+    await Navigator.MediaSession.SetMetadata(await MediaMetadata.Create(new() { Title = "Song" }));
+    var devices = await Navigator.Usb.GetDevices();                               // WebAssembly; each one kept
+    ```
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

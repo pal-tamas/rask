@@ -22,7 +22,6 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(SpeechRecognitionOptions))]
 [JsonSerializable(typeof(RecognitionResult))]
 [JsonSerializable(typeof(StorageEstimate))]
-[JsonSerializable(typeof(MediaMetadata))]
 [JsonSerializable(typeof(GamepadReading))]
 [JsonSerializable(typeof(LockInfo))]
 [JsonSerializable(typeof(LockInfo[]))]

@@ -22,7 +22,7 @@ namespace Rask.SQLite.Browser;
 ///         filesystem, so two tabs would hold two divergent databases and the last one to snapshot would
 ///         silently overwrite the other. A Web Lock elects exactly one owner; the others run with an empty
 ///         in-memory database that is never persisted, and say so in the log. Promoting a waiting tab when
-///         the owner closes, or proxying its writes over <c>IBroadcastChannel</c>, is not implemented.
+///         the owner closes, or proxying its writes over a <c>BroadcastChannel</c>, is not implemented.
 ///     </para>
 /// </remarks>
 internal sealed partial class BrowserSqliteHost(

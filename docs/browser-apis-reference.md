@@ -111,7 +111,8 @@ only you know whether a given one is a loading affordance or decoration. Read th
 
 <!-- demo:browser-performance -->
 
-**`IPermissions`** — check a feature's permission state before triggering a prompt.
+**Permissions** — `await Navigator.Permissions.Query(new() { Name = "geolocation" })`, from [Rask.Web](web-apis.md); read
+`State` before triggering a prompt.
 
 <!-- demo:browser-permissions -->
 
@@ -169,11 +170,13 @@ data and re-renders its component.
 
 <!-- demo:browser-speech-recognition -->
 
-**`IMediaSession`** — publish now-playing metadata to the OS and handle hardware media keys.
+**Media session** — `await Navigator.MediaSession.SetMetadata(await MediaMetadata.Create(new() { Title = "…" }))` and
+`SetActionHandler(action, details => …)`, from [Rask.Web](web-apis.md); now-playing metadata and hardware media keys.
 
 <!-- demo:browser-media-session -->
 
-**`ICrypto`** — cryptographically strong randomness and SHA hashing (the Web Crypto API).
+**Crypto** — `await Crypto.RandomUUID()`, `await Crypto.GetRandomValues(new byte[16])` and
+`await Crypto.Subtle.Digest("SHA-256", bytes)`, from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-crypto -->
 
@@ -189,7 +192,8 @@ data and re-renders its component.
 
 <!-- demo:browser-webauthn -->
 
-**`IBroadcastChannel`** — send messages between same-origin tabs (open this guide in a second tab to try it).
+**BroadcastChannel** — `await BroadcastChannel.Create("cart")`, then `PostMessage(msg)` and `OnMessage(e => …)`, from
+[Rask.Web](web-apis.md); messages between same-origin tabs (open this guide in a second tab to try it).
 
 <!-- demo:browser-broadcast-channel -->
 
@@ -201,7 +205,7 @@ both to watch one wait for the other.
 <!-- demo:browser-web-locks -->
 
 **`IWebRtc`** — connect two browsers directly for peer-to-peer data. You supply the signaling (a WebSocket,
-an HTTP endpoint, even `IBroadcastChannel` between two tabs); the wrapper handles the offer/answer exchange,
+an HTTP endpoint, even a `BroadcastChannel` between two tabs); the wrapper handles the offer/answer exchange,
 ICE, and data channels. Incoming messages and candidates arrive in **batches** — on the Server host each push
 costs a WebSocket frame, so one push per message would end the session under load. The demo runs both peers
 in one page, so signaling is a method call and everything else is real.

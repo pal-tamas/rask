@@ -1,12 +1,12 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IPermissions" /> — query a feature's permission state (granted/denied/prompt) before
+///     MDN's <c>Permissions</c> from Rask.Web — query a feature's permission state (granted/denied/prompt) before
 ///     triggering it. Pairs with <c>Navigator.Geolocation</c> / <c>Navigator.Clipboard</c>.
 /// </summary>
-public sealed partial class PermissionsDemo(IPermissions permissions) : Component
+public sealed partial class PermissionsDemo : Component
 {
     private string? _geo;
     private string? _clip;
@@ -31,7 +31,7 @@ public sealed partial class PermissionsDemo(IPermissions permissions) : Componen
     {
         try
         {
-            _geo = (await permissions.QueryAsync(PermissionName.Geolocation)).ToString();
+            _geo = await Query("geolocation");
             _status = "Queried geolocation";
         }
         catch (Exception ex) { _status = "Query failed: " + ex.Message; }
@@ -41,9 +41,16 @@ public sealed partial class PermissionsDemo(IPermissions permissions) : Componen
     {
         try
         {
-            _clip = (await permissions.QueryAsync(PermissionName.ClipboardRead)).ToString();
+            _clip = await Query("clipboard-read");
             _status = "Queried clipboard-read";
         }
         catch (Exception ex) { _status = "Query failed: " + ex.Message; }
+    }
+
+    // navigator.permissions.query({ name }): the PermissionStatus is kept, so read its state and let it go.
+    private static async Task<string> Query(string name)
+    {
+        await using var status = await Navigator.Permissions.Query(new() { Name = name });
+        return (await status.State).ToString();
     }
 }

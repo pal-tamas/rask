@@ -6,7 +6,7 @@ namespace Rask.Site.Features;
 ///     <see cref="IWebRtc" /> — a peer-to-peer data channel between two browsers. This demo puts
 ///     <em>both</em> peers in one page, so the signaling step is a plain method call rather than a network
 ///     hop; in a real app that is exactly where your WebSocket, HTTP endpoint or
-///     <see cref="IBroadcastChannel" /> goes. Everything else is the real thing: a real offer/answer
+///     <c>BroadcastChannel</c> goes. Everything else is the real thing: a real offer/answer
 ///     exchange, real ICE candidates, and a real <c>RTCDataChannel</c> carrying the messages.
 ///     <para>
 ///         Two details are worth copying. Candidates are <b>buffered until the remote description is

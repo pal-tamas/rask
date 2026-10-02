@@ -1,21 +1,23 @@
 using System.Globalization;
-using Rask.Site;
-using Rask.Wasm.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IUsb" /> — pair with a USB device from a gesture and read its descriptor (vendor / product /
-///     manufacturer / serial), then open and release it. WASM-only: requestDevice() needs a live user gesture
-///     and the live device handle, and it's Chromium-family only at the time of writing. Actual data transfer
-///     (claim an interface, transferIn/Out) is device-specific, so this demo shows discovery + lifecycle.
+///     MDN's WebUSB API from Rask.Web — pair with a USB device from a gesture and read its descriptor (vendor /
+///     product / manufacturer / serial), then open and release it. WASM-only: requestDevice() needs a live user
+///     gesture, and it's Chromium-family only at the time of writing. Actual data transfer (claim an interface,
+///     transferIn/Out) is device-specific, so this demo shows discovery + lifecycle.
 /// </summary>
-public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
+public sealed partial class UsbDemo : Component
 {
-    private IUsbDevice? _device;
-    private UsbDeviceInfo? _info;
+    private Rask.Web.Types.USBDevice? _device;
+    private IAsyncDisposable? _unplugged;
+    private UsbInfo? _info;
     private bool _open;
     private string _status = "(idle)";
+
+    private sealed record UsbInfo(int VendorId, int ProductId, string? ManufacturerName, string? ProductName, string? SerialNumber);
 
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
@@ -49,26 +51,32 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
 
     private static string Hex(int value) => "0x" + value.ToString("x4", CultureInfo.InvariantCulture);
 
+    // navigator.usb.requestDevice({ filters: [] }) offers every device; dismissing the chooser rejects.
     private async Task RequestDevice()
     {
         try
         {
-            if (!await usb.IsSupportedAsync())
+            if (!await Navigator.Usb.IsSupported)
             {
                 _status = "WebUSB not supported in this browser (Chromium-family only)";
                 return;
             }
 
             await CloseInternal();
-            _device = await usb.RequestDeviceAsync(onDisconnect: OnDisconnect); // no filters → offer all devices
-            _info = _device?.Info;
-            _status = _device is null ? "No device selected" : "Paired";
+            _device = await Navigator.Usb.RequestDevice(new() { Filters = [] });
+            _info = await Describe(_device);
+            _unplugged ??= await Navigator.Usb.OnDisconnect(Unplugged);
+            _status = "Paired";
         }
         catch (Exception ex)
         {
             _status = "Failed: " + ex.Message;
         }
     }
+
+    private static async Task<UsbInfo> Describe(Rask.Web.Types.USBDevice device) =>
+        new(await device.VendorId, await device.ProductId, await device.ManufacturerName, await device.ProductName,
+            await device.SerialNumber);
 
     private async Task Open()
     {
@@ -79,7 +87,7 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
 
         try
         {
-            await _device.OpenAsync();
+            await _device.Open();
             _open = true;
             _status = "Opened — ready for device-specific transfers";
         }
@@ -89,15 +97,29 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
         }
     }
 
-    private Task OnDisconnect()
+    // navigator.usb's `disconnect` fires for any device, so ask getDevices() whether the paired one is still there.
+    private async Task Unplugged()
     {
-        // The device was unplugged — the framework already evicted it; just reset the UI.
-        _device = null;
-        _info = null;
-        _open = false;
-        _status = "Device disconnected";
-        StateHasChanged();
-        return Task.CompletedTask;
+        if (_info is null)
+        {
+            return;
+        }
+
+        var present = false;
+        foreach (var device in await Navigator.Usb.GetDevices())
+        {
+            await using (device)
+            {
+                present |= await Describe(device) == _info;
+            }
+        }
+
+        if (!present)
+        {
+            _open = false; // an unplugged device is closed already
+            await CloseInternal();
+            _status = "Device disconnected";
+        }
     }
 
     private async Task Release()
@@ -110,6 +132,11 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
     {
         if (_device is not null)
         {
+            if (_open)
+            {
+                await _device.Close();
+            }
+
             await _device.DisposeAsync();
             _device = null;
             _info = null;
@@ -117,5 +144,12 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
         }
     }
 
-    public async ValueTask DisposeAsync() => await CloseInternal();
+    protected override async Task OnUnmount()
+    {
+        await CloseInternal();
+        if (_unplugged is not null)
+        {
+            await _unplugged.DisposeAsync();
+        }
+    }
 }

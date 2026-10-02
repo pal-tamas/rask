@@ -1,9 +1,10 @@
-using Rask.Core.Browser;
+using System.Text;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary><see cref="ICrypto" /> — native randomness (UUID, bytes) and hashing (SHA-256) from C#.</summary>
-public sealed partial class CryptoDemo(ICrypto crypto) : Component
+/// <summary>MDN's <c>Crypto</c> from Rask.Web — native randomness (UUID, bytes) and hashing (SHA-256) from C#.</summary>
+public sealed partial class CryptoDemo : Component
 {
     private string _text = "hello";
     private string? _uuid;
@@ -30,26 +31,32 @@ public sealed partial class CryptoDemo(ICrypto crypto) : Component
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("crypto-status")[_status ?? "(idle)"]]
             ];
 
+    // crypto.randomUUID()
     private async Task Uuid()
     {
-        try { _uuid = await crypto.RandomUuidAsync(); _status = "UUID generated"; }
+        try { _uuid = await Crypto.RandomUUID(); _status = "UUID generated"; }
         catch (Exception ex) { _status = "Failed: " + ex.Message; }
     }
 
+    // crypto.getRandomValues(new Uint8Array(8)): the browser fills the array and answers with it.
     private async Task Bytes()
     {
         try
         {
-            var b = await crypto.RandomBytesAsync(8);
-            _bytes = Convert.ToHexStringLower(b);
+            _bytes = Convert.ToHexStringLower(await Crypto.GetRandomValues(new byte[8]));
             _status = "Bytes generated";
         }
         catch (Exception ex) { _status = "Failed: " + ex.Message; }
     }
 
+    // crypto.subtle.digest("SHA-256", bytes): the hash comes back as a byte[].
     private async Task Hash()
     {
-        try { _hash = await crypto.DigestHexAsync(HashAlgorithm.Sha256, _text); _status = "Hashed"; }
+        try
+        {
+            _hash = Convert.ToHexStringLower(await Crypto.Subtle.Digest("SHA-256", Encoding.UTF8.GetBytes(_text)));
+            _status = "Hashed";
+        }
         catch (Exception ex) { _status = "Failed: " + ex.Message; }
     }
 }

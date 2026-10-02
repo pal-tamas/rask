@@ -1,56 +1,43 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IMediaSession" /> — publish now-playing metadata to the OS (lock screen / media hub) and
-///     handle hardware media keys. Publish the metadata, then press a media key (or use the lock-screen
-///     controls): the browser pushes the action to C#, which appends it to the log (the handler calls
-///     <c>StateHasChanged()</c>, the sanctioned pattern for an externally-pushed update). Honored fully only
-///     while media is actually playing.
+///     MDN's <c>MediaSession</c> from Rask.Web — publish now-playing metadata to the OS (lock screen / media hub) and
+///     handle hardware media keys. Publish the metadata, then press a media key (or use the lock-screen controls): the
+///     browser runs the C# action handler, which shows the action below. Honored fully only while media is actually
+///     playing.
 /// </summary>
-public sealed partial class MediaSessionDemo(IMediaSession media) : Component, IAsyncDisposable
+public sealed partial class MediaSessionDemo : Component
 {
-    private readonly List<IAsyncDisposable> _handlers = [];
+    private static readonly Rask.Web.Types.MediaSessionAction[] Actions =
+    [
+        Rask.Web.Types.MediaSessionAction.Play, Rask.Web.Types.MediaSessionAction.Pause,
+        Rask.Web.Types.MediaSessionAction.Previoustrack, Rask.Web.Types.MediaSessionAction.Nexttrack
+    ];
+
+    private readonly List<Rask.Web.Types.MediaSessionAction> _handled = [];
     private string _status = "(idle)";
     private string _last = "(none yet)";
 
     protected override async Task OnFirstRender()
     {
-        if (_handlers.Count > 0)
-
-        {
-
-            return;
-
-        }
-
-        if (!await media.IsSupportedAsync())
+        if (!await Navigator.MediaSession.IsSupported)
         {
             _status = "Media Session not supported";
-            StateHasChanged();
             return;
         }
 
-        foreach (var action in new[]
+        foreach (var action in Actions.Except(_handled))
         {
-            MediaSessionAction.Play, MediaSessionAction.Pause,
-            MediaSessionAction.PreviousTrack, MediaSessionAction.NextTrack
-        })
-        {
-            var captured = action;
             try
             {
-                _handlers.Add(await media.SetActionHandlerAsync(captured, () =>
-                {
-                    _last = captured.ToString();
-                    StateHasChanged();
-                    return Task.CompletedTask;
-                }));
+                await Navigator.MediaSession.SetActionHandler(action, details => _last = details.Action.ToString());
+                _handled.Add(action);
             }
-            catch
+            catch (Microsoft.JSInterop.JSException)
             {
-                // Browser doesn't support this particular action — skip it.
+                // The browser does not support this particular action: setActionHandler throws, so skip it.
             }
         }
     }
@@ -61,10 +48,10 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
                     Ui.Button.Primary.Id("ms-publish").OnClick(Publish)["Publish metadata"],
                     Ui.Button.Primary.Outline
                         .Id("ms-playing")
-                        .OnClick(() => SetState(PlaybackState.Playing, "playing"))["Mark playing"],
+                        .OnClick(() => SetState(Rask.Web.Types.MediaSessionPlaybackState.Playing, "playing"))["Mark playing"],
                     Ui.Button.Primary.Outline
                         .Id("ms-paused")
-                        .OnClick(() => SetState(PlaybackState.Paused, "paused"))["Mark paused"],
+                        .OnClick(() => SetState(Rask.Web.Types.MediaSessionPlaybackState.Paused, "paused"))["Mark paused"],
                     Ui.Button.Error.Outline.Id("ms-clear").OnClick(Clear)["Clear"]
                 ],
                 P.Class("text-sm text-ui-muted mb-2")[
@@ -74,17 +61,19 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
                 Div.Class("text-sm text-ui-muted")["Last action: ", Code.Id("ms-last")[_last]]
             ];
 
+    // navigator.mediaSession.metadata = new MediaMetadata({ … }): the new object is kept, set by its handle, then let go.
     private async Task Publish()
     {
         try
         {
-            await media.SetMetadataAsync(new MediaMetadata
+            await using var metadata = await Rask.Web.MediaMetadata.Create(new()
             {
                 Title = "Rask Showcase Track",
                 Artist = "Rask",
                 Album = "Browser APIs",
-                Artwork = [new MediaArtwork("icon.svg", "any", "image/svg+xml")]
+                Artwork = [new() { Src = "icon.svg", Sizes = "any", Type = "image/svg+xml" }]
             });
+            await Navigator.MediaSession.SetMetadata(metadata);
             _status = "metadata published";
         }
         catch (Exception ex)
@@ -93,11 +82,11 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
         }
     }
 
-    private async Task SetState(PlaybackState state, string label)
+    private async Task SetState(Rask.Web.Types.MediaSessionPlaybackState state, string label)
     {
         try
         {
-            await media.SetPlaybackStateAsync(state);
+            await Navigator.MediaSession.SetPlaybackState(state);
             _status = $"playback state: {label}";
         }
         catch (Exception ex)
@@ -110,7 +99,8 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
     {
         try
         {
-            await media.ClearAsync();
+            await Navigator.MediaSession.SetMetadata(null);
+            await Navigator.MediaSession.SetPlaybackState(Rask.Web.Types.MediaSessionPlaybackState.None);
             _status = "cleared";
             _last = "(none yet)";
         }
@@ -120,11 +110,12 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
         }
     }
 
-    public async ValueTask DisposeAsync()
+    // setActionHandler(action, null) takes each handler back off the OS controls.
+    protected override async Task OnUnmount()
     {
-        foreach (var handler in _handlers)
+        foreach (var action in _handled)
         {
-            await handler.DisposeAsync();
+            await Navigator.MediaSession.SetActionHandler(action, (Action<Rask.Web.Types.MediaSessionActionDetails>?)null);
         }
     }
 }

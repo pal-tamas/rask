@@ -63,8 +63,6 @@ public static class RaskBrowserApis
     {
         services.AddBrowserApi<ISpeechSynthesis, SpeechSynthesis>(lifetime);
         services.AddBrowserApi<ISpeechRecognition, SpeechRecognition>(lifetime);
-        services.AddBrowserApi<IBroadcastChannel, BroadcastChannelService>(lifetime);
-        services.AddBrowserApi<IMediaSession, MediaSession>(lifetime);
         services.AddBrowserApi<IMediaStreams, MediaStreams>(lifetime);
         services.AddBrowserApi<ISignaling, Signaling>(lifetime);
         services.AddBrowserApi<IWebRtc, WebRtc>(lifetime);
@@ -78,9 +76,7 @@ public static class RaskBrowserApis
         services.AddBrowserApi<IOriginPrivateFileSystem, OriginPrivateFileSystem>(lifetime);
         services.AddBrowserApi<ICookies, Cookies>(lifetime);
         services.AddBrowserApi<IWebLocks, WebLocks>(lifetime);
-        services.AddBrowserApi<ICrypto, Crypto>(lifetime);
         services.AddBrowserApi<IWebAuthn, WebAuthn>(lifetime);
-        services.AddBrowserApi<IPermissions, Permissions>(lifetime);
     }
 
     // Transport-agnostic PWA APIs (IJSRuntime-backed, no transient activation): push subscribe, local

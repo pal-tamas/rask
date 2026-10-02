@@ -10,7 +10,7 @@ namespace Rask.Core.Browser;
 ///     <para>
 ///         <b>You supply the signaling.</b> WebRTC cannot start a connection on its own: the two peers have
 ///         to trade an offer, an answer, and their ICE candidates through some channel you already have —
-///         a WebSocket, an HTTP endpoint, even <see cref="IBroadcastChannel" /> between two tabs of the
+///         a WebSocket, an HTTP endpoint, even <c>BroadcastChannel</c> between two tabs of the
 ///         same origin. <see cref="RtcDescription" /> and <see cref="RtcIceCandidate" /> are plain
 ///         serializable records so they can ride whatever you use.
 ///     </para>

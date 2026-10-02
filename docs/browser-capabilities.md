@@ -4,7 +4,8 @@ Every typed browser/device API wrapper Rask ships, and where it works. Inject th
 framework resolves the implementation for the host. Each API links to its own reference page; the
 narrative overview (with the three-homes rationale and the subscription pattern) is
 [browser-apis.md](browser-apis.md). Everything else the browser ships — clipboard, geolocation, `matchMedia`,
-storage, screen, share — is MDN's own surface in [`Rask.Web`](web-apis.md).
+storage, screen, share, crypto, permissions, `BroadcastChannel`, media session, WebUSB, WebHID — is MDN's own
+surface in [`Rask.Web`](web-apis.md).
 
 **Legend** — ✅ injectable service · 🟡 reachable on Server via a declarative **gesture component** (runs the
 activation-gated call inside a click), not as an injected service · ⬜ not available · — n/a.
@@ -12,14 +13,11 @@ activation-gated call inside a click), not as an injected service · ⬜ not ava
 | API | Web / Server | PWA / WASM |
 |-----|:---:|:---:|
 | [`ICookies`](apis/cookies.md) | ✅ | ✅ |
-| [`IPermissions`](apis/permissions.md) | ✅ | ✅ |
 | [`ISpeechSynthesis`](apis/speech-synthesis.md) | ✅ | ✅ |
 | [`ISpeechRecognition`](apis/speech-recognition.md) | ✅ | ✅ |
-| [`IMediaSession`](apis/media-session.md) | ✅ | ✅ |
 | [`IDeviceOrientation`](apis/device-orientation.md) | ✅ | ✅ |
 | [`IDeviceMotion`](apis/device-motion.md) | ✅ | ✅ |
 | [`IStorageEstimator`](apis/storage-estimator.md) | ✅ | ✅ |
-| [`ICrypto`](apis/crypto.md) | ✅ | ✅ |
 | [`IIndexedDb`](apis/indexeddb.md) | ✅ | ✅ |
 | [`IFileSystemAccess`](apis/file-system-access.md) | ✅ | ✅ |
 | [`IOriginPrivateFileSystem`](apis/origin-private-file-system.md) | ✅ | ✅ |
@@ -28,7 +26,6 @@ activation-gated call inside a click), not as an injected service · ⬜ not ava
 | [`IMediaStreams`](apis/media-streams.md) | ✅ | ✅ |
 | [`ISignaling`](apis/signaling.md) | ✅ | ✅ |
 | [`IWebRtc`](apis/webrtc.md) | ✅ | ✅ |
-| [`IBroadcastChannel`](apis/broadcast-channel.md) | ✅ | ✅ |
 | [`IGamepad`](apis/gamepad.md) | ✅ | ✅ |
 | [`IWebPush`](apis/web-push.md) | ✅ | ✅ |
 | [`INotifications`](apis/notifications.md) | ✅ | ✅ |
@@ -39,8 +36,6 @@ activation-gated call inside a click), not as an injected service · ⬜ not ava
 | [`IInstallPrompt`](apis/install-prompt.md) | 🟡 | ✅ |
 | [`IMediaDevices`](apis/media-devices.md) | 🟡 | ✅ |
 | [`ISerial`](apis/serial.md) | ⬜ | ✅ |
-| [`IUsb`](apis/usb.md) | ⬜ | ✅ |
-| [`IHid`](apis/hid.md) | ⬜ | ✅ |
 | [`IBluetooth`](apis/bluetooth.md) | ⬜ | ✅ |
 | [`IBackgroundSync`](apis/background-sync.md) | ⬜ | ✅ |
 

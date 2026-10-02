@@ -18,7 +18,7 @@ through a static `[JSInvokable]` — one wiring, both transports.
 WebRTC cannot start a connection on its own. Before two peers can talk, they have to trade an **offer**, an
 **answer**, and their **ICE candidates** through some channel they already share. Rask does not pick that
 channel for you — `RtcDescription` and `RtcIceCandidate` are plain serializable records, so they ride
-whatever you already have: a WebSocket, an HTTP endpoint, or `IBroadcastChannel` between two tabs of the
+whatever you already have: a WebSocket, an HTTP endpoint, or a `BroadcastChannel` between two tabs of the
 same origin.
 
 ```csharp
@@ -119,6 +119,6 @@ through the relay and the peer learns nothing about your network.
 ## See also
 
 - Source: [`IWebRtc.cs`](../../src/Rask.Core/Browser/IWebRtc.cs)
-- [`IBroadcastChannel`](broadcast-channel.md) — a signaling channel between two tabs of the same origin
+- [`BroadcastChannel`](../web-apis.md) in `Rask.Web` — a signaling channel between two tabs of the same origin
 - [Capability matrix](../browser-capabilities.md)
 - [Browser APIs — the narrative map](../browser-apis.md)

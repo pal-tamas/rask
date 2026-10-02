@@ -309,16 +309,16 @@ public sealed partial class PwaPage : Component
         [
             P.Class("text-ui-muted")[
                 "Pair with and drive a USB device — custom hardware, a dev board, an instrument — straight from C# ",
-                "via IUsb (the WebUSB API): show its descriptor, open it, claim an interface, and run ",
-                "bulk / interrupt / control transfers. WASM-only: requestDevice() needs a live user gesture and the ",
-                "live device handle, and it's Chromium-family only at the time of writing."
+                "via MDN's WebUSB API in Rask.Web: show its descriptor, open it, claim an interface, and run ",
+                "bulk / interrupt / control transfers. WASM-only: requestDevice() needs a live user gesture, and ",
+                "it's Chromium-family only at the time of writing."
             ],
             CodeSample
                 .Files(["UsbDemo.cs"])
-                .Notes("RequestDeviceAsync shows the browser device chooser and returns an IUsbDevice (null if the "
-                    + "user dismisses it). Transfer payloads cross as byte[]; dispose the device to release it. "
-                    + "Actual transfers are device-specific, so the demo shows discovery + lifecycle. Gate on "
-                    + "IsSupportedAsync.")
+                .Notes("await Navigator.Usb.RequestDevice(new() { Filters = [] }) shows the browser device chooser and "
+                    + "keeps the USBDevice it answers (dismissing it throws). Transfer payloads cross as byte[] — "
+                    + "TransferOut(endpoint, bytes); dispose the device to release it. Actual transfers are "
+                    + "device-specific, so the demo shows discovery + lifecycle. Gate on await Navigator.Usb.IsSupported.")
                 .Result(UsbDemo)
         ]);
 
@@ -327,17 +327,17 @@ public sealed partial class PwaPage : Component
         [
             P.Class("text-ui-muted")[
                 "Talk to a human-interface device that no higher-level API covers — a gamepad with custom reports, ",
-                "a keyboard with extra keys, simulation controls, point-of-sale hardware — via IHid (the WebHID ",
-                "API): open it, send output / feature reports, and subscribe to its live input-report stream. ",
-                "WASM-only: requestDevice() needs a live user gesture and the live device handle, and it's ",
-                "Chromium-family only at the time of writing."
+                "a keyboard with extra keys, simulation controls, point-of-sale hardware — via MDN's WebHID API in ",
+                "Rask.Web: open it, send output / feature reports, and subscribe to its live input-report stream. ",
+                "WASM-only: requestDevice() needs a live user gesture, and it's Chromium-family only at the time of ",
+                "writing."
             ],
             CodeSample
                 .Files(["HidDemo.cs"])
-                .Notes("RequestDevicesAsync shows the browser chooser and returns the granted devices (empty if "
-                    + "dismissed). Open a device, then WatchInputReportsAsync pushes each input report (and an "
-                    + "optional disconnect signal) to your callback; dispose the watch and the device to release. "
-                    + "Report payloads cross as byte[]. Gate on IsSupportedAsync.")
+                .Notes("await Navigator.Hid.RequestDevice(new() { Filters = [] }) shows the browser chooser and keeps "
+                    + "each granted HIDDevice (none if dismissed). Open() a device, then OnInputReport hands each "
+                    + "report to your handler, which re-renders the component; dispose the subscription and the "
+                    + "device to release. Report payloads cross as byte[]. Gate on await Navigator.Hid.IsSupported.")
                 .Result(HidDemo)
         ]);
 

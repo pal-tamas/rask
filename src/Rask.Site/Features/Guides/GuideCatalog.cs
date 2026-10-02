@@ -436,20 +436,10 @@ public static class GuideCatalog
             SearchTitle = "Web Bluetooth API in C# and .NET (IBluetooth)",
             Description = "Pair a Bluetooth LE device from C# and read, write or watch GATT characteristics with the Web Bluetooth API. WebAssembly host only, behind the device chooser.",
         },
-        new("broadcast-channel", "IBroadcastChannel", "Typed browser API: IBroadcastChannel.", "Browser API reference", "apis/broadcast-channel.md")
-        {
-            SearchTitle = "Broadcast Channel API in C# (IBroadcastChannel)",
-            Description = "Send messages between browser tabs from C# with the Broadcast Channel API wrapper, and receive them in a callback. Works on Server and WebAssembly.",
-        },
         new("cookies", "ICookies", "Typed browser API: ICookies.", "Browser API reference", "apis/cookies.md")
         {
             SearchTitle = "document.cookie in C# and .NET (ICookies)",
             Description = "Read and write browser cookies from C# through document.cookie, with typed CookieOptions. The ICookies wrapper works on both the Server and WebAssembly hosts.",
-        },
-        new("crypto", "ICrypto", "Typed browser API: ICrypto.", "Browser API reference", "apis/crypto.md")
-        {
-            SearchTitle = "Web Crypto API in C# and .NET (ICrypto)",
-            Description = "Generate random UUIDs and bytes and compute SHA digests from C# using the browser's Web Crypto API. The ICrypto wrapper works on Server and WebAssembly hosts.",
         },
         new("device-motion", "IDeviceMotion", "Typed browser API: IDeviceMotion.", "Browser API reference", "apis/device-motion.md")
         {
@@ -476,11 +466,6 @@ public static class GuideCatalog
             SearchTitle = "Gamepad API in C# and .NET (IGamepad)",
             Description = "Read connected game controllers and their state in C# with the Gamepad API, with readings pushed to a callback. Works on Server; prefer WASM for twitch input.",
         },
-        new("hid", "IHid", "Typed browser API: IHid.", "Browser API reference", "apis/hid.md")
-        {
-            SearchTitle = "WebHID API in C# and .NET (IHid)",
-            Description = "Talk to HID devices from C# with the WebHID API, with input reports pushed to a callback. Available on the WebAssembly host only, behind a device chooser.",
-        },
         new("indexeddb", "IIndexedDb", "Typed browser API: IIndexedDb.", "Browser API reference", "apis/indexeddb.md")
         {
             SearchTitle = "IndexedDB in C# and .NET (IIndexedDb)",
@@ -496,11 +481,6 @@ public static class GuideCatalog
             SearchTitle = "getUserMedia Camera Capture in C# (IMediaDevices)",
             Description = "Capture camera, microphone or screen into a video element from C# with getUserMedia. IMediaDevices is WASM-only; on Server, use Trigger.MediaCapture instead.",
         },
-        new("media-session", "IMediaSession", "Typed browser API: IMediaSession.", "Browser API reference", "apis/media-session.md")
-        {
-            SearchTitle = "Media Session API in C# and .NET (IMediaSession)",
-            Description = "Set now-playing metadata and handle hardware media-key actions from C# with the Media Session API. Actions reach a callback on Server and WebAssembly.",
-        },
         new("media-streams", "IMediaStreams", "Typed browser API: IMediaStreams.", "Browser API reference", "apis/media-streams.md")
         {
             SearchTitle = "MediaStream in C#: Attach and Stop (IMediaStreams)",
@@ -515,11 +495,6 @@ public static class GuideCatalog
         {
             SearchTitle = "Origin Private File System (OPFS) in C# and .NET",
             Description = "Read and write files in the origin private file system from C# by path and byte range, with no picker or user gesture. A fit for a local SQLite database file.",
-        },
-        new("permissions", "IPermissions", "Typed browser API: IPermissions.", "Browser API reference", "apis/permissions.md")
-        {
-            SearchTitle = "Permissions API in C# and .NET (IPermissions)",
-            Description = "Query a permission's state (granted, denied or prompt) from C# with IPermissions before prompting. Permissions API names vary by engine, Safari included.",
         },
         new("picture-in-picture", "IPictureInPicture", "Typed browser API: IPictureInPicture.", "Browser API reference", "apis/picture-in-picture.md")
         {
@@ -545,11 +520,6 @@ public static class GuideCatalog
         {
             SearchTitle = "StorageManager.estimate in C# (IStorageEstimator)",
             Description = "Read browser storage quota and usage from C# with IStorageEstimator, a navigator.storage.estimate wrapper, to budget caches and request persistent storage.",
-        },
-        new("usb", "IUsb", "Typed browser API: IUsb.", "Browser API reference", "apis/usb.md")
-        {
-            SearchTitle = "WebUSB API in C# and .NET (IUsb)",
-            Description = "Pick and drive a USB device from C# with IUsb, a WebUSB API wrapper for WebAssembly apps. The device chooser needs a user gesture, so Server has no support.",
         },
         new("wake-lock", "IWakeLock", "Typed browser API: IWakeLock.", "Browser API reference", "apis/wake-lock.md")
         {

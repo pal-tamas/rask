@@ -16,9 +16,7 @@
 
 export * as auth from "./auth.js";
 export * as badge from "./badge.js";
-export * as broadcastChannel from "./broadcastChannel.js";
 export * as cookies from "./cookies.js";
-export * as crypto from "./crypto.js";
 export * as deviceMotion from "./deviceMotion.js";
 export * as deviceOrientation from "./deviceOrientation.js";
 export * as eyeDropper from "./eyeDropper.js";
@@ -28,10 +26,8 @@ export * as gamepad from "./gamepad.js";
 export * as indexedDb from "./indexedDb.js";
 export * as installPrompt from "./installPrompt.js";
 export * as mediaDevices from "./mediaDevices.js";
-export * as mediaSession from "./mediaSession.js";
 export * as notifications from "./notifications.js";
 export * as originPrivateFileSystem from "./originPrivateFileSystem.js";
-export * as permissions from "./permissions.js";
 export * as pictureInPicture from "./pictureInPicture.js";
 export * as screenOrientation from "./screenOrientation.js";
 export * as signaling from "./signaling.js";

@@ -319,7 +319,7 @@ interface Window {
     showDirectoryPicker?(options?: unknown): Promise<FileSystemDirectoryHandle>;
 }
 
-/** The metadata IMediaSession passes across, matching MediaMetadataInit's shape. */
+/** The media-session metadata that crosses, matching MediaMetadataInit's shape. */
 interface RaskMediaMetadata {
     title?: string;
     artist?: string;

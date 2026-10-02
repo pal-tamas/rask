@@ -44,7 +44,8 @@ A `sessionStorage` round-trip through the unified `IJSRuntime` — set, read, an
 
 Rather than spelling out raw `IJSRuntime` identifiers (`"localStorage.getItem"`,
 `"navigator.clipboard.writeText"`) and getting the JSON shape right by hand, call MDN's own surface from
-[`Rask.Web`](web-apis.md) — `await LocalStorage.GetItem("theme")`, `await Navigator.Clipboard.WriteText("hi")` —
+[`Rask.Web`](web-apis.md) — `await LocalStorage.GetItem("theme")`, `await Navigator.Clipboard.WriteText("hi")`,
+`await Crypto.RandomUUID()` —
 or inject one of the built-in **typed wrappers** below through a component constructor. Each is a thin, awaitable layer over
 the same unified `IJSRuntime`, so it behaves **identically on Server and WASM**. These are the
 Web APIs that work on both transports; WASM-only PWA APIs (service worker, cache, manifest) are a
@@ -53,25 +54,23 @@ later step on the same pattern.
 | Service | Wraps | Key members |
 | --- | --- | --- |
 | `ICookies` | `document.cookie` | `GetAsync`, `SetAsync(name, value, CookieOptions?)`, `DeleteAsync`, `GetAllAsync` |
-| `IPermissions` | `navigator.permissions` | `QueryAsync(PermissionName)` → `PermissionState` |
 | `ISpeechSynthesis` | `window.speechSynthesis` | `IsSupportedAsync`, `SpeakAsync(text, SpeechOptions?)`, `CancelAsync` |
 | `IStorageEstimator` | `navigator.storage.estimate` | `IsSupportedAsync`, `EstimateAsync()` → `StorageEstimate?` (quota / usage bytes + `UsageRatio`) |
-| `IBroadcastChannel` | `BroadcastChannel` | `OpenAsync(name, Func<string,Task>)` → connection (`PostAsync`, `IAsyncDisposable`) — cross-tab messaging |
-| `IMediaSession` | `navigator.mediaSession` | `SetMetadataAsync`/`SetPlaybackStateAsync` + `SetActionHandlerAsync(MediaSessionAction, Func<Task>)` → `IAsyncDisposable` — now-playing metadata + media keys |
 | `IDeviceOrientation` | `deviceorientation` | `RequestPermissionAsync()` + `WatchAsync(Func<OrientationReading,Task>)` → `IAsyncDisposable` — gyroscope/compass tilt |
 | `IDeviceMotion` | `devicemotion` | `RequestPermissionAsync()` + `WatchAsync(Func<MotionReading,Task>)` → `IAsyncDisposable` — accelerometer / rotation |
-| `ICrypto` | `crypto` / `crypto.subtle` | `RandomUuidAsync`, `RandomBytesAsync(length)`, `DigestHexAsync(HashAlgorithm, text)` |
 | `IIndexedDb` | `IndexedDB` | `IsSupportedAsync`, `OpenStoreAsync(name)` → `IKeyValueStore` (`Set`/`Get`/`SetBytes`/`GetBytes`/`Delete`/`Keys`/`Clear`) — large async persistent storage, text or raw bytes |
 
 ```csharp
-public sealed partial class ThemeToggle(ICookies cookies, ICrypto crypto) : Component
+using Rask.Web;
+
+public sealed partial class ThemeToggle(ICookies cookies) : Component
 {
     private async Task Save() => await cookies.SetAsync("theme", "dark");
 
     protected override async Task OnFirstRender()
     {
         var theme = await cookies.GetAsync("theme");   // string?, null if absent
-        var id = await crypto.RandomUuidAsync();       // string
+        var id = await Crypto.RandomUUID();            // string, from Rask.Web
     }
 }
 ```
@@ -101,11 +100,11 @@ transient activation has expired. The practical effect:
   the [Mobile & PWA guide](pwa.md#device-capabilities-for-mobile).
 - **`IBadge`** (app icon badge) and **`IWakeLock`** (keep the screen awake) need no transient activation, so
   they are shared; their JS helpers ship on the Server client under `AddRaskPwa`.
-- Everything else here (cookies, permissions, speech synthesis, storage estimate, broadcast channel, crypto,
-  indexeddb) is unaffected by activation and behaves identically on both transports.
+- Everything else here (cookies, speech synthesis, storage estimate, indexeddb) is unaffected by activation and
+  behaves identically on both transports.
 
-Most of these are one-shot request/response calls. **`IBroadcastChannel`**, **`IDeviceOrientation`**, **`IDeviceMotion`**, and **`IMediaSession`**'s
-action handlers are the exceptions — they're *subscriptions*: you
+Most of these are one-shot request/response calls. **`IDeviceOrientation`** and **`IDeviceMotion`** are the
+exceptions — they're *subscriptions*: you
 open/observe/watch (returning an `IAsyncDisposable`) and the browser **pushes** each change back to a C#
 handler (via a static `[JSInvokable]`, so one wiring works on both transports). Open from a lifecycle hook and dispose on unmount; a
 handler

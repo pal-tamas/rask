@@ -18,8 +18,6 @@ public class RaskWasmBrowserApisTests
         (typeof(IMediaDevices), typeof(MediaDevices)),
         (typeof(IInstallPrompt), typeof(InstallPrompt)),
         (typeof(ISerial), typeof(Serial)),
-        (typeof(IUsb), typeof(Usb)),
-        (typeof(IHid), typeof(Hid)),
         (typeof(IBluetooth), typeof(Bluetooth)),
         (typeof(IBackgroundSync), typeof(BackgroundSync)),
     ];

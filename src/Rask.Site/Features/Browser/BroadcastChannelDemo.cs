@@ -1,41 +1,32 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IBroadcastChannel" /> — same-origin messaging between browsing contexts. This demo opens
-///     two connections to one channel in the same page: posting on the sender is delivered to the receiver
-///     (a connection never receives its own posts). Open this page in a second tab to see cross-tab
-///     delivery. The receiver updates state in its handler and calls <c>StateHasChanged()</c> — the
-///     sanctioned pattern for an externally-pushed update (same as subscribing to a background feed).
+///     MDN's <c>BroadcastChannel</c> from Rask.Web — same-origin messaging between browsing contexts. This demo opens
+///     two connections to one channel in the same page: posting on the sender is delivered to the receiver (a
+///     connection never receives its own posts). Open this page in a second tab to see cross-tab delivery. The
+///     receiver's <c>message</c> handler is a lambda in this component, so it re-renders it.
 /// </summary>
-public sealed partial class BroadcastChannelDemo(IBroadcastChannel bus) : Component, IAsyncDisposable
+public sealed partial class BroadcastChannelDemo : Component
 {
     private const string ChannelName = "rask-broadcast-demo";
-    private IBroadcastChannelConnection? _sender;
-    private IBroadcastChannelConnection? _receiver;
+    private Rask.Web.Types.BroadcastChannel? _sender;
+    private Rask.Web.Types.BroadcastChannel? _receiver;
+    private IAsyncDisposable? _listening;
     private readonly List<string> _received = [];
     private int _counter;
-    private bool _opened;
 
     protected override async Task OnFirstRender()
     {
-        if (_opened)
-
+        if (_receiver is not null)
         {
-
             return;
-
         }
 
-        _opened = true;
-        _sender = await bus.OpenAsync(ChannelName, _ => Task.CompletedTask);
-        _receiver = await bus.OpenAsync(ChannelName, msg =>
-        {
-            _received.Insert(0, msg);
-            StateHasChanged();
-            return Task.CompletedTask;
-        });
+        _sender = await BroadcastChannel.Create(ChannelName);
+        _receiver = await BroadcastChannel.Create(ChannelName);
+        _listening = await _receiver.OnMessage(e => _received.Insert(0, e.Data<string>()));
     }
 
     protected override Component? Render() =>
@@ -51,24 +42,30 @@ public sealed partial class BroadcastChannelDemo(IBroadcastChannel bus) : Compon
 
     private async Task Send()
     {
-        if (_sender is null)
-        {
-            return;
-        }
-
-        await _sender.PostAsync($"Message #{++_counter}");
-    }
-
-    public async ValueTask DisposeAsync()
-    {
         if (_sender is not null)
         {
-            await _sender.DisposeAsync();
+            await _sender.PostMessage($"Message #{++_counter}");
+        }
+    }
+
+    protected override async Task OnUnmount()
+    {
+        if (_listening is not null)
+        {
+            await _listening.DisposeAsync();
         }
 
-        if (_receiver is not null)
+        await Close(_sender);
+        await Close(_receiver);
+    }
+
+    // close() stops the channel delivering; disposing lets the browser drop the kept object.
+    private static async Task Close(Rask.Web.Types.BroadcastChannel? channel)
+    {
+        if (channel is not null)
         {
-            await _receiver.DisposeAsync();
+            await channel.Close();
+            await channel.DisposeAsync();
         }
     }
 }
