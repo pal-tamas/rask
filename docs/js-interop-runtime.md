@@ -60,8 +60,6 @@ The storage estimate is `await Navigator.Storage.Estimate()` in [`Rask.Web`](web
 `await Window.OnDeviceOrientation(e => _angle = e.Alpha, every: 100.Milliseconds)`, throttled in the browser by `every:`.
 
 ```csharp
-using Rask.Web;
-
 public sealed partial class Drafts(IIndexedDb db) : Component
 {
     private async Task Save() => await (await db.OpenStoreAsync("drafts")).SetAsync("note", "hi");

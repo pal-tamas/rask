@@ -1,5 +1,4 @@
 using Microsoft.JSInterop;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -13,7 +12,7 @@ public sealed partial class WebLocksDemo : Component
 {
     private const string LockName = "rask-web-locks-demo";
     private string _status = "(idle)";
-    private (Rask.Web.Types.LockInfo Lock, string State)[] _snapshot = [];
+    private (Types.LockInfo Lock, string State)[] _snapshot = [];
 
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[

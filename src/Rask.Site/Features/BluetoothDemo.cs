@@ -1,5 +1,4 @@
 using Microsoft.JSInterop;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -10,7 +9,7 @@ namespace Rask.Site.Features;
 /// </summary>
 public sealed partial class BluetoothDemo : Component
 {
-    private Rask.Web.Types.BluetoothDevice? _device;
+    private Types.BluetoothDevice? _device;
     private IAsyncDisposable? _disconnectWatch;
     private string? _name;
     private string _battery = "—";

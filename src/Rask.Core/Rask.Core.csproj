@@ -8,7 +8,7 @@
       gives the warnings-as-errors build continuous IL2xxx/IL3050 coverage for the framework's
       AOT-sensitive paths (routing, forms binding).
     -->
-    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTfm)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 

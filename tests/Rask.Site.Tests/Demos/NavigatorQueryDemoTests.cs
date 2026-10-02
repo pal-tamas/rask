@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Primitives;
 using Rask.Core.Routing;
 using Rask.Site.Tests.Infrastructure;
+using Navigator = Rask.Core.Routing.Navigator;
 
 namespace Rask.Site.Tests.Demos;
 

@@ -423,8 +423,6 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
   your behalf. Read it once from `localStorage` ([`Rask.Web`](web-apis.md)) after the first render and write it back as it changes:
 
   ```csharp
-  using Rask.Web;
-
   public sealed partial class AppShell : Component
   {
       private bool _rail;

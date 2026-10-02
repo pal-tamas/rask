@@ -250,7 +250,6 @@ registered (`rask-sw.js`: the `--pwa` templates' `index.html` on WASM, [`AddRask
 
 ```csharp
 using System.Buffers.Text;
-using Rask.Web;
 
 public sealed partial class PushButton : Component
 {
@@ -354,7 +353,7 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
 ## Device capabilities for mobile
 
 The browser APIs that make a web app feel native. Rows marked *(Rask.Web)* are MDN's own surface from
-[`Rask.Web`](web-apis.md) (`using Rask.Web;`); the rest are typed wrappers. Everything in `Rask.Core.Browser`
+[`Rask.Web`](web-apis.md) (imported for you); the rest are typed wrappers. Everything in `Rask.Core.Browser`
 works on **both transports** (and is registered on Server too) — including the PWA API `IWakeLock`, and the
 headless declarative `Shareable` *(all hosts)*. The
 `*(WASM)*` ones need a live user gesture or the installed-app instance the Server round-trip can't carry: the

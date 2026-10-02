@@ -1,6 +1,5 @@
 using System.Globalization;
 using Microsoft.JSInterop;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -15,8 +14,8 @@ public sealed partial class DeviceSensorsDemo : Component
     private IAsyncDisposable? _orientationWatch;
     private IAsyncDisposable? _motionWatch;
     private string _status = "(idle)";
-    private Rask.Web.Types.DeviceOrientationEvent? _tilt;
-    private Rask.Web.Types.DeviceMotionEventAcceleration? _accel;
+    private Types.DeviceOrientationEvent? _tilt;
+    private Types.DeviceMotionEventAcceleration? _accel;
 
     private async Task Start()
     {
@@ -53,11 +52,11 @@ public sealed partial class DeviceSensorsDemo : Component
     }
 
     // Only iOS asks: elsewhere requestPermission() does not exist, and the sensors just fire.
-    private static async Task<bool> Allowed(Func<ValueTask<Rask.Web.Types.PermissionState>> request)
+    private static async Task<bool> Allowed(Func<ValueTask<Types.PermissionState>> request)
     {
         try
         {
-            return await request() is Rask.Web.Types.PermissionState.Granted;
+            return await request() is Types.PermissionState.Granted;
         }
         catch (JSException ex) when (ex.Message.Contains("is not a function", StringComparison.Ordinal))
         {

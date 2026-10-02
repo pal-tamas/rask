@@ -1,5 +1,4 @@
 using System.Globalization;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -10,7 +9,7 @@ namespace Rask.Site.Features;
 public sealed partial class MutationObserverDemo : Component
 {
     private readonly ElementRef _target = ElementRef.New();
-    private Rask.Web.Types.MutationObserver? _observer;
+    private Types.MutationObserver? _observer;
     private int _items = 1;
     private bool _highlight;
     private int _childChanges;

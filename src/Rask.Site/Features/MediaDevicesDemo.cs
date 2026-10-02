@@ -1,5 +1,4 @@
 using Microsoft.JSInterop;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -11,7 +10,7 @@ namespace Rask.Site.Features;
 public sealed partial class MediaDevicesDemo : Component
 {
     private readonly ElementRef<HTMLVideoElement> _video = new();
-    private Rask.Web.Types.MediaStream? _stream;
+    private Types.MediaStream? _stream;
     private string _status = "(idle)";
 
     protected override Component? Render() =>
@@ -40,7 +39,7 @@ public sealed partial class MediaDevicesDemo : Component
 
     private Task ShareScreen() => Capture(() => Navigator.MediaDevices.GetDisplayMedia(), "Screen sharing");
 
-    private async Task Capture(Func<ValueTask<Rask.Web.Types.MediaStream>> request, string okStatus)
+    private async Task Capture(Func<ValueTask<Types.MediaStream>> request, string okStatus)
     {
         try
         {

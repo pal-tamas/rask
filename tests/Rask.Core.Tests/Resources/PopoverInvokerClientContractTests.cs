@@ -16,8 +16,9 @@ namespace Rask.Core.Tests.Resources;
 ///         <see cref="HotReloadClientContractTests" />: these entry points boot a transport against a
 ///         live document and cannot be loaded in Node. The behavioural proof is the browser E2E over
 ///         <c>UiSelect</c>'s drawn list, which is a popover opened by a button that also has a C#
-///         handler. What is worth pinning here is that BOTH copies carry the carve-out — they are two
-///         hand-kept copies of one listener, and the way that fails is one of them drifting.
+///         handler. What is worth pinning here is that the ONE guard both hosts call carries the carve-out,
+///         and that both still call it — they used to be two hand-kept copies of one listener, and the way
+///         that failed was one of them drifting.
 ///     </para>
 /// </remarks>
 public class PopoverInvokerClientContractTests
@@ -26,25 +27,35 @@ public class PopoverInvokerClientContractTests
 
     private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.ts");
     private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.ts");
+    private static string ClicksJs => Read("src", "Rask.Core", "Resources", "rask-clicks.ts");
 
     /// <summary>The bundle the browser actually loads, so this proves what shipped and not only the input.</summary>
     private static string BuiltWasmJs => Read("src", "Rask.Wasm", "Browser", "rask.wasm.js");
 
-    [Theory]
-    [InlineData("server")]
-    [InlineData("wasm")]
-    public void The_click_delegate_declines_to_cancel_a_popover_invoker(string transport)
+    [Fact]
+    public void The_click_guard_declines_to_cancel_a_popover_invoker()
     {
-        var js = transport == "server" ? ServerJs : WasmJs;
-        var listener = ClickDelegate(js);
+        var guard = HandlerClickGuard(ClicksJs);
 
-        Assert.Contains("[popovertarget]", listener, StringComparison.Ordinal);
+        Assert.Contains("[popovertarget]", guard, StringComparison.Ordinal);
 
         // The point is the GUARD, not merely a mention: an unconditional preventDefault beside a
         // popovertarget lookup would satisfy a substring check and still swallow the activation.
-        Assert.DoesNotContain("\n        e.preventDefault();", listener, StringComparison.Ordinal);
-        Assert.DoesNotContain("\n    e.preventDefault();", listener, StringComparison.Ordinal);
-        Assert.Contains("if (!invoker) { e.preventDefault(); }", listener, StringComparison.Ordinal);
+        Assert.DoesNotContain("\n    e.preventDefault();", guard, StringComparison.Ordinal);
+        Assert.Contains("if (!invoker) { e.preventDefault(); }", guard, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("server")]
+    [InlineData("wasm")]
+    public void Each_host_takes_its_handler_clicks_through_the_shared_guard(string transport)
+    {
+        var js = transport == "server" ? ServerJs : WasmJs;
+
+        var listener = ClickDelegate(js);
+
+        Assert.StartsWith("const t = handlerClick(e);\n", listener, StringComparison.Ordinal);
+        Assert.DoesNotContain("preventDefault", listener, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -55,10 +66,19 @@ public class PopoverInvokerClientContractTests
         Assert.Contains("[popovertarget]", BuiltWasmJs, StringComparison.Ordinal);
     }
 
-    // The delegated click listener, from its `[data-rask-on-click]` lookup to the send() it ends with.
+    // The shared guard, from its declaration to the end of the module.
+    private static string HandlerClickGuard(string js)
+    {
+        var start = js.IndexOf("export function handlerClick(", StringComparison.Ordinal);
+        Assert.True(start >= 0, "the shared click guard was not found");
+
+        return js[start..];
+    }
+
+    // A host's delegated click listener, from its handlerClick call to the change listener after it.
     private static string ClickDelegate(string js)
     {
-        var start = js.IndexOf("[data-rask-on-click]", StringComparison.Ordinal);
+        var start = js.IndexOf("const t = handlerClick(e);", StringComparison.Ordinal);
         Assert.True(start >= 0, "the delegated click listener was not found");
 
         var end = js.IndexOf("addEventListener(\"change\"", start, StringComparison.Ordinal);

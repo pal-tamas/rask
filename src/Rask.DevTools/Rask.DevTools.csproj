@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- Both faces: the devtools attach to a Server host and to a browser-WASM host alike. -->
-    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTfm)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>

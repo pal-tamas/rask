@@ -5,6 +5,7 @@ using Rask.Core.Messaging;
 using Rask.Core.Routing;
 using Rask.Site.Features;
 using Rask.Wasm.Browser;
+using Navigator = Rask.Core.Routing.Navigator;
 
 namespace Rask.Site.Tests.Infrastructure;
 

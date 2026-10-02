@@ -3,8 +3,6 @@
 **Every web API the browser ships, in C#, generated from MDN.** MDN's globals and interfaces, with MDN's names:
 
 ```csharp
-using Rask.Web;
-
 await Navigator.Clipboard.WriteText("hi");
 var dark = await Window.MatchMedia("(prefers-color-scheme: dark)").Matches;
 await LocalStorage.SetItem("theme", "dark");
@@ -18,11 +16,16 @@ var wide = await mql.Matches;
 - **An object you keep is a handle.** Awaiting a proxy (`await Window.MatchMedia(q)`), or a member whose promise
   resolves to an object, keeps that object in the browser until you dispose of it.
 - **MDN's names, no `Async` suffix,** and each member's doc comment gives its browser support and links to MDN and the
-  spec. `IsSupported` asks the browser whether it has one: `await Navigator.Clipboard.IsSupported`.
+  spec. `IsSupported` asks the browser whether it has one: `await Navigator.Clipboard.IsSupported`. Set
+  `<RaskBrowserTargets>safari >= 16; firefox >= 115</RaskBrowserTargets>` and the build warns (RASK098) at a
+  call one of those browsers lacks, unless an `IsSupported` check guards it.
 - **Both hosts.** On the server host each chain runs over the page's socket; in WebAssembly, in-process. Call it from
   an event handler or `OnRendered`, where the page is live. What only WebAssembly can run — a call that needs the
   user's click in progress (`Navigator.Share`, `Notification.RequestPermission`), WebGL, WebGPU — comes with
   `Rask.Wasm`, so a server app cannot call it by mistake.
+- **Imported for you.** The package adds `global using Rask.Web;` and the alias `global using Types = Rask.Web.Types;`
+  (`private Types.IntersectionObserver? _io;`), and Rask.Server and Rask.Wasm carry it to every app. A global named
+  like a Rask type (`EditContext`, `FormData`) leaves the bare name to Rask's; MDN's is `Rask.Web.FormData`.
 - **The DOM stays Rask's.** Nothing that returns or rewrites DOM nodes is generated; use an element ref for an
   element's own members.
 

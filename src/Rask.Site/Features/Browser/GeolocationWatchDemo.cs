@@ -1,4 +1,3 @@
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -38,7 +37,7 @@ public sealed partial class GeolocationWatchDemo : Component
                     _location = GeolocationDemo.Describe(p.Coords);
                 },
                 e => _status = "Watch failed: " + e.Message,
-                new Rask.Web.Types.PositionOptions { EnableHighAccuracy = true });
+                new Types.PositionOptions { EnableHighAccuracy = true });
             _status = "Watching — move the device to see updates";
         }
         catch (Exception ex) { _status = "Watch failed: " + ex.Message; }

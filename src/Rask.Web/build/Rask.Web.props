@@ -1,0 +1,23 @@
+<Project>
+  <!--
+    MDN's globals for every Server and WASM app: both hosts depend on this package, so it reaches the app
+    through buildTransitive/. A component library references `Rask` alone and never sees it.
+
+    Only the `Rask.Web` NAMESPACE (Navigator, Window, Document, LocalStorage, IntersectionObserver.Create…).
+    `Rask.Web.Types` stays out: its interfaces share names with the globals (CS0104), and its `Lock` would
+    meet System.Threading.Lock under implicit usings. The `Types` alias names one briefly instead:
+    `private Types.IntersectionObserver? _io;`.
+
+    Where a global shares a name with a Rask type the app already imports, Rask's wins by alias, so the bare
+    name means what it meant before this package arrived; MDN's is `Rask.Web.FormData` or `Types.EditContext`.
+  -->
+  <ItemGroup>
+    <Using Include="Rask.Web"/>
+    <Using Include="Rask.Web.Types" Alias="Types"/>
+    <Using Include="Rask.Core.Forms.EditContext" Alias="EditContext"/>
+    <Using Include="Rask.Core.Live.FormData" Alias="FormData"/>
+    <Using Include="Rask.Core.DataTransfer" Alias="DataTransfer"/>
+    <Using Include="Rask.Core.EventTarget" Alias="EventTarget"/>
+    <Using Include="Rask.Core.Touch" Alias="Touch"/>
+  </ItemGroup>
+</Project>

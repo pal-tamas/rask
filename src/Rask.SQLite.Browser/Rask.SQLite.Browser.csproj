@@ -7,7 +7,7 @@
       browser-conditional at compile time — the browser-only part is the NATIVE SQLite build, and that is
       linked into the consuming app (RuntimeIdentifier=browser-wasm), not into this library.
     -->
-    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTfm)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>

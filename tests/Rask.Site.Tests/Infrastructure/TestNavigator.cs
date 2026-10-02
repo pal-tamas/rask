@@ -1,4 +1,5 @@
 using Rask.Core.Routing;
+using Navigator = Rask.Core.Routing.Navigator;
 
 namespace Rask.Site.Tests.Infrastructure;
 

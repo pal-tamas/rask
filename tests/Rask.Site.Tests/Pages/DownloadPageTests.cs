@@ -3,6 +3,7 @@ using System.Text;
 using Rask.Core.Routing;
 using Rask.Site.Features;
 using Rask.Site.Tests.Infrastructure;
+using Navigator = Rask.Core.Routing.Navigator;
 
 namespace Rask.Site.Tests.Pages;
 

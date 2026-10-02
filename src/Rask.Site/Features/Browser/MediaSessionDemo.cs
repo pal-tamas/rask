@@ -1,4 +1,3 @@
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -10,13 +9,13 @@ namespace Rask.Site.Features;
 /// </summary>
 public sealed partial class MediaSessionDemo : Component
 {
-    private static readonly Rask.Web.Types.MediaSessionAction[] Actions =
+    private static readonly Types.MediaSessionAction[] Actions =
     [
-        Rask.Web.Types.MediaSessionAction.Play, Rask.Web.Types.MediaSessionAction.Pause,
-        Rask.Web.Types.MediaSessionAction.Previoustrack, Rask.Web.Types.MediaSessionAction.Nexttrack
+        Types.MediaSessionAction.Play, Types.MediaSessionAction.Pause,
+        Types.MediaSessionAction.Previoustrack, Types.MediaSessionAction.Nexttrack
     ];
 
-    private readonly List<Rask.Web.Types.MediaSessionAction> _handled = [];
+    private readonly List<Types.MediaSessionAction> _handled = [];
     private string _status = "(idle)";
     private string _last = "(none yet)";
 
@@ -48,10 +47,10 @@ public sealed partial class MediaSessionDemo : Component
                     Ui.Button.Primary.Id("ms-publish").OnClick(Publish)["Publish metadata"],
                     Ui.Button.Primary.Outline
                         .Id("ms-playing")
-                        .OnClick(() => SetState(Rask.Web.Types.MediaSessionPlaybackState.Playing, "playing"))["Mark playing"],
+                        .OnClick(() => SetState(Types.MediaSessionPlaybackState.Playing, "playing"))["Mark playing"],
                     Ui.Button.Primary.Outline
                         .Id("ms-paused")
-                        .OnClick(() => SetState(Rask.Web.Types.MediaSessionPlaybackState.Paused, "paused"))["Mark paused"],
+                        .OnClick(() => SetState(Types.MediaSessionPlaybackState.Paused, "paused"))["Mark paused"],
                     Ui.Button.Error.Outline.Id("ms-clear").OnClick(Clear)["Clear"]
                 ],
                 P.Class("text-sm text-ui-muted mb-2")[
@@ -82,7 +81,7 @@ public sealed partial class MediaSessionDemo : Component
         }
     }
 
-    private async Task SetState(Rask.Web.Types.MediaSessionPlaybackState state, string label)
+    private async Task SetState(Types.MediaSessionPlaybackState state, string label)
     {
         try
         {
@@ -100,7 +99,7 @@ public sealed partial class MediaSessionDemo : Component
         try
         {
             await Navigator.MediaSession.SetMetadata(null);
-            await Navigator.MediaSession.SetPlaybackState(Rask.Web.Types.MediaSessionPlaybackState.None);
+            await Navigator.MediaSession.SetPlaybackState(Types.MediaSessionPlaybackState.None);
             _status = "cleared";
             _last = "(none yet)";
         }
@@ -115,7 +114,7 @@ public sealed partial class MediaSessionDemo : Component
     {
         foreach (var action in _handled)
         {
-            await Navigator.MediaSession.SetActionHandler(action, (Action<Rask.Web.Types.MediaSessionActionDetails>?)null);
+            await Navigator.MediaSession.SetActionHandler(action, (Action<Types.MediaSessionActionDetails>?)null);
         }
     }
 }

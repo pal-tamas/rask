@@ -1,5 +1,4 @@
 using System.Globalization;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -11,7 +10,7 @@ public sealed partial class ResizeObserverDemo : Component
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
     private readonly ElementRef _box = ElementRef.New();
-    private Rask.Web.Types.ResizeObserver? _observer;
+    private Types.ResizeObserver? _observer;
     private double _width;
     private double _height;
     private bool _wide = true;

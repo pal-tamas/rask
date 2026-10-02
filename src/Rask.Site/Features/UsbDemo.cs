@@ -1,5 +1,4 @@
 using System.Globalization;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -11,7 +10,7 @@ namespace Rask.Site.Features;
 /// </summary>
 public sealed partial class UsbDemo : Component
 {
-    private Rask.Web.Types.USBDevice? _device;
+    private Types.USBDevice? _device;
     private IAsyncDisposable? _unplugged;
     private UsbInfo? _info;
     private bool _open;
@@ -74,7 +73,7 @@ public sealed partial class UsbDemo : Component
         }
     }
 
-    private static async Task<UsbInfo> Describe(Rask.Web.Types.USBDevice device) =>
+    private static async Task<UsbInfo> Describe(Types.USBDevice device) =>
         new(await device.VendorId, await device.ProductId, await device.ManufacturerName, await device.ProductName,
             await device.SerialNumber);
 

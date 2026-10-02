@@ -1,4 +1,3 @@
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -8,7 +7,7 @@ namespace Rask.Site.Features;
 /// </summary>
 public sealed partial class BatteryDemo : Component
 {
-    private Rask.Web.Types.BatteryManager? _battery;
+    private Types.BatteryManager? _battery;
     private IAsyncDisposable? _levelWatch;
     private IAsyncDisposable? _chargingWatch;
     private double? _level;

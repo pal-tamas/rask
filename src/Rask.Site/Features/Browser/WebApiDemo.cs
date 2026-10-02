@@ -1,4 +1,3 @@
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -13,7 +12,7 @@ public sealed partial class WebApiDemo : Component
     private string _seen = "";
     private string _lock = "";
     private IAsyncDisposable? _watch;
-    private Rask.Web.Types.IntersectionObserver? _observer;
+    private Types.IntersectionObserver? _observer;
     private readonly ElementRef _panel = ElementRef.New();
 
     protected override Component? Render() =>

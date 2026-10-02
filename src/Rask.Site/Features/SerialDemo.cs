@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using Microsoft.JSInterop;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -13,8 +12,8 @@ namespace Rask.Site.Features;
 /// </summary>
 public sealed partial class SerialDemo : Component
 {
-    private Rask.Web.Types.SerialPort? _port;
-    private Rask.Web.Types.ReadableStreamDefaultReader? _reader;
+    private Types.SerialPort? _port;
+    private Types.ReadableStreamDefaultReader? _reader;
     private Task _reading = Task.CompletedTask;
     private IAsyncDisposable? _unplugged;
     private int _baudRate = 9600;
@@ -88,7 +87,7 @@ public sealed partial class SerialDemo : Component
     }
 
     // reader.read() resolves with each chunk the device sends, and with done once the reader is cancelled.
-    private async Task ReadLoop(Rask.Web.Types.ReadableStreamDefaultReader reader)
+    private async Task ReadLoop(Types.ReadableStreamDefaultReader reader)
     {
         try
         {

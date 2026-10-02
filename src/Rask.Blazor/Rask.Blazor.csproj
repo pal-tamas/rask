@@ -18,7 +18,7 @@
       This package is deliberately not in the Rask meta-package on either framework: it is opt-in, so
       an app that wants nothing to do with Blazor never pays for it. PackageShapeTests pins that.
     -->
-    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTfm)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>

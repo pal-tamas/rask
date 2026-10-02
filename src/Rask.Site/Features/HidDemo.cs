@@ -1,5 +1,4 @@
 using System.Globalization;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -10,7 +9,7 @@ namespace Rask.Site.Features;
 /// </summary>
 public sealed partial class HidDemo : Component
 {
-    private Rask.Web.Types.HIDDevice? _device;
+    private Types.HIDDevice? _device;
     private HidInfo? _info;
     private IAsyncDisposable? _watch;
     private IAsyncDisposable? _unplugged;
@@ -77,7 +76,7 @@ public sealed partial class HidDemo : Component
         }
     }
 
-    private static async Task<HidInfo> Describe(Rask.Web.Types.HIDDevice device) =>
+    private static async Task<HidInfo> Describe(Types.HIDDevice device) =>
         new(await device.VendorId, await device.ProductId, await device.ProductName);
 
     // Every `inputreport` event re-renders this component with the report's id and bytes.

@@ -48,6 +48,12 @@ import {
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
+import { handlerClick, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
+import {
+    createJSObjectReference,
+    disposeJSObjectReferenceById,
+    invokeJs,
+} from "../../Rask.Core/Resources/rask-js-invoke.js";
 
 (function () {
     "use strict";
@@ -1533,21 +1539,8 @@ import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
     setHost({send, inRoot});
 
     document.addEventListener("click", (e) => {
-        if (e.defaultPrevented) return;
-        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-        const a = closestFrom(e.target, "a[data-rask-nav]");
-        if (!a) return;
-        if (a.getAttribute("target") === "_blank") return;
-        const href = a.getAttribute("href");
-        if (!href) return;
-        let url;
-        try {
-            url = new URL(href, location.href);
-        } catch (err) {
-            return;
-        }
-        if (url.origin !== location.origin) return;
-        e.preventDefault();
+        const url = navLinkClick(e);
+        if (!url) return;
 
         // Stash the link's "#fragment" so applyNavScroll can scroll to the anchor once
         // the new page commits (the fragment is not sent to the server).
@@ -1564,34 +1557,8 @@ import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
     });
 
     document.addEventListener("click", (e) => {
-        const t = closestFrom(e.target, "[data-rask-on-click]");
-        if (!t || !inRoot(t)) return;
-        // A submit/reset button is driven by native form submission (handled by the dedicated submit
-        // listener). Don't let an ANCESTOR click handler (e.g. a modal's .modal-dialog shield) hijack it
-        // and cancel the default — that would break the form submit. A handler on the button itself
-        // still runs: note `button.type` defaults to "submit" for a bare <button>, so gating on the
-        // ancestor (t !== btn) is what keeps a plain Button(OnClick:) working here.
-        const btn = closestFrom(e.target, "button, input") as HTMLButtonElement | HTMLInputElement | null;
-        if (btn && btn !== t && (btn.type === "submit" || btn.type === "reset")) return;
-        // A POPOVER INVOKER is the same case as a submit button, and for the same reason: opening the
-        // popover IS the button's default action, so cancelling it leaves an element that says
-        // `popovertarget` in the markup and does nothing when pressed. The C# handler still runs — this
-        // only declines to cancel — so a control can have both a C# state and the browser's top layer,
-        // which is exactly what a listbox or a menu built on [popover] needs. Handled here rather than
-        // at the call site because nothing at the call site can reach this listener.
-        //
-        // An INVOKER COMMAND (`command` + `commandfor`, the HTML invoker API) is the same case again: its
-        // default action is the command, so a C# handler on a button that also shows a modal must not
-        // cancel the showing.
-        const invoker = closestFrom(e.target, "[popovertarget], [commandfor]");
-        // A second press on a control still visibly waiting on its first is the double submit a spinner
-        // exists to prevent. Before the spinner shows — a fast double-click on a fast handler — it goes
-        // through, which keeps a rapid stepper working.
-        if (isVisiblyLoading(loadingTarget(t))) {
-            if (!invoker) { e.preventDefault(); }
-            return;
-        }
-        if (!invoker) { e.preventDefault(); }
+        const t = handlerClick(e);
+        if (!t) return;
         flushInputsNow();
         // The click's PointerEvent, in MDN's fields (rask-dom-payload.ts).
         const payload = raskDomPayload(e, "click");
@@ -1744,31 +1711,8 @@ import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
     }
 
     // ----- IJSRuntime global-JS dispatcher -----------------------------------
-    // Mirrors the Microsoft.JSInterop contract: server sends an "identifier" like
-    // "sessionStorage.getItem", we resolve it on window, invoke it with args, then
-    // ship a jsResult back keyed by the server-assigned taskId. JSObjectReference
-    // returns get a stable handle id; DotNetObjectReference values flow back via a
-    // {__dotNetObject:<id>} placeholder so the .NET side can re-hydrate them.
-
-    const jsObjectRefs = new Map<number, unknown>();
-    let nextJsObjectRefId = 1;
-
-    function resolveIdentifier(target: unknown, identifier: string): [Record<string, unknown>, string] | null {
-        // Walk a dotted JS path on the given target (typically window). Returns
-        // [parentObject, lastSegment] so the caller can preserve `this` when
-        // calling methods (e.g. sessionStorage.setItem must run with sessionStorage
-        // as `this`). Returns null on miss — caller throws.
-        if (typeof identifier !== "string" || identifier.length === 0) return null;
-        const parts = identifier.split(".");
-        let parent = target as Record<string, unknown> | null | undefined;
-        for (let i = 0; i < parts.length - 1; i++) {
-            if (parent == null) return null;
-            parent = parent[parts[i]] as Record<string, unknown> | null | undefined;
-        }
-        if (parent == null) return null;
-        const last = parts[parts.length - 1];
-        return [parent, last];
-    }
+    // The dispatcher itself is shared (rask-js-invoke.ts); this host only parks an invoke behind the
+    // head-asset gate and ships its outcome back as a jsResult frame.
 
     function dispatchJsInvoke(inv: RaskFrameJsInvoke): void {
         if (!inv || typeof inv.identifier !== "string" || typeof inv.id !== "number") return;
@@ -1786,86 +1730,12 @@ import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
         // changes a number into a string that matches nothing: the awaiting InvokeAsync never
         // completes, and the session dies on the unmatched result rather than reporting anything.
         const taskId = inv.id;
-        const resultType = (typeof inv.resultType === "number") ? inv.resultType : 0;
-        const argsJson = (typeof inv.argsJson === "string") ? inv.argsJson : "[]";
-        const targetInstanceId = (typeof inv.targetInstanceId === "number") ? inv.targetInstanceId : 0;
-
-        Promise.resolve().then(() => {
-            let args;
-            try {
-                args = JSON.parse(argsJson, jsonReviver);
-            } catch (e) {
-                throw new Error(`Failed to parse argsJson: ${e instanceof Error ? e.message : String(e)}`);
-            }
-
-            // Resolved against `window` unless the call names a JS object ref.
-            let target: unknown = window;
-            if (targetInstanceId !== 0) {
-                target = jsObjectRefs.get(targetInstanceId);
-                if (!target) throw new Error(`Unknown JS object reference: ${targetInstanceId}`);
-            }
-
-            const resolved = resolveIdentifier(target, inv.identifier);
-            if (!resolved) throw new Error(`Could not find '${inv.identifier}' on target`);
-            const parent = resolved[0];
-            const key = resolved[1];
-            const fn = parent[key];
-
-            // Identifier names a property (not a method) — return its value. This is
-            // how blazor handles e.g. `localStorage.length`.
-            return (typeof fn === "function") ? fn.apply(parent, args) : fn;
-        }).then((value) => {
-            // Mirrors Microsoft.JSInterop.JSCallResultType:
-            //   0 = Default            — ship the value as-is.
-            //   1 = JSObjectReference  — mint a handle id, send {__jsObjectId:<id>}.
-            //   2 = JSStreamReference  — not supported yet; fall through to Default.
-            //   3 = JSVoidResult       — drop the value, only the success ack matters.
-            if (resultType === 3) {
-                sendJsResult(taskId, true, null);
-                return;
-            }
-            if (resultType === 1) {
-                const refId = nextJsObjectRefId++;
-                jsObjectRefs.set(refId, value);
-                sendJsResult(taskId, true, {"__jsObjectId": refId});
-                return;
-            }
-            sendJsResult(taskId, true, value);
-        }).catch((err) => {
-            sendJsResult(taskId, false, null, (err && err.message) || String(err));
-        });
-    }
-
-    function jsonReviver(key: string, value: unknown): unknown {
-        // Inverse of the placeholder write: replace {__jsObjectId:<id>} from the .NET
-        // side with the live JS object. Skips other shapes.
-        if (value && typeof value === "object") {
-            // Tested before it is trusted: the reviver runs on server-supplied JSON.
-            const shape = value as { __jsObjectId?: number; __raskRef__?: string; __raskCb__?: number };
-            if (typeof shape.__jsObjectId === "number") {
-                return jsObjectRefs.get(shape.__jsObjectId);
-            }
-            if (typeof shape.__raskCb__ === "number") {
-                return scopedCallback(shape.__raskCb__);
-            }
-            // ElementRef: {"__raskRef__":"id"} -> the live DOM element (or null if not in the DOM).
-            // CSS.escape the id so a value carrying a quote/bracket can't break out of the
-            // attribute selector or match an unintended element (defense-in-depth — ids are
-            // framework-minted, but the reviver runs on server-supplied JSON).
-            if (typeof shape.__raskRef__ === "string") {
-                return document.querySelector(`[data-rask-ref="${CSS.escape(shape.__raskRef__)}"]`);
-            }
-        }
-        return value;
-    }
-
-    // A C# Callback handed to a component's scoped script (ScopedScript.Callback): each call goes back to
-    // .NET with its arguments. What it returns settles once .NET has taken the call — or, for a callback the
-    // browser awaits (a lock's), once the handler has finished.
-    function scopedCallback(id: number): (...args: unknown[]) => Promise<void> {
-        return (...args: unknown[]) =>
-            window.DotNet.invokeMethodAsync("Rask.Core", "RaskScopedCallback", id, args)
-                .then(() => undefined, (e: unknown) => console.error("[Rask] scoped-script callback failed", e));
+        invokeJs(
+            inv.identifier,
+            (typeof inv.argsJson === "string") ? inv.argsJson : "[]",
+            (typeof inv.resultType === "number") ? inv.resultType : 0,
+            (typeof inv.targetInstanceId === "number") ? inv.targetInstanceId : 0,
+            (success, result, error) => sendJsResult(taskId, success, result, error));
     }
 
     /**
@@ -1913,15 +1783,9 @@ import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
                 });
             });
         },
-        disposeJSObjectReferenceById(id: number) {
-            jsObjectRefs.delete(id);
-        },
+        disposeJSObjectReferenceById,
         // A live object handed to .NET as an IJSObjectReference (a Rask.Web event's device), held until disposed of.
-        createJSObjectReference(value: unknown) {
-            const refId = nextJsObjectRefId++;
-            jsObjectRefs.set(refId, value);
-            return {"__jsObjectId": refId};
-        },
+        createJSObjectReference,
         _endInvokeDotNet(msg: { callId: string; success: boolean; result?: unknown; error?: string }) {
             const pending = dotNetPending.get(msg.callId);
             if (!pending) return;

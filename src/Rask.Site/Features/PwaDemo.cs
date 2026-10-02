@@ -2,7 +2,6 @@ using System.Buffers.Text;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.JSInterop;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -79,7 +78,7 @@ public sealed partial class PwaDemo(HttpClient http) : Component
             }
 
             var permission = await Notification.RequestPermission();
-            if (permission != Rask.Web.Types.NotificationPermission.Granted)
+            if (permission != Types.NotificationPermission.Granted)
             {
                 _notifyStatus = $"Permission: {permission}";
                 return;
@@ -109,7 +108,7 @@ public sealed partial class PwaDemo(HttpClient http) : Component
             }
 
             var permission = await Notification.RequestPermission();
-            if (permission != Rask.Web.Types.NotificationPermission.Granted)
+            if (permission != Types.NotificationPermission.Granted)
             {
                 _pushStatus = $"Permission: {permission}";
                 return;

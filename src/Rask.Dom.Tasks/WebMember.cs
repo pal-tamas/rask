@@ -539,7 +539,7 @@ internal sealed class WebMember
 
     private void Write(StringBuilder sb, string indent, string modifiers, string body)
     {
-        DomEmitter.Doc(sb, indent, _summary, _data);
+        DomEmitter.Member(sb, indent, _summary, _data);
         sb.Append(indent).Append(modifiers).Append(_returns).Append(' ').Append(Name).Append(TypeParameters);
         if (_parameters is not null)
         {
@@ -553,7 +553,7 @@ internal sealed class WebMember
     // static extension of the global, the global's by name.
     public void WriteStatic(StringBuilder sb, string indent = "    ", string instance = "Instance")
     {
-        DomEmitter.Doc(sb, indent, _summary, _data);
+        DomEmitter.Member(sb, indent, _summary, _data);
         sb.Append(indent).Append("public static ").Append(_returns).Append(' ').Append(Name).Append(TypeParameters);
         if (_parameters is not null)
         {

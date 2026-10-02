@@ -125,12 +125,10 @@ handler, **not** a chain-set callback, so [RASK026](diagnostics.md) (which forbi
 `StateHasChanged` inside `OnChange`/`OnClick`/`Bind`/… callbacks) does not apply.
 
 ```csharp
-using Rask.Web;
-
 public sealed partial class LazyImages : Component
 {
     private readonly ElementRef _sentinel = ElementRef.New();
-    private Rask.Web.Types.IntersectionObserver? _io;
+    private Types.IntersectionObserver? _io;
 
     protected override Component? Render() => Div.Ref(_sentinel)[ /* … */ ];
 

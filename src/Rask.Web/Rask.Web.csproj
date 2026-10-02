@@ -33,5 +33,11 @@
     <InternalsVisibleTo Include="Rask.Wasm"/>
   </ItemGroup>
 
+  <!-- Ship the global `using Rask.Web;` and the `Types` alias to the apps of both hosts (mirrors Rask.Data). -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+    <None Include="build\**" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>
+  </ItemGroup>
+
   <Import Project="Rask.Web.targets"/>
 </Project>

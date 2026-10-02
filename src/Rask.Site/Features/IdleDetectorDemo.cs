@@ -1,4 +1,3 @@
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -9,7 +8,7 @@ namespace Rask.Site.Features;
 /// </summary>
 public sealed partial class IdleDetectorDemo : Component
 {
-    private Rask.Web.Types.IdleDetector? _idle;
+    private Types.IdleDetector? _idle;
     private IAsyncDisposable? _watch;
     private string _user = "active";
     private string _screen = "unlocked";
@@ -32,7 +31,7 @@ public sealed partial class IdleDetectorDemo : Component
 
         try
         {
-            if (await IdleDetector.RequestPermission() is not Rask.Web.Types.PermissionState.Granted)
+            if (await IdleDetector.RequestPermission() is not Types.PermissionState.Granted)
             {
                 _status = "Permission denied";
                 return;
@@ -43,8 +42,8 @@ public sealed partial class IdleDetectorDemo : Component
             _idle = idle;
             _watch = await idle.OnChange(async () =>
             {
-                _user = await idle.UserState is Rask.Web.Types.UserIdleState.Idle ? "idle" : "active";
-                _screen = await idle.ScreenState is Rask.Web.Types.ScreenIdleState.Locked ? "locked" : "unlocked";
+                _user = await idle.UserState is Types.UserIdleState.Idle ? "idle" : "active";
+                _screen = await idle.ScreenState is Types.ScreenIdleState.Locked ? "locked" : "unlocked";
             });
             await idle.Start(new() { Threshold = 60_000 });
             _status = "Watching — stop interacting for 60s to go idle";

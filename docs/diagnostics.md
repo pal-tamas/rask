@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK097, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK099, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -134,6 +134,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK095](#rask095) | Error | A chain skips a required step |
 | [RASK096](#rask096) | Error | An event is declared as a delegate, so its chain setter is unreachable |
 | [RASK097](#rask097) | Error | A route helper's name collides with a nested `Routes` class |
+| [RASK098](#rask098) | Warning | A web API member is missing from a browser `<RaskBrowserTargets>` names |
+| [RASK099](#rask099) | Warning | A `<RaskBrowserTargets>` entry is not `<browser> >= <version>` |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2577,3 +2579,54 @@ namespace MyApp.Features.Settings { [Route("/settings")] public sealed partial c
 
 **Fix:** rename the page (`AdminSettingsPage`) or the folder, or give the clashing pages distinct type names
 so they stay flat.
+
+## RASK098
+
+**Web API member is missing from a supported browser** · Warning
+
+Opt-in. A project that sets `<RaskBrowserTargets>` names the oldest browser of each engine it supports, and
+every call to a generated web API member (Rask.Web's globals and objects, an element ref's MDN members) is checked
+against MDN's browser-compat data for it: a member a named browser never shipped, or shipped only in a later
+version, is reported where it is called. Unset, nothing is checked.
+
+```xml
+<PropertyGroup>
+  <RaskBrowserTargets>safari >= 16; firefox >= 115</RaskBrowserTargets>
+</PropertyGroup>
+```
+
+```csharp
+var device = await Navigator.Usb.RequestDevice(new() { Filters = [] });
+// ⚠️ RASK098: 'RequestDevice' is not in Safari >= 16 (never shipped), Firefox >= 115 (never shipped) …
+
+if (await Navigator.Usb.IsSupported)
+{
+    var device = await Navigator.Usb.RequestDevice(new() { Filters = [] });   // ✅ asked first
+    await device.Open();                                                     // ✅ reached from a guarded object
+}
+```
+
+A call is not reported inside the body of an `if` whose condition awaits an `IsSupported` (alone or with `&&`),
+on the right of `await X.IsSupported && …`, in the true branch of `await X.IsSupported ? … : …`, or after an
+early exit `if (!await X.IsSupported) return;` in the same block. Any `IsSupported` counts, so what a guarded
+object hands back needs no guard of its own. A check stored in a variable first is not followed: write it in the
+condition, or `#pragma warning disable RASK098` around the call.
+
+The browsers are `chrome`, `edge` (Chromium's version numbers), `firefox` and `safari`; mobile data counts for its
+engine where only the mobile browser ships a member. Entries are separated by `;` or `,`.
+
+**Fix:** guard the call with `IsSupported` and give that browser another path, or raise the target.
+
+## RASK099
+
+**Supported browser not understood** · Warning
+
+An entry of `<RaskBrowserTargets>` that is not a known browser, `>=`, and a dotted version number is reported
+once per build, since it would otherwise check nothing.
+
+```xml
+<RaskBrowserTargets>safari >= 16; opera 90</RaskBrowserTargets>
+<!-- ⚠️ RASK099: <RaskBrowserTargets> entry 'opera 90' is not '<browser> >= <version>' … -->
+```
+
+**Fix:** write `chrome`, `edge`, `firefox` or `safari`, then `>=`, then the version: `safari >= 16`.

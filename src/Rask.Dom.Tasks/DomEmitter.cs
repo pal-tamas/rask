@@ -674,6 +674,30 @@ internal static class DomEmitter
         }
     }
 
+    // A member's doc comment, then its support as data: an analyzer cannot read a referenced assembly's doc comments,
+    // so RASK098 (<RaskBrowserTargets>) reads this attribute off the symbol instead. One version per engine.
+    internal static void Member(StringBuilder sb, string indent, string summary, JsonNode data)
+    {
+        Doc(sb, indent, summary, data);
+        if (data["support"] is not { Kind: JsonKind.Object } support || support.Members.Count == 0)
+        {
+            return;
+        }
+
+        var versions = support.Members
+            .GroupBy(p => EngineProperty(p.Key), StringComparer.Ordinal)
+            .Select(g => $"{g.Key} = {Literal(g.First().Value.AsString() ?? "")}");
+        sb.Append(indent).Append("[global::Rask.Core.BrowserSupport(").Append(string.Join(", ", versions)).AppendLine(")]");
+    }
+
+    private static string EngineProperty(string id) => id switch
+    {
+        "chrome" or "chrome_android" => "Chrome",
+        "firefox" or "firefox_android" => "Firefox",
+        "safari" or "safari_ios" => "Safari",
+        _ => throw new DomEmitException($"the snapshot names a browser `{id}` no engine is known for"),
+    };
+
     internal static string BrowserName(string id) => id switch
     {
         "chrome" => "Chrome",

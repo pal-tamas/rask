@@ -62,6 +62,9 @@
     <CompilerVisibleProperty Include="RaskNeutralLanguage"/>
     <!-- The generated catalog class lands in the app's own namespace. -->
     <CompilerVisibleProperty Include="RootNamespace"/>
+    <!-- The oldest browsers the app supports, `safari >= 16; firefox >= 115`: RASK098 reports a web API member MDN
+         says one of them lacks. Unset, nothing is checked. -->
+    <CompilerVisibleProperty Include="RaskBrowserTargets"/>
   </ItemGroup>
 
   <!--

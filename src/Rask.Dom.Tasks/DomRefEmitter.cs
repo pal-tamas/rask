@@ -144,7 +144,7 @@ internal static class DomRefEmitter
         var prop = Pascal(idl);
         if (!RefMembers.Contains(prop) && taken.Add(prop))
         {
-            DomEmitter.Doc(sb, "        ", $"MDN's <c>{idl}</c>, read from the live element.", m);
+            DomEmitter.Member(sb, "        ", $"MDN's <c>{idl}</c>, read from the live element.", m);
             sb.Append("        public ValueTask<").Append(type).Append("> ").Append(prop)
                 .Append(" => ElementRefCall.Get<").Append(type).Append(">(element.Target, \"").Append(idl).AppendLine("\");");
             sb.AppendLine();
@@ -160,7 +160,7 @@ internal static class DomRefEmitter
             return;
         }
 
-        DomEmitter.Doc(sb, "        ", $"Sets MDN's <c>{idl}</c> on the live element.", m);
+        DomEmitter.Member(sb, "        ", $"Sets MDN's <c>{idl}</c> on the live element.", m);
         sb.Append("        public ValueTask ").Append(setter).Append('(').Append(argType).Append(" value) => ElementRefCall.Set(element.Target, \"")
             .Append(idl).AppendLine("\", value);");
         sb.AppendLine();
@@ -225,7 +225,7 @@ internal static class DomRefEmitter
     private static void Overload(StringBuilder sb, JsonNode m, string idl, string method, string result, List<(string Type, string Name)> parameters)
     {
         var isVoid = string.Equals(result, "void", StringComparison.Ordinal);
-        DomEmitter.Doc(sb, "        ", $"MDN's <c>{idl}()</c>, called on the live element.", m);
+        DomEmitter.Member(sb, "        ", $"MDN's <c>{idl}()</c>, called on the live element.", m);
         sb.Append("        public ").Append(isVoid ? "ValueTask" : "ValueTask<" + result + ">").Append(' ').Append(method).Append('(')
             .Append(string.Join(", ", parameters.Select(p => p.Type + " " + p.Name))).Append(") => ElementRefCall.Call");
         if (!isVoid)

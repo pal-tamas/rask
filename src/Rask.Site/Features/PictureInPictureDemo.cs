@@ -1,5 +1,4 @@
 using Microsoft.JSInterop;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -7,7 +6,7 @@ namespace Rask.Site.Features;
 public sealed partial class PictureInPictureDemo : Component
 {
     private readonly ElementRef<HTMLVideoElement> _video = new();
-    private Rask.Web.Types.PictureInPictureWindow? _window;
+    private Types.PictureInPictureWindow? _window;
     private string _status = "(idle)";
 
     protected override async Task OnFirstRender()

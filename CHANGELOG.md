@@ -46,6 +46,19 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`Rask.Web` is imported for you in every Server and WASM app.** The package's own props add
+  `global using Rask.Web;` and the alias `global using Types = Rask.Web.Types;`, and both hosts carry them to the
+  app, so MDN's globals need no `using` and a field names an MDN type briefly. `Rask.Web.Types` itself stays out
+  (its interfaces share the globals' names); a component library that references `Rask` alone gets neither:
+  ```csharp
+  using Rask.Web;                                       // was, in every file that called a web API
+  private Rask.Web.Types.IntersectionObserver? _io;     // was
+  private Types.IntersectionObserver? _io;              // now, and no using
+  ```
+  Where a global is named like a Rask type, Rask's keeps the bare name, by global aliases the package adds beside
+  the import: `EditContext`, `FormData`, `DataTransfer`, `EventTarget` and `Touch` mean exactly what they meant
+  before, and MDN's are `Rask.Web.FormData`, `Types.EditContext` and so on.
+
 - **BREAKING: `CookieCulturePersistence` moved to `Rask.Web`, and writes the culture cookie through
   `Document.SetCookie`.** It no longer needs a cookie wrapper; the cookie it writes is unchanged
   (`.AspNetCore.Culture`, a year, `path=/`, `samesite=lax`), so a visitor's remembered language survives the
@@ -839,6 +852,18 @@ them until tagged releases begin.
 
 ### Added
 
+- **[RASK098](docs/diagnostics.md#rask098): the build says when a web API is missing from a browser you
+  support.** Opt in with `<RaskBrowserTargets>safari >= 16; firefox >= 115</RaskBrowserTargets>` and a
+  call to a `Rask.Web` member, or an element ref's MDN member, that MDN's compat data says one of those browsers
+  never shipped, or shipped later, is a warning where it is made — silent under an `IsSupported` guard:
+  ```csharp
+  await Navigator.Usb.RequestDevice(options);          // ⚠️ RASK098: not in Safari >= 16 (never shipped), …
+  if (await Navigator.Usb.IsSupported)
+      await Navigator.Usb.RequestDevice(options);      // ✅
+  ```
+  The generated members carry the versions as an internal `[BrowserSupport]` beside their doc comment's support
+  line; unset, nothing is checked. An entry it cannot read is [RASK099](docs/diagnostics.md#rask099). See
+  [Web APIs](docs/web-apis.md#asking-whether-the-browser-has-it).
 - **`rask new` scaffolds a test project with one passing test.** `rask new Shop` writes `Shop.Tests/` beside the
   app — referencing it, `Rask.Testing` and xUnit, listed in `Shop.slnx` — with `Home_page_greets_the_visitor`,
   which renders `HomePage` in-process and checks its greeting, so `dotnet test` is green from the first commit.

@@ -235,7 +235,7 @@
 
   <!--
     Every shipped package follows the repo's .NET versions, which Directory.Build.props states once as
-    RaskNetTargets / RaskBrowserTargets.
+    RaskNetTargets / RaskBrowserTfm.
 
     A project that writes its frameworks out literally keeps building — on the versions it names — so
     adding a .NET version would quietly skip it: the package would publish without the new lib/ folder and
@@ -249,8 +249,8 @@
   -->
   <Target Name="RaskVerifyTargetFrameworks" BeforeTargets="CoreCompile"
           Condition=" '$(RaskPublicApiTracked)' == 'true' AND '$(RaskTargetFrameworksExempt)' != 'true' ">
-    <Error Condition=" '$(TargetFrameworks)' != '$(RaskNetTargets)' AND '$(TargetFrameworks)' != '$(RaskNetTargets);$(RaskBrowserTargets)' "
-           Text="$(MSBuildProjectName) ships as a package but targets '$(TargetFrameworks)$(TargetFramework)' rather than the repo's .NET versions. Write &lt;TargetFrameworks&gt;%24(RaskNetTargets)&lt;/TargetFrameworks&gt; — or %24(RaskNetTargets);%24(RaskBrowserTargets) for a package with a browser face — so it follows Directory.Build.props. A shipped project that must stay on one framework sets &lt;RaskTargetFrameworksExempt&gt;true&lt;/RaskTargetFrameworksExempt&gt; and says why." />
+    <Error Condition=" '$(TargetFrameworks)' != '$(RaskNetTargets)' AND '$(TargetFrameworks)' != '$(RaskNetTargets);$(RaskBrowserTfm)' "
+           Text="$(MSBuildProjectName) ships as a package but targets '$(TargetFrameworks)$(TargetFramework)' rather than the repo's .NET versions. Write &lt;TargetFrameworks&gt;%24(RaskNetTargets)&lt;/TargetFrameworks&gt; — or %24(RaskNetTargets);%24(RaskBrowserTfm) for a package with a browser face — so it follows Directory.Build.props. A shipped project that must stay on one framework sets &lt;RaskTargetFrameworksExempt&gt;true&lt;/RaskTargetFrameworksExempt&gt; and says why." />
   </Target>
 
 </Project>

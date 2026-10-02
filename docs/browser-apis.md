@@ -38,8 +38,6 @@ Call from an **event handler or lifecycle hook**, never from `Render()`. A typed
 through the **constructor** (not a settable property — that would become a required chain parameter):
 
 ```csharp
-using Rask.Web;
-
 public sealed partial class ThemeToggle : Component
 {
     protected override async Task OnFirstRender()

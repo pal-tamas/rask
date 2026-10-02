@@ -4,8 +4,6 @@
 data — the same snapshot Rask's elements and events come from — so an MDN example ports line by line:
 
 ```csharp
-using Rask.Web;
-
 await Navigator.Clipboard.WriteText("hi");                           // navigator.clipboard.writeText("hi")
 var dark = await Window.MatchMedia("(prefers-color-scheme: dark)").Matches;
 await LocalStorage.SetItem("theme", "dark");
@@ -17,6 +15,17 @@ it holds — `Navigator`, `Document`, `Location`, `History`, `Screen`, `LocalSto
 `Crypto`, `IndexedDB`, `Caches`, `CookieStore` and the rest. Every interface they reach is a C# type in
 `Rask.Web.Types` (`Clipboard`, `MediaQueryList`, `Geolocation`), and MDN's option dictionaries and enums are records
 and enums (`ShareData`, `DocumentVisibilityState`).
+
+**Imported for you in every Server and WASM app.** Both hosts depend on `Rask.Web`, which adds `global using Rask.Web;`
+and the alias `global using Types = Rask.Web.Types;` — so the globals are bare and a field names an MDN type briefly:
+
+```csharp
+private Types.IntersectionObserver? _io;
+```
+
+`Rask.Web.Types` itself is not imported: its interfaces share names with the globals (`Navigator` is both the global
+and the interface it holds), so the samples on this page have no `using` at all. A component library references
+`Rask` alone and gets neither; one that calls web APIs references `Rask.Web` and gets both.
 
 ## One round trip per await
 
@@ -311,6 +320,20 @@ if (await Navigator.Usb.IsSupported)
 
 Elements and their attributes stay cross-engine: markup only gets what two engines ship.
 
+To hear about it at build time instead, name the oldest browsers the app supports in its project file:
+
+```xml
+<PropertyGroup>
+  <RaskBrowserTargets>safari >= 16; firefox >= 115</RaskBrowserTargets>
+</PropertyGroup>
+```
+
+Each generated member carries MDN's first version per engine, and a call to one a named browser never shipped,
+or shipped later, is warning [RASK098](diagnostics.md#rask098) where it is made — unless it sits under an
+`IsSupported` check: inside `if (await Navigator.Usb.IsSupported) { … }`, or after
+`if (!await Navigator.Usb.IsSupported) return;`. The browsers are `chrome`, `edge`, `firefox` and `safari`;
+unset, nothing is checked.
+
 What is on no standards track is left out, except a short list named one by one in `scripts/mdn/refresh.mjs`
 (`NON_STANDARD`), each something a real app needs and nothing standard does: today `BeforeInstallPromptEvent`. Their
 doc comments say **Non-standard.**
@@ -385,5 +408,7 @@ click itself.
 - **What needs a live object the C# side cannot name** — a member that takes a `Document` or a text node, a callback
   that hands back a live object (an `IdleDeadline` to ask the time left of), or one whose result the browser reads — is
   not generated; the [typed browser API wrappers](browser-apis.md) cover those today.
-- **`Rask.Web` is not imported for you yet.** Its globals share names with some of the wrappers' types, so a file that
-  uses them says `using Rask.Web;`.
+- **Names it shares with the rest of Rask.** Where a global is named like a Rask type, Rask's keeps the bare name:
+  `EditContext` is the form's, `FormData` a submit's, and `DataTransfer`, `EventTarget` and `Touch` Rask's event
+  types, by global aliases the package adds beside the import. MDN's are a qualifier away when you want them:
+  `Rask.Web.FormData`, `Types.EditContext`.

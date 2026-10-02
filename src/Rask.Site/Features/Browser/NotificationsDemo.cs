@@ -1,5 +1,4 @@
 using Microsoft.JSInterop;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -50,7 +49,7 @@ public sealed partial class NotificationsDemo : Component
         }
 
         // Showing without permission throws (matching the browser), so gate on it and prompt the user first.
-        if (await Notification.Permission != Rask.Web.Types.NotificationPermission.Granted)
+        if (await Notification.Permission != Types.NotificationPermission.Granted)
         {
             _status = "Grant permission first";
             return;

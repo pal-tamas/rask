@@ -1,6 +1,5 @@
 using System.Text;
 using Microsoft.JSInterop;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -84,9 +83,9 @@ public sealed partial class OriginPrivateFileSystemDemo : Component
     }
 
     // navigator.storage.getDirectory() is the origin's root; without `create` a missing entry rejects (NotFoundError).
-    private static async Task<Rask.Web.Types.FileSystemFileHandle> OpenFile(bool create)
+    private static async Task<Types.FileSystemFileHandle> OpenFile(bool create)
     {
-        Rask.Web.Types.FileSystemFileHandle file;
+        Types.FileSystemFileHandle file;
         await using (var root = await Navigator.Storage.GetDirectory())
         await using (var folder = await root.GetDirectoryHandle(Folder, new() { Create = create }))
         {

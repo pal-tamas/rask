@@ -1,4 +1,3 @@
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -11,8 +10,8 @@ namespace Rask.Site.Features;
 public sealed partial class BroadcastChannelDemo : Component
 {
     private const string ChannelName = "rask-broadcast-demo";
-    private Rask.Web.Types.BroadcastChannel? _sender;
-    private Rask.Web.Types.BroadcastChannel? _receiver;
+    private Types.BroadcastChannel? _sender;
+    private Types.BroadcastChannel? _receiver;
     private IAsyncDisposable? _listening;
     private readonly List<string> _received = [];
     private int _counter;
@@ -60,7 +59,7 @@ public sealed partial class BroadcastChannelDemo : Component
     }
 
     // close() stops the channel delivering; disposing lets the browser drop the kept object.
-    private static async Task Close(Rask.Web.Types.BroadcastChannel? channel)
+    private static async Task Close(Types.BroadcastChannel? channel)
     {
         if (channel is not null)
         {

@@ -5,7 +5,7 @@
          panels read a DbContext and a browser app has no database — but this kit is markup and nothing
          else, and the apps that need it most (the landing site, the docs showcase) are browser-WASM.
          The browser face also carries the trim/AOT annotations those apps publish under. -->
-    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTfm)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsAotCompatible Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">true</IsAotCompatible>

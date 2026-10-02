@@ -1,5 +1,4 @@
 using System.Globalization;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -30,7 +29,7 @@ public sealed partial class GeolocationDemo : Component
                     _status = "Position acquired";
                 },
                 e => Failed(e.Message),
-                new Rask.Web.Types.PositionOptions { Timeout = 10_000 });
+                new Types.PositionOptions { Timeout = 10_000 });
         }
         catch (Exception ex) { Failed(ex.Message); }
     }
@@ -42,6 +41,6 @@ public sealed partial class GeolocationDemo : Component
     }
 
     // Coordinates format invariantly (decimal point) — independent of the server's locale.
-    internal static string Describe(Rask.Web.Types.GeolocationCoordinates c) =>
+    internal static string Describe(Types.GeolocationCoordinates c) =>
         string.Create(CultureInfo.InvariantCulture, $"lat {c.Latitude:F4}, lon {c.Longitude:F4} (±{c.Accuracy:F0} m)");
 }

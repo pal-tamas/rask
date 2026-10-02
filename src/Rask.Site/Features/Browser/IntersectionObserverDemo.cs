@@ -1,4 +1,3 @@
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -9,7 +8,7 @@ namespace Rask.Site.Features;
 public sealed partial class IntersectionObserverDemo : Component
 {
     private readonly ElementRef _target = ElementRef.New();
-    private Rask.Web.Types.IntersectionObserver? _observer;
+    private Types.IntersectionObserver? _observer;
     private bool _visible;
     private int _changes;
 

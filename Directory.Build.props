@@ -61,7 +61,7 @@
 
   <!--
     The .NET versions every shipped package builds for, stated once. A packable project reads them as
-    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>, adding $(RaskBrowserTargets) when it has a
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>, adding $(RaskBrowserTfm) when it has a
     browser face. RaskVerifyTargetFrameworks (Directory.Build.targets) fails a shipped project that writes
     its frameworks out literally instead, because adding a version here would otherwise skip that project
     without a word — its package would publish with no folder for the new version and nothing would fail.
@@ -80,7 +80,7 @@
     <RaskPrimaryNetTarget>net10.0</RaskPrimaryNetTarget>
     <RaskPrimaryBrowserTarget>net10.0-browser</RaskPrimaryBrowserTarget>
     <RaskNetTargets>$(RaskPrimaryNetTarget)</RaskNetTargets>
-    <RaskBrowserTargets>$(RaskPrimaryBrowserTarget)</RaskBrowserTargets>
+    <RaskBrowserTfm>$(RaskPrimaryBrowserTarget)</RaskBrowserTfm>
   </PropertyGroup>
 
   <!--
@@ -219,6 +219,9 @@
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.props"
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.props') "/>
+  <!-- MDN's globals and the `Types` alias, which a consumer gets from Rask.Web through either host's package. -->
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Web\build\Rask.Web.props"
+          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Web\build\Rask.Web.props') "/>
   <!-- Knobs only (the WebAssembly client's publish folder), so unlike the implicit-usings props above this
        one is imported everywhere: the matching .targets reads these defaults, and a consumer gets both
        automatically from the package's build/ folder. -->

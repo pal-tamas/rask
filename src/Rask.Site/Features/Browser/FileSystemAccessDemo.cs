@@ -1,5 +1,4 @@
 using Microsoft.JSInterop;
-using Rask.Web;
 
 namespace Rask.Site.Features;
 
@@ -10,7 +9,7 @@ namespace Rask.Site.Features;
 /// </summary>
 public sealed partial class FileSystemAccessDemo : Component
 {
-    private Rask.Web.Types.FileSystemFileHandle? _handle;
+    private Types.FileSystemFileHandle? _handle;
     private string? _name;
     private string _text = string.Empty;
     private string _status = "(idle)";
@@ -110,7 +109,7 @@ public sealed partial class FileSystemAccessDemo : Component
     // A browser without the pickers has no window.showOpenFilePicker / showSaveFilePicker to call.
     private static bool IsMissing(JSException ex) => ex.Message.Contains("is not a function", StringComparison.Ordinal);
 
-    private async Task WriteText(Rask.Web.Types.FileSystemFileHandle handle)
+    private async Task WriteText(Types.FileSystemFileHandle handle)
     {
         await using var writable = await handle.CreateWritable();
         await writable.Write(_text);
@@ -118,7 +117,7 @@ public sealed partial class FileSystemAccessDemo : Component
     }
 
     // Let the previous handle go before keeping a new one, so handles don't pile up across opens.
-    private async Task Adopt(Rask.Web.Types.FileSystemFileHandle handle)
+    private async Task Adopt(Types.FileSystemFileHandle handle)
     {
         if (_handle is not null)
         {
