@@ -125,28 +125,6 @@ Rask.Core.Browser.AuthenticatorSelection.ResidentKey.get -> string?
 Rask.Core.Browser.AuthenticatorSelection.ResidentKey.init -> void
 Rask.Core.Browser.AuthenticatorSelection.UserVerification.get -> string?
 Rask.Core.Browser.AuthenticatorSelection.UserVerification.init -> void
-Rask.Core.Browser.CookieOptions
-Rask.Core.Browser.CookieOptions.<Clone>$() -> Rask.Core.Browser.CookieOptions!
-Rask.Core.Browser.CookieOptions.CookieOptions() -> void
-Rask.Core.Browser.CookieOptions.Domain.get -> string?
-Rask.Core.Browser.CookieOptions.Domain.init -> void
-Rask.Core.Browser.CookieOptions.Equals(Rask.Core.Browser.CookieOptions? other) -> bool
-Rask.Core.Browser.CookieOptions.Expires.get -> System.DateTimeOffset?
-Rask.Core.Browser.CookieOptions.Expires.init -> void
-Rask.Core.Browser.CookieOptions.MaxAgeSeconds.get -> int?
-Rask.Core.Browser.CookieOptions.MaxAgeSeconds.init -> void
-Rask.Core.Browser.CookieOptions.Path.get -> string?
-Rask.Core.Browser.CookieOptions.Path.init -> void
-Rask.Core.Browser.CookieOptions.SameSite.get -> Rask.Core.Browser.SameSiteMode?
-Rask.Core.Browser.CookieOptions.SameSite.init -> void
-Rask.Core.Browser.CookieOptions.Secure.get -> bool
-Rask.Core.Browser.CookieOptions.Secure.init -> void
-Rask.Core.Browser.Cookies
-Rask.Core.Browser.Cookies.Cookies(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.Cookies.DeleteAsync(string! name, string? path = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.Cookies.GetAllAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>
-Rask.Core.Browser.Cookies.GetAsync(string! name) -> System.Threading.Tasks.ValueTask<string?>
-Rask.Core.Browser.Cookies.SetAsync(string! name, string! value, Rask.Core.Browser.CookieOptions? options = null) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.CredentialDescriptor
 Rask.Core.Browser.CredentialDescriptor.<Clone>$() -> Rask.Core.Browser.CredentialDescriptor!
 Rask.Core.Browser.CredentialDescriptor.CredentialDescriptor(string! Id, string![]? Transports = null, string! Type = "public-key") -> void
@@ -179,11 +157,6 @@ Rask.Core.Browser.FileHandler.Action.init -> void
 Rask.Core.Browser.FileHandler.Deconstruct(out string! Action, out System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>! Accept) -> void
 Rask.Core.Browser.FileHandler.Equals(Rask.Core.Browser.FileHandler? other) -> bool
 Rask.Core.Browser.FileHandler.FileHandler(string! Action, System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>! Accept) -> void
-Rask.Core.Browser.ICookies
-Rask.Core.Browser.ICookies.DeleteAsync(string! name, string? path = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.ICookies.GetAllAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>
-Rask.Core.Browser.ICookies.GetAsync(string! name) -> System.Threading.Tasks.ValueTask<string?>
-Rask.Core.Browser.ICookies.SetAsync(string! name, string! value, Rask.Core.Browser.CookieOptions? options = null) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IIndexedDb
 Rask.Core.Browser.IIndexedDb.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IIndexedDb.OpenStoreAsync(string! name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IKeyValueStore!>
@@ -453,10 +426,6 @@ Rask.Core.Browser.RtcMessageWire.Equals(Rask.Core.Browser.RtcMessageWire? other)
 Rask.Core.Browser.RtcMessageWire.RtcMessageWire(string? Text, string? Data) -> void
 Rask.Core.Browser.RtcMessageWire.Text.get -> string?
 Rask.Core.Browser.RtcMessageWire.Text.init -> void
-Rask.Core.Browser.SameSiteMode
-Rask.Core.Browser.SameSiteMode.Lax = 0 -> Rask.Core.Browser.SameSiteMode
-Rask.Core.Browser.SameSiteMode.None = 2 -> Rask.Core.Browser.SameSiteMode
-Rask.Core.Browser.SameSiteMode.Strict = 1 -> Rask.Core.Browser.SameSiteMode
 Rask.Core.Browser.ShareData
 Rask.Core.Browser.ShareData.<Clone>$() -> Rask.Core.Browser.ShareData!
 Rask.Core.Browser.ShareData.Equals(Rask.Core.Browser.ShareData? other) -> bool
@@ -1720,9 +1689,6 @@ override Rask.Core.Browser.AttestationResult.ToString() -> string!
 override Rask.Core.Browser.AuthenticatorSelection.Equals(object? obj) -> bool
 override Rask.Core.Browser.AuthenticatorSelection.GetHashCode() -> int
 override Rask.Core.Browser.AuthenticatorSelection.ToString() -> string!
-override Rask.Core.Browser.CookieOptions.Equals(object? obj) -> bool
-override Rask.Core.Browser.CookieOptions.GetHashCode() -> int
-override Rask.Core.Browser.CookieOptions.ToString() -> string!
 override Rask.Core.Browser.CredentialDescriptor.Equals(object? obj) -> bool
 override Rask.Core.Browser.CredentialDescriptor.GetHashCode() -> int
 override Rask.Core.Browser.CredentialDescriptor.ToString() -> string!
@@ -1871,8 +1837,6 @@ static Rask.Core.Browser.AttestationResult.operator !=(Rask.Core.Browser.Attesta
 static Rask.Core.Browser.AttestationResult.operator ==(Rask.Core.Browser.AttestationResult? left, Rask.Core.Browser.AttestationResult? right) -> bool
 static Rask.Core.Browser.AuthenticatorSelection.operator !=(Rask.Core.Browser.AuthenticatorSelection? left, Rask.Core.Browser.AuthenticatorSelection? right) -> bool
 static Rask.Core.Browser.AuthenticatorSelection.operator ==(Rask.Core.Browser.AuthenticatorSelection? left, Rask.Core.Browser.AuthenticatorSelection? right) -> bool
-static Rask.Core.Browser.CookieOptions.operator !=(Rask.Core.Browser.CookieOptions? left, Rask.Core.Browser.CookieOptions? right) -> bool
-static Rask.Core.Browser.CookieOptions.operator ==(Rask.Core.Browser.CookieOptions? left, Rask.Core.Browser.CookieOptions? right) -> bool
 static Rask.Core.Browser.CredentialDescriptor.operator !=(Rask.Core.Browser.CredentialDescriptor? left, Rask.Core.Browser.CredentialDescriptor? right) -> bool
 static Rask.Core.Browser.CredentialDescriptor.operator ==(Rask.Core.Browser.CredentialDescriptor? left, Rask.Core.Browser.CredentialDescriptor? right) -> bool
 static Rask.Core.Browser.FileHandler.operator !=(Rask.Core.Browser.FileHandler? left, Rask.Core.Browser.FileHandler? right) -> bool

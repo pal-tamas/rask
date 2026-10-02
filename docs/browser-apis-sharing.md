@@ -8,7 +8,7 @@ Where each wrapper lives, how declarative and imperative sharing differ, and how
 
 Work identically on Server and WASM. **Shape** is *one-shot* (a request/response call) or
 *subscription* (you hold an `IAsyncDisposable` and the browser **pushes** updates to a C# handler — see
-[Subscriptions](#subscriptions--the-push-pattern)). Storage, clipboard, geolocation, `matchMedia`, the screen, crypto,
+[Subscriptions](#subscriptions--the-push-pattern)). Storage, clipboard, geolocation, `matchMedia`, the screen, cookies, crypto,
 permissions, `BroadcastChannel`, media session, Web Locks, the storage estimate, speech synthesis, animations, files,
 gamepads, notifications, the app badge and the rest of what the browser ships are MDN's own surface in
 [`Rask.Web`](web-apis.md), not wrappers. Device tilt and motion are `Window` events there:
@@ -17,7 +17,6 @@ browser before they cross.
 
 | Service | Wraps | What it does | Shape |
 | --- | --- | --- | --- |
-| `ICookies` | `document.cookie` | Read/write cookies with typed `CookieOptions` | one-shot |
 | `ISpeechRecognition` | `webkitSpeechRecognition` | Dictation — spoken audio → text | **subscription** |
 | `IIndexedDb` | IndexedDB | `OpenStoreAsync(name)` → large async key/value store | one-shot |
 | `IWebAuthn` | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot |

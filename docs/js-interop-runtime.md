@@ -53,7 +53,6 @@ later step on the same pattern.
 
 | Service | Wraps | Key members |
 | --- | --- | --- |
-| `ICookies` | `document.cookie` | `GetAsync`, `SetAsync(name, value, CookieOptions?)`, `DeleteAsync`, `GetAllAsync` |
 | `IIndexedDb` | `IndexedDB` | `IsSupportedAsync`, `OpenStoreAsync(name)` → `IKeyValueStore` (`Set`/`Get`/`SetBytes`/`GetBytes`/`Delete`/`Keys`/`Clear`) — large async persistent storage, text or raw bytes |
 
 The storage estimate is `await Navigator.Storage.Estimate()` in [`Rask.Web`](web-apis.md), with `Persist()` and
@@ -63,14 +62,15 @@ The storage estimate is `await Navigator.Storage.Estimate()` in [`Rask.Web`](web
 ```csharp
 using Rask.Web;
 
-public sealed partial class ThemeToggle(ICookies cookies) : Component
+public sealed partial class Drafts(IIndexedDb db) : Component
 {
-    private async Task Save() => await cookies.SetAsync("theme", "dark");
+    private async Task Save() => await (await db.OpenStoreAsync("drafts")).SetAsync("note", "hi");
 
     protected override async Task OnFirstRender()
     {
-        var theme = await cookies.GetAsync("theme");   // string?, null if absent
-        var id = await Crypto.RandomUUID();            // string, from Rask.Web
+        var note = await (await db.OpenStoreAsync("drafts")).GetAsync("note");   // string?, null if absent
+        var cookies = await Document.Cookie;                                       // "a=1; b=2", from Rask.Web
+        var id = await Crypto.RandomUUID();                                        // string, from Rask.Web
     }
 }
 ```

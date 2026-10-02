@@ -5,7 +5,7 @@
 //
 //  1. BEHAVIOUR. These modules were extracted out of rask-api.ts, where they had been driven only by
 //     C# through a dotted IJSRuntime identifier. An extraction that compiles and bundles proves
-//     nothing about whether the cookie string is still built the same way — so the mapping of every
+//     nothing about whether each request is still built the same way — so the mapping of every
 //     moved function is asserted here.
 //
 //  2. SSR SAFETY, by construction. Node has no window and no document. ES imports are hoisted and
@@ -22,7 +22,6 @@
 // The C# test (BrowserModuleTests) runs this in a node subprocess and asserts the JSON on stdout.
 
 import * as auth from "../../../src/Rask.Core/Resources/browser/auth.js";
-import * as cookies from "../../../src/Rask.Core/Resources/browser/cookies.js";
 
 // Reaching this line at all is assertion (2): every import above evaluated with no DOM present.
 const importedWithoutADom = true;
@@ -39,22 +38,9 @@ function define(name: string, value: unknown): void {
 
 // --- the stub DOM, installed AFTER the imports ------------------------------------------------
 
-const cookieWrites: string[] = [];
-const documentStub: Any = {};
-Object.defineProperty(documentStub, "cookie", {
-    get: () => "a=1; token=he%20llo; empty=",
-    set: (value: string) => {
-        cookieWrites.push(value);
-    }
-});
-define("document", documentStub);
-
 // --- exercise -----------------------------------------------------------------------------------
 
 async function run(): Promise<Any> {
-    cookies.set("token", "he llo", {maxAgeSeconds: 60, path: "/", sameSite: "Lax", secure: true});
-    cookies.remove("token", "/app");
-
     // ---- auth.ts ---------------------------------------------------------------------------------
     // fetch is a global rather than a DOM member, so replacing it drives this module with no server.
     // Each capture records what the module ASKED for.
@@ -160,14 +146,7 @@ async function run(): Promise<Any> {
         authConfirmRequest,
         authResetFailure,
 
-        importedWithoutADom,
-
-        // Cookies: reads decode, writes build the assignment string option by option.
-        cookieRead: cookies.get("token"),
-        cookieMissing: cookies.get("nope"),
-        cookieAll: cookies.getAll(),
-        cookieSetWrite: cookieWrites[0],
-        cookieDeleteWrite: cookieWrites[1]
+        importedWithoutADom
     };
 }
 

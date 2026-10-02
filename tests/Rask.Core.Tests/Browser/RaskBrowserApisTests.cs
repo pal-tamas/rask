@@ -9,14 +9,13 @@ namespace Rask.Core.Tests.Browser;
 // and the JS-backed wrapper is only the fallback.
 public class RaskBrowserApisTests
 {
-    // The 38 transport-agnostic wrappers AddCoreBrowserApis must register — service type → default impl.
+    // The transport-agnostic wrappers AddCoreBrowserApis must register — service type → default impl.
     // Keep in sync with the registrar; AddCoreBrowserApis_registers_nothing_beyond_the_pinned_set enforces it.
     private static readonly (Type Service, Type Impl)[] CoreApis =
     [
         (typeof(ISpeechRecognition), typeof(SpeechRecognition)),
         (typeof(IIndexedDb), typeof(IndexedDb)),
         (typeof(IWebAuthn), typeof(WebAuthn)),
-        (typeof(ICookies), typeof(Cookies)),
         (typeof(IViewTransitions), typeof(ViewTransitions)),
         (typeof(IMediaStreams), typeof(MediaStreams)),
         (typeof(ISignaling), typeof(Signaling)),
@@ -89,12 +88,12 @@ public class RaskBrowserApisTests
         var services = new ServiceCollection();
 
         // The app registers its own backend first...
-        services.AddSingleton<ICookies, FakeAppCookies>();
+        services.AddSingleton<IViewTransitions, FakeAppViewTransitions>();
         // ...then the framework wires the JS-backed fallbacks.
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
 
-        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(ICookies));
-        Assert.Equal(typeof(FakeAppCookies), descriptor.ImplementationType);
+        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IViewTransitions));
+        Assert.Equal(typeof(FakeAppViewTransitions), descriptor.ImplementationType);
         Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime); // the app registration's lifetime, untouched
     }
 
@@ -105,19 +104,16 @@ public class RaskBrowserApisTests
 
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
 
-        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(ICookies));
-        Assert.Equal(typeof(Cookies), descriptor.ImplementationType);
+        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IViewTransitions));
+        Assert.Equal(typeof(ViewTransitions), descriptor.ImplementationType);
     }
 
-    private sealed class FakeAppCookies : ICookies
+    private sealed class FakeAppViewTransitions : IViewTransitions
     {
-        public ValueTask<string?> GetAsync(string name) => ValueTask.FromResult<string?>(null);
+        public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(false);
 
-        public ValueTask SetAsync(string name, string value, CookieOptions? options = null) => default;
+        public ValueTask<bool> SetEnabledAsync(bool enabled) => ValueTask.FromResult(false);
 
-        public ValueTask DeleteAsync(string name, string? path = null) => default;
-
-        public ValueTask<IReadOnlyDictionary<string, string>> GetAllAsync() =>
-            ValueTask.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
+        public ValueTask<bool> IsActiveAsync() => ValueTask.FromResult(false);
     }
 }

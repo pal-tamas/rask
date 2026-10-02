@@ -426,11 +426,6 @@ public static class GuideCatalog
             SearchTitle = "Background Sync API in C# and .NET (IBackgroundSync)",
             Description = "Register one-off and periodic Background Sync from C# and get the woken tag in a callback. WASM-only; needs a service worker and runs while a tab is open.",
         },
-        new("cookies", "ICookies", "Typed browser API: ICookies.", "Browser API reference", "apis/cookies.md")
-        {
-            SearchTitle = "document.cookie in C# and .NET (ICookies)",
-            Description = "Read and write browser cookies from C# through document.cookie, with typed CookieOptions. The ICookies wrapper works on both the Server and WebAssembly hosts.",
-        },
         new("indexeddb", "IIndexedDb", "Typed browser API: IIndexedDb.", "Browser API reference", "apis/indexeddb.md")
         {
             SearchTitle = "IndexedDB in C# and .NET (IIndexedDb)",

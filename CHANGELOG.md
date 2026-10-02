@@ -47,7 +47,7 @@ them until tagged releases begin.
 ### Changed
 
 - **BREAKING: `CookieCulturePersistence` moved to `Rask.Web`, and writes the culture cookie through
-  `Document.SetCookie`.** It no longer needs the `ICookies` wrapper; the cookie it writes is unchanged
+  `Document.SetCookie`.** It no longer needs a cookie wrapper; the cookie it writes is unchanged
   (`.AspNetCore.Culture`, a year, `path=/`, `samesite=lax`), so a visitor's remembered language survives the
   upgrade. Both hosts still register it by default, so an app writes nothing; only code that built one by hand
   changes, and `Rask.Server` now references `Rask.Web`:
@@ -714,6 +714,15 @@ them until tagged releases begin.
     input and textarea refs). A handler the browser awaits may belong to no component — a hosted service's runs at
     once and is let go when its call settles — and a fake can drive one: `locks.CallsBack<Lock?>("request", …)`,
     plus `fake.Throws(s => s.Persist(), error)` and `fake.Returns(l => l.IsSupported, false)`.
+  - **BREAKING: `ICookies` is gone, with `CookieOptions`, `SameSiteMode` and its TypeScript** — read and write
+    `document.cookie` from Rask.Web, or MDN's async `CookieStore` in a secure context:
+    ```csharp
+    // before: public sealed partial class Theme(ICookies cookies) : Component
+    // before: await cookies.SetAsync("theme", "dark", new CookieOptions { Path = "/", MaxAgeSeconds = 3600 });
+    await Document.SetCookie("theme=dark; path=/; max-age=3600");   // inject nothing
+    var all = await Document.Cookie;                                 // "theme=dark; a=1"
+    var theme = await CookieStore.Get("theme");                      // secure context only
+    ```
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

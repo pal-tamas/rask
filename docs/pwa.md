@@ -366,7 +366,7 @@ device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server
 | **Vibration** | `Navigator.Vibrate(200)` *(Rask.Web)* | Haptic feedback |
 | **Geolocation** | `Navigator.Geolocation` *(Rask.Web)* | Current position (`GetCurrentPosition`) + live tracking (`WatchPosition`) |
 | **Clipboard** | `Navigator.Clipboard` *(Rask.Web)* | Copy/paste (`WriteText` / `ReadText`) |
-| **Storage / Cookies** | `LocalStorage` *(Rask.Web)* / `ICookies` | Persist state on-device |
+| **Storage / Cookies** | `LocalStorage` / `Document.Cookie` *(Rask.Web)* | Persist state on-device |
 | **Large storage** | `IIndexedDb` | Async key/value store backed by IndexedDB — cache app data offline |
 | **Files on disk** | `Window.ShowOpenFilePicker(…)` *(Rask.Web, WASM)* | Open a file, then `ShowSaveFilePicker` / `CreateWritable()` to save it back (editors, file managers) |
 | **Passkeys** | `IWebAuthn` | Passwordless register / sign-in with a biometric or security key |

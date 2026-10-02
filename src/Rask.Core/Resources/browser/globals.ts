@@ -1,7 +1,7 @@
 // The C#-facing adapter over ./ — and the ONLY module in this directory with side effects.
 //
-// Rask's C# wrappers reach the browser by handing IJSRuntime a dotted identifier ("__raskApi.
-// cookieGet") that the invoke dispatcher resolves against `window` at call time. That is why these
+// Rask's C# wrappers reach the browser by handing IJSRuntime a dotted identifier ("__raskIdb.
+// isSupported") that the invoke dispatcher resolves against `window` at call time. That is why these
 // are globals rather than exports: the caller is .NET, and it resolves names, not modules.
 //
 // Importing this file registers those namespaces. Both framework clients do exactly that — Server's
@@ -20,7 +20,6 @@
 // break — the identifier simply fails to resolve at run time, in the browser, with no compiler
 // anywhere in the path to notice.
 
-import * as cookies from "./cookies.js";
 import * as eyeDropper from "./eyeDropper.js";
 import * as fullscreen from "./fullscreen.js";
 import * as installPrompt from "./installPrompt.js";
@@ -32,30 +31,6 @@ import * as signaling from "./signaling.js";
 import * as speechRecognition from "./speechRecognition.js";
 import * as wakeLock from "./wakeLock.js";
 import * as webAuthn from "./webAuthn.js";
-
-window.__raskApi = window.__raskApi || {
-    // ICookies. Positional here, an options object in the module.
-    cookieGet: (name: string) => cookies.get(name),
-    cookieAll: () => cookies.getAll(),
-    cookieSet: (
-        name: string,
-        value: string,
-        maxAge: number | null,
-        expires: string | null,
-        path: string | null,
-        domain: string | null,
-        sameSite: string | null,
-        secure: boolean) =>
-        cookies.set(name, value, {
-            maxAgeSeconds: maxAge,
-            expires,
-            path,
-            domain,
-            sameSite: sameSite as "Strict" | "Lax" | "None" | null,
-            secure
-        }),
-    cookieDelete: (name: string, path: string | null) => cookies.remove(name, path)
-};
 
 // IIndexedDb / IKeyValueStore. C# addresses a store by name on every call rather than holding a
 // handle, so the handles are cached here — reopening per call would pay the `upgradeneeded` round

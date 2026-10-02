@@ -9,8 +9,8 @@ namespace Rask.Core.Tests.Browser;
 ///     <para>
 ///         These modules were carved out of <c>rask-api.ts</c>, where every one of them was reachable
 ///         only through a dotted <c>IJSRuntime</c> identifier resolved against <c>window</c>. A build
-///         and a type-check say the extraction compiles; they say nothing about whether the cookie
-///         assignment string is still assembled the same way, so the mapping is asserted here.
+///         and a type-check say the extraction compiles; they say nothing about whether each request
+///         is still assembled the same way, so the mapping is asserted here.
 ///     </para>
 ///     <para>
 ///         Running under node is the point rather than a convenience. The fixture's imports evaluate
@@ -157,26 +157,5 @@ public class BrowserModuleTests
         Assert.True(r.GetProperty("authRemovePasskeyOk").GetBoolean());
         Assert.Equal("/api/auth/passkeys/remove", request.GetProperty("url").GetString());
         Assert.Equal("1", request.GetProperty("headers").GetProperty("X-Rask-Auth").GetString());
-    }
-
-    [Fact]
-    public void Cookies_are_decoded_on_read_and_assembled_on_write()
-    {
-        if (Result is not { } r) return;
-
-        Assert.Equal("he llo", r.GetProperty("cookieRead").GetString());
-        Assert.Equal(JsonValueKind.Null, r.GetProperty("cookieMissing").ValueKind);
-
-        var all = r.GetProperty("cookieAll");
-        Assert.Equal("1", all.GetProperty("a").GetString());
-        Assert.Equal("he llo", all.GetProperty("token").GetString());
-
-        // Option order is part of the string, and the trailing flags are bare rather than `=true`.
-        Assert.Equal(
-            "token=he%20llo; max-age=60; path=/; samesite=Lax; secure",
-            r.GetProperty("cookieSetWrite").GetString());
-
-        // A delete is an expiry, and it only lands when it names the same path the cookie was set on.
-        Assert.Equal("token=; max-age=0; path=/app", r.GetProperty("cookieDeleteWrite").GetString());
     }
 }

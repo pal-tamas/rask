@@ -1476,7 +1476,7 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#storage-read-value")).ToHaveTextAsync("persist-me",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
 
-        // Cookies — set then read back via ICookies.
+        // Cookies — set then read back via document.cookie (Rask.Web).
         await Page.Locator("#cookie-input").FillAsync("choco");
         await Page.Locator("#cookie-set").ClickAsync();
         await Page.Locator("#cookie-get").ClickAsync();

@@ -7,7 +7,7 @@
 //
 // or import a single module directly, which is what a bundler tree-shakes best:
 //
-//     import { get } from "./rask/browser/cookies";
+//     import { me } from "./rask/browser/auth";
 //
 // Nothing here touches `window` at import time, so these modules are safe to load in a server render
 // (Next, Nuxt, SvelteKit) and to call once you are in the browser. The one module that DOES have a
@@ -15,7 +15,6 @@
 // resolve against — is deliberately not re-exported here: a front end never needs it.
 
 export * as auth from "./auth.js";
-export * as cookies from "./cookies.js";
 export * as eyeDropper from "./eyeDropper.js";
 export * as fullscreen from "./fullscreen.js";
 export * as indexedDb from "./indexedDb.js";

@@ -1,12 +1,13 @@
-using Rask.Core.Browser;
+using Microsoft.JSInterop;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="ICookies" /> — read/write non-<c>HttpOnly</c> cookies via <c>document.cookie</c>,
-///     identical on Server and WASM.
+///     MDN's <c>document.cookie</c> from Rask.Web — read/write non-<c>HttpOnly</c> cookies, identical on Server and
+///     WASM.
 /// </summary>
-public sealed partial class CookiesDemo(ICookies cookies) : Component
+public sealed partial class CookiesDemo : Component
 {
     private const string Name = "rask_browser_cookie";
 
@@ -29,39 +30,51 @@ public sealed partial class CookiesDemo(ICookies cookies) : Component
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("cookie-status")[_status ?? "(idle)"]]
             ];
 
+    // document.cookie = "name=value; …": one cookie per write, its value URI-encoded as MDN recommends.
     private async Task Set()
     {
         try
         {
-            await cookies.SetAsync(Name, _input, new CookieOptions
-            {
-                MaxAgeSeconds = 3600,
-                Path = "/",
-                SameSite = SameSiteMode.Lax
-            });
+            await Document.SetCookie($"{Name}={Uri.EscapeDataString(_input)}; max-age=3600; path=/; samesite=lax");
             _status = $"Set: {_input}";
         }
-        catch (Exception ex) { _status = "Set failed: " + ex.Message; }
+        catch (JSException ex) { _status = "Set failed: " + ex.Message; }
     }
 
+    // document.cookie reads every cookie as "a=1; b=2", so find ours by name.
     private async Task Get()
     {
         try
         {
-            _read = await cookies.GetAsync(Name);
+            _read = Find(await Document.Cookie, Name);
             _status = _read is null ? "Not present" : "Read";
         }
-        catch (Exception ex) { _status = "Get failed: " + ex.Message; }
+        catch (JSException ex) { _status = "Get failed: " + ex.Message; }
     }
 
+    // A cookie is deleted by writing it again, already expired, on the same path.
     private async Task Delete()
     {
         try
         {
-            await cookies.DeleteAsync(Name, "/");
+            await Document.SetCookie($"{Name}=; max-age=0; path=/");
             _read = null;
             _status = "Deleted";
         }
-        catch (Exception ex) { _status = "Delete failed: " + ex.Message; }
+        catch (JSException ex) { _status = "Delete failed: " + ex.Message; }
+    }
+
+    private static string? Find(string cookies, string name)
+    {
+        foreach (var pair in cookies.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            var at = pair.IndexOf('=', StringComparison.Ordinal);
+            if (at > 0 && pair.AsSpan(0, at).SequenceEqual(name))
+            {
+                return Uri.UnescapeDataString(pair[(at + 1)..]);
+            }
+        }
+
+        return null;
     }
 }

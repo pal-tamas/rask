@@ -34,17 +34,17 @@ round-trip, so activation survives — so it works on **every** host, Server inc
 `await Navigator.Share(…)` from [`Rask.Web`](web-apis.md#what-only-webassembly-runs) shares from code (a lifecycle
 hook, after an `await`), which only the WASM host can do, so it compiles only in a WASM app.
 
-Inject through the **constructor** (not a settable property — that would become a required chain
-parameter) and call from an **event handler or lifecycle hook**, never from `Render()`:
+Call from an **event handler or lifecycle hook**, never from `Render()`. A typed wrapper is injected
+through the **constructor** (not a settable property — that would become a required chain parameter):
 
 ```csharp
 using Rask.Web;
 
-public sealed partial class ThemeToggle(ICookies cookies) : Component
+public sealed partial class ThemeToggle : Component
 {
     protected override async Task OnFirstRender()
     {
-        var saved = await cookies.GetAsync("theme");
+        var saved = await LocalStorage.GetItem("theme");     // or: await Document.Cookie
         var dark = saved is null
             ? await Window.MatchMedia("(prefers-color-scheme: dark)").Matches
             : saved == "dark";

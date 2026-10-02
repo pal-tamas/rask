@@ -14,7 +14,6 @@ activation-gated call inside a click), not as an injected service · ⬜ not ava
 
 | API | Web / Server | PWA / WASM |
 |-----|:---:|:---:|
-| [`ICookies`](apis/cookies.md) | ✅ | ✅ |
 | [`ISpeechRecognition`](apis/speech-recognition.md) | ✅ | ✅ |
 | [`IIndexedDb`](apis/indexeddb.md) | ✅ | ✅ |
 | [`IWebAuthn`](apis/webauthn.md) | ✅ | ✅ |

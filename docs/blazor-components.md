@@ -325,15 +325,15 @@ component through Blazor's own activator, so anything you registered is availabl
 your own services, and Rask's typed browser APIs:
 
 ```csharp
-@inject ICookies Cookies
+@inject IViewTransitions ViewTransitions
 
 @code {
-    private bool _dark;
+    private bool _animated;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        _dark = await Cookies.GetAsync("theme") == "dark";
+        _animated = await ViewTransitions.IsSupportedAsync();
     }
 }
 ```

@@ -53,7 +53,7 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
     {
         // The renderer is handed the app's own provider, so anything the host registered is
         // [Inject]-able inside the hosted component.
-        Assert.NotNull(Services(new RecordingJSRuntime()).GetRequiredService<ICookies>());
+        Assert.NotNull(Services(new RecordingJSRuntime()).GetRequiredService<IViewTransitions>());
     }
 
     [Fact]
@@ -75,14 +75,14 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
     {
         // The case an event handler cannot cover: reading something when the island APPEARS.
         // StaticHtmlRenderer never fires OnAfterRender, so this works only because Rask drives it.
-        var js = new RecordingJSRuntime { Result = "dark" };
+        var js = new RecordingJSRuntime { Result = true };
 
-        Page.Render(AfterRenderIsland.Label("Theme"), Services(js));
+        Page.Render(AfterRenderIsland.Label("Transitions"), Services(js));
 
         // Asserted on the runtime rather than on page.Html: Page.Render captures the markup once,
         // synchronously, and the repaint the hook asks for lands after that snapshot. What matters here
         // is that a hosted component reached a browser API from a hook StaticHtmlRenderer never fires.
-        Assert.Equal("__raskApi.cookieGet", js.LastIdentifier);
+        Assert.Equal("__raskVt.supported", js.LastIdentifier);
     }
 
     [Fact]
@@ -116,13 +116,13 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
     {
         // The same path, but through Rask.Core.Browser rather than a raw identifier: this is the
         // shape a real island would use.
-        var js = new RecordingJSRuntime { Result = "dark" };
+        var js = new RecordingJSRuntime { Result = true };
 
-        var page = Page.Render(ThemeIsland.Label("Theme"), Services(js));
+        var page = Page.Render(TransitionsIsland.Label("Transitions"), Services(js));
 
         await page.On("[data-rask-on-click]").Click();
 
-        Assert.Contains("__raskApi.cookieGet", js.LastIdentifier, StringComparison.Ordinal);
+        Assert.Equal("__raskVt.supported", js.LastIdentifier);
     }
 }
 
@@ -177,34 +177,34 @@ public sealed class ClipboardBox : ComponentBase
 }
 
 /// <summary>A hosted component that calls a TYPED Rask wrapper from its own click handler.</summary>
-public sealed class ThemeBox : ComponentBase
+public sealed class TransitionsBox : ComponentBase
 {
-    private bool _dark;
+    private bool _supported;
 
     [Parameter] public string? Label { get; set; }
 
-    [Inject] public ICookies Cookies { get; set; } = default!;
+    [Inject] public IViewTransitions ViewTransitions { get; set; } = default!;
 
     protected override void BuildRenderTree(RenderTreeBuilder builder)
     {
         builder.OpenElement(0, "button");
         builder.AddAttribute(1, "onclick", EventCallback.Factory.Create(this, ProbeAsync));
-        builder.AddContent(2, $"{Label}: {_dark}");
+        builder.AddContent(2, $"{Label}: {_supported}");
         builder.CloseElement();
     }
 
-    private async Task ProbeAsync() => _dark = await Cookies.GetAsync("theme") == "dark";
+    private async Task ProbeAsync() => _supported = await ViewTransitions.IsSupportedAsync();
 }
 
 /// <summary>Reads a browser API from OnAfterRenderAsync rather than from a click.</summary>
 public sealed class AfterRenderBox : ComponentBase, IHandleAfterRender
 {
-    private bool _dark;
+    private bool _supported;
     private bool _read;
 
     [Parameter] public string? Label { get; set; }
 
-    [Inject] public ICookies Cookies { get; set; } = default!;
+    [Inject] public IViewTransitions ViewTransitions { get; set; } = default!;
 
     public async Task OnAfterRenderAsync()
     {
@@ -213,14 +213,14 @@ public sealed class AfterRenderBox : ComponentBase, IHandleAfterRender
             return;
         }
         _read = true;
-        _dark = await Cookies.GetAsync("theme") == "dark";
+        _supported = await ViewTransitions.IsSupportedAsync();
         StateHasChanged();
     }
 
     protected override void BuildRenderTree(RenderTreeBuilder builder)
     {
         builder.OpenElement(0, "p");
-        builder.AddContent(1, $"{Label} after: {_dark}");
+        builder.AddContent(1, $"{Label} after: {_supported}");
         builder.CloseElement();
     }
 }
@@ -255,4 +255,4 @@ public sealed partial class AfterRenderIsland : BlazorComponent<AfterRenderBox>;
 
 public sealed partial class CountingIsland : BlazorComponent<CountingAfterRender>;
 
-public sealed partial class ThemeIsland : BlazorComponent<ThemeBox>;
+public sealed partial class TransitionsIsland : BlazorComponent<TransitionsBox>;

@@ -23,7 +23,9 @@ text (`SetAsync`/`GetAsync`) or raw bytes (`SetBytesAsync`/`GetBytesAsync`, stor
 
 <!-- demo:browser-indexeddb -->
 
-**`ICookies`** — read/write non-HttpOnly cookies with typed `CookieOptions`.
+**Cookies** — `await Document.Cookie` reads every non-HttpOnly cookie as `"a=1; b=2"`, and
+`await Document.SetCookie("theme=dark; path=/")` writes one, from [Rask.Web](web-apis.md). In a secure context MDN's
+async `CookieStore.Get` / `Set` / `Delete` reads and writes one cookie by name.
 
 <!-- demo:browser-cookies -->
 

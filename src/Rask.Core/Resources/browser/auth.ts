@@ -1,7 +1,7 @@
 // Accounts — the app's own /api/auth endpoints.
 //
 // See ./geolocation.ts for the two rules every module in this directory follows. This one has no
-// platform API to borrow names from, so like ./cookies.ts it is named for what it does.
+// platform API to borrow names from, so it is named for what it does.
 //
 // It is the TypeScript side of the same contract Rask's C# clients speak: the paths, the header and
 // the shapes come from Rask.Core.Authentication.AuthApi, so a front end and a component are talking

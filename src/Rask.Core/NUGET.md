@@ -7,7 +7,7 @@ everything the server host and the browser host have in common.
   SVG element, `Text`/`Raw`/`Fragment`.
 - **Routing** — `[Route]`, nested layouts, type-safe `Routes.X()` URLs.
 - **Forms** — two-way binding, validation, submit state.
-- **Typed browser APIs** — wrappers such as `ICookies`, `IIndexedDb` and `IWakeLock` that work the same on
+- **Typed browser APIs** — wrappers such as `IIndexedDb`, `IWebAuthn` and `IWakeLock` that work the same on
   both hosts; the rest of the browser comes from MDN in `Rask.Web`.
 - **Scoped CSS and TypeScript** — a `Counter.css` or `Counter.ts` beside `Counter.cs`, compiled by `dotnet build`.
 - The **source generators** and analyzers that make the chain and the routes exist.

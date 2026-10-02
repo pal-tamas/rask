@@ -66,7 +66,6 @@ public static class RaskBrowserApis
     private static void AddStorageAndSecurityApis(IServiceCollection services, ServiceLifetime lifetime)
     {
         services.AddBrowserApi<IIndexedDb, IndexedDb>(lifetime);
-        services.AddBrowserApi<ICookies, Cookies>(lifetime);
         services.AddBrowserApi<IWebAuthn, WebAuthn>(lifetime);
     }
 
