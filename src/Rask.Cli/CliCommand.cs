@@ -13,7 +13,7 @@ internal abstract class CliCommand(IConsole console)
     /// <summary>The verb the user types, e.g. <c>new</c>.</summary>
     public abstract string Name { get; }
 
-    /// <summary>Short aliases that also resolve to this command, e.g. <c>g</c> for <c>generate</c>.</summary>
+    /// <summary>Short aliases that also resolve to this command. None by default.</summary>
     public virtual IReadOnlyList<string> Aliases => [];
 
     /// <summary>A one-line description shown in the top-level help.</summary>
@@ -34,10 +34,16 @@ internal abstract class CliCommand(IConsole console)
     /// </summary>
     public virtual ArgumentSchema? OptionSchema => null;
 
+    /// <summary>
+    /// The heading <c>--help</c> lists the schema's verbs under. They are actions on every command but
+    /// <c>completion</c>, whose verbs are the shells it prints a script for.
+    /// </summary>
+    public virtual string VerbHeading => "Actions";
+
     /// <summary>Run the command with the arguments that follow its name. Returns a process exit code.</summary>
     public abstract Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken);
 
-    /// <summary>Report a written file with the shared green <c>+ path</c> marker (used by <c>new</c> and <c>generate</c>).</summary>
+    /// <summary>Report a written file with the shared green <c>+ path</c> marker (used by <c>new</c>).</summary>
     protected void WriteCreated(string relativePath) => Console.WriteLine($"  + {relativePath}", ConsoleStyle.Success);
 
     /// <summary>Print a bold section/action heading to stdout.</summary>
@@ -97,8 +103,8 @@ internal abstract class CliCommand(IConsole console)
             return Fail($"Specify a 'rask {Name}' action: {names}.");
         }
 
-        // Aliases are candidates too: someone who typed 'rask g fe' meant the 'f' alias, and pointing at
-        // 'feature' from there is still the right answer because that is what 'f' resolves to.
+        // Aliases are candidates too: a near-miss of an alias meant that alias, and pointing at the verb
+        // it resolves to is still the right answer.
         var candidates = schema.Verbs.SelectMany(v => v.Aliases.Prepend(v.Name)).ToArray();
         var near = Suggest.Closest(given, candidates);
         var resolved = near is not null && schema.TryResolveVerb(near, out var canonical) ? canonical : near;

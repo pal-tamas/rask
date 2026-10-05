@@ -16,6 +16,8 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
 
     public override string Usage => "rask completion <shell>";
 
+    public override string VerbHeading => "Shells";
+
     public override ArgumentSchema? OptionSchema => CreateSchema();
 
     private static ArgumentSchema CreateSchema() =>

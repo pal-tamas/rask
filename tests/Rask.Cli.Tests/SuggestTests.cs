@@ -2,13 +2,13 @@ namespace Rask.Cli.Tests;
 
 public sealed class SuggestTests
 {
-    private static readonly string[] Commands = ["new", "dev", "generate", "db", "deploy", "info", "completion"];
+    private static readonly string[] Commands = ["new", "dev", "db", "deploy", "info", "doctor", "completion"];
 
     [Theory]
-    [InlineData("genrate", "generate")]   // transposition
-    [InlineData("generat", "generate")]   // dropped letter
-    [InlineData("generatee", "generate")] // doubled letter
-    [InlineData("Deploy", "deploy")]      // case
+    [InlineData("compeltion", "completion")]  // transposition
+    [InlineData("completio", "completion")]   // dropped letter
+    [InlineData("completionn", "completion")] // doubled letter
+    [InlineData("Deploy", "deploy")]          // case
     [InlineData("dpeloy", "deploy")]
     public void Finds_the_intended_word(string typed, string expected) =>
         Assert.Equal(expected, Suggest.Closest(typed, Commands));
@@ -32,7 +32,7 @@ public sealed class SuggestTests
 
     [Fact]
     public void An_unambiguous_prefix_counts_as_a_match() =>
-        Assert.Equal("generate", Suggest.Closest("gene", Commands));
+        Assert.Equal("completion", Suggest.Closest("comp", Commands));
 
     [Fact]
     public void An_unambiguous_prefix_beats_a_nearer_edit()

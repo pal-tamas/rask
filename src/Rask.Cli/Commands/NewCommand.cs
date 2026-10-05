@@ -78,7 +78,8 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
             .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use). Also skips the first migration.")
             .Flag("no-git", description: "Don't initialize a git repository (one is created with an initial commit by default).")
             .Flag("force", description: "Scaffold into a directory that already has files in it, overwriting on collision.")
-            .Flag("dry-run", description: "Print the files that would be written without touching disk.");
+            .Flag("dry-run", description: "Print the files that would be written without touching disk.")
+            .WithJson();
 
     public override Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken) =>
         ExecuteAsync(args, allowWizard: true, cancellationToken);
@@ -99,6 +100,11 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
         if (parsed.HasErrors)
         {
             return Fail(parsed.Errors);
+        }
+
+        if (parsed.HasFlag("json") && !parsed.HasFlag("dry-run"))
+        {
+            return Fail(JsonOutput.DryRunOnly(Name));
         }
 
         if (NameArgumentError(parsed) is { } nameError)
@@ -165,7 +171,7 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
         // (validated by TemplateCatalog.TryGet).
         return await GenerateDirectAsync(
             template, name, parsed.Option("output"), parsed.HasFlag("dry-run"), parsed.HasFlag("force"),
-            parsed.HasFlag("no-restore"), parsed.HasFlag("no-git"), batteries,
+            parsed.HasFlag("no-restore"), parsed.HasFlag("no-git"), parsed.HasFlag("json"), batteries,
             (dir, version) => Generate(template, dir, name, batteries, version, islands),
             cancellationToken).ConfigureAwait(false);
     }

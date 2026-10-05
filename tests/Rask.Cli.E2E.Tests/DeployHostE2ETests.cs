@@ -32,7 +32,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     {
         var project = Start(out var console, out var command);
 
-        var exit = await command.ExecuteAsync(["--host", host.Host, "--port", "8080", "--name", "portapp"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", host.Host, "--port", "8080", "--app", "portapp"], CancellationToken.None);
 
         Assert.True(exit == 0, $"deploy failed.\n{console.OutText}\n{console.ErrorText}");
         Assert.Contains("Deployed.", console.OutText, StringComparison.Ordinal);
@@ -59,7 +59,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     public async Task Redeploy_keeps_the_data_volume()
     {
         var project = Start(out var console, out var command);
-        string[] args = ["--host", host.Host, "--port", "8081", "--name", "dataapp"];
+        string[] args = ["--host", host.Host, "--port", "8081", "--app", "dataapp"];
 
         Assert.True(await command.ExecuteAsync(args, CancellationToken.None) == 0, $"first deploy failed.\n{console.ErrorText}");
         var (_, first) = await host.DockerAsync("exec", "dataapp", "cat", "/data/boots.txt");
@@ -87,7 +87,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     public async Task Backup_and_restore_round_trip_against_the_deployed_volume()
     {
         var project = Start(out var console, out var deploy);
-        string[] deployArgs = ["--host", host.Host, "--port", "8083", "--name", "backupapp"];
+        string[] deployArgs = ["--host", host.Host, "--port", "8083", "--app", "backupapp"];
         Assert.True(await deploy.ExecuteAsync(deployArgs, CancellationToken.None) == 0, $"deploy failed.\n{console.ErrorText}");
 
         // A real SQLite database in the app's volume, with a row worth losing.
@@ -138,7 +138,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     public async Task Domain_deploy_swaps_colour_behind_a_real_caddy()
     {
         Start(out var console, out var command);
-        string[] args = ["--host", host.Host, "--domain", "rask-e2e.test", "--name", "webapp"];
+        string[] args = ["--host", host.Host, "--domain", "rask-e2e.test", "--app", "webapp"];
 
         Assert.True(await command.ExecuteAsync(args, CancellationToken.None) == 0, $"first domain deploy failed.\n{console.OutText}\n{console.ErrorText}");
 
@@ -171,7 +171,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     public async Task A_failing_health_check_leaves_the_previous_version_serving()
     {
         var project = Start(out var console, out var command);
-        string[] good = ["--host", host.Host, "--domain", "rask-health.test", "--name", "healthapp"];
+        string[] good = ["--host", host.Host, "--domain", "rask-health.test", "--app", "healthapp"];
         Assert.True(await command.ExecuteAsync(good, CancellationToken.None) == 0, $"baseline deploy failed.\n{console.ErrorText}");
 
         // Replace the app with one that runs but serves nothing, then redeploy: the probe must fail.
@@ -213,7 +213,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
             """.ReplaceLineEndings("\n"));
 
         var exit = await command.ExecuteAsync(
-            ["--host", host.Host, "--domain", "rask-port.test", "--name", "portapp3000", "--container-port", "3000"],
+            ["--host", host.Host, "--domain", "rask-port.test", "--app", "portapp3000", "--container-port", "3000"],
             CancellationToken.None);
 
         Assert.True(exit == 0, $"deploy on a non-default container port failed.\n{console.OutText}\n{console.ErrorText}");
@@ -235,7 +235,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     public async Task Status_logs_and_rollback_operate_on_the_live_deployment()
     {
         var project = Start(out var console, out var command);
-        string[] args = ["--host", host.Host, "--domain", "rask-ops.test", "--name", "opsapp"];
+        string[] args = ["--host", host.Host, "--domain", "rask-ops.test", "--app", "opsapp"];
 
         // v1 — the version we will roll back to. A marker in the served body identifies it.
         File.WriteAllText(Path.Combine(project, "Dockerfile"), AppWithMarker("VERSION-ONE"));
@@ -249,16 +249,16 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
 
         var status = new StringConsole();
         var statusCommand = Command(project, status);
-        Assert.Equal(0, await statusCommand.ExecuteAsync(["status", "--host", host.Host, "--name", "opsapp"], CancellationToken.None));
+        Assert.Equal(0, await statusCommand.ExecuteAsync(["status", "--host", host.Host, "--app", "opsapp"], CancellationToken.None));
         Assert.Contains("opsapp", status.OutText, StringComparison.Ordinal);
         Assert.Contains("rask-ops.test", status.OutText, StringComparison.Ordinal);
         Assert.Contains("rollback", status.OutText, StringComparison.Ordinal); // ...and that one is possible
 
         var logs = new StringConsole();
-        Assert.Equal(0, await Command(project, logs).ExecuteAsync(["logs", "--host", host.Host, "--name", "opsapp", "--tail", "10"], CancellationToken.None));
+        Assert.Equal(0, await Command(project, logs).ExecuteAsync(["logs", "--host", host.Host, "--app", "opsapp", "--tail", "10"], CancellationToken.None));
 
         var back = new StringConsole();
-        var exit = await Command(project, back).ExecuteAsync(["rollback", "--host", host.Host, "--name", "opsapp"], CancellationToken.None);
+        var exit = await Command(project, back).ExecuteAsync(["rollback", "--host", host.Host, "--app", "opsapp"], CancellationToken.None);
         Assert.True(exit == 0, $"rollback failed.\n{back.OutText}\n{back.ErrorText}");
 
         // The proof: the live site serves v1 again, through the proxy, after a health-gated swap.
@@ -266,7 +266,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
 
         // ...and rolling back again returns to v2, because the tags were swapped rather than consumed.
         var forward = new StringConsole();
-        Assert.Equal(0, await Command(project, forward).ExecuteAsync(["rollback", "--host", host.Host, "--name", "opsapp"], CancellationToken.None));
+        Assert.Equal(0, await Command(project, forward).ExecuteAsync(["rollback", "--host", host.Host, "--app", "opsapp"], CancellationToken.None));
         Assert.Equal("VERSION-TWO", await ServedBodyAsync("opsapp"));
     }
 
@@ -275,11 +275,11 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     {
         var project = Start(out var console, out var command);
         Assert.True(
-            await command.ExecuteAsync(["--host", host.Host, "--port", "8090", "--name", "onlyonce"], CancellationToken.None) == 0,
+            await command.ExecuteAsync(["--host", host.Host, "--port", "8090", "--app", "onlyonce"], CancellationToken.None) == 0,
             $"first deploy failed.\n{console.ErrorText}");
 
         var back = new StringConsole();
-        var exit = await Command(project, back).ExecuteAsync(["rollback", "--host", host.Host, "--name", "onlyonce"], CancellationToken.None);
+        var exit = await Command(project, back).ExecuteAsync(["rollback", "--host", host.Host, "--app", "onlyonce"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         Assert.Contains("nothing to roll back to", back.ErrorText, StringComparison.Ordinal);
@@ -295,7 +295,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     public async Task Runtime_env_reaches_the_container_and_is_required_on_the_next_deploy()
     {
         var project = Start(out var console, out var command);
-        string[] args = ["--host", host.Host, "--port", "8095", "--name", "envapp"];
+        string[] args = ["--host", host.Host, "--port", "8095", "--app", "envapp"];
 
         var exit = await command.ExecuteAsync([.. args, "--env", "DB_PASSWORD=hunter2"], CancellationToken.None);
         Assert.True(exit == 0, $"deploy with --env failed.\n{console.ErrorText}");

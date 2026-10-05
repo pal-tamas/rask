@@ -58,7 +58,7 @@ internal sealed partial class DeployCommand
 
         if (host is null)
         {
-            return Fail("No host to deploy to. Pass --host user@box (it's remembered for next time).");
+            return Fail("No host to deploy to. Pass --host user@host (it's remembered for next time).");
         }
 
         // Validated here, at the boundary, because the host reaches the `ssh` binary as an argument and
@@ -85,7 +85,7 @@ internal sealed partial class DeployCommand
         var projectDir = ResolveProjectDirectory(plan.ProjectSetting, located);
         plan.Dockerfile = parsed.Option("dockerfile") ?? Path.Combine(projectDir, "Dockerfile");
         plan.ContextDir = Path.GetDirectoryName(Path.GetFullPath(plan.Dockerfile)) ?? projectDir;
-        plan.Slug = ToContainerSlug(parsed.Option("name") ?? plan.Config.Name ?? located?.RootNamespace ?? new DirectoryInfo(projectDir).Name);
+        plan.Slug = ToContainerSlug(parsed.Option("app") ?? plan.Config.Name ?? located?.RootNamespace ?? new DirectoryInfo(projectDir).Name);
 
         if (plan.Action is null && !_fileSystem.FileExists(plan.Dockerfile))
         {

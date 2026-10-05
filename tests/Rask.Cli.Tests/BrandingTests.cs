@@ -45,7 +45,7 @@ public sealed class BrandingTests
         grid.AddColumn(new GridColumn().NoWrap().PadRight(3));
         grid.AddColumn();
         grid.AddRow(new Text("db"), new Text("short"));
-        grid.AddRow(new Text("generate"), new Text("a considerably longer description than the row above"));
+        grid.AddRow(new Text("completion"), new Text("a considerably longer description than the row above"));
 
         console.Ansi.Write(new RaggedRight(grid));
 
@@ -84,7 +84,7 @@ public sealed class BrandingTests
             grid.AddColumn(new GridColumn().NoWrap().PadRight(3));
             grid.AddColumn();
             grid.AddRow(new Text("db"), new Text("short"));
-            grid.AddRow(new Text("generate"), new Text("a considerably longer description than the row above"));
+            grid.AddRow(new Text("completion"), new Text("a considerably longer description than the row above"));
             return grid;
         }
 

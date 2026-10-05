@@ -88,6 +88,22 @@ public sealed class CommandHelpTests
     }
 
     [Fact]
+    public async Task Completion_help_lists_its_shells_as_shells_rather_than_actions()
+    {
+        var (console, app) = Build();
+
+        await app.RunAsync(["completion", "--help"], CancellationToken.None);
+
+        var text = console.OutText;
+        Assert.Contains("Shells:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Actions:", text, StringComparison.Ordinal);
+        foreach (var shell in new[] { "bash", "zsh", "fish" })
+        {
+            Assert.Contains(shell, text, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public async Task An_options_closed_set_is_listed_in_help()
     {
         var (console, app) = Build();

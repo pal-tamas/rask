@@ -1,7 +1,7 @@
 namespace Rask.Cli;
 
 /// <summary>
-/// Finds the nearest spelling of a word the user got wrong — the "did you mean 'generate'?" behind every
+/// Finds the nearest spelling of a word the user got wrong — the "did you mean 'deploy'?" behind every
 /// unknown command, option, action, and off-list option value. Deliberately conservative: it offers a
 /// correction only when one candidate is clearly closest, because a confidently wrong suggestion costs
 /// the reader more than no suggestion at all.
@@ -11,7 +11,7 @@ internal static class Suggest
     /// <summary>
     /// The nearest candidate to <paramref name="input"/>, or <c>null</c> when nothing is close enough.
     /// Matching is case-insensitive and tolerates a transposition ("srever" → "server"); an unambiguous
-    /// prefix ("gen" → "generate") also counts, since an abbreviation is a guess, not a typo.
+    /// prefix ("dep" → "deploy") also counts, since an abbreviation is a guess, not a typo.
     /// </summary>
     public static string? Closest(string? input, IEnumerable<string> candidates)
     {

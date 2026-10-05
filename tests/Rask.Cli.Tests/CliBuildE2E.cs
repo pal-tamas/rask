@@ -38,8 +38,8 @@ internal static class CliBuildE2E
         "Rask.Api",                         // API hosting + the client generator (server half)
         "Rask.Api.Client",                  // the runtime the generated client calls, on both halves
         "Rask.Query",                       // wired by default wherever --cqrs is
-        "Rask.Cqrs.Client",                 // --wasm --cqrs: the browser half of remote dispatch
-        "Rask.Cqrs.Server",                 // --wasm --cqrs: the endpoint half
+        "Rask.Cqrs.Client",                 // wasm-hosted: the browser half of remote dispatch
+        "Rask.Cqrs.Server",                 // wasm-hosted: the endpoint half
         "Rask.Spa.Hosting",                 // Rask.Server depends on it: MapRaskSpa serves wasm-hosted's client
         "Rask.Auth",                        // --data: the scaffolded context maps the account tables
         "Rask.Auth.Client",                 // Rask's browser half depends on it

@@ -86,7 +86,7 @@ internal static class CommandHelp
             Write(ansi, arguments);
         }
 
-        RenderActions(ansi, command.OptionSchema);
+        RenderVerbs(ansi, command.OptionSchema, command.VerbHeading);
         RenderOptions(ansi, command.OptionSchema);
 
         if (command.Examples.Count > 0)
@@ -105,7 +105,7 @@ internal static class CommandHelp
     }
 
     /// <summary>The command's subcommands and their aliases, straight from the schema that dispatches them.</summary>
-    private static void RenderActions(IAnsiConsole ansi, ArgumentSchema? schema)
+    private static void RenderVerbs(IAnsiConsole ansi, ArgumentSchema? schema, string heading)
     {
         if (schema is null || schema.Verbs.Count == 0)
         {
@@ -113,7 +113,7 @@ internal static class CommandHelp
         }
 
         ansi.WriteLine();
-        ansi.WriteLine("Actions:", ConsoleStyling.Of(ConsoleStyle.Heading));
+        ansi.WriteLine(heading + ":", ConsoleStyling.Of(ConsoleStyle.Heading));
 
         var grid = NewGrid();
         foreach (var verb in schema.Verbs)

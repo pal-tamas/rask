@@ -13,4 +13,6 @@ namespace Rask.Cli;
 [JsonSerializable(typeof(MigrationListReport))]
 [JsonSerializable(typeof(EfMigration[]))]
 [JsonSerializable(typeof(DoctorReport))]
+[JsonSerializable(typeof(NewDryRunReport))]
+[JsonSerializable(typeof(DevDryRunReport))]
 internal sealed partial class CliJsonContext : JsonSerializerContext;

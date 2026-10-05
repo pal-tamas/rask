@@ -46,6 +46,17 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `rask deploy` names the app with `--app`, the word `rask db` already used.** `--name`/`-n` are
+  gone from `deploy` (an unknown option, exit `2`); `rask new --name` is the project name and is unchanged.
+  ```bash
+  rask deploy --host deploy@box --name shop   # was
+  rask deploy --host deploy@box --app shop    # now
+  rask db backup --remote --app shop          # already
+  ```
+  The `"name"` key in `.rask/deploy.json` is unchanged, so a remembered app needs nothing. `--host`'s value
+  reads `user@host` in both commands' help, and `rask completion --help` lists its shells under `Shells:`
+  rather than `Actions:`.
+
 - **BREAKING: an attribute whose value is one of a closed set of keywords takes an enum, generated from the
   spec.** `scripts/mdn/refresh.mjs` now records each HTML attribute's keywords (webref's `attr-value` dfns at the
   pinned commit, or the IDL enum the reflecting attribute is named after) with BCD's support per keyword, and the
@@ -922,6 +933,17 @@ them until tagged releases begin.
   events keep their own serializers, so persistence is unchanged.
 
 ### Added
+
+- **`rask new --dry-run --json` and `rask dev --dry-run --json`: the plan as a document.** `new` prints the
+  template, the name, the directory and the files it would write; `dev` prints the command, its arguments,
+  the working directory and the environment it would set. Like every other `--json`, it is the document and
+  nothing else on stdout. `--json` without `--dry-run` is refused (exit `2`) on both — neither has a
+  document outside its plan, and a script that asked for one should not get a scaffolded project or a
+  running dev server instead.
+  ```bash
+  rask new Shop --dry-run --json | jq -r '.files[]'
+  rask dev --dry-run --json | jq -r '.environment'
+  ```
 
 - **`Keys` and `Codes`: every `KeyboardEvent.key` and `KeyboardEvent.code` value UI Events defines, as a
   constant.** Generated in `Rask.Core` with the elements, from the spec's own tables (`w3c/uievents-key`,

@@ -8,7 +8,7 @@ internal sealed partial class NewCommand
 {
     private async Task<int> GenerateDirectAsync(
         TemplateInfo template, string name, string? output, bool dryRun, bool force, bool noRestore, bool noGit,
-        ServerBatteries batteries, Func<string, string, ScaffoldResult> build, CancellationToken cancellationToken)
+        bool asJson, ServerBatteries batteries, Func<string, string, ScaffoldResult> build, CancellationToken cancellationToken)
     {
         // rask new MyApp → ./MyApp/ ; --output overrides the destination directory.
         var targetDirectory = Scaffold.TargetDirectory(_workingDirectory, output, name);
@@ -20,7 +20,15 @@ internal sealed partial class NewCommand
         // --dry-run previews the plan without touching disk or restoring.
         if (dryRun)
         {
-            WriteDryRunPlan(template, name, result);
+            if (asJson)
+            {
+                JsonOutput.Write(Console, DryRunReport(template, name, targetDirectory, result), CliJsonContext.Default.NewDryRunReport);
+            }
+            else
+            {
+                WriteDryRunPlan(template, name, result);
+            }
+
             return 0;
         }
 
@@ -59,6 +67,14 @@ internal sealed partial class NewCommand
             WriteDryRun("write", Path.GetRelativePath(_workingDirectory, file.Path));
         }
     }
+
+    /// <summary>The same plan as <see cref="WriteDryRunPlan"/>, as the <c>--json</c> document.</summary>
+    private NewDryRunReport DryRunReport(TemplateInfo template, string name, string targetDirectory, ScaffoldResult result) =>
+        new(
+            template.Key,
+            name,
+            Path.GetRelativePath(_workingDirectory, targetDirectory),
+            [.. result.Files.Select(file => Path.GetRelativePath(_workingDirectory, file.Path))]);
 
     /// <summary>Reports, and answers true, when scaffolding here would overwrite something already on disk.</summary>
     private async Task<bool> RefuseToOverwriteAsync(string targetDirectory, string restoreTarget, ScaffoldResult result)
