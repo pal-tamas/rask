@@ -7,35 +7,6 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
-### Changed
-
-- **BREAKING: the last `Async` suffixes are gone from the public surface** (`docs/api-style.md` rule 4 —
-  `await` already says it). Only the name changes; signatures and behaviour are the same:
-  ```csharp
-  await store.GetAsync("cart");                       // was
-  await store.Get("cart");                            // now
-
-  await WasmHostBuilder.CreateDefault().RunAsync<App>();
-  await WasmHostBuilder.CreateDefault().Run<App>();   // the same word as RaskApp.Run<App>()
-
-  await auth.SignInAsync(principal, returnUrl);
-  await auth.SignIn(principal, returnUrl);
-
-  await using var db = await TestDatabase.StartAsync(o => o.UseSqlite("Data Source=:memory:"));
-  await using var db = await TestDatabase.Start(o => o.UseSqlite("Data Source=:memory:"));
-  ```
-  Renamed: every member of `IKeyValueStore`, `IIndexedDb`, `IWebAuthn`, `IWebRtc`, `IPeerConnection`,
-  `IRtcDataChannel`, `ISignaling`, `ISignalingConnection`, `IViewTransitions` and `IBackgroundSync`;
-  `IAuthSignIn.SignIn`/`SignOut`, `IUserProvider.EnsureLoaded`/`Refresh`, `ISessionRevalidator.Revalidate`,
-  `RouteAuthorizationGuard.Evaluate`; `IRaskCulture.Set`, `IRaskCulturePersistence.Save`;
-  `IRenderHandle.RequestRender`/`RequestPublishRender`, `QuiescentRender.Run`, `RaskPrerender.RenderDocument`;
-  `WasmHostBuilder.Run`; `LiveSessionStore.Broadcast`/`RerenderAll`; `TestDatabase.Start`/`Load`,
-  `BulkInsert`; `InImmediateTransaction`; `ISqliteSnapshotStore.Save`/`List`/`Prune`,
-  `ISqliteSnapshotter.Snapshot`; `ILitestreamExecutor.Run`, `ISqliteBackupVerifier.Verify`,
-  `LitestreamRestorer.Restore`; `FileDownload.WriteTo`. Kept, as ADO.NET twins: `ISqlite.CreateOpenAsync`
-  and `SqlitePragmas.ApplyAsync`. The scaffolded auth pages and the doc samples drop the suffix from
-  their own handlers too.
-
 ### Removed
 
 - **Docs: the "ASP.NET Identity" section of `docs/authentication-providers.md` is gone.** `Rask.Auth` has
@@ -79,6 +50,33 @@ them until tagged releases begin.
   `subscription.toJSON()` answers in any client — and still reads the flat `{ endpoint, p256dh, auth }`.
 
 ### Changed
+
+- **BREAKING: the last `Async` suffixes are gone from the public surface** (`docs/api-style.md` rule 4 —
+  `await` already says it). Only the name changes; signatures and behaviour are the same:
+  ```csharp
+  await store.GetAsync("cart");                       // was
+  await store.Get("cart");                            // now
+
+  await WasmHostBuilder.CreateDefault().RunAsync<App>();
+  await WasmHostBuilder.CreateDefault().Run<App>();   // the same word as RaskApp.Run<App>()
+
+  await auth.SignInAsync(principal, returnUrl);
+  await auth.SignIn(principal, returnUrl);
+
+  await using var db = await TestDatabase.StartAsync(o => o.UseSqlite("Data Source=:memory:"));
+  await using var db = await TestDatabase.Start(o => o.UseSqlite("Data Source=:memory:"));
+  ```
+  Renamed: every member of `IKeyValueStore`, `IIndexedDb`, `IWebAuthn`, `IWebRtc`, `IPeerConnection`,
+  `IRtcDataChannel`, `ISignaling`, `ISignalingConnection`, `IViewTransitions` and `IBackgroundSync`;
+  `IAuthSignIn.SignIn`/`SignOut`, `IUserProvider.EnsureLoaded`/`Refresh`, `ISessionRevalidator.Revalidate`,
+  `RouteAuthorizationGuard.Evaluate`; `IRaskCulture.Set`, `IRaskCulturePersistence.Save`;
+  `IRenderHandle.RequestRender`/`RequestPublishRender`, `QuiescentRender.Run`, `RaskPrerender.RenderDocument`;
+  `WasmHostBuilder.Run`; `LiveSessionStore.Broadcast`/`RerenderAll`; `TestDatabase.Start`/`Load`,
+  `BulkInsert`; `InImmediateTransaction`; `ISqliteSnapshotStore.Save`/`List`/`Prune`,
+  `ISqliteSnapshotter.Snapshot`; `ILitestreamExecutor.Run`, `ISqliteBackupVerifier.Verify`,
+  `LitestreamRestorer.Restore`; `FileDownload.WriteTo`. Kept, as ADO.NET twins: `ISqlite.CreateOpenAsync`
+  and `SqlitePragmas.ApplyAsync`. The scaffolded auth pages and the doc samples drop the suffix from
+  their own handlers too.
 
 - **BREAKING: `rask deploy` names the app with `--app`, the word `rask db` already used.** `--name`/`-n` are
   gone from `deploy` (an unknown option, exit `2`); `rask new --name` is the project name and is unchanged.
