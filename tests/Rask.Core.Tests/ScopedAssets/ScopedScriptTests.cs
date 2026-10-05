@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
@@ -182,6 +184,25 @@ public class ScopedScriptTests
         ComponentLifecycle.DisposeComponentTree(probe);
 
         Assert.Equal(1, reference.DisposeCount);
+    }
+
+    [Fact]
+    public void Every_way_a_callback_reaches_the_browser_keeps_the_method_it_calls_back_in_a_trimmed_app()
+    {
+        // The browser reaches Invoke by name (RaskScopedCallback), so only these attributes keep it through trimming.
+        // An app whose callbacks all came through Rask.Web's Handler (the data demo's Web Locks) lost it once.
+        var handOvers = typeof(ScopedScript)
+            .GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+            .Where(m => m.Name == nameof(ScopedScript.Callback) || m.ReturnType == typeof(ScopedScript.ScriptCallback))
+            .ToList();
+
+        var unkept = handOvers
+            .Where(m => !m.GetCustomAttributes<DynamicDependencyAttribute>().Any(
+                d => d.MemberSignature == nameof(ScopedScript.Invoke) && d.Type == typeof(ScopedScript)))
+            .Select(m => m.ToString());
+
+        Assert.True(handOvers.Count >= 6, $"Found only {handOvers.Count} hand-overs; the filter no longer sees them.");
+        Assert.Empty(unkept);
     }
 
     private static IServiceProvider Services(IJSRuntime js) =>
