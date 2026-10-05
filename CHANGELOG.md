@@ -1092,6 +1092,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A field inside a form's submit-state function keeps what you type while the page renders around it.**
+  `Form.Model(m)[f => [ … ]]` builds its fields during the render walk, and a component served from the
+  render cache used to build them afresh on every unrelated render of the page — new instances, new handler
+  ids. A keystroke the browser had already read off the old markup then landed on an id that no longer
+  existed and was dropped without a word, so the submit saved an empty model (the forms guide's submit-state
+  demo, intermittently). A component whose walk builds entries now renders for real each time, so those
+  fields keep their identity, their ids and their state.
 - **A trimmed WASM app whose only browser callbacks are Rask.Web's keeps them working.** Publishing such an app
   (the rask.sh data demo: its browser SQLite takes its tab lock through `Navigator.Locks.Request`) trimmed away
   the method the browser calls back into, so every callback failed: the tab took itself for a second one and a

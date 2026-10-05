@@ -17,6 +17,9 @@ public abstract partial class Component
         RotateChildMaps();
         Live.ChildPositions = 0;
 
+        // Re-armed by the walk that follows when it still builds entries — see LiveState.BuildsChildrenInWalk.
+        Live.BuildsChildrenInWalk = false;
+
         // Why this render ran is only worked out when a devtools probe is listening.
         var devTools = RaskDevToolsHook.Active;
         var devToolsStart = devTools is null
@@ -73,10 +76,14 @@ public abstract partial class Component
     // time (RenderChildren), never embedded in the cached result, so the cache stays valid. This is
     // what lets composite wrappers (a Bs* card around dynamic content) behave like the inline
     // elements they replace without opting out of caching by hand.
+    //
+    // A component whose walk builds entries (a form's children function in its subtree) cannot either: those
+    // entries keep their identity only through the positional reuse a real render sets up, so serving the
+    // cache would mint fresh ones every frame — see LiveState.BuildsChildrenInWalk.
     private bool CanServeCachedRender() =>
         Live.CachedRenderResult is not null && !Live.PropsDirty && !Live.StateDirty
         && !BypassRenderCache && !_readsAmbientState
-        && !BakesChildrenIntoRender;
+        && !BakesChildrenIntoRender && !Live.BuildsChildrenInWalk;
 
     // The devtools want to know WHY this render ran. RenderForLive asks while the flags that say so are still
     // intact — before it clears them for Render() — and only when a probe is listening.
@@ -202,6 +209,11 @@ public abstract partial class Component
             CommitEntryChildren();
         }
     }
+
+    // Read without allocating the live state: the walk asks it of every children function's enclosing component.
+    internal int ChildPositionsInternal => _live?.ChildPositions ?? 0;
+
+    internal void MarkBuildsChildrenInWalk() => Live.BuildsChildrenInWalk = true;
 
     /// <summary>
     ///     Completes any chain this component owns that was built AFTER its own render finished.
