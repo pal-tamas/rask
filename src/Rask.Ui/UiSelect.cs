@@ -551,19 +551,19 @@ public sealed partial class UiSelect<T> : UiFormField<T>
 
         switch (e.Key)
         {
-            case "ArrowDown":
+            case Keys.ArrowDown:
                 _cursor = UiSelectNav.Step(cursor, 1, count, disabled);
                 break;
-            case "ArrowUp":
+            case Keys.ArrowUp:
                 _cursor = UiSelectNav.Step(cursor, -1, count, disabled);
                 break;
-            case "Home":
+            case Keys.Home:
                 _cursor = UiSelectNav.FirstEnabled(count, disabled);
                 break;
-            case "End":
+            case Keys.End:
                 _cursor = UiSelectNav.LastEnabled(count, disabled);
                 break;
-            case "Enter":
+            case Keys.Enter:
                 if (cursor >= 0 && cursor < count && !disabled(cursor))
                 {
                     await CommitAsync(acc, ctx, flat[cursor].Value).ConfigureAwait(false);
@@ -586,8 +586,8 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     // desktop, and what lets a reader change the answer without ever seeing the list.
     private async Task MoveSelectionAsync(KeyboardEvent e, ListView view)
     {
-        var down = string.Equals(e.Key, "ArrowDown", StringComparison.Ordinal);
-        if (!down && !string.Equals(e.Key, "ArrowUp", StringComparison.Ordinal))
+        var down = string.Equals(e.Key, Keys.ArrowDown, StringComparison.Ordinal);
+        if (!down && !string.Equals(e.Key, Keys.ArrowUp, StringComparison.Ordinal))
         {
             return;
         }

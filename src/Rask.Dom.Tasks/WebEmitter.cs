@@ -35,7 +35,7 @@ internal static class WebEmitter
 
         // Core's element pass first: the value types it declares are Core's, and this names them rather than again.
         var types = new DomValueTypes(root, TypesNs);
-        DomEmitter.Emit(snapshotJson, new Partials(), types);
+        var core = DomEmitter.Emit(snapshotJson, new Partials(), types);
         types.MarkExternal();
 
         // The element-ref members only WebAssembly runs, from a pass of Core's own, which names Core's types as Core does.
@@ -69,7 +69,7 @@ internal static class WebEmitter
         files.Add(new KeyValuePair<string, string>("Globals.g.cs", Globals(model)));
         files.Add(new KeyValuePair<string, string>("WebElementRefMembers.g.cs", WebElementRefMembers(elements)));
         files.Add(new KeyValuePair<string, string>("WebValues.g.cs", types.Declarations("Rask.Web.Types", "RaskWebJsonContext", "global::Rask.Web.BytesJsonConverter")));
-        RefuseKeywordClashes(root, files);
+        RefuseKeywordClashes(core, files);
         return files;
     }
 
@@ -78,23 +78,25 @@ internal static class WebEmitter
         RegexOptions.Multiline | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
 
-    // Rask.Core and Rask.Web are both global usings in an app: a Rask.Web type named as an attribute's keywords are
-    // (`Loading`) would make every bare use of either ambiguous (CS0104). The keyword type keeps the name; this fails
-    // the build so the clash is settled here rather than in every app.
-    internal static void RefuseKeywordClashes(JsonNode root, List<KeyValuePair<string, string>> files)
+    // Rask.Core and Rask.Web are both global usings in an app: a Rask.Web root type named as an enum Core's DOM build step
+    // writes — an attribute's keywords (`Loading`), ARIA's (`AriaLive`), an IDL enum (`ReferrerPolicy`) — would make
+    // every bare use of either ambiguous (CS0104). Core's enum keeps the name; this fails the build so the clash is
+    // settled here rather than in every app.
+    internal static void RefuseKeywordClashes(IEnumerable<KeyValuePair<string, string>> core, IEnumerable<KeyValuePair<string, string>> web)
     {
-        var keywords = new HashSet<string>(DomKeywords.Read(root, new Partials(), new DomValueTypes(root)).Names, StringComparer.Ordinal);
-        var clashes = files
-            .Where(f => f.Value.Contains("\nnamespace Rask.Web;"))
-            .SelectMany(f => RootType.Matches(f.Value).Cast<Match>().Select(m => m.Groups["name"].Value))
-            .Where(keywords.Contains)
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
+        var enums = new HashSet<string>(RootTypes(core, "Rask.Core", CoreEnum), StringComparer.Ordinal);
+        var clashes = RootTypes(web, "Rask.Web", RootType).Where(enums.Contains).Distinct(StringComparer.Ordinal).ToList();
         if (clashes.Count > 0)
         {
-            throw new DomEmitException($"Rask.Web would declare {string.Join(", ", clashes)}, which Rask.Core declares for an attribute's keywords.");
+            throw new DomEmitException($"Rask.Web would declare {string.Join(", ", clashes)}, which Rask.Core declares as a DOM enum.");
         }
     }
+
+    private static readonly Regex CoreEnum = new(@"^public\s+enum\s+(?<name>\w+)", RegexOptions.Multiline | RegexOptions.ExplicitCapture, TimeSpan.FromSeconds(1));
+
+    private static IEnumerable<string> RootTypes(IEnumerable<KeyValuePair<string, string>> files, string ns, Regex declaration) =>
+        files.Where(f => f.Value.Contains("\nnamespace " + ns + ";"))
+            .SelectMany(f => declaration.Matches(f.Value).Cast<Match>().Select(m => m.Groups["name"].Value));
 
     // Every proxy's members, statics and constructors, bases first so a derived one never declares a name again.
     private static Model Build(JsonNode root, DomValueTypes types, WebPayloads payloads, HashSet<string> proxies)

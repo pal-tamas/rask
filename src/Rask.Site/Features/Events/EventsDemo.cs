@@ -14,6 +14,7 @@ public sealed partial class EventsDemo : Component
     private bool _contextMenu;
     private bool _focused;
     private string _lastKey = "—";
+    private string _lastCode = "—";
     private string _pasted = "—";
 
     private static string Fmt(double d) => d.ToString("0", CultureInfo.InvariantCulture);
@@ -42,7 +43,8 @@ public sealed partial class EventsDemo : Component
                 Div.Class("text-ui-muted mt-2")[
                     $"double-clicks: {_doubleClicks} · context-menu toggled: {_contextMenu}"]
             ],
-            // Focus / blur + keyboard on a focusable div.
+            // Focus / blur + keyboard on a focusable div. Keys.Escape clears it: Keys and Codes
+            // carry UI Events' key and code values as constants, so they are patterns and switch cases too.
             Div.Class("col-span-12 md:col-span-6")[
                 Div
                     .Class("border rounded p-4")
@@ -50,10 +52,10 @@ public sealed partial class EventsDemo : Component
                     .Style(_focused ? "outline:2px solid #0d6efd" : null)
                     .OnFocus(() => _focused = true)
                     .OnBlur(() => _focused = false)
-                    .OnKeyDown(e => _lastKey = e.Key)[
-                    Strong["Click to focus, then type"],
+                    .OnKeyDown(e => (_lastKey, _lastCode) = e.Key is Keys.Escape ? ("—", "—") : (e.Key, e.Code))[
+                    Strong["Click to focus, then type (Escape clears)"],
                     Div.Class("text-ui-muted mt-2")[
-                        $"{(_focused ? "focused" : "blurred")} · last key: {_lastKey}"]
+                        $"{(_focused ? "focused" : "blurred")} · last key: {_lastKey} · code: {_lastCode}"]
                 ]
             ],
             // Clipboard: paste into the box and read the text server-side.

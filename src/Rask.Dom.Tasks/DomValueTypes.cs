@@ -717,11 +717,11 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         sb.AppendLine();
     }
 
-    // Each value's number: the FNV-1a hash of its text, so a value keeps its number when MDN adds, drops or reorders the
-    // others around it. Two that hash alike fail the build rather than alias one another.
+    // Each value's number (Fnv1a), so a value keeps its number when MDN adds, drops or reorders the others around it.
+    // Two that hash alike fail the build rather than alias one another.
     internal static List<int> Hashes(string enumName, IReadOnlyList<string> values)
     {
-        var hashes = values.Select(Fnv1a).ToList();
+        var hashes = values.Select(Fnv1a.Hash).ToList();
         for (var i = 0; i < hashes.Count; i++)
         {
             var twin = hashes.IndexOf(hashes[i]);
@@ -732,21 +732,6 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         }
 
         return hashes;
-    }
-
-    // 32-bit FNV-1a over the value's UTF-16 code units, as a signed int: C#'s default enum base.
-    internal static int Fnv1a(string value)
-    {
-        unchecked
-        {
-            var hash = 2166136261u;
-            foreach (var c in value)
-            {
-                hash = (hash ^ c) * 16777619u;
-            }
-
-            return (int)hash;
-        }
     }
 
     // "smooth" → Smooth, "2d-array" → _2dArray (an identifier cannot start with a digit), "" → Empty.

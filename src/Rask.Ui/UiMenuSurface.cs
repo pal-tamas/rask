@@ -179,23 +179,23 @@ public abstract partial class UiMenuSurface : Component
 
         switch (e.Key)
         {
-            case "ArrowDown":
+            case Keys.ArrowDown:
                 _cursor = Step(entries, level, at, +1);
                 break;
-            case "ArrowUp":
+            case Keys.ArrowUp:
                 _cursor = Step(entries, level, at, -1);
                 break;
-            case "Home" or "PageUp":
+            case Keys.Home or Keys.PageUp:
                 _cursor = FirstEnabled(entries, level);
                 break;
-            case "End" or "PageDown":
+            case Keys.End or Keys.PageDown:
                 _cursor = LastEnabled(entries, level);
                 break;
-            case "ArrowRight" when at >= 0 && entries[at] is { IsSub: true, Disabled: false }:
+            case Keys.ArrowRight when at >= 0 && entries[at] is { IsSub: true, Disabled: false }:
                 _openSubs.Add(at);
                 _cursor = FirstEnabled(entries, at) is var first and >= 0 ? first : at;
                 break;
-            case "ArrowLeft" when level >= 0:
+            case Keys.ArrowLeft when level >= 0:
                 CloseSubsFrom(entries, level);
                 _cursor = level;
                 break;

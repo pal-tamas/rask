@@ -72,15 +72,19 @@ public partial class GlobalAttributeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Global_attributes_render_in_the_documented_order() =>
         // The invariant the whole element surface is asserted against: id, class, style, title, the plain
-        // globals, data-*, role, tabindex, aria-*, then the Attributes escape hatch, then tag-specifics.
+        // globals, data-*, role, tabindex, aria-* (typed, then the Aria bag less what a typed step wrote), then the
+        // Attributes escape hatch, then tag-specifics.
         // Written in a deliberately scrambled order to prove the ORDER comes from the renderer.
         Assert.Equal(
             "<a id=\"i\" class=\"c\" style=\"s\" title=\"t\" lang=\"en\" dir=\"ltr\" hidden inert "
             + "popover=\"auto\" contenteditable=\"true\" spellcheck=\"true\" translate=\"no\" "
-            + "data-k=\"v\" role=\"link\" tabindex=\"0\" aria-label=\"l\" itemprop=\"url\" href=\"/x\"></a>",
+            + "data-k=\"v\" role=\"link\" tabindex=\"0\" aria-expanded=\"false\" aria-label=\"l\" aria-describedby=\"d\" "
+            + "itemprop=\"url\" href=\"/x\"></a>",
             A.Href("/x")
                 .Attributes(new Dictionary<string, string?> { ["itemprop"] = "url" })
-                .Aria(new Dictionary<string, string?> { ["label"] = "l" })
+                .Aria(new Dictionary<string, string?> { ["label"] = "bag", ["describedby"] = "d" })
+                .AriaLabel("l")
+                .AriaExpanded(false)
                 .TabIndex(0)
                 .Role("link")
                 .Data(new Dictionary<string, string?> { ["k"] = "v" })

@@ -3,6 +3,7 @@
 How to make Rask components accessible — setting ARIA attributes, roles, and keyboard focus on any
 element, plus the analyzer that catches missing image alt text.
 
+- [Typed ARIA: `AriaLabel`, `AriaExpanded`, `AriaLive`…](#typed-aria-arialabel-ariaexpanded-arialive)
 - [The `Aria` dictionary](#the-aria-dictionary)
 - [`Role` and `TabIndex`](#role-and-tabindex)
 - [Language of parts (`Lang` and `Dir`)](#language-of-parts-lang-and-dir)
@@ -12,9 +13,42 @@ element, plus the analyzer that catches missing image alt text.
 
 ---
 
+## Typed ARIA: `AriaLabel`, `AriaExpanded`, `AriaLive`…
+
+Every `aria-*` state and property the [WAI-ARIA spec](https://w3c.github.io/aria/#state_prop_def) defines is a
+typed step on every element, generated at build time from the spec itself (pinned in
+`src/Rask.Core/Dom/mdn.snapshot.json`, refreshed with the MDN data). The name is the DOM's own IDL name —
+`ariaLabelledByElements` is written from markup as ids, so it is `AriaLabelledBy` — and the type is the
+spec's value type:
+
+| Spec value type | C# | Example |
+|---|---|---|
+| true/false, true/false/undefined | `bool?` | `.AriaExpanded(open)`, `.AriaHidden()` (no argument = `true`) |
+| tristate, token | a generated enum | `.AriaChecked(AriaChecked.Mixed)`, `.AriaLive(AriaLive.Polite)`, `.AriaCurrent(AriaCurrent.Page)` |
+| token list | a generated `[Flags]` enum | `.AriaRelevant(AriaRelevant.Additions \| AriaRelevant.Text)` |
+| integer, number | `int?`, `double?` (invariant) | `.AriaLevel(2)`, `.AriaValueNow(0.5)` |
+| ID reference(s), string | `string?` | `.AriaLabelledBy("title")`, `.AriaDescribedBy("hint err")`, `.AriaLabel("Close")` |
+
+```csharp
+Button.AriaExpanded(_open).AriaControls("menu").AriaHasPopup(AriaHasPopup.Menu)["Options"]
+// <button aria-controls="menu" aria-expanded="false" aria-haspopup="menu">Options</button>
+
+Div.Role(AriaRole.Status).AriaLive(AriaLive.Polite)[_statusMessage]
+// <div role="status" aria-live="polite">…</div>
+```
+
+`null` leaves an attribute out, so `.AriaExpanded(null)` is "undefined" in the spec's sense. `AriaRole` holds
+every concrete role as a constant (`AriaRole.Tablist`, `AriaRole.Menuitemcheckbox` — each name is the role's
+token, PascalCased); `Role` stays a `string`, so a role the constants do not list yet still works.
+
+The keyword enums have no per-keyword steps (`Div.Polite` would not say what is polite) — pass the value. A
+boolean or keyword is stored and written as the interned literal it renders as, so the typed steps allocate
+nothing per render; an element that names none of them pays nothing at all.
+
 ## The `Aria` dictionary
 
-Every element exposes an `Aria` parameter — a `string → string?` dictionary modelled exactly on the
+The dictionary stays for what the typed steps cannot say — an attribute newer than the snapshot, a value
+built at run time from a key. Every element exposes an `Aria` parameter — a `string → string?` dictionary modelled exactly on the
 [`Data` (data-*) bag](js-interop.md). Each entry renders as `aria-{key}="{value}"`: the key is used
 verbatim (so you write `"label"`, not `"aria-label"`) and the value is HTML-encoded. A `null` value
 emits a bare attribute.
@@ -28,15 +62,8 @@ Span.Class("icon").Aria(new() { ["hidden"] = "true" })["\U0001F5D1"]
 // The glyph carries no meaning a reader needs; the BUTTON around it carries the accessible name.
 ```
 
-Because it's a dictionary, the full [WAI-ARIA](https://www.w3.org/TR/wai-aria-1.2/) vocabulary is
-reachable without a typed property per attribute — `aria-live`, `aria-labelledby`, `aria-describedby`,
-`aria-current`, `aria-modal`, and the rest are all just keys.
-
-A common live-region pattern:
-
-```csharp
-Div.Role("status").Aria(new() { ["live"] = "polite" })[_statusMessage]
-```
+A typed step and a bag entry for the same attribute never both render: the typed value wins and the bag's
+entry is skipped, so a component can take a call site's bag and still set `.AriaExpanded(open)` itself.
 
 ## `Role` and `TabIndex`
 
@@ -44,7 +71,7 @@ Div.Role("status").Aria(new() { ["live"] = "polite" })[_statusMessage]
 element:
 
 ```csharp
-Div.Role("dialog").TabIndex(-1).Aria(new() { ["modal"] = "true", ["labelledby"] = "title" })[
+Div.Role(AriaRole.Dialog).TabIndex(-1).AriaModal(true).AriaLabelledBy("title")[
     H2.Id("title")["Edit product"],
     // ...
 ]
@@ -83,10 +110,11 @@ tag-specific attributes. The full documented order is:
 ```
 id, class, style, title,
 lang, dir, hidden, inert, popover, contenteditable, spellcheck, translate,
-data-*, role, tabindex, aria-*, Attributes, then tag-specific
+data-*, role, tabindex, aria-* (typed, then the Aria bag), Attributes, then tag-specific
 ```
 
-Tests assert this order; it is stable across releases.
+The typed `aria-*` attributes render in the spec's (alphabetical) order, then the bag's entries in its own
+order, less any a typed step already wrote. Tests assert this order; it is stable across releases.
 
 ## Images and alt text (RASK023)
 
@@ -133,8 +161,8 @@ the same bound field more than once on a page** (a repeated form, a list of rows
 explicit unique `Id` so every `for` and `aria-describedby` resolves to the right element.
 
 Building your own control from the core `Input`/`Validation.Message` primitives? Mirror the same
-attributes: `.Aria(new Dictionary<string, string?> { ["invalid"] = "true", ["describedby"] = errorId })`
-on the control, and give the message element that id. See [forms-validation.md](forms-validation.md).
+attributes: `.AriaInvalid(AriaInvalid.True).AriaDescribedBy(errorId)` on the control, and give the message
+element that id. See [forms-validation.md](forms-validation.md).
 
 ## Focus trapping (overlays)
 
@@ -226,6 +254,6 @@ host today; the WASM navigation path is a follow-up.)
 
 This is the framework primitive layer. Higher-level affordances — skip links, ARIA `tablist`/`tab`
 keyboard widgets (the roving cursor in `Ui.Select`'s drawn listbox), and automated axe-core scans in the sample
-E2E suite — are tracked as follow-up work. Today you build those from the `Aria`/`Role`/`TabIndex`
+E2E suite — are tracked as follow-up work. Today you build those from the typed `Aria*`/`Role`/`TabIndex`
 primitives above (plus the focus trap) and standard semantic HTML (`Nav`, `Main`, `Aside`, `Label(For:)`,
 `Th(Scope:)`, …).

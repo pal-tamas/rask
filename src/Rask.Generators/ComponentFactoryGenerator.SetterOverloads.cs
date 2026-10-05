@@ -210,9 +210,10 @@ public sealed partial class ComponentFactoryGenerator
             return ("", "");
         }
 
-        // Nor an HTML attribute's keywords (Rask.Core's [Keywords], on every enum the MDN emitter writes): `Img.Lazy`
-        // would say the image is lazy rather than how it loads, and `Div.Numeric` that the div is a number.
-        if (e.GetAttributes().Any(static a => string.Equals(a.AttributeClass?.ToDisplayString(), "Rask.Core.KeywordsAttribute", StringComparison.Ordinal)))
+        // Nor the keyword enums Rask.Core's DOM build step writes from the spec (AriaLive, Loading, ReferrerPolicy): an
+        // attribute's keywords, not a component's styles. As steps they would land on EVERY element — `Div.Polite`,
+        // `Img.Lazy` — so the step marks each one [GeneratedCode("Rask.Dom.…")] and it keeps its plain setter.
+        if (IsDomKeywordEnum(e))
         {
             return ("", "");
         }
@@ -231,6 +232,27 @@ public sealed partial class ComponentFactoryGenerator
             ? ("", "")
             : (e.ToDisplayString(FullyQualifiedNullable), string.Join(",", members));
     }
+
+    // Every enum the DOM build step writes carries the BCL's GeneratedCode with a "Rask.Dom." tool: "Rask.Dom.Aria" for
+    // ARIA's, "Rask.Dom.Keywords" for an attribute's keywords and MDN's IDL enums (src/Rask.Dom.Tasks/DomKeywords.cs).
+    private static bool IsDomKeywordEnum(INamedTypeSymbol e) =>
+        e.GetAttributes().Any(static a =>
+            string.Equals(a.AttributeClass?.ToDisplayString(), "System.CodeDom.Compiler.GeneratedCodeAttribute", StringComparison.Ordinal)
+            && a.ConstructorArguments.Length > 0
+            && a.ConstructorArguments[0].Value is string tool
+            && tool.StartsWith(DomBuildTool, StringComparison.Ordinal));
+
+    private const string DomBuildTool = "Rask.Dom.";
+
+    // What Rask.Core's DOM build step marks every typed-ARIA member it writes with — the Aria* properties on Element and
+    // the keyword enums they take (src/Rask.Dom.Tasks/AriaEmitter.cs). A BCL attribute, so nothing public is added for it.
+    private const string TypedAriaTool = "Rask.Dom.Aria";
+
+    private static bool IsTypedAriaMember(ISymbol symbol) =>
+        symbol.GetAttributes().Any(static a =>
+            string.Equals(a.AttributeClass?.ToDisplayString(), "System.CodeDom.Compiler.GeneratedCodeAttribute", StringComparison.Ordinal)
+            && a.ConstructorArguments.Length > 0
+            && string.Equals(a.ConstructorArguments[0].Value as string, TypedAriaTool, StringComparison.Ordinal));
 
     /// <summary>
     ///     The enum steps a component may offer, with every name that could collide already taken out:
@@ -973,5 +995,6 @@ public sealed partial class ComponentFactoryGenerator
         bool IsElementOwned,
         bool IsRequired,
         bool HasDerivedSetter,
-        string Summary = "");
+        string Summary = "",
+        bool IsTypedAria = false);
 }

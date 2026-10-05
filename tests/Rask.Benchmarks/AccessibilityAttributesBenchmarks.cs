@@ -8,12 +8,17 @@ namespace Rask.Benchmarks;
 // interface boxed an enumerator per Aria-bearing element, and TabIndex.ToString() allocated a
 // string per element, on every render. The Dictionary struct-enumerator fast path and the
 // integer AppendAttr overload remove both.
+//
+// The Typed* trees say the same thing with the typed Aria* steps (AriaLabel, AriaSelected, AriaHidden): a boolean is
+// stored as the literal it renders as, so beside the bag trees they show what the typed store costs per element.
 [MemoryDiagnoser]
 public partial class AccessibilityAttributesBenchmarks : global::Rask.Core.RaskMarkup
 {
     private Component _large = null!;
     private Component _medium = null!;
     private Component _small = null!;
+    private Component _typedLarge = null!;
+    private Component _typedSmall = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -21,6 +26,8 @@ public partial class AccessibilityAttributesBenchmarks : global::Rask.Core.RaskM
         _small = BuildTree(10);
         _medium = BuildTree(100);
         _large = BuildTree(1000);
+        _typedSmall = BuildTypedTree(10);
+        _typedLarge = BuildTypedTree(1000);
     }
 
     [Benchmark]
@@ -31,6 +38,12 @@ public partial class AccessibilityAttributesBenchmarks : global::Rask.Core.RaskM
 
     [Benchmark]
     public string RenderLarge() => _large.ToHtml();
+
+    [Benchmark]
+    public string RenderTypedSmall() => _typedSmall.ToHtml();
+
+    [Benchmark]
+    public string RenderTypedLarge() => _typedLarge.ToHtml();
 
     private static Component BuildTree(int rowCount)
     {
@@ -48,5 +61,18 @@ public partial class AccessibilityAttributesBenchmarks : global::Rask.Core.RaskM
         }
 
         return Div.Class("wrap").Role("grid").TabIndex(0)[rows];
+    }
+
+    private static Component BuildTypedTree(int rowCount)
+    {
+        var rows = new List<Component>(rowCount);
+        for (var i = 0; i < rowCount; i++)
+        {
+            rows.Add(Div.Class("line").Role(AriaRole.Row).TabIndex(i).AriaLabel($"row {i}").AriaSelected(false).Key($"k{i}")[
+                Span.Role(AriaRole.Gridcell).AriaHidden(false)[$"Item {i}"]
+            ]);
+        }
+
+        return Div.Class("wrap").Role(AriaRole.Grid).TabIndex(0)[rows];
     }
 }

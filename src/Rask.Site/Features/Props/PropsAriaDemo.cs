@@ -2,11 +2,11 @@ namespace Rask.Site.Features;
 
 public sealed partial class PropsAriaDemo : Component
 {
-    // Role and TabIndex are typed; Aria is a dictionary that expands to aria-* exactly like Data
-    // expands to data-* — so the whole ARIA vocabulary is reachable without a property per attribute.
+    // Every aria-* attribute of the WAI-ARIA spec is a typed step, generated from the spec: a bool for true/false,
+    // an enum for a keyword. AriaRole holds the roles; the Aria bag stays for anything the steps do not name.
     protected override Component? Render() =>
         Ui.Button.Primary.Outline
-            .Role("switch")
-            .TabIndex(0)
-            .Aria(("label", "Toggle dark mode"), ("pressed", "false"))[Ui.Icon.Name(Ui.IconName.Moon), "Theme"];
+            .Role(AriaRole.Switch)
+            .AriaChecked(AriaChecked.False)
+            .AriaLabel("Toggle dark mode")[Ui.Icon.Name(Ui.IconName.Moon), "Theme"];
 }

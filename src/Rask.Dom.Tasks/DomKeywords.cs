@@ -19,7 +19,7 @@ internal sealed class DomKeywords
 {
     // On every enum whose members are values an attribute takes: the chain generator offers no step per member, since
     // `Img.Lazy` would read as the image being lazy rather than as its loading.
-    public const string Marker = "[global::Rask.Core.KeywordsAttribute]";
+    public const string Marker = "[global::System.CodeDom.Compiler.GeneratedCode(\"Rask.Dom.Keywords\", \"1.0\")]";
 
     // A keyword that names a member as it is: lower-case words joined by hyphens.
     private static readonly Regex Word = new("^[a-z]+(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, TimeSpan.FromSeconds(1));

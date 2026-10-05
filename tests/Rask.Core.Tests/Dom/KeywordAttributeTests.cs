@@ -99,7 +99,7 @@ public partial class KeywordAttributeTests : RaskMarkup
         var wrong = overloads
             .SelectMany(of => Enum.GetValues(of.GetParameters()[0].ParameterType).Cast<object>()
                 .Select(v => (Value: v, Text: (string)of.Invoke(null, [v])!)))
-            .Where(x => Convert.ToInt32(x.Value, System.Globalization.CultureInfo.InvariantCulture) != DomValueTypes.Fnv1a(x.Text))
+            .Where(x => Convert.ToInt32(x.Value, System.Globalization.CultureInfo.InvariantCulture) != Fnv1a.Hash(x.Text))
             .Select(x => $"{x.Value.GetType().Name}.{x.Value}")
             .ToList();
 
@@ -143,14 +143,18 @@ public partial class KeywordAttributeTests : RaskMarkup
         Assert.Contains("Week", failure.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Rask_Web_may_not_declare_a_root_type_named_as_a_keyword_type()
+    [Theory]
+    [InlineData("Loading")] // an attribute's keywords
+    [InlineData("AriaLive")] // ARIA's
+    [InlineData("ReferrerPolicy")] // an IDL enum
+    public void Rask_Web_may_not_declare_a_root_type_named_as_a_Core_DOM_enum(string name)
     {
-        var files = new List<KeyValuePair<string, string>> { new("Globals.g.cs", "// x\nnamespace Rask.Web;\n\npublic sealed partial class Loading\n{\n}\n") };
+        var core = DomEmitter.Emit(Snapshot(), new Partials());
+        var web = new List<KeyValuePair<string, string>> { new("Globals.g.cs", $"// x\nnamespace Rask.Web;\n\npublic sealed partial class {name}\n{{\n}}\n") };
 
-        var failure = Assert.Throws<DomEmitException>(() => WebEmitter.RefuseKeywordClashes(DomEmitter.Parse(Snapshot()), files));
+        var failure = Assert.Throws<DomEmitException>(() => WebEmitter.RefuseKeywordClashes(core, web));
 
-        Assert.Contains("Loading", failure.Message, StringComparison.Ordinal);
+        Assert.Contains(name, failure.Message, StringComparison.Ordinal);
     }
 
     [Fact]

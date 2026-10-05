@@ -63,10 +63,10 @@ public sealed partial class UiTabs : Component
         var at = scope.Selected is { } current ? IndexOf(names, current) : -1;
         var next = e.Key switch
         {
-            "ArrowRight" or "ArrowDown" => at < 0 ? 0 : (at + 1) % names.Count,
-            "ArrowLeft" or "ArrowUp" => at < 0 ? names.Count - 1 : (at - 1 + names.Count) % names.Count,
-            "Home" => 0,
-            "End" => names.Count - 1,
+            Keys.ArrowRight or Keys.ArrowDown => at < 0 ? 0 : (at + 1) % names.Count,
+            Keys.ArrowLeft or Keys.ArrowUp => at < 0 ? names.Count - 1 : (at - 1 + names.Count) % names.Count,
+            Keys.Home => 0,
+            Keys.End => names.Count - 1,
             _ => -1,
         };
 

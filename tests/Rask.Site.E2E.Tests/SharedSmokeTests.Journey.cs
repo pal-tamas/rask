@@ -546,7 +546,10 @@ public abstract partial class SharedSmokeTests
         await eSurface.Locator("div[tabindex='0']").ClickAsync();
         await Expect(eSurface).ToContainTextAsync("focused", contains);
         await Page.Keyboard.PressAsync("q");
-        await Expect(eSurface).ToContainTextAsync("last key: q", contains);
+        await Expect(eSurface).ToContainTextAsync("last key: q · code: KeyQ", contains);
+        // Keys.Escape (a generated UI Events constant) is what the handler matches to clear the readout.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(eSurface).ToContainTextAsync("last key: — · code: —", contains);
 
         // A paste's text crosses as MDN's ClipboardEvent.clipboardData — read by format with GetData, the
         // way JavaScript reads it — so the paste box proves the snapshotted DataTransfer, not a bare string.
@@ -1100,14 +1103,14 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".guide-demo .sample-result-body blockquote").First)
             .ToContainTextAsync("A small DSL", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Universal props: data-* expansion (incl. a bare null attribute) + ARIA / role / tabindex.
+        // Universal props: data-* expansion (incl. a bare null attribute) + typed ARIA / role. A switch states
+        // aria-checked (the spec's required state for the role), and a button is focusable without a tabindex.
         var dataDiv = Page.Locator(".guide-demo .sample-result-body div[data-role='card']").First;
         await Expect(dataDiv).ToHaveAttributeAsync("data-index", "7");
         await Expect(dataDiv).ToHaveAttributeAsync("data-new", ""); // bare null attribute
         var ariaBtn = Page.Locator(".guide-demo .sample-result-body button[role='switch']").First;
         await Expect(ariaBtn).ToHaveAttributeAsync("aria-label", "Toggle dark mode");
-        await Expect(ariaBtn).ToHaveAttributeAsync("aria-pressed", "false");
-        await Expect(ariaBtn).ToHaveAttributeAsync("tabindex", "0");
+        await Expect(ariaBtn).ToHaveAttributeAsync("aria-checked", "false");
 
         // HTML element catalog: spot-check distinctive elements from a few category demos.
         await Expect(Page.Locator(".guide-demo .sample-result-body ruby").First).ToBeVisibleAsync(

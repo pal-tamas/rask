@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Dom;
 /// </summary>
 public class MdnSnapshotTests
 {
-    private static readonly JsonElement Snapshot = Load();
+    private static readonly JsonElement Snapshot = MdnSnapshot.Root;
 
     [Fact]
     public void Every_tag_Rask_renders_is_an_element_MDN_ships()
@@ -80,13 +80,29 @@ public class MdnSnapshotTests
         }
     }
 
-    private static JsonElement Load()
+    [Fact]
+    public void The_ARIA_spec_is_read_at_a_pinned_commit_with_a_pinned_parser()
     {
-        for (var dir = AppContext.BaseDirectory; dir is not null; dir = Path.GetDirectoryName(dir))
-        {
-            if (File.Exists(Path.Combine(dir, "Rask.slnx")))
-                return JsonDocument.Parse(File.ReadAllText(Path.Combine(dir, "src", "Rask.Core", "Dom", "mdn.snapshot.json"))).RootElement;
-        }
-        throw new InvalidOperationException("Rask.slnx not found above the test output.");
+        var sources = Snapshot.GetProperty("sources");
+
+        var aria = sources.GetProperty("w3c/aria").GetString();
+        var parser = sources.GetProperty("parse5").GetString();
+
+        Assert.Matches("^[0-9a-f]{40}$", aria);
+        Assert.Matches(@"^\d+\.\d+\.\d+$", parser);
+    }
+
+    [Fact]
+    public void Every_ARIA_attribute_the_spec_has_not_deprecated_is_a_typed_property_on_Element()
+    {
+        var typed = typeof(Element).GetProperties()
+            .Select(p => p.GetCustomAttributes(typeof(System.CodeDom.Compiler.GeneratedCodeAttribute), false).Length > 0 ? p.Name : null)
+            .OfType<string>()
+            .ToList();
+
+        var expected = Snapshot.GetProperty("aria").GetProperty("attributes").EnumerateArray()
+            .Count(a => !a.TryGetProperty("deprecated", out var d) || !d.GetBoolean());
+
+        Assert.Equal(expected, typed.Count(name => name.StartsWith("Aria", StringComparison.Ordinal)));
     }
 }

@@ -923,6 +923,36 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Keys` and `Codes`: every `KeyboardEvent.key` and `KeyboardEvent.code` value UI Events defines, as a
+  constant.** Generated in `Rask.Core` with the elements, from the spec's own tables (`w3c/uievents-key`,
+  `w3c/uievents-code`, pinned by commit in the MDN snapshot and checked against each value's anchor in the
+  published spec), each with its table and spec link. A typo is a compile error, and a constant is a pattern
+  and a switch case too. `Rask.Ui`'s keyboard handling (tabs, tree, select, multi-select, menus, command
+  palette) uses them.
+  ```csharp
+  .OnKeyDown(e => { if (e.Key == "Escape") Close(); })     // before
+  .OnKeyDown(e => { if (e.Key is Keys.Escape) Close(); })  // now
+  switch (e.Key) { case Keys.Home or Keys.PageUp: … }
+  if (e.Code is Codes.KeyQ) …                              // the physical key, whatever the layout types
+  ```
+- **Typed ARIA on every element, generated from the WAI-ARIA spec.** Each of the spec's ~50 `aria-*` states and
+  properties is a typed step named after its DOM IDL attribute, typed by the spec's value type — `bool?` for
+  true/false, a generated enum for tristate and token values, a `[Flags]` enum for a token list, `int?`/`double?`
+  (written invariant) for numbers, `string?` for id references and text — and `AriaRole` holds every concrete role
+  as a constant. The `Aria` bag stays for anything else, and skips a key a typed step already wrote:
+  ```csharp
+  Button.Aria(("expanded", open ? "true" : "false"), ("controls", "menu"))["Options"]   // before
+  Button.AriaExpanded(open).AriaControls("menu").AriaHasPopup(AriaHasPopup.Menu)["Options"]   // now
+  Div.Role(AriaRole.Status).AriaLive(AriaLive.Polite)[message]
+  ```
+  The data is the spec's own source (`w3c/aria`), read with `parse5` at commits pinned in the snapshot's `sources`
+  and refreshed with the MDN data (`RASK_MDN_ARIA`, `RASK_MDN_PARSE5`). Attribute order inside `aria-*` is now
+  typed first (alphabetical), then the bag. The values live on a sparse side object off the existing global-attribute
+  one — a boolean or keyword is stored as the interned literal it renders as, so the steps allocate nothing per render
+  and an element that names none pays nothing; the ~50 properties share ONE builder pending bit (the store keeps its
+  own written-this-render record), so the shared surface stays inside its 32-bit budget. The keyword enums' values
+  are the FNV-1a hash of each keyword and they give no per-keyword chain steps (`Div.Polite` would say nothing).
+
 - **[RASK098](docs/diagnostics.md#rask098): the build says when a web API is missing from a browser you
   support.** Opt in with `<RaskBrowserTargets>safari >= 16; firefox >= 115</RaskBrowserTargets>` and a
   call to a `Rask.Web` member, or an element ref's MDN member, that MDN's compat data says one of those browsers
@@ -1087,6 +1117,11 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A trimmed WASM app whose only browser callbacks are Rask.Web's keeps them working.** Publishing such an app
+  (the rask.sh data demo: its browser SQLite takes its tab lock through `Navigator.Locks.Request`) trimmed away
+  the method the browser calls back into, so every callback failed: the tab took itself for a second one and a
+  note added on the page never showed up. The callback channel now keeps that method on every way in, not only on a scoped
+  script's.
 - **`rask db` works from a wasm-hosted solution's root.** It stopped with "Run this inside a project, or pass
   --project" where `rask dev` already ran the Server project. It now targets that `.Server` project too:
 

@@ -2,7 +2,7 @@ namespace Rask.Core.Tests;
 
 // The chain, end to end, in one tree: attributes, children, a keyed list and a component that is not a
 // plain tag. What it pins is the SERIALIZED result, attribute order included — that order is a
-// documented invariant (id, class, style, title, the plain globals, data-*, role, tabindex, aria-*,
+// documented invariant (id, class, style, title, the plain globals, data-*, role, tabindex, aria-* typed then bag,
 // Attributes, then tag-specific) and a chain must not be the thing that reorders it.
 //
 // Note the probe is a component: the entry properties are `protected static` members of Component, so
