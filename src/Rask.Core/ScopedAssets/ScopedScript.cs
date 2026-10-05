@@ -141,16 +141,21 @@ public static class ScopedScript
     // owner's order and re-renders it, released when the owner unmounts or, earlier, when the caller lets it go.
     // An awaited one answers the browser when it has finished, and runs at once rather than in order: the browser only
     // calls it while the C# that asked for it awaits the browser, so queueing it behind that would wait forever.
+    // Each way in keeps Invoke, which the browser calls by name: a trimmed app whose callbacks all come from Rask.Web
+    // (no scoped script of its own) would otherwise publish without it, and every callback would fail.
+    [DynamicDependency(nameof(Invoke), typeof(ScopedScript))]
     internal static ScriptCallback Handler(Component owner, Func<JsonElement, Task> invoke, bool awaited = false) =>
         Register(owner, (args, _) => invoke(args), awaited);
 
     // One no component owns, for a call that runs it before it settles (a hosted service's lock request): it runs at
     // once, re-renders nothing, and the caller releases it when the call settles.
+    [DynamicDependency(nameof(Invoke), typeof(ScopedScript))]
     internal static ScriptCallback Handler(IJSRuntime runtime, Func<JsonElement, Task> invoke) =>
         new(Callbacks.Register(runtime, (args, _) => invoke(args)));
 
     internal static void Release(ScriptCallback callback) => Callbacks.Unregister(callback.Id);
 
+    [DynamicDependency(nameof(Invoke), typeof(ScopedScript))]
     private static ScriptCallback Register(Component owner, Func<JsonElement, JsonSerializerOptions, Task> invoke, bool awaited = false)
     {
         if (owner.IsTornDown)

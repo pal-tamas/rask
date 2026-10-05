@@ -1062,6 +1062,11 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A trimmed WASM app whose only browser callbacks are Rask.Web's keeps them working.** Publishing such an app
+  (the rask.sh data demo: its browser SQLite takes its tab lock through `Navigator.Locks.Request`) trimmed away
+  the method the browser calls back into, so every callback failed: the tab took itself for a second one and a
+  note added on the page never showed up. The callback channel now keeps that method on every way in, not only on a scoped
+  script's.
 - **`rask db` works from a wasm-hosted solution's root.** It stopped with "Run this inside a project, or pass
   --project" where `rask dev` already ran the Server project. It now targets that `.Server` project too:
 
