@@ -168,16 +168,11 @@ Rask.Core.Browser.IKeyValueStore.GetBytesAsync(string! key) -> System.Threading.
 Rask.Core.Browser.IKeyValueStore.KeysAsync() -> System.Threading.Tasks.ValueTask<string![]!>
 Rask.Core.Browser.IKeyValueStore.SetAsync(string! key, string! value) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IKeyValueStore.SetBytesAsync(string! key, byte[]! value) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IMediaStreams
-Rask.Core.Browser.IMediaStreams.AttachAsync(Rask.Core.Browser.MediaStreamId stream, Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IMediaStreams.StopAsync(Rask.Core.Browser.MediaStreamId stream) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IPeerConnection
 Rask.Core.Browser.IPeerConnection.AddIceCandidateAsync(Rask.Core.Browser.RtcIceCandidate! candidate) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IPeerConnection.AddStreamAsync(Rask.Core.Browser.MediaStreamId stream) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IPeerConnection.CreateAnswerAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.RtcDescription!>
 Rask.Core.Browser.IPeerConnection.CreateDataChannelAsync(string! label, Rask.Core.Browser.RtcDataChannelOptions? options = null) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IRtcDataChannel!>
 Rask.Core.Browser.IPeerConnection.CreateOfferAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.RtcDescription!>
-Rask.Core.Browser.IPeerConnection.RemoveStreamAsync(Rask.Core.Browser.MediaStreamId stream) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IPeerConnection.SetLocalDescriptionAsync(Rask.Core.Browser.RtcDescription! description) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IPeerConnection.SetRemoteDescriptionAsync(Rask.Core.Browser.RtcDescription! description) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IRtcDataChannel
@@ -190,17 +185,10 @@ Rask.Core.Browser.ISignaling.IsSupportedAsync() -> System.Threading.Tasks.ValueT
 Rask.Core.Browser.ISignaling.JoinAsync(string! room, Rask.Core.Browser.SignalingHandlers! handlers, string! path = "/rask/signaling") -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.ISignalingConnection!>
 Rask.Core.Browser.ISignalingConnection
 Rask.Core.Browser.ISignalingConnection.SendAsync(string! toPeerId, string! payload) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.ISpeechRecognition
-Rask.Core.Browser.ISpeechRecognition.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.ISpeechRecognition.StartAsync(System.Func<Rask.Core.Browser.RecognitionResult!, System.Threading.Tasks.Task!>! onResult, Rask.Core.Browser.SpeechRecognitionOptions? options = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Core.Browser.IViewTransitions
 Rask.Core.Browser.IViewTransitions.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IViewTransitions.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IViewTransitions.SetEnabledAsync(bool enabled) -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IWakeLock
-Rask.Core.Browser.IWakeLock.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IWakeLock.RequestAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IWakeLockSentinel!>
-Rask.Core.Browser.IWakeLockSentinel
 Rask.Core.Browser.IWebAuthn
 Rask.Core.Browser.IWebAuthn.CreateAsync(Rask.Core.Browser.PublicKeyCredentialCreationOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AttestationResult?>
 Rask.Core.Browser.IWebAuthn.GetAsync(Rask.Core.Browser.PublicKeyCredentialRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AssertionResult?>
@@ -265,17 +253,6 @@ Rask.Core.Browser.ManifestShortcut.ShortName.get -> string?
 Rask.Core.Browser.ManifestShortcut.ShortName.init -> void
 Rask.Core.Browser.ManifestShortcut.Url.get -> string!
 Rask.Core.Browser.ManifestShortcut.Url.init -> void
-Rask.Core.Browser.MediaStreamId
-Rask.Core.Browser.MediaStreamId.Deconstruct(out int Value) -> void
-Rask.Core.Browser.MediaStreamId.Equals(Rask.Core.Browser.MediaStreamId other) -> bool
-Rask.Core.Browser.MediaStreamId.MediaStreamId() -> void
-Rask.Core.Browser.MediaStreamId.MediaStreamId(int Value) -> void
-Rask.Core.Browser.MediaStreamId.Value.get -> int
-Rask.Core.Browser.MediaStreamId.Value.init -> void
-Rask.Core.Browser.MediaStreams
-Rask.Core.Browser.MediaStreams.AttachAsync(Rask.Core.Browser.MediaStreamId stream, Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.MediaStreams.MediaStreams(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.MediaStreams.StopAsync(Rask.Core.Browser.MediaStreamId stream) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.PubKeyCredParam
 Rask.Core.Browser.PubKeyCredParam.<Clone>$() -> Rask.Core.Browser.PubKeyCredParam!
 Rask.Core.Browser.PubKeyCredParam.Alg.get -> int
@@ -331,17 +308,6 @@ Rask.Core.Browser.PublicKeyCredentialUser.Name.get -> string!
 Rask.Core.Browser.PublicKeyCredentialUser.Name.init -> void
 Rask.Core.Browser.PublicKeyCredentialUser.PublicKeyCredentialUser(string! Id, string! Name, string! DisplayName) -> void
 Rask.Core.Browser.RaskBrowserApis
-Rask.Core.Browser.RecognitionResult
-Rask.Core.Browser.RecognitionResult.<Clone>$() -> Rask.Core.Browser.RecognitionResult!
-Rask.Core.Browser.RecognitionResult.Confidence.get -> double
-Rask.Core.Browser.RecognitionResult.Confidence.init -> void
-Rask.Core.Browser.RecognitionResult.Deconstruct(out string! Transcript, out bool IsFinal, out double Confidence) -> void
-Rask.Core.Browser.RecognitionResult.Equals(Rask.Core.Browser.RecognitionResult? other) -> bool
-Rask.Core.Browser.RecognitionResult.IsFinal.get -> bool
-Rask.Core.Browser.RecognitionResult.IsFinal.init -> void
-Rask.Core.Browser.RecognitionResult.RecognitionResult(string! Transcript, bool IsFinal, double Confidence) -> void
-Rask.Core.Browser.RecognitionResult.Transcript.get -> string!
-Rask.Core.Browser.RecognitionResult.Transcript.init -> void
 Rask.Core.Browser.RelyingParty
 Rask.Core.Browser.RelyingParty.<Clone>$() -> Rask.Core.Browser.RelyingParty!
 Rask.Core.Browser.RelyingParty.Deconstruct(out string! Name, out string? Id) -> void
@@ -394,7 +360,6 @@ Rask.Core.Browser.RtcHandlers.OnDataChannel.get -> System.Func<Rask.Core.Browser
 Rask.Core.Browser.RtcHandlers.OnDataChannel.init -> void
 Rask.Core.Browser.RtcHandlers.OnIceCandidates.get -> System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Browser.RtcIceCandidate!>!, System.Threading.Tasks.Task!>?
 Rask.Core.Browser.RtcHandlers.OnIceCandidates.init -> void
-Rask.Core.Browser.RtcHandlers.OnTrack.get -> System.Func<Rask.Core.Browser.MediaStreamId, System.Threading.Tasks.Task!>?
 Rask.Core.Browser.RtcHandlers.OnTrack.init -> void
 Rask.Core.Browser.RtcHandlers.RtcHandlers() -> void
 Rask.Core.Browser.RtcIceCandidate
@@ -501,30 +466,11 @@ Rask.Core.Browser.SignalingSignal.To.get -> string!
 Rask.Core.Browser.SignalingSignal.To.init -> void
 Rask.Core.Browser.SignalingSignal.Type.get -> string!
 Rask.Core.Browser.SignalingSignal.Type.init -> void
-Rask.Core.Browser.SpeechRecognition
-Rask.Core.Browser.SpeechRecognition.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.SpeechRecognition.SpeechRecognition(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.SpeechRecognition.StartAsync(System.Func<Rask.Core.Browser.RecognitionResult!, System.Threading.Tasks.Task!>! onResult, Rask.Core.Browser.SpeechRecognitionOptions? options = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Core.Browser.SpeechRecognitionInterop
-Rask.Core.Browser.SpeechRecognitionOptions
-Rask.Core.Browser.SpeechRecognitionOptions.<Clone>$() -> Rask.Core.Browser.SpeechRecognitionOptions!
-Rask.Core.Browser.SpeechRecognitionOptions.Continuous.get -> bool
-Rask.Core.Browser.SpeechRecognitionOptions.Continuous.init -> void
-Rask.Core.Browser.SpeechRecognitionOptions.Equals(Rask.Core.Browser.SpeechRecognitionOptions? other) -> bool
-Rask.Core.Browser.SpeechRecognitionOptions.InterimResults.get -> bool
-Rask.Core.Browser.SpeechRecognitionOptions.InterimResults.init -> void
-Rask.Core.Browser.SpeechRecognitionOptions.Lang.get -> string?
-Rask.Core.Browser.SpeechRecognitionOptions.Lang.init -> void
-Rask.Core.Browser.SpeechRecognitionOptions.SpeechRecognitionOptions() -> void
 Rask.Core.Browser.ViewTransitions
 Rask.Core.Browser.ViewTransitions.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.ViewTransitions.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.ViewTransitions.SetEnabledAsync(bool enabled) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.ViewTransitions.ViewTransitions(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.WakeLock
-Rask.Core.Browser.WakeLock.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.WakeLock.RequestAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IWakeLockSentinel!>
-Rask.Core.Browser.WakeLock.WakeLock(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.WebAppManifest
 Rask.Core.Browser.WebAppManifest.<Clone>$() -> Rask.Core.Browser.WebAppManifest!
 Rask.Core.Browser.WebAppManifest.BackgroundColor.get -> string?
@@ -690,7 +636,6 @@ Rask.Core.Components.MediaCaptureTrigger.For.set -> void
 Rask.Core.Components.MediaCaptureTrigger.MediaCaptureTrigger() -> void
 Rask.Core.Components.MediaCaptureTrigger.OnResult.get -> Rask.Core.Callback<string?>
 Rask.Core.Components.MediaCaptureTrigger.OnResult.set -> void
-Rask.Core.Components.MediaCaptureTrigger.OnStream.get -> Rask.Core.Callback<Rask.Core.Browser.MediaStreamId>
 Rask.Core.Components.MediaCaptureTrigger.OnStream.set -> void
 Rask.Core.Components.MediaCaptureTrigger.Template.get -> System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>!
 Rask.Core.Components.MediaCaptureTrigger.Template.set -> void
@@ -1704,7 +1649,6 @@ override Rask.Core.Browser.ManifestScreenshot.ToString() -> string!
 override Rask.Core.Browser.ManifestShortcut.Equals(object? obj) -> bool
 override Rask.Core.Browser.ManifestShortcut.GetHashCode() -> int
 override Rask.Core.Browser.ManifestShortcut.ToString() -> string!
-override Rask.Core.Browser.MediaStreamId.GetHashCode() -> int
 override Rask.Core.Browser.PubKeyCredParam.Equals(object? obj) -> bool
 override Rask.Core.Browser.PubKeyCredParam.GetHashCode() -> int
 override Rask.Core.Browser.PubKeyCredParam.ToString() -> string!
@@ -1717,9 +1661,6 @@ override Rask.Core.Browser.PublicKeyCredentialRequestOptions.ToString() -> strin
 override Rask.Core.Browser.PublicKeyCredentialUser.Equals(object? obj) -> bool
 override Rask.Core.Browser.PublicKeyCredentialUser.GetHashCode() -> int
 override Rask.Core.Browser.PublicKeyCredentialUser.ToString() -> string!
-override Rask.Core.Browser.RecognitionResult.Equals(object? obj) -> bool
-override Rask.Core.Browser.RecognitionResult.GetHashCode() -> int
-override Rask.Core.Browser.RecognitionResult.ToString() -> string!
 override Rask.Core.Browser.RelyingParty.Equals(object? obj) -> bool
 override Rask.Core.Browser.RelyingParty.GetHashCode() -> int
 override Rask.Core.Browser.RelyingParty.ToString() -> string!
@@ -1762,9 +1703,6 @@ override Rask.Core.Browser.SignalingJoin.ToString() -> string!
 override Rask.Core.Browser.SignalingSignal.Equals(object? obj) -> bool
 override Rask.Core.Browser.SignalingSignal.GetHashCode() -> int
 override Rask.Core.Browser.SignalingSignal.ToString() -> string!
-override Rask.Core.Browser.SpeechRecognitionOptions.Equals(object? obj) -> bool
-override Rask.Core.Browser.SpeechRecognitionOptions.GetHashCode() -> int
-override Rask.Core.Browser.SpeechRecognitionOptions.ToString() -> string!
 override Rask.Core.Browser.WebAppManifest.Equals(object? obj) -> bool
 override Rask.Core.Browser.WebAppManifest.GetHashCode() -> int
 override Rask.Core.Browser.WebAppManifest.ToString() -> string!
@@ -1847,8 +1785,6 @@ static Rask.Core.Browser.ManifestScreenshot.operator !=(Rask.Core.Browser.Manife
 static Rask.Core.Browser.ManifestScreenshot.operator ==(Rask.Core.Browser.ManifestScreenshot? left, Rask.Core.Browser.ManifestScreenshot? right) -> bool
 static Rask.Core.Browser.ManifestShortcut.operator !=(Rask.Core.Browser.ManifestShortcut? left, Rask.Core.Browser.ManifestShortcut? right) -> bool
 static Rask.Core.Browser.ManifestShortcut.operator ==(Rask.Core.Browser.ManifestShortcut? left, Rask.Core.Browser.ManifestShortcut? right) -> bool
-static Rask.Core.Browser.MediaStreamId.operator !=(Rask.Core.Browser.MediaStreamId left, Rask.Core.Browser.MediaStreamId right) -> bool
-static Rask.Core.Browser.MediaStreamId.operator ==(Rask.Core.Browser.MediaStreamId left, Rask.Core.Browser.MediaStreamId right) -> bool
 static Rask.Core.Browser.PubKeyCredParam.operator !=(Rask.Core.Browser.PubKeyCredParam? left, Rask.Core.Browser.PubKeyCredParam? right) -> bool
 static Rask.Core.Browser.PubKeyCredParam.operator ==(Rask.Core.Browser.PubKeyCredParam? left, Rask.Core.Browser.PubKeyCredParam? right) -> bool
 static Rask.Core.Browser.PublicKeyCredentialCreationOptions.operator !=(Rask.Core.Browser.PublicKeyCredentialCreationOptions? left, Rask.Core.Browser.PublicKeyCredentialCreationOptions? right) -> bool
@@ -1859,8 +1795,6 @@ static Rask.Core.Browser.PublicKeyCredentialUser.operator !=(Rask.Core.Browser.P
 static Rask.Core.Browser.PublicKeyCredentialUser.operator ==(Rask.Core.Browser.PublicKeyCredentialUser? left, Rask.Core.Browser.PublicKeyCredentialUser? right) -> bool
 static Rask.Core.Browser.RaskBrowserApis.AddBrowserApi<TService, TImpl>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Core.Browser.RaskBrowserApis.AddCoreBrowserApis(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-static Rask.Core.Browser.RecognitionResult.operator !=(Rask.Core.Browser.RecognitionResult? left, Rask.Core.Browser.RecognitionResult? right) -> bool
-static Rask.Core.Browser.RecognitionResult.operator ==(Rask.Core.Browser.RecognitionResult? left, Rask.Core.Browser.RecognitionResult? right) -> bool
 static Rask.Core.Browser.RelyingParty.operator !=(Rask.Core.Browser.RelyingParty? left, Rask.Core.Browser.RelyingParty? right) -> bool
 static Rask.Core.Browser.RelyingParty.operator ==(Rask.Core.Browser.RelyingParty? left, Rask.Core.Browser.RelyingParty? right) -> bool
 static Rask.Core.Browser.RtcConfiguration.operator !=(Rask.Core.Browser.RtcConfiguration? left, Rask.Core.Browser.RtcConfiguration? right) -> bool
@@ -1891,9 +1825,6 @@ static Rask.Core.Browser.SignalingJoin.operator !=(Rask.Core.Browser.SignalingJo
 static Rask.Core.Browser.SignalingJoin.operator ==(Rask.Core.Browser.SignalingJoin? left, Rask.Core.Browser.SignalingJoin? right) -> bool
 static Rask.Core.Browser.SignalingSignal.operator !=(Rask.Core.Browser.SignalingSignal? left, Rask.Core.Browser.SignalingSignal? right) -> bool
 static Rask.Core.Browser.SignalingSignal.operator ==(Rask.Core.Browser.SignalingSignal? left, Rask.Core.Browser.SignalingSignal? right) -> bool
-static Rask.Core.Browser.SpeechRecognitionInterop.Result(int id, Rask.Core.Browser.RecognitionResult! result) -> System.Threading.Tasks.Task!
-static Rask.Core.Browser.SpeechRecognitionOptions.operator !=(Rask.Core.Browser.SpeechRecognitionOptions? left, Rask.Core.Browser.SpeechRecognitionOptions? right) -> bool
-static Rask.Core.Browser.SpeechRecognitionOptions.operator ==(Rask.Core.Browser.SpeechRecognitionOptions? left, Rask.Core.Browser.SpeechRecognitionOptions? right) -> bool
 static Rask.Core.Browser.WebAppManifest.operator !=(Rask.Core.Browser.WebAppManifest? left, Rask.Core.Browser.WebAppManifest? right) -> bool
 static Rask.Core.Browser.WebAppManifest.operator ==(Rask.Core.Browser.WebAppManifest? left, Rask.Core.Browser.WebAppManifest? right) -> bool
 static Rask.Core.Browser.WebRtcInterop.Channel(int connectionId, int channelId, string! label) -> System.Threading.Tasks.Task!
@@ -2214,9 +2145,6 @@ static RaskBuilderSettersRask_Core.OnResult(this Rask.Core.Components.MediaCaptu
 static RaskBuilderSettersRask_Core.OnResult(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.OnSelect<T>(this T! __b, System.Action? value) -> T!
 static RaskBuilderSettersRask_Core.OnSelect<T>(this T! __b, System.Func<System.Threading.Tasks.Task!>? value) -> T!
-static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, Rask.Core.Callback<Rask.Core.Browser.MediaStreamId>? value) -> Rask.Core.Components.MediaCaptureTrigger!
-static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Action<Rask.Core.Browser.MediaStreamId>? value) -> Rask.Core.Components.MediaCaptureTrigger!
-static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Func<Rask.Core.Browser.MediaStreamId, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.Orientation(this Rask.Core.Components.ScreenOrientationTrigger! __b, string! value) -> Rask.Core.Components.ScreenOrientationTrigger!
 static RaskBuilderSettersRask_Core.OverscanCount(this Rask.Core.Components.VirtualizeModel! __b, int? value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.Policy(this Rask.Core.Components.Authorize! __b, string? value) -> Rask.Core.Components.Authorize!
@@ -2316,8 +2244,6 @@ virtual Rask.Core.Component.TagName.get -> string?
 virtual Rask.Core.Component.WriteAttributes(System.Text.StringBuilder! sb) -> void
 virtual Rask.Core.Element.ResolveClass() -> string?
 virtual Rask.Core.Forms.Validate<T>.Invoke(T value) -> System.Collections.Generic.IEnumerable<string!>!
-~override Rask.Core.Browser.MediaStreamId.Equals(object obj) -> bool
-~override Rask.Core.Browser.MediaStreamId.ToString() -> string
 ~override Rask.Core.Diagnostics.DevTools.DescribedProp.Equals(object obj) -> bool
 ~override Rask.Core.Diagnostics.DevTools.DescribedProp.ToString() -> string
 ~override Rask.Core.Forms.ValidationEntry.Equals(object obj) -> bool
@@ -12923,7 +12849,6 @@ static RaskBuilderSettersRask_Core.OnSlotChange<T>(this T! __b, System.Func<Rask
 static RaskBuilderSettersRask_Core.OnSlotChange<T>(this T! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> T!
 static RaskBuilderSettersRask_Core.OnStalled<T>(this T! __b, System.Func<Rask.Core.Event!, System.Threading.Tasks.ValueTask>? value) -> T!
 static RaskBuilderSettersRask_Core.OnStalled<T>(this T! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> T!
-static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Func<Rask.Core.Browser.MediaStreamId, System.Threading.Tasks.ValueTask>? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.OnSubmit<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.Core.HTMLFormElement<TModel>!
 static RaskBuilderSettersRask_Core.OnSubmit<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, System.Func<TModel, System.Threading.Tasks.ValueTask>? value) -> Rask.Core.HTMLFormElement<TModel>!
@@ -13122,3 +13047,11 @@ Rask.Core.SelectionMode.Select = 0 -> Rask.Core.SelectionMode
 Rask.Core.SelectionMode.Start = 1 -> Rask.Core.SelectionMode
 static Rask.Core.ElementRefMembers.SetRangeText(this Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>! element, string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.SetRangeText(this Rask.Core.IElementRef<Rask.Core.HTMLTextAreaElement!>! element, string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IPeerConnection.AddStreamAsync(Microsoft.JSInterop.IJSObjectReference! stream) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IPeerConnection.RemoveStreamAsync(Microsoft.JSInterop.IJSObjectReference! stream) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.RtcHandlers.OnTrack.get -> System.Func<Microsoft.JSInterop.IJSObjectReference!, System.Threading.Tasks.Task!>?
+Rask.Core.Components.MediaCaptureTrigger.OnStream.get -> Rask.Core.Callback<Microsoft.JSInterop.IJSObjectReference!>
+static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, Rask.Core.Callback<Microsoft.JSInterop.IJSObjectReference!>? value) -> Rask.Core.Components.MediaCaptureTrigger!
+static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Action<Microsoft.JSInterop.IJSObjectReference!>? value) -> Rask.Core.Components.MediaCaptureTrigger!
+static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Func<Microsoft.JSInterop.IJSObjectReference!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.MediaCaptureTrigger!
+static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Func<Microsoft.JSInterop.IJSObjectReference!, System.Threading.Tasks.ValueTask>? value) -> Rask.Core.Components.MediaCaptureTrigger!

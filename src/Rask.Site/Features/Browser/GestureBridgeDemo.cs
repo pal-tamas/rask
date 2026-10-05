@@ -1,4 +1,3 @@
-using Rask.Core.Browser;
 using Rask.Core.Components;
 
 namespace Rask.Site.Features;
@@ -12,12 +11,12 @@ namespace Rask.Site.Features;
 ///     joined here by <c>ScreenOrientationTrigger</c>, <c>InstallTrigger</c>, <c>MediaCaptureTrigger</c>, and
 ///     <c>PictureInPictureTrigger</c> (the last two target a <c>&lt;video&gt;</c> via its <c>ElementRef</c>).
 /// </summary>
-public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
+public sealed partial class GestureBridgeDemo : Component
 {
     private readonly ElementRef _preview = ElementRef.New();
     private string? _color;
     private string? _install;
-    private MediaStreamId? _camera;
+    private Types.MediaStream? _camera;
 
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
@@ -29,8 +28,8 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                     "Camera + picture-in-picture need HTTPS and a real device; install needs an installable PWA ",
                     "(", Code["AddRaskPwa"], "); orientation lock only takes effect while fullscreen (pair it ",
                     "with the fullscreen button on a phone); the eyedropper needs a Chromium browser. ",
-                    "Stopping the camera goes through ", Code["IMediaStreams"], " on the id the capture ",
-                    "trigger handed back — releasing the device and its hardware indicator."]
+                    "Stopping the camera stops each track of the stream the capture trigger handed back — ",
+                    Code["MediaStream.From(stream).GetTracks()"], " — releasing the device and its hardware indicator."]
             ];
 
     private Component DisplayTriggers() =>
@@ -102,11 +101,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                 // app can hold one, and what makes the stop button below possible at all. No
                 // StateHasChanged: the trigger is a Component, so its callback is auto-wrapped and
                 // this demo repaints when the handler returns (RASK026).
-                .OnStream(id =>
-                {
-                    _camera = id;
-                    return Task.CompletedTask;
-                }),
+                .OnStream(stream => _camera = MediaStream.From(stream)),
             Ui.Button.Outline
                 .Id("camera-stop-btn")
                 .Disabled(_camera is null)
@@ -128,12 +123,20 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
     // is stopped, and nothing else in the page will do it.
     private async Task StopCameraAsync()
     {
-        if (_camera is not { } id)
+        if (_camera is null)
         {
             return;
         }
 
-        await streams.StopAsync(id);
+        foreach (var track in await _camera.GetTracks())
+        {
+            await track.Stop();
+            await track.DisposeAsync();
+        }
+
+        await _camera.DisposeAsync();
         _camera = null;
     }
+
+    protected override Task OnUnmount() => StopCameraAsync();
 }

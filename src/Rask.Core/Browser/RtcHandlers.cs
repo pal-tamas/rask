@@ -1,3 +1,5 @@
+using Microsoft.JSInterop;
+
 namespace Rask.Core.Browser;
 
 /// <summary>
@@ -23,10 +25,10 @@ public sealed record RtcHandlers
     public Func<IRtcDataChannel, Task>? OnDataChannel { get; init; }
 
     /// <summary>
-    ///     The <b>remote</b> peer's media arrived. Attach it to a <c>&lt;video&gt;</c> with
-    ///     <see cref="IMediaStreams.AttachAsync" />. Fires once per stream, not per track — a peer sending
-    ///     camera and microphone sends two tracks in one stream, and the stream is what you attach. The
-    ///     stream is stopped for you when the connection is disposed.
+    ///     The <b>remote</b> peer's media arrived, as a handle to its <c>MediaStream</c>: show it with Rask.Web's
+    ///     <c>await _video.SetSrcObject(MediaStream.From(stream))</c>. Fires once per stream, not per track — a
+    ///     peer sending camera and microphone sends two tracks in one stream, and the stream is what you show.
+    ///     The stream is stopped for you when the connection is disposed; dispose of the handle when you are done.
     /// </summary>
-    public Func<MediaStreamId, Task>? OnTrack { get; init; }
+    public Func<IJSObjectReference, Task>? OnTrack { get; init; }
 }

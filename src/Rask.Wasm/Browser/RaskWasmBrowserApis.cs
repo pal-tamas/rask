@@ -15,7 +15,6 @@ public static class RaskWasmBrowserApis
     public static IServiceCollection AddWasmBrowserApis(this IServiceCollection services, ServiceLifetime lifetime)
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.AddBrowserApi<IInstallPrompt, InstallPrompt>(lifetime);
         services.AddBrowserApi<IBackgroundSync, BackgroundSync>(lifetime);
         return services;
     }

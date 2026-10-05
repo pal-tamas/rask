@@ -1,3 +1,4 @@
+using Microsoft.JSInterop;
 using Rask.Core.Browser;
 using Rask.Core.Tests.Interop;
 
@@ -421,25 +422,28 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task Adding_and_removing_a_stream_pass_the_raw_stream_id()
+    public async Task Adding_and_removing_a_stream_pass_its_handle_for_the_browser_to_revive()
     {
         var js = new FakeJsRuntime();
         var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
         var id = js.ArgsFor("__raskRtc.create")![0];
+        var stream = new FakeJsObject();
 
-        await conn.AddStreamAsync(new MediaStreamId(9));
-        await conn.RemoveStreamAsync(new MediaStreamId(9));
+        await conn.AddStreamAsync(stream);
+        await conn.RemoveStreamAsync(stream);
 
-        // The raw int, not the wrapper: __raskMedia keys its stream map by number.
-        Assert.Equal([id, 9], js.ArgsFor("__raskRtc.addStream"));
-        Assert.Equal([id, 9], js.ArgsFor("__raskRtc.removeStream"));
+        // The handle itself: the browser revives it to the MediaStream, which __raskRtc keys its senders by.
+        Assert.Equal([id, stream], js.ArgsFor("__raskRtc.addStream"));
+        Assert.Equal([id, stream], js.ArgsFor("__raskRtc.removeStream"));
     }
 
     [Fact]
-    public async Task A_track_delivers_the_remote_stream_as_a_MediaStreamId()
+    public async Task A_track_takes_the_remote_stream_by_its_id_and_delivers_its_handle()
     {
         var js = new FakeJsRuntime();
-        MediaStreamId? received = null;
+        var stream = new FakeJsObject();
+        js.SetResponse("__raskMedia.take", stream);
+        IJSObjectReference? received = null;
 
         await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers
         {
@@ -453,8 +457,24 @@ public class WebRtcTests
 
         await WebRtcInterop.Track(id, 21);
 
-        // The same id currency IMediaStreams.AttachAsync takes, so a peer's stream attaches like any other.
-        Assert.Equal(new MediaStreamId(21), received);
+        // Taken once, by the id it was handed over under: the same handle Trigger.MediaCapture hands out.
+        Assert.Equal([21], js.ArgsFor("__raskMedia.take"));
+        Assert.Same(stream, received);
+    }
+
+    [Fact]
+    public async Task A_track_nobody_listens_for_is_still_taken_and_its_handle_let_go()
+    {
+        var js = new FakeJsRuntime();
+        var stream = new FakeJsObject();
+        js.SetResponse("__raskMedia.take", stream);
+        await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var id = (int)js.ArgsFor("__raskRtc.create")![0]!;
+
+        await WebRtcInterop.Track(id, 5);
+
+        Assert.Equal([5], js.ArgsFor("__raskMedia.take"));
+        Assert.True(stream.Disposed);
     }
 
     [Fact]

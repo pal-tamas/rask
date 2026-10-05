@@ -16,13 +16,14 @@ namespace Rask.Server;
 ///     a service worker at <c>{PathBase}/rask-sw.js</c> — registered by the page's head, so
 ///     <c>await Navigator.ServiceWorker.Ready</c> reaches it — that shows Web Push and serves a static
 ///     <c>offline.html</c> for failed navigations, and the transport-agnostic PWA APIs (MDN's
-///     <c>PushManager</c>/<c>Notification</c>/<c>Navigator.SetAppBadge</c> from Rask.Web, and
-///     <see cref="IWakeLock" />, registered by <c>AddRask()</c>).
+///     <c>PushManager</c>/<c>Notification</c>/<c>Navigator.SetAppBadge</c>/<c>Navigator.WakeLock</c> from
+///     Rask.Web, and <c>Trigger.Install</c> for the install prompt Rask.Web keeps from boot).
 ///     <para>
 ///         What you do NOT get (a Server app renders over a live WebSocket): a true offline app — the SW
 ///         deliberately does not cache the server-rendered shell (it carries a one-shot session id and is
 ///         served <c>no-store</c>), so offline navigations show <c>offline.html</c> rather than a dead
-///         cached page — and no background sync or install-prompt replay (those stay WASM-only).
+///         cached page — no background sync, and no imperative <c>BeforeInstallPromptEvent.Prompt()</c>, which
+///         needs the click's activation (both WASM-only).
 ///     </para>
 /// </remarks>
 public static class RaskPwaExtensions

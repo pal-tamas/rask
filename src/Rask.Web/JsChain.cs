@@ -79,6 +79,11 @@ internal sealed class JsChain
     // element argument does, and runs in the browser its element was rendered in.
     internal static JsChain Element(ElementRef element) => new(Window, StepElement, "", [element]);
 
+    // An object a Rask service kept for the app (Trigger.MediaCapture's stream), as one Rask.Web kept: the page handling
+    // the current event is where it lives.
+    internal static JsChain Adopt(IJSObjectReference handle) =>
+        new(null, StepRoot, null, null, handle, AmbientServices.Current?.GetService<IJSRuntime>());
+
     // A chain that is an object the browser holds for us rather than a path to one.
     internal bool IsKept => _kind == StepRoot && (_handle is not null || _faked is not null);
 

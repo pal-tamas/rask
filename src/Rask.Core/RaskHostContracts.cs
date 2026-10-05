@@ -72,8 +72,7 @@ public static class RaskHostContracts
     /// </summary>
     public static IReadOnlyList<Type> BrowserApis { get; } =
     [
-        typeof(IIndexedDb), typeof(IMediaStreams), typeof(ISignaling), typeof(ISpeechRecognition),
-        typeof(IViewTransitions), typeof(IWakeLock), typeof(IWebAuthn), typeof(IWebRtc),
+        typeof(IIndexedDb), typeof(ISignaling), typeof(IViewTransitions), typeof(IWebAuthn), typeof(IWebRtc),
     ];
 
     /// <summary>
@@ -86,7 +85,6 @@ public static class RaskHostContracts
     public static IReadOnlyList<Type> NonServiceBrowserTypes { get; } =
     [
         typeof(IKeyValueStore), typeof(IPeerConnection), typeof(IRtcDataChannel), typeof(ISignalingConnection),
-        typeof(IWakeLockSentinel),
     ];
 
     /// <summary>

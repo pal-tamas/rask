@@ -1,3 +1,5 @@
+using Microsoft.JSInterop;
+
 namespace Rask.Core.Browser;
 
 /// <summary>One live peer connection. Dispose to close it and all of its data channels.</summary>
@@ -29,18 +31,20 @@ public interface IPeerConnection : IAsyncDisposable
 
     /// <summary>
     ///     Sends a captured camera/microphone/screen stream to the peer, who receives it through
-    ///     <see cref="RtcHandlers.OnTrack" />. Adding the same stream twice is a no-op. Adding or removing
-    ///     a stream renegotiates, so exchange a fresh offer/answer afterwards.
+    ///     <see cref="RtcHandlers.OnTrack" />: the handle <c>Trigger.MediaCapture</c>'s <c>OnStream</c> hands you.
+    ///     Adding the same stream twice is a no-op. Adding or removing a stream renegotiates, so exchange a fresh
+    ///     offer/answer afterwards.
     ///     <para>
-    ///         The stream stays yours: disposing the connection does <b>not</b> stop it. Stop it with
-    ///         <see cref="IMediaStreams.StopAsync" /> when you are done, or the camera stays open.
+    ///         The stream stays yours: disposing the connection does <b>not</b> stop it. Stop its tracks when you
+    ///         are done (Rask.Web: <c>MediaStream.From(stream).GetTracks()</c>, then <c>Stop()</c> each), or the
+    ///         camera stays open.
     ///     </para>
     /// </summary>
-    ValueTask AddStreamAsync(MediaStreamId stream);
+    ValueTask AddStreamAsync(IJSObjectReference stream);
 
     /// <summary>
     ///     Stops sending a stream added with <see cref="AddStreamAsync" />, without stopping the stream
     ///     itself. Removing a stream that isn't being sent is a no-op.
     /// </summary>
-    ValueTask RemoveStreamAsync(MediaStreamId stream);
+    ValueTask RemoveStreamAsync(IJSObjectReference stream);
 }

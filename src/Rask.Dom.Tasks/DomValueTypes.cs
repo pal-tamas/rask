@@ -28,6 +28,9 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
     private readonly HashSet<string> _visiting = new(StringComparer.Ordinal);
     private readonly HashSet<string> _handedOver = HandedOver(root);
 
+    // The data lists among the records, and the C# type of each one's items.
+    private readonly Dictionary<string, string> _listItems = new(StringComparer.Ordinal);
+
     // The types another assembly (Core) declares: named, never declared again.
     private readonly HashSet<string> _external = new(StringComparer.Ordinal);
 
@@ -358,10 +361,17 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         var parent = source["parent"]?.AsString();
         var parentType = parent is null ? null : Named(parent);
         var fields = Fields(source, dictionary is null, parentType, generic);
+        var listItem = dictionary is null && _onlyData && ListItem(source) is { } itemIdl ? Map(itemIdl, returned: false) : null;
         _visiting.Remove(name);
-        if (fields.Count == 0 && parentType is null)
+        if (fields.Count == 0 && parentType is null && listItem is null)
         {
             return null;
+        }
+
+        if (listItem is not null)
+        {
+            Serializable(listItem + "[]");
+            _listItems[name] = listItem;
         }
 
         if (generic)
@@ -433,6 +443,11 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
             }
 
             var json = f["name"]!.AsString()!;
+            if (valueObject && _onlyData && string.Equals(json, "length", StringComparison.Ordinal) && ListItem(source) is not null)
+            {
+                continue; // a data list's length is its items'
+            }
+
             var idl = f["type"]!.AsString()!;
             var type = generic && string.Equals(idl, "any", StringComparison.Ordinal) ? "T" : Map(idl, returned: false);
             if (type is not null && inherited.Add(json))
@@ -512,7 +527,7 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
             {
                 foreach (var m in i["members"]?.Items ?? new List<JsonNode>())
                 {
-                    pending.Enqueue(m["type"]!.AsString()!);
+                    pending.Enqueue(TypeOf(m));
                 }
             }
         }
@@ -561,7 +576,7 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         {
             foreach (var m in i["members"]?.Items ?? new List<JsonNode>())
             {
-                var item = ItemOf(m["type"]!.AsString()!);
+                var item = ItemOf(TypeOf(m));
                 var value = Primitive(item) is not null || Bytes.Contains(item) || root["enums"]![item] is not null || root["dictionaries"]![item] is not null;
                 if (!value && !AllValues(root, item, visiting))
                 {
@@ -573,12 +588,33 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         return true;
     }
 
+    // An attribute's type, or what an operation answers with (a list's item(index)).
+    private static string TypeOf(JsonNode member) => member["type"]?.AsString() ?? member["returns"]!.AsString()!;
+
+    // A list the browser hands over that is nothing but its items and values (a SpeechRecognitionResultList, a
+    // SpeechRecognitionResult): `length` and `item(index)` beside read-only attributes. As data, its items are read
+    // once, with it: an indexer over Items, as `list[i]` reads in JavaScript.
+    internal static string? ListItem(JsonNode iface)
+    {
+        var members = iface["members"]?.Items ?? new List<JsonNode>();
+        var operations = members.Where(m => !string.Equals(m["kind"]?.AsString(), "attribute", StringComparison.Ordinal)).ToList();
+        var item = operations.Count == 1 && string.Equals(operations[0]["name"]?.AsString(), "item", StringComparison.Ordinal)
+                   && operations[0]["args"]?.Items.Count == 1 && iface["parent"]?.AsString() is null
+                   && members.Any(m => string.Equals(m["name"]?.AsString(), "length", StringComparison.Ordinal))
+            ? operations[0]["returns"]?.AsString()?.TrimEnd('?')
+            : null;
+        return item;
+    }
+
     private static bool OnlyData(JsonNode interfaces, string name)
     {
         for (var n = name; n is not null && interfaces[n] is { } i; n = i["parent"]?.AsString())
         {
+            // A list of what is only data (not a NodeList, whose items are the page's nodes).
+            var isList = ListItem(i) is { } item && !string.Equals(item, n, StringComparison.Ordinal) && OnlyData(interfaces, item);
             var behaviour = (i["members"]?.Items ?? new List<JsonNode>())
-                .Any(m => !string.Equals(m["kind"]?.AsString(), "attribute", StringComparison.Ordinal) || m["readonly"]?.AsBoolean() != true);
+                .Any(m => !(isList && string.Equals(m["kind"]?.AsString(), "operation", StringComparison.Ordinal))
+                          && (!string.Equals(m["kind"]?.AsString(), "attribute", StringComparison.Ordinal) || m["readonly"]?.AsBoolean() != true));
             if (behaviour || i["events"] is not null || i["statics"] is not null)
             {
                 return false;
@@ -678,6 +714,22 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         return char.IsDigit(name[0]) ? "_" + name : name;
     }
 
+    // A data list's items, what item(index) answers for each index, and the two ways MDN reads them.
+    private static void ListMembers(StringBuilder sb, string item)
+    {
+        sb.AppendLine("    /// <summary>The list's items, in order: what MDN's <c>item(index)</c> answers for each index.</summary>");
+        sb.AppendLine("    [JsonPropertyName(\"items\")]");
+        sb.Append("    public ").Append(item).AppendLine("[] Items { get; init; } = [];");
+        sb.AppendLine();
+        sb.AppendLine("    /// <summary>MDN's <c>item(index)</c>, as <c>list[index]</c> reads in JavaScript.</summary>");
+        sb.Append("    public ").Append(item).AppendLine(" this[int index] => Items[index];");
+        sb.AppendLine();
+        sb.AppendLine("    /// <summary>MDN's <c>length</c>: how many items the list holds.</summary>");
+        sb.AppendLine("    [JsonIgnore]");
+        sb.AppendLine("    public int Length => Items.Length;");
+        sb.AppendLine();
+    }
+
     private void Record(StringBuilder sb, string name, List<Field> fields)
     {
         // Open to any dictionary MDN derives from it, which Rask.Web may declare beside it.
@@ -722,6 +774,11 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
             sb.Append("    public ").Append(required ? "required " : "").Append(declared).Append(' ').Append(property).Append(" { get; init; }");
             sb.AppendLine(browsers && !nullable && !IsValueType(type) ? " = default!;" : "");
             sb.AppendLine();
+        }
+
+        if (_listItems.TryGetValue(name, out var item))
+        {
+            ListMembers(sb, item);
         }
 
         sb.AppendLine("}");

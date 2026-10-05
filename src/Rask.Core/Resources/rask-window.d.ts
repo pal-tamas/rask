@@ -76,7 +76,6 @@ interface Window {
     // The transport-neutral PWA helpers (rask-pwa), reached from C# by dotted name.
     __raskNotify: RaskNotifyApi;
     __raskBadge: RaskBadgeApi;
-    __raskWakeLock: RaskWakeLockApi;
 }
 
 interface RaskNotifyApi {
@@ -88,12 +87,6 @@ interface RaskBadgeApi {
     isSupported(): boolean;
     set(count: number | null | undefined): Promise<void>;
     clear(): Promise<void>;
-}
-
-interface RaskWakeLockApi {
-    isSupported(): boolean;
-    request(): Promise<number>;
-    release(id: number): Promise<void>;
 }
 
 /**
@@ -136,21 +129,15 @@ interface Window {
     __raskPip: { request(el: Element | null): Promise<unknown> | null };
     __raskInstall: { prompt(): Promise<string> };
     __raskMedia: {
-        /**
-         * Resolves the STREAM ID, not a permission string. Ids are minted in JS (`++nextId`), so this
-         * is a number — the gesture bridge's `String(id)` is what turns it into the value C# receives.
-         */
-        getUserMedia(constraints: unknown): Promise<number>;
-        attach(id: number, el: Element): unknown;
+        getUserMedia(constraints: unknown): Promise<MediaStream>;
+        attach(stream: MediaStream, el: Element): unknown;
 
         /**
-         * The id-to-MediaStream mapping other framework helpers deal in: __raskRtc sends a captured
-         * stream to a peer, and registers a peer's remote stream so C# gets an id it can attach to a
-         * <video>. Not for application use; C# never calls these.
+         * A stream handed to C# under an id, and the id taken back: the gesture bridge and __raskRtc's ontrack post
+         * the id, and C# takes the stream it names as a handle (`__raskMedia.take`).
          */
-        get(id: number): MediaStream | undefined;
-        stop(id: number): void;
-        adopt(stream: MediaStream): number;
+        hand(stream: MediaStream): number;
+        take(id: number): MediaStream | null;
     };
 }
 
@@ -218,49 +205,6 @@ interface BatteryManagerLike extends EventTarget {
 
 interface Navigator {
     getBattery?(): Promise<BatteryManagerLike>;
-}
-
-/**
- * Web Speech recognition, which lib.dom does not declare — it is Chromium-family only and still
- * vendor-prefixed. Only what the shim drives is described.
- */
-interface SpeechRecognitionLike {
-    lang: string;
-    continuous: boolean;
-    interimResults: boolean;
-    onresult: ((e: SpeechRecognitionEventLike) => void) | null;
-    onerror: ((e: { error?: string }) => void) | null;
-    onend: (() => void) | null;
-    start(): void;
-    stop(): void;
-}
-
-interface SpeechRecognitionAlternativeLike {
-    transcript: string;
-    confidence: number;
-}
-
-interface SpeechRecognitionResultLike {
-    readonly length: number;
-    isFinal: boolean;
-    [index: number]: SpeechRecognitionAlternativeLike;
-}
-
-interface SpeechRecognitionEventLike {
-    resultIndex: number;
-    results: { readonly length: number;[index: number]: SpeechRecognitionResultLike };
-}
-
-interface Window {
-    SpeechRecognition?: { new(): SpeechRecognitionLike };
-    webkitSpeechRecognition?: { new(): SpeechRecognitionLike };
-}
-
-/** The options ISpeechRecognition passes to `start`. */
-interface RaskSpeechOptions {
-    lang?: string;
-    continuous?: boolean;
-    interimResults?: boolean;
 }
 
 /**
@@ -339,10 +283,10 @@ interface RaskRtcConn {
     pc: RTCPeerConnection;
     ice: RTCIceCandidateInit[];
     timer: ReturnType<typeof setTimeout> | 0;
-    /** peer stream id -> the __raskMedia id minted for it, so a repeat ontrack does not duplicate. */
-    remote: Map<string, number>;
+    /** The peer's streams, by their own id, so a repeat ontrack does not hand one over twice. */
+    remote: Map<string, MediaStream>;
     /** What AddStream added, so RemoveStream can take exactly those tracks back off. */
-    senders: Map<number, RTCRtpSender[]>;
+    senders: Map<MediaStream, RTCRtpSender[]>;
 }
 
 /** One live data channel, plus the buffer that holds messages until C# is listening. */
@@ -380,17 +324,6 @@ interface EyeDropperLike {
 }
 
 declare var EyeDropper: { new(): EyeDropperLike } | undefined;
-
-/** The beforeinstallprompt event, which lib.dom does not declare. */
-interface BeforeInstallPromptEventLike extends Event {
-    prompt(): void;
-    userChoice: Promise<{ outcome: string }>;
-}
-
-interface Navigator {
-    /** iOS Safari's standalone flag — the only way to detect an installed PWA there. */
-    standalone?: boolean;
-}
 
 /** The view-transition shim, which reads and writes its own `enabled` flag through window. */
 interface RaskViewTransitionApi {

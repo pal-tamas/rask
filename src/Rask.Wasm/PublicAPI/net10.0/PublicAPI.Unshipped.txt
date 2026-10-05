@@ -34,19 +34,6 @@ Rask.Wasm.Browser.IBackgroundSync.OnSyncAsync(System.Func<Rask.Wasm.Browser.Back
 Rask.Wasm.Browser.IBackgroundSync.RequestPeriodicSyncAsync(string! tag, System.TimeSpan minInterval) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Wasm.Browser.IBackgroundSync.RequestSyncAsync(string! tag) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Wasm.Browser.IBackgroundSync.UnregisterPeriodicAsync(string! tag) -> System.Threading.Tasks.ValueTask
-Rask.Wasm.Browser.IInstallPrompt
-Rask.Wasm.Browser.IInstallPrompt.CanInstallAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.IInstallPrompt.IsInstalledAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.IInstallPrompt.PromptAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.InstallOutcome>
-Rask.Wasm.Browser.InstallOutcome
-Rask.Wasm.Browser.InstallOutcome.Accepted = 0 -> Rask.Wasm.Browser.InstallOutcome
-Rask.Wasm.Browser.InstallOutcome.Dismissed = 1 -> Rask.Wasm.Browser.InstallOutcome
-Rask.Wasm.Browser.InstallOutcome.Unavailable = 2 -> Rask.Wasm.Browser.InstallOutcome
-Rask.Wasm.Browser.InstallPrompt
-Rask.Wasm.Browser.InstallPrompt.CanInstallAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.InstallPrompt.InstallPrompt(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Wasm.Browser.InstallPrompt.IsInstalledAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.InstallPrompt.PromptAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.InstallOutcome>
 Rask.Wasm.Browser.RaskWasmBrowserApis
 Rask.Wasm.RaskWasmBatteryRegistry
 Rask.Wasm.WasmHostBuilder

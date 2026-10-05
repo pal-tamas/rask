@@ -82,7 +82,7 @@ public class GlobalsContractTests
 
         // Scoped to the namespace's OWN block, which the first version of this test was not — it
         // searched the whole file, and thirteen namespaces define `isSupported:`. Deleting that key
-        // from __raskWakeLock left the __raskWakeLock.isSupported case passing on __raskBattery's copy.
+        // from one namespace left its isSupported case passing on another namespace's copy.
         // A gate written to catch a literal dropped during a move has to know which literal it wants.
         var block = NamespaceBlock(globals, ns);
 

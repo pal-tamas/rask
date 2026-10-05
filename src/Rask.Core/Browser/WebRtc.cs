@@ -95,11 +95,17 @@ public sealed class WebRtc : IWebRtc
             return js.InvokeVoidAsync("__raskRtc.addIce", id, candidate);
         }
 
-        public ValueTask AddStreamAsync(MediaStreamId stream) =>
-            js.InvokeVoidAsync("__raskRtc.addStream", id, stream.Value);
+        public ValueTask AddStreamAsync(IJSObjectReference stream)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
+            return js.InvokeVoidAsync("__raskRtc.addStream", id, stream);
+        }
 
-        public ValueTask RemoveStreamAsync(MediaStreamId stream) =>
-            js.InvokeVoidAsync("__raskRtc.removeStream", id, stream.Value);
+        public ValueTask RemoveStreamAsync(IJSObjectReference stream)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
+            return js.InvokeVoidAsync("__raskRtc.removeStream", id, stream);
+        }
 
         public async ValueTask<IRtcDataChannel> CreateDataChannelAsync(
             string label, RtcDataChannelOptions? options = null)

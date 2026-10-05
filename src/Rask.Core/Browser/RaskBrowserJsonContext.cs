@@ -15,8 +15,6 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(ShareData))]
 [JsonSerializable(typeof(Rask.Core.Components.GesturePayload))]
 [JsonSerializable(typeof(Rask.Core.Components.GestureMediaConstraints))]
-[JsonSerializable(typeof(SpeechRecognitionOptions))]
-[JsonSerializable(typeof(RecognitionResult))]
 [JsonSerializable(typeof(PublicKeyCredentialCreationOptions))]
 [JsonSerializable(typeof(PublicKeyCredentialRequestOptions))]
 [JsonSerializable(typeof(AttestationResult))]

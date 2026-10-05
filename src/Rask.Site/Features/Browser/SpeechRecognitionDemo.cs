@@ -1,22 +1,22 @@
-using Rask.Core.Browser;
+using Microsoft.JSInterop;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="ISpeechRecognition" /> — dictation: start listening, and each recognised phrase is pushed
-///     to the handler (final phrases accumulate; the interim hypothesis shows live). Prompts for microphone
-///     access on start; browser support is Chromium-only (gate on <see cref="ISpeechRecognition.IsSupportedAsync" />).
-///     The handler updates state and calls <c>StateHasChanged()</c> — the sanctioned pattern for an
-///     externally-pushed update.
+///     MDN's <c>SpeechRecognition</c> from Rask.Web — dictation: start listening, and each <c>result</c> event hands the
+///     handler the results as data (final phrases accumulate; the interim hypothesis shows live). Prompts for
+///     microphone access on start. Chromium and Safari still ship it as <c>webkitSpeechRecognition</c>, which Rask.Web
+///     finds under its MDN name. The handlers are lambdas in this component, so they re-render it.
 /// </summary>
-public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition) : Component, IAsyncDisposable
+public sealed partial class SpeechRecognitionDemo : Component
 {
-    private IAsyncDisposable? _session;
+    private Types.SpeechRecognition? _recognition;
+    private readonly List<IAsyncDisposable> _subscriptions = [];
     private string _transcript = "";
     private string _interim = "";
     private string _status = "(idle)";
 
-    private bool Listening => _session is not null;
+    private bool Listening => _recognition is not null;
 
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
@@ -40,7 +40,7 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
 
     private async Task Start()
     {
-        if (!await recognition.IsSupportedAsync())
+        if (!await SpeechRecognition.IsSupported)
         {
             _status = "not supported on this browser";
             return;
@@ -48,50 +48,62 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
 
         _transcript = "";
         _interim = "";
-        _status = "listening…";
         try
         {
-            _session = await recognition.StartAsync(
-                r =>
-                {
-                    if (r.IsFinal)
-                    {
-                        _transcript = (_transcript + " " + r.Transcript).Trim();
-                        _interim = "";
-                    }
-                    else
-                    {
-                        _interim = r.Transcript;
-                    }
-
-                    StateHasChanged();
-                    return Task.CompletedTask;
-                },
-                new SpeechRecognitionOptions { Continuous = true, InterimResults = true });
+            _recognition = await SpeechRecognition.Create();
+            await _recognition.SetContinuous(true);
+            await _recognition.SetInterimResults(true);
+            _subscriptions.Add(await _recognition.OnResult(e => Heard(e)));
+            _subscriptions.Add(await _recognition.OnError(e => _status = "error: " + e.Error));
+            _subscriptions.Add(await _recognition.OnEnd(async () => await Stop()));
+            await _recognition.Start();
+            _status = "listening…";
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
             _status = "failed: " + ex.Message;
+            await Release();
         }
+    }
+
+    // The results from ResultIndex on are new: a final one joins the transcript, an interim one shows as it is heard.
+    private void Heard(Types.SpeechRecognitionEvent e)
+    {
+        var heard = e.Results.Items.Skip(e.ResultIndex).ToList();
+        foreach (var phrase in heard.Where(r => r.IsFinal))
+        {
+            _transcript = (_transcript + " " + phrase[0].Transcript).Trim();
+        }
+
+        _interim = string.Concat(heard.Where(r => !r.IsFinal).Select(r => r[0].Transcript));
     }
 
     private async Task Stop()
     {
-        if (_session is not null)
+        if (_recognition is not null)
         {
-            await _session.DisposeAsync();
-            _session = null;
+            await _recognition.Stop();
+            await Release();
+            _status = "stopped";
         }
 
         _interim = "";
-        _status = "stopped";
     }
 
-    public async ValueTask DisposeAsync()
+    private async Task Release()
     {
-        if (_session is not null)
+        foreach (var subscription in _subscriptions)
         {
-            await _session.DisposeAsync();
+            await subscription.DisposeAsync();
+        }
+
+        _subscriptions.Clear();
+        if (_recognition is not null)
+        {
+            await _recognition.DisposeAsync();
+            _recognition = null;
         }
     }
+
+    protected override Task OnUnmount() => Stop();
 }

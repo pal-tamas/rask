@@ -736,6 +736,52 @@ them until tagged releases begin.
     var all = await Document.Cookie;                                 // "theme=dark; a=1"
     var theme = await CookieStore.Get("theme");                      // secure context only
     ```
+  - **BREAKING: `IWakeLock`, `ISpeechRecognition`, `IMediaStreams` and, on WebAssembly, `IInstallPrompt` are gone**
+    (with `IWakeLockSentinel`, `RecognitionResult`, `SpeechRecognitionOptions`, `MediaStreamId`, `InstallOutcome` and
+    their TypeScript) — MDN's own APIs from Rask.Web do what they did, on both hosts unless marked:
+    ```csharp
+    // before: await using var s = await wakeLock.RequestAsync();
+    _sentinel = await Navigator.WakeLock.Request(WakeLockType.Screen);
+    await _sentinel.Release(); await _sentinel.DisposeAsync();     // disposing alone does not release it
+    // before: await speech.StartAsync(new SpeechRecognitionOptions { Lang = "en-US", Continuous = true }, onResult)
+    if (await SpeechRecognition.IsSupported)
+    {
+        _rec = await SpeechRecognition.Create();
+        await _rec.SetLang("en-US"); await _rec.SetContinuous(true); await _rec.SetInterimResults(true);
+        await _rec.OnResult(e =>
+        {
+            for (var i = e.ResultIndex; i < e.Results.Length; i++)
+                if (e.Results[i].IsFinal) _text += e.Results[i][0].Transcript;
+        });
+        await _rec.Start();                                        // later: await _rec.Stop()
+    }
+    // before: var outcome = await install.PromptAsync();          // WebAssembly
+    _offer = await Window.OnBeforeInstallPrompt(e => _prompt = e);
+    var answer = await _prompt.Prompt();                           // WebAssembly, in the click
+    var accepted = answer.UserChoice == AppBannerPromptOutcome.Accepted;
+    var installed = await Window.MatchMedia("(display-mode: standalone)").Matches;
+    // before: .OnStream(id => _camera = id) … await streams.StopAsync(_camera)
+    Trigger.MediaCapture.For(_video).Template(…).Video().OnStream(stream => _camera = MediaStream.From(stream));
+    foreach (var t in await _camera.GetTracks()) await t.Stop();
+    await _video.SetSrcObject(_camera);
+    ```
+    Three named runtime patches, in one file (`src/Rask.Core/Resources/rask-web-patches.ts`), cover where a browser
+    falls short of MDN; everything else runs as the browser has it. `SpeechRecognition.Create()` and `IsSupported`
+    fall back to `webkitSpeechRecognition` (Chromium before 139, Safari). The wake lock is requested again each time
+    the page becomes visible, since every browser drops it when hidden, so the sentinel holds until `Release()`; its
+    `Released` turns true and `OnRelease` fires once, when you release it or the browser refuses it back.
+    `beforeinstallprompt` is kept from boot and replayed to each later `Window.OnBeforeInstallPrompt` subscriber until
+    it is spent (prompted, or `appinstalled`), and Chromium's `{ outcome }` answer is normalised to MDN's
+    `{ userChoice }`; the event is still not `preventDefault()`ed, and `Trigger.Install` is unchanged. A list the
+    browser hands over that is only data crosses as a record read with the event — `SpeechRecognitionResultList`
+    has an indexer, `Length` and `Items`, each `SpeechRecognitionResult` adds `IsFinal`, and each alternative is a
+    `Transcript` and a `Confidence`. **Not carried over:** the old wrapper restarted recognition when the engine
+    ended a continuous session on silence; now the session ends as the browser ends it (`OnEnd` fires), and an app
+    that wants to keep listening calls `await _rec.Start()` again from `OnEnd`. **BREAKING:** a stream crosses as an `IJSObjectReference` now: `Trigger.MediaCapture`'s
+    `OnStream`, `IPeerConnection.AddStreamAsync(IJSObjectReference)` / `RemoveStreamAsync(IJSObjectReference)` and
+    `RtcHandlers.OnTrack` (`Func<IJSObjectReference, Task>?`) —
+    `OnTrack = async s => await _remote.SetSrcObject(MediaStream.From(s))`. The site's demos use them, and its home
+    page counts 6 typed browser APIs, not 10.
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

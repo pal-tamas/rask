@@ -354,7 +354,7 @@ public sealed partial class HomePage : Component
     /// the ones only the WASM host can run (<c>RaskWasmBrowserApis</c>); the rest of the browser is MDN's own, from
     /// Rask.Web. <c>BrowserApiCountTests</c> recounts the source and fails when this goes stale.
     /// </remarks>
-    internal const int BrowserApiCount = 10;
+    internal const int BrowserApiCount = 6;
 
     // ---- install ----
     private static Component InstallSection() =>

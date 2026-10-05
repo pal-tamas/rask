@@ -22,14 +22,11 @@
 
 import * as eyeDropper from "./eyeDropper.js";
 import * as fullscreen from "./fullscreen.js";
-import * as installPrompt from "./installPrompt.js";
 import * as indexedDb from "./indexedDb.js";
 import * as mediaDevices from "./mediaDevices.js";
 import * as pictureInPicture from "./pictureInPicture.js";
 import * as screenOrientation from "./screenOrientation.js";
 import * as signaling from "./signaling.js";
-import * as speechRecognition from "./speechRecognition.js";
-import * as wakeLock from "./wakeLock.js";
 import * as webAuthn from "./webAuthn.js";
 
 // IIndexedDb / IKeyValueStore. C# addresses a store by name on every call rather than holding a
@@ -84,31 +81,6 @@ window.__raskIdb = window.__raskIdb || (() => {
         delete: (name: string, key: string) => store(name).then((s) => s.remove(key)),
         keys: (name: string) => store(name).then((s) => s.keys()),
         clear: (name: string) => store(name).then((s) => s.clear())
-    };
-})();
-
-// IWakeLock. C# holds an integer id where the module hands back a handle; the re-acquire-on-visible
-// behaviour that makes a lock survive the user glancing at another tab lives in the module, because it
-// is the API's real behaviour rather than anything to do with interop.
-window.__raskWakeLock = window.__raskWakeLock || (() => {
-    const held = new Map<number, wakeLock.WakeLockHandle>();
-    let nextId = 1;
-    return {
-        isSupported: () => wakeLock.isSupported(),
-        request: async () => {
-            const handle = await wakeLock.request();
-            const id = nextId++;
-            held.set(id, handle);
-            return id;
-        },
-        release: async (id: number) => {
-            const handle = held.get(id);
-            if (!handle) {
-                return;
-            }
-            held.delete(id);
-            await handle.release();
-        }
     };
 })();
 
@@ -168,7 +140,7 @@ window.__raskWebAuthn = window.__raskWebAuthn || {
     get: (o: RaskWebAuthnGetOptions) => webAuthn.get(o)
 };
 
-// The activation-gated four, plus the install prompt. On the WASM host these back imperative services;
+// The activation-gated four. On the WASM host these back imperative services;
 // on Server they back declarative gesture components, which run the call inside the click's own stack
 // because a WebSocket round trip loses the transient activation these need.
 window.__raskFullscreen = window.__raskFullscreen || {
@@ -198,80 +170,28 @@ window.__raskPip = window.__raskPip || {
     exit: () => pictureInPicture.exit()
 };
 
-// IInstallPrompt. listen() runs at registration rather than at module import, which is what keeps the
-// module itself side-effect free — the browser fires beforeinstallprompt once, early, so something has
-// to be listening before the app's own code runs.
-//
-// INSIDE the `||` guard, where the old rask-api.ts attached these listeners too. Outside it, a page
-// that evaluates this bundle twice — a front end importing it alongside the framework's own — attaches
-// them twice, which the window guard is there to prevent.
-window.__raskInstall = window.__raskInstall || (() => {
-    installPrompt.listen();
-    return {
-        canInstall: () => installPrompt.canInstall(),
-        isInstalled: () => installPrompt.isInstalled(),
-        prompt: () => installPrompt.prompt()
-    };
-})();
-
-// IMediaDevices. A MediaStream cannot cross interop, so streams are held here under a JS-minted id.
-// `get` and `adopt` are not part of the C# surface: they are how other framework helpers — __raskRtc
-// sending a captured stream to a peer, or registering a peer's remote stream — trade in the same ids.
+// Trigger.MediaCapture and IWebRtc. A MediaStream reaches C# as a handle (IJSObjectReference) it takes by id: the
+// gesture bridge and __raskRtc's ontrack post an id, since a DotNet.invokeMethodAsync result is data, and C# takes the
+// stream it names once, as `__raskMedia.take`, which hands the handle over and forgets the id.
 window.__raskMedia = window.__raskMedia || (() => {
-    const streams = new Map<number, MediaStream>();
+    const handed = new Map<number, MediaStream>();
     let nextId = 0;
 
-    const put = (stream: MediaStream) => {
+    const hand = (stream: MediaStream) => {
         const id = ++nextId;
-        streams.set(id, stream);
+        handed.set(id, stream);
         return id;
     };
 
     return {
-        isSupported: () => mediaDevices.isSupported(),
-        enumerate: () => mediaDevices.enumerate(),
-        getUserMedia: async (c: RaskMediaConstraints) =>
-            put(await mediaDevices.getUserMedia(c)),
-        getDisplayMedia: async () => put(await mediaDevices.getDisplayMedia()),
-        attach: (id: number, video: HTMLVideoElement | null) => {
-            const stream = streams.get(id);
-            if (!stream || !video) {
-                return Promise.resolve();
-            }
-            return mediaDevices.attach(video, stream);
-        },
-        stop: (id: number) => {
-            const stream = streams.get(id);
-            if (!stream) {
-                return;
-            }
-            streams.delete(id);
-            mediaDevices.stop(stream);
-        },
-        get: (id: number) => streams.get(id),
-        adopt: (stream: MediaStream) => put(stream)
-    };
-})();
-
-// ISpeechRecognition. The recognizer's options arrive as one object already, so this is close to a
-// pass-through; what it adds is the id-keyed stop.
-window.__raskSpeechRecognition = window.__raskSpeechRecognition || (() => {
-    const stops = new Map<number, () => void>();
-    return {
-        isSupported: () => speechRecognition.isSupported(),
-        start: (id: number, options: RaskSpeechOptions) => {
-            stops.set(id, speechRecognition.start(
-                (result) => window.DotNet.invokeMethodAsync("Rask.Core", "RaskSpeechResult", id, result),
-                options));
-        },
-        stop: (id: number) => {
-            const stop = stops.get(id);
-            if (!stop) {
-                return;
-            }
-            stops.delete(id);
-            stop();
+        getUserMedia: (c: RaskMediaConstraints) => mediaDevices.getUserMedia(c),
+        attach: (stream: MediaStream, video: HTMLVideoElement | null) =>
+            video ? mediaDevices.attach(video, stream) : Promise.resolve(),
+        hand,
+        take: (id: number) => {
+            const stream = handed.get(id);
+            handed.delete(id);
+            return stream ?? null;
         }
     };
 })();
-

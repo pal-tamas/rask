@@ -135,11 +135,25 @@ public static class WebRtcInterop
     }
 
     /// <summary>Infrastructure. Invoked by the JS bridge when the peer's media arrives; do not call.</summary>
+    /// <remarks>The stream was handed over under <paramref name="streamId" />: taken here, as a handle for the app.</remarks>
     [JSInvokable("RaskRtcTrack")]
-    public static Task Track(int id, int streamId) =>
-        TryOwned(id, out var r) && r.Handlers.OnTrack is not null
-            ? r.Handlers.OnTrack(new MediaStreamId(streamId))
-            : Task.CompletedTask;
+    public static async Task Track(int id, int streamId)
+    {
+        if (!TryOwned(id, out var r))
+        {
+            return;
+        }
+
+        // Taken even when nobody listens, so the browser forgets the id; the connection still stops the stream.
+        var stream = await r.Js.InvokeAsync<IJSObjectReference>("__raskMedia.take", streamId).ConfigureAwait(false);
+        if (r.Handlers.OnTrack is null)
+        {
+            await stream.DisposeAsync().ConfigureAwait(false);
+            return;
+        }
+
+        await r.Handlers.OnTrack(stream).ConfigureAwait(false);
+    }
 
     /// <summary>Infrastructure. Invoked by the JS bridge when a channel closes; do not call.</summary>
     [JSInvokable("RaskRtcChannelClosed")]

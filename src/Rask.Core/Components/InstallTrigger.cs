@@ -1,9 +1,9 @@
 namespace Rask.Core.Components;
 
 /// <summary>
-///     Show the PWA install prompt from a click gesture (works on Server, unlike the imperative
-///     <c>IInstallPrompt</c>). <see cref="OnOutcome" /> receives <c>"accepted"</c>, <c>"dismissed"</c>, or
-///     <c>"unavailable"</c> — the last when the app isn't installable (it needs a web manifest + service worker
+///     Show the PWA install prompt from a click gesture (works on Server, unlike Rask.Web's imperative
+///     <c>BeforeInstallPromptEvent.Prompt()</c>, which is WebAssembly-only): the prompt Rask.Web keeps from boot.
+///     <see cref="OnOutcome" /> receives <c>"accepted"</c>, <c>"dismissed"</c>, or <c>"unavailable"</c> — the last when the app isn't installable (it needs a web manifest + service worker
 ///     over HTTPS; on Server that means <c>AddRaskPwa</c>).
 /// </summary>
 [RaskChainGroup(typeof(global::Rask.Trigger))]

@@ -163,16 +163,17 @@ public sealed partial class PwaPage : Component
         new("install", "Install prompt", () =>
         [
             P.Class("text-ui-muted")[
-                "Show a custom \"Install app\" button via IInstallPrompt instead of the browser's default ",
-                "mini-infobar. The framework captures and defers the beforeinstallprompt event at boot, so you ",
-                "reveal your button when CanInstallAsync() is true and trigger PromptAsync() from the click. ",
-                "WASM-only — the install flow needs the live document and transient activation."
+                "Show your own \"Install app\" button with MDN's beforeinstallprompt from Rask.Web. The browser ",
+                "fires it once, as the page loads, before any component listens — so Rask.Web keeps it from boot ",
+                "and hands it to Window.OnBeforeInstallPrompt; the button's click calls Prompt() on it. ",
+                "Prompt() runs in WebAssembly — it needs the click's transient activation."
             ],
             CodeSample
                 .Files(["InstallPromptDemo.cs"])
-                .Notes("CanInstallAsync()/IsInstalledAsync() are one-shot polls; PromptAsync() replays the deferred "
-                    + "event and returns the user's InstallOutcome. The browser only offers it over HTTPS with a "
-                    + "valid manifest + service worker, once per load.")
+                .Notes("The kept BeforeInstallPromptEvent is spent once prompted; Prompt() answers MDN's "
+                    + "PromptResponseObject, whose UserChoice is Accepted or Dismissed. The browser only offers it over "
+                    + "HTTPS with a valid manifest + service worker, once per load. On the server host, Trigger.Install "
+                    + "shows the same kept prompt from markup.")
                 .Result(InstallPromptDemo)
         ]);
 
@@ -180,14 +181,15 @@ public sealed partial class PwaPage : Component
         new("wake-lock", "Wake lock", () =>
         [
             P.Class("text-ui-muted")[
-                "Keep the screen from dimming or locking via IWakeLock (the Screen Wake Lock API) — for timers, ",
-                "reading, or media. The lock is released automatically when the page is hidden and re-acquired ",
-                "when it returns."
+                "Keep the screen from dimming or locking with MDN's Screen Wake Lock API from Rask.Web — for ",
+                "timers, reading, or media. Every browser lets go of the lock when the page is hidden; Rask.Web asks ",
+                "for it again when the page is visible, so the sentinel holds until you release it."
             ],
             CodeSample
                 .Files(["WakeLockDemo.cs"])
-                .Notes("RequestAsync returns an IWakeLockSentinel (IAsyncDisposable); dispose it to release. "
-                    + "WASM-only — the lock is tied to the live document.")
+                .Notes("Navigator.WakeLock.Request(WakeLockType.Screen) answers a kept WakeLockSentinel: Release() "
+                    + "lets the screen sleep (Released turns true, OnRelease fires), and disposing of it lets the "
+                    + "handle go. It needs no click, so it runs on either host.")
                 .Result(WakeLockDemo)
         ]);
 

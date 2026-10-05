@@ -177,15 +177,13 @@ var raskGestureCaps: Record<string, (arg: string | null, el: HTMLElement | null)
         var c;
         try { c = arg ? JSON.parse(arg) : {}; } catch { c = {}; }
         const media = window.__raskMedia;
-        return media.getUserMedia(c).then(function (id: number) {
-            // Await the attach/play so a resolved id reflects a stream actually running in the <video>, not
-            // just permission; a play() hiccup on a muted stream still counts as granted (permission was
-            // given). Resolves the stream's ID rather than the literal "granted": MediaCaptureTrigger maps
-            // it back to "granted" for OnResult, and hands it to OnStream so a Server-hosted app can keep
-            // the stream — stop it, re-attach it, or send it to a WebRTC peer. Before this the stream was
-            // unreachable from C# on the Server host.
-            return Promise.resolve(media.attach(id, el)).then(
-                function () { return String(id); }, function () { return String(id); });
+        return media.getUserMedia(c).then(function (stream: MediaStream) {
+            // Await the attach/play so a resolved id reflects a stream actually running in the <video>, not just
+            // permission; a play() hiccup on a muted stream still counts as granted (permission was given). Resolves
+            // the id the stream is handed over under rather than the literal "granted": MediaCaptureTrigger maps it
+            // back to "granted" for OnResult, and takes the stream it names for OnStream, as a handle C# keeps.
+            const handed = function () { return String(media.hand(stream)); };
+            return Promise.resolve(media.attach(stream, el)).then(handed, handed);
         }, function () { return "denied"; });
     }
 };

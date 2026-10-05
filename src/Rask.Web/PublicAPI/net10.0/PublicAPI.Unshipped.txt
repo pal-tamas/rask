@@ -5303,15 +5303,8 @@ Rask.Web.Types.SourceBuffer.Updating.get -> System.Threading.Tasks.ValueTask<boo
 Rask.Web.Types.SourceBufferList
 Rask.Web.Types.SourceBufferList.Length.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.SpeechRecognitionAlternative
-Rask.Web.Types.SpeechRecognitionAlternative.Confidence.get -> System.Threading.Tasks.ValueTask<double>
-Rask.Web.Types.SpeechRecognitionAlternative.Transcript.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.SpeechRecognitionResult
-Rask.Web.Types.SpeechRecognitionResult.IsFinal.get -> System.Threading.Tasks.ValueTask<bool>
-Rask.Web.Types.SpeechRecognitionResult.Item(int index) -> Rask.Web.Types.SpeechRecognitionAlternative!
-Rask.Web.Types.SpeechRecognitionResult.Length.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.SpeechRecognitionResultList
-Rask.Web.Types.SpeechRecognitionResultList.Item(int index) -> Rask.Web.Types.SpeechRecognitionResult!
-Rask.Web.Types.SpeechRecognitionResultList.Length.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.SpeechSynthesis
 Rask.Web.Types.SpeechSynthesis.Cancel() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.SpeechSynthesis.Pause() -> System.Threading.Tasks.ValueTask
@@ -16973,3 +16966,42 @@ virtual Rask.Web.Types.MediaTrackConstraintSet.<Clone>$() -> Rask.Web.Types.Medi
 virtual Rask.Web.Types.MediaTrackConstraintSet.EqualityContract.get -> System.Type!
 virtual Rask.Web.Types.MediaTrackConstraintSet.Equals(Rask.Web.Types.MediaTrackConstraintSet? other) -> bool
 virtual Rask.Web.Types.MediaTrackConstraintSet.PrintMembers(System.Text.StringBuilder! builder) -> bool
+Rask.Web.Types.SpeechRecognitionAlternative.<Clone>$() -> Rask.Web.Types.SpeechRecognitionAlternative!
+Rask.Web.Types.SpeechRecognitionAlternative.Confidence.get -> double
+Rask.Web.Types.SpeechRecognitionAlternative.Confidence.init -> void
+Rask.Web.Types.SpeechRecognitionAlternative.Equals(Rask.Web.Types.SpeechRecognitionAlternative? other) -> bool
+Rask.Web.Types.SpeechRecognitionAlternative.SpeechRecognitionAlternative() -> void
+Rask.Web.Types.SpeechRecognitionAlternative.Transcript.get -> string!
+Rask.Web.Types.SpeechRecognitionAlternative.Transcript.init -> void
+Rask.Web.Types.SpeechRecognitionResult.<Clone>$() -> Rask.Web.Types.SpeechRecognitionResult!
+Rask.Web.Types.SpeechRecognitionResult.Equals(Rask.Web.Types.SpeechRecognitionResult? other) -> bool
+Rask.Web.Types.SpeechRecognitionResult.IsFinal.get -> bool
+Rask.Web.Types.SpeechRecognitionResult.IsFinal.init -> void
+Rask.Web.Types.SpeechRecognitionResult.Items.get -> Rask.Web.Types.SpeechRecognitionAlternative![]!
+Rask.Web.Types.SpeechRecognitionResult.Items.init -> void
+Rask.Web.Types.SpeechRecognitionResult.Length.get -> int
+Rask.Web.Types.SpeechRecognitionResult.SpeechRecognitionResult() -> void
+Rask.Web.Types.SpeechRecognitionResult.this[int index].get -> Rask.Web.Types.SpeechRecognitionAlternative!
+Rask.Web.Types.SpeechRecognitionResultList.<Clone>$() -> Rask.Web.Types.SpeechRecognitionResultList!
+Rask.Web.Types.SpeechRecognitionResultList.Equals(Rask.Web.Types.SpeechRecognitionResultList? other) -> bool
+Rask.Web.Types.SpeechRecognitionResultList.Items.get -> Rask.Web.Types.SpeechRecognitionResult![]!
+Rask.Web.Types.SpeechRecognitionResultList.Items.init -> void
+Rask.Web.Types.SpeechRecognitionResultList.Length.get -> int
+Rask.Web.Types.SpeechRecognitionResultList.SpeechRecognitionResultList() -> void
+Rask.Web.Types.SpeechRecognitionResultList.this[int index].get -> Rask.Web.Types.SpeechRecognitionResult!
+override Rask.Web.Types.SpeechRecognitionAlternative.Equals(object? obj) -> bool
+override Rask.Web.Types.SpeechRecognitionAlternative.GetHashCode() -> int
+override Rask.Web.Types.SpeechRecognitionAlternative.ToString() -> string!
+override Rask.Web.Types.SpeechRecognitionResult.Equals(object? obj) -> bool
+override Rask.Web.Types.SpeechRecognitionResult.GetHashCode() -> int
+override Rask.Web.Types.SpeechRecognitionResult.ToString() -> string!
+override Rask.Web.Types.SpeechRecognitionResultList.Equals(object? obj) -> bool
+override Rask.Web.Types.SpeechRecognitionResultList.GetHashCode() -> int
+override Rask.Web.Types.SpeechRecognitionResultList.ToString() -> string!
+static Rask.Web.Types.SpeechRecognitionAlternative.operator !=(Rask.Web.Types.SpeechRecognitionAlternative? left, Rask.Web.Types.SpeechRecognitionAlternative? right) -> bool
+static Rask.Web.Types.SpeechRecognitionAlternative.operator ==(Rask.Web.Types.SpeechRecognitionAlternative? left, Rask.Web.Types.SpeechRecognitionAlternative? right) -> bool
+static Rask.Web.Types.SpeechRecognitionResult.operator !=(Rask.Web.Types.SpeechRecognitionResult? left, Rask.Web.Types.SpeechRecognitionResult? right) -> bool
+static Rask.Web.Types.SpeechRecognitionResult.operator ==(Rask.Web.Types.SpeechRecognitionResult? left, Rask.Web.Types.SpeechRecognitionResult? right) -> bool
+static Rask.Web.Types.SpeechRecognitionResultList.operator !=(Rask.Web.Types.SpeechRecognitionResultList? left, Rask.Web.Types.SpeechRecognitionResultList? right) -> bool
+static Rask.Web.Types.SpeechRecognitionResultList.operator ==(Rask.Web.Types.SpeechRecognitionResultList? left, Rask.Web.Types.SpeechRecognitionResultList? right) -> bool
+static Rask.Web.MediaStream.From(Microsoft.JSInterop.IJSObjectReference! stream) -> Rask.Web.Types.MediaStream!

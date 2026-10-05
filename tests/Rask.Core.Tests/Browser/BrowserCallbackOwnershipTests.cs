@@ -14,28 +14,30 @@ public class BrowserCallbackOwnershipTests
     public async Task A_watch_answers_only_the_session_that_registered_it()
     {
         var mine = new FakeJsRuntime();
-        RecognitionResult? seen = null;
-        var id = SpeechRecognitionInterop.Register(mine, reading =>
+        string? seen = null;
+        var id = SignalingInterop.Register(mine, new SignalingHandlers
         {
-            seen = reading;
-            return Task.CompletedTask;
+            OnSignal = (_, payload) =>
+            {
+                seen = payload;
+                return Task.CompletedTask;
+            },
         });
-        var reading = new RecognitionResult("hello", IsFinal: true, Confidence: 0.9);
 
         using (JsCaller.Enter(new FakeJsRuntime()))
         {
-            await SpeechRecognitionInterop.Result(id, reading);
+            await SignalingInterop.Message(id, "signal", "peer-1", "hello");
         }
 
         var fromAnotherSession = seen;
         using (JsCaller.Enter(mine))
         {
-            await SpeechRecognitionInterop.Result(id, reading);
+            await SignalingInterop.Message(id, "signal", "peer-1", "hello");
         }
 
-        SpeechRecognitionInterop.Unregister(id);
+        SignalingInterop.Unregister(id);
         Assert.Null(fromAnotherSession);
-        Assert.Same(reading, seen);
+        Assert.Equal("hello", seen);
     }
 
     [Fact]

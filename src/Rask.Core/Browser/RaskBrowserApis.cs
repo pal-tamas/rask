@@ -46,7 +46,6 @@ public static class RaskBrowserApis
         AddPageAndDeviceApis(services, lifetime);
         AddObserverAndMediaApis(services, lifetime);
         AddStorageAndSecurityApis(services, lifetime);
-        AddPwaApis(services, lifetime);
         return services;
     }
 
@@ -57,8 +56,6 @@ public static class RaskBrowserApis
 
     private static void AddObserverAndMediaApis(IServiceCollection services, ServiceLifetime lifetime)
     {
-        services.AddBrowserApi<ISpeechRecognition, SpeechRecognition>(lifetime);
-        services.AddBrowserApi<IMediaStreams, MediaStreams>(lifetime);
         services.AddBrowserApi<ISignaling, Signaling>(lifetime);
         services.AddBrowserApi<IWebRtc, WebRtc>(lifetime);
     }
@@ -67,12 +64,5 @@ public static class RaskBrowserApis
     {
         services.AddBrowserApi<IIndexedDb, IndexedDb>(lifetime);
         services.AddBrowserApi<IWebAuthn, WebAuthn>(lifetime);
-    }
-
-    // The transport-agnostic screen wake lock (IJSRuntime-backed, no transient activation). Push is MDN's own
-    // PushManager from Rask.Web, reached through the service worker the host registers.
-    private static void AddPwaApis(IServiceCollection services, ServiceLifetime lifetime)
-    {
-        services.AddBrowserApi<IWakeLock, WakeLock>(lifetime);
     }
 }

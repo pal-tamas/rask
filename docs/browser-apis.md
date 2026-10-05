@@ -13,9 +13,8 @@ This page is the **map of the whole surface**. For an at-a-glance view of *where
 under [`docs/apis/`](apis/). For the deeper "why" — user activation, the transport seam, element
 refs — see [JS interop → Typed browser APIs](js-interop-runtime.md#typed-browser-apis); for the mobile/PWA
 angle see the [Mobile & PWA guide](pwa.md). Every wrapper has a runnable demo in the
-[showcase](https://rask.sh/docs/), under **Browser APIs** — except the WASM-only tier
-plus `IWakeLock`, which gets its own page under **PWA** because they need something the
-Server transport can't give them. (The activation-gated ones appear in both: as gesture components
+[showcase](https://rask.sh/docs/), under **Browser APIs** — except the WASM-only tier, which gets its own page under
+**PWA** because it needs something the Server transport can't give it. (The activation-gated ones appear in both: as gesture components
 under Browser APIs, and as injectable services or Rask.Web calls under PWA.)
 
 ## Two homes, one rule

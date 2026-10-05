@@ -8,14 +8,15 @@ share sheet, geolocation, clipboard) through typed C# — the same component cod
 > **WASM vs Server.** A WASM app gets the *full* PWA: install, **true offline**, push, and every device
 > API. A **Server** app (opt in with `AddRaskPwa`) is **installable + push-capable** — manifest, Web Push
 > subscribe, local notifications, app badge, and wake lock all work — but it is **not an offline app**:
-> it renders over a live WebSocket, so offline navigations show a static offline page, and there is no
-> install-prompt replay, and no **background sync** (both stay WASM-only). See
+> it renders over a live WebSocket, so offline navigations show a static offline page, a custom install button
+> uses the declarative `Trigger.Install` (the imperative `Prompt()` stays WASM-only), and there is no
+> **background sync** (WASM-only). See
 > [choosing a host template](getting-started.md#1-scaffold-a-project) and
 > [PWA on the Server host](#pwa-on-the-server-host) below.
 
 - [Make your app a PWA](#make-your-app-a-pwa)
 - [Installable — the web app manifest](#installable--the-web-app-manifest)
-- [Custom install button (`IInstallPrompt`)](#custom-install-button-iinstallprompt)
+- [Custom install button (`Window.OnBeforeInstallPrompt`)](#custom-install-button-windowonbeforeinstallprompt)
 - [Offline — the service worker](#offline--the-service-worker)
 - [Background sync (`IBackgroundSync`)](#background-sync-ibackgroundsync)
 - [Push notifications (`PushManager`)](#push-notifications-pushmanager)
@@ -96,43 +97,53 @@ host.UsePwa(new WebAppManifest
 
 ---
 
-## Custom install button (`IInstallPrompt`)
+## Custom install button (`Window.OnBeforeInstallPrompt`)
 
 By default the browser shows its own small "install" hint. To present your **own** install button
-instead, inject `IInstallPrompt` (WASM-only). The framework captures the browser's
-`beforeinstallprompt` event at boot and defers it, so you can replay it from a user gesture:
+instead, listen for MDN's `beforeinstallprompt` with `Window.OnBeforeInstallPrompt` from
+[`Rask.Web`](web-apis.md#where-a-browser-falls-short). The browser fires it once, at load, before any component
+can subscribe, so Rask keeps it from boot and hands it to each later subscriber until it is spent:
 
 ```csharp
-using Rask.Wasm.Browser;
+using Rask.Web;
 
-public sealed partial class InstallButton(IInstallPrompt install) : Component
+public sealed partial class InstallButton : Component
 {
-    private bool _canInstall;
+    private Rask.Web.Types.BeforeInstallPromptEvent? _prompt;
+    private IAsyncDisposable? _offer;
 
     protected override async Task OnFirstRender()
     {
-        _canInstall = !await install.IsInstalledAsync() && await install.CanInstallAsync();
-        StateHasChanged();
+        if (await Window.MatchMedia("(display-mode: standalone)").Matches) return;   // already installed
+        _offer = await Window.OnBeforeInstallPrompt(e => _prompt = e);
     }
 
-    protected override Component? Render() => _canInstall
+    protected override Component? Render() => _prompt is not null
         ? Button.OnClick(Prompt)["Install app"]
         : Text("");
 
     private async Task Prompt()
     {
-        var outcome = await install.PromptAsync();   // Accepted / Dismissed / Unavailable
-        _canInstall = false;                          // the prompt is one-shot
-        StateHasChanged();
+        var answer = await _prompt!.Prompt();
+        var accepted = answer.UserChoice == AppBannerPromptOutcome.Accepted;
+        _prompt = null;                                    // the prompt is one-shot
+    }
+
+    protected override async Task OnUnmount()
+    {
+        if (_offer is not null) await _offer.DisposeAsync();
     }
 }
 ```
 
+`Prompt()` needs the click, so it runs in a **WASM** app. On the Server host, the declarative
+`Trigger.Install` shows the same kept prompt inside the click. `Window.OnAppInstalled(…)` tells you when the
+user installed the app.
+
 The browser only fires `beforeinstallprompt` when its install criteria are met (valid manifest,
-service worker, HTTPS) and **once per page load**, so gate your button on `CanInstallAsync()` and hide
-it once `IsInstalledAsync()` is true. iOS Safari has no `beforeinstallprompt` (users install via the
-Share sheet), so `CanInstallAsync()` returns `false` there — keep your manual "Add to Home Screen"
-hint as a fallback.
+service worker, HTTPS) and **once per page load**, so show your button only once the event has arrived, and hide
+it when `(display-mode: standalone)` matches. iOS Safari has no `beforeinstallprompt` (users install via the
+Share sheet), so the handler never runs there — keep your manual "Add to Home Screen" hint as a fallback.
 
 ---
 
@@ -331,8 +342,8 @@ builder.Services.AddRaskPwa(new WebAppManifest
   server-rendered `<head>` — no boot-time JS injection;
 - **serves Rask's service worker** at `{PathBase}/rask-sw.js` and **auto-registers it**, so the app
   meets install criteria with no extra wiring;
-- works with `IWakeLock`, which `AddRask()` already registers, and with MDN's `PushManager`, `Notification` and
-  `Navigator.SetAppBadge` from [`Rask.Web`](web-apis.md).
+- works with MDN's `Navigator.WakeLock`, `PushManager`, `Notification` and `Navigator.SetAppBadge` from
+  [`Rask.Web`](web-apis.md).
 
 Then ship a static **`wwwroot/offline.html`** (the SW serves it on failed navigations) and, to send
 push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
@@ -340,9 +351,9 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
 > **What you don't get on Server.** A Server app renders over a live WebSocket, so it is **not an
 > offline app**: the service worker deliberately does **not** cache the server-rendered shell (it
 > carries a one-shot session id and is served `no-store`), so offline navigations show `offline.html`
-> rather than a dead cached page. The **install-prompt replay** (`IInstallPrompt`) and the
-> activation-bound imperative device APIs (`GetDisplayMedia()`, `RequestFullscreen()`, …) are not
-> available on Server, and neither is [**background sync**](#background-sync-ibackgroundsync) — it rides
+> rather than a dead cached page. The activation-bound imperative calls (the install event's `Prompt()`,
+> `GetDisplayMedia()`, `RequestFullscreen()`, …) are not available on Server (`Trigger.Install` and the other
+> gesture triggers run them in the click instead), and neither is [**background sync**](#background-sync-ibackgroundsync) — it rides
 > the service-worker registration and needs a client-side runtime to wake into, which a WebSocket-rendered
 > app does not have. The honest framing: *installable + push + native-feel, not an offline app.* (Sharing
 > still works on Server via the headless `Shareable` in `Rask.Core`, which fires `navigator.share` in the
@@ -354,7 +365,7 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
 
 The browser APIs that make a web app feel native. Rows marked *(Rask.Web)* are MDN's own surface from
 [`Rask.Web`](web-apis.md) (imported for you); the rest are typed wrappers. Everything in `Rask.Core.Browser`
-works on **both transports** (and is registered on Server too) — including the PWA API `IWakeLock`, and the
+works on **both transports** (and is registered on Server too), as do the screen wake lock from `Rask.Web` and the
 headless declarative `Shareable` *(all hosts)*. The
 `*(WASM)*` ones need a live user gesture or the installed-app instance the Server round-trip can't carry: the
 device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server.
@@ -381,7 +392,7 @@ device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server
 | **Cross-tab messaging** | `BroadcastChannel.Create(name)` *(Rask.Web)* | `PostMessage` / `OnMessage` — sync sign-out, theme, "data updated" across tabs |
 | **Local notifications** | `Notification.Create(title, …)` *(Rask.Web)* | Show a notification from the page (no server); `Notification.RequestPermission()` *(WASM)* first |
 | **App badge** | `Navigator.SetAppBadge(3)` *(Rask.Web)* | Unread count on the installed icon (`SetAppBadge(3)` / `ClearAppBadge()`) |
-| **Wake lock** | `IWakeLock` | Keep the screen awake; dispose the sentinel to release |
+| **Wake lock** | `Navigator.WakeLock.Request(WakeLockType.Screen)` *(Rask.Web)* | Keep the screen awake; `Release()` the sentinel to let it sleep |
 | **Device tilt / motion** | `Window.OnDeviceOrientation` / `OnDeviceMotion` *(Rask.Web)* | Gyroscope and accelerometer events; `every:` throttles them in the browser |
 | **Screen orientation** | `Screen.Orientation` *(Rask.Web)* | Read orientation; `Lock(…)` *(WASM)* / `Unlock()` (needs fullscreen) |
 | **Fullscreen** | `_stage.RequestFullscreen()` *(Rask.Web, WASM)* | Present an element fullscreen; `Document.ExitFullscreen()` leaves |
@@ -400,10 +411,13 @@ device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server
 app's icon. `SetAppBadge()` shows a plain dot and `ClearAppBadge()` removes it. It does nothing in a normal browser
 tab. Pair it with notifications or push to show an unread count.
 
-**Wake lock.** `IWakeLock.RequestAsync()` returns an `IWakeLockSentinel`; keep it while the screen
-should stay on and `DisposeAsync()` (e.g. `await using`, or from a component's `DisposeAsync`) to
-release. Browsers auto-release when the page is hidden — the framework re-acquires held locks when it
-becomes visible again, so a sentinel stays effective until you dispose it.
+**Wake lock.** `_sentinel = await Navigator.WakeLock.Request(WakeLockType.Screen)` from
+[`Rask.Web`](web-apis.md#where-a-browser-falls-short) keeps the screen on, on both hosts, with no click needed. Keep
+the sentinel while the screen should stay on, then `await _sentinel.Release()` and `await _sentinel.DisposeAsync()`.
+Disposing alone does **not** release the lock, just as dropping a sentinel in JS doesn't. Every browser drops the
+lock when the page is hidden; Rask takes it again each time the page becomes visible, so the sentinel holds until
+you release it. `Released` turns true and `OnRelease` fires once — when you release it, or when the browser refuses
+it back.
 
 **Screen orientation.** `await Screen.Orientation.Type` and `await Screen.Orientation.Angle` read it.
 `await Screen.Orientation.Lock(…)` (WASM, in a click) and `Unlock()` lock it — locking usually requires fullscreen
@@ -419,7 +433,8 @@ allow the lock in fullscreen.
 from [`Rask.Web`](web-apis.md#keeping-an-object) asks for the camera and hands back a kept `MediaStream`.
 `await _video.SetSrcObject(stream)` shows it. Stop it with `await stream.GetTracks()` and `Stop()` on each track.
 Screen capture is `GetDisplayMedia()` (WASM, in the click). On the Server host, `Trigger.MediaCapture` runs the
-camera in the click too.
+camera in the click too: `.OnStream(stream => _camera = MediaStream.From(stream))` keeps the stream, and
+`foreach (var t in await _camera.GetTracks()) await t.Stop();` stops it.
 
 **Device tilt and motion.** `await Window.OnDeviceOrientation(e => _angle = e.Alpha, every: 100.Milliseconds)` and
 `Window.OnDeviceMotion(e => …, every: …)` from [`Rask.Web`](web-apis.md#events-and-callbacks) follow the gyroscope

@@ -9,7 +9,8 @@ Where each wrapper lives, how declarative and imperative sharing differ, and how
 Work identically on Server and WASM. **Shape** is *one-shot* (a request/response call) or
 *subscription* (you hold an `IAsyncDisposable` and the browser **pushes** updates to a C# handler — see
 [Subscriptions](#subscriptions--the-push-pattern)). Storage, clipboard, geolocation, `matchMedia`, the screen, cookies, crypto,
-permissions, `BroadcastChannel`, media session, Web Locks, the storage estimate, speech synthesis, animations, files,
+permissions, `BroadcastChannel`, media session, Web Locks, the storage estimate, speech synthesis and recognition, the
+screen wake lock, the install prompt, live media streams, animations, files,
 gamepads, notifications, the app badge and the rest of what the browser ships are MDN's own surface in
 [`Rask.Web`](web-apis.md), not wrappers. Device tilt and motion are `Window` events there:
 `await Window.OnDeviceOrientation(e => _angle = e.Alpha, every: 100.Milliseconds)`, where `every:` throttles them in the
@@ -17,17 +18,14 @@ browser before they cross.
 
 | Service | Wraps | What it does | Shape |
 | --- | --- | --- | --- |
-| `ISpeechRecognition` | `webkitSpeechRecognition` | Dictation — spoken audio → text | **subscription** |
 | `IIndexedDb` | IndexedDB | `OpenStoreAsync(name)` → large async key/value store | one-shot |
 | `IWebAuthn` | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot |
-| `IMediaStreams` | `MediaStream` | Attach a live stream to a `<video>`, or stop it (releasing the camera) | one-shot |
 | `ISignaling` | WebSocket | Join a room on Rask's signaling relay and pass payloads to one peer | **subscription** |
 | `IWebRtc` | WebRTC | Peer-to-peer data channels between two browsers (you supply the signaling) | **subscription** |
-| `IWakeLock` | Screen Wake Lock API | Keep the screen awake (sentinel; dispose to release) | one-shot |
 
-The last is a **PWA** API but transport-agnostic (`IJSRuntime`-backed, no transient activation), so it
-registers on Server too — its JS helper just ships on the Server client only under `AddRaskPwa` (see
-[pwa.md](pwa.md)). Web Push subscription is MDN's own `PushManager`, from [`Rask.Web`](web-apis.md#keeping-an-object).
+The screen wake lock is `await Navigator.WakeLock.Request(WakeLockType.Screen)` and dictation is
+`await SpeechRecognition.Create()`, both from [`Rask.Web`](web-apis.md#where-a-browser-falls-short) on every host.
+Web Push subscription is MDN's own `PushManager`, from [`Rask.Web`](web-apis.md#keeping-an-object).
 
 ## Sharing — declarative (all hosts) vs imperative (in-process)
 
@@ -73,7 +71,7 @@ Trigger.Install.Template(g => Button.Type("button").Data(g)["Install app"])
 Trigger.MediaCapture.For(preview).Template(g => Button.Type("button").Data(g)["Start camera"])
     .Video()
     // Keeps the stream reachable from C# — the only way a Server-hosted app can stop it later.
-    .OnStream(id => camera = id)
+    .OnStream(stream => camera = MediaStream.From(stream))
 Trigger.PictureInPicture.For(preview).Template(g => Button.Type("button").Data(g)["Pop out video"])
 ```
 
@@ -92,10 +90,12 @@ installed-PWA instance / live document, or a browser-only device API. WebUSB, We
 `await _stage.RequestFullscreen()` and `await _video.RequestPictureInPicture()` on an element ref there. The camera
 and microphone are `await Navigator.MediaDevices.GetUserMedia(new() { Video = new() })` (every host) and screen
 capture is `GetDisplayMedia()` (WASM); show the stream with `await _video.SetSrcObject(stream)`.
+A custom "Install app" button is `Window.OnBeforeInstallPrompt(e => _prompt = e)`, then `await _prompt.Prompt()` in the
+click (WASM); `Trigger.Install` is the declarative one that also works on Server. See
+[Where a browser falls short](web-apis.md#where-a-browser-falls-short).
 
 | Service | Wraps | What it does | Why WASM-only |
 | --- | --- | --- | --- |
-| `IInstallPrompt` | `beforeinstallprompt` | Custom "Install app" button: capture + replay the deferred prompt | live document + activation |
 | `IBackgroundSync` | Background Sync + Periodic Background Sync | Ask the browser to wake the app when connectivity returns, or on a schedule, to drain an offline queue | service-worker registration |
 
 PWA infrastructure (the typed `WebAppManifest`, the default service worker, `--pwa` templates) is

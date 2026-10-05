@@ -2,9 +2,9 @@
 // These back APIs that can't work on the Server transport, so they must not ship in the Server
 // client (rask.js) — keeping the Core shared rask-api.js / rask-pwa.js to genuinely-shared helpers only.
 //
-// The transport-agnostic PWA helpers (__raskPush, __raskWakeLock) live in
-// Rask.Core/Resources/rask-pwa.js and are spliced into both clients; only the manifest injector and the
-// install-prompt capture (which need page-side boot behaviour WASM provides) stay here.
+// Push, notifications, the badge and the wake lock are MDN's own, from Rask.Web; the install prompt is kept from boot
+// by Rask.Web's patches in the shared runtime (Rask.Core/Resources/rask-web-patches.ts). Only the manifest injector
+// (page-side boot behaviour WASM provides) stays here.
 
 // PWA web app manifest (driven by WasmHostBuilder.UseManifest / WebAppManifest). Applied at boot:
 // relative URLs are made absolute (against <base href>, so sub-path deploys stay correct), then the
@@ -72,14 +72,9 @@ window.__raskPwa = window.__raskPwa || {
     }
 };
 
-// __raskInstall / __raskOrientation / __raskMedia / __raskPip moved to Rask.Core/Resources/rask-api.js so
-// they also ship to the Server client — the declarative InstallTrigger / ScreenOrientationTrigger /
-// MediaCaptureTrigger / PictureInPictureTrigger drive them inside the click gesture there (and __raskInstall
-// must self-arm its beforeinstallprompt listener at boot on both transports). The imperative IInstallPrompt /
-// IMediaDevices service stays WASM-only.
-
-// __raskWakeLock is transport-agnostic and live in
-// Rask.Core/Resources/rask-pwa.js (spliced into both clients) — they are not duplicated here.
+// __raskInstall / __raskOrientation / __raskMedia / __raskPip live in the shared Rask.Core/Resources/rask-api.js and
+// browser/globals.js so they also ship to the Server client — the declarative InstallTrigger /
+// ScreenOrientationTrigger / MediaCaptureTrigger / PictureInPictureTrigger drive them inside the click gesture there.
 
 // __raskFullscreen / __raskEyeDropper also moved to Rask.Core/Resources/rask-api.js (same reason — the
 // declarative FullscreenTrigger / EyeDropperTrigger drive them on the Server client). The imperative

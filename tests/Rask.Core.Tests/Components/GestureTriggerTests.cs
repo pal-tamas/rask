@@ -1,5 +1,8 @@
 using System.Text.RegularExpressions;
-using Rask.Core.Browser;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.JSInterop;
+using Rask.Core.Forms;
+using Rask.Core.Tests.Interop;
 
 namespace Rask.Core.Tests.Components;
 
@@ -122,22 +125,54 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Media_capture_trigger_hands_the_stream_id_to_on_stream_and_still_says_granted_to_on_result()
+    public async Task Media_capture_trigger_takes_the_stream_by_its_id_for_on_stream_and_still_says_granted()
     {
-        // The capability now resolves the stream's id instead of the literal "granted". OnResult must keep
-        // its original vocabulary — the id is an addition, not a replacement.
-        MediaStreamId? stream = null;
+        // The capability resolves the id the stream is handed over under, instead of the literal "granted".
+        // The trigger takes the stream by it, as a handle, from the page it rendered in; OnResult keeps its
+        // original vocabulary — the stream is an addition, not a replacement.
+        var js = new FakeJsRuntime();
+        var handle = new FakeJsObject();
+        js.SetResponse("__raskMedia.take", handle);
+        IJSObjectReference? stream = null;
         string? result = null;
-        var html = Trigger.MediaCapture
-            .For(ElementRef.New())
-            .Template(g => Button.Type("button").Data(g)["Start camera"])
-            .OnStream(id => { stream = id; return Task.CompletedTask; })
-            .OnResult(value => { result = value; return Task.CompletedTask; }).ToHtml();
+        string html;
+        using (DispatchServicesScope.Push(new ServiceCollection().AddSingleton<IJSRuntime>(js).BuildServiceProvider()))
+        {
+            html = Trigger.MediaCapture
+                .For(ElementRef.New())
+                .Template(g => Button.Type("button").Data(g)["Start camera"])
+                .OnStream(s => { stream = s; return Task.CompletedTask; })
+                .OnResult(value => { result = value; return Task.CompletedTask; }).ToHtml();
+        }
 
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
         await GestureResultInterop.Result(rid, "12");
 
-        Assert.Equal(new MediaStreamId(12), stream);
+        Assert.Equal([12], js.ArgsFor("__raskMedia.take"));
+        Assert.Same(handle, stream);
+        Assert.Equal("granted", result);
+    }
+
+    [Fact]
+    public async Task Media_capture_trigger_with_only_on_result_still_takes_the_stream_and_lets_its_handle_go()
+    {
+        var js = new FakeJsRuntime();
+        var handle = new FakeJsObject();
+        js.SetResponse("__raskMedia.take", handle);
+        string? result = null;
+        string html;
+        using (DispatchServicesScope.Push(new ServiceCollection().AddSingleton<IJSRuntime>(js).BuildServiceProvider()))
+        {
+            html = Trigger.MediaCapture
+                .For(ElementRef.New())
+                .Template(g => Button.Type("button").Data(g)["Start camera"])
+                .OnResult(value => { result = value; return Task.CompletedTask; }).ToHtml();
+        }
+
+        var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
+        await GestureResultInterop.Result(rid, "3");
+
+        Assert.True(handle.Disposed);
         Assert.Equal("granted", result);
     }
 

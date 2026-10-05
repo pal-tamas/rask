@@ -82,25 +82,30 @@ wrapper can hide — only your signaling knows when the exchange completed.
 
 ## Sending camera, microphone or screen
 
-Acquire a stream, then hand its [`MediaStreamId`](media-streams.md) to the connection:
+Acquire a stream, then hand it to the connection. A stream crosses as an `IJSObjectReference`, a handle to the
+browser's `MediaStream`:
 
 ```csharp
-// Server host: the click gesture acquires it, OnStream hands back the id.
+// Server host: the click gesture acquires it, OnStream hands back the handle.
 Trigger.MediaCapture.For(_preview).Template(g => Button.Type("button").Data(g)["Start camera"])
     .Video().Audio()
-    .OnStream(async id => await _conn!.AddStreamAsync(id))
+    .OnStream(async stream => await _conn!.AddStreamAsync(stream))
 
-// The peer's media comes back the same way, and attaches like any other stream.
-new RtcHandlers { OnTrack = id => streams.AttachToAsync(id, _remoteVideo) }
+// The peer's media comes back the same way. Rask.Web wraps it to show it.
+new RtcHandlers { OnTrack = async stream => await _remoteVideo.SetSrcObject(MediaStream.From(stream)) }
 ```
 
-Screen sharing needs nothing extra — `getDisplayMedia` yields the same kind of id as the camera.
+`_remoteVideo` is an `ElementRef<HTMLVideoElement>`, and `MediaStream` comes from
+[`Rask.Web`](../web-apis.md#on-an-element-ref) (`using Rask.Web;`). The connection takes a stream a Rask service
+handed you as a handle; one you kept from Rask.Web itself (`Navigator.MediaDevices.GetDisplayMedia()`) cannot be
+handed to it yet.
 
 `OnTrack` fires **once per stream, not per track**: a peer sending camera and microphone sends two tracks in
 one stream, and the stream is what you attach.
 
 Ownership splits in the way you'd want. A stream **you** added stays yours — disposing the connection stops
-sending it but leaves it running, so stop it yourself with `IMediaStreams.StopAsync`. A **remote** stream
+sending it but leaves it running, so stop it yourself:
+`foreach (var t in await MediaStream.From(stream).GetTracks()) await t.Stop();`. A **remote** stream
 from `OnTrack` belongs to the connection, and disposing the connection stops it.
 
 Adding or removing a stream **renegotiates**: exchange a fresh offer/answer afterwards, or the peer never

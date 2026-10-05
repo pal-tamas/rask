@@ -431,26 +431,6 @@ public static class GuideCatalog
             SearchTitle = "IndexedDB in C# and .NET (IIndexedDb)",
             Description = "Store strings and byte arrays in IndexedDB from C# through an async key/value store. Works on Server and WebAssembly; bytes are kept as a real Uint8Array.",
         },
-        new("install-prompt", "IInstallPrompt", "Typed browser API: IInstallPrompt.", "Browser API reference", "apis/install-prompt.md")
-        {
-            SearchTitle = "PWA Install Prompt (beforeinstallprompt) in C#",
-            Description = "Capture the beforeinstallprompt event and replay the PWA install prompt from C#. IInstallPrompt is WASM-only; on Server, Trigger.Install reports the outcome.",
-        },
-        new("media-streams", "IMediaStreams", "Typed browser API: IMediaStreams.", "Browser API reference", "apis/media-streams.md")
-        {
-            SearchTitle = "MediaStream in C#: Attach and Stop (IMediaStreams)",
-            Description = "Attach a live MediaStream to a video element or stop its tracks from C#, whether from capture or a WebRTC peer. Works on every host without a gesture.",
-        },
-        new("speech-recognition", "ISpeechRecognition", "Typed browser API: ISpeechRecognition.", "Browser API reference", "apis/speech-recognition.md")
-        {
-            SearchTitle = "Speech Recognition API in C# (ISpeechRecognition)",
-            Description = "Turn speech into text from C# with ISpeechRecognition, which pushes final or interim transcripts to a callback. SpeechRecognition is Chromium-only.",
-        },
-        new("wake-lock", "IWakeLock", "Typed browser API: IWakeLock.", "Browser API reference", "apis/wake-lock.md")
-        {
-            SearchTitle = "Screen Wake Lock API in C# and .NET (IWakeLock)",
-            Description = "Keep the screen awake from C# with IWakeLock and release it by disposing the sentinel. The Screen Wake Lock API drops the lock when the page is hidden.",
-        },
         new("webauthn", "IWebAuthn", "Typed browser API: IWebAuthn.", "Browser API reference", "apis/webauthn.md")
         {
             SearchTitle = "WebAuthn Passkeys in C# and .NET (IWebAuthn)",

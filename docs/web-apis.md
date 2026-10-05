@@ -109,6 +109,10 @@ writes are here: a read of the element's own state (its `classList`, `style`, `d
 nothing that holds the page's nodes (an `HTMLCollection`) is generated. A ref whose element has left the page is an
 error, never the window in its place.
 
+A stream a Rask service hands over as an `IJSObjectReference` — `Trigger.MediaCapture`'s `OnStream`, `IWebRtc`'s
+`RtcHandlers.OnTrack` — becomes a kept `MediaStream` with `MediaStream.From(stream)`:
+`await _video.SetSrcObject(MediaStream.From(stream))`, and `GetTracks()` then `Stop()` on each track to stop it.
+
 An element the browser names — `document.fullscreenElement`, `activeElement`, `pictureInPictureElement` — cannot cross,
 but whether it is yours can: it reads as an `ElementRef` equal to the ref you rendered it with, and `null` for none or
 for one you gave no ref. A ref is its id, so `==` compares the element it names:
@@ -224,6 +228,22 @@ observer's entries), in a read-only list (`await pad.Buttons` is a `GamepadButto
 fields are typed as MDN says. One that holds a live object too (an XR input source, with its spaces) stays live, since
 its record would lose it.
 
+**A list the browser hands over that is only data crosses as a record too**, read with the event. It has an indexer,
+`Length`, and `Items` (the array, for LINQ or `foreach`). Speech recognition's results are a list of results, each a
+list of alternatives:
+
+```csharp
+await _rec.OnResult(e =>
+{
+    for (var i = e.ResultIndex; i < e.Results.Length; i++)
+    {
+        var r = e.Results[i];                                     // SpeechRecognitionResult
+        if (r.IsFinal) _text += r[0].Transcript;                  // its best SpeechRecognitionAlternative
+    }
+    _all = string.Join(" ", e.Results.Items.Select(r => r[0].Transcript));   // or the array, with LINQ
+});
+```
+
 ## Events and callbacks
 
 An object's events are `On{Event}` — MDN's event name, like the element events — and subscribing returns a
@@ -338,6 +358,22 @@ What is on no standards track is left out, except a short list named one by one 
 (`NON_STANDARD`), each something a real app needs and nothing standard does: today `BeforeInstallPromptEvent`. Their
 doc comments say **Non-standard.**
 
+## Where a browser falls short
+
+A few web APIs need help before they behave as MDN says. Rask patches each one by name, in one file —
+`src/Rask.Core/Resources/rask-web-patches.ts` — and everything not listed runs exactly as the browser has it.
+
+- **`SpeechRecognition` is prefixed** in Chromium before 139 and in Safari, as `webkitSpeechRecognition`.
+  `SpeechRecognition.Create()` and `SpeechRecognition.IsSupported` fall back to it.
+- **`WakeLock.request()` is dropped when the page is hidden**, in every browser. Rask requests it again each time the
+  page becomes visible, so `await Navigator.WakeLock.Request(WakeLockType.Screen)` holds until you
+  `await sentinel.Release()`. Its `Released` turns true and `OnRelease` fires once: when you release it, or when the
+  browser refuses it back. Disposing of the sentinel alone does not release the lock, as dropping one in JS doesn't.
+- **`beforeinstallprompt` fires once, at load**, before any component can subscribe. Rask keeps it from boot and
+  replays it to each later `Window.OnBeforeInstallPrompt(…)` subscriber until it is spent (prompted, or the app
+  installed). Chromium's `prompt()` answers with `{ outcome }`; Rask turns it into MDN's `{ userChoice }`, so
+  `(await e.Prompt()).UserChoice` reads the same everywhere. The event is not `preventDefault()`ed.
+
 ## Testing
 
 `Fake()` stands in for a web object in a test, for the test's own flow, until disposed of: every chain that starts at
@@ -407,7 +443,8 @@ click itself.
   own members through a [typed element ref](js-interop-runtime.md#element-refs) (`await _dialog.ShowModal()`).
 - **What needs a live object the C# side cannot name** — a member that takes a `Document` or a text node, a callback
   that hands back a live object (an `IdleDeadline` to ask the time left of), or one whose result the browser reads — is
-  not generated; the [typed browser API wrappers](browser-apis.md) cover those today.
+  not generated; the remaining [typed browser API wrappers](browser-apis.md) (`IIndexedDb`, `IWebAuthn`,
+  `IViewTransitions`, `IWebRtc`, `ISignaling`, `IBackgroundSync`) and your own scoped TypeScript cover those today.
 - **Names it shares with the rest of Rask.** Where a global is named like a Rask type, Rask's keeps the bare name:
   `EditContext` is the form's, `FormData` a submit's, and `DataTransfer`, `EventTarget` and `Touch` Rask's event
   types, by global aliases the package adds beside the import. MDN's are a qualifier away when you want them:

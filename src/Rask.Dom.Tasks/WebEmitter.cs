@@ -262,7 +262,8 @@ internal static class WebEmitter
     // Everything in Rask.Web, the namespace a file imports: Window's members as statics on `Window`, each object window
     // holds (navigator, localStorage) as a global named for the property, and each interface's statics and
     // constructors on a class of its name — URL.CanParse(…), BroadcastChannel.Create(…) — merged into the global where
-    // one has that name (Document). Each is a sealed class, not a static one, so Rask.Wasm can extend it.
+    // one has that name (Document). Each is a sealed class, not a static one, so Rask.Wasm can extend it, and partial, so
+    // Rask.Web can add to one by hand (MediaStream.From).
     private static string Globals(Model model)
     {
         var sb = Open("Rask.Web");
@@ -353,7 +354,7 @@ internal static class WebEmitter
 
     private static void OpenClass(StringBuilder sb, string name)
     {
-        sb.Append("public sealed class ").AppendLine(name);
+        sb.Append("public sealed partial class ").AppendLine(name);
         sb.AppendLine("{");
         sb.Append("    private ").Append(name).AppendLine("()");
         sb.AppendLine("    {");

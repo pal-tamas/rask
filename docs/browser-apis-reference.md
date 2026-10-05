@@ -153,7 +153,9 @@ data and re-renders its component.
 
 <!-- demo:browser-speech -->
 
-**`ISpeechRecognition`** — dictation: spoken audio turned into text, pushed to C# as it is heard.
+**Speech recognition** — dictation: `_rec = await SpeechRecognition.Create()`, `await _rec.OnResult(e => …)` reading
+`e.Results[i][0].Transcript` and `e.Results[i].IsFinal`, then `await _rec.Start()` and `await _rec.Stop()`, from
+[Rask.Web](web-apis.md#where-a-browser-falls-short) (which falls back to `webkitSpeechRecognition` where the browser needs it).
 
 <!-- demo:browser-speech-recognition -->
 

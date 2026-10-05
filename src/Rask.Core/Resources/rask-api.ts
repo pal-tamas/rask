@@ -13,6 +13,7 @@
 // which used to be defined in this file; the implementations now live in ./browser/ as ordinary
 // modules a TypeScript front end can import directly. See ./browser/globals.ts.
 import "./browser/globals.js";
+import { raskWebArm, raskWebCall, raskWebGlobalName, raskWebInstallPrompt, raskWebListened } from "./rask-web-patches.js";
 
 // A typed ElementRef's DOM members (generated from MDN into ElementRefMembers): one operation, read or write on the
 // element, by the member's MDN name, which only the generated C# supplies. The JSON reviver has already resolved the
@@ -52,13 +53,14 @@ const raskWebWalk = (root: unknown, steps: RaskWebStep[]): unknown => {
             target = args?.[0] as Record<string, unknown> | null | undefined;
             if (target == null) throw new Error("Rask: an element ref found no element on the page");
         } else if (kind === "g") {
-            target = target[name] as Record<string, unknown> | null | undefined;
+            target = target[raskWebGlobalName(target, name)] as Record<string, unknown> | null | undefined;
         } else if (kind === "c") {
+            const patched = raskWebCall(target, name);
             const fn = target[name];
-            if (typeof fn !== "function") throw new Error(`Rask: ${name} is not a function here`);
-            target = (fn as (...a: unknown[]) => unknown).apply(target, args ?? []) as Record<string, unknown>;
+            if (!patched && typeof fn !== "function") throw new Error(`Rask: ${name} is not a function here`);
+            target = (patched ? patched(args ?? []) : (fn as (...a: unknown[]) => unknown).apply(target, args ?? [])) as Record<string, unknown>;
         } else if (kind === "n") {
-            const ctor = target[name];
+            const ctor = target[raskWebGlobalName(target, name)];
             if (typeof ctor !== "function") throw new Error(`Rask: ${name} is not a constructor here`);
             target = new (ctor as new (...a: unknown[]) => Record<string, unknown>)(...(args ?? []));
         } else {
@@ -125,8 +127,15 @@ const raskWebData = (value: unknown, depth = 0): unknown => {
     if (typeof (value as { toJSON?: unknown }).toJSON === "function") return value;
     const own = Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null;
     const data: Record<string, unknown> = {};
+    // A list the browser hands over as data (a SpeechRecognitionResultList) crosses its items as `items`, item(i) for each.
+    const list = value as { item?: unknown; length?: unknown };
+    const isList = typeof list.item === "function" && typeof list.length === "number";
+    if (isList) {
+        const item = list.item as (index: number) => unknown;
+        data.items = Array.from({ length: list.length as number }, (_, i) => raskWebData(item.call(value, i), depth + 1));
+    }
     for (const key in value) {
-        if (raskWebUnsafe.has(key) || (own && !Object.prototype.hasOwnProperty.call(value, key))) continue;
+        if (raskWebUnsafe.has(key) || (own && !Object.prototype.hasOwnProperty.call(value, key)) || (isList && /^\d+$/.test(key))) continue;
         try {
             const field = raskWebData((value as Record<string, unknown>)[key], depth + 1);
             if (field !== undefined) data[key] = field;
@@ -152,7 +161,7 @@ window.__raskWeb = window.__raskWeb || {
         const last = parsed.pop();
         try {
             const owner = raskWebWalk(root, parsed);
-            return last === undefined || (owner != null && last[1] in Object(owner));
+            return last === undefined || (owner != null && raskWebGlobalName(Object(owner), last[1]) in Object(owner));
         } catch {
             return false;
         }
@@ -198,6 +207,7 @@ window.__raskWeb = window.__raskWeb || {
             timer = window.setTimeout(flush, interval);
         };
         target.addEventListener(type, listener);
+        raskWebListened(target, type, listener);
         const id = ++raskWebNextListener;
         raskWebListeners.set(id, { target, type, listener, stop: () => window.clearTimeout(timer) });
         return id;
@@ -210,6 +220,10 @@ window.__raskWeb = window.__raskWeb || {
         raskWebListeners.delete(id);
     }
 };
+
+// Trigger.Install's click (the gesture bridge's "install.prompt"), and the patches that listen from boot, armed once
+// with it: the browser fires beforeinstallprompt before any component subscribes (rask-web-patches.ts).
+window.__raskInstall = window.__raskInstall || (raskWebArm(window), { prompt: raskWebInstallPrompt });
 
 // Gesture-bridge DOM helpers — moved here from rask-wasm-api.js so they ship to the Server client too.
 // They drive activation-gated browser APIs that must run inside a click gesture; the declarative
@@ -370,9 +384,9 @@ window.__raskRtc = window.__raskRtc || (() => {
                 init.iceTransportPolicy = config.iceTransportPolicy;
             }
             const pc = new RTCPeerConnection(init);
-            // `remote` maps a peer stream's own id to the __raskMedia id we minted for it, so a second
-            // ontrack for the same stream doesn't mint (and push) a duplicate. `senders` remembers what
-            // AddStream added, so RemoveStream can take exactly those tracks back off.
+            // `remote` keeps the peer's streams by their own id, so a second ontrack for the same stream
+            // doesn't push a duplicate. `senders` remembers what AddStream added, so RemoveStream can take
+            // exactly those tracks back off.
             const state: RaskRtcConn = {
                 pc: pc, ice: [], timer: 0, remote: new Map(), senders: new Map()
             };
@@ -394,17 +408,15 @@ window.__raskRtc = window.__raskRtc || (() => {
             pc.ondatachannel = (e: RTCDataChannelEvent) =>
                 invoke("RaskRtcChannel", id, adopt(id, e.channel), e.channel.label);
             pc.ontrack = (e) => {
-                // A peer's stream is as opaque to C# as a captured one, so it goes into __raskMedia's map
-                // and C# gets an id — the same id shape IMediaDevices and MediaCaptureTrigger hand out, so
-                // IMediaStreams.AttachAsync works on it unchanged. One push per stream, not per track: a
-                // camera+mic peer fires ontrack twice for one stream, and the app wants the stream.
+                // A peer's stream reaches C# as a captured one does: handed over under an id, which C#
+                // takes as a handle (Rask.Web's MediaStream.From wraps it). One push per stream, not per
+                // track: a camera+mic peer fires ontrack twice for one stream, and the app wants the stream.
                 const stream = (e.streams && e.streams[0]) || null;
                 if (!stream || state.remote.has(stream.id)) {
                     return;
                 }
-                const streamId = window.__raskMedia.adopt(stream);
-                state.remote.set(stream.id, streamId);
-                invoke("RaskRtcTrack", id, streamId);
+                state.remote.set(stream.id, stream);
+                invoke("RaskRtcTrack", id, window.__raskMedia.hand(stream));
             };
         },
         createOffer: async (id: number) => {
@@ -426,24 +438,21 @@ window.__raskRtc = window.__raskRtc || (() => {
             sdpMid: cand.sdpMid,
             sdpMLineIndex: cand.sdpMLineIndex
         }),
-        addStream: (connId: number, streamId: number) => {
+        // The stream is the app's handle to it, revived to the MediaStream.
+        addStream: (connId: number, stream: MediaStream) => {
             const c = conn(connId);
-            const stream = window.__raskMedia.get(streamId);
-            if (!stream) {
-                throw new Error("Rask WebRTC: media stream " + streamId + " is closed.");
-            }
-            if (c.senders.has(streamId)) {
+            if (c.senders.has(stream)) {
                 return;
             }
-            c.senders.set(streamId, stream.getTracks().map((t) => c.pc.addTrack(t, stream)));
+            c.senders.set(stream, stream.getTracks().map((t) => c.pc.addTrack(t, stream)));
         },
-        removeStream: (connId: number, streamId: number) => {
+        removeStream: (connId: number, stream: MediaStream) => {
             const c = conn(connId);
-            const senders = c.senders.get(streamId);
+            const senders = c.senders.get(stream);
             if (!senders) {
                 return;
             }
-            c.senders.delete(streamId);
+            c.senders.delete(stream);
             senders.forEach((s) => {
                 try {
                     c.pc.removeTrack(s);
@@ -501,10 +510,9 @@ window.__raskRtc = window.__raskRtc || (() => {
             c.pc.onconnectionstatechange = null;
             c.pc.ondatachannel = null;
             c.pc.ontrack = null;
-            // Remote streams were minted into __raskMedia by ontrack, so this connection owns them and has
-            // to stop their tracks — nothing else holds a reference once the connection is gone. Streams
-            // the app supplied to addStream are NOT stopped: the app still owns those.
-            c.remote.forEach((streamId) => window.__raskMedia.stop(streamId));
+            // Remote streams arrived with this connection, so it owns them and has to stop their tracks.
+            // Streams the app supplied to addStream are NOT stopped: the app still owns those.
+            c.remote.forEach((stream) => stream.getTracks().forEach((t) => t.stop()));
             c.remote.clear();
             c.senders.clear();
             c.pc.close();

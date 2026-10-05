@@ -13,12 +13,11 @@ public class RaskWasmBrowserApisTests
 {
     private static readonly (Type Service, Type Impl)[] WasmOnlyApis =
     [
-        (typeof(IInstallPrompt), typeof(InstallPrompt)),
         (typeof(IBackgroundSync), typeof(BackgroundSync)),
     ];
 
     [Fact]
-    public void AddWasmBrowserApis_registers_the_thirteen_WASM_only_wrappers_as_singletons()
+    public void AddWasmBrowserApis_registers_the_WASM_only_wrappers_as_singletons()
     {
         var services = new ServiceCollection();
 
@@ -50,26 +49,38 @@ public class RaskWasmBrowserApisTests
     }
 
     // Every wrapper here goes in through AddBrowserApi's TryAdd, so an app that wants its own
-    // implementation registers it first and keeps it. Pinned on IInstallPrompt because that is the one an app is
-    // most likely to replace, and because the assertion moved here with it from Rask.Client.Tests.
+    // implementation registers it first and keeps it.
     [Fact]
-    public void AddWasmBrowserApis_is_fallback_only_so_an_app_supplied_install_prompt_registered_first_wins()
+    public void AddWasmBrowserApis_is_fallback_only_so_an_app_supplied_background_sync_registered_first_wins()
     {
         var services = new ServiceCollection();
 
-        services.AddSingleton<IInstallPrompt, FakeAppInstallPrompt>();
+        services.AddSingleton<IBackgroundSync, FakeAppBackgroundSync>();
         services.AddWasmBrowserApis(ServiceLifetime.Singleton);
 
-        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IInstallPrompt));
-        Assert.Equal(typeof(FakeAppInstallPrompt), descriptor.ImplementationType);
+        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IBackgroundSync));
+        Assert.Equal(typeof(FakeAppBackgroundSync), descriptor.ImplementationType);
     }
 
-    private sealed class FakeAppInstallPrompt : IInstallPrompt
+    private sealed class FakeAppBackgroundSync : IBackgroundSync
     {
-        public ValueTask<bool> CanInstallAsync() => ValueTask.FromResult(false);
+        public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(false);
 
-        public ValueTask<InstallOutcome> PromptAsync() => ValueTask.FromResult(default(InstallOutcome));
+        public ValueTask<bool> IsPeriodicSupportedAsync() => ValueTask.FromResult(false);
 
-        public ValueTask<bool> IsInstalledAsync() => ValueTask.FromResult(false);
+        public ValueTask<bool> RequestSyncAsync(string tag) => ValueTask.FromResult(false);
+
+        public ValueTask<IReadOnlyList<string>> GetPendingTagsAsync() => ValueTask.FromResult<IReadOnlyList<string>>([]);
+
+        public ValueTask<string> GetPeriodicPermissionAsync() => ValueTask.FromResult("denied");
+
+        public ValueTask<bool> RequestPeriodicSyncAsync(string tag, TimeSpan minInterval) => ValueTask.FromResult(false);
+
+        public ValueTask UnregisterPeriodicAsync(string tag) => default;
+
+        public ValueTask<IReadOnlyList<string>> GetPeriodicTagsAsync() => ValueTask.FromResult<IReadOnlyList<string>>([]);
+
+        public ValueTask<IAsyncDisposable> OnSyncAsync(Func<BackgroundSyncEvent, Task> onSync) =>
+            throw new NotSupportedException();
     }
 }

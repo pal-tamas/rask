@@ -38,18 +38,21 @@ public class RuntimeScriptEndpointTests
     }
 
     [Fact]
-    public async Task The_runtime_script_includes_the_transport_agnostic_PWA_helper()
+    public async Task The_runtime_script_includes_Rask_Webs_browser_patches()
     {
-        // The wake-lock helper must reach the Server client so IWakeLock can find it. Push, notifications
-        // and the badge are MDN's own, from Rask.Web, so no helper of Rask's stands in for them.
+        // Rask.Web's named patches (rask-web-patches.ts) run in the shared runtime, so a Server app's wake lock,
+        // speech recognition and install prompt get them too. Push, notifications and the badge are MDN's own,
+        // from Rask.Web, so no helper of Rask's stands in for them.
         //
-        // Asserted without the surrounding spaces: these are property names, which a minifier leaves
-        // alone, but the whitespace around the `=` does not survive Release.
+        // Asserted on string literals and property names, which a minifier leaves alone.
         using var host = RaskTestHost.Create<TestApp>();
 
         var body = await (await host.Http.GetAsync("/rask/rask.js", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        Assert.Contains("window.__raskWakeLock", body, StringComparison.Ordinal);
+        Assert.Contains("webkitSpeechRecognition", body, StringComparison.Ordinal);
+        Assert.Contains("WakeLock.request", body, StringComparison.Ordinal);
+        Assert.Contains("beforeinstallprompt", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("window.__raskWakeLock", body, StringComparison.Ordinal);
         Assert.DoesNotContain("window.__raskPush", body, StringComparison.Ordinal);
     }
 

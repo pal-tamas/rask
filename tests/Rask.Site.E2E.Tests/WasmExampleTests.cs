@@ -135,7 +135,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator("#install-status")).ToContainTextAsync("not installable yet",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         // CodeSample shows the demo's real source beside the live result.
-        await Expect(Page.Locator("[data-section=install] .sample-code").First).ToContainTextAsync("IInstallPrompt",
+        await Expect(Page.Locator("[data-section=install] .sample-code").First).ToContainTextAsync("OnBeforeInstallPrompt",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 

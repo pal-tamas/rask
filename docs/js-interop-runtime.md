@@ -94,12 +94,13 @@ transient activation has expired. The practical effect:
 - **Fullscreen** and **Picture-in-Picture** need transient activation too. They are `await _stage.RequestFullscreen()`
   and `await _video.RequestPictureInPicture()` on an element ref in [`Rask.Web`](web-apis.md#on-an-element-ref),
   generated into WASM only. On Server, `Trigger.Fullscreen` and `Trigger.PictureInPicture` run them in the click.
-- **`IInstallPrompt`** (capture/replay the deferred `beforeinstallprompt` for a custom install button) is likewise
-  **WASM-only** in `Rask.Wasm.Browser` — it depends on the live document the Server round-trip can't carry. Screen
+- A custom install button's **`await _prompt.Prompt()`** (the kept `beforeinstallprompt` from
+  `Window.OnBeforeInstallPrompt`, [`Rask.Web`](web-apis.md#where-a-browser-falls-short)) needs the click too, so it is
+  **WASM-only**; on Server, `Trigger.Install` shows the same kept prompt in the click. Screen
   capture, `await Navigator.MediaDevices.GetDisplayMedia()`, is a [`Rask.Web`](web-apis.md#what-only-webassembly-runs)
   call generated into WASM only. See the [Mobile & PWA guide](pwa.md#device-capabilities-for-mobile).
-- **`IWakeLock`** (keep the screen awake) needs no transient activation, so it is shared; its JS helper ships on
-  the Server client under `AddRaskPwa`. The app badge is `await Navigator.SetAppBadge(3)` in [`Rask.Web`](web-apis.md).
+- The **screen wake lock**, `await Navigator.WakeLock.Request(WakeLockType.Screen)` in
+  [`Rask.Web`](web-apis.md#where-a-browser-falls-short), needs no transient activation, so it works on both hosts. The app badge is `await Navigator.SetAppBadge(3)` in [`Rask.Web`](web-apis.md).
 - Everything else here (cookies, indexeddb) is unaffected by activation and
   behaves identically on both transports.
 
@@ -164,8 +165,9 @@ public sealed partial class RefDemo : Component
 - **The render stays in charge.** There is no setter for what the render writes — `Open`, `Id`, a control's
   `Value` — and nothing that rewrites the tree, the attributes or the content (`innerHTML`, `append`,
   `setAttribute`). Drive those from state; keep the ref for what only the live node knows or does.
-- **Only members whose values cross the wire are there.** A member that takes or returns a live object (a
-  `Node`, a `MediaStream`) is left out; a ref still hands the element to your own TypeScript for those.
+- **Only members whose values cross the wire are there.** A member that takes a kept `Rask.Web` object takes its
+  handle (`await _video.SetSrcObject(stream)`); one that hands back a live `Node` is left out, and a ref still hands
+  the element to your own TypeScript for those.
 - **A typed ref on the wrong element throws** where it is put: an `ElementRef<HTMLVideoElement>` on a `Div`.
 - **A member a browser only allows during a click** (`RequestFullscreen()`, `RequestPointerLock()`, an input's
   `ShowPicker()`) is generated into `Rask.Wasm` alone, where the handler
