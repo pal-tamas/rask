@@ -51,6 +51,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Gates: a one-line `Rask.Core` commit gate went from 372 s to 125 s.** The gate scripts now set
+  `DOTNET_CLI_TELEMETRY_OPTOUT=1`: the CLI walks and locks its whole telemetry spool on every exit, and
+  with thousands of unsent files there the gate's `dotnet` processes spent most of their time queued on
+  it. pre-push also stops repeating pre-commit — a test project that passed on an unchanged tree is
+  reused (`RASK_GATE_REUSE=0` to run it anyway), and its format check covers the push range's files.
+
 - **Gates: `scripts/run-unit-local.sh` prints where its time went.** Each run ends with the seconds per
   phase and the slowest test projects, so a hook over its one-minute budget names the phase to fix. The
   gate scripts also find an nvm-installed Node when `node` is not on PATH, instead of failing the islands

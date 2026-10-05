@@ -178,6 +178,7 @@ else
   set +e
   RASK_PRE_PUSH_ACTIVE=1 \
   RASK_TEST_SCOPE=affected \
+  RASK_FORMAT_SCOPE=range \
   RASK_SCOPE_RANGE="origin/main...HEAD" \
   "$root/scripts/run-unit-local.sh"
   unit_status=$?

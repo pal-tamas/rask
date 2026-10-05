@@ -18,6 +18,8 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=lib/node-path.sh
 . "$repo_root/scripts/lib/node-path.sh"
 rask_ensure_node
+# shellcheck source=lib/dotnet-env.sh
+. "$repo_root/scripts/lib/dotnet-env.sh"
 image="rask-devhost-linux"
 
 docker_cli="${DOCKER:-docker}"

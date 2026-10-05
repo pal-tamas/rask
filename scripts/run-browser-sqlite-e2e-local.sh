@@ -21,6 +21,8 @@ root="$(git rev-parse --show-toplevel)"
 # shellcheck source=lib/node-path.sh
 . "$root/scripts/lib/node-path.sh"
 rask_ensure_node
+# shellcheck source=lib/dotnet-env.sh
+. "$root/scripts/lib/dotnet-env.sh"
 cd "$root"
 
 export RASK_E2E_GATE=run-browser-sqlite-e2e-local

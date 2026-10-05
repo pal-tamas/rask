@@ -29,6 +29,8 @@ root="$(git rev-parse --show-toplevel)"
 # shellcheck source=lib/node-path.sh
 . "$root/scripts/lib/node-path.sh"
 rask_ensure_node
+# shellcheck source=lib/dotnet-env.sh
+. "$root/scripts/lib/dotnet-env.sh"
 cd "$root"
 
 if ! command -v docker >/dev/null 2>&1; then

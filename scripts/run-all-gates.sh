@@ -29,6 +29,8 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=lib/node-path.sh
 . "$root/scripts/lib/node-path.sh"
 rask_ensure_node
+# shellcheck source=lib/dotnet-env.sh
+. "$root/scripts/lib/dotnet-env.sh"
 cd "$root"
 
 # label · script · the env it needs to actually do anything (empty = runs unconditionally)

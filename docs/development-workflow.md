@@ -160,6 +160,19 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   alongside each other. Every `scripts/run-*.sh` sources `scripts/lib/node-path.sh`: when `node` is not
   on PATH — a hook fired from an IDE or an agent shell that never ran nvm's init — it takes the newest
   version under `~/.nvm/versions/node` instead of failing the islands build with RASKISLAND001.
+- **Every gate opts the .NET CLI out of telemetry, for speed.** `scripts/lib/dotnet-env.sh` exports
+  `DOTNET_CLI_TELEMETRY_OPTOUT=1`. The CLI spools each command's telemetry under
+  `~/.dotnet/TelemetryStorageService` and walks that folder, locking every file, as it exits; where the
+  upload does not get through, the spool only grows (9,769 files on the machine this was found on) and a
+  gate's hundreds of `dotnet` processes queue on it with the cores idle. A one-line `Rask.Core` change went
+  from 372 s to 125 s, its test phase from 253 s to 58 s. If plain `dotnet` commands feel slow on your
+  machine, look at the size of that folder.
+- **pre-push does not repeat what pre-commit just proved.** A test project that passed is stamped with the
+  working tree it passed on (`artifacts/gate-stamps/`, by `scripts/lib/gate_stamps.py`). The next scoped
+  gate skips it when the scoper says nothing between that tree and the current one can reach it, and
+  prints what it reused; a changed or untracked file in reach, another SDK, a gate-script change or a
+  stamp whose tree is gone all run it. `RASK_GATE_REUSE=0` runs everything. pre-push also format-checks
+  only the `.cs` files in its push range (`RASK_FORMAT_SCOPE=range`), as pre-commit does for staged ones.
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
   solution once, then runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
   analyzers, one workspace load) **concurrently with** every test except the browser E2E. The two share

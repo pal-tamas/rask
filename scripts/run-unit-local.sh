@@ -34,6 +34,8 @@ root="$(git rev-parse --show-toplevel)"
 # shellcheck source=lib/node-path.sh
 . "$root/scripts/lib/node-path.sh"
 rask_ensure_node
+# shellcheck source=lib/dotnet-env.sh
+. "$root/scripts/lib/dotnet-env.sh"
 cd "$root"
 
 # Sourced at the TOP, not inside the failure branch below where the contention hint used to reach for
@@ -360,18 +362,24 @@ format_pid=""
 format_label=""
 
 rask_start_format() {
-  if [ "${RASK_FORMAT_SCOPE:-}" = "staged" ]; then
-    # -z/-d so a path with a space or a newline in it cannot split into two arguments.
-    staged_cs="$(git diff --cached --name-only --diff-filter=ACMR -z | tr '\0' '\n' | grep -E '\.cs$' || true)"
+  # `range` is pre-push's `staged`: the commits already exist, so the files are the ones the push
+  # range changed. Same soundness argument as above, over the same range the tests are scoped to.
+  if [ "${RASK_FORMAT_SCOPE:-}" = "staged" ] || { [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; }; then
+    if [ "$RASK_FORMAT_SCOPE" = "range" ]; then
+      staged_cs="$(git diff --name-only --diff-filter=ACMR "$RASK_SCOPE_RANGE" | grep -E '\.cs$' || true)"
+    else
+      # -z/-d so a path with a space or a newline in it cannot split into two arguments.
+      staged_cs="$(git diff --cached --name-only --diff-filter=ACMR -z | tr '\0' '\n' | grep -E '\.cs$' || true)"
+    fi
 
     if [ -z "$staged_cs" ]; then
-      echo "==> Formatting check skipped — RASK_FORMAT_SCOPE=staged and no .cs staged."
+      echo "==> Formatting check skipped — RASK_FORMAT_SCOPE=$RASK_FORMAT_SCOPE and no .cs changed."
       echo "    (and with it the Debug generator build, which exists only to serve the formatter)"
       return 0
     fi
 
     rask_build_debug_generators
-    format_label="Formatting check (staged .cs files only — RASK_FORMAT_SCOPE=staged)"
+    format_label="Formatting check (changed .cs files only — RASK_FORMAT_SCOPE=$RASK_FORMAT_SCOPE)"
     echo "==> $format_label — running alongside the tests"
     (
       set +e   # the seconds are written on a red run too
@@ -473,14 +481,34 @@ if [ -n "$scope_projects" ]; then
     echo "==> Unit & integration tests ($(printf '%s\n' "$scope_tests" | grep -c .) affected assembly/assemblies)"
     unit_status=0
 
-    # Concurrently, and safe to be: --no-build means nothing here writes to bin/ or obj/, so the only
-    # thing these share is the machine. Each still gets its own `dotnet test` and so its own testhost,
-    # which is the property the solution run depends on too — see the MetadataUpdaterSupport note
-    # above. Output is captured per assembly and replayed in order rather than interleaved.
+    # A project that already passed on a tree nothing has reached it from since is not run again.
+    # pre-push repeats pre-commit minutes later on the same tree, and that repeat was the whole of its
+    # cost. scripts/lib/gate_stamps.py asks the scoper, so "reached" means exactly what it means for
+    # the scope above; anything it cannot narrow is run. RASK_GATE_REUSE=0 runs everything.
+    gate_tree=""
+    gate_salt="$(dotnet --version 2>/dev/null)|Release"
+    if [ "${RASK_GATE_REUSE:-1}" != "0" ]; then
+      gate_tree="$(python3 "$root/scripts/lib/gate_stamps.py" tree "$root" 2>/dev/null || true)"
+    fi
+    if [ -n "$gate_tree" ]; then
+      scope_reused="$(printf '%s\n' $scope_tests | python3 "$root/scripts/lib/gate_stamps.py" reuse "$root" "$gate_tree" "$gate_salt" || true)"
+      if [ -n "$scope_reused" ]; then
+        echo "==> Reused $(printf '%s\n' "$scope_reused" | grep -c .) pass(es) recorded on an unchanged tree (RASK_GATE_REUSE=0 to run them):"
+        printf '        %s\n' $scope_reused
+        scope_tests="$(printf '%s\n' $scope_tests | grep -vxF "$scope_reused" || true)"
+      fi
+    fi
+
+    # All at once, and safe to be: --no-build means nothing here writes to bin/ or obj/, so the only
+    # thing these share is the machine. Each
+    # keeps its own `dotnet test` and so its own testhost and runtimeconfig — see the
+    # MetadataUpdaterSupport note above.
     scope_pids=""
     scope_logs=""
+    scope_ran=""
     for tp in $scope_tests; do
       scope_log="${TMPDIR:-/tmp}/rask-scoped-test-$$-$(basename "$(dirname "$tp")").log"
+
       (
         test_began=$SECONDS
         dotnet test "$root/$tp" -c Release --no-build -m:1 \
@@ -493,18 +521,34 @@ if [ -n "$scope_projects" ]; then
       ) >"$scope_log" 2>&1 &
       scope_pids="$scope_pids $!"
       scope_logs="$scope_logs $scope_log"
+      scope_ran="$scope_ran $tp"
     done
 
-    # shellcheck disable=SC2086  # deliberate word split: the logs line up with the pids above
+    # Output is captured per assembly and replayed in order rather than interleaved.
+    scope_passed=""
+    # shellcheck disable=SC2086  # deliberate word split: the logs and projects line up with the pids above
     set -- $scope_logs
-    for pid in $scope_pids; do
+    for tp in $scope_ran; do
       scope_log="$1"; shift
-      wait "$pid" || unit_status=$?
+      # shellcheck disable=SC2086
+      scope_pid="$(printf '%s\n' $scope_pids | sed -n 1p)"
+      scope_pids="$(printf '%s\n' $scope_pids | sed 1d | tr '\n' ' ')"
+      if wait "$scope_pid"; then
+        scope_passed="$scope_passed $tp"
+      else
+        unit_status=$?
+      fi
       cat "$scope_log"
-      scope_name="${scope_log##*/rask-scoped-test-$$-}"
-      rask_alongside "$(cat "$scope_log.secs" 2>/dev/null || echo 0)" "${scope_name%.log}"
+      scope_name="$(basename "$(dirname "$tp")")"
+      scope_secs="$(cat "$scope_log.secs" 2>/dev/null || echo 0)"
+      rask_alongside "$scope_secs" "$scope_name"
       rm -f "$scope_log" "$scope_log.secs"
     done
+
+    if [ -n "$gate_tree" ] && [ -n "$scope_passed" ]; then
+      # shellcheck disable=SC2086
+      printf '%s\n' $scope_passed | python3 "$root/scripts/lib/gate_stamps.py" record "$root" "$gate_tree" "$gate_salt"
+    fi
   fi
 else
   # Excluded by the PROJECT-SHAPED suffix, not by one suite's name. Every end-to-end suite lives in a
