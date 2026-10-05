@@ -1,12 +1,14 @@
 // Builds src/Rask.Core/Dom/mdn.snapshot.json from MDN's own data: @webref/elements (which interface each
 // tag uses), @webref/idl (the WebIDL MDN's pages are written from) and @mdn/browser-compat-data (what
-// exists, what is deprecated, what ships). Run through refresh.sh, which installs the latest of each.
+// exists, what is deprecated, what ships), and the WAI-ARIA roles and aria-* attributes from the spec's own
+// source (aria.mjs). Run through refresh.sh, which installs the latest of each.
 //
 // The snapshot is pure MDN data. Mapping it to C# (names, types, aliases) is the generator's job.
 
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { readAria } from "./aria.mjs";
 
 const require = createRequire(resolve(process.argv[2] ?? ".", "package.json"));
 const out = process.argv[3];
@@ -17,6 +19,7 @@ const idlPkg = require("@webref/idl");
 const elementsPkg = require("@webref/elements");
 const eventsPkg = require("@webref/events");
 const bcd = require("@mdn/browser-compat-data");
+const parse5 = require("parse5");
 const version = name => JSON.parse(readFileSync(resolve(process.argv[2], "node_modules", name, "package.json"), "utf8")).version;
 
 // An element, attribute or element event ships when two of the three engines have it unflagged, on desktop or
@@ -461,9 +464,16 @@ for (const i of Object.values(interfaceOut)) {
 for (const d of ["PermissionDescriptor"]) reach(d);
 const sortObj = o => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
 
+// ---- WAI-ARIA: w3c/aria's main branch, pinned to the commit it was read at ----------------------------
+const ARIA = "https://api.github.com/repos/w3c/aria/commits/main";
+const ariaSha = process.env.RASK_MDN_ARIA
+  || (await (await fetch(ARIA, { headers: { accept: "application/vnd.github+json" } })).json()).sha;
+if (!ariaSha) throw new Error(`could not resolve w3c/aria's main branch at ${ARIA}`);
+const aria = await readAria(parse5, ariaSha);
+
 const snapshot = {
   schema: 1,
-  sources: { ...Object.fromEntries(["@mdn/browser-compat-data", "@webref/elements", "@webref/events", "@webref/idl", "webidl2"].map(p => [p, version(p)])), "webref/dfns": webrefSha },
+  sources: { ...Object.fromEntries(["@mdn/browser-compat-data", "@webref/elements", "@webref/events", "@webref/idl", "parse5", "webidl2"].map(p => [p, version(p)])), "webref/dfns": webrefSha, "w3c/aria": ariaSha },
   engines: Object.keys(ENGINES),
   elements,
   // Each global attribute with the IDL attribute that reflects it, searched from HTMLElement / SVGElement up.
@@ -478,6 +488,7 @@ const snapshot = {
   enums: sortObj(reachedEnums),
   dictionaries: sortObj(reachedDicts),
   callbacks: sortObj(reachedCallbacks),
+  aria,
 };
 writeFileSync(out, JSON.stringify(snapshot, null, 1) + "\n");
-console.log(`${elements.length} elements, ${events.length} events, ${Object.keys(interfaceOut).length} interfaces → ${out}`);
+console.log(`${elements.length} elements, ${events.length} events, ${Object.keys(interfaceOut).length} interfaces, ${aria.roles.length} ARIA roles → ${out}`);

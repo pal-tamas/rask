@@ -1100,14 +1100,14 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".guide-demo .sample-result-body blockquote").First)
             .ToContainTextAsync("A small DSL", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Universal props: data-* expansion (incl. a bare null attribute) + ARIA / role / tabindex.
+        // Universal props: data-* expansion (incl. a bare null attribute) + typed ARIA / role. A switch states
+        // aria-checked (the spec's required state for the role), and a button is focusable without a tabindex.
         var dataDiv = Page.Locator(".guide-demo .sample-result-body div[data-role='card']").First;
         await Expect(dataDiv).ToHaveAttributeAsync("data-index", "7");
         await Expect(dataDiv).ToHaveAttributeAsync("data-new", ""); // bare null attribute
         var ariaBtn = Page.Locator(".guide-demo .sample-result-body button[role='switch']").First;
         await Expect(ariaBtn).ToHaveAttributeAsync("aria-label", "Toggle dark mode");
-        await Expect(ariaBtn).ToHaveAttributeAsync("aria-pressed", "false");
-        await Expect(ariaBtn).ToHaveAttributeAsync("tabindex", "0");
+        await Expect(ariaBtn).ToHaveAttributeAsync("aria-checked", "false");
 
         // HTML element catalog: spot-check distinctive elements from a few category demos.
         await Expect(Page.Locator(".guide-demo .sample-result-body ruby").First).ToBeVisibleAsync(

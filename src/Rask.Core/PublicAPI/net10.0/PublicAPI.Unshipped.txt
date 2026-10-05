@@ -1613,7 +1613,6 @@ const Rask.Core.Authorization.RouteAuthorizationGuard.ChallengePath = "/login" -
 const Rask.Core.Authorization.RouteAuthorizationGuard.ForbidPath = "/forbidden" -> string!
 const Rask.Core.BuilderRuntime.OwnPendingBit = 32 -> int
 const Rask.Core.BuilderRuntime.SharedComponentPending = 0 -> ulong
-const Rask.Core.BuilderRuntime.SharedElementPending = 524287 -> ulong
 const Rask.Core.Diagnostics.DevTools.PropsDescriber.MaxLength = 256 -> int
 const Rask.Core.Diagnostics.DevTools.PropsDescriber.Redacted = "••••" -> string!
 const Rask.Core.Forms.EditContext.DefaultValidatingStickyMs = 200 -> int
@@ -13055,3 +13054,308 @@ static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptu
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Action<Microsoft.JSInterop.IJSObjectReference!>? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Func<Microsoft.JSInterop.IJSObjectReference!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Func<Microsoft.JSInterop.IJSObjectReference!, System.Threading.Tasks.ValueTask>? value) -> Rask.Core.Components.MediaCaptureTrigger!
+Rask.Core.AriaAutoComplete
+Rask.Core.AriaAutoComplete.Both = -360583518 -> Rask.Core.AriaAutoComplete
+Rask.Core.AriaAutoComplete.Inline = -1026863052 -> Rask.Core.AriaAutoComplete
+Rask.Core.AriaAutoComplete.List = 217798785 -> Rask.Core.AriaAutoComplete
+Rask.Core.AriaAutoComplete.None = -1381519397 -> Rask.Core.AriaAutoComplete
+Rask.Core.AriaChecked
+Rask.Core.AriaChecked.False = 184981848 -> Rask.Core.AriaChecked
+Rask.Core.AriaChecked.Mixed = -449575944 -> Rask.Core.AriaChecked
+Rask.Core.AriaChecked.True = 1303515621 -> Rask.Core.AriaChecked
+Rask.Core.AriaCurrent
+Rask.Core.AriaCurrent.Date = -730669991 -> Rask.Core.AriaCurrent
+Rask.Core.AriaCurrent.False = 184981848 -> Rask.Core.AriaCurrent
+Rask.Core.AriaCurrent.Location = 200649126 -> Rask.Core.AriaCurrent
+Rask.Core.AriaCurrent.Page = -2124547466 -> Rask.Core.AriaCurrent
+Rask.Core.AriaCurrent.Step = -951838193 -> Rask.Core.AriaCurrent
+Rask.Core.AriaCurrent.Time = 1564253156 -> Rask.Core.AriaCurrent
+Rask.Core.AriaCurrent.True = 1303515621 -> Rask.Core.AriaCurrent
+Rask.Core.AriaHasPopup
+Rask.Core.AriaHasPopup.Dialog = 178778297 -> Rask.Core.AriaHasPopup
+Rask.Core.AriaHasPopup.False = 184981848 -> Rask.Core.AriaHasPopup
+Rask.Core.AriaHasPopup.Grid = -1350100335 -> Rask.Core.AriaHasPopup
+Rask.Core.AriaHasPopup.Listbox = -1469725682 -> Rask.Core.AriaHasPopup
+Rask.Core.AriaHasPopup.Menu = -1713054406 -> Rask.Core.AriaHasPopup
+Rask.Core.AriaHasPopup.Tree = 1837839573 -> Rask.Core.AriaHasPopup
+Rask.Core.AriaHasPopup.True = 1303515621 -> Rask.Core.AriaHasPopup
+Rask.Core.AriaInvalid
+Rask.Core.AriaInvalid.False = 184981848 -> Rask.Core.AriaInvalid
+Rask.Core.AriaInvalid.Grammar = 1263759358 -> Rask.Core.AriaInvalid
+Rask.Core.AriaInvalid.Spelling = 899053335 -> Rask.Core.AriaInvalid
+Rask.Core.AriaInvalid.True = 1303515621 -> Rask.Core.AriaInvalid
+Rask.Core.AriaLive
+Rask.Core.AriaLive.Assertive = 146288095 -> Rask.Core.AriaLive
+Rask.Core.AriaLive.Off = -1422226934 -> Rask.Core.AriaLive
+Rask.Core.AriaLive.Polite = -493471500 -> Rask.Core.AriaLive
+Rask.Core.AriaOrientation
+Rask.Core.AriaOrientation.Horizontal = 1429572201 -> Rask.Core.AriaOrientation
+Rask.Core.AriaOrientation.Vertical = -2027301573 -> Rask.Core.AriaOrientation
+Rask.Core.AriaPressed
+Rask.Core.AriaPressed.False = 184981848 -> Rask.Core.AriaPressed
+Rask.Core.AriaPressed.Mixed = -449575944 -> Rask.Core.AriaPressed
+Rask.Core.AriaPressed.True = 1303515621 -> Rask.Core.AriaPressed
+Rask.Core.AriaRelevant
+Rask.Core.AriaRelevant.Additions = 1 -> Rask.Core.AriaRelevant
+Rask.Core.AriaRelevant.All = 2 -> Rask.Core.AriaRelevant
+Rask.Core.AriaRelevant.Removals = 4 -> Rask.Core.AriaRelevant
+Rask.Core.AriaRelevant.Text = 8 -> Rask.Core.AriaRelevant
+Rask.Core.AriaRole
+Rask.Core.AriaSort
+Rask.Core.AriaSort.Ascending = -1598089055 -> Rask.Core.AriaSort
+Rask.Core.AriaSort.Descending = 1989400379 -> Rask.Core.AriaSort
+Rask.Core.AriaSort.None = -1381519397 -> Rask.Core.AriaSort
+Rask.Core.AriaSort.Other = -931295755 -> Rask.Core.AriaSort
+Rask.Core.Element.AriaActiveDescendant.get -> string?
+Rask.Core.Element.AriaActiveDescendant.set -> void
+Rask.Core.Element.AriaAtomic.get -> bool?
+Rask.Core.Element.AriaAtomic.set -> void
+Rask.Core.Element.AriaAutoComplete.get -> Rask.Core.AriaAutoComplete?
+Rask.Core.Element.AriaAutoComplete.set -> void
+Rask.Core.Element.AriaBrailleLabel.get -> string?
+Rask.Core.Element.AriaBrailleLabel.set -> void
+Rask.Core.Element.AriaBrailleRoleDescription.get -> string?
+Rask.Core.Element.AriaBrailleRoleDescription.set -> void
+Rask.Core.Element.AriaBusy.get -> bool?
+Rask.Core.Element.AriaBusy.set -> void
+Rask.Core.Element.AriaChecked.get -> Rask.Core.AriaChecked?
+Rask.Core.Element.AriaChecked.set -> void
+Rask.Core.Element.AriaColCount.get -> int?
+Rask.Core.Element.AriaColCount.set -> void
+Rask.Core.Element.AriaColIndex.get -> int?
+Rask.Core.Element.AriaColIndex.set -> void
+Rask.Core.Element.AriaColIndexText.get -> string?
+Rask.Core.Element.AriaColIndexText.set -> void
+Rask.Core.Element.AriaColSpan.get -> int?
+Rask.Core.Element.AriaColSpan.set -> void
+Rask.Core.Element.AriaControls.get -> string?
+Rask.Core.Element.AriaControls.set -> void
+Rask.Core.Element.AriaCurrent.get -> Rask.Core.AriaCurrent?
+Rask.Core.Element.AriaCurrent.set -> void
+Rask.Core.Element.AriaDescribedBy.get -> string?
+Rask.Core.Element.AriaDescribedBy.set -> void
+Rask.Core.Element.AriaDescription.get -> string?
+Rask.Core.Element.AriaDescription.set -> void
+Rask.Core.Element.AriaDetails.get -> string?
+Rask.Core.Element.AriaDetails.set -> void
+Rask.Core.Element.AriaDisabled.get -> bool?
+Rask.Core.Element.AriaDisabled.set -> void
+Rask.Core.Element.AriaErrorMessage.get -> string?
+Rask.Core.Element.AriaErrorMessage.set -> void
+Rask.Core.Element.AriaExpanded.get -> bool?
+Rask.Core.Element.AriaExpanded.set -> void
+Rask.Core.Element.AriaFlowTo.get -> string?
+Rask.Core.Element.AriaFlowTo.set -> void
+Rask.Core.Element.AriaHasPopup.get -> Rask.Core.AriaHasPopup?
+Rask.Core.Element.AriaHasPopup.set -> void
+Rask.Core.Element.AriaHidden.get -> bool?
+Rask.Core.Element.AriaHidden.set -> void
+Rask.Core.Element.AriaInvalid.get -> Rask.Core.AriaInvalid?
+Rask.Core.Element.AriaInvalid.set -> void
+Rask.Core.Element.AriaKeyShortcuts.get -> string?
+Rask.Core.Element.AriaKeyShortcuts.set -> void
+Rask.Core.Element.AriaLabel.get -> string?
+Rask.Core.Element.AriaLabel.set -> void
+Rask.Core.Element.AriaLabelledBy.get -> string?
+Rask.Core.Element.AriaLabelledBy.set -> void
+Rask.Core.Element.AriaLevel.get -> int?
+Rask.Core.Element.AriaLevel.set -> void
+Rask.Core.Element.AriaLive.get -> Rask.Core.AriaLive?
+Rask.Core.Element.AriaLive.set -> void
+Rask.Core.Element.AriaModal.get -> bool?
+Rask.Core.Element.AriaModal.set -> void
+Rask.Core.Element.AriaMultiLine.get -> bool?
+Rask.Core.Element.AriaMultiLine.set -> void
+Rask.Core.Element.AriaMultiSelectable.get -> bool?
+Rask.Core.Element.AriaMultiSelectable.set -> void
+Rask.Core.Element.AriaOrientation.get -> Rask.Core.AriaOrientation?
+Rask.Core.Element.AriaOrientation.set -> void
+Rask.Core.Element.AriaOwns.get -> string?
+Rask.Core.Element.AriaOwns.set -> void
+Rask.Core.Element.AriaPlaceholder.get -> string?
+Rask.Core.Element.AriaPlaceholder.set -> void
+Rask.Core.Element.AriaPosInSet.get -> int?
+Rask.Core.Element.AriaPosInSet.set -> void
+Rask.Core.Element.AriaPressed.get -> Rask.Core.AriaPressed?
+Rask.Core.Element.AriaPressed.set -> void
+Rask.Core.Element.AriaReadOnly.get -> bool?
+Rask.Core.Element.AriaReadOnly.set -> void
+Rask.Core.Element.AriaRelevant.get -> Rask.Core.AriaRelevant?
+Rask.Core.Element.AriaRelevant.set -> void
+Rask.Core.Element.AriaRequired.get -> bool?
+Rask.Core.Element.AriaRequired.set -> void
+Rask.Core.Element.AriaRoleDescription.get -> string?
+Rask.Core.Element.AriaRoleDescription.set -> void
+Rask.Core.Element.AriaRowCount.get -> int?
+Rask.Core.Element.AriaRowCount.set -> void
+Rask.Core.Element.AriaRowIndex.get -> int?
+Rask.Core.Element.AriaRowIndex.set -> void
+Rask.Core.Element.AriaRowIndexText.get -> string?
+Rask.Core.Element.AriaRowIndexText.set -> void
+Rask.Core.Element.AriaRowSpan.get -> int?
+Rask.Core.Element.AriaRowSpan.set -> void
+Rask.Core.Element.AriaSelected.get -> bool?
+Rask.Core.Element.AriaSelected.set -> void
+Rask.Core.Element.AriaSetSize.get -> int?
+Rask.Core.Element.AriaSetSize.set -> void
+Rask.Core.Element.AriaSort.get -> Rask.Core.AriaSort?
+Rask.Core.Element.AriaSort.set -> void
+Rask.Core.Element.AriaValueMax.get -> double?
+Rask.Core.Element.AriaValueMax.set -> void
+Rask.Core.Element.AriaValueMin.get -> double?
+Rask.Core.Element.AriaValueMin.set -> void
+Rask.Core.Element.AriaValueNow.get -> double?
+Rask.Core.Element.AriaValueNow.set -> void
+Rask.Core.Element.AriaValueText.get -> string?
+Rask.Core.Element.AriaValueText.set -> void
+const Rask.Core.AriaRole.Alert = "alert" -> string!
+const Rask.Core.AriaRole.Alertdialog = "alertdialog" -> string!
+const Rask.Core.AriaRole.Application = "application" -> string!
+const Rask.Core.AriaRole.Article = "article" -> string!
+const Rask.Core.AriaRole.Banner = "banner" -> string!
+const Rask.Core.AriaRole.Blockquote = "blockquote" -> string!
+const Rask.Core.AriaRole.Button = "button" -> string!
+const Rask.Core.AriaRole.Caption = "caption" -> string!
+const Rask.Core.AriaRole.Cell = "cell" -> string!
+const Rask.Core.AriaRole.Checkbox = "checkbox" -> string!
+const Rask.Core.AriaRole.Code = "code" -> string!
+const Rask.Core.AriaRole.Columnheader = "columnheader" -> string!
+const Rask.Core.AriaRole.Combobox = "combobox" -> string!
+const Rask.Core.AriaRole.Comment = "comment" -> string!
+const Rask.Core.AriaRole.Complementary = "complementary" -> string!
+const Rask.Core.AriaRole.Contentinfo = "contentinfo" -> string!
+const Rask.Core.AriaRole.Definition = "definition" -> string!
+const Rask.Core.AriaRole.Deletion = "deletion" -> string!
+const Rask.Core.AriaRole.Dialog = "dialog" -> string!
+const Rask.Core.AriaRole.Directory = "directory" -> string!
+const Rask.Core.AriaRole.Document = "document" -> string!
+const Rask.Core.AriaRole.Emphasis = "emphasis" -> string!
+const Rask.Core.AriaRole.Feed = "feed" -> string!
+const Rask.Core.AriaRole.Figure = "figure" -> string!
+const Rask.Core.AriaRole.Form = "form" -> string!
+const Rask.Core.AriaRole.Generic = "generic" -> string!
+const Rask.Core.AriaRole.Grid = "grid" -> string!
+const Rask.Core.AriaRole.Gridcell = "gridcell" -> string!
+const Rask.Core.AriaRole.Group = "group" -> string!
+const Rask.Core.AriaRole.Heading = "heading" -> string!
+const Rask.Core.AriaRole.Image = "image" -> string!
+const Rask.Core.AriaRole.Img = "img" -> string!
+const Rask.Core.AriaRole.Insertion = "insertion" -> string!
+const Rask.Core.AriaRole.Link = "link" -> string!
+const Rask.Core.AriaRole.List = "list" -> string!
+const Rask.Core.AriaRole.Listbox = "listbox" -> string!
+const Rask.Core.AriaRole.Listitem = "listitem" -> string!
+const Rask.Core.AriaRole.Log = "log" -> string!
+const Rask.Core.AriaRole.Main = "main" -> string!
+const Rask.Core.AriaRole.Mark = "mark" -> string!
+const Rask.Core.AriaRole.Marquee = "marquee" -> string!
+const Rask.Core.AriaRole.Math = "math" -> string!
+const Rask.Core.AriaRole.Menu = "menu" -> string!
+const Rask.Core.AriaRole.Menubar = "menubar" -> string!
+const Rask.Core.AriaRole.Menuitem = "menuitem" -> string!
+const Rask.Core.AriaRole.Menuitemcheckbox = "menuitemcheckbox" -> string!
+const Rask.Core.AriaRole.Menuitemradio = "menuitemradio" -> string!
+const Rask.Core.AriaRole.Meter = "meter" -> string!
+const Rask.Core.AriaRole.Navigation = "navigation" -> string!
+const Rask.Core.AriaRole.None = "none" -> string!
+const Rask.Core.AriaRole.Note = "note" -> string!
+const Rask.Core.AriaRole.Option = "option" -> string!
+const Rask.Core.AriaRole.Paragraph = "paragraph" -> string!
+const Rask.Core.AriaRole.Presentation = "presentation" -> string!
+const Rask.Core.AriaRole.Progressbar = "progressbar" -> string!
+const Rask.Core.AriaRole.Radio = "radio" -> string!
+const Rask.Core.AriaRole.Radiogroup = "radiogroup" -> string!
+const Rask.Core.AriaRole.Region = "region" -> string!
+const Rask.Core.AriaRole.Row = "row" -> string!
+const Rask.Core.AriaRole.Rowgroup = "rowgroup" -> string!
+const Rask.Core.AriaRole.Rowheader = "rowheader" -> string!
+const Rask.Core.AriaRole.Scrollbar = "scrollbar" -> string!
+const Rask.Core.AriaRole.Search = "search" -> string!
+const Rask.Core.AriaRole.Searchbox = "searchbox" -> string!
+const Rask.Core.AriaRole.Sectionfooter = "sectionfooter" -> string!
+const Rask.Core.AriaRole.Sectionheader = "sectionheader" -> string!
+const Rask.Core.AriaRole.Separator = "separator" -> string!
+const Rask.Core.AriaRole.Slider = "slider" -> string!
+const Rask.Core.AriaRole.Spinbutton = "spinbutton" -> string!
+const Rask.Core.AriaRole.Status = "status" -> string!
+const Rask.Core.AriaRole.Strong = "strong" -> string!
+const Rask.Core.AriaRole.Subscript = "subscript" -> string!
+const Rask.Core.AriaRole.Suggestion = "suggestion" -> string!
+const Rask.Core.AriaRole.Superscript = "superscript" -> string!
+const Rask.Core.AriaRole.Switch = "switch" -> string!
+const Rask.Core.AriaRole.Tab = "tab" -> string!
+const Rask.Core.AriaRole.Table = "table" -> string!
+const Rask.Core.AriaRole.Tablist = "tablist" -> string!
+const Rask.Core.AriaRole.Tabpanel = "tabpanel" -> string!
+const Rask.Core.AriaRole.Term = "term" -> string!
+const Rask.Core.AriaRole.Textbox = "textbox" -> string!
+const Rask.Core.AriaRole.Time = "time" -> string!
+const Rask.Core.AriaRole.Timer = "timer" -> string!
+const Rask.Core.AriaRole.Toolbar = "toolbar" -> string!
+const Rask.Core.AriaRole.Tooltip = "tooltip" -> string!
+const Rask.Core.AriaRole.Tree = "tree" -> string!
+const Rask.Core.AriaRole.Treegrid = "treegrid" -> string!
+const Rask.Core.AriaRole.Treeitem = "treeitem" -> string!
+const Rask.Core.BuilderRuntime.SharedElementPending = 1048575 -> ulong
+static RaskBuilderSettersRask_Core.AriaActiveDescendant<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaAtomic<T>(this T! __b) -> T!
+static RaskBuilderSettersRask_Core.AriaAtomic<T>(this T! __b, bool? value) -> T!
+static RaskBuilderSettersRask_Core.AriaAutoComplete<T>(this T! __b, Rask.Core.AriaAutoComplete? value) -> T!
+static RaskBuilderSettersRask_Core.AriaBrailleLabel<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaBrailleRoleDescription<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaBusy<T>(this T! __b) -> T!
+static RaskBuilderSettersRask_Core.AriaBusy<T>(this T! __b, bool? value) -> T!
+static RaskBuilderSettersRask_Core.AriaChecked<T>(this T! __b, Rask.Core.AriaChecked? value) -> T!
+static RaskBuilderSettersRask_Core.AriaColCount<T>(this T! __b, int? value) -> T!
+static RaskBuilderSettersRask_Core.AriaColIndex<T>(this T! __b, int? value) -> T!
+static RaskBuilderSettersRask_Core.AriaColIndexText<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaColSpan<T>(this T! __b, int? value) -> T!
+static RaskBuilderSettersRask_Core.AriaControls<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaCurrent<T>(this T! __b, Rask.Core.AriaCurrent? value) -> T!
+static RaskBuilderSettersRask_Core.AriaDescribedBy<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaDescription<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaDetails<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaDisabled<T>(this T! __b) -> T!
+static RaskBuilderSettersRask_Core.AriaDisabled<T>(this T! __b, bool? value) -> T!
+static RaskBuilderSettersRask_Core.AriaErrorMessage<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaExpanded<T>(this T! __b) -> T!
+static RaskBuilderSettersRask_Core.AriaExpanded<T>(this T! __b, bool? value) -> T!
+static RaskBuilderSettersRask_Core.AriaFlowTo<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaHasPopup<T>(this T! __b, Rask.Core.AriaHasPopup? value) -> T!
+static RaskBuilderSettersRask_Core.AriaHidden<T>(this T! __b) -> T!
+static RaskBuilderSettersRask_Core.AriaHidden<T>(this T! __b, bool? value) -> T!
+static RaskBuilderSettersRask_Core.AriaInvalid<T>(this T! __b, Rask.Core.AriaInvalid? value) -> T!
+static RaskBuilderSettersRask_Core.AriaKeyShortcuts<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaLabel<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaLabelledBy<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaLevel<T>(this T! __b, int? value) -> T!
+static RaskBuilderSettersRask_Core.AriaLive<T>(this T! __b, Rask.Core.AriaLive? value) -> T!
+static RaskBuilderSettersRask_Core.AriaModal<T>(this T! __b) -> T!
+static RaskBuilderSettersRask_Core.AriaModal<T>(this T! __b, bool? value) -> T!
+static RaskBuilderSettersRask_Core.AriaMultiLine<T>(this T! __b) -> T!
+static RaskBuilderSettersRask_Core.AriaMultiLine<T>(this T! __b, bool? value) -> T!
+static RaskBuilderSettersRask_Core.AriaMultiSelectable<T>(this T! __b) -> T!
+static RaskBuilderSettersRask_Core.AriaMultiSelectable<T>(this T! __b, bool? value) -> T!
+static RaskBuilderSettersRask_Core.AriaOrientation<T>(this T! __b, Rask.Core.AriaOrientation? value) -> T!
+static RaskBuilderSettersRask_Core.AriaOwns<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaPlaceholder<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaPosInSet<T>(this T! __b, int? value) -> T!
+static RaskBuilderSettersRask_Core.AriaPressed<T>(this T! __b, Rask.Core.AriaPressed? value) -> T!
+static RaskBuilderSettersRask_Core.AriaReadOnly<T>(this T! __b) -> T!
+static RaskBuilderSettersRask_Core.AriaReadOnly<T>(this T! __b, bool? value) -> T!
+static RaskBuilderSettersRask_Core.AriaRelevant<T>(this T! __b, Rask.Core.AriaRelevant? value) -> T!
+static RaskBuilderSettersRask_Core.AriaRequired<T>(this T! __b) -> T!
+static RaskBuilderSettersRask_Core.AriaRequired<T>(this T! __b, bool? value) -> T!
+static RaskBuilderSettersRask_Core.AriaRoleDescription<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaRowCount<T>(this T! __b, int? value) -> T!
+static RaskBuilderSettersRask_Core.AriaRowIndex<T>(this T! __b, int? value) -> T!
+static RaskBuilderSettersRask_Core.AriaRowIndexText<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.AriaRowSpan<T>(this T! __b, int? value) -> T!
+static RaskBuilderSettersRask_Core.AriaSelected<T>(this T! __b) -> T!
+static RaskBuilderSettersRask_Core.AriaSelected<T>(this T! __b, bool? value) -> T!
+static RaskBuilderSettersRask_Core.AriaSetSize<T>(this T! __b, int? value) -> T!
+static RaskBuilderSettersRask_Core.AriaSort<T>(this T! __b, Rask.Core.AriaSort? value) -> T!
+static RaskBuilderSettersRask_Core.AriaValueMax<T>(this T! __b, double? value) -> T!
+static RaskBuilderSettersRask_Core.AriaValueMin<T>(this T! __b, double? value) -> T!
+static RaskBuilderSettersRask_Core.AriaValueNow<T>(this T! __b, double? value) -> T!
+static RaskBuilderSettersRask_Core.AriaValueText<T>(this T! __b, string? value) -> T!

@@ -898,6 +898,24 @@ them until tagged releases begin.
 
 ### Added
 
+- **Typed ARIA on every element, generated from the WAI-ARIA spec.** Each of the spec's ~50 `aria-*` states and
+  properties is a typed step named after its DOM IDL attribute, typed by the spec's value type — `bool?` for
+  true/false, a generated enum for tristate and token values, a `[Flags]` enum for a token list, `int?`/`double?`
+  (written invariant) for numbers, `string?` for id references and text — and `AriaRole` holds every concrete role
+  as a constant. The `Aria` bag stays for anything else, and skips a key a typed step already wrote:
+  ```csharp
+  Button.Aria(("expanded", open ? "true" : "false"), ("controls", "menu"))["Options"]   // before
+  Button.AriaExpanded(open).AriaControls("menu").AriaHasPopup(AriaHasPopup.Menu)["Options"]   // now
+  Div.Role(AriaRole.Status).AriaLive(AriaLive.Polite)[message]
+  ```
+  The data is the spec's own source (`w3c/aria`), read with `parse5` at commits pinned in the snapshot's `sources`
+  and refreshed with the MDN data (`RASK_MDN_ARIA`, `RASK_MDN_PARSE5`). Attribute order inside `aria-*` is now
+  typed first (alphabetical), then the bag. The values live on a sparse side object off the existing global-attribute
+  one — a boolean or keyword is stored as the interned literal it renders as, so the steps allocate nothing per render
+  and an element that names none pays nothing; the ~50 properties share ONE builder pending bit (the store keeps its
+  own written-this-render record), so the shared surface stays inside its 32-bit budget. The keyword enums' values
+  are the FNV-1a hash of each keyword and they give no per-keyword chain steps (`Div.Polite` would say nothing).
+
 - **[RASK098](docs/diagnostics.md#rask098): the build says when a web API is missing from a browser you
   support.** Opt in with `<RaskBrowserTargets>safari >= 16; firefox >= 115</RaskBrowserTargets>` and a
   call to a `Rask.Web` member, or an element ref's MDN member, that MDN's compat data says one of those browsers

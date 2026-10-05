@@ -128,10 +128,12 @@ enumerator. Measured over 100 elements each carrying one `data-*`: **80.7 KB →
 
 <!-- demo:props-data -->
 
-`Aria`, `Role`, `TabIndex` — `Aria` is the `data-*` model applied to ARIA (each entry expands to
-`aria-{key}`, value HTML-encoded, null → bare attribute), and takes the same three forms
-(`Span.Aria("label", "Close")`); `Role` and `TabIndex` are typed because they aren't `aria-*`
-attributes. See the [accessibility guide](accessibility.md) and the RASK023 img-alt analyzer.
+Typed ARIA, `Role`, `TabIndex` — every `aria-*` state and property of the WAI-ARIA spec is a typed step,
+generated from the spec (`.AriaLabel("Close")`, `.AriaExpanded(open)`, `.AriaLive(AriaLive.Polite)`), and
+`AriaRole` holds the roles as constants (`.Role(AriaRole.Switch)`). The `Aria` bag stays for anything else:
+it is the `data-*` model applied to ARIA (each entry expands to `aria-{key}`, value HTML-encoded, null → bare
+attribute), takes the same three forms (`Span.Aria("label", "Close")`), and skips a key a typed step
+already wrote. See the [accessibility guide](accessibility.md) and the RASK023 img-alt analyzer.
 
 <!-- demo:props-aria -->
 
@@ -238,7 +240,7 @@ Link.Rel("preload").Href("/hero.png").As("image")
 
 **Attribute order** is fixed: `id`, `class`, `style`, `title`, the plain globals (`lang`, `dir`,
 `hidden`, `inert`, `popover`, `contenteditable`, `spellcheck`, `translate`), `data-*`, `role`,
-`tabindex`, `aria-*`, then `Attributes`, then tag-specific. Tests enforce it, so the output is
+`tabindex`, `aria-*` (typed, then the Aria bag), then `Attributes`, then tag-specific. Tests enforce it, so the output is
 predictable for diffing and DOM tooling:
 
 `Title` is the global `title` attribute — the browser's hover tooltip. Reach for it where a cell shows an

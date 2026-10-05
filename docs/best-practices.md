@@ -69,7 +69,7 @@ mistake, the rule notes the ID.
   `<title>`/`<base>` are singletons where the last contributor wins. See
   [getting started §7](getting-started.md#7-the-document-and-the-headassets-override).
 - **Don't fight the attribute order.** Universal attributes always render
-  `id, class, style, data-*, role, tabindex, aria-*`, then tag-specific. Tests assert it and it's
+  `id, class, style, data-*, role, tabindex, aria-*` (typed, then the Aria bag), then tag-specific. Tests assert it and it's
   stable across releases — match it when asserting on HTML.
 
 ## State, callbacks & events

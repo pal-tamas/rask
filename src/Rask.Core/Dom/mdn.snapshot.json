@@ -5,8 +5,10 @@
   "@webref/elements": "2.9.0",
   "@webref/events": "1.26.0",
   "@webref/idl": "3.84.0",
+  "parse5": "8.0.1",
   "webidl2": "24.5.0",
-  "webref/dfns": "89e7d68c6612fbedb740c1632d36e482ca39e999"
+  "webref/dfns": "89e7d68c6612fbedb740c1632d36e482ca39e999",
+  "w3c/aria": "fe501782a1ab004e760fb15a4afd24308dccb46e"
  },
  "engines": [
   "chrome",
@@ -133177,5 +133179,1784 @@
     }
    ]
   }
+ },
+ "aria": {
+  "roles": [
+   {
+    "name": "alert",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#alert"
+   },
+   {
+    "name": "alertdialog",
+    "superclass": [
+     "alert",
+     "dialog"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#alertdialog"
+   },
+   {
+    "name": "application",
+    "superclass": [
+     "structure"
+    ],
+    "required": [],
+    "supported": [
+     "aria-activedescendant",
+     "aria-disabled",
+     "aria-errormessage",
+     "aria-expanded",
+     "aria-haspopup",
+     "aria-invalid"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#application"
+   },
+   {
+    "name": "article",
+    "superclass": [
+     "document"
+    ],
+    "required": [],
+    "supported": [
+     "aria-posinset",
+     "aria-setsize"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#article"
+   },
+   {
+    "name": "banner",
+    "superclass": [
+     "landmark"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#banner"
+   },
+   {
+    "name": "blockquote",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#blockquote"
+   },
+   {
+    "name": "button",
+    "superclass": [
+     "command"
+    ],
+    "required": [],
+    "supported": [
+     "aria-disabled",
+     "aria-expanded",
+     "aria-haspopup",
+     "aria-pressed"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#button"
+   },
+   {
+    "name": "caption",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#caption"
+   },
+   {
+    "name": "cell",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [
+     "aria-colindex",
+     "aria-colindextext",
+     "aria-colspan",
+     "aria-rowindex",
+     "aria-rowindextext",
+     "aria-rowspan"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#cell"
+   },
+   {
+    "name": "checkbox",
+    "superclass": [
+     "input"
+    ],
+    "required": [
+     "aria-checked"
+    ],
+    "supported": [
+     "aria-errormessage",
+     "aria-expanded",
+     "aria-invalid",
+     "aria-readonly",
+     "aria-required"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#checkbox"
+   },
+   {
+    "name": "code",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#code"
+   },
+   {
+    "name": "columnheader",
+    "superclass": [
+     "cell",
+     "gridcell",
+     "sectionhead"
+    ],
+    "required": [],
+    "supported": [
+     "aria-sort"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#columnheader"
+   },
+   {
+    "name": "combobox",
+    "superclass": [
+     "input"
+    ],
+    "required": [
+     "aria-expanded"
+    ],
+    "supported": [
+     "aria-activedescendant",
+     "aria-autocomplete",
+     "aria-controls",
+     "aria-errormessage",
+     "aria-haspopup",
+     "aria-invalid",
+     "aria-readonly",
+     "aria-required"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#combobox"
+   },
+   {
+    "name": "command",
+    "abstract": true,
+    "superclass": [
+     "widget"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#command"
+   },
+   {
+    "name": "comment",
+    "superclass": [
+     "article"
+    ],
+    "required": [],
+    "supported": [
+     "aria-level",
+     "aria-posinset",
+     "aria-setsize"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#comment"
+   },
+   {
+    "name": "complementary",
+    "superclass": [
+     "landmark"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#complementary"
+   },
+   {
+    "name": "composite",
+    "abstract": true,
+    "superclass": [
+     "widget"
+    ],
+    "required": [],
+    "supported": [
+     "aria-activedescendant",
+     "aria-disabled"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#composite"
+   },
+   {
+    "name": "contentinfo",
+    "superclass": [
+     "landmark"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#contentinfo"
+   },
+   {
+    "name": "definition",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#definition"
+   },
+   {
+    "name": "deletion",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#deletion"
+   },
+   {
+    "name": "dialog",
+    "superclass": [
+     "window"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#dialog"
+   },
+   {
+    "name": "directory",
+    "superclass": [
+     "list"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#directory"
+   },
+   {
+    "name": "document",
+    "superclass": [
+     "structure"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#document"
+   },
+   {
+    "name": "emphasis",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#emphasis"
+   },
+   {
+    "name": "feed",
+    "superclass": [
+     "list"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#feed"
+   },
+   {
+    "name": "figure",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#figure"
+   },
+   {
+    "name": "form",
+    "superclass": [
+     "landmark"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#form"
+   },
+   {
+    "name": "generic",
+    "superclass": [
+     "structure"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-brailleroledescription",
+     "aria-label",
+     "aria-labelledby",
+     "aria-roledescription"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#generic"
+   },
+   {
+    "name": "grid",
+    "superclass": [
+     "composite",
+     "table"
+    ],
+    "required": [],
+    "supported": [
+     "aria-multiselectable",
+     "aria-readonly"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#grid"
+   },
+   {
+    "name": "gridcell",
+    "superclass": [
+     "cell",
+     "widget"
+    ],
+    "required": [],
+    "supported": [
+     "aria-disabled",
+     "aria-errormessage",
+     "aria-expanded",
+     "aria-haspopup",
+     "aria-invalid",
+     "aria-readonly",
+     "aria-required",
+     "aria-selected"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#gridcell"
+   },
+   {
+    "name": "group",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [
+     "aria-activedescendant",
+     "aria-disabled"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#group"
+   },
+   {
+    "name": "heading",
+    "superclass": [
+     "sectionhead"
+    ],
+    "required": [
+     "aria-level"
+    ],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#heading"
+   },
+   {
+    "name": "image",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#image"
+   },
+   {
+    "name": "img",
+    "superclass": [],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#img"
+   },
+   {
+    "name": "input",
+    "abstract": true,
+    "superclass": [
+     "widget"
+    ],
+    "required": [],
+    "supported": [
+     "aria-disabled"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#input"
+   },
+   {
+    "name": "insertion",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#insertion"
+   },
+   {
+    "name": "landmark",
+    "abstract": true,
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#landmark"
+   },
+   {
+    "name": "link",
+    "superclass": [
+     "command"
+    ],
+    "required": [],
+    "supported": [
+     "aria-disabled",
+     "aria-expanded",
+     "aria-haspopup"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#link"
+   },
+   {
+    "name": "list",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#list"
+   },
+   {
+    "name": "listbox",
+    "superclass": [
+     "select"
+    ],
+    "required": [],
+    "supported": [
+     "aria-errormessage",
+     "aria-invalid",
+     "aria-multiselectable",
+     "aria-readonly",
+     "aria-required"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#listbox"
+   },
+   {
+    "name": "listitem",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [
+     "aria-posinset",
+     "aria-setsize"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#listitem"
+   },
+   {
+    "name": "log",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#log"
+   },
+   {
+    "name": "main",
+    "superclass": [
+     "landmark"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#main"
+   },
+   {
+    "name": "mark",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#mark"
+   },
+   {
+    "name": "marquee",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#marquee"
+   },
+   {
+    "name": "math",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#math"
+   },
+   {
+    "name": "menu",
+    "superclass": [
+     "select"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#menu"
+   },
+   {
+    "name": "menubar",
+    "superclass": [
+     "menu"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#menubar"
+   },
+   {
+    "name": "menuitem",
+    "superclass": [
+     "command"
+    ],
+    "required": [],
+    "supported": [
+     "aria-disabled",
+     "aria-expanded",
+     "aria-haspopup",
+     "aria-posinset",
+     "aria-setsize"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#menuitem"
+   },
+   {
+    "name": "menuitemcheckbox",
+    "superclass": [
+     "menuitem"
+    ],
+    "required": [
+     "aria-checked"
+    ],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#menuitemcheckbox"
+   },
+   {
+    "name": "menuitemradio",
+    "superclass": [
+     "menuitem"
+    ],
+    "required": [
+     "aria-checked"
+    ],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#menuitemradio"
+   },
+   {
+    "name": "meter",
+    "superclass": [
+     "range"
+    ],
+    "required": [
+     "aria-valuenow"
+    ],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#meter"
+   },
+   {
+    "name": "navigation",
+    "superclass": [
+     "landmark"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#navigation"
+   },
+   {
+    "name": "none",
+    "superclass": [
+     "structure"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#none"
+   },
+   {
+    "name": "note",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#note"
+   },
+   {
+    "name": "option",
+    "superclass": [
+     "input"
+    ],
+    "required": [],
+    "supported": [
+     "aria-checked",
+     "aria-posinset",
+     "aria-selected",
+     "aria-setsize"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#option"
+   },
+   {
+    "name": "paragraph",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#paragraph"
+   },
+   {
+    "name": "presentation",
+    "superclass": [],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#presentation"
+   },
+   {
+    "name": "progressbar",
+    "superclass": [
+     "range",
+     "widget"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#progressbar"
+   },
+   {
+    "name": "radio",
+    "superclass": [
+     "input"
+    ],
+    "required": [
+     "aria-checked"
+    ],
+    "supported": [
+     "aria-posinset",
+     "aria-setsize"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#radio"
+   },
+   {
+    "name": "radiogroup",
+    "superclass": [
+     "select"
+    ],
+    "required": [],
+    "supported": [
+     "aria-errormessage",
+     "aria-invalid",
+     "aria-readonly",
+     "aria-required"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#radiogroup"
+   },
+   {
+    "name": "range",
+    "abstract": true,
+    "superclass": [
+     "structure"
+    ],
+    "required": [],
+    "supported": [
+     "aria-valuemax",
+     "aria-valuemin",
+     "aria-valuenow",
+     "aria-valuetext"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#range"
+   },
+   {
+    "name": "region",
+    "superclass": [
+     "landmark"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#region"
+   },
+   {
+    "name": "roletype",
+    "abstract": true,
+    "superclass": [],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#roletype"
+   },
+   {
+    "name": "row",
+    "superclass": [
+     "group",
+     "widget"
+    ],
+    "required": [],
+    "supported": [
+     "aria-colindex",
+     "aria-expanded",
+     "aria-level",
+     "aria-posinset",
+     "aria-rowindex",
+     "aria-rowindextext",
+     "aria-selected",
+     "aria-setsize"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#row"
+   },
+   {
+    "name": "rowgroup",
+    "superclass": [
+     "structure"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#rowgroup"
+   },
+   {
+    "name": "rowheader",
+    "superclass": [
+     "cell",
+     "gridcell",
+     "sectionhead"
+    ],
+    "required": [],
+    "supported": [
+     "aria-expanded",
+     "aria-sort"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#rowheader"
+   },
+   {
+    "name": "scrollbar",
+    "superclass": [
+     "range",
+     "widget"
+    ],
+    "required": [
+     "aria-valuenow"
+    ],
+    "supported": [
+     "aria-disabled",
+     "aria-orientation"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#scrollbar"
+   },
+   {
+    "name": "search",
+    "superclass": [
+     "landmark"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#search"
+   },
+   {
+    "name": "searchbox",
+    "superclass": [
+     "textbox"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#searchbox"
+   },
+   {
+    "name": "section",
+    "abstract": true,
+    "superclass": [
+     "structure"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#section"
+   },
+   {
+    "name": "sectionfooter",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#sectionfooter"
+   },
+   {
+    "name": "sectionhead",
+    "abstract": true,
+    "superclass": [
+     "structure"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#sectionhead"
+   },
+   {
+    "name": "sectionheader",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#sectionheader"
+   },
+   {
+    "name": "select",
+    "abstract": true,
+    "superclass": [
+     "composite",
+     "group"
+    ],
+    "required": [],
+    "supported": [
+     "aria-orientation"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#select"
+   },
+   {
+    "name": "separator",
+    "superclass": [
+     "structure",
+     "widget"
+    ],
+    "required": [
+     "aria-valuenow"
+    ],
+    "supported": [
+     "aria-disabled",
+     "aria-orientation",
+     "aria-valuemax",
+     "aria-valuemin",
+     "aria-valuetext"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#separator"
+   },
+   {
+    "name": "slider",
+    "superclass": [
+     "input",
+     "range"
+    ],
+    "required": [
+     "aria-valuenow"
+    ],
+    "supported": [
+     "aria-errormessage",
+     "aria-haspopup",
+     "aria-invalid",
+     "aria-orientation",
+     "aria-readonly"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#slider"
+   },
+   {
+    "name": "spinbutton",
+    "superclass": [
+     "composite",
+     "input",
+     "range"
+    ],
+    "required": [],
+    "supported": [
+     "aria-errormessage",
+     "aria-invalid",
+     "aria-readonly",
+     "aria-required",
+     "aria-valuemax",
+     "aria-valuemin",
+     "aria-valuenow",
+     "aria-valuetext"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#spinbutton"
+   },
+   {
+    "name": "status",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#status"
+   },
+   {
+    "name": "strong",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#strong"
+   },
+   {
+    "name": "structure",
+    "abstract": true,
+    "superclass": [
+     "roletype"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#structure"
+   },
+   {
+    "name": "subscript",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#subscript"
+   },
+   {
+    "name": "suggestion",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#suggestion"
+   },
+   {
+    "name": "superscript",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#superscript"
+   },
+   {
+    "name": "switch",
+    "superclass": [
+     "checkbox"
+    ],
+    "required": [
+     "aria-checked"
+    ],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#switch"
+   },
+   {
+    "name": "tab",
+    "superclass": [
+     "sectionhead",
+     "widget"
+    ],
+    "required": [],
+    "supported": [
+     "aria-disabled",
+     "aria-expanded",
+     "aria-haspopup",
+     "aria-posinset",
+     "aria-selected",
+     "aria-setsize"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#tab"
+   },
+   {
+    "name": "table",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [
+     "aria-colcount",
+     "aria-rowcount"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#table"
+   },
+   {
+    "name": "tablist",
+    "superclass": [
+     "composite"
+    ],
+    "required": [],
+    "supported": [
+     "aria-multiselectable",
+     "aria-orientation"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#tablist"
+   },
+   {
+    "name": "tabpanel",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#tabpanel"
+   },
+   {
+    "name": "term",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#term"
+   },
+   {
+    "name": "textbox",
+    "superclass": [
+     "input"
+    ],
+    "required": [],
+    "supported": [
+     "aria-activedescendant",
+     "aria-autocomplete",
+     "aria-errormessage",
+     "aria-haspopup",
+     "aria-invalid",
+     "aria-multiline",
+     "aria-placeholder",
+     "aria-readonly",
+     "aria-required"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#textbox"
+   },
+   {
+    "name": "time",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#time"
+   },
+   {
+    "name": "timer",
+    "superclass": [
+     "status"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#timer"
+   },
+   {
+    "name": "toolbar",
+    "superclass": [
+     "group"
+    ],
+    "required": [],
+    "supported": [
+     "aria-orientation"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#toolbar"
+   },
+   {
+    "name": "tooltip",
+    "superclass": [
+     "section"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [
+     "aria-braillelabel",
+     "aria-label",
+     "aria-labelledby"
+    ],
+    "nameProhibited": true,
+    "spec": "https://w3c.github.io/aria/#tooltip"
+   },
+   {
+    "name": "tree",
+    "superclass": [
+     "select"
+    ],
+    "required": [],
+    "supported": [
+     "aria-errormessage",
+     "aria-invalid",
+     "aria-multiselectable",
+     "aria-required"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#tree"
+   },
+   {
+    "name": "treegrid",
+    "superclass": [
+     "grid",
+     "tree"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#treegrid"
+   },
+   {
+    "name": "treeitem",
+    "superclass": [
+     "listitem",
+     "option"
+    ],
+    "required": [],
+    "supported": [
+     "aria-expanded",
+     "aria-haspopup",
+     "aria-level"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#treeitem"
+   },
+   {
+    "name": "widget",
+    "abstract": true,
+    "superclass": [
+     "roletype"
+    ],
+    "required": [],
+    "supported": [],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#widget"
+   },
+   {
+    "name": "window",
+    "abstract": true,
+    "superclass": [
+     "roletype"
+    ],
+    "required": [],
+    "supported": [
+     "aria-modal"
+    ],
+    "prohibited": [],
+    "spec": "https://w3c.github.io/aria/#window"
+   }
+  ],
+  "attributes": [
+   {
+    "name": "aria-activedescendant",
+    "kind": "property",
+    "value": "idref",
+    "spec": "https://w3c.github.io/aria/#aria-activedescendant"
+   },
+   {
+    "name": "aria-atomic",
+    "kind": "property",
+    "value": "true_false",
+    "values": [
+     "false",
+     "true"
+    ],
+    "spec": "https://w3c.github.io/aria/#aria-atomic"
+   },
+   {
+    "name": "aria-autocomplete",
+    "kind": "property",
+    "value": "token",
+    "values": [
+     "inline",
+     "list",
+     "both",
+     "none"
+    ],
+    "default": "none",
+    "spec": "https://w3c.github.io/aria/#aria-autocomplete"
+   },
+   {
+    "name": "aria-braillelabel",
+    "kind": "property",
+    "value": "string",
+    "spec": "https://w3c.github.io/aria/#aria-braillelabel"
+   },
+   {
+    "name": "aria-brailleroledescription",
+    "kind": "property",
+    "value": "string",
+    "spec": "https://w3c.github.io/aria/#aria-brailleroledescription"
+   },
+   {
+    "name": "aria-busy",
+    "kind": "state",
+    "value": "true_false",
+    "values": [
+     "false",
+     "true"
+    ],
+    "default": "false",
+    "spec": "https://w3c.github.io/aria/#aria-busy"
+   },
+   {
+    "name": "aria-checked",
+    "kind": "state",
+    "value": "tristate",
+    "values": [
+     "false",
+     "mixed",
+     "true",
+     "undefined"
+    ],
+    "default": "undefined",
+    "spec": "https://w3c.github.io/aria/#aria-checked"
+   },
+   {
+    "name": "aria-colcount",
+    "kind": "property",
+    "value": "integer",
+    "spec": "https://w3c.github.io/aria/#aria-colcount"
+   },
+   {
+    "name": "aria-colindex",
+    "kind": "property",
+    "value": "integer",
+    "spec": "https://w3c.github.io/aria/#aria-colindex"
+   },
+   {
+    "name": "aria-colindextext",
+    "kind": "property",
+    "value": "string",
+    "spec": "https://w3c.github.io/aria/#aria-colindextext"
+   },
+   {
+    "name": "aria-colspan",
+    "kind": "property",
+    "value": "integer",
+    "spec": "https://w3c.github.io/aria/#aria-colspan"
+   },
+   {
+    "name": "aria-controls",
+    "kind": "property",
+    "value": "idref_list",
+    "spec": "https://w3c.github.io/aria/#aria-controls"
+   },
+   {
+    "name": "aria-current",
+    "kind": "state",
+    "value": "token",
+    "values": [
+     "page",
+     "step",
+     "location",
+     "date",
+     "time",
+     "true",
+     "false"
+    ],
+    "default": "false",
+    "spec": "https://w3c.github.io/aria/#aria-current"
+   },
+   {
+    "name": "aria-describedby",
+    "kind": "property",
+    "value": "idref_list",
+    "spec": "https://w3c.github.io/aria/#aria-describedby"
+   },
+   {
+    "name": "aria-description",
+    "kind": "property",
+    "value": "string",
+    "spec": "https://w3c.github.io/aria/#aria-description"
+   },
+   {
+    "name": "aria-details",
+    "kind": "property",
+    "value": "idref_list",
+    "spec": "https://w3c.github.io/aria/#aria-details"
+   },
+   {
+    "name": "aria-disabled",
+    "kind": "state",
+    "value": "true_false",
+    "values": [
+     "false",
+     "true"
+    ],
+    "default": "false",
+    "spec": "https://w3c.github.io/aria/#aria-disabled"
+   },
+   {
+    "name": "aria-dropeffect",
+    "kind": "property",
+    "deprecated": true,
+    "value": "token_list",
+    "values": [
+     "copy",
+     "execute",
+     "link",
+     "move",
+     "none",
+     "popup"
+    ],
+    "default": "none",
+    "spec": "https://w3c.github.io/aria/#aria-dropeffect"
+   },
+   {
+    "name": "aria-errormessage",
+    "kind": "property",
+    "value": "idref_list",
+    "spec": "https://w3c.github.io/aria/#aria-errormessage"
+   },
+   {
+    "name": "aria-expanded",
+    "kind": "state",
+    "value": "true_false_undefined",
+    "values": [
+     "false",
+     "true",
+     "undefined"
+    ],
+    "default": "undefined",
+    "spec": "https://w3c.github.io/aria/#aria-expanded"
+   },
+   {
+    "name": "aria-flowto",
+    "kind": "property",
+    "value": "idref_list",
+    "spec": "https://w3c.github.io/aria/#aria-flowto"
+   },
+   {
+    "name": "aria-grabbed",
+    "kind": "state",
+    "deprecated": true,
+    "value": "true_false_undefined",
+    "values": [
+     "false",
+     "true",
+     "undefined"
+    ],
+    "default": "undefined",
+    "spec": "https://w3c.github.io/aria/#aria-grabbed"
+   },
+   {
+    "name": "aria-haspopup",
+    "kind": "property",
+    "value": "token",
+    "values": [
+     "false",
+     "true",
+     "menu",
+     "listbox",
+     "tree",
+     "grid",
+     "dialog"
+    ],
+    "default": "false",
+    "spec": "https://w3c.github.io/aria/#aria-haspopup"
+   },
+   {
+    "name": "aria-hidden",
+    "kind": "state",
+    "value": "true_false_undefined",
+    "values": [
+     "false",
+     "true",
+     "undefined"
+    ],
+    "default": "undefined",
+    "spec": "https://w3c.github.io/aria/#aria-hidden"
+   },
+   {
+    "name": "aria-invalid",
+    "kind": "state",
+    "value": "token",
+    "values": [
+     "grammar",
+     "false",
+     "spelling",
+     "true"
+    ],
+    "default": "false",
+    "spec": "https://w3c.github.io/aria/#aria-invalid"
+   },
+   {
+    "name": "aria-keyshortcuts",
+    "kind": "property",
+    "value": "string",
+    "spec": "https://w3c.github.io/aria/#aria-keyshortcuts"
+   },
+   {
+    "name": "aria-label",
+    "kind": "property",
+    "value": "string",
+    "spec": "https://w3c.github.io/aria/#aria-label"
+   },
+   {
+    "name": "aria-labelledby",
+    "kind": "property",
+    "value": "idref_list",
+    "spec": "https://w3c.github.io/aria/#aria-labelledby"
+   },
+   {
+    "name": "aria-level",
+    "kind": "property",
+    "value": "integer",
+    "spec": "https://w3c.github.io/aria/#aria-level"
+   },
+   {
+    "name": "aria-live",
+    "kind": "property",
+    "value": "token",
+    "values": [
+     "assertive",
+     "off",
+     "polite"
+    ],
+    "default": "off",
+    "spec": "https://w3c.github.io/aria/#aria-live"
+   },
+   {
+    "name": "aria-modal",
+    "kind": "property",
+    "value": "true_false",
+    "values": [
+     "false",
+     "true"
+    ],
+    "default": "false",
+    "spec": "https://w3c.github.io/aria/#aria-modal"
+   },
+   {
+    "name": "aria-multiline",
+    "kind": "property",
+    "value": "true_false",
+    "values": [
+     "false",
+     "true"
+    ],
+    "default": "false",
+    "spec": "https://w3c.github.io/aria/#aria-multiline"
+   },
+   {
+    "name": "aria-multiselectable",
+    "kind": "property",
+    "value": "true_false",
+    "values": [
+     "false",
+     "true"
+    ],
+    "default": "false",
+    "spec": "https://w3c.github.io/aria/#aria-multiselectable"
+   },
+   {
+    "name": "aria-orientation",
+    "kind": "property",
+    "value": "token",
+    "values": [
+     "horizontal",
+     "undefined",
+     "vertical"
+    ],
+    "default": "undefined",
+    "spec": "https://w3c.github.io/aria/#aria-orientation"
+   },
+   {
+    "name": "aria-owns",
+    "kind": "property",
+    "value": "idref_list",
+    "spec": "https://w3c.github.io/aria/#aria-owns"
+   },
+   {
+    "name": "aria-placeholder",
+    "kind": "property",
+    "value": "string",
+    "spec": "https://w3c.github.io/aria/#aria-placeholder"
+   },
+   {
+    "name": "aria-posinset",
+    "kind": "property",
+    "value": "integer",
+    "spec": "https://w3c.github.io/aria/#aria-posinset"
+   },
+   {
+    "name": "aria-pressed",
+    "kind": "state",
+    "value": "tristate",
+    "values": [
+     "false",
+     "mixed",
+     "true",
+     "undefined"
+    ],
+    "default": "undefined",
+    "spec": "https://w3c.github.io/aria/#aria-pressed"
+   },
+   {
+    "name": "aria-readonly",
+    "kind": "property",
+    "value": "true_false",
+    "values": [
+     "false",
+     "true"
+    ],
+    "default": "false",
+    "spec": "https://w3c.github.io/aria/#aria-readonly"
+   },
+   {
+    "name": "aria-relevant",
+    "kind": "property",
+    "value": "token_list",
+    "values": [
+     "additions",
+     "all",
+     "removals",
+     "text"
+    ],
+    "default": "additions text",
+    "spec": "https://w3c.github.io/aria/#aria-relevant"
+   },
+   {
+    "name": "aria-required",
+    "kind": "property",
+    "value": "true_false",
+    "values": [
+     "false",
+     "true"
+    ],
+    "default": "false",
+    "spec": "https://w3c.github.io/aria/#aria-required"
+   },
+   {
+    "name": "aria-roledescription",
+    "kind": "property",
+    "value": "string",
+    "spec": "https://w3c.github.io/aria/#aria-roledescription"
+   },
+   {
+    "name": "aria-rowcount",
+    "kind": "property",
+    "value": "integer",
+    "spec": "https://w3c.github.io/aria/#aria-rowcount"
+   },
+   {
+    "name": "aria-rowindex",
+    "kind": "property",
+    "value": "integer",
+    "spec": "https://w3c.github.io/aria/#aria-rowindex"
+   },
+   {
+    "name": "aria-rowindextext",
+    "kind": "property",
+    "value": "string",
+    "spec": "https://w3c.github.io/aria/#aria-rowindextext"
+   },
+   {
+    "name": "aria-rowspan",
+    "kind": "property",
+    "value": "integer",
+    "spec": "https://w3c.github.io/aria/#aria-rowspan"
+   },
+   {
+    "name": "aria-selected",
+    "kind": "state",
+    "value": "true_false_undefined",
+    "values": [
+     "false",
+     "true",
+     "undefined"
+    ],
+    "default": "undefined",
+    "spec": "https://w3c.github.io/aria/#aria-selected"
+   },
+   {
+    "name": "aria-setsize",
+    "kind": "property",
+    "value": "integer",
+    "spec": "https://w3c.github.io/aria/#aria-setsize"
+   },
+   {
+    "name": "aria-sort",
+    "kind": "property",
+    "value": "token",
+    "values": [
+     "ascending",
+     "descending",
+     "none",
+     "other"
+    ],
+    "default": "none",
+    "spec": "https://w3c.github.io/aria/#aria-sort"
+   },
+   {
+    "name": "aria-valuemax",
+    "kind": "property",
+    "value": "number",
+    "spec": "https://w3c.github.io/aria/#aria-valuemax"
+   },
+   {
+    "name": "aria-valuemin",
+    "kind": "property",
+    "value": "number",
+    "spec": "https://w3c.github.io/aria/#aria-valuemin"
+   },
+   {
+    "name": "aria-valuenow",
+    "kind": "property",
+    "value": "number",
+    "spec": "https://w3c.github.io/aria/#aria-valuenow"
+   },
+   {
+    "name": "aria-valuetext",
+    "kind": "property",
+    "value": "string",
+    "spec": "https://w3c.github.io/aria/#aria-valuetext"
+   }
+  ]
  }
 }

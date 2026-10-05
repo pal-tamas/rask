@@ -19,7 +19,9 @@ Rask app correctly without you re-explaining the conventions.
   same `docs/` at every site publish, with the links rewritten to resolve on the site.
 - **The `docs/` set** — a task guide for each subsystem (getting-started, elements & the DSL, routing,
   lifecycle, composition, subscriptions, forms, js-interop, browser APIs, authentication, data access, HTTP & files,
-  PWA, CQRS, diagnostics, testing, … — the full curated list is in the on-site guides index) plus the
+  PWA, CQRS, diagnostics, testing, accessibility — typed `Aria*` steps and `AriaRole` constants generated from
+  the WAI-ARIA spec, so an assistant writes `.AriaExpanded(open)` rather than guessing at `.Aria("expanded", "true")`
+  strings, … — the full curated list is in the on-site guides index) plus the
   Tailwind, compiled at build time (`docs/tailwind.md`: utilities scanned from your own C# source, zero-JS
   interactivity, typed utility classes). Each guide embeds its examples as live demos, so the source
   a user reads on GitHub and the running showcase stay in lockstep.
