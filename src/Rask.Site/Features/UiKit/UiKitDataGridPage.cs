@@ -36,10 +36,7 @@ public sealed partial class UiKitDataGridPage : Component
             "type arguments from its own arguments and never from the target type of the indexer it ",
             "sits in, so a column written as a flat child has nothing to tell it what ", Code["p"],
             " is. The indexer is declared on ", Code["UiDataGrid<T, TKey>"], " itself, which scopes it ",
-            "to a grid and nowhere else. It used to take a chain type of its own — ",
-            Code["GridBuild<T, TKey>"], " — purely because an indexer cannot be constrained; the chain ",
-            "receives on the component now, so declaring it there does the same job and costs no type ",
-            "parameter."
+            "to a grid and nowhere else."
         ],
         P.Class("mt-2 text-ui-muted")[
             "Every state axis is controlled or uncontrolled independently. Say nothing and the grid ",

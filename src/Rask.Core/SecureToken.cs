@@ -14,6 +14,6 @@ internal static class SecureToken
     // "N", so it's a drop-in anywhere these round-trip as opaque strings.
     //
     // It lives in Core rather than in Server because the auth battery needs the same guarantee, and
-    // no battery may reference Rask.Server — that is what keeps the meta-package free of cycles.
+    // no battery may reference Rask.Server — that is what keeps Rask.Server free of cycles.
     public static string Create() => RandomNumberGenerator.GetHexString(32, true);
 }

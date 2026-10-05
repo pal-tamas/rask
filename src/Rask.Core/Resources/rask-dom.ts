@@ -338,8 +338,8 @@ export function applyFrameInvokes(
 }
 
 // ----- Focus trap (data-rask-focus-trap) ---------------------------------
-// Generic accessible-overlay focus management, driven declaratively so any overlay (Rask.Bootstrap's
-// BsModal, or your own) opts in with a single attribute. For as long as an element carrying
+// Generic accessible-overlay focus management, driven declaratively so any overlay (Rask.Ui's
+// Ui.Modal, or your own) opts in with a single attribute. For as long as an element carrying
 // data-rask-focus-trap is in the DOM:
 //   * focus moves into it on appear (the [autofocus] element, else the element itself), remembering
 //     what had focus so it can be restored on close;

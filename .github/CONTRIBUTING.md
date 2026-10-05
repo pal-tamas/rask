@@ -1,7 +1,7 @@
 # Contributing to Rask
 
-Thanks for your interest in Rask — a C# component framework (Blazor-like) with a Roslyn
-factory generator, scoped CSS/JS, routing, and a live diff runtime over WebSockets
+Thanks for your interest in Rask — a C# component framework (Blazor-like) with Roslyn
+generators for chain markup and routes, scoped CSS/TypeScript, routing, and a live diff runtime over WebSockets
 (Server) or `JSImport`/`JSExport` (WASM).
 
 **Contributions are open.** Anyone can [open an issue](https://github.com/pal-tamas/rask/issues/new/choose)
@@ -19,8 +19,8 @@ or send a pull request (fork → branch → PR). Review and merge are handled by
 ```bash
 dotnet build Rask.slnx
 
-# The inner loop. Bare `dotnet test` pulls in the Playwright browser suite, which needs published
-# samples and takes minutes — this is what you want while you work:
+# The inner loop. Bare `dotnet test` pulls in the Playwright browser suite, which needs the published
+# site and takes minutes — this is what you want while you work:
 dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Site.E2E"
 
 # A single class:
@@ -51,24 +51,23 @@ a `[DynamicallyAccessedMembers]` annotation or a justified `[UnconditionalSuppre
 | Path | What lives there |
 |------|------------------|
 | `src/Rask.Core/` | Rendering, live diff codec, routing, lifecycle, scoped CSS/JS, primitives. |
-| `src/Rask.Generators/` | Roslyn factory/route generators and analyzers (RASK001–034 and RASK036–042; RASK035 is in `src/Rask.Generators.Shared/`). |
+| `src/Rask.Generators/` | Roslyn chain/route generators and analyzers (RASK001–099; see [docs/diagnostics.md](../docs/diagnostics.md)). |
 | `src/Rask.Server/`, `src/Rask.Wasm/`, `src/Rask.Spa.Hosting/` | The host packages. |
 | `src/Rask.Cli/` | The `rask` CLI — scaffolds every project via `rask new` (server, wasm). |
 | `src/Rask.Site` | The app published to rask.sh: landing page, guides and every runnable demo. |
-| `tests/`, `benchmarks/` | Test suites and render hot-path baselines. |
+| `tests/` | Test suites, and the `tests/Rask.Benchmarks*` render hot-path baselines. |
 
 Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
 [`docs/`](../docs/README.md) and the [architecture notes](../docs/architecture/live-rendering.md).
 
 ## Conventions
 
-- **Adding an HTML tag:** add `src/Rask.Core/Components/{Tag}.cs`
-  (`sealed class {Tag} : Element`, `TagName` override, `WriteAttributes` calling `base`
-  then `AppendAttr` per attribute; void elements set `SelfClosing => true`) plus a
-  `tests/Rask.Core.Tests/Components/{Tag}Tests.cs` asserting exact attribute order
-  (id, class, style, data-*, then tag-specific). The factory is generated automatically.
-- **Don't `new` a `Component`** outside `Rask.Core` — use the generated factory (RASK014).
-- Diagnostics RASK001–042 are documented in [docs/diagnostics.md](../docs/diagnostics.md);
+- **HTML and SVG elements are generated from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`), not written
+  by hand. A missing tag or attribute is a snapshot refresh; a hand-written partial is only for
+  behaviour MDN cannot know. Tests assert the exact attribute order — preserve it.
+- **Markup is a chain** — `Div.Class("panel")[Span["hi"]]`. Don't `new` a `Component` outside
+  `Rask.Core` (RASK014).
+- Diagnostics RASK001–099 are documented in [docs/diagnostics.md](../docs/diagnostics.md);
   the analyzer descriptors are the source of truth.
 
 ## Commits & pull requests
@@ -105,7 +104,7 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   prerelease publish. No workflow in this repo runs `dotnet test` or a benchmark, so **nothing but your
   machine will tell you something broke.**
 - **Format + unit tests — `pre-commit`.** The `pre-commit` hook runs `scripts/run-unit-local.sh` when a
-  commit stages code (`src/`, `tests/`, `benchmarks/`, `Rask.slnx`, `Directory.*`); docs-only commits skip
+  commit stages code (`src/`, `tests/`, `Rask.slnx`, `Directory.*`); docs-only commits skip
   it. The script builds once, runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace +
   style + analyzers, ~36s), then every test except the browser E2E. The full pass matters because import
   ordering is caught by nothing else — the warnings-as-errors build enforces the analyzer rules, but

@@ -589,7 +589,7 @@ edits*, and `rask dev` restarts the app for you and the browser reloads itself.
 | A CQRS command/query/event handler body | ✅ The next dispatch runs the new code. |
 | A job type's or durable handler's body | ✅ Applied live. |
 | **Adding or removing a type** — a new component, page, handler, job | ⚠️ Rude edit → the app restarts, and the browser reloads itself. |
-| **Changing a signature** — a new factory parameter, a changed method signature | ⚠️ Rude edit → restart. |
+| **Changing a signature** — a new required prop, a changed method signature | ⚠️ Rude edit → restart. |
 | Renaming a job type | ✅ Applied. The old name stops resolving too. |
 | An island's `.tsx` / `.vue` / `.svelte` | ✅ Hot-replaced by its own framework — see below. |
 

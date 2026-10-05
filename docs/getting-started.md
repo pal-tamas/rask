@@ -291,7 +291,7 @@ Live — a `Greeting` with a required `Name` and an optional `Title`, built with
 
 <!-- demo:components-greeting -->
 
-**Inject framework services (`HttpClient`, `Navigator`, `RouteState`, `IJSRuntime`) through the
+**Inject framework services (`HttpClient`, `RouteState`, `IJSRuntime`) through the
 constructor, not as properties** — a non-nullable settable property would become a *required step*
 (and `required` on a property with a DI-only constructor is the **RASK002** warning). Inject
 through the primary constructor instead:
@@ -435,7 +435,7 @@ step by step (database, auth, jobs, email, cache, events, and deployment). In sh
 Read **[the doctrine](one-person-framework.md)** for the why. Reference guides for the next thing you need:
 
 - **Build a form** → [forms](forms.md) — `Form.Model(m)`, `Input(() => model.X)`, validation.
-- **Add more routes / layouts** → [routing](routing.md) — nested layouts, route/query params, `Navigator`.
+- **Add more routes / layouts** → [routing](routing.md) — nested layouts, route/query params, `Go`.
 - **Load or save data** → [Rask.Data](data.md) — declare a model, read and write it off the type; or
   [plain EF Core](data-access.md) with a `DbContext` of your own.
 - **Run code on mount / after render** → [lifecycle](lifecycle.md) — `OnMount`, `OnUpdated`, `OnFirstRender`, `OnRendered`, `OnUnmount`.

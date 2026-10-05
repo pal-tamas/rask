@@ -6,9 +6,8 @@ namespace Rask.Cli.Tests;
 ///     Every scaffolded app references <c>Rask.DevTools</c> directly.
 /// </summary>
 /// <remarks>
-///     A scaffolded app does not reference the <c>Rask</c> meta-package — the server template names
-///     <c>Rask.Server</c>, the wasm template <c>Rask.Wasm</c> — so the meta-package carrying the devtools
-///     reaches no <c>rask new</c> app at all. Without the direct reference, "a Debug build has the
+///     A scaffolded app references a host package — the server template names <c>Rask.Server</c>, the
+///     wasm template <c>Rask.Wasm</c> — and neither carries the devtools. Without the direct reference, "a Debug build has the
 ///     devtools" is true only for an app somebody assembled by hand.
 /// </remarks>
 public sealed class DevToolsTemplateReferenceTests

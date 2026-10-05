@@ -1,7 +1,7 @@
 # HTTP & files
 
 Fetching JSON over HTTP and moving files in and out of the browser are plain .NET in Rask: a
-dependency-injected `HttpClient`, the typed file-picker input, and the `Navigator` download bridge. The
+dependency-injected `HttpClient`, the typed file-picker input, and the `Download` facade. The
 *same* component code runs server-rendered over a WebSocket or client-side on WebAssembly — only the host
 wiring differs. This guide walks the three, each with a live demo.
 

@@ -44,7 +44,7 @@ namespace Rask.Batteries;
 ///         mappings meets them one restart at a time. Registering the check is therefore the
 ///         <c>AddRaskX&lt;TContext&gt;</c> overload's job, which is also what makes it fire for an app
 ///         that wires its batteries directly in <c>Program.cs</c> — the shape every scaffolded app has,
-///         and the one a guard in the meta package misses entirely.
+///         and the one a guard in Rask.Server's wiring misses entirely.
 ///     </para>
 ///     <para>
 ///         The same predicate already existed, running lazily: the operator console asks

@@ -16,7 +16,7 @@ namespace Rask.Core.Live;
 ///         It is an <b>optional</b> service, resolved once per session and held, so a host that registers
 ///         nothing pays nothing on the render path. Both hosts enter it. Rask.Data is the implementation
 ///         that exists today — its tenant filter, and the save that refreshes the page's queries: on a server
-///         the meta package registers it, the one assembly that sees both the web host and the data layer
+///         Rask.Server registers it, the one assembly that sees both the web host and the data layer
 ///         (<c>Rask.Server</c> does not reference <c>Rask.Data</c>, and should not have to); in the browser
 ///         Rask.Data's own browser build does, from <c>AddRaskData&lt;TContext&gt;()</c>.
 ///     </para>

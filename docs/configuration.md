@@ -171,7 +171,6 @@ Configuration carries values. Anything that is behaviour stays on the callback:
   `SpaHostingOptions.OnPrepareResponse`.
 - Builder methods: `JobsOptions.Run<T>()` (a schedule is code), `CqrsOptions.AddBehavior` and
   `CqrsOptions.AddOpenBehavior`.
-- A `MetaHostingOptions.Framework` preset for a framework Rask has no name for.
 - Removing an entry a list starts with.
 
 **Browser apps are code-only.** A WebAssembly app built with `WasmHostBuilder` has no `appsettings.json` to

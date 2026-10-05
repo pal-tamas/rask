@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Rask.Site.Features;
 
-// Inject services like HttpClient/Navigator/RouteState through the primary
+// Inject services like HttpClient/RouteState through the primary
 // constructor — never as a public settable property. A non-nullable settable
 // property would become a *required* factory parameter the caller has to pass,
 // and the `required` keyword on a property + a DI-only constructor (no

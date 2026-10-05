@@ -45,8 +45,8 @@
     <!--
       The component kit the panel is drawn with — the APP's copy, not one this package brings. PrivateAssets="all" keeps
       Rask.Ui out of the nuspec: as a dependency it rode into every Release publish of an app that never referenced it,
-      and left a Rask.DevTools entry in deps.json that failed the publish guard. Every `rask new` template and the Rask
-      meta-package reference Rask.Ui; an app without it gets no devtools and one startup warning (DevToolsUiKit).
+      and left a Rask.DevTools entry in deps.json that failed the publish guard. Every `rask new` template
+      references Rask.Ui; an app without it gets no devtools and one startup warning (DevToolsUiKit).
     -->
     <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj" PrivateAssets="all"/>
     <!-- Emits this assembly's chain entries and the module initializer that registers the panel's [Route] pages. -->
@@ -166,7 +166,7 @@
   <ItemGroup>
     <!--
       Packed to BOTH folders. NuGet imports build/ for a direct PackageReference (the scaffolded apps) and
-      buildTransitive/ for a package that arrives through another one (the `Rask` meta-package). Named
+      buildTransitive/ for a package that arrives through another one. Named
       literally rather than globbed: a glob that matches nothing packs nothing and still exits 0 (#852).
 
       Each destination is a full FILE path, not a folder. `PackagePath="build\;buildTransitive\"` packs

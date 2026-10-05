@@ -10,10 +10,8 @@ namespace Rask.Mailing.Tests;
 /// <remarks>
 /// <para>
 /// These tests register <c>AddRaskMail&lt;TContext&gt;</c> against a bare
-/// <see cref="ServiceCollection" /> — no <c>RaskApp</c>, no meta package — because that is the shape
-/// every scaffolded app has: <c>rask new</c> writes <c>builder.Services.AddRaskMail&lt;AppDbContext&gt;()</c>
-/// into <c>Program.cs</c> directly, and references <c>Rask.Server</c> rather than the <c>Rask</c>
-/// meta-package.
+/// <see cref="ServiceCollection" /> — no <c>RaskApp</c> — because that is the shape a hand-wired host
+/// has: <c>builder.Services.AddRaskMail&lt;AppDbContext&gt;()</c> written into <c>Program.cs</c> directly.
 /// </para>
 /// <para>
 /// That distinction is the whole reason this file exists. The first attempt at the guard lived in the

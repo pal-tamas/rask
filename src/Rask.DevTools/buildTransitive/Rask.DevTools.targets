@@ -16,7 +16,7 @@
          published rather than the item lists that were supposed to produce it, because the lists are
          exactly what a future SDK can reshuffle without telling anyone.
 
-    Imported from build/ (a direct reference), buildTransitive/ (through the `Rask` meta-package), and
+    Imported from build/ (a direct reference), buildTransitive/ (through another package), and
     in-repo from Directory.Build.targets. Everything below either costs one property check or names a
     package the project may not have, so a project without the devtools is unaffected.
   -->

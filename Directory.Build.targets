@@ -32,7 +32,7 @@
   <!--
     Tailwind, on the same terms as Rask.Core: unconditional here, gating itself on whether the project
     has a Styles/app.css to compile. This is the in-repo half of what src\RaskTailwindBuildPack.targets
-    ships to consumers inside Rask.Server and Rask.Wasm — the samples get it here so that no sample has
+    ships to consumers inside Rask.Server and Rask.Wasm — the in-repo apps get it here so that none has
     to hand-wire what a scaffolded app never wires at all.
   -->
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Tailwind\build\Rask.Tailwind.targets"
@@ -118,7 +118,7 @@
   -->
   <PropertyGroup>
     <!--
-      src/ only. A sample and a test project are applications, not surfaces anyone consumes, and they
+      src/ only. An app and a test project are applications, not surfaces anyone consumes, and they
       leave IsPackable at its default — so without this they are tracked too, and `rask new`'s own
       output starts failing a gate about the framework's API.
     -->
@@ -145,7 +145,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"/>
     <!--
       Per target framework, uniformly — including the projects that have only one today.
-      Rask.Core, Rask.Wasm, Rask.SQLite.Browser and Rask build for net10.0 and
+      Rask.Core, Rask.Wasm and Rask.SQLite.Browser build for net10.0 and
       net10.0-browser, and their surfaces genuinely differ, so one flat file per project would
       report every browser-only member as missing on the desktop build and vice versa. Keeping the
       layout the same everywhere means a project that gains a second framework later gets a new

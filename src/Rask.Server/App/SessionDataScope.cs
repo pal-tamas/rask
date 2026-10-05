@@ -13,7 +13,7 @@ namespace Rask;
 ///         <c>Rask.Server</c> owns the session and its DI scope but does not reference <c>Rask.Data</c>, and
 ///         should not: a web host that drags EF Core in for every app, including those that never touch the
 ///         data layer, is the coupling the package split exists to prevent. <c>Rask.Data</c> cannot reference
-///         <c>Rask.Core</c> either. The meta package is the one place that sees both, so the contract lives
+///         <c>Rask.Core</c> either. Rask.Server is the one place that sees both, so the contract lives
 ///         in Core, the call lives in Data, and the wiring lives here.
 ///     </para>
 ///     <para>

@@ -21,7 +21,6 @@ namespace Rask.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
 {
-    private const string ChainFullName = "Rask.Core.IComponentChain";
     private const string RaskCoreAssembly = "Rask.Core";
     private const string GeneratedClassName = "Generated";
 
@@ -60,24 +59,14 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
-            // A chain ending at a STEP is typed Build<T> — a struct, so it inherits from nothing and
-            // the Component check below cannot see it. It became reachable in a list when the children
-            // indexer gained its `params object?[]` overload: before that, a projection of chains could
-            // not be children at all, so the shape did not exist and the analyzer was not blind, merely
-            // unreachable. It is reachable now, and an unkeyed list is the same bug either way.
-            var chain = start.Compilation.GetTypeByMetadataName(ChainFullName);
-
             start.RegisterSyntaxNodeAction(
-                ctx => Analyze(ctx, component, chain),
+                ctx => Analyze(ctx, component),
                 SyntaxKind.InvocationExpression,
                 SyntaxKind.ElementAccessExpression);
         });
     }
 
-    private static void Analyze(
-        SyntaxNodeAnalysisContext context,
-        INamedTypeSymbol component,
-        INamedTypeSymbol? chain)
+    private static void Analyze(SyntaxNodeAnalysisContext context, INamedTypeSymbol component)
     {
         var node = (ExpressionSyntax)context.Node;
         var model = context.SemanticModel;
@@ -93,9 +82,7 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         var typeInfo = model.GetTypeInfo(outer, context.CancellationToken);
         var isChildLike =
             InheritsFrom(typeInfo.Type as INamedTypeSymbol, component)
-            || InheritsFrom(typeInfo.ConvertedType as INamedTypeSymbol, component)
-            || IsChain(typeInfo.Type, chain)
-            || IsChain(typeInfo.ConvertedType, chain);
+            || InheritsFrom(typeInfo.ConvertedType as INamedTypeSymbol, component);
         if (!isChildLike)
         {
             return;
@@ -158,13 +145,6 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
 
         return false;
     }
-
-    // Build<T>/Build<T, TMode> implement IComponentChain explicitly, so this is the one thing that
-    // separates a chain from any other struct without dragging the generator into naming them.
-    private static bool IsChain(ITypeSymbol? type, INamedTypeSymbol? chain) =>
-        chain is not null
-        && type is not null
-        && type.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, chain));
 
     private static bool InheritsFrom(INamedTypeSymbol? type, INamedTypeSymbol target)
     {

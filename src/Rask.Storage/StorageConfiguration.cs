@@ -8,7 +8,7 @@ namespace Rask.Storage;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Here, inside <c>AddRaskStorage</c>, rather than in the meta package's wiring: a scaffolded app calls
+/// Here, inside <c>AddRaskStorage</c>, rather than in RaskApp's wiring: a scaffolded app calls
 /// <c>AddRaskStorage&lt;AppDbContext&gt;()</c> directly and never passes through that wiring, so a key read there
 /// would be silently ignored by every app <c>rask new</c> writes.
 /// </para>

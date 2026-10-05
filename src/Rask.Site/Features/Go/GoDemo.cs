@@ -3,7 +3,7 @@ namespace Rask.Site.Features;
 
 // Go moves the user from event-handler code, with nothing injected — a button click here changes the
 // path (Go.To), a select changes just the query (Go.With).
-public sealed partial class NavigatorDemo : Component
+public sealed partial class GoDemo : Component
 {
     protected override Component? Render() =>
         Div.Class("flex gap-2 flex-col")[

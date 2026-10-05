@@ -38,7 +38,7 @@
 
   <!-- The host-neutral auth surface (IUserProvider, IAuthSignIn, Authorize) lives in Core. PrivateAssets="all" mirrors Rask.Dashboard: this package renders components, but
        a consumer gets Core through the host package rather than transitively through this one.
-       Deliberately NOT Rask.Server — no battery references it, which is what keeps the meta-package
+       Deliberately NOT Rask.Server — no battery references it, which is what keeps Rask.Server
        free of reference cycles. -->
   <ItemGroup>
     <!-- The /api/auth wire contract (paths, headers, DTOs). In Rask.Wire rather than Core so the

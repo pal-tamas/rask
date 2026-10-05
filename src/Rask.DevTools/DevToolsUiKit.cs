@@ -8,7 +8,7 @@ namespace Rask.DevTools;
 /// <remarks>
 ///     Rask.DevTools references Rask.Ui privately: the package declares no dependency on it, so a Release publish of an
 ///     app that never referenced Rask.Ui carries none of it. The app brings its own copy — every <c>rask new</c> template
-///     and the <c>Rask</c> meta-package do — and without one the panel cannot render, so the devtools stay off on either
+///     does — and without one the panel cannot render, so the devtools stay off on either
 ///     host.
 /// </remarks>
 internal static class DevToolsUiKit

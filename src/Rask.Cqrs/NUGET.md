@@ -37,7 +37,7 @@ var user = await dispatcher.Query(new GetUser(42));   // returns User
 ```
 
 `ICommand` / `ICommand<TResult>` dispatch the same way; `IEvent` fans out to every handler
-via `PublishAsync` — and to every open subscription, tRPC-style:
+via `Publish` — and to every open subscription, tRPC-style:
 
 ```csharp
 await foreach (var placed in dispatcher.Subscribe<OrderPlaced>(ct))

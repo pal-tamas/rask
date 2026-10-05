@@ -1,5 +1,5 @@
 name: 📖 Documentation issue
-description: Something in the docs, README, or samples is wrong, unclear, or missing.
+description: Something in the docs, README, or site demos is wrong, unclear, or missing.
 title: "docs: "
 labels: ["documentation", "needs-triage"]
 body:

@@ -82,7 +82,7 @@
     Rask.Outbox both take a package dependency on Rask.Cqrs — so the analyzer reaches every consumer
     transitively, and reaches it exactly ONCE. Packing it from Rask.Jobs or Rask.Outbox too would put
     the same generator on the analyzer path two or three times for anything referencing more than one
-    battery (the Rask metapackage references all of them), and each copy emits the same registry type
+    battery (Rask.Server references all of them), and each copy emits the same registry type
     again.
   -->
   <ItemGroup>

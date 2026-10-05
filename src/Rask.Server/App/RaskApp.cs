@@ -48,7 +48,7 @@ namespace Rask;
 /// });
 ///
 /// app.Services.AddScoped&lt;PopularProducts&gt;();
-/// app.MapEndpoints(e =&gt; e.MapPushSubscriptions());
+/// app.MapEndpoints(e =&gt; e.MapRaskPush());
 ///
 /// app.Run&lt;App&gt;();
 /// </code>

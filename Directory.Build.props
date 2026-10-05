@@ -97,7 +97,7 @@
     <!--
       Emit the XML doc file so the public API's /// comments reach consumer IntelliSense (tooltips,
       parameter hints) via the NuGet package. Only framework/library projects need it — test,
-      benchmark, and sample projects are never consumed as packages, so generating (and validating)
+      benchmark, and app projects are never consumed as packages, so generating (and validating)
       their doc comments is pure noise. CS1591 (missing XML comment on a public member) is suppressed
       rather than escalated: we ship the docs we have without forcing a full-coverage documentation
       sweep across every public member under warnings-as-errors.

@@ -23,7 +23,7 @@
     <!--
       OPT IN, not opt out. Referencing the kit is not the same as wanting a file in your wwwroot: a
       library that renders kit components into someone else's host wants no such file, and neither
-      does the meta-package that merely re-exports it. Defaulting this on wrote the sheet into six
+      does a host package that merely re-exports it. Defaulting this on wrote the sheet into six
       projects, two of them libraries.
 
       An app that wants the cached sheet says so:

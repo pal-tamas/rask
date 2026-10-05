@@ -157,7 +157,7 @@ mistake, the rule notes the ID.
   See [forms §7](forms-advanced.md#nested--complex-models).
 - **Reuse one validation rule across the form and the domain.** A value object that exposes its rule
   as a `static IEnumerable<string> Validate(T value)` (the shape of an inline validator) can be
-  passed as a method group to `Input(() => _form.Price).Validate(Money.Validate)` *and* enforced inside the aggregate —
+  passed as a method group to `Input.Bind(() => _form.Price).Validate(Money.Validate)` *and* enforced inside the aggregate —
   one source of truth. See [data access](data-access.md#how-the-sample-is-organised).
 
 ## Routing & lifecycle
@@ -244,7 +244,7 @@ mistake, the rule notes the ID.
   [accessibility](accessibility.md#images-and-alt-text-rask023).
 - **Reach the full ARIA vocabulary through the `Aria` dictionary**, with typed `Role` and `TabIndex`
   for the two attributes that aren't `aria-*`. Build higher-level affordances from these primitives
-  plus semantic HTML (`Nav`, `Main`, `Label(For:)`, `Th(Scope:)`):
+  plus semantic HTML (`Nav`, `Main`, `Label.For(…)`, `Th.Scope(…)`):
   ```csharp
   Div.Role("status").Aria(new() { ["live"] = "polite" })[_statusMessage]
   ```

@@ -50,7 +50,7 @@ That is all. There is no subscription to dispose, no `OnMount` and no `StateHasC
 - **It lives as long as the component.** The subscription closes when the component that read it unmounts — the visitor
   navigates away, the tab closes, the session ends.
 - **Each value re-renders the component**, exactly as a query's result does when it lands.
-- **Publishing still runs the handlers.** `PublishAsync` hands the event to its `IEventHandler`s *and* to
+- **Publishing still runs the handlers.** `Publish` hands the event to its `IEventHandler`s *and* to
   every open subscription, so adding a screen never changes what the server does.
 
 Try it: the buttons publish, and the two boards — which know nothing about the buttons or each other — each receive every
@@ -242,7 +242,7 @@ A reverse proxy that buffers responses would hold every event back, so the strea
   somebody has subscribed to is remembered, so a domain event nobody watches is never held, and at most 4,096 are kept
   across the whole feed, oldest out first — so a subscription opened long after a quiet event may find nothing to replay.
 - **In order.** Values arrive in the order they were published, and a replay racing a new publish never lands after it.
-- **Never holding the publisher up.** `PublishAsync` hands the event over and returns; it does not wait for any page
+- **Never holding the publisher up.** `Publish` hands the event over and returns; it does not wait for any page
   to render.
 - **Bounded behind a slow reader.** A subscriber more than 256 values behind loses the oldest of them. A subscription shows
   the latest state, so the middle of a burst costs nothing on screen.

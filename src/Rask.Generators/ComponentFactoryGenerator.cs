@@ -84,7 +84,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 spc, t.Left.Left, t.Left.Right.InjectEntries, t.Right));
     }
 
-    // Components in REFERENCED assemblies (Rask.Bootstrap's Bs*, any third-party component library)
+    // Components in REFERENCED assemblies (Rask.Ui's Ui*, any third-party component library)
     // are in neither of the two paths above: they are not Rask.Core's, so they cannot ride on
     // Component, and they are not in this compilation's syntax, so they are not consumer candidates.
     // Each assembly publishes its own entries as a public `RaskEntries{Assembly}` class, which is what

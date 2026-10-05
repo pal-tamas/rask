@@ -49,7 +49,7 @@ them.
 builder.Services.AddRaskCqrs();
 ```
 
-Inject `IDispatcher` and say which of the three things you are doing: `QueryAsync` asks for data,
+Inject `IDispatcher` and say which of the three things you are doing: `Query` asks for data,
 `Send` tells the system to do something, `Publish` announces that something happened. The
 result type is inferred from the message, so you never state it.
 
@@ -107,7 +107,7 @@ a durable handler runs in memory like any other.
 
 ### Subscribing
 
-An event is also what a screen subscribes to. `PublishAsync` runs its handlers and hands it to every open
+An event is also what a screen subscribes to. `Publish` runs its handlers and hands it to every open
 subscription — a component's `QueryClient.Subscribe<T>()`, or `Subscribe` anywhere else:
 
 ```csharp

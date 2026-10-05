@@ -114,8 +114,8 @@
          client runtime resolves the manifest app-rooted at /_rask/external/manifest.json. -->
     <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <!-- Arrived with the guides and demos when the Shared library folded into this project. Rask.Core
-         is named explicitly rather than left to the Rask meta-package: the library used to carry it,
-         and the meta reference does not flow it to the compiler — dropping it takes `Component` itself
+         is named explicitly rather than left to the host package: the library used to carry it,
+         and the host reference does not flow it to the compiler — dropping it takes `Component` itself
          out of scope, which arrives as ~1,900 errors that all look like missing usings. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>

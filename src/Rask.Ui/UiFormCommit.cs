@@ -90,7 +90,7 @@ internal static class UiFormCommit
     /// <c>MakeGenericType</c> and no <c>Array.CreateInstance</c>, the two calls that made
     /// <c>BindingHelpers.IsBindableSelectionType</c> close its element type to <c>string</c>. That is the
     /// whole reason a kit control can be generic over <typeparamref name="T" /> where the framework's own
-    /// <c>Select&lt;T&gt;</c> cannot, and why <c>site/Rask.Site</c> still publishes with zero trim warnings.
+    /// <c>Select&lt;T&gt;</c> cannot, and why <c>src/Rask.Site</c> still publishes with zero trim warnings.
     /// </para>
     /// </remarks>
     internal static async Task CommitSelectionAsync<T>(

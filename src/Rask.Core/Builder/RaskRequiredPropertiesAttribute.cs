@@ -23,7 +23,7 @@ namespace Rask.Core;
 ///         the trimmer resolves and marks, which would root every component of a referenced component
 ///         library in every trimmed app. The name is the fully-qualified type with no <c>global::</c>
 ///         prefix, type arguments stripped, and a <c>`n</c> arity suffix for a generic type
-///         (<c>Rask.Bootstrap.BsIcon</c>, <c>Rask.Core.Select`2</c>).
+///         (<c>Rask.UiIcon</c>, <c>Rask.Core.Select`2</c>).
 ///     </para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]

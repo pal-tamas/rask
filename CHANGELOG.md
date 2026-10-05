@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Removed
 
+- **Docs: the "ASP.NET Identity" section of `docs/authentication-providers.md` is gone.** `Rask.Auth` has
+  its own accounts, and moving an existing Identity database onto it is covered in
+  `docs/authentication.md`. The retired diagnostics (RASK027/030/032/034/042/046/047/048–050/054/081) no
+  longer have sections in `docs/diagnostics.md` — one line under the table lists them.
+
 - **BREAKING: .NET 11 support is gone; Rask ships for .NET 10, the LTS release.** Every package carries
   `lib/net10.0` (and `net10.0-browser` where it has a browser face) and nothing else, and
   `rask new --framework` is removed with it — a scaffold targets `net10.0`:

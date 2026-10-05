@@ -15,7 +15,7 @@
       build, plus TrimmingContractTests. A component library reflecting BEYOND its parameters can
       still need a TrimmerRootAssembly; docs/blazor-components.md says so.
 
-      This package is deliberately not in the Rask meta-package on either framework: it is opt-in, so
+      This package is deliberately not referenced by either host package (Rask.Server, Rask.Wasm): it is opt-in, so
       an app that wants nothing to do with Blazor never pays for it. PackageShapeTests pins that.
     -->
     <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTfm)</TargetFrameworks>

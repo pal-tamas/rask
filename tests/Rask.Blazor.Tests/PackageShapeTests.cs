@@ -11,8 +11,8 @@ namespace Rask.Blazor.Tests;
 ///         than something this package can decide.
 ///     </para>
 ///     <para>
-///         What must not drift is that it stays OUT of the <c>Rask</c> meta-package. Everything there
-///         is referenced by every app on that framework, and an app that wants nothing to do with
+///         What must not drift is that it stays OUT of both host packages. Everything there
+///         is referenced by every app on that host, and an app that wants nothing to do with
 ///         Blazor should not carry its renderer.
 ///     </para>
 ///     <para>

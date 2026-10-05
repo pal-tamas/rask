@@ -3,7 +3,7 @@
 Every package targets `net10.0` (plus `net10.0-browser` for WASM), from `RaskNetTargets` in
 `Directory.Build.props`; **`global.json` pins the SDK to 10.0.x** — .NET 11 support was removed 2026-10-01.
 Test projects build for `$(RaskTestTarget)`. Nullable + implicit usings on. **Rask** is a C#
-component framework (Blazor-like): Roslyn factory generator, scoped CSS/TypeScript, routing, live diff
+component framework (Blazor-like): Roslyn chain generator, scoped CSS/TypeScript, routing, live diff
 runtime over WS (Server) or JSImport/JSExport (WASM). This file is the **map** — read the code,
 the `docs/`, and the tests for depth. Keep this file small; put how-to detail in `.claude/skills/`.
 
@@ -51,10 +51,10 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
   nested by folder only on a type-name clash: `Routes.Admin.HomePage()`), per-page `Url()`/`Go()`, `[Route]` registration.
 - `src/Rask.Server` — ASP.NET host + EVERY server battery + `RaskApp` (`App/`: `RaskApp.Create(args).Run<App>()`,
   `RaskBatteryWiring`, `RaskAppDbContext`). `AddRask()`/`MapRask<TApp>()` stay for a hand-wired host.
-  `src/Rask.Wasm` — browser host + the client halves (`Batteries/`: Cqrs, Query, Auth.Client, Cqrs.Client, validation, Ui).
+  `src/Rask.Wasm` — browser host; `Batteries/` wires the client halves (Cqrs, Query, Auth.Client, Cqrs.Client, validation, Ui).
   There is NO meta-package any more: `Rask` = shared core, `Rask.Server`/`Rask.Wasm` = host + batteries.
 - `src/Rask.Spa.Hosting` — `MapRaskSpa()`: serves a Rask WASM app from its ASP.NET host (WASM is a SPA, never a render mode; JS frameworks only as islands). `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
-- `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
+- `src/Rask.Validation.FluentValidation` — opt-in validator (DataAnnotations is in Core). `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.Web` — every web API from MDN (generated at build from the Core snapshot by `src/Rask.Dom.Tasks`'s WebEmitter): globals in `Rask.Web`, MDN interfaces in `Rask.Web.Types`, each chain one `__raskWeb.run` round trip, kept objects as `IJSObjectReference` handles. Imported for every Server/WASM app by its own `build/Rask.Web.props` (buildTransitive): `global using Rask.Web;` + `global using Types = Rask.Web.Types;` — never the `Types` namespace itself (CS0104 with the globals); Rask's `EditContext`/`FormData`/`DataTransfer`/`EventTarget`/`Touch` keep the bare name by global alias there; a library on `Rask` alone gets none of it.
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; browsers subscribe via MDN's `PushManager`). Zero external deps.
 - `src/Rask.Blazor` — a REAL Blazor component as an ordinary Rask component: derive a `partial` class from
@@ -64,7 +64,7 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
   Blazor's handler ids as `data-rask-on-*` over the existing socket. **NOT opaque when static** (opaque ⇒
   `FrameDiffer` skips children ⇒ island freezes after first paint). **Both hosts, trimmed publish included** —
   `BlazorComponent<T>`'s type parameter is DAM-annotated, or the trimmer eats the hosted `[Parameter]` setters
-  and the island renders EMPTY with a green build; never in the meta-package. Compiling `.razor`→chain was rejected: Razor's syntax layer is `internal`
+  and the island renders EMPTY with a green build. Compiling `.razor`→chain was rejected: Razor's syntax layer is `internal`
   in every version and the .NET 10 SDK compiler is closed (23 IVT friends) — see `docs/blazor-components.md`.
 - `src/Rask.External` + `src/Rask.External.Tasks` — a `.tsx`/Lit file as an ORDINARY component: derive a
   `partial` class from `ReactComponent`/`PreactComponent`/`SolidComponent`/`VueComponent`/`SvelteComponent`/
@@ -95,7 +95,7 @@ is the one commit that skips the gate.
   `*.Tests` project, fails the build's tests on a name that isn't one.
 - **A test that reads a file from disk outside its project DECLARES it** (`<RaskTestReads/>` in a `Condition="false"`
   ItemGroup of its csproj) — the gates are scoped, and an undeclared read is skipped when that file changes.
-- `tests/Rask.*.Tests` — unit/integration, one per `src/` project. `tests/Rask.*.E2E.Tests` — the
+- `tests/Rask.*.Tests` — unit/integration, mostly one per `src/` project. `tests/Rask.*.E2E.Tests` — the
   end-to-end suites. `tests/Rask.Benchmarks*` — BenchmarkDotNet; not test projects, so `dotnet test`
   skips them and the scoped runner filters them out by the `.Tests` suffix.
 
@@ -133,9 +133,9 @@ dotnet run --project src/Rask.Site
   for nesting, `[NotFound]` for the catch-all. Generates `X.Url(...)`/`X.Go(...)` (C# 14 static
   extensions, need the page's namespace imported). **Inside a markup host the bare `X` is the chain's
   chain ENTRY, not the type**, so qualify or use `Routes.X()` (reachable from anywhere under the root namespace, no using).
-- **Factory params** (generated per public prop): nullable→optional(null); non-nullable no-initializer→**required**
+- **Chain steps** (generated per public prop): nullable→optional; non-nullable no-initializer→**required**
   (RASK001); initializer/`[SkipFactory]`/`Children`→excluded. Inject framework services via the **ctor**, not
-  settable non-nullable props (those become required params; `required`+DI ctor→RASK002).
+  settable non-nullable props (those become required steps; `required`+DI ctor→RASK002).
 - **`Key`** — reconciliation identity, a chain step that can go ANYWHERE in the chain (generic components too; #1118, RASK046 retired); enables trusted structural diff; not a reactive prop.
 - **One `Callback`/`Callback<T>` property per event**, declared NON-nullable and fired `await OnX.Invoke(v)`
   (unset = no-op, never a required step), taking either handler shape (sync or async) at the

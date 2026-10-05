@@ -188,7 +188,7 @@ What a reader *writes* is the tag (`A`, `Td`, `Form`), because MDN's element pag
 
 The only departures are the DOM's own JavaScript workarounds — `For` for `htmlFor`, `Class` for
 `className` — and Rask's security and in-process policies (a form offers no `action`), each named in
-`src/Rask.Dom.Tasks/RaskDomTasks.cs` beside its reason.
+`src/Rask.Dom.Tasks/DomEmitter.cs` beside its reason.
 
 ## The vocabulary
 

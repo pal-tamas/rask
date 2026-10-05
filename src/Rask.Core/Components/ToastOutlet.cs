@@ -10,7 +10,7 @@ namespace Rask.Core.Components;
 ///     navigations): it resolves the scoped <see cref="IToaster" />, subscribes to
 ///     <see cref="IToaster.Changed" />, and <see cref="IToaster.Consume" />s the queue into its own list.
 ///     The caller owns the markup via <see cref="Template" /> — Core ships no visual (see
-///     <c>Rask.Bootstrap</c>'s <c>BsToaster</c> for a ready-made one).
+///     <c>Rask.Ui</c>'s <c>Ui.Toaster</c> for a ready-made one).
 ///     <para>
 ///         Draining moves messages out of the service (consumed-once) and into this outlet, which then
 ///         owns their on-screen lifetime: the <c>dismiss</c> callback handed to <see cref="Template" />

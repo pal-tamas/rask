@@ -221,6 +221,6 @@ Only same-site paths are accepted; anything else throws.
 ## See also
 
 - [Lifecycle](lifecycle.md) — when `OnMount` runs and what the initial render waits for.
-- [Routing](routing.md) — `[NotFound]`, `Navigator`, and route-driven redirects.
+- [Routing](routing.md) — `[NotFound]`, `Go`, and route-driven redirects.
 - [Scaling](scaling.md) and [Deployment](deployment.md) — session accounting and sticky routing in production.
 - [Serving a WebAssembly app](deployment.md#serving-a-webassembly-app) — a browser app, served by a server that renders none of its pages.

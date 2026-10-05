@@ -243,7 +243,7 @@ Client-side (SPA) route changes on the Server live runtime are handled accessibl
   handler round-trip uses), after a ~300 ms grace so a fast navigation never flashes it.
 - **Focus.** A forward, whole-page navigation moves focus into the new page's `<main>` (or its first
   `<h1>`), so a keyboard user continues from the new page instead of the now-removed nav link at the top
-  of the document. Give your layout a `<main>` (`Main(...)`) to anchor this.
+  of the document. Give your layout a `<main>` (`Main[...]`) to anchor this.
 - **Announcement.** The new page's `<title>` is announced through a polite `aria-live` region, so a
   screen-reader user hears the route changed.
 
@@ -255,5 +255,5 @@ host today; the WASM navigation path is a follow-up.)
 This is the framework primitive layer. Higher-level affordances — skip links, ARIA `tablist`/`tab`
 keyboard widgets (the roving cursor in `Ui.Select`'s drawn listbox), and automated axe-core scans in the sample
 E2E suite — are tracked as follow-up work. Today you build those from the typed `Aria*`/`Role`/`TabIndex`
-primitives above (plus the focus trap) and standard semantic HTML (`Nav`, `Main`, `Aside`, `Label(For:)`,
-`Th(Scope:)`, …).
+primitives above (plus the focus trap) and standard semantic HTML (`Nav`, `Main`, `Aside`, `Label.For(…)`,
+`Th.Scope(…)`, …).

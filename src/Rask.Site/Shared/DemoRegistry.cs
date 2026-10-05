@@ -29,9 +29,8 @@ public static partial class DemoRegistry
                 .Notes("Subscribe to RouteState.Changed in Mount and unsubscribe in Unmount. Useful for "
                 + "components rendered above the Router (sidebars, breadcrumbs, the header path display) "
                 + "that must refresh on every nav, including browser back/forward."),
-            // Live: mutate the current URL's query through the scoped Navigator (its standalone example
-            // page folded into docs/routing.md). Embed NavigatorDemo.cs as the teaching source.
-            ["routing-navigator"] = () => CodeSample.Files(["NavigatorDemo.cs"]).Result(NavigatorQueryDemo),
+            // Live: change the current URL's query with Go. GoDemo.cs is the teaching source.
+            ["routing-navigator"] = () => CodeSample.Files(["GoDemo.cs"]).Result(GoQueryDemo),
 
             // --- Forms guide: two-way binding ---
             ["binding-manual"] = () => CodeSample
@@ -361,7 +360,7 @@ public static partial class DemoRegistry
                 .Result(ComponentsGreetingDemo),
             ["components-di"] = () => CodeSample
                 .Files(["ComponentsDiDemo.cs", "WeatherCard.cs", "WeatherJsonContext.cs"])
-                .Notes("Inject services (HttpClient/Navigator/RouteState) through the constructor, never as a public "
+                .Notes("Inject services (HttpClient/RouteState) through the constructor, never as a public "
                 + "settable property — that would become a required chain step. Constructor params resolve from DI; only public "
                 + "settable properties become chain steps."),
             ["components-skipfactory"] = () => CodeSample

@@ -22,7 +22,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `OnParametersSet` / `OnParametersSetAsync` | `OnUpdated()` |
 | `OnAfterRender(firstRender)` / async | `OnFirstRender()` for the `firstRender` branch, `OnRendered()` for every render |
 | `Dispose` / `DisposeAsync` | implement `IDisposable` / `IAsyncDisposable`; or use `OnUnmount()` |
-| `NavigationManager` | `Navigator` (event-handler-only) + `RouteState` (current path/params) |
+| `NavigationManager` | `Go` (event-handler-only) + `RouteState` (current path/params) |
 | `@page "/path"` | `[Route("/path")]` on the class — **Rask's `Route`, from `Rask.Core.Routing`**; Blazor's attribute of the same name leaves the page unregistered ([RASK071](diagnostics.md#rask071)) |
 | route/query binding | `[RouteParam]` / `[QueryParam]` on a property |
 | `<EditForm>` + `InputText`/`InputNumber` | `Form.Model(model).OnSubmit(…)` + `Input.Bind(() => model.X)` |
@@ -198,8 +198,8 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
   context (`.Select`/`.SelectMany`, or `.Add` in a loop) without a `.Key(…)` raises
   **RASK022** — keyless items reconcile positionally.
 
-- **`Navigator` is event-handler-only.** Calling it outside a handler throws. Read
-  the current route from `RouteState`; mutate it via `Navigator` from a handler.
+- **`Go` is event-handler-only.** Calling it outside a handler throws. Read
+  the current route from `RouteState`; change it with `Go` from a handler.
 
 - **Lifecycle re-fire rules differ.** `Updated*` fires on first render and
   whenever a bound prop or route/query param actually changes — a bare
@@ -210,7 +210,7 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
 ## What stays the same
 
 - **DI through the constructor** — exactly like the rest of .NET. Framework services
-  (`Navigator`, `RouteState`, `HttpClient`, `IJSRuntime`) inject the same way as your
+  (`RouteState`, `HttpClient`, `IJSRuntime`) inject the same way as your
   own services. (No `[Inject]` properties — a non-nullable settable property would
   become a required chain step instead.)
 - **Scoped CSS parity** — sibling `{Component}.css`, descendant-combinator scoping,

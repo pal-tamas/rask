@@ -5,7 +5,7 @@ namespace Rask.Core.Globalization;
 
 /// <summary>
 ///     The culture in effect right now, for code that is not a component — a helper, a formatter, a
-///     library type like <c>Rask.Bootstrap</c>'s pickers.
+///     library type like a date picker.
 /// </summary>
 /// <remarks>
 ///     <para>

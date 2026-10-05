@@ -396,7 +396,7 @@ context, so there is nothing on it to change and nothing that could save it. A c
 [`Find` and `Save`](#find-change-save), [a write on the type](#writing-create-update-delete) or
 [a context](#writing-plain-ef-core), and each loads the aggregate it is about to change.
 
-For a shape this does not wrap — a group-by, a join, an aggregate — `QueryAsync` hands you the live
+For a shape this does not wrap — a group-by, a join, an aggregate — `Query` hands you the live
 `IQueryable` inside a managed context:
 
 ```csharp

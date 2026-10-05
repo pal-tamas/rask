@@ -163,10 +163,10 @@ public static class GuideCatalog
             SearchTitle = "Cookie authentication for server and WASM apps",
             Description = "Wire cookie-based login and sessions by hand, for the server-rendered WebSocket host and for a WebAssembly SPA backed by your own ASP.NET Core API.",
         },
-        new("authentication-providers", "Auth — providers", "Keycloak, Auth0, and other OIDC providers, or your own Identity store.", "Auth")
+        new("authentication-providers", "Auth — providers", "Keycloak, Auth0, and other OIDC providers.", "Auth")
         {
             SearchTitle = "OpenID Connect and external identity providers",
-            Description = "Sign in through Keycloak, Auth0, AWS Cognito or Duende IdentityServer over OpenID Connect, or bring your own user store with ASP.NET Identity.",
+            Description = "Sign in through Keycloak, Auth0, AWS Cognito or Duende IdentityServer over OpenID Connect, with Rask still owning the session cookie.",
         },
         new("authentication-hardening", "Auth — hardening", "Production hardening for cookies, tokens, and sessions.", "Auth")
         {

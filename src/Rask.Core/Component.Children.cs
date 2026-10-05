@@ -147,8 +147,7 @@ public abstract partial class Component
         public void Dispose() => ArrayPool<Component?>.Shared.Return(_items, true);
     }
 
-    // A chain IS a Component now — the Component arm used to unwrap the `Build<T>` struct through
-    // IComponentChain, and both are gone with the receiver change.
+    // A chain is a Component, so the Component arm needs no unwrapping.
     private static Component? ToChild(object? child) => child switch
     {
         null => null,

@@ -27,7 +27,7 @@ namespace Rask;
 ///         throws until they choose one. That is intended: an admin says which tenant they are acting in.
 ///     </para>
 ///     <para>
-///         Lives in the meta package because it is the only assembly that can see both sides:
+///         Lives in Rask.Server because it is the only assembly that can see both sides:
 ///         <c>IUserProvider</c> is Rask.Core's and <c>IPrincipalSource</c> is Rask.Data's, and neither of those
 ///         references the other.
 ///     </para>

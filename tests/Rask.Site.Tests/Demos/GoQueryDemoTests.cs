@@ -5,18 +5,17 @@ using Navigator = Rask.Core.Routing.Navigator;
 
 namespace Rask.Site.Tests.Demos;
 
-// NavigatorQueryDemo is the query-mutation widget promoted out of the former NavigatorPage when the
-// routing pages were folded into the guides. It reads RouteState for the live readout and mutates the
-// current URL's query through the scoped Navigator. The mutation tests exercise Navigator directly
-// (page-independent); the render tests mount the demo over a stub RouteState.
-public sealed partial class NavigatorQueryDemoTests : global::Rask.Core.RaskMarkup
+// GoQueryDemo is the query widget the Routing guide hosts. It reads RouteState for the live readout and
+// changes the current URL's query with Go. The mutation tests run Go inside a handler over the internal
+// Navigator (page-independent); the render tests mount the demo over a stub RouteState.
+public sealed partial class GoQueryDemoTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void An_empty_query_shows_the_empty_placeholder()
     {
         var routeState = new RouteState { Path = "/guides/routing" };
 
-        var html = new LiveHost(() => NavigatorQueryDemo, TestServices.Default(routeState: routeState))
+        var html = new LiveHost(() => GoQueryDemo, TestServices.Default(routeState: routeState))
             .RenderAsLiveRoot();
 
         Assert.Contains("(empty)", html);
@@ -32,7 +31,7 @@ public sealed partial class NavigatorQueryDemoTests : global::Rask.Core.RaskMark
         });
         var routeState = new RouteState { Path = "/guides/routing", Query = query };
 
-        var html = new LiveHost(() => NavigatorQueryDemo, TestServices.Default(routeState: routeState))
+        var html = new LiveHost(() => GoQueryDemo, TestServices.Default(routeState: routeState))
             .RenderAsLiveRoot();
 
         Assert.Contains("page=2", html);

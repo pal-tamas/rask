@@ -7,7 +7,7 @@ description: Add or change an HTML or SVG element in Rask.Core. Use whenever an 
 
 **Elements are not written by hand any more.** Every HTML and SVG element type, its base, its `[Tag]`s (the chain
 entries) and its attribute properties are generated at build time from `src/Rask.Core/Dom/mdn.snapshot.json`
-by `src/Rask.Core/Dom/Rask.Dom.targets` (the emitter is `src/Rask.Dom.Tasks/RaskDomTasks.cs`). Types take
+by `src/Rask.Core/Dom/Rask.Dom.targets` (the emitter is `src/Rask.Dom.Tasks/DomEmitter.cs`). Types take
 MDN's names (`HTMLAnchorElement`), tags share types the way the DOM shares interfaces (`h1`–`h6` are one
 `HTMLHeadingElement`), entries keep tag names (`A`, `H1`), and attributes are PascalCase IDL names (`ColSpan`).
 SVG is the same (`Circle` builds `SVGCircleElement : SVGGeometryElement`); an SVG tag HTML also has, or one whose

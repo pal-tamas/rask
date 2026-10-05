@@ -65,14 +65,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `MapRask()` |
 | [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `HTMLInputElement<T>` value type |
 | [RASK026](#rask026) | Warning | Redundant `StateHasChanged` in a Rask callback |
-| [RASK027](#rask027) | — | *Retired* — both the sync and async handler are set for one event |
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic, no public constructor, or unnameable) |
-| [RASK030](#rask030) | — | *Retired* — a factory call passed three or more arguments positionally |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
-| RASK032 | — | *Retired* — native chrome cannot sit inside an HTML tree |
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
-| [RASK034](#rask034) | — | *Retired* — the `BsDataGrid` it analysed went with `Rask.Bootstrap` |
 | [RASK035](#rask035) | Warning | Background job type cannot be registered |
 | [RASK036](#rask036) | Warning | A chain-entry host must be `partial` |
 | [RASK037](#rask037) | Warning | `using` alias is hidden by a chain entry |
@@ -80,19 +76,12 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK039](#rask039) | Warning | Chain is split across statements, so its required properties can't be checked |
 | [RASK040](#rask040) | Warning | Two components share a simple name, so neither can have a chain entry |
 | [RASK041](#rask041) | Warning | The chain surface's shared pending-bit budget is exhausted |
-| [RASK042](#rask042) | — | *Retired* — delegate-typed property cannot receive a builder setter |
 | [RASK043](#rask043) | Warning | A component name is used in a type that has no chain entries |
 | [RASK044](#rask044) | Warning | Chain sets the same property twice |
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
-| [RASK046](#rask046) | — | *Retired* — Key had to open a component's chain |
-| RASK047 | — | *retired* — routes are `[Route]` attribute arguments, constant by construction |
-| RASK048 | — | *Retired* — HTML cannot sit inside a native screen |
-| RASK049 | — | *Retired* — a `NativeWebView` set a `Url` and took children |
-| RASK050 | — | *Retired* — a native head was named on a web-only host |
 | [RASK051](#rask051) | Error | Translation catalog is malformed |
 | [RASK052](#rask052) | Warning | Translation catalog disagrees with the neutral catalog |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
-| RASK054 | — | *Retired* — a page could not move into WebAssembly |
 | [RASK055](#rask055) | Error | Scoped JavaScript is no longer supported |
 | [RASK056](#rask056) | Error | External component must be partial |
 | [RASK057](#rask057) | Error | External component prop has no wire encoding |
@@ -117,7 +106,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK078](#rask078) | Error | Props snapshot cannot be read |
 | [RASK079](#rask079) | Error | Props snapshot describes a different component |
 | [RASK080](#rask080) | Warning | Package prop was not generated |
-| RASK081 | — | *Retired* — returned as [RASK086](#rask086) |
 | [RASK082](#rask082) | Error | A type already has the generated model's name |
 | [RASK083](#rask083) | Warning | Nested entity gets no generated model |
 | [RASK084](#rask084) | Error | Model state can be changed from outside the type |
@@ -138,6 +126,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK099](#rask099) | Warning | A `<RaskBrowserTargets>` entry is not `<browser> >= <version>` |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
+
+**Retired, never recycled:** RASK027, RASK030, RASK032, RASK034, RASK042, RASK046, RASK047, RASK048,
+RASK049, RASK050, RASK054 and RASK081. Each guarded a mistake that can no longer be written; a
+suppression that names one is dead and can be deleted. RASK063 and RASK065 are reserved.
 
 ---
 
@@ -175,7 +167,7 @@ set, so nothing ever assigns it and the consumer build fails with `CS9035`.
 > is honored. RASK002 does **not** fire in that case.
 
 **Fix:** remove the member initializer so the `required` property becomes a chain step,
-**or** remove `required`. Framework services (`RouteState`, `Navigator`, `HttpClient`, `IJSRuntime`)
+**or** remove `required`. Framework services (`RouteState`, `HttpClient`, `IJSRuntime`)
 should come through the constructor, never as settable properties.
 
 ## RASK003
@@ -470,18 +462,6 @@ model the consumer reads), not the render count. The warning fires only for a se
 a lifecycle hook, async loop, or event subscription (`feed.Updated += StateHasChanged`), or a call on a
 *different* component, is left alone. Suppressible like any analyzer.
 
-## RASK027
-**Retired** — both the sync and async handler are set for one event
-
-Reported while every callback shipped as a PAIR: a sync `OnX` beside an async `OnXAsync`, two views over
-one handler slot. Wiring both was a mistake the runtime resolved by keeping the sync one and silently
-dropping the async one, so this rule existed to stop anyone reaching that state.
-
-Every callback is now a single `Callback`-typed property whose step takes either shape —
-`Button.OnClick(Refresh)` or `Button.OnClick(SaveAsync)`. "Both set" is not a mistake that can be made,
-so there is nothing left to report. Writing the step twice is an ordinary duplicated step,
-[RASK044](#rask044), and the last one wins. The ID is not reused.
-
 ## RASK028
 **Ambiguous request handler** · Error
 
@@ -515,7 +495,7 @@ public sealed record GetValue : IQuery<int>;
 public sealed class PrivateHandler : IQueryHandler<GetValue, int>
 {
     private PrivateHandler() { }                                          // ✗ RASK029: no public ctor
-    public Task<int> Handle(GetValue query, CancellationToken ct) => Task.FromResult(1);
+    public Task<int> Handle(GetValue query) => Task.FromResult(1);
 }
 ```
 
@@ -523,12 +503,6 @@ public sealed class PrivateHandler : IQueryHandler<GetValue, int>
 accessibility to at least `internal` and move it out of a `file`-local declaration. A request with
 *no* handler at all is not flagged (the handler may live in another assembly) — it throws a clear
 `InvalidOperationException` when dispatched.
-
-## RASK030
-**Retired.** It asked you to name the arguments of a factory call once three or more were positional,
-because the generated parameter order could shift under an unrelated edit and silently rebind them.
-A chain has no positional arguments — every step names its property — so there is nothing left to
-misbind. The id is not reused.
 
 ## RASK031
 **Two pages resolve to the same route** · Warning
@@ -584,11 +558,6 @@ A("https://example.com", "_blank")["Docs"]; // ✓ external — untouched
 **Fix:** call the generated `Routes.<Page>()` (with arguments for any route/query params). For a genuinely
 dynamic or external target, use `RouteUrl.External("…")`, or suppress with `#pragma warning disable RASK033`
 / `.editorconfig` (`dotnet_diagnostic.RASK033.severity = none`).
-
-## RASK034
-*Retired.* It analysed `BsDataGrid`'s columns, and went with the `Rask.Bootstrap` package that shipped that
-grid. The kit's grid, `Ui.DataGrid`, is checked by its successor [RASK076](#rask076). The id is retired, not
-reused.
 
 ## RASK035
 **Background job type cannot be registered** · Warning
@@ -824,18 +793,6 @@ make the new property non-folding. The budget was raised 16 → 32 when the glob
 (#693) and the shared surface reached 19 folding properties; because a component compiled against the
 old value numbered its own properties from 16, everything must be rebuilt against the new pair.
 
-## RASK042
-**Retired** — delegate-typed property cannot receive a builder setter
-
-Reported while a chain's receiver was the component itself: a delegate-typed property is *invocable*, so
-`.OnClick(Save)` bound to the property instead of to the same-named setter, and the setter was
-unreachable dead code. The fix at the time was to wrap the delegate in a carrier.
-
-It is retired because the collision can no longer be written, not because the receiver moved: the chain
-still receives on the component, and every event property is a `Callback` / `Callback<T>` — a
-non-invocable **struct** — while a template or selector is an `Fn<…>`, so lookup falls through to the
-setter. A carrier is simply what every callback property is now. The ID is not reused.
-
 ## RASK043
 **A component name is used in a type that has no chain entries** · Warning
 
@@ -1000,29 +957,6 @@ code. A chain that named a step is where the two answers actually disagree.
 
 ---
 
-## RASK046
-*Retired.* It reported a `Key` written after another step on a component's chain, because a keyed child is
-identified by its key and claiming the instance that key owns used to discard the one the entry had just built —
-taking every step written before `Key` with it. Since #1118 those steps are carried onto the instance the key
-keeps, and a step whose argument builds another child in between no longer confuses which slot is re-filed, so
-`TodoRow.Item(item).Key(item.Id)` and `TodoRow.Key(item.Id).Item(item)` mean the same thing. Key first still
-reads best — it says which item this is before saying anything about it — but it is style now, not correctness.
-The id is retired, not reused.
-
----
-
-## RASK047
-*Retired.* It reported a `Page.Route` override that was not a compile-time constant. Routes are declared with
-`[Route("...")]`, whose argument is an attribute argument and therefore constant by construction, so the failure
-it guarded can no longer be written. The id is retired, not reused.
-
-## RASK032, RASK048, RASK049, RASK050
-*Retired.* All four guarded the native hosting model: native chrome inside an HTML tree (RASK032), HTML
-inside a native screen (RASK048), a `NativeWebView` that set a `Url` *and* took children (RASK049), and a
-native head named on a web-only host (RASK050). Rask is a web framework — `Rask.Native` and every type
-those rules mentioned are gone, so none of the mistakes they caught can be written any more. The ids are
-retired, not reused.
-
 ## RASK051
 
 **Translation catalog is malformed** · Error
@@ -1176,17 +1110,6 @@ public sealed record RebuildIndex(IComparer<string> Order) : ICommand;
 > This diagnostic only fires in a project that references a remote transport (`Rask.Cqrs.Client` or
 > `Rask.Cqrs.Server`). An app using `Rask.Cqrs` purely in-process generates no codecs, so none of these
 > constraints apply to its messages.
-
-## RASK054
-
-*Retired.* It reported a routed page that injected a server-only type and so would stay server-live
-rather than move into WebAssembly. Pages no longer move: a Rask.Server page is always live, and a
-WebAssembly app is a separate single-page app whose pages live in `Client/`, which the server never
-compiles and which cannot reference server-only code in the first place. The id is retired, not reused.
-
-The diagnostic for a stray `.js` file beside a component is [RASK055](#rask055).
-
----
 
 ## RASK055
 
@@ -1859,13 +1782,6 @@ public sealed partial class MuiToggle : ReactComponent
     public string? Value { get; set; }
 }
 ```
-
-## RASK081
-*Retired.* It warned that an entity with no parameterless constructor got no generated `Create(model)`.
-The generated writes were dropped, and the id retired with them; when the writes came back, the same rule
-returned as [RASK086](#rask086). The id is retired, not reused.
-
----
 
 ## RASK082
 

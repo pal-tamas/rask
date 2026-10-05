@@ -11,8 +11,8 @@ Apply the matching playbook automatically:
 - **rask-ship** — definition-of-done gate before any commit.
 - **add-html-tag** / **add-diagnostic** / **add-codefix** — elements from MDN (refresh + hand partial) / RASK0xx+docs+test /
   IDE quick-fix+test). **run-benchmarks** — hot-path Allocated delta.
-- **run-rask** / **run-rask-wasm** / **run-rask-cli** — build, launch and drive the real thing (Server
-  showcase, WASM showcase, the `rask` CLI) when a test passing isn't the same as it working.
+- **run-rask** / **run-rask-cli** — build, launch and drive the real thing (the site, the `rask` CLI)
+  when a test passing isn't the same as it working.
 - **rask-review** — security/perf/memory/best-practices. **land-on-main** — Conventional-Commit, land straight on `main`.
 - **cut-release** — tag `vX.Y.Z`. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 

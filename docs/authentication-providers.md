@@ -1,72 +1,11 @@
 # Authentication — identity providers
 
-Provider integrations for [Rask authentication](authentication.md): bring your own user store, or sign in
-through an external OpenID Connect provider. Either way the session Rask authenticates is still the
+Provider integrations for [Rask authentication](authentication.md): sign in through an external OpenID
+Connect provider. The session Rask authenticates is still the
 cookie — `Rask.Auth` owns that scheme, and a provider composes by adding a *challenge* scheme beside it
 and signing in through the cookie. For the cookie flows and the `Authorize` gate, see the
 [main authentication guide](authentication.md).
 
-
-## ASP.NET Identity
-
-ASP.NET Identity is just a richer `ICredentialStore` + cookie. Wire Identity for storage/password hashing,
-then sign in through Rask's handshake.
-
-> **This replaces the accounts battery — turn it off first.** `Rask.Auth` has accounts of its own (your
-> `User : Authenticatable` and its sessions), and it owns both the cookie scheme and the default scheme. To move
-> an existing Identity database onto Rask.Auth instead, copy the rows into `User`: it reads Identity's V3
-> password hashes and rehashes each on its first sign-in. Left on beside the
-> wiring below you get two account stores, and the battery's `Cookies` wins as `DefaultScheme` over the
-> `IdentityConstants.ApplicationScheme` set here. Drop the `AddRaskAuth` line, or
-> `app.Configure(c => c.Auth.Off())`, before adopting this section.
-
-```csharp
-builder.Services
-    .AddIdentityCore<IdentityUser>(o => o.Password.RequiredLength = 8)
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddSignInManager();
-
-builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
-    .AddCookie(IdentityConstants.ApplicationScheme);
-builder.Services.AddRask();
-// app: UseAuthentication(); UseAuthorization(); MapRask<App>();
-```
-
-In the login page, validate with `SignInManager` / `UserManager` and build the principal Identity provides:
-
-```csharp
-[Route("login"), AllowAnonymous]
-public sealed class LoginPage(
-    SignInManager<IdentityUser> signIn,
-    UserManager<IdentityUser> users,
-    IAuthSignIn auth) : Component
-{
-    private readonly LoginModel _model = new();
-    private string? _error;
-    [QueryParam] public string? ReturnUrl { get; set; }
-
-    protected override Component? Render() => /* same form as Cookie + Server */ ...;
-
-    private async Task SubmitAsync(LoginModel m)
-    {
-        var user = await users.FindByNameAsync(m.Username);
-        if (user is null || !await signIn.CanSignInAsync(user) ||
-            !(await signIn.CheckPasswordSignInAsync(user, m.Password, lockoutOnFailure: true)).Succeeded)
-        {
-            _error = "Invalid credentials."; return;
-        }
-
-        var principal = await signIn.CreateUserPrincipalAsync(user); // includes Identity's claims + roles
-        await auth.SignInAsync(principal, returnUrl: ReturnUrl ?? "/", scheme: IdentityConstants.ApplicationScheme);
-    }
-}
-```
-
-Everything else (the injected `IUserProvider`, `Authorize`, `[Authorize(Roles = "...")]`) works against the Identity
-principal unchanged. Registration/2FA/lockout are standard Identity APIs called from your pages.
-
----
 
 ## Keycloak / OpenID Connect
 

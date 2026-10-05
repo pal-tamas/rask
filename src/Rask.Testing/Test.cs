@@ -9,7 +9,7 @@ namespace Rask.Testing;
 
 /// <summary>
 ///     What a test brings that is about the test rather than about the page: the batteries' fakes
-///     (<c>Test.Fake.Mail()</c>, <c>Test.Fake.Clock(at)</c>), the route helpers, and the probe below. A
+///     (<c>Mail.Fake()</c>, <c>Clock.Fake(at)</c>), the route helpers, and the probe below. A
 ///     page itself comes from <see cref="Page.Visit" /> or <see cref="Page.Render(Func{Component}, IServiceProvider)" />.
 /// </summary>
 public static partial class Test

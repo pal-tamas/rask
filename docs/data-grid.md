@@ -27,10 +27,7 @@ Ui.DataGrid.Data(_products).RowKey(p => p.Id)[c => [   // c is UiDataGrid<Produc
 ]]
 ```
 
-The indexer is declared on `UiDataGrid<T, TKey>` itself, which scopes it to a grid and nowhere else. It
-used to need a chain type of its own — `GridBuild<T, TKey>`, beside `Form`'s `FormBuild<T>` — purely
-because an indexer cannot be constrained; declaring it on the component does the same job and costs no
-type parameter.
+The indexer is declared on `UiDataGrid<T, TKey>` itself, which scopes it to a grid and nowhere else.
 
 Two openings:
 

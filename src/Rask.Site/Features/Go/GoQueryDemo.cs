@@ -5,7 +5,7 @@ namespace Rask.Site.Features;
 // The query widget the Routing guide hosts live. Every button changes the CURRENT URL's query with
 // Go.With / Go.Without, and the component re-renders to reflect it — watch the address bar. Query changes
 // only, so it stays on the guide page rather than navigating away.
-public sealed partial class NavigatorQueryDemo(RouteState route) : Component
+public sealed partial class GoQueryDemo(RouteState route) : Component
 {
     protected override Component? Render() =>
         Div[

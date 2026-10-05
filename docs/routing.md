@@ -346,7 +346,7 @@ public sealed partial class CurrentLocation(RouteState route) : Component
 - `route.Path` — the current path, always starting with `/` (defaults to `"/"`).
 - `route.Query` — the parsed query string as an `IQueryCollection` (defaults to empty).
 
-Mutate `RouteState` through `Navigator`, not by setting `Path`/`Query` directly, so browser history stays in sync.
+Mutate `RouteState` through `Go`, not by setting `Path`/`Query` directly, so browser history stays in sync.
 
 ### Reacting to navigation — `RouteState.Changed`
 

@@ -165,8 +165,7 @@ internal static class BuilderEntry
     ///     </para>
     ///     <para>
     ///         Succeeds only for the outermost link, so one chain is read once rather than once per step.
-    ///         An entry is a property typed as one of the chain shapes (<c>Build&lt;T&gt;</c>,
-    ///         <c>Build&lt;T, TMode&gt;</c>, <c>FormBuild&lt;T&gt;</c>) or as the <c>RaskSeed_</c> struct a
+    ///         An entry is a property typed as the component itself, or as the <c>RaskSeed_</c> struct a
     ///         generic component and a form control open with — which is exactly what an ordinary method
     ///         returning a component is not, and that distinction is what keeps a static markup helper
     ///         (<c>Ui.Badge(x)</c>) from being mistaken for something that could take a key.
