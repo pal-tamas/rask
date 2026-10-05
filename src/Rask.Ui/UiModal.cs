@@ -123,7 +123,7 @@ public sealed partial class UiModal : Component
             .Id(id)
             .Class(Classes())
             // Manual where the fallback must not light-dismiss or escape: an auto popover does both.
-            .Popover(Dismissible == false || Escapable == false ? "manual" : "auto");
+            .Popover(Dismissible == false || Escapable == false ? Rask.Core.Popover.Manual : Rask.Core.Popover.Auto);
 
         if (Escapable == false)
         {
@@ -150,7 +150,7 @@ public sealed partial class UiModal : Component
         return
         [
             Trigger is { } trigger
-                ? Button.Type("button").Class("btn").Attributes(Opens(id))[trigger]
+                ? Button.Type(ButtonType.Button).Class("btn").Attributes(Opens(id))[trigger]
                 : null,
             Shell(
                 dialog,
@@ -170,7 +170,7 @@ public sealed partial class UiModal : Component
     // Markup rather than a handler, so it closes with no runtime at all.
     private static Component PopoverClose(string id) =>
         Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class("btn btn-ghost btn-sm btn-square")
             .Attributes(Closes(id))
             .Aria("label", "Close")[
@@ -182,7 +182,7 @@ public sealed partial class UiModal : Component
     // click lands on. No role and no label: the close button is the keyboard's way out.
     private Component PopoverBackdrop(string id) =>
         Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class("modal-backdrop")
             .Aria("hidden", "true")
             .TabIndex(-1)
@@ -228,7 +228,7 @@ public sealed partial class UiModal : Component
             backdrop: !HearsDismissal || Dismissible == false
                 ? null
                 : Button
-                    .Type("button")
+                    .Type(ButtonType.Button)
                     .Class("modal-backdrop")
                     .Aria("hidden", "true")
                     .TabIndex(-1)
@@ -265,7 +265,7 @@ public sealed partial class UiModal : Component
         Escapable == false || !HearsDismissal
             ? null
             : Button
-                .Type("button")
+                .Type(ButtonType.Button)
                 .Class("hidden")
                 .Aria("hidden", "true")
                 .TabIndex(-1)

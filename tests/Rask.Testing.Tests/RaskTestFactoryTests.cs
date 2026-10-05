@@ -66,7 +66,7 @@ public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
         private bool _on;
 
         protected override Component? Render() =>
-            Button.Type("button").OnClick(() => _on = !_on)[_on ? "on" : "off"];
+            Button.Type(ButtonType.Button).OnClick(() => _on = !_on)[_on ? "on" : "off"];
     }
 
     [Fact]

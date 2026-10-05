@@ -56,7 +56,7 @@ public sealed partial class InstallTabs : Component
             .Class("inline-flex min-h-11 items-center rounded-lg px-4 text-sm sm:min-h-0 sm:py-1.5 " + (i == _active
                 ? "border border-ui-line bg-ui-bg font-medium text-ui-ink"
                 : "border border-transparent text-ui-muted hover:bg-ui-well hover:text-ui-ink"))
-            .Type("button")
+            .Type(ButtonType.Button)
             .Role("tab")
             .Aria("selected", i == _active ? "true" : "false")
             .OnClick(() => _active = i)[Labels[i]];

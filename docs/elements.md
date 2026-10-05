@@ -64,7 +64,7 @@ The chain you write is named after the **tag**, and the type behind it after the
 | `A.Href("/docs")` | `HTMLAnchorElement` | MDN's interface for `<a>` |
 | `Em`, `Section`, `Nav`, `Code` | `HTMLElement` | the DOM gives them no interface of their own |
 | `H1` … `H6` | `HTMLHeadingElement` | one interface, six tags |
-| `Td.ColSpan(2)`, `Th.Scope("col")` | `HTMLTableCellElement` | `ColSpan` is the IDL `colSpan` |
+| `Td.ColSpan(2)`, `Th.Scope(ThScope.Col)` | `HTMLTableCellElement` | `ColSpan` is the IDL `colSpan` |
 | `Input.Bind(() => m.Age)` | `HTMLInputElement<int>` | the typed control, over MDN's `HTMLInputElement` |
 
 An attribute property is the IDL name in PascalCase (`ReadOnly`, `NoValidate`, `IsMap`, `DirName`), with two
@@ -144,7 +144,7 @@ and without it a screen reader reads a French quotation with English phonetics:
 
 ```csharp
 P["The exhibition is called ", Span.Lang("fr")["Les Demoiselles"], "."]
-Span.Dir("auto")[userSuppliedName]   // "auto" when you don't know the language at render time
+Span.Dir(Dir.Auto)[userSuppliedName]   // "auto" when you don't know the language at render time
 ```
 
 `Hidden` hides an element from every presentation *including assistive technology* — prefer it to a
@@ -153,17 +153,44 @@ subtree unfocusable and unreachable, which is the correct primitive behind a mod
 outside the dialog inert and focus cannot escape it.
 
 `Popover` pairs with `Button.PopoverTarget` for a popover the browser opens, dismisses and focuses with
-no JavaScript on either side. `ContentEditable` is a string rather than a `bool?` because
-`"plaintext-only"` is the value most editors actually want. `Spellcheck` and `Translate` are enumerated
+no JavaScript on either side. `ContentEditable` takes an enum rather than a `bool?` because
+`PlaintextOnly` is the value most editors actually want. `Spellcheck` and `Translate` are enumerated
 rather than bare booleans, so `false` renders explicitly (`translate` spells its values `yes`/`no`).
 
 ```csharp
-Div.Hidden()                     // hidden
-Div.Inert()                      // inert
-Div.Popover("auto")                  // popover="auto"
-Div.ContentEditable("plaintext-only")
-Span.Translate(false)                // translate="no" — a product name, a username, a code sample
+Div.Hidden()                                        // hidden
+Div.Inert()                                         // inert
+Div.Popover(Popover.Auto)                           // popover="auto"
+Div.ContentEditable(ContentEditable.PlaintextOnly)  // contenteditable="plaintext-only"
+Span.Translate(false)                               // translate="no" — a product name, a username, a code sample
 ```
+
+### Keyword attributes
+
+An attribute whose value is one of a closed set of keywords takes an **enum**, generated from the spec's own
+list of them, so a typo is a compile error rather than an attribute the browser silently ignores:
+
+```csharp
+Img.Src("/hero.png").Alt("Hero").Loading(Loading.Lazy).Decoding(Decoding.Async)
+Input.Of<string>().InputMode(InputMode.Numeric).EnterKeyHint(EnterKeyHint.Send)
+A.Href("https://example.com").ReferrerPolicy(ReferrerPolicy.NoReferrer)
+Th.Scope(ThScope.Col)["Price"]
+Button.Type(ButtonType.Submit)["Save"]
+```
+
+The type is named after its step (`Loading`, `CrossOrigin`, `FetchPriority`, `Dir`, `Popover`, `InputMode`),
+after its tag where only one tag has the attribute or tags disagree on its keywords (`ButtonType`, `ThScope`,
+`TrackKind`, `TextareaWrap`, `DialogClosedBy`, `AreaShape`, `MetaHttpEquiv`), and after the IDL enum the DOM
+reflects it as where there is one (`ReferrerPolicy`, `ShadowRootMode` — the same types the web APIs take). The
+members are the keywords in PascalCase (`"use-credentials"` → `UseCredentials`), and each renders from a switch
+of literals, so a keyword costs nothing per render. A pair of `true`/`false` keywords is a `bool?`
+(`WritingSuggestions(false)`).
+
+An attribute stays a `string` where its values are not a closed set of words: a MIME type (`FormEnctype`), a
+token list (`Rel`, `Sandbox`), a browsing context (`Target`), a set other specs extend (`Meta.Name`,
+`Autocomplete`, `Button.Command`), or keywords that name no member (`Ol.Type`'s `1`/`a`/`A`/`i`/`I`). A keyword
+not every browser ships carries its support like any member — hover `Popover.Hint` — and
+`<RaskBrowserTargets>` reports it as `RASK098`.
 
 ### `Attributes` — the escape hatch
 
@@ -231,7 +258,7 @@ image preloads the wrong candidate and the page pays for two downloads, which is
 preloading it was for.
 
 ```csharp
-Img.Src("/hero.png").Alt("Hero").FetchPriority("high")
+Img.Src("/hero.png").Alt("Hero").FetchPriority(FetchPriority.High)
 Link.Rel("preload").Href("/hero.png").As("image")
     .ImageSrcset("/hero.png 1x, /hero@2x.png 2x").ImageSizes("100vw")
 ```

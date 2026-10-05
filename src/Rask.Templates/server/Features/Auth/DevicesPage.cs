@@ -53,7 +53,7 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
             ],
             _sessions.Count > 1
                 ? Div.Class("card-actions mt-2")[
-                    Button.Type("button").Id("devices-sign-out-others").Class("btn btn-outline btn-block").OnClick(SignOutOthersAsync)[
+                    Button.Type(ButtonType.Button).Id("devices-sign-out-others").Class("btn btn-outline btn-block").OnClick(SignOutOthersAsync)[
                         "Sign out every other device"]
                 ]
                 : null,
@@ -77,7 +77,7 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
                                         ? "Last used " + used.ToString("g", CultureInfo.CurrentCulture)
                                         : "Never used"]
                             ],
-                            Button.Type("button").Class("btn btn-ghost btn-xs").OnClick(() => RemoveAsync(passkey.Id))[
+                            Button.Type(ButtonType.Button).Class("btn btn-ghost btn-xs").OnClick(() => RemoveAsync(passkey.Id))[
                                 "Remove"]
                         ])
                 ],
@@ -88,7 +88,7 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
                         "Name this device",
                         Input.Bind(() => _passkey.Name).Id("passkey-name").Class("input w-full")),
                     Div.Class("card-actions mt-2")[
-                        Button.Type("submit").Id("passkey-add").Class("btn btn-outline btn-block")["Add a passkey"]
+                        Button.Type(ButtonType.Submit).Id("passkey-add").Class("btn btn-outline btn-block")["Add a passkey"]
                     ]
                 ]
                 : P.Class("text-sm opacity-70")["This browser cannot use passkeys."]

@@ -77,7 +77,7 @@ public sealed partial class UiTab : Component
 
         return Button
             .Id(scope.TabId(name))
-            .Type("button")
+            .Type(ButtonType.Button)
             .Role("tab")
             .Disabled(Disabled == true)
             // Roving tabindex: only the selected tab is a tab stop, so Tab out of the tablist lands in the

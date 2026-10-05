@@ -80,7 +80,7 @@ public sealed partial class CodeSample : Component
             // a second row of tabs on a phone spilled into the code beneath it.
             : Div.Class("sample-tabs tabs tabs-xs min-w-0 flex-nowrap overflow-x-auto")[
                 Files.Select((file, index) => Button
-                    .Type("button")
+                    .Type(ButtonType.Button)
                     // "sample-tab active" stays one run of text: a unit test reads the pair, and the browser suite
                     // selects on .sample-tab. `tab`/`tab-active` are what daisyUI draws.
                     .Class(index == _active
@@ -93,7 +93,7 @@ public sealed partial class CodeSample : Component
         return Div.Class("sample-code-header absolute inset-x-0 top-0 flex h-11 items-center gap-1 ps-20 pe-3")[
             files,
             Button
-                .Type("button")
+                .Type(ButtonType.Button)
                 // `copied` is toggled by the scoped script for the moment it flashes "Copied!".
                 .Class("sample-copy btn btn-ghost btn-xs ms-auto shrink-0 font-normal text-[#e7e3ff]! opacity-60 hover:opacity-100 [&.copied]:text-success! [&.copied]:opacity-100")
                 .Ref(_copyButton)

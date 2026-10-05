@@ -872,11 +872,9 @@ Rask.Core.Element.Attributes.get -> System.Collections.Generic.IReadOnlyDictiona
 Rask.Core.Element.Attributes.set -> void
 Rask.Core.Element.Class.get -> string?
 Rask.Core.Element.Class.set -> void
-Rask.Core.Element.ContentEditable.get -> string?
 Rask.Core.Element.ContentEditable.set -> void
 Rask.Core.Element.Data.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string?>?
 Rask.Core.Element.Data.set -> void
-Rask.Core.Element.Dir.get -> string?
 Rask.Core.Element.Dir.set -> void
 Rask.Core.Element.Draggable.get -> bool?
 Rask.Core.Element.Draggable.set -> void
@@ -934,7 +932,6 @@ Rask.Core.Element.OnTouchEnd.set -> void
 Rask.Core.Element.OnTouchMove.set -> void
 Rask.Core.Element.OnTouchStart.set -> void
 Rask.Core.Element.OnWheel.set -> void
-Rask.Core.Element.Popover.get -> string?
 Rask.Core.Element.Popover.set -> void
 Rask.Core.Element.Ref.get -> Rask.Core.ElementRef?
 Rask.Core.Element.Ref.set -> void
@@ -1913,7 +1910,6 @@ static Rask.Core.Globalization.CultureNegotiation.operator !=(Rask.Core.Globaliz
 static Rask.Core.Globalization.CultureNegotiation.operator ==(Rask.Core.Globalization.CultureNegotiation left, Rask.Core.Globalization.CultureNegotiation right) -> bool
 static Rask.Core.Globalization.RaskCulture.Current.get -> System.Globalization.CultureInfo!
 static Rask.Core.Globalization.RaskCulture.CurrentUI.get -> System.Globalization.CultureInfo!
-static Rask.Core.Globalization.RaskCulture.HtmlDir.get -> string?
 static Rask.Core.Globalization.RaskCulture.HtmlLang.get -> string?
 static Rask.Core.Globalization.RaskCulture.IsEnabled.get -> bool
 static Rask.Core.Globalization.RaskCulture.IsRightToLeft.get -> bool
@@ -2071,13 +2067,11 @@ static RaskBuilderSettersRask_Core.Body(this Rask.Core.Components.VirtualizeMode
 static RaskBuilderSettersRask_Core.Body(this Rask.Core.Components.VirtualizeModel! __b, System.Func<Rask.Core.Virtualization.VirtualizationState!, Rask.Core.Component!>? value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.Capability(this Rask.Core.Components.GestureTrigger! __b, string! value) -> Rask.Core.Components.GestureTrigger!
 static RaskBuilderSettersRask_Core.Class<T>(this T! __b, string? value) -> T!
-static RaskBuilderSettersRask_Core.ContentEditable<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.Data(this Rask.Core.Components.Shareable! __b, Rask.Core.Browser.ShareData! value) -> Rask.Core.Components.Shareable!
 static RaskBuilderSettersRask_Core.Data<T>(this T! __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> T!
 static RaskBuilderSettersRask_Core.Data<T>(this T! __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> T!
 static RaskBuilderSettersRask_Core.Data<T>(this T! __b, string! name) -> T!
 static RaskBuilderSettersRask_Core.Data<T>(this T! __b, string! name, string? value) -> T!
-static RaskBuilderSettersRask_Core.Dir<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.Draggable<T>(this T! __b, bool? value) -> T!
 static RaskBuilderSettersRask_Core.FacingMode(this Rask.Core.Components.MediaCaptureTrigger! __b, string? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.Fallback(this Rask.Core.Components.ErrorBoundary! __b, Rask.Core.Fn<System.Exception!, System.Action!, Rask.Core.Component!>? value) -> Rask.Core.Components.ErrorBoundary!
@@ -2148,7 +2142,6 @@ static RaskBuilderSettersRask_Core.OnSelect<T>(this T! __b, System.Func<System.T
 static RaskBuilderSettersRask_Core.Orientation(this Rask.Core.Components.ScreenOrientationTrigger! __b, string! value) -> Rask.Core.Components.ScreenOrientationTrigger!
 static RaskBuilderSettersRask_Core.OverscanCount(this Rask.Core.Components.VirtualizeModel! __b, int? value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.Policy(this Rask.Core.Components.Authorize! __b, string? value) -> Rask.Core.Components.Authorize!
-static RaskBuilderSettersRask_Core.Popover<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.Ref<T>(this T! __b, Rask.Core.ElementRef? value) -> T!
 static RaskBuilderSettersRask_Core.Role<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.Roles(this Rask.Core.Components.Authorize! __b, string![]? value) -> Rask.Core.Components.Authorize!
@@ -2233,7 +2226,6 @@ virtual Rask.Core.Component.BypassRenderCache.get -> bool
 virtual Rask.Core.Component.DescribeProps(Rask.Core.Diagnostics.DevTools.PropsDescriber! describer) -> void
 virtual Rask.Core.Component.EnterChildrenScope() -> System.IDisposable?
 virtual Rask.Core.Component.HeadAssets.get -> Rask.Core.Component?
-virtual Rask.Core.Component.HtmlDir.get -> string?
 virtual Rask.Core.Component.HtmlLang.get -> string?
 virtual Rask.Core.Component.OpaqueSubtree.get -> bool
 virtual Rask.Core.Component.Render() -> Rask.Core.Component?
@@ -3359,12 +3351,7 @@ Rask.Core.AriaNotificationOptions.Equals(Rask.Core.AriaNotificationOptions? othe
 Rask.Core.AriaNotificationOptions.Priority.get -> Rask.Core.AriaNotifyPriority?
 Rask.Core.AriaNotificationOptions.Priority.init -> void
 Rask.Core.AriaNotifyPriority
-Rask.Core.AriaNotifyPriority.High = 1 -> Rask.Core.AriaNotifyPriority
-Rask.Core.AriaNotifyPriority.Normal = 0 -> Rask.Core.AriaNotifyPriority
 Rask.Core.CanPlayTypeResult
-Rask.Core.CanPlayTypeResult.Empty = 0 -> Rask.Core.CanPlayTypeResult
-Rask.Core.CanPlayTypeResult.Maybe = 1 -> Rask.Core.CanPlayTypeResult
-Rask.Core.CanPlayTypeResult.Probably = 2 -> Rask.Core.CanPlayTypeResult
 Rask.Core.CheckVisibilityOptions
 Rask.Core.CheckVisibilityOptions.<Clone>$() -> Rask.Core.CheckVisibilityOptions!
 Rask.Core.CheckVisibilityOptions.CheckOpacity.get -> bool?
@@ -3518,12 +3505,7 @@ Rask.Core.FocusOptions.FocusVisible.init -> void
 Rask.Core.FocusOptions.PreventScroll.get -> bool?
 Rask.Core.FocusOptions.PreventScroll.init -> void
 Rask.Core.FullscreenKeyboardLock
-Rask.Core.FullscreenKeyboardLock.Browser = 0 -> Rask.Core.FullscreenKeyboardLock
-Rask.Core.FullscreenKeyboardLock.None = 1 -> Rask.Core.FullscreenKeyboardLock
 Rask.Core.FullscreenNavigationUI
-Rask.Core.FullscreenNavigationUI.Auto = 0 -> Rask.Core.FullscreenNavigationUI
-Rask.Core.FullscreenNavigationUI.Hide = 2 -> Rask.Core.FullscreenNavigationUI
-Rask.Core.FullscreenNavigationUI.Show = 1 -> Rask.Core.FullscreenNavigationUI
 Rask.Core.FullscreenOptions
 Rask.Core.FullscreenOptions.<Clone>$() -> Rask.Core.FullscreenOptions!
 Rask.Core.FullscreenOptions.Equals(Rask.Core.FullscreenOptions? other) -> bool
@@ -3546,12 +3528,7 @@ Rask.Core.PointerLockOptions.PointerLockOptions() -> void
 Rask.Core.PointerLockOptions.UnadjustedMovement.get -> bool?
 Rask.Core.PointerLockOptions.UnadjustedMovement.init -> void
 Rask.Core.ScrollBehavior
-Rask.Core.ScrollBehavior.Auto = 0 -> Rask.Core.ScrollBehavior
-Rask.Core.ScrollBehavior.Instant = 1 -> Rask.Core.ScrollBehavior
-Rask.Core.ScrollBehavior.Smooth = 2 -> Rask.Core.ScrollBehavior
 Rask.Core.ScrollIntoViewContainer
-Rask.Core.ScrollIntoViewContainer.All = 0 -> Rask.Core.ScrollIntoViewContainer
-Rask.Core.ScrollIntoViewContainer.Nearest = 1 -> Rask.Core.ScrollIntoViewContainer
 Rask.Core.ScrollIntoViewOptions
 Rask.Core.ScrollIntoViewOptions.Block.get -> Rask.Core.ScrollLogicalPosition?
 Rask.Core.ScrollIntoViewOptions.Block.init -> void
@@ -3562,10 +3539,6 @@ Rask.Core.ScrollIntoViewOptions.Inline.get -> Rask.Core.ScrollLogicalPosition?
 Rask.Core.ScrollIntoViewOptions.Inline.init -> void
 Rask.Core.ScrollIntoViewOptions.ScrollIntoViewOptions() -> void
 Rask.Core.ScrollLogicalPosition
-Rask.Core.ScrollLogicalPosition.Center = 1 -> Rask.Core.ScrollLogicalPosition
-Rask.Core.ScrollLogicalPosition.End = 2 -> Rask.Core.ScrollLogicalPosition
-Rask.Core.ScrollLogicalPosition.Nearest = 3 -> Rask.Core.ScrollLogicalPosition
-Rask.Core.ScrollLogicalPosition.Start = 0 -> Rask.Core.ScrollLogicalPosition
 Rask.Core.ScrollOptions
 Rask.Core.ScrollOptions.Behavior.get -> Rask.Core.ScrollBehavior?
 Rask.Core.ScrollOptions.Behavior.init -> void
@@ -4323,7 +4296,6 @@ Rask.Core.HTMLAnchorElement.Hreflang.get -> string?
 Rask.Core.HTMLAnchorElement.Hreflang.set -> void
 Rask.Core.HTMLAnchorElement.Ping.get -> string?
 Rask.Core.HTMLAnchorElement.Ping.set -> void
-Rask.Core.HTMLAnchorElement.ReferrerPolicy.get -> string?
 Rask.Core.HTMLAnchorElement.ReferrerPolicy.set -> void
 Rask.Core.HTMLAnchorElement.Rel.get -> string?
 Rask.Core.HTMLAnchorElement.Rel.set -> void
@@ -4343,11 +4315,9 @@ Rask.Core.HTMLAreaElement.Href.get -> string?
 Rask.Core.HTMLAreaElement.Href.set -> void
 Rask.Core.HTMLAreaElement.Ping.get -> string?
 Rask.Core.HTMLAreaElement.Ping.set -> void
-Rask.Core.HTMLAreaElement.ReferrerPolicy.get -> string?
 Rask.Core.HTMLAreaElement.ReferrerPolicy.set -> void
 Rask.Core.HTMLAreaElement.Rel.get -> string?
 Rask.Core.HTMLAreaElement.Rel.set -> void
-Rask.Core.HTMLAreaElement.Shape.get -> string?
 Rask.Core.HTMLAreaElement.Shape.set -> void
 Rask.Core.HTMLAreaElement.Target.get -> string?
 Rask.Core.HTMLAreaElement.Target.set -> void
@@ -4376,7 +4346,6 @@ Rask.Core.HTMLButtonElement.FormAction.get -> string?
 Rask.Core.HTMLButtonElement.FormAction.set -> void
 Rask.Core.HTMLButtonElement.FormEnctype.get -> string?
 Rask.Core.HTMLButtonElement.FormEnctype.set -> void
-Rask.Core.HTMLButtonElement.FormMethod.get -> string?
 Rask.Core.HTMLButtonElement.FormMethod.set -> void
 Rask.Core.HTMLButtonElement.FormNoValidate.get -> bool?
 Rask.Core.HTMLButtonElement.FormNoValidate.set -> void
@@ -4389,7 +4358,6 @@ Rask.Core.HTMLButtonElement.PopoverTarget.get -> string?
 Rask.Core.HTMLButtonElement.PopoverTarget.set -> void
 Rask.Core.HTMLButtonElement.PopoverTargetAction.get -> string?
 Rask.Core.HTMLButtonElement.PopoverTargetAction.set -> void
-Rask.Core.HTMLButtonElement.Type.get -> string?
 Rask.Core.HTMLButtonElement.Type.set -> void
 Rask.Core.HTMLButtonElement.Value.get -> string?
 Rask.Core.HTMLButtonElement.Value.set -> void
@@ -4414,7 +4382,6 @@ Rask.Core.HTMLDetailsElement.Name.set -> void
 Rask.Core.HTMLDetailsElement.Open.get -> bool?
 Rask.Core.HTMLDetailsElement.Open.set -> void
 Rask.Core.HTMLDialogElement
-Rask.Core.HTMLDialogElement.ClosedBy.get -> string?
 Rask.Core.HTMLDialogElement.ClosedBy.set -> void
 Rask.Core.HTMLDialogElement.HTMLDialogElement() -> void
 Rask.Core.HTMLDialogElement.Open.get -> bool?
@@ -4424,16 +4391,13 @@ Rask.Core.HTMLDivElement.HTMLDivElement() -> void
 Rask.Core.HTMLElement
 Rask.Core.HTMLElement.AccessKey.get -> string?
 Rask.Core.HTMLElement.AccessKey.set -> void
-Rask.Core.HTMLElement.Autocapitalize.get -> string?
 Rask.Core.HTMLElement.Autocapitalize.set -> void
 Rask.Core.HTMLElement.Autocorrect.get -> bool?
 Rask.Core.HTMLElement.Autocorrect.set -> void
 Rask.Core.HTMLElement.Autofocus.get -> bool?
 Rask.Core.HTMLElement.Autofocus.set -> void
-Rask.Core.HTMLElement.EnterKeyHint.get -> string?
 Rask.Core.HTMLElement.EnterKeyHint.set -> void
 Rask.Core.HTMLElement.HTMLElement() -> void
-Rask.Core.HTMLElement.InputMode.get -> string?
 Rask.Core.HTMLElement.InputMode.set -> void
 Rask.Core.HTMLElement.Nonce.get -> string?
 Rask.Core.HTMLElement.Nonce.set -> void
@@ -4441,7 +4405,6 @@ Rask.Core.HTMLElement.Part.get -> string?
 Rask.Core.HTMLElement.Part.set -> void
 Rask.Core.HTMLElement.Slot.get -> string?
 Rask.Core.HTMLElement.Slot.set -> void
-Rask.Core.HTMLElement.WritingSuggestions.get -> string?
 Rask.Core.HTMLElement.WritingSuggestions.set -> void
 Rask.Core.HTMLEmbedElement
 Rask.Core.HTMLEmbedElement.HTMLEmbedElement() -> void
@@ -4510,11 +4473,9 @@ Rask.Core.HTMLIFrameElement.AllowFullscreen.set -> void
 Rask.Core.HTMLIFrameElement.HTMLIFrameElement() -> void
 Rask.Core.HTMLIFrameElement.Height.get -> string?
 Rask.Core.HTMLIFrameElement.Height.set -> void
-Rask.Core.HTMLIFrameElement.Loading.get -> string?
 Rask.Core.HTMLIFrameElement.Loading.set -> void
 Rask.Core.HTMLIFrameElement.Name.get -> string?
 Rask.Core.HTMLIFrameElement.Name.set -> void
-Rask.Core.HTMLIFrameElement.ReferrerPolicy.get -> string?
 Rask.Core.HTMLIFrameElement.ReferrerPolicy.set -> void
 Rask.Core.HTMLIFrameElement.Sandbox.get -> string?
 Rask.Core.HTMLIFrameElement.Sandbox.set -> void
@@ -4529,20 +4490,15 @@ Rask.Core.HTMLImageElement.Alt.get -> string?
 Rask.Core.HTMLImageElement.Alt.set -> void
 Rask.Core.HTMLImageElement.Controls.get -> bool?
 Rask.Core.HTMLImageElement.Controls.set -> void
-Rask.Core.HTMLImageElement.CrossOrigin.get -> string?
 Rask.Core.HTMLImageElement.CrossOrigin.set -> void
-Rask.Core.HTMLImageElement.Decoding.get -> string?
 Rask.Core.HTMLImageElement.Decoding.set -> void
-Rask.Core.HTMLImageElement.FetchPriority.get -> string?
 Rask.Core.HTMLImageElement.FetchPriority.set -> void
 Rask.Core.HTMLImageElement.HTMLImageElement() -> void
 Rask.Core.HTMLImageElement.Height.get -> int?
 Rask.Core.HTMLImageElement.Height.set -> void
 Rask.Core.HTMLImageElement.IsMap.get -> bool?
 Rask.Core.HTMLImageElement.IsMap.set -> void
-Rask.Core.HTMLImageElement.Loading.get -> string?
 Rask.Core.HTMLImageElement.Loading.set -> void
-Rask.Core.HTMLImageElement.ReferrerPolicy.get -> string?
 Rask.Core.HTMLImageElement.ReferrerPolicy.set -> void
 Rask.Core.HTMLImageElement.Sizes.get -> string?
 Rask.Core.HTMLImageElement.Sizes.set -> void
@@ -4573,7 +4529,6 @@ Rask.Core.HTMLInputElement.FormAction.get -> string?
 Rask.Core.HTMLInputElement.FormAction.set -> void
 Rask.Core.HTMLInputElement.FormEnctype.get -> string?
 Rask.Core.HTMLInputElement.FormEnctype.set -> void
-Rask.Core.HTMLInputElement.FormMethod.get -> string?
 Rask.Core.HTMLInputElement.FormMethod.set -> void
 Rask.Core.HTMLInputElement.FormNoValidate.get -> bool?
 Rask.Core.HTMLInputElement.FormNoValidate.set -> void
@@ -4653,11 +4608,9 @@ Rask.Core.HTMLLinkElement.As.get -> string?
 Rask.Core.HTMLLinkElement.As.set -> void
 Rask.Core.HTMLLinkElement.Blocking.get -> string?
 Rask.Core.HTMLLinkElement.Blocking.set -> void
-Rask.Core.HTMLLinkElement.CrossOrigin.get -> string?
 Rask.Core.HTMLLinkElement.CrossOrigin.set -> void
 Rask.Core.HTMLLinkElement.Disabled.get -> bool?
 Rask.Core.HTMLLinkElement.Disabled.set -> void
-Rask.Core.HTMLLinkElement.FetchPriority.get -> string?
 Rask.Core.HTMLLinkElement.FetchPriority.set -> void
 Rask.Core.HTMLLinkElement.HTMLLinkElement() -> void
 Rask.Core.HTMLLinkElement.Href.get -> string?
@@ -4672,7 +4625,6 @@ Rask.Core.HTMLLinkElement.Integrity.get -> string?
 Rask.Core.HTMLLinkElement.Integrity.set -> void
 Rask.Core.HTMLLinkElement.Media.get -> string?
 Rask.Core.HTMLLinkElement.Media.set -> void
-Rask.Core.HTMLLinkElement.ReferrerPolicy.get -> string?
 Rask.Core.HTMLLinkElement.ReferrerPolicy.set -> void
 Rask.Core.HTMLLinkElement.Rel.get -> string?
 Rask.Core.HTMLLinkElement.Rel.set -> void
@@ -4689,7 +4641,6 @@ Rask.Core.HTMLMediaElement.Autoplay.get -> bool?
 Rask.Core.HTMLMediaElement.Autoplay.set -> void
 Rask.Core.HTMLMediaElement.Controls.get -> bool?
 Rask.Core.HTMLMediaElement.Controls.set -> void
-Rask.Core.HTMLMediaElement.CrossOrigin.get -> string?
 Rask.Core.HTMLMediaElement.CrossOrigin.set -> void
 Rask.Core.HTMLMediaElement.DisableRemotePlayback.get -> bool?
 Rask.Core.HTMLMediaElement.DisableRemotePlayback.set -> void
@@ -4698,7 +4649,6 @@ Rask.Core.HTMLMediaElement.Loop.get -> bool?
 Rask.Core.HTMLMediaElement.Loop.set -> void
 Rask.Core.HTMLMediaElement.Muted.get -> bool?
 Rask.Core.HTMLMediaElement.Muted.set -> void
-Rask.Core.HTMLMediaElement.Preload.get -> string?
 Rask.Core.HTMLMediaElement.Preload.set -> void
 Rask.Core.HTMLMediaElement.Src.get -> string?
 Rask.Core.HTMLMediaElement.Src.set -> void
@@ -4710,7 +4660,6 @@ Rask.Core.HTMLMetaElement.Charset.set -> void
 Rask.Core.HTMLMetaElement.Content.get -> string?
 Rask.Core.HTMLMetaElement.Content.set -> void
 Rask.Core.HTMLMetaElement.HTMLMetaElement() -> void
-Rask.Core.HTMLMetaElement.HttpEquiv.get -> string?
 Rask.Core.HTMLMetaElement.HttpEquiv.set -> void
 Rask.Core.HTMLMetaElement.Media.get -> string?
 Rask.Core.HTMLMetaElement.Media.set -> void
@@ -4807,18 +4756,15 @@ Rask.Core.HTMLScriptElement.Async.get -> bool?
 Rask.Core.HTMLScriptElement.Async.set -> void
 Rask.Core.HTMLScriptElement.Blocking.get -> string?
 Rask.Core.HTMLScriptElement.Blocking.set -> void
-Rask.Core.HTMLScriptElement.CrossOrigin.get -> string?
 Rask.Core.HTMLScriptElement.CrossOrigin.set -> void
 Rask.Core.HTMLScriptElement.Defer.get -> bool?
 Rask.Core.HTMLScriptElement.Defer.set -> void
-Rask.Core.HTMLScriptElement.FetchPriority.get -> string?
 Rask.Core.HTMLScriptElement.FetchPriority.set -> void
 Rask.Core.HTMLScriptElement.HTMLScriptElement() -> void
 Rask.Core.HTMLScriptElement.Integrity.get -> string?
 Rask.Core.HTMLScriptElement.Integrity.set -> void
 Rask.Core.HTMLScriptElement.NoModule.get -> bool?
 Rask.Core.HTMLScriptElement.NoModule.set -> void
-Rask.Core.HTMLScriptElement.ReferrerPolicy.get -> string?
 Rask.Core.HTMLScriptElement.ReferrerPolicy.set -> void
 Rask.Core.HTMLScriptElement.Src.get -> string?
 Rask.Core.HTMLScriptElement.Src.set -> void
@@ -4898,7 +4844,6 @@ Rask.Core.HTMLTableCellElement.Headers.get -> string?
 Rask.Core.HTMLTableCellElement.Headers.set -> void
 Rask.Core.HTMLTableCellElement.RowSpan.get -> int?
 Rask.Core.HTMLTableCellElement.RowSpan.set -> void
-Rask.Core.HTMLTableCellElement.Scope.get -> string?
 Rask.Core.HTMLTableCellElement.Scope.set -> void
 Rask.Core.HTMLTableColElement
 Rask.Core.HTMLTableColElement.HTMLTableColElement() -> void
@@ -4918,7 +4863,6 @@ Rask.Core.HTMLTemplateElement.ShadowRootCustomElementRegistry.get -> string?
 Rask.Core.HTMLTemplateElement.ShadowRootCustomElementRegistry.set -> void
 Rask.Core.HTMLTemplateElement.ShadowRootDelegatesFocus.get -> bool?
 Rask.Core.HTMLTemplateElement.ShadowRootDelegatesFocus.set -> void
-Rask.Core.HTMLTemplateElement.ShadowRootMode.get -> string?
 Rask.Core.HTMLTemplateElement.ShadowRootMode.set -> void
 Rask.Core.HTMLTemplateElement.ShadowRootSerializable.get -> bool?
 Rask.Core.HTMLTemplateElement.ShadowRootSerializable.set -> void
@@ -4946,7 +4890,6 @@ Rask.Core.HTMLTextAreaElement.Required.get -> bool?
 Rask.Core.HTMLTextAreaElement.Required.set -> void
 Rask.Core.HTMLTextAreaElement.Rows.get -> int?
 Rask.Core.HTMLTextAreaElement.Rows.set -> void
-Rask.Core.HTMLTextAreaElement.Wrap.get -> string?
 Rask.Core.HTMLTextAreaElement.Wrap.set -> void
 Rask.Core.HTMLTextAreaElement<T>
 Rask.Core.HTMLTextAreaElement<T>.AfterBind.get -> Rask.Core.Callback<T>
@@ -4974,7 +4917,6 @@ Rask.Core.HTMLTrackElement
 Rask.Core.HTMLTrackElement.Default.get -> bool?
 Rask.Core.HTMLTrackElement.Default.set -> void
 Rask.Core.HTMLTrackElement.HTMLTrackElement() -> void
-Rask.Core.HTMLTrackElement.Kind.get -> string?
 Rask.Core.HTMLTrackElement.Kind.set -> void
 Rask.Core.HTMLTrackElement.Label.get -> string?
 Rask.Core.HTMLTrackElement.Label.set -> void
@@ -7009,70 +6951,6 @@ static RaskBuilderSettersRask_Core.AttributeName(this Rask.Core.SVGAnimateTransf
 static RaskBuilderSettersRask_Core.AttributeName(this Rask.Core.SVGSetElement! __b, string? value) -> Rask.Core.SVGSetElement!
 static RaskBuilderSettersRask_Core.AttributeType(this Rask.Core.SVGAnimateElement! __b, string? value) -> Rask.Core.SVGAnimateElement!
 static RaskBuilderSettersRask_Core.AutoValidate<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, bool value) -> Rask.Core.HTMLFormElement<TModel>!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLAnchorElement! __b, string? value) -> Rask.Core.HTMLAnchorElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLAreaElement! __b, string? value) -> Rask.Core.HTMLAreaElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLAudioElement! __b, string? value) -> Rask.Core.HTMLAudioElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLBRElement! __b, string? value) -> Rask.Core.HTMLBRElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLBaseElement! __b, string? value) -> Rask.Core.HTMLBaseElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLBodyElement! __b, string? value) -> Rask.Core.HTMLBodyElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLCanvasElement! __b, string? value) -> Rask.Core.HTMLCanvasElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDListElement! __b, string? value) -> Rask.Core.HTMLDListElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDataElement! __b, string? value) -> Rask.Core.HTMLDataElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDataListElement! __b, string? value) -> Rask.Core.HTMLDataListElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDetailsElement! __b, string? value) -> Rask.Core.HTMLDetailsElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDialogElement! __b, string? value) -> Rask.Core.HTMLDialogElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDivElement! __b, string? value) -> Rask.Core.HTMLDivElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLElement! __b, string? value) -> Rask.Core.HTMLElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLEmbedElement! __b, string? value) -> Rask.Core.HTMLEmbedElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLFieldSetElement! __b, string? value) -> Rask.Core.HTMLFieldSetElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLHRElement! __b, string? value) -> Rask.Core.HTMLHRElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLHeadElement! __b, string? value) -> Rask.Core.HTMLHeadElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLHeadingElement! __b, string? value) -> Rask.Core.HTMLHeadingElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLHtmlElement! __b, string? value) -> Rask.Core.HTMLHtmlElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLIFrameElement! __b, string? value) -> Rask.Core.HTMLIFrameElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLImageElement! __b, string? value) -> Rask.Core.HTMLImageElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLLIElement! __b, string? value) -> Rask.Core.HTMLLIElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLLabelElement! __b, string? value) -> Rask.Core.HTMLLabelElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLLegendElement! __b, string? value) -> Rask.Core.HTMLLegendElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLLinkElement! __b, string? value) -> Rask.Core.HTMLLinkElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLMapElement! __b, string? value) -> Rask.Core.HTMLMapElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLMenuElement! __b, string? value) -> Rask.Core.HTMLMenuElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLMetaElement! __b, string? value) -> Rask.Core.HTMLMetaElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLMeterElement! __b, string? value) -> Rask.Core.HTMLMeterElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLModElement! __b, string? value) -> Rask.Core.HTMLModElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLOListElement! __b, string? value) -> Rask.Core.HTMLOListElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLObjectElement! __b, string? value) -> Rask.Core.HTMLObjectElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLOptGroupElement! __b, string? value) -> Rask.Core.HTMLOptGroupElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLOptionElement! __b, string? value) -> Rask.Core.HTMLOptionElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLOutputElement! __b, string? value) -> Rask.Core.HTMLOutputElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLParagraphElement! __b, string? value) -> Rask.Core.HTMLParagraphElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLPictureElement! __b, string? value) -> Rask.Core.HTMLPictureElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLPreElement! __b, string? value) -> Rask.Core.HTMLPreElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLProgressElement! __b, string? value) -> Rask.Core.HTMLProgressElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLQuoteElement! __b, string? value) -> Rask.Core.HTMLQuoteElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLScriptElement! __b, string? value) -> Rask.Core.HTMLScriptElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLSelectedContentElement! __b, string? value) -> Rask.Core.HTMLSelectedContentElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLSlotElement! __b, string? value) -> Rask.Core.HTMLSlotElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLSourceElement! __b, string? value) -> Rask.Core.HTMLSourceElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLSpanElement! __b, string? value) -> Rask.Core.HTMLSpanElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLStyleElement! __b, string? value) -> Rask.Core.HTMLStyleElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableCaptionElement! __b, string? value) -> Rask.Core.HTMLTableCaptionElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableCellElement! __b, string? value) -> Rask.Core.HTMLTableCellElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableColElement! __b, string? value) -> Rask.Core.HTMLTableColElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableElement! __b, string? value) -> Rask.Core.HTMLTableElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableRowElement! __b, string? value) -> Rask.Core.HTMLTableRowElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableSectionElement! __b, string? value) -> Rask.Core.HTMLTableSectionElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTemplateElement! __b, string? value) -> Rask.Core.HTMLTemplateElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTimeElement! __b, string? value) -> Rask.Core.HTMLTimeElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTitleElement! __b, string? value) -> Rask.Core.HTMLTitleElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTrackElement! __b, string? value) -> Rask.Core.HTMLTrackElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLUListElement! __b, string? value) -> Rask.Core.HTMLUListElement!
-static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLVideoElement! __b, string? value) -> Rask.Core.HTMLVideoElement!
-static RaskBuilderSettersRask_Core.Autocapitalize<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
-static RaskBuilderSettersRask_Core.Autocapitalize<T>(this Rask.Core.HTMLSelectElement<T>! __b, string? value) -> Rask.Core.HTMLSelectElement<T>!
-static RaskBuilderSettersRask_Core.Autocapitalize<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, string? value) -> Rask.Core.HTMLTextAreaElement<T>!
-static RaskBuilderSettersRask_Core.Autocapitalize<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, string? value) -> Rask.Core.HTMLFormElement<TModel>!
 static RaskBuilderSettersRask_Core.Autocomplete<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Autocomplete<T>(this Rask.Core.HTMLSelectElement<T>! __b, string? value) -> Rask.Core.HTMLSelectElement<T>!
 static RaskBuilderSettersRask_Core.Autocomplete<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, string? value) -> Rask.Core.HTMLTextAreaElement<T>!
@@ -7477,7 +7355,6 @@ static RaskBuilderSettersRask_Core.ClipRule(this Rask.Core.SVGTextPathElement! _
 static RaskBuilderSettersRask_Core.ClipRule(this Rask.Core.SVGTitleElement! __b, string? value) -> Rask.Core.SVGTitleElement!
 static RaskBuilderSettersRask_Core.ClipRule(this Rask.Core.SVGUseElement! __b, string? value) -> Rask.Core.SVGUseElement!
 static RaskBuilderSettersRask_Core.ClipRule(this Rask.Core.SVGViewElement! __b, string? value) -> Rask.Core.SVGViewElement!
-static RaskBuilderSettersRask_Core.ClosedBy(this Rask.Core.HTMLDialogElement! __b, string? value) -> Rask.Core.HTMLDialogElement!
 static RaskBuilderSettersRask_Core.ColSpan(this Rask.Core.HTMLTableCellElement! __b, int? value) -> Rask.Core.HTMLTableCellElement!
 static RaskBuilderSettersRask_Core.Color(this Rask.Core.SVGAElement! __b, string? value) -> Rask.Core.SVGAElement!
 static RaskBuilderSettersRask_Core.Color(this Rask.Core.SVGAnimateElement! __b, string? value) -> Rask.Core.SVGAnimateElement!
@@ -7614,11 +7491,6 @@ static RaskBuilderSettersRask_Core.Controls(this Rask.Core.HTMLAudioElement! __b
 static RaskBuilderSettersRask_Core.Controls(this Rask.Core.HTMLImageElement! __b, bool? value) -> Rask.Core.HTMLImageElement!
 static RaskBuilderSettersRask_Core.Controls(this Rask.Core.HTMLVideoElement! __b, bool? value) -> Rask.Core.HTMLVideoElement!
 static RaskBuilderSettersRask_Core.Coords(this Rask.Core.HTMLAreaElement! __b, string? value) -> Rask.Core.HTMLAreaElement!
-static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.HTMLAudioElement! __b, string? value) -> Rask.Core.HTMLAudioElement!
-static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.HTMLImageElement! __b, string? value) -> Rask.Core.HTMLImageElement!
-static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.HTMLLinkElement! __b, string? value) -> Rask.Core.HTMLLinkElement!
-static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.HTMLScriptElement! __b, string? value) -> Rask.Core.HTMLScriptElement!
-static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.HTMLVideoElement! __b, string? value) -> Rask.Core.HTMLVideoElement!
 static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.SVGImageElement! __b, string? value) -> Rask.Core.SVGImageElement!
 static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.SVGScriptElement! __b, string? value) -> Rask.Core.SVGScriptElement!
 static RaskBuilderSettersRask_Core.Cursor(this Rask.Core.SVGAElement! __b, string? value) -> Rask.Core.SVGAElement!
@@ -7694,7 +7566,6 @@ static RaskBuilderSettersRask_Core.D(this Rask.Core.SVGPathElement! __b, string?
 static RaskBuilderSettersRask_Core.DataUrl(this Rask.Core.HTMLObjectElement! __b, string? value) -> Rask.Core.HTMLObjectElement!
 static RaskBuilderSettersRask_Core.DateTime(this Rask.Core.HTMLModElement! __b, string? value) -> Rask.Core.HTMLModElement!
 static RaskBuilderSettersRask_Core.DateTime(this Rask.Core.HTMLTimeElement! __b, string? value) -> Rask.Core.HTMLTimeElement!
-static RaskBuilderSettersRask_Core.Decoding(this Rask.Core.HTMLImageElement! __b, string? value) -> Rask.Core.HTMLImageElement!
 static RaskBuilderSettersRask_Core.Decoding(this Rask.Core.SVGImageElement! __b, string? value) -> Rask.Core.SVGImageElement!
 static RaskBuilderSettersRask_Core.Default(this Rask.Core.HTMLTrackElement! __b, bool? value) -> Rask.Core.HTMLTrackElement!
 static RaskBuilderSettersRask_Core.Defer(this Rask.Core.HTMLScriptElement! __b, bool? value) -> Rask.Core.HTMLScriptElement!
@@ -7926,77 +7797,10 @@ static RaskBuilderSettersRask_Core.End(this Rask.Core.SVGAnimateElement! __b, st
 static RaskBuilderSettersRask_Core.End(this Rask.Core.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.SVGAnimateMotionElement!
 static RaskBuilderSettersRask_Core.End(this Rask.Core.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.SVGAnimateTransformElement!
 static RaskBuilderSettersRask_Core.End(this Rask.Core.SVGSetElement! __b, string? value) -> Rask.Core.SVGSetElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLAnchorElement! __b, string? value) -> Rask.Core.HTMLAnchorElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLAreaElement! __b, string? value) -> Rask.Core.HTMLAreaElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLAudioElement! __b, string? value) -> Rask.Core.HTMLAudioElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLBRElement! __b, string? value) -> Rask.Core.HTMLBRElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLBaseElement! __b, string? value) -> Rask.Core.HTMLBaseElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLBodyElement! __b, string? value) -> Rask.Core.HTMLBodyElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLCanvasElement! __b, string? value) -> Rask.Core.HTMLCanvasElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDListElement! __b, string? value) -> Rask.Core.HTMLDListElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDataElement! __b, string? value) -> Rask.Core.HTMLDataElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDataListElement! __b, string? value) -> Rask.Core.HTMLDataListElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDetailsElement! __b, string? value) -> Rask.Core.HTMLDetailsElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDialogElement! __b, string? value) -> Rask.Core.HTMLDialogElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDivElement! __b, string? value) -> Rask.Core.HTMLDivElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLElement! __b, string? value) -> Rask.Core.HTMLElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLEmbedElement! __b, string? value) -> Rask.Core.HTMLEmbedElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLFieldSetElement! __b, string? value) -> Rask.Core.HTMLFieldSetElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLHRElement! __b, string? value) -> Rask.Core.HTMLHRElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLHeadElement! __b, string? value) -> Rask.Core.HTMLHeadElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLHeadingElement! __b, string? value) -> Rask.Core.HTMLHeadingElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLHtmlElement! __b, string? value) -> Rask.Core.HTMLHtmlElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLIFrameElement! __b, string? value) -> Rask.Core.HTMLIFrameElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLImageElement! __b, string? value) -> Rask.Core.HTMLImageElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLLIElement! __b, string? value) -> Rask.Core.HTMLLIElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLLabelElement! __b, string? value) -> Rask.Core.HTMLLabelElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLLegendElement! __b, string? value) -> Rask.Core.HTMLLegendElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLLinkElement! __b, string? value) -> Rask.Core.HTMLLinkElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLMapElement! __b, string? value) -> Rask.Core.HTMLMapElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLMenuElement! __b, string? value) -> Rask.Core.HTMLMenuElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLMetaElement! __b, string? value) -> Rask.Core.HTMLMetaElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLMeterElement! __b, string? value) -> Rask.Core.HTMLMeterElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLModElement! __b, string? value) -> Rask.Core.HTMLModElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLOListElement! __b, string? value) -> Rask.Core.HTMLOListElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLObjectElement! __b, string? value) -> Rask.Core.HTMLObjectElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLOptGroupElement! __b, string? value) -> Rask.Core.HTMLOptGroupElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLOptionElement! __b, string? value) -> Rask.Core.HTMLOptionElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLOutputElement! __b, string? value) -> Rask.Core.HTMLOutputElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLParagraphElement! __b, string? value) -> Rask.Core.HTMLParagraphElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLPictureElement! __b, string? value) -> Rask.Core.HTMLPictureElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLPreElement! __b, string? value) -> Rask.Core.HTMLPreElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLProgressElement! __b, string? value) -> Rask.Core.HTMLProgressElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLQuoteElement! __b, string? value) -> Rask.Core.HTMLQuoteElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLScriptElement! __b, string? value) -> Rask.Core.HTMLScriptElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLSelectedContentElement! __b, string? value) -> Rask.Core.HTMLSelectedContentElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLSlotElement! __b, string? value) -> Rask.Core.HTMLSlotElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLSourceElement! __b, string? value) -> Rask.Core.HTMLSourceElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLSpanElement! __b, string? value) -> Rask.Core.HTMLSpanElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLStyleElement! __b, string? value) -> Rask.Core.HTMLStyleElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableCaptionElement! __b, string? value) -> Rask.Core.HTMLTableCaptionElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableCellElement! __b, string? value) -> Rask.Core.HTMLTableCellElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableColElement! __b, string? value) -> Rask.Core.HTMLTableColElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableElement! __b, string? value) -> Rask.Core.HTMLTableElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableRowElement! __b, string? value) -> Rask.Core.HTMLTableRowElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableSectionElement! __b, string? value) -> Rask.Core.HTMLTableSectionElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTemplateElement! __b, string? value) -> Rask.Core.HTMLTemplateElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTimeElement! __b, string? value) -> Rask.Core.HTMLTimeElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTitleElement! __b, string? value) -> Rask.Core.HTMLTitleElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTrackElement! __b, string? value) -> Rask.Core.HTMLTrackElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLUListElement! __b, string? value) -> Rask.Core.HTMLUListElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLVideoElement! __b, string? value) -> Rask.Core.HTMLVideoElement!
-static RaskBuilderSettersRask_Core.EnterKeyHint<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
-static RaskBuilderSettersRask_Core.EnterKeyHint<T>(this Rask.Core.HTMLSelectElement<T>! __b, string? value) -> Rask.Core.HTMLSelectElement<T>!
-static RaskBuilderSettersRask_Core.EnterKeyHint<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, string? value) -> Rask.Core.HTMLTextAreaElement<T>!
-static RaskBuilderSettersRask_Core.EnterKeyHint<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, string? value) -> Rask.Core.HTMLFormElement<TModel>!
 static RaskBuilderSettersRask_Core.Exponent(this Rask.Core.SVGFEFuncAElement! __b, string? value) -> Rask.Core.SVGFEFuncAElement!
 static RaskBuilderSettersRask_Core.Exponent(this Rask.Core.SVGFEFuncBElement! __b, string? value) -> Rask.Core.SVGFEFuncBElement!
 static RaskBuilderSettersRask_Core.Exponent(this Rask.Core.SVGFEFuncGElement! __b, string? value) -> Rask.Core.SVGFEFuncGElement!
 static RaskBuilderSettersRask_Core.Exponent(this Rask.Core.SVGFEFuncRElement! __b, string? value) -> Rask.Core.SVGFEFuncRElement!
-static RaskBuilderSettersRask_Core.FetchPriority(this Rask.Core.HTMLImageElement! __b, string? value) -> Rask.Core.HTMLImageElement!
-static RaskBuilderSettersRask_Core.FetchPriority(this Rask.Core.HTMLLinkElement! __b, string? value) -> Rask.Core.HTMLLinkElement!
-static RaskBuilderSettersRask_Core.FetchPriority(this Rask.Core.HTMLScriptElement! __b, string? value) -> Rask.Core.HTMLScriptElement!
 static RaskBuilderSettersRask_Core.Fill(this Rask.Core.SVGAElement! __b, string? value) -> Rask.Core.SVGAElement!
 static RaskBuilderSettersRask_Core.Fill(this Rask.Core.SVGAnimateElement! __b, string? value) -> Rask.Core.SVGAnimateElement!
 static RaskBuilderSettersRask_Core.Fill(this Rask.Core.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.SVGAnimateMotionElement!
@@ -8830,8 +8634,6 @@ static RaskBuilderSettersRask_Core.FormAction(this Rask.Core.HTMLButtonElement! 
 static RaskBuilderSettersRask_Core.FormAction<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.FormEnctype(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
 static RaskBuilderSettersRask_Core.FormEnctype<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
-static RaskBuilderSettersRask_Core.FormMethod(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
-static RaskBuilderSettersRask_Core.FormMethod<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.FormNoValidate(this Rask.Core.HTMLButtonElement! __b, bool? value) -> Rask.Core.HTMLButtonElement!
 static RaskBuilderSettersRask_Core.FormNoValidate<T>(this Rask.Core.HTMLInputElement<T>! __b, bool? value) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.FormTarget(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
@@ -8901,7 +8703,6 @@ static RaskBuilderSettersRask_Core.Href(this Rask.Core.SVGTextPathElement! __b, 
 static RaskBuilderSettersRask_Core.Href(this Rask.Core.SVGUseElement! __b, string? value) -> Rask.Core.SVGUseElement!
 static RaskBuilderSettersRask_Core.Hreflang(this Rask.Core.HTMLAnchorElement! __b, string? value) -> Rask.Core.HTMLAnchorElement!
 static RaskBuilderSettersRask_Core.Hreflang(this Rask.Core.HTMLLinkElement! __b, string? value) -> Rask.Core.HTMLLinkElement!
-static RaskBuilderSettersRask_Core.HttpEquiv(this Rask.Core.HTMLMetaElement! __b, string? value) -> Rask.Core.HTMLMetaElement!
 static RaskBuilderSettersRask_Core.ImageRendering(this Rask.Core.SVGAElement! __b, string? value) -> Rask.Core.SVGAElement!
 static RaskBuilderSettersRask_Core.ImageRendering(this Rask.Core.SVGAnimateElement! __b, string? value) -> Rask.Core.SVGAnimateElement!
 static RaskBuilderSettersRask_Core.ImageRendering(this Rask.Core.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.SVGAnimateMotionElement!
@@ -8984,70 +8785,6 @@ static RaskBuilderSettersRask_Core.In(this Rask.Core.SVGFETileElement! __b, stri
 static RaskBuilderSettersRask_Core.In2(this Rask.Core.SVGFEBlendElement! __b, string? value) -> Rask.Core.SVGFEBlendElement!
 static RaskBuilderSettersRask_Core.In2(this Rask.Core.SVGFECompositeElement! __b, string? value) -> Rask.Core.SVGFECompositeElement!
 static RaskBuilderSettersRask_Core.In2(this Rask.Core.SVGFEDisplacementMapElement! __b, string? value) -> Rask.Core.SVGFEDisplacementMapElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLAnchorElement! __b, string? value) -> Rask.Core.HTMLAnchorElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLAreaElement! __b, string? value) -> Rask.Core.HTMLAreaElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLAudioElement! __b, string? value) -> Rask.Core.HTMLAudioElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLBRElement! __b, string? value) -> Rask.Core.HTMLBRElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLBaseElement! __b, string? value) -> Rask.Core.HTMLBaseElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLBodyElement! __b, string? value) -> Rask.Core.HTMLBodyElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLCanvasElement! __b, string? value) -> Rask.Core.HTMLCanvasElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDListElement! __b, string? value) -> Rask.Core.HTMLDListElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDataElement! __b, string? value) -> Rask.Core.HTMLDataElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDataListElement! __b, string? value) -> Rask.Core.HTMLDataListElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDetailsElement! __b, string? value) -> Rask.Core.HTMLDetailsElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDialogElement! __b, string? value) -> Rask.Core.HTMLDialogElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDivElement! __b, string? value) -> Rask.Core.HTMLDivElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLElement! __b, string? value) -> Rask.Core.HTMLElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLEmbedElement! __b, string? value) -> Rask.Core.HTMLEmbedElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLFieldSetElement! __b, string? value) -> Rask.Core.HTMLFieldSetElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLHRElement! __b, string? value) -> Rask.Core.HTMLHRElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLHeadElement! __b, string? value) -> Rask.Core.HTMLHeadElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLHeadingElement! __b, string? value) -> Rask.Core.HTMLHeadingElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLHtmlElement! __b, string? value) -> Rask.Core.HTMLHtmlElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLIFrameElement! __b, string? value) -> Rask.Core.HTMLIFrameElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLImageElement! __b, string? value) -> Rask.Core.HTMLImageElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLLIElement! __b, string? value) -> Rask.Core.HTMLLIElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLLabelElement! __b, string? value) -> Rask.Core.HTMLLabelElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLLegendElement! __b, string? value) -> Rask.Core.HTMLLegendElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLLinkElement! __b, string? value) -> Rask.Core.HTMLLinkElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLMapElement! __b, string? value) -> Rask.Core.HTMLMapElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLMenuElement! __b, string? value) -> Rask.Core.HTMLMenuElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLMetaElement! __b, string? value) -> Rask.Core.HTMLMetaElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLMeterElement! __b, string? value) -> Rask.Core.HTMLMeterElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLModElement! __b, string? value) -> Rask.Core.HTMLModElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLOListElement! __b, string? value) -> Rask.Core.HTMLOListElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLObjectElement! __b, string? value) -> Rask.Core.HTMLObjectElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLOptGroupElement! __b, string? value) -> Rask.Core.HTMLOptGroupElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLOptionElement! __b, string? value) -> Rask.Core.HTMLOptionElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLOutputElement! __b, string? value) -> Rask.Core.HTMLOutputElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLParagraphElement! __b, string? value) -> Rask.Core.HTMLParagraphElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLPictureElement! __b, string? value) -> Rask.Core.HTMLPictureElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLPreElement! __b, string? value) -> Rask.Core.HTMLPreElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLProgressElement! __b, string? value) -> Rask.Core.HTMLProgressElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLQuoteElement! __b, string? value) -> Rask.Core.HTMLQuoteElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLScriptElement! __b, string? value) -> Rask.Core.HTMLScriptElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLSelectedContentElement! __b, string? value) -> Rask.Core.HTMLSelectedContentElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLSlotElement! __b, string? value) -> Rask.Core.HTMLSlotElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLSourceElement! __b, string? value) -> Rask.Core.HTMLSourceElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLSpanElement! __b, string? value) -> Rask.Core.HTMLSpanElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLStyleElement! __b, string? value) -> Rask.Core.HTMLStyleElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableCaptionElement! __b, string? value) -> Rask.Core.HTMLTableCaptionElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableCellElement! __b, string? value) -> Rask.Core.HTMLTableCellElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableColElement! __b, string? value) -> Rask.Core.HTMLTableColElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableElement! __b, string? value) -> Rask.Core.HTMLTableElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableRowElement! __b, string? value) -> Rask.Core.HTMLTableRowElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableSectionElement! __b, string? value) -> Rask.Core.HTMLTableSectionElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTemplateElement! __b, string? value) -> Rask.Core.HTMLTemplateElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTimeElement! __b, string? value) -> Rask.Core.HTMLTimeElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTitleElement! __b, string? value) -> Rask.Core.HTMLTitleElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTrackElement! __b, string? value) -> Rask.Core.HTMLTrackElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLUListElement! __b, string? value) -> Rask.Core.HTMLUListElement!
-static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLVideoElement! __b, string? value) -> Rask.Core.HTMLVideoElement!
-static RaskBuilderSettersRask_Core.InputMode<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
-static RaskBuilderSettersRask_Core.InputMode<T>(this Rask.Core.HTMLSelectElement<T>! __b, string? value) -> Rask.Core.HTMLSelectElement<T>!
-static RaskBuilderSettersRask_Core.InputMode<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, string? value) -> Rask.Core.HTMLTextAreaElement<T>!
-static RaskBuilderSettersRask_Core.InputMode<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, string? value) -> Rask.Core.HTMLFormElement<TModel>!
 static RaskBuilderSettersRask_Core.Integrity(this Rask.Core.HTMLLinkElement! __b, string? value) -> Rask.Core.HTMLLinkElement!
 static RaskBuilderSettersRask_Core.Integrity(this Rask.Core.HTMLScriptElement! __b, string? value) -> Rask.Core.HTMLScriptElement!
 static RaskBuilderSettersRask_Core.Intercept(this Rask.Core.SVGFEFuncAElement! __b, string? value) -> Rask.Core.SVGFEFuncAElement!
@@ -9070,7 +8807,6 @@ static RaskBuilderSettersRask_Core.KeySplines(this Rask.Core.SVGAnimateTransform
 static RaskBuilderSettersRask_Core.KeyTimes(this Rask.Core.SVGAnimateElement! __b, string? value) -> Rask.Core.SVGAnimateElement!
 static RaskBuilderSettersRask_Core.KeyTimes(this Rask.Core.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.SVGAnimateMotionElement!
 static RaskBuilderSettersRask_Core.KeyTimes(this Rask.Core.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.Kind(this Rask.Core.HTMLTrackElement! __b, string? value) -> Rask.Core.HTMLTrackElement!
 static RaskBuilderSettersRask_Core.Label(this Rask.Core.HTMLOptGroupElement! __b, string? value) -> Rask.Core.HTMLOptGroupElement!
 static RaskBuilderSettersRask_Core.Label(this Rask.Core.HTMLOptionElement! __b, string? value) -> Rask.Core.HTMLOptionElement!
 static RaskBuilderSettersRask_Core.Label(this Rask.Core.HTMLTrackElement! __b, string? value) -> Rask.Core.HTMLTrackElement!
@@ -9205,8 +8941,6 @@ static RaskBuilderSettersRask_Core.LightingColor(this Rask.Core.SVGUseElement! _
 static RaskBuilderSettersRask_Core.LightingColor(this Rask.Core.SVGViewElement! __b, string? value) -> Rask.Core.SVGViewElement!
 static RaskBuilderSettersRask_Core.LimitingConeAngle(this Rask.Core.SVGFESpotLightElement! __b, string? value) -> Rask.Core.SVGFESpotLightElement!
 static RaskBuilderSettersRask_Core.List<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
-static RaskBuilderSettersRask_Core.Loading(this Rask.Core.HTMLIFrameElement! __b, string? value) -> Rask.Core.HTMLIFrameElement!
-static RaskBuilderSettersRask_Core.Loading(this Rask.Core.HTMLImageElement! __b, string? value) -> Rask.Core.HTMLImageElement!
 static RaskBuilderSettersRask_Core.Loop(this Rask.Core.HTMLAudioElement! __b, bool? value) -> Rask.Core.HTMLAudioElement!
 static RaskBuilderSettersRask_Core.Loop(this Rask.Core.HTMLVideoElement! __b, bool? value) -> Rask.Core.HTMLVideoElement!
 static RaskBuilderSettersRask_Core.Low(this Rask.Core.HTMLMeterElement! __b, double? value) -> Rask.Core.HTMLMeterElement!
@@ -9982,8 +9716,6 @@ static RaskBuilderSettersRask_Core.PopoverTarget<T>(this Rask.Core.HTMLInputElem
 static RaskBuilderSettersRask_Core.PopoverTargetAction(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
 static RaskBuilderSettersRask_Core.PopoverTargetAction<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Poster(this Rask.Core.HTMLVideoElement! __b, string? value) -> Rask.Core.HTMLVideoElement!
-static RaskBuilderSettersRask_Core.Preload(this Rask.Core.HTMLAudioElement! __b, string? value) -> Rask.Core.HTMLAudioElement!
-static RaskBuilderSettersRask_Core.Preload(this Rask.Core.HTMLVideoElement! __b, string? value) -> Rask.Core.HTMLVideoElement!
 static RaskBuilderSettersRask_Core.PreserveAlpha(this Rask.Core.SVGFEConvolveMatrixElement! __b, string? value) -> Rask.Core.SVGFEConvolveMatrixElement!
 static RaskBuilderSettersRask_Core.PreserveAspectRatio(this Rask.Core.SVGFEImageElement! __b, string? value) -> Rask.Core.SVGFEImageElement!
 static RaskBuilderSettersRask_Core.PreserveAspectRatio(this Rask.Core.SVGImageElement! __b, string? value) -> Rask.Core.SVGImageElement!
@@ -10001,12 +9733,6 @@ static RaskBuilderSettersRask_Core.ReadOnly<T>(this Rask.Core.HTMLInputElement<T
 static RaskBuilderSettersRask_Core.ReadOnly<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.RefX(this Rask.Core.SVGMarkerElement! __b, string? value) -> Rask.Core.SVGMarkerElement!
 static RaskBuilderSettersRask_Core.RefY(this Rask.Core.SVGMarkerElement! __b, string? value) -> Rask.Core.SVGMarkerElement!
-static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLAnchorElement! __b, string? value) -> Rask.Core.HTMLAnchorElement!
-static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLAreaElement! __b, string? value) -> Rask.Core.HTMLAreaElement!
-static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLIFrameElement! __b, string? value) -> Rask.Core.HTMLIFrameElement!
-static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLImageElement! __b, string? value) -> Rask.Core.HTMLImageElement!
-static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLLinkElement! __b, string? value) -> Rask.Core.HTMLLinkElement!
-static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLScriptElement! __b, string? value) -> Rask.Core.HTMLScriptElement!
 static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.SVGAElement! __b, string? value) -> Rask.Core.SVGAElement!
 static RaskBuilderSettersRask_Core.Rel(this Rask.Core.HTMLAnchorElement! __b, string? value) -> Rask.Core.HTMLAnchorElement!
 static RaskBuilderSettersRask_Core.Rel(this Rask.Core.HTMLAreaElement! __b, string? value) -> Rask.Core.HTMLAreaElement!
@@ -10120,15 +9846,12 @@ static RaskBuilderSettersRask_Core.Ry(this Rask.Core.SVGEllipseElement! __b, str
 static RaskBuilderSettersRask_Core.Ry(this Rask.Core.SVGRectElement! __b, string? value) -> Rask.Core.SVGRectElement!
 static RaskBuilderSettersRask_Core.Sandbox(this Rask.Core.HTMLIFrameElement! __b, string? value) -> Rask.Core.HTMLIFrameElement!
 static RaskBuilderSettersRask_Core.Scale(this Rask.Core.SVGFEDisplacementMapElement! __b, string? value) -> Rask.Core.SVGFEDisplacementMapElement!
-static RaskBuilderSettersRask_Core.Scope(this Rask.Core.HTMLTableCellElement! __b, string? value) -> Rask.Core.HTMLTableCellElement!
 static RaskBuilderSettersRask_Core.Seed(this Rask.Core.SVGFETurbulenceElement! __b, string? value) -> Rask.Core.SVGFETurbulenceElement!
 static RaskBuilderSettersRask_Core.Selected(this Rask.Core.HTMLOptionElement! __b, bool? value) -> Rask.Core.HTMLOptionElement!
 static RaskBuilderSettersRask_Core.ShadowRootClonable(this Rask.Core.HTMLTemplateElement! __b, bool? value) -> Rask.Core.HTMLTemplateElement!
 static RaskBuilderSettersRask_Core.ShadowRootCustomElementRegistry(this Rask.Core.HTMLTemplateElement! __b, string? value) -> Rask.Core.HTMLTemplateElement!
 static RaskBuilderSettersRask_Core.ShadowRootDelegatesFocus(this Rask.Core.HTMLTemplateElement! __b, bool? value) -> Rask.Core.HTMLTemplateElement!
-static RaskBuilderSettersRask_Core.ShadowRootMode(this Rask.Core.HTMLTemplateElement! __b, string? value) -> Rask.Core.HTMLTemplateElement!
 static RaskBuilderSettersRask_Core.ShadowRootSerializable(this Rask.Core.HTMLTemplateElement! __b, bool? value) -> Rask.Core.HTMLTemplateElement!
-static RaskBuilderSettersRask_Core.Shape(this Rask.Core.HTMLAreaElement! __b, string? value) -> Rask.Core.HTMLAreaElement!
 static RaskBuilderSettersRask_Core.ShapeRendering(this Rask.Core.SVGAElement! __b, string? value) -> Rask.Core.SVGAElement!
 static RaskBuilderSettersRask_Core.ShapeRendering(this Rask.Core.SVGAnimateElement! __b, string? value) -> Rask.Core.SVGAnimateElement!
 static RaskBuilderSettersRask_Core.ShapeRendering(this Rask.Core.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.SVGAnimateMotionElement!
@@ -11345,7 +11068,6 @@ static RaskBuilderSettersRask_Core.TransformOrigin(this Rask.Core.SVGTitleElemen
 static RaskBuilderSettersRask_Core.TransformOrigin(this Rask.Core.SVGUseElement! __b, string? value) -> Rask.Core.SVGUseElement!
 static RaskBuilderSettersRask_Core.TransformOrigin(this Rask.Core.SVGViewElement! __b, string? value) -> Rask.Core.SVGViewElement!
 static RaskBuilderSettersRask_Core.Type(this Rask.Core.HTMLAnchorElement! __b, string? value) -> Rask.Core.HTMLAnchorElement!
-static RaskBuilderSettersRask_Core.Type(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
 static RaskBuilderSettersRask_Core.Type(this Rask.Core.HTMLEmbedElement! __b, string? value) -> Rask.Core.HTMLEmbedElement!
 static RaskBuilderSettersRask_Core.Type(this Rask.Core.HTMLLinkElement! __b, string? value) -> Rask.Core.HTMLLinkElement!
 static RaskBuilderSettersRask_Core.Type(this Rask.Core.HTMLOListElement! __b, string? value) -> Rask.Core.HTMLOListElement!
@@ -11736,7 +11458,6 @@ static RaskBuilderSettersRask_Core.WordSpacing(this Rask.Core.SVGTextPathElement
 static RaskBuilderSettersRask_Core.WordSpacing(this Rask.Core.SVGTitleElement! __b, string? value) -> Rask.Core.SVGTitleElement!
 static RaskBuilderSettersRask_Core.WordSpacing(this Rask.Core.SVGUseElement! __b, string? value) -> Rask.Core.SVGUseElement!
 static RaskBuilderSettersRask_Core.WordSpacing(this Rask.Core.SVGViewElement! __b, string? value) -> Rask.Core.SVGViewElement!
-static RaskBuilderSettersRask_Core.Wrap<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, string? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.WritingMode(this Rask.Core.SVGAElement! __b, string? value) -> Rask.Core.SVGAElement!
 static RaskBuilderSettersRask_Core.WritingMode(this Rask.Core.SVGAnimateElement! __b, string? value) -> Rask.Core.SVGAnimateElement!
 static RaskBuilderSettersRask_Core.WritingMode(this Rask.Core.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.SVGAnimateMotionElement!
@@ -11800,70 +11521,6 @@ static RaskBuilderSettersRask_Core.WritingMode(this Rask.Core.SVGTextPathElement
 static RaskBuilderSettersRask_Core.WritingMode(this Rask.Core.SVGTitleElement! __b, string? value) -> Rask.Core.SVGTitleElement!
 static RaskBuilderSettersRask_Core.WritingMode(this Rask.Core.SVGUseElement! __b, string? value) -> Rask.Core.SVGUseElement!
 static RaskBuilderSettersRask_Core.WritingMode(this Rask.Core.SVGViewElement! __b, string? value) -> Rask.Core.SVGViewElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAnchorElement! __b, string? value) -> Rask.Core.HTMLAnchorElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAreaElement! __b, string? value) -> Rask.Core.HTMLAreaElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAudioElement! __b, string? value) -> Rask.Core.HTMLAudioElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLBRElement! __b, string? value) -> Rask.Core.HTMLBRElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLBaseElement! __b, string? value) -> Rask.Core.HTMLBaseElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLBodyElement! __b, string? value) -> Rask.Core.HTMLBodyElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLCanvasElement! __b, string? value) -> Rask.Core.HTMLCanvasElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDListElement! __b, string? value) -> Rask.Core.HTMLDListElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDataElement! __b, string? value) -> Rask.Core.HTMLDataElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDataListElement! __b, string? value) -> Rask.Core.HTMLDataListElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDetailsElement! __b, string? value) -> Rask.Core.HTMLDetailsElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDialogElement! __b, string? value) -> Rask.Core.HTMLDialogElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDivElement! __b, string? value) -> Rask.Core.HTMLDivElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLElement! __b, string? value) -> Rask.Core.HTMLElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLEmbedElement! __b, string? value) -> Rask.Core.HTMLEmbedElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLFieldSetElement! __b, string? value) -> Rask.Core.HTMLFieldSetElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHRElement! __b, string? value) -> Rask.Core.HTMLHRElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHeadElement! __b, string? value) -> Rask.Core.HTMLHeadElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHeadingElement! __b, string? value) -> Rask.Core.HTMLHeadingElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHtmlElement! __b, string? value) -> Rask.Core.HTMLHtmlElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLIFrameElement! __b, string? value) -> Rask.Core.HTMLIFrameElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLImageElement! __b, string? value) -> Rask.Core.HTMLImageElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLIElement! __b, string? value) -> Rask.Core.HTMLLIElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLabelElement! __b, string? value) -> Rask.Core.HTMLLabelElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLegendElement! __b, string? value) -> Rask.Core.HTMLLegendElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLinkElement! __b, string? value) -> Rask.Core.HTMLLinkElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMapElement! __b, string? value) -> Rask.Core.HTMLMapElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMenuElement! __b, string? value) -> Rask.Core.HTMLMenuElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMetaElement! __b, string? value) -> Rask.Core.HTMLMetaElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMeterElement! __b, string? value) -> Rask.Core.HTMLMeterElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLModElement! __b, string? value) -> Rask.Core.HTMLModElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOListElement! __b, string? value) -> Rask.Core.HTMLOListElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLObjectElement! __b, string? value) -> Rask.Core.HTMLObjectElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOptGroupElement! __b, string? value) -> Rask.Core.HTMLOptGroupElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOptionElement! __b, string? value) -> Rask.Core.HTMLOptionElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOutputElement! __b, string? value) -> Rask.Core.HTMLOutputElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLParagraphElement! __b, string? value) -> Rask.Core.HTMLParagraphElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLPictureElement! __b, string? value) -> Rask.Core.HTMLPictureElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLPreElement! __b, string? value) -> Rask.Core.HTMLPreElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLProgressElement! __b, string? value) -> Rask.Core.HTMLProgressElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLQuoteElement! __b, string? value) -> Rask.Core.HTMLQuoteElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLScriptElement! __b, string? value) -> Rask.Core.HTMLScriptElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSelectedContentElement! __b, string? value) -> Rask.Core.HTMLSelectedContentElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSlotElement! __b, string? value) -> Rask.Core.HTMLSlotElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSourceElement! __b, string? value) -> Rask.Core.HTMLSourceElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSpanElement! __b, string? value) -> Rask.Core.HTMLSpanElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLStyleElement! __b, string? value) -> Rask.Core.HTMLStyleElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableCaptionElement! __b, string? value) -> Rask.Core.HTMLTableCaptionElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableCellElement! __b, string? value) -> Rask.Core.HTMLTableCellElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableColElement! __b, string? value) -> Rask.Core.HTMLTableColElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableElement! __b, string? value) -> Rask.Core.HTMLTableElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableRowElement! __b, string? value) -> Rask.Core.HTMLTableRowElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableSectionElement! __b, string? value) -> Rask.Core.HTMLTableSectionElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTemplateElement! __b, string? value) -> Rask.Core.HTMLTemplateElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTimeElement! __b, string? value) -> Rask.Core.HTMLTimeElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTitleElement! __b, string? value) -> Rask.Core.HTMLTitleElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTrackElement! __b, string? value) -> Rask.Core.HTMLTrackElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLUListElement! __b, string? value) -> Rask.Core.HTMLUListElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLVideoElement! __b, string? value) -> Rask.Core.HTMLVideoElement!
-static RaskBuilderSettersRask_Core.WritingSuggestions<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
-static RaskBuilderSettersRask_Core.WritingSuggestions<T>(this Rask.Core.HTMLSelectElement<T>! __b, string? value) -> Rask.Core.HTMLSelectElement<T>!
-static RaskBuilderSettersRask_Core.WritingSuggestions<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, string? value) -> Rask.Core.HTMLTextAreaElement<T>!
-static RaskBuilderSettersRask_Core.WritingSuggestions<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, string? value) -> Rask.Core.HTMLFormElement<TModel>!
 static RaskBuilderSettersRask_Core.X(this Rask.Core.SVGFEBlendElement! __b, string? value) -> Rask.Core.SVGFEBlendElement!
 static RaskBuilderSettersRask_Core.X(this Rask.Core.SVGFEColorMatrixElement! __b, string? value) -> Rask.Core.SVGFEColorMatrixElement!
 static RaskBuilderSettersRask_Core.X(this Rask.Core.SVGFEComponentTransferElement! __b, string? value) -> Rask.Core.SVGFEComponentTransferElement!
@@ -13041,10 +12698,6 @@ static Rask.Core.ElementRef.operator ==(Rask.Core.ElementRef? left, Rask.Core.El
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).SetRangeText(string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLTextAreaElement!>!).SetRangeText(string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask
 Rask.Core.SelectionMode
-Rask.Core.SelectionMode.End = 2 -> Rask.Core.SelectionMode
-Rask.Core.SelectionMode.Preserve = 3 -> Rask.Core.SelectionMode
-Rask.Core.SelectionMode.Select = 0 -> Rask.Core.SelectionMode
-Rask.Core.SelectionMode.Start = 1 -> Rask.Core.SelectionMode
 static Rask.Core.ElementRefMembers.SetRangeText(this Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>! element, string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.SetRangeText(this Rask.Core.IElementRef<Rask.Core.HTMLTextAreaElement!>! element, string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IPeerConnection.AddStreamAsync(Microsoft.JSInterop.IJSObjectReference! stream) -> System.Threading.Tasks.ValueTask
@@ -13055,3 +12708,520 @@ static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptu
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Action<Microsoft.JSInterop.IJSObjectReference!>? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Func<Microsoft.JSInterop.IJSObjectReference!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Func<Microsoft.JSInterop.IJSObjectReference!, System.Threading.Tasks.ValueTask>? value) -> Rask.Core.Components.MediaCaptureTrigger!
+Rask.Core.AreaShape
+Rask.Core.AreaShape.Circle = 673280137 -> Rask.Core.AreaShape
+Rask.Core.AreaShape.Default = -1824826402 -> Rask.Core.AreaShape
+Rask.Core.AreaShape.Poly = -2066306745 -> Rask.Core.AreaShape
+Rask.Core.AreaShape.Rect = -354136825 -> Rask.Core.AreaShape
+Rask.Core.AriaNotifyPriority.High = 1037941245 -> Rask.Core.AriaNotifyPriority
+Rask.Core.AriaNotifyPriority.Normal = -427058094 -> Rask.Core.AriaNotifyPriority
+Rask.Core.Autocapitalize
+Rask.Core.Autocapitalize.Characters = -1873444647 -> Rask.Core.Autocapitalize
+Rask.Core.Autocapitalize.None = -1381519397 -> Rask.Core.Autocapitalize
+Rask.Core.Autocapitalize.Off = -1422226934 -> Rask.Core.Autocapitalize
+Rask.Core.Autocapitalize.On = 1630810064 -> Rask.Core.Autocapitalize
+Rask.Core.Autocapitalize.Sentences = -2099623419 -> Rask.Core.Autocapitalize
+Rask.Core.Autocapitalize.Words = 1555540618 -> Rask.Core.Autocapitalize
+Rask.Core.ButtonType
+Rask.Core.ButtonType.Button = 1135768689 -> Rask.Core.ButtonType
+Rask.Core.ButtonType.Reset = 1695364032 -> Rask.Core.ButtonType
+Rask.Core.ButtonType.Submit = -135593435 -> Rask.Core.ButtonType
+Rask.Core.CanPlayTypeResult.Empty = -2128831035 -> Rask.Core.CanPlayTypeResult
+Rask.Core.CanPlayTypeResult.Maybe = -516115797 -> Rask.Core.CanPlayTypeResult
+Rask.Core.CanPlayTypeResult.Probably = -2106647234 -> Rask.Core.CanPlayTypeResult
+Rask.Core.ContentEditable
+Rask.Core.ContentEditable.False = 184981848 -> Rask.Core.ContentEditable
+Rask.Core.ContentEditable.PlaintextOnly = 431316825 -> Rask.Core.ContentEditable
+Rask.Core.ContentEditable.True = 1303515621 -> Rask.Core.ContentEditable
+Rask.Core.CrossOrigin
+Rask.Core.CrossOrigin.Anonymous = 1926879790 -> Rask.Core.CrossOrigin
+Rask.Core.CrossOrigin.UseCredentials = -790994173 -> Rask.Core.CrossOrigin
+Rask.Core.Decoding
+Rask.Core.Decoding.Async = -1577596401 -> Rask.Core.Decoding
+Rask.Core.Decoding.Auto = -1841323114 -> Rask.Core.Decoding
+Rask.Core.Decoding.Sync = 159043482 -> Rask.Core.Decoding
+Rask.Core.DialogClosedBy
+Rask.Core.DialogClosedBy.Any = 740945997 -> Rask.Core.DialogClosedBy
+Rask.Core.DialogClosedBy.Closerequest = -751305060 -> Rask.Core.DialogClosedBy
+Rask.Core.DialogClosedBy.None = -1381519397 -> Rask.Core.DialogClosedBy
+Rask.Core.Dir
+Rask.Core.Dir.Auto = -1841323114 -> Rask.Core.Dir
+Rask.Core.Dir.Ltr = 1419008077 -> Rask.Core.Dir
+Rask.Core.Dir.Rtl = 1322239501 -> Rask.Core.Dir
+Rask.Core.Element.ContentEditable.get -> Rask.Core.ContentEditable?
+Rask.Core.Element.Dir.get -> Rask.Core.Dir?
+Rask.Core.Element.Popover.get -> Rask.Core.Popover?
+Rask.Core.EnterKeyHint
+Rask.Core.EnterKeyHint.Done = 653492337 -> Rask.Core.EnterKeyHint
+Rask.Core.EnterKeyHint.Enter = -570564339 -> Rask.Core.EnterKeyHint
+Rask.Core.EnterKeyHint.Go = 1109423947 -> Rask.Core.EnterKeyHint
+Rask.Core.EnterKeyHint.Next = 1555467752 -> Rask.Core.EnterKeyHint
+Rask.Core.EnterKeyHint.Previous = -195304152 -> Rask.Core.EnterKeyHint
+Rask.Core.EnterKeyHint.Search = -2144130903 -> Rask.Core.EnterKeyHint
+Rask.Core.EnterKeyHint.Send = 1919010991 -> Rask.Core.EnterKeyHint
+Rask.Core.FetchPriority
+Rask.Core.FetchPriority.Auto = -1841323114 -> Rask.Core.FetchPriority
+Rask.Core.FetchPriority.High = 1037941245 -> Rask.Core.FetchPriority
+Rask.Core.FetchPriority.Low = 1330735745 -> Rask.Core.FetchPriority
+Rask.Core.FormMethod
+Rask.Core.FormMethod.Dialog = 178778297 -> Rask.Core.FormMethod
+Rask.Core.FormMethod.Get = 1410115415 -> Rask.Core.FormMethod
+Rask.Core.FormMethod.Post = -1981285817 -> Rask.Core.FormMethod
+Rask.Core.FullscreenKeyboardLock.Browser = 122887567 -> Rask.Core.FullscreenKeyboardLock
+Rask.Core.FullscreenKeyboardLock.None = -1381519397 -> Rask.Core.FullscreenKeyboardLock
+Rask.Core.FullscreenNavigationUI.Auto = -1841323114 -> Rask.Core.FullscreenNavigationUI
+Rask.Core.FullscreenNavigationUI.Hide = 1625305005 -> Rask.Core.FullscreenNavigationUI
+Rask.Core.FullscreenNavigationUI.Show = -1454906820 -> Rask.Core.FullscreenNavigationUI
+Rask.Core.HTMLAnchorElement.ReferrerPolicy.get -> Rask.Core.ReferrerPolicy?
+Rask.Core.HTMLAreaElement.ReferrerPolicy.get -> Rask.Core.ReferrerPolicy?
+Rask.Core.HTMLAreaElement.Shape.get -> Rask.Core.AreaShape?
+Rask.Core.HTMLButtonElement.FormMethod.get -> Rask.Core.FormMethod?
+Rask.Core.HTMLButtonElement.Type.get -> Rask.Core.ButtonType?
+Rask.Core.HTMLDialogElement.ClosedBy.get -> Rask.Core.DialogClosedBy?
+Rask.Core.HTMLElement.Autocapitalize.get -> Rask.Core.Autocapitalize?
+Rask.Core.HTMLElement.EnterKeyHint.get -> Rask.Core.EnterKeyHint?
+Rask.Core.HTMLElement.InputMode.get -> Rask.Core.InputMode?
+Rask.Core.HTMLElement.WritingSuggestions.get -> bool?
+Rask.Core.HTMLIFrameElement.Loading.get -> Rask.Core.Loading?
+Rask.Core.HTMLIFrameElement.ReferrerPolicy.get -> Rask.Core.ReferrerPolicy?
+Rask.Core.HTMLImageElement.CrossOrigin.get -> Rask.Core.CrossOrigin?
+Rask.Core.HTMLImageElement.Decoding.get -> Rask.Core.Decoding?
+Rask.Core.HTMLImageElement.FetchPriority.get -> Rask.Core.FetchPriority?
+Rask.Core.HTMLImageElement.Loading.get -> Rask.Core.Loading?
+Rask.Core.HTMLImageElement.ReferrerPolicy.get -> Rask.Core.ReferrerPolicy?
+Rask.Core.HTMLInputElement.FormMethod.get -> Rask.Core.FormMethod?
+Rask.Core.HTMLLinkElement.CrossOrigin.get -> Rask.Core.CrossOrigin?
+Rask.Core.HTMLLinkElement.FetchPriority.get -> Rask.Core.FetchPriority?
+Rask.Core.HTMLLinkElement.ReferrerPolicy.get -> Rask.Core.ReferrerPolicy?
+Rask.Core.HTMLMediaElement.CrossOrigin.get -> Rask.Core.CrossOrigin?
+Rask.Core.HTMLMediaElement.Preload.get -> Rask.Core.Preload?
+Rask.Core.HTMLMetaElement.HttpEquiv.get -> Rask.Core.MetaHttpEquiv?
+Rask.Core.HTMLScriptElement.CrossOrigin.get -> Rask.Core.CrossOrigin?
+Rask.Core.HTMLScriptElement.FetchPriority.get -> Rask.Core.FetchPriority?
+Rask.Core.HTMLScriptElement.ReferrerPolicy.get -> Rask.Core.ReferrerPolicy?
+Rask.Core.HTMLTableCellElement.Scope.get -> Rask.Core.ThScope?
+Rask.Core.HTMLTemplateElement.ShadowRootMode.get -> Rask.Core.ShadowRootMode?
+Rask.Core.HTMLTextAreaElement.Wrap.get -> Rask.Core.TextareaWrap?
+Rask.Core.HTMLTrackElement.Kind.get -> Rask.Core.TrackKind?
+Rask.Core.InputMode
+Rask.Core.InputMode.Decimal = 520654156 -> Rask.Core.InputMode
+Rask.Core.InputMode.Email = -1970842681 -> Rask.Core.InputMode
+Rask.Core.InputMode.None = -1381519397 -> Rask.Core.InputMode
+Rask.Core.InputMode.Numeric = 1761125480 -> Rask.Core.InputMode
+Rask.Core.InputMode.Search = -2144130903 -> Rask.Core.InputMode
+Rask.Core.InputMode.Tel = -1090390150 -> Rask.Core.InputMode
+Rask.Core.InputMode.Text = -1108980162 -> Rask.Core.InputMode
+Rask.Core.InputMode.Url = 848251934 -> Rask.Core.InputMode
+Rask.Core.Loading
+Rask.Core.Loading.Eager = 1304935851 -> Rask.Core.Loading
+Rask.Core.Loading.Lazy = 1791761615 -> Rask.Core.Loading
+Rask.Core.MetaHttpEquiv
+Rask.Core.MetaHttpEquiv.ContentLanguage = 24973587 -> Rask.Core.MetaHttpEquiv
+Rask.Core.MetaHttpEquiv.ContentSecurityPolicy = 1569039836 -> Rask.Core.MetaHttpEquiv
+Rask.Core.MetaHttpEquiv.ContentType = -50919019 -> Rask.Core.MetaHttpEquiv
+Rask.Core.MetaHttpEquiv.DefaultStyle = -95750 -> Rask.Core.MetaHttpEquiv
+Rask.Core.MetaHttpEquiv.Refresh = -722311628 -> Rask.Core.MetaHttpEquiv
+Rask.Core.MetaHttpEquiv.SetCookie = 1848371000 -> Rask.Core.MetaHttpEquiv
+Rask.Core.MetaHttpEquiv.XUaCompatible = 2043222537 -> Rask.Core.MetaHttpEquiv
+Rask.Core.Popover
+Rask.Core.Popover.Auto = -1841323114 -> Rask.Core.Popover
+Rask.Core.Popover.Hint = 1271400888 -> Rask.Core.Popover
+Rask.Core.Popover.Manual = 563151331 -> Rask.Core.Popover
+Rask.Core.Preload
+Rask.Core.Preload.Auto = -1841323114 -> Rask.Core.Preload
+Rask.Core.Preload.Metadata = 1713525568 -> Rask.Core.Preload
+Rask.Core.Preload.None = -1381519397 -> Rask.Core.Preload
+Rask.Core.ReferrerPolicy
+Rask.Core.ReferrerPolicy.Empty = -2128831035 -> Rask.Core.ReferrerPolicy
+Rask.Core.ReferrerPolicy.NoReferrer = -1043049914 -> Rask.Core.ReferrerPolicy
+Rask.Core.ReferrerPolicy.NoReferrerWhenDowngrade = 1670395731 -> Rask.Core.ReferrerPolicy
+Rask.Core.ReferrerPolicy.Origin = -645948849 -> Rask.Core.ReferrerPolicy
+Rask.Core.ReferrerPolicy.OriginWhenCrossOrigin = -2010988824 -> Rask.Core.ReferrerPolicy
+Rask.Core.ReferrerPolicy.SameOrigin = -105859484 -> Rask.Core.ReferrerPolicy
+Rask.Core.ReferrerPolicy.StrictOrigin = 1980501189 -> Rask.Core.ReferrerPolicy
+Rask.Core.ReferrerPolicy.StrictOriginWhenCrossOrigin = 408729082 -> Rask.Core.ReferrerPolicy
+Rask.Core.ReferrerPolicy.UnsafeUrl = 1730974975 -> Rask.Core.ReferrerPolicy
+Rask.Core.ScrollBehavior.Auto = -1841323114 -> Rask.Core.ScrollBehavior
+Rask.Core.ScrollBehavior.Instant = -1872203342 -> Rask.Core.ScrollBehavior
+Rask.Core.ScrollBehavior.Smooth = 24442543 -> Rask.Core.ScrollBehavior
+Rask.Core.ScrollIntoViewContainer.All = 321211332 -> Rask.Core.ScrollIntoViewContainer
+Rask.Core.ScrollIntoViewContainer.Nearest = -1003750887 -> Rask.Core.ScrollIntoViewContainer
+Rask.Core.ScrollLogicalPosition.Center = 93078660 -> Rask.Core.ScrollLogicalPosition
+Rask.Core.ScrollLogicalPosition.End = 1787721130 -> Rask.Core.ScrollLogicalPosition
+Rask.Core.ScrollLogicalPosition.Nearest = -1003750887 -> Rask.Core.ScrollLogicalPosition
+Rask.Core.ScrollLogicalPosition.Start = 1697318111 -> Rask.Core.ScrollLogicalPosition
+Rask.Core.SelectionMode.End = 1787721130 -> Rask.Core.SelectionMode
+Rask.Core.SelectionMode.Preserve = -334093783 -> Rask.Core.SelectionMode
+Rask.Core.SelectionMode.Select = 297952813 -> Rask.Core.SelectionMode
+Rask.Core.SelectionMode.Start = 1697318111 -> Rask.Core.SelectionMode
+Rask.Core.ShadowRootMode
+Rask.Core.ShadowRootMode.Closed = -336703291 -> Rask.Core.ShadowRootMode
+Rask.Core.ShadowRootMode.Open = -748763959 -> Rask.Core.ShadowRootMode
+Rask.Core.TextareaWrap
+Rask.Core.TextareaWrap.Hard = -456959012 -> Rask.Core.TextareaWrap
+Rask.Core.TextareaWrap.Soft = -196492107 -> Rask.Core.TextareaWrap
+Rask.Core.ThScope
+Rask.Core.ThScope.Col = -225586063 -> Rask.Core.ThScope
+Rask.Core.ThScope.Colgroup = 150307336 -> Rask.Core.ThScope
+Rask.Core.ThScope.Row = 1141775739 -> Rask.Core.ThScope
+Rask.Core.ThScope.Rowgroup = 1350312626 -> Rask.Core.ThScope
+Rask.Core.TrackKind
+Rask.Core.TrackKind.Captions = 1897215650 -> Rask.Core.TrackKind
+Rask.Core.TrackKind.Chapters = 763980787 -> Rask.Core.TrackKind
+Rask.Core.TrackKind.Descriptions = -1525020178 -> Rask.Core.TrackKind
+Rask.Core.TrackKind.Metadata = 1713525568 -> Rask.Core.TrackKind
+Rask.Core.TrackKind.Subtitles = 500101630 -> Rask.Core.TrackKind
+static Rask.Core.Globalization.RaskCulture.HtmlDir.get -> Rask.Core.Dir?
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLAnchorElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLAnchorElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLAreaElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLAreaElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLAudioElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLAudioElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLBRElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLBRElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLBaseElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLBaseElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLBodyElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLBodyElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLButtonElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLButtonElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLCanvasElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLCanvasElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDListElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLDListElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDataElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLDataElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDataListElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLDataListElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDetailsElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLDetailsElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDialogElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLDialogElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLDivElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLDivElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLEmbedElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLEmbedElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLFieldSetElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLFieldSetElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLHRElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLHRElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLHeadElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLHeadElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLHeadingElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLHeadingElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLHtmlElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLHtmlElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLIFrameElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLIFrameElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLImageElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLImageElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLLIElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLLIElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLLabelElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLLabelElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLLegendElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLLegendElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLLinkElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLLinkElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLMapElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLMapElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLMenuElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLMenuElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLMetaElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLMetaElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLMeterElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLMeterElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLModElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLModElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLOListElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLOListElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLObjectElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLObjectElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLOptGroupElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLOptGroupElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLOptionElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLOptionElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLOutputElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLOutputElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLParagraphElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLParagraphElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLPictureElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLPictureElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLPreElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLPreElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLProgressElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLProgressElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLQuoteElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLQuoteElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLScriptElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLScriptElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLSelectedContentElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLSelectedContentElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLSlotElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLSlotElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLSourceElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLSourceElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLSpanElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLSpanElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLStyleElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLStyleElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableCaptionElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLTableCaptionElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableCellElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLTableCellElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableColElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLTableColElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLTableElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableRowElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLTableRowElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTableSectionElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLTableSectionElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTemplateElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLTemplateElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTimeElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLTimeElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTitleElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLTitleElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLTrackElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLTrackElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLUListElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLUListElement!
+static RaskBuilderSettersRask_Core.Autocapitalize(this Rask.Core.HTMLVideoElement! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLVideoElement!
+static RaskBuilderSettersRask_Core.Autocapitalize<T>(this Rask.Core.HTMLInputElement<T>! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.Autocapitalize<T>(this Rask.Core.HTMLSelectElement<T>! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLSelectElement<T>!
+static RaskBuilderSettersRask_Core.Autocapitalize<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskBuilderSettersRask_Core.Autocapitalize<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, Rask.Core.Autocapitalize? value) -> Rask.Core.HTMLFormElement<TModel>!
+static RaskBuilderSettersRask_Core.ClosedBy(this Rask.Core.HTMLDialogElement! __b, Rask.Core.DialogClosedBy? value) -> Rask.Core.HTMLDialogElement!
+static RaskBuilderSettersRask_Core.ContentEditable<T>(this T! __b, Rask.Core.ContentEditable? value) -> T!
+static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.HTMLAudioElement! __b, Rask.Core.CrossOrigin? value) -> Rask.Core.HTMLAudioElement!
+static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.HTMLImageElement! __b, Rask.Core.CrossOrigin? value) -> Rask.Core.HTMLImageElement!
+static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.HTMLLinkElement! __b, Rask.Core.CrossOrigin? value) -> Rask.Core.HTMLLinkElement!
+static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.HTMLScriptElement! __b, Rask.Core.CrossOrigin? value) -> Rask.Core.HTMLScriptElement!
+static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.HTMLVideoElement! __b, Rask.Core.CrossOrigin? value) -> Rask.Core.HTMLVideoElement!
+static RaskBuilderSettersRask_Core.Decoding(this Rask.Core.HTMLImageElement! __b, Rask.Core.Decoding? value) -> Rask.Core.HTMLImageElement!
+static RaskBuilderSettersRask_Core.Dir<T>(this T! __b, Rask.Core.Dir? value) -> T!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLAnchorElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLAnchorElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLAreaElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLAreaElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLAudioElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLAudioElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLBRElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLBRElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLBaseElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLBaseElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLBodyElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLBodyElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLButtonElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLButtonElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLCanvasElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLCanvasElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDListElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLDListElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDataElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLDataElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDataListElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLDataListElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDetailsElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLDetailsElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDialogElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLDialogElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLDivElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLDivElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLEmbedElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLEmbedElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLFieldSetElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLFieldSetElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLHRElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLHRElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLHeadElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLHeadElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLHeadingElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLHeadingElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLHtmlElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLHtmlElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLIFrameElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLIFrameElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLImageElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLImageElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLLIElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLLIElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLLabelElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLLabelElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLLegendElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLLegendElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLLinkElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLLinkElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLMapElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLMapElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLMenuElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLMenuElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLMetaElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLMetaElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLMeterElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLMeterElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLModElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLModElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLOListElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLOListElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLObjectElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLObjectElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLOptGroupElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLOptGroupElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLOptionElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLOptionElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLOutputElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLOutputElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLParagraphElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLParagraphElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLPictureElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLPictureElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLPreElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLPreElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLProgressElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLProgressElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLQuoteElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLQuoteElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLScriptElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLScriptElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLSelectedContentElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLSelectedContentElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLSlotElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLSlotElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLSourceElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLSourceElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLSpanElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLSpanElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLStyleElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLStyleElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableCaptionElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLTableCaptionElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableCellElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLTableCellElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableColElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLTableColElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLTableElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableRowElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLTableRowElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTableSectionElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLTableSectionElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTemplateElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLTemplateElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTimeElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLTimeElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTitleElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLTitleElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLTrackElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLTrackElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLUListElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLUListElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint(this Rask.Core.HTMLVideoElement! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLVideoElement!
+static RaskBuilderSettersRask_Core.EnterKeyHint<T>(this Rask.Core.HTMLInputElement<T>! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.EnterKeyHint<T>(this Rask.Core.HTMLSelectElement<T>! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLSelectElement<T>!
+static RaskBuilderSettersRask_Core.EnterKeyHint<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskBuilderSettersRask_Core.EnterKeyHint<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, Rask.Core.EnterKeyHint? value) -> Rask.Core.HTMLFormElement<TModel>!
+static RaskBuilderSettersRask_Core.FetchPriority(this Rask.Core.HTMLImageElement! __b, Rask.Core.FetchPriority? value) -> Rask.Core.HTMLImageElement!
+static RaskBuilderSettersRask_Core.FetchPriority(this Rask.Core.HTMLLinkElement! __b, Rask.Core.FetchPriority? value) -> Rask.Core.HTMLLinkElement!
+static RaskBuilderSettersRask_Core.FetchPriority(this Rask.Core.HTMLScriptElement! __b, Rask.Core.FetchPriority? value) -> Rask.Core.HTMLScriptElement!
+static RaskBuilderSettersRask_Core.FormMethod(this Rask.Core.HTMLButtonElement! __b, Rask.Core.FormMethod? value) -> Rask.Core.HTMLButtonElement!
+static RaskBuilderSettersRask_Core.FormMethod<T>(this Rask.Core.HTMLInputElement<T>! __b, Rask.Core.FormMethod? value) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.HttpEquiv(this Rask.Core.HTMLMetaElement! __b, Rask.Core.MetaHttpEquiv? value) -> Rask.Core.HTMLMetaElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLAnchorElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLAnchorElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLAreaElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLAreaElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLAudioElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLAudioElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLBRElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLBRElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLBaseElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLBaseElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLBodyElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLBodyElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLButtonElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLButtonElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLCanvasElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLCanvasElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDListElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLDListElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDataElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLDataElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDataListElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLDataListElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDetailsElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLDetailsElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDialogElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLDialogElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLDivElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLDivElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLEmbedElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLEmbedElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLFieldSetElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLFieldSetElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLHRElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLHRElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLHeadElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLHeadElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLHeadingElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLHeadingElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLHtmlElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLHtmlElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLIFrameElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLIFrameElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLImageElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLImageElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLLIElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLLIElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLLabelElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLLabelElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLLegendElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLLegendElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLLinkElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLLinkElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLMapElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLMapElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLMenuElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLMenuElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLMetaElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLMetaElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLMeterElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLMeterElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLModElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLModElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLOListElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLOListElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLObjectElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLObjectElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLOptGroupElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLOptGroupElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLOptionElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLOptionElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLOutputElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLOutputElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLParagraphElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLParagraphElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLPictureElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLPictureElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLPreElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLPreElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLProgressElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLProgressElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLQuoteElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLQuoteElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLScriptElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLScriptElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLSelectedContentElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLSelectedContentElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLSlotElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLSlotElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLSourceElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLSourceElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLSpanElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLSpanElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLStyleElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLStyleElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableCaptionElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLTableCaptionElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableCellElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLTableCellElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableColElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLTableColElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLTableElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableRowElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLTableRowElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTableSectionElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLTableSectionElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTemplateElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLTemplateElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTimeElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLTimeElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTitleElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLTitleElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLTrackElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLTrackElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLUListElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLUListElement!
+static RaskBuilderSettersRask_Core.InputMode(this Rask.Core.HTMLVideoElement! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLVideoElement!
+static RaskBuilderSettersRask_Core.InputMode<T>(this Rask.Core.HTMLInputElement<T>! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.InputMode<T>(this Rask.Core.HTMLSelectElement<T>! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLSelectElement<T>!
+static RaskBuilderSettersRask_Core.InputMode<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskBuilderSettersRask_Core.InputMode<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, Rask.Core.InputMode? value) -> Rask.Core.HTMLFormElement<TModel>!
+static RaskBuilderSettersRask_Core.Kind(this Rask.Core.HTMLTrackElement! __b, Rask.Core.TrackKind? value) -> Rask.Core.HTMLTrackElement!
+static RaskBuilderSettersRask_Core.Loading(this Rask.Core.HTMLIFrameElement! __b, Rask.Core.Loading? value) -> Rask.Core.HTMLIFrameElement!
+static RaskBuilderSettersRask_Core.Loading(this Rask.Core.HTMLImageElement! __b, Rask.Core.Loading? value) -> Rask.Core.HTMLImageElement!
+static RaskBuilderSettersRask_Core.Popover<T>(this T! __b, Rask.Core.Popover? value) -> T!
+static RaskBuilderSettersRask_Core.Preload(this Rask.Core.HTMLAudioElement! __b, Rask.Core.Preload? value) -> Rask.Core.HTMLAudioElement!
+static RaskBuilderSettersRask_Core.Preload(this Rask.Core.HTMLVideoElement! __b, Rask.Core.Preload? value) -> Rask.Core.HTMLVideoElement!
+static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLAnchorElement! __b, Rask.Core.ReferrerPolicy? value) -> Rask.Core.HTMLAnchorElement!
+static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLAreaElement! __b, Rask.Core.ReferrerPolicy? value) -> Rask.Core.HTMLAreaElement!
+static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLIFrameElement! __b, Rask.Core.ReferrerPolicy? value) -> Rask.Core.HTMLIFrameElement!
+static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLImageElement! __b, Rask.Core.ReferrerPolicy? value) -> Rask.Core.HTMLImageElement!
+static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLLinkElement! __b, Rask.Core.ReferrerPolicy? value) -> Rask.Core.HTMLLinkElement!
+static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.HTMLScriptElement! __b, Rask.Core.ReferrerPolicy? value) -> Rask.Core.HTMLScriptElement!
+static RaskBuilderSettersRask_Core.Scope(this Rask.Core.HTMLTableCellElement! __b, Rask.Core.ThScope? value) -> Rask.Core.HTMLTableCellElement!
+static RaskBuilderSettersRask_Core.ShadowRootMode(this Rask.Core.HTMLTemplateElement! __b, Rask.Core.ShadowRootMode? value) -> Rask.Core.HTMLTemplateElement!
+static RaskBuilderSettersRask_Core.Shape(this Rask.Core.HTMLAreaElement! __b, Rask.Core.AreaShape? value) -> Rask.Core.HTMLAreaElement!
+static RaskBuilderSettersRask_Core.Type(this Rask.Core.HTMLButtonElement! __b, Rask.Core.ButtonType? value) -> Rask.Core.HTMLButtonElement!
+static RaskBuilderSettersRask_Core.Wrap<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, Rask.Core.TextareaWrap? value) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAnchorElement! __b) -> Rask.Core.HTMLAnchorElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAnchorElement! __b, bool? value) -> Rask.Core.HTMLAnchorElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAreaElement! __b) -> Rask.Core.HTMLAreaElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAreaElement! __b, bool? value) -> Rask.Core.HTMLAreaElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAudioElement! __b) -> Rask.Core.HTMLAudioElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAudioElement! __b, bool? value) -> Rask.Core.HTMLAudioElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLBRElement! __b) -> Rask.Core.HTMLBRElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLBRElement! __b, bool? value) -> Rask.Core.HTMLBRElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLBaseElement! __b) -> Rask.Core.HTMLBaseElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLBaseElement! __b, bool? value) -> Rask.Core.HTMLBaseElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLBodyElement! __b) -> Rask.Core.HTMLBodyElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLBodyElement! __b, bool? value) -> Rask.Core.HTMLBodyElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLButtonElement! __b) -> Rask.Core.HTMLButtonElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLButtonElement! __b, bool? value) -> Rask.Core.HTMLButtonElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLCanvasElement! __b) -> Rask.Core.HTMLCanvasElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLCanvasElement! __b, bool? value) -> Rask.Core.HTMLCanvasElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDListElement! __b) -> Rask.Core.HTMLDListElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDListElement! __b, bool? value) -> Rask.Core.HTMLDListElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDataElement! __b) -> Rask.Core.HTMLDataElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDataElement! __b, bool? value) -> Rask.Core.HTMLDataElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDataListElement! __b) -> Rask.Core.HTMLDataListElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDataListElement! __b, bool? value) -> Rask.Core.HTMLDataListElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDetailsElement! __b) -> Rask.Core.HTMLDetailsElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDetailsElement! __b, bool? value) -> Rask.Core.HTMLDetailsElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDialogElement! __b) -> Rask.Core.HTMLDialogElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDialogElement! __b, bool? value) -> Rask.Core.HTMLDialogElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDivElement! __b) -> Rask.Core.HTMLDivElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLDivElement! __b, bool? value) -> Rask.Core.HTMLDivElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLElement! __b) -> Rask.Core.HTMLElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLElement! __b, bool? value) -> Rask.Core.HTMLElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLEmbedElement! __b) -> Rask.Core.HTMLEmbedElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLEmbedElement! __b, bool? value) -> Rask.Core.HTMLEmbedElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLFieldSetElement! __b) -> Rask.Core.HTMLFieldSetElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLFieldSetElement! __b, bool? value) -> Rask.Core.HTMLFieldSetElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHRElement! __b) -> Rask.Core.HTMLHRElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHRElement! __b, bool? value) -> Rask.Core.HTMLHRElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHeadElement! __b) -> Rask.Core.HTMLHeadElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHeadElement! __b, bool? value) -> Rask.Core.HTMLHeadElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHeadingElement! __b) -> Rask.Core.HTMLHeadingElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHeadingElement! __b, bool? value) -> Rask.Core.HTMLHeadingElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHtmlElement! __b) -> Rask.Core.HTMLHtmlElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLHtmlElement! __b, bool? value) -> Rask.Core.HTMLHtmlElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLIFrameElement! __b) -> Rask.Core.HTMLIFrameElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLIFrameElement! __b, bool? value) -> Rask.Core.HTMLIFrameElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLImageElement! __b) -> Rask.Core.HTMLImageElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLImageElement! __b, bool? value) -> Rask.Core.HTMLImageElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLIElement! __b) -> Rask.Core.HTMLLIElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLIElement! __b, bool? value) -> Rask.Core.HTMLLIElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLabelElement! __b) -> Rask.Core.HTMLLabelElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLabelElement! __b, bool? value) -> Rask.Core.HTMLLabelElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLegendElement! __b) -> Rask.Core.HTMLLegendElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLegendElement! __b, bool? value) -> Rask.Core.HTMLLegendElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLinkElement! __b) -> Rask.Core.HTMLLinkElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLLinkElement! __b, bool? value) -> Rask.Core.HTMLLinkElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMapElement! __b) -> Rask.Core.HTMLMapElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMapElement! __b, bool? value) -> Rask.Core.HTMLMapElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMenuElement! __b) -> Rask.Core.HTMLMenuElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMenuElement! __b, bool? value) -> Rask.Core.HTMLMenuElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMetaElement! __b) -> Rask.Core.HTMLMetaElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMetaElement! __b, bool? value) -> Rask.Core.HTMLMetaElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMeterElement! __b) -> Rask.Core.HTMLMeterElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLMeterElement! __b, bool? value) -> Rask.Core.HTMLMeterElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLModElement! __b) -> Rask.Core.HTMLModElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLModElement! __b, bool? value) -> Rask.Core.HTMLModElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOListElement! __b) -> Rask.Core.HTMLOListElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOListElement! __b, bool? value) -> Rask.Core.HTMLOListElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLObjectElement! __b) -> Rask.Core.HTMLObjectElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLObjectElement! __b, bool? value) -> Rask.Core.HTMLObjectElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOptGroupElement! __b) -> Rask.Core.HTMLOptGroupElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOptGroupElement! __b, bool? value) -> Rask.Core.HTMLOptGroupElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOptionElement! __b) -> Rask.Core.HTMLOptionElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOptionElement! __b, bool? value) -> Rask.Core.HTMLOptionElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOutputElement! __b) -> Rask.Core.HTMLOutputElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLOutputElement! __b, bool? value) -> Rask.Core.HTMLOutputElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLParagraphElement! __b) -> Rask.Core.HTMLParagraphElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLParagraphElement! __b, bool? value) -> Rask.Core.HTMLParagraphElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLPictureElement! __b) -> Rask.Core.HTMLPictureElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLPictureElement! __b, bool? value) -> Rask.Core.HTMLPictureElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLPreElement! __b) -> Rask.Core.HTMLPreElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLPreElement! __b, bool? value) -> Rask.Core.HTMLPreElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLProgressElement! __b) -> Rask.Core.HTMLProgressElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLProgressElement! __b, bool? value) -> Rask.Core.HTMLProgressElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLQuoteElement! __b) -> Rask.Core.HTMLQuoteElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLQuoteElement! __b, bool? value) -> Rask.Core.HTMLQuoteElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLScriptElement! __b) -> Rask.Core.HTMLScriptElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLScriptElement! __b, bool? value) -> Rask.Core.HTMLScriptElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSelectedContentElement! __b) -> Rask.Core.HTMLSelectedContentElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSelectedContentElement! __b, bool? value) -> Rask.Core.HTMLSelectedContentElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSlotElement! __b) -> Rask.Core.HTMLSlotElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSlotElement! __b, bool? value) -> Rask.Core.HTMLSlotElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSourceElement! __b) -> Rask.Core.HTMLSourceElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSourceElement! __b, bool? value) -> Rask.Core.HTMLSourceElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSpanElement! __b) -> Rask.Core.HTMLSpanElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLSpanElement! __b, bool? value) -> Rask.Core.HTMLSpanElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLStyleElement! __b) -> Rask.Core.HTMLStyleElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLStyleElement! __b, bool? value) -> Rask.Core.HTMLStyleElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableCaptionElement! __b) -> Rask.Core.HTMLTableCaptionElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableCaptionElement! __b, bool? value) -> Rask.Core.HTMLTableCaptionElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableCellElement! __b) -> Rask.Core.HTMLTableCellElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableCellElement! __b, bool? value) -> Rask.Core.HTMLTableCellElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableColElement! __b) -> Rask.Core.HTMLTableColElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableColElement! __b, bool? value) -> Rask.Core.HTMLTableColElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableElement! __b) -> Rask.Core.HTMLTableElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableElement! __b, bool? value) -> Rask.Core.HTMLTableElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableRowElement! __b) -> Rask.Core.HTMLTableRowElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableRowElement! __b, bool? value) -> Rask.Core.HTMLTableRowElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableSectionElement! __b) -> Rask.Core.HTMLTableSectionElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTableSectionElement! __b, bool? value) -> Rask.Core.HTMLTableSectionElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTemplateElement! __b) -> Rask.Core.HTMLTemplateElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTemplateElement! __b, bool? value) -> Rask.Core.HTMLTemplateElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTimeElement! __b) -> Rask.Core.HTMLTimeElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTimeElement! __b, bool? value) -> Rask.Core.HTMLTimeElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTitleElement! __b) -> Rask.Core.HTMLTitleElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTitleElement! __b, bool? value) -> Rask.Core.HTMLTitleElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTrackElement! __b) -> Rask.Core.HTMLTrackElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLTrackElement! __b, bool? value) -> Rask.Core.HTMLTrackElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLUListElement! __b) -> Rask.Core.HTMLUListElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLUListElement! __b, bool? value) -> Rask.Core.HTMLUListElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLVideoElement! __b) -> Rask.Core.HTMLVideoElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLVideoElement! __b, bool? value) -> Rask.Core.HTMLVideoElement!
+static RaskBuilderSettersRask_Core.WritingSuggestions<T>(this Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.WritingSuggestions<T>(this Rask.Core.HTMLInputElement<T>! __b, bool? value) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.WritingSuggestions<T>(this Rask.Core.HTMLSelectElement<T>! __b) -> Rask.Core.HTMLSelectElement<T>!
+static RaskBuilderSettersRask_Core.WritingSuggestions<T>(this Rask.Core.HTMLSelectElement<T>! __b, bool? value) -> Rask.Core.HTMLSelectElement<T>!
+static RaskBuilderSettersRask_Core.WritingSuggestions<T>(this Rask.Core.HTMLTextAreaElement<T>! __b) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskBuilderSettersRask_Core.WritingSuggestions<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskBuilderSettersRask_Core.WritingSuggestions<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b) -> Rask.Core.HTMLFormElement<TModel>!
+static RaskBuilderSettersRask_Core.WritingSuggestions<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, bool? value) -> Rask.Core.HTMLFormElement<TModel>!
+virtual Rask.Core.Component.HtmlDir.get -> Rask.Core.Dir?

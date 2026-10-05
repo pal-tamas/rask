@@ -86,9 +86,9 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
             Input.Value("v").Type(InputType.Text).Name("n").Placeholder("p").Required(true).Disabled(true)
                 .ReadOnly(true).Checked(true).Min("1").Max("10").Step("1").Pattern("[a-z]+").Size(20)
                 .MaxLength(100).MinLength(1).Multiple(true).Accept(".png").Alt("alt").Autocomplete("off")
-                .Autofocus(true).Form("f").FormAction("/a").FormEnctype("multipart/form-data").FormMethod("post")
+                .Autofocus(true).Form("f").FormAction("/a").FormEnctype("multipart/form-data").FormMethod(FormMethod.Post)
                 .FormNoValidate(true).FormTarget("_blank").List("l").Src("/s").Width(80).Height(40)
-                .InputMode("numeric").EnterKeyHint("done").Spellcheck(false).Capture("user").DirName("d")
+                .InputMode(InputMode.Numeric).EnterKeyHint(EnterKeyHint.Done).Spellcheck(false).Capture("user").DirName("d")
                 .Id("i").Class("c").Style("s").Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
@@ -127,7 +127,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     public void File_capture_and_the_keyboard_hints_come_in_declared_order() =>
         Assert.Equal(
             "<input enterkeyhint=\"send\" inputmode=\"none\" capture=\"environment\" dirname=\"d\" type=\"file\" />",
-            Input.Of<string>().Type(InputType.File).Capture("environment").InputMode("none").EnterKeyHint("send")
+            Input.Of<string>().Type(InputType.File).Capture("environment").InputMode(InputMode.None).EnterKeyHint(EnterKeyHint.Send)
                 .DirName("d").ToHtml());
 
     [Fact]

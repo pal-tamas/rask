@@ -80,7 +80,7 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
         var ordinal = level?.Scope.Register(level.Parent, option.Text, disabled, isSub: false) ?? -1;
 
         var button = Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class(UiClass.Compose(
                 level is not null && ordinal == level.Scope.Active ? "menu-focus" : "",
                 disabled ? "menu-disabled" : ""));

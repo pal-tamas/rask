@@ -89,6 +89,10 @@ if (!webrefSha) throw new Error(`could not resolve webref's curated branch at ${
 const specAttrs = { html: new Map(), svg: new Map() }; // tag -> Set(attr), conforming only
 const specAttrNames = new Set();
 const smilAttrs = new Set(); // "animate.begin": what SVG Animations gives each animation element
+// "img/loading" -> its keywords, in spec order: HTML's enumerated attributes, as the spec lists their values ("html-global/dir"
+// for a global attribute). A keyword the spec names by its state ("circle state") is the one its link ends in ("…-circle").
+const keywordSets = new Map();
+const keywordOf = d => /\s/.test(d.linkingText[0]) ? d.href.slice(d.href.lastIndexOf("-") + 1) : d.linkingText[0];
 // SVG Animations files each attribute group under the first element it names (`dur` for animate); its sections say
 // which elements a group is for: target and timing for every animation element, values and addition for all but set.
 const SMIL = { TargetElement: ["animate", "animateMotion", "animateTransform", "set"], TargetAttributes: ["animate", "animateMotion", "animateTransform", "set"],
@@ -98,6 +102,13 @@ for (const [file, ns] of [["html", "html"], ["SVG2", "svg"], ["filter-effects-1"
   const res = await fetch(`https://raw.githubusercontent.com/w3c/webref/${webrefSha}/ed/dfns/${file}.json`);
   if (!res.ok) throw new Error(`webref dfns ${file}: HTTP ${res.status}`);
   for (const d of (await res.json()).dfns) {
+    if (d.type === "attr-value" && file === "html") {
+      for (const key of d.for) {
+        if (!keywordSets.has(key)) keywordSets.set(key, []);
+        if (!keywordSets.get(key).includes(keywordOf(d))) keywordSets.get(key).push(keywordOf(d));
+      }
+      continue;
+    }
     if (d.type !== "element-attr" || d.heading?.id === "non-conforming-features") continue;
     for (const tag of (file === "svg-animations" && SMIL[d.heading?.id]) || d.for) {
       if (file === "svg-animations") for (const name of d.linkingText) smilAttrs.add(`${tag}.${name}`);
@@ -156,6 +167,29 @@ const ext = (m, name) => m.extAttrs?.find(a => a.name === name);
 const secured = m => !!ext(m, "SecureContext") || securedByDefinition.has(m) || securedByDefinition.has(Object.getPrototypeOf(m));
 const unquote = v => typeof v === "string" ? v.replace(/^"(.*)"$/, "$1") : v;
 const extValue = a => a?.rhs ? (Array.isArray(a.rhs.value) ? a.rhs.value.map(v => unquote(v.value ?? v)) : unquote(a.rhs.value)) : undefined;
+
+// An HTML attribute's closed set of keywords, each with BCD's support where BCD files the keyword on its own
+// (`popover="hint"`). The IDL enum the reflecting attribute is named after, where there is one (`referrerPolicy` →
+// ReferrerPolicy); else the spec's, where every tag that carries the attribute lists the same values. A form-submission
+// override (`formmethod`) has the form's own attribute's (`method`). A set is open, and recorded as none, where it names a
+// prefix (autocomplete's "section-") or BCD files a keyword it lacks (meta's name="viewport", from another spec).
+const idlEnumOf = property => property && enums.has(property[0].toUpperCase() + property.slice(1)) ? property[0].toUpperCase() + property.slice(1) : undefined;
+const fromEnum = name => ({ enum: name, keywords: enums.get(name).map(value => ({ value })) });
+const keyword = (value, compat) => ({ value, ...(compat ? meta(compat) : {}) });
+const closed = (set, filed) => !set.some(v => v.endsWith("-")) && filed.every(k => k === "__compat" || set.includes(k));
+function keywordsOf(tags, attr, property) {
+  if (idlEnumOf(property)) return fromEnum(idlEnumOf(property));
+  const sets = tags.map(tag => keywordSets.get(`${tag}/${attr}`) ?? (attr.startsWith("form") ? keywordSets.get(`form/${attr.slice(4)}`) : undefined));
+  if (!sets[0] || sets.some(s => !s || s.join(" ") !== sets[0].join(" "))) return {};
+  if (!tags.every(t => closed(sets[0], Object.keys(bcd.html.elements[t]?.[attr] ?? {})))) return {};
+  return { keywords: sets[0].map(value => keyword(value, tags.map(t => bcd.html.elements[t]?.[attr]?.[value]?.__compat).find(Boolean))) };
+}
+function globalKeywordsOf(attr, property) {
+  if (idlEnumOf(property)) return fromEnum(idlEnumOf(property));
+  const set = keywordSets.get(`html-global/${attr}`);
+  if (!set || !closed(set, Object.keys(bcd.html.global_attributes[attr] ?? {}))) return {};
+  return { keywords: set.map(value => keyword(value, bcd.html.global_attributes[attr]?.[value]?.__compat)) };
+}
 
 // ---- Elements ------------------------------------------------------------------------------------
 const all = await elementsPkg.listAll();
@@ -322,6 +356,7 @@ function describe(name) {
     return i < 0 ? 1e6 : i;
   };
   attributes.sort((a, b) => order(a) - order(b) || a.attr.localeCompare(b.attr));
+  if (ns === "html") for (const a of attributes) Object.assign(a, keywordsOf(a.tags, a.attr, a.property));
   for (const a of attributes) if (a.tags.length === tags.length) delete a.tags; // on every tag of the interface
   const { constructors, statics, events } = extrasOf(name);
   return { parent: def.inheritance, abstract: tags.length === 0 || undefined, namespace: ns, exposed: exposedToWindow(def) || undefined,
@@ -459,6 +494,8 @@ for (const i of Object.values(interfaceOut)) {
 // The dictionaries an `object` argument really takes, which the IDL never names (Permissions.query's descriptor): the
 // generator's table in src/Rask.Dom.Tasks/WebObjectArgs.cs. Keep the two lists together.
 for (const d of ["PermissionDescriptor"]) reach(d);
+// …and the IDL enum an attribute's keywords are (referrerpolicy's ReferrerPolicy).
+for (const i of Object.values(interfaceOut)) for (const a of i.attributes ?? []) if (a.enum) reach(a.enum);
 const sortObj = o => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
 
 const snapshot = {
@@ -470,7 +507,8 @@ const snapshot = {
   globalAttributes: Object.fromEntries(Object.entries(globals).map(([ns, names]) => [ns, names.map(attr => {
     const idl = findReflecting(ns === "html" ? "HTMLElement" : "SVGElement", attr);
     const compat = bcd[ns].global_attributes[attr]?.__compat;
-    return { attr, property: idl?.name, type: idl?.type, url: idl?.url, reflect: idl?.reflect, on: idl?.on, ...meta(compat) };
+    return { attr, property: idl?.name, type: idl?.type, url: idl?.url, reflect: idl?.reflect, on: idl?.on, ...meta(compat),
+      ...(ns === "html" ? globalKeywordsOf(attr, idl?.name) : {}) };
   })])),
   events,
   web: web.sort(),

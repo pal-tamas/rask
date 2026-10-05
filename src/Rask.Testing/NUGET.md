@@ -10,7 +10,7 @@ public sealed partial class Counter : Component
 {
     private int _count;
     protected override Component? Render() =>
-        Button.Type("button").OnClick(() => _count++)[$"Count: {_count}"];
+        Button.Type(ButtonType.Button).OnClick(() => _count++)[$"Count: {_count}"];
 }
 
 // Deriving from RaskMarkup puts your components in reach by name, as they are in markup.

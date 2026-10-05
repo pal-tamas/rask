@@ -9,12 +9,12 @@ public partial class MetaTests : global::Rask.Core.RaskMarkup
     public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
-            "<meta id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" name=\"viewport\" http-equiv=\"X-UA-Compatible\" content=\"width=device-width\" charset=\"utf-8\" />",
+            "<meta id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" name=\"viewport\" http-equiv=\"x-ua-compatible\" content=\"width=device-width\" charset=\"utf-8\" />",
             Meta
                 .Charset("utf-8")
                 .Name("viewport")
                 .Content("width=device-width")
-                .HttpEquiv("X-UA-Compatible")
+                .HttpEquiv(MetaHttpEquiv.XUaCompatible)
                 .Id("i")
                 .Class("c")
                 .Style("s")

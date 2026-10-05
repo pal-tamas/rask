@@ -208,7 +208,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         // tests that prove the restyle works, which is how a conversion loses its own safety net.
         Li.Class("nav-group").Key(key)[
             Button
-                .Type("button")
+                .Type(ButtonType.Button)
                 .Class(open ? "nav-group-toggle open menu-dropdown-toggle menu-dropdown-show" : "nav-group-toggle menu-dropdown-toggle")
                 .OnClick(() => ToggleGroup(key))[
                 Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight).Class("nav-group-chevron size-3.5"),

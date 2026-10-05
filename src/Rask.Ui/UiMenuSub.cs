@@ -65,7 +65,7 @@ public sealed partial class UiMenuSub : Component
         }
 
         var trigger = Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class(UiClass.Compose(ordinal == scope.Active ? "menu-focus" : "", Disabled == true ? "menu-disabled" : ""));
         if (Disabled != true)
         {

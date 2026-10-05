@@ -46,7 +46,7 @@ public abstract partial class UiMenuButton : UiMenuSurface
 
         var trigger = Button
             .Id(TriggerId)
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class(TriggerClass)
             .Aria(
                 ("haspopup", "menu"),

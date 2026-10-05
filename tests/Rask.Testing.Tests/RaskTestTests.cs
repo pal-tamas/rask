@@ -10,7 +10,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
         private int _count;
 
         protected override Component? Render() =>
-            Button.Type("button").OnClick(() => _count++)[$"Count: {_count}"];
+            Button.Type(ButtonType.Button).OnClick(() => _count++)[$"Count: {_count}"];
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     private sealed class Labelled : Component
     {
         protected override Component? Render() =>
-            Button.Type("button").Aria(new Dictionary<string, string?> { ["label"] = "Close" })["x"];
+            Button.Type(ButtonType.Button).Aria(new Dictionary<string, string?> { ["label"] = "Close" })["x"];
     }
 
     [Fact]

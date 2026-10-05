@@ -33,7 +33,7 @@ public sealed partial class UiAccordionSection : Component
         var open = key is not null && string.Equals(state.Open, key, StringComparison.Ordinal);
 
         var title = Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class("collapse-title flex w-full items-center text-left font-semibold")
             .Aria("expanded", open ? "true" : "false");
 

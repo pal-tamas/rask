@@ -18,8 +18,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- The hand-written partials beside the generated types: a member one declares is not generated. -->
-    <RaskDomPartial Include="Dom\HTML*.cs;Dom\SVG*.cs"/>
+    <!-- The hand-written partials beside the generated types: a member one declares is not generated, and an enum one
+         declares (InputType) stands in for the keyword type of the same name. -->
+    <RaskDomPartial Include="Dom\HTML*.cs;Dom\SVG*.cs;InputType.cs"/>
   </ItemGroup>
 
   <!--

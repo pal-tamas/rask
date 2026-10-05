@@ -20,7 +20,7 @@ Form.Model(_model)
         .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."]),             // per-field, per-keystroke
     Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Email),
     Validation.Summary.Template(SummaryAlert),
-    Button.Type("submit")["Sign in"]
+    Button.Type(ButtonType.Submit)["Sign in"]
 ]
 ```
 
@@ -55,7 +55,7 @@ Form.Model(_model).OnSubmit(m => Console.WriteLine(m.Username))[
     Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Username),
     Input.Bind(() => _model.Email),
     Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Email),
-    Button.Type("submit")["Register"]
+    Button.Type(ButtonType.Submit)["Register"]
 ]
 ```
 
@@ -120,7 +120,7 @@ Form.Model(_model).OnSubmit(m => _submission = "Ordered")[
     Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Product),
     Input.Bind(() => _model.Quantity),
     Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Quantity),
-    Button.Type("submit")["Order"]
+    Button.Type(ButtonType.Submit)["Order"]
 ]
 ```
 

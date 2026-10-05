@@ -88,7 +88,7 @@ public abstract partial class UiMenuSurface : Component
 
         var panel = Div
             .Id(PanelId)
-            .Popover("auto")
+            .Popover(Popover.Auto)
             .Class("z-1 rounded-box border border-base-300 bg-base-100 p-2 shadow-sm")
             .Attributes(("style", style))
             // The SOLE writer of the open state, as on Ui.Select: the browser opens the popover and closes it on

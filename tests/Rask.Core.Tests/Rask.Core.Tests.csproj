@@ -57,6 +57,8 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
+    <!-- The MDN emitter itself, for what only its build step checks (a hand-written enum's members, a Rask.Web clash). -->
+    <ProjectReference Include="..\..\src\Rask.Dom.Tasks\Rask.Dom.Tasks.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

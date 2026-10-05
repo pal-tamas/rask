@@ -97,9 +97,9 @@ public abstract partial class Component
     internal partial class GlobalAttrs
     {
         public string? Lang;
-        public string? Dir;
-        public string? Popover;
-        public string? ContentEditable;
+        public Dir? Dir;
+        public Popover? Popover;
+        public ContentEditable? ContentEditable;
         public bool? Spellcheck;
         public bool? Translate;
     }
@@ -129,7 +129,7 @@ public abstract partial class Component
         }
     }
 
-    internal string? DirInternal
+    internal Dir? DirInternal
     {
         get => _live?.Globals?.Dir;
         set
@@ -141,7 +141,7 @@ public abstract partial class Component
         }
     }
 
-    internal string? PopoverInternal
+    internal Popover? PopoverInternal
     {
         get => _live?.Globals?.Popover;
         set
@@ -153,7 +153,7 @@ public abstract partial class Component
         }
     }
 
-    internal string? ContentEditableInternal
+    internal ContentEditable? ContentEditableInternal
     {
         get => _live?.Globals?.ContentEditable;
         set

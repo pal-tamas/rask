@@ -153,7 +153,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
             Kbd is { } kbd ? Span.Class("kbd kbd-sm shrink-0")[kbd] : null,
             Clearable == true && !string.IsNullOrEmpty(Current()?.ToString()) && Disabled != true
                 ? Button
-                    .Type("button")
+                    .Type(ButtonType.Button)
                     .Class("shrink-0 opacity-60 hover:opacity-100")
                     .Aria("label", "Clear " + (Label ?? AccessibleLabel ?? "field"))
                     .OnClick(ClearAsync)[

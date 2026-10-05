@@ -2164,7 +2164,27 @@
      "safari_ios": "10.3"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/autocapitalize",
-    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-autocapitalize"
+    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-autocapitalize",
+    "keywords": [
+     {
+      "value": "off"
+     },
+     {
+      "value": "none"
+     },
+     {
+      "value": "on"
+     },
+     {
+      "value": "sentences"
+     },
+     {
+      "value": "words"
+     },
+     {
+      "value": "characters"
+     }
+    ]
    },
    {
     "attr": "autocorrect",
@@ -2176,7 +2196,15 @@
      "safari": "14.1"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/autocorrect",
-    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-autocorrect"
+    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-autocorrect",
+    "keywords": [
+     {
+      "value": "on"
+     },
+     {
+      "value": "off"
+     }
+    ]
    },
    {
     "attr": "autofocus",
@@ -2211,7 +2239,24 @@
      "safari": "4"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/contenteditable",
-    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-contenteditable"
+    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-contenteditable",
+    "keywords": [
+     {
+      "value": "true"
+     },
+     {
+      "value": "false"
+     },
+     {
+      "value": "plaintext-only",
+      "support": {
+       "chrome": "51",
+       "firefox": "136",
+       "safari": "5"
+      },
+      "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-contenteditable-plaintextonly"
+     }
+    ]
    },
    {
     "attr": "dir",
@@ -2223,7 +2268,18 @@
      "safari": "4"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/dir",
-    "spec": "https://html.spec.whatwg.org/multipage/dom.html#the-dir-attribute"
+    "spec": "https://html.spec.whatwg.org/multipage/dom.html#the-dir-attribute",
+    "keywords": [
+     {
+      "value": "ltr"
+     },
+     {
+      "value": "rtl"
+     },
+     {
+      "value": "auto"
+     }
+    ]
    },
    {
     "attr": "draggable",
@@ -2235,7 +2291,15 @@
      "safari": "5"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/draggable",
-    "spec": "https://html.spec.whatwg.org/multipage/dnd.html#the-draggable-attribute"
+    "spec": "https://html.spec.whatwg.org/multipage/dnd.html#the-draggable-attribute",
+    "keywords": [
+     {
+      "value": "true"
+     },
+     {
+      "value": "false"
+     }
+    ]
    },
    {
     "attr": "enterkeyhint",
@@ -2247,7 +2311,30 @@
      "safari": "13.1"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/enterkeyhint",
-    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-enterkeyhint"
+    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-enterkeyhint",
+    "keywords": [
+     {
+      "value": "enter"
+     },
+     {
+      "value": "done"
+     },
+     {
+      "value": "go"
+     },
+     {
+      "value": "next"
+     },
+     {
+      "value": "previous"
+     },
+     {
+      "value": "search"
+     },
+     {
+      "value": "send"
+     }
+    ]
    },
    {
     "attr": "exportparts",
@@ -2269,7 +2356,21 @@
      "safari": "5.1"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/hidden",
-    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#the-hidden-attribute"
+    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#the-hidden-attribute",
+    "keywords": [
+     {
+      "value": "hidden"
+     },
+     {
+      "value": "until-found",
+      "support": {
+       "chrome": "102",
+       "firefox": "148",
+       "safari": "26.2"
+      },
+      "spec": "https://html.spec.whatwg.org/multipage/interaction.html#the-hidden-attribute"
+     }
+    ]
    },
    {
     "attr": "id",
@@ -2307,7 +2408,33 @@
      "safari": "12.1"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/inputmode",
-    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-inputmode"
+    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-inputmode",
+    "keywords": [
+     {
+      "value": "none"
+     },
+     {
+      "value": "text"
+     },
+     {
+      "value": "tel"
+     },
+     {
+      "value": "url"
+     },
+     {
+      "value": "email"
+     },
+     {
+      "value": "numeric"
+     },
+     {
+      "value": "decimal"
+     },
+     {
+      "value": "search"
+     }
+    ]
    },
    {
     "attr": "is",
@@ -2366,7 +2493,23 @@
      "safari": "17"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/popover",
-    "spec": "https://html.spec.whatwg.org/multipage/popover.html#the-popover-attribute"
+    "spec": "https://html.spec.whatwg.org/multipage/popover.html#the-popover-attribute",
+    "keywords": [
+     {
+      "value": "auto"
+     },
+     {
+      "value": "manual"
+     },
+     {
+      "value": "hint",
+      "support": {
+       "chrome": "151",
+       "firefox": "153"
+      },
+      "spec": "https://html.spec.whatwg.org/multipage/popover.html#attr-popover-hint"
+     }
+    ]
    },
    {
     "attr": "slot",
@@ -2391,7 +2534,15 @@
      "safari": "5.1"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/spellcheck",
-    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-spellcheck"
+    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#attr-spellcheck",
+    "keywords": [
+     {
+      "value": "true"
+     },
+     {
+      "value": "false"
+     }
+    ]
    },
    {
     "attr": "style",
@@ -2440,7 +2591,15 @@
      "safari": "6"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/translate",
-    "spec": "https://html.spec.whatwg.org/multipage/dom.html#attr-translate"
+    "spec": "https://html.spec.whatwg.org/multipage/dom.html#attr-translate",
+    "keywords": [
+     {
+      "value": "yes"
+     },
+     {
+      "value": "no"
+     }
+    ]
    },
    {
     "attr": "writingsuggestions",
@@ -2451,7 +2610,15 @@
      "safari": "18"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Global_attributes/writingsuggestions",
-    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#writing-suggestions"
+    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#writing-suggestions",
+    "keywords": [
+     {
+      "value": "true"
+     },
+     {
+      "value": "false"
+     }
+    ]
    }
   ],
   "svg": [
@@ -38435,7 +38602,71 @@
       "safari": "1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/rel",
-     "spec": "https://html.spec.whatwg.org/multipage/links.html#attr-hyperlink-rel"
+     "spec": "https://html.spec.whatwg.org/multipage/links.html#attr-hyperlink-rel",
+     "keywords": [
+      {
+       "value": "alternate"
+      },
+      {
+       "value": "author"
+      },
+      {
+       "value": "bookmark"
+      },
+      {
+       "value": "external"
+      },
+      {
+       "value": "help"
+      },
+      {
+       "value": "license"
+      },
+      {
+       "value": "nofollow"
+      },
+      {
+       "value": "noopener",
+       "support": {
+        "chrome": "49",
+        "firefox": "52",
+        "safari": "10.1"
+       },
+       "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/rel/noopener",
+       "spec": "https://html.spec.whatwg.org/multipage/links.html#link-type-noopener"
+      },
+      {
+       "value": "noreferrer",
+       "support": {
+        "chrome": "16",
+        "firefox": "33",
+        "safari": "5"
+       },
+       "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/rel/noreferrer",
+       "spec": "https://html.spec.whatwg.org/multipage/links.html#link-type-noreferrer"
+      },
+      {
+       "value": "opener"
+      },
+      {
+       "value": "privacy-policy"
+      },
+      {
+       "value": "search"
+      },
+      {
+       "value": "tag"
+      },
+      {
+       "value": "terms-of-service"
+      },
+      {
+       "value": "next"
+      },
+      {
+       "value": "prev"
+      }
+     ]
     },
     {
      "attr": "referrerpolicy",
@@ -38446,7 +38677,37 @@
       "firefox": "50",
       "safari": "14"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/links.html#attr-hyperlink-referrerpolicy"
+     "spec": "https://html.spec.whatwg.org/multipage/links.html#attr-hyperlink-referrerpolicy",
+     "enum": "ReferrerPolicy",
+     "keywords": [
+      {
+       "value": ""
+      },
+      {
+       "value": "no-referrer"
+      },
+      {
+       "value": "no-referrer-when-downgrade"
+      },
+      {
+       "value": "same-origin"
+      },
+      {
+       "value": "origin"
+      },
+      {
+       "value": "strict-origin"
+      },
+      {
+       "value": "origin-when-cross-origin"
+      },
+      {
+       "value": "strict-origin-when-cross-origin"
+      },
+      {
+       "value": "unsafe-url"
+      }
+     ]
     },
     {
      "attr": "hreflang",
@@ -38819,7 +39080,21 @@
       "firefox": "1",
       "safari": "1"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/image-maps.html#attr-area-shape"
+     "spec": "https://html.spec.whatwg.org/multipage/image-maps.html#attr-area-shape",
+     "keywords": [
+      {
+       "value": "circle"
+      },
+      {
+       "value": "default"
+      },
+      {
+       "value": "poly"
+      },
+      {
+       "value": "rect"
+      }
+     ]
     },
     {
      "attr": "download",
@@ -38857,7 +39132,71 @@
       "safari": "5"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/rel",
-     "spec": "https://html.spec.whatwg.org/multipage/links.html#attr-hyperlink-rel"
+     "spec": "https://html.spec.whatwg.org/multipage/links.html#attr-hyperlink-rel",
+     "keywords": [
+      {
+       "value": "alternate"
+      },
+      {
+       "value": "author"
+      },
+      {
+       "value": "bookmark"
+      },
+      {
+       "value": "external"
+      },
+      {
+       "value": "help"
+      },
+      {
+       "value": "license"
+      },
+      {
+       "value": "nofollow"
+      },
+      {
+       "value": "noopener",
+       "support": {
+        "chrome": "49",
+        "firefox": "52",
+        "safari": "10.1"
+       },
+       "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/rel/noopener",
+       "spec": "https://html.spec.whatwg.org/multipage/links.html#link-type-noopener"
+      },
+      {
+       "value": "noreferrer",
+       "support": {
+        "chrome": "16",
+        "firefox": "33",
+        "safari": "5"
+       },
+       "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/rel/noreferrer",
+       "spec": "https://html.spec.whatwg.org/multipage/links.html#link-type-noreferrer"
+      },
+      {
+       "value": "opener"
+      },
+      {
+       "value": "privacy-policy"
+      },
+      {
+       "value": "search"
+      },
+      {
+       "value": "tag"
+      },
+      {
+       "value": "terms-of-service"
+      },
+      {
+       "value": "next"
+      },
+      {
+       "value": "prev"
+      }
+     ]
     },
     {
      "attr": "referrerpolicy",
@@ -38868,7 +39207,37 @@
       "firefox": "50",
       "safari": "14"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/links.html#attr-hyperlink-referrerpolicy"
+     "spec": "https://html.spec.whatwg.org/multipage/links.html#attr-hyperlink-referrerpolicy",
+     "enum": "ReferrerPolicy",
+     "keywords": [
+      {
+       "value": ""
+      },
+      {
+       "value": "no-referrer"
+      },
+      {
+       "value": "no-referrer-when-downgrade"
+      },
+      {
+       "value": "same-origin"
+      },
+      {
+       "value": "origin"
+      },
+      {
+       "value": "strict-origin"
+      },
+      {
+       "value": "origin-when-cross-origin"
+      },
+      {
+       "value": "strict-origin-when-cross-origin"
+      },
+      {
+       "value": "unsafe-url"
+      }
+     ]
     },
     {
      "attr": "href",
@@ -39220,7 +39589,15 @@
       "safari": "10"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/crossorigin",
-     "spec": "https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin"
+     "spec": "https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin",
+     "keywords": [
+      {
+       "value": "anonymous"
+      },
+      {
+       "value": "use-credentials"
+      }
+     ]
     },
     {
      "attr": "preload",
@@ -39232,7 +39609,18 @@
       "firefox": "4",
       "safari": "3.1"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/media.html#attr-media-preload"
+     "spec": "https://html.spec.whatwg.org/multipage/media.html#attr-media-preload",
+     "keywords": [
+      {
+       "value": "auto"
+      },
+      {
+       "value": "none"
+      },
+      {
+       "value": "metadata"
+      }
+     ]
     },
     {
      "attr": "autoplay",
@@ -39472,7 +39860,18 @@
       "firefox": "4",
       "safari": "5.1"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-formenctype"
+     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-formenctype",
+     "keywords": [
+      {
+       "value": "application/x-www-form-urlencoded"
+      },
+      {
+       "value": "multipart/form-data"
+      },
+      {
+       "value": "text/plain"
+      }
+     ]
     },
     {
      "attr": "formmethod",
@@ -39483,7 +39882,18 @@
       "firefox": "4",
       "safari": "5.1"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-formmethod"
+     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-formmethod",
+     "keywords": [
+      {
+       "value": "get"
+      },
+      {
+       "value": "post"
+      },
+      {
+       "value": "dialog"
+      }
+     ]
     },
     {
      "attr": "formnovalidate",
@@ -39530,7 +39940,18 @@
       "firefox": "1",
       "safari": "4"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/form-elements.html#attr-button-type"
+     "spec": "https://html.spec.whatwg.org/multipage/form-elements.html#attr-button-type",
+     "keywords": [
+      {
+       "value": "submit"
+      },
+      {
+       "value": "reset"
+      },
+      {
+       "value": "button"
+      }
+     ]
     },
     {
      "attr": "value",
@@ -40310,7 +40731,18 @@
       "chrome": "134",
       "firefox": "141"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/interactive-elements.html#attr-dialog-closedby"
+     "spec": "https://html.spec.whatwg.org/multipage/interactive-elements.html#attr-dialog-closedby",
+     "keywords": [
+      {
+       "value": "any"
+      },
+      {
+       "value": "closerequest"
+      },
+      {
+       "value": "none"
+      }
+     ]
     }
    ],
    "members": [
@@ -41453,7 +41885,18 @@
       "firefox": "1",
       "safari": "3"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-enctype"
+     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-enctype",
+     "keywords": [
+      {
+       "value": "application/x-www-form-urlencoded"
+      },
+      {
+       "value": "multipart/form-data"
+      },
+      {
+       "value": "text/plain"
+      }
+     ]
     },
     {
      "attr": "method",
@@ -41464,7 +41907,18 @@
       "firefox": "1",
       "safari": "3"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-method"
+     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-method",
+     "keywords": [
+      {
+       "value": "get"
+      },
+      {
+       "value": "post"
+      },
+      {
+       "value": "dialog"
+      }
+     ]
     },
     {
      "attr": "name",
@@ -41513,7 +41967,39 @@
       "safari": "15.4"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/rel",
-     "spec": "https://html.spec.whatwg.org/multipage/forms.html#attr-form-rel"
+     "spec": "https://html.spec.whatwg.org/multipage/forms.html#attr-form-rel",
+     "keywords": [
+      {
+       "value": "external"
+      },
+      {
+       "value": "help"
+      },
+      {
+       "value": "license"
+      },
+      {
+       "value": "nofollow"
+      },
+      {
+       "value": "noopener"
+      },
+      {
+       "value": "noreferrer"
+      },
+      {
+       "value": "opener"
+      },
+      {
+       "value": "search"
+      },
+      {
+       "value": "next"
+      },
+      {
+       "value": "prev"
+      }
+     ]
     }
    ],
    "members": [
@@ -42042,7 +42528,37 @@
       "firefox": "50",
       "safari": "14"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/iframe-embed-object.html#attr-iframe-referrerpolicy"
+     "spec": "https://html.spec.whatwg.org/multipage/iframe-embed-object.html#attr-iframe-referrerpolicy",
+     "enum": "ReferrerPolicy",
+     "keywords": [
+      {
+       "value": ""
+      },
+      {
+       "value": "no-referrer"
+      },
+      {
+       "value": "no-referrer-when-downgrade"
+      },
+      {
+       "value": "same-origin"
+      },
+      {
+       "value": "origin"
+      },
+      {
+       "value": "strict-origin"
+      },
+      {
+       "value": "origin-when-cross-origin"
+      },
+      {
+       "value": "strict-origin-when-cross-origin"
+      },
+      {
+       "value": "unsafe-url"
+      }
+     ]
     },
     {
      "attr": "loading",
@@ -42053,7 +42569,15 @@
       "firefox": "121",
       "safari": "16.4"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/iframe-embed-object.html#attr-iframe-loading"
+     "spec": "https://html.spec.whatwg.org/multipage/iframe-embed-object.html#attr-iframe-loading",
+     "keywords": [
+      {
+       "value": "lazy"
+      },
+      {
+       "value": "eager"
+      }
+     ]
     }
    ],
    "members": [
@@ -42330,7 +42854,15 @@
       "safari": "6"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/crossorigin",
-     "spec": "https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-crossorigin"
+     "spec": "https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-crossorigin",
+     "keywords": [
+      {
+       "value": "anonymous"
+      },
+      {
+       "value": "use-credentials"
+      }
+     ]
     },
     {
      "attr": "usemap",
@@ -42387,7 +42919,37 @@
       "firefox": "50",
       "safari": "14"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-referrerpolicy"
+     "spec": "https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-referrerpolicy",
+     "enum": "ReferrerPolicy",
+     "keywords": [
+      {
+       "value": ""
+      },
+      {
+       "value": "no-referrer"
+      },
+      {
+       "value": "no-referrer-when-downgrade"
+      },
+      {
+       "value": "same-origin"
+      },
+      {
+       "value": "origin"
+      },
+      {
+       "value": "strict-origin"
+      },
+      {
+       "value": "origin-when-cross-origin"
+      },
+      {
+       "value": "strict-origin-when-cross-origin"
+      },
+      {
+       "value": "unsafe-url"
+      }
+     ]
     },
     {
      "attr": "decoding",
@@ -42399,7 +42961,18 @@
       "safari": "11.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Elements/img#decoding",
-     "spec": "https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-decoding"
+     "spec": "https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-decoding",
+     "keywords": [
+      {
+       "value": "sync"
+      },
+      {
+       "value": "async"
+      },
+      {
+       "value": "auto"
+      }
+     ]
     },
     {
      "attr": "loading",
@@ -42410,7 +42983,15 @@
       "firefox": "75",
       "safari": "15.4"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-loading"
+     "spec": "https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-loading",
+     "keywords": [
+      {
+       "value": "lazy"
+      },
+      {
+       "value": "eager"
+      }
+     ]
     },
     {
      "attr": "fetchpriority",
@@ -42422,7 +43003,18 @@
       "safari": "17.2"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/fetchpriority",
-     "spec": "https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-fetchpriority"
+     "spec": "https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-fetchpriority",
+     "keywords": [
+      {
+       "value": "high"
+      },
+      {
+       "value": "low"
+      },
+      {
+       "value": "auto"
+      }
+     ]
     },
     {
      "attr": "controls",
@@ -42833,7 +43425,18 @@
       "safari": "5"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Elements/input#formenctype",
-     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-formenctype"
+     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-formenctype",
+     "keywords": [
+      {
+       "value": "application/x-www-form-urlencoded"
+      },
+      {
+       "value": "multipart/form-data"
+      },
+      {
+       "value": "text/plain"
+      }
+     ]
     },
     {
      "attr": "formmethod",
@@ -42845,7 +43448,18 @@
       "safari": "5"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Elements/input#formmethod",
-     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-formmethod"
+     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fs-formmethod",
+     "keywords": [
+      {
+       "value": "get"
+      },
+      {
+       "value": "post"
+      },
+      {
+       "value": "dialog"
+      }
+     ]
     },
     {
      "attr": "formnovalidate",
@@ -43054,7 +43668,75 @@
     {
      "attr": "type",
      "property": "type",
-     "type": "DOMString"
+     "type": "DOMString",
+     "keywords": [
+      {
+       "value": "hidden"
+      },
+      {
+       "value": "text"
+      },
+      {
+       "value": "search"
+      },
+      {
+       "value": "tel"
+      },
+      {
+       "value": "url"
+      },
+      {
+       "value": "email"
+      },
+      {
+       "value": "password"
+      },
+      {
+       "value": "date"
+      },
+      {
+       "value": "month"
+      },
+      {
+       "value": "week"
+      },
+      {
+       "value": "time"
+      },
+      {
+       "value": "datetime-local"
+      },
+      {
+       "value": "number"
+      },
+      {
+       "value": "range"
+      },
+      {
+       "value": "color"
+      },
+      {
+       "value": "checkbox"
+      },
+      {
+       "value": "radio"
+      },
+      {
+       "value": "file"
+      },
+      {
+       "value": "submit"
+      },
+      {
+       "value": "image"
+      },
+      {
+       "value": "reset"
+      },
+      {
+       "value": "button"
+      }
+     ]
     },
     {
      "attr": "value",
@@ -44066,7 +44748,15 @@
       "safari": "10"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/crossorigin",
-     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-link-crossorigin"
+     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-link-crossorigin",
+     "keywords": [
+      {
+       "value": "anonymous"
+      },
+      {
+       "value": "use-credentials"
+      }
+     ]
     },
     {
      "attr": "rel",
@@ -44188,7 +44878,37 @@
       "firefox": "50",
       "safari": "14"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-link-referrerpolicy"
+     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-link-referrerpolicy",
+     "enum": "ReferrerPolicy",
+     "keywords": [
+      {
+       "value": ""
+      },
+      {
+       "value": "no-referrer"
+      },
+      {
+       "value": "no-referrer-when-downgrade"
+      },
+      {
+       "value": "same-origin"
+      },
+      {
+       "value": "origin"
+      },
+      {
+       "value": "strict-origin"
+      },
+      {
+       "value": "origin-when-cross-origin"
+      },
+      {
+       "value": "strict-origin-when-cross-origin"
+      },
+      {
+       "value": "unsafe-url"
+      }
+     ]
     },
     {
      "attr": "blocking",
@@ -44224,7 +44944,18 @@
       "safari": "17.2"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/fetchpriority",
-     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-link-fetchpriority"
+     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-link-fetchpriority",
+     "keywords": [
+      {
+       "value": "high"
+      },
+      {
+       "value": "low"
+      },
+      {
+       "value": "auto"
+      }
+     ]
     }
    ],
    "members": [
@@ -45151,7 +45882,54 @@
       "safari": "4"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Elements/meta/http-equiv",
-     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-meta-http-equiv"
+     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-meta-http-equiv",
+     "keywords": [
+      {
+       "value": "content-language",
+       "support": {
+        "chrome": "59",
+        "firefox": "1",
+        "safari": "10.1"
+       },
+       "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-meta-http-equiv-keyword-content-language"
+      },
+      {
+       "value": "content-type",
+       "support": {
+        "chrome": "59",
+        "firefox": "1",
+        "safari": "10.1"
+       },
+       "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-meta-http-equiv-keyword-content-type"
+      },
+      {
+       "value": "default-style"
+      },
+      {
+       "value": "refresh",
+       "support": {
+        "chrome": "1",
+        "firefox": "1",
+        "safari": "1"
+       },
+       "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-meta-http-equiv-keyword-refresh"
+      },
+      {
+       "value": "set-cookie"
+      },
+      {
+       "value": "x-ua-compatible"
+      },
+      {
+       "value": "content-security-policy",
+       "support": {
+        "chrome": "59",
+        "firefox": "1",
+        "safari": "10.1"
+       },
+       "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-meta-http-equiv-keyword-content-security-policy"
+      }
+     ]
     },
     {
      "attr": "content",
@@ -45958,7 +46736,24 @@
       "firefox": "1",
       "safari": "4"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/grouping-content.html#attr-ol-type"
+     "spec": "https://html.spec.whatwg.org/multipage/grouping-content.html#attr-ol-type",
+     "keywords": [
+      {
+       "value": "1"
+      },
+      {
+       "value": "a"
+      },
+      {
+       "value": "A"
+      },
+      {
+       "value": "i"
+      },
+      {
+       "value": "I"
+      }
+     ]
     }
    ],
    "members": [
@@ -46809,7 +47604,15 @@
       "safari": "6"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/crossorigin",
-     "spec": "https://html.spec.whatwg.org/multipage/scripting.html#attr-script-crossorigin"
+     "spec": "https://html.spec.whatwg.org/multipage/scripting.html#attr-script-crossorigin",
+     "keywords": [
+      {
+       "value": "anonymous"
+      },
+      {
+       "value": "use-credentials"
+      }
+     ]
     },
     {
      "attr": "referrerpolicy",
@@ -46820,7 +47623,37 @@
       "firefox": "65",
       "safari": "14"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/scripting.html#attr-script-referrerpolicy"
+     "spec": "https://html.spec.whatwg.org/multipage/scripting.html#attr-script-referrerpolicy",
+     "enum": "ReferrerPolicy",
+     "keywords": [
+      {
+       "value": ""
+      },
+      {
+       "value": "no-referrer"
+      },
+      {
+       "value": "no-referrer-when-downgrade"
+      },
+      {
+       "value": "same-origin"
+      },
+      {
+       "value": "origin"
+      },
+      {
+       "value": "strict-origin"
+      },
+      {
+       "value": "origin-when-cross-origin"
+      },
+      {
+       "value": "strict-origin-when-cross-origin"
+      },
+      {
+       "value": "unsafe-url"
+      }
+     ]
     },
     {
      "attr": "integrity",
@@ -46845,7 +47678,18 @@
       "safari": "17.2"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/fetchpriority",
-     "spec": "https://html.spec.whatwg.org/multipage/scripting.html#attr-script-fetchpriority"
+     "spec": "https://html.spec.whatwg.org/multipage/scripting.html#attr-script-fetchpriority",
+     "keywords": [
+      {
+       "value": "high"
+      },
+      {
+       "value": "low"
+      },
+      {
+       "value": "auto"
+      }
+     ]
     }
    ],
    "members": [
@@ -47967,7 +48811,21 @@
       "firefox": "1",
       "safari": "1"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/tables.html#attr-th-scope"
+     "spec": "https://html.spec.whatwg.org/multipage/tables.html#attr-th-scope",
+     "keywords": [
+      {
+       "value": "row"
+      },
+      {
+       "value": "col"
+      },
+      {
+       "value": "rowgroup"
+      },
+      {
+       "value": "colgroup"
+      }
+     ]
     },
     {
      "attr": "abbr",
@@ -48506,7 +49364,16 @@
       "safari": "16.4"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Elements/template#shadowrootmode",
-     "spec": "https://html.spec.whatwg.org/multipage/scripting.html#attr-template-shadowrootmode"
+     "spec": "https://html.spec.whatwg.org/multipage/scripting.html#attr-template-shadowrootmode",
+     "enum": "ShadowRootMode",
+     "keywords": [
+      {
+       "value": "open"
+      },
+      {
+       "value": "closed"
+      }
+     ]
     },
     {
      "attr": "shadowrootdelegatesfocus",
@@ -48834,7 +49701,19 @@
       "firefox": "4",
       "safari": "6"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/form-elements.html#attr-textarea-wrap"
+     "spec": "https://html.spec.whatwg.org/multipage/form-elements.html#attr-textarea-wrap",
+     "keywords": [
+      {
+       "value": "soft"
+      },
+      {
+       "value": "hard",
+       "support": {
+        "chrome": "16"
+       },
+       "spec": "https://html.spec.whatwg.org/multipage/form-elements.html#attr-textarea-wrap-hard"
+      }
+     ]
     },
     {
      "attr": "value",
@@ -49360,7 +50239,26 @@
       "firefox": "31",
       "safari": "6"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/media.html#attr-track-kind"
+     "spec": "https://html.spec.whatwg.org/multipage/media.html#attr-track-kind",
+     "keywords": [
+      {
+       "value": "subtitles"
+      },
+      {
+       "value": "captions"
+      },
+      {
+       "value": "descriptions",
+       "support": {},
+       "spec": "https://html.spec.whatwg.org/multipage/media.html#attr-track-kind-keyword-descriptions"
+      },
+      {
+       "value": "chapters"
+      },
+      {
+       "value": "metadata"
+      }
+     ]
     },
     {
      "attr": "src",
@@ -49688,7 +50586,15 @@
       "safari": "10"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Attributes/crossorigin",
-     "spec": "https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin"
+     "spec": "https://html.spec.whatwg.org/multipage/media.html#attr-media-crossorigin",
+     "keywords": [
+      {
+       "value": "anonymous"
+      },
+      {
+       "value": "use-credentials"
+      }
+     ]
     },
     {
      "attr": "preload",
@@ -49700,7 +50606,18 @@
       "firefox": "4",
       "safari": "3.1"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/media.html#attr-media-preload"
+     "spec": "https://html.spec.whatwg.org/multipage/media.html#attr-media-preload",
+     "keywords": [
+      {
+       "value": "auto"
+      },
+      {
+       "value": "none"
+      },
+      {
+       "value": "metadata"
+      }
+     ]
     },
     {
      "attr": "autoplay",

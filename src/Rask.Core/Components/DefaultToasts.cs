@@ -33,13 +33,13 @@ internal static class DefaultToasts
                         m.Message
                     ],
                     m.Action is { } action
-                        ? Button.Type("button").Style(ButtonStyle).OnClick(async () =>
+                        ? Button.Type(ButtonType.Button).Style(ButtonStyle).OnClick(async () =>
                         {
                             await action.Run.Invoke();
                             dismiss(m.Id);
                         })[action.Label]
                         : null,
-                    Button.Type("button").Style(CloseStyle).Aria("label", "Dismiss").OnClick(() => dismiss(m.Id))["×"]
+                    Button.Type(ButtonType.Button).Style(CloseStyle).Aria("label", "Dismiss").OnClick(() => dismiss(m.Id))["×"]
                 ])
         ];
 

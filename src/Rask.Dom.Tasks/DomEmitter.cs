@@ -54,13 +54,10 @@ internal static class DomEmitter
 
     // Attributes Rask deliberately does not offer. A Rask form submits in-process, so an `action` or
     // `method` would only navigate the page away from the handler the author wrote.
-    private static readonly HashSet<string> Omitted = new(StringComparer.Ordinal) { "HTMLFormElement.action", "HTMLFormElement.method" };
+    internal static readonly HashSet<string> Omitted = new(StringComparer.Ordinal) { "HTMLFormElement.action", "HTMLFormElement.method" };
 
-    // Boolean IDL attributes whose content attribute is a keyword pair rather than present/absent.
-    private static readonly Dictionary<string, (string On, string Off)> KeywordBooleans = new(StringComparer.Ordinal)
-    {
-        ["autocorrect"] = ("on", "off"),
-    };
+    // What a keyword type's name starts with (DomKeywords.TypeOf).
+    private const string KeywordPrefix = "global::Rask.Core.";
 
     // HTMLElement is also the type of the plain tags (em, section); SVGElement is only ever a base.
     private const string HtmlRoot = "HTMLElement";
@@ -74,6 +71,9 @@ internal static class DomEmitter
     // `class HTMLFormElement<[DynamicallyAccessedMembers(...)] TModel> : HTMLFormElement` included.
     private static readonly Regex TypedControl = new(
         @"class\s+(?<name>HTML\w*Element)\s*<(?:\s*\[[^\]]*\])?\s*(?<param>\w+)\s*>\s*:\s*\k<name>\b", PartialScan, PartialScanTimeout);
+
+    // A hand-written enum in a keyword type's place (src/Rask.Core/InputType.cs), whose body holds no brace.
+    private static readonly Regex HandEnum = new(@"public\s+enum\s+(?<name>\w+)\s*\{(?<body>[^}]*)\}", PartialScan, PartialScanTimeout);
 
     private static readonly Regex PartialClass = new(@"partial\s+class\s+(?<name>(?:HTML|SVG)\w*Element)\b(?!\s*<)", PartialScan, PartialScanTimeout);
 
@@ -93,6 +93,12 @@ internal static class DomEmitter
         var result = new Partials();
         foreach (var source in sources)
         {
+            if (HandEnum.Match(source) is { Success: true } handEnum)
+            {
+                result.Enums[handEnum.Groups["name"].Value] = EnumMembers(handEnum.Groups["body"].Value);
+                continue;
+            }
+
             string name;
             var typed = TypedControl.Match(source);
             if (typed.Success)
@@ -126,6 +132,15 @@ internal static class DomEmitter
         return result;
     }
 
+    // The members of a hand-written enum's body: each name before its `=` or `,`, past its doc comment and attributes.
+    private static HashSet<string> EnumMembers(string body)
+    {
+        var code = string.Join("\n", body.Split('\n').Select(l => l.Trim()).Where(l => !l.StartsWith("//", StringComparison.Ordinal) && !l.StartsWith("[", StringComparison.Ordinal)));
+        return new HashSet<string>(
+            code.Split(',').Select(m => m.Split('=')[0].Trim()).Where(m => m.Length > 0),
+            StringComparer.Ordinal);
+    }
+
     // `types` is Rask.Web's, which runs Core's pass to learn which value types Core declares; Core passes none. `wasm`
     // receives what Rask.Wasm declares instead of Core: the element-ref members only WebAssembly can run.
     public static IReadOnlyList<KeyValuePair<string, string>> Emit(
@@ -140,6 +155,8 @@ internal static class DomEmitter
         var rootOf = DomInterfaces(interfaces, tagsByInterface.Keys);
         var dom = BasesFirst(interfaces, rootOf.Keys);
         var declared = DeclaredAttributes(interfaces, dom);
+        types ??= new DomValueTypes(root);
+        var keywords = DomKeywords.Read(root, partials, types);
 
         var files = new List<KeyValuePair<string, string>>();
         // Every property a type has, its bases' included: an attribute a base already writes (SVG's `fill`, which
@@ -153,7 +170,7 @@ internal static class DomEmitter
             var parent = Str(iface, "parent");
             var inherited = type.Root == Root.None && parent is not null && props.TryGetValue(parent, out var p) ? p : new HashSet<string>(StringComparer.Ordinal);
             type.Source = type.Root == Root.None ? declared[name] : Globals(root, type.Root == Root.Svg).ToList();
-            type.Generated = Attributes(type, partials, inherited);
+            type.Generated = Attributes(type, partials, inherited, keywords);
             type.HasChildren = dom.Any(n => string.Equals(Str(Get(interfaces, n), "parent"), name, StringComparison.Ordinal));
 
             var owned = partials.Owned.TryGetValue(name, out var o) ? o : Enumerable.Empty<string>();
@@ -172,6 +189,7 @@ internal static class DomEmitter
         rendered["Element"] = element;
         DomRefEmitter.Emit(root, dom, rendered, files, types, wasm);
 
+        files.Add(new KeyValuePair<string, string>("Keywords.g.cs", keywords.File()));
         files.Add(new KeyValuePair<string, string>("GlobalAttrs.g.cs", GlobalFields(
             globals.TryGetValue(HtmlRoot, out var html) ? html : new(), globals.TryGetValue(SvgRoot, out var svg) ? svg : new())));
         DomEventEmitter.Emit(root, files);
@@ -311,7 +329,7 @@ internal static class DomEmitter
 
     // The attributes generated onto one interface: all it declares, less what a hand-written partial owns, what a base
     // already has, and what Element itself writes (SVG's <style> has an IDL `title`, and it is the global one).
-    private static List<(string Attr, string Prop, string Type, string Write)> Attributes(DomType type, Partials partials, HashSet<string> inherited)
+    private static List<(string Attr, string Prop, string Type, string Write)> Attributes(DomType type, Partials partials, HashSet<string> inherited, DomKeywords keywords)
     {
         var name = type.Name;
         var ownedHere = partials.Owned.TryGetValue(name, out var o) ? new HashSet<string>(o, StringComparer.Ordinal) : new HashSet<string>(StringComparer.Ordinal);
@@ -332,6 +350,15 @@ internal static class DomEmitter
             }
 
             var csharp = CSharpType(Str(a, "type"));
+            if (keywords.TypeOf(a, type.Root == Root.Html) is { } keyword)
+            {
+                csharp = keyword + "?";
+            }
+            else if (DomKeywords.IsTrueFalse(a))
+            {
+                csharp = "bool?";
+            }
+
             attributes.Add((attr, prop, csharp, WriteCall(name, attr, prop, csharp, a, type.Svg)));
             ownedHere.Add(prop);
         }
@@ -576,9 +603,11 @@ internal static class DomEmitter
         switch (type)
         {
             case "bool?":
-                return KeywordBooleans.TryGetValue(attr, out var kw)
+                return DomKeywords.BooleanKeywords(a) is { } kw
                     ? $"if ({prop} is {{ }} {Local(prop)}) AppendAttr(sb, {name}, {Local(prop)} ? {Literal(kw.On)} : {Literal(kw.Off)});"
                     : $"if ({prop} is true) AppendAttr(sb, {name}, null);";
+            case var keyword when keyword.StartsWith(KeywordPrefix, StringComparison.Ordinal):
+                return $"if ({prop} is {{ }} {Local(prop)}) AppendAttr(sb, {name}, global::Rask.Core.KeywordText.Of({Local(prop)}));";
             case "int?":
                 return $"if ({prop} is {{ }} {Local(prop)}) AppendAttr(sb, {name}, {Local(prop)});";
             case "double?":

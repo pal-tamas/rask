@@ -34,7 +34,7 @@ it hands you the `data-rask-share` attribute to spread onto it:
 
 ```csharp
 Shareable.Data(new ShareData { Title = "Rask", Url = "https://…" })
-    .Template(share => Button.Type("button").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500").Data(share)["Share"])
+    .Template(share => Button.Type(ButtonType.Button).Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500").Data(share)["Share"])
 ```
 
 The shared client fires `navigator.share` **inside the click gesture** — no round-trip, so the transient
@@ -61,18 +61,18 @@ Capabilities that return a value (the eyedropper's hex, the install outcome) pos
 `OnResult` / `OnColor` / `OnOutcome` callback; the two `<video>` triggers target an element via its `ElementRef`.
 
 ```csharp
-Trigger.Fullscreen.Template(g => Button.Type("button").Data(g)["Full screen"])
+Trigger.Fullscreen.Template(g => Button.Type(ButtonType.Button).Data(g)["Full screen"])
 Trigger.ScreenOrientation.Orientation("landscape")
-    .Template(g => Button.Type("button").Data(g)["Lock landscape"])
-Trigger.EyeDropper.Template(g => Button.Type("button").Data(g)["Pick a colour"])
+    .Template(g => Button.Type(ButtonType.Button).Data(g)["Lock landscape"])
+Trigger.EyeDropper.Template(g => Button.Type(ButtonType.Button).Data(g)["Pick a colour"])
     .OnColor(hex => picked = hex)
-Trigger.Install.Template(g => Button.Type("button").Data(g)["Install app"])
+Trigger.Install.Template(g => Button.Type(ButtonType.Button).Data(g)["Install app"])
     .OnOutcome(o => outcome = o)
-Trigger.MediaCapture.For(preview).Template(g => Button.Type("button").Data(g)["Start camera"])
+Trigger.MediaCapture.For(preview).Template(g => Button.Type(ButtonType.Button).Data(g)["Start camera"])
     .Video()
     // Keeps the stream reachable from C# — the only way a Server-hosted app can stop it later.
     .OnStream(stream => camera = MediaStream.From(stream))
-Trigger.PictureInPicture.For(preview).Template(g => Button.Type("button").Data(g)["Pop out video"])
+Trigger.PictureInPicture.For(preview).Template(g => Button.Type(ButtonType.Button).Data(g)["Pop out video"])
 ```
 
 The required steps come first — `Template` on every trigger, plus `Orientation` or the target `For` where

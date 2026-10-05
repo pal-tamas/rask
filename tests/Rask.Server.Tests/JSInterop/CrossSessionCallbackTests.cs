@@ -84,7 +84,7 @@ internal sealed partial class GestureApp : Component
             .Template(g =>
             {
                 rid = int.Parse(Regex.Match(g["rask-gesture"]!, @"""rid"":(\d+)").Groups[1].Value);
-                return Button.Type("button").Data(g)["Pick"];
+                return Button.Type(ButtonType.Button).Data(g)["Pick"];
             })
             .OnColor(value =>
             {

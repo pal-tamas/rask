@@ -153,7 +153,7 @@ Form.Model(_model).OnSubmit(m => Save(m))[
     // no validator declared -- the attributes on _model are enforced by the Form itself
     Input.Bind(() => _model.Name),              // input type inferred from the CLR type
     Validation.Message.Template(errs => Div.Class("field-error")[errs[0]]).For(() => _model.Name),
-    Button.Type("submit")["Sign up"]
+    Button.Type(ButtonType.Submit)["Sign up"]
 ]
 ```
 

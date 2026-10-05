@@ -125,13 +125,13 @@ public static class RaskCulture
     }
 
     /// <summary>
-    ///     <c>"rtl"</c> for a right-to-left culture, otherwise <c>null</c> so no <c>dir</c> attribute is
-    ///     emitted at all — left-to-right is the HTML default, and emitting it would change every
+    ///     <see cref="Dir.Rtl" /> for a right-to-left culture, otherwise <c>null</c> so no <c>dir</c> attribute
+    ///     is emitted at all — left-to-right is the HTML default, and emitting it would change every
     ///     existing page.
     /// </summary>
-    public static string? HtmlDir =>
+    public static Dir? HtmlDir =>
         LiveRenderContext.CurrentSync is { HasCulture: true } ctx && ctx.Culture.TextInfo.IsRightToLeft
-            ? "rtl"
+            ? Dir.Rtl
             : null;
 
     /// <summary>

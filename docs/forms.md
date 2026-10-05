@@ -257,7 +257,7 @@ validator pipeline. Bound inputs inside the form discover that context automatic
 ```csharp
 Form.Model(_model).OnSubmit(m => Console.WriteLine(m.Username))[
     Input.Bind(() => _model.Username),
-    Button.Type("submit")["Sign up"]
+    Button.Type(ButtonType.Submit)["Sign up"]
 ]
 ```
 
@@ -279,7 +279,7 @@ render with whether a submit is in flight, so the markup can say so without the 
 ```csharp
 Form.Model(_model).OnSubmit(SaveAsync)[submitting => [
     Input.Bind(() => _model.Username).Disabled(submitting),
-    Button.Type("submit").Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
+    Button.Type(ButtonType.Submit).Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
 ]]
 ```
 
@@ -292,7 +292,7 @@ state: a synchronous one returns before there is a frame to paint.
 The fixed-list forms are untouched and still bind exactly as before:
 
 ```csharp
-Form.Model(_model)[Input.Bind(() => _model.Username), Button.Type("submit")["Sign up"]]
+Form.Model(_model)[Input.Bind(() => _model.Username), Button.Type(ButtonType.Submit)["Sign up"]]
 ```
 
 Only a form offers the function form. It is an indexer declared on `Form` itself, so
@@ -314,8 +314,8 @@ _ctx.AddValidator(new SlowTitleValidator());
 
 Form.Model(_model).OnSubmit(m => _submission = "Saved").Context(_ctx)[
     Input.Bind(() => _model.Title),
-    Button.Type("button").OnClick(() => _ctx.Validate().AsTask())["Validate now"],
-    Button.Type("submit").Disabled(_ctx.IsValidatingAny)["Save"]
+    Button.Type(ButtonType.Button).OnClick(() => _ctx.Validate().AsTask())["Validate now"],
+    Button.Type(ButtonType.Submit).Disabled(_ctx.IsValidatingAny)["Save"]
 ]
 ```
 
@@ -333,7 +333,7 @@ private readonly ProductModel _product = new();
 Form.Model(_product).OnSubmit(CreateAsync)[
     Input.Bind(() => _product.Name),
     Input.Bind(() => _product.Price),
-    Button.Type("submit")["Create"]
+    Button.Type(ButtonType.Submit)["Create"]
 ]
 
 private async Task CreateAsync(ProductModel product)

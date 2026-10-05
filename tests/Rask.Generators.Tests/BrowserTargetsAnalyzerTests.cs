@@ -206,6 +206,41 @@ public class BrowserTargetsAnalyzerTests
         Assert.Contains("'SetVirtualKeyboardPolicy' is not in Safari >= 17 (never shipped)", d.GetMessage(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task An_attribute_keyword_a_target_lacks_is_reported_where_it_is_named()
+    {
+        // popover="hint" is Chromium's and Firefox's: the emitter writes its support on the enum member itself.
+        var source = """
+            using Rask.Core;
+
+            public static class App
+            {
+                public static Popover Hint() => Popover.Hint;
+            }
+            """;
+
+        var d = Assert.Single(await Diagnostics(source, "safari >= 17", withLibrary: false));
+
+        Assert.Contains("'Hint' is not in Safari >= 17 (never shipped)", d.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_attribute_keyword_with_no_support_of_its_own_is_not_reported()
+    {
+        var source = """
+            using Rask.Core;
+
+            public static class App
+            {
+                public static Popover Auto() => Popover.Auto;
+            }
+            """;
+
+        var found = await Diagnostics(source, "safari >= 17", withLibrary: false);
+
+        Assert.Empty(found);
+    }
+
     private static MetadataReference CompileLibrary()
     {
         var compilation = CSharpCompilation.Create(

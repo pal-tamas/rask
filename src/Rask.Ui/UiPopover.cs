@@ -90,7 +90,7 @@ public sealed partial class UiPopover : Component
 
         var trigger = Button
             .Id(TriggerId)
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class(UiClass.Compose(
                 "btn",
                 Tone is { } tone ? UiClassNames.ButtonTone(tone) : "",
@@ -106,7 +106,7 @@ public sealed partial class UiPopover : Component
 
         var panel = Div
             .Id(PanelId)
-            .Popover("auto")
+            .Popover(Popover.Auto)
             .Role("dialog")
             .Class(UiClass.Compose(
                 "z-1 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm",

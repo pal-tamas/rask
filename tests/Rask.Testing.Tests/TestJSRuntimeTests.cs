@@ -15,7 +15,7 @@ public class TestJSRuntimeTests
 
         protected override Component? Render() =>
             Button
-                .Type("button")
+                .Type(ButtonType.Button)
                 .OnClick(async () =>
             {
                 await js.InvokeVoidAsync("raskApi.clipboard.write", "hello");

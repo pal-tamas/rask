@@ -37,7 +37,7 @@ public sealed partial class UiCollapse : Component
     protected override Component? Render()
     {
         var title = Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class("collapse-title flex w-full items-center text-left font-semibold")
             .Aria("expanded", Open == true ? "true" : "false");
 

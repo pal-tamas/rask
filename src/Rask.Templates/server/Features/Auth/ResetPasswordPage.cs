@@ -57,7 +57,7 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
                 Field("password", "New password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
                 Field("confirm", "New password again", Input.Bind(() => _model.Confirm).Id("confirm").Type(InputType.Password).Class("input w-full")),
                 Div.Class("card-actions mt-2")[
-                    Button.Type("submit").Id("reset-submit").Class("btn btn-primary btn-block")["Change my password"]
+                    Button.Type(ButtonType.Submit).Id("reset-submit").Class("btn btn-primary btn-block")["Change my password"]
                 ]
             ]
         ];

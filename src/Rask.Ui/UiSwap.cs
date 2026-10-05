@@ -49,7 +49,7 @@ public sealed partial class UiSwap : Component
     protected override Component? Render()
     {
         var button = Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class(UiClass.Compose(
                 "swap",
                 Animation is { } animation ? UiClassNames.SwapAnimation(animation) : "",

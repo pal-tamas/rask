@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Rask.Generators.Json;
 
 namespace Rask.Core.Dom.Build;
@@ -68,7 +69,31 @@ internal static class WebEmitter
         files.Add(new KeyValuePair<string, string>("Globals.g.cs", Globals(model)));
         files.Add(new KeyValuePair<string, string>("WebElementRefMembers.g.cs", WebElementRefMembers(elements)));
         files.Add(new KeyValuePair<string, string>("WebValues.g.cs", types.Declarations("Rask.Web.Types", "RaskWebJsonContext", "global::Rask.Web.BytesJsonConverter")));
+        RefuseKeywordClashes(root, files);
         return files;
+    }
+
+    private static readonly Regex RootType = new(
+        @"^public\s+(?:(?:static|sealed|abstract|partial)\s+)*(?:class|enum|struct|record)\s+(?<name>\w+)",
+        RegexOptions.Multiline | RegexOptions.ExplicitCapture,
+        TimeSpan.FromSeconds(1));
+
+    // Rask.Core and Rask.Web are both global usings in an app: a Rask.Web type named as an attribute's keywords are
+    // (`Loading`) would make every bare use of either ambiguous (CS0104). The keyword type keeps the name; this fails
+    // the build so the clash is settled here rather than in every app.
+    internal static void RefuseKeywordClashes(JsonNode root, List<KeyValuePair<string, string>> files)
+    {
+        var keywords = new HashSet<string>(DomKeywords.Read(root, new Partials(), new DomValueTypes(root)).Names, StringComparer.Ordinal);
+        var clashes = files
+            .Where(f => f.Value.Contains("\nnamespace Rask.Web;"))
+            .SelectMany(f => RootType.Matches(f.Value).Cast<Match>().Select(m => m.Groups["name"].Value))
+            .Where(keywords.Contains)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (clashes.Count > 0)
+        {
+            throw new DomEmitException($"Rask.Web would declare {string.Join(", ", clashes)}, which Rask.Core declares for an attribute's keywords.");
+        }
     }
 
     // Every proxy's members, statics and constructors, bases first so a derived one never declares a name again.

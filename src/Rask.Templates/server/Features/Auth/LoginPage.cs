@@ -48,13 +48,13 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
                     Span["Remember me"]
                 ],
                 Div.Class("card-actions mt-2")[
-                    Button.Type("submit").Id("login-submit").Class("btn btn-primary btn-block")["Sign in"]
+                    Button.Type(ButtonType.Submit).Id("login-submit").Class("btn btn-primary btn-block")["Sign in"]
                 ]
             ],
             _passkeysSupported
                 ? Div[
                     Div.Class("divider")["or"],
-                    Button.Type("button").Id("login-passkey").Class("btn btn-outline btn-block").OnClick(PasskeyAsync)[
+                    Button.Type(ButtonType.Button).Id("login-passkey").Class("btn btn-outline btn-block").OnClick(PasskeyAsync)[
                         "Sign in with a passkey"]
                 ]
                 : null,

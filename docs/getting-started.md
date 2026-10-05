@@ -341,7 +341,7 @@ is a `Shell` override. It receives the framework's `<head>` and the app's render
 
 ```csharp
 protected override Component Shell(Component head, Component body) =>
-    Html.Lang("en").Dir("rtl")[head, Body.Class("dark")[body]];
+    Html.Lang("en").Dir(Dir.Rtl)[head, Body.Class("dark")[body]];
 ```
 
 The doctype is still emitted ahead of whatever `Shell` returns, and the runtime `<script>` still lands

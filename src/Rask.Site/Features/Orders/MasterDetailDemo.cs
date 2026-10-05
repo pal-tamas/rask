@@ -51,7 +51,7 @@ public sealed partial class MasterDetailDemo : Component
                         Tr[_orderColumns.Select(c =>
                             c.Sortable
                                 ? SortHeader(c.Id, c.Header, _orderSort, ToggleOrderSort)
-                                : Th.Scope("col").Key(c.Id))]
+                                : Th.Scope(ThScope.Col).Key(c.Id))]
                     ],
                     Tbody[BuildOrderRows(orders)]
                 ]
@@ -215,7 +215,7 @@ public sealed partial class MasterDetailDemo : Component
             (true, false) => Ui.IconName.ChevronDown,
         };
 
-        return Th.Scope("col").Key(columnId)[
+        return Th.Scope(ThScope.Col).Key(columnId)[
             Ui.Button
                 .Variant(Ui.Variant.Link)
                 .Class("p-0 no-underline text-ui-ink font-semibold" + (sorted ? "" : " [&_svg]:opacity-50"))

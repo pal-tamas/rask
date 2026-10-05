@@ -22,9 +22,9 @@ public sealed partial class UiMegamenuPanel : Component
         // Two roots and no wrapper between them: the trigger has to be a sibling of the other triggers
         // and the panel a sibling of the other panels, or daisyUI's nth-of-type anchoring misnumbers.
         [
-            Button.Type("button").Attributes(("popovertarget", Id))[Trigger],
+            Button.Type(ButtonType.Button).Attributes(("popovertarget", Id))[Trigger],
             // No class of its own. daisyUI styles the panel through `.megamenu [popover]`, so a name
             // invented here would style nothing while looking as though it did.
-            Div.Id(Id).Class(Class).Popover("auto")[Children ?? []]
+            Div.Id(Id).Class(Class).Popover(Popover.Auto)[Children ?? []]
         ];
 }

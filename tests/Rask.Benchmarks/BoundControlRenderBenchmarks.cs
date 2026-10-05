@@ -48,7 +48,7 @@ public partial class BoundControlRenderBenchmarks : global::Rask.Core.RaskMarkup
             Input.Value(_model.B).Type(InputType.Text).Name("b"),
             Label["Field C"],
             Input.Value(_model.C).Type(InputType.Text).Name("c"),
-            Button.Type("submit")["Save"]
+            Button.Type(ButtonType.Submit)["Save"]
         ].RenderAsLiveRoot();
 
     [Benchmark]
@@ -60,7 +60,7 @@ public partial class BoundControlRenderBenchmarks : global::Rask.Core.RaskMarkup
             Input.Bind(_boundB).Type(InputType.Text),
             Label["Field C"],
             Input.Bind(_boundC).Type(InputType.Text),
-            Button.Type("submit")["Save"]
+            Button.Type(ButtonType.Submit)["Save"]
         ].RenderAsLiveRoot();
 
     [Benchmark]
@@ -72,7 +72,7 @@ public partial class BoundControlRenderBenchmarks : global::Rask.Core.RaskMarkup
             Input.Bind(() => _model.B).Type(InputType.Text),
             Label["Field C"],
             Input.Bind(() => _model.C).Type(InputType.Text),
-            Button.Type("submit")["Save"]
+            Button.Type(ButtonType.Submit)["Save"]
         ].RenderAsLiveRoot();
 
     // Settable properties: Bind needs a terminal property it can write back through.

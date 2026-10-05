@@ -15,7 +15,7 @@ public partial class DocumentTests : global::Rask.Core.RaskMarkup
             "<html id=\"i\" class=\"c\" style=\"s\" lang=\"en\" dir=\"ltr\" data-k=\"v\"></html>",
             Html
                 .Lang("en")
-                .Dir("ltr")
+                .Dir(Dir.Ltr)
                 .Id("i")
                 .Class("c")
                 .Style("s")

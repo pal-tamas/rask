@@ -17,7 +17,7 @@ public partial class GlobalAttributeTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void Dir_marks_direction_on_any_element() =>
-        Assert.Equal("<p dir=\"auto\">x</p>", P.Dir("auto")["x"].ToHtml());
+        Assert.Equal("<p dir=\"auto\">x</p>", P.Dir(Dir.Auto)["x"].ToHtml());
 
     [Fact]
     public void Hidden_and_Inert_are_bare_boolean_attributes()
@@ -49,9 +49,9 @@ public partial class GlobalAttributeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Popover_and_ContentEditable_carry_their_enumerated_values()
     {
-        Assert.Equal("<div popover=\"auto\"></div>", Div.Popover("auto").ToHtml());
+        Assert.Equal("<div popover=\"auto\"></div>", Div.Popover(Popover.Auto).ToHtml());
         Assert.Equal("<div contenteditable=\"plaintext-only\"></div>",
-            Div.ContentEditable("plaintext-only").ToHtml());
+            Div.ContentEditable(ContentEditable.PlaintextOnly).ToHtml());
     }
 
     [Fact]
@@ -86,11 +86,11 @@ public partial class GlobalAttributeTests : global::Rask.Core.RaskMarkup
                 .Data(new Dictionary<string, string?> { ["k"] = "v" })
                 .Translate(false)
                 .Spellcheck(true)
-                .ContentEditable("true")
-                .Popover("auto")
+                .ContentEditable(ContentEditable.True)
+                .Popover(Popover.Auto)
                 .Inert(true)
                 .Hidden(true)
-                .Dir("ltr")
+                .Dir(Dir.Ltr)
                 .Lang("en")
                 .Title("t")
                 .Style("s")

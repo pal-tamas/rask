@@ -22,7 +22,7 @@ public sealed partial class ElementsTextDemo : Component
         ],
         // Bidirectional + ruby annotations.
         P[
-            "Isolated user text ", Bdi["إعلان"], "; overridden direction ", Bdo.Dir("rtl")["this is RTL"], ". ",
+            "Isolated user text ", Bdi["إعلان"], "; overridden direction ", Bdo.Dir(Dir.Rtl)["this is RTL"], ". ",
             Ruby["漢", Rp["("], Rt["kan"], Rp[")"]], " annotates pronunciation."
         ],
         // A long word with a soft break opportunity, and a line break.

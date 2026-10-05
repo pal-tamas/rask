@@ -47,7 +47,7 @@ public sealed partial class RegisterPage(IAuth auth, FirstRunToken firstRun) : A
                     ? Field("first-run-token", "First-run token", Input.Bind(() => _model.FirstRunToken).Id("first-run-token").Class("input w-full"))
                     : null,
                 Div.Class("card-actions mt-2")[
-                    Button.Type("submit").Id("register-submit").Class("btn btn-primary btn-block")[
+                    Button.Type(ButtonType.Submit).Id("register-submit").Class("btn btn-primary btn-block")[
                         firstRun.IsPending ? "Claim it" : "Create account"]
                 ]
             ],

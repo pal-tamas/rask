@@ -18,7 +18,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         // Fire-and-forget (no result) → rid is null. Attribute order: data-* before tag-specific (type).
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;fullscreen.request&quot;,&quot;rid&quot;:null}\" type=\"button\">Full screen</button>",
-            Trigger.Fullscreen.Template(g => Button.Type("button").Data(g)["Full screen"]).ToHtml());
+            Trigger.Fullscreen.Template(g => Button.Type(ButtonType.Button).Data(g)["Full screen"]).ToHtml());
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     public void Eye_dropper_trigger_with_callback_stamps_cap_and_a_numeric_result_id()
     {
         var html = Trigger.EyeDropper
-            .Template(g => Button.Type("button").Data(g)["Pick"])
+            .Template(g => Button.Type(ButtonType.Button).Data(g)["Pick"])
             .OnColor(_ => Task.CompletedTask).ToHtml();
 
         Assert.Matches(@"data-rask-gesture=""\{&quot;cap&quot;:&quot;eyedropper\.open&quot;,&quot;rid&quot;:\d+\}""", html);
@@ -44,7 +44,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     {
         string? received = null;
         var html = Trigger.EyeDropper
-            .Template(g => Button.Type("button").Data(g)["Pick"])
+            .Template(g => Button.Type(ButtonType.Button).Data(g)["Pick"])
             .OnColor(value => { received = value; return Task.CompletedTask; }).ToHtml();
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
 
@@ -66,7 +66,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
             + "&quot;arg&quot;:&quot;landscape&quot;}\" type=\"button\">Rotate</button>",
             Trigger.ScreenOrientation
                 .Orientation("landscape")
-                .Template(g => Button.Type("button").Data(g)["Rotate"]).ToHtml());
+                .Template(g => Button.Type(ButtonType.Button).Data(g)["Rotate"]).ToHtml());
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
             + $"&quot;el&quot;:&quot;{video.Id}&quot;}}\" type=\"button\">Pop out</button>",
             Trigger.PictureInPicture
                 .For(video)
-                .Template(g => Button.Type("button").Data(g)["Pop out"]).ToHtml());
+                .Template(g => Button.Type(ButtonType.Button).Data(g)["Pop out"]).ToHtml());
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;fullscreen.request&quot;,&quot;rid&quot;:null,"
             + $"&quot;el&quot;:&quot;{box.Id}&quot;}}\" type=\"button\">Full screen</button>",
-            Trigger.Fullscreen.Template(g => Button.Type("button").Data(g)["Full screen"]).For(box).ToHtml());
+            Trigger.Fullscreen.Template(g => Button.Type(ButtonType.Button).Data(g)["Full screen"]).For(box).ToHtml());
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         var preview = ElementRef.New();
         var html = Trigger.MediaCapture
             .For(preview)
-            .Template(g => Button.Type("button").Data(g)["Start camera"])
+            .Template(g => Button.Type(ButtonType.Button).Data(g)["Start camera"])
             .Video(true)
             .FacingMode("user").ToHtml();
 
@@ -114,7 +114,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     {
         string? outcome = null;
         var html = Trigger.Install
-            .Template(g => Button.Type("button").Data(g)["Install"])
+            .Template(g => Button.Type(ButtonType.Button).Data(g)["Install"])
             .OnOutcome(value => { outcome = value; return Task.CompletedTask; }).ToHtml();
 
         Assert.Matches(@"data-rask-gesture=""\{&quot;cap&quot;:&quot;install\.prompt&quot;,&quot;rid&quot;:\d+\}""", html);
@@ -140,7 +140,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         {
             html = Trigger.MediaCapture
                 .For(ElementRef.New())
-                .Template(g => Button.Type("button").Data(g)["Start camera"])
+                .Template(g => Button.Type(ButtonType.Button).Data(g)["Start camera"])
                 .OnStream(s => { stream = s; return Task.CompletedTask; })
                 .OnResult(value => { result = value; return Task.CompletedTask; }).ToHtml();
         }
@@ -165,7 +165,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         {
             html = Trigger.MediaCapture
                 .For(ElementRef.New())
-                .Template(g => Button.Type("button").Data(g)["Start camera"])
+                .Template(g => Button.Type(ButtonType.Button).Data(g)["Start camera"])
                 .OnResult(value => { result = value; return Task.CompletedTask; }).ToHtml();
         }
 
@@ -183,7 +183,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         string? result = null;
         var html = Trigger.MediaCapture
             .For(ElementRef.New())
-            .Template(g => Button.Type("button").Data(g)["Start camera"])
+            .Template(g => Button.Type(ButtonType.Button).Data(g)["Start camera"])
             .OnStream(_ => { streamed = true; return Task.CompletedTask; })
             .OnResult(value => { result = value; return Task.CompletedTask; }).ToHtml();
 
@@ -201,7 +201,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         // leaks an entry into the process-wide gesture registry for nobody to consume.
         var html = Trigger.MediaCapture
             .For(ElementRef.New())
-            .Template(g => Button.Type("button").Data(g)["Start camera"]).ToHtml();
+            .Template(g => Button.Type(ButtonType.Button).Data(g)["Start camera"]).ToHtml();
 
         Assert.Contains("&quot;rid&quot;:null", html);
     }

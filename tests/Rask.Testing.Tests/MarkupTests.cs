@@ -12,9 +12,9 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
 
         protected override Component? Render() =>
             Div[
-                Button.Type("button").OnClick(() => Clicked.Add("a"))["a"],
-                Button.Type("button").OnClick(() => Clicked.Add("b"))["b"],
-                Button.Type("button").OnClick(() => Clicked.Add("c"))["c"]
+                Button.Type(ButtonType.Button).OnClick(() => Clicked.Add("a"))["a"],
+                Button.Type(ButtonType.Button).OnClick(() => Clicked.Add("b"))["b"],
+                Button.Type(ButtonType.Button).OnClick(() => Clicked.Add("c"))["c"]
             ];
     }
 
@@ -57,8 +57,8 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
     {
         protected override Component? Render() =>
             Div[
-                Button.Type("button").Aria(new Dictionary<string, string?> { ["label"] = "Close" })["x"],
-                Button.Type("button").Aria(new Dictionary<string, string?> { ["label"] = "Open" })["o"]
+                Button.Type(ButtonType.Button).Aria(new Dictionary<string, string?> { ["label"] = "Close" })["x"],
+                Button.Type(ButtonType.Button).Aria(new Dictionary<string, string?> { ["label"] = "Open" })["o"]
             ];
     }
 

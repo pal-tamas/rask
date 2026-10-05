@@ -145,7 +145,7 @@ public sealed partial class RowItem : Component
         Div.Class("line").Id($"r{Index}")[
             Span.Class("label")[$"Item {Index}"],
             A.Href($"/item/{Index}").Class("lnk")[$"open {Index}"],
-            Button.Type("button").OnClick(() => { })["go"]
+            Button.Type(ButtonType.Button).OnClick(() => { })["go"]
         ];
 }
 

@@ -73,7 +73,7 @@ public sealed partial class UiMenuItem : Component
         }
         else
         {
-            var button = Button.Type("button").Class(ItemClass(level, ordinal)).Disabled(Disabled == true && level is null);
+            var button = Button.Type(ButtonType.Button).Class(ItemClass(level, ordinal)).Disabled(Disabled == true && level is null);
             if (Disabled != true)
             {
                 button = button.OnClick(OnClick);

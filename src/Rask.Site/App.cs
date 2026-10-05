@@ -36,7 +36,7 @@ public partial class App : Component
             .Type("font/woff2")
             .Href(LiveOptions.PathBase + path)
             .As("font")
-            .CrossOrigin("anonymous");
+            .CrossOrigin(CrossOrigin.Anonymous);
 
     protected override Component? HeadAssets =>
     [

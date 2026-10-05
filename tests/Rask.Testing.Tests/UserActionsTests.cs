@@ -27,7 +27,7 @@ public sealed partial class UserActionsTests : global::Rask.Core.RaskMarkup
                 Label.For("colour")["Colour"],
                 Select.Bind(() => _product.Colour).Id("colour")[Option.Value("red")["Red"], Option.Value("green")["Green"]],
                 Input.Value("").Placeholder("Search").Name("q"),
-                Button.Type("submit")["Save"]
+                Button.Type(ButtonType.Submit)["Save"]
             ],
             P.Id("saved")[_saved]
         ];

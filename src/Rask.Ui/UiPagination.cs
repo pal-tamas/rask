@@ -105,7 +105,7 @@ public sealed partial class UiPagination : Component
     {
         var button = Button
             .Key(page)
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class(UiClass.Compose("join-item btn", page == Current ? "btn-active" : ""))
             .Disabled(page == Current);
 

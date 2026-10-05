@@ -42,7 +42,7 @@ public sealed partial class Counter : Component
 {
     private int _count;
     protected override Component? Render() =>
-        Button.Type("button").OnClick(() => _count++)[$"Count: {_count}"];
+        Button.Type(ButtonType.Button).OnClick(() => _count++)[$"Count: {_count}"];
 }
 
 [Fact]
@@ -380,7 +380,7 @@ public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder() =>
     Assert.Equal(
         "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
         Button
-            .Type("submit")
+            .Type(ButtonType.Submit)
             .Disabled()
             .Name("action")
             .Value("save")

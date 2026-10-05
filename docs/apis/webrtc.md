@@ -87,7 +87,7 @@ browser's `MediaStream`:
 
 ```csharp
 // Server host: the click gesture acquires it, OnStream hands back the handle.
-Trigger.MediaCapture.For(_preview).Template(g => Button.Type("button").Data(g)["Start camera"])
+Trigger.MediaCapture.For(_preview).Template(g => Button.Type(ButtonType.Button).Data(g)["Start camera"])
     .Video().Audio()
     .OnStream(async stream => await _conn!.AddStreamAsync(stream))
 

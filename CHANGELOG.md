@@ -46,6 +46,31 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: an attribute whose value is one of a closed set of keywords takes an enum, generated from the
+  spec.** `scripts/mdn/refresh.mjs` now records each HTML attribute's keywords (webref's `attr-value` dfns at the
+  pinned commit, or the IDL enum the reflecting attribute is named after) with BCD's support per keyword, and the
+  element emitter types the attribute from them, so a typo no longer renders an attribute the browser ignores:
+  ```csharp
+  Img.Src(src).Alt(alt).Loading("lazy")          // was
+  Img.Src(src).Alt(alt).Loading(Loading.Lazy)    // now
+  Button.Type("submit")  →  Button.Type(ButtonType.Submit)
+  Div.Dir("rtl").Popover("auto")  →  Div.Dir(Dir.Rtl).Popover(Popover.Auto)
+  Th.Scope("col")  →  Th.Scope(ThScope.Col)
+  A.ReferrerPolicy("no-referrer")  →  A.ReferrerPolicy(ReferrerPolicy.NoReferrer)
+  ```
+  The types are `Loading`, `Decoding`, `CrossOrigin`, `FetchPriority`, `Preload`, `FormMethod`, `Dir`, `Popover`,
+  `ContentEditable`, `InputMode`, `EnterKeyHint`, `Autocapitalize`, `ButtonType`, `ThScope`, `TrackKind`,
+  `TextareaWrap`, `AreaShape`, `DialogClosedBy`, `MetaHttpEquiv`, and the IDL's `ReferrerPolicy` and
+  `ShadowRootMode` — which Rask.Web now names from Rask.Core rather than declaring its own
+  (`Types.ReferrerPolicy` → `ReferrerPolicy`). `Component.HtmlDir` and `RaskCulture.HtmlDir` are `Dir?`, and
+  `WritingSuggestions` is a `bool?`. Each value is the FNV-1a hash of its keyword, as is every MDN enum's in
+  Rask.Core and Rask.Web, so a member keeps its number across refreshes; a keyword renders from a switch of literals,
+  allocation-free. The keyword enums get no chain step per member (`Img.Lazy` would not read as the image's loading).
+  A keyword not every engine ships carries `[BrowserSupport]` (`Popover.Hint`), and RASK098 now checks enum
+  members against `<RaskBrowserTargets>`. Open sets stay strings — `Rel`, `Sandbox`, `Target`, `Autocomplete`,
+  `Meta.Name`, `Button.Command`, MIME types, and `Ol.Type`, whose `1`/`a`/`A`/`i`/`I` name no members. `InputType`
+  stays hand-written, and the build fails unless its members are exactly the spec's input types.
+
 - **`Rask.Web` is imported for you in every Server and WASM app.** The package's own props add
   `global using Rask.Web;` and the alias `global using Types = Rask.Web.Types;`, and both hosts carry them to the
   app, so MDN's globals need no `using` and a field names an MDN type briefly. `Rask.Web.Types` itself stays out

@@ -41,7 +41,7 @@ Form.Model(_model).OnSubmit(m => _submission = "Ordered")[
     Validation.Message.Template(errors => Span.Class("error")[errors[0]]).For(() => _model.Product),
     Input.Bind(() => _model.Quantity),
     Validation.Message.Template(errors => Span.Class("error")[errors[0]]).For(() => _model.Quantity),
-    Button.Type("submit")["Order"]
+    Button.Type(ButtonType.Submit)["Order"]
 ]
 ```
 

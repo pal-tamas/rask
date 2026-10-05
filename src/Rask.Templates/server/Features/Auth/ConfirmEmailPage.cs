@@ -33,7 +33,7 @@ public sealed partial class ConfirmEmailPage(IAuth auth) : AuthPage
             H1.Class("text-2xl font-bold")["Confirm your email"],
             P.Class("text-sm opacity-70")["Press the button to finish confirming this address."],
             Div.Class("card-actions mt-2")[
-                Button.Type("button").Id("confirm-submit").Class("btn btn-primary btn-block").OnClick(ConfirmAsync)["Confirm my email"]
+                Button.Type(ButtonType.Button).Id("confirm-submit").Class("btn btn-primary btn-block").OnClick(ConfirmAsync)["Confirm my email"]
             ]
         ];
 

@@ -44,7 +44,7 @@ public sealed partial class UiThemeController : Component
     protected override Component? Render()
     {
         var button = Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class(UiClass.Compose(
                 "btn",
                 Size is { } size ? UiClassNames.ButtonSize(size) : "",

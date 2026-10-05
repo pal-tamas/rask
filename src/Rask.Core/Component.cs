@@ -311,11 +311,11 @@ public abstract partial class Component : RaskMarkup
 
     /// <summary>
     ///     The <c>dir</c> attribute for the document's <c>&lt;html&gt;</c> element. Defaults to
-    ///     <c>"rtl"</c> for a right-to-left session culture and <c>null</c> otherwise, which emits no
-    ///     attribute at all — left-to-right is HTML's own default, so writing it would only add bytes
+    ///     <see cref="Dir.Rtl" /> for a right-to-left session culture and <c>null</c> otherwise, which emits
+    ///     no attribute at all — left-to-right is HTML's own default, so writing it would only add bytes
     ///     to every page.
     /// </summary>
-    protected virtual string? HtmlDir => Globalization.RaskCulture.HtmlDir;
+    protected virtual Dir? HtmlDir => Globalization.RaskCulture.HtmlDir;
 
     /// <summary>
     ///     The <c>class</c> attribute for the document's <c>&lt;body&gt;</c> element (theming hooks,

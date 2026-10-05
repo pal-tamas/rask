@@ -99,7 +99,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
     {
         var button = Button
             .Key(key)
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class("btn btn-ghost btn-sm btn-square")
             .Aria("label", label);
 
@@ -118,7 +118,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
 
         var button = Button
             .Key(date.Day)
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class(UiClass.Compose(
                 "btn btn-ghost btn-sm btn-square",
                 state.Picked ? "btn-active" : "",
@@ -181,7 +181,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
 
         var panel = Div
             .Id(panelId)
-            .Popover("auto")
+            .Popover(Popover.Auto)
             .Role("dialog")
             .Class("rounded-box shadow-sm")
             .Attributes(("style", "position-anchor:--" + picker.Prefix
@@ -196,7 +196,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
         return Div.Class("relative w-full")[
             Button
                 .Id(picker.FieldId)
-                .Type("button")
+                .Type(ButtonType.Button)
                 .Class(UiClass.Compose(picker.BoxClasses, "justify-between gap-2 text-left"))
                 .Disabled(picker.Disabled)
                 .Aria(aria)

@@ -36,7 +36,7 @@ public sealed partial class LiveCounter : Component
                     .Class(
                         "count-btn inline-flex min-h-11 items-center rounded-xl bg-ui-ink px-5 text-sm "
                         + "font-semibold text-ui-bg transition-colors hover:bg-ui-ink/90")
-                    .Type("button")
+                    .Type(ButtonType.Button)
                     .OnClick(() => _count++)["Click me"]
             ],
             Div.Class("border-t border-ui-line px-4 py-3 text-center text-xs text-ui-muted")[

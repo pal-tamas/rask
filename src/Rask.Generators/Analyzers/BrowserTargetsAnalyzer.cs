@@ -86,6 +86,10 @@ public sealed class BrowserTargetsAnalyzer : DiagnosticAnalyzer
             start.RegisterOperationAction(
                 ctx => Analyze(ctx, ((IPropertyReferenceOperation)ctx.Operation).Property, targets),
                 OperationKind.PropertyReference);
+            // An attribute's keyword a target lacks (`Popover.Hint`): an enum member, read as a field.
+            start.RegisterOperationAction(
+                ctx => Analyze(ctx, ((IFieldReferenceOperation)ctx.Operation).Field, targets),
+                OperationKind.FieldReference);
         });
     }
 

@@ -29,7 +29,7 @@ internal static partial class FormInputTyping
             Input.Value(b).Type(InputType.Text).Name("b"),
             Label["Field C"],
             Input.Value(c).Type(InputType.Text).Name("c"),
-            Button.Type("submit")["Save"]
+            Button.Type(ButtonType.Submit)["Save"]
         ];
     }
 

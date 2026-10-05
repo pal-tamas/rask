@@ -115,6 +115,18 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         return CorePrefix + "ElementRef?";
     }
 
+    // An IDL enum an HTML attribute's keywords are (referrerpolicy's ReferrerPolicy): declared here like any this mapped,
+    // so Rask.Web, which runs Core's pass first, names Core's rather than declaring its own.
+    public void UseEnum(string name)
+    {
+        if (_enums[name] is null)
+        {
+            throw new DomEmitException($"an attribute's keywords name the IDL enum {name}, which the snapshot does not hold.");
+        }
+
+        _usedEnums.Add(name);
+    }
+
     // Whether a C# type this mapped (bare or qualified) is one of MDN's enums: a value type, as a C# enum is.
     public bool IsEnum(string type) => _enums[type.Substring(type.LastIndexOf('.') + 1)] is not null;
 
@@ -656,7 +668,7 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         sb.AppendLine();
         foreach (var name in _usedEnums.Where(n => !_external.Contains(n)))
         {
-            Enum(sb, name);
+            Enum(sb, name, string.Equals(ns, "Rask.Core", StringComparison.Ordinal));
         }
 
         foreach (var record in _records.Where(r => !_external.Contains(r.Key)))
@@ -678,17 +690,26 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         return sb.ToString();
     }
 
-    private void Enum(StringBuilder sb, string name)
+    // Core's enums are also HTML attributes' keywords (a link's referrerpolicy is ReferrerPolicy): marked as values, which
+    // the chain generator offers no step per member for.
+    private void Enum(StringBuilder sb, string name, bool core)
     {
         sb.Append("/// <summary>MDN's <c>").Append(name).AppendLine("</c> enumeration, as it crosses to the browser.</summary>");
         sb.Append("[JsonConverter(typeof(JsonStringEnumConverter<").Append(name).AppendLine(">))]");
+        if (core)
+        {
+            sb.AppendLine(DomKeywords.Marker);
+        }
+
         sb.Append("public enum ").AppendLine(name);
         sb.AppendLine("{");
-        foreach (var v in _enums[name]!.Items.Select(v => v.AsString()!))
+        var values = _enums[name]!.Items.Select(v => v.AsString()!).ToList();
+        var hashes = Hashes(name, values);
+        for (var i = 0; i < values.Count; i++)
         {
-            sb.Append("    /// <summary>The value <c>\"").Append(v).AppendLine("\"</c>.</summary>");
-            sb.Append("    [JsonStringEnumMemberName(\"").Append(v).AppendLine("\")]");
-            sb.Append("    ").Append(EnumMember(v)).AppendLine(",");
+            sb.Append("    /// <summary>The value <c>\"").Append(values[i]).AppendLine("\"</c>.</summary>");
+            sb.Append("    [JsonStringEnumMemberName(\"").Append(values[i]).AppendLine("\")]");
+            sb.Append("    ").Append(EnumMember(values[i])).Append(" = ").Append(hashes[i]).AppendLine(",");
             sb.AppendLine();
         }
 
@@ -696,8 +717,40 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         sb.AppendLine();
     }
 
+    // Each value's number: the FNV-1a hash of its text, so a value keeps its number when MDN adds, drops or reorders the
+    // others around it. Two that hash alike fail the build rather than alias one another.
+    internal static List<int> Hashes(string enumName, IReadOnlyList<string> values)
+    {
+        var hashes = values.Select(Fnv1a).ToList();
+        for (var i = 0; i < hashes.Count; i++)
+        {
+            var twin = hashes.IndexOf(hashes[i]);
+            if (twin != i)
+            {
+                throw new DomEmitException($"{enumName}'s \"{values[twin]}\" and \"{values[i]}\" hash to the same value ({hashes[i]}).");
+            }
+        }
+
+        return hashes;
+    }
+
+    // 32-bit FNV-1a over the value's UTF-16 code units, as a signed int: C#'s default enum base.
+    internal static int Fnv1a(string value)
+    {
+        unchecked
+        {
+            var hash = 2166136261u;
+            foreach (var c in value)
+            {
+                hash = (hash ^ c) * 16777619u;
+            }
+
+            return (int)hash;
+        }
+    }
+
     // "smooth" → Smooth, "2d-array" → _2dArray (an identifier cannot start with a digit), "" → Empty.
-    private static string EnumMember(string value)
+    internal static string EnumMember(string value)
     {
         if (value.Length == 0)
         {

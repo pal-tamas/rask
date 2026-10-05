@@ -47,7 +47,7 @@ internal static partial class FormValidationChurn
                 ]);
             }
 
-            children.Add(Button.Type("submit")["Save"]);
+            children.Add(Button.Type(ButtonType.Submit)["Save"]);
 
             return Form.Model(Fields)[children];
         }

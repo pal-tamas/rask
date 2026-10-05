@@ -39,7 +39,7 @@ public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
             Form.Model(_model).OnSubmit(SubmitAsync)[
                 Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Class("input w-full")),
                 Div.Class("card-actions mt-2")[
-                    Button.Type("submit").Id("forgot-submit").Class("btn btn-primary btn-block")["Send the link"]
+                    Button.Type(ButtonType.Submit).Id("forgot-submit").Class("btn btn-primary btn-block")["Send the link"]
                 ]
             ],
             P.Class("text-sm opacity-70")[

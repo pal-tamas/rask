@@ -114,7 +114,7 @@ public sealed partial class UiToast : Component
             !OnDismiss.HasValue
                 ? null
                 : Button
-                    .Type("button")
+                    .Type(ButtonType.Button)
                     .Class(
                         "-mr-1 shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium text-ui-bg/70 "
                         + "hover:bg-base-100/10 hover:text-ui-bg")

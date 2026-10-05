@@ -97,7 +97,7 @@ public sealed partial class UiCommand : Component
         (string, string?)[] opens = [("command", "show-modal"), ("commandfor", DialogId), ("popovertarget", DialogId)];
 
         return Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class(UiClass.Compose("input w-full cursor-pointer justify-between gap-2 text-left", Class))
             .Aria("haspopup", "dialog")
             .Attributes(Shortcut is { } shortcut ? [.. opens, ("data-rask-shortcut", shortcut)] : opens)[
@@ -138,7 +138,7 @@ public sealed partial class UiCommand : Component
         return Dialog
             .Id(DialogId)
             .Class("modal modal-top sm:modal-middle")
-            .Popover("auto")
+            .Popover(Popover.Auto)
             .Aria("label", Label)
             // A pick closes the palette in the runtime, after the pick's own handler has run.
             .Attributes(("data-rask-close-on-pick", null))
@@ -167,7 +167,7 @@ public sealed partial class UiCommand : Component
                 ]
             ],
             Button
-                .Type("button")
+                .Type(ButtonType.Button)
                 .Class("modal-backdrop")
                 .Aria("hidden", "true")
                 .TabIndex(-1)

@@ -145,7 +145,7 @@ public sealed class DocSnippetTests
             protected override Component? Render() =>
                 Form.Model(_model).OnSubmit(m => Console.WriteLine(m.Username))[
                     Input.Bind(() => _model.Username),
-                    Button.Type("submit")["Sign up"]
+                    Button.Type(ButtonType.Submit)["Sign up"]
                 ];
         }
         """);
@@ -178,7 +178,7 @@ public sealed class DocSnippetTests
 
                 return Form.Model(_model).OnSubmit(m => _submission = "Saved").Context(_ctx)[
                     Input.Bind(() => _model.Title),
-                    Button.Type("submit").Disabled(_ctx.IsValidatingAny)["Save"]
+                    Button.Type(ButtonType.Submit).Disabled(_ctx.IsValidatingAny)["Save"]
                 ];
             }
         }

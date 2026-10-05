@@ -33,7 +33,7 @@ internal static partial class ThemeSwitch
                 H2["Welcome"],
                 P["Pick a theme to taste."]
             ],
-            Button.Type("button")[$"Toggle ({(dark ? "dark" : "light")})"]
+            Button.Type(ButtonType.Button)[$"Toggle ({(dark ? "dark" : "light")})"]
         ];
     }
 

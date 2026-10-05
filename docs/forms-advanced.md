@@ -41,7 +41,7 @@ foreach (var item in _model.Items)
     rows.Add(Tr[
         Td[Input.Bind(() => item.Description)],
         Td[Input.Bind(() => item.Quantity)],
-        Td[Button.Type("button").OnClick(() => _model.Items.Remove(item))["×"]]
+        Td[Button.Type(ButtonType.Button).OnClick(() => _model.Items.Remove(item))["×"]]
     ]);
 }
 ```

@@ -285,7 +285,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
         // was named only by the aria-label this used to duplicate from it.
         return Button
             .Id(FieldId)
-            .Type("button")
+            .Type(ButtonType.Button)
             .Role("combobox")
             .Class(UiClass.Compose(BoxClass(), "flex items-center justify-between text-left"))
             .Disabled(Disabled == true)
@@ -331,7 +331,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
         // child. A control cannot be a CSS dropdown and a popover at once; this one is a popover.
         return Div
             .Id(PanelId)
-            .Popover("auto")
+            .Popover(Popover.Auto)
             .Class("z-1 max-h-64 overflow-y-auto rounded-box border border-base-300 bg-base-100 "
                 + "p-2 shadow-sm")
             // Placement, which `dropdown-content` used to supply. `position-area` puts the panel under
@@ -384,7 +384,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
 
     private Component ClearButton(ExpressionAccessor.Accessor? acc, EditContext? ctx) =>
         Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class("absolute inset-y-0 end-7 my-auto flex size-5 items-center justify-center rounded "
                    + "opacity-60 hover:opacity-100")
             .Aria("label", "Clear " + (Label ?? AccessibleLabel ?? "selection"))
@@ -465,7 +465,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
         var selected = Same(value, current);
 
         var option = Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Role("option")
             .Id(UiSelectNav.OptId(Prefix, row.FlatIndex))
             .Class(UiClass.Compose(

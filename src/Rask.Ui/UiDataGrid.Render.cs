@@ -130,7 +130,7 @@ public sealed partial class UiDataGrid<T, TKey>
 
         var head = Th
             .Key(column.FieldName ?? column.Title ?? "")
-            .Scope("col")
+            .Scope(ThScope.Col)
             .Class(column.HeaderClasses);
 
         // Only where there is a sort state to report. Passing null writes a BARE `aria-sort`, which is
@@ -144,7 +144,7 @@ public sealed partial class UiDataGrid<T, TKey>
             Div.Class("flex items-center gap-1")[
                 sortable
                     ? Button
-                        .Type("button")
+                        .Type(ButtonType.Button)
                         .Class("inline-flex items-center gap-1 font-medium hover:underline")
                         .Disabled(Busy)
                         .OnClick(() => ToggleSortAsync(column))[

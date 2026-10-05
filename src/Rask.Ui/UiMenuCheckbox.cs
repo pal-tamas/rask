@@ -60,7 +60,7 @@ public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
         var ordinal = level?.Scope.Register(level.Parent, Text, Disabled == true, isSub: false) ?? -1;
 
         var button = Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class(UiClass.Compose(
                 level is not null && ordinal == level.Scope.Active ? "menu-focus" : "",
                 Disabled == true ? "menu-disabled" : ""));

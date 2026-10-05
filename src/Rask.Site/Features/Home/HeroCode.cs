@@ -47,7 +47,7 @@ public sealed partial class HeroCode : Component
     private Component Tab(string file, int index) =>
         Button
             .Key(file)
-            .Type("button")
+            .Type(ButtonType.Button)
             .Role("tab")
             .Aria("selected", index == _active ? "true" : "false")
             // min-h-9: a mono label is a small target, and these sit where a thumb reaches first.

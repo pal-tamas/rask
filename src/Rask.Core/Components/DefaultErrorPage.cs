@@ -124,7 +124,7 @@ public sealed class DefaultErrorPage : Component
         if (_recover is { } recover)
         {
             children.Add(Button
-                .Type("button")
+                .Type(ButtonType.Button)
                 .Style(ReloadButtonStyle)
                 .OnClick(recover)[RaskStrings.Get(RaskString.ErrorTryAgain, "Try again")]);
         }
@@ -133,7 +133,7 @@ public sealed class DefaultErrorPage : Component
         // to location.reload() (CSP-clean, both hosts). If the runtime never loaded, the browser's own
         // reload is the fallback.
         children.Add(Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Style(ReloadButtonStyle)
             .Data(new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-reload"] = "" })[
                 RaskStrings.Get(RaskString.ErrorReload, "Reload this page")]);

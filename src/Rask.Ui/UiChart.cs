@@ -329,12 +329,12 @@ public sealed partial class UiChart<T> : Component
             Thead[
                 Tr[
                     Td,
-                    series.Select((s, i) => Th.Key(i).Scope("col")[s.Label])
+                    series.Select((s, i) => Th.Key(i).Scope(ThScope.Col)[s.Label])
                 ]
             ],
             Tbody[
                 labels.Select((label, row) => Tr.Key(row)[
-                    Th.Scope("row")[label],
+                    Th.Scope(ThScope.Row)[label],
                     series.Select((_, i) => Td.Key(i)[Number(values[i][row], format)])
                 ])
             ]

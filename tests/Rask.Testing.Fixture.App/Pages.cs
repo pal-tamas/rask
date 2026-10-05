@@ -35,7 +35,7 @@ public sealed partial class AdminPage : Component
 [Route("/save")]
 public sealed partial class SavePage : Component
 {
-    protected override Component? Render() => Button.Type("button").OnClick(() => Toast.Success("Saved"))["Save"];
+    protected override Component? Render() => Button.Type(ButtonType.Button).OnClick(() => Toast.Success("Saved"))["Save"];
 }
 
 [Route("/login")]

@@ -75,7 +75,7 @@ public partial class HtmlSerializerBenchmarks : global::Rask.Core.RaskMarkup
             rows.Add(Div.Class("line").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
                 Span.Class("label")[$"Item {i}"],
                 A.Href($"/item/{i}").Target("_blank").Rel("noopener").Class("lnk")[$"open {i}"],
-                Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32).Loading("lazy"),
+                Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32).Loading(Loading.Lazy),
                 Input.Value($"v{i}").Type(InputType.Text).Name($"f{i}").Placeholder("edit").MaxLength(64)
             ]);
         }
@@ -83,7 +83,7 @@ public partial class HtmlSerializerBenchmarks : global::Rask.Core.RaskMarkup
         return Div.Class("wrap").Id("root")[
             Div.Class("header")[
                 Span.Class("title")["Benchmark Tree"],
-                Button.Type("button").Class("action").Disabled(false)["Click"]
+                Button.Type(ButtonType.Button).Class("action").Disabled(false)["Click"]
             ],
             Div.Class("body")[rows]
         ];

@@ -210,6 +210,13 @@ public sealed partial class ComponentFactoryGenerator
             return ("", "");
         }
 
+        // Nor an HTML attribute's keywords (Rask.Core's [Keywords], on every enum the MDN emitter writes): `Img.Lazy`
+        // would say the image is lazy rather than how it loads, and `Div.Numeric` that the div is a number.
+        if (e.GetAttributes().Any(static a => string.Equals(a.AttributeClass?.ToDisplayString(), "Rask.Core.KeywordsAttribute", StringComparison.Ordinal)))
+        {
+            return ("", "");
+        }
+
         var members = e.GetMembers()
             .OfType<IFieldSymbol>()
             .Where(static f => f is { IsStatic: true, HasConstantValue: true, DeclaredAccessibility: Accessibility.Public })

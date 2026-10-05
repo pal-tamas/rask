@@ -11,7 +11,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
         public int Count { get; private set; }
 
         protected override Component? Render() =>
-            Button.Type("button").OnClick(() => Count++)[$"Count: {Count}"];
+            Button.Type(ButtonType.Button).OnClick(() => Count++)[$"Count: {Count}"];
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
         private bool _done;
 
         protected override Component? Render() =>
-            _done ? Span["done"] : Button.Type("button").OnClick(() => _done = true)["go"];
+            _done ? Span["done"] : Button.Type(ButtonType.Button).OnClick(() => _done = true)["go"];
     }
 
     [Fact]

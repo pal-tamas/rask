@@ -253,15 +253,15 @@ public abstract partial class Element : Component
     }
 
     /// <summary>
-    ///     The global <c>dir</c> attribute — text direction: <c>"ltr"</c>, <c>"rtl"</c>, or <c>"auto"</c>
-    ///     to let the browser decide from the first strongly-typed character.
+    ///     The global <c>dir</c> attribute — text direction: <see cref="Core.Dir.Ltr" />, <see cref="Core.Dir.Rtl" />, or
+    ///     <see cref="Core.Dir.Auto" /> to let the browser decide from the first strongly-typed character.
     ///     <para>
-    ///         <c>"auto"</c> is the right choice for user-supplied text whose language you do not know at
+    ///         <c>Auto</c> is the right choice for user-supplied text whose language you do not know at
     ///         render time — a name, a comment, a search query.
     ///     </para>
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/dir">MDN</see>
     /// </summary>
-    public string? Dir
+    public Dir? Dir
     {
         get => DirInternal;
         set => DirInternal = value;
@@ -307,27 +307,27 @@ public abstract partial class Element : Component
     }
 
     /// <summary>
-    ///     The global <c>popover</c> attribute — makes this element a popover: <c>"auto"</c> (light-dismiss,
-    ///     closes others), <c>"manual"</c>, or <c>"hint"</c>.
+    ///     The global <c>popover</c> attribute — makes this element a popover: <see cref="Core.Popover.Auto" />
+    ///     (light-dismiss, closes others), <see cref="Core.Popover.Manual" />, or <see cref="Core.Popover.Hint" />.
     ///     <para>
     ///         The browser handles the top layer, dismissal and focus. Pair it with
     ///         <c>Button.PopoverTarget</c>, which opens it without a line of JavaScript.
     ///     </para>
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/popover">MDN</see>
     /// </summary>
-    public string? Popover
+    public Popover? Popover
     {
         get => PopoverInternal;
         set => PopoverInternal = value;
     }
 
     /// <summary>
-    ///     The global <c>contenteditable</c> attribute — <c>"true"</c>, <c>"false"</c> or
-    ///     <c>"plaintext-only"</c>. A string rather than a <c>bool?</c> because the third value is the one
-    ///     most editors actually want.
+    ///     The global <c>contenteditable</c> attribute — <see cref="Core.ContentEditable.True" />,
+    ///     <see cref="Core.ContentEditable.False" /> or <see cref="Core.ContentEditable.PlaintextOnly" />. Not a
+    ///     <c>bool?</c>, because the third value is the one most editors actually want.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/contenteditable">MDN</see>
     /// </summary>
-    public string? ContentEditable
+    public ContentEditable? ContentEditable
     {
         get => ContentEditableInternal;
         set => ContentEditableInternal = value;
@@ -435,7 +435,7 @@ public abstract partial class Element : Component
 
         if (globals?.Dir is { } dir)
         {
-            AppendAttr(sb, "dir", dir);
+            AppendAttr(sb, "dir", KeywordText.Of(dir));
         }
 
         if (Hidden is true)
@@ -450,12 +450,12 @@ public abstract partial class Element : Component
 
         if (globals?.Popover is { } popover)
         {
-            AppendAttr(sb, "popover", popover);
+            AppendAttr(sb, "popover", KeywordText.Of(popover));
         }
 
         if (globals?.ContentEditable is { } contentEditable)
         {
-            AppendAttr(sb, "contenteditable", contentEditable);
+            AppendAttr(sb, "contenteditable", KeywordText.Of(contentEditable));
         }
 
         if (globals?.Spellcheck is { } spellcheck)

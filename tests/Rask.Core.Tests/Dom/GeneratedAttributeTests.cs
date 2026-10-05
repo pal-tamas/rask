@@ -118,7 +118,7 @@ public partial class GeneratedAttributeTests
 
             foreach (var p in t.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             {
-                if (p.CanWrite && (p.PropertyType == typeof(string) || p.PropertyType == typeof(bool?) || p.PropertyType == typeof(int?) || p.PropertyType == typeof(double?))
+                if (p.CanWrite && (p.PropertyType == typeof(string) || p.PropertyType == typeof(bool?) || p.PropertyType == typeof(int?) || p.PropertyType == typeof(double?) || IsKeywords(p.PropertyType))
                     && !(t == typeof(HTMLMetaElement) && p.Name == "Property"))
                 {
                     yield return p;
@@ -127,8 +127,12 @@ public partial class GeneratedAttributeTests
         }
     }
 
+    // An attribute's keywords (Loading?, ReferrerPolicy?): a nullable enum.
+    private static bool IsKeywords(Type type) => Nullable.GetUnderlyingType(type) is { IsEnum: true };
+
     private static object SampleFor(Type type) =>
-        type == typeof(bool?) ? true : type == typeof(int?) ? 7 : type == typeof(double?) ? 1.5 : "v";
+        IsKeywords(type) ? Enum.GetValues(Nullable.GetUnderlyingType(type)!).GetValue(0)!
+        : type == typeof(bool?) ? true : type == typeof(int?) ? 7 : type == typeof(double?) ? 1.5 : "v";
 
     // The tag-specific attributes MDN gives this tag, in render order: each interface's own, base before
     // derived (HTMLMediaElement's, then HTMLVideoElement's), each in IDL order. A typed control's layer owns

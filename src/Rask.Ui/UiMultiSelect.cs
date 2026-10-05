@@ -247,7 +247,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
         Picked chosen,
         int cursor) =>
         Button
-            .Type("button")
+            .Type(ButtonType.Button)
             // min-h-6 is load-bearing, not spacing. This button says nothing at all whenever every
             // answer fitted into chips — Summary returns "" — and an empty flex child collapses to zero
             // height, which leaves the control with no region to click to open the list and a combobox
@@ -301,7 +301,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
                 disabled
                     ? null
                     : Button
-                        .Type("button")
+                        .Type(ButtonType.Button)
                         .Class("cursor-pointer opacity-70 hover:opacity-100")
                         .Aria("label", "Remove " + TextOf(value))
                         .OnClick(() => CommitAsync(acc, ctx, chosen, Without(chosen.Shown, value)))[
@@ -313,7 +313,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
         if (chosen.Count > 0 && !disabled)
         {
             yield return Button
-                .Type("button")
+                .Type(ButtonType.Button)
                 .Class("cursor-pointer opacity-60 hover:opacity-100")
                 .Aria("label", "Clear all")
                 // Clears the answers this control drew, and only those.
@@ -338,7 +338,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
         bool disabled) =>
         Div
             .Id(PanelId)
-            .Popover("auto")
+            .Popover(Popover.Auto)
             .Class("z-1 max-h-64 overflow-y-auto rounded-box border border-base-300 bg-base-100 "
                 + "p-2 shadow-sm")
             .Attributes(("style", "position-anchor:--" + Prefix
@@ -438,7 +438,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
 
         var allIn = selectable.All(v => Contains(chosen.Shown, v));
         return Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Class("btn btn-ghost btn-xs mb-1 w-full justify-start")
             .OnClick(() => CommitAsync(acc, ctx, chosen, allIn
                 ? [.. chosen.Shown.Where(v => !Contains(selectable, v))]
@@ -480,7 +480,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
         var selected = Contains(chosen.Shown, value);
 
         var option = Button
-            .Type("button")
+            .Type(ButtonType.Button)
             .Role("option")
             .Id(UiSelectNav.OptId(Prefix, row.FlatIndex))
             .Class(UiClass.Compose(
