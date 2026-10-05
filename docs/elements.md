@@ -57,6 +57,9 @@ Tag-specific steps and the universal `Id`/`Class`/`Style`/`Data` steps sit side 
 **MDN is the source of truth.** The element types, the tags each one renders and every attribute are
 generated at build time from MDN's own data (`@webref/elements`, `@webref/idl`, `@mdn/browser-compat-data`),
 kept in `src/Rask.Core/Dom/mdn.snapshot.json` and refreshed to the latest stable release by the local build.
+The same snapshot carries UI Events' `KeyboardEvent` tables ([key](https://w3c.github.io/uievents-key/),
+[code](https://w3c.github.io/uievents-code/)), pinned by commit, from which `Keys` and `Codes` are generated:
+`e.Key is Keys.Escape`, `case Codes.KeyQ:` (see [keyboard events](composition-callbacks-context.md)).
 The chain you write is named after the **tag**, and the type behind it after the **DOM interface**:
 
 | You write | The type is | Why |

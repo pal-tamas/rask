@@ -220,8 +220,8 @@ public sealed partial class UiCommand : Component
         var at = Active(entries);
         var dir = e.Key switch
         {
-            "ArrowDown" => +1,
-            "ArrowUp" => -1,
+            Rask.Core.Keys.ArrowDown => +1,
+            Rask.Core.Keys.ArrowUp => -1,
             _ => 0,
         };
         if (dir == 0)

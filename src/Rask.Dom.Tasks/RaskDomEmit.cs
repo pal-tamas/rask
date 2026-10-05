@@ -1,6 +1,6 @@
 // Rask.Core's build-time MDN tasks, loaded by src/Rask.Core/Dom/Rask.Dom.targets. Two jobs:
 //   RaskMdnRefresh  keeps mdn.snapshot.json on MDN's latest stable data (local builds, at most once a day)
-//   RaskDomEmit     writes one partial per DOM interface into obj/, from the snapshot, before the compile
+//   RaskDomEmit     writes one partial per DOM interface, and the Keys/Codes constants, into obj/, from the snapshot, before the compile
 // The emitted code is ordinary source to the chain generator, which is why it is written here and not by a
 // Roslyn generator: generators never see each other's output.
 using System;
@@ -32,7 +32,8 @@ public sealed class RaskDomEmit : Task
         IReadOnlyList<KeyValuePair<string, string>> files;
         try
         {
-            files = DomEmitter.Emit(File.ReadAllText(Snapshot), partials);
+            var snapshot = File.ReadAllText(Snapshot);
+            files = DomEmitter.Emit(snapshot, partials).Concat(KeyboardValueEmitter.Emit(snapshot)).ToList();
         }
         catch (DomEmitException e)
         {

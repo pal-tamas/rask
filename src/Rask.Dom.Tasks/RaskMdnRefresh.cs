@@ -73,6 +73,8 @@ public sealed class RaskMdnRefresh : Task
         info.Environment["RASK_MDN_EVENTS"] = pins["@webref/events"];
         info.Environment["RASK_MDN_WEBREF"] = pins["webref/dfns"];
         info.Environment["RASK_MDN_WEBIDL2"] = pins["webidl2"];
+        info.Environment["RASK_MDN_UIEVENTS_KEY"] = pins["w3c/uievents-key"];
+        info.Environment["RASK_MDN_UIEVENTS_CODE"] = pins["w3c/uievents-code"];
         using var process = Process.Start(info)!;
         var output = process.StandardOutput.ReadToEndAsync();
         var error = process.StandardError.ReadToEndAsync();

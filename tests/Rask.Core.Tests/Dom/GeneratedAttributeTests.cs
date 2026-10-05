@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Dom;
 // per-tag files, because the tags are data now — a new one arrives with a snapshot refresh and is covered here.
 public partial class GeneratedAttributeTests
 {
-    private static readonly JsonElement Snapshot = Load();
+    private static readonly JsonElement Snapshot = MdnSnapshot.Root;
 
     // "html:a", "svg:a": the two namespaces share tag names.
     public static TheoryData<string> Tags()
@@ -182,18 +182,5 @@ public partial class GeneratedAttributeTests
     {
         var start = Regex.Match(html, "^<" + Regex.Escape(tag) + "(?<attrs>[^>]*)>").Groups["attrs"].Value;
         return Regex.Matches(start, @"\s([a-zA-Z][\w:-]*)(?:=""[^""]*"")?").Select(m => m.Groups[1].Value).ToList();
-    }
-
-    private static JsonElement Load()
-    {
-        for (var dir = AppContext.BaseDirectory; dir is not null; dir = Path.GetDirectoryName(dir))
-        {
-            if (File.Exists(Path.Combine(dir, "Rask.slnx")))
-            {
-                return JsonDocument.Parse(File.ReadAllText(Path.Combine(dir, "src", "Rask.Core", "Dom", "mdn.snapshot.json"))).RootElement;
-            }
-        }
-
-        throw new InvalidOperationException("Rask.slnx not found above the test output.");
     }
 }

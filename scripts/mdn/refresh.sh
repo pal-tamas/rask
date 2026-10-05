@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Refresh Rask's element surface from MDN: install @webref/elements, @webref/idl and
-# @mdn/browser-compat-data and rewrite src/Rask.Core/Dom/mdn.snapshot.json. Commit the diff.
+# @mdn/browser-compat-data, read UI Events' key and code tables, and rewrite src/Rask.Core/Dom/mdn.snapshot.json. Commit the diff.
 #
 # Versions default to each package's `latest` dist-tag (its stable release) and webref's `curated` head. The Rask.Core
 # build runs this with exact pins when it sees a newer release (src/Rask.Core/Dom/Rask.Dom.targets):
 #   RASK_MDN_BCD, RASK_MDN_IDL, RASK_MDN_ELEMENTS, RASK_MDN_EVENTS  npm versions (stable releases)
 #   RASK_MDN_WEBIDL2                                the IDL parser's version
 #   RASK_MDN_WEBREF                                 webref commit for the spec's attribute index
+#   RASK_MDN_UIEVENTS_KEY, RASK_MDN_UIEVENTS_CODE   w3c/uievents-key and -code gh-pages commits (KeyboardEvent values)
 # --ignore-scripts: a build runs this unattended, so no package install script ever executes.
 # Needs the latest LTS Node (https://nodejs.org/en/about/previous-releases).
 set -euo pipefail

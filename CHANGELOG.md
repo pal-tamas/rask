@@ -898,6 +898,19 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Keys` and `Codes`: every `KeyboardEvent.key` and `KeyboardEvent.code` value UI Events defines, as a
+  constant.** Generated in `Rask.Core` with the elements, from the spec's own tables (`w3c/uievents-key`,
+  `w3c/uievents-code`, pinned by commit in the MDN snapshot and checked against each value's anchor in the
+  published spec), each with its table and spec link. A typo is a compile error, and a constant is a pattern
+  and a switch case too. `Rask.Ui`'s keyboard handling (tabs, tree, select, multi-select, menus, command
+  palette) uses them.
+  ```csharp
+  .OnKeyDown(e => { if (e.Key == "Escape") Close(); })     // before
+  .OnKeyDown(e => { if (e.Key is Keys.Escape) Close(); })  // now
+  switch (e.Key) { case Keys.Home or Keys.PageUp: … }
+  if (e.Code is Codes.KeyQ) …                              // the physical key, whatever the layout types
+  ```
+
 - **[RASK098](docs/diagnostics.md#rask098): the build says when a web API is missing from a browser you
   support.** Opt in with `<RaskBrowserTargets>safari >= 16; firefox >= 115</RaskBrowserTargets>` and a
   call to a `Rask.Web` member, or an element ref's MDN member, that MDN's compat data says one of those browsers

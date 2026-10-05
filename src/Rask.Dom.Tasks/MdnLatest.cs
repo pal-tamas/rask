@@ -5,12 +5,15 @@ using System.Net.Http;
 
 namespace Rask.Core.Dom.Build;
 
-// The newest STABLE release of each source: npm's `latest` dist-tag (refused if a prerelease), and the head of
-// webref's curated branch, which is webref's validated channel.
+// The newest STABLE release of each source: npm's `latest` dist-tag (refused if a prerelease), the head of
+// webref's curated branch, which is webref's validated channel, and the published head (gh-pages) of UI Events'
+// key and code specs.
 internal static class MdnLatest
 {
     private const string NpmDistTags = "https://registry.npmjs.org/-/package/{0}/dist-tags";
     private const string WebrefCuratedHead = "https://api.github.com/repos/w3c/webref/commits/curated";
+
+    private const string GhPagesHead = "https://api.github.com/repos/{0}/commits/gh-pages";
 
     public static IReadOnlyDictionary<string, string> Resolve()
     {
@@ -32,9 +35,18 @@ internal static class MdnLatest
             result[package] = latest;
         }
 
-        var head = DomEmitter.Parse(http.GetStringAsync(WebrefCuratedHead).Result);
-        result["webref/dfns"] = head["sha"]?.AsString() ?? throw new FormatException("no sha for webref's curated branch");
+        result["webref/dfns"] = Head(http, WebrefCuratedHead);
+        foreach (var repo in new[] { "w3c/uievents-key", "w3c/uievents-code" })
+        {
+            result[repo] = Head(http, string.Format(CultureInfo.InvariantCulture, GhPagesHead, repo));
+        }
 
         return result;
+    }
+
+    private static string Head(HttpClient http, string url)
+    {
+        var head = DomEmitter.Parse(http.GetStringAsync(url).Result);
+        return head["sha"]?.AsString() ?? throw new FormatException("no commit sha at " + url);
     }
 }

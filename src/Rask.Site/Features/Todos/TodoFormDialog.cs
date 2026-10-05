@@ -39,7 +39,7 @@ public sealed partial class TodoFormDialog : Component
                 // where it lands — no client script, just the same routed cancel the backdrop uses.
                 .OnKeyDown(async e =>
                 {
-                    if (e.Key is "Escape")
+                    if (e.Key is Keys.Escape)
                     {
                         await OnCancel.Invoke();
                     }

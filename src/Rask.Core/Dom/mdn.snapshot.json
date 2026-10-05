@@ -6,7 +6,9 @@
   "@webref/events": "1.26.0",
   "@webref/idl": "3.84.0",
   "webidl2": "24.5.0",
-  "webref/dfns": "89e7d68c6612fbedb740c1632d36e482ca39e999"
+  "webref/dfns": "89e7d68c6612fbedb740c1632d36e482ca39e999",
+  "w3c/uievents-code": "b201684d1de0af90bc403814bbdee6aa96647130",
+  "w3c/uievents-key": "140cae88d6039b3fb1a51787978678115111c433"
  },
  "engines": [
   "chrome",
@@ -133177,5 +133179,2594 @@
     }
    ]
   }
- }
+ },
+ "keys": [
+  {
+   "name": "Accept",
+   "group": "ui",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Accept"
+  },
+  {
+   "name": "Again",
+   "group": "ui",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Again"
+  },
+  {
+   "name": "AllCandidates",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AllCandidates"
+  },
+  {
+   "name": "Alphanumeric",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Alphanumeric"
+  },
+  {
+   "name": "Alt",
+   "group": "modifier",
+   "spec": "https://w3c.github.io/uievents-key/#key-Alt"
+  },
+  {
+   "name": "AltGraph",
+   "group": "modifier",
+   "spec": "https://w3c.github.io/uievents-key/#key-AltGraph"
+  },
+  {
+   "name": "AppSwitch",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AppSwitch"
+  },
+  {
+   "name": "ArrowDown",
+   "group": "navigation",
+   "spec": "https://w3c.github.io/uievents-key/#key-ArrowDown"
+  },
+  {
+   "name": "ArrowLeft",
+   "group": "navigation",
+   "spec": "https://w3c.github.io/uievents-key/#key-ArrowLeft"
+  },
+  {
+   "name": "ArrowRight",
+   "group": "navigation",
+   "spec": "https://w3c.github.io/uievents-key/#key-ArrowRight"
+  },
+  {
+   "name": "ArrowUp",
+   "group": "navigation",
+   "spec": "https://w3c.github.io/uievents-key/#key-ArrowUp"
+  },
+  {
+   "name": "Attn",
+   "group": "ui",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Attn"
+  },
+  {
+   "name": "AudioBalanceLeft",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioBalanceLeft"
+  },
+  {
+   "name": "AudioBalanceRight",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioBalanceRight"
+  },
+  {
+   "name": "AudioBassBoostDown",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioBassBoostDown"
+  },
+  {
+   "name": "AudioBassBoostToggle",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioBassBoostToggle"
+  },
+  {
+   "name": "AudioBassBoostUp",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioBassBoostUp"
+  },
+  {
+   "name": "AudioFaderFront",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioFaderFront"
+  },
+  {
+   "name": "AudioFaderRear",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioFaderRear"
+  },
+  {
+   "name": "AudioSurroundModeNext",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioSurroundModeNext"
+  },
+  {
+   "name": "AudioTrebleDown",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioTrebleDown"
+  },
+  {
+   "name": "AudioTrebleUp",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioTrebleUp"
+  },
+  {
+   "name": "AudioVolumeDown",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioVolumeDown"
+  },
+  {
+   "name": "AudioVolumeMute",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioVolumeMute"
+  },
+  {
+   "name": "AudioVolumeUp",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AudioVolumeUp"
+  },
+  {
+   "name": "AVRInput",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AVRInput"
+  },
+  {
+   "name": "AVRPower",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-AVRPower"
+  },
+  {
+   "name": "Backspace",
+   "group": "editing",
+   "spec": "https://w3c.github.io/uievents-key/#key-Backspace"
+  },
+  {
+   "name": "BrightnessDown",
+   "group": "device",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-BrightnessDown"
+  },
+  {
+   "name": "BrightnessUp",
+   "group": "device",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-BrightnessUp"
+  },
+  {
+   "name": "BrowserBack",
+   "group": "browser",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-BrowserBack"
+  },
+  {
+   "name": "BrowserFavorites",
+   "group": "browser",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-BrowserFavorites"
+  },
+  {
+   "name": "BrowserForward",
+   "group": "browser",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-BrowserForward"
+  },
+  {
+   "name": "BrowserHome",
+   "group": "browser",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-BrowserHome"
+  },
+  {
+   "name": "BrowserRefresh",
+   "group": "browser",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-BrowserRefresh"
+  },
+  {
+   "name": "BrowserSearch",
+   "group": "browser",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-BrowserSearch"
+  },
+  {
+   "name": "BrowserStop",
+   "group": "browser",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-BrowserStop"
+  },
+  {
+   "name": "Call",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Call"
+  },
+  {
+   "name": "Camera",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Camera"
+  },
+  {
+   "name": "CameraFocus",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-CameraFocus"
+  },
+  {
+   "name": "Cancel",
+   "group": "ui",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Cancel"
+  },
+  {
+   "name": "CapsLock",
+   "group": "modifier",
+   "spec": "https://w3c.github.io/uievents-key/#key-CapsLock"
+  },
+  {
+   "name": "ChannelDown",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ChannelDown"
+  },
+  {
+   "name": "ChannelUp",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ChannelUp"
+  },
+  {
+   "name": "Clear",
+   "group": "editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Clear"
+  },
+  {
+   "name": "Close",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Close"
+  },
+  {
+   "name": "ClosedCaptionToggle",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ClosedCaptionToggle"
+  },
+  {
+   "name": "CodeInput",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-CodeInput"
+  },
+  {
+   "name": "ColorF0Red",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ColorF0Red"
+  },
+  {
+   "name": "ColorF1Green",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ColorF1Green"
+  },
+  {
+   "name": "ColorF2Yellow",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ColorF2Yellow"
+  },
+  {
+   "name": "ColorF3Blue",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ColorF3Blue"
+  },
+  {
+   "name": "ColorF4Grey",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ColorF4Grey"
+  },
+  {
+   "name": "ColorF5Brown",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ColorF5Brown"
+  },
+  {
+   "name": "Compose",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Compose"
+  },
+  {
+   "name": "ContextMenu",
+   "group": "ui",
+   "spec": "https://w3c.github.io/uievents-key/#key-ContextMenu"
+  },
+  {
+   "name": "Control",
+   "group": "modifier",
+   "spec": "https://w3c.github.io/uievents-key/#key-Control"
+  },
+  {
+   "name": "Convert",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Convert"
+  },
+  {
+   "name": "Copy",
+   "group": "editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Copy"
+  },
+  {
+   "name": "CrSel",
+   "group": "editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-CrSel"
+  },
+  {
+   "name": "Cut",
+   "group": "editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Cut"
+  },
+  {
+   "name": "Dead",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Dead"
+  },
+  {
+   "name": "Delete",
+   "group": "editing",
+   "spec": "https://w3c.github.io/uievents-key/#key-Delete"
+  },
+  {
+   "name": "Dimmer",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Dimmer"
+  },
+  {
+   "name": "DisplaySwap",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-DisplaySwap"
+  },
+  {
+   "name": "DVR",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-DVR"
+  },
+  {
+   "name": "Eisu",
+   "group": "ime-japanese",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Eisu"
+  },
+  {
+   "name": "Eject",
+   "group": "device",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Eject"
+  },
+  {
+   "name": "End",
+   "group": "navigation",
+   "spec": "https://w3c.github.io/uievents-key/#key-End"
+  },
+  {
+   "name": "EndCall",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-EndCall"
+  },
+  {
+   "name": "Enter",
+   "group": "whitespace",
+   "spec": "https://w3c.github.io/uievents-key/#key-Enter"
+  },
+  {
+   "name": "EraseEof",
+   "group": "editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-EraseEof"
+  },
+  {
+   "name": "Escape",
+   "group": "ui",
+   "spec": "https://w3c.github.io/uievents-key/#key-Escape"
+  },
+  {
+   "name": "Execute",
+   "group": "ui",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Execute"
+  },
+  {
+   "name": "Exit",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Exit"
+  },
+  {
+   "name": "ExSel",
+   "group": "editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ExSel"
+  },
+  {
+   "name": "F1",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F1"
+  },
+  {
+   "name": "F10",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F10"
+  },
+  {
+   "name": "F11",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F11"
+  },
+  {
+   "name": "F12",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F12"
+  },
+  {
+   "name": "F2",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F2"
+  },
+  {
+   "name": "F3",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F3"
+  },
+  {
+   "name": "F4",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F4"
+  },
+  {
+   "name": "F5",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F5"
+  },
+  {
+   "name": "F6",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F6"
+  },
+  {
+   "name": "F7",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F7"
+  },
+  {
+   "name": "F8",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F8"
+  },
+  {
+   "name": "F9",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-key/#key-F9"
+  },
+  {
+   "name": "FavoriteClear0",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteClear0"
+  },
+  {
+   "name": "FavoriteClear1",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteClear1"
+  },
+  {
+   "name": "FavoriteClear2",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteClear2"
+  },
+  {
+   "name": "FavoriteClear3",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteClear3"
+  },
+  {
+   "name": "FavoriteRecall0",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteRecall0"
+  },
+  {
+   "name": "FavoriteRecall1",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteRecall1"
+  },
+  {
+   "name": "FavoriteRecall2",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteRecall2"
+  },
+  {
+   "name": "FavoriteRecall3",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteRecall3"
+  },
+  {
+   "name": "FavoriteStore0",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteStore0"
+  },
+  {
+   "name": "FavoriteStore1",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteStore1"
+  },
+  {
+   "name": "FavoriteStore2",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteStore2"
+  },
+  {
+   "name": "FavoriteStore3",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FavoriteStore3"
+  },
+  {
+   "name": "FinalMode",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FinalMode"
+  },
+  {
+   "name": "Find",
+   "group": "ui",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Find"
+  },
+  {
+   "name": "Fn",
+   "group": "modifier",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Fn"
+  },
+  {
+   "name": "FnLock",
+   "group": "modifier",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-FnLock"
+  },
+  {
+   "name": "GoBack",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-GoBack"
+  },
+  {
+   "name": "GoHome",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-GoHome"
+  },
+  {
+   "name": "GroupFirst",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-GroupFirst"
+  },
+  {
+   "name": "GroupLast",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-GroupLast"
+  },
+  {
+   "name": "GroupNext",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-GroupNext"
+  },
+  {
+   "name": "GroupPrevious",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-GroupPrevious"
+  },
+  {
+   "name": "Guide",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Guide"
+  },
+  {
+   "name": "GuideNextDay",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-GuideNextDay"
+  },
+  {
+   "name": "GuidePreviousDay",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-GuidePreviousDay"
+  },
+  {
+   "name": "HangulMode",
+   "group": "ime-korean",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-HangulMode"
+  },
+  {
+   "name": "HanjaMode",
+   "group": "ime-korean",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-HanjaMode"
+  },
+  {
+   "name": "Hankaku",
+   "group": "ime-japanese",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Hankaku"
+  },
+  {
+   "name": "HeadsetHook",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-HeadsetHook"
+  },
+  {
+   "name": "Help",
+   "group": "ui",
+   "spec": "https://w3c.github.io/uievents-key/#key-Help"
+  },
+  {
+   "name": "Hibernate",
+   "group": "device",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Hibernate"
+  },
+  {
+   "name": "Hiragana",
+   "group": "ime-japanese",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Hiragana"
+  },
+  {
+   "name": "HiraganaKatakana",
+   "group": "ime-japanese",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-HiraganaKatakana"
+  },
+  {
+   "name": "Home",
+   "group": "navigation",
+   "spec": "https://w3c.github.io/uievents-key/#key-Home"
+  },
+  {
+   "name": "Hyper",
+   "group": "modifier-legacy",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Hyper"
+  },
+  {
+   "name": "Info",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Info"
+  },
+  {
+   "name": "Insert",
+   "group": "editing",
+   "spec": "https://w3c.github.io/uievents-key/#key-Insert"
+  },
+  {
+   "name": "InstantReplay",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-InstantReplay"
+  },
+  {
+   "name": "JunjaMode",
+   "group": "ime-korean",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-JunjaMode"
+  },
+  {
+   "name": "KanaMode",
+   "group": "ime-japanese",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-KanaMode"
+  },
+  {
+   "name": "KanjiMode",
+   "group": "ime-japanese",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-KanjiMode"
+  },
+  {
+   "name": "Katakana",
+   "group": "ime-japanese",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Katakana"
+  },
+  {
+   "name": "Key11",
+   "group": "multimedia-numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Key11"
+  },
+  {
+   "name": "Key12",
+   "group": "multimedia-numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Key12"
+  },
+  {
+   "name": "LastNumberRedial",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LastNumberRedial"
+  },
+  {
+   "name": "LaunchApplication1",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchApplication1"
+  },
+  {
+   "name": "LaunchApplication2",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchApplication2"
+  },
+  {
+   "name": "LaunchCalendar",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchCalendar"
+  },
+  {
+   "name": "LaunchContacts",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchContacts"
+  },
+  {
+   "name": "LaunchMail",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchMail"
+  },
+  {
+   "name": "LaunchMediaPlayer",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchMediaPlayer"
+  },
+  {
+   "name": "LaunchMusicPlayer",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchMusicPlayer"
+  },
+  {
+   "name": "LaunchPhone",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchPhone"
+  },
+  {
+   "name": "LaunchScreenSaver",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchScreenSaver"
+  },
+  {
+   "name": "LaunchSpreadsheet",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchSpreadsheet"
+  },
+  {
+   "name": "LaunchWebBrowser",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchWebBrowser"
+  },
+  {
+   "name": "LaunchWebCam",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchWebCam"
+  },
+  {
+   "name": "LaunchWordProcessor",
+   "group": "apps",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LaunchWordProcessor"
+  },
+  {
+   "name": "Link",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Link"
+  },
+  {
+   "name": "ListProgram",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ListProgram"
+  },
+  {
+   "name": "LiveContent",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LiveContent"
+  },
+  {
+   "name": "Lock",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Lock"
+  },
+  {
+   "name": "LogOff",
+   "group": "device",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-LogOff"
+  },
+  {
+   "name": "MailForward",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MailForward"
+  },
+  {
+   "name": "MailReply",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MailReply"
+  },
+  {
+   "name": "MailSend",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MailSend"
+  },
+  {
+   "name": "MannerMode",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MannerMode"
+  },
+  {
+   "name": "MediaApps",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaApps"
+  },
+  {
+   "name": "MediaAudioTrack",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaAudioTrack"
+  },
+  {
+   "name": "MediaClose",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaClose"
+  },
+  {
+   "name": "MediaFastForward",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaFastForward"
+  },
+  {
+   "name": "MediaLast",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaLast"
+  },
+  {
+   "name": "MediaPause",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaPause"
+  },
+  {
+   "name": "MediaPlay",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaPlay"
+  },
+  {
+   "name": "MediaPlayPause",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaPlayPause"
+  },
+  {
+   "name": "MediaRecord",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaRecord"
+  },
+  {
+   "name": "MediaRewind",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaRewind"
+  },
+  {
+   "name": "MediaSkipBackward",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaSkipBackward"
+  },
+  {
+   "name": "MediaSkipForward",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaSkipForward"
+  },
+  {
+   "name": "MediaStepBackward",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaStepBackward"
+  },
+  {
+   "name": "MediaStepForward",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaStepForward"
+  },
+  {
+   "name": "MediaStop",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaStop"
+  },
+  {
+   "name": "MediaTopMenu",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaTopMenu"
+  },
+  {
+   "name": "MediaTrackNext",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaTrackNext"
+  },
+  {
+   "name": "MediaTrackPrevious",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MediaTrackPrevious"
+  },
+  {
+   "name": "Meta",
+   "group": "modifier",
+   "spec": "https://w3c.github.io/uievents-key/#key-Meta"
+  },
+  {
+   "name": "MicrophoneToggle",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MicrophoneToggle"
+  },
+  {
+   "name": "MicrophoneVolumeDown",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MicrophoneVolumeDown"
+  },
+  {
+   "name": "MicrophoneVolumeMute",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MicrophoneVolumeMute"
+  },
+  {
+   "name": "MicrophoneVolumeUp",
+   "group": "audio",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-MicrophoneVolumeUp"
+  },
+  {
+   "name": "ModeChange",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ModeChange"
+  },
+  {
+   "name": "NavigateIn",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-NavigateIn"
+  },
+  {
+   "name": "NavigateNext",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-NavigateNext"
+  },
+  {
+   "name": "NavigateOut",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-NavigateOut"
+  },
+  {
+   "name": "NavigatePrevious",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-NavigatePrevious"
+  },
+  {
+   "name": "New",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-New"
+  },
+  {
+   "name": "NextCandidate",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-NextCandidate"
+  },
+  {
+   "name": "NextFavoriteChannel",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-NextFavoriteChannel"
+  },
+  {
+   "name": "NextUserProfile",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-NextUserProfile"
+  },
+  {
+   "name": "NonConvert",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-NonConvert"
+  },
+  {
+   "name": "Notification",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Notification"
+  },
+  {
+   "name": "NumLock",
+   "group": "modifier",
+   "spec": "https://w3c.github.io/uievents-key/#key-NumLock"
+  },
+  {
+   "name": "OnDemand",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-OnDemand"
+  },
+  {
+   "name": "Open",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Open"
+  },
+  {
+   "name": "PageDown",
+   "group": "navigation",
+   "spec": "https://w3c.github.io/uievents-key/#key-PageDown"
+  },
+  {
+   "name": "PageUp",
+   "group": "navigation",
+   "spec": "https://w3c.github.io/uievents-key/#key-PageUp"
+  },
+  {
+   "name": "Pairing",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Pairing"
+  },
+  {
+   "name": "Paste",
+   "group": "editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Paste"
+  },
+  {
+   "name": "Pause",
+   "group": "ui",
+   "spec": "https://w3c.github.io/uievents-key/#key-Pause"
+  },
+  {
+   "name": "PinPDown",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-PinPDown"
+  },
+  {
+   "name": "PinPMove",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-PinPMove"
+  },
+  {
+   "name": "PinPToggle",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-PinPToggle"
+  },
+  {
+   "name": "PinPUp",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-PinPUp"
+  },
+  {
+   "name": "Play",
+   "group": "ui",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Play"
+  },
+  {
+   "name": "PlaySpeedDown",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-PlaySpeedDown"
+  },
+  {
+   "name": "PlaySpeedReset",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-PlaySpeedReset"
+  },
+  {
+   "name": "PlaySpeedUp",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-PlaySpeedUp"
+  },
+  {
+   "name": "Power",
+   "group": "device",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Power"
+  },
+  {
+   "name": "PowerOff",
+   "group": "device",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-PowerOff"
+  },
+  {
+   "name": "PreviousCandidate",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-PreviousCandidate"
+  },
+  {
+   "name": "Print",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Print"
+  },
+  {
+   "name": "PrintScreen",
+   "group": "device",
+   "spec": "https://w3c.github.io/uievents-key/#key-PrintScreen"
+  },
+  {
+   "name": "Process",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Process"
+  },
+  {
+   "name": "Props",
+   "group": "ui",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Props"
+  },
+  {
+   "name": "RandomToggle",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-RandomToggle"
+  },
+  {
+   "name": "RcLowBattery",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-RcLowBattery"
+  },
+  {
+   "name": "RecordSpeedNext",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-RecordSpeedNext"
+  },
+  {
+   "name": "Redo",
+   "group": "editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Redo"
+  },
+  {
+   "name": "RfBypass",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-RfBypass"
+  },
+  {
+   "name": "Romaji",
+   "group": "ime-japanese",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Romaji"
+  },
+  {
+   "name": "Save",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Save"
+  },
+  {
+   "name": "ScanChannelsToggle",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ScanChannelsToggle"
+  },
+  {
+   "name": "ScreenModeNext",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ScreenModeNext"
+  },
+  {
+   "name": "ScrollLock",
+   "group": "modifier",
+   "spec": "https://w3c.github.io/uievents-key/#key-ScrollLock"
+  },
+  {
+   "name": "Select",
+   "group": "ui",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Select"
+  },
+  {
+   "name": "Settings",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Settings"
+  },
+  {
+   "name": "Shift",
+   "group": "modifier",
+   "spec": "https://w3c.github.io/uievents-key/#key-Shift"
+  },
+  {
+   "name": "SingleCandidate",
+   "group": "composition",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-SingleCandidate"
+  },
+  {
+   "name": "Soft1",
+   "group": "function",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Soft1"
+  },
+  {
+   "name": "Soft2",
+   "group": "function",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Soft2"
+  },
+  {
+   "name": "Soft3",
+   "group": "function",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Soft3"
+  },
+  {
+   "name": "Soft4",
+   "group": "function",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Soft4"
+  },
+  {
+   "name": "SpeechCorrectionList",
+   "group": "speech",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-SpeechCorrectionList"
+  },
+  {
+   "name": "SpeechInputToggle",
+   "group": "speech",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-SpeechInputToggle"
+  },
+  {
+   "name": "SpellCheck",
+   "group": "multimedia",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-SpellCheck"
+  },
+  {
+   "name": "SplitScreenToggle",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-SplitScreenToggle"
+  },
+  {
+   "name": "Standby",
+   "group": "device",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Standby"
+  },
+  {
+   "name": "STBInput",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-STBInput"
+  },
+  {
+   "name": "STBPower",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-STBPower"
+  },
+  {
+   "name": "Subtitle",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Subtitle"
+  },
+  {
+   "name": "Super",
+   "group": "modifier-legacy",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Super"
+  },
+  {
+   "name": "Symbol",
+   "group": "modifier",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Symbol"
+  },
+  {
+   "name": "SymbolLock",
+   "group": "modifier",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-SymbolLock"
+  },
+  {
+   "name": "Tab",
+   "group": "whitespace",
+   "spec": "https://w3c.github.io/uievents-key/#key-Tab"
+  },
+  {
+   "name": "Teletext",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Teletext"
+  },
+  {
+   "name": "TV",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TV"
+  },
+  {
+   "name": "TV3DMode",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TV3DMode"
+  },
+  {
+   "name": "TVAntennaCable",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVAntennaCable"
+  },
+  {
+   "name": "TVAudioDescription",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVAudioDescription"
+  },
+  {
+   "name": "TVAudioDescriptionMixDown",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVAudioDescriptionMixDown"
+  },
+  {
+   "name": "TVAudioDescriptionMixUp",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVAudioDescriptionMixUp"
+  },
+  {
+   "name": "TVContentsMenu",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVContentsMenu"
+  },
+  {
+   "name": "TVDataService",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVDataService"
+  },
+  {
+   "name": "TVInput",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVInput"
+  },
+  {
+   "name": "TVInputComponent1",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVInputComponent1"
+  },
+  {
+   "name": "TVInputComponent2",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVInputComponent2"
+  },
+  {
+   "name": "TVInputComposite1",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVInputComposite1"
+  },
+  {
+   "name": "TVInputComposite2",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVInputComposite2"
+  },
+  {
+   "name": "TVInputHDMI1",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVInputHDMI1"
+  },
+  {
+   "name": "TVInputHDMI2",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVInputHDMI2"
+  },
+  {
+   "name": "TVInputHDMI3",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVInputHDMI3"
+  },
+  {
+   "name": "TVInputHDMI4",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVInputHDMI4"
+  },
+  {
+   "name": "TVInputVGA1",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVInputVGA1"
+  },
+  {
+   "name": "TVMediaContext",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVMediaContext"
+  },
+  {
+   "name": "TVNetwork",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVNetwork"
+  },
+  {
+   "name": "TVNumberEntry",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVNumberEntry"
+  },
+  {
+   "name": "TVPower",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVPower"
+  },
+  {
+   "name": "TVRadioService",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVRadioService"
+  },
+  {
+   "name": "TVSatellite",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVSatellite"
+  },
+  {
+   "name": "TVSatelliteBS",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVSatelliteBS"
+  },
+  {
+   "name": "TVSatelliteCS",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVSatelliteCS"
+  },
+  {
+   "name": "TVSatelliteToggle",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVSatelliteToggle"
+  },
+  {
+   "name": "TVTerrestrialAnalog",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVTerrestrialAnalog"
+  },
+  {
+   "name": "TVTerrestrialDigital",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVTerrestrialDigital"
+  },
+  {
+   "name": "TVTimer",
+   "group": "tv",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-TVTimer"
+  },
+  {
+   "name": "Undo",
+   "group": "editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Undo"
+  },
+  {
+   "name": "Unidentified",
+   "group": "general",
+   "spec": "https://w3c.github.io/uievents-key/#key-Unidentified"
+  },
+  {
+   "name": "VideoModeNext",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-VideoModeNext"
+  },
+  {
+   "name": "VoiceDial",
+   "group": "mobile-phone",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-VoiceDial"
+  },
+  {
+   "name": "WakeUp",
+   "group": "device",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-WakeUp"
+  },
+  {
+   "name": "Wink",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Wink"
+  },
+  {
+   "name": "Zenkaku",
+   "group": "ime-japanese",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-Zenkaku"
+  },
+  {
+   "name": "ZenkakuHankaku",
+   "group": "ime-japanese",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ZenkakuHankaku"
+  },
+  {
+   "name": "ZoomIn",
+   "group": "ui",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ZoomIn"
+  },
+  {
+   "name": "ZoomOut",
+   "group": "ui",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ZoomOut"
+  },
+  {
+   "name": "ZoomToggle",
+   "group": "media-controller",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-key/#key-ZoomToggle"
+  }
+ ],
+ "codes": [
+  {
+   "name": "Abort",
+   "group": "legacy-process",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Abort"
+  },
+  {
+   "name": "Again",
+   "group": "legacy-editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Again"
+  },
+  {
+   "name": "AltLeft",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-AltLeft"
+  },
+  {
+   "name": "AltRight",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-AltRight"
+  },
+  {
+   "name": "ArrowDown",
+   "group": "arrowpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-ArrowDown"
+  },
+  {
+   "name": "ArrowLeft",
+   "group": "arrowpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-ArrowLeft"
+  },
+  {
+   "name": "ArrowRight",
+   "group": "arrowpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-ArrowRight"
+  },
+  {
+   "name": "ArrowUp",
+   "group": "arrowpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-ArrowUp"
+  },
+  {
+   "name": "AudioVolumeDown",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-AudioVolumeDown"
+  },
+  {
+   "name": "AudioVolumeMute",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-AudioVolumeMute"
+  },
+  {
+   "name": "AudioVolumeUp",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-AudioVolumeUp"
+  },
+  {
+   "name": "Backquote",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Backquote"
+  },
+  {
+   "name": "Backslash",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Backslash"
+  },
+  {
+   "name": "Backspace",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-Backspace"
+  },
+  {
+   "name": "BracketLeft",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-BracketLeft"
+  },
+  {
+   "name": "BracketRight",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-BracketRight"
+  },
+  {
+   "name": "BrowserBack",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-BrowserBack"
+  },
+  {
+   "name": "BrowserFavorites",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-BrowserFavorites"
+  },
+  {
+   "name": "BrowserForward",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-BrowserForward"
+  },
+  {
+   "name": "BrowserHome",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-BrowserHome"
+  },
+  {
+   "name": "BrowserRefresh",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-BrowserRefresh"
+  },
+  {
+   "name": "BrowserSearch",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-BrowserSearch"
+  },
+  {
+   "name": "BrowserStop",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-BrowserStop"
+  },
+  {
+   "name": "CapsLock",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-CapsLock"
+  },
+  {
+   "name": "Comma",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Comma"
+  },
+  {
+   "name": "ContextMenu",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-ContextMenu"
+  },
+  {
+   "name": "ControlLeft",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-ControlLeft"
+  },
+  {
+   "name": "ControlRight",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-ControlRight"
+  },
+  {
+   "name": "Convert",
+   "group": "alphanumeric-functional-2",
+   "spec": "https://w3c.github.io/uievents-code/#code-Convert"
+  },
+  {
+   "name": "Copy",
+   "group": "legacy-editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Copy"
+  },
+  {
+   "name": "Cut",
+   "group": "legacy-editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Cut"
+  },
+  {
+   "name": "Delete",
+   "group": "controlpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Delete"
+  },
+  {
+   "name": "Digit0",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Digit0"
+  },
+  {
+   "name": "Digit1",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Digit1"
+  },
+  {
+   "name": "Digit2",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Digit2"
+  },
+  {
+   "name": "Digit3",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Digit3"
+  },
+  {
+   "name": "Digit4",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Digit4"
+  },
+  {
+   "name": "Digit5",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Digit5"
+  },
+  {
+   "name": "Digit6",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Digit6"
+  },
+  {
+   "name": "Digit7",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Digit7"
+  },
+  {
+   "name": "Digit8",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Digit8"
+  },
+  {
+   "name": "Digit9",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Digit9"
+  },
+  {
+   "name": "Eject",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Eject"
+  },
+  {
+   "name": "End",
+   "group": "controlpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-End"
+  },
+  {
+   "name": "Enter",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-Enter"
+  },
+  {
+   "name": "Equal",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Equal"
+  },
+  {
+   "name": "Escape",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-Escape"
+  },
+  {
+   "name": "F1",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F1"
+  },
+  {
+   "name": "F10",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F10"
+  },
+  {
+   "name": "F11",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F11"
+  },
+  {
+   "name": "F12",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F12"
+  },
+  {
+   "name": "F2",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F2"
+  },
+  {
+   "name": "F3",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F3"
+  },
+  {
+   "name": "F4",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F4"
+  },
+  {
+   "name": "F5",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F5"
+  },
+  {
+   "name": "F6",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F6"
+  },
+  {
+   "name": "F7",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F7"
+  },
+  {
+   "name": "F8",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F8"
+  },
+  {
+   "name": "F9",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-F9"
+  },
+  {
+   "name": "Find",
+   "group": "legacy-editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Find"
+  },
+  {
+   "name": "Fn",
+   "group": "function",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Fn"
+  },
+  {
+   "name": "FnLock",
+   "group": "function",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-FnLock"
+  },
+  {
+   "name": "Help",
+   "group": "controlpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Help"
+  },
+  {
+   "name": "Hiragana",
+   "group": "international",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Hiragana"
+  },
+  {
+   "name": "Home",
+   "group": "controlpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Home"
+  },
+  {
+   "name": "Hyper",
+   "group": "legacy-modifier",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Hyper"
+  },
+  {
+   "name": "Insert",
+   "group": "controlpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Insert"
+  },
+  {
+   "name": "IntlBackslash",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-IntlBackslash"
+  },
+  {
+   "name": "IntlRo",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-IntlRo"
+  },
+  {
+   "name": "IntlYen",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-IntlYen"
+  },
+  {
+   "name": "KanaMode",
+   "group": "alphanumeric-functional-2",
+   "spec": "https://w3c.github.io/uievents-code/#code-KanaMode"
+  },
+  {
+   "name": "Katakana",
+   "group": "international",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Katakana"
+  },
+  {
+   "name": "KeyA",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyA"
+  },
+  {
+   "name": "KeyB",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyB"
+  },
+  {
+   "name": "KeyC",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyC"
+  },
+  {
+   "name": "KeyD",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyD"
+  },
+  {
+   "name": "KeyE",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyE"
+  },
+  {
+   "name": "KeyF",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyF"
+  },
+  {
+   "name": "KeyG",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyG"
+  },
+  {
+   "name": "KeyH",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyH"
+  },
+  {
+   "name": "KeyI",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyI"
+  },
+  {
+   "name": "KeyJ",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyJ"
+  },
+  {
+   "name": "KeyK",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyK"
+  },
+  {
+   "name": "KeyL",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyL"
+  },
+  {
+   "name": "KeyM",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyM"
+  },
+  {
+   "name": "KeyN",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyN"
+  },
+  {
+   "name": "KeyO",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyO"
+  },
+  {
+   "name": "KeyP",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyP"
+  },
+  {
+   "name": "KeyQ",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyQ"
+  },
+  {
+   "name": "KeyR",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyR"
+  },
+  {
+   "name": "KeyS",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyS"
+  },
+  {
+   "name": "KeyT",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyT"
+  },
+  {
+   "name": "KeyU",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyU"
+  },
+  {
+   "name": "KeyV",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyV"
+  },
+  {
+   "name": "KeyW",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyW"
+  },
+  {
+   "name": "KeyX",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyX"
+  },
+  {
+   "name": "KeyY",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyY"
+  },
+  {
+   "name": "KeyZ",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-KeyZ"
+  },
+  {
+   "name": "Lang1",
+   "group": "alphanumeric-functional-2",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Lang1"
+  },
+  {
+   "name": "Lang2",
+   "group": "alphanumeric-functional-2",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Lang2"
+  },
+  {
+   "name": "Lang3",
+   "group": "alphanumeric-functional-2",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Lang3"
+  },
+  {
+   "name": "Lang4",
+   "group": "alphanumeric-functional-2",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Lang4"
+  },
+  {
+   "name": "Lang5",
+   "group": "alphanumeric-functional-2",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Lang5"
+  },
+  {
+   "name": "LaunchApp1",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-LaunchApp1"
+  },
+  {
+   "name": "LaunchApp2",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-LaunchApp2"
+  },
+  {
+   "name": "LaunchMail",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-LaunchMail"
+  },
+  {
+   "name": "MediaPlayPause",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-MediaPlayPause"
+  },
+  {
+   "name": "MediaSelect",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-MediaSelect"
+  },
+  {
+   "name": "MediaStop",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-MediaStop"
+  },
+  {
+   "name": "MediaTrackNext",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-MediaTrackNext"
+  },
+  {
+   "name": "MediaTrackPrevious",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-MediaTrackPrevious"
+  },
+  {
+   "name": "MetaLeft",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-MetaLeft"
+  },
+  {
+   "name": "MetaRight",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-MetaRight"
+  },
+  {
+   "name": "Minus",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Minus"
+  },
+  {
+   "name": "NonConvert",
+   "group": "alphanumeric-functional-2",
+   "spec": "https://w3c.github.io/uievents-code/#code-NonConvert"
+  },
+  {
+   "name": "NumLock",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-NumLock"
+  },
+  {
+   "name": "Numpad0",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Numpad0"
+  },
+  {
+   "name": "Numpad1",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Numpad1"
+  },
+  {
+   "name": "Numpad2",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Numpad2"
+  },
+  {
+   "name": "Numpad3",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Numpad3"
+  },
+  {
+   "name": "Numpad4",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Numpad4"
+  },
+  {
+   "name": "Numpad5",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Numpad5"
+  },
+  {
+   "name": "Numpad6",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Numpad6"
+  },
+  {
+   "name": "Numpad7",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Numpad7"
+  },
+  {
+   "name": "Numpad8",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Numpad8"
+  },
+  {
+   "name": "Numpad9",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-Numpad9"
+  },
+  {
+   "name": "NumpadAdd",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadAdd"
+  },
+  {
+   "name": "NumpadBackspace",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadBackspace"
+  },
+  {
+   "name": "NumpadClear",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadClear"
+  },
+  {
+   "name": "NumpadClearEntry",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadClearEntry"
+  },
+  {
+   "name": "NumpadComma",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadComma"
+  },
+  {
+   "name": "NumpadDecimal",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadDecimal"
+  },
+  {
+   "name": "NumpadDivide",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadDivide"
+  },
+  {
+   "name": "NumpadEnter",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadEnter"
+  },
+  {
+   "name": "NumpadEqual",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadEqual"
+  },
+  {
+   "name": "NumpadHash",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadHash"
+  },
+  {
+   "name": "NumpadMemoryAdd",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadMemoryAdd"
+  },
+  {
+   "name": "NumpadMemoryClear",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadMemoryClear"
+  },
+  {
+   "name": "NumpadMemoryRecall",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadMemoryRecall"
+  },
+  {
+   "name": "NumpadMemoryStore",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadMemoryStore"
+  },
+  {
+   "name": "NumpadMemorySubtract",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadMemorySubtract"
+  },
+  {
+   "name": "NumpadMultiply",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadMultiply"
+  },
+  {
+   "name": "NumpadParenLeft",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadParenLeft"
+  },
+  {
+   "name": "NumpadParenRight",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadParenRight"
+  },
+  {
+   "name": "NumpadStar",
+   "group": "numpad",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadStar"
+  },
+  {
+   "name": "NumpadSubtract",
+   "group": "numpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-NumpadSubtract"
+  },
+  {
+   "name": "Open",
+   "group": "legacy-editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Open"
+  },
+  {
+   "name": "PageDown",
+   "group": "controlpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-PageDown"
+  },
+  {
+   "name": "PageUp",
+   "group": "controlpad",
+   "spec": "https://w3c.github.io/uievents-code/#code-PageUp"
+  },
+  {
+   "name": "Paste",
+   "group": "legacy-editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Paste"
+  },
+  {
+   "name": "Pause",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-Pause"
+  },
+  {
+   "name": "Period",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Period"
+  },
+  {
+   "name": "Power",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Power"
+  },
+  {
+   "name": "PrintScreen",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-PrintScreen"
+  },
+  {
+   "name": "Props",
+   "group": "legacy-editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Props"
+  },
+  {
+   "name": "Quote",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Quote"
+  },
+  {
+   "name": "Resume",
+   "group": "legacy-process",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Resume"
+  },
+  {
+   "name": "ScrollLock",
+   "group": "function",
+   "spec": "https://w3c.github.io/uievents-code/#code-ScrollLock"
+  },
+  {
+   "name": "Select",
+   "group": "legacy-editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Select"
+  },
+  {
+   "name": "Semicolon",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Semicolon"
+  },
+  {
+   "name": "ShiftLeft",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-ShiftLeft"
+  },
+  {
+   "name": "ShiftRight",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-ShiftRight"
+  },
+  {
+   "name": "Slash",
+   "group": "alphanumeric-writing-system",
+   "spec": "https://w3c.github.io/uievents-code/#code-Slash"
+  },
+  {
+   "name": "Sleep",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Sleep"
+  },
+  {
+   "name": "Space",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-Space"
+  },
+  {
+   "name": "Super",
+   "group": "legacy-modifier",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Super"
+  },
+  {
+   "name": "Suspend",
+   "group": "legacy-process",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Suspend"
+  },
+  {
+   "name": "Tab",
+   "group": "alphanumeric-functional-1",
+   "spec": "https://w3c.github.io/uievents-code/#code-Tab"
+  },
+  {
+   "name": "Turbo",
+   "group": "legacy-modifier",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Turbo"
+  },
+  {
+   "name": "Undo",
+   "group": "legacy-editing",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-Undo"
+  },
+  {
+   "name": "Unidentified",
+   "group": "special",
+   "spec": "https://w3c.github.io/uievents-code/#code-Unidentified"
+  },
+  {
+   "name": "WakeUp",
+   "group": "media",
+   "optional": true,
+   "spec": "https://w3c.github.io/uievents-code/#code-WakeUp"
+  }
+ ]
 }

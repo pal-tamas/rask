@@ -546,7 +546,10 @@ public abstract partial class SharedSmokeTests
         await eSurface.Locator("div[tabindex='0']").ClickAsync();
         await Expect(eSurface).ToContainTextAsync("focused", contains);
         await Page.Keyboard.PressAsync("q");
-        await Expect(eSurface).ToContainTextAsync("last key: q", contains);
+        await Expect(eSurface).ToContainTextAsync("last key: q · code: KeyQ", contains);
+        // Keys.Escape (a generated UI Events constant) is what the handler matches to clear the readout.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(eSurface).ToContainTextAsync("last key: — · code: —", contains);
 
         // A paste's text crosses as MDN's ClipboardEvent.clipboardData — read by format with GetData, the
         // way JavaScript reads it — so the paste box proves the snapshotted DataTransfer, not a bare string.

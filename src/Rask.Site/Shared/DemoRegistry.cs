@@ -327,8 +327,9 @@ public static partial class DemoRegistry
                 .Files(["EventsDemo.cs"])
                 .Notes("Every handler just mutates a field; the framework re-renders the component that owns the "
                 + "callback, so the readouts update on their own. MouseEvent carries button/coords/modifiers, "
-                + "WheelEvent adds deltas, ClipboardEvent the pasted text. Wiring both OnX and OnXAsync "
-                + "for one event is not expressible: one name, one slot.")
+                + "WheelEvent adds deltas, ClipboardEvent the pasted text. "
+                + "KeyboardEvent's Key and Code compare against Keys.Escape / Codes.KeyQ, UI Events' values as "
+                + "generated constants. Wiring both OnX and OnXAsync for one event is not expressible: one name, one slot.")
                 .Result(EventsDemo),
             ["events-click"] = () => CodeSample.Files(["EventsClickDemo.cs"]).Result(EventsClickDemo),
             ["events-input"] = () => CodeSample.Files(["EventsInputDemo.cs"]).Result(EventsInputDemo),

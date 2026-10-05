@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Dom;
 /// </summary>
 public class MdnSnapshotTests
 {
-    private static readonly JsonElement Snapshot = Load();
+    private static readonly JsonElement Snapshot = MdnSnapshot.Root;
 
     [Fact]
     public void Every_tag_Rask_renders_is_an_element_MDN_ships()
@@ -78,15 +78,5 @@ public class MdnSnapshotTests
                 continue;
             yield return (typeof(SVGElement).IsAssignableFrom(type) ? "svg:" : "html:") + tag;
         }
-    }
-
-    private static JsonElement Load()
-    {
-        for (var dir = AppContext.BaseDirectory; dir is not null; dir = Path.GetDirectoryName(dir))
-        {
-            if (File.Exists(Path.Combine(dir, "Rask.slnx")))
-                return JsonDocument.Parse(File.ReadAllText(Path.Combine(dir, "src", "Rask.Core", "Dom", "mdn.snapshot.json"))).RootElement;
-        }
-        throw new InvalidOperationException("Rask.slnx not found above the test output.");
     }
 }

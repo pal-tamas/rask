@@ -382,7 +382,7 @@ public sealed partial class UiTree<T, TKey> : Component
         var row = rows[at];
         switch (e.Key)
         {
-            case "ArrowRight":
+            case Keys.ArrowRight:
                 if (row.HasChildren && !row.IsExpanded)
                 {
                     await SetExpandedAsync([row.Key], true).ConfigureAwait(false);
@@ -393,7 +393,7 @@ public sealed partial class UiTree<T, TKey> : Component
                 }
 
                 break;
-            case "ArrowLeft":
+            case Keys.ArrowLeft:
                 if (row.IsExpanded)
                 {
                     await SetExpandedAsync([row.Key], false).ConfigureAwait(false);
@@ -409,7 +409,7 @@ public sealed partial class UiTree<T, TKey> : Component
                         [.. UiTreeNav.Siblings(rows, at).Where(r => r.HasChildren).Select(r => r.Key)], true)
                     .ConfigureAwait(false);
                 break;
-            case "Enter":
+            case Keys.Enter:
                 await ActivateAsync(row, enter: true).ConfigureAwait(false);
                 break;
             case " ":
@@ -424,12 +424,12 @@ public sealed partial class UiTree<T, TKey> : Component
     // Where a key that only moves the cursor moves it to, or null for a key that does something else.
     private int? Destination(string key, int at, int count) => key switch
     {
-        "ArrowDown" => Math.Min(at + 1, count - 1),
-        "ArrowUp" => Math.Max(at - 1, 0),
-        "Home" => 0,
-        "End" => count - 1,
-        "PageDown" => Math.Min(at + Page, count - 1),
-        "PageUp" => Math.Max(at - Page, 0),
+        Keys.ArrowDown => Math.Min(at + 1, count - 1),
+        Keys.ArrowUp => Math.Max(at - 1, 0),
+        Keys.Home => 0,
+        Keys.End => count - 1,
+        Keys.PageDown => Math.Min(at + Page, count - 1),
+        Keys.PageUp => Math.Max(at - Page, 0),
         _ => null,
     };
 

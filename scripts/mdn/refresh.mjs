@@ -107,6 +107,47 @@ for (const [file, ns] of [["html", "html"], ["SVG2", "svg"], ["filter-effects-1"
   }
 }
 
+// ---- KeyboardEvent key and code values -----------------------------------------------------------
+// UI Events keeps them in two specs of their own (uievents-key, uievents-code) whose tables no package carries, so each
+// is read from its gh-pages source, pinned to the commit read. Every value must be an anchor of the published spec, as
+// webref's id index (the commit above) lists it: a table this parser misread fails the refresh instead of shipping.
+const head = async (repo, branch) =>
+  (await (await fetch(`https://api.github.com/repos/${repo}/commits/${branch}`, { headers: { accept: "application/vnd.github+json" } })).json()).sha;
+const uieventsSha = {
+  key: process.env.RASK_MDN_UIEVENTS_KEY || await head("w3c/uievents-key", "gh-pages"),
+  code: process.env.RASK_MDN_UIEVENTS_CODE || await head("w3c/uievents-code", "gh-pages"),
+};
+async function keyboardValues(kind) {
+  const sha = uieventsSha[kind];
+  if (!sha) throw new Error(`could not resolve w3c/uievents-${kind}'s gh-pages branch`);
+  const source = await fetch(`https://raw.githubusercontent.com/w3c/uievents-${kind}/${sha}/index-source.txt`);
+  if (!source.ok) throw new Error(`uievents-${kind} source: HTTP ${source.status}`);
+  const ids = await fetch(`https://raw.githubusercontent.com/w3c/webref/${webrefSha}/ed/ids/uievents-${kind}.json`);
+  if (!ids.ok) throw new Error(`webref ids uievents-${kind}: HTTP ${ids.status}`);
+  const anchors = new Set((await ids.json()).ids);
+  // `BEGIN_KEY_TABLE navigation` … `KEY ArrowDown <prose>` … `END_KEY_TABLE`. A `_OPT` row is one the spec's "Required"
+  // column says No to; a `_DUP` row repeats a value another table defines, and is skipped.
+  const TABLE = kind.toUpperCase();
+  const begin = new RegExp(`^\\s*BEGIN_${TABLE}_TABLE\\s+([\\w-]+)`), end = new RegExp(`^\\s*END_${TABLE}_TABLE\\b`);
+  const row = new RegExp(`^\\s*${TABLE}(_OPT)?\\s+(\\w+)(?:\\s|$)`);
+  const values = [];
+  let group = null;
+  for (const line of (await source.text()).split("\n")) {
+    if (begin.test(line)) group = line.match(begin)[1];
+    else if (end.test(line)) group = null;
+    else if (group && row.test(line)) {
+      const [, optional, name] = line.match(row);
+      const spec = `https://w3c.github.io/uievents-${kind}/#${kind}-${name}`;
+      if (!anchors.has(spec)) throw new Error(`uievents-${kind}: ${name} has no anchor in the published spec`);
+      if (values.some(v => v.name === name)) throw new Error(`uievents-${kind}: ${name} is defined twice`);
+      values.push({ name, group, optional: optional ? true : undefined, spec });
+    }
+  }
+  if (values.length === 0) throw new Error(`uievents-${kind}: no ${kind} table found`);
+  return values.sort((a, b) => a.name.localeCompare(b.name));
+}
+const keys = await keyboardValues("key"), codes = await keyboardValues("code");
+
 // ---- IDL: merge partials and mixins -------------------------------------------------------------
 const interfaces = new Map(), mixins = new Map(), includes = [], enums = new Map(), dictionaries = new Map(), callbacks = new Map(), typedefs = new Map();
 // The members a [SecureContext] interface, partial or mixin declares: they exist only on an HTTPS (or localhost) page.
@@ -463,7 +504,8 @@ const sortObj = o => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.l
 
 const snapshot = {
   schema: 1,
-  sources: { ...Object.fromEntries(["@mdn/browser-compat-data", "@webref/elements", "@webref/events", "@webref/idl", "webidl2"].map(p => [p, version(p)])), "webref/dfns": webrefSha },
+  sources: { ...Object.fromEntries(["@mdn/browser-compat-data", "@webref/elements", "@webref/events", "@webref/idl", "webidl2"].map(p => [p, version(p)])), "webref/dfns": webrefSha,
+    "w3c/uievents-code": uieventsSha.code, "w3c/uievents-key": uieventsSha.key },
   engines: Object.keys(ENGINES),
   elements,
   // Each global attribute with the IDL attribute that reflects it, searched from HTMLElement / SVGElement up.
@@ -478,6 +520,9 @@ const snapshot = {
   enums: sortObj(reachedEnums),
   dictionaries: sortObj(reachedDicts),
   callbacks: sortObj(reachedCallbacks),
+  // KeyboardEvent.key's named values and KeyboardEvent.code's values, each with its table and spec anchor.
+  keys,
+  codes,
 };
 writeFileSync(out, JSON.stringify(snapshot, null, 1) + "\n");
-console.log(`${elements.length} elements, ${events.length} events, ${Object.keys(interfaceOut).length} interfaces → ${out}`);
+console.log(`${elements.length} elements, ${events.length} events, ${Object.keys(interfaceOut).length} interfaces, ${keys.length} keys, ${codes.length} codes → ${out}`);

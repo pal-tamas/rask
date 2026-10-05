@@ -102,7 +102,11 @@ Pass a **bare lambda or method group** — `.OnMouseMove(e => { _x = e.OffsetX; 
   `ChangedTouches` — lists of `Touch` in MDN's shape).
 - **Keyboard** — `OnKeyDown`/`OnKeyUp` (`KeyboardEvent`: `Key` `"Escape"`, `Code` `"KeyA"`,
   `ShiftKey`/`CtrlKey`/`AltKey`/`MetaKey`, `Repeat`). Never `preventDefault`-ed, so handlers compose
-  with normal typing.
+  with normal typing. Compare against **`Keys`** and **`Codes`** rather than string literals: one
+  constant per value [UI Events](https://w3c.github.io/uievents-key/) defines (`Keys.Escape`,
+  `Keys.ArrowDown`, `Codes.KeyQ`, `Codes.Space`), generated with the elements, so a typo is a compile
+  error and they work as patterns and switch cases — `e.Key is Keys.Escape`, `case Keys.Home or Keys.PageUp:`.
+  A key that types a character reports the character (`"q"`, `" "`), which no constant names.
 - **Clipboard** — `OnCopy`/`OnCut`/`OnPaste` (`ClipboardEvent.ClipboardData.GetData("text/plain")`).
 - **Focus, forms, drag** — `OnFocus`/`OnBlur`/`OnFocusIn`/`OnFocusOut` (`FocusEvent`),
   `OnBeforeInput` (`InputEvent`: `Data`, `InputType`), `OnSelect`/`OnInvalid`/`OnReset`, and the drag
@@ -127,7 +131,7 @@ DOM, where handler-owner resolution already re-renders the owner.
 
 All of these are delegated by a single capture-phase listener per event in the shared client module
 (`rask-events.ts`, imported by both the Server and WASM runtimes), so there is no per-element JS. The
-Todos sample uses `OnKeyDown` to close its dialog on Escape (it focuses the `<dialog>` on open via an
+Todos sample uses `OnKeyDown` to close its dialog on Escape (`e.Key is Keys.Escape`) (it focuses the `<dialog>` on open via an
 `ElementRef`, since a diff-inserted element never fires the HTML `autofocus` attribute).
 
 The full surface, live — every readout updates from a plain field mutation, no `StateHasChanged`:

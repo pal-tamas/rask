@@ -523,7 +523,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
 
         if (!_open)
         {
-            if (e.Key is "ArrowDown" or "ArrowUp" or "Enter" or " ")
+            if (e.Key is Keys.ArrowDown or Keys.ArrowUp or Keys.Enter or " ")
             {
                 _cursor = UiSelectNav.Seed(FirstChosen(flat, chosen), count, off);
             }
@@ -533,19 +533,19 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
 
         switch (e.Key)
         {
-            case "ArrowDown":
+            case Keys.ArrowDown:
                 _cursor = UiSelectNav.Step(cursor, 1, count, off);
                 break;
-            case "ArrowUp":
+            case Keys.ArrowUp:
                 _cursor = UiSelectNav.Step(cursor, -1, count, off);
                 break;
-            case "Home":
+            case Keys.Home:
                 _cursor = UiSelectNav.FirstEnabled(count, off);
                 break;
-            case "End":
+            case Keys.End:
                 _cursor = UiSelectNav.LastEnabled(count, off);
                 break;
-            case "Enter":
+            case Keys.Enter:
             // In the search field Space types a space. Toggling on it there would make the box refuse
             // the one character a multi-word search needs most.
             case " " when !fromSearch:
