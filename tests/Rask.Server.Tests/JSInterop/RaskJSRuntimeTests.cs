@@ -130,7 +130,7 @@ public class RaskJSRuntimeTests
         //         await js.InvokeVoidAsync("foo");
         // (a hook that runs after EVERY render) used to drive an infinite render
         // loop. Two paths fed it: (1) the Rendered continuation auto-rerendered
-        // on completion; (2) BeginInvokeJS unconditionally called RequestRenderAsync,
+        // on completion; (2) BeginInvokeJS unconditionally called RequestRender,
         // which scheduled another render → another Rendered → another
         // BeginInvokeJS → loop. Both paths are closed; this test exercises the
         // in-render-walk path through a real session.

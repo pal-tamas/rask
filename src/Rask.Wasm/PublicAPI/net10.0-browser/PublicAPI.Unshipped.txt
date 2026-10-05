@@ -2,18 +2,18 @@
 Rask.Wasm.Authentication.WasmAuthSignIn
 Rask.Wasm.Authentication.WasmAuthSignIn.LogoutPath.get -> string!
 Rask.Wasm.Authentication.WasmAuthSignIn.LogoutPath.init -> void
-Rask.Wasm.Authentication.WasmAuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
+Rask.Wasm.Authentication.WasmAuthSignIn.SignOut(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Wasm.Browser.BackgroundSync
 Rask.Wasm.Browser.BackgroundSync.BackgroundSync(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Wasm.Browser.BackgroundSync.GetPendingTagsAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
-Rask.Wasm.Browser.BackgroundSync.GetPeriodicPermissionAsync() -> System.Threading.Tasks.ValueTask<string!>
-Rask.Wasm.Browser.BackgroundSync.GetPeriodicTagsAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
-Rask.Wasm.Browser.BackgroundSync.IsPeriodicSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.BackgroundSync.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.BackgroundSync.OnSyncAsync(System.Func<Rask.Wasm.Browser.BackgroundSyncEvent!, System.Threading.Tasks.Task!>! onSync) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Wasm.Browser.BackgroundSync.RequestPeriodicSyncAsync(string! tag, System.TimeSpan minInterval) -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.BackgroundSync.RequestSyncAsync(string! tag) -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.BackgroundSync.UnregisterPeriodicAsync(string! tag) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.BackgroundSync.GetPendingTags() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.Wasm.Browser.BackgroundSync.GetPeriodicPermission() -> System.Threading.Tasks.ValueTask<string!>
+Rask.Wasm.Browser.BackgroundSync.GetPeriodicTags() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.Wasm.Browser.BackgroundSync.IsPeriodicSupported() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.BackgroundSync.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.BackgroundSync.OnSync(System.Func<Rask.Wasm.Browser.BackgroundSyncEvent!, System.Threading.Tasks.Task!>! onSync) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Wasm.Browser.BackgroundSync.RequestPeriodicSync(string! tag, System.TimeSpan minInterval) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.BackgroundSync.RequestSync(string! tag) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.BackgroundSync.UnregisterPeriodic(string! tag) -> System.Threading.Tasks.ValueTask
 Rask.Wasm.Browser.BackgroundSyncEvent
 Rask.Wasm.Browser.BackgroundSyncEvent.<Clone>$() -> Rask.Wasm.Browser.BackgroundSyncEvent!
 Rask.Wasm.Browser.BackgroundSyncEvent.BackgroundSyncEvent(string! Tag, bool Periodic) -> void
@@ -25,19 +25,19 @@ Rask.Wasm.Browser.BackgroundSyncEvent.Tag.get -> string!
 Rask.Wasm.Browser.BackgroundSyncEvent.Tag.init -> void
 Rask.Wasm.Browser.BackgroundSyncInterop
 Rask.Wasm.Browser.IBackgroundSync
-Rask.Wasm.Browser.IBackgroundSync.GetPendingTagsAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
-Rask.Wasm.Browser.IBackgroundSync.GetPeriodicPermissionAsync() -> System.Threading.Tasks.ValueTask<string!>
-Rask.Wasm.Browser.IBackgroundSync.GetPeriodicTagsAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
-Rask.Wasm.Browser.IBackgroundSync.IsPeriodicSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.IBackgroundSync.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.IBackgroundSync.OnSyncAsync(System.Func<Rask.Wasm.Browser.BackgroundSyncEvent!, System.Threading.Tasks.Task!>! onSync) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Wasm.Browser.IBackgroundSync.RequestPeriodicSyncAsync(string! tag, System.TimeSpan minInterval) -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.IBackgroundSync.RequestSyncAsync(string! tag) -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.IBackgroundSync.UnregisterPeriodicAsync(string! tag) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IBackgroundSync.GetPendingTags() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.Wasm.Browser.IBackgroundSync.GetPeriodicPermission() -> System.Threading.Tasks.ValueTask<string!>
+Rask.Wasm.Browser.IBackgroundSync.GetPeriodicTags() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.Wasm.Browser.IBackgroundSync.IsPeriodicSupported() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IBackgroundSync.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IBackgroundSync.OnSync(System.Func<Rask.Wasm.Browser.BackgroundSyncEvent!, System.Threading.Tasks.Task!>! onSync) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Wasm.Browser.IBackgroundSync.RequestPeriodicSync(string! tag, System.TimeSpan minInterval) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IBackgroundSync.RequestSync(string! tag) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IBackgroundSync.UnregisterPeriodic(string! tag) -> System.Threading.Tasks.ValueTask
 Rask.Wasm.Browser.RaskWasmBrowserApis
 Rask.Wasm.RaskWasmBatteryRegistry
 Rask.Wasm.WasmHostBuilder
-Rask.Wasm.WasmHostBuilder.RunAsync<TApp>() -> System.Threading.Tasks.Task!
+Rask.Wasm.WasmHostBuilder.Run<TApp>() -> System.Threading.Tasks.Task!
 Rask.Wasm.WasmHostBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Wasm.WasmHostBuilder.UseCulture(System.Action<Rask.Core.Globalization.RaskCultureOptions!>! configure) -> Rask.Wasm.WasmHostBuilder!
 Rask.Wasm.WasmHostBuilder.UsePwa(Rask.Core.Browser.WebAppManifest! manifest) -> Rask.Wasm.WasmHostBuilder!
@@ -58,7 +58,7 @@ static Rask.Wasm.RaskWasmBatteryRegistry.Use(System.Action<Rask.Wasm.WasmHostBui
 static Rask.Wasm.WasmHostBuilder.BaseAddress.get -> string!
 static Rask.Wasm.WasmHostBuilder.CreateDefault() -> Rask.Wasm.WasmHostBuilder!
 static Rask.Wasm.WasmHostBuilder.CreateDefault(System.Action<Rask.Core.Live.RaskLiveOptions!>? configureLive) -> Rask.Wasm.WasmHostBuilder!
-Rask.Wasm.Authentication.WasmAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
+Rask.Wasm.Authentication.WasmAuthSignIn.SignIn(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
 Rask.RaskWasmOptions
 Rask.RaskWasmOptions.Cqrs.get -> Rask.Battery!
 Rask.RaskWasmOptions.Query.get -> Rask.Battery!

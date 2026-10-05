@@ -35,13 +35,13 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
                         .OnInput(v => _input = v)
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    Ui.Button.Primary.Id("demo-set").OnClick(SetAsync)[Ui.Icon.Name(Ui.IconName.Save), "Set"],
+                    Ui.Button.Primary.Id("demo-set").OnClick(Set)[Ui.Icon.Name(Ui.IconName.Save), "Set"],
                     Ui.Button.Primary.Outline
                         .Id("demo-read")
-                        .OnClick(ReadAsync)[Ui.Icon.Name(Ui.IconName.Retry), "Read"],
+                        .OnClick(Read)[Ui.Icon.Name(Ui.IconName.Retry), "Read"],
                     Ui.Button.Error.Outline
                         .Id("demo-remove")
-                        .OnClick(RemoveAsync)[Ui.Icon.Name(Ui.IconName.Trash), "Remove"]
+                        .OnClick(Remove)[Ui.Icon.Name(Ui.IconName.Trash), "Remove"]
                 ],
                 Div.Class("mb-2")[
                     Span.Class("text-ui-muted text-sm uppercase")["Last read"],
@@ -53,7 +53,7 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
                 ]
             ];
 
-    private async Task SetAsync()
+    private async Task Set()
     {
         try
         {
@@ -66,7 +66,7 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
         }
     }
 
-    private async Task ReadAsync()
+    private async Task Read()
     {
         try
         {
@@ -79,7 +79,7 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
         }
     }
 
-    private async Task RemoveAsync()
+    private async Task Remove()
     {
         try
         {

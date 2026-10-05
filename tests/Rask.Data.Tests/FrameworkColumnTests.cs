@@ -46,9 +46,9 @@ public sealed class FrameworkColumnTests : IDisposable
         await Receipt.Delete(gone.Id, cancellationToken: TestContext.Current.CancellationToken);
 
         // Gone means gone: not hidden by a filter, actually absent from the table.
-        Assert.Null(await database.LoadAsync<Receipt>(gone.Id, TestContext.Current.CancellationToken));
+        Assert.Null(await database.Load<Receipt>(gone.Id, TestContext.Current.CancellationToken));
         Assert.Equal(0, await Receipt.IgnoreQueryFilters().Count(r => r.Id == gone.Id, TestContext.Current.CancellationToken));
-        Assert.NotNull(await database.LoadAsync<Receipt>(kept.Id, TestContext.Current.CancellationToken));
+        Assert.NotNull(await database.Load<Receipt>(kept.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public sealed class FrameworkColumnTests : IDisposable
         memo.Edit("twice");
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var stored = (await database.LoadAsync<Memo>(memo.Id, TestContext.Current.CancellationToken))!;
+        var stored = (await database.Load<Memo>(memo.Id, TestContext.Current.CancellationToken))!;
         Assert.Equal("twice", stored.Text);
         Assert.Equal(start.UtcDateTime, stored.CreatedAt);
         Assert.Equal(start.AddHours(1).UtcDateTime, stored.UpdatedAt);
@@ -130,7 +130,7 @@ public sealed class FrameworkColumnTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync(TimeProvider? clock = null) =>
-        TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"), clock);
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), clock);
 }
 
 /// <summary>An append-only table: written once, never changed, so it declines <c>UpdatedAt</c>.</summary>

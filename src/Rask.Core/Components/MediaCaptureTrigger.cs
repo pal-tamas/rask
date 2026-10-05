@@ -39,7 +39,7 @@ public sealed class MediaCaptureTrigger : Component
     ///     Invoked with a handle to the started <c>MediaStream</c>, kept in the browser until you dispose of it, so
     ///     the stream stays reachable from C# after the gesture: Rask.Web's <c>MediaStream.From(stream)</c> is MDN's
     ///     <c>MediaStream</c> on it (<c>GetTracks()</c>, then <c>Stop()</c> each, to release the camera), and
-    ///     <c>IPeerConnection.AddStreamAsync</c> sends it to a peer. Not invoked when the user refuses. This is the
+    ///     <c>IPeerConnection.AddStream</c> sends it to a peer. Not invoked when the user refuses. This is the
     ///     only way a <b>Server</b>-hosted app can hold on to a captured stream.
     /// </summary>
     public Callback<IJSObjectReference> OnStream { get; set; }

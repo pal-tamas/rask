@@ -31,8 +31,8 @@ public sealed class CliWrapLitestreamExecutorTests
 
         var executor = CreateExecutor("sh");
 
-        Assert.Equal(0, await executor.RunAsync(["-c", "exit 0"], CancellationToken.None));
-        Assert.Equal(3, await executor.RunAsync(["-c", "exit 3"], CancellationToken.None));
+        Assert.Equal(0, await executor.Run(["-c", "exit 0"], CancellationToken.None));
+        Assert.Equal(3, await executor.Run(["-c", "exit 3"], CancellationToken.None));
     }
 
     [Fact]
@@ -47,6 +47,6 @@ public sealed class CliWrapLitestreamExecutorTests
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => executor.RunAsync(["30"], cts.Token));
+            () => executor.Run(["30"], cts.Token));
     }
 }

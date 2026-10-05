@@ -19,7 +19,7 @@ public sealed record RtcHandlers
     public Func<RtcConnectionState, Task>? OnConnectionStateChanged { get; init; }
 
     /// <summary>
-    ///     The <b>remote</b> peer opened a data channel. Call <see cref="IRtcDataChannel.ListenAsync" /> on
+    ///     The <b>remote</b> peer opened a data channel. Call <see cref="IRtcDataChannel.Listen" /> on
     ///     it to start receiving; anything the peer already sent is buffered and arrives in the first batch.
     /// </summary>
     public Func<IRtcDataChannel, Task>? OnDataChannel { get; init; }

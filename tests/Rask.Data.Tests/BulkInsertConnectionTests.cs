@@ -37,7 +37,7 @@ public sealed class BulkInsertConnectionTests : IDisposable
         await using var db = NewContext();
         var before = _opens.Count;
 
-        await db.BulkInsertAsync(Widgets(5), o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken);
+        await db.BulkInsert(Widgets(5), o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(_opens.Count > before, "the fast path opened its connection without EF's interceptors running");
     }
@@ -48,7 +48,7 @@ public sealed class BulkInsertConnectionTests : IDisposable
         await using var db = NewContext();
         await db.Database.OpenConnectionAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        await db.BulkInsertAsync(Widgets(5), o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken);
+        await db.BulkInsert(Widgets(5), o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ConnectionState.Open, db.Database.GetDbConnection().State);
         Assert.Equal(5, await db.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
@@ -59,7 +59,7 @@ public sealed class BulkInsertConnectionTests : IDisposable
     {
         await using var db = NewContext();
 
-        await db.BulkInsertAsync(Widgets(5), o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken);
+        await db.BulkInsert(Widgets(5), o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ConnectionState.Closed, db.Database.GetDbConnection().State);
     }

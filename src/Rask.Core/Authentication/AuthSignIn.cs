@@ -7,7 +7,7 @@ public sealed class AuthSignIn : IAuthSignIn
     private bool _inHandler;
     private PendingAuth? _pending;
 
-    public Task SignInAsync(
+    public Task SignIn(
         ClaimsPrincipal principal, string? returnUrl = null, string? scheme = null, bool persistent = false)
     {
         EnsureInHandler();
@@ -16,7 +16,7 @@ public sealed class AuthSignIn : IAuthSignIn
         return Task.CompletedTask;
     }
 
-    public Task SignOutAsync(string? returnUrl = null, string? scheme = null)
+    public Task SignOut(string? returnUrl = null, string? scheme = null)
     {
         EnsureInHandler();
         _pending = PendingAuth.SignOut(returnUrl, scheme);

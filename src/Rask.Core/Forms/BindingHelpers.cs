@@ -168,7 +168,7 @@ public static class BindingHelpers
     // changed and touched, then re-validates it. No-op when there is no ambient context (the control is
     // rendered outside a Form / live render). Mirrors what the bound Input/Select/Textarea handlers do, so
     // a hand-written control drives validation the same way. See docs/forms.md §9.
-    public static async Task NotifyAndValidateFieldAsync(EditContext? ctx, FieldIdentifier field)
+    public static async Task NotifyAndValidateField(EditContext? ctx, FieldIdentifier field)
     {
         if (ctx is null)
         {

@@ -37,7 +37,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
 
     protected override async Task OnFirstRender()
     {
-        _supported = await rtc.IsSupportedAsync();
+        _supported = await rtc.IsSupported();
         if (!_supported)
         {
             StateHasChanged();
@@ -54,11 +54,11 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
                             Ui.Button.Primary
                                 .Id("rtc-connect")
                                 .Disabled(_connecting)
-                                .OnClick(ConnectAsync)["Connect the two peers"],
+                                .OnClick(Connect)["Connect the two peers"],
                             Ui.Button.Secondary
                                 .Id("rtc-send")
                                 .Disabled(!_everConnected)
-                                .OnClick(SendAsync)["Send a message"]
+                                .OnClick(Send)["Send a message"]
                         ],
                         Div.Class("text-sm text-ui-muted mb-1")[
                             "Connection state: ", Span.Id("rtc-state")[_state]],
@@ -75,7 +75,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
             ? Div.Class("text-sm text-ui-muted italic").Id("rtc-log")["(nothing yet)"]
             : Ul.Class("text-sm mb-0").Id("rtc-log")[_log.Select(m => Li.Key(m)[m])];
 
-    private async Task ConnectAsync()
+    private async Task Connect()
     {
         if (_connecting)
         {
@@ -87,9 +87,9 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
         StateHasChanged();
 
         // The caller. Its local candidates belong to the callee — in a real app, this is a signaling send.
-        _caller = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers
+        _caller = await rtc.Create(new RtcConfiguration(), new RtcHandlers
         {
-            OnIceCandidates = candidates => DeliverAsync(candidates, toCaller: false),
+            OnIceCandidates = candidates => Deliver(candidates, toCaller: false),
             OnConnectionStateChanged = state =>
             {
                 _state = state.ToString().ToLowerInvariant();
@@ -100,32 +100,32 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
         });
 
         // The callee. It learns about the channel through OnDataChannel, the way a remote peer always does.
-        _callee = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers
+        _callee = await rtc.Create(new RtcConfiguration(), new RtcHandlers
         {
-            OnIceCandidates = candidates => DeliverAsync(candidates, toCaller: true),
-            OnDataChannel = channel => channel.ListenAsync(ReceiveAsync).AsTask()
+            OnIceCandidates = candidates => Deliver(candidates, toCaller: true),
+            OnDataChannel = channel => channel.Listen(Receive).AsTask()
         });
 
-        _chat = await _caller.CreateDataChannelAsync("chat");
-        await _chat.ListenAsync(ReceiveAsync);
+        _chat = await _caller.CreateDataChannel("chat");
+        await _chat.Listen(Receive);
 
-        var offer = await _caller.CreateOfferAsync();
-        await _caller.SetLocalDescriptionAsync(offer);
-        await _callee.SetRemoteDescriptionAsync(offer);
+        var offer = await _caller.CreateOffer();
+        await _caller.SetLocalDescription(offer);
+        await _callee.SetRemoteDescription(offer);
         _calleeReady = true;
 
-        var answer = await _callee.CreateAnswerAsync();
-        await _callee.SetLocalDescriptionAsync(answer);
-        await _caller.SetRemoteDescriptionAsync(answer);
+        var answer = await _callee.CreateAnswer();
+        await _callee.SetLocalDescription(answer);
+        await _caller.SetRemoteDescription(answer);
         _callerReady = true;
 
-        await FlushAsync();
+        await Flush();
         StateHasChanged();
     }
 
     // Hands a batch of candidates to the other peer, holding them back until that peer has a remote
     // description. addIceCandidate throws before then, and gathering can easily outrun the answer.
-    private async Task DeliverAsync(IReadOnlyList<RtcIceCandidate> candidates, bool toCaller)
+    private async Task Deliver(IReadOnlyList<RtcIceCandidate> candidates, bool toCaller)
     {
         var target = toCaller ? _caller : _callee;
         var ready = toCaller ? _callerReady : _calleeReady;
@@ -144,17 +144,17 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
 
         foreach (var candidate in candidates)
         {
-            await target.AddIceCandidateAsync(candidate);
+            await target.AddIceCandidate(candidate);
         }
     }
 
-    private async Task FlushAsync()
+    private async Task Flush()
     {
-        await DrainAsync(_pendingForCaller, _caller, _callerReady);
-        await DrainAsync(_pendingForCallee, _callee, _calleeReady);
+        await Drain(_pendingForCaller, _caller, _callerReady);
+        await Drain(_pendingForCallee, _callee, _calleeReady);
         return;
 
-        static async Task DrainAsync(List<RtcIceCandidate> pending, IPeerConnection? target, bool ready)
+        static async Task Drain(List<RtcIceCandidate> pending, IPeerConnection? target, bool ready)
         {
             if (target is null || !ready)
             {
@@ -165,23 +165,23 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
             pending.Clear();
             foreach (var candidate in buffered)
             {
-                await target.AddIceCandidateAsync(candidate);
+                await target.AddIceCandidate(candidate);
             }
         }
     }
 
-    private async Task SendAsync()
+    private async Task Send()
     {
         if (_chat is null)
         {
             return;
         }
 
-        await _chat.SendAsync($"Message #{++_sent}");
+        await _chat.Send($"Message #{++_sent}");
     }
 
     // The browser pushes here, so state changes need StateHasChanged() — a subscription, not a binding.
-    private Task ReceiveAsync(IReadOnlyList<RtcMessage> messages)
+    private Task Receive(IReadOnlyList<RtcMessage> messages)
     {
         foreach (var message in messages)
         {

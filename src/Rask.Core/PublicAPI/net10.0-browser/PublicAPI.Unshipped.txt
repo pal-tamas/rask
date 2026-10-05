@@ -26,8 +26,8 @@ Rask.Core.Authentication.AuthInstruction.Ticket.get -> string!
 Rask.Core.Authentication.AuthInstruction.Ticket.init -> void
 Rask.Core.Authentication.AuthSignIn
 Rask.Core.Authentication.AuthSignIn.AuthSignIn() -> void
-Rask.Core.Authentication.AuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
-Rask.Core.Authentication.AuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.AuthSignIn.SignIn(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.AuthSignIn.SignOut(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.ClaimsPrincipalExtensions
 Rask.Core.Authentication.IAuth
 Rask.Core.Authentication.IAuth.AddPasskey(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
@@ -43,15 +43,15 @@ Rask.Core.Authentication.IAuth.SignOut(string? returnUrl = null) -> System.Threa
 Rask.Core.Authentication.IAuth.SignOutEverywhere(string? returnUrl = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuth.SignOutOtherDevices() -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn
-Rask.Core.Authentication.IAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
-Rask.Core.Authentication.IAuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuthSignIn.SignIn(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuthSignIn.SignOut(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.ISessionRevalidator
-Rask.Core.Authentication.ISessionRevalidator.RevalidateAsync(System.Security.Claims.ClaimsPrincipal! principal, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsPrincipal?>
+Rask.Core.Authentication.ISessionRevalidator.Revalidate(System.Security.Claims.ClaimsPrincipal! principal, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsPrincipal?>
 Rask.Core.Authentication.IUserProvider
 Rask.Core.Authentication.IUserProvider.Current.get -> System.Security.Claims.ClaimsPrincipal!
-Rask.Core.Authentication.IUserProvider.EnsureLoadedAsync() -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IUserProvider.EnsureLoaded() -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IUserProvider.IsLoading.get -> bool
-Rask.Core.Authentication.IUserProvider.RefreshAsync() -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IUserProvider.Refresh() -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.PendingAuth
 Rask.Core.Authentication.PendingAuth.<Clone>$() -> Rask.Core.Authentication.PendingAuth!
 Rask.Core.Authentication.PendingAuth.Action.get -> Rask.Core.Authentication.AuthAction
@@ -158,49 +158,49 @@ Rask.Core.Browser.FileHandler.Deconstruct(out string! Action, out System.Collect
 Rask.Core.Browser.FileHandler.Equals(Rask.Core.Browser.FileHandler? other) -> bool
 Rask.Core.Browser.FileHandler.FileHandler(string! Action, System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>! Accept) -> void
 Rask.Core.Browser.IIndexedDb
-Rask.Core.Browser.IIndexedDb.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IIndexedDb.OpenStoreAsync(string! name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IKeyValueStore!>
+Rask.Core.Browser.IIndexedDb.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.IIndexedDb.OpenStore(string! name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IKeyValueStore!>
 Rask.Core.Browser.IKeyValueStore
-Rask.Core.Browser.IKeyValueStore.ClearAsync() -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IKeyValueStore.DeleteAsync(string! key) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IKeyValueStore.GetAsync(string! key) -> System.Threading.Tasks.ValueTask<string?>
-Rask.Core.Browser.IKeyValueStore.GetBytesAsync(string! key) -> System.Threading.Tasks.ValueTask<byte[]?>
-Rask.Core.Browser.IKeyValueStore.KeysAsync() -> System.Threading.Tasks.ValueTask<string![]!>
-Rask.Core.Browser.IKeyValueStore.SetAsync(string! key, string! value) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IKeyValueStore.SetBytesAsync(string! key, byte[]! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IKeyValueStore.Clear() -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IKeyValueStore.Delete(string! key) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IKeyValueStore.Get(string! key) -> System.Threading.Tasks.ValueTask<string?>
+Rask.Core.Browser.IKeyValueStore.GetBytes(string! key) -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Core.Browser.IKeyValueStore.Keys() -> System.Threading.Tasks.ValueTask<string![]!>
+Rask.Core.Browser.IKeyValueStore.Set(string! key, string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IKeyValueStore.SetBytes(string! key, byte[]! value) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IPeerConnection
-Rask.Core.Browser.IPeerConnection.AddIceCandidateAsync(Rask.Core.Browser.RtcIceCandidate! candidate) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IPeerConnection.CreateAnswerAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.RtcDescription!>
-Rask.Core.Browser.IPeerConnection.CreateDataChannelAsync(string! label, Rask.Core.Browser.RtcDataChannelOptions? options = null) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IRtcDataChannel!>
-Rask.Core.Browser.IPeerConnection.CreateOfferAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.RtcDescription!>
-Rask.Core.Browser.IPeerConnection.SetLocalDescriptionAsync(Rask.Core.Browser.RtcDescription! description) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IPeerConnection.SetRemoteDescriptionAsync(Rask.Core.Browser.RtcDescription! description) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IPeerConnection.AddIceCandidate(Rask.Core.Browser.RtcIceCandidate! candidate) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IPeerConnection.CreateAnswer() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.RtcDescription!>
+Rask.Core.Browser.IPeerConnection.CreateDataChannel(string! label, Rask.Core.Browser.RtcDataChannelOptions? options = null) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IRtcDataChannel!>
+Rask.Core.Browser.IPeerConnection.CreateOffer() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.RtcDescription!>
+Rask.Core.Browser.IPeerConnection.SetLocalDescription(Rask.Core.Browser.RtcDescription! description) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IPeerConnection.SetRemoteDescription(Rask.Core.Browser.RtcDescription! description) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IRtcDataChannel
 Rask.Core.Browser.IRtcDataChannel.Label.get -> string!
-Rask.Core.Browser.IRtcDataChannel.ListenAsync(System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Browser.RtcMessage!>!, System.Threading.Tasks.Task!>! onMessages) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IRtcDataChannel.SendAsync(byte[]! data) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IRtcDataChannel.SendAsync(string! text) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IRtcDataChannel.Listen(System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Browser.RtcMessage!>!, System.Threading.Tasks.Task!>! onMessages) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IRtcDataChannel.Send(byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IRtcDataChannel.Send(string! text) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.ISignaling
-Rask.Core.Browser.ISignaling.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.ISignaling.JoinAsync(string! room, Rask.Core.Browser.SignalingHandlers! handlers, string! path = "/rask/signaling") -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.ISignalingConnection!>
+Rask.Core.Browser.ISignaling.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.ISignaling.Join(string! room, Rask.Core.Browser.SignalingHandlers! handlers, string! path = "/rask/signaling") -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.ISignalingConnection!>
 Rask.Core.Browser.ISignalingConnection
-Rask.Core.Browser.ISignalingConnection.SendAsync(string! toPeerId, string! payload) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.ISignalingConnection.Send(string! toPeerId, string! payload) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IViewTransitions
-Rask.Core.Browser.IViewTransitions.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IViewTransitions.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IViewTransitions.SetEnabledAsync(bool enabled) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.IViewTransitions.IsActive() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.IViewTransitions.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.IViewTransitions.SetEnabled(bool enabled) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IWebAuthn
-Rask.Core.Browser.IWebAuthn.CreateAsync(Rask.Core.Browser.PublicKeyCredentialCreationOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AttestationResult?>
-Rask.Core.Browser.IWebAuthn.GetAsync(Rask.Core.Browser.PublicKeyCredentialRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AssertionResult?>
-Rask.Core.Browser.IWebAuthn.IsPlatformAuthenticatorAvailableAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IWebAuthn.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.IWebAuthn.Create(Rask.Core.Browser.PublicKeyCredentialCreationOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AttestationResult?>
+Rask.Core.Browser.IWebAuthn.Get(Rask.Core.Browser.PublicKeyCredentialRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AssertionResult?>
+Rask.Core.Browser.IWebAuthn.IsPlatformAuthenticatorAvailable() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.IWebAuthn.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IWebRtc
-Rask.Core.Browser.IWebRtc.CreateAsync(Rask.Core.Browser.RtcConfiguration! config, Rask.Core.Browser.RtcHandlers! handlers) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IPeerConnection!>
-Rask.Core.Browser.IWebRtc.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.IWebRtc.Create(Rask.Core.Browser.RtcConfiguration! config, Rask.Core.Browser.RtcHandlers! handlers) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IPeerConnection!>
+Rask.Core.Browser.IWebRtc.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IndexedDb
 Rask.Core.Browser.IndexedDb.IndexedDb(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.IndexedDb.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IndexedDb.OpenStoreAsync(string! name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IKeyValueStore!>
+Rask.Core.Browser.IndexedDb.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.IndexedDb.OpenStore(string! name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IKeyValueStore!>
 Rask.Core.Browser.ManifestIcon
 Rask.Core.Browser.ManifestIcon.<Clone>$() -> Rask.Core.Browser.ManifestIcon!
 Rask.Core.Browser.ManifestIcon.Deconstruct(out string! Src, out string! Sizes, out string! Type, out string? Purpose) -> void
@@ -426,8 +426,8 @@ Rask.Core.Browser.ShareTargetParams.Title.init -> void
 Rask.Core.Browser.ShareTargetParams.Url.get -> string?
 Rask.Core.Browser.ShareTargetParams.Url.init -> void
 Rask.Core.Browser.Signaling
-Rask.Core.Browser.Signaling.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.Signaling.JoinAsync(string! room, Rask.Core.Browser.SignalingHandlers! handlers, string! path = "/rask/signaling") -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.ISignalingConnection!>
+Rask.Core.Browser.Signaling.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.Signaling.Join(string! room, Rask.Core.Browser.SignalingHandlers! handlers, string! path = "/rask/signaling") -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.ISignalingConnection!>
 Rask.Core.Browser.Signaling.Signaling(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.SignalingHandlers
 Rask.Core.Browser.SignalingHandlers.<Clone>$() -> Rask.Core.Browser.SignalingHandlers!
@@ -467,9 +467,9 @@ Rask.Core.Browser.SignalingSignal.To.init -> void
 Rask.Core.Browser.SignalingSignal.Type.get -> string!
 Rask.Core.Browser.SignalingSignal.Type.init -> void
 Rask.Core.Browser.ViewTransitions
-Rask.Core.Browser.ViewTransitions.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.ViewTransitions.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.ViewTransitions.SetEnabledAsync(bool enabled) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.ViewTransitions.IsActive() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.ViewTransitions.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.ViewTransitions.SetEnabled(bool enabled) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.ViewTransitions.ViewTransitions(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.WebAppManifest
 Rask.Core.Browser.WebAppManifest.<Clone>$() -> Rask.Core.Browser.WebAppManifest!
@@ -510,14 +510,14 @@ Rask.Core.Browser.WebAppManifest.ToJson() -> string!
 Rask.Core.Browser.WebAppManifest.ToJson(string! basePath) -> string!
 Rask.Core.Browser.WebAppManifest.WebAppManifest() -> void
 Rask.Core.Browser.WebAuthn
-Rask.Core.Browser.WebAuthn.CreateAsync(Rask.Core.Browser.PublicKeyCredentialCreationOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AttestationResult?>
-Rask.Core.Browser.WebAuthn.GetAsync(Rask.Core.Browser.PublicKeyCredentialRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AssertionResult?>
-Rask.Core.Browser.WebAuthn.IsPlatformAuthenticatorAvailableAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.WebAuthn.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.WebAuthn.Create(Rask.Core.Browser.PublicKeyCredentialCreationOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AttestationResult?>
+Rask.Core.Browser.WebAuthn.Get(Rask.Core.Browser.PublicKeyCredentialRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AssertionResult?>
+Rask.Core.Browser.WebAuthn.IsPlatformAuthenticatorAvailable() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.WebAuthn.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.WebAuthn.WebAuthn(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.WebRtc
-Rask.Core.Browser.WebRtc.CreateAsync(Rask.Core.Browser.RtcConfiguration! config, Rask.Core.Browser.RtcHandlers! handlers) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IPeerConnection!>
-Rask.Core.Browser.WebRtc.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.WebRtc.Create(Rask.Core.Browser.RtcConfiguration! config, Rask.Core.Browser.RtcHandlers! handlers) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IPeerConnection!>
+Rask.Core.Browser.WebRtc.IsSupported() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.WebRtc.WebRtc(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.WebRtcInterop
 Rask.Core.BuilderRuntime
@@ -1091,17 +1091,17 @@ Rask.Core.Globalization.CultureSource.Query = 3 -> Rask.Core.Globalization.Cultu
 Rask.Core.Globalization.IRaskCulture
 Rask.Core.Globalization.IRaskCulture.Culture.get -> System.Globalization.CultureInfo!
 Rask.Core.Globalization.IRaskCulture.IsRightToLeft.get -> bool
-Rask.Core.Globalization.IRaskCulture.SetAsync(System.Globalization.CultureInfo! culture) -> System.Threading.Tasks.Task<bool>!
-Rask.Core.Globalization.IRaskCulture.SetAsync(string! name) -> System.Threading.Tasks.Task<bool>!
+Rask.Core.Globalization.IRaskCulture.Set(System.Globalization.CultureInfo! culture) -> System.Threading.Tasks.Task<bool>!
+Rask.Core.Globalization.IRaskCulture.Set(string! name) -> System.Threading.Tasks.Task<bool>!
 Rask.Core.Globalization.IRaskCulture.Supported.get -> System.Collections.Generic.IReadOnlyList<System.Globalization.CultureInfo!>!
 Rask.Core.Globalization.IRaskCulture.UICulture.get -> System.Globalization.CultureInfo!
 Rask.Core.Globalization.IRaskCulturePersistence
-Rask.Core.Globalization.IRaskCulturePersistence.SaveAsync(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Core.Globalization.IRaskCulturePersistence.Save(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Core.Globalization.IRaskStringSource
 Rask.Core.Globalization.IRaskStringSource.Get(Rask.Core.Globalization.RaskString key, string! cultureTag) -> string?
 Rask.Core.Globalization.NullCulturePersistence
 Rask.Core.Globalization.NullCulturePersistence.NullCulturePersistence() -> void
-Rask.Core.Globalization.NullCulturePersistence.SaveAsync(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Core.Globalization.NullCulturePersistence.Save(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Core.Globalization.RaskCulture
 Rask.Core.Globalization.RaskCultureCookie
 Rask.Core.Globalization.RaskCultureNegotiator
@@ -1146,8 +1146,8 @@ Rask.Core.Globalization.SessionCulture
 Rask.Core.Globalization.SessionCulture.Culture.get -> System.Globalization.CultureInfo!
 Rask.Core.Globalization.SessionCulture.IsRightToLeft.get -> bool
 Rask.Core.Globalization.SessionCulture.SessionCulture(Rask.Core.Globalization.RaskCultureOptions! options, Rask.Core.Globalization.IRaskCulturePersistence? persistence = null) -> void
-Rask.Core.Globalization.SessionCulture.SetAsync(System.Globalization.CultureInfo! culture) -> System.Threading.Tasks.Task<bool>!
-Rask.Core.Globalization.SessionCulture.SetAsync(string! name) -> System.Threading.Tasks.Task<bool>!
+Rask.Core.Globalization.SessionCulture.Set(System.Globalization.CultureInfo! culture) -> System.Threading.Tasks.Task<bool>!
+Rask.Core.Globalization.SessionCulture.Set(string! name) -> System.Threading.Tasks.Task<bool>!
 Rask.Core.Globalization.SessionCulture.Supported.get -> System.Collections.Generic.IReadOnlyList<System.Globalization.CultureInfo!>!
 Rask.Core.Globalization.SessionCulture.UICulture.get -> System.Globalization.CultureInfo!
 Rask.Core.Http.IPageResponse
@@ -1257,8 +1257,8 @@ Rask.Core.Live.IPersistentState.TryGet<T>(string! key, out T? value) -> bool
 Rask.Core.Live.IPrerenderPaths
 Rask.Core.Live.IPrerenderPaths.Paths() -> System.Collections.Generic.IEnumerable<string!>!
 Rask.Core.Live.IRenderHandle
-Rask.Core.Live.IRenderHandle.RequestPublishRenderAsync() -> System.Threading.Tasks.Task!
-Rask.Core.Live.IRenderHandle.RequestRenderAsync() -> System.Threading.Tasks.Task!
+Rask.Core.Live.IRenderHandle.RequestPublishRender() -> System.Threading.Tasks.Task!
+Rask.Core.Live.IRenderHandle.RequestRender() -> System.Threading.Tasks.Task!
 Rask.Core.Live.ISessionWorkScope
 Rask.Core.Live.ISessionWorkScope.Enter(System.IServiceProvider! sessionServices) -> System.IDisposable?
 Rask.Core.Live.KeyForwardScope
@@ -1754,7 +1754,7 @@ static Rask.Core.Authentication.ClaimsPrincipalExtensions.SessionId(this System.
 static Rask.Core.Authentication.ClaimsPrincipalExtensions.UserId(this System.Security.Claims.ClaimsPrincipal! principal) -> System.Guid?
 static Rask.Core.Authentication.PendingAuth.operator !=(Rask.Core.Authentication.PendingAuth? left, Rask.Core.Authentication.PendingAuth? right) -> bool
 static Rask.Core.Authentication.PendingAuth.operator ==(Rask.Core.Authentication.PendingAuth? left, Rask.Core.Authentication.PendingAuth? right) -> bool
-static Rask.Core.Authorization.RouteAuthorizationGuard.EvaluateAsync(System.IServiceProvider! services, System.Collections.Generic.IReadOnlyList<System.Type!>! chain, System.Security.Claims.ClaimsPrincipal! user) -> System.Threading.Tasks.Task<Rask.Core.Authorization.RouteAuthorizationResult!>!
+static Rask.Core.Authorization.RouteAuthorizationGuard.Evaluate(System.IServiceProvider! services, System.Collections.Generic.IReadOnlyList<System.Type!>! chain, System.Security.Claims.ClaimsPrincipal! user) -> System.Threading.Tasks.Task<Rask.Core.Authorization.RouteAuthorizationResult!>!
 static Rask.Core.Authorization.RouteAuthorizationResult.Allow() -> Rask.Core.Authorization.RouteAuthorizationResult!
 static Rask.Core.Authorization.RouteAuthorizationResult.Challenge(string? scheme, System.Type? page) -> Rask.Core.Authorization.RouteAuthorizationResult!
 static Rask.Core.Authorization.RouteAuthorizationResult.Forbid(string? scheme, System.Type? page) -> Rask.Core.Authorization.RouteAuthorizationResult!
@@ -1882,7 +1882,7 @@ static Rask.Core.Forms.BindingHelpers.FormatValue(object? value) -> string!
 static Rask.Core.Forms.BindingHelpers.IsBindableSelectionType<T>() -> bool
 static Rask.Core.Forms.BindingHelpers.IsImmediateUpdateType(System.Type! propType) -> bool
 static Rask.Core.Forms.BindingHelpers.MultiSelectSetHandler<T>(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Forms.EditContext? ctx, Rask.Core.Forms.FieldIdentifier fid, System.Func<System.Threading.Tasks.Task!>? afterBind = null) -> System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>!
-static Rask.Core.Forms.BindingHelpers.NotifyAndValidateFieldAsync(Rask.Core.Forms.EditContext? ctx, Rask.Core.Forms.FieldIdentifier field) -> System.Threading.Tasks.Task!
+static Rask.Core.Forms.BindingHelpers.NotifyAndValidateField(Rask.Core.Forms.EditContext? ctx, Rask.Core.Forms.FieldIdentifier field) -> System.Threading.Tasks.Task!
 static Rask.Core.Forms.BindingHelpers.ResolveBindingContext(object! model) -> Rask.Core.Forms.EditContext?
 static Rask.Core.Forms.BindingHelpers.SetCollectionMembership<T>(System.Collections.Generic.ICollection<T>! collection, T item, bool include, System.Collections.Generic.IEqualityComparer<T>? comparer = null) -> bool
 static Rask.Core.Forms.BindingHelpers.StringSetHandler(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Forms.EditContext? ctx, Rask.Core.Forms.FieldIdentifier fid, bool validateOnSet, System.Func<System.Threading.Tasks.Task!>? afterBind = null) -> System.Func<string!, System.Threading.Tasks.Task!>!
@@ -1961,12 +1961,12 @@ static Rask.Core.Live.PrerenderPlan.operator !=(Rask.Core.Live.PrerenderPlan? le
 static Rask.Core.Live.PrerenderPlan.operator ==(Rask.Core.Live.PrerenderPlan? left, Rask.Core.Live.PrerenderPlan? right) -> bool
 static Rask.Core.Live.PrerenderResult.operator !=(Rask.Core.Live.PrerenderResult left, Rask.Core.Live.PrerenderResult right) -> bool
 static Rask.Core.Live.PrerenderResult.operator ==(Rask.Core.Live.PrerenderResult left, Rask.Core.Live.PrerenderResult right) -> bool
-static Rask.Core.Live.QuiescentRender.RunAsync(System.Func<bool, string!>! renderWave, System.TimeSpan budget, System.Func<bool>? isBlocked = null, int maxWaves = 16, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Core.Live.QuiescentRenderResult>!
+static Rask.Core.Live.QuiescentRender.Run(System.Func<bool, string!>! renderWave, System.TimeSpan budget, System.Func<bool>? isBlocked = null, int maxWaves = 16, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Core.Live.QuiescentRenderResult>!
 static Rask.Core.Live.QuiescentRenderResult.operator !=(Rask.Core.Live.QuiescentRenderResult left, Rask.Core.Live.QuiescentRenderResult right) -> bool
 static Rask.Core.Live.QuiescentRenderResult.operator ==(Rask.Core.Live.QuiescentRenderResult left, Rask.Core.Live.QuiescentRenderResult right) -> bool
 static Rask.Core.Live.RaskPath.Normalize(string? value) -> string!
 static Rask.Core.Live.RaskPrerender.PlanRoutes() -> Rask.Core.Live.PrerenderPlan!
-static Rask.Core.Live.RaskPrerender.RenderDocumentAsync(Rask.Core.Component! app, System.IServiceProvider! services, System.TimeSpan budget, int maxWaves = 16, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Core.Live.PrerenderResult>!
+static Rask.Core.Live.RaskPrerender.RenderDocument(Rask.Core.Component! app, System.IServiceProvider! services, System.TimeSpan budget, int maxWaves = 16, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Core.Live.PrerenderResult>!
 static Rask.Core.Messaging.ToastMessage.operator !=(Rask.Core.Messaging.ToastMessage? left, Rask.Core.Messaging.ToastMessage? right) -> bool
 static Rask.Core.Messaging.ToastMessage.operator ==(Rask.Core.Messaging.ToastMessage? left, Rask.Core.Messaging.ToastMessage? right) -> bool
 static Rask.Core.RaskHostContracts.All.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
@@ -12699,8 +12699,8 @@ Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLTextAr
 Rask.Core.SelectionMode
 static Rask.Core.ElementRefMembers.SetRangeText(this Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>! element, string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.SetRangeText(this Rask.Core.IElementRef<Rask.Core.HTMLTextAreaElement!>! element, string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IPeerConnection.AddStreamAsync(Microsoft.JSInterop.IJSObjectReference! stream) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IPeerConnection.RemoveStreamAsync(Microsoft.JSInterop.IJSObjectReference! stream) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IPeerConnection.AddStream(Microsoft.JSInterop.IJSObjectReference! stream) -> System.Threading.Tasks.ValueTask
+Rask.Core.Browser.IPeerConnection.RemoveStream(Microsoft.JSInterop.IJSObjectReference! stream) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.RtcHandlers.OnTrack.get -> System.Func<Microsoft.JSInterop.IJSObjectReference!, System.Threading.Tasks.Task!>?
 Rask.Core.Components.MediaCaptureTrigger.OnStream.get -> Rask.Core.Callback<Microsoft.JSInterop.IJSObjectReference!>
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, Rask.Core.Callback<Microsoft.JSInterop.IJSObjectReference!>? value) -> Rask.Core.Components.MediaCaptureTrigger!

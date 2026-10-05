@@ -53,7 +53,7 @@ internal sealed partial class SqliteSnapshotService : BackgroundService
     {
         try
         {
-            await _snapshotter.SnapshotAsync(cancellationToken).ConfigureAwait(false);
+            await _snapshotter.Snapshot(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

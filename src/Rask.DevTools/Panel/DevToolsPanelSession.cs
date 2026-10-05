@@ -219,7 +219,7 @@ internal sealed class DevToolsPanelSession : LiveSessionBase
         }
 
         _pendingRenderInScope = false;
-        return RequestPublishRenderAsync();
+        return RequestPublishRender();
     }
 
     // Every build diffs against the last SENT render; only the final one, which is the one sent, becomes the baseline.

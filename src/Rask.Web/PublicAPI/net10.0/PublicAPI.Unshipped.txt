@@ -13665,7 +13665,7 @@ virtual Rask.Web.Types.GPUError.Equals(Rask.Web.Types.GPUError? other) -> bool
 virtual Rask.Web.Types.GPUError.PrintMembers(System.Text.StringBuilder! builder) -> bool
 Rask.Web.CookieCulturePersistence
 Rask.Web.CookieCulturePersistence.CookieCulturePersistence(System.IServiceProvider! services, Rask.Core.Globalization.RaskCultureOptions! options) -> void
-Rask.Web.CookieCulturePersistence.SaveAsync(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Web.CookieCulturePersistence.Save(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Web.AnalyserNode
 Rask.Web.AudioBufferSourceNode
 Rask.Web.BiquadFilterNode

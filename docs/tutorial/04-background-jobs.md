@@ -90,7 +90,7 @@ public sealed partial class CreateOrder : Component
 {
     // … the fields and Render() are unchanged …
 
-    private async Task SaveAsync(OrderModel model)
+    private async Task Save(OrderModel model)
     {
         try
         {

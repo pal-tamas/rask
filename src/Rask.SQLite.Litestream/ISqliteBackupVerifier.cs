@@ -18,5 +18,5 @@ public interface ISqliteBackupVerifier
     /// Does not throw for a failed backup — the outcome <i>is</i> the return value, and a backup problem
     /// must never take down the app it protects. Only cancellation propagates.
     /// </summary>
-    Task<LitestreamVerificationStatus> VerifyAsync(CancellationToken cancellationToken = default);
+    Task<LitestreamVerificationStatus> Verify(CancellationToken cancellationToken = default);
 }

@@ -31,7 +31,7 @@ public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider) 
     /// <param name="scheme">Unused.</param>
     /// <param name="persistent">Unused.</param>
     /// <exception cref="NotSupportedException">Always.</exception>
-    public Task SignInAsync(
+    public Task SignIn(
         ClaimsPrincipal principal, string? returnUrl = null, string? scheme = null, bool persistent = false) =>
         throw new NotSupportedException(
             "WasmAuthSignIn does not support principal-based sign-in. " +
@@ -44,10 +44,10 @@ public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider) 
     /// </summary>
     /// <param name="returnUrl">Where to go afterwards.</param>
     /// <param name="scheme">Authentication scheme, when the server distinguishes several.</param>
-    public async Task SignOutAsync(string? returnUrl = null, string? scheme = null)
+    public async Task SignOut(string? returnUrl = null, string? scheme = null)
     {
         await http.PostAsync(LogoutPath, null).ConfigureAwait(false);
-        await userProvider.RefreshAsync().ConfigureAwait(false);
+        await userProvider.Refresh().ConfigureAwait(false);
         // Open-redirect guard: returnUrl is whatever the caller passed (often a login/query value
         // that can be attacker-influenced), and NavigateTo can leave the origin. Collapse anything
         // non-local to "/" at this boundary — the same LocalUrl rule the server sign-in path applies.

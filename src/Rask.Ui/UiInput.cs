@@ -176,7 +176,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
             var acc = Rask.Core.Forms.ExpressionAccessor.Parse(bind);
             acc.Setter(default!);
             await Rask.Core.Forms.BindingHelpers
-                .NotifyAndValidateFieldAsync(Rask.Core.Forms.BindingHelpers.ResolveBindingContext(acc.Target), acc.Field)
+                .NotifyAndValidateField(Rask.Core.Forms.BindingHelpers.ResolveBindingContext(acc.Target), acc.Field)
                 .ConfigureAwait(false);
             await self.InvokeAfterBind(default!).ConfigureAwait(false);
             return;

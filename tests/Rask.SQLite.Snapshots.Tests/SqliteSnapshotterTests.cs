@@ -43,7 +43,7 @@ public sealed class SqliteSnapshotterTests : IDisposable
         SeedDatabase(rows: 5);
         var snapshotter = BuildSnapshotter(retain: 3);
 
-        var name = await snapshotter.SnapshotAsync(TestContext.Current.CancellationToken);
+        var name = await snapshotter.Snapshot(TestContext.Current.CancellationToken);
 
         var snapshotPath = Path.Combine(_dir, name);
         Assert.True(File.Exists(snapshotPath));
@@ -62,7 +62,7 @@ public sealed class SqliteSnapshotterTests : IDisposable
 
         for (var i = 0; i < 4; i++)
         {
-            await snapshotter.SnapshotAsync(TestContext.Current.CancellationToken);
+            await snapshotter.Snapshot(TestContext.Current.CancellationToken);
             await Task.Delay(5, TestContext.Current.CancellationToken);   // distinct millisecond-stamped filenames
         }
 

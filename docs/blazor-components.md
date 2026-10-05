@@ -186,7 +186,7 @@ goes out rather than appearing a frame later:
 ```csharp
 protected override async Task OnInitializedAsync()
 {
-    Rows = await _api.LoadAsync();   // done before the page is sent
+    Rows = await _api.Load();   // done before the page is sent
 }
 ```
 
@@ -333,7 +333,7 @@ your own services, and Rask's typed browser APIs:
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        _animated = await ViewTransitions.IsSupportedAsync();
+        _animated = await ViewTransitions.IsSupported();
     }
 }
 ```

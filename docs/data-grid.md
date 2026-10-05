@@ -115,7 +115,7 @@ page instead — while every other axis carries on holding its own.
 ```csharp
 Ui.DataGrid.Data(_page).RowKey(p => p.Id)
     .Sort(_sort).SortDescending(_desc).OnSort(s => { _sort = s.Field; _desc = s.Descending; })
-    .TotalCount(_total).Page(_page).OnPage(async p => await LoadAsync(p))
+    .TotalCount(_total).Page(_page).OnPage(async p => await Load(p))
     [c => [ … ]]
 ```
 
@@ -213,7 +213,7 @@ wrapper of your own:
 .Toolbar([
     Ui.Tabs[ … ],
     Ui.Select.Value(_category).Options(_categories).Label("Category").OnChange(FilterAsync),
-    Ui.Search.Placeholder("Search").AccessibleLabel("Search entries").OnSearch(SearchAsync),
+    Ui.Search.Placeholder("Search").AccessibleLabel("Search entries").OnSearch(Search),
 ])
 ```
 

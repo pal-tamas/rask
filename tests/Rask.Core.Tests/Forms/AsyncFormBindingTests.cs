@@ -280,7 +280,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
     // server's LiveSession.RenderInScopeAsync does.
     private sealed class RenderingHandle(Component view) : IRenderHandle
     {
-        public Task RequestRenderAsync()
+        public Task RequestRender()
         {
             view.RenderAsLiveRoot();
             return Task.CompletedTask;

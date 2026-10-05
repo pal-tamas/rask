@@ -53,7 +53,7 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
         [
             H1.Class("text-2xl font-bold")["Choose a new password"],
             Message is null ? null : Error("reset-error", Message),
-            Form.Model(_model).OnSubmit(SubmitAsync)[
+            Form.Model(_model).OnSubmit(Submit)[
                 Field("password", "New password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
                 Field("confirm", "New password again", Input.Bind(() => _model.Confirm).Id("confirm").Type(InputType.Password).Class("input w-full")),
                 Div.Class("card-actions mt-2")[
@@ -64,7 +64,7 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
 
     private string? Message => _mismatch ?? (_error is AuthError.None ? null : AuthMessages.For(_error));
 
-    private async Task SubmitAsync(ResetPasswordModel model)
+    private async Task Submit(ResetPasswordModel model)
     {
         _mismatch = null;
         _error = AuthError.None;

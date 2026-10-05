@@ -211,7 +211,7 @@ public sealed class ModelQueryableTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
 
     private static async Task<(Widget First, Widget Second)> SeedAsync(TestDatabase database, params string[] names)
     {

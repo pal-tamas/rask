@@ -620,7 +620,7 @@ public static class RaskCqrsEndpointExtensions
                 new ContentDispositionHeaderValue("attachment") { FileNameStar = SafeLeaf(download.FileName) }.ToString();
             context.Response.Headers[HeaderNames.XContentTypeOptions] = "nosniff";
 
-            await download.WriteToAsync(context.Response.Body, context.RequestAborted).ConfigureAwait(false);
+            await download.WriteTo(context.Response.Body, context.RequestAborted).ConfigureAwait(false);
             return;
         }
 

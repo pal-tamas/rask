@@ -70,7 +70,7 @@ Rask.Wire.FileDownload.ContentType.get -> string!
 Rask.Wire.FileDownload.FileName.get -> string!
 Rask.Wire.FileDownload.Length.get -> long?
 Rask.Wire.FileDownload.OpenReadStream() -> System.IO.Stream!
-Rask.Wire.FileDownload.WriteToAsync(System.IO.Stream! destination, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Wire.FileDownload.WriteTo(System.IO.Stream! destination, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Wire.ForgotPasswordRequest
 Rask.Wire.ForgotPasswordRequest.<Clone>$() -> Rask.Wire.ForgotPasswordRequest!
 Rask.Wire.ForgotPasswordRequest.Deconstruct(out string! Email) -> void

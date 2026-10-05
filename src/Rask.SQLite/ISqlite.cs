@@ -31,12 +31,12 @@ public interface ISqlite
     /// is the recommended write path under concurrency. Issue statements with
     /// <see cref="SqliteConnection.CreateCommand"/> inside <paramref name="work"/>.
     /// </summary>
-    Task<T> InImmediateTransactionAsync<T>(
+    Task<T> InImmediateTransaction<T>(
         Func<SqliteConnection, CancellationToken, Task<T>> work,
         CancellationToken cancellationToken = default);
 
-    /// <summary>The result-less overload of <see cref="InImmediateTransactionAsync{T}"/>.</summary>
-    Task InImmediateTransactionAsync(
+    /// <summary>The result-less overload of <see cref="InImmediateTransaction{T}"/>.</summary>
+    Task InImmediateTransaction(
         Func<SqliteConnection, CancellationToken, Task> work,
         CancellationToken cancellationToken = default);
 }

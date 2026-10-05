@@ -91,7 +91,7 @@ public sealed class LitestreamVerificationServiceTests
 
         public Task ReachedTarget => _reached.Task;
 
-        public Task<LitestreamVerificationStatus> VerifyAsync(CancellationToken cancellationToken = default)
+        public Task<LitestreamVerificationStatus> Verify(CancellationToken cancellationToken = default)
         {
             if (Interlocked.Increment(ref _calls) >= target)
             {

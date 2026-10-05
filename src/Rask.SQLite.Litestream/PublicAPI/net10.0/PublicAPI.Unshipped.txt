@@ -1,8 +1,8 @@
 #nullable enable
 Rask.SQLite.Litestream.ILitestreamExecutor
-Rask.SQLite.Litestream.ILitestreamExecutor.RunAsync(System.Collections.Generic.IReadOnlyList<string!>! arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.SQLite.Litestream.ILitestreamExecutor.Run(System.Collections.Generic.IReadOnlyList<string!>! arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
 Rask.SQLite.Litestream.ISqliteBackupVerifier
-Rask.SQLite.Litestream.ISqliteBackupVerifier.VerifyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.SQLite.Litestream.LitestreamVerificationStatus!>!
+Rask.SQLite.Litestream.ISqliteBackupVerifier.Verify(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.SQLite.Litestream.LitestreamVerificationStatus!>!
 Rask.SQLite.Litestream.LitestreamCommand
 Rask.SQLite.Litestream.LitestreamOptions
 Rask.SQLite.Litestream.LitestreamOptions.ConfigPath.get -> string?
@@ -41,7 +41,7 @@ Rask.SQLite.Litestream.LitestreamReplicationStatus.RestartCount.get -> int
 Rask.SQLite.Litestream.LitestreamReplicationStatus.RestartCount.init -> void
 Rask.SQLite.Litestream.LitestreamRestorer
 Rask.SQLite.Litestream.LitestreamRestorer.LitestreamRestorer(Rask.SQLite.Litestream.LitestreamOptions! options, Rask.SQLite.Litestream.ILitestreamExecutor! executor, Microsoft.Extensions.Logging.ILogger<Rask.SQLite.Litestream.LitestreamRestorer!>! logger) -> void
-Rask.SQLite.Litestream.LitestreamRestorer.RestoreAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.SQLite.Litestream.LitestreamRestorer.Restore(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Rask.SQLite.Litestream.LitestreamServiceCollectionExtensions
 Rask.SQLite.Litestream.LitestreamStartupExtensions
 Rask.SQLite.Litestream.LitestreamStatus
@@ -88,7 +88,7 @@ Rask.SQLite.Litestream.LitestreamVerificationStatus.ReplicationLag.get -> System
 Rask.SQLite.Litestream.LitestreamVerificationStatus.ReplicationLag.init -> void
 Rask.SQLite.Litestream.LitestreamVerifier
 Rask.SQLite.Litestream.LitestreamVerifier.LitestreamVerifier(Rask.SQLite.Litestream.LitestreamOptions! options, Rask.SQLite.Litestream.ILitestreamExecutor! executor, Rask.SQLite.Litestream.LitestreamStatus! status, System.TimeProvider! timeProvider, Microsoft.Extensions.Logging.ILogger<Rask.SQLite.Litestream.LitestreamVerifier!>! logger) -> void
-Rask.SQLite.Litestream.LitestreamVerifier.VerifyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.SQLite.Litestream.LitestreamVerificationStatus!>!
+Rask.SQLite.Litestream.LitestreamVerifier.Verify(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.SQLite.Litestream.LitestreamVerificationStatus!>!
 override Rask.SQLite.Litestream.LitestreamReplicationStatus.Equals(object? obj) -> bool
 override Rask.SQLite.Litestream.LitestreamReplicationStatus.GetHashCode() -> int
 override Rask.SQLite.Litestream.LitestreamReplicationStatus.ToString() -> string!

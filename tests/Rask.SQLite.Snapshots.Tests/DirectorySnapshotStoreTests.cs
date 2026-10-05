@@ -11,7 +11,7 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
         await File.WriteAllTextAsync(source, "snapshot", TestContext.Current.CancellationToken);
         var store = new DirectorySnapshotStore(_dir, "app-*.db");
 
-        await store.SaveAsync(source, "app-1.db", CancellationToken.None);
+        await store.Save(source, "app-1.db", CancellationToken.None);
 
         Assert.True(File.Exists(Path.Combine(_dir, "app-1.db")));
         Assert.False(File.Exists(source));   // moved, not copied
@@ -28,11 +28,11 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
             await File.WriteAllTextAsync(path, new string('x', i + 1), TestContext.Current.CancellationToken);
             File.SetLastWriteTimeUtc(path, baseTime.AddMinutes(i));   // app-2 is newest
         }
-        // Same pattern scoping as PruneAsync: what you can see is what retention manages.
+        // Same pattern scoping as Prune: what you can see is what retention manages.
         await File.WriteAllTextAsync(Path.Combine(_dir, "unrelated.txt"), "ignore me", TestContext.Current.CancellationToken);
         var store = new DirectorySnapshotStore(_dir, "app-*.db");
 
-        var snapshots = await store.ListAsync(CancellationToken.None);
+        var snapshots = await store.List(CancellationToken.None);
 
         Assert.Equal(["app-2.db", "app-1.db", "app-0.db"], snapshots.Select(s => s.Name));
         Assert.Equal(3, snapshots[0].SizeBytes);
@@ -44,7 +44,7 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
     {
         var store = new DirectorySnapshotStore(_dir, "app-*.db");
 
-        Assert.Empty(await store.ListAsync(CancellationToken.None));
+        Assert.Empty(await store.List(CancellationToken.None));
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
         // The default interface method keeps stores written before ListAsync existed compiling.
         ISqliteSnapshotStore store = new NonListingStore();
 
-        Assert.Empty(await store.ListAsync(CancellationToken.None));
+        Assert.Empty(await store.List(CancellationToken.None));
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
         await File.WriteAllTextAsync(unrelated, "keep me", TestContext.Current.CancellationToken);
         var store = new DirectorySnapshotStore(_dir, "app-*.db");
 
-        await store.PruneAsync(retain: 2, CancellationToken.None);
+        await store.Prune(retain: 2, CancellationToken.None);
 
         Assert.True(File.Exists(Path.Combine(_dir, "app-4.db")));
         Assert.True(File.Exists(Path.Combine(_dir, "app-3.db")));
@@ -92,9 +92,9 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
     // A custom store of the shape that existed before ListAsync was added — it must still compile.
     private sealed class NonListingStore : ISqliteSnapshotStore
     {
-        public Task SaveAsync(string sourceFilePath, string snapshotName, CancellationToken cancellationToken) =>
+        public Task Save(string sourceFilePath, string snapshotName, CancellationToken cancellationToken) =>
             Task.CompletedTask;
 
-        public Task PruneAsync(int retain, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task Prune(int retain, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

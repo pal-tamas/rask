@@ -19,7 +19,7 @@ namespace Rask.Wire;
 ///     </para>
 ///     <para>
 ///         Single-consumption: the content is read exactly once, by whichever of
-///         <see cref="OpenReadStream" /> or <see cref="WriteToAsync" /> is called first. A second call
+///         <see cref="OpenReadStream" /> or <see cref="WriteTo" /> is called first. A second call
 ///         throws rather than returning silently empty content.
 ///     </para>
 /// </remarks>
@@ -99,7 +99,7 @@ public sealed class FileDownload
     /// <param name="destination">The stream to write to; not disposed.</param>
     /// <param name="cancellationToken">Cancels the copy.</param>
     /// <exception cref="InvalidOperationException">The content has already been consumed.</exception>
-    public async Task WriteToAsync(Stream destination, CancellationToken cancellationToken = default)
+    public async Task WriteTo(Stream destination, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(destination);
 

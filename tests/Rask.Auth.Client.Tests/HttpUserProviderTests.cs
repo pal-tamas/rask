@@ -14,7 +14,7 @@ public sealed class HttpUserProviderTests
     {
         var provider = Provider(HttpStatusCode.NoContent);
 
-        await provider.EnsureLoadedAsync();
+        await provider.EnsureLoaded();
 
         Assert.False(provider.Current.Identity?.IsAuthenticated);
     }
@@ -26,7 +26,7 @@ public sealed class HttpUserProviderTests
             HttpStatusCode.OK,
             """{"id":"u1","email":"owner@example.com","roles":["admin","user"]}""");
 
-        await provider.EnsureLoadedAsync();
+        await provider.EnsureLoaded();
 
         // IsAuthenticated is the whole point: an identity built without an authentication type reports
         // false, and every [Authorize] check would then treat a signed-in visitor as anonymous.
@@ -43,7 +43,7 @@ public sealed class HttpUserProviderTests
         var raised = 0;
         provider.Changed += (_, _) => raised++;
 
-        await provider.EnsureLoadedAsync();
+        await provider.EnsureLoaded();
 
         Assert.Equal(1, raised);
     }
@@ -57,7 +57,7 @@ public sealed class HttpUserProviderTests
 
         // Anonymous closes doors rather than opening them, and a boot that throws here would take the
         // whole app down for a network blip.
-        await provider.EnsureLoadedAsync();
+        await provider.EnsureLoaded();
 
         Assert.False(provider.Current.Identity?.IsAuthenticated);
     }
@@ -70,12 +70,12 @@ public sealed class HttpUserProviderTests
             new HttpClient(handler) { BaseAddress = new Uri("https://localhost") },
             new AuthClientOptions());
 
-        await provider.EnsureLoadedAsync();
-        await provider.EnsureLoadedAsync();
+        await provider.EnsureLoaded();
+        await provider.EnsureLoaded();
 
         Assert.Equal(1, handler.Calls);
 
-        await provider.RefreshAsync();
+        await provider.Refresh();
         Assert.Equal(2, handler.Calls);
     }
 
@@ -87,7 +87,7 @@ public sealed class HttpUserProviderTests
             new HttpClient(handler) { BaseAddress = new Uri("https://localhost") },
             new AuthClientOptions { Prefix = "/internal/auth" });
 
-        await provider.EnsureLoadedAsync();
+        await provider.EnsureLoaded();
 
         Assert.Equal("/internal/auth/me", handler.LastPath);
     }

@@ -14,7 +14,7 @@ public class QuiescentRenderTests
         var gate = new TaskCompletionSource();
         var ready = false;
 
-        var result = await QuiescentRender.RunAsync(
+        var result = await QuiescentRender.Run(
             _ =>
             {
                 if (!ready)
@@ -42,7 +42,7 @@ public class QuiescentRenderTests
         var seen = new List<bool>();
         var rounds = 0;
 
-        await QuiescentRender.RunAsync(
+        await QuiescentRender.Run(
             publishOnly =>
             {
                 seen.Add(publishOnly);
@@ -65,7 +65,7 @@ public class QuiescentRenderTests
         // because nothing is left running that would ever replace its placeholder.
         QuiescenceScope.ResetSyncForTests();
 
-        var result = await QuiescentRender.RunAsync(
+        var result = await QuiescentRender.Run(
             _ =>
             {
                 QuiescenceScope.Current!.TrackExternal(new TaskCompletionSource().Task);
@@ -86,7 +86,7 @@ public class QuiescentRenderTests
         QuiescenceScope.ResetSyncForTests();
         var started = DateTime.UtcNow;
 
-        var result = await QuiescentRender.RunAsync(
+        var result = await QuiescentRender.Run(
             _ =>
             {
                 QuiescenceScope.Current!.TrackExternal(new TaskCompletionSource().Task);
@@ -108,7 +108,7 @@ public class QuiescentRenderTests
         QuiescenceScope.ResetSyncForTests();
         var waves = 0;
 
-        var result = await QuiescentRender.RunAsync(
+        var result = await QuiescentRender.Run(
             _ =>
             {
                 waves++;
@@ -133,7 +133,7 @@ public class QuiescentRenderTests
         using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         var started = DateTime.UtcNow;
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => QuiescentRender.RunAsync(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => QuiescentRender.Run(
             _ =>
             {
                 QuiescenceScope.Current!.TrackExternal(new TaskCompletionSource().Task);
@@ -151,7 +151,7 @@ public class QuiescentRenderTests
         QuiescenceScope.ResetSyncForTests();
         var rendered = false;
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => QuiescentRender.RunAsync(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => QuiescentRender.Run(
             _ =>
             {
                 rendered = true;

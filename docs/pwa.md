@@ -64,7 +64,7 @@ host.UsePwa(new WebAppManifest
     Display = DisplayMode.Standalone,
     Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
 });
-await host.RunAsync<App>();
+await host.Run<App>();
 ```
 
 Relative URLs (`StartUrl`/`Scope` default to `"."`, and icon `src`) are made **absolute against
@@ -213,13 +213,13 @@ public sealed class DraftQueue(IBackgroundSync sync) : Component, IAsyncDisposab
     {
         // Subscribe BEFORE requesting. A sync that landed while the page was still booting is held for
         // the first subscriber, so an event that beat your startup code still reaches it.
-        _subscription = await sync.OnSyncAsync(async e =>
+        _subscription = await sync.OnSync(async e =>
         {
             if (e.Tag == "flush-drafts") await FlushAsync();
             StateHasChanged();
         });
 
-        await sync.RequestSyncAsync("flush-drafts");   // best-effort, and re-requested every boot
+        await sync.RequestSync("flush-drafts");   // best-effort, and re-requested every boot
     }
 
     public async ValueTask DisposeAsync() =>
@@ -227,7 +227,7 @@ public sealed class DraftQueue(IBackgroundSync sync) : Component, IAsyncDisposab
 }
 ```
 
-`OnSyncAsync` is a subscription handler, not a chain-set callback, so calling `StateHasChanged()` in it
+`OnSync` is a subscription handler, not a chain-set callback, so calling `StateHasChanged()` in it
 is correct and [RASK026](diagnostics.md) does not apply — the same rule as every other pushed API here.
 
 ### Periodic sync
@@ -236,17 +236,17 @@ Periodic sync is gated on a permission the browser grants on **its** terms (Chro
 being installed and to site engagement). There is no API to request it, so check, don't ask:
 
 ```csharp
-if (await sync.IsPeriodicSupportedAsync() && await sync.GetPeriodicPermissionAsync() == "granted")
+if (await sync.IsPeriodicSupported() && await sync.GetPeriodicPermission() == "granted")
 {
     // A floor, not a schedule: the browser decides the real cadence from engagement and battery, and
     // in practice fires far less often than you ask.
-    await sync.RequestPeriodicSyncAsync("refresh-feed", 12.Hours);
+    await sync.RequestPeriodicSync("refresh-feed", 12.Hours);
 }
 ```
 
-`OnSyncAsync` delivers both kinds — check `BackgroundSyncEvent.Periodic` to tell them apart.
-`GetPendingTagsAsync()` / `GetPeriodicTagsAsync()` list what is registered, and
-`UnregisterPeriodicAsync(tag)` removes a recurring one.
+`OnSync` delivers both kinds — check `BackgroundSyncEvent.Periodic` to tell them apart.
+`GetPendingTags()` / `GetPeriodicTags()` list what is registered, and
+`UnregisterPeriodic(tag)` removes a recurring one.
 
 Full reference: [`IBackgroundSync`](apis/background-sync.md).
 

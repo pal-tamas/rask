@@ -13,7 +13,7 @@ public static class RouteAuthorizationGuard
     public const string ChallengePath = "/login";
     public const string ForbidPath = "/forbidden";
 
-    public static async Task<RouteAuthorizationResult> EvaluateAsync(
+    public static async Task<RouteAuthorizationResult> Evaluate(
         IServiceProvider services,
         IReadOnlyList<Type> chain,
         ClaimsPrincipal user)

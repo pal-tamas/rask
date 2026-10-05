@@ -28,7 +28,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
 
         Assert.Equal(Start.UtcDateTime, widget.CreatedAt);
 
-        var stored = await database.LoadAsync<Widget>(widget.Id, TestContext.Current.CancellationToken);
+        var stored = await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken);
         Assert.NotNull(stored);
         Assert.Equal("anvil", stored.Name);
         Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
@@ -63,7 +63,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
 
         Assert.Equal(1, updated.Version);
 
-        var stored = await database.LoadAsync<Widget>(widget.Id, TestContext.Current.CancellationToken);
+        var stored = await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken);
         Assert.Equal("hammer", stored!.Name);
         Assert.Equal(1, stored.Version);
         Assert.Equal(Start.AddHours(2).UtcDateTime, stored.UpdatedAt);
@@ -87,7 +87,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
             loaded.Cancel(Start.UtcDateTime);
         }, cancellationToken: TestContext.Current.CancellationToken);
 
-        var stored = await database.LoadAsync<Order>(order.Id, TestContext.Current.CancellationToken);
+        var stored = await database.Load<Order>(order.Id, TestContext.Current.CancellationToken);
         Assert.Equal(OrderStatus.Cancelled, stored!.Status);
         Assert.Equal("A-1-renamed", stored.Reference);
     }
@@ -103,7 +103,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
             GeneratedModelWrites.Update<Widget>(widget.Id, version: 0, w => w.Rename("stale-edit"), cancellationToken: TestContext.Current.CancellationToken));
 
-        var stored = await database.LoadAsync<Widget>(widget.Id, TestContext.Current.CancellationToken);
+        var stored = await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken);
         Assert.Equal("first-edit", stored!.Name);
         Assert.Equal(1, stored.Version);
     }
@@ -117,7 +117,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
 
         await GeneratedModelWrites.Update<Widget>(widget.Id, version: null, w => w.Rename("last-edit"), cancellationToken: TestContext.Current.CancellationToken);
 
-        var stored = await database.LoadAsync<Widget>(widget.Id, TestContext.Current.CancellationToken);
+        var stored = await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken);
         Assert.Equal("last-edit", stored!.Name);
         Assert.Equal(2, stored.Version);
     }
@@ -187,7 +187,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
 }
 
 // An append-only record: corrected by a reversing entry, never removed.

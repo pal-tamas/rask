@@ -89,7 +89,7 @@ public sealed partial class AvatarPicker : Component
     private string? _avatarUrl;
     private string? _error;
 
-    private async Task OnFilesAsync(IReadOnlyList<IRaskFile> picked)
+    private async Task OnFiles(IReadOnlyList<IRaskFile> picked)
     {
         if (picked.Count == 0)
         {
@@ -114,7 +114,7 @@ public sealed partial class AvatarPicker : Component
 
     protected override Component? Render() =>
         Div[
-            Ui.FileInput.Value("").Label("Avatar").Accept("image/*").OnFiles(OnFilesAsync),
+            Ui.FileInput.Value("").Label("Avatar").Accept("image/*").OnFiles(OnFiles),
             _avatarUrl is null
                 ? (Component)P.Class("text-sm")[_error ?? "No avatar yet."]
                 : Img.Src(_avatarUrl).Alt("Your avatar")

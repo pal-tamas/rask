@@ -36,7 +36,7 @@ public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
             H1.Class("text-2xl font-bold")["Reset your password"],
             _error is AuthError.None ? null : Error("forgot-error", AuthMessages.For(_error)),
             P.Class("text-sm opacity-70")["Tell us the address you signed up with and we will send you a link."],
-            Form.Model(_model).OnSubmit(SubmitAsync)[
+            Form.Model(_model).OnSubmit(Submit)[
                 Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Class("input w-full")),
                 Div.Class("card-actions mt-2")[
                     Button.Type(ButtonType.Submit).Id("forgot-submit").Class("btn btn-primary btn-block")["Send the link"]
@@ -46,7 +46,7 @@ public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
                 "Remembered it? ", NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
         ];
 
-    private async Task SubmitAsync(ForgotPasswordModel model)
+    private async Task Submit(ForgotPasswordModel model)
     {
         var result = await auth.SendPasswordReset(model.Email);
         _error = result.Error;

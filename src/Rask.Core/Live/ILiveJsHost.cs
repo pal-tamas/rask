@@ -6,5 +6,5 @@ internal interface ILiveJsHost
 {
     LiveJsInvokeQueue JsInvokes { get; }
 
-    Task RequestRenderAsync();
+    Task RequestRender();
 }

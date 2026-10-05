@@ -268,6 +268,6 @@ internal sealed class BulkInsertPlan
         type.IsValueType && Nullable.GetUnderlyingType(type) is null ? Activator.CreateInstance(type) : null;
 
     internal static InvalidOperationException Unsupported(string reason) =>
-        new($"BulkInsertAsync cannot skip change tracking here: {reason} Drop SkipChangeTracking to insert " +
+        new($"BulkInsert cannot skip change tracking here: {reason} Drop SkipChangeTracking to insert " +
             "through the change tracker instead.");
 }

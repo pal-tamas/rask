@@ -23,7 +23,7 @@ namespace Rask.Wasm;
 
 /// <summary>
 ///     Entry point for a browser-WASM Rask app. Build with <see cref="CreateDefault()" />, register
-///     app services on <see cref="Services" />, then <c>await</c> <see cref="RunAsync{TApp}" /> with the
+///     app services on <see cref="Services" />, then <c>await</c> <see cref="Run{TApp}" /> with the
 ///     root component. Mirrors <c>Rask.Server</c>'s <c>AddRask</c>/<c>MapRask</c> pair for the
 ///     JSImport/JSExport transport.
 /// </summary>
@@ -71,7 +71,7 @@ public sealed class WasmHostBuilder
         // chain, a different base address) still wins.
         //
         // The factory is lazy on purpose: BaseAddress reads the page origin back through the JS module, which
-        // only answers after RunAsync has imported it. Resolving before then (or off-browser, in a test)
+        // only answers after Run has imported it. Resolving before then (or off-browser, in a test)
         // yields a relative "/" — not a legal HttpClient.BaseAddress — so leave it unset in that case rather
         // than throwing out of a service factory.
         Services.TryAddSingleton(_ =>
@@ -95,7 +95,7 @@ public sealed class WasmHostBuilder
     // session keeps both hosts on one uniform mechanism.
     private LiveDiffMode _diffMode = LiveDiffMode.Auto;
 
-    /// <summary>The DI container for the app. Register your services here before calling <see cref="RunAsync{TApp}" />.</summary>
+    /// <summary>The DI container for the app. Register your services here before calling <see cref="Run{TApp}" />.</summary>
     public IServiceCollection Services { get; }
 
     /// <summary>
@@ -103,7 +103,7 @@ public sealed class WasmHostBuilder
     ///     injects the <c>&lt;link rel="manifest"&gt;</c> (a <c>data:</c> URL with sub-path-correct absolute
     ///     URLs) and <c>&lt;meta name="theme-color"&gt;</c> at boot, so there's no <c>manifest.webmanifest</c>
     ///     to hand-write. The WASM counterpart to the Server host's <c>AddRaskPwa</c>. Call before
-    ///     <see cref="RunAsync{TApp}" />:
+    ///     <see cref="Run{TApp}" />:
     ///     <code>
     ///     host.UsePwa(new WebAppManifest { Name = "My App", ThemeColor = "#512BD4",
     ///         Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")] });
@@ -141,7 +141,7 @@ public sealed class WasmHostBuilder
     /// <summary>
     ///     Page origin (e.g. "https://localhost:5050/") suitable for use as <see cref="HttpClient.BaseAddress" />.
     ///     Read this lazily inside an <see cref="IServiceCollection" /> factory so the call happens after
-    ///     <see cref="RunAsync{TApp}" /> has imported the JS module.
+    ///     <see cref="Run{TApp}" /> has imported the JS module.
     /// </summary>
     public static string BaseAddress => JSInterop.GetBaseAddress();
 
@@ -167,7 +167,7 @@ public sealed class WasmHostBuilder
             configureLive(opts);
             builder._diffMode = opts.DiffMode;
             // Only propagate a non-empty user-supplied PathBase; an explicit
-            // override should win over the auto-detect that RunAsync performs
+            // override should win over the auto-detect that Run performs
             // later. An empty value here means "I didn't set one — auto-detect
             // from <base href> at boot."
             if (opts.PathBase.Length > 0)
@@ -189,7 +189,7 @@ public sealed class WasmHostBuilder
     ///     The root <see cref="Component" /> for the app. It renders into <c>&lt;body&gt;</c>; Rask composes
     ///     the document around it (RASK021 flags a root that builds the shell itself).
     /// </typeparam>
-    public async Task RunAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
+    public async Task Run<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
         where TApp : Component
     {
         // The head every page starts with and the kit's theme scope, so App.cs is a title and a router.
@@ -202,7 +202,7 @@ public sealed class WasmHostBuilder
         // nothing to learn and keeps the registrations in one place.
         //
         // Asked for by environment variable rather than inferred from a non-browser target framework:
-        // this assembly also builds for net10.0 for its own tests, and those call RunAsync expecting a
+        // this assembly also builds for net10.0 for its own tests, and those call Run expecting a
         // boot.
         if (WasmPrerender.RequestedOutput is { Length: > 0 } prerenderOutput)
         {
@@ -249,7 +249,7 @@ public sealed class WasmHostBuilder
         return Services.BuildServiceProvider();
     }
 
-    /// <summary>The boot sequence proper. See <see cref="RunAsync{TApp}" />, which reports its failures.</summary>
+    /// <summary>The boot sequence proper. See <see cref="Run{TApp}" />, which reports its failures.</summary>
     private async Task
         BootAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
         where TApp : Component
@@ -314,7 +314,7 @@ public sealed class WasmHostBuilder
     // state and call StateHasChanged, and until InitialRenderAsync has run there is no mounted tree to
     // render into. And a plain IHostedService (not a BackgroundService) does its work *inside*
     // StartAsync, so starting these any earlier would let a slow one delay the manifest injection — or,
-    // if it never returns, hold up everything after `await RunAsync<App>()` in the user's Program.cs
+    // if it never returns, hold up everything after `await Run<App>()` in the user's Program.cs
     // with no clue as to why. Nothing after this point can be starved.
     private static async Task StartHostedServicesAsync(IServiceProvider provider)
     {
@@ -365,13 +365,13 @@ public sealed class WasmHostBuilder
             return;
         }
 
-        try { await userProvider.EnsureLoadedAsync().ConfigureAwait(false); }
+        try { await userProvider.EnsureLoaded().ConfigureAwait(false); }
         catch (Exception ex)
         {
             RaskDiagnostics.Report(
                 RaskLogLevel.Error,
                 "Rask.Wasm",
-                "[Rask.Wasm] IUserProvider.EnsureLoadedAsync failed",
+                "[Rask.Wasm] IUserProvider.EnsureLoaded failed",
                 ex);
         }
     }

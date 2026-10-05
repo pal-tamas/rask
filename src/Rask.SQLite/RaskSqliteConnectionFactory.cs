@@ -49,7 +49,7 @@ internal sealed class RaskSqliteConnectionFactory : ISqlite
         return connection;
     }
 
-    public async Task<T> InImmediateTransactionAsync<T>(
+    public async Task<T> InImmediateTransaction<T>(
         Func<SqliteConnection, CancellationToken, Task<T>> work,
         CancellationToken cancellationToken = default)
     {
@@ -59,17 +59,17 @@ internal sealed class RaskSqliteConnectionFactory : ISqlite
         await using (connection.ConfigureAwait(false))
         {
             return await connection
-                .InImmediateTransactionAsync(_retry, work, cancellationToken: cancellationToken)
+                .InImmediateTransaction(_retry, work, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
     }
 
-    public Task InImmediateTransactionAsync(
+    public Task InImmediateTransaction(
         Func<SqliteConnection, CancellationToken, Task> work,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(work);
-        return InImmediateTransactionAsync(
+        return InImmediateTransaction(
             async (connection, ct) =>
             {
                 await work(connection, ct).ConfigureAwait(false);

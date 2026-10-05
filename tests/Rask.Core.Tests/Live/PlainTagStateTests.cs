@@ -110,8 +110,8 @@ public partial class PlainTagStateTests : global::Rask.Core.RaskMarkup
 
     private sealed class NullHandle : IRenderHandle
     {
-        public Task RequestRenderAsync() => Task.CompletedTask;
+        public Task RequestRender() => Task.CompletedTask;
 
-        public Task RequestPublishRenderAsync() => Task.CompletedTask;
+        public Task RequestPublishRender() => Task.CompletedTask;
     }
 }

@@ -107,10 +107,10 @@ public class RaskBrowserApisTests
 
     private sealed class FakeAppViewTransitions : IViewTransitions
     {
-        public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(false);
+        public ValueTask<bool> IsSupported() => ValueTask.FromResult(false);
 
-        public ValueTask<bool> SetEnabledAsync(bool enabled) => ValueTask.FromResult(false);
+        public ValueTask<bool> SetEnabled(bool enabled) => ValueTask.FromResult(false);
 
-        public ValueTask<bool> IsActiveAsync() => ValueTask.FromResult(false);
+        public ValueTask<bool> IsActive() => ValueTask.FromResult(false);
     }
 }

@@ -171,7 +171,7 @@ internal sealed class SplitStoreScenario : LoadScenario
 
     internal override async ValueTask<OpOutcome> ExecuteAsync(int vuser, CancellationToken cancellationToken)
     {
-        await _factory!.InImmediateTransactionAsync(async (connection, ct) =>
+        await _factory!.InImmediateTransaction(async (connection, ct) =>
         {
             await using var command = connection.CreateCommand();
             command.CommandText = WriteScenarios.Insert;

@@ -25,7 +25,7 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     {
         var source = WriteTempFile("database");
 
-        await Store().SaveAsync(source, "app-20260808-120000000.db", CancellationToken.None);
+        await Store().Save(source, "app-20260808-120000000.db", CancellationToken.None);
 
         Assert.Equal(
             "database",
@@ -39,7 +39,7 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     {
         var source = WriteTempFile("database");
 
-        await Store().SaveAsync(source, "app-20260808-120000000.db", CancellationToken.None);
+        await Store().Save(source, "app-20260808-120000000.db", CancellationToken.None);
 
         Assert.False(File.Exists(source));
     }
@@ -48,11 +48,11 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     public async Task Pruning_keeps_the_newest_and_drops_the_rest()
     {
         var store = Store();
-        await store.SaveAsync(WriteTempFile("1"), "app-20260808-120000000.db", CancellationToken.None);
-        await store.SaveAsync(WriteTempFile("2"), "app-20260808-130000000.db", CancellationToken.None);
-        await store.SaveAsync(WriteTempFile("3"), "app-20260808-140000000.db", CancellationToken.None);
+        await store.Save(WriteTempFile("1"), "app-20260808-120000000.db", CancellationToken.None);
+        await store.Save(WriteTempFile("2"), "app-20260808-130000000.db", CancellationToken.None);
+        await store.Save(WriteTempFile("3"), "app-20260808-140000000.db", CancellationToken.None);
 
-        await store.PruneAsync(2, CancellationToken.None);
+        await store.Prune(2, CancellationToken.None);
 
         Assert.Equal(
             ["app-20260808-130000000.db", "app-20260808-140000000.db"],
@@ -64,9 +64,9 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     public async Task Pruning_never_drops_every_snapshot()
     {
         var store = Store();
-        await store.SaveAsync(WriteTempFile("1"), "app-20260808-120000000.db", CancellationToken.None);
+        await store.Save(WriteTempFile("1"), "app-20260808-120000000.db", CancellationToken.None);
 
-        await store.PruneAsync(0, CancellationToken.None);
+        await store.Prune(0, CancellationToken.None);
 
         Assert.Single(_db.Store(StoreName).Values);
     }
@@ -75,8 +75,8 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     public async Task Reading_the_newest_returns_the_latest_by_timestamp()
     {
         var store = Store();
-        await store.SaveAsync(WriteTempFile("old"), "app-20260808-120000000.db", CancellationToken.None);
-        await store.SaveAsync(WriteTempFile("new"), "app-20260808-140000000.db", CancellationToken.None);
+        await store.Save(WriteTempFile("old"), "app-20260808-120000000.db", CancellationToken.None);
+        await store.Save(WriteTempFile("new"), "app-20260808-140000000.db", CancellationToken.None);
 
         var bytes = await store.ReadNewestAsync();
 
@@ -94,10 +94,10 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     public async Task Listing_reports_newest_first_with_size_and_timestamp()
     {
         var store = Store();
-        await store.SaveAsync(WriteTempFile("old"), "app-20260808-120000000.db", CancellationToken.None);
-        await store.SaveAsync(WriteTempFile("newer"), "app-20260808-140000000.db", CancellationToken.None);
+        await store.Save(WriteTempFile("old"), "app-20260808-120000000.db", CancellationToken.None);
+        await store.Save(WriteTempFile("newer"), "app-20260808-140000000.db", CancellationToken.None);
 
-        var infos = await store.ListAsync(CancellationToken.None);
+        var infos = await store.List(CancellationToken.None);
 
         Assert.Equal(["app-20260808-140000000.db", "app-20260808-120000000.db"], infos.Select(i => i.Name));
         Assert.Equal(5, infos[0].SizeBytes);
@@ -109,9 +109,9 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     public async Task Listing_parses_the_timestamp_when_the_stem_contains_dashes()
     {
         var store = Store();
-        await store.SaveAsync(WriteTempFile("x"), "my-app-db-20260808-140000000.db", CancellationToken.None);
+        await store.Save(WriteTempFile("x"), "my-app-db-20260808-140000000.db", CancellationToken.None);
 
-        var infos = await store.ListAsync(CancellationToken.None);
+        var infos = await store.List(CancellationToken.None);
 
         Assert.Equal(new DateTime(2026, 8, 8, 14, 0, 0, DateTimeKind.Utc), infos[0].CreatedAt);
     }
@@ -120,9 +120,9 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     public async Task Listing_still_lists_a_snapshot_whose_name_does_not_parse()
     {
         var store = Store();
-        await store.SaveAsync(WriteTempFile("x"), "not-a-timestamp.db", CancellationToken.None);
+        await store.Save(WriteTempFile("x"), "not-a-timestamp.db", CancellationToken.None);
 
-        var infos = await store.ListAsync(CancellationToken.None);
+        var infos = await store.List(CancellationToken.None);
 
         Assert.Equal("not-a-timestamp.db", Assert.Single(infos).Name);
     }

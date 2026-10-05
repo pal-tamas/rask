@@ -20,7 +20,7 @@ public sealed class DirectorySnapshotStore : ISqliteSnapshotStore
     }
 
     /// <inheritdoc/>
-    public Task SaveAsync(string sourceFilePath, string snapshotName, CancellationToken cancellationToken)
+    public Task Save(string sourceFilePath, string snapshotName, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceFilePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(snapshotName);
@@ -32,14 +32,14 @@ public sealed class DirectorySnapshotStore : ISqliteSnapshotStore
     }
 
     /// <inheritdoc/>
-    public Task<IReadOnlyList<SqliteSnapshotInfo>> ListAsync(CancellationToken cancellationToken)
+    public Task<IReadOnlyList<SqliteSnapshotInfo>> List(CancellationToken cancellationToken)
     {
         if (!Directory.Exists(_directory))
         {
             return Task.FromResult<IReadOnlyList<SqliteSnapshotInfo>>([]);
         }
 
-        // Ordered by the same key PruneAsync deletes by, so "the ones you can see" and "the ones that survive
+        // Ordered by the same key Prune deletes by, so "the ones you can see" and "the ones that survive
         // retention" are the same list in the same order.
         var snapshots = new DirectoryInfo(_directory)
             .EnumerateFiles(_searchPattern)
@@ -51,7 +51,7 @@ public sealed class DirectorySnapshotStore : ISqliteSnapshotStore
     }
 
     /// <inheritdoc/>
-    public Task PruneAsync(int retain, CancellationToken cancellationToken)
+    public Task Prune(int retain, CancellationToken cancellationToken)
     {
         if (retain < 1 || !Directory.Exists(_directory))
         {

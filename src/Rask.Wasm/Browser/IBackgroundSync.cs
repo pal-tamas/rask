@@ -52,10 +52,10 @@ namespace Rask.Wasm.Browser;
 public interface IBackgroundSync
 {
     /// <summary>Whether the browser supports one-shot Background Sync (<c>SyncManager</c>).</summary>
-    ValueTask<bool> IsSupportedAsync();
+    ValueTask<bool> IsSupported();
 
     /// <summary>Whether the browser supports Periodic Background Sync (<c>PeriodicSyncManager</c>).</summary>
-    ValueTask<bool> IsPeriodicSupportedAsync();
+    ValueTask<bool> IsPeriodicSupported();
 
     /// <summary>
     ///     Asks the browser to fire <paramref name="tag" /> once connectivity is available — immediately if
@@ -63,17 +63,17 @@ public interface IBackgroundSync
     ///     is registered, or the browser refused; registering the same tag twice coalesces into one sync.
     /// </summary>
     /// <param name="tag">Your name for this sync, e.g. <c>"flush-drafts"</c>.</param>
-    ValueTask<bool> RequestSyncAsync(string tag);
+    ValueTask<bool> RequestSync(string tag);
 
-    /// <summary>Tags registered with <see cref="RequestSyncAsync" /> that have not fired yet. Empty when unsupported.</summary>
-    ValueTask<IReadOnlyList<string>> GetPendingTagsAsync();
+    /// <summary>Tags registered with <see cref="RequestSync" /> that have not fired yet. Empty when unsupported.</summary>
+    ValueTask<IReadOnlyList<string>> GetPendingTags();
 
     /// <summary>
     ///     The state of the <c>periodic-background-sync</c> permission — <c>"granted"</c>, <c>"denied"</c>,
     ///     or <c>"prompt"</c>. Browsers grant it on their own terms (Chromium ties it to the app being
     ///     installed and to site engagement); there is no API to ask for it, so check rather than request.
     /// </summary>
-    ValueTask<string> GetPeriodicPermissionAsync();
+    ValueTask<string> GetPeriodicPermission();
 
     /// <summary>
     ///     Registers a recurring sync for <paramref name="tag" />. <paramref name="minInterval" /> is a floor,
@@ -82,13 +82,13 @@ public interface IBackgroundSync
     /// </summary>
     /// <param name="tag">Your name for this sync.</param>
     /// <param name="minInterval">The shortest gap between firings. Must be positive.</param>
-    ValueTask<bool> RequestPeriodicSyncAsync(string tag, TimeSpan minInterval);
+    ValueTask<bool> RequestPeriodicSync(string tag, TimeSpan minInterval);
 
     /// <summary>Removes a periodic registration. Harmless when the tag was never registered.</summary>
-    ValueTask UnregisterPeriodicAsync(string tag);
+    ValueTask UnregisterPeriodic(string tag);
 
     /// <summary>Tags currently registered for periodic sync. Empty when unsupported.</summary>
-    ValueTask<IReadOnlyList<string>> GetPeriodicTagsAsync();
+    ValueTask<IReadOnlyList<string>> GetPeriodicTags();
 
     /// <summary>
     ///     Subscribes to woken-up syncs, one-shot and periodic alike — check
@@ -101,5 +101,5 @@ public interface IBackgroundSync
     ///         apply.
     ///     </para>
     /// </summary>
-    ValueTask<IAsyncDisposable> OnSyncAsync(Func<BackgroundSyncEvent, Task> onSync);
+    ValueTask<IAsyncDisposable> OnSync(Func<BackgroundSyncEvent, Task> onSync);
 }

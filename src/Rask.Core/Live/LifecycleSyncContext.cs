@@ -88,7 +88,7 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
         }
 
         // Suppress ExecutionContext flow so the continuation thread does NOT inherit
-        // LiveSession.InHandlerScope=true. If it did, RequestRenderAsync() would render
+        // LiveSession.InHandlerScope=true. If it did, RequestRender() would render
         // inline without acquiring the lock — re-entering an in-progress render.
         using (ExecutionContext.SuppressFlow())
         {

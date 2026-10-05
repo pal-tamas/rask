@@ -277,7 +277,7 @@ reporting zero, and saying nothing would restore the silence the guard is for.
 
 **A route table with no literal routes writes nothing.** The plan is built from the registered routes,
 so an app whose root component carries no `[Route]` — one that simply does
-`host.RunAsync<App>()` — has nothing to enumerate and produces no pages. Give the page a
+`host.Run<App>()` — has nothing to enumerate and produces no pages. Give the page a
 `[Route("/")]` and let `App` render the `Router`.
 
 ## Each page is spliced into the boot shell, not written over it
@@ -350,7 +350,7 @@ then has each component's `data-r-*` scope attributes and the scoped bundle's `<
 
 It compiles **`Program.cs` too**, deliberately: that file is where the app registers its services,
 and a page that injects anything would otherwise find nothing registered.
-`WasmHostBuilder.RunAsync` sees the `RASK_PRERENDER_OUT` environment variable and prerenders
+`WasmHostBuilder.Run` sees the `RASK_PRERENDER_OUT` environment variable and prerenders
 instead of booting — so the app's real entry point drives the pass, and there is no second place to
 keep registrations in sync.
 
@@ -371,10 +371,10 @@ own pass:
 ```csharp
 var plan = RaskPrerender.PlanRoutes();          // .Paths and .Skipped
 // seed RouteState.Path on the scope first — the caller holds the route table
-var result = await RaskPrerender.RenderDocumentAsync(app, services, 30.Seconds);
+var result = await RaskPrerender.RenderDocument(app, services, 30.Seconds);
 ```
 
-`RenderDocumentAsync` deliberately takes no route: which page it renders is the caller's decision,
+`RenderDocument` deliberately takes no route: which page it renders is the caller's decision,
 because the caller is what holds the route table. **Check `result.Faulted` and `result.TimedOut`
 before writing anything to disk** — for the reason above, both return ordinary-looking HTML — and
 **report `result.Error`**, which carries what threw. Refusing a page is a decision the pass can make on

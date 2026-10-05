@@ -92,7 +92,7 @@ public static partial class RaskEndpointExtensions
     // 50ms trailing-edge debounce for ScopedAssetRegistry.AssetChanged. A multi-file edit
     // (or a single hot-reload UpdateApplication burst that re-registers every component
     // back-to-back) generates N events; without coalescing each fires its own
-    // RerenderAllAsync. The generation counter snapshot survives only if no newer event
+    // RerenderAll. The generation counter snapshot survives only if no newer event
     // arrived during the quiet window — the trailing change wins and we re-render once.
     private static long _assetChangeGen;
 
@@ -678,7 +678,7 @@ public static partial class RaskEndpointExtensions
     private static async Task<bool> AuthorizeRouteAsync(HttpContext httpContext, IReadOnlyList<Type> chain, ClaimsPrincipal user)
     {
         var authResult = await RouteAuthorizationGuard
-            .EvaluateAsync(httpContext.RequestServices, chain, user)
+            .Evaluate(httpContext.RequestServices, chain, user)
             .ConfigureAwait(false);
 
         switch (authResult.Outcome)
@@ -1084,7 +1084,7 @@ public static partial class RaskEndpointExtensions
             {
                 try
                 {
-                    await sessionStore.BroadcastAsync(LivePayload.HotReloadAppliedFrame).ConfigureAwait(false);
+                    await sessionStore.Broadcast(LivePayload.HotReloadAppliedFrame).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -1111,7 +1111,7 @@ public static partial class RaskEndpointExtensions
 
                 try
                 {
-                    await sessionStore.RerenderAllAsync().ConfigureAwait(false);
+                    await sessionStore.RerenderAll().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -2926,7 +2926,7 @@ public static partial class RaskEndpointExtensions
 
         session.LastUserRevalidation = now;
 
-        var fresh = await revalidator.RevalidateAsync(users.Current, cancellationToken).ConfigureAwait(false);
+        var fresh = await revalidator.Revalidate(users.Current, cancellationToken).ConfigureAwait(false);
         if (fresh is null)
         {
             users.Clear();
@@ -2951,7 +2951,7 @@ public static partial class RaskEndpointExtensions
 
         var user = session.Services.GetRequiredService<SessionUserProvider>().Current;
         var result = await RouteAuthorizationGuard
-            .EvaluateAsync(session.Services, chain, user)
+            .Evaluate(session.Services, chain, user)
             .ConfigureAwait(false);
         return result.Outcome == RouteAuthorizationOutcome.Allow;
     }
@@ -2978,7 +2978,7 @@ public static partial class RaskEndpointExtensions
             {
                 var user = session.Services.GetRequiredService<SessionUserProvider>().Current;
                 var result = await RouteAuthorizationGuard
-                    .EvaluateAsync(session.Services, chain, user)
+                    .Evaluate(session.Services, chain, user)
                     .ConfigureAwait(false);
                 if (result.Outcome != RouteAuthorizationOutcome.Allow)
                 {

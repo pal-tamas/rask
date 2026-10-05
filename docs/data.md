@@ -599,13 +599,13 @@ public sealed partial class NewProductPage : Component
     private readonly ProductModel _product = new();
 
     protected override Component Render() =>
-        Form.Model(_product).OnSubmit(CreateAsync)[submitting => [
+        Form.Model(_product).OnSubmit(Create)[submitting => [
             Ui.Input.Bind(() => _product.Name).Label("Name"),
             Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
             Ui.Button.Submit.Disabled(submitting)["Create"],
         ]];
 
-    private async Task CreateAsync(ProductModel product)
+    private async Task Create(ProductModel product)
     {
         await Product.Create(product);
         Routes.ProductsPage().Go();
@@ -629,7 +629,7 @@ public sealed partial class EditProductPage : Component
 
     protected override Component? Render() =>
         _product is null ? P["Loading…"] :
-        Form.Model(_product).OnSubmit(SaveAsync)[
+        Form.Model(_product).OnSubmit(Save)[
             _conflict is null ? null : Ui.Alert.Warning[_conflict],
             Ui.Input.Bind(() => _product.Name).Label("Name"),
             Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
@@ -637,7 +637,7 @@ public sealed partial class EditProductPage : Component
             Ui.Button.Submit["Save"],
         ];
 
-    private async Task SaveAsync(ProductModel edit)
+    private async Task Save(ProductModel edit)
     {
         try
         {
@@ -1056,7 +1056,7 @@ public sealed partial class OrderPage(IDbContextFactory<RaskAppDbContext> contex
 {
     [RouteParam] public Guid Id { get; set; }
 
-    private async Task ShipAsync()
+    private async Task Ship()
     {
         await using var db = await contexts.CreateDbContextAsync(CancellationToken);
 
@@ -1176,7 +1176,7 @@ Behaviour that touches the database gets a real one in a line, rather than a moc
 through `database.Context`, then read through the model surface exactly as the app does:
 
 ```csharp
-await using var database = await TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={path}"));
+await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={path}"));
 
 var anvil = Product.Create("Anvil", 9.99m);
 database.Context.Add(anvil);
@@ -1185,7 +1185,7 @@ await database.Context.SaveChangesAsync();
 anvil.Reprice(12.50m);
 await database.Context.SaveChangesAsync();   // stamped and versioned, exactly as in production
 
-Assert.Equal(12.50m, (await database.LoadAsync<Product>(anvil.Id))!.Price);
+Assert.Equal(12.50m, (await database.Load<Product>(anvil.Id))!.Price);
 ```
 
 ```csharp
@@ -1195,7 +1195,7 @@ await database.Context.SaveChangesAsync();
 Assert.Equal(2, await Order.Count());
 ```
 
-`TestDatabase.StartAsync` maps every entity the build found — so no fixture has to list entities — creates the
+`TestDatabase.Start` maps every entity the build found — so no fixture has to list entities — creates the
 schema, wires the auditing and soft-delete interceptors so the conventions behave as they do in
 production, and points the model surface at it. Disposing clears it, so one test cannot leak its
 database into the next. It takes a `TimeProvider`, so audit stamps are assertable.
@@ -1441,13 +1441,13 @@ catches it with the reader's changes still on screen. A delete pins the version 
 
 EF Core answers the bulk *update* and *delete* shapes with `ExecuteUpdate`/`ExecuteDelete`, but [its own
 plan](https://learn.microsoft.com/ef/core/what-is-new/ef-core-7.0/plan) puts bulk **inserts** out of scope —
-so seeding, importing and migrating data is left to every application to hand-roll. `BulkInsertAsync` is that
+so seeding, importing and migrating data is left to every application to hand-roll. `BulkInsert` is that
 code, written once:
 
 ```csharp
-await db.BulkInsertAsync(products);                          // on the context
-await db.Products.BulkInsertAsync(products);                 // or the set
-await db.BulkInsertAsync(products, o => o.BatchSize = 10_000);
+await db.BulkInsert(products);                          // on the context
+await db.Products.BulkInsert(products);                 // or the set
+await db.BulkInsert(products, o => o.BatchSize = 10_000);
 ```
 
 It runs **through the context**, so nothing above stops being true: `CreatedAt`/`UpdatedAt` are stamped and
@@ -1463,8 +1463,8 @@ wrote. Over 100,000 rows on SQLite:
 |---|---:|---:|
 | `SaveChanges` per row | 5.48 s | 2,472 MB |
 | `AddRange` + one `SaveChanges` | 1.22 s | 1,307 MB |
-| `BulkInsertAsync` | 976 ms | 1,105 MB |
-| `BulkInsertAsync`, `SkipChangeTracking` | **406 ms** | **141 MB** |
+| `BulkInsert` | 976 ms | 1,105 MB |
+| `BulkInsert`, `SkipChangeTracking` | **406 ms** | **141 MB** |
 
 The last row is [the fast path](#the-fast-path) below; the rest is what batching alone buys.
 
@@ -1479,7 +1479,7 @@ or an import, usually the retryable outcome you want.
 When the load really must be all-or-nothing, ask for it:
 
 ```csharp
-await db.BulkInsertAsync(products, o => o.SingleTransaction = true);
+await db.BulkInsert(products, o => o.SingleTransaction = true);
 ```
 
 **Entities carrying domain events are rejected in that mode** — and inside an ambient transaction, for the
@@ -1495,7 +1495,7 @@ walking them on save, then throwing them away. `SkipChangeTracking` writes the r
 instead:
 
 ```csharp
-await db.BulkInsertAsync(products, o => o.SkipChangeTracking = true);
+await db.BulkInsert(products, o => o.SkipChangeTracking = true);
 ```
 
 The shape it writes in depends on what a statement costs. **On SQLite** it is one prepared `INSERT` whose

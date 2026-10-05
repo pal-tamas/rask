@@ -14,7 +14,7 @@ public sealed class CookieCulturePersistenceTests
         using var document = Document.Fake();
         var persistence = new CookieCulturePersistence(new ServiceCollection().BuildServiceProvider(), new RaskCultureOptions());
 
-        await persistence.SaveAsync("hu-HU", "en-US", TestContext.Current.CancellationToken);
+        await persistence.Save("hu-HU", "en-US", TestContext.Current.CancellationToken);
 
         var write = document.Calls.Single();
         Assert.Equal("cookie=", write.Member);
@@ -28,7 +28,7 @@ public sealed class CookieCulturePersistenceTests
         var options = new RaskCultureOptions { CookieName = "lang", CookieMaxAgeDays = 1 };
         var persistence = new CookieCulturePersistence(new ServiceCollection().BuildServiceProvider(), options);
 
-        await persistence.SaveAsync("de", "de", TestContext.Current.CancellationToken);
+        await persistence.Save("de", "de", TestContext.Current.CancellationToken);
 
         Assert.Equal("lang=c%3Dde%7Cuic%3Dde; max-age=86400; path=/; samesite=lax", document.Calls.Single().Args.Single());
     }
@@ -40,7 +40,7 @@ public sealed class CookieCulturePersistenceTests
         var services = new ServiceCollection().AddSingleton<IJSRuntime>(browser).BuildServiceProvider();
         var persistence = new CookieCulturePersistence(services, new RaskCultureOptions());
 
-        await persistence.SaveAsync("hu", "hu", TestContext.Current.CancellationToken);
+        await persistence.Save("hu", "hu", TestContext.Current.CancellationToken);
 
         Assert.Equal(["__raskWeb.run"], browser.Calls.Select(c => c.Identifier));
         Assert.Contains(".AspNetCore.Culture=c%3Dhu%7Cuic%3Dhu", browser.Steps(0), StringComparison.Ordinal);

@@ -139,7 +139,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     {
         var store = NewStore();
 
-        await store.RerenderAllAsync();
+        await store.RerenderAll();
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
         store.Create(_ => new StubComponent(Span));
         store.Create(_ => new StubComponent(Span));
 
-        var task = store.RerenderAllAsync();
+        var task = store.RerenderAll();
         await task;
 
         Assert.True(task.IsCompletedSuccessfully);

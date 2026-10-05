@@ -11,7 +11,7 @@ public class AuthSignInTests
         var auth = new AuthSignIn();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity())));
+            auth.SignIn(new ClaimsPrincipal(new ClaimsIdentity())));
     }
 
     [Fact]
@@ -19,7 +19,7 @@ public class AuthSignInTests
     {
         var auth = new AuthSignIn();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => auth.SignOutAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => auth.SignOut());
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class AuthSignInTests
 
         using (auth.EnterHandler())
         {
-            await auth.SignInAsync(principal, "/dashboard", "Test");
+            await auth.SignIn(principal, "/dashboard", "Test");
         }
 
         Assert.True(auth.TryConsume(out var pending));
@@ -47,7 +47,7 @@ public class AuthSignInTests
 
         using (auth.EnterHandler())
         {
-            await auth.SignOutAsync("/bye");
+            await auth.SignOut("/bye");
         }
 
         Assert.True(auth.TryConsume(out var pending));
@@ -63,7 +63,7 @@ public class AuthSignInTests
 
         using (auth.EnterHandler())
         {
-            await auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity()));
+            await auth.SignIn(new ClaimsPrincipal(new ClaimsIdentity()));
         }
 
         Assert.True(auth.TryConsume(out _));
@@ -77,7 +77,7 @@ public class AuthSignInTests
 
         using (auth.EnterHandler())
         {
-            await Assert.ThrowsAsync<ArgumentNullException>(() => auth.SignInAsync(null!));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => auth.SignIn(null!));
         }
     }
 
@@ -88,10 +88,10 @@ public class AuthSignInTests
 
         using (auth.EnterHandler())
         {
-            await auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity()));
+            await auth.SignIn(new ClaimsPrincipal(new ClaimsIdentity()));
         }
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity())));
+            auth.SignIn(new ClaimsPrincipal(new ClaimsIdentity())));
     }
 }

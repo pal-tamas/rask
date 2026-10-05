@@ -59,7 +59,7 @@ public sealed class SqliteConcurrencyStressTests : IDisposable
         // Task.Run forces every writer onto the thread pool at once, so they genuinely contend for the
         // single write lock (a lazy Select would start them one-by-one, each finishing before the next).
         var tasks = Enumerable.Range(0, writers).Select(worker =>
-            Task.Run(() => _factory.InImmediateTransactionAsync(async (connection, ct) =>
+            Task.Run(() => _factory.InImmediateTransaction(async (connection, ct) =>
             {
                 await using var command = connection.CreateCommand();
                 command.CommandText = "INSERT INTO writes(worker) VALUES ($worker);";
@@ -87,7 +87,7 @@ public sealed class SqliteConcurrencyStressTests : IDisposable
         {
             const int writers = 400;
             var tasks = Enumerable.Range(0, writers).Select(worker =>
-                Task.Run(() => _factory.InImmediateTransactionAsync(async (connection, ct) =>
+                Task.Run(() => _factory.InImmediateTransaction(async (connection, ct) =>
                 {
                     await using var command = connection.CreateCommand();
                     command.CommandText = "INSERT INTO writes(worker) VALUES ($worker);";

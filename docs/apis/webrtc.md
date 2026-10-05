@@ -29,22 +29,22 @@ public sealed class Call(IWebRtc rtc) : Component, IAsyncDisposable
 
     protected override async Task OnFirstRender()
     {
-        _conn = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers
+        _conn = await rtc.Create(new RtcConfiguration(), new RtcHandlers
         {
             OnIceCandidates = async cands => { foreach (var c in cands) await Signal(c); },
             OnConnectionStateChanged = s => { _state = s; StateHasChanged(); return Task.CompletedTask; },
-            OnDataChannel = ch => ch.ListenAsync(OnMessagesAsync).AsTask(),
+            OnDataChannel = ch => ch.Listen(OnMessages).AsTask(),
         });
 
-        _chat = await _conn.CreateDataChannelAsync("chat");
-        await _chat.ListenAsync(OnMessagesAsync);
+        _chat = await _conn.CreateDataChannel("chat");
+        await _chat.Listen(OnMessages);
 
-        var offer = await _conn.CreateOfferAsync();
-        await _conn.SetLocalDescriptionAsync(offer);
+        var offer = await _conn.CreateOffer();
+        await _conn.SetLocalDescription(offer);
         await Signal(offer);
     }
 
-    private Task OnMessagesAsync(IReadOnlyList<RtcMessage> batch) { /* … */ }
+    private Task OnMessages(IReadOnlyList<RtcMessage> batch) { /* … */ }
 
     public async ValueTask DisposeAsync()
     {
@@ -55,7 +55,7 @@ public sealed class Call(IWebRtc rtc) : Component, IAsyncDisposable
 
 ## Messages arrive in batches
 
-`ListenAsync` hands you an `IReadOnlyList<RtcMessage>`, not one message at a time, and `OnIceCandidates`
+`Listen` hands you an `IReadOnlyList<RtcMessage>`, not one message at a time, and `OnIceCandidates`
 does the same. That is not a convenience — it is what keeps the Server host alive. Each push from the
 browser costs one inbound WebSocket frame, and the host closes a socket that exceeds its inbound frame rate
 (`RaskServerLimits.MaxInboundFramesPerSecond`, 1000 by default). A busy data channel delivered one message
@@ -67,15 +67,15 @@ Under sustained overload the client-side buffer is capped. Past the cap the olde
 counted, and the count is reported through `RaskDiagnostics` — an unbounded buffer would only trade a closed
 socket for an out-of-memory tab. ICE candidates are never dropped.
 
-## Call ListenAsync, or you receive nothing
+## Call Listen, or you receive nothing
 
-A channel buffers from the moment it exists, and starts delivering only when you call `ListenAsync`. This is
+A channel buffers from the moment it exists, and starts delivering only when you call `Listen`. This is
 what makes a remote-opened channel safe: by the time `OnDataChannel` runs, the peer may already have sent
 something, and those messages ride the first batch rather than being lost.
 
 ## Buffer candidates until the remote description is applied
 
-`AddIceCandidateAsync` throws if the connection has no remote description yet, and gathering routinely
+`AddIceCandidate` throws if the connection has no remote description yet, and gathering routinely
 outruns the answer. Hold incoming candidates in a list until you have applied the offer or answer, then
 drain it. This is the single most common way a first WebRTC integration fails, and it is not something the
 wrapper can hide — only your signaling knows when the exchange completed.
@@ -89,7 +89,7 @@ browser's `MediaStream`:
 // Server host: the click gesture acquires it, OnStream hands back the handle.
 Trigger.MediaCapture.For(_preview).Template(g => Button.Type(ButtonType.Button).Data(g)["Start camera"])
     .Video().Audio()
-    .OnStream(async stream => await _conn!.AddStreamAsync(stream))
+    .OnStream(async stream => await _conn!.AddStream(stream))
 
 // The peer's media comes back the same way. Rask.Web wraps it to show it.
 new RtcHandlers { OnTrack = async stream => await _remoteVideo.SetSrcObject(MediaStream.From(stream)) }

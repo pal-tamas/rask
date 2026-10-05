@@ -15,7 +15,7 @@ namespace Rask.Web;
 ///     </para>
 ///     <para>
 ///         The new value reaches the <em>server</em> only on the next HTTP request. That is not a gap: the session
-///         switched the moment <see cref="IRaskCulture.SetAsync(string)" /> returned, and the cookie exists to survive
+///         switched the moment <see cref="IRaskCulture.Set(string)" /> returned, and the cookie exists to survive
 ///         a reload, not to carry the current render.
 ///     </para>
 /// </remarks>
@@ -23,7 +23,7 @@ public sealed class CookieCulturePersistence(IServiceProvider services, RaskCult
     : IRaskCulturePersistence
 {
     /// <inheritdoc />
-    public async Task SaveAsync(string culture, string uiCulture, CancellationToken cancellationToken = default)
+    public async Task Save(string culture, string uiCulture, CancellationToken cancellationToken = default)
     {
         // The session's own services, so the write reaches this visitor's page even when the switch was not
         // made from an event handler — a service holding IRaskCulture, say.

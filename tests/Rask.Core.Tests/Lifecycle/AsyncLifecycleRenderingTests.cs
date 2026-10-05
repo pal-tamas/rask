@@ -106,7 +106,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     {
         // OnRendered auto-rerenders on continuation completion — same ergonomics
         // as Mount, so users can `_x = await ...;` without calling
-        // StateHasChanged. The continuation routes through RequestPublishRenderAsync
+        // StateHasChanged. The continuation routes through RequestPublishRender
         // so the resulting walk is loop-safe (already-rendered components skip the
         // hook).
         var sp = RenderHarness.EmptyServices();
@@ -132,7 +132,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         // Regression for the render-storm leak: a component that unconditionally awaits
         // something in OnRendered (without an `if (!firstRender) return;` guard)
         // used to drive an infinite render loop. The continuation's auto-rerender goes
-        // through RequestPublishRenderAsync which flags the resulting walk as publishOnly,
+        // through RequestPublishRender which flags the resulting walk as publishOnly,
         // so already-rendered components don't re-enter their OnRendered hook on
         // the publish frame — no fresh continuation, no fresh request → loop broken.
         var sp = RenderHarness.EmptyServices();
@@ -323,13 +323,13 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         public int RequestPublishRenderCount;
         public int RequestRenderCount;
 
-        public Task RequestRenderAsync()
+        public Task RequestRender()
         {
             Interlocked.Increment(ref RequestRenderCount);
             return Task.CompletedTask;
         }
 
-        public Task RequestPublishRenderAsync()
+        public Task RequestPublishRender()
         {
             Interlocked.Increment(ref RequestPublishRenderCount);
             return Task.CompletedTask;

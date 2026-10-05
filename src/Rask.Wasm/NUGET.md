@@ -27,7 +27,7 @@ Or scaffold one with the CLI — `rask new Shop --template wasm` (a static site)
 ```csharp
 // Program.cs
 var host = WasmHostBuilder.CreateDefault();
-await host.RunAsync<App>();   // App is your root component; its Render() returns Router
+await host.Run<App>();   // App is your root component; its Render() returns Router
 ```
 
 ```csharp

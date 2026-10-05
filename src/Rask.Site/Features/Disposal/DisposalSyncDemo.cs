@@ -53,13 +53,13 @@ public sealed partial class DisposalSyncDemo : Component
     {
         _syncLog.Add(line);
         StateHasChanged();
-        _ = DeferredRerenderAsync();
+        _ = DeferredRerender();
     }
 
     // The probe's Dispose runs inside the parent's render diff pass; a StateHasChanged fired from there
     // lands inside the live session's in-handler guard and is dropped on WASM. Task.Delay routes through
     // the runtime timer queue (a future event-loop tick), so the render lock is released before the retry.
-    private async Task DeferredRerenderAsync()
+    private async Task DeferredRerender()
     {
         await Task.Delay(50);
         StateHasChanged();

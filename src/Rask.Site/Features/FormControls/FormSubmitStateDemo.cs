@@ -13,7 +13,7 @@ public sealed partial class FormSubmitStateDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-7")[
-                Form.Model(_model).OnSubmit(SaveAsync).Id("fss-form")[f => [
+                Form.Model(_model).OnSubmit(Save).Id("fss-form")[f => [
                     Ui.Input.Bind(() => _model.Username).Label("Username")
                         .Disabled(f.Submitting)
                         .Id("fss-input").Class("mb-2"),
@@ -33,7 +33,7 @@ public sealed partial class FormSubmitStateDemo : Component
 
     // Slow on purpose: a synchronous handler returns before there is a frame to paint, so the busy
     // state would never be seen. This stands in for the round trip a real save makes.
-    private async Task SaveAsync(Model m)
+    private async Task Save(Model m)
     {
         await Task.Delay(800).ConfigureAwait(false);
         _saved = m.Username;

@@ -100,7 +100,7 @@ public class MountTests
     {
         public int RequestRenderCount;
 
-        public Task RequestRenderAsync()
+        public Task RequestRender()
         {
             Interlocked.Increment(ref RequestRenderCount);
             return Task.CompletedTask;

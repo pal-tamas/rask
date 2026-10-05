@@ -13,7 +13,7 @@ public sealed class LitestreamRestorerTests : IDisposable
         var executor = new FakeExecutor(exitCode: 0);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        var attempted = await restorer.RestoreAsync(TestContext.Current.CancellationToken);
+        var attempted = await restorer.Restore(TestContext.Current.CancellationToken);
 
         Assert.True(attempted);
         Assert.Equal(["restore", "-if-replica-exists", "-o", _dbPath, "s3://bucket/app"], executor.LastArguments);
@@ -27,7 +27,7 @@ public sealed class LitestreamRestorerTests : IDisposable
         var executor = new FakeExecutor(exitCode: 0);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        var attempted = await restorer.RestoreAsync(TestContext.Current.CancellationToken);
+        var attempted = await restorer.Restore(TestContext.Current.CancellationToken);
 
         Assert.False(attempted);
         Assert.Equal(0, executor.CallCount);
@@ -45,7 +45,7 @@ public sealed class LitestreamRestorerTests : IDisposable
         var executor = new FakeExecutor(exitCode: 0);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        Assert.False(await restorer.RestoreAsync(TestContext.Current.CancellationToken));
+        Assert.False(await restorer.Restore(TestContext.Current.CancellationToken));
         Assert.Equal(0, executor.CallCount);
     }
 
@@ -56,7 +56,7 @@ public sealed class LitestreamRestorerTests : IDisposable
         var executor = new FakeExecutor(exitCode: 0);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        Assert.False(await restorer.RestoreAsync(TestContext.Current.CancellationToken));
+        Assert.False(await restorer.Restore(TestContext.Current.CancellationToken));
         Assert.Equal(0, executor.CallCount);
     }
 
@@ -68,7 +68,7 @@ public sealed class LitestreamRestorerTests : IDisposable
         var executor = new FakeExecutor(exitCode: 0);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        Assert.True(await restorer.RestoreAsync(TestContext.Current.CancellationToken));
+        Assert.True(await restorer.Restore(TestContext.Current.CancellationToken));
         Assert.Equal(1, executor.CallCount);
     }
 
@@ -79,7 +79,7 @@ public sealed class LitestreamRestorerTests : IDisposable
         var executor = new FakeExecutor(exitCode: 1);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => restorer.RestoreAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => restorer.Restore(TestContext.Current.CancellationToken));
     }
 
     public void Dispose()
@@ -96,7 +96,7 @@ public sealed class LitestreamRestorerTests : IDisposable
 
         public IReadOnlyList<string>? LastArguments { get; private set; }
 
-        public Task<int> RunAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+        public Task<int> Run(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
         {
             CallCount++;
             LastArguments = arguments;

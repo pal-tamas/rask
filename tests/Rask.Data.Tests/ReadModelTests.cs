@@ -282,6 +282,6 @@ public sealed class ReadModelTests
     private static Task<TestDatabase> StartAsync()
     {
         var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        return TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={path}"));
+        return TestDatabase.Start(o => o.UseSqlite($"Data Source={path}"));
     }
 }

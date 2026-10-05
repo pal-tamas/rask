@@ -25,7 +25,7 @@ internal sealed partial class SqliteSnapshotter : ISqliteSnapshotter
         _logger = logger;
     }
 
-    public async Task<string> SnapshotAsync(CancellationToken cancellationToken = default)
+    public async Task<string> Snapshot(CancellationToken cancellationToken = default)
     {
         var databasePath = _options.DatabasePath
             ?? throw new InvalidOperationException($"{nameof(SqliteSnapshotOptions.DatabasePath)} is not set.");
@@ -38,8 +38,8 @@ internal sealed partial class SqliteSnapshotter : ISqliteSnapshotter
         try
         {
             CreateConsistentCopy(databasePath, tempPath);
-            await _store.SaveAsync(tempPath, snapshotName, cancellationToken).ConfigureAwait(false);
-            await _store.PruneAsync(_options.Retain, cancellationToken).ConfigureAwait(false);
+            await _store.Save(tempPath, snapshotName, cancellationToken).ConfigureAwait(false);
+            await _store.Prune(_options.Retain, cancellationToken).ConfigureAwait(false);
             LogSnapshotCreated(_logger, snapshotName);
             return snapshotName;
         }

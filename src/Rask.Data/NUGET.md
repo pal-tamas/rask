@@ -35,7 +35,7 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 - **State stays inside**: a public setter or mutable field on an aggregate, entity or value object is a build
   error with a lightbulb fix (RASK084), and an entity exposing a mutable collection of entities is a warning
   (RASK085).
-- **`TestDatabase.StartAsync`**: a real database for a test in one line, so behaviour on an aggregate is
+- **`TestDatabase.Start`**: a real database for a test in one line, so behaviour on an aggregate is
   tested against the database it ships on rather than a mocked `DbContext`.
 - **Three `ISaveChangesInterceptor`s**: auditing timestamps and versions, **opt-in soft delete** (for an aggregate
   that declares it, a delete becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
@@ -44,7 +44,7 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
   static factory or anywhere else with no constructor to inject into. `public const Tenancy Scope =
   Tenancy.PerTenant;` gives a table a `TenantId`, a query filter no read can compose away and a tenant prefix on
   every index; the tenant comes from the signed-in user.
-- **`BulkInsertAsync`**: the bulk insert EF Core leaves out (`ExecuteUpdate`/`ExecuteDelete` exist; inserts
+- **`BulkInsert`**: the bulk insert EF Core leaves out (`ExecuteUpdate`/`ExecuteDelete` exist; inserts
   are out of its scope). Batched, with the change tracker cleared as it goes so memory stays flat.
 
 ## Use
@@ -110,8 +110,8 @@ back); a save against a stale `Version` throws
 `DbUpdateConcurrencyException`; and any `IEvent` raised on the aggregate is published after the change
 commits.
 
-To load many rows at once — seeding, an import, a migration — `await db.BulkInsertAsync(products)` (or
-`db.Products.BulkInsertAsync(...)`) saves them in batches, clearing the change tracker between each so memory
+To load many rows at once — seeding, an import, a migration — `await db.BulkInsert(products)` (or
+`db.Products.BulkInsert(...)`) saves them in batches, clearing the change tracker between each so memory
 stays flat. The interceptors above still run for every row. Each batch commits on its own so a long import
 does not hold SQLite's only write lock end to end; `o.SingleTransaction = true` makes it all-or-nothing.
 

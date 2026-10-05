@@ -52,18 +52,18 @@ A page that needs refreshing won't get looked at. Poll in the background and re-
 ```csharp
 protected override async Task OnMount()
 {
-    await RefreshAsync().ConfigureAwait(false);
-    _ = PollAsync();
+    await Refresh().ConfigureAwait(false);
+    _ = Poll();
 }
 
-private async Task PollAsync()
+private async Task Poll()
 {
     for (var tick = 0; tick < MaxTicks && !_stopped.IsCancellationRequested; tick++)
     {
         await Task.Delay(1.Second, _stopped.Token).ConfigureAwait(false);
 
         var before = _stats;
-        await RefreshAsync().ConfigureAwait(false);
+        await Refresh().ConfigureAwait(false);
         if (_stats != before)
         {
             StateHasChanged();

@@ -14,7 +14,7 @@ namespace Rask.SQLite;
 /// when <c>Retry.Enabled</c> is set — in code or through <c>Rask:Sqlite:Retry:Enabled</c>.
 /// </summary>
 /// <remarks>
-/// Unlike the raw-ADO path (<see cref="SqliteConnectionExtensions.InImmediateTransactionAsync{T}"/>),
+/// Unlike the raw-ADO path (<see cref="SqliteConnectionExtensions.InImmediateTransaction{T}"/>),
 /// EF Core issues every command through Microsoft.Data.Sqlite, whose own synchronous busy-retry can block
 /// a thread for up to its command timeout before <c>SQLITE_BUSY</c> reaches this strategy — which is why
 /// <c>UseRaskSqlite</c> lowers that timeout. As with any retrying <see cref="ExecutionStrategy"/>, a

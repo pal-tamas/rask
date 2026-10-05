@@ -45,7 +45,7 @@ endpoints, the options, the roles and the emails are the same code.
 ```csharp
 public sealed partial class SignIn(IAuth auth) : Component
 {
-    private async Task SubmitAsync(Credentials c) =>
+    private async Task Submit(Credentials c) =>
         await auth.SignIn(c.Email, c.Password, returnUrl: "/");
 }
 
@@ -312,12 +312,12 @@ app.Configure(c => c.Auth.Configure(o => o.Passkeys = false));
 |---|---|
 | `Passkey` | One registered credential: the account, the credential id, the public key, what the person called it, and when it was last used. Rask adds and removes them; read them like sessions. |
 | `IAuth` | The flows: `Register` / `SignIn` / `SignOut`, `SignOutOtherDevices` / `SignOutEverywhere`, `AddPasskey` / `SignInWithPasskey` / `RemovePasskey`, plus `SendPasswordReset` / `ResetPassword` / `ConfirmEmail`. The same injected type on every host, or the static `Auth` facade with nothing injected (`await Auth.SignIn(email, password)`) — the server implementation validates against the account store and drives the handshake below; the browser one posts to `/api/auth`. |
-| `IUserProvider` | Scoped source of the current `ClaimsPrincipal` (`Current`), a `Changed` event, `EnsureLoadedAsync`/`RefreshAsync`, and `IsLoading`. Server: `SessionUserProvider` (seeded from `HttpContext.User`). WASM: `HttpUserProvider`, from `AddRaskAuthClient()`. |
+| `IUserProvider` | Scoped source of the current `ClaimsPrincipal` (`Current`), a `Changed` event, `EnsureLoaded`/`Refresh`, and `IsLoading`. Server: `SessionUserProvider` (seeded from `HttpContext.User`). WASM: `HttpUserProvider`, from `AddRaskAuthClient()`. |
 | Injecting `IUserProvider` | Inject it via the constructor and read `.Current` — the never-null `ClaimsPrincipal` for the active render scope. Gate in `Render()` on `provider.Current.Identity?.IsAuthenticated` / `provider.Current.IsInRole(...)`. |
 | `Current` (Rask.Data) | The signed-in user with nothing injected — `Current.UserId` / `RequiredUserId` / `Principal` — for code with no constructor to inject into, like a `Product.Create(…)` factory. Set for a live session, every HTTP request and a background job (which runs for the user who enqueued it). See [data.md](data.md#the-current-user--current). |
 | `Authorize` component | Headless declarative gate with `Authorized` / `NotAuthorized` / `Authorizing` slots (see below). |
 | `ClaimsPrincipal.UserId()` / `SessionId()` | The signed-in user's id (to load the row: `User.Where(u => u.Id == id)`) and the session's id (to mark "this device"). |
-| `IAuthSignIn` | Event-handler-only `SignInAsync(principal, returnUrl, persistent)` / `SignOutAsync(returnUrl)`. Server drives the cookie handshake; WASM signs out via `/auth/logout`. |
+| `IAuthSignIn` | Event-handler-only `SignIn(principal, returnUrl, persistent)` / `SignOut(returnUrl)`. Server drives the cookie handshake; WASM signs out via `/auth/logout`. |
 | `[Authorize]` / `[AllowAnonymous]` | Route-level gating evaluated by `RouteAuthorizationGuard` → redirect to the auth scheme's `LoginPath` (401) or `AccessDeniedPath` (403). |
 
 ## The first account is the administrator
@@ -346,10 +346,10 @@ predictable rather than reading it from the log, set `Rask:Auth:FirstRunToken` (
 `Rask__Auth__FirstRunToken`).
 
 **The Server cookie handshake.** A WebSocket can't write a `Set-Cookie`, so sign-in is a four-step relay:
-`IAuthSignIn.SignInAsync(principal)` (in an event handler) → the framework issues a single-use,
+`IAuthSignIn.SignIn(principal)` (in an event handler) → the framework issues a single-use,
 session-bound ticket → the browser `POST`s it to `/_rask/auth/redeem` → the endpoint calls
 `HttpContext.SignInAsync` (sets the cookie) → the WS reconnects and re-seeds `SessionUserProvider` from the
-now-authenticated `HttpContext.User`. You never touch this directly — just call `SignInAsync`.
+now-authenticated `HttpContext.User`. You never touch this directly — just call `SignIn`.
 
 ## Accounts and tenants
 
@@ -507,7 +507,7 @@ Authorize.Roles("admin", "editor")// ANY-of; omit for "any authenticated user"
 - **`Roles`** and the authenticated check are synchronous → no flicker.
 - **`Policy`** (e.g. `Authorize.Policy("over-18")`) resolves via `IAuthorizationService` in the background;
   the `Authorizing` slot shows until it lands.
-- **`Authorizing`** also covers the WASM bootstrap window: while a provider's `EnsureLoadedAsync`/`RefreshAsync`
+- **`Authorizing`** also covers the WASM bootstrap window: while a provider's `EnsureLoaded`/`Refresh`
   is in flight (`IUserProvider.IsLoading == true`), the slot bridges the anonymous→authenticated flash.
 
 Use `Authorize` for *content* gating; use `[Authorize]` on a page for *route* gating; inject `IUserProvider`

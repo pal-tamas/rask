@@ -64,23 +64,23 @@ public class RaskWasmBrowserApisTests
 
     private sealed class FakeAppBackgroundSync : IBackgroundSync
     {
-        public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(false);
+        public ValueTask<bool> IsSupported() => ValueTask.FromResult(false);
 
-        public ValueTask<bool> IsPeriodicSupportedAsync() => ValueTask.FromResult(false);
+        public ValueTask<bool> IsPeriodicSupported() => ValueTask.FromResult(false);
 
-        public ValueTask<bool> RequestSyncAsync(string tag) => ValueTask.FromResult(false);
+        public ValueTask<bool> RequestSync(string tag) => ValueTask.FromResult(false);
 
-        public ValueTask<IReadOnlyList<string>> GetPendingTagsAsync() => ValueTask.FromResult<IReadOnlyList<string>>([]);
+        public ValueTask<IReadOnlyList<string>> GetPendingTags() => ValueTask.FromResult<IReadOnlyList<string>>([]);
 
-        public ValueTask<string> GetPeriodicPermissionAsync() => ValueTask.FromResult("denied");
+        public ValueTask<string> GetPeriodicPermission() => ValueTask.FromResult("denied");
 
-        public ValueTask<bool> RequestPeriodicSyncAsync(string tag, TimeSpan minInterval) => ValueTask.FromResult(false);
+        public ValueTask<bool> RequestPeriodicSync(string tag, TimeSpan minInterval) => ValueTask.FromResult(false);
 
-        public ValueTask UnregisterPeriodicAsync(string tag) => default;
+        public ValueTask UnregisterPeriodic(string tag) => default;
 
-        public ValueTask<IReadOnlyList<string>> GetPeriodicTagsAsync() => ValueTask.FromResult<IReadOnlyList<string>>([]);
+        public ValueTask<IReadOnlyList<string>> GetPeriodicTags() => ValueTask.FromResult<IReadOnlyList<string>>([]);
 
-        public ValueTask<IAsyncDisposable> OnSyncAsync(Func<BackgroundSyncEvent, Task> onSync) =>
+        public ValueTask<IAsyncDisposable> OnSync(Func<BackgroundSyncEvent, Task> onSync) =>
             throw new NotSupportedException();
     }
 }

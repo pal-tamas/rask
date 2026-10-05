@@ -12,10 +12,10 @@ Rask.Auth.Client.BrowserAuth.SignIn(string! email, string! password, bool rememb
 Rask.Auth.Client.BrowserAuth.SignOut(string? returnUrl = null) -> System.Threading.Tasks.Task!
 Rask.Auth.Client.HttpUserProvider
 Rask.Auth.Client.HttpUserProvider.Current.get -> System.Security.Claims.ClaimsPrincipal!
-Rask.Auth.Client.HttpUserProvider.EnsureLoadedAsync() -> System.Threading.Tasks.Task!
+Rask.Auth.Client.HttpUserProvider.EnsureLoaded() -> System.Threading.Tasks.Task!
 Rask.Auth.Client.HttpUserProvider.HttpUserProvider(System.Net.Http.HttpClient! http, Rask.Auth.Client.AuthClientOptions! options) -> void
 Rask.Auth.Client.HttpUserProvider.IsLoading.get -> bool
-Rask.Auth.Client.HttpUserProvider.RefreshAsync() -> System.Threading.Tasks.Task!
+Rask.Auth.Client.HttpUserProvider.Refresh() -> System.Threading.Tasks.Task!
 Rask.Auth.Client.RaskAuthClientServiceCollectionExtensions
 static Rask.Auth.Client.RaskAuthClientServiceCollectionExtensions.AddRaskAuthClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.Client.AuthClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Auth.Client.BrowserAuth.SignOutEverywhere(string? returnUrl = null) -> System.Threading.Tasks.Task!

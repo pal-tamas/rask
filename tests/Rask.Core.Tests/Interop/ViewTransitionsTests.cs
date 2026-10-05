@@ -10,7 +10,7 @@ public class ViewTransitionsTests
         var js = new FakeJsRuntime();
         js.SetResponse("__raskVt.supported", true);
 
-        Assert.True(await new ViewTransitions(js).IsSupportedAsync());
+        Assert.True(await new ViewTransitions(js).IsSupported());
     }
 
     [Fact]
@@ -20,7 +20,7 @@ public class ViewTransitionsTests
         // or an older Safari is inert instead of an error.
         var js = new FakeJsRuntime();
 
-        Assert.False(await new ViewTransitions(js).IsSupportedAsync());
+        Assert.False(await new ViewTransitions(js).IsSupported());
     }
 
     [Theory]
@@ -31,7 +31,7 @@ public class ViewTransitionsTests
         var js = new FakeJsRuntime();
         js.SetResponse("__raskVt.set", enabled);
 
-        Assert.Equal(enabled, await new ViewTransitions(js).SetEnabledAsync(enabled));
+        Assert.Equal(enabled, await new ViewTransitions(js).SetEnabled(enabled));
 
         var call = Assert.Single(js.Calls, c => c.Identifier == "__raskVt.set");
         Assert.Equal(enabled, call.Args![0]);
@@ -49,7 +49,7 @@ public class ViewTransitionsTests
 
         var vt = new ViewTransitions(js);
 
-        Assert.True(await vt.SetEnabledAsync(true));
-        Assert.False(await vt.IsActiveAsync());
+        Assert.True(await vt.SetEnabled(true));
+        Assert.False(await vt.IsActive());
     }
 }

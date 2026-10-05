@@ -158,7 +158,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
     }
 
-    private void OnUserChanged(object? sender, EventArgs e) => _ = RequestRenderAsync();
+    private void OnUserChanged(object? sender, EventArgs e) => _ = RequestRender();
 
     public async Task<byte[]> InitialRenderAsync()
     {
@@ -445,7 +445,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
             var user = Services.GetService<IUserProvider>()?.Current
                        ?? new ClaimsPrincipal(new ClaimsIdentity());
             var authResult = await RouteAuthorizationGuard
-                .EvaluateAsync(Services, chain, user)
+                .Evaluate(Services, chain, user)
                 .ConfigureAwait(false);
             if (authResult.Outcome != RouteAuthorizationOutcome.Allow)
             {

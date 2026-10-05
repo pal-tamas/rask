@@ -530,7 +530,7 @@ export default function Chart({ series, onPointClick }: ChartProps) {
 
 ```csharp
 Chart.Series(_points).OnPointClick(Select)                  // synchronous
-Chart.Series(_points).OnPointClick(async i => await LoadAsync(i))   // asynchronous — same property
+Chart.Series(_points).OnPointClick(async i => await Load(i))   // asynchronous — same property
 ```
 
 **One property per callback, taking either shape.** `Callback` and `Callback<T>` hold a synchronous
@@ -566,8 +566,8 @@ public sealed partial class Dashboard(IUserProvider users) : Component
 {
     // Handed to the island as an ordinary callback prop. It runs here, in C#, under this
     // visitor's identity — the island never learns who they are, and never needs to.
-    private Task SaveAsync(string note) =>
-        notes.SaveAsync(users.Current.Identity!.Name!, note);
+    private Task Save(string note) =>
+        notes.Save(users.Current.Identity!.Name!, note);
 }
 ```
 

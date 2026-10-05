@@ -7,5 +7,5 @@ public interface ISignalingConnection : IAsyncDisposable
     ///     Sends <paramref name="payload" /> to one peer in our room. The relay refuses a peer that isn't in
     ///     it, and never delivers a message back to its sender.
     /// </summary>
-    ValueTask SendAsync(string toPeerId, string payload);
+    ValueTask Send(string toPeerId, string payload);
 }

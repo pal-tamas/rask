@@ -9,5 +9,5 @@ namespace Rask.SQLite.Litestream;
 public interface ILitestreamExecutor
 {
     /// <summary>Runs <c>litestream</c> with <paramref name="arguments"/> and returns its exit code.</summary>
-    Task<int> RunAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken);
+    Task<int> Run(IReadOnlyList<string> arguments, CancellationToken cancellationToken);
 }

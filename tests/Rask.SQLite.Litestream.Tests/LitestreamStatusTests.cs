@@ -120,7 +120,7 @@ public sealed class LitestreamStatusTests
 
         public Task Started => _started.Task;
 
-        public async Task<int> RunAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+        public async Task<int> Run(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
         {
             _started.TrySetResult();
             await Task.Delay(Timeout.Infinite, cancellationToken);   // replicate runs until cancelled
@@ -135,7 +135,7 @@ public sealed class LitestreamStatusTests
 
         public Task ReachedTarget => _reached.Task;
 
-        public async Task<int> RunAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+        public async Task<int> Run(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
         {
             var n = Interlocked.Increment(ref _calls);
             if (n >= blockAfter)
@@ -154,7 +154,7 @@ public sealed class LitestreamStatusTests
 
         public Task Threw => _threw.Task;
 
-        public Task<int> RunAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+        public Task<int> Run(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
         {
             _threw.TrySetResult();
             throw new InvalidOperationException("litestream is not installed");

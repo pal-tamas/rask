@@ -43,18 +43,18 @@ public sealed class HttpUserProvider(HttpClient http, AuthClientOptions options)
     /// The browser host awaits this before its first render, which is what stops a page painting
     /// anonymous and then flipping to signed-in a moment later.
     /// </remarks>
-    public async Task EnsureLoadedAsync()
+    public async Task EnsureLoaded()
     {
         if (_loaded)
         {
             return;
         }
 
-        await RefreshAsync().ConfigureAwait(false);
+        await Refresh().ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public async Task RefreshAsync()
+    public async Task Refresh()
     {
         IsLoading = true;
 

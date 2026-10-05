@@ -39,7 +39,7 @@ public sealed partial class RegisterPage(IAuth auth, FirstRunToken firstRun) : A
                     Span["This app has no accounts yet, so this one becomes the administrator. "
                          + "The one-time token is in the startup log."]]
                 : null,
-            Form.Model(_model).OnSubmit(SubmitAsync)[
+            Form.Model(_model).OnSubmit(Submit)[
                 Field("display-name", "Name", Input.Bind(() => _model.DisplayName).Id("display-name").Class("input w-full")),
                 Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Class("input w-full")),
                 Field("password", "Password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
@@ -57,7 +57,7 @@ public sealed partial class RegisterPage(IAuth auth, FirstRunToken firstRun) : A
                 "."]
         ];
 
-    private async Task SubmitAsync(RegisterModel model)
+    private async Task Submit(RegisterModel model)
     {
         // Your own columns are set on the new User before it is saved, in the same insert.
         var result = await auth.Register(

@@ -58,7 +58,7 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
     {
         private readonly Lock _gate = new();
 
-        public Task RequestRenderAsync()
+        public Task RequestRender()
         {
             Render();
             return Task.CompletedTask;

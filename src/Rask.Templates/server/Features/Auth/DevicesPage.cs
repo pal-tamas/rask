@@ -25,13 +25,13 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
 
     protected override Component? HeadAssets => Title["Your devices"];
 
-    protected override async Task OnMount() => await LoadAsync();
+    protected override async Task OnMount() => await Load();
 
     // The support check is JavaScript, so it waits for a browser to exist: on the first render this page is HTML
     // on its way out, with nothing to ask.
     protected override async Task OnFirstRender()
     {
-        _passkeysSupported = await webAuthn.IsSupportedAsync();
+        _passkeysSupported = await webAuthn.IsSupported();
         StateHasChanged();
     }
 
@@ -53,7 +53,7 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
             ],
             _sessions.Count > 1
                 ? Div.Class("card-actions mt-2")[
-                    Button.Type(ButtonType.Button).Id("devices-sign-out-others").Class("btn btn-outline btn-block").OnClick(SignOutOthersAsync)[
+                    Button.Type(ButtonType.Button).Id("devices-sign-out-others").Class("btn btn-outline btn-block").OnClick(SignOutOthers)[
                         "Sign out every other device"]
                 ]
                 : null,
@@ -77,12 +77,12 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
                                         ? "Last used " + used.ToString("g", CultureInfo.CurrentCulture)
                                         : "Never used"]
                             ],
-                            Button.Type(ButtonType.Button).Class("btn btn-ghost btn-xs").OnClick(() => RemoveAsync(passkey.Id))[
+                            Button.Type(ButtonType.Button).Class("btn btn-ghost btn-xs").OnClick(() => Remove(passkey.Id))[
                                 "Remove"]
                         ])
                 ],
             _passkeysSupported
-                ? Form.Model(_passkey).OnSubmit(AddAsync)[
+                ? Form.Model(_passkey).OnSubmit(Add)[
                     Field(
                         "passkey-name",
                         "Name this device",
@@ -94,7 +94,7 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
                 : P.Class("text-sm opacity-70")["This browser cannot use passkeys."]
         ];
 
-    private async Task AddAsync(PasskeyModel model)
+    private async Task Add(PasskeyModel model)
     {
         // The whole ceremony runs inside this click: the browser prompts, the authenticator signs, the server
         // verifies. A dismissed dialog comes back as a refusal rather than an exception.
@@ -104,25 +104,25 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
         if (result.Succeeded)
         {
             model.Name = "";
-            await LoadAsync();
+            await Load();
         }
     }
 
-    private async Task RemoveAsync(Guid id)
+    private async Task Remove(Guid id)
     {
         var result = await auth.RemovePasskey(id);
         _passkeyError = result.Error;
-        await LoadAsync();
+        await Load();
     }
 
-    private async Task SignOutOthersAsync()
+    private async Task SignOutOthers()
     {
         await auth.SignOutOtherDevices();
         _signedOutOthers = true;
-        await LoadAsync();
+        await Load();
     }
 
-    private async Task LoadAsync()
+    private async Task Load()
     {
         if (users.Current.UserId() is not { } me)
         {

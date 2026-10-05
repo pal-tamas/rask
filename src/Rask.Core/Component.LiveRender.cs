@@ -357,7 +357,7 @@ public abstract partial class Component
     // disagreeing is the bug: an async Button(OnClickAsync:) could paint mid-flight but the identical
     // BsDataGrid(OnSortChangeAsync:) could not.
     //
-    // Deliberately not StateHasChanged(): that would also RequestRenderAsync, firing an extra render before
+    // Deliberately not StateHasChanged(): that would also RequestRender, firing an extra render before
     // the user's code has run. Only the flag is wanted — the render is already coming.
     internal void MarkDirtyForAsyncHandler()
     {
@@ -391,7 +391,7 @@ public abstract partial class Component
             return;
         }
 
-        _ = handle.RequestRenderAsync();
+        _ = handle.RequestRender();
     }
 
     // Internal-only equivalent of StateHasChanged that flips the dirty flag without
@@ -415,6 +415,6 @@ public abstract partial class Component
 
         Live.StateDirty = true;
         RaskDevToolsHook.Active?.StateRequested(this);
-        return RenderHandle?.RequestRenderAsync() ?? Task.CompletedTask;
+        return RenderHandle?.RequestRender() ?? Task.CompletedTask;
     }
 }

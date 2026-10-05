@@ -58,7 +58,7 @@ public static class QuiescentRender
     /// </param>
     /// <returns>The final markup, whether it settled, and how many extra waves it took.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken" /> was cancelled.</exception>
-    public static async Task<QuiescentRenderResult> RunAsync(
+    public static async Task<QuiescentRenderResult> Run(
         Func<bool, string> renderWave,
         TimeSpan budget,
         Func<bool>? isBlocked = null,

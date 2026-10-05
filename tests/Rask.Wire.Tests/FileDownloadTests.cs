@@ -49,7 +49,7 @@ public sealed class FileDownloadTests
         var download = FileDownload.FromStream("a", null, source);
         using var destination = new MemoryStream();
 
-        await download.WriteToAsync(destination, TestContext.Current.CancellationToken);
+        await download.WriteTo(destination, TestContext.Current.CancellationToken);
 
         Assert.Equal("payload"u8.ToArray(), destination.ToArray());
         Assert.True(source.Disposed);
@@ -60,7 +60,7 @@ public sealed class FileDownloadTests
     {
         var destination = new NonSeekableStream([]);
 
-        await FileDownload.FromBytes("a", null, "x"u8.ToArray()).WriteToAsync(destination, TestContext.Current.CancellationToken);
+        await FileDownload.FromBytes("a", null, "x"u8.ToArray()).WriteTo(destination, TestContext.Current.CancellationToken);
 
         Assert.False(destination.Disposed);
     }
@@ -83,7 +83,7 @@ public sealed class FileDownloadTests
         download.OpenReadStream().Dispose();
         using var destination = new MemoryStream();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => download.WriteToAsync(destination, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => download.WriteTo(destination, TestContext.Current.CancellationToken));
     }
 
     [Fact]

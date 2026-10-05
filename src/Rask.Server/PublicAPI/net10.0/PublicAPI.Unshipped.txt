@@ -40,7 +40,7 @@ Rask.Server.Files.RaskUploadOptions.MaxFilesPerRequest.set -> void
 Rask.Server.Files.RaskUploadOptions.RaskUploadOptions() -> void
 Rask.Server.LiveSessionStore
 Rask.Server.LiveSessionStore.AtCapacity.get -> bool
-Rask.Server.LiveSessionStore.BroadcastAsync(System.ReadOnlyMemory<byte> payload) -> System.Threading.Tasks.Task!
+Rask.Server.LiveSessionStore.Broadcast(System.ReadOnlyMemory<byte> payload) -> System.Threading.Tasks.Task!
 Rask.Server.LiveSessionStore.ConnectedCount.get -> int
 Rask.Server.LiveSessionStore.Count.get -> int
 Rask.Server.LiveSessionStore.DiffMode.get -> Rask.Core.Live.LiveDiffMode
@@ -50,7 +50,7 @@ Rask.Server.LiveSessionStore.LiveSessionStore(Microsoft.Extensions.DependencyInj
 Rask.Server.LiveSessionStore.MaxSessions.get -> int
 Rask.Server.LiveSessionStore.MaxSessions.set -> void
 Rask.Server.LiveSessionStore.PendingHandlerCount.get -> int
-Rask.Server.LiveSessionStore.RerenderAllAsync() -> System.Threading.Tasks.Task!
+Rask.Server.LiveSessionStore.RerenderAll() -> System.Threading.Tasks.Task!
 Rask.Server.RaskEndpointExtensions
 Rask.Server.RaskPwaExtensions
 Rask.Server.RaskServerOptions

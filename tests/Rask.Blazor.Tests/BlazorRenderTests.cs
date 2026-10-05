@@ -53,7 +53,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
         var island = SlowIsland.Heading("Hello");
         var services = Services();
 
-        var result = await QuiescentRender.RunAsync(
+        var result = await QuiescentRender.Run(
             _ => Page.Render(island, services).Html,
             TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
 

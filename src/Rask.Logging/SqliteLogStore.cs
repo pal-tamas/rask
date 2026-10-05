@@ -65,7 +65,7 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
         var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.InImmediateTransactionAsync(
+            await connection.InImmediateTransaction(
                 _options.BusyRetry,
                 async (c, token) =>
                 {
@@ -254,7 +254,7 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
         var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.InImmediateTransactionAsync(
+            await connection.InImmediateTransaction(
                 _options.BusyRetry,
                 async (c, token) =>
                 {
@@ -486,7 +486,7 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            var deleted = await connection.InImmediateTransactionAsync(
+            var deleted = await connection.InImmediateTransaction(
                 _options.BusyRetry,
                 async (c, token) =>
                 {

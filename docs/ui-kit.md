@@ -316,7 +316,7 @@ from `Element`, so every step an element takes works on them unchanged, the even
 show is their **children**, the same as a raw element's:
 
 ```csharp
-Ui.Button.Id("save").Primary.OnClick(SaveAsync)[Ui.Icon.Name(Ui.IconName.Check), "Save"]
+Ui.Button.Id("save").Primary.OnClick(Save)[Ui.Icon.Name(Ui.IconName.Check), "Save"]
 
 Ui.Badge.Success["Live"]
 
@@ -466,7 +466,7 @@ is Flux UI's answer to the double submit, and it holds on both hosts: the Server
 the handler's ack, the WebAssembly runtime when its dispatch returns.
 
 ```csharp
-Ui.Button.Primary.OnClick(SaveAsync)["Save"]          // waits automatically
+Ui.Button.Primary.OnClick(Save)["Save"]          // waits automatically
 Ui.Button.Loading(false).OnClick(StepAsync)[Ui.Icon.Name(Ui.IconName.Plus)]  // a stepper: presses queue
 Ui.Button.Loading(_exporting)["Export"]                            // work that outlives the handler
 ```

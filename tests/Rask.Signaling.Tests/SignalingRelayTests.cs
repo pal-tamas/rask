@@ -25,8 +25,8 @@ public class SignalingRelayTests : IDisposable
     {
         using var host = Host();
 
-        var (first, firstId, _) = await JoinAsync(host, "room");
-        var (second, _, peers) = await JoinAsync(host, "room");
+        var (first, firstId, _) = await Join(host, "room");
+        var (second, _, peers) = await Join(host, "room");
 
         // The joiner learns who was already there, which is how an app decides who offers.
         Assert.Equal([firstId], peers);
@@ -46,8 +46,8 @@ public class SignalingRelayTests : IDisposable
     public async Task A_peer_cannot_address_someone_in_another_room()
     {
         using var host = Host();
-        var (_, hereId, _) = await JoinAsync(host, "room-a");
-        var (elsewhere, _, _) = await JoinAsync(host, "room-b");
+        var (_, hereId, _) = await Join(host, "room-a");
+        var (elsewhere, _, _) = await Join(host, "room-b");
 
         await SendAsync(elsewhere, new { type = "signal", to = hereId, payload = "leaked" });
 
@@ -61,7 +61,7 @@ public class SignalingRelayTests : IDisposable
     {
         // Otherwise the relay is an echo service any client can aim at itself.
         using var host = Host();
-        var (socket, id, _) = await JoinAsync(host, "room");
+        var (socket, id, _) = await Join(host, "room");
 
         await SendAsync(socket, new { type = "signal", to = id, payload = "echo" });
 
@@ -86,7 +86,7 @@ public class SignalingRelayTests : IDisposable
     public async Task An_oversized_payload_is_refused_and_the_socket_survives()
     {
         using var host = Host(o => o.MaxPayloadBytes = 256);
-        var (socket, _, _) = await JoinAsync(host, "room");
+        var (socket, _, _) = await Join(host, "room");
 
         await SendAsync(socket, new { type = "signal", to = "whoever", payload = new string('x', 512) });
 
@@ -100,8 +100,8 @@ public class SignalingRelayTests : IDisposable
     public async Task A_full_room_refuses_the_next_peer()
     {
         using var host = Host(o => o.MaxPeersPerRoom = 2);
-        await JoinAsync(host, "room");
-        await JoinAsync(host, "room");
+        await Join(host, "room");
+        await Join(host, "room");
 
         var third = await ConnectAsync(host);
         await SendAsync(third, new { type = "join", room = "room" });
@@ -136,7 +136,7 @@ public class SignalingRelayTests : IDisposable
             return ValueTask.FromResult(true);
         });
 
-        await JoinAsync(host, "the-room");
+        await Join(host, "the-room");
 
         Assert.Equal("the-room", seen);
     }
@@ -145,7 +145,7 @@ public class SignalingRelayTests : IDisposable
     public async Task Joining_twice_is_refused()
     {
         using var host = Host();
-        var (socket, _, _) = await JoinAsync(host, "room");
+        var (socket, _, _) = await Join(host, "room");
 
         await SendAsync(socket, new { type = "join", room = "another" });
 
@@ -158,7 +158,7 @@ public class SignalingRelayTests : IDisposable
     public async Task A_malformed_message_is_refused_and_the_socket_survives()
     {
         using var host = Host();
-        var (socket, _, _) = await JoinAsync(host, "room");
+        var (socket, _, _) = await Join(host, "room");
 
         await socket.SendAsync(
             Encoding.UTF8.GetBytes("not json"), WebSocketMessageType.Text, true, _cts.Token);
@@ -172,8 +172,8 @@ public class SignalingRelayTests : IDisposable
     public async Task A_leaving_peer_is_announced_to_the_rest()
     {
         using var host = Host();
-        var (first, _, _) = await JoinAsync(host, "room");
-        var (second, secondId, _) = await JoinAsync(host, "room");
+        var (first, _, _) = await Join(host, "room");
+        var (second, secondId, _) = await Join(host, "room");
         await ReadAsync(first); // peer-joined
 
         // CloseOutputAsync, not CloseAsync: we still want to read `first`'s announcement, and CloseAsync
@@ -258,7 +258,7 @@ public class SignalingRelayTests : IDisposable
         return await client.ConnectAsync(uri, _cts.Token);
     }
 
-    private async Task<(WebSocket Socket, string PeerId, string[] Peers)> JoinAsync(
+    private async Task<(WebSocket Socket, string PeerId, string[] Peers)> Join(
         SignalingTestHost host, string room)
     {
         var socket = await ConnectAsync(host);

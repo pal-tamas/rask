@@ -44,4 +44,4 @@ host.Services.AddRaskQuery();
 host.Services.AddSingleton<NotesReady>();
 host.Services.AddHostedService<NotesDatabase>();
 
-await host.RunAsync<App>().ConfigureAwait(false);
+await host.Run<App>().ConfigureAwait(false);

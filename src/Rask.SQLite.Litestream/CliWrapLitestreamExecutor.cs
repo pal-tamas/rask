@@ -22,7 +22,7 @@ internal sealed partial class CliWrapLitestreamExecutor : ILitestreamExecutor
         _logger = logger;
     }
 
-    public async Task<int> RunAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+    public async Task<int> Run(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(arguments);
 

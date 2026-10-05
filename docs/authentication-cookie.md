@@ -40,7 +40,7 @@ public sealed class DemoCredentialStore : ICredentialStore
 }
 ```
 
-**The login page** — a normal Rask page; `SignInAsync` runs inside the form's submit handler:
+**The login page** — a normal Rask page; `SignIn` runs inside the form's submit handler:
 
 ```csharp
 [Route("login")]
@@ -56,20 +56,20 @@ public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) 
         Div.Class("mx-auto").Style("max-width:24rem")[
             H1["Sign in"],
             _error is null ? null : Div.Class("rounded-lg px-4 py-3 text-sm bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200")[_error],
-            Form.Model(_model).OnSubmit(SubmitAsync).Class("flex flex-col gap-3")[
+            Form.Model(_model).OnSubmit(Submit).Class("flex flex-col gap-3")[
                 Input.Bind(() => _model.Username).Id("username").Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"),
                 Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"),
                 Button.Type(ButtonType.Submit).Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500")["Sign in"]
             ]
         ];
 
-    private async Task SubmitAsync(LoginModel m)
+    private async Task Submit(LoginModel m)
     {
         var claims = creds.Validate(m.Username, m.Password);
         if (claims is null) { _error = "Invalid username or password."; return; }
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        await auth.SignInAsync(new ClaimsPrincipal(identity), returnUrl: ReturnUrl ?? "/");
+        await auth.SignIn(new ClaimsPrincipal(identity), returnUrl: ReturnUrl ?? "/");
     }
 }
 
@@ -143,7 +143,7 @@ app.Run();
 > **Ordering matters.** If `UseAuthentication` runs *after* `MapRask`, `HttpContext.User` is empty when the
 > session is seeded and every `[Authorize]` page challenges. Keep it before `MapRask`.
 
-Sign out from any event handler: `await auth.SignOutAsync(returnUrl: "/");`
+Sign out from any event handler: `await auth.SignOut(returnUrl: "/");`
 
 ---
 
@@ -203,15 +203,15 @@ public sealed class ApiUserProvider(HttpClient http) : IUserProvider
     public bool IsLoading { get; private set; }
     public event EventHandler? Changed;
 
-    public Task EnsureLoadedAsync() => LoadAsync();
+    public Task EnsureLoaded() => Load();
 
-    public async Task RefreshAsync()
+    public async Task Refresh()
     {
         IsLoading = true; Changed?.Invoke(this, EventArgs.Empty);
-        await LoadAsync();
+        await Load();
     }
 
-    private async Task LoadAsync()
+    private async Task Load()
     {
         try
         {
@@ -232,28 +232,28 @@ public sealed class ApiUserProvider(HttpClient http) : IUserProvider
 public partial class AuthJson : JsonSerializerContext { }
 ```
 
-**Client login** posts credentials, then refreshes the provider (WASM `SignInAsync` is intentionally
+**Client login** posts credentials, then refreshes the provider (WASM `SignIn` is intentionally
 unsupported — the cookie is set by the server):
 
 ```csharp
 public sealed class WasmLoginService(HttpClient http, IUserProvider users)
 {
-    public async Task<bool> LoginAsync(string username, string password, string? returnUrl)
+    public async Task<bool> Login(string username, string password, string? returnUrl)
     {
         var resp = await http.PostAsJsonAsync("api/login", new LoginDto(username, password), AuthJson.Default.LoginDto);
         if (!resp.IsSuccessStatusCode) return false;
-        await users.RefreshAsync();
+        await users.Refresh();
         Go.To(returnUrl ?? "/members");
         return true;
     }
 
-    public async Task LogoutAsync()
+    public async Task Logout()
     {
         await http.PostAsync("auth/logout", null);
         // Navigate first (still in the click-handler scope), then clear the principal — refreshing first
         // closes the Authorize gate and unmounts the calling component before the navigation runs.
         Go.To("/login");
-        await users.RefreshAsync();
+        await users.Refresh();
     }
 }
 ```
@@ -266,9 +266,9 @@ host.Services.AddSingleton(_ => new HttpClient { BaseAddress = new Uri(WasmHostB
 host.Services.AddSingleton<ApiUserProvider>();
 host.Services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<ApiUserProvider>()); // overrides the anonymous default
 host.Services.AddSingleton<WasmLoginService>();
-await host.RunAsync<App>();
+await host.Run<App>();
 ```
 
 Wire the form to `WasmLoginService.LoginAsync` and the sign-out button to `WasmLoginService.LogoutAsync`.
-(The built-in `WasmAuthSignIn.SignOutAsync` also works, but doing it through your own service keeps the
+(The built-in `WasmAuthSignIn.SignOut` also works, but doing it through your own service keeps the
 navigate-before-refresh ordering explicit.)

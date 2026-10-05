@@ -143,7 +143,7 @@ public sealed partial class SegmentedControl<TValue> : Component, IFormControl<T
         {
             var captured = option;
             var active = current is not null && comparer.Equals(captured, current);
-            buttons.Add(Button.Type(ButtonType.Button).Class(active ? "btn btn-primary" : "btn btn-outline-primary").OnClick(() => SelectAsync(acc, ctx, fid, captured)).Key(i++)[OptionLabel?.Invoke(option) ?? (Component)(option?.ToString() ?? "")]);
+            buttons.Add(Button.Type(ButtonType.Button).Class(active ? "btn btn-primary" : "btn btn-outline-primary").OnClick(() => Select(acc, ctx, fid, captured)).Key(i++)[OptionLabel?.Invoke(option) ?? (Component)(option?.ToString() ?? "")]);
         }
 
         var children = new List<Component> { Div.Class("action-group")[buttons] };
@@ -155,14 +155,14 @@ public sealed partial class SegmentedControl<TValue> : Component, IFormControl<T
         return Div.Class(Class ?? "segmented")[children];
     }
 
-    private async Task SelectAsync(
+    private async Task Select(
         ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid, TValue value)
     {
         var self = (IFormControl<TValue>)this;
         if (acc is not null)
         {
             acc.Setter(value);
-            await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid);   // commit: changed + touched + revalidate
+            await BindingHelpers.NotifyAndValidateField(ctx, fid);   // commit: changed + touched + revalidate
             await self.InvokeAfterBind(value);                       // helper — runs AfterBind, either shape
         }
         else
@@ -218,7 +218,7 @@ The helpers are built on the public `Rask.Core.Forms` API you can also use direc
   enums/`IParsable<T>` via the same parser the bound setter uses.
 - **`BindingHelpers.SetCollectionMembership(collection, item, include, comparer?)`** — add/remove an item in
   a bound `ICollection<T>` (what a checkbox group does per toggle).
-- **`BindingHelpers.NotifyAndValidateFieldAsync(ctx, field)`** — commit a change: marks the field
+- **`BindingHelpers.NotifyAndValidateField(ctx, field)`** — commit a change: marks the field
   changed + touched and re-validates (no-op when `ctx` is `null`).
 - **`Validation.Message.Template(template).For(Bind)`** — render the field's messages inside your control.
 
@@ -264,7 +264,7 @@ for state the control *itself* owns.
 2. In `Render`: in bound mode `ExpressionAccessor.Parse(Bind)` → `ResolveBindingContext` →
    `((IFormControl<T>)this).RegisterValidator(acc, ctx)`; read the current value from the accessor (bound) or
    `Value` (controlled).
-3. In your change handler: bound → `Setter` (or `SetCollectionMembership`) + `NotifyAndValidateFieldAsync` +
+3. In your change handler: bound → `Setter` (or `SetCollectionMembership`) + `NotifyAndValidateField` +
    `InvokeAfterBind`; controlled → `InvokeOnChange`.
 4. Surface messages with `Validation.Message.Template(…).For(Bind)` (bound mode).
 5. Unit-test both modes (drive the handler, assert the bound model / the emitted `OnChange` value); add an

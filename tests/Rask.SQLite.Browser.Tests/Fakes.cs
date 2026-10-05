@@ -17,9 +17,9 @@ internal sealed class FakeIndexedDb : IIndexedDb
 
     public bool Supported { get; set; } = true;
 
-    public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(Supported);
+    public ValueTask<bool> IsSupported() => ValueTask.FromResult(Supported);
 
-    public ValueTask<IKeyValueStore> OpenStoreAsync(string name)
+    public ValueTask<IKeyValueStore> OpenStore(string name)
     {
         if (!_stores.TryGetValue(name, out var store))
         {
@@ -30,7 +30,7 @@ internal sealed class FakeIndexedDb : IIndexedDb
         return ValueTask.FromResult<IKeyValueStore>(store);
     }
 
-    public FakeKeyValueStore Store(string name) => (FakeKeyValueStore)OpenStoreAsync(name).AsTask().Result;
+    public FakeKeyValueStore Store(string name) => (FakeKeyValueStore)OpenStore(name).AsTask().Result;
 }
 
 internal sealed class FakeKeyValueStore : IKeyValueStore
@@ -39,29 +39,29 @@ internal sealed class FakeKeyValueStore : IKeyValueStore
     // would hide an encoding bug rather than catch one.
     public Dictionary<string, byte[]> Values { get; } = [];
 
-    public ValueTask SetAsync(string key, string value) => throw new NotSupportedException("Use SetBytesAsync.");
+    public ValueTask Set(string key, string value) => throw new NotSupportedException("Use SetBytes.");
 
-    public ValueTask<string?> GetAsync(string key) => throw new NotSupportedException("Use GetBytesAsync.");
+    public ValueTask<string?> Get(string key) => throw new NotSupportedException("Use GetBytes.");
 
-    public ValueTask SetBytesAsync(string key, byte[] value)
+    public ValueTask SetBytes(string key, byte[] value)
     {
         Values[key] = value;
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask<byte[]?> GetBytesAsync(string key) =>
+    public ValueTask<byte[]?> GetBytes(string key) =>
         ValueTask.FromResult(Values.TryGetValue(key, out var value) ? value : null);
 
-    public ValueTask DeleteAsync(string key)
+    public ValueTask Delete(string key)
     {
         Values.Remove(key);
         return ValueTask.CompletedTask;
     }
 
     // Deliberately unsorted, so nothing under test can lean on insertion order the browser does not promise.
-    public ValueTask<string[]> KeysAsync() => ValueTask.FromResult(Values.Keys.OrderBy(k => k.Length).ToArray());
+    public ValueTask<string[]> Keys() => ValueTask.FromResult(Values.Keys.OrderBy(k => k.Length).ToArray());
 
-    public ValueTask ClearAsync()
+    public ValueTask Clear()
     {
         Values.Clear();
         return ValueTask.CompletedTask;
@@ -161,7 +161,7 @@ internal sealed class RecordingSnapshotter : ISqliteSnapshotter
 
     public Exception? Throws { get; set; }
 
-    public Task<string> SnapshotAsync(CancellationToken cancellationToken = default)
+    public Task<string> Snapshot(CancellationToken cancellationToken = default)
     {
         Count++;
         return Throws is not null ? Task.FromException<string>(Throws) : Task.FromResult($"snapshot-{Count}");

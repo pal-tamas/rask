@@ -50,7 +50,7 @@ internal sealed partial class LitestreamReplicationService : BackgroundService
 
             try
             {
-                var exitCode = await _executor.RunAsync(LitestreamCommand.Replicate(_options), stoppingToken)
+                var exitCode = await _executor.Run(LitestreamCommand.Replicate(_options), stoppingToken)
                     .ConfigureAwait(false);
 
                 if (stoppingToken.IsCancellationRequested)

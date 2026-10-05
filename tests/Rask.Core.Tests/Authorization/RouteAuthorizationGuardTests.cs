@@ -29,7 +29,7 @@ public class RouteAuthorizationGuardTests
     {
         var sp = BuildServices();
 
-        var result = await RouteAuthorizationGuard.EvaluateAsync(sp, Array.Empty<Type>(), Anonymous());
+        var result = await RouteAuthorizationGuard.Evaluate(sp, Array.Empty<Type>(), Anonymous());
 
         Assert.Equal(RouteAuthorizationOutcome.Allow, result.Outcome);
     }
@@ -39,7 +39,7 @@ public class RouteAuthorizationGuardTests
     {
         var sp = BuildServices();
 
-        var result = await RouteAuthorizationGuard.EvaluateAsync(
+        var result = await RouteAuthorizationGuard.Evaluate(
             sp, new[] { typeof(PublicPage) }, Anonymous());
 
         Assert.Equal(RouteAuthorizationOutcome.Allow, result.Outcome);
@@ -50,7 +50,7 @@ public class RouteAuthorizationGuardTests
     {
         var sp = BuildServices();
 
-        var result = await RouteAuthorizationGuard.EvaluateAsync(
+        var result = await RouteAuthorizationGuard.Evaluate(
             sp, new[] { typeof(ProtectedPage) }, Anonymous());
 
         Assert.Equal(RouteAuthorizationOutcome.Challenge, result.Outcome);
@@ -62,7 +62,7 @@ public class RouteAuthorizationGuardTests
     {
         var sp = BuildServices();
 
-        var result = await RouteAuthorizationGuard.EvaluateAsync(
+        var result = await RouteAuthorizationGuard.Evaluate(
             sp, new[] { typeof(ProtectedPage) }, Authenticated());
 
         Assert.Equal(RouteAuthorizationOutcome.Allow, result.Outcome);
@@ -73,7 +73,7 @@ public class RouteAuthorizationGuardTests
     {
         var sp = BuildServices();
 
-        var result = await RouteAuthorizationGuard.EvaluateAsync(
+        var result = await RouteAuthorizationGuard.Evaluate(
             sp, new[] { typeof(AdminOnlyPage) }, Authenticated());
 
         Assert.Equal(RouteAuthorizationOutcome.Forbid, result.Outcome);
@@ -84,7 +84,7 @@ public class RouteAuthorizationGuardTests
     {
         var sp = BuildServices();
 
-        var result = await RouteAuthorizationGuard.EvaluateAsync(
+        var result = await RouteAuthorizationGuard.Evaluate(
             sp, new[] { typeof(AdminOnlyPage) }, Authenticated(new Claim(ClaimTypes.Role, "Admin")));
 
         Assert.Equal(RouteAuthorizationOutcome.Allow, result.Outcome);
@@ -95,7 +95,7 @@ public class RouteAuthorizationGuardTests
     {
         var sp = BuildServices();
 
-        var result = await RouteAuthorizationGuard.EvaluateAsync(
+        var result = await RouteAuthorizationGuard.Evaluate(
             sp, new[] { typeof(OpenPage) }, Anonymous());
 
         Assert.Equal(RouteAuthorizationOutcome.Allow, result.Outcome);
@@ -106,7 +106,7 @@ public class RouteAuthorizationGuardTests
     {
         var sp = BuildServices();
 
-        var result = await RouteAuthorizationGuard.EvaluateAsync(
+        var result = await RouteAuthorizationGuard.Evaluate(
             sp, new[] { typeof(ProtectedPage), typeof(OpenPage) }, Anonymous());
 
         Assert.Equal(RouteAuthorizationOutcome.Allow, result.Outcome);
@@ -117,7 +117,7 @@ public class RouteAuthorizationGuardTests
     {
         var sp = BuildServices();
 
-        var result = await RouteAuthorizationGuard.EvaluateAsync(
+        var result = await RouteAuthorizationGuard.Evaluate(
             sp, new[] { typeof(OpenPage), typeof(ProtectedPage) }, Anonymous());
 
         Assert.Equal(RouteAuthorizationOutcome.Challenge, result.Outcome);

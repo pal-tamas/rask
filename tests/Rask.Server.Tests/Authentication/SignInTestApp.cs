@@ -29,8 +29,8 @@ public sealed partial class SignInTestApp(AuthSignIn auth, RouteState routeState
                 new Claim(ClaimTypes.NameIdentifier, "alice")
             ],
             "TestCookie");
-        return auth.SignInAsync(new ClaimsPrincipal(identity), "/dashboard", "TestCookie");
+        return auth.SignIn(new ClaimsPrincipal(identity), "/dashboard", "TestCookie");
     }
 
-    private Task SignOutAsync() => auth.SignOutAsync("/", "TestCookie");
+    private Task SignOutAsync() => auth.SignOut("/", "TestCookie");
 }

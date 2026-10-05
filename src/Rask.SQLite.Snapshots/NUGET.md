@@ -45,13 +45,13 @@ open, copy or archive.
 Need a backup on demand (say, before a risky migration)? Inject `ISqliteSnapshotter`:
 
 ```csharp
-var name = await snapshotter.SnapshotAsync(ct);
+var name = await snapshotter.Snapshot(ct);
 ```
 
 Sending snapshots to object storage instead of a directory? Register your own `ISqliteSnapshotStore`
 before `AddRaskSqliteSnapshots` and `DestinationDirectory` is no longer required.
 
-To show what you've captured, `await store.ListAsync(ct)` returns each snapshot's name, size and timestamp,
+To show what you've captured, `await store.List(ct)` returns each snapshot's name, size and timestamp,
 newest first. A custom store inherits a default that returns an empty list — override it if yours can
 enumerate, because callers can't tell "no snapshots yet" from "this store doesn't list".
 

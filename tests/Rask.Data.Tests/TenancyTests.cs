@@ -300,5 +300,5 @@ public sealed class TenancyTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
 }

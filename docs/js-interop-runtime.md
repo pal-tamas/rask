@@ -53,7 +53,7 @@ later step on the same pattern.
 
 | Service | Wraps | Key members |
 | --- | --- | --- |
-| `IIndexedDb` | `IndexedDB` | `IsSupportedAsync`, `OpenStoreAsync(name)` → `IKeyValueStore` (`Set`/`Get`/`SetBytes`/`GetBytes`/`Delete`/`Keys`/`Clear`) — large async persistent storage, text or raw bytes |
+| `IIndexedDb` | `IndexedDB` | `IsSupported`, `OpenStore(name)` → `IKeyValueStore` (`Set`/`Get`/`SetBytes`/`GetBytes`/`Delete`/`Keys`/`Clear`) — large async persistent storage, text or raw bytes |
 
 The storage estimate is `await Navigator.Storage.Estimate()` in [`Rask.Web`](web-apis.md), with `Persist()` and
 `Persisted()` beside it. Device tilt and motion are `Window` events there:
@@ -62,11 +62,11 @@ The storage estimate is `await Navigator.Storage.Estimate()` in [`Rask.Web`](web
 ```csharp
 public sealed partial class Drafts(IIndexedDb db) : Component
 {
-    private async Task Save() => await (await db.OpenStoreAsync("drafts")).SetAsync("note", "hi");
+    private async Task Save() => await (await db.OpenStore("drafts")).Set("note", "hi");
 
     protected override async Task OnFirstRender()
     {
-        var note = await (await db.OpenStoreAsync("drafts")).GetAsync("note");   // string?, null if absent
+        var note = await (await db.OpenStore("drafts")).Get("note");   // string?, null if absent
         var cookies = await Document.Cookie;                                       // "a=1; b=2", from Rask.Web
         var id = await Crypto.RandomUUID();                                        // string, from Rask.Web
     }

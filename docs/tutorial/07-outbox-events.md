@@ -83,7 +83,7 @@ public sealed partial class PlaceOrder : Component
 
     public decimal Price { get; set; }
 
-    private async Task PlaceAsync()
+    private async Task Place()
     {
         _placing = true;
         try
@@ -98,7 +98,7 @@ public sealed partial class PlaceOrder : Component
     }
 
     protected override Component? Render() =>
-        Ui.Button.Primary.Sm.Disabled(_placing).OnClick(PlaceAsync)["Buy"];
+        Ui.Button.Primary.Sm.Disabled(_placing).OnClick(Place)["Buy"];
 }
 ```
 

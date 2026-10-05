@@ -18,7 +18,7 @@ public sealed partial class LogoutPage(IAuth auth, IUserProvider users) : AuthPa
                 H1.Class("text-2xl font-bold")["Sign out"],
                 P.Class("text-sm opacity-70")[$"You are signed in as {users.Current.Identity.Name}."],
                 Div.Class("card-actions mt-2")[
-                    Button.Type(ButtonType.Button).Id("logout-submit").Class("btn btn-primary btn-block").OnClick(SignOutAsync)["Sign out"]
+                    Button.Type(ButtonType.Button).Id("logout-submit").Class("btn btn-primary btn-block").OnClick(SignOut)["Sign out"]
                 ]
             ]
             : [
@@ -29,5 +29,5 @@ public sealed partial class LogoutPage(IAuth auth, IUserProvider users) : AuthPa
                     "."]
             ];
 
-    private Task SignOutAsync() => auth.SignOut(ReturnUrl);
+    private Task SignOut() => auth.SignOut(ReturnUrl);
 }

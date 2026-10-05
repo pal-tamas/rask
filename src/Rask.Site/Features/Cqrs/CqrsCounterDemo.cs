@@ -10,7 +10,7 @@ public sealed partial class CqrsCounterDemo(IDispatcher dispatcher) : Component
     protected override async Task OnMount() =>
         _view = await dispatcher.Query(new GetCounterState(), CancellationToken);
 
-    private async Task IncrementAsync()
+    private async Task Increment()
     {
         await dispatcher.Send(new IncrementCounter(1), CancellationToken);
         _view = await dispatcher.Query(new GetCounterState(), CancellationToken);
@@ -20,7 +20,7 @@ public sealed partial class CqrsCounterDemo(IDispatcher dispatcher) : Component
         Div.Id("cqrs-counter").Class("flex flex-col gap-3")[
             Div.Class("flex gap-3 items-center flex-wrap items-center")[
                 Span.Id("cqrs-count").Class("text-3xl font-semibold")[$"{_view.Count}"],
-                Ui.Button.Primary.Id("cqrs-increment").OnClick(IncrementAsync)["Increment"]
+                Ui.Button.Primary.Id("cqrs-increment").OnClick(Increment)["Increment"]
             ],
             _view.Log.Count == 0
                 ? P.Class("text-ui-muted text-sm mb-0")["Loading the counter…"]

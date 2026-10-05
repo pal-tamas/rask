@@ -42,11 +42,11 @@ public static class RaskPrerender
     /// </param>
     /// <param name="maxWaves">Wave cap. Defaults to <see cref="QuiescentRender.DefaultMaxWaves" />.</param>
     /// <param name="cancellationToken">
-    ///     Abandons the render; see <see cref="QuiescentRender.RunAsync" />. Nothing is returned for a
+    ///     Abandons the render; see <see cref="QuiescentRender.Run" />. Nothing is returned for a
     ///     cancelled render, because there is nothing about it a caller should write down.
     /// </param>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken" /> was cancelled.</exception>
-    public static async Task<PrerenderResult> RenderDocumentAsync(
+    public static async Task<PrerenderResult> RenderDocument(
         Component app,
         IServiceProvider services,
         TimeSpan budget,
@@ -61,7 +61,7 @@ public static class RaskPrerender
         // than reimplementing the composition is the point — this has to be what a browser gets.
         var root = new RootErrorBoundary(app) { Defaults = (RaskDocumentDefaults?)services.GetService(typeof(RaskDocumentDefaults)) };
 
-        var render = await QuiescentRender.RunAsync(
+        var render = await QuiescentRender.Run(
             publishOnly => root.RenderAsLiveRoot(services, publishOnly),
             budget,
             maxWaves: maxWaves,

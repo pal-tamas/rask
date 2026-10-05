@@ -105,7 +105,7 @@ public sealed partial class GestureBridgeDemo : Component
             Ui.Button.Outline
                 .Id("camera-stop-btn")
                 .Disabled(_camera is null)
-                .OnClick(StopCameraAsync)["Stop camera"],
+                .OnClick(StopCamera)["Stop camera"],
             Trigger.PictureInPicture
                 .For(_preview)
                 .Template(g =>
@@ -121,7 +121,7 @@ public sealed partial class GestureBridgeDemo : Component
 
     // Stopping is not optional: a live stream holds the camera (and its indicator) open until every track
     // is stopped, and nothing else in the page will do it.
-    private async Task StopCameraAsync()
+    private async Task StopCamera()
     {
         if (_camera is null)
         {
@@ -138,5 +138,5 @@ public sealed partial class GestureBridgeDemo : Component
         _camera = null;
     }
 
-    protected override Task OnUnmount() => StopCameraAsync();
+    protected override Task OnUnmount() => StopCamera();
 }

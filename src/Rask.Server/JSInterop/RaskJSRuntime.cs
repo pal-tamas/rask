@@ -55,7 +55,7 @@ internal sealed class RaskJSRuntime : RaskJSRuntimeBase
     {
         var host = CurrentHost;
         host.JsInvokes.Enqueue(invoke);
-        _ = host.RequestRenderAsync();
+        _ = host.RequestRender();
     }
 
     /// <summary>

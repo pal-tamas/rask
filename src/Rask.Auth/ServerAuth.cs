@@ -55,21 +55,21 @@ internal sealed class ServerAuth<TUser>(
 
         if (outcome is { Result.Succeeded: true, Principal: { } principal })
         {
-            await signIn.SignInAsync(principal, returnUrl, persistent: remember).ConfigureAwait(false);
+            await signIn.SignIn(principal, returnUrl, persistent: remember).ConfigureAwait(false);
         }
 
         return outcome.Result;
     }
 
     public Task SignOut(string? returnUrl = null) =>
-        signIn.SignOutAsync(returnUrl ?? options.LoginPath);
+        signIn.SignOut(returnUrl ?? options.LoginPath);
 
     public Task SignOutOtherDevices() => accounts.SignOutOtherDevicesAsync(users.Current);
 
     public async Task SignOutEverywhere(string? returnUrl = null)
     {
         await accounts.SignOutEverywhereAsync(users.Current).ConfigureAwait(false);
-        await signIn.SignOutAsync(returnUrl ?? options.LoginPath).ConfigureAwait(false);
+        await signIn.SignOut(returnUrl ?? options.LoginPath).ConfigureAwait(false);
     }
 
     public Task<AuthResult> SendPasswordReset(string email) =>
@@ -96,7 +96,7 @@ internal sealed class ServerAuth<TUser>(
         }
 
         var created = await webAuthn
-            .CreateAsync(new PublicKeyCredentialCreationOptions
+            .Create(new PublicKeyCredentialCreationOptions
             {
                 Challenge = challenge.Challenge,
                 Rp = new RelyingParty(challenge.RelyingPartyName, challenge.RelyingPartyId),
@@ -143,7 +143,7 @@ internal sealed class ServerAuth<TUser>(
         }
 
         var assertion = await webAuthn
-            .GetAsync(new PublicKeyCredentialRequestOptions
+            .Get(new PublicKeyCredentialRequestOptions
             {
                 Challenge = challenge.Challenge,
                 RpId = challenge.RelyingPartyId,
@@ -175,7 +175,7 @@ internal sealed class ServerAuth<TUser>(
 
         if (outcome is { Result.Succeeded: true, Principal: { } principal })
         {
-            await signIn.SignInAsync(principal, returnUrl, persistent: remember).ConfigureAwait(false);
+            await signIn.SignIn(principal, returnUrl, persistent: remember).ConfigureAwait(false);
         }
 
         return outcome.Result;
@@ -195,7 +195,7 @@ internal sealed class ServerAuth<TUser>(
 
         if (outcome is { Result.Succeeded: true, Principal: { } principal })
         {
-            await signIn.SignInAsync(principal, returnUrl).ConfigureAwait(false);
+            await signIn.SignIn(principal, returnUrl).ConfigureAwait(false);
         }
 
         return outcome.Result;

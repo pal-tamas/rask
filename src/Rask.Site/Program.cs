@@ -92,4 +92,4 @@ if (Environment.GetEnvironmentVariable(WasmPrerender.OutputVariable) is { Length
     Rask.Site.Features.LlmsText.WriteAll(publishRoot);
 }
 
-await host.RunAsync<App>();
+await host.Run<App>();

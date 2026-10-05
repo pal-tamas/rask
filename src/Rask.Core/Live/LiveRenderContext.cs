@@ -574,7 +574,7 @@ public sealed class LiveRenderContext : IDisposable
         }
 
         var handle = _handle;
-        ctx.RequestRender = () => _ = handle.RequestRenderAsync();
+        ctx.RequestRender = () => _ = handle.RequestRender();
     }
 
     // Used by Form to make a sub-object reachable through the same EditContext as its root

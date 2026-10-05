@@ -104,7 +104,7 @@ public class PublicBindingApiTests
 
     [Fact]
     public async Task Notifying_and_validating_with_a_null_context_is_a_no_op() =>
-        await BindingHelpers.NotifyAndValidateFieldAsync(null, new FieldIdentifier(new Model(), "Name"));
+        await BindingHelpers.NotifyAndValidateField(null, new FieldIdentifier(new Model(), "Name"));
 
     [Fact]
     public async Task Notifying_and_validating_marks_the_field_changed_and_touched_and_runs_its_validator()
@@ -115,7 +115,7 @@ public class PublicBindingApiTests
         ctx.RegisterFieldValidator(fid,
             (Func<string, IEnumerable<string>>)(v => string.IsNullOrEmpty(v) ? ["required"] : []));
 
-        await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid);
+        await BindingHelpers.NotifyAndValidateField(ctx, fid);
 
         Assert.True(ctx.IsModified(fid));
         Assert.True(ctx.IsTouched(fid));

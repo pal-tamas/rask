@@ -14,7 +14,7 @@ public class LiveSessionDirectTests
     {
         using var session = NewSession(new BasicComponent());
 
-        await session.RequestRenderAsync();
+        await session.RequestRender();
     }
 
     [Fact]

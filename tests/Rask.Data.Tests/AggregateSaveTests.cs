@@ -50,7 +50,7 @@ public sealed class AggregateSaveTests : IDisposable
         found.Rename("mallet");
         await found.Save(cancellationToken: TestContext.Current.CancellationToken);
 
-        var stored = await database.LoadAsync<Widget>(widget.Id, TestContext.Current.CancellationToken);
+        var stored = await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken);
         Assert.Equal("mallet", stored!.Name);
         Assert.Equal(2, stored.Version);
         Assert.Equal(2, found.Version);
@@ -70,7 +70,7 @@ public sealed class AggregateSaveTests : IDisposable
         found.Cancel(Start.UtcDateTime);
         await found.Save(cancellationToken: TestContext.Current.CancellationToken);
 
-        var stored = await database.LoadAsync<Order>(order.Id, TestContext.Current.CancellationToken);
+        var stored = await database.Load<Order>(order.Id, TestContext.Current.CancellationToken);
         Assert.Equal(OrderStatus.Cancelled, stored!.Status);
         Assert.Equal("A-1-renamed", stored.Reference);
     }
@@ -87,7 +87,7 @@ public sealed class AggregateSaveTests : IDisposable
         basket.Add("plum", 2);
         await basket.Save(cancellationToken: TestContext.Current.CancellationToken);
 
-        var stored = await database.LoadAsync<Basket>(id, TestContext.Current.CancellationToken);
+        var stored = await database.Load<Basket>(id, TestContext.Current.CancellationToken);
         Assert.Equal(
             [("apple", 9), ("plum", 2)],
             stored!.Lines.OrderBy(l => l.Product, StringComparer.Ordinal).Select(l => (l.Product, l.Quantity)));
@@ -106,7 +106,7 @@ public sealed class AggregateSaveTests : IDisposable
         mine.Rename("mine");
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => mine.Save(cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Equal("theirs", (await database.LoadAsync<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+        Assert.Equal("theirs", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public sealed class AggregateSaveTests : IDisposable
 
         await basket.Save(cancellationToken: TestContext.Current.CancellationToken);
 
-        var stored = await database.LoadAsync<Basket>(basket.Id, TestContext.Current.CancellationToken);
+        var stored = await database.Load<Basket>(basket.Id, TestContext.Current.CancellationToken);
         Assert.Equal("ada", stored!.Customer);
         Assert.Equal([("apple", 3)], stored.Lines.Select(l => (l.Product, l.Quantity)));
         Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
@@ -147,11 +147,11 @@ public sealed class AggregateSaveTests : IDisposable
 
         found.Rename("hammer");
         await found.Save(database.Context, TestContext.Current.CancellationToken);
-        var beforeCommit = (await database.LoadAsync<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name;
+        var beforeCommit = (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name;
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal("anvil", beforeCommit);
-        Assert.Equal("hammer", (await database.LoadAsync<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+        Assert.Equal("hammer", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
     }
 
     private static async Task<Guid> SaveBasketAsync()
@@ -164,5 +164,5 @@ public sealed class AggregateSaveTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
 }

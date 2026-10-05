@@ -86,7 +86,7 @@ internal static partial class SessionHarness
         for (var i = 0; i < updates; i++)
         {
             app.Bump();
-            session.RequestRenderAsync().GetAwaiter().GetResult();
+            session.RequestRender().GetAwaiter().GetResult();
         }
     }
 
@@ -101,7 +101,7 @@ internal static partial class SessionHarness
         for (var i = 0; i < updates; i++)
         {
             app.BumpWithHandlerShift();
-            session.RequestRenderAsync().GetAwaiter().GetResult();
+            session.RequestRender().GetAwaiter().GetResult();
         }
     }
 

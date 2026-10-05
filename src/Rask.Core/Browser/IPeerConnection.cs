@@ -7,27 +7,27 @@ public interface IPeerConnection : IAsyncDisposable
 {
     /// <summary>
     ///     Creates an offer to send to the other peer. Pair it with
-    ///     <see cref="SetLocalDescriptionAsync" /> — the browser does not apply it for you.
+    ///     <see cref="SetLocalDescription" /> — the browser does not apply it for you.
     /// </summary>
-    ValueTask<RtcDescription> CreateOfferAsync();
+    ValueTask<RtcDescription> CreateOffer();
 
-    /// <summary>Creates an answer to the offer already applied with <see cref="SetRemoteDescriptionAsync" />.</summary>
-    ValueTask<RtcDescription> CreateAnswerAsync();
+    /// <summary>Creates an answer to the offer already applied with <see cref="SetRemoteDescription" />.</summary>
+    ValueTask<RtcDescription> CreateAnswer();
 
     /// <summary>Applies our own offer/answer.</summary>
-    ValueTask SetLocalDescriptionAsync(RtcDescription description);
+    ValueTask SetLocalDescription(RtcDescription description);
 
     /// <summary>Applies the offer/answer the other peer sent.</summary>
-    ValueTask SetRemoteDescriptionAsync(RtcDescription description);
+    ValueTask SetRemoteDescription(RtcDescription description);
 
     /// <summary>Adds an ICE candidate the other peer sent.</summary>
-    ValueTask AddIceCandidateAsync(RtcIceCandidate candidate);
+    ValueTask AddIceCandidate(RtcIceCandidate candidate);
 
     /// <summary>
-    ///     Opens a data channel. Call <see cref="IRtcDataChannel.ListenAsync" /> on the result to start
+    ///     Opens a data channel. Call <see cref="IRtcDataChannel.Listen" /> on the result to start
     ///     receiving. The peer sees it through <see cref="RtcHandlers.OnDataChannel" />.
     /// </summary>
-    ValueTask<IRtcDataChannel> CreateDataChannelAsync(string label, RtcDataChannelOptions? options = null);
+    ValueTask<IRtcDataChannel> CreateDataChannel(string label, RtcDataChannelOptions? options = null);
 
     /// <summary>
     ///     Sends a captured camera/microphone/screen stream to the peer, who receives it through
@@ -40,11 +40,11 @@ public interface IPeerConnection : IAsyncDisposable
     ///         camera stays open.
     ///     </para>
     /// </summary>
-    ValueTask AddStreamAsync(IJSObjectReference stream);
+    ValueTask AddStream(IJSObjectReference stream);
 
     /// <summary>
-    ///     Stops sending a stream added with <see cref="AddStreamAsync" />, without stopping the stream
+    ///     Stops sending a stream added with <see cref="AddStream" />, without stopping the stream
     ///     itself. Removing a stream that isn't being sent is a no-op.
     /// </summary>
-    ValueTask RemoveStreamAsync(IJSObjectReference stream);
+    ValueTask RemoveStream(IJSObjectReference stream);
 }

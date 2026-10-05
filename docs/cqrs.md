@@ -61,7 +61,7 @@ public sealed partial class CounterView(IDispatcher dispatcher) : Component
     protected override async Task OnMount() =>
         _view = await dispatcher.Query(new GetCounterState(), CancellationToken);
 
-    private async Task IncrementAsync()
+    private async Task Increment()
     {
         await dispatcher.Send(new IncrementCounter(1), CancellationToken); // ICommand<int>
         _view = await dispatcher.Query(new GetCounterState(), CancellationToken);
@@ -208,7 +208,7 @@ and the browser app registers it in its own entry point:
 // Client/Program.cs
 var host = WasmHostBuilder.CreateDefault();
 host.Services.AddRaskCqrsClient();
-await host.RunAsync<App>();
+await host.Run<App>();
 ```
 
 `RaskClientUsing` and `RaskClientProjectReference` do the same for a project-wide using and a project

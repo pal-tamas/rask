@@ -36,12 +36,12 @@ public interface IRaskCulture
     ///     leaves the session unchanged rather than throwing.
     /// </summary>
     /// <returns>Whether the culture changed.</returns>
-    Task<bool> SetAsync(CultureInfo culture);
+    Task<bool> Set(CultureInfo culture);
 
     /// <summary>
     ///     Switches to the named culture. Convenience for the common call site — a switcher bound to a
-    ///     tag from markup or a query string — forwarding to <see cref="SetAsync(CultureInfo)" />.
+    ///     tag from markup or a query string — forwarding to <see cref="Set(CultureInfo)" />.
     /// </summary>
     /// <returns>Whether the culture changed.</returns>
-    Task<bool> SetAsync(string name);
+    Task<bool> Set(string name);
 }

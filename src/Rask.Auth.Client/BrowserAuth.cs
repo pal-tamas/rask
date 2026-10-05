@@ -47,7 +47,7 @@ public sealed class BrowserAuth(
         using var request = Request(AuthApi.Logout);
         await http.SendAsync(request).ConfigureAwait(false);
 
-        await users.RefreshAsync().ConfigureAwait(false);
+        await users.Refresh().ConfigureAwait(false);
         Go.To(LocalUrl.Sanitize(returnUrl));
     }
 
@@ -64,7 +64,7 @@ public sealed class BrowserAuth(
         using var request = Request(AuthApi.LogoutEverywhere);
         await http.SendAsync(request).ConfigureAwait(false);
 
-        await users.RefreshAsync().ConfigureAwait(false);
+        await users.Refresh().ConfigureAwait(false);
         Go.To(LocalUrl.Sanitize(returnUrl));
     }
 
@@ -101,7 +101,7 @@ public sealed class BrowserAuth(
         }
 
         var created = await webAuthn
-            .CreateAsync(new PublicKeyCredentialCreationOptions
+            .Create(new PublicKeyCredentialCreationOptions
             {
                 Challenge = challenge.Challenge,
                 Rp = new RelyingParty(challenge.RelyingPartyName, challenge.RelyingPartyId),
@@ -149,7 +149,7 @@ public sealed class BrowserAuth(
         }
 
         var assertion = await webAuthn
-            .GetAsync(new PublicKeyCredentialRequestOptions
+            .Get(new PublicKeyCredentialRequestOptions
             {
                 Challenge = challenge.Challenge,
                 RpId = challenge.RelyingPartyId,
@@ -222,7 +222,7 @@ public sealed class BrowserAuth(
             return result;
         }
 
-        await users.RefreshAsync().ConfigureAwait(false);
+        await users.Refresh().ConfigureAwait(false);
         Go.To(LocalUrl.Sanitize(returnUrl));
         return AuthResult.Success;
     }

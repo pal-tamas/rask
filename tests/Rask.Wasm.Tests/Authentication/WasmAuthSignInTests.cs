@@ -29,7 +29,7 @@ public class WasmAuthSignInTests
 
         using (nav.EnterHandler())
         {
-            await auth.SignOutAsync(returnUrl);
+            await auth.SignOut(returnUrl);
         }
 
         Assert.Equal(expectedPath, state.Path);

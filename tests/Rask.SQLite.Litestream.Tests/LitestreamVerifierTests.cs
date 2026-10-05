@@ -31,7 +31,7 @@ public sealed class LitestreamVerifierTests : IDisposable
         // A replica that is genuinely current: every restore hands back the live file as it stands now.
         var verifier = NewVerifier(new FakeReplica(_dbPath, live: true), status, Options());
 
-        var result = await verifier.VerifyAsync(CancellationToken.None);
+        var result = await verifier.Verify(CancellationToken.None);
 
         Assert.Equal(LitestreamVerificationOutcome.Verified, result.Outcome);
         Assert.NotNull(result.LastVerifiedAt);
@@ -46,7 +46,7 @@ public sealed class LitestreamVerifierTests : IDisposable
         var replica = new FakeReplica(_dbPath, live: true);
         var verifier = NewVerifier(replica, new LitestreamStatus(), Options());
 
-        await verifier.VerifyAsync(CancellationToken.None);
+        await verifier.Verify(CancellationToken.None);
 
         var arguments = Assert.Single(replica.Invocations);
         // -if-replica-exists would turn "there is no replica at all" into a silent pass, which is the exact
@@ -66,7 +66,7 @@ public sealed class LitestreamVerifierTests : IDisposable
         // A replica frozen before the pass began: the restore works, the sentinel simply isn't in it.
         var verifier = NewVerifier(new FakeReplica(_dbPath, live: false), status, Options(budget: TimeSpan.FromMilliseconds(200)));
 
-        var result = await verifier.VerifyAsync(CancellationToken.None);
+        var result = await verifier.Verify(CancellationToken.None);
 
         // Lag is not a broken backup: a job that pages for this is a job that gets switched off.
         Assert.Equal(LitestreamVerificationOutcome.Inconclusive, result.Outcome);
@@ -80,7 +80,7 @@ public sealed class LitestreamVerifierTests : IDisposable
         CreateDatabase();
         var verifier = NewVerifier(new FakeReplica(_dbPath, live: true) { ExitCode = 1 }, new LitestreamStatus(), Options());
 
-        var result = await verifier.VerifyAsync(CancellationToken.None);
+        var result = await verifier.Verify(CancellationToken.None);
 
         // Wrong prefix, rotated credentials, empty bucket — all of these keep IsReplicating true.
         Assert.Equal(LitestreamVerificationOutcome.Failed, result.Outcome);
@@ -93,7 +93,7 @@ public sealed class LitestreamVerifierTests : IDisposable
         CreateDatabase();
         var verifier = NewVerifier(new FakeReplica(_dbPath, live: true) { WriteOutput = false }, new LitestreamStatus(), Options());
 
-        var result = await verifier.VerifyAsync(CancellationToken.None);
+        var result = await verifier.Verify(CancellationToken.None);
 
         Assert.Equal(LitestreamVerificationOutcome.Failed, result.Outcome);
         Assert.Contains("produced no database", result.LastError);
@@ -112,7 +112,7 @@ public sealed class LitestreamVerifierTests : IDisposable
             new LitestreamStatus(),
             Options(budget: TimeSpan.FromMilliseconds(200)));
 
-        var result = await verifier.VerifyAsync(CancellationToken.None);
+        var result = await verifier.Verify(CancellationToken.None);
 
         Assert.Equal(LitestreamVerificationOutcome.Inconclusive, result.Outcome);
     }
@@ -125,7 +125,7 @@ public sealed class LitestreamVerifierTests : IDisposable
         var replica = new FakeReplica(_dbPath, live: true);
         var verifier = NewVerifier(replica, new LitestreamStatus(), options);
 
-        var result = await verifier.VerifyAsync(CancellationToken.None);
+        var result = await verifier.Verify(CancellationToken.None);
 
         // Same ambiguity RestoreAsync declines to guess at, answered the same way.
         Assert.Equal(LitestreamVerificationOutcome.Skipped, result.Outcome);
@@ -138,7 +138,7 @@ public sealed class LitestreamVerifierTests : IDisposable
         var replica = new FakeReplica(_dbPath, live: true);
         var verifier = NewVerifier(replica, new LitestreamStatus(), Options());
 
-        var result = await verifier.VerifyAsync(CancellationToken.None);
+        var result = await verifier.Verify(CancellationToken.None);
 
         Assert.Equal(LitestreamVerificationOutcome.Skipped, result.Outcome);
         Assert.Empty(replica.Invocations);
@@ -157,7 +157,7 @@ public sealed class LitestreamVerifierTests : IDisposable
                  })
         {
             await NewVerifier(replica, new LitestreamStatus(), Options(budget: TimeSpan.FromMilliseconds(100)))
-                .VerifyAsync(CancellationToken.None);
+                .Verify(CancellationToken.None);
         }
 
         // A restored copy left behind is a full database on disk, every pass, forever.
@@ -171,12 +171,12 @@ public sealed class LitestreamVerifierTests : IDisposable
         var status = new LitestreamStatus();
 
         var verified = await NewVerifier(new FakeReplica(_dbPath, live: true), status, Options())
-            .VerifyAsync(CancellationToken.None);
+            .Verify(CancellationToken.None);
         var later = await NewVerifier(
                 new FakeReplica(_dbPath, live: false),
                 status,
                 Options(budget: TimeSpan.FromMilliseconds(100)))
-            .VerifyAsync(CancellationToken.None);
+            .Verify(CancellationToken.None);
 
         // The age of the last proven round trip is the thing worth alerting on, so it has to survive a
         // pass that merely raced replication.
@@ -191,9 +191,9 @@ public sealed class LitestreamVerifierTests : IDisposable
         CreateDatabase();
         var verifier = NewVerifier(new FakeReplica(_dbPath, live: true), new LitestreamStatus(), Options());
 
-        await verifier.VerifyAsync(CancellationToken.None);
-        await verifier.VerifyAsync(CancellationToken.None);
-        await verifier.VerifyAsync(CancellationToken.None);
+        await verifier.Verify(CancellationToken.None);
+        await verifier.Verify(CancellationToken.None);
+        await verifier.Verify(CancellationToken.None);
 
         // A database probed daily for a year must be one row heavier at the end of it, not 365.
         await using var connection = new SqliteConnection($"Data Source={_dbPath};Pooling=False");
@@ -270,7 +270,7 @@ public sealed class LitestreamVerifierTests : IDisposable
 
         public List<IReadOnlyList<string>> Invocations { get; } = [];
 
-        public async Task<int> RunAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+        public async Task<int> Run(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
         {
             Invocations.Add(arguments);
 

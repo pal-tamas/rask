@@ -130,7 +130,7 @@ public partial class Page
         }
 
         var user = services.GetService<IUserProvider>()?.Current ?? new ClaimsPrincipal(new ClaimsIdentity());
-        var result = RouteAuthorizationGuard.EvaluateAsync(services, chain, user).GetAwaiter().GetResult();
+        var result = RouteAuthorizationGuard.Evaluate(services, chain, user).GetAwaiter().GetResult();
         return result.Outcome switch
         {
             RouteAuthorizationOutcome.Challenge => RouteAuthorizationGuard.ChallengePath + "?returnUrl=" + Uri.EscapeDataString(url),

@@ -61,7 +61,7 @@ public sealed partial class LitestreamVerifier : ISqliteBackupVerifier
     }
 
     /// <inheritdoc/>
-    public async Task<LitestreamVerificationStatus> VerifyAsync(CancellationToken cancellationToken = default)
+    public async Task<LitestreamVerificationStatus> Verify(CancellationToken cancellationToken = default)
     {
         var verification = _options.Verification;
         var databasePath = _options.DatabasePath;
@@ -130,7 +130,7 @@ public sealed partial class LitestreamVerifier : ISqliteBackupVerifier
             DeleteRestored(restoredPath);
 
             var arguments = LitestreamCommand.Restore(_options, restoredPath, ifReplicaExists: false);
-            var exitCode = await _executor.RunAsync(arguments, cancellationToken).ConfigureAwait(false);
+            var exitCode = await _executor.Run(arguments, cancellationToken).ConfigureAwait(false);
             if (exitCode != 0)
             {
                 // Not lag — the replica could not be read at all. Wrong prefix, rotated credentials,
@@ -177,7 +177,7 @@ public sealed partial class LitestreamVerifier : ISqliteBackupVerifier
         // The sentinel takes the write lock on the live database, so it goes through the non-blocking
         // fair-interval retry: it waits out a busy writer by yielding the thread, never by holding one.
         // The work is a fixed-token upsert, so it stays correct if a contended COMMIT makes it re-run.
-        await connection.InImmediateTransactionAsync(
+        await connection.InImmediateTransaction(
             verification.BusyRetry,
             async (writable, ct) =>
             {

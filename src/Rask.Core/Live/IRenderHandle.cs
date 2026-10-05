@@ -2,7 +2,7 @@ namespace Rask.Core.Live;
 
 public interface IRenderHandle
 {
-    Task RequestRenderAsync();
+    Task RequestRender();
 
     /// <summary>
     ///     Request a "publish" render — same render walk, but skips re-firing
@@ -13,9 +13,9 @@ public interface IRenderHandle
     ///     render (which would loop). First-time renders still fire their hooks so
     ///     newly-mounted components get their first <c>OnRendered(firstRender:true)</c>.
     ///     Hosts that don't need the distinction can let the default impl forward to
-    ///     <see cref="RequestRenderAsync" />.
+    ///     <see cref="RequestRender" />.
     /// </summary>
-    Task RequestPublishRenderAsync() => RequestRenderAsync();
+    Task RequestPublishRender() => RequestRender();
 
     internal Task RenderInScopeAsync() => Task.CompletedTask;
 

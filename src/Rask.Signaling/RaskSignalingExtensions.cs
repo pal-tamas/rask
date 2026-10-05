@@ -282,7 +282,7 @@ public static class RaskSignalingExtensions
 
             return typeEl.GetString() switch
             {
-                "join" => await JoinAsync(ctx, socket, hub, options, root, peer).ConfigureAwait(false),
+                "join" => await Join(ctx, socket, hub, options, root, peer).ConfigureAwait(false),
                 "signal" => await SignalAsync(ctx, socket, hub, options, root, peer).ConfigureAwait(false),
                 _ => await Unknown(socket, ctx.RequestAborted, peer).ConfigureAwait(false)
             };
@@ -295,7 +295,7 @@ public static class RaskSignalingExtensions
         }
     }
 
-    private static async Task<Peer?> JoinAsync(
+    private static async Task<Peer?> Join(
         HttpContext ctx, WebSocket socket, SignalingHub hub, RaskSignalingOptions options,
         JsonElement root, Peer? peer)
     {

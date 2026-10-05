@@ -19,10 +19,10 @@ public sealed class WebRtc : IWebRtc
     public WebRtc(IJSRuntime js) => _js = js;
 
     /// <inheritdoc />
-    public ValueTask<bool> IsSupportedAsync() => _js.InvokeAsync<bool>("__raskRtc.isSupported");
+    public ValueTask<bool> IsSupported() => _js.InvokeAsync<bool>("__raskRtc.isSupported");
 
     /// <inheritdoc />
-    public async ValueTask<IPeerConnection> CreateAsync(RtcConfiguration config, RtcHandlers handlers)
+    public async ValueTask<IPeerConnection> Create(RtcConfiguration config, RtcHandlers handlers)
     {
         ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(handlers);
@@ -71,43 +71,43 @@ public sealed class WebRtc : IWebRtc
     {
         private bool _disposed;
 
-        public ValueTask<RtcDescription> CreateOfferAsync() =>
+        public ValueTask<RtcDescription> CreateOffer() =>
             js.InvokeAsync<RtcDescription>("__raskRtc.createOffer", id);
 
-        public ValueTask<RtcDescription> CreateAnswerAsync() =>
+        public ValueTask<RtcDescription> CreateAnswer() =>
             js.InvokeAsync<RtcDescription>("__raskRtc.createAnswer", id);
 
-        public ValueTask SetLocalDescriptionAsync(RtcDescription description)
+        public ValueTask SetLocalDescription(RtcDescription description)
         {
             ArgumentNullException.ThrowIfNull(description);
             return js.InvokeVoidAsync("__raskRtc.setLocal", id, description);
         }
 
-        public ValueTask SetRemoteDescriptionAsync(RtcDescription description)
+        public ValueTask SetRemoteDescription(RtcDescription description)
         {
             ArgumentNullException.ThrowIfNull(description);
             return js.InvokeVoidAsync("__raskRtc.setRemote", id, description);
         }
 
-        public ValueTask AddIceCandidateAsync(RtcIceCandidate candidate)
+        public ValueTask AddIceCandidate(RtcIceCandidate candidate)
         {
             ArgumentNullException.ThrowIfNull(candidate);
             return js.InvokeVoidAsync("__raskRtc.addIce", id, candidate);
         }
 
-        public ValueTask AddStreamAsync(IJSObjectReference stream)
+        public ValueTask AddStream(IJSObjectReference stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
             return js.InvokeVoidAsync("__raskRtc.addStream", id, stream);
         }
 
-        public ValueTask RemoveStreamAsync(IJSObjectReference stream)
+        public ValueTask RemoveStream(IJSObjectReference stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
             return js.InvokeVoidAsync("__raskRtc.removeStream", id, stream);
         }
 
-        public async ValueTask<IRtcDataChannel> CreateDataChannelAsync(
+        public async ValueTask<IRtcDataChannel> CreateDataChannel(
             string label, RtcDataChannelOptions? options = null)
         {
             ArgumentException.ThrowIfNullOrEmpty(label);
@@ -139,20 +139,20 @@ public sealed class WebRtc : IWebRtc
 
         public string Label => label;
 
-        public ValueTask ListenAsync(Func<IReadOnlyList<RtcMessage>, Task> onMessages)
+        public ValueTask Listen(Func<IReadOnlyList<RtcMessage>, Task> onMessages)
         {
             ArgumentNullException.ThrowIfNull(onMessages);
             WebRtcInterop.Listen(connectionId, id, onMessages);
             return js.InvokeVoidAsync("__raskRtc.listen", id);
         }
 
-        public ValueTask SendAsync(string text)
+        public ValueTask Send(string text)
         {
             ArgumentNullException.ThrowIfNull(text);
             return js.InvokeVoidAsync("__raskRtc.sendText", id, text);
         }
 
-        public ValueTask SendAsync(byte[] data)
+        public ValueTask Send(byte[] data)
         {
             ArgumentNullException.ThrowIfNull(data);
             return js.InvokeVoidAsync("__raskRtc.sendBytes", id, Convert.ToBase64String(data));

@@ -19,7 +19,7 @@ APIs live in the [Mobile & PWA guide](pwa.md).
 <!-- demo:browser-storage -->
 
 **`IIndexedDb`** — a persistent, asynchronous key/value store, far larger than localStorage and non-blocking. Holds
-text (`SetAsync`/`GetAsync`) or raw bytes (`SetBytesAsync`/`GetBytesAsync`, stored as a real `Uint8Array`).
+text (`Set`/`Get`) or raw bytes (`SetBytes`/`GetBytes`, stored as a real `Uint8Array`).
 
 <!-- demo:browser-indexeddb -->
 
@@ -77,11 +77,11 @@ with the standard `::view-transition-*` pseudo-elements; give an element a stabl
 what makes a shared header travel. `prefers-reduced-motion` is honoured for you — the animation is the
 browser's own default, so there is no stylesheet of yours for the preference to switch off.
 
-`IsActiveAsync()` is deliberately separate from what you set: a toggle can be on while nothing animates
+`IsActive()` is deliberately separate from what you set: a toggle can be on while nothing animates
 because the browser lacks the API or the reader asked for less motion.
 
 ```csharp
-await _viewTransitions.SetEnabledAsync(true);
+await _viewTransitions.SetEnabled(true);
 ```
 
 **Animations** — `await using var fade = await _box.Animate([new() { ["opacity"] = 0 }, new() { ["opacity"] = 1 }], 300)`

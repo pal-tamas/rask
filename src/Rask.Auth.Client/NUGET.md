@@ -6,7 +6,7 @@ WebAssembly app has the same three flows a server-rendered one has — written t
 ```csharp
 var builder = WasmHostBuilder.CreateDefault();
 builder.Services.AddRaskAuthClient();
-await builder.RunAsync<App>();
+await builder.Run<App>();
 ```
 
 That is the whole of it. After that a component reads the current user and signs somebody in with

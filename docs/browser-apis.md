@@ -66,7 +66,7 @@ See the [capability matrix](browser-capabilities.md) for which APIs work on whic
 
 - **Secure context.** Clipboard, geolocation, notifications, push, `crypto.subtle`, and others require
   HTTPS or `localhost`.
-- **Permission/support gating.** Many APIs expose `IsSupportedAsync()`; ask
+- **Permission/support gating.** Many APIs expose `IsSupported()`; ask
   `Navigator.Permissions.Query(…)` from [`Rask.Web`](web-apis.md) before triggering a prompt, and `try/catch` the call.
 - **Trimming (WASM).** Types these APIs deserialize are registered in source-gen JSON contexts, and the
   push APIs' `[JSInvokable]` methods are `[DynamicDependency]`-rooted, so everything stays correct in a

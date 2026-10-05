@@ -18,10 +18,10 @@ public sealed class Signaling : ISignaling
     public Signaling(IJSRuntime js) => _js = js;
 
     /// <inheritdoc />
-    public ValueTask<bool> IsSupportedAsync() => _js.InvokeAsync<bool>("__raskSignal.isSupported");
+    public ValueTask<bool> IsSupported() => _js.InvokeAsync<bool>("__raskSignal.isSupported");
 
     /// <inheritdoc />
-    public async ValueTask<ISignalingConnection> JoinAsync(
+    public async ValueTask<ISignalingConnection> Join(
         string room, SignalingHandlers handlers, string path = "/rask/signaling")
     {
         ArgumentException.ThrowIfNullOrEmpty(room);
@@ -52,7 +52,7 @@ public sealed class Signaling : ISignaling
     {
         private bool _disposed;
 
-        public ValueTask SendAsync(string toPeerId, string payload)
+        public ValueTask Send(string toPeerId, string payload)
         {
             ArgumentException.ThrowIfNullOrEmpty(toPeerId);
             ArgumentNullException.ThrowIfNull(payload);

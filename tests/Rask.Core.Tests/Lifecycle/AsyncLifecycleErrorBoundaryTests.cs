@@ -81,7 +81,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
     [Fact]
     public async Task A_trip_from_an_async_fault_requests_a_render_via_the_handle()
     {
-        // Boundary.Trip calls StateHasChanged which uses RenderHandle.RequestRenderAsync.
+        // Boundary.Trip calls StateHasChanged which uses RenderHandle.RequestRender.
         // Without a render request, the live root would never re-render with the fallback.
         var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.MountAsync);
@@ -157,7 +157,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
         // Signalled on the first render request, so the test awaits the event rather than a duration.
         public TaskCompletionSource Requested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public Task RequestRenderAsync()
+        public Task RequestRender()
         {
             Interlocked.Increment(ref RequestRenderCount);
             Requested.TrySetResult();

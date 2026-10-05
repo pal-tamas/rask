@@ -27,25 +27,25 @@ namespace Rask.Core.Browser;
 ///         unmount; that closes its channels too.
 ///     </para>
 ///     <code>
-///     _conn = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers
+///     _conn = await rtc.Create(new RtcConfiguration(), new RtcHandlers
 ///     {
 ///         OnIceCandidates = async cands => { foreach (var c in cands) await signaling.SendAsync(c); },
-///         OnDataChannel = async ch => await ch.ListenAsync(OnMessagesAsync),
+///         OnDataChannel = async ch => await ch.Listen(OnMessagesAsync),
 ///     });
-///     var chat = await _conn.CreateDataChannelAsync("chat");
-///     await chat.ListenAsync(OnMessagesAsync);
-///     await signaling.SendAsync(await _conn.CreateOfferAsync());
+///     var chat = await _conn.CreateDataChannel("chat");
+///     await chat.Listen(OnMessagesAsync);
+///     await signaling.SendAsync(await _conn.CreateOffer());
 ///     </code>
 /// </remarks>
 public interface IWebRtc
 {
     /// <summary>Whether the browser supports WebRTC (<c>window.RTCPeerConnection</c>).</summary>
-    ValueTask<bool> IsSupportedAsync();
+    ValueTask<bool> IsSupported();
 
     /// <summary>
     ///     Creates a peer connection. Dispose it to close the connection and every channel on it.
     /// </summary>
     /// <param name="config">ICE servers and transport policy.</param>
     /// <param name="handlers">The callbacks the browser pushes into.</param>
-    ValueTask<IPeerConnection> CreateAsync(RtcConfiguration config, RtcHandlers handlers);
+    ValueTask<IPeerConnection> Create(RtcConfiguration config, RtcHandlers handlers);
 }

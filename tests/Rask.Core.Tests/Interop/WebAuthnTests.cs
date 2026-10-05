@@ -22,7 +22,7 @@ public class WebAuthnTests
         var js = new FakeJsRuntime();
         js.SetResponse("__raskWebAuthn.isSupported", true);
 
-        Assert.True(await new WebAuthn(js).IsSupportedAsync());
+        Assert.True(await new WebAuthn(js).IsSupported());
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class WebAuthnTests
         var js = new FakeJsRuntime();
         js.SetResponse("__raskWebAuthn.platformAuthenticatorAvailable", true);
 
-        Assert.True(await new WebAuthn(js).IsPlatformAuthenticatorAvailableAsync());
+        Assert.True(await new WebAuthn(js).IsPlatformAuthenticatorAvailable());
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class WebAuthnTests
         js.SetResponse("__raskWebAuthn.create", attestation);
         var options = CreationOptions();
 
-        var result = await new WebAuthn(js).CreateAsync(options);
+        var result = await new WebAuthn(js).Create(options);
 
         Assert.Same(options, js.ArgsFor("__raskWebAuthn.create")![0]);
         Assert.Same(attestation, result);
@@ -53,7 +53,7 @@ public class WebAuthnTests
     {
         var js = new FakeJsRuntime();
 
-        Assert.Null(await new WebAuthn(js).CreateAsync(CreationOptions()));
+        Assert.Null(await new WebAuthn(js).Create(CreationOptions()));
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class WebAuthnTests
         js.SetResponse("__raskWebAuthn.get", assertion);
         var options = RequestOptions();
 
-        var result = await new WebAuthn(js).GetAsync(options);
+        var result = await new WebAuthn(js).Get(options);
 
         Assert.Same(options, js.ArgsFor("__raskWebAuthn.get")![0]);
         Assert.Same(assertion, result);
@@ -75,7 +75,7 @@ public class WebAuthnTests
     {
         var js = new FakeJsRuntime();
 
-        Assert.Null(await new WebAuthn(js).GetAsync(RequestOptions()));
+        Assert.Null(await new WebAuthn(js).Get(RequestOptions()));
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class WebAuthnTests
     {
         var svc = new WebAuthn(new FakeJsRuntime());
 
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.CreateAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.Create(null!));
     }
 
     [Fact]
@@ -91,6 +91,6 @@ public class WebAuthnTests
     {
         var svc = new WebAuthn(new FakeJsRuntime());
 
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.GetAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.Get(null!));
     }
 }

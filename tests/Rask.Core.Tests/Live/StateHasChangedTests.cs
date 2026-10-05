@@ -34,7 +34,7 @@ public partial class StateHasChangedTests : global::Rask.Core.RaskMarkup
     public async Task Requesting_a_render_with_no_socket_attached_does_nothing()
     {
         var session = NewSession(out _);
-        await session.RequestRenderAsync();
+        await session.RequestRender();
         // Lock must remain free after the call.
         Assert.True(session.Lock.Wait(0, TestContext.Current.CancellationToken));
         session.Lock.Release();
@@ -49,7 +49,7 @@ public partial class StateHasChangedTests : global::Rask.Core.RaskMarkup
         try
         {
             session.InHandlerScope = true;
-            await session.RequestRenderAsync();
+            await session.RequestRender();
             Assert.True(session.InHandlerScope);
         }
         finally
@@ -63,7 +63,7 @@ public partial class StateHasChangedTests : global::Rask.Core.RaskMarkup
     public async Task Requesting_a_render_outside_a_handler_scope_leaves_the_lock_free()
     {
         var session = NewSession(out _);
-        await session.RequestRenderAsync();
+        await session.RequestRender();
         Assert.True(session.Lock.Wait(0, TestContext.Current.CancellationToken));
         session.Lock.Release();
 

@@ -39,7 +39,7 @@ public sealed class LitestreamReplicationServiceTests
 
         public Task ReachedTarget => _reached.Task;
 
-        public async Task<int> RunAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+        public async Task<int> Run(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
         {
             var n = Interlocked.Increment(ref _calls);
             if (n >= blockAfter)

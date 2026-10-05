@@ -149,7 +149,7 @@ internal sealed partial class BrowserSqliteHost(
         {
             try
             {
-                await snapshotter.SnapshotAsync(cancellationToken).ConfigureAwait(false);
+                await snapshotter.Snapshot(cancellationToken).ConfigureAwait(false);
             }
 #pragma warning disable CA1031 // An unloading page has nothing to recover to; the last interval snapshot stands.
             catch (Exception ex)

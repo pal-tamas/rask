@@ -62,7 +62,7 @@ public sealed class CountingCulture : Rask.Core.Globalization.IRaskCulture
 
     public void RaiseChanged() => _changed?.Invoke(this, EventArgs.Empty);
 
-    public Task<bool> SetAsync(System.Globalization.CultureInfo culture) => Task.FromResult(false);
+    public Task<bool> Set(System.Globalization.CultureInfo culture) => Task.FromResult(false);
 
-    public Task<bool> SetAsync(string name) => Task.FromResult(false);
+    public Task<bool> Set(string name) => Task.FromResult(false);
 }

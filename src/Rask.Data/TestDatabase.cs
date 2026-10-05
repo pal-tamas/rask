@@ -16,7 +16,7 @@ namespace Rask.Data;
 ///     </para>
 ///     <example>
 ///         <code>
-/// await using var database = await TestDatabase.StartAsync(o => o.UseSqlite("Data Source=:memory:"));
+/// await using var database = await TestDatabase.Start(o => o.UseSqlite("Data Source=:memory:"));
 ///
 /// database.Context.Add(Order.Place("A-1"));
 /// await database.Context.SaveChangesAsync();
@@ -66,7 +66,7 @@ public sealed class TestDatabase : IAsyncDisposable
     /// </param>
     /// <param name="cancellationToken">Cancels schema creation.</param>
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
-    public static async Task<TestDatabase> StartAsync(
+    public static async Task<TestDatabase> Start(
         Action<DbContextOptionsBuilder> configure,
         TimeProvider? timeProvider = null,
         CancellationToken cancellationToken = default)
@@ -132,7 +132,7 @@ public sealed class TestDatabase : IAsyncDisposable
     /// </remarks>
     /// <param name="key">The aggregate's primary key.</param>
     /// <param name="cancellationToken">Cancels the load.</param>
-    public Task<TEntity?> LoadAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(object key, CancellationToken cancellationToken = default)
+    public Task<TEntity?> Load<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(object key, CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -142,7 +142,7 @@ public sealed class TestDatabase : IAsyncDisposable
     /// <summary>Loads one aggregate whole, by composite key.</summary>
     /// <param name="keyValues">The key's values, in the order the key declares them.</param>
     /// <param name="cancellationToken">Cancels the load.</param>
-    public Task<TEntity?> LoadAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(object?[] keyValues, CancellationToken cancellationToken = default)
+    public Task<TEntity?> Load<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(object?[] keyValues, CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
         ArgumentNullException.ThrowIfNull(keyValues);

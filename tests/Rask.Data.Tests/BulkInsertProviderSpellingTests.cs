@@ -70,7 +70,7 @@ public sealed class BulkInsertProviderSpellingTests : IDisposable
 
         await using (var db = NewContext())
         {
-            Assert.Equal(5, await db.BulkInsertAsync(widgets, o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Equal(5, await db.BulkInsert(widgets, o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken));
         }
 
         await using var verify = NewContext();

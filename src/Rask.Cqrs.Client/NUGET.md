@@ -35,7 +35,7 @@ public sealed record GetOrders(int Page) : IQuery<IReadOnlyList<OrderRow>>;
 var host = WasmHostBuilder.CreateDefault();
 host.Services.AddRaskCqrsClient();
 host.Services.AddRaskQuery();   // QueryClient in the browser
-await host.RunAsync<App>();
+await host.Run<App>();
 ```
 
 ```csharp

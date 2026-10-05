@@ -166,7 +166,7 @@ public sealed class SendTimeoutTests
         }
 
         var started = Stopwatch.GetTimestamp();
-        await store.BroadcastAsync("hello"u8.ToArray());
+        await store.Broadcast("hello"u8.ToArray());
         var elapsed = Stopwatch.GetElapsedTime(started);
 
         // Six sessions × 300 ms is 1.8 s sequentially. Concurrently it is one timeout plus scheduling.

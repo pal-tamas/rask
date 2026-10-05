@@ -57,7 +57,7 @@ internal static class UiFormCommit
         if (accessor is not null)
         {
             accessor.Setter(value);
-            await BindingHelpers.NotifyAndValidateFieldAsync(context, accessor.Field).ConfigureAwait(false);
+            await BindingHelpers.NotifyAndValidateField(context, accessor.Field).ConfigureAwait(false);
             await control.InvokeAfterBind(value).ConfigureAwait(false);
         }
         else
@@ -113,7 +113,7 @@ internal static class UiFormCommit
             return;
         }
 
-        await BindingHelpers.NotifyAndValidateFieldAsync(context, accessor.Field).ConfigureAwait(false);
+        await BindingHelpers.NotifyAndValidateField(context, accessor.Field).ConfigureAwait(false);
         await control.InvokeAfterBind(accessor.Getter() as ICollection<T> ?? [.. picked])
             .ConfigureAwait(false);
     }

@@ -116,7 +116,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     private void OnCultureChanged(object? sender, EventArgs e)
     {
         Component.MarkSubtreeDirtyInternal(View);
-        _ = RequestRenderAsync();
+        _ = RequestRender();
     }
 
     // Unhooks the culture subscription. Called by each host's Dispose: the service outlives a
@@ -236,7 +236,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             try
             {
                 Component.MarkSubtreeDirtyInternal(session.View);
-                await session.RequestRenderAsync().ConfigureAwait(false);
+                await session.RequestRender().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -305,9 +305,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // Volatile for the handoff described at _pendingRenderInScope.
     private volatile bool _inHandlerScope;
 
-    public Task RequestRenderAsync() => RequestRenderInternalAsync(false);
+    public Task RequestRender() => RequestRenderInternalAsync(false);
 
-    public Task RequestPublishRenderAsync() => RequestRenderInternalAsync(true);
+    public Task RequestPublishRender() => RequestRenderInternalAsync(true);
 
     // A StateHasChanged can land after the coalescing loop has settled but while the scope is still held — during the
     // noop guard, the frame emit, or the commit. The in-scope branch parks it in _pendingRenderInScope, and nothing
@@ -326,7 +326,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         _pendingRenderInScope = false;
-        return RequestPublishRenderAsync();
+        return RequestPublishRender();
     }
 
     Task IRenderHandle.RenderInScopeAsync() => RenderInScopeCoreAsync();

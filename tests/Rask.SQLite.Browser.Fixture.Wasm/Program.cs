@@ -17,4 +17,4 @@ host.Services.AddDbContextFactory<ArticleContext>(o => o
 host.Services.AddSingleton<SchemaReady>();
 host.Services.AddHostedService<ArticleSchema>();
 
-await host.RunAsync<App>();
+await host.Run<App>();

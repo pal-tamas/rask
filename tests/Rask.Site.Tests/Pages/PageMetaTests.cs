@@ -472,10 +472,10 @@ public sealed class PageMetaTests
 
         // The prerender engine itself, not Page.RenderDocument: these pages load on an async mount,
         // and a single synchronous render returns the placeholder — or the error page, for one that
-        // awaits. Going through RenderDocumentAsync means this asserts on the same bytes the publish
+        // awaits. Going through RenderDocument means this asserts on the same bytes the publish
         // writes, which is the only version of the page that a crawler ever sees.
         var started = Stopwatch.StartNew();
-        var result = await RaskPrerender.RenderDocumentAsync(
+        var result = await RaskPrerender.RenderDocument(
             new global::Rask.Site.App(), sp, TimeSpan.FromSeconds(10));
         started.Stop();
 

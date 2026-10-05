@@ -9,11 +9,11 @@ namespace Rask.Core.Browser;
 public sealed class ViewTransitions(IJSRuntime js) : IViewTransitions
 {
     /// <inheritdoc />
-    public ValueTask<bool> IsSupportedAsync() => js.InvokeAsync<bool>("__raskVt.supported");
+    public ValueTask<bool> IsSupported() => js.InvokeAsync<bool>("__raskVt.supported");
 
     /// <inheritdoc />
-    public ValueTask<bool> SetEnabledAsync(bool enabled) => js.InvokeAsync<bool>("__raskVt.set", enabled);
+    public ValueTask<bool> SetEnabled(bool enabled) => js.InvokeAsync<bool>("__raskVt.set", enabled);
 
     /// <inheritdoc />
-    public ValueTask<bool> IsActiveAsync() => js.InvokeAsync<bool>("__raskVt.active");
+    public ValueTask<bool> IsActive() => js.InvokeAsync<bool>("__raskVt.active");
 }

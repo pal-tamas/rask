@@ -141,7 +141,7 @@ public class SessionRevalidationDispatchTests
 
         public int Checks { get; private set; }
 
-        public ValueTask<ClaimsPrincipal?> RevalidateAsync(
+        public ValueTask<ClaimsPrincipal?> Revalidate(
             ClaimsPrincipal principal, CancellationToken cancellationToken = default)
         {
             Checks++;

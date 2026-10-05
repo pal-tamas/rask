@@ -74,14 +74,14 @@ public sealed class SessionCulture : IRaskCulture
     public event EventHandler? Changed;
 
     /// <inheritdoc />
-    public Task<bool> SetAsync(CultureInfo culture)
+    public Task<bool> Set(CultureInfo culture)
     {
         ArgumentNullException.ThrowIfNull(culture);
         return SetCoreAsync(culture.Name);
     }
 
     /// <inheritdoc />
-    public Task<bool> SetAsync(string name) => SetCoreAsync(name);
+    public Task<bool> Set(string name) => SetCoreAsync(name);
 
     /// <summary>
     ///     Seeds the culture from a host's negotiation, before the first render. Does not persist and
@@ -114,7 +114,7 @@ public sealed class SessionCulture : IRaskCulture
 
         if (_options.UseCookie && _persistence is not null)
         {
-            await _persistence.SaveAsync(Culture.Name, UICulture.Name).ConfigureAwait(false);
+            await _persistence.Save(Culture.Name, UICulture.Name).ConfigureAwait(false);
         }
 
         // The session subscribes to this and re-renders. Raised after persistence so a reload during

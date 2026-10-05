@@ -176,7 +176,7 @@ unless you put a closer boundary in the way.
 
 ```csharp
 // Without a boundary of your own, a throw here replaces the entire document.
-protected override async Task OnMount() => _rows = await api.LoadAsync();
+protected override async Task OnMount() => _rows = await api.Load();
 
 // With one, the blast radius is the subtree you chose.
 ErrorBoundary.Fallback((ex, retry) => Div[

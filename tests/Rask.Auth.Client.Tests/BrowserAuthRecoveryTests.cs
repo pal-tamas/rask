@@ -166,15 +166,15 @@ public sealed class BrowserAuthRecoveryTests
     /// <summary>A browser with no authenticator, which is what a support check is for.</summary>
     private sealed class StubWebAuthn : IWebAuthn
     {
-        public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(false);
+        public ValueTask<bool> IsSupported() => ValueTask.FromResult(false);
 
-        public ValueTask<bool> IsPlatformAuthenticatorAvailableAsync() => ValueTask.FromResult(false);
+        public ValueTask<bool> IsPlatformAuthenticatorAvailable() => ValueTask.FromResult(false);
 
         // What the browser returns when the visitor dismisses the dialog or it times out.
-        public ValueTask<AttestationResult?> CreateAsync(PublicKeyCredentialCreationOptions options) =>
+        public ValueTask<AttestationResult?> Create(PublicKeyCredentialCreationOptions options) =>
             ValueTask.FromResult<AttestationResult?>(null);
 
-        public ValueTask<AssertionResult?> GetAsync(PublicKeyCredentialRequestOptions options) =>
+        public ValueTask<AssertionResult?> Get(PublicKeyCredentialRequestOptions options) =>
             ValueTask.FromResult<AssertionResult?>(null);
     }
 
@@ -188,7 +188,7 @@ public sealed class BrowserAuthRecoveryTests
 
         public event EventHandler? Changed;
 
-        public Task EnsureLoadedAsync() => Task.CompletedTask;
+        public Task EnsureLoaded() => Task.CompletedTask;
 
         public Task RefreshAsync()
         {

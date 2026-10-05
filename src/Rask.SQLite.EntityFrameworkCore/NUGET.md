@@ -75,7 +75,7 @@ o.UseRaskSqlite(sp, o => o.Retry.Enabled = true);
 ```
 
 The truly non-blocking, `BEGIN IMMEDIATE` write path lives in `Rask.SQLite`
-(`InImmediateTransactionAsync`); see the docs for when to reach for it.
+(`InImmediateTransaction`); see the docs for when to reach for it.
 
 ## Non-overlapping ranges
 

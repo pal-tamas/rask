@@ -36,7 +36,7 @@ public sealed class BulkDbContext(DbContextOptions<BulkDbContext> options) : DbC
 }
 
 /// <summary>
-/// <c>BulkInsertAsync</c>'s change-tracker-free writer builds its INSERT by hand, so the spelling of
+/// <c>BulkInsert</c>'s change-tracker-free writer builds its INSERT by hand, so the spelling of
 /// identifiers and parameters is its own responsibility — and a schema-qualified, keyword-named, mixed-case
 /// table under a retrying strategy is where that goes wrong.
 /// </summary>
@@ -83,7 +83,7 @@ public sealed class PostgresBulkInsertTests : IAsyncLifetime
 
         await using (var db = NewContext())
         {
-            var written = await db.BulkInsertAsync(orders, o =>
+            var written = await db.BulkInsert(orders, o =>
             {
                 o.SkipChangeTracking = true;
                 o.SingleTransaction = singleTransaction;

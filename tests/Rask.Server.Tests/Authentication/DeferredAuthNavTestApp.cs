@@ -34,7 +34,7 @@ public sealed partial class DeferredNavStartPage(AuthSignIn auth) : Component
                 new Claim(ClaimTypes.NameIdentifier, "alice")
             ],
             "TestCookie");
-        return auth.SignInAsync(new ClaimsPrincipal(identity), "/dashboard", "TestCookie");
+        return auth.SignIn(new ClaimsPrincipal(identity), "/dashboard", "TestCookie");
     }
 }
 

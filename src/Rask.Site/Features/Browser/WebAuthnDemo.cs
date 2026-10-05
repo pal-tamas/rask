@@ -21,13 +21,13 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
     {
         try
         {
-            if (!await webAuthn.IsSupportedAsync())
+            if (!await webAuthn.IsSupported())
             {
                 _support = "WebAuthn not supported in this browser";
             }
             else
             {
-                var platform = await webAuthn.IsPlatformAuthenticatorAvailableAsync();
+                var platform = await webAuthn.IsPlatformAuthenticatorAvailable();
                 _support = platform
                     ? "Supported — platform authenticator available"
                     : "Supported — security key only";
@@ -58,7 +58,7 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
     {
         try
         {
-            var result = await webAuthn.CreateAsync(new PublicKeyCredentialCreationOptions
+            var result = await webAuthn.Create(new PublicKeyCredentialCreationOptions
             {
                 Challenge = NewChallenge(),
                 Rp = new RelyingParty("Rask Showcase"),
@@ -85,7 +85,7 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
     {
         try
         {
-            var result = await webAuthn.GetAsync(new PublicKeyCredentialRequestOptions
+            var result = await webAuthn.Get(new PublicKeyCredentialRequestOptions
             {
                 Challenge = NewChallenge(),
                 UserVerification = "preferred",

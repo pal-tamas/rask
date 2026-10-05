@@ -172,7 +172,7 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
 
         public List<string> Snapshots { get; } = new();
 
-        public Task RequestRenderAsync() => Task.CompletedTask;
+        public Task RequestRender() => Task.CompletedTask;
 
         Task IRenderHandle.RenderInScopeAsync()
         {

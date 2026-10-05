@@ -1,13 +1,13 @@
 namespace Rask.Core.Browser;
 
-/// <summary>A handle to one IndexedDB-backed key/value store (see <see cref="IIndexedDb.OpenStoreAsync" />).</summary>
+/// <summary>A handle to one IndexedDB-backed key/value store (see <see cref="IIndexedDb.OpenStore" />).</summary>
 public interface IKeyValueStore
 {
     /// <summary>Stores <paramref name="value" /> under <paramref name="key" /> (overwriting any existing).</summary>
-    ValueTask SetAsync(string key, string value);
+    ValueTask Set(string key, string value);
 
     /// <summary>Reads the value for <paramref name="key" />, or <c>null</c> if absent.</summary>
-    ValueTask<string?> GetAsync(string key);
+    ValueTask<string?> Get(string key);
 
     /// <summary>
     ///     Stores raw bytes under <paramref name="key" /> (overwriting any existing) — for content that is
@@ -18,33 +18,33 @@ public interface IKeyValueStore
     ///     quota. Base64 appears only in transit, because that is what crosses the JS interop boundary
     ///     reliably on every host.
     ///     <para>
-    ///         The default implementation stores the base64 text through <see cref="SetAsync" />, so a store
+    ///         The default implementation stores the base64 text through <see cref="Set" />, so a store
     ///         written before this method existed still compiles and behaves correctly — it just pays the
     ///         ~33% size penalty in storage as well as on the wire. The built-in store overrides it.
     ///     </para>
     /// </remarks>
-    ValueTask SetBytesAsync(string key, byte[] value)
+    ValueTask SetBytes(string key, byte[] value)
     {
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(value);
-        return SetAsync(key, Convert.ToBase64String(value));
+        return Set(key, Convert.ToBase64String(value));
     }
 
     /// <summary>Reads the bytes for <paramref name="key" />, or <c>null</c> if absent.</summary>
-    /// <remarks>Pairs with <see cref="SetBytesAsync" />; do not read a key written by <see cref="SetAsync" />.</remarks>
-    async ValueTask<byte[]?> GetBytesAsync(string key)
+    /// <remarks>Pairs with <see cref="SetBytes" />; do not read a key written by <see cref="Set" />.</remarks>
+    async ValueTask<byte[]?> GetBytes(string key)
     {
         ArgumentNullException.ThrowIfNull(key);
-        var value = await GetAsync(key).ConfigureAwait(false);
+        var value = await Get(key).ConfigureAwait(false);
         return value is null ? null : Convert.FromBase64String(value);
     }
 
     /// <summary>Removes <paramref name="key" /> (a no-op if absent).</summary>
-    ValueTask DeleteAsync(string key);
+    ValueTask Delete(string key);
 
     /// <summary>All keys currently in the store.</summary>
-    ValueTask<string[]> KeysAsync();
+    ValueTask<string[]> Keys();
 
     /// <summary>Removes every entry in the store.</summary>
-    ValueTask ClearAsync();
+    ValueTask Clear();
 }

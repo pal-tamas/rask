@@ -77,7 +77,7 @@ public sealed partial class PwaPage : Component
             P.Class("text-ui-muted max-w-3xl mt-2")[
                 "Every one follows the same shape. Ask whether the capability exists before you offer it ",
                 "(",
-                Code["IsSupportedAsync"],
+                Code["IsSupported"],
                 "), call it from a real click, and dispose what it hands back — most of these return an ",
                 Code["IAsyncDisposable"],
                 " that releases the hardware or the lock. A request without user activation rejects, and a ",

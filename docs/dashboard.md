@@ -225,7 +225,7 @@ public sealed class BackupProbe(LitestreamStatus? litestream = null, ISqliteSnap
     public async Task<IReadOnlyList<BackupSnapshotInfo>> Snapshots(CancellationToken ct) =>
         snapshots is null
             ? []
-            : [.. (await snapshots.ListAsync(ct)).Select(s => new BackupSnapshotInfo(s.Name, s.SizeBytes, s.CreatedAt))];
+            : [.. (await snapshots.List(ct)).Select(s => new BackupSnapshotInfo(s.Name, s.SizeBytes, s.CreatedAt))];
 }
 
 builder.Services.AddSingleton<IDashboardBackupProbe, BackupProbe>();

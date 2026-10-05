@@ -117,7 +117,7 @@ internal static class BulkInsertWriter
         await context.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         var connection = context.Database.GetDbConnection();
 
-        // An ambient transaction — the caller's, or the one BulkInsertAsync opened for SingleTransaction —
+        // An ambient transaction — the caller's, or the one BulkInsert opened for SingleTransaction —
         // owns the commit; otherwise each batch is its own unit, matching the change-tracker path.
         var ambient = context.Database.CurrentTransaction?.GetDbTransaction();
         var owned = ambient is null

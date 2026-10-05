@@ -37,7 +37,7 @@ internal sealed partial class BrowserSqliteSnapshotService(
             {
                 try
                 {
-                    await snapshotter.SnapshotAsync(stoppingToken).ConfigureAwait(false);
+                    await snapshotter.Snapshot(stoppingToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {

@@ -80,7 +80,7 @@ public partial class Page : IRenderHandle
     // already in progress when a hook signals synchronously, and it renders halfway through a multicast
     // event, before the later subscribers of the same event (a Router and its Outlet both listen to
     // RouteState.Changed) have updated the state that render would read.
-    Task IRenderHandle.RequestRenderAsync()
+    Task IRenderHandle.RequestRender()
     {
         lock (_renderLock)
         {

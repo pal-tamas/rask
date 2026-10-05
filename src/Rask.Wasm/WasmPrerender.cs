@@ -273,7 +273,7 @@ public static class WasmPrerender
 
         var app = ActivatorUtilities.CreateInstance<TApp>(scope.ServiceProvider);
         var result = await RaskPrerender
-            .RenderDocumentAsync(app, scope.ServiceProvider, budget)
+            .RenderDocument(app, scope.ServiceProvider, budget)
             .ConfigureAwait(false);
 
         // Both of these still hand back perfectly ordinary HTML — an error document, or the

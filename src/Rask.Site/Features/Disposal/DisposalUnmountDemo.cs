@@ -53,12 +53,12 @@ public sealed partial class DisposalUnmountDemo : Component
     {
         _hookLog.Add(line);
         StateHasChanged();
-        _ = DeferredRerenderAsync();
+        _ = DeferredRerender();
     }
 
     // Unmount fires inside the parent's render diff pass; yield back to the event loop so the follow-up
     // render that paints the log line escapes the current dispatch's render lock (dropped otherwise on WASM).
-    private async Task DeferredRerenderAsync()
+    private async Task DeferredRerender()
     {
         await Task.Delay(50);
         StateHasChanged();

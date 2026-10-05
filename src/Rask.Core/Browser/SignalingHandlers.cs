@@ -17,7 +17,7 @@ public sealed record SignalingHandlers
     public Func<string, Task>? OnPeerLeft { get; init; }
 
     /// <summary>
-    ///     A peer sent us a payload — the string they passed to <see cref="ISignalingConnection.SendAsync" />,
+    ///     A peer sent us a payload — the string they passed to <see cref="ISignalingConnection.Send" />,
     ///     verbatim. Nothing between the two browsers parsed it.
     /// </summary>
     public Func<string, string, Task>? OnSignal { get; init; }

@@ -64,7 +64,7 @@ internal sealed partial class LitestreamVerificationService : BackgroundService
     {
         try
         {
-            await _verifier.VerifyAsync(cancellationToken).ConfigureAwait(false);
+            await _verifier.Verify(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

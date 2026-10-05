@@ -24,7 +24,7 @@ public sealed class ModelKeyConventionTests : IDisposable
     public void Dispose() => File.Delete(_dbPath);
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
 
     [Fact]
     public async Task An_entity_added_with_its_Guid_key_unassigned_is_refused_rather_than_inserted_empty()
@@ -47,7 +47,7 @@ public sealed class ModelKeyConventionTests : IDisposable
         database.Context.Add(voucher);
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.NotNull(await database.LoadAsync<Voucher>(voucher.Id, TestContext.Current.CancellationToken));
+        Assert.NotNull(await database.Load<Voucher>(voucher.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]

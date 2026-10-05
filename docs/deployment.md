@@ -508,7 +508,7 @@ The full error is in the browser console too. The three failures worth recognisi
 | --- | --- |
 | The .NET runtime could not be loaded | `_framework` is 404ing, or `.wasm` is served as `application/octet-stream`. Check the two `nginx.conf` items above. |
 | The Rask browser module could not be loaded | `rask.wasm.js` did not reach the client — usually a sub-path deploy without `/p:RaskPathBase`. |
-| The app finished starting but never rendered | The app booted and returned without painting. Check that `Program.cs` **awaits** `host.RunAsync<App>()`. |
+| The app finished starting but never rendered | The app booted and returned without painting. Check that `Program.cs` **awaits** `host.Run<App>()`. |
 
 The failure panel appears only before the app has mounted. Once it has, an uncaught error is handled by
 the [root error boundary](lifecycle.md) instead, so a working page is never replaced by this one.

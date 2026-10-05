@@ -10,16 +10,16 @@
 
 ## Text and bytes
 
-`OpenStoreAsync(name)` returns an `IKeyValueStore` with two pairs of accessors:
+`OpenStore(name)` returns an `IKeyValueStore` with two pairs of accessors:
 
 ```csharp
-var store = await indexedDb.OpenStoreAsync("cache");
+var store = await indexedDb.OpenStore("cache");
 
-await store.SetAsync("profile", json);              // string
-var json2 = await store.GetAsync("profile");
+await store.Set("profile", json);              // string
+var json2 = await store.Get("profile");
 
-await store.SetBytesAsync("thumbnail", pngBytes);   // byte[]
-var png = await store.GetBytesAsync("thumbnail");
+await store.SetBytes("thumbnail", pngBytes);   // byte[]
+var png = await store.GetBytes("thumbnail");
 ```
 
 Use the byte overloads for anything that is not text — an image, a compressed blob, a database file.

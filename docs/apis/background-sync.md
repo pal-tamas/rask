@@ -6,7 +6,7 @@
 - **MDN:** [SyncManager](https://developer.mozilla.org/en-US/docs/Web/API/Background_Synchronization_API) ·
   [PeriodicSyncManager](https://developer.mozilla.org/en-US/docs/Web/API/Web_Periodic_Background_Synchronization_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
-- **Shape:** one-shot (register / list / unregister) + subscription (`OnSyncAsync` pushes to a callback)
+- **Shape:** one-shot (register / list / unregister) + subscription (`OnSync` pushes to a callback)
 - **Availability:** Web/Server ⬜ · PWA/WASM ✅
 
 Both registrations live on the **service-worker registration**, and a Server app renders over a live
@@ -43,7 +43,7 @@ public sealed class DraftQueue(IBackgroundSync sync) : Component, IAsyncDisposab
     {
         // Subscribe BEFORE requesting: a sync that landed while the page was still booting is held for
         // the first subscriber, so an event that beat your startup code still reaches it.
-        _subscription = await sync.OnSyncAsync(async e =>
+        _subscription = await sync.OnSync(async e =>
         {
             if (e.Tag == "flush-drafts") await FlushAsync();
             StateHasChanged();
@@ -51,7 +51,7 @@ public sealed class DraftQueue(IBackgroundSync sync) : Component, IAsyncDisposab
 
         // Best-effort, and re-requested every boot — the browser may have consumed the last one while
         // no tab was open.
-        await sync.RequestSyncAsync("flush-drafts");
+        await sync.RequestSync("flush-drafts");
     }
 
     public async ValueTask DisposeAsync() => await (_subscription?.DisposeAsync() ?? ValueTask.CompletedTask);
@@ -62,15 +62,15 @@ Periodic sync is gated on a permission the browser grants on its own terms (Chro
 being installed and to site engagement). There is no API to request it, so **check, don't ask**:
 
 ```csharp
-if (await sync.IsPeriodicSupportedAsync() && await sync.GetPeriodicPermissionAsync() == "granted")
+if (await sync.IsPeriodicSupported() && await sync.GetPeriodicPermission() == "granted")
 {
     // A floor, not a schedule — the browser decides the real cadence and in practice fires far less
     // often than you ask.
-    await sync.RequestPeriodicSyncAsync("refresh-feed", 12.Hours);
+    await sync.RequestPeriodicSync("refresh-feed", 12.Hours);
 }
 ```
 
-`OnSyncAsync` delivers both kinds; check `BackgroundSyncEvent.Periodic` to tell them apart. It is a
+`OnSync` delivers both kinds; check `BackgroundSyncEvent.Periodic` to tell them apart. It is a
 subscription handler, not a chain-set callback, so calling `StateHasChanged()` in it is correct and
 [RASK026](../diagnostics.md) does not apply.
 

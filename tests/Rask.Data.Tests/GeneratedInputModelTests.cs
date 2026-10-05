@@ -46,7 +46,7 @@ public sealed class GeneratedInputModelTests : IDisposable
     public void Dispose() => File.Delete(_dbPath);
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
 
     private static InvoiceModel NewModel() => new()
     {
@@ -160,7 +160,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         Assert.NotEqual(Guid.Empty, created.Id);
 
-        var stored = await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken);
+        var stored = await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken);
         Assert.NotNull(stored);
         Assert.Equal("March", stored.Title);
         Assert.Equal(120.5m, stored.Balance);
@@ -192,7 +192,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         var created = await Invoice.Create(id, NewModel(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(id, created.Id);
-        Assert.Equal("March", (await database.LoadAsync<Invoice>(id, TestContext.Current.CancellationToken))!.Title);
+        Assert.Equal("March", (await database.Load<Invoice>(id, TestContext.Current.CancellationToken))!.Title);
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public sealed class GeneratedInputModelTests : IDisposable
             invoice.Viewed();                     // a value the form never carries
         }, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(1, (await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Views);
+        Assert.Equal(1, (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Views);
     }
 
     [Fact]
@@ -221,14 +221,14 @@ public sealed class GeneratedInputModelTests : IDisposable
         }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(7, created.Id.Version);
-        var stored = (await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!;
+        var stored = (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!;
         Assert.Equal("Walk-in", stored.Title);
         Assert.Equal(1, stored.Views);
         Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
 
         // The same shape, one write later.
         await Invoice.Update(created.Id, invoice => invoice.Retitle("Walk-in, paid"), cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("Walk-in, paid", (await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
+        Assert.Equal("Walk-in, paid", (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
     }
 
     [Fact]
@@ -242,10 +242,10 @@ public sealed class GeneratedInputModelTests : IDisposable
         // The caller chose the key, so it is already there — but the row is not, because `db:` stages.
         Assert.Equal(id, created.Id);
         Assert.Equal(EntityState.Added, database.Context.Entry(created).State);
-        Assert.Null(await database.LoadAsync<Invoice>(id, TestContext.Current.CancellationToken));
+        Assert.Null(await database.Load<Invoice>(id, TestContext.Current.CancellationToken));
 
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        Assert.Equal("Keyed", (await database.LoadAsync<Invoice>(id, TestContext.Current.CancellationToken))!.Title);
+        Assert.Equal("Keyed", (await database.Load<Invoice>(id, TestContext.Current.CancellationToken))!.Title);
     }
 
     [Fact]
@@ -257,7 +257,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         var created = await Invoice.Create(draft, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Same(draft, created);
-        Assert.Equal("Built", (await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
+        Assert.Equal("Built", (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
         Assert.Equal(Start.UtcDateTime, created.CreatedAt);
     }
 
@@ -268,13 +268,13 @@ public sealed class GeneratedInputModelTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         var created = await Invoice.Create(NewModel(), cancellationToken: TestContext.Current.CancellationToken);
-        var edit = EditOf((await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!);
+        var edit = EditOf((await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!);
 
         edit.Title = "April";
         edit.Total!.Amount = 150m;
         var updated = await Invoice.Update(created.Id, edit, cancellationToken: TestContext.Current.CancellationToken);
 
-        var stored = await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken);
+        var stored = await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken);
         Assert.Equal("April", stored!.Title);
         Assert.Equal(new InvoiceTotal(150m, "HUF"), stored.Total);
         Assert.Equal(1, stored.Version);
@@ -293,7 +293,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         await Invoice.Update(created.Id, edit, cancellationToken: TestContext.Current.CancellationToken);
 
-        var stored = (await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!;
+        var stored = (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!;
         Assert.Null(stored.Note);
         Assert.Equal(120.5m, stored.Balance);
     }
@@ -315,7 +315,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         Assert.Contains("Balance", update.Message, StringComparison.Ordinal);
         Assert.Contains("Balance", create.Message, StringComparison.Ordinal);
         Assert.False(IsValid(edit, out _));
-        Assert.Equal("March", (await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
+        Assert.Equal("March", (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
         Assert.Equal(1, await Invoice.Count(TestContext.Current.CancellationToken));
     }
 
@@ -325,8 +325,8 @@ public sealed class GeneratedInputModelTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var created = await Invoice.Create(NewModel(), cancellationToken: TestContext.Current.CancellationToken);
 
-        var first = EditOf((await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!);
-        var second = EditOf((await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!);
+        var first = EditOf((await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!);
+        var second = EditOf((await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!);
 
         first.Title = "First";
         await Invoice.Update(created.Id, first, cancellationToken: TestContext.Current.CancellationToken);
@@ -334,7 +334,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         second.Title = "Second";
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => Invoice.Update(created.Id, second, cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Equal("First", (await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
+        Assert.Equal("First", (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
     }
 
     [Fact]
@@ -347,7 +347,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         await Invoice.Update(created.Id, edit, invoice => invoice.Viewed(), cancellationToken: TestContext.Current.CancellationToken);
 
-        var stored = (await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!;
+        var stored = (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!;
         Assert.Equal("April", stored.Title);
         Assert.Equal(1, stored.Views);
     }
@@ -364,7 +364,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
             Invoice.Update(created.Id, invoice => invoice.Viewed(), version: 0, cancellationToken: TestContext.Current.CancellationToken));
-        Assert.Equal(1, (await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Views);
+        Assert.Equal(1, (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Views);
     }
 
     [Fact]
@@ -389,10 +389,10 @@ public sealed class GeneratedInputModelTests : IDisposable
         await Invoice.Update(created.Id, edit, cancellationToken: TestContext.Current.CancellationToken);         // version 0 -> 1
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => Invoice.Delete(created.Id, version: 0, cancellationToken: TestContext.Current.CancellationToken));
-        Assert.NotNull(await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken));
+        Assert.NotNull(await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken));
 
         await Invoice.Delete(created.Id, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Null(await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken));
+        Assert.Null(await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken));
     }
 
     // ---- the form loop's fill -------------------------------------------------------------------------
@@ -453,26 +453,26 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         // Staged, not saved: `db:` hands the unit of work to the caller, so nothing is in the table yet.
         Assert.Equal(EntityState.Added, db.Entry(created).State);
-        Assert.Null(await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken));
+        Assert.Null(await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken));
 
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         Assert.Equal(EntityState.Unchanged, db.Entry(created).State);
-        Assert.NotNull(await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken));
+        Assert.NotNull(await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken));
 
         // A row that context already tracks is the one updated, not a second copy — and it is staged too.
         var updated = await Invoice.Update(created.Id, invoice => invoice.Viewed(), db: db, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Same(created, updated);
-        Assert.Equal(0, (await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Views);
+        Assert.Equal(0, (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Views);
 
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(1, (await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Views);
+        Assert.Equal(1, (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Views);
 
         // And the delete, which is a soft delete, is no different: stamped in the tracker, written on save.
         await Invoice.Delete(created.Id, db: db, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.NotNull(await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken));
+        Assert.NotNull(await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken));
 
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-        Assert.Null(await database.LoadAsync<Invoice>(created.Id, TestContext.Current.CancellationToken));
+        Assert.Null(await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -487,13 +487,13 @@ public sealed class GeneratedInputModelTests : IDisposable
         var placed = await Invoice.Create(NewModel(), db: db, cancellationToken: TestContext.Current.CancellationToken);
         await Invoice.Update(kept.Id, invoice => invoice.Viewed(), db: db, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Null(await database.LoadAsync<Invoice>(placed.Id, TestContext.Current.CancellationToken));
-        Assert.Equal(0, (await database.LoadAsync<Invoice>(kept.Id, TestContext.Current.CancellationToken))!.Views);
+        Assert.Null(await database.Load<Invoice>(placed.Id, TestContext.Current.CancellationToken));
+        Assert.Equal(0, (await database.Load<Invoice>(kept.Id, TestContext.Current.CancellationToken))!.Views);
 
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.NotNull(await database.LoadAsync<Invoice>(placed.Id, TestContext.Current.CancellationToken));
-        Assert.Equal(1, (await database.LoadAsync<Invoice>(kept.Id, TestContext.Current.CancellationToken))!.Views);
+        Assert.NotNull(await database.Load<Invoice>(placed.Id, TestContext.Current.CancellationToken));
+        Assert.Equal(1, (await database.Load<Invoice>(kept.Id, TestContext.Current.CancellationToken))!.Views);
     }
 
     [Fact]
@@ -513,6 +513,6 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         // Neither landed. Before `db:` staged, the update was its own transaction and would have survived.
         db.ChangeTracker.Clear();
-        Assert.Equal(0, (await database.LoadAsync<Invoice>(kept.Id, TestContext.Current.CancellationToken))!.Views);
+        Assert.Equal(0, (await database.Load<Invoice>(kept.Id, TestContext.Current.CancellationToken))!.Views);
     }
 }

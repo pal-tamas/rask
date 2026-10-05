@@ -43,7 +43,7 @@ public class PrerenderBatteryWiringTests
 
         try
         {
-            await WasmHostBuilder.CreateDefault().RunAsync<NeedsABattery>();
+            await WasmHostBuilder.CreateDefault().Run<NeedsABattery>();
 
             // Written, not merely attempted. A page that could not resolve its dependency renders the
             // boundary's error document instead, which WasmPrerender deliberately does not write — so

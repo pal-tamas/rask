@@ -12,8 +12,8 @@ public sealed class SubscriptionTests
     {
         await using var services = Build();
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using var first = await ListenAsync(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
-        await using var second = await ListenAsync(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
+        await using var first = await Listen(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
+        await using var second = await Listen(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
 
         await dispatcher.Publish(new Chimed(1), TestContext.Current.CancellationToken);
 
@@ -37,7 +37,7 @@ public sealed class SubscriptionTests
     {
         await using var services = Build();
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using var chimes = await ListenAsync(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
+        await using var chimes = await Listen(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
 
         await dispatcher.Publish(new Whistled(1), TestContext.Current.CancellationToken);
         await dispatcher.Publish(new Chimed(2), TestContext.Current.CancellationToken);
@@ -50,13 +50,13 @@ public sealed class SubscriptionTests
     {
         await using var services = Build();
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using (await ListenAsync(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken)))
+        await using (await Listen(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken)))
         {
             await dispatcher.Publish(new Chimed(1), TestContext.Current.CancellationToken);
             await dispatcher.Publish(new Chimed(2), TestContext.Current.CancellationToken);
         }
 
-        await using var late = await ListenAsync(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
+        await using var late = await Listen(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
 
         Assert.Equal(new Chimed(2), await late.NextAsync());
     }
@@ -68,7 +68,7 @@ public sealed class SubscriptionTests
         var dispatcher = services.GetRequiredService<IDispatcher>();
         await dispatcher.Publish(new Chimed(1), TestContext.Current.CancellationToken);
 
-        await using var late = await ListenAsync(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
+        await using var late = await Listen(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
 
         Assert.False(late.HasNext);
     }
@@ -79,7 +79,7 @@ public sealed class SubscriptionTests
         var recorder = new Recorder();
         await using var services = Build(recorder);
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using var pings = await ListenAsync(dispatcher.Subscribe<Pinged>(TestContext.Current.CancellationToken));
+        await using var pings = await Listen(dispatcher.Subscribe<Pinged>(TestContext.Current.CancellationToken));
 
         await dispatcher.Publish(new Pinged("go"), TestContext.Current.CancellationToken);
 
@@ -94,7 +94,7 @@ public sealed class SubscriptionTests
         var yours = Guid.NewGuid();
         await using var services = Build(allowed: [mine, yours]);
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using var watching = await ListenAsync(dispatcher.Subscribe(new WatchDoor(mine), TestContext.Current.CancellationToken));
+        await using var watching = await Listen(dispatcher.Subscribe(new WatchDoor(mine), TestContext.Current.CancellationToken));
 
         await dispatcher.Publish(new DoorOpened(yours), TestContext.Current.CancellationToken);
         await dispatcher.Publish(new DoorOpened(mine), TestContext.Current.CancellationToken);
@@ -109,13 +109,13 @@ public sealed class SubscriptionTests
         var yours = Guid.NewGuid();
         await using var services = Build(allowed: [mine, yours]);
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using (await ListenAsync(dispatcher.Subscribe(new WatchDoor(mine), TestContext.Current.CancellationToken)))
+        await using (await Listen(dispatcher.Subscribe(new WatchDoor(mine), TestContext.Current.CancellationToken)))
         {
             await dispatcher.Publish(new DoorOpened(mine), TestContext.Current.CancellationToken);
             await dispatcher.Publish(new DoorOpened(yours), TestContext.Current.CancellationToken);
         }
 
-        await using var late = await ListenAsync(dispatcher.Subscribe(new WatchDoor(mine), TestContext.Current.CancellationToken));
+        await using var late = await Listen(dispatcher.Subscribe(new WatchDoor(mine), TestContext.Current.CancellationToken));
 
         Assert.Equal(new DoorOpened(mine), await late.NextAsync());
     }
@@ -125,7 +125,7 @@ public sealed class SubscriptionTests
     {
         await using var services = Build();
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using var green = await ListenAsync(dispatcher.Subscribe(new WatchPaint(Colour.Green), TestContext.Current.CancellationToken));
+        await using var green = await Listen(dispatcher.Subscribe(new WatchPaint(Colour.Green), TestContext.Current.CancellationToken));
 
         await dispatcher.Publish(new DoorPainted(Colour.Red), TestContext.Current.CancellationToken);
         await dispatcher.Publish(new DoorPainted(Colour.Green), TestContext.Current.CancellationToken);
@@ -162,7 +162,7 @@ public sealed class SubscriptionTests
         var mine = Guid.NewGuid();
         await using var services = Build(allowed: [mine]);
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using var all = await ListenAsync(dispatcher.Subscribe<DoorOpened>(TestContext.Current.CancellationToken));
+        await using var all = await Listen(dispatcher.Subscribe<DoorOpened>(TestContext.Current.CancellationToken));
 
         await dispatcher.Publish(new DoorOpened(Guid.NewGuid()), TestContext.Current.CancellationToken);
 
@@ -175,7 +175,7 @@ public sealed class SubscriptionTests
         await using var services = Build();
         var dispatcher = services.GetRequiredService<IDispatcher>();
         var feed = services.GetRequiredService<EventFeed>();
-        var listening = await ListenAsync(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
+        var listening = await Listen(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
 
         await listening.DisposeAsync();
 
@@ -188,7 +188,7 @@ public sealed class SubscriptionTests
         var doors = Enumerable.Range(0, 5).Select(_ => Guid.NewGuid()).ToArray();
         await using var services = Build(allowed: [.. doors], capacity: 4);
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using (await ListenAsync(dispatcher.Subscribe(new WatchDoor(doors[0]), TestContext.Current.CancellationToken)))
+        await using (await Listen(dispatcher.Subscribe(new WatchDoor(doors[0]), TestContext.Current.CancellationToken)))
         {
             foreach (var door in doors)
             {
@@ -196,7 +196,7 @@ public sealed class SubscriptionTests
             }
         }
 
-        await using var late = await ListenAsync(dispatcher.Subscribe(new WatchDoor(doors[0]), TestContext.Current.CancellationToken));
+        await using var late = await Listen(dispatcher.Subscribe(new WatchDoor(doors[0]), TestContext.Current.CancellationToken));
 
         Assert.False(late.HasNext);
     }
@@ -283,7 +283,7 @@ public sealed class SubscriptionTests
 
     // Opens the subscription and waits until it is listening: the first MoveNext runs the policy and registers with the
     // feed synchronously for every policy here, so once it has been called a publish reaches it.
-    private static Task<Listening<T>> ListenAsync<T>(IAsyncEnumerable<T> source)
+    private static Task<Listening<T>> Listen<T>(IAsyncEnumerable<T> source)
     {
         var stop = new CancellationTokenSource();
         var enumerator = source.GetAsyncEnumerator(stop.Token);

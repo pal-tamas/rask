@@ -15,7 +15,7 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
     private string? _keys;
     private string? _status;
 
-    private async Task<IKeyValueStore> StoreAsync() => _store ??= await indexedDb.OpenStoreAsync("rask-demo");
+    private async Task<IKeyValueStore> Store() => _store ??= await indexedDb.OpenStore("rask-demo");
 
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
@@ -46,25 +46,25 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
 
     private async Task Set()
     {
-        try { await (await StoreAsync()).SetAsync(_key, _value); _status = "Stored"; }
+        try { await (await Store()).Set(_key, _value); _status = "Stored"; }
         catch (Exception ex) { _status = "Failed: " + ex.Message; }
     }
 
     private async Task Get()
     {
-        try { _read = await (await StoreAsync()).GetAsync(_key) ?? "(not found)"; _status = "Read"; }
+        try { _read = await (await Store()).Get(_key) ?? "(not found)"; _status = "Read"; }
         catch (Exception ex) { _status = "Failed: " + ex.Message; }
     }
 
     private async Task Keys()
     {
-        try { _keys = string.Join(", ", await (await StoreAsync()).KeysAsync()); _status = "Listed"; }
+        try { _keys = string.Join(", ", await (await Store()).Keys()); _status = "Listed"; }
         catch (Exception ex) { _status = "Failed: " + ex.Message; }
     }
 
     private async Task Clear()
     {
-        try { await (await StoreAsync()).ClearAsync(); _read = _keys = null; _status = "Cleared"; }
+        try { await (await Store()).Clear(); _read = _keys = null; _status = "Cleared"; }
         catch (Exception ex) { _status = "Failed: " + ex.Message; }
     }
 }

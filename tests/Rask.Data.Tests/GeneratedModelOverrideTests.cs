@@ -38,7 +38,7 @@ public sealed class GeneratedModelOverrideTests : IDisposable
     public void Dispose() => File.Delete(_dbPath);
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
 
     [Fact]
     public async Task A_create_the_entity_declares_replaces_the_generated_one_and_can_still_call_it()
@@ -48,7 +48,7 @@ public sealed class GeneratedModelOverrideTests : IDisposable
         var created = await Ticket.Create(new TicketModel { Title = "  printer jam " }, TestContext.Current.CancellationToken);
 
         Assert.Equal("PRINTER JAM", created.Title);
-        Assert.Equal("PRINTER JAM", (await database.LoadAsync<Ticket>(created.Id, TestContext.Current.CancellationToken))!.Title);
+        Assert.Equal("PRINTER JAM", (await database.Load<Ticket>(created.Id, TestContext.Current.CancellationToken))!.Title);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class GeneratedModelOverrideTests : IDisposable
         var created = await Ticket.Create(new TicketModel { Title = "fax" }, TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => Ticket.Delete(created.Id, TestContext.Current.CancellationToken));
-        Assert.NotNull(await database.LoadAsync<Ticket>(created.Id, TestContext.Current.CancellationToken));
+        Assert.NotNull(await database.Load<Ticket>(created.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed class GeneratedModelOverrideTests : IDisposable
 
         await Ticket.Update(created.Id, new TicketModel { Title = created.Title, Urgent = true }, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True((await database.LoadAsync<Ticket>(created.Id, TestContext.Current.CancellationToken))!.Urgent);
+        Assert.True((await database.Load<Ticket>(created.Id, TestContext.Current.CancellationToken))!.Urgent);
     }
 
     [Fact]
@@ -80,6 +80,6 @@ public sealed class GeneratedModelOverrideTests : IDisposable
 
         await TicketModelExtensions.Delete(created.Id, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Null(await database.LoadAsync<Ticket>(created.Id, TestContext.Current.CancellationToken));
+        Assert.Null(await database.Load<Ticket>(created.Id, TestContext.Current.CancellationToken));
     }
 }

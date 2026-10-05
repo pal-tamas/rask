@@ -10,7 +10,7 @@ public class IndexedDbTests
         var js = new FakeJsRuntime();
         js.SetResponse("__raskIdb.isSupported", true);
 
-        Assert.True(await new IndexedDb(js).IsSupportedAsync());
+        Assert.True(await new IndexedDb(js).IsSupported());
     }
 
     [Fact]
@@ -18,7 +18,7 @@ public class IndexedDbTests
     {
         var js = new FakeJsRuntime();
 
-        var store = await new IndexedDb(js).OpenStoreAsync("cache");
+        var store = await new IndexedDb(js).OpenStore("cache");
 
         Assert.NotNull(store);
         Assert.Equal(["cache"], js.ArgsFor("__raskIdb.open"));
@@ -28,9 +28,9 @@ public class IndexedDbTests
     public async Task Setting_passes_the_store_key_and_value()
     {
         var js = new FakeJsRuntime();
-        var store = await new IndexedDb(js).OpenStoreAsync("cache");
+        var store = await new IndexedDb(js).OpenStore("cache");
 
-        await store.SetAsync("greeting", "hello");
+        await store.Set("greeting", "hello");
 
         Assert.Equal(["cache", "greeting", "hello"], js.ArgsFor("__raskIdb.set"));
     }
@@ -40,9 +40,9 @@ public class IndexedDbTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskIdb.get", "hello");
-        var store = await new IndexedDb(js).OpenStoreAsync("cache");
+        var store = await new IndexedDb(js).OpenStore("cache");
 
-        Assert.Equal("hello", await store.GetAsync("greeting"));
+        Assert.Equal("hello", await store.Get("greeting"));
         Assert.Equal(["cache", "greeting"], js.ArgsFor("__raskIdb.get"));
     }
 
@@ -54,9 +54,9 @@ public class IndexedDbTests
     public async Task Setting_bytes_sends_base64_to_the_binary_helper()
     {
         var js = new FakeJsRuntime();
-        var store = await new IndexedDb(js).OpenStoreAsync("files");
+        var store = await new IndexedDb(js).OpenStore("files");
 
-        await store.SetBytesAsync("db", Sample);
+        await store.SetBytes("db", Sample);
 
         // The binary helper, not `set` — that is what decodes to a Uint8Array so the bytes cost
         // their own size in quota rather than their base64 inflation.
@@ -68,9 +68,9 @@ public class IndexedDbTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskIdb.getBytes", Convert.ToBase64String(Sample));
-        var store = await new IndexedDb(js).OpenStoreAsync("files");
+        var store = await new IndexedDb(js).OpenStore("files");
 
-        var bytes = await store.GetBytesAsync("db");
+        var bytes = await store.GetBytes("db");
 
         Assert.NotNull(bytes);
         Assert.Equal(Sample, bytes);
@@ -82,24 +82,24 @@ public class IndexedDbTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskIdb.getBytes", (string?)null);
-        var store = await new IndexedDb(js).OpenStoreAsync("files");
+        var store = await new IndexedDb(js).OpenStore("files");
 
-        Assert.Null(await store.GetBytesAsync("missing"));
+        Assert.Null(await store.GetBytes("missing"));
     }
 
     [Fact]
     public async Task Setting_an_empty_byte_array_round_trips_as_empty_not_null()
     {
         var js = new FakeJsRuntime();
-        var store = await new IndexedDb(js).OpenStoreAsync("files");
+        var store = await new IndexedDb(js).OpenStore("files");
 
-        await store.SetBytesAsync("empty", []);
+        await store.SetBytes("empty", []);
 
         // "" is a valid base64 payload; it must not be confused with an absent key on the way back.
         Assert.Equal(["files", "empty", ""], js.ArgsFor("__raskIdb.setBytes"));
         js.SetResponse("__raskIdb.getBytes", "");
 
-        var bytes = await store.GetBytesAsync("empty");
+        var bytes = await store.GetBytes("empty");
 
         Assert.NotNull(bytes);
         Assert.Empty(bytes);
@@ -114,49 +114,49 @@ public class IndexedDbTests
         var backing = new StringOnlyStore();
         IKeyValueStore store = backing;
 
-        await store.SetBytesAsync("db", Sample);
+        await store.SetBytes("db", Sample);
 
         Assert.Equal(Convert.ToBase64String(Sample), backing.Values["db"]);
 
-        var bytes = await store.GetBytesAsync("db");
+        var bytes = await store.GetBytes("db");
 
         Assert.NotNull(bytes);
         Assert.Equal(Sample, bytes);
-        Assert.Null(await store.GetBytesAsync("missing"));
+        Assert.Null(await store.GetBytes("missing"));
     }
 
     [Fact]
     public async Task The_byte_methods_throw_for_null_args()
     {
-        var store = await new IndexedDb(new FakeJsRuntime()).OpenStoreAsync("files");
+        var store = await new IndexedDb(new FakeJsRuntime()).OpenStore("files");
 
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SetBytesAsync(null!, []));
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SetBytesAsync("k", null!));
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.GetBytesAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SetBytes(null!, []));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SetBytes("k", null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.GetBytes(null!));
     }
 
     private sealed class StringOnlyStore : IKeyValueStore
     {
         public Dictionary<string, string> Values { get; } = [];
 
-        public ValueTask SetAsync(string key, string value)
+        public ValueTask Set(string key, string value)
         {
             Values[key] = value;
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask<string?> GetAsync(string key) =>
+        public ValueTask<string?> Get(string key) =>
             ValueTask.FromResult(Values.TryGetValue(key, out var value) ? value : null);
 
-        public ValueTask DeleteAsync(string key)
+        public ValueTask Delete(string key)
         {
             Values.Remove(key);
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask<string[]> KeysAsync() => ValueTask.FromResult(Values.Keys.ToArray());
+        public ValueTask<string[]> Keys() => ValueTask.FromResult(Values.Keys.ToArray());
 
-        public ValueTask ClearAsync()
+        public ValueTask Clear()
         {
             Values.Clear();
             return ValueTask.CompletedTask;
@@ -168,9 +168,9 @@ public class IndexedDbTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskIdb.keys", new[] { "a", "b" });
-        var store = await new IndexedDb(js).OpenStoreAsync("cache");
+        var store = await new IndexedDb(js).OpenStore("cache");
 
-        Assert.Equal(new[] { "a", "b" }, await store.KeysAsync());
+        Assert.Equal(new[] { "a", "b" }, await store.Keys());
         Assert.Equal(["cache"], js.ArgsFor("__raskIdb.keys"));
     }
 
@@ -178,10 +178,10 @@ public class IndexedDbTests
     public async Task Delete_and_clear_call_their_helpers()
     {
         var js = new FakeJsRuntime();
-        var store = await new IndexedDb(js).OpenStoreAsync("cache");
+        var store = await new IndexedDb(js).OpenStore("cache");
 
-        await store.DeleteAsync("greeting");
-        await store.ClearAsync();
+        await store.Delete("greeting");
+        await store.Clear();
 
         Assert.Equal(["cache", "greeting"], js.ArgsFor("__raskIdb.delete"));
         Assert.Equal(["cache"], js.ArgsFor("__raskIdb.clear"));
@@ -191,11 +191,11 @@ public class IndexedDbTests
     public async Task Null_args_throw()
     {
         var db = new IndexedDb(new FakeJsRuntime());
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await db.OpenStoreAsync(null!));
-        var store = await db.OpenStoreAsync("cache");
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await db.OpenStore(null!));
+        var store = await db.OpenStore("cache");
 
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SetAsync(null!, "v"));
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SetAsync("k", null!));
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.GetAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.Set(null!, "v"));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.Set("k", null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.Get(null!));
     }
 }

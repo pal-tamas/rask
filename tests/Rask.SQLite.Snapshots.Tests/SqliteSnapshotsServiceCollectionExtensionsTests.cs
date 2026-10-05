@@ -59,9 +59,9 @@ public sealed class SqliteSnapshotsServiceCollectionExtensionsTests
 
     private sealed class FakeStore : ISqliteSnapshotStore
     {
-        public Task SaveAsync(string sourceFilePath, string snapshotName, CancellationToken cancellationToken) =>
+        public Task Save(string sourceFilePath, string snapshotName, CancellationToken cancellationToken) =>
             Task.CompletedTask;
 
-        public Task PruneAsync(int retain, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task Prune(int retain, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

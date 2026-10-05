@@ -28,7 +28,7 @@ public sealed partial class LitestreamRestorer
     /// Restores the database if <see cref="LitestreamOptions.RestoreOnStartup"/> is set and the local
     /// file does not already exist. Returns <see langword="true"/> if a restore was attempted.
     /// </summary>
-    public async Task<bool> RestoreAsync(CancellationToken cancellationToken = default)
+    public async Task<bool> Restore(CancellationToken cancellationToken = default)
     {
         if (!_options.RestoreOnStartup)
         {
@@ -54,7 +54,7 @@ public sealed partial class LitestreamRestorer
         }
 
         LogRestoring(_logger);
-        var exitCode = await _executor.RunAsync(LitestreamCommand.Restore(_options), cancellationToken).ConfigureAwait(false);
+        var exitCode = await _executor.Run(LitestreamCommand.Restore(_options), cancellationToken).ConfigureAwait(false);
         if (exitCode != 0)
         {
             throw new InvalidOperationException($"litestream restore failed with exit code {exitCode}.");

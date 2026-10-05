@@ -371,7 +371,7 @@ public sealed class SqlServerBulkInsertTests : IAsyncLifetime
 
         await using (var db = NewContext())
         {
-            var written = await db.BulkInsertAsync(orders, o =>
+            var written = await db.BulkInsert(orders, o =>
             {
                 o.SkipChangeTracking = true;
                 o.SingleTransaction = singleTransaction;

@@ -80,7 +80,7 @@ the event **or nothing**, sync or async:
 ```csharp
 Button.OnClick(Refresh)                        // () => … — the event is optional
 Button.OnClick(e => _shift = e.ShiftKey)       // e is MDN's PointerEvent
-Button.OnClick(async () => await SaveAsync())  // async — awaited before the re-render
+Button.OnClick(async () => await Save())  // async — awaited before the re-render
 Div.OnScroll(e => _top = e.Target!.ScrollTop)  // the target's state, as JavaScript reads it
 ```
 
@@ -157,7 +157,7 @@ away and a slow handler unwinds instead of pinning the session's render pipeline
 
 ```csharp
 Button.OnClick(async () =>
-    _rows = await _api.LoadAsync(CancellationToken))["Load"]
+    _rows = await _api.Load(CancellationToken))["Load"]
 ```
 
 It is cooperative: a handler that ignores the token (or runs unbounded synchronous work) can't be

@@ -22,6 +22,6 @@ public static class LitestreamStartupExtensions
             ?? throw new InvalidOperationException(
                 "Call AddRaskSqliteLitestream(...) before RestoreSqliteFromLitestream().");
 
-        return await restorer.RestoreAsync(cancellationToken).ConfigureAwait(false);
+        return await restorer.Restore(cancellationToken).ConfigureAwait(false);
     }
 }

@@ -23,7 +23,7 @@ public partial class QuiescentRenderMidRenderPaintTests : global::Rask.Core.Rask
         var child = new MidRenderChild(reading, resume);
         var host = new Host(child);
 
-        var run = Task.Run(() => QuiescentRender.RunAsync(
+        var run = Task.Run(() => QuiescentRender.Run(
             publishOnly => host.RenderAsLiveRoot(sp, publishOnly), TimeSpan.FromSeconds(10)));
 
         // The first wave is inside the child's Render(), having read the placeholder state.

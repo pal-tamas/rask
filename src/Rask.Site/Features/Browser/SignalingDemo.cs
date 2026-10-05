@@ -33,11 +33,11 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
                     Ui.Button.Primary
                         .Id("signal-join")
                         .Disabled(_joining)
-                        .OnClick(JoinAsync)["Join the room twice"],
+                        .OnClick(Join)["Join the room twice"],
                     Ui.Button.Secondary
                         .Id("signal-send")
                         .Disabled(_secondId is null)
-                        .OnClick(SendAsync)["Relay a payload"]
+                        .OnClick(Send)["Relay a payload"]
                 ],
                 _unavailable
                     ? Div.Class("text-sm text-ui-muted italic").Id("signal-status")[
@@ -58,7 +58,7 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
 
     private static string Short(string? id) => id is null ? "?" : id[..Math.Min(6, id.Length)];
 
-    private async Task JoinAsync()
+    private async Task Join()
     {
         if (_joining)
         {
@@ -72,7 +72,7 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
         // silently — the showcase's WASM host serves static files and has no relay to offer.
         try
         {
-            await ConnectAsync();
+            await Connect();
         }
         catch (Exception ex) when (ex is JSException or InvalidOperationException)
         {
@@ -81,9 +81,9 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
         }
     }
 
-    private async Task ConnectAsync()
+    private async Task Connect()
     {
-        _first = await signaling.JoinAsync(Room, new SignalingHandlers
+        _first = await signaling.Join(Room, new SignalingHandlers
         {
             OnJoined = (self, peers) =>
             {
@@ -109,7 +109,7 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
             }
         });
 
-        _second = await signaling.JoinAsync(Room, new SignalingHandlers
+        _second = await signaling.Join(Room, new SignalingHandlers
         {
             // The peers already present are the ones this connection would offer to — the rule that stops
             // both sides offering at once.
@@ -127,14 +127,14 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
         });
     }
 
-    private async Task SendAsync()
+    private async Task Send()
     {
         if (_second is null || _firstId is null)
         {
             return;
         }
 
-        await _second.SendAsync(_firstId, $"payload #{++_sent}");
+        await _second.Send(_firstId, $"payload #{++_sent}");
     }
 
     // The relay pushes into these, so state changes need StateHasChanged() — a subscription, not a binding.

@@ -12,7 +12,7 @@ public class WebRtcTests
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.isSupported", true);
 
-        Assert.True(await new WebRtc(js).IsSupportedAsync());
+        Assert.True(await new WebRtc(js).IsSupported());
     }
 
     [Fact]
@@ -21,7 +21,7 @@ public class WebRtcTests
         var js = new FakeJsRuntime();
         var config = new RtcConfiguration { IceServers = ["stun:stun.example.com:3478"] };
 
-        await new WebRtc(js).CreateAsync(config, new RtcHandlers());
+        await new WebRtc(js).Create(config, new RtcHandlers());
 
         var args = js.ArgsFor("__raskRtc.create")!;
         Assert.IsType<int>(args[0]);
@@ -34,8 +34,8 @@ public class WebRtcTests
         var js = new FakeJsRuntime();
         var rtc = new WebRtc(js);
 
-        await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers());
-        await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        await rtc.Create(new RtcConfiguration(), new RtcHandlers());
+        await rtc.Create(new RtcConfiguration(), new RtcHandlers());
 
         var ids = js.Calls.Where(c => c.Identifier == "__raskRtc.create").Select(c => c.Args![0]).ToArray();
         Assert.Equal(2, ids.Distinct().Count());
@@ -50,7 +50,7 @@ public class WebRtcTests
         var js = new FakeJsRuntime();
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
-            new WebRtc(js).CreateAsync(new RtcConfiguration { IceServers = [url] }, new RtcHandlers()).AsTask());
+            new WebRtc(js).Create(new RtcConfiguration { IceServers = [url] }, new RtcHandlers()).AsTask());
 
         Assert.Contains(url, ex.Message, StringComparison.Ordinal);
         Assert.Equal(0, js.CallCount("__raskRtc.create"));
@@ -65,7 +65,7 @@ public class WebRtcTests
     {
         var js = new FakeJsRuntime();
 
-        await new WebRtc(js).CreateAsync(new RtcConfiguration { IceServers = [url] }, new RtcHandlers());
+        await new WebRtc(js).Create(new RtcConfiguration { IceServers = [url] }, new RtcHandlers());
 
         Assert.Equal(1, js.CallCount("__raskRtc.create"));
     }
@@ -76,7 +76,7 @@ public class WebRtcTests
         var js = new FakeJsRuntime();
 
         await Assert.ThrowsAsync<ArgumentException>(() => new WebRtc(js)
-            .CreateAsync(new RtcConfiguration { IceTransportPolicy = "none" }, new RtcHandlers()).AsTask());
+            .Create(new RtcConfiguration { IceTransportPolicy = "none" }, new RtcHandlers()).AsTask());
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class WebRtcTests
         };
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            new WebRtc(js).CreateAsync(new RtcConfiguration(), handlers).AsTask());
+            new WebRtc(js).Create(new RtcConfiguration(), handlers).AsTask());
 
         // Ids start at 1 and this is the only connection this test creates, but the counter is static and
         // shared, so probe every id that could plausibly be ours rather than guessing one.
@@ -112,13 +112,13 @@ public class WebRtcTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createOffer", new RtcDescription("offer", "v=0"));
-        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var conn = await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers());
         var id = js.ArgsFor("__raskRtc.create")![0];
 
-        var offer = await conn.CreateOfferAsync();
-        await conn.SetLocalDescriptionAsync(offer);
-        await conn.SetRemoteDescriptionAsync(new RtcDescription("answer", "v=1"));
-        await conn.AddIceCandidateAsync(new RtcIceCandidate("candidate:1", "0", 0));
+        var offer = await conn.CreateOffer();
+        await conn.SetLocalDescription(offer);
+        await conn.SetRemoteDescription(new RtcDescription("answer", "v=1"));
+        await conn.AddIceCandidate(new RtcIceCandidate("candidate:1", "0", 0));
 
         Assert.Equal("v=0", offer.Sdp);
         Assert.Equal([id], js.ArgsFor("__raskRtc.createOffer"));
@@ -132,14 +132,14 @@ public class WebRtcTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 7);
-        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var conn = await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers());
 
-        var channel = await conn.CreateDataChannelAsync("chat");
+        var channel = await conn.CreateDataChannel("chat");
 
         Assert.Equal("chat", channel.Label);
         Assert.Equal("chat", js.ArgsFor("__raskRtc.createChannel")![1]);
 
-        await channel.SendAsync("hi");
+        await channel.Send("hi");
 
         Assert.Equal([7, "hi"], js.ArgsFor("__raskRtc.sendText"));
     }
@@ -149,10 +149,10 @@ public class WebRtcTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 3);
-        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
-        var channel = await conn.CreateDataChannelAsync("bin");
+        var conn = await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers());
+        var channel = await conn.CreateDataChannel("bin");
 
-        await channel.SendAsync([1, 2, 3]);
+        await channel.Send([1, 2, 3]);
 
         Assert.Equal([3, Convert.ToBase64String([1, 2, 3])], js.ArgsFor("__raskRtc.sendBytes"));
     }
@@ -161,9 +161,9 @@ public class WebRtcTests
     public async Task Creating_a_data_channel_rejects_an_empty_label()
     {
         var js = new FakeJsRuntime();
-        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var conn = await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers());
 
-        await Assert.ThrowsAsync<ArgumentException>(() => conn.CreateDataChannelAsync("").AsTask());
+        await Assert.ThrowsAsync<ArgumentException>(() => conn.CreateDataChannel("").AsTask());
     }
 
     [Fact]
@@ -171,11 +171,11 @@ public class WebRtcTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 11);
-        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var conn = await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers());
         var connectionId = (int)js.ArgsFor("__raskRtc.create")![0]!;
-        var channel = await conn.CreateDataChannelAsync("chat");
+        var channel = await conn.CreateDataChannel("chat");
         var batches = new List<IReadOnlyList<RtcMessage>>();
-        await channel.ListenAsync(b =>
+        await channel.Listen(b =>
         {
             batches.Add(b);
             return Task.CompletedTask;
@@ -204,21 +204,21 @@ public class WebRtcTests
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 5);
         var rtc = new WebRtc(js);
-        var first = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var first = await rtc.Create(new RtcConfiguration(), new RtcHandlers());
         var firstId = (int)js.Calls.Last(c => c.Identifier == "__raskRtc.create").Args![0]!;
-        var second = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var second = await rtc.Create(new RtcConfiguration(), new RtcHandlers());
         var firstReceived = 0;
         var secondReceived = 0;
-        var firstChannel = await first.CreateDataChannelAsync("chat");
-        var secondChannel = await second.CreateDataChannelAsync("chat");
-        await firstChannel.ListenAsync(b =>
+        var firstChannel = await first.CreateDataChannel("chat");
+        var secondChannel = await second.CreateDataChannel("chat");
+        await firstChannel.Listen(b =>
         {
             firstReceived += b.Count;
             return Task.CompletedTask;
         });
         // Registered second, and under the same JS-minted channel id. Keyed by channel alone, this
         // registration would replace the first one and the message below would go to the wrong session.
-        await secondChannel.ListenAsync(b =>
+        await secondChannel.Listen(b =>
         {
             secondReceived += b.Count;
             return Task.CompletedTask;
@@ -237,7 +237,7 @@ public class WebRtcTests
         var received = new List<RtcIceCandidate>();
         var rtc = new WebRtc(js);
 
-        await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers
+        await rtc.Create(new RtcConfiguration(), new RtcHandlers
         {
             OnIceCandidates = c =>
             {
@@ -265,7 +265,7 @@ public class WebRtcTests
         var js = new FakeJsRuntime();
         RtcConnectionState? seen = null;
 
-        await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers
+        await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers
         {
             OnConnectionStateChanged = s =>
             {
@@ -286,7 +286,7 @@ public class WebRtcTests
         var js = new FakeJsRuntime();
         IRtcDataChannel? adopted = null;
 
-        await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers
+        await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers
         {
             OnDataChannel = ch =>
             {
@@ -301,7 +301,7 @@ public class WebRtcTests
         Assert.NotNull(adopted);
         Assert.Equal("from-peer", adopted.Label);
 
-        await adopted.SendAsync("pong");
+        await adopted.Send("pong");
 
         Assert.Equal([42, "pong"], js.ArgsFor("__raskRtc.sendText"));
     }
@@ -312,7 +312,7 @@ public class WebRtcTests
         var js = new FakeJsRuntime();
         var handles = new List<IRtcDataChannel>();
 
-        await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers
+        await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers
         {
             OnDataChannel = ch =>
             {
@@ -334,7 +334,7 @@ public class WebRtcTests
     {
         var js = new FakeJsRuntime();
         var fired = false;
-        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers
+        var conn = await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers
         {
             OnConnectionStateChanged = _ =>
             {
@@ -359,11 +359,11 @@ public class WebRtcTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 21);
-        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var conn = await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers());
         var id = (int)js.ArgsFor("__raskRtc.create")![0]!;
-        var channel = await conn.CreateDataChannelAsync("chat");
+        var channel = await conn.CreateDataChannel("chat");
         var received = 0;
-        await channel.ListenAsync(b =>
+        await channel.Listen(b =>
         {
             received += b.Count;
             return Task.CompletedTask;
@@ -380,11 +380,11 @@ public class WebRtcTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 31);
-        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var conn = await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers());
         var id = (int)js.ArgsFor("__raskRtc.create")![0]!;
-        var channel = await conn.CreateDataChannelAsync("chat");
+        var channel = await conn.CreateDataChannel("chat");
         var received = 0;
-        await channel.ListenAsync(b =>
+        await channel.Listen(b =>
         {
             received += b.Count;
             return Task.CompletedTask;
@@ -405,11 +405,11 @@ public class WebRtcTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 41);
-        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var conn = await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers());
         var id = (int)js.ArgsFor("__raskRtc.create")![0]!;
-        var channel = await conn.CreateDataChannelAsync("chat");
+        var channel = await conn.CreateDataChannel("chat");
         var received = 0;
-        await channel.ListenAsync(b =>
+        await channel.Listen(b =>
         {
             received += b.Count;
             return Task.CompletedTask;
@@ -425,12 +425,12 @@ public class WebRtcTests
     public async Task Adding_and_removing_a_stream_pass_its_handle_for_the_browser_to_revive()
     {
         var js = new FakeJsRuntime();
-        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var conn = await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers());
         var id = js.ArgsFor("__raskRtc.create")![0];
         var stream = new FakeJsObject();
 
-        await conn.AddStreamAsync(stream);
-        await conn.RemoveStreamAsync(stream);
+        await conn.AddStream(stream);
+        await conn.RemoveStream(stream);
 
         // The handle itself: the browser revives it to the MediaStream, which __raskRtc keys its senders by.
         Assert.Equal([id, stream], js.ArgsFor("__raskRtc.addStream"));
@@ -445,7 +445,7 @@ public class WebRtcTests
         js.SetResponse("__raskMedia.take", stream);
         IJSObjectReference? received = null;
 
-        await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers
+        await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers
         {
             OnTrack = s =>
             {
@@ -468,7 +468,7 @@ public class WebRtcTests
         var js = new FakeJsRuntime();
         var stream = new FakeJsObject();
         js.SetResponse("__raskMedia.take", stream);
-        await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers());
         var id = (int)js.ArgsFor("__raskRtc.create")![0]!;
 
         await WebRtcInterop.Track(id, 5);
@@ -482,7 +482,7 @@ public class WebRtcTests
     {
         var js = new FakeJsRuntime();
         var fired = false;
-        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers
+        var conn = await new WebRtc(js).Create(new RtcConfiguration(), new RtcHandlers
         {
             OnTrack = _ =>
             {
@@ -516,18 +516,18 @@ public class WebRtcTests
         js.SetResponse("__raskRtc.createChannel", 51);
         var rtc = new WebRtc(js);
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => rtc.CreateAsync(null!, new RtcHandlers()).AsTask());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => rtc.Create(null!, new RtcHandlers()).AsTask());
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
-            rtc.CreateAsync(new RtcConfiguration(), null!).AsTask());
+            rtc.Create(new RtcConfiguration(), null!).AsTask());
 
-        var conn = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers());
-        await Assert.ThrowsAsync<ArgumentNullException>(() => conn.SetLocalDescriptionAsync(null!).AsTask());
-        await Assert.ThrowsAsync<ArgumentNullException>(() => conn.SetRemoteDescriptionAsync(null!).AsTask());
-        await Assert.ThrowsAsync<ArgumentNullException>(() => conn.AddIceCandidateAsync(null!).AsTask());
+        var conn = await rtc.Create(new RtcConfiguration(), new RtcHandlers());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => conn.SetLocalDescription(null!).AsTask());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => conn.SetRemoteDescription(null!).AsTask());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => conn.AddIceCandidate(null!).AsTask());
 
-        var channel = await conn.CreateDataChannelAsync("chat");
-        await Assert.ThrowsAsync<ArgumentNullException>(() => channel.ListenAsync(null!).AsTask());
-        await Assert.ThrowsAsync<ArgumentNullException>(() => channel.SendAsync((string)null!).AsTask());
-        await Assert.ThrowsAsync<ArgumentNullException>(() => channel.SendAsync((byte[])null!).AsTask());
+        var channel = await conn.CreateDataChannel("chat");
+        await Assert.ThrowsAsync<ArgumentNullException>(() => channel.Listen(null!).AsTask());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => channel.Send((string)null!).AsTask());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => channel.Send((byte[])null!).AsTask());
     }
 }

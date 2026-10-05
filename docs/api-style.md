@@ -77,7 +77,8 @@ await Product.Create(model);
 `await` already says the call is asynchronous; `ForgetAsync` says it twice. A Rask method drops the suffix.
 The exceptions are the ones the compiler or the BCL impose — an override of `BackgroundService.ExecuteAsync`,
 an implementation of `IDistributedCache.GetAsync` — and a synchronous twin, which gets a *different word*,
-never a suffix.
+never a suffix. Two twins keep the suffix because they mirror ADO.NET's own `Open`/`OpenAsync` on the
+connection they hand back: `ISqlite.CreateOpen`/`CreateOpenAsync` and `SqlitePragmas.Apply`/`ApplyAsync`.
 
 A cancellation token is still the **last** parameter and still defaulted, so a hosted service or a shutdown
 drain has somewhere to put its lifetime. But the call site that leaves it out is not uncancellable: it runs
@@ -202,7 +203,7 @@ What the rules above settled, so a new package has one place to look rather than
 | Mediator | `IDispatcher` | `Query`, `Send`, `Publish` |
 | Cached reads | `QueryClient` (static) / `IQueryClient` | `Query`, `Load`, `Warm`, `Send`, `Command`, `Invalidate` |
 | Durable log | `ILogs` | `Search`, `Categories`, `Count`, `Trim().OlderThan(30.Days)` |
-| SQLite connections | `ISqlite` | `InImmediateTransactionAsync` |
+| SQLite connections | `ISqlite` | `InImmediateTransaction` |
 | Time | `Clock` (static) | `Now`; `Clock.Fake(at:)` + `Advance` in tests |
 | Durations and sizes | `Units` (ambient) | `3.Seconds`, `1.Hour`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow` |
 | Web Push | `Push` (static) / `IWebPush` | `Subscribe`, `Send`, `Unsubscribe` |

@@ -1,7 +1,7 @@
 namespace Rask.Data;
 
 /// <summary>
-/// Options for <see cref="BulkInsertExtensions.BulkInsertAsync{TEntity}(Microsoft.EntityFrameworkCore.DbContext, System.Collections.Generic.IEnumerable{TEntity}, System.Action{BulkInsertOptions}?, System.Threading.CancellationToken)"/>.
+/// Options for <see cref="BulkInsertExtensions.BulkInsert{TEntity}(Microsoft.EntityFrameworkCore.DbContext, System.Collections.Generic.IEnumerable{TEntity}, System.Action{BulkInsertOptions}?, System.Threading.CancellationToken)"/>.
 /// </summary>
 public sealed class BulkInsertOptions
 {

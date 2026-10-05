@@ -17,11 +17,11 @@ namespace Rask.Core.Browser;
 public interface IIndexedDb
 {
     /// <summary>Whether the browser supports IndexedDB (<c>"indexedDB" in window</c>).</summary>
-    ValueTask<bool> IsSupportedAsync();
+    ValueTask<bool> IsSupported();
 
     /// <summary>
     ///     Opens (creating if needed) the key/value store <paramref name="name" /> and returns a handle for
     ///     reading and writing it. Cheap to call repeatedly — the underlying connection is cached.
     /// </summary>
-    ValueTask<IKeyValueStore> OpenStoreAsync(string name);
+    ValueTask<IKeyValueStore> OpenStore(string name);
 }

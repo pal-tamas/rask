@@ -8,7 +8,7 @@ using Rask.Core.Live;
 namespace Rask.Server.Tests.Live;
 
 /// <summary>
-///     <see cref="LiveSessionStore.RerenderAllAsync" /> is the dev-time repaint the debounced
+///     <see cref="LiveSessionStore.RerenderAll" /> is the dev-time repaint the debounced
 ///     asset-change subscriber drives.
 ///     <para>
 ///         It used to call only <c>View.StateHasChangedAsync()</c>, which dirties the root and
@@ -31,7 +31,7 @@ public class RerenderAllAsyncTests
 
         Assert.Equal(1, child.RenderCount); // cached: the child's Render didn't re-run
 
-        await store.RerenderAllAsync();
+        await store.RerenderAll();
 
         // These sessions have no socket attached, so the requested render is deferred until one is
         // — the observable effect here is the dirty marking. Render again: with the subtree marked,
@@ -39,7 +39,7 @@ public class RerenderAllAsyncTests
         session.RenderInitialRoot();
 
         Assert.True(child.RenderCount > 1,
-            "RerenderAllAsync must bust cached subtrees, or an edit inside one never repaints.");
+            "RerenderAll must bust cached subtrees, or an edit inside one never repaints.");
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class RerenderAllAsyncTests
     {
         var store = NewStore();
 
-        await store.RerenderAllAsync(); // must not throw
+        await store.RerenderAll(); // must not throw
 
         Assert.Equal(0, store.Count);
     }
@@ -67,7 +67,7 @@ public class RerenderAllAsyncTests
         healthySession.RenderInitialRoot();
         var before = healthy.RenderCount;
 
-        await store.RerenderAllAsync(); // must not throw
+        await store.RerenderAll(); // must not throw
 
         healthySession.RenderInitialRoot();
 
@@ -82,7 +82,7 @@ public class RerenderAllAsyncTests
         var store = NewStore();
         store.Create(_ => new Counter());
 
-        await store.BroadcastAsync(LivePayload.HotReloadAppliedFrame); // must not throw
+        await store.Broadcast(LivePayload.HotReloadAppliedFrame); // must not throw
 
         Assert.Equal(1, store.Count);
     }

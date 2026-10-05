@@ -16,5 +16,5 @@ public interface ISessionRevalidator
     /// <summary>The principal as it stands now, or <see langword="null" /> when its session has ended.</summary>
     /// <param name="principal">The principal the session holds.</param>
     /// <param name="cancellationToken">Cancels the check.</param>
-    ValueTask<ClaimsPrincipal?> RevalidateAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
+    ValueTask<ClaimsPrincipal?> Revalidate(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
 }

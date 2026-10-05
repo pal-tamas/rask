@@ -50,7 +50,7 @@ public class PrerenderDocumentTests
 
         try
         {
-            await host.RunAsync<PlainPage>();
+            await host.Run<PlainPage>();
             return File.ReadAllText(Path.Combine(dir, "plain", "index.html"));
         }
         finally

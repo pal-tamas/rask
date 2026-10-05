@@ -193,7 +193,7 @@ public sealed class TransitionsBox : ComponentBase
         builder.CloseElement();
     }
 
-    private async Task ProbeAsync() => _supported = await ViewTransitions.IsSupportedAsync();
+    private async Task ProbeAsync() => _supported = await ViewTransitions.IsSupported();
 }
 
 /// <summary>Reads a browser API from OnAfterRenderAsync rather than from a click.</summary>
@@ -213,7 +213,7 @@ public sealed class AfterRenderBox : ComponentBase, IHandleAfterRender
             return;
         }
         _read = true;
-        _supported = await ViewTransitions.IsSupportedAsync();
+        _supported = await ViewTransitions.IsSupported();
         StateHasChanged();
     }
 

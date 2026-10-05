@@ -263,13 +263,13 @@ Rask has to ask for the mode. What `Rask.SQLite` adds is the other half — the
 
 ### Raw ADO.NET — genuinely non-blocking
 
-`InImmediateTransactionAsync` runs your work inside a `BEGIN IMMEDIATE` transaction and
+`InImmediateTransaction` runs your work inside a `BEGIN IMMEDIATE` transaction and
 acquires the write lock through the raw `sqlite3` handle with the native busy handler off — so the
 only waiting is an `await Task.Delay` at the fair interval, which **frees the thread** rather than
 blocking it inside native code. It commits when your callback returns and rolls back if it throws:
 
 ```csharp
-await factory.InImmediateTransactionAsync(async (connection, ct) =>
+await factory.InImmediateTransaction(async (connection, ct) =>
 {
     await using var cmd = connection.CreateCommand();
     cmd.CommandText = "INSERT INTO WriteLogs (Note) VALUES ($note);";
@@ -303,7 +303,7 @@ For a transaction you drive yourself, `connection.BeginImmediate()` gives you a 
 that took the write lock up front. It spells out at the call site what `BeginTransaction()` already does
 by default — the value is that it says so, and cannot quietly become deferred if someone passes an
 isolation level later. Its wait blocks the thread inside Microsoft.Data.Sqlite, so use
-`InImmediateTransactionAsync` when you want the non-blocking retry.
+`InImmediateTransaction` when you want the non-blocking retry.
 
 Because the lock is taken through the pooled native handle, the path is defensive about connection
 reuse: it clears a leaked transaction before **every** `BEGIN IMMEDIATE` attempt, and never hands a
@@ -382,11 +382,11 @@ One `INSERT` per operation, all four write paths against one WAL database.
 
 | VUs | path | ops/s | p50 | p99 | **max** |
 |----:|------|------:|----:|----:|--------:|
-| 1 | `InImmediateTransactionAsync` | 74,145 | 0.01 ms | 0.02 ms | 30 ms |
+| 1 | `InImmediateTransaction` | 74,145 | 0.01 ms | 0.02 ms | 30 ms |
 | 1 | `BEGIN IMMEDIATE` + `busy_timeout` | 93,800 | 0.01 ms | 0.02 ms | 32 ms |
-| 32 | `InImmediateTransactionAsync` | 68,958 | 0.01 ms | 16 ms | **174 ms** |
+| 32 | `InImmediateTransaction` | 68,958 | 0.01 ms | 16 ms | **174 ms** |
 | 32 | `BEGIN IMMEDIATE` + `busy_timeout` | 18,186 | 0.03 ms | 0.05 ms | **15,937 ms** |
-| 128 | `InImmediateTransactionAsync` | 43,441 | 0.01 ms | 68 ms | **408 ms** |
+| 128 | `InImmediateTransaction` | 43,441 | 0.01 ms | 68 ms | **408 ms** |
 | 128 | `BEGIN IMMEDIATE` + `busy_timeout` | 16,772 | 0.03 ms | 0.68 ms | **15,837 ms** |
 
 Two honest results here, and neither is "the new thing wins everywhere":
@@ -746,11 +746,11 @@ It snapshots the database behind `Rask:ConnectionStrings:App` unless `DatabasePa
 callback — `AddRaskSqliteSnapshots(o => …)` — runs after the section and wins.
 
 Each snapshot is a complete standalone database (`app-20260714-030000000.db`). Need one on demand — say,
-right before a risky migration? Inject `ISqliteSnapshotter` and `await snapshotter.SnapshotAsync(ct)`.
+right before a risky migration? Inject `ISqliteSnapshotter` and `await snapshotter.Snapshot(ct)`.
 To send snapshots to object storage instead of a local directory, register your own
 `ISqliteSnapshotStore` before `AddRaskSqliteSnapshots` (then `DestinationDirectory` isn't required).
 
-To show what you've actually captured, `await store.ListAsync(ct)` returns each snapshot's name, size and
+To show what you've actually captured, `await store.List(ct)` returns each snapshot's name, size and
 timestamp, newest first — scoped to the same search pattern retention prunes by, so what you can see is what
 the store manages. A custom store inherits a default that returns an empty list, so override it if yours can
 enumerate: callers can't tell "no snapshots yet" from "this store doesn't list".

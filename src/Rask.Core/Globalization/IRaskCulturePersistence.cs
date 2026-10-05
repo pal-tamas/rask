@@ -7,5 +7,5 @@ namespace Rask.Core.Globalization;
 public interface IRaskCulturePersistence
 {
     /// <summary>Stores the chosen culture.</summary>
-    Task SaveAsync(string culture, string uiCulture, CancellationToken cancellationToken = default);
+    Task Save(string culture, string uiCulture, CancellationToken cancellationToken = default);
 }

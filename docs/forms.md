@@ -277,7 +277,7 @@ Children are normally a fixed list. Give the form a **function** instead and it 
 render with whether a submit is in flight, so the markup can say so without the page tracking it:
 
 ```csharp
-Form.Model(_model).OnSubmit(SaveAsync)[submitting => [
+Form.Model(_model).OnSubmit(Save)[submitting => [
     Input.Bind(() => _model.Username).Disabled(submitting),
     Button.Type(ButtonType.Submit).Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
 ]]
@@ -328,13 +328,13 @@ the entity's own rules, with nothing declared here:
 ```csharp
 private readonly ProductModel _product = new();
 
-Form.Model(_product).OnSubmit(CreateAsync)[
+Form.Model(_product).OnSubmit(Create)[
     Input.Bind(() => _product.Name),
     Input.Bind(() => _product.Price),
     Button.Type(ButtonType.Submit)["Create"]
 ]
 
-private async Task CreateAsync(ProductModel product)
+private async Task Create(ProductModel product)
 {
     await using var db = await contexts.CreateDbContextAsync(CancellationToken);
     db.Add(Product.Create(product.Name, product.Price));

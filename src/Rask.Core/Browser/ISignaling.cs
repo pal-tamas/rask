@@ -20,7 +20,7 @@ namespace Rask.Core.Browser;
 public interface ISignaling
 {
     /// <summary>Whether the browser can open a WebSocket at all.</summary>
-    ValueTask<bool> IsSupportedAsync();
+    ValueTask<bool> IsSupported();
 
     /// <summary>
     ///     Connects to the relay and joins <paramref name="room" />. Dispose the result to leave — the other
@@ -29,6 +29,6 @@ public interface ISignaling
     /// <param name="room">The room id. Opaque to the framework; the server decides who may join one.</param>
     /// <param name="handlers">The callbacks the relay pushes into.</param>
     /// <param name="path">The relay's path. Must match the server's <c>RaskSignalingOptions.Path</c>.</param>
-    ValueTask<ISignalingConnection> JoinAsync(
+    ValueTask<ISignalingConnection> Join(
         string room, SignalingHandlers handlers, string path = "/rask/signaling");
 }

@@ -18,7 +18,7 @@ browser before they cross.
 
 | Service | Wraps | What it does | Shape |
 | --- | --- | --- | --- |
-| `IIndexedDb` | IndexedDB | `OpenStoreAsync(name)` → large async key/value store | one-shot |
+| `IIndexedDb` | IndexedDB | `OpenStore(name)` → large async key/value store | one-shot |
 | `IWebAuthn` | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot |
 | `ISignaling` | WebSocket | Join a room on Rask's signaling relay and pass payloads to one peer | **subscription** |
 | `IWebRtc` | WebRTC | Peer-to-peer data channels between two browsers (you supply the signaling) | **subscription** |
@@ -106,10 +106,10 @@ covered separately in the [Mobile & PWA guide](pwa.md).
 Most wrappers are one-shot request/response. Several are **subscriptions**, where the browser *pushes*
 each change back into C#:
 
-- **`ISignaling`** — `JoinAsync(room, handlers, path?)` → connection (`SendAsync`, `IAsyncDisposable`);
+- **`ISignaling`** — `Join(room, handlers, path?)` → connection (`Send`, `IAsyncDisposable`);
   pairs with `AddRaskSignaling()` / `MapRaskSignaling()` on the server
-- **`IWebRtc`** — `CreateAsync(config, handlers)` → connection (`IAsyncDisposable`); its channels'
-  `ListenAsync(onMessages)` delivers **batches**, not single messages — on Server each push is a WebSocket
+- **`IWebRtc`** — `Create(config, handlers)` → connection (`IAsyncDisposable`); its channels'
+  `Listen(onMessages)` delivers **batches**, not single messages — on Server each push is a WebSocket
   frame, so the framework coalesces them
 
 They share one mechanism: the JS event invokes a static `[JSInvokable]` via

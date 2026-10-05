@@ -84,6 +84,6 @@ processors for SQLite's single write lock.
 The backup card is opt-in, because reading Litestream and snapshot state would otherwise force a native
 SQLite provider bundle onto every consumer and tie a provider-agnostic dashboard to SQLite. Implement
 `IDashboardBackupProbe` (about ten lines over `LitestreamStatus.Current` and
-`ISqliteSnapshotStore.ListAsync`) and register it to light the card up.
+`ISqliteSnapshotStore.List`) and register it to light the card up.
 
 Full documentation: <https://github.com/pal-tamas/rask/blob/main/docs/dashboard.md>

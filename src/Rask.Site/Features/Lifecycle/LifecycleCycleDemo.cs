@@ -62,12 +62,12 @@ public sealed partial class LifecycleCycleDemo : Component
     {
         _cycleLog.Add(line);
         StateHasChanged();
-        _ = DeferredRerenderAsync();
+        _ = DeferredRerender();
     }
 
     // An unmount-time StateHasChanged lands inside the dispatcher's in-handler guard and gets dropped
     // on WASM. Yielding back to the event loop lets the lock release before we request the follow-up.
-    private async Task DeferredRerenderAsync()
+    private async Task DeferredRerender()
     {
         await Task.Delay(50);
         StateHasChanged();

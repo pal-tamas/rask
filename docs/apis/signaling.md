@@ -48,7 +48,7 @@ when every user of the app may talk to every other.
 ## Client: joining a room
 
 ```csharp
-_signal = await signaling.JoinAsync("room-42", new SignalingHandlers
+_signal = await signaling.Join("room-42", new SignalingHandlers
 {
     // The peers already here are the ones WE offer to. A peer arriving later offers to us instead.
     OnJoined = async (self, peers) => { foreach (var p in peers) await OfferToAsync(p); },
@@ -56,7 +56,7 @@ _signal = await signaling.JoinAsync("room-42", new SignalingHandlers
     OnPeerLeft = id => DropAsync(id),
 });
 
-await _signal.SendAsync(peerId, JsonSerializer.Serialize(offer));
+await _signal.Send(peerId, JsonSerializer.Serialize(offer));
 ```
 
 That asymmetry in `OnJoined` matters: if both sides offer at once you get an SDP *glare* collision that

@@ -504,7 +504,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
         // The waves themselves are host-agnostic and live in Core, so a build-time prerender of an app
         // with no server at all runs the same loop. What is server-specific is the two arguments below.
-        var result = await QuiescentRender.RunAsync(
+        var result = await QuiescentRender.Run(
             RenderRootWave,
             budget,
             // Work blocked on JavaScript cannot finish here, so waiting for it only burns the
@@ -640,13 +640,13 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         // sibling-of-CodeSample case: CodeSample.OnRendered awaits IJSRuntime during
         // the GET render walk, queuing the invoke), use a publish-only render so already-
         // rendered components don't re-fire OnRendered. On WASM the same scenario routes
-        // through OnRendered's RequestPublishRenderAsync after the JS call completes
+        // through OnRendered's RequestPublishRender after the JS call completes
         // — no extra OnRendered on siblings — so this keeps the initial-mount hook
         // sequence aligned across hosts. A genuine dropped StateHasChanged still triggers
         // a normal render (fires OnRendered) since that's the contract for state mutations.
         var publishOnly = !_renderRequestedWhileDetached && jsPending;
         _renderRequestedWhileDetached = false;
-        return publishOnly ? RequestPublishRenderAsync() : RequestRenderAsync();
+        return publishOnly ? RequestPublishRender() : RequestRender();
     }
 
     /// <summary>Whether <paramref name="transport" /> is the session's current connection.</summary>

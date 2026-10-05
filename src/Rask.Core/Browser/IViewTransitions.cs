@@ -38,7 +38,7 @@ public interface IViewTransitions
     ///     Whether this browser implements the API at all. <see langword="false" /> anywhere
     ///     <c>document.startViewTransition</c> is missing — enabling is then simply inert, never an error.
     /// </summary>
-    ValueTask<bool> IsSupportedAsync();
+    ValueTask<bool> IsSupported();
 
     /// <summary>
     ///     Turns transitions on or off for this session's subsequent renders. Returns the value actually
@@ -47,12 +47,12 @@ public interface IViewTransitions
     /// <param name="enabled">
     ///     <see langword="true" /> to wrap subsequent DOM commits in a view transition.
     /// </param>
-    ValueTask<bool> SetEnabledAsync(bool enabled);
+    ValueTask<bool> SetEnabled(bool enabled);
 
     /// <summary>
     ///     Whether a commit right now would actually animate — enabled, supported, and not overridden by
     ///     the reader's reduced-motion preference. Useful for a settings UI that wants to say why the
     ///     toggle it offers is having no effect.
     /// </summary>
-    ValueTask<bool> IsActiveAsync();
+    ValueTask<bool> IsActive();
 }

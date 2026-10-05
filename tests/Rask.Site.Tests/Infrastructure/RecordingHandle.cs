@@ -7,13 +7,13 @@ internal sealed class RecordingHandle : IRenderHandle
     public int RequestPublishRenderCount;
     public int RequestRenderCount;
 
-    public Task RequestRenderAsync()
+    public Task RequestRender()
     {
         Interlocked.Increment(ref RequestRenderCount);
         return Task.CompletedTask;
     }
 
-    public Task RequestPublishRenderAsync()
+    public Task RequestPublishRender()
     {
         Interlocked.Increment(ref RequestPublishRenderCount);
         return Task.CompletedTask;

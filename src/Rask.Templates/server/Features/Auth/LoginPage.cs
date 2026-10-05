@@ -32,7 +32,7 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
     // on its way out, with nothing to ask.
     protected override async Task OnFirstRender()
     {
-        _passkeysSupported = await webAuthn.IsSupportedAsync();
+        _passkeysSupported = await webAuthn.IsSupported();
         StateHasChanged();
     }
 
@@ -40,7 +40,7 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
         [
             H1.Class("text-2xl font-bold")["Sign in"],
             _error is AuthError.None ? null : Error("login-error", AuthMessages.For(_error)),
-            Form.Model(_model).OnSubmit(SubmitAsync)[
+            Form.Model(_model).OnSubmit(Submit)[
                 Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Class("input w-full")),
                 Field("password", "Password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
                 Label.Class("label cursor-pointer gap-2")[
@@ -54,7 +54,7 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
             _passkeysSupported
                 ? Div[
                     Div.Class("divider")["or"],
-                    Button.Type(ButtonType.Button).Id("login-passkey").Class("btn btn-outline btn-block").OnClick(PasskeyAsync)[
+                    Button.Type(ButtonType.Button).Id("login-passkey").Class("btn btn-outline btn-block").OnClick(Passkey)[
                         "Sign in with a passkey"]
                 ]
                 : null,
@@ -66,7 +66,7 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
                 NavLink.Href(Routes.ForgotPasswordPage()).Class("link link-primary")["Forgotten your password?"]]
         ];
 
-    private async Task SubmitAsync(SignInModel model)
+    private async Task Submit(SignInModel model)
     {
         var result = await auth.SignIn(model.Email, model.Password, model.Remember, ReturnUrl);
         _error = result.Error;
@@ -74,7 +74,7 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
 
     // No email and no password: the authenticator offers whichever accounts it holds for this site, and the one
     // the visitor picks is the one that signs in.
-    private async Task PasskeyAsync()
+    private async Task Passkey()
     {
         var result = await auth.SignInWithPasskey(_model.Remember, ReturnUrl);
         _error = result.Error;

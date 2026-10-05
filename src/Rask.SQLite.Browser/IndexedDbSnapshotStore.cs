@@ -9,7 +9,7 @@ namespace Rask.SQLite.Browser;
 ///     the directory the default store writes to.
 /// </summary>
 /// <remarks>
-///     Stored through <see cref="IKeyValueStore.SetBytesAsync" />, so a database costs its own size in
+///     Stored through <see cref="IKeyValueStore.SetBytes" />, so a database costs its own size in
 ///     quota rather than a third more. Snapshot names are <c>{stem}-{yyyyMMdd-HHmmssfff}.db</c>, which
 ///     sorts lexicographically in timestamp order — that is what lets retention and "newest first" work
 ///     without an index, over a key/value store that offers nothing but a list of keys.
@@ -19,14 +19,14 @@ internal sealed class IndexedDbSnapshotStore(IIndexedDb indexedDb, string storeN
     private IKeyValueStore? _store;
 
     /// <inheritdoc />
-    public async Task SaveAsync(string sourceFilePath, string snapshotName, CancellationToken cancellationToken)
+    public async Task Save(string sourceFilePath, string snapshotName, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceFilePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(snapshotName);
 
         var bytes = await File.ReadAllBytesAsync(sourceFilePath, cancellationToken).ConfigureAwait(false);
         var store = await OpenAsync().ConfigureAwait(false);
-        await store.SetBytesAsync(snapshotName, bytes).ConfigureAwait(false);
+        await store.SetBytes(snapshotName, bytes).ConfigureAwait(false);
 
         // The snapshotter hands us a temp file it expects to be consumed. In a browser that file is in the
         // runtime's in-memory filesystem, so leaving it behind spends the tab's heap, not disk.
@@ -34,23 +34,23 @@ internal sealed class IndexedDbSnapshotStore(IIndexedDb indexedDb, string storeN
     }
 
     /// <inheritdoc />
-    public async Task PruneAsync(int retain, CancellationToken cancellationToken)
+    public async Task Prune(int retain, CancellationToken cancellationToken)
     {
         var store = await OpenAsync().ConfigureAwait(false);
-        var keys = await store.KeysAsync().ConfigureAwait(false);
+        var keys = await store.Keys().ConfigureAwait(false);
 
         foreach (var stale in Ordered(keys).Skip(Math.Max(retain, 1)))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await store.DeleteAsync(stale).ConfigureAwait(false);
+            await store.Delete(stale).ConfigureAwait(false);
         }
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<SqliteSnapshotInfo>> ListAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SqliteSnapshotInfo>> List(CancellationToken cancellationToken)
     {
         var store = await OpenAsync().ConfigureAwait(false);
-        var keys = await store.KeysAsync().ConfigureAwait(false);
+        var keys = await store.Keys().ConfigureAwait(false);
         var infos = new List<SqliteSnapshotInfo>();
 
         foreach (var key in Ordered(keys))
@@ -59,7 +59,7 @@ internal sealed class IndexedDbSnapshotStore(IIndexedDb indexedDb, string storeN
 
             // The size costs a read of the value: IndexedDB reports no metadata of its own, and a
             // listing that lied about size would be worse than one that is a little slower.
-            var bytes = await store.GetBytesAsync(key).ConfigureAwait(false);
+            var bytes = await store.GetBytes(key).ConfigureAwait(false);
             infos.Add(new SqliteSnapshotInfo(key, bytes?.LongLength ?? 0, ParseTimestamp(key)));
         }
 
@@ -70,10 +70,10 @@ internal sealed class IndexedDbSnapshotStore(IIndexedDb indexedDb, string storeN
     public async Task<byte[]?> ReadNewestAsync()
     {
         var store = await OpenAsync().ConfigureAwait(false);
-        var keys = await store.KeysAsync().ConfigureAwait(false);
+        var keys = await store.Keys().ConfigureAwait(false);
         var newest = Ordered(keys).FirstOrDefault();
 
-        return newest is null ? null : await store.GetBytesAsync(newest).ConfigureAwait(false);
+        return newest is null ? null : await store.GetBytes(newest).ConfigureAwait(false);
     }
 
     // Newest first. Ordinal, because the timestamp format is fixed-width and zero-padded, so byte order
@@ -105,7 +105,7 @@ internal sealed class IndexedDbSnapshotStore(IIndexedDb indexedDb, string storeN
         return default;
     }
 
-    // IIndexedDb caches the underlying connection, but OpenStoreAsync still crosses the JS boundary, so
+    // IIndexedDb caches the underlying connection, but OpenStore still crosses the JS boundary, so
     // hold the handle rather than paying for it on every save in a snapshot loop.
-    private async Task<IKeyValueStore> OpenAsync() => _store ??= await indexedDb.OpenStoreAsync(storeName).ConfigureAwait(false);
+    private async Task<IKeyValueStore> OpenAsync() => _store ??= await indexedDb.OpenStore(storeName).ConfigureAwait(false);
 }

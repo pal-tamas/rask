@@ -171,14 +171,14 @@ internal sealed class RaskDrainService : IHostedService, IDisposable
     ///     comes back where it was instead of reading the replacement process's <c>session/unknown</c>
     ///     reply as an idle timeout.
     ///     <para>
-    ///         Goes through <c>LiveSessionStore.BroadcastAsync</c>, which fans out concurrently with a
+    ///         Goes through <c>LiveSessionStore.Broadcast</c>, which fans out concurrently with a
     ///         bounded degree and skips a session whose send faults. Sends to <em>different</em> sessions
     ///         are safe in parallel — each owns its own lock and socket — but the bound matters most
     ///         precisely here: a host shutting down under load has a busy thread pool, and an unbounded
     ///         fan-out across thousands of sessions is the wrong thing to add to it.
     ///     </para>
     /// </summary>
-    private Task AnnounceAsync() => _store.BroadcastAsync(LivePayload.ServerShutdownFrame);
+    private Task AnnounceAsync() => _store.Broadcast(LivePayload.ServerShutdownFrame);
 
     /// <summary>
     ///     Waits for in-flight handler dispatches to finish. This is the part that only became meaningful

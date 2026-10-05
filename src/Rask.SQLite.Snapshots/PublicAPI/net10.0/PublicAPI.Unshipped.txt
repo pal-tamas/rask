@@ -1,15 +1,15 @@
 #nullable enable
 Rask.SQLite.Snapshots.DirectorySnapshotStore
 Rask.SQLite.Snapshots.DirectorySnapshotStore.DirectorySnapshotStore(string! directory, string! searchPattern = "*.db") -> void
-Rask.SQLite.Snapshots.DirectorySnapshotStore.ListAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.SQLite.Snapshots.SqliteSnapshotInfo!>!>!
-Rask.SQLite.Snapshots.DirectorySnapshotStore.PruneAsync(int retain, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-Rask.SQLite.Snapshots.DirectorySnapshotStore.SaveAsync(string! sourceFilePath, string! snapshotName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.SQLite.Snapshots.DirectorySnapshotStore.List(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.SQLite.Snapshots.SqliteSnapshotInfo!>!>!
+Rask.SQLite.Snapshots.DirectorySnapshotStore.Prune(int retain, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.SQLite.Snapshots.DirectorySnapshotStore.Save(string! sourceFilePath, string! snapshotName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Rask.SQLite.Snapshots.ISqliteSnapshotStore
-Rask.SQLite.Snapshots.ISqliteSnapshotStore.ListAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.SQLite.Snapshots.SqliteSnapshotInfo!>!>!
-Rask.SQLite.Snapshots.ISqliteSnapshotStore.PruneAsync(int retain, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-Rask.SQLite.Snapshots.ISqliteSnapshotStore.SaveAsync(string! sourceFilePath, string! snapshotName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.SQLite.Snapshots.ISqliteSnapshotStore.List(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.SQLite.Snapshots.SqliteSnapshotInfo!>!>!
+Rask.SQLite.Snapshots.ISqliteSnapshotStore.Prune(int retain, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.SQLite.Snapshots.ISqliteSnapshotStore.Save(string! sourceFilePath, string! snapshotName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Rask.SQLite.Snapshots.ISqliteSnapshotter
-Rask.SQLite.Snapshots.ISqliteSnapshotter.SnapshotAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Rask.SQLite.Snapshots.ISqliteSnapshotter.Snapshot(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
 Rask.SQLite.Snapshots.SqliteSnapshotInfo
 Rask.SQLite.Snapshots.SqliteSnapshotInfo.<Clone>$() -> Rask.SQLite.Snapshots.SqliteSnapshotInfo!
 Rask.SQLite.Snapshots.SqliteSnapshotInfo.CreatedAt.get -> System.DateTime

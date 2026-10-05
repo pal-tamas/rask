@@ -155,7 +155,7 @@ public sealed class ModelBehaviourTests : IDisposable
         Assert.True(await order.TryCancelAsync(database.Context, Now, TestContext.Current.CancellationToken));
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var reloaded = await database.LoadAsync<Order>(order.Id, TestContext.Current.CancellationToken);
+        var reloaded = await database.Load<Order>(order.Id, TestContext.Current.CancellationToken);
         Assert.Equal(OrderStatus.Cancelled, reloaded!.Status);
         Assert.Equal(Now, reloaded.CancelledAt);
     }
@@ -171,7 +171,7 @@ public sealed class ModelBehaviourTests : IDisposable
         Assert.False(await order.TryCancelAsync(database.Context, Now, TestContext.Current.CancellationToken));
         Assert.Equal(0, await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
 
-        var reloaded = await database.LoadAsync<Order>(order.Id, TestContext.Current.CancellationToken);
+        var reloaded = await database.Load<Order>(order.Id, TestContext.Current.CancellationToken);
         Assert.Equal(OrderStatus.Open, reloaded!.Status);
         Assert.Null(reloaded.CancelledAt);
     }
@@ -205,7 +205,7 @@ public sealed class ModelBehaviourTests : IDisposable
         var order = Order.Place("B-3");
         await SeedAsync(database, order);
 
-        var reloaded = await database.LoadAsync<Order>(order.Id, TestContext.Current.CancellationToken);
+        var reloaded = await database.Load<Order>(order.Id, TestContext.Current.CancellationToken);
 
         Assert.Equal(Now, reloaded!.CreatedAt);
     }
@@ -227,7 +227,7 @@ public sealed class ModelBehaviourTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync(TimeProvider? clock = null) =>
-        TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"), clock);
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), clock);
 
     private static async Task SeedAsync(TestDatabase database, params object[] entities)
     {

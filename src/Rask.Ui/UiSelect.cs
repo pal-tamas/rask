@@ -636,7 +636,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
         if (acc is not null)
         {
             acc.Setter(value);
-            await BindingHelpers.NotifyAndValidateFieldAsync(ctx, acc.Field).ConfigureAwait(false);
+            await BindingHelpers.NotifyAndValidateField(ctx, acc.Field).ConfigureAwait(false);
             await self.InvokeAfterBind(value).ConfigureAwait(false);
         }
         else

@@ -76,7 +76,7 @@ public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
 
         public RecordingComponent() => RenderHandle = this;
 
-        public Task RequestRenderAsync()
+        public Task RequestRender()
         {
             Interlocked.Increment(ref RenderRequests);
             return Task.CompletedTask;

@@ -9,7 +9,7 @@ namespace Rask.Benchmarks;
 ///     A connected session's send path, from a state change to bytes on the socket.
 /// </summary>
 /// <remarks>
-///     Written against members that predate the transport seam — <c>AttachSocket</c>, <c>RequestRenderAsync</c>,
+///     Written against members that predate the transport seam — <c>AttachSocket</c>, <c>RequestRender</c>,
 ///     <c>SendOutOfBandAsync</c> — so the same file measures the tree before it and after it. Every frame a live
 ///     page sends now goes through <c>ILiveTransport</c> rather than straight to the <c>WebSocket</c>, and this is
 ///     where that indirection would show up if it cost anything.

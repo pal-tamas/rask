@@ -89,7 +89,7 @@ internal sealed class ReadUnderWriteScenario : LoadScenario
         {
             try
             {
-                await _factory!.InImmediateTransactionAsync(async (connection, ct) =>
+                await _factory!.InImmediateTransaction(async (connection, ct) =>
                 {
                     await using var command = connection.CreateCommand();
                     command.CommandText = "INSERT INTO writes(worker, payload) VALUES ($worker, 'w');";

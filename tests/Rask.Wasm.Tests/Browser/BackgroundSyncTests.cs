@@ -14,8 +14,8 @@ public class BackgroundSyncTests
 
         // One-shot ships years ahead of periodic in every engine that has either, so a caller has to be
         // able to ask about them independently rather than getting one "background sync" answer.
-        Assert.True(await sync.IsSupportedAsync());
-        Assert.False(await sync.IsPeriodicSupportedAsync());
+        Assert.True(await sync.IsSupported());
+        Assert.False(await sync.IsPeriodicSupported());
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public class BackgroundSyncTests
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSync.request", true);
 
-        Assert.True(await new BackgroundSync(js).RequestSyncAsync("flush-drafts"));
+        Assert.True(await new BackgroundSync(js).RequestSync("flush-drafts"));
         Assert.Equal(["flush-drafts"], js.ArgsFor("__raskSync.request"));
     }
 
@@ -33,7 +33,7 @@ public class BackgroundSyncTests
     {
         // No canned response → the helper answers false, which is how "no SW registered", "not supported"
         // and "the browser refused" all surface. None of them is an exception at the call site.
-        Assert.False(await new BackgroundSync(new FakeJsRuntime()).RequestSyncAsync("flush-drafts"));
+        Assert.False(await new BackgroundSync(new FakeJsRuntime()).RequestSync("flush-drafts"));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class BackgroundSyncTests
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSync.requestPeriodic", true);
 
-        Assert.True(await new BackgroundSync(js).RequestPeriodicSyncAsync("refresh", TimeSpan.FromHours(12)));
+        Assert.True(await new BackgroundSync(js).RequestPeriodicSync("refresh", TimeSpan.FromHours(12)));
 
         var args = js.ArgsFor("__raskSync.requestPeriodic");
         Assert.Equal("refresh", args![0]);
@@ -59,10 +59,10 @@ public class BackgroundSyncTests
     {
         var sync = new BackgroundSync(new FakeJsRuntime());
 
-        await Assert.ThrowsAnyAsync<ArgumentException>(async () => await sync.RequestSyncAsync(tag!));
+        await Assert.ThrowsAnyAsync<ArgumentException>(async () => await sync.RequestSync(tag!));
         await Assert.ThrowsAnyAsync<ArgumentException>(
-            async () => await sync.RequestPeriodicSyncAsync(tag!, TimeSpan.FromHours(1)));
-        await Assert.ThrowsAnyAsync<ArgumentException>(async () => await sync.UnregisterPeriodicAsync(tag!));
+            async () => await sync.RequestPeriodicSync(tag!, TimeSpan.FromHours(1)));
+        await Assert.ThrowsAnyAsync<ArgumentException>(async () => await sync.UnregisterPeriodic(tag!));
     }
 
     [Fact]
@@ -71,9 +71,9 @@ public class BackgroundSyncTests
         var sync = new BackgroundSync(new FakeJsRuntime());
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-            async () => await sync.RequestPeriodicSyncAsync("refresh", TimeSpan.Zero));
+            async () => await sync.RequestPeriodicSync("refresh", TimeSpan.Zero));
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-            async () => await sync.RequestPeriodicSyncAsync("refresh", TimeSpan.FromSeconds(-1)));
+            async () => await sync.RequestPeriodicSync("refresh", TimeSpan.FromSeconds(-1)));
     }
 
     [Fact]
@@ -83,8 +83,8 @@ public class BackgroundSyncTests
         // list here would turn a plain "not supported" into a NullReferenceException inside a foreach.
         var sync = new BackgroundSync(new FakeJsRuntime());
 
-        Assert.Empty(await sync.GetPendingTagsAsync());
-        Assert.Empty(await sync.GetPeriodicTagsAsync());
+        Assert.Empty(await sync.GetPendingTags());
+        Assert.Empty(await sync.GetPeriodicTags());
     }
 
     [Fact]
@@ -95,8 +95,8 @@ public class BackgroundSyncTests
         js.SetResponse("__raskSync.periodicTags", new[] { "refresh" });
         var sync = new BackgroundSync(js);
 
-        Assert.Equal(["flush-drafts", "upload-photos"], await sync.GetPendingTagsAsync());
-        Assert.Equal(["refresh"], await sync.GetPeriodicTagsAsync());
+        Assert.Equal(["flush-drafts", "upload-photos"], await sync.GetPendingTags());
+        Assert.Equal(["refresh"], await sync.GetPeriodicTags());
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public class BackgroundSyncTests
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSync.periodicPermission", "granted");
 
-        Assert.Equal("granted", await new BackgroundSync(js).GetPeriodicPermissionAsync());
+        Assert.Equal("granted", await new BackgroundSync(js).GetPeriodicPermission());
         // There is no prompt for periodic-background-sync — the browser decides. Asserting the helper is
         // only ever queried keeps a future "request" path from being bolted on where none can exist.
         Assert.Equal(1, js.CallCount("__raskSync.periodicPermission"));
@@ -116,7 +116,7 @@ public class BackgroundSyncTests
     {
         var js = new FakeJsRuntime();
 
-        await using var _ = await new BackgroundSync(js).OnSyncAsync(_ => Task.CompletedTask);
+        await using var _ = await new BackgroundSync(js).OnSync(_ => Task.CompletedTask);
 
         // listen() is what flushes syncs that landed before the runtime was ready. Without this call the
         // page boots, the sync is held forever, and nothing looks broken.
@@ -133,12 +133,12 @@ public class BackgroundSyncTests
 
         // One tag can legitimately interest several components — a draft queue and a badge count — so this
         // fans out, unlike the id-keyed device wrappers where an event belongs to exactly one watch.
-        await using var a = await sync.OnSyncAsync(e =>
+        await using var a = await sync.OnSync(e =>
         {
             first.Add(e);
             return Task.CompletedTask;
         });
-        await using var b = await sync.OnSyncAsync(e =>
+        await using var b = await sync.OnSync(e =>
         {
             second.Add(e);
             return Task.CompletedTask;
@@ -159,12 +159,12 @@ public class BackgroundSyncTests
         var kept = new List<string>();
         var dropped = new List<string>();
 
-        await using var stays = await sync.OnSyncAsync(e =>
+        await using var stays = await sync.OnSync(e =>
         {
             kept.Add(e.Tag);
             return Task.CompletedTask;
         });
-        var goes = await sync.OnSyncAsync(e =>
+        var goes = await sync.OnSync(e =>
         {
             dropped.Add(e.Tag);
             return Task.CompletedTask;

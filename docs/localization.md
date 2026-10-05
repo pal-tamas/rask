@@ -71,7 +71,7 @@ MVC, agrees with them rather than holding a second, conflicting preference.
 It is deliberately readable from script — the WASM host reads it before the runtime boots, to stamp
 `lang`/`dir` on the document — so it carries a language tag and never anything else.
 
-A choice made with `SetAsync` is written by `Rask.Web.CookieCulturePersistence`, through `document.cookie`
+A choice made with `Set` is written by `Rask.Web.CookieCulturePersistence`, through `document.cookie`
 (`Document.SetCookie`), so it is remembered over plain HTTP too. Both hosts register it, so there is nothing to
 write; register your own `IRaskCulturePersistence` first to store the choice elsewhere.
 
@@ -204,13 +204,13 @@ If you are formatting a value to send somewhere rather than to show someone, pas
 public sealed partial class LanguageMenu(IRaskCulture culture) : Component
 {
     protected override Component Render() =>
-        Select.OnChange(e => culture.SetAsync(e.Value ?? "en"))[
+        Select.OnChange(e => culture.Set(e.Value ?? "en"))[
             culture.Supported.Select(c => Option.Value(c.Name)[c.NativeName])
         ];
 }
 ```
 
-`SetAsync` switches the session, remembers the choice, and repaints. No reload.
+`Set` switches the session, remembers the choice, and repaints. No reload.
 
 **No template scaffolds this, deliberately** ([#854](https://github.com/pal-tamas/rask/issues/854)).
 A new project starts with English in `Rask:Cultures`; adding a language is another

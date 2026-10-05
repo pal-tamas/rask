@@ -12,10 +12,10 @@ public interface ISqliteSnapshotStore
     /// Stores the completed snapshot at <paramref name="sourceFilePath"/> under
     /// <paramref name="snapshotName"/> (move, copy, or upload). The source file may be consumed.
     /// </summary>
-    Task SaveAsync(string sourceFilePath, string snapshotName, CancellationToken cancellationToken);
+    Task Save(string sourceFilePath, string snapshotName, CancellationToken cancellationToken);
 
     /// <summary>Keeps the <paramref name="retain"/> most recent snapshots and removes the rest.</summary>
-    Task PruneAsync(int retain, CancellationToken cancellationToken);
+    Task Prune(int retain, CancellationToken cancellationToken);
 
     /// <summary>
     /// The snapshots this store currently holds, newest first — what an operator or an ops dashboard reads to
@@ -25,6 +25,6 @@ public interface ISqliteSnapshotStore
     /// it if your store can enumerate: callers cannot tell "no snapshots yet" from "this store doesn't list".
     /// </para>
     /// </summary>
-    Task<IReadOnlyList<SqliteSnapshotInfo>> ListAsync(CancellationToken cancellationToken) =>
+    Task<IReadOnlyList<SqliteSnapshotInfo>> List(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<SqliteSnapshotInfo>>([]);
 }

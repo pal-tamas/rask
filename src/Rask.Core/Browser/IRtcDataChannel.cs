@@ -11,11 +11,11 @@ public interface IRtcDataChannel : IAsyncDisposable
     ///     call are buffered by the framework and ride the first batch, so a channel opened by the remote
     ///     peer loses nothing between arriving and being listened to. Calling it again replaces the handler.
     /// </summary>
-    ValueTask ListenAsync(Func<IReadOnlyList<RtcMessage>, Task> onMessages);
+    ValueTask Listen(Func<IReadOnlyList<RtcMessage>, Task> onMessages);
 
     /// <summary>Sends a string to the other peer.</summary>
-    ValueTask SendAsync(string text);
+    ValueTask Send(string text);
 
     /// <summary>Sends bytes to the other peer.</summary>
-    ValueTask SendAsync(byte[] data);
+    ValueTask Send(byte[] data);
 }

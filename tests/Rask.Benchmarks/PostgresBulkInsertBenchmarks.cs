@@ -7,13 +7,13 @@ using Rask.Data;
 
 namespace Rask.Benchmarks;
 
-// #1063: on a client-server database, which write shape should BulkInsertAsync's SkipChangeTracking path take?
+// #1063: on a client-server database, which write shape should BulkInsert's SkipChangeTracking path take?
 // SQLite settled on one prepared single-row INSERT rebound per row (SqliteBulkInsertBenchmarks), because a local
 // file has no round trip. A server does, and its cost is the latency to the server times the number of trips:
 //
-//   ChangeTracker      — BulkInsertAsync's default: AddRange + SaveChanges per batch, which EF batches into
+//   ChangeTracker      — BulkInsert's default: AddRange + SaveChanges per batch, which EF batches into
 //                        multi-statement round trips (Npgsql's MaxBatchSize, 1,000 by default in EF 10).
-//   FastPath           — BulkInsertAsync(SkipChangeTracking) as shipped. It was one round trip per row (failing on
+//   FastPath           — BulkInsert(SkipChangeTracking) as shipped. It was one round trip per row (failing on
 //                        Npgsql; ~20 s for 10,000 rows at 1 ms, as PerRowPrepared shows). After #1063 it packs rows the
 //                        way MultiRowValues does: 136 ms and 11.6 MB for 10,000 rows, 15 iterations.
 //   PerRowPrepared     — the old shape in raw ADO.NET: one prepared single-row INSERT, one round trip per row.
@@ -100,7 +100,7 @@ public abstract class PostgresBulkInsertArms
     public async Task ChangeTracker()
     {
         await using var context = NewContext();
-        await context.BulkInsertAsync(_rows, o => o.BatchSize = EfBatch);
+        await context.BulkInsert(_rows, o => o.BatchSize = EfBatch);
     }
 
     [Benchmark]
@@ -168,7 +168,7 @@ public abstract class PostgresBulkInsertArms
     public async Task FastPath()
     {
         await using var context = NewContext();
-        await context.BulkInsertAsync(_rows, o =>
+        await context.BulkInsert(_rows, o =>
         {
             o.SkipChangeTracking = true;
             o.BatchSize = EfBatch;

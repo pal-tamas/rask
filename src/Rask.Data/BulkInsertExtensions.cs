@@ -51,7 +51,7 @@ public static class BulkInsertExtensions
     /// honestly; or <see cref="BulkInsertOptions.SkipChangeTracking"/> was asked for on a model its writer
     /// cannot map faithfully.
     /// </exception>
-    public static async Task<int> BulkInsertAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+    public static async Task<int> BulkInsert<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         this DbContext context,
         IEnumerable<TEntity> entities,
         Action<BulkInsertOptions>? configure = null,
@@ -75,7 +75,7 @@ public static class BulkInsertExtensions
         if (context.ChangeTracker.Entries().Any(static e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
         {
             throw new InvalidOperationException(
-                "BulkInsertAsync needs a context with no pending changes — it clears the change tracker " +
+                "BulkInsert needs a context with no pending changes — it clears the change tracker " +
                 "between batches, which would discard them. Call SaveChangesAsync (or ChangeTracker.Clear) first.");
         }
 
@@ -118,7 +118,7 @@ public static class BulkInsertExtensions
 
     /// <summary>
     /// Inserts <paramref name="entities"/> in batches — the <see cref="DbSet{TEntity}"/> spelling of
-    /// <see cref="BulkInsertAsync{TEntity}(DbContext, IEnumerable{TEntity}, Action{BulkInsertOptions}?, CancellationToken)"/>.
+    /// <see cref="BulkInsert{TEntity}(DbContext, IEnumerable{TEntity}, Action{BulkInsertOptions}?, CancellationToken)"/>.
     /// </summary>
     /// <typeparam name="TEntity">The entity type.</typeparam>
     /// <param name="set">The set to insert into.</param>
@@ -126,7 +126,7 @@ public static class BulkInsertExtensions
     /// <param name="configure">Overrides for the defaults.</param>
     /// <param name="cancellationToken">Cancels the load.</param>
     /// <returns>The number of rows written.</returns>
-    public static Task<int> BulkInsertAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+    public static Task<int> BulkInsert<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         this DbSet<TEntity> set,
         IEnumerable<TEntity> entities,
         Action<BulkInsertOptions>? configure = null,
@@ -136,7 +136,7 @@ public static class BulkInsertExtensions
         ArgumentNullException.ThrowIfNull(set);
 
         var context = set.GetService<ICurrentDbContext>().Context;
-        return context.BulkInsertAsync(entities, configure, cancellationToken);
+        return context.BulkInsert(entities, configure, cancellationToken);
     }
 
     private static async Task<int> InsertInOneTransactionAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
@@ -187,11 +187,11 @@ public static class BulkInsertExtensions
         }
 
         throw new InvalidOperationException(skipChangeTracking
-            ? "BulkInsertAsync cannot skip change tracking while the entities carry domain events: the raw " +
+            ? "BulkInsert cannot skip change tracking while the entities carry domain events: the raw " +
               "writer runs no ISaveChangesInterceptor, so DomainEventInterceptor would never see them and the " +
               "events would simply never be delivered. Drop SkipChangeTracking, clear the events, or use " +
               "Rask.Outbox, whose messages are written in the same transaction and drained after it commits."
-            : "BulkInsertAsync cannot run inside a transaction while the entities carry domain events: " +
+            : "BulkInsert cannot run inside a transaction while the entities carry domain events: " +
               "DomainEventInterceptor publishes in SavedChanges, which inside a transaction happens before " +
               "the commit, so a later failure would leave events published for rows that rolled back. " +
               "Either drop SingleTransaction (and any enclosing transaction), clear the events, or use " +

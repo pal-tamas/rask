@@ -95,7 +95,7 @@ across all of them. An admin page keeps the tenant the admin picked and opens a 
 ```csharp
 private Guid _tenant;   // chosen from a list of tenants
 
-private async Task LoadAsync()
+private async Task Load()
 {
     using (Tenant.Use(_tenant))
     {

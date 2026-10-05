@@ -97,7 +97,7 @@ mistake, the rule notes the ID.
   unmount and — while a handler runs — when the host cancels that dispatch (the server's
   `HandlerTimeout` or a closed socket). Without it, slow work pins the session's render pipeline:
   ```csharp
-  Button.OnClick(async () => _rows = await _api.LoadAsync(CancellationToken))["Load"]
+  Button.OnClick(async () => _rows = await _api.Load(CancellationToken))["Load"]
   ```
   See [composition → cancelling async work](composition-callbacks-context.md#callbacks-child--parent) and
   [lifecycle → cancellation](lifecycle.md#cancellation-tied-to-component-lifetime).

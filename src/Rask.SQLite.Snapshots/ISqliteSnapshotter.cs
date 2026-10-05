@@ -11,5 +11,5 @@ public interface ISqliteSnapshotter
     /// Creates one consistent snapshot via SQLite's Online Backup API, hands it to the configured
     /// <see cref="ISqliteSnapshotStore"/>, prunes old snapshots, and returns the snapshot's name.
     /// </summary>
-    Task<string> SnapshotAsync(CancellationToken cancellationToken = default);
+    Task<string> Snapshot(CancellationToken cancellationToken = default);
 }

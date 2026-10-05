@@ -10,7 +10,7 @@ public class SignalingTests
     {
         var js = new FakeJsRuntime();
 
-        await new Signaling(js).JoinAsync("room-1", new SignalingHandlers());
+        await new Signaling(js).Join("room-1", new SignalingHandlers());
 
         var open = js.ArgsFor("__raskSignal.open")!;
         Assert.IsType<int>(open[0]);
@@ -27,7 +27,7 @@ public class SignalingTests
     {
         var js = new FakeJsRuntime();
 
-        await new Signaling(js).JoinAsync("room", new SignalingHandlers(), "/custom/signal");
+        await new Signaling(js).Join("room", new SignalingHandlers(), "/custom/signal");
 
         Assert.Equal("/custom/signal", js.ArgsFor("__raskSignal.open")![1]);
     }
@@ -48,7 +48,7 @@ public class SignalingTests
         };
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            new Signaling(js).JoinAsync("room", handlers).AsTask());
+            new Signaling(js).Join("room", handlers).AsTask());
 
         for (var id = 1; id <= 64; id++)
         {
@@ -62,9 +62,9 @@ public class SignalingTests
     public async Task Sending_addresses_one_peer()
     {
         var js = new FakeJsRuntime();
-        var connection = await new Signaling(js).JoinAsync("room", new SignalingHandlers());
+        var connection = await new Signaling(js).Join("room", new SignalingHandlers());
 
-        await connection.SendAsync("peer-9", "an-offer");
+        await connection.Send("peer-9", "an-offer");
 
         var sends = js.Calls.Where(c => c.Identifier == "__raskSignal.send").ToArray();
         Assert.Equal("""{"type":"signal","to":"peer-9","payload":"an-offer"}""", sends[1].Args![1]);
@@ -77,7 +77,7 @@ public class SignalingTests
         string? self = null;
         IReadOnlyList<string> peers = [];
 
-        await new Signaling(js).JoinAsync("room", new SignalingHandlers
+        await new Signaling(js).Join("room", new SignalingHandlers
         {
             OnJoined = (id, existing) =>
             {
@@ -101,7 +101,7 @@ public class SignalingTests
         var js = new FakeJsRuntime();
         IReadOnlyList<string>? peers = null;
 
-        await new Signaling(js).JoinAsync("room", new SignalingHandlers
+        await new Signaling(js).Join("room", new SignalingHandlers
         {
             OnJoined = (_, existing) =>
             {
@@ -123,7 +123,7 @@ public class SignalingTests
         string? joined = null, left = null, error = null;
         (string From, string Payload)? signal = null;
 
-        await new Signaling(js).JoinAsync("room", new SignalingHandlers
+        await new Signaling(js).Join("room", new SignalingHandlers
         {
             OnPeerJoined = p => { joined = p; return Task.CompletedTask; },
             OnPeerLeft = p => { left = p; return Task.CompletedTask; },
@@ -148,7 +148,7 @@ public class SignalingTests
     {
         // The relay may grow a message this client doesn't know; that must not throw across interop.
         var js = new FakeJsRuntime();
-        await new Signaling(js).JoinAsync("room", new SignalingHandlers());
+        await new Signaling(js).Join("room", new SignalingHandlers());
         var id = (int)js.ArgsFor("__raskSignal.open")![0]!;
 
         await SignalingInterop.Message(id, "something-new", "", "");
@@ -161,7 +161,7 @@ public class SignalingTests
         var closed = 0;
         var afterClose = false;
 
-        await new Signaling(js).JoinAsync("room", new SignalingHandlers
+        await new Signaling(js).Join("room", new SignalingHandlers
         {
             OnClosed = () => { closed++; return Task.CompletedTask; },
             OnPeerJoined = _ => { afterClose = true; return Task.CompletedTask; }
@@ -181,7 +181,7 @@ public class SignalingTests
     {
         var js = new FakeJsRuntime();
         var fired = false;
-        var connection = await new Signaling(js).JoinAsync("room", new SignalingHandlers
+        var connection = await new Signaling(js).Join("room", new SignalingHandlers
         {
             OnPeerJoined = _ => { fired = true; return Task.CompletedTask; }
         });
@@ -211,13 +211,13 @@ public class SignalingTests
         var signaling = new Signaling(js);
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            signaling.JoinAsync("", new SignalingHandlers()).AsTask());
-        await Assert.ThrowsAsync<ArgumentNullException>(() => signaling.JoinAsync("r", null!).AsTask());
+            signaling.Join("", new SignalingHandlers()).AsTask());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => signaling.Join("r", null!).AsTask());
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            signaling.JoinAsync("r", new SignalingHandlers(), "").AsTask());
+            signaling.Join("r", new SignalingHandlers(), "").AsTask());
 
-        var connection = await signaling.JoinAsync("room", new SignalingHandlers());
-        await Assert.ThrowsAsync<ArgumentException>(() => connection.SendAsync("", "x").AsTask());
-        await Assert.ThrowsAsync<ArgumentNullException>(() => connection.SendAsync("p", null!).AsTask());
+        var connection = await signaling.Join("room", new SignalingHandlers());
+        await Assert.ThrowsAsync<ArgumentException>(() => connection.Send("", "x").AsTask());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => connection.Send("p", null!).AsTask());
     }
 }

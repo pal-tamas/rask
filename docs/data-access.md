@@ -33,7 +33,7 @@ builder.Services.AddDbContextFactory<CatalogDbContext>(options =>
 > — on every connection. It takes the service provider (`(sp, o) => o.UseRaskSqlite(sp)`) and reads the
 > connection string from `Rask:ConnectionStrings:App`. Set `Rask:Sqlite:Retry:Enabled` for an opt-in
 > fair-interval busy-retry on `SaveChanges`,
-> and use the raw-path `InImmediateTransactionAsync` for a genuinely non-blocking `BEGIN IMMEDIATE`
+> and use the raw-path `InImmediateTransaction` for a genuinely non-blocking `BEGIN IMMEDIATE`
 > write. See [SQLite production pragmas](sqlite.md#transactions-begin-immediate--a-non-blocking-fair-interval-retry).
 
 ```csharp
@@ -74,11 +74,11 @@ For an event-handler mutation (e.g. a delete button), just do the work and reloa
 lifecycle hook above, so the reloaded list paints automatically:
 
 ```csharp
-private async Task DeleteAsync(int id)
+private async Task Delete(int id)
 {
     await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
     await db.Products.Where(p => p.Id == id).ExecuteDeleteAsync(CancellationToken);
-    await LoadAsync();
+    await Load();
 }
 ```
 

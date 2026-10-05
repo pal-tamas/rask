@@ -11,21 +11,21 @@ namespace Rask.Core.Browser;
 public sealed class WebAuthn(IJSRuntime js) : IWebAuthn
 {
     /// <inheritdoc />
-    public ValueTask<bool> IsSupportedAsync() => js.InvokeAsync<bool>("__raskWebAuthn.isSupported");
+    public ValueTask<bool> IsSupported() => js.InvokeAsync<bool>("__raskWebAuthn.isSupported");
 
     /// <inheritdoc />
-    public ValueTask<bool> IsPlatformAuthenticatorAvailableAsync() =>
+    public ValueTask<bool> IsPlatformAuthenticatorAvailable() =>
         js.InvokeAsync<bool>("__raskWebAuthn.platformAuthenticatorAvailable");
 
     /// <inheritdoc />
-    public ValueTask<AttestationResult?> CreateAsync(PublicKeyCredentialCreationOptions options)
+    public ValueTask<AttestationResult?> Create(PublicKeyCredentialCreationOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
         return js.InvokeAsync<AttestationResult?>("__raskWebAuthn.create", options);
     }
 
     /// <inheritdoc />
-    public ValueTask<AssertionResult?> GetAsync(PublicKeyCredentialRequestOptions options)
+    public ValueTask<AssertionResult?> Get(PublicKeyCredentialRequestOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
         return js.InvokeAsync<AssertionResult?>("__raskWebAuthn.get", options);

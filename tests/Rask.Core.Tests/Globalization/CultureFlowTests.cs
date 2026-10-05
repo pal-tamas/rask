@@ -158,7 +158,7 @@ public partial class CultureFlowTests : global::Rask.Core.RaskMarkup, IDisposabl
 
     private sealed class FixedCultureHandle(CultureInfo culture) : IRenderHandle
     {
-        public Task RequestRenderAsync() => Task.CompletedTask;
+        public Task RequestRender() => Task.CompletedTask;
 
         CultureInfo IRenderHandle.Culture => culture;
         CultureInfo IRenderHandle.UICulture => culture;
@@ -168,7 +168,7 @@ public partial class CultureFlowTests : global::Rask.Core.RaskMarkup, IDisposabl
     {
         public CultureInfo Culture { get; set; } = culture;
 
-        public Task RequestRenderAsync() => Task.CompletedTask;
+        public Task RequestRender() => Task.CompletedTask;
 
         CultureInfo IRenderHandle.Culture => Culture;
         CultureInfo IRenderHandle.UICulture => Culture;

@@ -480,14 +480,14 @@ public sealed class LiveSessionStore : IAsyncDisposable
     ///     </para>
     ///     <para>Best-effort: a session whose tree walk or render faults is skipped, not propagated.</para>
     /// </summary>
-    public async Task RerenderAllAsync()
+    public async Task RerenderAll()
     {
         if (_sessions.IsEmpty)
         {
             return;
         }
 
-        // Bounded-concurrent for the same reason as BroadcastAsync: sequentially, one session stuck on a
+        // Bounded-concurrent for the same reason as Broadcast: sequentially, one session stuck on a
         // send holds up every session behind it. Rendering distinct sessions on distinct threads is not a
         // new property — independent handler dispatches already do it — because each session serialises
         // itself on its own render lock and the render walk's ambient scopes are thread-static.
@@ -514,7 +514,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
     ///     <see cref="LiveSession.SendOutOfBandAsync" />, which takes the render lock so it cannot
     ///     interleave with an in-flight frame. Detached sessions are skipped.
     /// </summary>
-    public async Task BroadcastAsync(ReadOnlyMemory<byte> payload)
+    public async Task Broadcast(ReadOnlyMemory<byte> payload)
     {
         if (_sessions.IsEmpty)
         {

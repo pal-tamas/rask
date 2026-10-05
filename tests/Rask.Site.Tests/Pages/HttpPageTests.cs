@@ -163,7 +163,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         var sp = TestServices.Default(routeState: TestRouteState.At("/docs/guides/http-and-files"));
 
 #pragma warning disable RASK014 // the App is rendered directly as a root
-        var result = await global::Rask.Core.Live.RaskPrerender.RenderDocumentAsync(
+        var result = await global::Rask.Core.Live.RaskPrerender.RenderDocument(
             new global::Rask.Site.App(), sp, TimeSpan.FromSeconds(10), cancellationToken: TestContext.Current.CancellationToken);
 #pragma warning restore RASK014
 

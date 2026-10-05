@@ -7,6 +7,6 @@ namespace Rask.Core.Globalization;
 public sealed class NullCulturePersistence : IRaskCulturePersistence
 {
     /// <inheritdoc />
-    public Task SaveAsync(string culture, string uiCulture, CancellationToken cancellationToken = default) =>
+    public Task Save(string culture, string uiCulture, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 }

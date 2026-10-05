@@ -133,7 +133,7 @@ public abstract partial class Component
 
         // Auto-rerender on continuation completion so users get Mount-style
         // "mutate state after the await and it paints" without explicit StateHasChanged.
-        // RequestPublishRenderAsync flags the resulting walk as publishOnly so the
+        // RequestPublishRender flags the resulting walk as publishOnly so the
         // publish render skips this same hook on every already-rendered component (see
         // top of method). Without that flag, multi-component trees cascade infinitely:
         // A's publish render fires B's OnRendered, B's continuation publishes,
@@ -165,7 +165,7 @@ public abstract partial class Component
             }
 
             comp.Live.StateDirty = true;
-            _ = handle.RequestPublishRenderAsync();
+            _ = handle.RequestPublishRender();
         }, this, TaskContinuationOptions.ExecuteSynchronously);
     }
 
