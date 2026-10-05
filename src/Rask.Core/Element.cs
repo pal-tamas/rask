@@ -81,15 +81,15 @@ public abstract partial class Element : Component
 
     // Accessibility, available on every element. `Aria` is the data-* model applied to ARIA: each
     // entry emits aria-{key}="{value}" (key verbatim, value HTML-encoded) — so an `Aria` entry of
-    // label → Close renders aria-label="Close", and the full ARIA vocabulary is reachable
-    // without a typed property per attribute. `Role` and `TabIndex` are plain attributes (not aria-*,
+    // label → Close renders aria-label="Close"; the typed Aria* steps, generated from the spec
+    // (Component.AriaAttributes.cs), cover the vocabulary itself. `Role` and `TabIndex` are plain attributes (not aria-*,
     // so not expressible through the dictionary) but are core a11y affordances for custom widgets and
     // keyboard focus. All three are nullable → optional factory parameters, like the other HTML attrs.
     // Like Ref, their storage is hoisted into the lazy LiveState (a11y attrs are opt-in and rare), so
     // an element that sets none keeps `_live` null and pays no per-instance footprint for the feature.
     /// <summary>
     ///     The ARIA <c>role</c> — what this element *is* to assistive technology, when the tag alone does
-    ///     not say it. A <c>div</c> wired up as a tab strip needs <c>.Role("tablist")</c>; a
+    ///     not say it. A <c>div</c> wired up as a tab strip needs <c>.Role(AriaRole.Tablist)</c>; a
     ///     <see cref="HTMLButtonElement" /> already reports itself as a button and needs nothing.
     ///     <para>
     ///         Prefer the native element over a role every time one exists. A role changes only what is
@@ -123,9 +123,10 @@ public abstract partial class Element : Component
     }
 
     /// <summary>
-    ///     ARIA states and properties. Each entry emits <c>aria-{key}="{value}"</c> — the key verbatim, the
-    ///     value HTML-encoded — so <c>.Aria("label", "Close")</c> renders <c>aria-label="Close"</c>. The
-    ///     whole ARIA vocabulary is reachable this way, with no typed property per attribute.
+    ///     ARIA states and properties as a bag. Each entry emits <c>aria-{key}="{value}"</c> — the key verbatim,
+    ///     the value HTML-encoded — so <c>.Aria("label", "Close")</c> renders <c>aria-label="Close"</c>. Every
+    ///     attribute the spec defines is also a typed step (<see cref="AriaLabel" />, <see cref="AriaExpanded" />,
+    ///     …), which renders first; the bag's entry for a key a typed step wrote is skipped.
     ///     <para>
     ///         State belongs here, not just labels: <c>aria-expanded</c>, <c>aria-selected</c> and
     ///         <c>aria-checked</c> have to be re-rendered as the value changes, or a screen-reader user is
@@ -541,8 +542,8 @@ public abstract partial class Element : Component
         // Accessibility group: after data-*, before the Attributes escape hatch and any subclass
         // tag-specific attrs (those run after base.WriteAttributes). Documented order in full:
         // id, class, style, title, the plain globals (lang, dir, hidden, inert, popover,
-        // contenteditable, spellcheck, translate), data-*, role, tabindex, aria-*, Attributes,
-        // then tag-specific.
+        // contenteditable, spellcheck, translate), data-*, role, tabindex, aria-* (typed, then the Aria
+        // bag), Attributes, then tag-specific.
         if (Role is not null)
         {
             AppendAttr(sb, "role", Role);
@@ -553,9 +554,14 @@ public abstract partial class Element : Component
             AppendAttr(sb, "tabindex", tabIndex);
         }
 
+        // The typed Aria* properties first, in the spec's alphabetical order; then the bag, less any key a typed
+        // property already wrote, so an attribute is never written twice.
+        var typed = AriaAttrsInternal;
+        typed?.Write(sb);
+
         if (Aria is not null)
         {
-            AppendPrefixedAttrs(sb, "aria-", Aria, skipKey: null);
+            AppendPrefixedAttrs(sb, "aria-", Aria, skipKey: null, typed);
         }
 
         // Last in the universal block, so the documented order still reads "globals first, grouped" and a
@@ -572,16 +578,17 @@ public abstract partial class Element : Component
     // Dictionary<,> uses its struct enumerator (no allocation); foreach over the
     // IReadOnlyDictionary interface instead boxes an enumerator on every render of an element that
     // carries a Data or Aria bag — the common literal (`new() { ... }`) is a Dictionary, so it
-    // takes the fast path. `skipKey`, when set, drops one entry (Data["rask-key"] superseded by Key).
+    // takes the fast path. `skipKey`, when set, drops one entry (Data["rask-key"] superseded by Key), and
+    // `shadow`, when set, drops every aria-* entry a typed Aria* property already wrote.
     private static void AppendPrefixedAttrs(StringBuilder sb, string prefix,
-        IReadOnlyDictionary<string, string?> map, string? skipKey)
+        IReadOnlyDictionary<string, string?> map, string? skipKey, AriaAttrs? shadow = null)
     {
         // The bag `.Data("test-id", "primary")` builds. Written straight from its fields — it has no
         // struct enumerator to borrow, so without this branch the single-attribute case would trade
         // Dictionary's three allocations for a boxed enumerator on every render.
         if (map is AttrBag bag)
         {
-            if (skipKey is null || !string.Equals(bag.Name0, skipKey, StringComparison.Ordinal))
+            if (Keeps(bag.Name0, skipKey, shadow))
             {
                 AppendAttr(sb, prefix, bag.Name0, bag.Value0);
             }
@@ -592,7 +599,7 @@ public abstract partial class Element : Component
                 foreach (var kv in rest)
 #pragma warning restore S3267
                 {
-                    if (skipKey is null || !string.Equals(kv.Key, skipKey, StringComparison.Ordinal))
+                    if (Keeps(kv.Key, skipKey, shadow))
                     {
                         AppendAttr(sb, prefix, kv.Key, kv.Value);
                     }
@@ -608,7 +615,7 @@ public abstract partial class Element : Component
             foreach (var kv in dict)
 #pragma warning restore S3267
             {
-                if (skipKey is null || !string.Equals(kv.Key, skipKey, StringComparison.Ordinal))
+                if (Keeps(kv.Key, skipKey, shadow))
                 {
                     AppendAttr(sb, prefix, kv.Key, kv.Value);
                 }
@@ -620,11 +627,15 @@ public abstract partial class Element : Component
             foreach (var kv in map)
 #pragma warning restore S3267
             {
-                if (skipKey is null || !string.Equals(kv.Key, skipKey, StringComparison.Ordinal))
+                if (Keeps(kv.Key, skipKey, shadow))
                 {
                     AppendAttr(sb, prefix, kv.Key, kv.Value);
                 }
             }
         }
     }
+
+    private static bool Keeps(string key, string? skipKey, AriaAttrs? shadow) =>
+        (skipKey is null || !string.Equals(key, skipKey, StringComparison.Ordinal))
+        && (shadow is null || !shadow.Shadows(key));
 }

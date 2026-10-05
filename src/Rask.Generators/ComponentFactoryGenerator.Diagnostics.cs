@@ -95,17 +95,19 @@ public sealed partial class ComponentFactoryGenerator
     private static void ReportSharedBitOverflow(
         SourceProductionContext spc, SetterHost host, Dictionary<string, int> bits)
     {
+        // The typed Aria* properties count once: they share one bit (SharedPendingBits).
         var folding = host.Shared
-            .Where(s => FoldsIntoPropsChanged(s.Name, s.IsDelegate, autoRerender: false))
+            .Where(s => !s.IsTypedAria && FoldsIntoPropsChanged(s.Name, s.IsDelegate, autoRerender: false))
             .ToList();
-        if (folding.Count <= OwnPendingBit)
+        var groups = host.Shared.Any(static s => s.IsTypedAria) ? 1 : 0;
+        if (folding.Count + groups <= OwnPendingBit)
         {
             return;
         }
 
         var first = folding.First(s => !bits.ContainsKey(s.Name));
         spc.ReportDiagnostic(Diagnostic.Create(Rask041, Location.None,
-            folding.Count.ToString(CultureInfo.InvariantCulture),
+            (folding.Count + groups).ToString(CultureInfo.InvariantCulture),
             OwnPendingBit.ToString(CultureInfo.InvariantCulture),
             first.Name));
     }

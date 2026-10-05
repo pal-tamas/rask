@@ -79,4 +79,30 @@ public class MdnSnapshotTests
             yield return (typeof(SVGElement).IsAssignableFrom(type) ? "svg:" : "html:") + tag;
         }
     }
+
+    [Fact]
+    public void The_ARIA_spec_is_read_at_a_pinned_commit_with_a_pinned_parser()
+    {
+        var sources = Snapshot.GetProperty("sources");
+
+        var aria = sources.GetProperty("w3c/aria").GetString();
+        var parser = sources.GetProperty("parse5").GetString();
+
+        Assert.Matches("^[0-9a-f]{40}$", aria);
+        Assert.Matches(@"^\d+\.\d+\.\d+$", parser);
+    }
+
+    [Fact]
+    public void Every_ARIA_attribute_the_spec_has_not_deprecated_is_a_typed_property_on_Element()
+    {
+        var typed = typeof(Element).GetProperties()
+            .Select(p => p.GetCustomAttributes(typeof(System.CodeDom.Compiler.GeneratedCodeAttribute), false).Length > 0 ? p.Name : null)
+            .OfType<string>()
+            .ToList();
+
+        var expected = Snapshot.GetProperty("aria").GetProperty("attributes").EnumerateArray()
+            .Count(a => !a.TryGetProperty("deprecated", out var d) || !d.GetBoolean());
+
+        Assert.Equal(expected, typed.Count(name => name.StartsWith("Aria", StringComparison.Ordinal)));
+    }
 }

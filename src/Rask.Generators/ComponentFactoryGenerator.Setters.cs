@@ -68,7 +68,8 @@ public sealed partial class ComponentFactoryGenerator
                     string.Equals(owner, elementFqn, StringComparison.Ordinal),
                     isRequired,
                     DeclaresDerivedSetter(p),
-                    SummaryOf(p)));
+                    SummaryOf(p),
+                    IsTypedAriaMember(p)));
             }
         }
 
@@ -225,13 +226,24 @@ public sealed partial class ComponentFactoryGenerator
     {
         var bits = new Dictionary<string, int>(StringComparer.Ordinal);
         var next = 0;
-        foreach (var s in host.Shared.Where(s => next < OwnPendingBit && FoldsIntoPropsChanged(s.Name, s.IsDelegate, autoRerender: false)))
+        foreach (var s in host.Shared.Where(s => next < OwnPendingBit && !s.IsTypedAria && FoldsIntoPropsChanged(s.Name, s.IsDelegate, autoRerender: false)))
         {
             bits[s.Name] = next++;
         }
 
+        // The ~50 typed Aria* properties share ONE bit rather than taking one each, which the budget could not hold. No
+        // setter clears it, so it is always pending, and its reset asks Element's ARIA store to drop whichever attribute
+        // no setter wrote since the entry (Component.AriaAttrs keeps that record itself).
+        if (next < OwnPendingBit && host.Shared.Any(static s => s.IsTypedAria))
+        {
+            bits[TypedAriaGroup] = next;
+        }
+
         return bits;
     }
+
+    // The typed-ARIA group's key in the shared bit table: not an identifier, so no property can claim it.
+    private const string TypedAriaGroup = "<aria>";
 
     // The props a builder setter can write on the component ITSELF — the same filter the setter loop
     // uses, so the bit a setter clears is the bit the reset tests.
@@ -309,7 +321,7 @@ public sealed partial class ComponentFactoryGenerator
             var props = host.Shared.Where(s => s.IsElementOwned == elementOwned).ToList();
             var pending = props.Where(s => bits.ContainsKey(s.Name)).ToList();
 
-            AppendSharedEagerReset(sb, kind, receiver, props, bits, elementOwned);
+            AppendSharedEagerReset(sb, kind, receiver, props.Where(static s => !s.IsTypedAria).ToList(), bits, elementOwned);
 
             AppendSharedPendingReset(sb, kind, receiver, pending, bits, elementOwned);
 
@@ -326,8 +338,9 @@ public sealed partial class ComponentFactoryGenerator
             }
 
             sb.Append("    /// <summary>Every folding bit <c>").Append(kind).AppendLine("</c> owns.</summary>");
+            var groupBits = elementOwned && bits.TryGetValue(TypedAriaGroup, out var group) ? new[] { group } : Array.Empty<int>();
             sb.Append("    public const ulong Shared").Append(kind).Append("Pending = ")
-                .Append(MaskLiteral(pending.Select(s => bits[s.Name]))).AppendLine(";");
+                .Append(MaskLiteral(pending.Select(s => bits[s.Name]).Concat(groupBits))).AppendLine(";");
             sb.AppendLine();
         }
 
@@ -372,13 +385,22 @@ public sealed partial class ComponentFactoryGenerator
             sb.AppendLine("        ResetComponentPending(__c0, __p);");
         }
 
-        if (pending.Count != 0)
+        var group = elementOwned && bits.TryGetValue(TypedAriaGroup, out var g) ? g : -1;
+        if (pending.Count != 0 || group >= 0)
         {
             EmitReceiverCast(sb, receiver, "        ");
             foreach (var s in pending)
             {
                 EmitPendingReset(sb, s.Name, s.TypeFqn, s.DefaultLiteral, bits[s.Name], "        ", s.HasDerivedSetter);
             }
+        }
+
+        if (group >= 0)
+        {
+            sb.Append("        if ((__p & ").Append(MaskLiteral(new[] { group })).AppendLine(") != 0UL)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            __c.ResetUnwrittenAria();");
+            sb.AppendLine("        }");
         }
 
         sb.AppendLine("    }");

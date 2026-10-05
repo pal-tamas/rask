@@ -210,6 +210,14 @@ public sealed partial class ComponentFactoryGenerator
             return ("", "");
         }
 
+        // Nor the keyword enums Rask.Core's DOM build step writes from the spec (AriaLive, AriaSort): an attribute's
+        // keywords, not a component's styles. As steps they would land on EVERY element — `Div.Polite`, `Span.True` —
+        // so the step marks each one [GeneratedCode("Rask.Dom.Aria")] and it keeps its plain setter.
+        if (IsDomKeywordEnum(e))
+        {
+            return ("", "");
+        }
+
         var members = e.GetMembers()
             .OfType<IFieldSymbol>()
             .Where(static f => f is { IsStatic: true, HasConstantValue: true, DeclaredAccessibility: Accessibility.Public })
@@ -224,6 +232,18 @@ public sealed partial class ComponentFactoryGenerator
             ? ("", "")
             : (e.ToDisplayString(FullyQualifiedNullable), string.Join(",", members));
     }
+
+    private static bool IsDomKeywordEnum(INamedTypeSymbol e) => IsTypedAriaMember(e);
+
+    // What Rask.Core's DOM build step marks every typed-ARIA member it writes with — the Aria* properties on Element and
+    // the keyword enums they take (src/Rask.Dom.Tasks/AriaEmitter.cs). A BCL attribute, so nothing public is added for it.
+    private const string TypedAriaTool = "Rask.Dom.Aria";
+
+    private static bool IsTypedAriaMember(ISymbol symbol) =>
+        symbol.GetAttributes().Any(static a =>
+            string.Equals(a.AttributeClass?.ToDisplayString(), "System.CodeDom.Compiler.GeneratedCodeAttribute", StringComparison.Ordinal)
+            && a.ConstructorArguments.Length > 0
+            && string.Equals(a.ConstructorArguments[0].Value as string, TypedAriaTool, StringComparison.Ordinal));
 
     /// <summary>
     ///     The enum steps a component may offer, with every name that could collide already taken out:
@@ -966,5 +986,6 @@ public sealed partial class ComponentFactoryGenerator
         bool IsElementOwned,
         bool IsRequired,
         bool HasDerivedSetter,
-        string Summary = "");
+        string Summary = "",
+        bool IsTypedAria = false);
 }

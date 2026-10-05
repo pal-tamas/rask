@@ -175,6 +175,7 @@ internal static class DomEmitter
         files.Add(new KeyValuePair<string, string>("GlobalAttrs.g.cs", GlobalFields(
             globals.TryGetValue(HtmlRoot, out var html) ? html : new(), globals.TryGetValue(SvgRoot, out var svg) ? svg : new())));
         DomEventEmitter.Emit(root, files);
+        AriaEmitter.Emit(root, files);
         return files;
     }
 
@@ -529,15 +530,16 @@ internal static class DomEmitter
         Get(Get(root, "globalAttributes"), svg ? "svg" : "html").Items
             .Where(a => !ElementOwnedGlobals.Contains(Str(a, "attr")!) && (svg || Str(a, "property") is not null));
 
-    private static string PropertyName(string iface, JsonNode a)
+    private static string PropertyName(string iface, JsonNode a) => PropertyName(iface, Str(a, "attr")!, Str(a, "property"), Str(a, "type"));
+
+    // A content attribute's C# name: its IDL attribute's, PascalCased, or the attribute's own words where no IDL one reflects it.
+    internal static string PropertyName(string iface, string attr, string? idl, string? idlType)
     {
-        var attr = Str(a, "attr")!;
         if (PropertyAliases.TryGetValue(iface + "." + attr, out var scoped))
         {
             return scoped;
         }
 
-        var idl = Str(a, "property");
         if (idl is null)
         {
             return string.Concat(attr.Split('-').Select(Pascal));
@@ -548,15 +550,19 @@ internal static class DomEmitter
             return alias;
         }
 
-        // An IDL attribute that holds an element (`commandForElement`) is written from markup as the id it
-        // points at, so the property is named for the attribute it sets: CommandFor.
-        if (!IsPlain(Str(a, "type")) && idl.EndsWith("Element", StringComparison.Ordinal) && idl.Length > "Element".Length)
+        // An IDL attribute that holds an element or a list of them (`commandForElement`, `ariaLabelledByElements`) is
+        // written from markup as the id(s) it points at, so the property is named for the attribute it sets:
+        // CommandFor, AriaLabelledBy.
+        if (!IsPlain(idlType))
         {
-            idl = idl.Substring(0, idl.Length - "Element".Length);
+            idl = StripSuffix(StripSuffix(idl, "Elements"), "Element");
         }
 
         return Pascal(idl);
     }
+
+    private static string StripSuffix(string name, string suffix) =>
+        name.EndsWith(suffix, StringComparison.Ordinal) && name.Length > suffix.Length ? name.Substring(0, name.Length - suffix.Length) : name;
 
     private static bool IsPlain(string? idlType) =>
         idlType is "DOMString" or "USVString" or "DOMString?" or "boolean" or "long" or "unsigned long" or "double" or "unrestricted double";
@@ -717,15 +723,15 @@ internal static class DomEmitter
         _ => id,
     };
 
-    private static string Pascal(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
+    internal static string Pascal(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
 
     private static string Local(string prop) => "@" + char.ToLowerInvariant(prop[0]) + prop.Substring(1);
 
-    private static string Literal(string s) => "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+    internal static string Literal(string s) => "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
-    private static string? Str(JsonNode e, string name) => e[name]?.AsString();
+    internal static string? Str(JsonNode e, string name) => e[name]?.AsString();
 
-    private static JsonNode Get(JsonNode e, string name) =>
+    internal static JsonNode Get(JsonNode e, string name) =>
         e[name] ?? throw new DomEmitException($"the snapshot has no `{name}` where one was expected");
 
     internal static JsonNode Parse(string json)
