@@ -13,6 +13,9 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/node-path.sh
+. "$root/scripts/lib/node-path.sh"
+rask_ensure_node
 cd "$root"
 
 front_end=0

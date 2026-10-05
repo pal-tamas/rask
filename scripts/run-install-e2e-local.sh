@@ -26,6 +26,9 @@ if [ "${RASK_SKIP_INSTALL_E2E:-}" = "1" ]; then
 fi
 
 root="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib/node-path.sh
+. "$root/scripts/lib/node-path.sh"
+rask_ensure_node
 cd "$root"
 
 if ! command -v docker >/dev/null 2>&1; then

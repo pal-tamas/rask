@@ -26,6 +26,9 @@ if [ "${RASK_SKIP_BENCHMARKS:-}" = "1" ]; then
 fi
 
 root="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib/node-path.sh
+. "$root/scripts/lib/node-path.sh"
+rask_ensure_node
 cd "$root"
 
 standalone="tests/Rask.Benchmarks/Rask.Benchmarks.csproj"

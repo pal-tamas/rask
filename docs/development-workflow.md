@@ -154,6 +154,12 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   public-API prober's `src/Rask\.Cache/|…Directory\.…`. A test that starts reading something outside
   `scripts/` adds it there, or a change to that thing will not run it. This took ~45 s off a narrow
   commit, nearly all of it the prober's four builds of Rask.Cache.
+- **The unit gate says where its time went, and finds Node itself.** `scripts/run-unit-local.sh` ends
+  every run, red ones included, with one line per phase (scope, gate script tests, Release build, Debug
+  generators, tests) and the slowest test projects and the formatter listed apart, because those run
+  alongside each other. Every `scripts/run-*.sh` sources `scripts/lib/node-path.sh`: when `node` is not
+  on PATH — a hook fired from an IDE or an agent shell that never ran nvm's init — it takes the newest
+  version under `~/.nvm/versions/node` instead of failing the islands build with RASKISLAND001.
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
   solution once, then runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
   analyzers, one workspace load) **concurrently with** every test except the browser E2E. The two share

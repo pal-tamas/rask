@@ -31,6 +31,9 @@ if [ "${RASK_SKIP_UNIT:-}" = "1" ]; then
 fi
 
 root="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib/node-path.sh
+. "$root/scripts/lib/node-path.sh"
+rask_ensure_node
 cd "$root"
 
 # Sourced at the TOP, not inside the failure branch below where the contention hint used to reach for
@@ -74,6 +77,35 @@ case "${1:-}" in
 esac
 
 echo "run-unit-local: taking $lane_slots of $(rask_lane_budget) slots on this machine."
+
+# --- Where the time goes --------------------------------------------------------------------------
+#
+# Printed on EVERY exit, red ones included: the budget is one minute, and a gate that cannot say which
+# phase spent it gets "optimised" by guesswork. rask_phase closes the phase that just ended; the
+# formatter and the scoped test projects run alongside other work, so they report their own seconds
+# and are listed apart rather than added to a total they do not extend.
+phase_table=""
+phase_mark=$SECONDS
+alongside_table=""
+rask_phase() {
+  phase_table="$phase_table$(printf '    %4ds  %s' "$((SECONDS - phase_mark))" "$1")
+"
+  phase_mark=$SECONDS
+}
+rask_alongside() {
+  alongside_table="$alongside_table$(printf '    %4ds  %s' "$1" "$2")
+"
+}
+rask_print_phases() {
+  [ -n "$phase_table" ] || return 0
+  echo "==> Where the time went (${SECONDS}s in all)"
+  printf '%s' "$phase_table"
+  if [ -n "$alongside_table" ]; then
+    echo "    of which, running alongside each other (slowest first):"
+    printf '%s' "$alongside_table" | sort -rn | head -12
+  fi
+}
+trap rask_print_phases EXIT
 
 # --- Scope: which projects can this change actually reach? --------------------------------------
 #
@@ -124,6 +156,8 @@ if [ "${RASK_TEST_SCOPE:-}" = "affected" ]; then
     esac
   fi
 fi
+
+rask_phase "scope"
 
 # Cheap and first: the gates' own shared logic. rask_build_failure_kind decides whether a red gate tells
 # you your branch is broken or your machine is busy, and it is plain bash, so nothing else would catch a
@@ -199,6 +233,7 @@ for pid in $gate_test_pids; do
   fi
   rm -f "$gate_test_log"
 done
+rask_phase "gate script tests"
 [ "$gate_tests_failed" -eq 0 ] || exit 1
 
 if [ -n "$scope_projects" ]; then
@@ -247,6 +282,7 @@ dotnet build Rask.slnx -c Release -m:"$lane_slots" \
   -p:RaskSpaBuild=false
 
 fi
+rask_phase "build (Release)"
 
 # Built ONLY on the paths that go on to run `dotnet format`, which is the only consumer: the formatter
 # evaluates the solution in the DEFAULT configuration (Debug) and resolves the OutputItemType="Analyzer"
@@ -338,8 +374,13 @@ rask_start_format() {
     format_label="Formatting check (staged .cs files only — RASK_FORMAT_SCOPE=staged)"
     echo "==> $format_label — running alongside the tests"
     (
+      set +e   # the seconds are written on a red run too
+      format_began=$SECONDS
       # shellcheck disable=SC2086
       printf '%s\n' "$staged_cs" | tr '\n' ' ' | xargs dotnet format Rask.slnx --verify-no-changes --include
+      format_exit=$?
+      echo "$((SECONDS - format_began))" >"$format_log.secs"
+      exit "$format_exit"
     ) >"$format_log" 2>&1 &
     format_pid=$!
     return 0
@@ -348,11 +389,19 @@ rask_start_format() {
   rask_build_debug_generators
   format_label="Formatting check (dotnet format --verify-no-changes: whitespace + style + analyzers)"
   echo "==> $format_label — running alongside the tests"
-  dotnet format Rask.slnx --verify-no-changes >"$format_log" 2>&1 &
+  (
+    set +e   # the seconds are written on a red run too
+    format_began=$SECONDS
+    dotnet format Rask.slnx --verify-no-changes
+    format_exit=$?
+    echo "$((SECONDS - format_began))" >"$format_log.secs"
+    exit "$format_exit"
+  ) >"$format_log" 2>&1 &
   format_pid=$!
 }
 
 rask_start_format
+rask_phase "generators in Debug (for the formatter)"
 
 # The generated TypeScript is compiled by tsgo, which the test fetches itself as a checksum-verified
 # binary at a pinned version, cached per user. So the type CHECK needs no node and always runs. Nothing
@@ -432,10 +481,16 @@ if [ -n "$scope_projects" ]; then
     scope_logs=""
     for tp in $scope_tests; do
       scope_log="${TMPDIR:-/tmp}/rask-scoped-test-$$-$(basename "$(dirname "$tp")").log"
-      dotnet test "$root/$tp" -c Release --no-build -m:1 \
-        --blame-crash \
-        --results-directory "$root/artifacts/test-blame" \
-        --logger "console;verbosity=normal" >"$scope_log" 2>&1 &
+      (
+        test_began=$SECONDS
+        dotnet test "$root/$tp" -c Release --no-build -m:1 \
+          --blame-crash \
+          --results-directory "$root/artifacts/test-blame" \
+          --logger "console;verbosity=normal"
+        test_exit=$?
+        echo "$((SECONDS - test_began))" >"$scope_log.secs"
+        exit "$test_exit"
+      ) >"$scope_log" 2>&1 &
       scope_pids="$scope_pids $!"
       scope_logs="$scope_logs $scope_log"
     done
@@ -446,7 +501,9 @@ if [ -n "$scope_projects" ]; then
       scope_log="$1"; shift
       wait "$pid" || unit_status=$?
       cat "$scope_log"
-      rm -f "$scope_log"
+      scope_name="${scope_log##*/rask-scoped-test-$$-}"
+      rask_alongside "$(cat "$scope_log.secs" 2>/dev/null || echo 0)" "${scope_name%.log}"
+      rm -f "$scope_log" "$scope_log.secs"
     done
   fi
 else
@@ -462,6 +519,7 @@ else
     --logger "console;verbosity=normal"
   unit_status=$?
 fi
+rask_phase "tests"
 
 # Collected before anything can exit, so the formatter's verdict is never lost to an early `exit` on
 # the test status. A gate that starts a check and then leaves without reading it is a gate that has
@@ -469,6 +527,9 @@ fi
 format_status=0
 if [ -n "$format_pid" ]; then
   wait "$format_pid" || format_status=$?
+  rask_alongside "$(cat "$format_log.secs" 2>/dev/null || echo 0)" "dotnet format"
+  rm -f "$format_log.secs"
+  rask_phase "formatter, after the tests finished"
 fi
 set -e
 

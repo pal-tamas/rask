@@ -13,6 +13,9 @@
 set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib/node-path.sh
+. "$root/scripts/lib/node-path.sh"
+rask_ensure_node
 cd "$root"
 
 delay="${RASK_PG_NETEM_DELAY:-1ms}"

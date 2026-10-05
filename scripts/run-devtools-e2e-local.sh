@@ -20,6 +20,9 @@ if [ "${RASK_SKIP_E2E:-}" = "1" ]; then
 fi
 
 root="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib/node-path.sh
+. "$root/scripts/lib/node-path.sh"
+rask_ensure_node
 cd "$root"
 
 export RASK_E2E_GATE=run-devtools-e2e-local

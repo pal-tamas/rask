@@ -9,6 +9,9 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+# shellcheck source=lib/node-path.sh
+. scripts/lib/node-path.sh
+rask_ensure_node
 
 # Per run, names and ports both (#1098). Fixed ones meant a second worktree running this gate `docker rm -f`'d the
 # first one's MinIO mid-test and bound its port. The suffix is this shell's pid; the ports are whatever the kernel

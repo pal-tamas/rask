@@ -51,6 +51,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Gates: `scripts/run-unit-local.sh` prints where its time went.** Each run ends with the seconds per
+  phase and the slowest test projects, so a hook over its one-minute budget names the phase to fix. The
+  gate scripts also find an nvm-installed Node when `node` is not on PATH, instead of failing the islands
+  build with RASKISLAND001 from an IDE or agent shell.
+
 - **BREAKING: the last `Async` suffixes are gone from the public surface** (`docs/api-style.md` rule 4 —
   `await` already says it). Only the name changes; signatures and behaviour are the same:
   ```csharp

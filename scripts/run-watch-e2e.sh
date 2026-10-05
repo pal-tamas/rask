@@ -26,6 +26,9 @@ if [ "${RASK_SKIP_WATCH_E2E:-}" = "1" ]; then
 fi
 
 root="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib/node-path.sh
+. "$root/scripts/lib/node-path.sh"
+rask_ensure_node
 cd "$root"
 
 # Shares CliBuildE2E's local feed, so it needs that gate's switch on too.
