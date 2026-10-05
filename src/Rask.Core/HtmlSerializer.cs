@@ -496,12 +496,14 @@ internal static class HtmlSerializer
             //
             // The owner is CurrentParent rather than `el`: an element pushes no parent scope,
             // so entries built inside its children attribute to the enclosing COMPONENT.
+            var positionsBefore = live?.WalkParentChildPositions ?? 0;
             var built = el.RenderChildrenInternal();
             var children = built as IReadOnlyList<Component?> ?? [.. built];
 
             // Materialising first is what makes the commit meaningful: a `yield` body would
             // otherwise build each entry as the walk reached it, one child too late.
             live?.CommitPendingEntryChildren();
+            live?.NoteEntriesBuiltDuringWalk(positionsBefore);
 
             for (var i = 0; i < children.Count; i++)
             {

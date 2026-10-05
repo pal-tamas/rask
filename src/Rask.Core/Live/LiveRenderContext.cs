@@ -435,6 +435,30 @@ public sealed class LiveRenderContext : IDisposable
     // parent because an element pushes no parent scope of its own.
     internal void CommitPendingEntryChildren() => CurrentParent.CommitEntryChildrenIfPending();
 
+    /// <summary>How far the walk's enclosing component has counted its chain-built children.</summary>
+    internal int WalkParentChildPositions => CurrentParent.ChildPositionsInternal;
+
+    /// <summary>
+    ///     Records that the walk built entries on its enclosing component — a children function ran — when
+    ///     its child count moved past <paramref name="positionsBefore" />.
+    /// </summary>
+    /// <remarks>
+    ///     The component then renders for real on every walk instead of serving its cache, because only a
+    ///     real render rewinds the count those entries are matched by; and it is kept out of the clean-subtree
+    ///     replay, which would skip the function altogether.
+    /// </remarks>
+    internal void NoteEntriesBuiltDuringWalk(int positionsBefore)
+    {
+        var parent = CurrentParent;
+        if (parent.ChildPositionsInternal == positionsBefore)
+        {
+            return;
+        }
+
+        parent.MarkBuildsChildrenInWalk();
+        HtmlSerializer.MarkNestedComponent();
+    }
+
     /// <summary>
     ///     Flags the rendering component as reading ambient state and hands it back, so a package
     ///     outside Core can re-render it when that state later changes.

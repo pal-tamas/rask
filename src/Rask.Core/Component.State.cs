@@ -103,5 +103,12 @@ public abstract partial class Component
         // Render() now in flight, so the post-Render commit loop has work to do. (Its partner, "a folding
         // setter changed a value", is a bit on the component itself — every chained tag sets it.)
         public bool HasEntryChildren;
+
+        // An element in this component's subtree built entries during the WALK rather than during Render() —
+        // a form's children function, `Form.Model(m)[f => [ … ]]`. Such entries are numbered on from this
+        // component's child counter, which only a real render resets, so a render served from the cache would
+        // build them all afresh: new instances, new handler ids, and an event already in flight against the
+        // old ids dropped. Set by the walk, cleared by the next real render, read by the cache check.
+        public bool BuildsChildrenInWalk;
     }
 }
