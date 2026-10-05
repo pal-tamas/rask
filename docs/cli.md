@@ -50,7 +50,7 @@ them:
 | `-h` | `--help` (reserved CLI-wide; no command may claim it) |
 | `-p` | `--project` |
 | `-o` | `--output` |
-| `-n` | `--name` |
+| `-n` | `--name` (`rask new`) |
 | `-t` | `--template` |
 | `-f` | `--follow` |
 | `-y` | `--yes` |
@@ -73,6 +73,16 @@ rask db drop --dry-run        # the exact `dotnet ef` command, without the datab
 rask dev --dry-run            # the `dotnet watch` command line and the environment it sets
 rask new Shop --dry-run                                        # the files it would write
 ```
+
+`new` and `dev` print the same plan as a document with `--dry-run --json`:
+
+```bash
+rask new Shop --dry-run --json | jq -r '.files[]'      # template, name, directory, files
+rask dev --dry-run --json | jq '.environment'          # command, arguments, workingDirectory, environment
+```
+
+There `--json` belongs to the dry run: without `--dry-run` it is a usage error (exit `2`), because neither
+command has a document to print once it actually scaffolds or starts the app.
 
 A dry run never prompts — it does nothing, so there is nothing to consent to.
 
@@ -268,6 +278,7 @@ failing: the files on disk are correct either way.
 | `--no-tests` | Leave out the `<Name>.Tests` project — on `server` and `wasm`, the templates that scaffold one. It references the app and [`Rask.Testing`](testing.md) and carries one passing test, `Home_page_greets_the_visitor`, so `dotnet test` works before you have written anything. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips the restore, the build and the migration). |
+| `--json` | With `--dry-run`: print that plan as JSON — `template`, `name`, `directory`, `files` — and nothing else. |
 | `--force` | Scaffold into a directory that already contains files, overwriting on collision. Without it, any existing file the template would overwrite stops the command. |
 | `--no-git` | Don't initialize a git repository (one is created with an initial commit by default). |
 | `--no-restore` | Skip `dotnet restore` (for offline use), and with it the build and the first migration — there is nothing to build against. Without it, a restore failure is reported as a failure: the files are written, but the project won't build until it succeeds. |
@@ -568,6 +579,8 @@ localhost URL that does work.
 | `--once` | Run once without watching (a plain `dotnet run`). |
 | `--no-banner` | Suppress the startup banner. |
 | `--no-host` | Serve on localhost instead of this project's `https://<name>.test` address. |
+| `--dry-run` | Print the `dotnet` command that would run, where, and the environment it sets — and start nothing. |
+| `--json` | With `--dry-run`: print that plan as JSON — `command`, `arguments`, `workingDirectory`, `environment` — and nothing else. |
 
 > **Changed in this release.** `--no-hot-reload` used to mean "a plain `dotnet run`" — it stopped watching
 > altogether, and cleared `DOTNET_WATCH`, which is what the framework keys its own dev-time behaviour off.
@@ -897,11 +910,11 @@ writable `/data`; a custom Dockerfile needs `RUN mkdir -p /data && chown $APP_UI
 
 | Option | Purpose |
 | --- | --- |
-| `--host user@box` | SSH target. Required on the first deploy, then remembered in `.rask/deploy.json`. |
+| `--host <user@host>` | SSH target. Required on the first deploy, then remembered in `.rask/deploy.json`. |
 | `--domain <host>` | Front the app with auto-HTTPS Caddy. Omit to publish `--port` directly. |
 | `--port <n>` | Host port when there's no domain (default `8080`). |
 | `--container-port <n>` | The port your app listens on **inside** the container — what the proxy is pointed at and what the readiness probe hits (default `8080`, which every `rask new` Dockerfile uses). Only needed for a hand-written Dockerfile that exposes something else. Remembered in `.rask/deploy.json`, and recorded on the container so a host running apps on different ports keeps each one's routing correct. |
-| `--name <slug>` | Image/container name (default: the project name). |
+| `--app <name>` | Image/container name (default: the project name). The same flag names the app for `rask db --remote`. |
 | `--project <path>` · `--dockerfile <path>` | The build context / Dockerfile, if not the current project. |
 | `--env KEY=VALUE` · `--env-file <path>` | Runtime environment for the app container (repeat `--env`). |
 | `--health-path <path>` | The path the readiness probe hits before switching traffic (default `/health`). Remembered in `.rask/deploy.json`. |

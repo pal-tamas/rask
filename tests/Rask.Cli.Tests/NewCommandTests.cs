@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
 
@@ -806,6 +807,38 @@ public sealed class NewCommandTests
         Assert.Equal(0, exit);
         var secret = Assert.Single(fs.SecretFiles);
         Assert.EndsWith("/MyApp/" + WebPushAssembly.DevelopmentSettingsFile, secret.Replace('\\', '/'), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Dry_run_as_json_is_the_files_that_would_be_written_and_nothing_else()
+    {
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp", "--dry-run", "--json"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        using var document = JsonDocument.Parse(console.OutText);
+        var root = document.RootElement;
+        Assert.Equal("server", root.GetProperty("template").GetString());
+        Assert.Equal("MyApp", root.GetProperty("name").GetString());
+        Assert.Equal("MyApp", root.GetProperty("directory").GetString());
+        Assert.Contains(Path.Combine("MyApp", "MyApp.csproj"), root.GetProperty("files").EnumerateArray().Select(f => f.GetString()));
+        Assert.False(fs.FileExists("/proj/MyApp/MyApp.csproj"));
+        Assert.Empty(runner.Invocations);
+    }
+
+    [Fact]
+    public async Task Json_without_a_dry_run_is_refused_before_anything_is_written()
+    {
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp", "--json"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("--json only applies to `rask new --dry-run`.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Empty(console.OutText);
+        Assert.False(fs.FileExists("/proj/MyApp/MyApp.csproj"));
+        Assert.Empty(runner.Invocations);
     }
 
     private static (StringConsole Console, FakeFileSystem Fs, FakeProcessRunner Runner, NewCommand Command) Build()

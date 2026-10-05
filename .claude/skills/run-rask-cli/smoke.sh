@@ -104,9 +104,9 @@ echo "==> Deploy scaffolding + preview (hermetic: no host, no docker, no network
 # `deploy` itself needs Docker + SSH + a real box, so it can't run here. Its two offline modes can:
 # --dry-run prints the docker commands, and --github-actions is pure file scaffolding.
 printf 'FROM scratch\n' > "$WORK/Shop/Dockerfile"
-checkin "$WORK/Shop" "deploy --dry-run previews docker"   0 "docker -H ssh://root@box build" -- deploy --host root@box --domain shop.example.com --name shop --dry-run
+checkin "$WORK/Shop" "deploy --dry-run previews docker"   0 "docker -H ssh://root@box build" -- deploy --host root@box --domain shop.example.com --app shop --dry-run
 checkin "$WORK/Shop" "deploy --help groups host setup"    0 "Host setup options"             -- deploy --help
-checkin "$WORK/Shop" "deploy --github-actions"            0 "gh secret set RASK_SSH_PRIVATE_KEY" -- deploy --host root@box.example.com --name shop --github-actions
+checkin "$WORK/Shop" "deploy --github-actions"            0 "gh secret set RASK_SSH_PRIVATE_KEY" -- deploy --host root@box.example.com --app shop --github-actions
 have "$WORK/Shop/.github/workflows/deploy.yml"
 # CI must never provision a host: the generated workflow deploys with --no-setup-host.
 if grep -q -- "rask deploy --no-setup-host" "$WORK/Shop/.github/workflows/deploy.yml"; then
@@ -114,9 +114,9 @@ if grep -q -- "rask deploy --no-setup-host" "$WORK/Shop/.github/workflows/deploy
 else
   echo "  FAIL  generated workflow should deploy with --no-setup-host"; FAIL=$((FAIL+1))
 fi
-checkin "$WORK/Shop" "deploy --github-actions won't clobber" 1 "already exists"             -- deploy --host root@box.example.com --name shop --github-actions
+checkin "$WORK/Shop" "deploy --github-actions won't clobber" 1 "already exists"             -- deploy --host root@box.example.com --app shop --github-actions
 # Contradictory host-setup flags must be caught before anything reaches the network.
-checkin "$WORK/Shop" "deploy rejects a bad --deploy-user" 2 "isn't a valid Linux user name" -- deploy --host root@box --name shop --deploy-user "bad; rm -rf /"
+checkin "$WORK/Shop" "deploy rejects a bad --deploy-user" 2 "isn't a valid Linux user name" -- deploy --host root@box --app shop --deploy-user "bad; rm -rf /"
 
 echo "==> A wrong command line exits 2, names the fix, and guesses what you meant"
 mkdir -p "$WORK/empty"

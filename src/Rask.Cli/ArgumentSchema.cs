@@ -46,8 +46,8 @@ internal sealed class ArgumentSchema
     }
 
     /// <summary>
-    /// Declare a subcommand. <paramref name="aliases"/> resolve to the same verb, so <c>rask g f</c> and
-    /// <c>rask db backup</c> take one path and both are documented.
+    /// Declare a subcommand. <paramref name="aliases"/> resolve to the same verb, so an alias and the
+    /// verb it stands for take one path and both are documented.
     /// </summary>
     public ArgumentSchema Verb(string name, string description, params string[] aliases)
     {
@@ -146,8 +146,8 @@ internal sealed class ArgumentSchema
         }
 
         // A valued option: take the inline value, else consume the next token — but never
-        // swallow a following option/flag (e.g. '--output --auth' must not set output="--auth"
-        // and silently drop --auth). Such a case is a missing value, not a value.
+        // swallow a following option/flag (e.g. '--output --force' must not set output="--force"
+        // and silently drop --force). Such a case is a missing value, not a value.
         var value = inlineValue;
         if (value is null)
         {

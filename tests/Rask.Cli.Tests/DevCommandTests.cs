@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Rask.Cli.Commands;
 
 namespace Rask.Cli.Tests;
@@ -172,6 +173,43 @@ public sealed class DevCommandTests
         var exit = await command.ExecuteAsync(["--bogus"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+    }
+
+    [Fact]
+    public async Task Dry_run_as_json_is_the_command_that_would_run_and_nothing_else()
+    {
+        var console = new StringConsole();
+        var runner = new FakeProcessRunner();
+        var command = new DevCommand(console, runner, SeededServer(), new FakeBrowserLauncher(), "/app");
+
+        var exit = await command.ExecuteAsync(["--dry-run", "--json", "--urls", "http://localhost:5000"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        using var document = JsonDocument.Parse(console.OutText);
+        var root = document.RootElement;
+        Assert.Equal("dotnet", root.GetProperty("command").GetString());
+        var arguments = root.GetProperty("arguments").EnumerateArray().Select(a => a.GetString()).ToArray();
+        Assert.Equal("watch", arguments[0]);
+        Assert.Contains("run", arguments);
+        Assert.Contains(Session, arguments);
+        Assert.Equal("/app", root.GetProperty("workingDirectory").GetString());
+        Assert.Equal("http://localhost:5000", root.GetProperty("environment").GetProperty("ASPNETCORE_URLS").GetString());
+        Assert.Empty(runner.Invocations);
+    }
+
+    [Fact]
+    public async Task Json_without_a_dry_run_is_refused_before_anything_starts()
+    {
+        var console = new StringConsole();
+        var runner = new FakeProcessRunner();
+        var command = new DevCommand(console, runner, SeededServer(), new FakeBrowserLauncher(), "/app");
+
+        var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("--json only applies to `rask dev --dry-run`.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Empty(console.OutText);
         Assert.Empty(runner.Invocations);
     }
 

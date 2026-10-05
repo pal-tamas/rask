@@ -3,8 +3,8 @@
 #
 # Every other CLI test asserts on generated *strings*. These are the only tests that pack this commit's
 # Rask packages to a local feed, drop a generated project on disk, restore it against that feed, and run
-# a real `dotnet build -warnaserror` over the result. They cover every `rask new` flag combination, a
-# multi-entity `rask generate feature`, and the whole docs/tutorial walk-through (chapters 1-8).
+# a real `dotnet build -warnaserror` over the result. They cover every `rask new` template and flag
+# combination, and the whole docs/tutorial walk-through (chapters 1-8).
 #
 # They are opt-in because they pack 15 packages and run several full builds — far too slow for the
 # pre-commit inner loop. The pre-push hook (.githooks/pre-push) runs them, so a scaffolding break is

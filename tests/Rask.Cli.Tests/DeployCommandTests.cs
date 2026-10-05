@@ -259,11 +259,44 @@ public sealed partial class DeployCommandTests
         // No Dockerfile seeded.
         var command = new DeployCommand(console, new FakeFileSystem(), runner, WorkingDir);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("--docker", console.ErrorText);
+    }
+
+    [Theory]
+    [InlineData("--name", "Unknown option '--name'.")]
+    [InlineData("-n", "Unknown option '-n'.")]
+    public async Task The_app_is_named_with_app_and_the_old_name_flag_is_an_unknown_option(string retired, string error)
+    {
+        var runner = new FakeProcessRunner();
+        var console = new StringConsole();
+        var command = Create(new FakeFileSystem(), runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", retired, "shop", "--dry-run"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains(error, console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Run 'rask deploy --help' for details.", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Deploy_and_db_spell_the_app_and_the_host_the_same_way()
+    {
+        var db = new DbCommand(new StringConsole(), new FakeFileSystem(), new FakeProcessRunner(), WorkingDir).OptionSchema!;
+
+        var deploy = Schema();
+
+        foreach (var option in new[] { "app", "host" })
+        {
+            var ours = Assert.Single(deploy.Declared, o => o.LongName == option);
+            var theirs = Assert.Single(db.Declared, o => o.LongName == option);
+            Assert.Equal(theirs.ValueHint, ours.ValueHint);
+            Assert.Equal(theirs.ShortName, ours.ShortName);
+        }
     }
 
     [Fact]
@@ -273,7 +306,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--name", "shop", "--dry-run"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--app", "shop", "--dry-run"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Empty(runner.Invocations);
@@ -289,7 +322,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(fs, runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--port", "9000"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Contains(runner.Invocations, i => !i.Captured && i.Arguments.Contains("-p") && i.Arguments.Contains("9000:8080"));
@@ -317,7 +350,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(fs, runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--port", "9000"], CancellationToken.None);
 
         // The deploy still failed — that is not in question.
         Assert.Equal(1, exit);
@@ -346,7 +379,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(fs, runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--port", "9000"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         Assert.Contains("no previous image", console.ErrorText, StringComparison.OrdinalIgnoreCase);
@@ -364,7 +397,7 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner { CaptureHandler = Captures() };
         var command = Create(fs, runner, new StringConsole());
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--project", "src/Shop", "--env-file", "/proj/.env.prod"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--project", "src/Shop", "--env-file", "/proj/.env.prod"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var config = DeployConfig.Load(fs, WorkingDir);
@@ -380,7 +413,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(fs, new FakeProcessRunner(), console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--env-file", "/proj/.env.prod", "--dry-run"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--env-file", "/proj/.env.prod", "--dry-run"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.DoesNotContain("s3cr3t", console.OutText);         // the secret value is never printed
@@ -423,7 +456,7 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner { CaptureHandler = Captures("demo-green\tdemo\tdemo.example.com\tgreen\n") };
         var command = Create(fs, runner, new StringConsole());
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var runs = runner.Invocations.Where(i => !i.Captured).ToList();
@@ -442,7 +475,7 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner { CaptureHandler = Captures() };
         var command = Create(fs, runner, new StringConsole());
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--env-file", "/proj/.env.prod", "--env", "EXTRA=1"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--env-file", "/proj/.env.prod", "--env", "EXTRA=1"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var run = runner.Invocations.First(i => !i.Captured && i.Arguments.Contains("run"));
@@ -464,7 +497,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--env", "NOEQUALS"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--env", "NOEQUALS"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         Assert.Contains("KEY=VALUE", console.ErrorText);
@@ -477,7 +510,7 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner { CaptureHandler = Captures("shop-blue\tshop\tshop.example.com\tblue\n") };
         var command = Create(fs, runner, new StringConsole());
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var caddyfile = TheCaddyfile(fs);
@@ -500,7 +533,7 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner { CaptureHandler = Captures("demo-blue\tdemo\tdemo.example.com\tblue\n") };
         var command = Create(fs, runner, new StringConsole());
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var runs = runner.Invocations.Where(i => !i.Captured).ToList();
@@ -547,7 +580,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(fs, runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         var runs = runner.Invocations.Where(i => !i.Captured).ToList();
@@ -600,7 +633,7 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner { CaptureHandler = Captures("demo-blue\tdemo\tdemo.example.com\tblue\n") };
         var command = Create(fs, runner, new StringConsole());
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var runs = runner.Invocations.Where(i => !i.Captured).ToList();
@@ -623,7 +656,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(fs, runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         var runs = runner.Invocations.Where(i => !i.Captured).ToList();
@@ -641,7 +674,7 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner { CaptureHandler = Captures("demo-blue\tdemo\tdemo.example.com\tblue\n") };
         var command = Create(fs, runner, new StringConsole());
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo", "--no-health-check"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo", "--no-health-check"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("curlimages/curl:8.11.1"));
@@ -655,7 +688,7 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner { CaptureHandler = Captures("demo-blue\tdemo\tdemo.example.com\tblue\n") };
         var command = Create(fs, runner, new StringConsole());
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo", "--health-path", "/ready"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo", "--health-path", "/ready"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("http://localhost:8080/ready"));
@@ -668,7 +701,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), new FakeProcessRunner(), console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--no-health-check", "--health-path", "/ready"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--no-health-check", "--health-path", "/ready"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("--health-path doesn't apply", console.ErrorText);
@@ -680,14 +713,14 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), new FakeProcessRunner(), console);
 
-        await command.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--name", "shop", "--dry-run"], CancellationToken.None);
+        await command.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--app", "shop", "--dry-run"], CancellationToken.None);
 
         Assert.Contains("curlimages/curl:8.11.1", console.OutText);
 
         var offConsole = new StringConsole();
         var offCommand = Create(new FakeFileSystem(), new FakeProcessRunner(), offConsole);
 
-        await offCommand.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--name", "shop", "--no-health-check", "--dry-run"], CancellationToken.None);
+        await offCommand.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--app", "shop", "--no-health-check", "--dry-run"], CancellationToken.None);
 
         Assert.DoesNotContain("curlimages/curl", offConsole.OutText);
     }
@@ -704,7 +737,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(fs, runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--port", "9000"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("logs"));
@@ -751,7 +784,7 @@ public sealed partial class DeployCommandTests
         };
         var command = Create(fs, runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "root@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "root@box", "--app", "shop", "--port", "9000"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Contains("\"host\": \"deploy@box\"", fs.ReadAllText("/proj/.rask/deploy.json"), StringComparison.Ordinal);
@@ -779,7 +812,7 @@ public sealed partial class DeployCommandTests
         };
         var command = Create(fs, runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "root@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "root@box", "--app", "shop", "--port", "9000"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         Assert.Contains("\"host\": \"deploy@box\"", fs.ReadAllText("/proj/.rask/deploy.json"), StringComparison.Ordinal);
@@ -795,7 +828,7 @@ public sealed partial class DeployCommandTests
         };
         var command = Create(new FakeFileSystem(), runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "root@box", "--name", "shop"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "root@box", "--app", "shop"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         Assert.Contains("--setup-host", console.ErrorText, StringComparison.Ordinal);
@@ -854,7 +887,7 @@ public sealed partial class DeployCommandTests
         var command = Create(fs, runner, console);
 
         var exit = await command.ExecuteAsync(
-            ["--host", "deploy@box", "--name", "shop", "--domain", "shop.example.com", "--container-port", "3000"],
+            ["--host", "deploy@box", "--app", "shop", "--domain", "shop.example.com", "--container-port", "3000"],
             CancellationToken.None);
 
         Assert.Equal(0, exit);
@@ -877,11 +910,11 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner { CaptureHandler = Captures() };
         var command = Create(fs, runner, new StringConsole());
 
-        await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000", "--container-port", "3000"], CancellationToken.None);
+        await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--port", "9000", "--container-port", "3000"], CancellationToken.None);
 
         Assert.Contains("\"containerPort\": 3000", fs.Files[Path.GetFullPath("/proj/.rask/deploy.json")], StringComparison.Ordinal);
 
-        await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000", "--container-port", "8080"], CancellationToken.None);
+        await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--port", "9000", "--container-port", "8080"], CancellationToken.None);
 
         Assert.DoesNotContain("containerPort", fs.Files[Path.GetFullPath("/proj/.rask/deploy.json")], StringComparison.Ordinal);
     }
@@ -910,7 +943,7 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner { CaptureHandler = Captures() };
         var command = Create(new FakeFileSystem(), runner, new StringConsole());
 
-        await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+        await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--port", "9000"], CancellationToken.None);
 
         var run = runner.Invocations.Single(i => i.Arguments.Contains("rask.app=shop"));
         Assert.Contains("rask.managed=true", run.Arguments);
@@ -982,7 +1015,7 @@ public sealed partial class DeployCommandTests
         var command = Create(fs, runner, new StringConsole());
 
         await command.ExecuteAsync(
-            ["--host", "deploy@box", "--name", "shop", "--port", "9000", "--env", "DB_PASSWORD=hunter2", "--env", "API_KEY=abc123"],
+            ["--host", "deploy@box", "--app", "shop", "--port", "9000", "--env", "DB_PASSWORD=hunter2", "--env", "API_KEY=abc123"],
             CancellationToken.None);
 
         var config = fs.Files[Path.GetFullPath("/proj/.rask/deploy.json")];
@@ -1055,7 +1088,7 @@ public sealed partial class DeployCommandTests
         var command = Create(fs, runner, new StringConsole());
 
         await command.ExecuteAsync(
-            ["--host", "deploy@box", "--name", "shop", "--port", "9000", "--env", "DB_PASSWORD=hunter2"],
+            ["--host", "deploy@box", "--app", "shop", "--port", "9000", "--env", "DB_PASSWORD=hunter2"],
             CancellationToken.None);
 
         var run = runner.Invocations.Single(i => i.Arguments.Contains("rask.app=shop"));
@@ -1104,7 +1137,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box:2222", "--name", "shop", "--port", "9000"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box:2222", "--app", "shop", "--port", "9000"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Contains("http://box:9000", console.OutText, StringComparison.Ordinal);
@@ -1122,7 +1155,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), runner, console);
 
-        var exit = await command.ExecuteAsync([.. new[] { "--host", "root@box", "--name", "shop" }, .. flags], CancellationToken.None);
+        var exit = await command.ExecuteAsync([.. new[] { "--host", "root@box", "--app", "shop" }, .. flags], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains(expected, console.ErrorText, StringComparison.Ordinal);
@@ -1163,7 +1196,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(fs, runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box.example.com", "--name", "shop", "--github-actions"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box.example.com", "--app", "shop", "--github-actions"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Empty(runner.Invocations); // pure scaffolding — works offline, before the box exists
@@ -1184,7 +1217,7 @@ public sealed partial class DeployCommandTests
         var command = Create(fs, new FakeProcessRunner(), new StringConsole());
 
         var exit = await command.ExecuteAsync(
-            ["--host", "deploy@box.example.com", "--domain", "shop.example.com", "--name", "shop", "--github-actions"], CancellationToken.None);
+            ["--host", "deploy@box.example.com", "--domain", "shop.example.com", "--app", "shop", "--github-actions"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var config = fs.ReadAllText("/proj/.rask/deploy.json");
@@ -1198,7 +1231,7 @@ public sealed partial class DeployCommandTests
         var fs = new FakeFileSystem();
         var command = Create(fs, new FakeProcessRunner(), new StringConsole());
 
-        await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--github-actions", "--dry-run"], CancellationToken.None);
+        await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--github-actions", "--dry-run"], CancellationToken.None);
 
         Assert.False(fs.FileExists("/proj/.rask/deploy.json"));
     }
@@ -1211,7 +1244,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), new FakeProcessRunner(), console);
 
-        await command.ExecuteAsync(["--host", "deploy@box.example.com:2222", "--name", "shop", "--github-actions"], CancellationToken.None);
+        await command.ExecuteAsync(["--host", "deploy@box.example.com:2222", "--app", "shop", "--github-actions"], CancellationToken.None);
 
         Assert.Contains("ssh-keyscan -p 2222 box.example.com", console.OutText, StringComparison.Ordinal);
         Assert.DoesNotContain("box.example.com:2222 2>", console.OutText, StringComparison.Ordinal);
@@ -1224,7 +1257,7 @@ public sealed partial class DeployCommandTests
         var fs = new FakeFileSystem();
         var command = Create(fs, new FakeProcessRunner(), new StringConsole());
 
-        await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--github-actions"], CancellationToken.None);
+        await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--github-actions"], CancellationToken.None);
 
         // Every line the runner actually executes must opt out of host setup. Comments may still
         // mention `rask deploy --setup-host` — that's the instruction to run it from your own machine.
@@ -1245,7 +1278,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(fs, new FakeProcessRunner(), console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--github-actions", "--dry-run"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--github-actions", "--dry-run"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.False(fs.FileExists("/proj/.github/workflows/deploy.yml"));
@@ -1260,7 +1293,7 @@ public sealed partial class DeployCommandTests
         var console = new StringConsole();
         var command = Create(fs, new FakeProcessRunner(), console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--github-actions"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--github-actions"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         Assert.Equal("# mine, hand-tuned", fs.ReadAllText("/proj/.github/workflows/deploy.yml"));

@@ -115,12 +115,12 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             .Verb("rollback", "Put the previous image back.")
             // No short name: '-h' is reserved for --help across the whole CLI, and a command that claimed
             // it would silently print help instead of running (see CliApplication.RequestsHelp).
-            .Option("host", null, "user@box", "SSH target to build and run on (remembered in .rask/deploy.json).")
+            .Option("host", null, "user@host", "SSH target to build and run on (remembered in .rask/deploy.json).")
             .Option("domain", 'd', "host", "Public domain to serve over HTTPS via Caddy (implies ports 80/443).")
             .Option("port", valueHint: "n", description: "Published port when not using --domain (default: 8080).")
             .Option("container-port", valueHint: "n", description: "Port the app listens on inside the container (default: 8080; remembered).")
             .Option("project", 'p', "path", "Project to deploy (default: found from the current directory).")
-            .Option("name", 'n', "slug", "Container/app name (default: derived from the project).")
+            .Option("app", null, "name", "Container/app name (default: derived from the project).")
             .Option("dockerfile", valueHint: "path", description: "Dockerfile to build (default: ./Dockerfile).")
             .Option("env-file", valueHint: "path", description: "File of KEY=VALUE lines to pass to the container.")
             .MultiOption("env", 'e', "KEY=VALUE", "Environment variable to pass (repeatable).")

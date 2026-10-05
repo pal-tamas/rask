@@ -70,9 +70,9 @@ internal sealed partial class DevCommand(
             .Option("project", 'p', "path", "Project to run (default: the project in the current directory).")
             .Option("urls", valueHint: "url[;url]", description: "URLs the app should listen on (sets ASPNETCORE_URLS).")
             .Option("launch-profile", valueHint: "name", description: "launchSettings profile to use.")
-            // No short name. '-o' is --output CLI-wide (new, generate, db), and it was a *flag* here —
+            // No short name. '-o' is --output CLI-wide (new, db), and it was a *flag* here —
             // so `rask dev -o ./somewhere` silently took the path as a positional instead of rejecting
-            // it. A short that is a value on four commands and a boolean on a fifth is the one collision
+            // it. A short that is a value on other commands and a boolean on this one is the one collision
             // that fails quietly rather than loudly (#601).
             .Flag("open", description: "Open the app in your browser once it is listening (implied on a .test name).")
             .Flag("no-open", description: "Never open a browser.")
@@ -81,7 +81,8 @@ internal sealed partial class DevCommand(
             .Flag("once", description: "Run once without watching (plain 'dotnet run').")
             .Flag("no-banner", description: "Suppress the startup banner.")
             .Flag("no-host", description: "Serve on localhost instead of this project's https://<name>.test address.")
-            .Flag("dry-run", description: "Print the command that would run without starting anything.");
+            .Flag("dry-run", description: "Print the command that would run without starting anything.")
+            .WithJson();
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -91,7 +92,13 @@ internal sealed partial class DevCommand(
             return Fail(parsed.Errors);
         }
 
-        var target = DetectTarget(parsed);
+        var asJson = parsed.HasFlag("json");
+        if (asJson && !parsed.HasFlag("dry-run"))
+        {
+            return Fail(JsonOutput.DryRunOnly(Name));
+        }
+
+        var target = DetectTarget(parsed, announce: !asJson);
         if (target is null)
         {
             return 1;
@@ -117,7 +124,7 @@ internal sealed partial class DevCommand(
         // run that showed only the command line would hide the half people actually come asking about.
         if (parsed.HasFlag("dry-run"))
         {
-            WriteDryRunPlan(target, dotnetArgs, environment);
+            WriteDryRunPlan(target, dotnetArgs, environment, asJson);
             return 0;
         }
 
@@ -141,7 +148,7 @@ internal sealed partial class DevCommand(
     }
 
     /// <summary>The project to run, or null (with the reason reported) when there is none.</summary>
-    private DevTarget? DetectTarget(ParsedArguments parsed)
+    private DevTarget? DetectTarget(ParsedArguments parsed, bool announce)
     {
         var target = DevTarget.Detect(_fileSystem, _workingDirectory, parsed.Option("project"));
         if (target is null)
@@ -152,7 +159,7 @@ internal sealed partial class DevCommand(
             return null;
         }
 
-        if (target.Kind == DevTemplateKind.WasmHosted && parsed.Option("project") is null)
+        if (announce && target.Kind == DevTemplateKind.WasmHosted && parsed.Option("project") is null)
         {
             Console.WriteLine($"Using {target.Name} (the host project).", ConsoleStyle.Dim);
         }
@@ -160,8 +167,15 @@ internal sealed partial class DevCommand(
         return target;
     }
 
-    private void WriteDryRunPlan(DevTarget target, IReadOnlyList<string> dotnetArgs, IReadOnlyDictionary<string, string> environment)
+    private void WriteDryRunPlan(
+        DevTarget target, IReadOnlyList<string> dotnetArgs, IReadOnlyDictionary<string, string> environment, bool asJson)
     {
+        if (asJson)
+        {
+            JsonOutput.Write(Console, DryRunReport(target, dotnetArgs, environment), CliJsonContext.Default.DevDryRunReport);
+            return;
+        }
+
         WriteDryRun("run", $"dotnet {string.Join(' ', dotnetArgs)}");
         WriteDryRun("run it in", target.ProjectDirectory);
         foreach (var (key, value) in environment.OrderBy(e => e.Key, StringComparer.Ordinal))
@@ -169,6 +183,11 @@ internal sealed partial class DevCommand(
             WriteDryRun("set", $"{key}={value}");
         }
     }
+
+    /// <summary>The dry-run plan as the <c>--json</c> document, its environment in the order the text plan lists it.</summary>
+    private static DevDryRunReport DryRunReport(
+        DevTarget target, IReadOnlyList<string> dotnetArgs, IReadOnlyDictionary<string, string> environment) =>
+        new("dotnet", dotnetArgs, target.ProjectDirectory, new SortedDictionary<string, string>(environment.ToDictionary(StringComparer.Ordinal), StringComparer.Ordinal));
 
     /// <summary>
     ///     Runs the host under watch (or once), with the client and island dev servers beside it, and waits

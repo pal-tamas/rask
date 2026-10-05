@@ -89,7 +89,7 @@ public sealed class DeployOpsTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), runner, console);
 
-        var exit = await command.ExecuteAsync(["status", "--host", "deploy@box", "--name", "shop"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["status", "--host", "deploy@box", "--app", "shop"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Contains("https://shop.example.com", console.OutText, StringComparison.Ordinal);
@@ -105,7 +105,7 @@ public sealed class DeployOpsTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), runner, console);
 
-        var exit = await command.ExecuteAsync(["status", "--host", "deploy@box", "--name", "shop"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["status", "--host", "deploy@box", "--app", "shop"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Contains("Nothing deployed", console.OutText, StringComparison.Ordinal);
@@ -118,7 +118,7 @@ public sealed class DeployOpsTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), runner, console);
 
-        await command.ExecuteAsync(["status", "--host", "deploy@box", "--name", "shop"], CancellationToken.None);
+        await command.ExecuteAsync(["status", "--host", "deploy@box", "--app", "shop"], CancellationToken.None);
 
         Assert.Contains("nothing to go back to", console.OutText, StringComparison.Ordinal);
     }
@@ -131,7 +131,7 @@ public sealed class DeployOpsTests
         var runner = new FakeProcessRunner { CaptureHandler = Captures("shop-green\tshop\tshop.example.com\tgreen\t8080\n") };
         var command = Create(new FakeFileSystem(), runner, new StringConsole());
 
-        var exit = await command.ExecuteAsync(["logs", "--host", "deploy@box", "--name", "shop", "--tail", "25"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["logs", "--host", "deploy@box", "--app", "shop", "--tail", "25"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var logs = runner.Invocations.Single(i => i.Arguments.Contains("logs"));
@@ -145,7 +145,7 @@ public sealed class DeployOpsTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), runner, console);
 
-        var exit = await command.ExecuteAsync(["logs", "--host", "deploy@box", "--name", "shop"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["logs", "--host", "deploy@box", "--app", "shop"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         Assert.Contains("isn't running", console.ErrorText, StringComparison.Ordinal);
@@ -161,7 +161,7 @@ public sealed class DeployOpsTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), runner, console);
 
-        var exit = await command.ExecuteAsync(["logs", "--host", "deploy@box", "--name", "shop", "--tail", value], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["logs", "--host", "deploy@box", "--app", "shop", "--tail", value], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("--tail must be", console.ErrorText, StringComparison.Ordinal);
@@ -202,7 +202,7 @@ public sealed class DeployOpsTests
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), runner, console);
 
-        var exit = await command.ExecuteAsync(["rollback", "--host", "deploy@box", "--name", "shop"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["rollback", "--host", "deploy@box", "--app", "shop"], CancellationToken.None);
 
         Assert.Equal(1, exit);
         Assert.Contains("nothing to roll back to", console.ErrorText, StringComparison.Ordinal);
