@@ -271,7 +271,7 @@ rask.setExports(raskWasmExports);
 
 await step("The app threw while starting.", () => runMain());
 
-// runMain resolves only once Program.cs's `await host.RunAsync<App>()` has returned, and the first frame
+// runMain resolves only once Program.cs's `await host.Run<App>()` has returned, and the first frame
 // is pushed synchronously from inside it — so by now a frame has been applied and rask.wasm.js has set
 // this flag. Its absence means the app finished starting without ever painting, which is otherwise
 // indistinguishable from a hang.
@@ -282,5 +282,5 @@ await step("The app threw while starting.", () => runMain());
 if (!window.__raskPainted) {
     reportBootFailure(
         "The app finished starting but never rendered. Check that Program.cs awaits "
-        + "host.RunAsync<App>() and that the app has a route for this URL.");
+        + "host.Run<App>() and that the app has a route for this URL.");
 }

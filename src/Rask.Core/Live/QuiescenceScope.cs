@@ -21,7 +21,7 @@ namespace Rask.Core.Live;
 ///     </para>
 ///     <para>
 ///         Lookup is the <c>AsyncLocal</c> alone. A <c>ThreadStatic</c> beside it outlived the pass that
-///         set it: <c>QuiescentRender.RunAsync</c> begins on a pool thread and awaits, so the thread
+///         set it: <c>QuiescentRender.Run</c> begins on a pool thread and awaits, so the thread
 ///         kept a LIVE render's scope, and a scope-less render landing there next tracked its hooks into
 ///         that stranger until the stranger hit its wave cap (#1108).
 ///     </para>

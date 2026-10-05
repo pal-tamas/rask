@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Live;
 //
 // LifecycleSyncContext.Post schedules the continuation of an async lifecycle hook. The user's method
 // body returns inside that continuation, which transitions the HOOK's Task to Completed — one line
-// BEFORE the StateHasChanged() that paints the resolved data. QuiescentRender.RunAsync waits on the
+// BEFORE the StateHasChanged() that paints the resolved data. QuiescentRender.Run waits on the
 // hook Task, so it could wake in that window, re-render, find nothing pending, and serve.
 //
 // The result was a page carrying its placeholder, at 200, well inside the budget, with nothing marked

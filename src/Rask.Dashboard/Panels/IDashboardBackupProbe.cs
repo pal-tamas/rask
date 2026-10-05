@@ -7,7 +7,7 @@ namespace Rask.Dashboard.Panels;
 /// Postgres. Register an implementation to light up the backup tiles; without one they stay hidden.
 /// <para>
 /// The data it needs is public API: <c>LitestreamStatus.Current</c> and
-/// <c>ISqliteSnapshotStore.ListAsync(ct)</c>.
+/// <c>ISqliteSnapshotStore.List(ct)</c>.
 /// </para>
 /// </summary>
 public interface IDashboardBackupProbe

@@ -38,4 +38,4 @@ host.UsePwa(new WebAppManifest
 });
 // rask:end
 
-await host.RunAsync<App>();
+await host.Run<App>();

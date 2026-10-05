@@ -17,7 +17,7 @@ public class QuiescenceScopeStaleThreadTests
     [Fact]
     public void A_live_scope_begun_by_another_pass_on_this_thread_is_not_current_once_its_flow_has_gone()
     {
-        // #1108. QuiescentRender.RunAsync calls Begin on a pool thread and then awaits: the runtime
+        // #1108. QuiescentRender.Run calls Begin on a pool thread and then awaits: the runtime
         // restores the thread's ExecutionContext when the async method yields, so the AsyncLocal is
         // gone from that thread — but a thread slot stayed behind, pointing at a render that was still
         // waiting. A scope-less synchronous render landing there (Page.Render in a parallel test

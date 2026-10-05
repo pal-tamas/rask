@@ -28,7 +28,7 @@ public static class WasmHostBuilderExtensions
     ///
     /// host.Configure(c => c.Query.Off());
     ///
-    /// await host.RunAsync&lt;App&gt;();
+    /// await host.Run&lt;App&gt;();
     /// </code>
     /// </example>
     public static WasmHostBuilder Configure(this WasmHostBuilder host, Action<RaskWasmOptions> configure)

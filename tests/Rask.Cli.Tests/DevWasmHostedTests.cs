@@ -40,7 +40,7 @@ public sealed class DevWasmHostedTests
               <ItemGroup><PackageReference Include="Rask.Spa.Hosting" Version="1.0.0"/></ItemGroup>
             </Project>
             """);
-        fs.Seed("/app/Client/Program.cs", "await Rask.Wasm.WasmHostBuilder.CreateDefault().RunAsync<App>();");
+        fs.Seed("/app/Client/Program.cs", "await Rask.Wasm.WasmHostBuilder.CreateDefault().Run<App>();");
 
         Assert.Equal(DevTemplateKind.WasmHosted, DevTarget.Detect(fs, "/app", null)!.Kind);
     }

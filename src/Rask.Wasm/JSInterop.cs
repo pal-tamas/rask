@@ -34,7 +34,7 @@ internal static partial class JSInterop
 
     /// <summary>
     ///     Bind the app's hosted services so <c>StopHostedServices</c> can drain them when the page
-    ///     unloads. Called once from <c>WasmHostBuilder.RunAsync</c>. Referenced by name, not by
+    ///     unloads. Called once from <c>WasmHostBuilder.Run</c>. Referenced by name, not by
     ///     <c>cref</c>: the export it names only exists on the browser TFM.
     /// </summary>
     public static void Init(WasmHostedServices hostedServices) => _hostedServices = hostedServices;
@@ -42,7 +42,7 @@ internal static partial class JSInterop
     /// <summary>
     ///     Bind the singleton <see cref="WasmJSRuntime" /> so the <c>[JSExport]</c>
     ///     entry points below can route inbound results / DotNet invocations to it.
-    ///     Called once from <c>WasmHostBuilder.RunAsync</c> after the DI container
+    ///     Called once from <c>WasmHostBuilder.Run</c> after the DI container
     ///     resolves the runtime.
     /// </summary>
     public static void Init(WasmJSRuntime runtime) => _runtime = runtime;

@@ -27,7 +27,7 @@
     compiled a second time for the matching desktop framework (net10.0 for net10.0-browser) into a
     companion project in obj/, and that is what renders. The companion compiles Program.cs TOO —
     deliberately. That file is where the app registers its services, and a page that injects anything
-    would otherwise find nothing registered. WasmHostBuilder.RunAsync sees RASK_PRERENDER_OUT and
+    would otherwise find nothing registered. WasmHostBuilder.Run sees RASK_PRERENDER_OUT and
     prerenders instead of booting, so the app's real entry point drives it and there is no second place
     to keep registrations in sync.
   -->
@@ -176,7 +176,7 @@
 
       <!--
         Program.cs is INCLUDED, unlike the browser companion's. It is where the services are registered,
-        and RunAsync prerenders rather than boots when RASK_PRERENDER_OUT is set.
+        and Run prerenders rather than boots when RASK_PRERENDER_OUT is set.
       -->
       <_RaskPrerenderLine Include="  &lt;ItemGroup&gt;"/>
       <_RaskPrerenderLine Include="    &lt;Compile Include=&quot;$(MSBuildProjectDirectory)\%2A%2A\%2A.cs&quot; /&gt;"/>

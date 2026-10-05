@@ -6,7 +6,7 @@ namespace Rask.Wasm.Diagnostics;
 /// <summary>
 ///     Bridges the framework's dependency-free <see cref="RaskDiagnostics" /> seam to the browser app's
 ///     <c>ILogger</c> pipeline — the WASM sibling of the server's bridge, installed once by
-///     <c>WasmHostBuilder.RunAsync</c>.
+///     <c>WasmHostBuilder.Run</c>.
 /// </summary>
 /// <remarks>
 ///     <para>

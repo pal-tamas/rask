@@ -9,7 +9,7 @@ namespace Rask.Generators.Tests;
 public class RootShellAnalyzerTests
 {
     // Minimal stubs whose full metadata names match the real entry points the analyzer keys on
-    // (Rask.Server.RaskEndpointExtensions.MapRask<T>, Rask.Wasm.WasmHostBuilder.RunAsync<T>), so
+    // (Rask.Server.RaskEndpointExtensions.MapRask<T>, Rask.Wasm.WasmHostBuilder.Run<T>), so
     // the tests don't need to reference the host assemblies. The shell factories (Doctype/Html/
     // Head/Body) are matched by name, so the App declares same-named local helpers.
     private const string EntryStubs = """
@@ -17,7 +17,7 @@ public class RootShellAnalyzerTests
                                       namespace Rask.Server { public static class RaskEndpointExtensions {
                                           public static void MapRask<TApp>(object app) where TApp : Component { } } }
                                       namespace Rask.Wasm { public sealed class WasmHostBuilder {
-                                          public void RunAsync<TApp>() where TApp : Component { } } }
+                                          public void Run<TApp>() where TApp : Component { } } }
                                       """;
 
     private static string App(string renderBody) => $$"""
@@ -103,10 +103,10 @@ public class RootShellAnalyzerTests
     ///     the same mistake, and the half-built page is harder to read than the whole one.
     /// </summary>
     [Fact]
-    public async Task A_WASM_RunAsync_root_that_renders_part_of_the_shell_reports_RASK021()
+    public async Task A_WASM_Run_root_that_renders_part_of_the_shell_reports_RASK021()
     {
         var src = EntryStubs + App("Body();")
-                             + "namespace Demo { class Host { void M() { new Rask.Wasm.WasmHostBuilder().RunAsync<App>(); } } }";
+                             + "namespace Demo { class Host { void M() { new Rask.Wasm.WasmHostBuilder().Run<App>(); } } }";
 
         var d = Assert.Single(await GetDiagnosticsAsync(src));
         Assert.Equal("RASK021", d.Id);

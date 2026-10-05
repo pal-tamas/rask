@@ -66,7 +66,7 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
         //
         // The hook's own Task is not enough, and the gap is exactly one line wide. The user's method
         // body returns inside d(state) below, which transitions that Task to Completed while still
-        // inside this lambda — one line BEFORE StateHasChanged() runs. QuiescentRender.RunAsync waits
+        // inside this lambda — one line BEFORE StateHasChanged() runs. QuiescentRender.Run waits
         // on the hook Task, so it can wake in that window, re-render, find nothing pending and serve
         // the page. The data resolved; the render that would have shown it had not happened yet.
         //

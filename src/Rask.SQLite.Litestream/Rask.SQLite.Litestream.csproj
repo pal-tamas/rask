@@ -25,7 +25,7 @@
   <ItemGroup>
     <!-- Restore verification writes a sentinel into the live database, which means taking its write lock.
          Rask.SQLite owns the non-blocking, fair-interval busy-retry that does that by yielding the thread
-         instead of blocking one inside native SQLite (ExecuteInImmediateTransactionAsync), and brings the
+         instead of blocking one inside native SQLite (ExecuteInImmediateTransaction), and brings the
          Microsoft.Data.Sqlite + patched SQLitePCLRaw bundle the probe needs to read the restored copy
          back. A packable project, so it flows to consumers as an ordinary NuGet dependency. -->
     <ProjectReference Include="..\Rask.SQLite\Rask.SQLite.csproj"/>

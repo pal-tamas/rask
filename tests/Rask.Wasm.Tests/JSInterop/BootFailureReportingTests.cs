@@ -57,7 +57,7 @@ public sealed class BootFailureReportingTests
 
     /// <summary>
     ///     The silent shape: nothing throws, and nothing ever renders. Deterministic rather than a timeout —
-    ///     <c>runMain</c> resolves only after <c>await host.RunAsync&lt;App&gt;()</c> returns, and the first
+    ///     <c>runMain</c> resolves only after <c>await host.Run&lt;App&gt;()</c> returns, and the first
     ///     frame is pushed from inside it, so a boot screen still on the page at that point is a fact, not a
     ///     guess about how slow the network is.
     /// </summary>
