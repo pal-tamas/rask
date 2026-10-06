@@ -25,7 +25,7 @@ namespace Rask.Cli.E2E.Tests;
 ///     <para>
 ///         <b>Cost and gating.</b> This packs the repo's packages, restores, builds, and runs a watch
 ///         session, so it is behind its own <c>RASK_WATCH_E2E=1</c> switch rather than the CLI build gate —
-///         folding it in would slow every pre-push that touches a generator. It also needs
+///         folding it in would slow every run of that gate. It also needs
 ///         <c>RASK_CLI_BUILD_E2E=1</c>'s local feed, which it shares.
 ///     </para>
 ///     <para>

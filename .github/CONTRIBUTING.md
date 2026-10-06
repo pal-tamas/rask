@@ -26,7 +26,7 @@ dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Site.E2E"
 # A single class:
 dotnet test Rask.slnx --filter FullyQualifiedName~SessionUploadStoreTests
 
-# The two gates, as the hooks run them (see "Commits & pull requests" below):
+# The two main gates, exactly as CI runs them (see "Commits & pull requests" below):
 scripts/run-unit-local.sh      # format + everything except the browser E2E
 scripts/run-e2e-local.sh       # build, publish the site, then the browser journeys
 
@@ -73,22 +73,21 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
 ## Commits & pull requests
 
 - Keep PRs focused; include tests; ensure `dotnet build` (warnings-as-errors) and
-  `dotnet test` are green. `dotnet format` runs for you in the `pre-commit` gate below — run it by hand
-  first if you'd rather not wait for the whole gate to tell you.
+  `dotnet test` are green. CI checks `dotnet format` on your pull request — run it by hand first if
+  you'd rather not wait for the run to tell you.
 - **[Conventional Commits](https://www.conventionalcommits.org/)** are required and enforced by
   CI (`commitlint`): `type(scope): subject` with type ∈
   `feat, fix, perf, refactor, docs, test, build, ci, chore, revert`. The local git hooks are **enabled
   automatically on your first `dotnet build`** (a `Directory.Build.targets` target points git at
   `.githooks/`; skipped in CI and for restored packages) — or enable them by hand with
-  `git config core.hooksPath .githooks`. That installs the `commit-msg` (Conventional Commits) hook, the
-  `pre-commit` hook that runs the local **format + unit** gate, and the `pre-push` hook that runs the local
-  **E2E** gate (see below). Hooks are advisory — bypass any with the git no-verify flag,
-  `RASK_SKIP_UNIT=1`, or `RASK_SKIP_E2E=1`.
+  `git config core.hooksPath .githooks`. The hooks take seconds and build nothing: `commit-msg`
+  (Conventional Commits, no attribution trailers), `pre-commit` (the Counter sample is the same on every front door,
+  checked only when `README.md` or `NUGET.md` is staged) and `pre-push` (the attribution check
+  again, over the commits being pushed). Bypass any with the git no-verify flag.
 
   `core.hooksPath` is relative, and git resolves it against the **top level of the worktree you are
-  pushing from** — not the main checkout. Most work here happens in `git worktree`s, so this matters:
-  a change to a hook is exercised by its own push, and the copy that runs is the one on the branch
-  under test. If a branch contains no `.githooks/` at all, no hook runs and nothing reports it.
+  pushing from** — not the main checkout. If a branch contains no `.githooks/` at all, no hook runs
+  and nothing reports it.
 - **No attribution trailers.** Commit messages carry no `Co-authored-by:`, no `Claude-Session:`, and no
   "Generated with …" footer. This is not a style preference: GitHub's contributor list credits
   co-authors as well as authors, so one such footer puts a second account in the repository sidebar,
@@ -98,26 +97,22 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   `core.hooksPath` is set and a fresh clone has not set it. A human `Signed-off-by:` is fine; the
   rule is table tested in `scripts/tests/attribution-guard.test.sh`. (CI lets Dependabot's own
   sign-off through on the pull requests Dependabot opens; the hooks still reject it.)
-- **Tests and gates run locally, not in CI.** The unit/integration suite, both E2E suites and the
-  deterministic benchmark byte-gates all run from `.githooks/`. GitHub does the bare minimum — the
-  things only GitHub can do: `commitlint.yml` (commit messages and the PR title, which is the squash
-  subject and so never passes through a local hook), `pages.yml`, `release.yml` and `nightly.yml`'s
-  prerelease publish. No workflow in this repo runs `dotnet test` or a benchmark, so **nothing but your
-  machine will tell you something broke.**
-- **Format + unit tests — `pre-commit`.** The `pre-commit` hook runs `scripts/run-unit-local.sh` when a
-  commit stages code (`src/`, `tests/`, `Rask.slnx`, `Directory.*`); docs-only commits skip
-  it. The script builds once, runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace +
-  style + analyzers, ~36s), then every test except the browser E2E. The full pass matters because import
-  ordering is caught by nothing else — the warnings-as-errors build enforces the analyzer rules, but
-  sorting using directives is `dotnet format`'s own job, so a misordered using otherwise drifts in unseen.
-  The script first builds `src/*.Generators` in **Debug**, because `dotnet format` evaluates the solution
-  in the default configuration and resolves the generator project references to `bin/Debug/`; without
-  those DLLs no source generator runs and the routing tests fail with CS1503. Run `dotnet format Rask.slnx`
-  by hand at least once after a Release-only build and you'll see the same thing — build the generators in
-  Debug first. Bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`.
-- **E2E runs locally, not in CI.** The browser-journey E2E (`tests/Rask.Site.E2E.Tests`, Playwright)
-  is not part of the CI pipeline. Run it with `scripts/run-e2e-local.sh` (the `pre-push` hook runs it for
-  you on `git push`; bypass a docs-only push with `git push --no-verify` or `RASK_SKIP_E2E=1`).
+- **The gates run in CI, on your pull request.** `ci.yml` runs each gate as its own job: format + unit
+  (`scripts/run-unit-local.sh`), the browser E2E (`scripts/run-e2e-local.sh`), the devtools, browser
+  SQLite and data demo journeys, the CLI build and the templates. Nothing runs them on your machine
+  unless you do. Every job runs one script from `scripts/`, so a red job is reproduced by running the
+  script its log names. `commitlint.yml` checks the commit messages and the PR title (the squash
+  subject, which no local hook sees). Benchmarks run in no workflow — `scripts/run-benchmarks-local.sh`,
+  when a change touches the render path.
+- **Format before you push.** `scripts/run-unit-local.sh` builds once, then runs the full
+  `dotnet format Rask.slnx --verify-no-changes` (whitespace + style + analyzers) beside every test
+  except the browser E2E. The full pass matters because import ordering is caught by nothing else —
+  the warnings-as-errors build enforces the analyzer rules, but sorting using directives is
+  `dotnet format`'s own job. The script first builds `src/*.Generators` in **Debug**, because
+  `dotnet format` evaluates the solution in the default configuration and resolves the generator
+  project references to `bin/Debug/`; without those DLLs no source generator runs and the routing tests
+  fail with CS1503. Run `dotnet format Rask.slnx` by hand after a Release-only build and you'll see the
+  same thing — build the generators in Debug first.
 - **Do not** append `Co-Authored-By` or `Generated-with` footers to commits or PR descriptions.
 - Add a note to [`CHANGELOG.md`](../CHANGELOG.md) under `[Unreleased]` for user-visible changes.
 - User-facing changes must update `src/Rask.Site` and the relevant docs

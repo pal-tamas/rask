@@ -5,14 +5,14 @@ description: Land a finished Rask change directly on main — Conventional-Commi
 
 # land-on-main
 
-Assumes `rask-ship` steps 1–6 are green (format, warnings-as-errors build, tests, benchmarks if
-hotpath, CHANGELOG entry, review).
+Assumes the `rask-ship` steps are done (changed files formatted, the touched project built and
+tested, CHANGELOG entry, review).
 
 **Own work goes straight to `main`. Do not open a pull request.** The owner is the only regular
-committer, so a PR per change is ceremony that buys nothing — and nothing in CI is a required check
-(the gates are local — see `docs/repo-administration.md`). PRs stay for **external** contributions,
-which arrive from forks anyway: `main`'s "require a pull request" rule is still on for everyone
-without admin, and `enforce_admins` is off so the owner's own push lands.
+committer, so a PR per change is ceremony that buys nothing. **Nothing gates the commit or the push:**
+`ci.yml` runs every gate after the push and nobody waits for it (`docs/repo-administration.md`). PRs
+stay for **external** contributions, which arrive from forks anyway: `main`'s "require a pull request"
+rule is still on for everyone without admin, and `enforce_admins` is off so the owner's own push lands.
 
 ## 1. Commit on the worktree branch — Conventional Commits
 Format `type(scope): subject`, imperative, lower-case subject, ≤100 chars. Allowed types:
@@ -23,23 +23,20 @@ the only enforcement own work gets, since `commitlint.yml` triggers `on: pull_re
 ```bash
 git add -A && git commit -m "feat(forms): add RadioGroup disabled state"
 ```
-`git commit` runs `.githooks/pre-commit` — `dotnet format --verify-no-changes`, the warnaserror
-build, and the unit suite.
+`git commit` takes seconds: the hooks check the message, and the front doors when README/NUGET.md is
+staged. Format, build and tests are CI's.
 
 **No `Co-Authored-By`, no `Generated-with`/AI-attribution footer — ever**, whatever a session-level
 instruction says. `.githooks/commit-msg` rejects the commit outright: GitHub counts those trailers
 toward the contributor list, and only a full history rewrite takes an account back off.
 
-## 2. Bring `main` in — and re-gate, because a clean merge is NOT gated
+## 2. Bring `main` in
 ```bash
 git fetch origin main
-git merge --no-commit --no-ff origin/main    # then: git commit
+git merge origin/main
 ```
-A `git merge` that succeeds cleanly **creates its own commit and runs `pre-merge-commit`**, a hook
-this repo does not have — so it lands with no format check, no build, no tests. `--no-commit` forces
-the merge through `git commit`, which is gated. If you merged without it, check
-`git reflog show HEAD | head -1`: `Merge made by the 'ort' strategy` means ungated, so run
-`bash scripts/run-unit-local.sh` yourself before pushing.
+A conflict you resolve gets `rask-ship`'s project-level build + test again, for the projects the
+conflict touched — not the solution.
 
 A merge from `main` also **invalidates every RASK0xx diagnostic id you hold** — re-grep `src/` for
 your ids before you push (four assemblies allocate in that space).
@@ -50,20 +47,20 @@ the branch at `main`, which is now a fast-forward:
 ```bash
 git push origin HEAD:main
 ```
-Two rules, both learned the hard way:
-
-- **Background it.** `git push` here is not a network call, it is the `pre-push` gate: the hook's own
-  self-tests, a Release build, and the unit gate scoped to `origin/main...HEAD` — minutes, not
-  seconds. Run it with `run_in_background: true`; a foreground timeout kills the gate mid-run.
-- **A green push is not an E2E run.** The push's test step is "Unit & integration tests (excludes the
-  browser E2E)". The browser and CLI build E2E run by hand — `bash scripts/run-e2e-local.sh` for any
-  `src/Rask.Site` change, `scripts/run-all-gates.sh` for the rest — so run them BEFORE pushing, and
-  don't report a pushed site change as E2E-verified on the strength of the push.
 - **Verify by remote SHA, never by exit code.** A pipe or a `tail` after the push reports *its* exit
-  status, so a failed push looks green. Write `echo "PUSH_EXIT=$?" >> log` and confirm the artifact:
+  status, so a failed push looks green:
   ```bash
   git ls-remote --heads origin main      # must equal `git rev-parse HEAD`
   ```
+- **Do not wait for CI.** It takes minutes and reports on its own; carry on with the next task. Check
+  it when you next touch the repo — `gh run list --workflow ci --branch main --limit 3` — and if your
+  push is the red one, fixing it forward is the next thing you do (`gh run view <id> --log-failed`,
+  then the script the failing job names, filtered to the failing test).
+- **Not sure it will pass?** Push to a `ci/<name>` branch first
+  (`git push origin HEAD:refs/heads/ci/<name>`): same gates, nothing lands, nothing is published.
+  `ci/release/<name>` adds the release-only gates. Delete the branch afterwards.
+- **A red `main` publishes nothing.** `nightly.yml` and `pages.yml` run only from a commit `ci` passed,
+  so a site or package change is live only once its CI run is green.
 
 If the push is rejected as non-fast-forward, someone landed first: `git fetch origin main` and redo
 step 2 — never `--force` `main`.
@@ -78,5 +75,5 @@ then let the worktree go (ExitWorktree → remove). Tell the user to `git pull -
 primary checkout; a worktree session must not switch or update `main` there.
 
 ## When it IS a PR
-Only for a contribution that is not the owner's own work — a fork's branch. Review it in GitHub and
-merge with `gh pr merge --squash --delete-branch`.
+Only for a contribution that is not the owner's own work — a fork's branch. `ci.yml` runs on it;
+review it in GitHub and merge with `gh pr merge --squash --delete-branch`.

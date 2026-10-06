@@ -1,6 +1,6 @@
 ---
 name: rask-ship
-description: The Rask "definition of done" gate. Use before committing or landing any change in the Rask repo — it formats with dotnet format (.editorconfig), enforces a warnings-as-errors analyzer-clean build, requires unit tests for new features and E2E tests for site changes, runs benchmarks for framework/render-hotpath changes, updates the CHANGELOG, reviews for security/perf/memory, then lands the change on main directly (no pull request).
+description: The Rask "definition of done". Use before committing or landing any change in the Rask repo — it formats the changed files, builds and tests the touched project warnings-as-errors (the full gates run in CI after the push, never locally), requires unit tests for new features and E2E tests for site changes, runs benchmarks for framework/render-hotpath changes, updates the CHANGELOG, reviews for security/perf/memory, then lands the change on main directly (no pull request).
 ---
 
 # rask-ship — definition-of-done gate
@@ -26,24 +26,25 @@ Look at `git status` / `git diff --stat` and bucket the change:
 
 The bucket decides whether steps 3/3b/4 apply.
 
-## 1. Format + analyzers
-```bash
-dotnet format Rask.slnx                      # applies .editorconfig style + analyzer fixers
-dotnet format Rask.slnx --verify-no-changes  # must exit 0
-```
-The `pre-commit` gate (`scripts/run-unit-local.sh`) runs the verify itself, so this step is a fast
-pre-check, not the last line of defence. Run the full pass — not `dotnet format whitespace`: import
-ordering is caught by `dotnet format` alone, never by the warnings-as-errors build.
+## The rule that keeps this fast: the SOLUTION is CI's, the PROJECT is yours
+**Never build, test or format `Rask.slnx` locally, and never run a gate script** (`run-unit-local.sh`,
+`run-e2e-local.sh`, `run-all-gates.sh`) as part of shipping. Every worktree doing that at once is what
+turned a one-minute gate into ten. `ci.yml` runs all of it, each gate its own job, after the push.
+Locally you prove the thing you changed, in the project you changed, and move on.
 
-If it reports CS1503 in the routing tests, the generators are missing from `bin/Debug` — `dotnet format`
-evaluates the solution in the default configuration. Fix it, don't work around it:
-```bash
-for p in src/*.Generators/*.csproj; do dotnet build "$p" -c Debug --nologo -v quiet; done
-```
+Before you start: `gh run list --workflow ci --branch main --limit 3`. A red `main` is fixed first —
+read the failing job (`gh run view <id> --log-failed`), reproduce it with the script the job names.
 
-## 2. Clean build — warnings as errors
+## 1. Format the files you changed
 ```bash
-dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true
+dotnet format src/Rask.X/Rask.X.csproj --include <the .cs files you changed>
+```
+The project, not the solution, and only your files. CI runs the full `--verify-no-changes`; import
+ordering is caught by `dotnet format` alone, never by the build, so do not skip this.
+
+## 2. Build the project you touched — warnings as errors
+```bash
+dotnet build src/Rask.X -c Release -warnaserror
 ```
 Zero warnings: .NET analyzers (CAxxxx), Meziantou (MAxxxx), Roslynator (RCSxxxx), Sonar (Sxxxx),
 banned APIs (RS0030), code-style (IDExxxx), nullable, and Rask's own RASK0xx generators. FIX a finding;
@@ -73,10 +74,11 @@ can't reach the path (E2E is heavy). **Any `src/Rask.Site` change requires an E2
 
 Run:
 ```bash
-dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Site.E2E"   # fast inner loop
-# the site changed → the browser suite, which needs the published bundle:
-bash scripts/run-e2e-local.sh
+dotnet test tests/Rask.X.Tests --filter FullyQualifiedName~TheClassYouTouched
 ```
+The rest of the unit suite and every browser journey run in CI after the push — write the journey,
+do not run the suite. Reproduce a red E2E job with `RASK_E2E_FILTER=<test> bash scripts/run-e2e-local.sh`.
+
 The E2E suite drives ONE published app now (`src/Rask.Site`), served by a plain static host the way
 GitHub Pages serves it — so it must be published before it can be driven, which is what that script
 does. `SiteExampleTests` covers the landing page, `WasmExampleTests` and `WasmIslandsExampleTests` the
@@ -106,7 +108,7 @@ Changed/Fixed/Security/Performance/...`) in the same commit.
 Run the **`rask-review`** skill on the diff and address findings before submitting.
 
 ## 7. Land it on `main`
-Run the **`land-on-main`** skill: commit, merge `origin/main` in (with `--no-commit`, or the merge
-lands ungated), then `git push origin HEAD:main`. **Do not open a pull request** — PRs are for
+Run the **`land-on-main`** skill: commit, merge `origin/main` in, `git push origin HEAD:main` — seconds,
+nothing gates it. CI reports afterwards; do not wait for it. **Do not open a pull request** — PRs are for
 external contributions only. Never add a `Co-Authored-By` or `Generated-with` footer —
 `.githooks/commit-msg` rejects it.

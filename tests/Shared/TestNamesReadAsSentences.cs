@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace Rask.Tests.Conventions;
 
 // Linked into every test project by tests/Directory.Build.props, so each project checks its own tests and the
-// check runs exactly when that project does — the pre-commit gate runs only the projects a change touches.
+// check runs exactly when that project does — a scoped unit gate runs only the projects a change touches.
 //
 // A test's name is the sentence the runner prints and the first thing a reader of a failure sees, so it says
 // what the test proves in plain English: `Remember_loads_once_then_serves_from_the_cache`, not

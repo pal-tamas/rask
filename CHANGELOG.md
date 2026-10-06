@@ -7,6 +7,23 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
+  keeps the front-door check, `pre-push` the attribution guard. `ci.yml` runs the format check, the
+  warnings-as-errors build, the unit suite, the browser E2Es, the CLI build and the templates as
+  separate jobs after each push to `main`, and `nightly.yml` and `pages.yml` publish only from a commit
+  it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
+  included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
+  unchanged and still run by hand; each CI job is one of them.
+
+### Fixed
+
+- **Rask.SQLite.Litestream: two projects building for the first time at once no longer break each
+  other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
+  with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
+  verifies and unpacks in a directory of its own and moves the binary into the cache.
+
 ### Removed
 
 - **Docs: the "ASP.NET Identity" section of `docs/authentication-providers.md` is gone.** `Rask.Auth` has

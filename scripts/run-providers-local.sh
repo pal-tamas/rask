@@ -7,9 +7,10 @@
 # the session settings survive the pool's reset, that bulk insert spells its SQL the provider's way, and that
 # the cache's insert-then-update survives a server that aborts a transaction at its first error.
 #
-# Deliberately NOT part of scripts/run-unit-local.sh: that one is both git hooks, and requiring a Docker
-# daemon on every commit is how a gate ends up permanently skipped. The suite is a *.E2E.Tests project, so the
-# unit gate excludes it by name; this script is what runs it. Registered in scripts/run-all-gates.sh.
+# Deliberately NOT part of scripts/run-unit-local.sh: requiring a Docker daemon for the gate everybody runs by
+# hand is how a gate ends up permanently skipped. The suite is a *.E2E.Tests project, so the unit gate excludes
+# it by name; this script is what runs it. Registered in scripts/run-all-gates.sh, and run by CI before a
+# release and on a ci/release/** branch (.github/workflows/gates.yml).
 #
 # Requirements: a `docker` CLI and a running daemon. Every fact whose server is not reachable reports SKIPPED,
 # never PASSED.
