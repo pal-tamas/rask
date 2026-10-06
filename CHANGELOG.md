@@ -922,6 +922,13 @@ them until tagged releases begin.
 
 ### Security
 
+- **An island is loaded from the page's own origin only.** `rask-external.js` fetched whatever URL an
+  element's `manifest` attribute named and imported the chunk it listed, so an app rendering sanitized user
+  HTML through a sanitizer that keeps unknown elements could be handed
+  `<rask-external manifest="https://elsewhere.example/m.json">`. A manifest or chunk on another origin is now
+  refused with a console error; the loopback island dev server is the one exception, and only while
+  `rask dev` has stamped it on the page. A `RaskExternalPublicBase` or `RaskExternalManifestUrl` naming
+  another origin fails the build — a CDN-hosted island bundle was never documented and is not supported.
 - **A freshly scaffolded Solid island passes `npm audit`.** `rask new --islands solid` wrote `solid-js`
   `^1.9.15`, whose pinned `seroval` carries two critical advisories. An island fragment can now declare npm
   `overrides`, which the CLI merges into the app's `package.json`, and Solid's takes `seroval` and

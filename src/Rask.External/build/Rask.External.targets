@@ -270,6 +270,18 @@
              Text="Rask.External: build/Rask.External.Tasks.dll was built against a different Rask.External.targets, so the island targets are skipped for this build. The ProjectReference rebuilds it now; build again and they run. (Delete build/Rask.External.Tasks.dll if it persists.)"/>
   </Target>
 
+  <!--
+    The client loads a manifest and its chunks from the page's own origin and refuses any other (#1183), so
+    a base on another host builds a bundle no page will ever mount. Said here, where the property is set,
+    rather than as a console error in a browser.
+  -->
+  <Target Name="_RaskExternalCheckPublicBase" BeforeTargets="CoreCompile" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Error Condition="$(RaskExternalPublicBase.Contains('://')) OR $(RaskExternalPublicBase.StartsWith('//'))"
+           Text="Rask.External: RaskExternalPublicBase is '$(RaskExternalPublicBase)', which names another origin. Islands are loaded from the origin that serves the page, so the base has to be a path on it — '/_rask/external/' by default."/>
+    <Error Condition="$(RaskExternalManifestUrl.Contains('://')) OR $(RaskExternalManifestUrl.StartsWith('//'))"
+           Text="Rask.External: RaskExternalManifestUrl is '$(RaskExternalManifestUrl)', which names another origin. Islands are loaded from the origin that serves the page, so the manifest has to be a path on it."/>
+  </Target>
+
   <Target Name="_RaskExternalWritePropTypes"
           AfterTargets="CoreCompile"
           DependsOnTargets="ResolveProjectReferences;_RaskExternalPairLitFiles;_RaskExternalFindPackageIslands;_RaskExternalCheckTaskStamp"

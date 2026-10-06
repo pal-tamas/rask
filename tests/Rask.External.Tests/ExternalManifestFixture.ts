@@ -80,28 +80,57 @@ globalThis.MutationObserver = class {
 };
 globalThis.IntersectionObserver = undefined;
 
-// Each island's chunk is a REAL module, imported for real: a data: URL Node can evaluate. Nothing
-// about the resolve path is stubbed except `fetch`, so what is exercised is the production code that
-// reads the manifest attribute, picks a manifest, fetches it and looks the name up in it.
+// Each island's chunk is a REAL module, imported for real. Nothing about the resolve path is stubbed
+// except `fetch`, so what is exercised is the production code that reads the manifest attribute, picks
+// a manifest, fetches it, looks the name up in it and decides whether the chunk may be imported.
+//
+// The page lives at https://app.test, and node cannot import an https: URL — so a resolve hook stands
+// in for the network: every URL `served` below resolves to a data: module, and anything else fails
+// the way a request nobody answers would. A chunk the runtime refuses never reaches the hook at all.
+import {registerHooks} from "node:module";
+
+globalThis.location = new URL("https://app.test/dashboard");
 globalThis.__raskMounted = [];
 
-function chunk(island) {
-    return "data:text/javascript," + encodeURIComponent(
+const served = new Map<string, string>();
+
+function chunk(url, island) {
+    served.set(url, "data:text/javascript," + encodeURIComponent(
         "export default {" +
         `mount() { globalThis.__raskMounted.push(${JSON.stringify(island)}); return {}; },` +
         "update(handle) { return handle; }," +
-        "unmount() {} }");
+        "unmount() {} }"));
+    return url;
 }
+
+registerHooks({
+    resolve(specifier, context, next) {
+        const module = served.get(specifier);
+        return module ? {url: module, shortCircuit: true} : next(specifier, context);
+    },
+});
 
 // Two manifests, each holding an island the other does not. Serving the wrong one is therefore not a
 // near miss -- the name is simply absent and the resolve reports it.
 const APP_MANIFEST = "/_rask/external/manifest.json";
 const LIB_MANIFEST = "/_content/Acme.Ui/_rask/external/manifest.json";
 
+// What a page must NOT be able to load an island from (#1183), and the one other origin it may.
+const ELSEWHERE_MANIFEST = "https://elsewhere.example/manifest.json";
+const DEV_SERVER = "http://localhost:5174";
+served.set(DEV_SERVER + "/@vite/client", "data:text/javascript,");
+
 const tables = {
-    [APP_MANIFEST]: {Chart: chunk("Chart")},
-    [LIB_MANIFEST]: {Gauge: chunk("Gauge")},
+    [APP_MANIFEST]: {
+        Chart: chunk("https://app.test/_rask/external/assets/Chart.js", "Chart"),
+        Leak: chunk("https://elsewhere.example/Leak.js", "Leak"),
+        Inline: "data:text/javascript,export default {}",
+        Live: chunk(DEV_SERVER + "/@fs/app/Live.entry.ts", "Live"),
+    },
+    [LIB_MANIFEST]: {Gauge: chunk("/_content/Acme.Ui/_rask/external/assets/Gauge.js", "Gauge")},
+    [ELSEWHERE_MANIFEST]: {Evil: chunk("https://elsewhere.example/Evil.js", "Evil")},
 };
+served.set("https://app.test/_content/Acme.Ui/_rask/external/assets/Gauge.js", served.get(tables[LIB_MANIFEST].Gauge));
 
 const fetched = [];
 globalThis.fetch = (url) => {
@@ -123,22 +152,52 @@ body.appendChild(makeEl("rask-external", {name: "Gauge", props: "{}", manifest: 
 // element.
 body.appendChild(makeEl("rask-external", {name: "Gauge", props: "{}", manifest: LIB_MANIFEST}));
 
-const errors = [];
 const consoleError = console.error;
-console.error = (...args) => errors.push(args.map(String).join(" "));
 
-const stop = runtime.start(globalThis.document);
-await new Promise((r) => setTimeout(r, 0));
-await new Promise((r) => setTimeout(r, 0));
-await new Promise((r) => setTimeout(r, 0));
+// Runs the runtime over whatever is on the page now and returns what it reported.
+async function settle() {
+    const reported = [];
+    console.error = (...args) => reported.push(args.map(String).join(" "));
 
-console.error = consoleError;
-stop && stop();
+    const stop = runtime.start(globalThis.document);
+    for (let turn = 0; turn < 6; turn++) {
+        await new Promise((r) => setTimeout(r, 0));
+    }
+
+    console.error = consoleError;
+    stop && stop();
+    return reported;
+}
+
+const errors = await settle();
+const mountedNames = [...globalThis.__raskMounted];
+
+// Then the islands a page must refuse: a manifest on another origin, a same-origin manifest naming a
+// chunk on another origin, and one naming an inline module. With no dev server stamped on the page,
+// the dev server's own chunk is just another foreign origin.
+body.appendChild(makeEl("rask-external", {name: "Evil", props: "{}", manifest: ELSEWHERE_MANIFEST}));
+body.appendChild(makeEl("rask-external", {name: "Leak", props: "{}"}));
+body.appendChild(makeEl("rask-external", {name: "Inline", props: "{}"}));
+const early = body.appendChild(makeEl("rask-external", {name: "Live", props: "{}"}));
+
+const refusals = await settle();
+const mountedAfterRefusals = [...globalThis.__raskMounted];
+
+// Under `rask dev` the server stamps the island dev server on <body>, and its chunks load.
+early.remove();
+body.setAttribute("data-rask-islands-dev", DEV_SERVER);
+body.appendChild(makeEl("rask-external", {name: "Live", props: "{}"}));
+
+const devErrors = (await settle()).filter((e) => e.includes("Live"));
 
 process.stdout.write(JSON.stringify({
     fetched,
     appFetches: fetched.filter((u) => u === APP_MANIFEST).length,
     libFetches: fetched.filter((u) => u === LIB_MANIFEST).length,
-    mountedNames: globalThis.__raskMounted,
+    mountedNames,
     errors,
+    refusals,
+    mountedAfterRefusals,
+    mountedUnderDev: globalThis.__raskMounted.slice(mountedAfterRefusals.length),
+    devErrors,
 }) + "\n");
