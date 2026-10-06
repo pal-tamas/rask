@@ -67,6 +67,12 @@ await browser.close();
 // Not compared: what the surrounding docs page decides rather than the component (where a top-level
 // node sits, how wide a stretched one is), and the two the box already states.
 const IGNORED = new Set(['width', 'height']);
+// Flux's own custom elements, which its script upgrades, and the native element Rask.Ui writes in their
+// place because the platform already has the behaviour: a [popover] opens from `popovertarget` alone.
+const NATIVE = {
+  'ui-dropdown': 'div', 'ui-context': 'div', 'ui-menu': 'div', 'ui-submenu': 'div',
+  'ui-menu-radio-group': 'div', 'ui-menu-checkbox-group': 'div', 'ui-menu-radio': 'button', 'ui-menu-checkbox': 'button',
+};
 const limit = flag('all') ? Infinity : 12;
 let failures = 0;
 for (const scheme of ['light', 'dark']) {
@@ -121,25 +127,35 @@ function mark(node, prefix) {
 }
 
 function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
-  if (a.tag !== b.tag) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
-  if (a.text !== b.text && a !== rootA) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
+  // A stand-in for a component that is not rebuilt yet (`data-parity-skip` on the Rask side): it has to
+  // take the same room in the same place, and what it looks like inside is that component's own page.
+  const standIn = 'data-parity-skip' in b.attrs;
+  if ((NATIVE[a.tag] ?? a.tag) !== b.tag && !standIn) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
+  if (a.text !== b.text && a !== rootA && !standIn) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
 
+  // A node that is not displayed has no box: its rectangle is the viewport's corner, which says how far
+  // each page is scrolled and nothing about the node.
+  const displayed = a.box[2] > 0 || a.box[3] > 0 || b.box[2] > 0 || b.box[3] > 0;
   const size = (n, i) => Math.abs(a.box[i] - b.box[i]) > 0.6;
   if (size(a, 2) || size(a, 3)) diffs.push(`${where}: size ${a.box[2]}x${a.box[3]} vs ${b.box[2]}x${b.box[3]}`);
-  if (a !== rootA) {
+  if (a !== rootA && displayed) {
     const off = (n, r, i) => n.box[i] - r.box[i];
     if (Math.abs(off(a, rootA, 0) - off(b, rootB, 0)) > 0.6 || Math.abs(off(a, rootA, 1) - off(b, rootB, 1)) > 0.6) {
       diffs.push(`${where}: offset ${fix(off(a, rootA, 0))},${fix(off(a, rootA, 1))} vs ${fix(off(b, rootB, 0))},${fix(off(b, rootB, 1))}`);
     }
   }
 
+  if (standIn) return;
   compareStyles(a.style, b.style, where, diffs);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
     else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
   }
 
-  for (const state of ['hover', 'active', 'focus-visible']) {
+  // A node with no box cannot be hovered, pressed or focused, so a state forced onto it says nothing — and
+  // inside a closed menu it would say something false: Flux lights a row from script (`data-active`), where
+  // Rask.Ui has `:hover`. scripts/flux/parity-menu.mjs compares the rows of an OPEN menu under a real pointer.
+  for (const state of displayed ? ['hover', 'active', 'focus-visible'] : []) {
     const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
     const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};
     for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) {
@@ -173,7 +189,8 @@ function compareStyles(x, y, where, diffs) {
 function same(x, y) {
   if (x === y) return true;
   if (x === undefined || y === undefined) return false;
-  const round = v => v.replace(/-?\d*\.\d+(e-?\d+)?/g, n => String(Math.round(Number(n) * 1000) / 1000));
+  // `none` is a hue that has no say (a gray's): a minifier writes it for the 0 the source had.
+  const round = v => v.replace(/-?\d*\.\d+(e-?\d+)?/g, n => String(Math.round(Number(n) * 1000) / 1000)).replace(/ none\)/g, ' 0)');
   return round(x) === round(y);
 }
 

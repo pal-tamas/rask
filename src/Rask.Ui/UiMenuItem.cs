@@ -1,30 +1,31 @@
+using Rask.Core.Routing;
+
 namespace Rask;
 
 /// <summary>
-/// One entry in a <see cref="UiMenu" /> or a <see cref="UiDropdown" />.
+/// One action in a <see cref="UiMenu" />. Flux UI's <c>flux:menu.item</c>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Inside a dropdown it is a <c>menuitem</c> the keyboard cursor can land on: it registers with the dropdown as
-/// it renders, carries the id the menu's <c>aria-activedescendant</c> names, and marks itself
-/// <c>data-highlighted</c> while the cursor is on it. Picking it closes the menu unless <see cref="KeepOpen" />
-/// says otherwise. Outside one — a navigation list — it is an ordinary link or button, with no menu roles.
+/// Its children are its words. It is a <c>menuitem</c> the keyboard cursor can land on, and acts the Rask way:
+/// <see cref="OnClick" /> runs a handler, <see cref="Href" /> follows a link. Picking it closes the menu unless
+/// it, or the menu, says <see cref="KeepOpen" />.
 /// </para>
-/// <para>
-/// <c>data-highlighted</c>, not Flux's <c>data-active</c>, because <see cref="Active" /> already means "the page
-/// being shown" here.
-/// </para>
+/// <code>
+/// Ui.MenuItem.Icon(Ui.IconName.PencilSquare).Kbd("⌘S").OnClick(Save)["Save"]
+/// Ui.MenuItem.Danger.Icon(Ui.IconName.Trash).OnClick(Delete)["Delete"]
+/// </code>
 /// </remarks>
 public sealed partial class UiMenuItem : Component
 {
-    public new required string Text { get; set; }
-
-    public string? Href { get; set; }
-
+    /// <summary>An icon at the start of the row.</summary>
     public Ui.IconName? Icon { get; set; }
 
     /// <summary>An icon at the end of the row.</summary>
     public Ui.IconName? IconTrailing { get; set; }
+
+    /// <summary>Which drawing of the icons to use. The 20px <see cref="Ui.IconVariant.Mini" /> unless this says otherwise.</summary>
+    public Ui.IconVariant? IconVariant { get; set; }
 
     /// <summary>
     ///     A keyboard shortcut shown at the end of the row — <c>"⌘S"</c>. Display only: it teaches the shortcut,
@@ -32,23 +33,26 @@ public sealed partial class UiMenuItem : Component
     /// </summary>
     public string? Kbd { get; set; }
 
-    /// <summary><see cref="Ui.Tone.Error" /> for a destructive item — Flux's <c>variant="danger"</c>.</summary>
-    public Ui.Tone? Tone { get; set; }
+    /// <summary>Words at the end of the row — a count, a state.</summary>
+    public string? Suffix { get; set; }
 
-    /// <summary>Shown but not pickable. The keyboard cursor skips it.</summary>
+    /// <summary><see cref="Ui.MenuItemVariant.Danger" /> for a destructive action.</summary>
+    public Ui.MenuItemVariant? Variant { get; set; }
+
+    /// <summary>Shown but not pickable. The keyboard cursor steps over it.</summary>
     public bool? Disabled { get; set; }
 
-    /// <summary>Keeps the dropdown open after this item is picked.</summary>
+    /// <summary>Keeps the menu open after this item is picked.</summary>
     public bool? KeepOpen { get; set; }
 
-    /// <summary>The page this entry leads to is the page being shown. Writes <c>aria-current="page"</c>.</summary>
-    public bool? Active { get; set; }
+    /// <summary>Where the item leads. In-app navigation for a generated route; an ordinary link for a string.</summary>
+    public RouteUrl? Href { get; set; }
 
     public Callback OnClick { get; set; }
 
     public string? Class { get; set; }
 
-    // Registration happens in Render, so a cached render would drop out of the dropdown's cursor.
+    // Registration happens in Render, so a cached render would drop out of the menu's cursor.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
@@ -56,87 +60,56 @@ public sealed partial class UiMenuItem : Component
     protected override Component? Render()
     {
         var level = Context.Get<UiMenuLevel>();
-        if (level?.Scope.Hides(Text) == true)
+        var label = UiMenuRow.Label(Children);
+        if (level?.Scope.AsOptions == true)
         {
-            // Not rendered and not registered, so the keyboard cursor can never land on a command out of sight.
-            return null;
+            // Inside Ui.Command, which is still drawn the old way until it is rebuilt on Flux's own item.
+            return UiCommandRows.Option(level, label, Icon, Kbd, Href, Disabled == true, OnClick, Class);
         }
 
-        var ordinal = level?.Scope.Register(level.Parent, Text, Disabled == true, isSub: false) ?? -1;
-        var content = Row(Icon, Text, Kbd, IconTrailing, indicator: null);
-
-        Component inner;
-        if (Href is { } href && Disabled != true)
-        {
-            var link = A.Href(href).Class(ItemClass(level, ordinal));
-            inner = Decorate(link, level, ordinal)[content];
-        }
-        else
-        {
-            var button = Button.Type(ButtonType.Button).Class(ItemClass(level, ordinal)).Disabled(Disabled == true && level is null);
-            if (Disabled != true)
-            {
-                button = button.OnClick(OnClick);
-            }
-
-            inner = Decorate(button, level, ordinal)[content];
-        }
-
-        return Li.Class(Class).Role(level is null ? null : "none")[inner];
-    }
-
-    private string ItemClass(UiMenuLevel? level, int ordinal) =>
-        UiClass.Compose(
-            Active == true ? "menu-active" : "",
-            level is not null && ordinal == level.Scope.Active ? "menu-focus" : "",
-            Tone == Ui.Tone.Error ? "text-ui-danger-ink" : "",
-            Disabled == true ? "menu-disabled" : "");
-
-    private T Decorate<T>(T element, UiMenuLevel? level, int ordinal)
-        where T : Element
-    {
+        var disabled = Disabled == true;
+        var ordinal = level?.Scope.Register(level.Parent, label, disabled, isSub: false) ?? -1;
         var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
-        if (Active == true)
+        var data = new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (Icon is not null)
         {
-            aria["current"] = "page";
+            data["ui-menu-item-has-icon"] = "";
         }
 
-        if (level is null)
+        if (KeepOpen == true)
         {
-            return aria.Count > 0 ? element.Aria(aria) : element;
+            data["rask-keep-open"] = "";
         }
 
-        if (Disabled == true)
+        Component?[] content =
+        [
+            Icon is { } icon ? UiMenuRow.Icon(icon, IconVariant) : UiMenuRow.Indent(),
+            .. Children ?? [],
+            Suffix is { } suffix ? Div.Class(UiMenuRow.Trailing)[suffix] : null,
+            Kbd is { } kbd ? Div.Class(UiMenuRow.Trailing)[kbd] : null,
+            IconTrailing is { } trailing ? UiMenuRow.IconTrailing(trailing, IconVariant) : null
+        ];
+        var classes = UiClass.Compose(UiMenuRow.Classes(Variant), Class);
+
+        if (Href is { Path: not null } href && !disabled)
         {
-            aria["disabled"] = "true";
+            var link = NavLink.Href(href).ActiveClass("").Class(classes).OnClick(() => PickAsync(level, ordinal));
+            return UiMenuRow.Decorate(link, level, ordinal, "menuitem", "ui-menu-item", aria, data)[content];
         }
 
-        if (level.Scope.AsOptions)
+        var button = Button.Type(ButtonType.Button).Class(classes).Disabled(disabled);
+        if (!disabled)
         {
-            // An option says whether it is the highlighted one; focus stays in the palette's search box.
-            aria["selected"] = ordinal == level.Scope.Active ? "true" : "false";
-            return UiMenuItemMarkup.AsMenuItem(element, level, ordinal, "option", aria, KeepOpen == true, isChecked: false);
+            button = button.OnClick(() => PickAsync(level, ordinal));
         }
 
-        return UiMenuItemMarkup.AsMenuItem(element, level, ordinal, "menuitem", aria, KeepOpen == true, isChecked: false);
+        return UiMenuRow.Decorate(button, level, ordinal, "menuitem", "ui-menu-item", aria, data)[content];
     }
 
-    // Shared by every kind of item, and reached from the others as `global::Rask.UiMenuItem.Row`: inside a
-    // markup host the bare type name is the chain entry, not the type.
-
-    /// <summary>The inside of a row: indicator, icon, words, shortcut, trailing icon.</summary>
-    internal static Component Row(Ui.IconName? icon, string text, string? kbd, Ui.IconName? trailing, Component? indicator) =>
-        [
-            indicator,
-            icon is { } leading ? Ui.Icon.Name(leading).Class("size-4 shrink-0") : null,
-            Span.Class("grow")[text],
-            kbd is null ? null : RaskMarkup.Kbd.Class("kbd kbd-xs ui-menu-kbd")[kbd],
-            trailing is { } end ? Ui.Icon.Name(end).Class("size-4 shrink-0 opacity-60") : null
-        ];
-
-    /// <summary>A check or radio row's mark. Always the same width, checked or not, so every row's words line up.</summary>
-    internal static Component Indicator(bool on) =>
-        Span.Class("inline-flex size-4 shrink-0 items-center justify-center").Aria("hidden", "true")[
-            on ? Ui.Icon.Name(Ui.IconName.Check).Class("size-4") : null
-        ];
+    // The row a pointer picks is where the cursor is from then on, which matters in a menu that stays open.
+    private async Task PickAsync(UiMenuLevel? level, int ordinal)
+    {
+        level?.Scope.MoveTo(ordinal);
+        await OnClick.Invoke().ConfigureAwait(false);
+    }
 }

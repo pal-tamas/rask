@@ -63,6 +63,9 @@ Behaviour is measured too: open the page, use the component with keyboard and po
    dotnet test tests/Rask.Ui.Tests --filter "FullyQualifiedName~Flux"
    node scripts/flux/parity.mjs <slug>            # until: "matches Flux"
    ```
+   A menu loads CLOSED, so `parity.mjs` never sees it. `node scripts/flux/parity-menu.mjs <dropdown|context>`
+   opens every example on both pages and compares the popup: placement against the trigger, each row at
+   rest, under a real pointer, pressed and under the cursor, a submenu's flyout, Escape and a click outside.
    Fix the COMPONENT until it passes. A difference is only accepted when it is Livewire-specific or
    comes from the docs page rather than the component; say which, in a comment on the example.
 4. Unit tests in `tests/Rask.Ui.Tests/Components/Ui<Name>Tests.cs`: behaviour and markup contract

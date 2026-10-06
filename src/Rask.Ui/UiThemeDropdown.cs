@@ -69,7 +69,7 @@ public sealed partial class UiThemeDropdown : Component
             // The panel scrolls, not the list, so the scrollbar sits inside the panel's rounded edge. `p-2!`
             // because the popover's own padding is p-4 and two paddings in one class list are decided by
             // stylesheet order, not by which was written last; the list drops the menu's padding in turn, the
-            // same split UiMenuSurface makes, so the rows keep the inset they had.
+            // same split the kit's old menu made, so the rows keep the inset they had.
             .PanelClass("max-h-96 overflow-y-auto p-2!")[
                 Ui.ThemePicker
                     .GroupName(GroupName)

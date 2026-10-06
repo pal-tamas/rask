@@ -6,10 +6,10 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Flux UI's <c>profile</c>. Give it children and the row IS the menu button — the same
-/// <see cref="UiMenuButton" /> contract <see cref="UiDropdown" /> uses, so the browser owns open, Escape,
-/// click-outside and focus return, and the arrows, Home/End, type-ahead and Enter all work. Give it none and it
-/// is a plain row, for a surface where the account is shown rather than acted on.
+/// Flux UI's <c>profile</c>. Give it children and the row IS the trigger of a <see cref="UiDropdown" /> whose
+/// <see cref="UiMenu" /> they are, so the browser owns open, Escape, click-outside and focus return, and the
+/// arrows, type-ahead and Enter all work. Give it none and it is a plain row, for a surface where the account
+/// is shown rather than acted on.
 /// </para>
 /// <para>
 /// <see cref="Avatar" /> is optional. Without one the row draws the INITIALS of <see cref="Name" />, which is
@@ -18,10 +18,10 @@ namespace Rask;
 /// </para>
 /// <para>
 /// The menu opens UPWARD by default, because the row sits at the bottom of the sidebar and a menu below it
-/// would open off the screen. <see cref="UiMenuButton.Position" /> says otherwise.
+/// would open off the screen. <see cref="Position" /> says otherwise.
 /// </para>
 /// </remarks>
-public sealed partial class UiProfile : UiMenuButton
+public sealed partial class UiProfile : Component
 {
     /// <summary>Who is signed in. Also the source of the initials, when there is no <see cref="Avatar" />.</summary>
     public required string Name { get; set; }
@@ -38,24 +38,46 @@ public sealed partial class UiProfile : UiMenuButton
     /// <summary>Hides the chevron on a row that has a menu, for a row that says so some other way.</summary>
     public bool? Chevron { get; set; }
 
-    /// <inheritdoc />
-    private protected override string PrefixTag => "uipr";
+    /// <summary>Which side of the row the menu opens on. Above, unless this says otherwise.</summary>
+    public Ui.DropdownPosition? Position { get; set; }
+
+    /// <summary>Where along that side the menu sits.</summary>
+    public Ui.DropdownAlign? Align { get; set; }
+
+    /// <summary>The distance between the row and the menu, in pixels.</summary>
+    public int? Gap { get; set; }
+
+    /// <summary>Shifts the menu along its alignment, in pixels.</summary>
+    public int? Offset { get; set; }
+
+    /// <inheritdoc cref="UiDropdown.Open" />
+    public bool? Open { get; set; }
+
+    /// <inheritdoc cref="UiDropdown.OnToggle" />
+    public Callback<bool> OnToggle { get; set; }
+
+    /// <inheritdoc cref="UiMenu.KeepOpen" />
+    public bool? KeepOpen { get; set; }
+
+    public string? Class { get; set; }
 
     /// <inheritdoc />
-    private protected override string TriggerClass =>
-        "btn btn-ghost h-auto w-full justify-start gap-2 px-2 py-1.5 font-normal";
-
-    /// <inheritdoc />
-    private protected override string RootClass => "relative block w-full";
-
-    /// <inheritdoc />
-    private protected override Ui.Position DefaultPosition => Ui.Position.Top;
-
-    /// <inheritdoc />
-    protected override Component? Render() => Children is null ? Row(button: false) : MenuButton();
-
-    /// <inheritdoc />
-    private protected override Component TriggerContent() => Row(button: true);
+    protected override Component? Render() =>
+        Children is null
+            ? Row(button: false)
+            : Ui.Dropdown
+                .Position(Position ?? Ui.DropdownPosition.Top)
+                .Align(Align)
+                .Gap(Gap)
+                .Offset(Offset)
+                .Open(Open)
+                .OnToggle(OnToggle)
+                .Class(UiClass.Compose("block w-full", Class))[
+                Button
+                    .Type(ButtonType.Button)
+                    .Class("btn btn-ghost h-auto w-full justify-start gap-2 px-2 py-1.5 font-normal")[Row(button: true)],
+                Ui.Menu.KeepOpen(KeepOpen)[Children]
+            ];
 
     // `title` on the row: in the rail only the avatar is left, and the name moves into the tooltip — and, for the
     // dropdown trigger, into the button's accessible name, which a name computed from content takes from a

@@ -45,7 +45,7 @@ public sealed partial class UiAccordionSection : Component
         return Div.Class(UiClass.Compose(
             "collapse join-item border border-base-300 bg-base-100",
             Marker is { } marker ? UiClassNames.Marker(marker) : "",
-            // Both, for the same reason Ui.Dropdown writes dropdown-close: `collapse` opens on
+            // Both, for the reason daisyUI's own dropdown needs dropdown-close: `collapse` opens on
             // :focus-within too, so omitting collapse-open is not the same as being closed.
             open ? "collapse-open" : "collapse-close",
             Class))[

@@ -115,7 +115,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     ///     <para>
     ///         Its placement uses CSS anchor positioning, which not every engine ships yet; where it is
     ///         missing the list still opens and is still usable, centred rather than under its box. The
-    ///         same trade <see cref="UiMegamenu" /> already makes.
+    ///         same trade <see cref="UiDropdown" /> makes.
     ///     </para>
     /// </remarks>
     public bool? Native { get; set; }
@@ -337,7 +337,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
             // Placement, which `dropdown-content` used to supply. `position-area` puts the panel under
             // its anchor and `anchor-size` matches the box's width; an engine that ships neither
             // ignores both and the popover keeps its own default, which is centred — the list still
-            // opens and is still usable, and it is the same trade Ui.Megamenu already makes.
+            // opens and is still usable, and it is the same trade Ui.Dropdown makes.
             .Attributes(("style", "position-anchor:--" + Prefix
                                   + ";position-area:block-end span-inline-end"
                                   + ";width:anchor-size(width);margin:0"))

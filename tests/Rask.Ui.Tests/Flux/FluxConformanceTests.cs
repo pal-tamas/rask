@@ -25,11 +25,25 @@ public sealed class FluxConformanceTests
     private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
     {
         ["flux:icon.*"] = typeof(UiIcon),
+        ["flux:dropdown"] = typeof(UiDropdown),
+        ["flux:menu"] = typeof(UiMenu),
+        ["flux:menu.item"] = typeof(UiMenuItem),
+        ["flux:menu.submenu"] = typeof(UiMenuSubmenu),
+        ["flux:menu.separator"] = typeof(UiMenuSeparator),
+        ["flux:menu.checkbox.group"] = typeof(UiMenuCheckboxGroup),
+        ["flux:menu.checkbox"] = typeof(UiMenuCheckbox),
+        ["flux:menu.radio.group"] = typeof(UiMenuRadioGroup<>),
+        ["flux:menu.radio"] = typeof(UiMenuRadio),
+        ["flux:context"] = typeof(UiContext),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
     private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal)
     {
+        // The popover page's prop: a panel that opens while the pointer rests on its trigger. CSS cannot open a
+        // [popover] and the runtime has no hook that does, so it is built with Ui.Popover, on Flux's popover page.
+        ["flux:dropdown/hover"] = "Opening on hover needs a runtime hook that shows a popover on pointerenter; it belongs to the popover page.",
+        ["flux:menu.checkbox/checked"] = "A Rask control's state is its Value, or the model it is bound to: Ui.MenuCheckbox.Value(true) / .Bind(() => filter.Draft).",
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
