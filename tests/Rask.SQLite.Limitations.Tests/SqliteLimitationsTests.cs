@@ -105,8 +105,14 @@ public sealed class SqliteLimitationsTests : IDisposable
         // separator it throws inside a native callback that cannot be unwound, taking the process with
         // it. Rask replaces the collation with an invariant, total one (see SqliteCollations); this
         // asserts the upstream mechanism directly rather than through SQLite, which would abort the host.
-        Assert.Equal(1995m, decimal.Parse("19.95", new CultureInfo("de-DE")));
-        Assert.Throws<FormatException>(() => decimal.Parse("19.95", new CultureInfo("en-HU")));
+        //
+        // Both formats are spelled out rather than looked up by culture name: what a named culture uses
+        // as its separators is ICU data, and it differs between macOS and Linux.
+        var dotGroups = new NumberFormatInfo { NumberDecimalSeparator = ",", NumberGroupSeparator = "." };
+        var dotIsNeither = new NumberFormatInfo { NumberDecimalSeparator = ",", NumberGroupSeparator = " " };
+
+        Assert.Equal(1995m, decimal.Parse("19.95", dotGroups));
+        Assert.Throws<FormatException>(() => decimal.Parse("19.95", dotIsNeither));
     }
 
     [Fact]

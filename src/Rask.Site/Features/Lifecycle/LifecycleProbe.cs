@@ -63,7 +63,7 @@ public sealed partial class LifecycleProbe : Component
                 // badge repaints with no StateHasChanged (RASK026). Works the same through Ui.Button,
                 // which forwards the callback down to the native <button>.
                 Ui.Button.Primary
-                    .OnClick(() => _clicks++)[Ui.Icon.Name(Ui.IconName.Retry), "Trigger re-render"]
+                    .OnClick(() => _clicks++)[Ui.Icon.Name(Ui.IconName.ArrowPath), "Trigger re-render"]
             ],
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],
             Ui.List.Ordered()[

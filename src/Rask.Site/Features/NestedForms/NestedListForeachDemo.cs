@@ -34,7 +34,7 @@ public sealed partial class NestedListForeachDemo : Component
                         .Square()
                         .Error
                         .Outline
-                        .OnClick(() => _model.Items.Remove(captured))[Ui.Icon.Name(Ui.IconName.Close)]
+                        .OnClick(() => _model.Items.Remove(captured))[Ui.Icon.Name(Ui.IconName.XMark)]
                 ]
             ]);
         }

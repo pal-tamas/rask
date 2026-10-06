@@ -7,7 +7,7 @@ description: Check every dependency axis in the Rask repo — NuGet, the Node LT
 
 The on-demand path. Dependabot covers NuGet, GitHub Actions and the site's own npm manifest weekly
 (`.github/dependabot.yml`), and
-`.github/workflows/lts-watch.yml` opens an issue when Node's Active LTS line moves. Neither sees the
+`.github/workflows/upstream.yml` moves the stated Node line when the Active LTS does. Neither sees the
 pins in §2, and nothing schedules a vulnerability scan any more — see the warning under §1.
 
 ## 1. NuGet (central package management)
@@ -56,7 +56,7 @@ user's own `package.json` once scaffolded.
 
 ## 3. Node
 
-`lts-watch.yml` reports this monthly, but to check by hand:
+`upstream.yml` follows this daily (`scripts/upstream/node-lts.sh`), but to check by hand:
 
 ```bash
 curl -fsS https://nodejs.org/dist/index.json | grep -o '"lts":"[^"]*"' | head -1

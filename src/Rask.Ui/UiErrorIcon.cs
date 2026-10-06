@@ -1,7 +1,7 @@
 namespace Rask;
 
 /// <summary>
-///     The icon beside a <see cref="UiError" /> message: one of the kit's — <c>.Icon(Ui.IconName.Info)</c> — or
+///     The icon beside a <see cref="UiError" /> message: one of the kit's — <c>.Icon(Ui.IconName.InformationCircle)</c> — or
 ///     none, <c>.Icon(false)</c>.
 /// </summary>
 public readonly record struct UiErrorIcon

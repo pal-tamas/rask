@@ -21,12 +21,6 @@ public sealed partial class UiError : Component
 
     private const string IconLook = "inline size-5 shrink-0";
 
-    // Heroicons v2 (MIT), 20px solid exclamation-triangle.
-    private const string Triangle =
-        "M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72"
-        + "c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5"
-        + "A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z";
-
     /// <summary>The bound member whose messages to show, as the control's own <c>Bind</c> names it.</summary>
     public LambdaExpression? For { get; set; }
 
@@ -84,15 +78,10 @@ public sealed partial class UiError : Component
         return field is { } known && form.GetValidationMessages(known) is [var first, ..] ? first : null;
     }
 
-    private Component? Glyph() => Icon switch
+    private UiIcon? Glyph() => Icon switch
     {
         { Hidden: true } => null,
-        { Name: { } name } => Ui.Icon.Name(name).Class(IconLook),
-        _ => Svg.ViewBox("0 0 20 20")
-            .Fill("currentColor")
-            .Class(IconLook)
-            .Attributes(("aria-hidden", "true"), ("focusable", "false"))[
-            SvgPath.D(Triangle).Attributes(("fill-rule", "evenodd"), ("clip-rule", "evenodd"))
-        ],
+        { Name: { } name } => Ui.Icon.Name(name).Mini.Class(IconLook),
+        _ => Ui.Icon.Name(Ui.IconName.ExclamationTriangle).Mini.Class(IconLook),
     };
 }

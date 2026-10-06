@@ -52,6 +52,33 @@ them until tagged releases begin.
   `Ui.Link.External()` no longer adds an icon or the screen-reader "(opens in a new tab)": it is
   `target="_blank"` with `rel="noopener noreferrer"`, as Flux's is. `Ui.Link.Href` is optional, for
   `Ui.Link.As(Ui.LinkAs.Button)` — a `<button type="button">` drawn as a link, taking `OnClick`.
+- **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
+  `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
+  PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:
+  ```csharp
+  Ui.IconName.Warning    // was
+  Ui.IconName.ExclamationTriangle   // now
+  ```
+  `Close` → `XMark`, `Search` → `MagnifyingGlass`, `Menu` → `Bars3`, `Gear` → `Cog6Tooth`, `Retry` →
+  `ArrowPath`, `Download` → `ArrowDownTray`, `Upload` → `ArrowUpTray`, `Info` → `InformationCircle`,
+  `Database` → `CircleStack`, `Overview` → `Squares2x2`, `Queue` → `QueueList`, `Lock` → `LockClosed`,
+  `Unlock` → `LockOpen`, `Undo` → `ArrowUturnLeft`, `Save` → `ArrowDownOnSquare`, `Stop` → `StopCircle`,
+  `ExternalLink` → `ArrowTopRightOnSquare`, `Calendar` → `CalendarDays`, `Document` → `DocumentText`,
+  `Folder` → `FolderOpen`, `Globe` → `GlobeAlt`, `Book` → `BookOpen`, `Bell` → `BellAlert`, `Bug` →
+  `BugAnt`, `Terminal` → `CommandLine`, `Server` and `Storage` → `ServerStack`, `Outbox` →
+  `PaperAirplane`, `ShieldOk` → `ShieldCheck`, `ShieldWarning` → `ShieldExclamation`, `Archive` →
+  `ArchiveBox`, `Clipboard` → `ClipboardDocumentCheck`, `Cube` → `CubeTransparent`, `Cursor` →
+  `CursorArrowRays`, `Desktop` → `ComputerDesktop`, `Phone` → `DevicePhoneMobile`, `Fullscreen` →
+  `ArrowsPointingOut`, `Grip` → `EllipsisVertical`, `Puzzle` → `PuzzlePiece`, `Rocket` → `RocketLaunch`,
+  `Stack` → `RectangleStack`. The other 36 already had Heroicons' name.
+
+  A new `Variant` (`Ui.IconVariant`: `Outline`, `Solid`, `Mini`, `Micro`) picks the drawing —
+  `Ui.Icon.Name(Ui.IconName.Bolt).Solid`. **An icon with no size class is now 24px (20px for `Mini`, 16px
+  for `Micro`), where it was 20px**; inside a `Ui.Button`, `Ui.Badge` or `Ui.Alert` it is sized as before.
+  A `size-*` class overrides the default wherever it sits in the class list. The markup is Flux's:
+  `data-ui-icon`, `data-slot="icon"`, `aria-hidden`, and no `focusable` attribute. `Rask.Ui.dll` grows by
+  490 KB (107 KB compressed) for the path data. `scripts/flux/icons.mjs` regenerates the set from the
+  pinned npm package.
 
 - **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
   keeps the front-door check, `pre-push` the attribution guard. `ci.yml` runs the format check, the
@@ -60,6 +87,12 @@ them until tagged releases begin.
   it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
   included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
   unchanged and still run by hand; each CI job is one of them.
+- **Upstream is followed without anyone watching.** `upstream.yml` runs daily: it moves the MDN snapshot
+  to the latest stable data, records the public surface that moved with it, moves the stated Node line
+  to the Active LTS, gates the result and lands it on `main`. `dependabot-merge.yml` merges a
+  Dependabot pull request once `ci` has passed it. An issue is opened only when a person is needed —
+  the gates refused what upstream shipped, or Flux UI moved. `lts-watch.yml`, which only reported, is
+  gone.
 
 ### Fixed
 
@@ -67,6 +100,9 @@ them until tagged releases begin.
   other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
   with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
   verifies and unpacks in a directory of its own and moves the binary into the cache.
+- **`rask`: Spectre.Console's CI detection no longer overrides the CLI's own decision about whether a
+  prompt may be shown.** The CLI decides from the streams it was handed; under `CI`/`GITHUB_ACTIONS`
+  Spectre switched interaction off behind it.
 
 ### Removed
 

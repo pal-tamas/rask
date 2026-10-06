@@ -36,7 +36,7 @@ export const STYLES = [
 ];
 
 // Every `[data-preview-wrapper]` on `url`, measured in light and in dark.
-export async function measurePage(browser, url, shots) {
+export async function measurePage(browser, url, shots, prepare) {
   const schemes = {};
   for (const scheme of ['light', 'dark']) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
@@ -45,6 +45,14 @@ export async function measurePage(browser, url, shots) {
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     await page.evaluate(() => document.fonts.ready);
+    if (prepare) await prepare(page, scheme);
+    // A running animation measures wherever it happens to be — a spinner's angle differed on every run,
+    // and between a node and its own forced states. Held a quarter of a second in, it measures the same
+    // each time, and still says what the animation is: a spin of another speed or easing is another angle.
+    await page.evaluate(() => document.getAnimations().forEach(animation => {
+      animation.pause();
+      animation.currentTime = 250;
+    }));
     schemes[scheme] = await measure(page, join(shots, scheme));
     await context.close();
   }

@@ -122,6 +122,13 @@
 */
 @source not "./vendor";
 
+/*
+  Nor are the icon tables: half a megabyte of SVG path data, in which `h-4.5` and `m-3.75` are relative
+  line and move commands and, to Tailwind, a height and a margin. Scanned, every such run became a utility
+  in the sheet that nothing uses.
+*/
+@source not "../UiIconPaths.g.cs";
+
 @plugin "./vendor/daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
@@ -963,26 +970,35 @@
 }
 
 /*
-  AN ICON IN A BUTTON OR A BADGE IS SIZED BY WHAT IT SITS IN — unless the call site sized it.
+  AN ICON IN A DAISY BUTTON, BADGE OR ALERT IS SIZED BY WHAT IT SITS IN — unless the call site sized it.
 
-  UiIcon draws `size-5 shrink-0` when nobody names a size: right beside a paragraph or inside an alert, too
-  big for a button's line and far too big for a badge. The icon used to be a UiButton prop, and the button
-  handed it `size-4`. It is a child now, which the kit does not build and cannot give a class to, so it is
-  sized here from what it sits in.
+  Ui.Icon is Flux's icon now and 24px when nobody names a size, which is right in Flux's components and too
+  big for these three: a button's line takes 16px, a badge 1em, an alert the 20px the icon used to default
+  to. The icon is their child, which the kit does not build and cannot give a class to, so it is sized here
+  from what it sits in. THIS RULE GOES WITH THE DAISY COMPONENTS IT NAMES: Flux's button sizes its own icon.
 
-  Matched on BOTH default classes. A call site that names any size gets no `size-5` at all (UiIcon drops
-  its default rather than competing with it), so an icon someone sized on purpose is never matched. In
-  `rask-ui-corrections` because `size-5` is a utility, and a rule in `rask` would lose to it.
+  "Nobody named a size" is read off the class attribute. UiIcon writes its own classes first, so a
+  `size-*`, `w-*` or `h-*` from the call site always follows a space — and UiIcon's own default, which is
+  spelled `[:where(&)]:size-6`, never does. The second selector keeps what the first version of this rule
+  did for an icon written `size-5 shrink-0` by hand: that pair was the old default, and it still shrinks.
+  In `rask-ui-corrections` because the size is a utility, and a rule in `rask` would lose to it.
 */
 @layer rask-ui-corrections {
-  .btn > svg.size-5.shrink-0 {
+  .btn > svg[data-ui-icon]:not([class*=" size-"], [class*=" w-"], [class*=" h-"]),
+  .btn > svg.size-5[class*=" shrink-0"] {
     width: 1rem;
     height: 1rem;
   }
 
-  .badge > svg.size-5.shrink-0 {
+  .badge > svg[data-ui-icon]:not([class*=" size-"], [class*=" w-"], [class*=" h-"]),
+  .badge > svg.size-5[class*=" shrink-0"] {
     width: 1em;
     height: 1em;
+  }
+
+  .alert > svg[data-ui-icon]:not([class*=" size-"], [class*=" w-"], [class*=" h-"]) {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 }
 

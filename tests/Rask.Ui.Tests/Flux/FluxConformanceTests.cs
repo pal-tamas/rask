@@ -33,6 +33,7 @@ public sealed class FluxConformanceTests
         ["flux:heading"] = typeof(UiHeading),
         ["flux:link"] = typeof(UiLink),
         ["flux:text"] = typeof(UiText),
+        ["flux:icon.*"] = typeof(UiIcon),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -43,6 +44,9 @@ public sealed class FluxConformanceTests
         ["flux:heading/size=2xl"] = "an identifier cannot start with a digit: Ui.HeadingSize.Xxl",
         ["flux:text/color=default"] = "no colour is an unset Color; Ui.Color holds Tailwind's hues only",
         ["flux:text/size=base"] = "the heading page's name for the text page's `default`: Ui.TextSize.Default",
+        // Sections of the icon page rather than props, recorded here so the omission is a decision.
+        ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
+        ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
     };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;

@@ -107,7 +107,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
                 _saveError is null ? null : Ui.Alert.Tone(Ui.Tone.Error)[_saveError]
             ]],
 
-            Ui.Input.Value(_search).Id("search").Label("Search notes").Icon(Ui.IconName.Search)
+            Ui.Input.Value(_search).Id("search").Label("Search notes").Icon(Ui.IconName.MagnifyingGlass)
                 .Type(InputType.Search).Placeholder("Try “offline”, or a word from your note")
                 .OnInput(v => _search = v ?? ""),
 

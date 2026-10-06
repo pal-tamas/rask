@@ -91,7 +91,7 @@ public sealed partial class UiKitDataInputDemo : Component
                 // around the input, and the label keeps its place above the field: a floating caption rises
                 // through exactly the room the icon now occupies.
                 Ui.Input.Value(_search).Key("search").Label("Search")
-                    .Icon(Ui.IconName.Search).Kbd("⌘K").Clearable()
+                    .Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K").Clearable()
                     .Placeholder("Find a package")
                     .OnInput(v => _search = v ?? ""),
                 // AutoSize is CSS — `field-sizing: content` — so the box grows as you type with no runtime at

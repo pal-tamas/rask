@@ -50,7 +50,7 @@ public sealed partial class UiSearch : Component
                 "input w-full sm:w-72",
                 Size is { } size ? UiClassNames.InputSize(size) : "",
                 Class))[
-            Ui.Icon.Name(Ui.IconName.Search).Class("size-4 shrink-0 opacity-60"),
+            Ui.Icon.Name(Ui.IconName.MagnifyingGlass).Class("size-4 shrink-0 opacity-60"),
             input
         ];
     }

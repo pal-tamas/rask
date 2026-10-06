@@ -35,10 +35,10 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
                         .OnInput(v => _input = v)
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    Ui.Button.Primary.Id("demo-set").OnClick(Set)[Ui.Icon.Name(Ui.IconName.Save), "Set"],
+                    Ui.Button.Primary.Id("demo-set").OnClick(Set)[Ui.Icon.Name(Ui.IconName.ArrowDownOnSquare), "Set"],
                     Ui.Button.Primary.Outline
                         .Id("demo-read")
-                        .OnClick(Read)[Ui.Icon.Name(Ui.IconName.Retry), "Read"],
+                        .OnClick(Read)[Ui.Icon.Name(Ui.IconName.ArrowPath), "Read"],
                     Ui.Button.Error.Outline
                         .Id("demo-remove")
                         .OnClick(Remove)[Ui.Icon.Name(Ui.IconName.Trash), "Remove"]

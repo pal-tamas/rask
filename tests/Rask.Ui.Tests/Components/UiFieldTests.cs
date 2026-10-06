@@ -184,12 +184,12 @@ public partial class UiFieldTests : global::Rask.Core.RaskMarkup
     public void The_icon_of_an_error_can_be_another_one_or_none()
     {
         var without = Ui.Error.Message("No.").Icon(false);
-        var other = Ui.Error.Message("No.").Icon(Ui.IconName.Info);
+        var other = Ui.Error.Message("No.").Icon(Ui.IconName.InformationCircle);
 
         var (bare, swapped) = (without.ToHtml(), other.ToHtml());
 
         Assert.DoesNotContain("<svg", bare, StringComparison.Ordinal);
-        Assert.Contains("viewBox=\"0 0 24 24\"", swapped, StringComparison.Ordinal);
+        Assert.Contains("viewBox=\"0 0 20 20\"", swapped, StringComparison.Ordinal);
         Assert.Contains("inline size-5 shrink-0", swapped, StringComparison.Ordinal);
     }
 

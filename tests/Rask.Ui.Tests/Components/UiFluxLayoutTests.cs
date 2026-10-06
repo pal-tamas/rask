@@ -105,7 +105,7 @@ public partial class UiFluxLayoutTests : global::Rask.Core.RaskMarkup
     {
         using var _ = OnPage("/orders");
 
-        var current = Ui.NavItem.Label("Orders").Href("/orders").Icon(Ui.IconName.Book).Badge("12").ToHtml();
+        var current = Ui.NavItem.Label("Orders").Href("/orders").Icon(Ui.IconName.BookOpen).Badge("12").ToHtml();
         var other = Ui.NavItem.Label("Customers").Href("/customers").ToHtml();
 
         Assert.Contains("menu-active", current);
