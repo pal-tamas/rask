@@ -21,8 +21,14 @@ public sealed class IslandScaffoldTests
     public static TheoryData<string> Runtimes() => [.. IslandRuntimes.All];
 
     private static IReadOnlyList<ScaffoldFile> Scaffold(params string[] runtimes) =>
+        ScaffoldFrom("server", runtimes);
+
+    private static IReadOnlyList<ScaffoldFile> ScaffoldFrom(string template, params string[] runtimes) =>
         TemplateMaterializer.Files(
-            Target, "server", "Shop", new ServerBatteries(), "9.9.9", runtimes);
+            Target, template, "Shop", new ServerBatteries(), "9.9.9", runtimes);
+
+    private static string HomePage(IReadOnlyList<ScaffoldFile> files) =>
+        files.Single(f => string.Equals(Path.GetFileName(f.Path), "HomePage.cs", StringComparison.Ordinal)).Content;
 
     [Theory]
     [MemberData(nameof(Runtimes))]
@@ -212,6 +218,86 @@ public sealed class IslandScaffoldTests
 
         Assert.DoesNotContain("Rask.External", csproj.Content, StringComparison.Ordinal);
         Assert.DoesNotContain("Rask.Blazor", csproj.Content, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("server")]
+    [InlineData("wasm")]
+    public void The_home_page_renders_every_chosen_island(string template)
+    {
+        // Files nothing renders are files the user never sees working: the island has to be on the
+        // first page the app serves.
+        var home = HomePage(ScaffoldFrom(template, "react", "lit", "blazor"));
+
+        Assert.Contains("ReactCounter.Caption(", home, StringComparison.Ordinal);
+        Assert.Contains("LitBadge.Caption(", home, StringComparison.Ordinal);
+        Assert.Contains("BlazorCounterIsland.Caption(", home, StringComparison.Ordinal);
+        Assert.DoesNotContain("VueCounter", home, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(Runtimes))]
+    public void The_home_page_names_the_class_the_runtime_scaffolds(string runtime)
+    {
+        // The page and the fragment are two places that name one class, and the build is the only
+        // other thing that would notice them disagree.
+        var files = Scaffold(runtime);
+
+        var island = Path.GetFileNameWithoutExtension(files
+            .Single(f => f.Path.Contains("Islands", StringComparison.Ordinal)
+                         && f.Path.EndsWith(".cs", StringComparison.Ordinal)).Path);
+
+        Assert.Contains(island + ".Caption(", HomePage(files), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("server")]
+    [InlineData("wasm")]
+    public void A_project_with_no_islands_has_no_island_markup_on_its_home_page(string template)
+    {
+        var home = HomePage(ScaffoldFrom(template));
+
+        Assert.DoesNotContain("Island", home, StringComparison.Ordinal);
+        Assert.DoesNotContain("rask:", home, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_browser_test_project_compiles_the_islands_its_home_page_renders()
+    {
+        // That project compiles the app's sources a second time. It used to leave Features/Islands out,
+        // which a home page that names an island turns into a test project that does not build.
+        var csproj = TemplateMaterializer
+            .Files(Target, "wasm", "Shop", new ServerBatteries { Tests = true }, "9.9.9", ["lit", "blazor"])
+            .Single(f => f.Path.EndsWith("Shop.Tests.csproj", StringComparison.Ordinal)).Content;
+
+        Assert.DoesNotContain("Compile Remove", csproj, StringComparison.Ordinal);
+        Assert.Contains("Include=\"Rask.External\"", csproj, StringComparison.Ordinal);
+        Assert.Contains("Include=\"Rask.Blazor\"", csproj, StringComparison.Ordinal);
+        Assert.Contains("Shop.Components.csproj", csproj, StringComparison.Ordinal);
+    }
+
+    public static TheoryData<string> Combinations() =>
+    [
+        "",
+        .. IslandRuntimes.All,
+        "react blazor",
+        "lit angular",
+        string.Join(' ', IslandRuntimes.All.Where(runtime => runtime != "preact")),
+    ];
+
+    [Theory]
+    [MemberData(nameof(Combinations))]
+    public void The_home_page_is_well_formed_whichever_islands_are_on_it(string runtimes)
+    {
+        // Conditional siblings in one indexer: the comma between them is what breaks, and it breaks
+        // for one combination rather than for all of them.
+        var home = HomePage(Scaffold(runtimes.Split(' ', StringSplitOptions.RemoveEmptyEntries)));
+
+        var dense = string.Concat(home.Where(c => !char.IsWhiteSpace(c)));
+
+        Assert.DoesNotContain(",]", dense, StringComparison.Ordinal);
+        Assert.Equal(home.Count(c => c == '['), home.Count(c => c == ']'));
+        Assert.DoesNotContain("rask:", home, StringComparison.Ordinal);
     }
 
     [Fact]

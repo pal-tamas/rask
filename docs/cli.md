@@ -334,8 +334,9 @@ rask new Shop --template wasm --islands vue    # in the browser-WASM host too
 
 Each runtime named gets a paired `.cs` and front-end file in a folder of its own, its npm dependencies
 merged into one root `package.json`, the tsconfig mapping that makes `@rask/<Name>.props` resolve, and
-the package reference it needs. The base class **is** the declaration; see
-[Islands](islands.md).
+the package reference it needs. The home page renders each one — `ReactCounter.Caption("React island")`
+in `Features/Home/HomePage.cs` — so `rask dev` shows it working before you have written anything. The
+base class **is** the declaration; see [Islands](islands.md).
 
 One combination is refused by name, because the build would refuse it later: **`react` and `preact`
 together.** `@vitejs/plugin-react` resolves Babel 8 while `@preact/preset-vite` pins a `@babel/core` 7
