@@ -139,9 +139,14 @@ public sealed class TemplateBuildE2ETests
             Assert.True(
                 table.RootElement.TryGetProperty(island, out var chunk),
                 $"the manifest does not list '{island}': {table.RootElement.GetRawText()}");
+
+            // The manifest holds URLs under the public base, and Vite puts chunks in a folder below it.
+            const string PublicBase = "/_rask/external/";
+            var url = chunk.GetString()!;
+            Assert.StartsWith(PublicBase, url, StringComparison.Ordinal);
             Assert.True(
-                File.Exists(Path.Combine(bundle, Path.GetFileName(chunk.GetString()!))),
-                $"the manifest sends '{island}' to '{chunk.GetString()}', and no such chunk is in '{bundle}'.");
+                File.Exists(Path.Combine(bundle, url[PublicBase.Length..].Replace('/', Path.DirectorySeparatorChar))),
+                $"the manifest sends '{island}' to '{url}', and no such chunk is in '{bundle}'.");
         }
         finally
         {

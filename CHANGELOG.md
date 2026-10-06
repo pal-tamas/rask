@@ -1324,6 +1324,11 @@ them until tagged releases begin.
   that fired it; one whose island is no longer on the rendered page is dropped with a warning that
   names it. DOM events before boot are still dropped, as before.
 
+- **`rask new --template wasm --islands blazor` builds.** The scaffolded Razor class library referenced
+  the ASP.NET shared framework, which a browser-WASM app does not have, so the first build stopped on
+  `NETSDK1082`. It now references the `Microsoft.AspNetCore.Components.Web` package — the same types,
+  on both hosts — and the template gate builds that combination.
+
 - **`rask new --islands lit` scaffolds an island that bundles.** The build's entry imports a Lit island's
   default export — its registered tag name — and the scaffolded `LitBadge.ts` had none, so the first
   build after `npm install` stopped on `"default" is not exported by LitBadge.ts`. The fragment is now

@@ -159,6 +159,22 @@ public sealed class IslandScaffoldTests
         Assert.Contains("export default ", island.Content, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_Blazor_class_library_builds_for_the_browser_host_too()
+    {
+        // A browser-WASM app has no ASP.NET shared framework: a FrameworkReference there is NETSDK1082,
+        // and `rask new --template wasm --islands blazor` did not build. The package is the same types.
+        var pinned = RepoPins.Packages()["Microsoft.AspNetCore.Components.Web"];
+
+        var library = Scaffold("blazor").Single(f => f.Path.EndsWith(".Components.csproj", StringComparison.Ordinal));
+
+        Assert.DoesNotContain("<FrameworkReference", library.Content, StringComparison.Ordinal);
+        Assert.Contains(
+            $"<PackageReference Include=\"Microsoft.AspNetCore.Components.Web\" Version=\"{pinned}\"/>",
+            library.Content,
+            StringComparison.Ordinal);
+    }
+
     [Theory]
     [MemberData(nameof(Runtimes))]
     public void Every_bundled_runtime_brings_the_bundler(string runtime)
