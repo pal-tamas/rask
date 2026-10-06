@@ -152,7 +152,11 @@ Share sheet), so the handler never runs there — keep your manual "Add to Home 
 Rask ships a default service worker, **`rask-sw.js`**, served at the app root. It does two jobs:
 
 1. **Offline app shell** — a network-first runtime cache (fresh when online, served from cache when
-   offline), with navigations falling back to the cached shell so deep links work offline.
+   offline), with navigations falling back to the cached shell so deep links work offline. Files
+   named by their content hash are the exception: a fingerprinted file under `_framework/`
+   (`dotnet.native.nxw7lo0lh5.wasm`) and a scoped-asset bundle (`/_rask/a/{hash}.css|js`) are served
+   **cache-first**, so a repeat visit does not download the .NET runtime again. Their bytes can never
+   change under that name; `index.html`, `main.js` and anything unfingerprinted stay network-first.
 2. **Web Push** — shows the pushed notification and focuses/opens a window on click.
 
 Register it from `index.html` (the templates do this for you). It resolves relative to

@@ -1,6 +1,7 @@
 // Rask default service worker (WASM) — the one SW a Rask WASM PWA needs. It does three jobs:
 //   1. Offline app shell: a network-first runtime cache (fresh when online, cached when offline),
-//      with navigations falling back to the cached page shell so deep links work offline.
+//      with navigations falling back to the cached page shell so deep links work offline. Files named
+//      by their content hash are served cache-first instead.
 //   2. Web Push: shows the pushed notification and focuses/opens a window on click (MDN's PushManager subscribed) —
 //      shared with the Server SW via the imported rask-sw-shared handlers.
 //   3. Background Sync: forwards a woken-up sync/periodicsync tag to the open clients (IBackgroundSync).
@@ -21,22 +22,44 @@ const RASK_CACHE = "rask-cache-v1";
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
-// Network-first with cache fallback. Only same-origin GETs are cached; cross-origin and
-// non-GET requests pass straight through.
+// A URL whose bytes can never change, so the cached copy is as good as the network's:
+//   - /_rask/a/{hash}.css|js — a scoped-asset bundle, named by ScopedAssetBundle.IsContentHash's 12 hex;
+//   - _framework/name.{fingerprint}.ext — the .NET SDK's fingerprint, 10 lowercase base-36 characters.
+// Matched on the path's tail, so an app under a sub-path qualifies too. Deliberately strict, because a
+// false positive is a stale app for ever: the fingerprint must carry a digit, which costs the odd
+// all-letter one (about 4%) a round trip and keeps `_framework/my.extensions.wasm` out.
+const RASK_SCOPED_ASSET = /\/_rask\/a\/[0-9a-f]{12}\.(?:css|js)$/;
+const RASK_FINGERPRINTED = /\/_framework\/(?:[^/]+\/)*[^/]+\.(?=[a-z]*[0-9])[a-z0-9]{10}\.[A-Za-z0-9]+$/;
+
+const raskIsContentAddressed = (pathname: string): boolean =>
+    RASK_SCOPED_ASSET.test(pathname) || RASK_FINGERPRINTED.test(pathname);
+
+const raskFetchAndStore = async (cache: Cache, req: Request): Promise<Response> => {
+    const res = await fetch(req);
+    if (res && res.ok) {
+        cache.put(req, res.clone());
+    }
+    return res;
+};
+
+// Cache-first for content-addressed files — a repeat visit must not download the runtime again —
+// and network-first with cache fallback for everything else. Only same-origin GETs are cached;
+// cross-origin and non-GET requests pass straight through.
 self.addEventListener("fetch", (event) => {
     const req = event.request;
-    if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) {
+    const url = new URL(req.url);
+    if (req.method !== "GET" || url.origin !== self.location.origin) {
         return;
     }
 
     event.respondWith((async () => {
         const cache = await caches.open(RASK_CACHE);
+        if (raskIsContentAddressed(url.pathname)) {
+            return await cache.match(req) || raskFetchAndStore(cache, req);
+        }
+
         try {
-            const res = await fetch(req);
-            if (res && res.ok) {
-                cache.put(req, res.clone());
-            }
-            return res;
+            return await raskFetchAndStore(cache, req);
         } catch (err) {
             const cached = await cache.match(req);
             if (cached) {
