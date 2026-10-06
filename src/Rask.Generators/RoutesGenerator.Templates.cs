@@ -8,7 +8,7 @@ namespace Rask.Generators;
 
 public sealed partial class RoutesGenerator
 {
-    private static bool TryResolveFullTemplate(SourceProductionContext spc, Candidate c,
+    private static bool TryResolveFullTemplate(Action<Diagnostic> report, Candidate c,
         Dictionary<string, Candidate> byFqn, int leafTemplateIndex, out string fullTemplate)
     {
         var parts = new List<string>();
@@ -19,7 +19,7 @@ public sealed partial class RoutesGenerator
         {
             if (!seen.Add(current.FullyQualifiedName))
             {
-                spc.ReportDiagnostic(
+                report(
                     Diagnostic.Create(Rask007, c.RouteAttrLocation.ToLocation(), c.FullyQualifiedName));
                 fullTemplate = string.Empty;
                 return false;

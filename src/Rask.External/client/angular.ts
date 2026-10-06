@@ -91,7 +91,7 @@ export function angularComponent(component: Type<unknown>): ExternalAdapter<Angu
           apply(app, handle.view, handle.props, handle.children)
         })
         .catch((error: unknown) => {
-          console.error('[rask-external] Angular island failed to bootstrap', error)
+          reportBootstrapFailure(element, error)
         })
 
       return handle
@@ -118,6 +118,51 @@ export function angularComponent(component: Type<unknown>): ExternalAdapter<Angu
       handle.node.remove()
     },
   }
+}
+
+/**
+ * Reports a bootstrap that failed after `mount` had already returned, the way the runtime reports a mount that threw.
+ *
+ * The runtime's own reporter is out of reach: by the time Angular's promise rejects, `mount` has handed back its handle
+ * and there is nothing left for the runtime to catch. So this says the same thing through the same two channels — the
+ * console, under the prefix every island failure carries, and the Rask DevTools hook a Debug page installs.
+ */
+function reportBootstrapFailure(element: Element, error: unknown): void {
+  const name = element.getAttribute('name') ?? element.tagName.toLowerCase()
+  console.error(
+    `Rask islands: '${name}' failed to mount — Angular could not bootstrap it. Check that the component is ` +
+      'standalone, and that everything it injects is provided by the component itself (the island has no root module).',
+    error,
+  )
+
+  const devtools = (globalThis as { __raskDevtoolsHook?: { island?: (...args: unknown[]) => void } }).__raskDevtoolsHook
+  try {
+    devtools?.island?.('mount', element, name, error)
+  } catch {
+    // The devtools must never be the reason an island's failure goes unhandled.
+  }
+}
+
+/** The outputs already warned about, so a handler that re-binds on every render is reported once. */
+const warnedOutputs = new Set<string>()
+
+/** Says, once per component and output, why a callback C# sent will never fire. */
+function warnUnboundOutput(view: AngularView, alias: string, declared: boolean, handler: unknown): void {
+  // The island's name where the view is already in the page; a child still being created has only its class name.
+  const component = view.host.closest('rask-external')?.getAttribute('name') ?? view.component.name
+  const key = `${component}@${alias}`
+  if (warnedOutputs.has(key)) {
+    return
+  }
+
+  warnedOutputs.add(key)
+  console.warn(
+    declared
+      ? `Rask islands: '${component}' was sent a ${typeof handler} for its output '${alias}', not a handler, so ` +
+          'nothing is subscribed. Declare the prop as a Callback in the C# class.'
+      : `Rask islands: '${component}' has no output named '${alias}', so its callback will never fire. Check the ` +
+          "spelling against the component's @Output() / output() — an aliased output is bound by its alias.",
+  )
 }
 
 /**
@@ -331,6 +376,7 @@ function bindOutput(
     : undefined
 
   if (typeof handler !== 'function' || typeof emitter?.subscribe !== 'function') {
+    warnUnboundOutput(view, alias, typeof emitter?.subscribe === 'function', handler)
     return
   }
 
