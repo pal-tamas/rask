@@ -51,6 +51,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Tests: what `rask new` writes is compiled in the unit gate.** `TemplatesCompileTests` materialises the
+  server, browser and hosted templates in memory and compiles their C# with the real generators, in about
+  two seconds. A public rename that breaks a scaffold now fails the commit hook; before, only the CLI build
+  E2E noticed, minutes in. Restore, the project files and publish are still that suite's to prove.
+
 - **Gates: a one-line `Rask.Core` commit gate went from 372 s to 125 s.** The gate scripts now set
   `DOTNET_CLI_TELEMETRY_OPTOUT=1`: the CLI walks and locks its whole telemetry spool on every exit, and
   with thousands of unsent files there the gate's `dotnet` processes spent most of their time queued on

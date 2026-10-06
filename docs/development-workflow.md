@@ -173,6 +173,12 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   prints what it reused; a changed or untracked file in reach, another SDK, a gate-script change or a
   stamp whose tree is gone all run it. `RASK_GATE_REUSE=0` runs everything. pre-push also format-checks
   only the `.cs` files in its push range (`RASK_FORMAT_SCOPE=range`), as pre-commit does for staged ones.
+- **The scaffold templates compile in the unit gate.** `src/Rask.Templates` is in no project the solution
+  builds, so `tests/Rask.Generators.Tests/TemplatesCompileTests.cs` materialises each template the way
+  `rask new` does and compiles the C# in memory with the real generators. It proves the sources bind to the
+  public surface as it is in the tree; restore, the project file, the MSBuild targets and publish stay with
+  `scripts/run-cli-build-e2e.sh`. A using that a package's `build/*.props` adds for an app is listed in that
+  test by hand, so a new one is added there too.
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
   solution once, then runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
   analyzers, one workspace load) **concurrently with** every test except the browser E2E. The two share
