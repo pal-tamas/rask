@@ -72,9 +72,12 @@ public class HostBootstrapPlanTests
         var plan = HostBootstrap.Plan(BareRoot(), FullSetup());
         var install = plan.Preparation[0].Script;
 
-        // Downloaded then run, never `curl | sh` — a truncated download must not half-execute.
-        Assert.Contains("curl -fsSL https://get.docker.com -o /tmp/rask-get-docker.sh", install, StringComparison.Ordinal);
-        Assert.Contains("sh /tmp/rask-get-docker.sh", install, StringComparison.Ordinal);
+        // Downloaded then run, never `curl | sh` — a truncated download must not half-execute. Into a
+        // mktemp file, never a fixed /tmp name another user on the box could have created first.
+        Assert.Contains("script=\"$(mktemp)\"", install, StringComparison.Ordinal);
+        Assert.Contains("curl -fsSL https://get.docker.com -o \"$script\"", install, StringComparison.Ordinal);
+        Assert.Contains("sh \"$script\"", install, StringComparison.Ordinal);
+        Assert.DoesNotContain("/tmp/", install, StringComparison.Ordinal);
         Assert.DoesNotContain("| sh", install, StringComparison.Ordinal);
     }
 

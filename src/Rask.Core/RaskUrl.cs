@@ -8,9 +8,11 @@ namespace Rask.Core;
 /// </summary>
 public static class RaskUrl
 {
-    // A sentinel prefix that the sanitizer recognizes and strips before output; a real URL would
-    // never start with it. If it ever leaked unstripped it would be HTML-encoded harmlessly.
-    internal const string TrustedPrefix = "rask-trusted:";
+    // A sentinel prefix that the sanitizer recognizes and strips before output. Random per process, because
+    // the marker travels IN the value: a fixed one could be typed into any stored URL, and the sanitizer
+    // would wave "rask-trusted:javascript:…" through. If it ever leaked unstripped it would be HTML-encoded
+    // harmlessly.
+    internal static readonly string TrustedPrefix = "rask-trusted-" + SecureToken.Create() + ":";
 
     /// <summary>
     ///     Marks <paramref name="url" /> as trusted so the next URL-attribute emit skips scheme

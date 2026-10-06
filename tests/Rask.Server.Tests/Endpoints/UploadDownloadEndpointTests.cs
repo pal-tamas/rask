@@ -85,6 +85,32 @@ public class UploadDownloadEndpointTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // A page that was fetched and never connected is reclaimed after its grace period. A download or upload
+    // naming its id used to cancel that removal for good, so one request pinned a session — and its staged
+    // files — in memory until the process ended.
+    [Fact]
+    public async Task A_download_request_does_not_keep_a_never_connected_session_alive()
+    {
+        using var host = RaskTestHost.Create<TestApp>(
+            configureServer: o => o.UnconnectedSessionGracePeriod = TimeSpan.FromMilliseconds(50));
+        var sessionId = await CreateSessionAsync(host);
+        var store = host.Server.Services.GetRequiredService<LiveSessionStore>();
+
+        await host.Http.GetAsync($"/_rask/download/{sessionId}/nope", TestContext.Current.CancellationToken);
+        await host.Http.PostAsync(
+            $"/_rask/upload/{sessionId}",
+            BuildSingleFileForm("a.txt", [1]),
+            TestContext.Current.CancellationToken);
+
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (store.Peek(sessionId) is not null && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(20, TestContext.Current.CancellationToken);
+        }
+
+        Assert.Null(store.Peek(sessionId));
+    }
+
     [Fact]
     public async Task An_upload_filename_with_a_path_comes_back_as_the_sanitized_leaf_name()
     {

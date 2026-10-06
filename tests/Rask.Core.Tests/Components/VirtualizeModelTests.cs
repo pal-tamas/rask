@@ -88,6 +88,32 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_scroll_reporting_an_absurd_viewport_does_not_render_the_whole_list()
+    {
+        VirtualizationContext<int>? captured = null;
+        var items = Enumerable.Range(0, 100_000).ToList();
+        var view = new StubComponent(() => Virtualize.Items(
+            ctx =>
+            {
+                captured = ctx;
+                return Div[Div.OnScroll(ctx.OnScroll)];
+            },
+            items,
+            ItemSize: 20,
+            OverscanCount: 2,
+            InitialClientHeight: 100));
+        var scrollHandlerId = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-scroll");
+
+        using var doc = JsonDocument.Parse(
+            "{\"target\":{\"scrollTop\":0,\"clientHeight\":2000000000,\"scrollHeight\":2000}}");
+        await view.TryInvokeHandlerAsync(scrollHandlerId!, doc.RootElement);
+        view.RenderAsLiveRoot();
+
+        Assert.NotNull(captured);
+        Assert.InRange(captured!.VisibleItems.Count, 1, 1_000);
+    }
+
+    [Fact]
     public void Items_provider_initial_total_count_draws_a_full_placeholder_window_on_the_first_render()
     {
         // Without an estimate the first render has no total, so there is no window and the caller draws

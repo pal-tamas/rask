@@ -66,6 +66,8 @@ Rask.Cqrs.RaskValidationException.RaskValidationException(System.Collections.Gen
 Rask.Cqrs.RemoteContract
 Rask.Cqrs.RemoteContract.AllowAnonymous.get -> bool
 Rask.Cqrs.RemoteContract.AllowAnonymous.init -> void
+Rask.Cqrs.RemoteContract.RequiresAuthentication.get -> bool
+Rask.Cqrs.RemoteContract.RequiresAuthentication.init -> void
 Rask.Cqrs.RemoteContract.CarriesFiles.get -> bool
 Rask.Cqrs.RemoteContract.CarriesFiles.init -> void
 Rask.Cqrs.RemoteContract.Invoker.get -> Rask.Cqrs.CqrsRegistry.RequestInvoker?

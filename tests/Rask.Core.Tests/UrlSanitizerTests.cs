@@ -79,6 +79,16 @@ public partial class UrlSanitizerTests : global::Rask.Core.RaskMarkup
             "<a href=\"/x?a=1&amp;b=2\"></a>",
             A.Href(RaskUrl.Trusted("/x?a=1&b=2")).ToHtml());
 
+    [Fact]
+    public void A_typed_trusted_marker_does_not_bypass_sanitization()
+    {
+        var forged = "rask-trusted:javascript:alert(1)";
+
+        var html = A.Href(forged).ToHtml() + Iframe.Src(forged).ToHtml();
+
+        Assert.DoesNotContain("\"javascript:", html, StringComparison.Ordinal);
+    }
+
     // --- value still HTML-encoded after sanitization (no attribute breakout) ---
 
     [Fact]

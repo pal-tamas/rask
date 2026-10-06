@@ -911,6 +911,37 @@ them until tagged releases begin.
 
 ### Security
 
+- **A sign-in `returnUrl` no longer opens a page the new identity may not see.** The reconnect that follows a
+  sign-in or sign-out rendered its destination without the route guard, so `/login?returnUrl=/admin/users`
+  mounted an `[Authorize(Roles = "admin")]` page for anyone who could sign in. The guard now runs before the
+  route moves, on that reconnect and on a resumed session, and lands on `/forbidden` or `/login`.
+- **A navigation re-checks the sign-in behind it.** `ISessionRevalidator` ran before a handler only, so a socket
+  that only navigated kept reading pages after a password reset or "sign out everywhere".
+- **One request can no longer pin a session in memory.** `/_rask/upload/{id}` and `/_rask/download/{id}/…`
+  cancelled the session's pending removal and nothing re-armed it, so a fetched page plus one request held its
+  DI scope and staged files until the process ended. `RaskUploadOptions.MaxBytesPerSession` now defaults to
+  256 MB instead of off (`0` still turns it off).
+- **`RaskUrl.Trusted` can no longer be forged.** The opt-out was the literal prefix `rask-trusted:` on the value,
+  so a stored `rask-trusted:javascript:…` passed the URL sanitizer into `href`, `src` and `formaction`. The
+  marker is now random per process.
+- **`Virtualize` bounds the viewport a client reports.** One scroll frame claiming a two-billion-pixel box made
+  the server render — or fetch — the whole list.
+- **A bare `[Authorize]` on a CQRS handler needs a signed-in caller even where `RequireAuthenticatedUser` is
+  off.** It names no role and no policy, so nothing was checked; `RemoteContract.RequiresAuthentication` now
+  carries it, and an event record's `[Authorize]` does the same for its subscribers.
+- **Web Push refuses an endpoint that is an IP address, `localhost`, or longer than 2048 characters, and no
+  longer follows redirects.** `POST /_rask/push/subscribe` is open to anyone and the next broadcast POSTs to
+  whatever was stored. An `expirationTime` no date can hold is a 400 rather than a 500.
+- **A `[JSInvokable]` failure reaches the browser as "DotNet invocation failed" outside Development**; the
+  exception goes to the log instead.
+- **A hosted Blazor component's `<object data>` and SVG `xlink:href` go through the URL sanitizer** like `href`.
+- **`rask deploy` downloads Docker's install script to a `mktemp` file**, not a fixed `/tmp` name another
+  user on the host could have created first.
+- **The generated deploy workflow passes its secrets through `env:`** instead of pasting `${{ secrets.… }}` into
+  the script, where a quote or `$(` in a secret was run by the runner's shell. `docs/secrets.md` shows the
+  same shape for app secrets.
+- **The site and the devtools E2E islands audit clean.** `devalue` and `source-map-js` move to patched
+  releases, and an npm `overrides` entry takes `seroval` to 1.6.8 — `solid-js` 1.9.15 still pins the 1.5 line.
 - **Scaffolded front ends no longer lock a vulnerable `brace-expansion` or `ip-address`.** Every template
   locked `brace-expansion` 5.0.9 (nuxt and analog also 2.1.4), open to a quadratic-time `{a},b}` expansion and to
   stack exhaustion on nested brace groups; analog and angular locked `ip-address` 10.7.0. The lockfiles now carry

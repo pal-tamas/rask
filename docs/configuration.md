@@ -426,7 +426,7 @@ overlay handles the user-facing side automatically — nothing to configure:
 | --- | --- | --- |
 | `MaxFileSize` | `50 MB` | Maximum size of a single uploaded file. |
 | `MaxFilesPerRequest` | `16` | Maximum files in one multipart upload request. |
-| `MaxBytesPerSession` | `0` (off) | Maximum cumulative staged-upload bytes one session may hold at once; a request over the quota is rejected with `413`. Released when the session ends. |
+| `MaxBytesPerSession` | 256 MB | Maximum cumulative staged-upload bytes one session may hold at once; a request over the quota is rejected with `413`. Released when the session ends. `0` turns the quota off. |
 
 ```jsonc
 {

@@ -1,6 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.JSInterop;
 using Microsoft.JSInterop.Infrastructure;
+using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 
 namespace Rask.Server.JSInterop;
@@ -76,10 +79,30 @@ internal sealed class RaskJSRuntime : RaskJSRuntimeBase
             invocationInfo.CallId,
             invocationResult.Success,
             invocationResult.Success ? invocationResult.ResultJson : null,
-            invocationResult.Success
-                ? null
-                : invocationResult.Exception?.Message ?? "DotNet invocation failed",
+            invocationResult.Success ? null : FailureMessage(session, invocationInfo, invocationResult.Exception),
             type: "dotNetResult");
         _ = session.SendOutOfBandAsync(payload);
+    }
+
+    // An exception message is written for an operator and routinely names types, tables and paths, and any
+    // socket can ask for any method name. So the browser hears the detail in Development only; the
+    // operator gets it either way.
+    private static string FailureMessage(LiveSession session, DotNetInvocationInfo invocation, Exception? exception)
+    {
+        const string Opaque = "DotNet invocation failed";
+        if (exception is null)
+        {
+            return Opaque;
+        }
+
+        if (session.Services.GetService<IHostEnvironment>()?.IsDevelopment() == true)
+        {
+            return exception.Message;
+        }
+
+        RaskDiagnostics.Report(
+            RaskLogLevel.Error, "Rask.Live",
+            $"Rask dotNetInvoke '{invocation.AssemblyName}.{invocation.MethodIdentifier}' failed", exception);
+        return Opaque;
     }
 }

@@ -58,13 +58,18 @@ internal static class GitHubActionsWorkflow
                 with:
                   dotnet-version: '10.0.x'
 
+              # Secrets reach the script as environment variables, never as ${{ }} in its text: that is
+              # pasted in before the shell parses it, so a quote or a $( in a secret would be run.
               - name: Configure SSH
+                env:
+                  RASK_SSH_PRIVATE_KEY: ${{ secrets.RASK_SSH_PRIVATE_KEY }}
+                  RASK_SSH_KNOWN_HOSTS: ${{ secrets.RASK_SSH_KNOWN_HOSTS }}
                 run: |
                   mkdir -p ~/.ssh
                   chmod 700 ~/.ssh
-                  printf '%s\n' "${{ secrets.RASK_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+                  printf '%s\n' "$RASK_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
                   chmod 600 ~/.ssh/id_ed25519
-                  printf '%s\n' "${{ secrets.RASK_SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+                  printf '%s\n' "$RASK_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
                   chmod 600 ~/.ssh/known_hosts
 
               - name: Install the Rask CLI
@@ -77,7 +82,9 @@ internal static class GitHubActionsWorkflow
               #   rask deploy --setup-host
               #
               # Pass app secrets through here as environment variables, e.g.
-              #   run: rask deploy --no-setup-host --env "Rask:Mail:Smtp:Password=${{ secrets.SMTP_PASSWORD }}"
+              #   env:
+              #     SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+              #   run: rask deploy --no-setup-host --env "Rask:Mail:Smtp:Password=$SMTP_PASSWORD"
               #
               # Every variable the app was last deployed with is recorded by name in .rask/deploy.json, and
               # a deploy that doesn't supply one of them FAILS rather than quietly starting the app without

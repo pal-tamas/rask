@@ -387,6 +387,11 @@ public sealed class VirtualizeModel : Component
         }
     }
 
+    // Taller than any scroll box a real screen can show; the overscan still applies on top.
+    private const int MaxClientHeight = 16_384;
+
+    private const int MaxScrollTop = int.MaxValue / 2;
+
     // The scroll box travels with a scroll as e.Target, as MDN's JavaScript reads it: e.target.scrollTop.
     private void HandleScroll(Event e)
     {
@@ -395,10 +400,12 @@ public sealed class VirtualizeModel : Component
             return;
         }
 
-        _scrollTop = Math.Max(0, (int)box.ScrollTop);
+        // Both numbers are the client's word. An unbounded height would make one frame render — or fetch —
+        // the whole list this component exists to window, and an unbounded offset would overflow the sum.
+        _scrollTop = (int)Math.Clamp(box.ScrollTop, 0, MaxScrollTop);
         if (box.ClientHeight > 0)
         {
-            _clientHeight = box.ClientHeight;
+            _clientHeight = Math.Min(box.ClientHeight, MaxClientHeight);
         }
         // The dispatcher's post-handler render already picks up this state mutation —
         // the owner is marked _stateDirty when TryInvokeHandlerAsync looks up the handler.

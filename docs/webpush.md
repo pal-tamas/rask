@@ -67,6 +67,10 @@ answers in JavaScript too — to the endpoints `RaskApp` maps:
 They are anonymous (a visitor may subscribe before signing in) and outside the API description. Subscribing
 again from the same browser renews its row rather than adding one.
 
+Because anyone may post one, a subscription is checked before it is kept: the endpoint has to be an `https`
+URL of at most 2048 characters that names a public host — not an IP address, not `localhost` — and the
+sender never follows a redirect. A real push service is always all of those.
+
 ## Keys
 
 A scaffolded app already has a development pair: `rask new` mints one into `appsettings.Development.json`,

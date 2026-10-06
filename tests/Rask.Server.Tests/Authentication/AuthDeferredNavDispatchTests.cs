@@ -19,38 +19,61 @@ public class AuthDeferredNavDispatchTests
     public async Task A_sign_in_return_url_mounts_the_destination_under_the_redeemed_identity()
     {
         using var host = CreateHost();
-        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
-        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        var sessionId = MarkupAssert.SessionId(initialHtml);
-        var signInHandlerId = ExtractHandlerId(initialHtml, "sign-in");
 
-        // The destination page has not mounted yet — only the anonymous /start page is live.
-        Assert.DoesNotContain("mountUser=", initialHtml);
+        var (handoff, afterReconnect) = await SignInThenReconnectAsync(host, "sign-in");
+
+        // The client still receives the ticket + a history.replace to the destination URL, even
+        // though the server-side route navigation is deferred to the reconnect.
+        using var doc = JsonDocument.Parse(handoff);
+        Assert.Equal("/dashboard", doc.RootElement.GetProperty("auth").GetProperty("returnUrl").GetString());
+        Assert.Equal("/dashboard", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
+        // The pre-reconnect render did NOT mount the destination page (route navigation deferred).
+        Assert.DoesNotContain("mountUser=", handoff);
+        // The deferred navigation is applied AFTER Set(wsUser), so the destination page mounts fresh
+        // under the redeemed identity: Mount captured "alice", not "anon". Pre-fix, the page mounted
+        // during the stale-principal pre-reconnect render and never remounted, yielding "anon".
+        Assert.Contains("mountUser=alice", afterReconnect);
+        Assert.DoesNotContain("mountUser=anon", afterReconnect);
+    }
+
+    // A returnUrl is checked for being local, which says nothing about who may see the page it names: the
+    // route guard has to run on the reconnect's render too, or signing in as anyone opens every page.
+    [Fact]
+    public async Task A_sign_in_return_url_the_new_identity_may_not_see_lands_on_forbidden()
+    {
+        using var host = CreateHost();
+
+        var (_, afterReconnect) = await SignInThenReconnectAsync(host, "to-admin");
+
+        Assert.DoesNotContain("admin-only", afterReconnect);
+        using var doc = JsonDocument.Parse(afterReconnect);
+        Assert.Equal("/forbidden", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
+    }
+
+    // Clicks a sign-in button on /start, redeems the ticket, and reconnects carrying the new cookie. Returns the
+    // frame that carried the ticket and the first frame after the reconnect.
+    private static async Task<(string Handoff, string AfterReconnect)> SignInThenReconnectAsync(
+        RaskTestHost host, string button)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var initial = await host.Http.GetAsync("/start", ct);
+        var initialHtml = await initial.Content.ReadAsStringAsync(ct);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
+        string handoff;
 
         using (var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None))
         {
-            await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
+            await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: ct);
             _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
-            await ws.SendJsonAsync(new { id = signInHandlerId }, ct: TestContext.Current.CancellationToken);
-            var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            await ws.SendJsonAsync(new { id = ExtractHandlerId(initialHtml, button) }, ct: ct);
+            handoff = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2)) ?? "";
+            Assert.NotEqual("", handoff);
 
-            Assert.NotNull(text);
-
-            using var doc = JsonDocument.Parse(text!);
-            // The client still receives the ticket + a history.replace to the destination URL, even
-            // though the server-side route navigation is deferred to the reconnect.
-            var authEl = doc.RootElement.GetProperty("auth");
-            var ticket = authEl.GetProperty("ticket").GetString();
-            Assert.Equal("/dashboard", authEl.GetProperty("returnUrl").GetString());
-            Assert.Equal("/dashboard", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
-            // The pre-reconnect render did NOT mount the destination page (route navigation deferred).
-            Assert.DoesNotContain("mountUser=", text!);
-
+            using var doc = JsonDocument.Parse(handoff);
+            var ticket = doc.RootElement.GetProperty("auth").GetProperty("ticket").GetString();
             var redeem = await host.Http.PostAsJsonAsync(
-                "/_rask/auth/redeem",
-                new { ticket, session = sessionId }, cancellationToken: TestContext.Current.CancellationToken);
-
+                "/_rask/auth/redeem", new { ticket, session = sessionId }, cancellationToken: ct);
             Assert.Equal(HttpStatusCode.OK, redeem.StatusCode);
 
             await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "auth-refresh", CancellationToken.None);
@@ -68,16 +91,11 @@ public class AuthDeferredNavDispatchTests
         };
 
         using var ws2 = await wsClient.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
+        await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: ct);
         var afterReconnect = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(afterReconnect);
-
-        // The deferred navigation is applied AFTER Set(wsUser), so the destination page mounts fresh
-        // under the redeemed identity: Mount captured "alice", not "anon". Pre-fix, the page mounted
-        // during the stale-principal pre-reconnect render and never remounted, yielding "anon".
-        Assert.Contains("mountUser=alice", afterReconnect!);
-        Assert.DoesNotContain("mountUser=anon", afterReconnect!);
+        return (handoff, afterReconnect);
     }
 
     private static RaskTestHost CreateHost() =>

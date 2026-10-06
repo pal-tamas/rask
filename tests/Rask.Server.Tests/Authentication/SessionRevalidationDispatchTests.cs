@@ -49,6 +49,27 @@ public class SessionRevalidationDispatchTests
             .Current.Identity?.IsAuthenticated);
     }
 
+    // A socket that only ever navigates must be stopped too: a navigation mounts a page as surely as a click does.
+    [Fact]
+    public async Task A_session_ended_elsewhere_is_signed_out_by_its_next_navigation()
+    {
+        var revalidator = new SwitchableRevalidator();
+        using var host = CreateHost(revalidator);
+        var (ws, sessionId, _) = await AttachAsync(host);
+        using var socket = ws;
+        revalidator.Ended = true;
+        host.Store.Get(sessionId)!.LastUserRevalidation = 0;
+
+        await ws.SendJsonAsync(
+            new { type = "navigate", path = "/m2/protected" }, ct: TestContext.Current.CancellationToken);
+        var afterEnd = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
+        Assert.NotNull(afterEnd);
+        Assert.Contains("/login", afterEnd!);
+        Assert.NotEqual(true, host.Store.Get(sessionId)!.Services.GetRequiredService<SessionUserProvider>()
+            .Current.Identity?.IsAuthenticated);
+    }
+
     [Fact]
     public async Task A_live_page_is_not_rechecked_on_every_dispatch()
     {

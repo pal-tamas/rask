@@ -29,7 +29,10 @@ public static class WebPushServiceCollectionExtensions
 
         // Typed client: IHttpClientFactory supplies the HttpClient; WebPushOptions + the optional
         // ILogger resolve from DI.
-        services.AddHttpClient<IWebPush, WebPushSender>();
+        // No redirects: a push service never sends one, and following one would let whoever owns a stored
+        // endpoint point this server's POST somewhere the subscription check never saw.
+        services.AddHttpClient<IWebPush, WebPushSender>()
+            .ConfigurePrimaryHttpMessageHandler(static () => new SocketsHttpHandler { AllowAutoRedirect = false });
         return services;
     }
 

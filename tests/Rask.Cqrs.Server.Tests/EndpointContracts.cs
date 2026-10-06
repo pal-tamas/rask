@@ -12,6 +12,8 @@ public sealed record AdminPurge : ICommand;
 
 public sealed record MembersOnly : ICommand;
 
+public sealed record SignedInOnly : ICommand;
+
 public sealed record Explodes : IQuery<int>;
 
 public sealed record Uploaded(string Note, IRaskFile File) : ICommand<string>;
@@ -48,6 +50,12 @@ public sealed class DeleteThingHandler : ICommandHandler<DeleteThing>
 public sealed class AdminPurgeHandler : ICommandHandler<AdminPurge>
 {
     public Task Handle(AdminPurge command) => Task.CompletedTask;
+}
+
+[Authorize]
+public sealed class SignedInOnlyHandler : ICommandHandler<SignedInOnly>
+{
+    public Task Handle(SignedInOnly command) => Task.CompletedTask;
 }
 
 [Authorize(Policy = "members")]

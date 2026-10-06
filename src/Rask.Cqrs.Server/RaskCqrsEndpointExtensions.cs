@@ -361,13 +361,15 @@ public static class RaskCqrsEndpointExtensions
     }
 
     private static Task<bool> AuthorizedAsync(HttpContext context, RemoteContract contract) =>
-        AuthorizedAsync(context, contract.Name, contract.AllowAnonymous, contract.Roles, contract.Policy);
+        AuthorizedAsync(
+            context, contract.Name, contract.AllowAnonymous, contract.RequiresAuthentication, contract.Roles, contract.Policy);
 
     // The one authorization check, for a request (the handler's attributes) and a subscription (the event's).
     internal static async Task<bool> AuthorizedAsync(
         HttpContext context,
         string name,
         bool allowAnonymous,
+        bool requiresAuthentication,
         string? declaredRoles,
         string? declaredPolicy)
     {
@@ -378,6 +380,13 @@ public static class RaskCqrsEndpointExtensions
 
         var user = context.User;
         var authenticated = user.Identity?.IsAuthenticated == true;
+
+        // A bare [Authorize] names nothing to check below, and RequireAuthenticatedUser may be off.
+        if (requiresAuthentication && !authenticated)
+        {
+            await ProblemAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", null).ConfigureAwait(false);
+            return false;
+        }
 
         if (declaredRoles is { Length: > 0 } roles)
         {

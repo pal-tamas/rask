@@ -24,9 +24,11 @@ public sealed partial class DeferredAuthNavTestApp : Component
 public sealed partial class DeferredNavStartPage(AuthSignIn auth) : Component
 {
     protected override Component? Render() =>
-        Div.Id("start")[Button.OnClick(SignInAsync)["sign-in"]];
+        Div.Id("start")[
+            Button.OnClick(() => SignInAsync("/dashboard"))["sign-in"],
+            Button.OnClick(() => SignInAsync("/admin"))["to-admin"]];
 
-    private Task SignInAsync()
+    private Task SignInAsync(string returnUrl)
     {
         var identity = new ClaimsIdentity(
             [
@@ -34,7 +36,7 @@ public sealed partial class DeferredNavStartPage(AuthSignIn auth) : Component
                 new Claim(ClaimTypes.NameIdentifier, "alice")
             ],
             "TestCookie");
-        return auth.SignIn(new ClaimsPrincipal(identity), "/dashboard", "TestCookie");
+        return auth.SignIn(new ClaimsPrincipal(identity), returnUrl, "TestCookie");
     }
 }
 
@@ -56,4 +58,12 @@ public sealed partial class DeferredNavDashboardPage(IUserProvider userProvider)
     }
 
     protected override Component? Render() => Div.Id("dash")["mountUser=", _mountUser];
+}
+
+// A page alice, who holds no role, may not see — however she arrives at it.
+[Route("/admin")]
+[Authorize(Roles = "admin")]
+public sealed partial class DeferredNavAdminPage : Component
+{
+    protected override Component? Render() => Div.Id("admin")["admin-only"];
 }

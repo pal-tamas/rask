@@ -85,6 +85,13 @@ public sealed class RemoteContract
     public bool AllowAnonymous { get; init; }
 
     /// <summary>
+    ///     True when the handler carries <c>[Authorize]</c> in any form. A bare one names no policy and no
+    ///     role, so this is all that says it asked for a signed-in caller — which it gets even where the
+    ///     endpoint's authenticated-by-default rule is switched off.
+    /// </summary>
+    public bool RequiresAuthentication { get; init; }
+
+    /// <summary>
     ///     True when the record itself carries <c>[Authorize]</c> or <c>[AllowAnonymous]</c>, which is what opens a
     ///     event subscribed to <em>by type</em> to remote subscribers. An <see cref="ISubscription{TEvent}" />
     ///     record is guarded by its <see cref="IWatchPolicy{TSubscription}" /> instead and needs no declaration; a

@@ -360,9 +360,10 @@ internal static class HostBootstrap
           elif command -v yum >/dev/null 2>&1; then yum install -y -q curl;
           else echo "rask: need curl to install Docker, and no known package manager to install it with" >&2; exit 1; fi
         fi
-        curl -fsSL https://get.docker.com -o /tmp/rask-get-docker.sh
-        sh /tmp/rask-get-docker.sh
-        rm -f /tmp/rask-get-docker.sh
+        script="$(mktemp)"
+        curl -fsSL https://get.docker.com -o "$script"
+        sh "$script"
+        rm -f "$script"
         """;
 
     /// <summary>

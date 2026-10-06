@@ -130,6 +130,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         model.Policy = authorization.Policy;
         model.Roles = authorization.Roles;
         model.AllowAnonymous = authorization.AllowAnonymous;
+        model.RequiresAuthentication = authorization.Authorize;
 
         // Who may SUBSCRIBE is the record's own business, so it is read off the record rather than a
         // handler — neither an event nor a subscription has one. An event that declares nothing
@@ -236,16 +237,18 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     // Matched by name so this generator needs no reference to ASP.NET. Roles is read as well as Policy
     // because dropping it silently would leave an author believing [Authorize(Roles = "admin")] was
     // enforced when nothing checked it.
-    private static (string? Policy, string? Roles, bool AllowAnonymous) Authorization(INamedTypeSymbol? handler)
+    private static (string? Policy, string? Roles, bool AllowAnonymous, bool Authorize) Authorization(
+        INamedTypeSymbol? handler)
     {
         if (handler is null)
         {
-            return (null, null, false);
+            return (null, null, false, false);
         }
 
         string? policy = null;
         string? roles = null;
         var anonymous = false;
+        var authorize = false;
 
         foreach (var attribute in handler.GetAttributes())
         {
@@ -256,6 +259,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                     break;
 
                 case "AuthorizeAttribute":
+                    authorize = true;
                     if (attribute.ConstructorArguments.Length == 1 &&
                         attribute.ConstructorArguments[0].Value is string positional)
                     {
@@ -278,7 +282,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             }
         }
 
-        return (policy, roles, anonymous);
+        return (policy, roles, anonymous, authorize);
     }
 
     private static bool HasAuthorization(INamedTypeSymbol type) =>
@@ -518,6 +522,11 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             entry.AppendLine("            AllowAnonymous = true,");
         }
 
+        if (contract.RequiresAuthentication)
+        {
+            entry.AppendLine("            RequiresAuthentication = true,");
+        }
+
         if (contract.SubscribeDeclared)
         {
             entry.AppendLine("            SubscribeDeclared = true,");
@@ -677,6 +686,8 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         public string? Roles { get; set; }
 
         public bool AllowAnonymous { get; set; }
+
+        public bool RequiresAuthentication { get; set; }
 
         public bool HasLocalHandler { get; set; }
 

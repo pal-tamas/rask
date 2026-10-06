@@ -75,7 +75,9 @@ and the host's fingerprint). Your **app's** secrets are separate — add them to
 
 ```yaml
 - name: Deploy
-  run: rask deploy --no-setup-host --env "Rask:Mail:Smtp:Password=${{ secrets.SMTP_PASSWORD }}"
+  env:
+    SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+  run: rask deploy --no-setup-host --env "Rask:Mail:Smtp:Password=$SMTP_PASSWORD"
 ```
 
 If that job starts failing after you deploy a new variable from your own machine, that's the check above

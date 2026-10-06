@@ -136,9 +136,20 @@ public sealed partial class WebPushSender : IWebPush
         // Real Web Push endpoints are always absolute https URLs. Enforcing that rejects malformed
         // subscriptions and denies the obvious SSRF vectors (http:// to a metadata/loopback host) a
         // caller might otherwise relay an attacker-supplied subscription into.
-        if (!Uri.TryCreate(subscription.Endpoint, UriKind.Absolute, out var endpoint)
+        if (subscription.Endpoint.Length > MaxEndpointLength
+            || !Uri.TryCreate(subscription.Endpoint, UriKind.Absolute, out var endpoint)
             || !string.Equals(endpoint.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal))
-            return "Push subscription endpoint must be an absolute https URL.";
+            return "Push subscription endpoint must be an absolute https URL of at most 2048 characters.";
+
+        // A push service is a public host with a name. An address or this machine is somebody aiming the
+        // server's own POST at its network — the subscribe endpoint is open to anyone.
+        if (endpoint.HostNameType != UriHostNameType.Dns
+            || endpoint.IsLoopback
+            || endpoint.Host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
+            return "Push subscription endpoint must name a public host, not an IP address or localhost.";
+
+        if (subscription.ExpirationTime is { } expires && !(expires >= 0 && expires <= MaxExpirationTime))
+            return "Push subscription expirationTime must be a time in milliseconds since the epoch.";
 
         // RFC 8291: the browser's key is an uncompressed P-256 point, and its auth secret is 16 bytes.
         if (Decoded(subscription.P256dh) is not { Length: 65 } key || key[0] != 0x04)
@@ -149,6 +160,12 @@ public sealed partial class WebPushSender : IWebPush
 
         return null;
     }
+
+    // What the subscriber table's endpoint column declares; SQLite does not enforce a length itself.
+    private const int MaxEndpointLength = 2048;
+
+    // The last millisecond a DateTime can hold, counted from the Unix epoch.
+    private const double MaxExpirationTime = 253_402_300_799_999;
 
     private static byte[]? Decoded(string? value)
     {

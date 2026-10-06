@@ -2171,21 +2171,7 @@ public static partial class RaskEndpointExtensions
 
         try
         {
-            // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the destination
-            // page mounts fresh under the new identity (its Mount runs against the redeemed principal).
-            // The attach flagged a pending render for this reconnect, so the flush below performs a real render
-            // against the updated route. See LiveSession.PendingAuthNavigation.
-            if (await ApplyAuthNavigationAsync(session).ConfigureAwait(false))
-            {
-                return new AttachOutcome(AttachStatus.Attached, session);
-            }
-
-            // Only emit a catch-up render when something asked to render during the GET-to-hello handoff window
-            // (or while detached across a reconnect). When no drop happened, the browser's HTML still reflects
-            // the session state and re-rendering would just re-fire OnRendered on every alive component for no
-            // visible change — that's what made Server's initial-mount hook count diverge from WASM's.
-            // FlushPendingRenderAsync is a no-op when nothing's pending.
-            await session.FlushPendingRenderAsync().ConfigureAwait(false);
+            await RenderAttachedAsync(session, ct).ConfigureAwait(false);
         }
         catch
         {
@@ -2194,6 +2180,69 @@ public static partial class RaskEndpointExtensions
         }
 
         return new AttachOutcome(AttachStatus.Attached, session);
+    }
+
+    // What a re-attached session owes its new connection: the deferred sign-in navigation, then a render.
+    private static async Task RenderAttachedAsync(LiveSession session, CancellationToken ct)
+    {
+        var routeState = session.Services.GetRequiredService<RouteState>();
+        var destination = session.PendingAuthNavigation is { } url
+            ? SplitUrl(url)
+            : (routeState.Path, routeState.Query);
+
+        // Before the route moves: this is the render the sign-in handoff deferred its route check to, and a
+        // returnUrl is only known to be local, not to be a page this principal may see.
+        var guard = await GuardRouteAsync(session, destination.Path, destination.Query).ConfigureAwait(false);
+        if (guard is { } redirect)
+        {
+            session.PendingAuthNavigation = null;
+            await RenderGuardRedirectAsync(session, redirect, ct).ConfigureAwait(false);
+            return;
+        }
+
+        // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the destination
+        // page mounts fresh under the new identity (its Mount runs against the redeemed principal).
+        // The attach flagged a pending render for this reconnect, so the flush below performs a real render
+        // against the updated route. See LiveSession.PendingAuthNavigation.
+        if (session.PendingAuthNavigation is not null)
+        {
+            session.PendingAuthNavigation = null;
+            routeState.Path = destination.Path;
+            routeState.Query = destination.Query;
+
+            // A destination another application owns loads as a page instead (#1094).
+            if (await NavigateAcrossApplicationsAsync(session, replace: true).ConfigureAwait(false))
+            {
+                return;
+            }
+        }
+
+        // Only emit a catch-up render when something asked to render during the GET-to-hello handoff window
+        // (or while detached across a reconnect). When no drop happened, the browser's HTML still reflects
+        // the session state and re-rendering would just re-fire OnRendered on every alive component for no
+        // visible change — that's what made Server's initial-mount hook count diverge from WASM's.
+        // FlushPendingRenderAsync is a no-op when nothing's pending.
+        await session.FlushPendingRenderAsync().ConfigureAwait(false);
+    }
+
+    // Moves the session to the guard's redirect and sends it as ONE frame carrying the new address. Inside a
+    // handler scope, because moving the route asks for a render of its own: outside one that render goes out
+    // first, and the frame with the address is then dropped as a duplicate of it.
+    private static async Task RenderGuardRedirectAsync(LiveSession session, GuardRedirect redirect, CancellationToken ct)
+    {
+        await session.Lock.WaitAsync(ct).ConfigureAwait(false);
+        session.InHandlerScope = true;
+        try
+        {
+            redirect.ApplyTo(session.Services.GetRequiredService<RouteState>());
+            await session.RenderAndSendCoalescingAsync(redirect.Url, true).ConfigureAwait(false);
+        }
+        finally
+        {
+            session.InHandlerScope = false;
+            session.Lock.Release();
+            _ = session.DrainRenderRequestedAfterScope();
+        }
     }
 
     private static async Task<AttachOutcome> ResumeAttachAsync(
@@ -2241,7 +2290,11 @@ public static partial class RaskEndpointExtensions
 
         try
         {
-            await session.RenderAndSendAsync(null, false).ConfigureAwait(false);
+            // The record names a URL and a user, not what that user may see today: a role removed since the
+            // record was sealed must not get the page back by resuming it. Nothing is mounted yet, so moving
+            // the route here asks nobody for a render.
+            var guardUrl = await RedirectUnauthorizedRouteAsync(session).ConfigureAwait(false);
+            await session.RenderAndSendAsync(guardUrl, guardUrl is not null).ConfigureAwait(false);
         }
         catch
         {
@@ -2250,23 +2303,6 @@ public static partial class RaskEndpointExtensions
         }
 
         return new AttachOutcome(AttachStatus.Attached, session);
-    }
-
-    // True when the deferred navigation left for another application, which then loads as a page (#1094).
-    private static async Task<bool> ApplyAuthNavigationAsync(LiveSession session)
-    {
-        if (session.PendingAuthNavigation is not { } authDest)
-        {
-            return false;
-        }
-
-        session.PendingAuthNavigation = null;
-        var routeState = session.Services.GetRequiredService<RouteState>();
-        var (path, query) = SplitUrl(authDest);
-        routeState.Path = path;
-        routeState.Query = query;
-
-        return await NavigateAcrossApplicationsAsync(session, replace: true).ConfigureAwait(false);
     }
 
     // The attach's render threw — most often the client dropping mid-attach. The caller never learns this
@@ -2873,6 +2909,8 @@ public static partial class RaskEndpointExtensions
 
             try
             {
+                // A navigation mounts a page just as a handler does, so an ended sign-in must stop it too.
+                await RevalidateUserAsync(session, ct).ConfigureAwait(false);
                 await EnforceAuthAndRenderAsync(session, fullUrl, replace).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -2973,39 +3011,66 @@ public static partial class RaskEndpointExtensions
                 return;
             }
 
-            var routeState = session.Services.GetRequiredService<RouteState>();
-            if (RouteResolver.TryResolve(routeState.CurrentTable, routeState.Path, out var chain, out _))
+            if (await RedirectUnauthorizedRouteAsync(session).ConfigureAwait(false) is { } guardUrl)
             {
-                var user = session.Services.GetRequiredService<SessionUserProvider>().Current;
-                var result = await RouteAuthorizationGuard
-                    .Evaluate(session.Services, chain, user)
-                    .ConfigureAwait(false);
-                if (result.Outcome != RouteAuthorizationOutcome.Allow)
-                {
-                    // Client-side guard redirect targets. (The initial HTTP GET challenge already goes
-                    // through the configured auth scheme's own LoginPath/AccessDeniedPath.)
-                    var originalUrl = QueryString.Build(routeState.Path, routeState.Query);
-                    var redirectPath = result.Outcome == RouteAuthorizationOutcome.Forbid
-                        ? RouteAuthorizationGuard.ForbidPath
-                        : RouteAuthorizationGuard.ChallengePath;
-                    routeState.Path = redirectPath;
-                    if (result.Outcome == RouteAuthorizationOutcome.Challenge)
-                    {
-                        routeState.Query = QueryString.Parse("?returnUrl=" + Uri.EscapeDataString(originalUrl));
-                        historyUrl = redirectPath + "?returnUrl=" + Uri.EscapeDataString(originalUrl);
-                    }
-                    else
-                    {
-                        routeState.Query = QueryCollection.Empty;
-                        historyUrl = redirectPath;
-                    }
-
-                    replace = true;
-                }
+                historyUrl = guardUrl;
+                replace = true;
             }
         }
 
         await session.RenderAndSendCoalescingAsync(historyUrl, replace, auth).ConfigureAwait(false);
+    }
+
+    // Points the session's route at the guard's redirect when its principal may not see the page it is on,
+    // and returns the URL the address bar should then show; null when the page is allowed.
+    private static async Task<string?> RedirectUnauthorizedRouteAsync(LiveSession session)
+    {
+        var routeState = session.Services.GetRequiredService<RouteState>();
+        if (await GuardRouteAsync(session, routeState.Path, routeState.Query).ConfigureAwait(false) is not { } redirect)
+        {
+            return null;
+        }
+
+        redirect.ApplyTo(routeState);
+        return redirect.Url;
+    }
+
+    // Where the guard sends the session's principal instead of a route; null when it may see the page (or the
+    // path resolves to nothing — a NotFound page has nothing to gate). Changes nothing: moving the route asks
+    // for a render, so a caller has to know the answer before it moves it.
+    private static async Task<GuardRedirect?> GuardRouteAsync(
+        LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
+    {
+        var routeState = session.Services.GetRequiredService<RouteState>();
+        if (!RouteResolver.TryResolve(routeState.CurrentTable, path, out var chain, out _))
+        {
+            return null;
+        }
+
+        var user = session.Services.GetRequiredService<SessionUserProvider>().Current;
+        var result = await RouteAuthorizationGuard.Evaluate(session.Services, chain, user).ConfigureAwait(false);
+
+        // Client-side guard redirect targets. (The initial HTTP GET challenge already goes
+        // through the configured auth scheme's own LoginPath/AccessDeniedPath.)
+        return result.Outcome switch
+        {
+            RouteAuthorizationOutcome.Allow => null,
+            RouteAuthorizationOutcome.Forbid => new GuardRedirect(RouteAuthorizationGuard.ForbidPath, string.Empty),
+            _ => new GuardRedirect(
+                RouteAuthorizationGuard.ChallengePath,
+                "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(path, query))),
+        };
+    }
+
+    private readonly record struct GuardRedirect(string Path, string Query)
+    {
+        public string Url => Path + Query;
+
+        public void ApplyTo(RouteState routeState)
+        {
+            routeState.Path = Path;
+            routeState.Query = Query.Length == 0 ? QueryCollection.Empty : QueryString.Parse(Query);
+        }
     }
 
     private static (string Path, QueryCollection Query) SplitUrl(string url)
@@ -3441,7 +3506,8 @@ public static partial class RaskEndpointExtensions
         SessionUploadStore uploads,
         RaskUploadOptions options)
     {
-        var session = sessions.Get(sessionId);
+        // Peek, not Get: Get cancels the pending removal for good, pinning the session and all it staged.
+        var session = sessions.Peek(sessionId);
         if (session is null)
         {
             ctx.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -3568,8 +3634,8 @@ public static partial class RaskEndpointExtensions
     {
         // A leaked download URL must not serve a victim's file to another principal: require the
         // session to still exist and the request to be same-origin and from the session owner
-        // before consuming the one-shot entry.
-        var session = sessions.Get(sessionId);
+        // before consuming the one-shot entry. Peek, not Get, for the reason HandleUploadAsync gives.
+        var session = sessions.Peek(sessionId);
         if (session is null)
         {
             ctx.Response.StatusCode = StatusCodes.Status404NotFound;

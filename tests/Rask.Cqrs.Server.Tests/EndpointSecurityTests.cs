@@ -122,6 +122,24 @@ public sealed class EndpointSecurityTests
         Assert.Equal(HttpStatusCode.NoContent, allowed.StatusCode);
     }
 
+    // A bare [Authorize] names no role and no policy, so with the endpoint's own default switched off there
+    // was nothing left to check and the handler answered anyone.
+    [Fact]
+    public async Task A_bare_Authorize_still_needs_a_signed_in_caller_when_the_default_is_off()
+    {
+        using var client = Host(o => o.RequireAuthenticatedUser = false).CreateClient();
+        using var anonymous = Request(HttpMethod.Post, "Rask.Cqrs.Server.Tests.SignedInOnly", false, null, null);
+        anonymous.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+        using var signedIn = Request(HttpMethod.Post, "Rask.Cqrs.Server.Tests.SignedInOnly", true, null, null);
+        signedIn.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+
+        var refused = await client.SendAsync(anonymous, TestContext.Current.CancellationToken);
+        var allowed = await client.SendAsync(signedIn, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, refused.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, allowed.StatusCode);
+    }
+
     [Fact]
     public async Task A_query_round_trips_over_GET()
     {

@@ -134,6 +134,37 @@ public sealed class WebPushSenderTests
         Assert.Null(handler.Request); // never left the process.
     }
 
+    // Anyone may post a subscription, and the server later POSTs to whatever it named: an address or this
+    // machine is somebody aiming that request at the server's own network.
+    [Theory]
+    [InlineData("https://127.0.0.1/abc")]
+    [InlineData("https://10.0.0.5:8443/abc")]
+    [InlineData("https://[::1]/abc")]
+    [InlineData("https://localhost/abc")]
+    [InlineData("https://admin.localhost/abc")]
+    public void Rejects_endpoints_that_name_an_address_or_this_machine(string endpoint)
+    {
+        using var client = TestCrypto.GenerateClient();
+        var sub = new PushSubscription(endpoint, client.P256dhB64, client.AuthB64);
+
+        var problem = WebPushSender.Problem(sub);
+
+        Assert.NotNull(problem);
+    }
+
+    [Fact]
+    public void Rejects_an_endpoint_longer_than_its_column_and_an_expiry_no_date_can_hold()
+    {
+        using var client = TestCrypto.GenerateClient();
+        var tooLong = new PushSubscription(
+            "https://push.example/" + new string('a', 2048), client.P256dhB64, client.AuthB64);
+        var noSuchDate = new PushSubscription(TestSender.Endpoint, client.P256dhB64, client.AuthB64, 1e300);
+
+        var problems = new[] { WebPushSender.Problem(tooLong), WebPushSender.Problem(noSuchDate) };
+
+        Assert.All(problems, Assert.NotNull);
+    }
+
     [Fact]
     public async Task Rejects_auth_secret_of_wrong_length()
     {

@@ -51,7 +51,7 @@ internal static class BlazorFrameWriter
     // un-encoded path — so nothing downstream would catch a miss here.
     private static readonly HashSet<string> UrlAttributes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "href", "action", "formaction", "ping", "cite", "background",
+        "href", "xlink:href", "action", "formaction", "ping", "cite", "background", "data",
     };
 
     // As above, but inline media is both common and inert, so data:image/* and friends stay allowed.
