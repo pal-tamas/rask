@@ -58,6 +58,17 @@ async function measure(page, shots) {
   await cdp.send('DOM.enable');
   await cdp.send('CSS.enable');
 
+  // A running animation is measured at its first frame, not wherever the clock caught it: a shimmer
+  // half-way across would measure differently on every run, and never the same on both pages.
+  await page.evaluate(() => {
+    for (const animation of document.getAnimations()) {
+      if (animation instanceof CSSAnimation && animation.playState === 'running') {
+        animation.pause();
+        animation.currentTime = 0;
+      }
+    }
+  });
+
   const wrappers = await page.$$('[data-preview-wrapper]');
   const examples = [];
   for (const [index, wrapper] of wrappers.entries()) {
@@ -106,6 +117,18 @@ function collect(wrapper, { STYLES, index }) {
     return Object.fromEntries(STYLES.map(k => [k, computed[k]]));
   };
 
+  // What moves, and how: each CSS animation's timing and keyframes, on the element or pseudo it runs on.
+  const animations = new Map();
+  for (const animation of document.getAnimations()) {
+    if (!(animation instanceof CSSAnimation)) continue;
+    const { target, pseudoElement } = animation.effect;
+    const { duration, delay, iterations, direction, fill } = animation.effect.getTiming();
+    const keyframes = animation.effect.getKeyframes().map(({ composite, computedOffset, ...frame }) => frame);
+    (animations.get(target) ?? animations.set(target, []).get(target)).push({
+      on: pseudoElement ?? '', name: animation.animationName, duration, delay, iterations: String(iterations), direction, fill, keyframes,
+    });
+  }
+
   const nodes = [];
   const interactive = [];
   const elements = [wrapper, ...wrapper.querySelectorAll('*')].slice(0, 500);
@@ -125,8 +148,10 @@ function collect(wrapper, { STYLES, index }) {
       if (content && content !== 'none' && content !== 'normal') node[pseudo] = { content, ...style(el, pseudo) };
     }
 
+    if (animations.has(el)) node.animations = animations.get(el);
     nodes.push(node);
-    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux'));
+    // Marked on either page: `data-flux-*` on Flux's, `data-ui-*` on Rask's — or one side's states go unmeasured.
+    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux') || a.name.startsWith('data-ui-'));
     if (interactive.length < 60 && (fluxed || el.matches('button, a, input, select, textarea, summary, label, [role], [tabindex]'))) {
       interactive.push(id);
     }

@@ -4,7 +4,8 @@
 // Two measurements of the same examples, taken the same way (lib.mjs): Flux's docs page, and the page
 // FluxParityPages wrote for the Rask component (artifacts/flux-parity/rask/<slug>.html). Every marked
 // node — `data-flux-*` there, `data-ui-*` here — is paired in document order, and its whole subtree is
-// compared: tag, box, computed styles, pseudo-elements, and what hover / active / focus-visible change.
+// compared: tag, box, computed styles, pseudo-elements, animations (timing and keyframes), and what
+// hover / active / focus-visible change.
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
 //         node scripts/flux/parity.mjs button                           # components/button
@@ -125,6 +126,10 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
     else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
   }
+
+  // Flux's keyframes are named `flux-*` as its markers are; Rask's are `ui-*`.
+  const moves = n => JSON.stringify(n.animations ?? []).replaceAll('"name":"flux-', '"name":"ui-');
+  if (moves(a) !== moves(b)) diffs.push(`${where}: animations: ${moves(a)} vs ${moves(b)}`);
 
   for (const state of ['hover', 'active', 'focus-visible']) {
     const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};

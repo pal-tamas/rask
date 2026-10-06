@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -54,19 +55,45 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task The_progress_element_reports_its_own_value() => RunAsync(async () =>
+    public Task A_progress_bar_announces_its_value_and_draws_that_share_of_its_track() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-progress']");
-        var bar = scope.Locator("progress").First;
+        var progress = scope.Locator("[data-testid='ui-progress-storage']");
 
-        await Expect(bar).ToHaveAttributeAsync("value", "62");
+        await Expect(progress).ToHaveRoleAsync(AriaRole.Progressbar);
+        await Expect(progress).ToHaveAttributeAsync("aria-valuenow", "62");
 
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "+10" }).ClickAsync();
 
-        // A real <progress>, so the value is the element's own rather than a width the kit painted.
-        await Expect(bar).ToHaveAttributeAsync("value", "72");
+        // The announced value, and the bar: 72% of the track once the 300ms move has finished.
+        await Expect(progress).ToHaveAttributeAsync("aria-valuenow", "72");
+        await Expect(progress).ToHaveAttributeAsync("style", new Regex("--ui-progress-percentage:72%"));
+        await Page.WaitForTimeoutAsync(400);
+        var track = await progress.BoundingBoxAsync();
+        var bar = await progress.Locator("div").BoundingBoxAsync();
+        Assert.Equal(0.72, Math.Round(bar!.Width / track!.Width, 2));
+    });
+
+    [Fact]
+    public Task A_shimmering_skeleton_is_drawn_and_its_light_is_moving() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-skeleton']");
+        await Expect(scope.Locator("[data-ui-skeleton-group]")).ToHaveCountAsync(3);
+
+        // The avatar is the call site's size, and the group's shimmer reached it: a ::before running the
+        // kit's keyframe is the check that both the utilities and the keyframe are in the compiled sheet.
+        var avatar = scope.Locator("[data-ui-skeleton]").First;
+        var box = await avatar.BoundingBoxAsync();
+        Assert.Equal(40, box!.Width);
+        Assert.Equal(40, box.Height);
+        Assert.Equal(
+            "ui-shimmer 2s",
+            await avatar.EvaluateAsync<string>(
+                "el => { const s = getComputedStyle(el, '::before'); return s.animationName + ' ' + s.animationDuration; }"));
     });
 
     [Fact]

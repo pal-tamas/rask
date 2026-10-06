@@ -22,7 +22,13 @@ namespace Rask.UiTests.Flux;
 public sealed class FluxConformanceTests
 {
     /// <summary>Flux part → the Rask.Ui type that mirrors it. A component joins this when it is built.</summary>
-    private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
+    {
+        ["flux:progress"] = typeof(UiProgress),
+        ["flux:skeleton"] = typeof(UiSkeleton),
+        ["flux:skeleton.line"] = typeof(UiSkeletonLine),
+        ["flux:skeleton.group"] = typeof(UiSkeletonGroup),
+    };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
     private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal);

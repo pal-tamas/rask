@@ -74,6 +74,8 @@ function fingerprints(schemes) {
         n.tag, Object.keys(n.attrs).filter(a => a.startsWith('data-flux')).sort(), n.text,
         n.box.slice(2).map(v => Math.round(v)), Object.values(n.style).map(round),
         n['::before'] ? Object.values(n['::before']).map(round) : 0, n['::after'] ? Object.values(n['::after']).map(round) : 0,
+        // Only where something animates, so an example with nothing moving keeps the print it had.
+        ...(n.animations ? [n.animations] : []),
       ]);
       const states = example.states.map(s => [s.state, Object.entries(s.changed).map(([k, v]) => [k, round(v)])]);
       prints[`${scheme}/${example.section || 'intro'}#${example.ordinal}`] =

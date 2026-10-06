@@ -1,7 +1,7 @@
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The seven feedback components. Most of these assertions are about what gets ANNOUNCED, because
+///     The feedback components that are still daisyUI's. Most of these assertions are about what gets ANNOUNCED, because
 ///     that is the half of feedback a purely visual check never sees.
 /// </summary>
 public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
@@ -95,25 +95,6 @@ public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
     [InlineData(Ui.Tone.Info, "alert-info")]
     public void Every_alert_tone_writes_its_own_class(Ui.Tone tone, string expected) =>
         Assert.Contains(expected, Ui.Alert.Tone(tone)["Payment failed"].ToHtml());
-
-    [Fact]
-    public void A_progress_bar_is_a_real_progress_element()
-    {
-        // It reports its own value to assistive technology, which a styled div has to be told to do and
-        // usually is not.
-        var html = Ui.Progress.Label("Upload").Value(62).Max(100).ToHtml();
-
-        Assert.Contains("<progress", html);
-        Assert.Contains("value=\"62\"", html);
-    }
-
-    [Fact]
-    public void A_radial_progress_says_its_number_rather_than_only_drawing_it() =>
-        Assert.Contains("78", Ui.RadialProgress.Label("Disk used").Percent(78).ToHtml());
-
-    [Fact]
-    public void A_skeleton_carries_the_base_class() =>
-        Assert.Contains("skeleton", Ui.Skeleton.Class("h-24 w-full").ToHtml());
 
     [Fact]
     public void A_toast_is_announced_politely_rather_than_interrupting()

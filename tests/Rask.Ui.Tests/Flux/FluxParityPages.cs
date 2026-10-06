@@ -13,14 +13,24 @@ namespace Rask.UiTests.Flux;
 /// </remarks>
 public sealed class FluxParityPages
 {
-    // What Tailwind's preflight gives every app the kit is used in; the kit ships none of its own.
+    // What Tailwind's preflight gives every app the kit is used in; the kit ships none of its own. In
+    // `@layer base`, as preflight is: unlayered, its `padding:0` would beat every padding utility in the kit.
+    //
+    // And what Flux's docs page gives every example on it, which each node inherits and the comparison
+    // therefore sees: Tailwind 3's gray-200 as the colour of a border nobody coloured, black text (white in
+    // dark), and prose set 26px to the line under a section heading, 24px in the example that opens the page.
     private const string Reset =
-        "*,::before,::after{box-sizing:border-box;border:0 solid;margin:0;padding:0}"
+        "@layer base{"
+        + "*,::before,::after{box-sizing:border-box;border:0 solid oklch(0.928 0.006 264.531);margin:0;padding:0}"
         + "html{line-height:1.5;-webkit-text-size-adjust:100%;font-family:Inter,sans-serif}"
         + "button,input,select,textarea{font:inherit;letter-spacing:inherit;color:inherit;background:transparent;border-radius:0}"
         + "a{color:inherit;text-decoration:inherit}svg,img{display:block;vertical-align:middle}"
         + "h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}ol,ul,menu{list-style:none}"
-        + "[data-preview-wrapper]{padding:64px 24px}";
+        + "table{text-indent:0;border-color:inherit;border-collapse:collapse}"
+        + "}"
+        + "[data-preview-wrapper]{padding:64px 24px;color:#000;line-height:26px}"
+        + "[data-preview-wrapper][data-section=\"\"]{line-height:24px}"
+        + ".dark [data-preview-wrapper]{color:#fff}";
 
     public static string Directory { get; } = Path.Combine(RepoRoot.FullPath, "artifacts", "flux-parity", "rask");
 

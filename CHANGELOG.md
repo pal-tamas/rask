@@ -9,6 +9,36 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Skeleton` and `Ui.Progress` are Flux UI's, and `Ui.RadialProgress` is gone.** The first
+  two components of the Flux rebuild, drawn from Flux's live docs and held to them by `scripts/flux/parity.mjs`
+  in light and dark. A skeleton is three parts — `Ui.Skeleton` (a block the call site sizes),
+  `Ui.SkeletonLine` (a line of text, `Base` or `Lg`) and `Ui.SkeletonGroup`, whose `Shimmer` or `Pulse`
+  reaches every skeleton inside it. `Lines`, `Circle` and the boolean `Animate` are gone, and a skeleton is
+  still until told to move:
+  ```csharp
+  Ui.Skeleton.Lines(3)                          // was
+  Ui.SkeletonGroup.Shimmer[Ui.SkeletonLine, Ui.SkeletonLine, Ui.SkeletonLine.Class("w-3/5")]   // now
+
+  Ui.Skeleton.Circle().Class("size-10")         // was
+  Ui.Skeleton.Class("size-10 rounded-full")     // now
+
+  Ui.Skeleton.Animate(false)                    // was
+  Ui.Skeleton                                   // now — still by default; .Shimmer or .Pulse to animate
+  ```
+  A progress bar is a `<ui-progress role="progressbar">` rather than a `<progress>`: `Value` and `Max` are
+  optional (0 and 100), `Label` is `.Aria("label", …)`, and `Tone` is `Color`, a hue of the new `Ui.Color`:
+  ```csharp
+  Ui.Progress.Label("Upload").Value(62).Max(100).Primary              // was
+  Ui.Progress.Value(62).Aria("label", "Upload")                       // now
+  Ui.Progress.Value(62).Color(Ui.Color.Blue)                          // now, coloured
+
+  Ui.RadialProgress.Label("Disk used").Percent(78)                    // was
+  Ui.Progress.Value(78).Aria("label", "Disk used")                    // now
+  ```
+  Neither skeleton animation stops under `prefers-reduced-motion`, as Flux's do not. The parity tool now
+  measures a running animation at its first frame and compares each animation's timing and keyframes, and
+  the parity page carries the docs page's inherited text colour, line height and default border colour.
+
 - **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
   keeps the front-door check, `pre-push` the attribution guard. `ci.yml` runs the format check, the
   warnings-as-errors build, the unit suite, the browser E2Es, the CLI build and the templates as
