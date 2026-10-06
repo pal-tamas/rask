@@ -158,7 +158,7 @@ public abstract partial class ExternalComponent : Component
         var slotDepth = BuilderRuntime.SlotDepth;
         try
         {
-            live.HeadAssets.Add(Script.Src(ExternalDefaults.RuntimeScriptUrl).Type("module"));
+            live.HeadAssets.Add(Script.Src(RuntimeScriptSrc()).Type("module"));
             if (HeadAssets is { } own)
             {
                 live.HeadAssets.Add(own);
@@ -169,6 +169,29 @@ public abstract partial class ExternalComponent : Component
             BuilderRuntime.DrainSlotsAbove(slotDepth);
         }
     }
+
+    /// <summary>
+    ///     The runtime script's URL under the deploy's <see cref="LiveOptions.PathBase" />, as scoped assets are.
+    /// </summary>
+    /// <remarks>
+    ///     Kept per path base, so a page of islands does not build the same string once per island per render.
+    ///     The client reads the base back off this URL to find the manifest and the chunks.
+    /// </remarks>
+    private static string RuntimeScriptSrc()
+    {
+        var pathBase = LiveOptions.PathBase;
+        var src = _runtimeSrc;
+        if (!string.Equals(src.PathBase, pathBase, StringComparison.Ordinal))
+        {
+            _runtimeSrc = src = new RuntimeSrc(pathBase, pathBase + ExternalDefaults.RuntimeScriptUrl);
+        }
+
+        return src.Url;
+    }
+
+    private static RuntimeSrc _runtimeSrc = new(string.Empty, ExternalDefaults.RuntimeScriptUrl);
+
+    private sealed record RuntimeSrc(string PathBase, string Url);
 
     /// <summary>
     ///     Never called: the serializer takes its element branch the moment <see cref="TagName" /> is
