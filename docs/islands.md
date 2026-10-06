@@ -545,9 +545,13 @@ declaration changes.
 
 They travel as a handler reference rather than a value, and reach C# through the **same channel every
 DOM handler uses**: the open WebSocket on the Server host, a direct `[JSExport]` call into this tab's
-runtime on WASM. An island never opens a channel of its own, so a callback inherits sequence
-stamping, the queue-while-reconnecting, and the auth suppression window for free — and the `.tsx` is
-byte-identical on both hosts.
+runtime on WASM. An island never opens a channel of its own, and the `.tsx` is byte-identical on both
+hosts. On the Server host a callback therefore inherits sequence stamping, the
+queue-while-reconnecting and the auth suppression window. WASM has no socket to stamp or reconnect;
+what it has instead is a page that is prerendered, so its islands are clickable before .NET has
+booted — a callback fired in that window is held and delivered once the app has rendered its first
+frame, to the island that fired it. (If the app renders a different page than the prerendered one,
+the held callback is dropped with a console warning rather than risk reaching another handler.)
 
 A callback that is not wired omits its key entirely, so the front end sees `undefined` rather than a
 key that still looks callable. A **data** prop set to null stays a JSON `null`, because "never set"

@@ -1244,6 +1244,14 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **WASM: an island pressed before the app has booted is no longer a click that did nothing.** A
+  prerendered page mounts its islands from the served HTML, so they are interactive seconds before
+  .NET exists, and a callback fired in that window was dropped with `send: dotnetExports not set` —
+  where the Server host has always queued one fired while its socket was opening. The WASM runtime now
+  holds island callbacks (up to 32) until the first frame is applied and delivers each to the island
+  that fired it; one whose island is no longer on the rendered page is dropped with a warning that
+  names it. DOM events before boot are still dropped, as before.
+
 - **`rask new --islands lit` scaffolds an island that bundles.** The build's entry imports a Lit island's
   default export — its registered tag name — and the scaffolded `LitBadge.ts` had none, so the first
   build after `npm install` stopped on `"default" is not exported by LitBadge.ts`. The fragment is now
