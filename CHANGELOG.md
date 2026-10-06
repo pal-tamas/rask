@@ -51,6 +51,17 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Tooling: `scripts/tools/RaskRename` renames a public member across the solution in one pass.**
+  `dotnet run --project scripts/tools/RaskRename -- Rask.Wasm.WasmHostBuilder.RunAsync Run [--dry-run]` is a
+  Roslyn symbol rename over `Rask.slnx` (about half a minute), followed by a sweep of the templates, docs
+  and agent guides, which no project reaches. It stops when the new name is already taken on the type. The
+  `rename-public-member` skill is the playbook around it.
+
+- **Gates: `scripts/run-all-gates.sh --parallel` runs the packing gates beside the rest.** The CLI build,
+  template and watch gates get a second worktree at the same commit, so they no longer wait for the browser
+  suites or rewrite each other's `obj/`. `--only '<pattern>'` runs just the gates whose label matches, and
+  the summary lists each gate's seconds.
+
 - **Tests: what `rask new` writes is compiled in the unit gate.** `TemplatesCompileTests` materialises the
   server, browser and hosted templates in memory and compiles their C# with the real generators, in about
   two seconds. A public rename that breaks a scaffold now fails the commit hook; before, only the CLI build
@@ -1217,6 +1228,13 @@ them until tagged releases begin.
   `.Analyzers`), matching the project. Nothing an app names changes.
 
 ### Fixed
+
+- **A Dependabot pull request is no longer red on arrival.** Every one failed `commitlint`, and not on
+  its title: Dependabot ends each commit with `Signed-off-by: dependabot[bot] <support@github.com>`,
+  which it cannot be configured to drop, and the attribution guard in the same job counts a bot
+  sign-off as a trailer. CI now drops that one exact line before the check, on pull requests Dependabot
+  opened and nowhere else — a co-author, another bot or a different address beside it still fails. The
+  hooks are unchanged, so `pre-push` still refuses the line when the bump is landed locally.
 
 - **A field inside a form's submit-state function keeps what you type while the page renders around it.**
   `Form.Model(m)[f => [ … ]]` builds its fields during the render walk, and a component served from the

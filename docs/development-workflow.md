@@ -179,6 +179,18 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   public surface as it is in the tree; restore, the project file, the MSBuild targets and publish stay with
   `scripts/run-cli-build-e2e.sh`. A using that a package's `build/*.props` adds for an app is listed in that
   test by hand, so a new one is added there too.
+- **`run-all-gates.sh --parallel` runs two lanes.** The CLI build, template and watch gates pack with
+  MinVer on and everything else builds with `MinVerSkip`, so in one tree they recompile each other's
+  `obj/Release`. `--parallel` checks out a second worktree at HEAD (`.claude/worktrees/gates-<sha>`,
+  removed when everything passed) and runs that group there beside the rest; it refuses a dirty tree.
+  `--only 'E2E|CLI'` narrows either mode to the gates whose label matches, and the closing table gives each
+  gate's seconds and the wall clock.
+- **A public rename is one command.** `scripts/tools/RaskRename` loads `Rask.slnx` and renames a symbol the
+  way an IDE does — implementations and overloads together — then rewrites `Type.Old` in the templates, docs
+  and agent guides and lists the remaining `.Old`/`Old(` there for a person to read. It refuses a name the
+  type already has. It lives under `scripts/tools/`, cut off from the repository's build rules by the empty
+  `Directory.Build.*` there, in no solution and never packed. `.claude/skills/rename-public-member` is the
+  playbook: rename, build once for the RS0016/RS0017 baselines, then what no build covers.
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
   solution once, then runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
   analyzers, one workspace load) **concurrently with** every test except the browser E2E. The two share
@@ -219,7 +231,11 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   time, and `.githooks/pre-push` over the commits actually being pushed. The second is not
   redundant — the first only runs once `core.hooksPath` is set, and a fresh clone or a new worktree
   has not set it, which is exactly how the two trailers got in. A human `Signed-off-by:` passes;
-  `scripts/tests/attribution-guard.test.sh` states all 32 cases, both directions.
+  `scripts/tests/attribution-guard.test.sh` states every case, both directions. CI's copy of the
+  check (`commitlint.yml`) makes one allowance the hooks do not: on a pull request **Dependabot
+  opened**, Dependabot's own `Signed-off-by: dependabot[bot] <support@github.com>` is dropped before
+  the check, because Dependabot writes it on every commit and cannot be configured not to — counted,
+  it made every Dependabot PR red on arrival.
 - **A deletion-only push runs no gate.** `git push origin --delete <branch>` moves no commits and
   changes no tree, so there is nothing for a build or a browser journey to have an opinion about. The
   hook used to run the whole gate on it regardless — every gate below it is phrased as "is this push
@@ -533,6 +549,11 @@ its PRs never touch `.githooks/`, and `main` has no required checks — a web me
 that nothing built, formatted or tested. Check the branch out and push it so `pre-commit` and
 `pre-push` run. Note that `Directory.Packages.props` is in `pre-push`'s `generator_paths`, so the CLI
 build gate runs too.
+
+A green `commitlint` check on a Dependabot PR means its title and commits are Conventional and carry
+no trailer *other than* Dependabot's own sign-off, which CI lets through on those PRs only. The hooks
+do not: `pre-push` refuses the commit until that line is gone, so landing one starts with
+`git commit --amend --reset-author` and deleting the `Signed-off-by:` line.
 
 **Vulnerability scanning is manual.** `dotnet list Rask.slnx package --vulnerable --include-transitive`
 is the only scan that runs anywhere; the CI job that used to do it went with `ci.yml` in #923.

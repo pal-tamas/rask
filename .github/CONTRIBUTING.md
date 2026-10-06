@@ -96,7 +96,8 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   and a force-push of `main` and 18 release tags. `commit-msg` rejects them at commit time and
   `pre-push` re-checks the commits being pushed, because the commit-time hook only runs once
   `core.hooksPath` is set and a fresh clone has not set it. A human `Signed-off-by:` is fine; the
-  rule is table tested in `scripts/tests/attribution-guard.test.sh`.
+  rule is table tested in `scripts/tests/attribution-guard.test.sh`. (CI lets Dependabot's own
+  sign-off through on the pull requests Dependabot opens; the hooks still reject it.)
 - **Tests and gates run locally, not in CI.** The unit/integration suite, both E2E suites and the
   deterministic benchmark byte-gates all run from `.githooks/`. GitHub does the bare minimum — the
   things only GitHub can do: `commitlint.yml` (commit messages and the PR title, which is the squash
