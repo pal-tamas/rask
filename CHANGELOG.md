@@ -20,6 +20,36 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Accordion` is Flux's accordion, and `Ui.Collapse` folds into it.** Four parts —
+  `Ui.Accordion`, `Ui.AccordionItem`, `Ui.AccordionHeading`, `Ui.AccordionContent` — with Flux's props:
+  `Exclusive()`, `Transition()` and `Reverse` on the accordion, `Heading`, `Expanded()` and `Disabled()`
+  on an item. An item is now a native `<details>` and its heading the `<summary>`, so it opens with a
+  click, Enter or Space with no handler and no script, an exclusive accordion is the browser's own
+  `<details name>` group, and find-in-page opens the item holding a match. `Ui.AccordionSection`,
+  `Ui.Collapse`, `Ui.Marker`, `UiAccordionState`, `UiAccordion.Open`/`OnOpen` and the daisyUI
+  `collapse`/`join` markup are gone:
+  ```csharp
+  // was
+  Ui.Accordion.Open(_section).OnOpen(key => _section = key)[
+      Ui.AccordionSection.Key("ship").Title("Shipping").Marker(Ui.Marker.Arrow)[P["Two days."]],
+      Ui.AccordionSection.Key("pay").Title("Payment").Marker(Ui.Marker.Arrow)[P["Card."]]
+  ]
+  // now — the browser keeps one open; no state needed
+  Ui.Accordion.Exclusive()[
+      Ui.AccordionItem.Heading("Shipping")["Two days."],
+      Ui.AccordionItem.Heading("Payment")["Card."]
+  ]
+
+  // was
+  Ui.Collapse.Title("Advanced").Marker(Ui.Marker.Plus).Open(_open).OnToggle(open => _open = open)[ … ]
+  // now — a one-item accordion; Expanded/OnToggle only when the page wants to own it
+  Ui.Accordion[Ui.AccordionItem.Heading("Advanced").Expanded(_open).OnToggle(open => _open = open)[ … ]]
+  ```
+  The chevron is always drawn (after the heading, or before it with `Reverse`); there is no plus marker.
+  `OnToggle` now runs after the browser has toggled the item, with the state it is in, rather than
+  asking for one. A page that tracked the open section by key keeps a field per item, or uses
+  `Exclusive()` and lets the browser do it.
+
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:

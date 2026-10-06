@@ -36,4 +36,11 @@ public abstract partial class FluxParity : global::Rask.Core.RaskMarkup
     /// <summary>One above the other.</summary>
     protected static Component Stack(params Component[] items) =>
         Div.Style("display:flex;flex-direction:column;gap:16px;align-items:stretch")[items];
+
+    /// <summary>
+    ///     Tailwind's <c>space-y-{units}</c>, which Flux's examples stack with: a margin under every item but
+    ///     the last, so each item measures the margin Flux's does. 2, 3, 4, 6 and 8 are in the page's sheet.
+    /// </summary>
+    protected static Component SpaceY(int units, params Component[] items) =>
+        Div.Data("space-y", units.ToString(System.Globalization.CultureInfo.InvariantCulture))[items];
 }

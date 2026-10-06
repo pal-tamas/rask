@@ -278,7 +278,7 @@ Not every component honours every member — daisyUI defines no `input-outline`,
 the markup looking as though it styled something.
 
 Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.ModalPosition`, `Ui.MaskShape`,
-`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`, `Ui.TabStyle`, `Ui.Marker`, `Ui.OpenOn`.
+`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`, `Ui.TabStyle`, `Ui.OpenOn`.
 
 ### One vocabulary for placing things
 
@@ -330,6 +330,49 @@ Ui.Table.Id("orders").Data("testid", "orders").Aria(("label", "Orders"))[
 
 A bare `Ui.Icon.Name(…)` is the right size in all of these. The kit's stylesheet sizes an icon nobody sized
 from the button, badge or alert it sits in, and leaves alone an icon that has a size class of its own.
+
+## Accordion
+
+`Ui.Accordion` is [Flux's accordion](https://fluxui.dev/components/accordion): a stack of items, each a heading
+that opens the content under it.
+
+```csharp
+Ui.Accordion[
+    Ui.AccordionItem[
+        Ui.AccordionHeading["What's your refund policy?"],
+        Ui.AccordionContent["Thirty days, no reason needed."]
+    ],
+    Ui.AccordionItem.Heading("How do I track my order?")["We email a tracking number."]   // the shorthand
+]
+
+Ui.Accordion.Exclusive()[ … ]        // opening one item closes the others
+Ui.Accordion.Transition()[ … ]       // open and close over 250 ms
+Ui.Accordion.Reverse[ … ]            // the chevron before the heading
+Ui.AccordionItem.Heading("…").Expanded()[ … ]    // open to begin with
+Ui.AccordionItem.Heading("…").Disabled()[ … ]    // cannot be opened or closed
+```
+
+**No handler, and no script.** An item is a native `<details>` and its heading the `<summary>`, so a click,
+Enter or Space opens it in the browser, Tab moves from heading to heading, and `Exclusive()` is the platform's
+own `<details name>` group. Closed content is still in the document, so find-in-page reaches it and the browser
+opens the item holding the match. A disabled heading leaves the tab order, takes no pointer and says
+`aria-disabled`.
+
+**To own an item from C#**, render it in a field and keep the field in step:
+
+```csharp
+Ui.AccordionItem.Heading("Advanced settings").Expanded(_advanced).OnToggle(open => _advanced = open)[ … ]
+```
+
+`OnToggle` runs after the browser has opened or closed the item, with the state it is now in — including when
+an exclusive accordion closes it because another item opened.
+
+`Transition()` animates the height of the `<details>`' own content box (`::details-content`, with
+`interpolate-size`). A browser without those opens and closes at once, which is what an accordion without the
+step does everywhere.
+
+A single collapsible section is an accordion of one item; `Ui.Collapse`, `Ui.AccordionSection` and `Ui.Marker`
+are gone.
 
 ## Icons
 
@@ -518,7 +561,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Fieldset` `Ui.Validator` `Ui.Label` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
@@ -601,8 +644,11 @@ daisyUI's CSS dropdown, which a pointer can open and a popover cannot — withou
 Ui.Dropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
 ```
 
-**The page owns it, in C#.** `Ui.Collapse`, `Ui.Accordion`, `Ui.Swap`, `Ui.Tabs` and `Ui.Modal`'s `Open` path hold
-their state in a field and redraw through the live diff.
+**The page owns it, in C#.** `Ui.Swap`, `Ui.Tabs` and `Ui.Modal`'s `Open` path hold their state in a field and
+redraw through the live diff.
+
+**The browser owns it, and tells the page.** A `Ui.AccordionItem` is a `<details>`: it opens with no handler at
+all, and `Expanded` with `OnToggle` is how a page keeps it in a field — see [Accordion](#accordion).
 
 **The markup owns it.** `Ui.Tab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
 survives a refresh and answers the back button. `Ui.Drawer` keeps its checkbox because daisyUI's rules are

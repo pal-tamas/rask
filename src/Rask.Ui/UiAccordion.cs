@@ -1,36 +1,58 @@
 namespace Rask;
 
 /// <summary>
-/// A stack of sections where opening one closes the others.
+///     Flux's <c>flux:accordion</c>: a stack of <see cref="UiAccordionItem" />s that open and close.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <see cref="Open" /> is the key of the section showing, and <c>null</c> is all of them closed — so the
-/// page owns which one it is and can open a section in response to something that happened elsewhere.
-/// That is the difference from a run of <see cref="UiCollapse" /> sharing a <c>Group</c>, which the
-/// browser mutually excludes without telling anyone which one won.
-/// </para>
-/// <para>
-/// Each section needs a <c>Key</c>, and it is the identity <see cref="Open" /> names as well as the one
-/// reconciliation uses.
-/// </para>
+///     <para>
+///     Each item is a native <c>&lt;details&gt;</c>, so it opens with a click, Enter or Space with no handler
+///     and no script, and the browser's find-in-page opens the item holding a match.
+///     </para>
+///     <code>
+///     Ui.Accordion.Exclusive()[
+///         Ui.AccordionItem.Heading("Where do you ship?")["The United States and Canada."],
+///         Ui.AccordionItem.Heading("Can I change my order?").Expanded()["Until it has shipped."]
+///     ]
+///     </code>
 /// </remarks>
 public sealed partial class UiAccordion : Component
 {
-    /// <summary>The key of the open section, or <c>null</c> for none.</summary>
-    public string? Open { get; set; }
+    private static readonly Dictionary<string, string?> Marks = new(StringComparer.Ordinal) { ["ui-accordion"] = "" };
 
-    /// <summary>Runs with the key the reader asked to open, or <c>null</c> if they closed the open one.</summary>
-    public Callback<string?> OnOpen { get; set; }
+    // `data-transition` is what ui.css keys the quarter-second transition on: it is drawn on the items'
+    // ::details-content, which no class on the item can reach.
+    private static readonly Dictionary<string, string?> Animated = new(StringComparer.Ordinal)
+    {
+        ["ui-accordion"] = "",
+        ["transition"] = "",
+    };
 
+    private string? _group;
+
+    /// <summary>Which side of the heading the chevron is on. After it when unset.</summary>
+    public Ui.AccordionVariant? Variant { get; set; }
+
+    /// <summary>Opens and closes items over a quarter of a second rather than at once.</summary>
+    public bool? Transition { get; set; }
+
+    /// <summary>Opening one item closes the others.</summary>
+    public bool? Exclusive { get; set; }
+
+    /// <summary>Classes for the call site, added to the accordion's own.</summary>
     public string? Class { get; set; }
 
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Div.Class(UiClass.Compose("join join-vertical w-full", Class))[
-            // Each section reads Open and OnOpen off the accordion through context rather than being
-            // handed them: a section is written by the CALLER, inside the accordion's children, so
-            // there is no call site at which to pass them down.
-            Context.Provide(new UiAccordionState(Open, OnOpen))[Children ?? []]
+    protected override Component? Render()
+    {
+        var transition = Transition == true;
+        var scope = new UiAccordionScope(
+            Exclusive == true ? _group ??= $"ui-accordion-{UiInstanceCounter.Next()}" : null,
+            Variant == Ui.AccordionVariant.Reverse,
+            transition,
+            Disabled: false);
+
+        return Div.Class("block", Class).Data(transition ? Animated : Marks)[
+            Context.Provide(scope)[Children ?? []]
         ];
+    }
 }
