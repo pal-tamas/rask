@@ -228,6 +228,11 @@ changes (hot reload). Static-file and WASM hosts get the same two files baked to
 `BakeScopedAssetsTask` MSBuild task, so any static-asset host (`MapStaticAssets`, a CDN)
 serves them.
 
+A Server app's client runtime is cached the same way. The page asks for it as
+`/rask/rask.js?v={hash}`, served `immutable` with an `ETag` and brotli/gzip; the bare
+`/rask/rask.js` still answers, with `Cache-Control: no-cache`, so it is revalidated (a `304`
+when unchanged) rather than pinned.
+
 ### No navigation FOUC
 
 Because the whole bundle ships up front, a component that mounts *later* — client-side

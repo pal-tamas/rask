@@ -921,9 +921,7 @@ public static partial class RaskEndpointExtensions
 
         MapHttpTransport(endpoints, pathBase, selector);
 
-        var script = LoadEmbeddedScript();
-        endpoints.MapGet(pathBase + RuntimePath, (RequestDelegate)(ctx =>
-            Results.Text(script, "text/javascript; charset=utf-8").ExecuteAsync(ctx)));
+        endpoints.MapGet(pathBase + RuntimePath, (RequestDelegate)Runtime.Value.Serve);
 
         // The in-page devtools' own endpoints, when AddRask attached them (a Debug build carrying
         // Rask.DevTools). Here, beside the runtime they extend, so they are mapped once per app too.
@@ -3461,6 +3459,8 @@ public static partial class RaskEndpointExtensions
         return false;
     }
 
+    private static readonly Lazy<RuntimeScript> Runtime = new(() => new RuntimeScript(LoadEmbeddedScript()));
+
     private static string LoadEmbeddedScript()
     {
         var asm = typeof(RaskEndpointExtensions).Assembly;
@@ -3692,7 +3692,7 @@ public static partial class RaskEndpointExtensions
 
     private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
-        public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath);
+        public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash);
     }
 
     internal sealed class RaskLiveMarker

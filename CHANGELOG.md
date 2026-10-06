@@ -51,6 +51,20 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A Server app's client runtime is cached and compressed.** `/rask/rask.js` was re-encoded from a string on
+  every request and sent with no `Cache-Control`, no `ETag` and no compression — ~100 KB a visit. The page
+  now names it by content hash, and that URL is `immutable`, with an `ETag` and brotli/gzip built once:
+  ```html
+  <script src="/rask/rask.js"></script>                       <!-- was -->
+  <script src="/rask/rask.js?v=3f9c1a7be02d4c55"></script>    <!-- now -->
+  ```
+  The bare URL still answers, `no-cache`, and a request carrying the `ETag` gets a `304`.
+
+- **Docs: the session-footprint tables match the report again.** `docs/scaling.md`,
+  `docs/configuration.md` and `docs/observability.md` still quoted 1.39 MB for a connected 200-row session;
+  `session-footprint` measures 0.86 MB (~1,250 sessions per GiB). The benchmark baseline notes no longer
+  claim a pre-push hook runs the byte gates, and list all six payload scenarios.
+
 - **Tooling: `scripts/tools/RaskRename` renames a public member across the solution in one pass.**
   `dotnet run --project scripts/tools/RaskRename -- Rask.Wasm.WasmHostBuilder.RunAsync Run [--dry-run]` is a
   Roslyn symbol rename over `Rask.slnx` (about half a minute), followed by a sweep of the templates, docs
