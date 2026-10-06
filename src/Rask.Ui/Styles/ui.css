@@ -228,6 +228,61 @@
 }
 
 /*
+  AFTER the kit's own @theme block, deliberately: UiPaletteTests reads the FIRST one as the palette the
+  showcase has to copy.
+*/
+/*
+  FLUX UI's theme model, which the kit is moving to component by component (daisyUI goes when the last
+  component drawn with it does).
+
+  It is two colours. The BASE is Tailwind's own `zinc` scale, written directly — `bg-zinc-800/5`,
+  `border-zinc-200` — so an app re-skins every component by re-pointing `--color-zinc-*` at another
+  gray in its own @theme. The ACCENT is three variables: the fill of a primary action, the same hue
+  as readable text, and the text that sits on the fill. Dark mode is a `dark` variant, not a second
+  palette.
+
+  NAMED `fx-accent` FOR NOW, and only for now. Flux calls these `--color-accent`,
+  `--color-accent-content` and `--color-accent-foreground`; daisyUI defines the first two as well, with
+  other meanings, inside [data-rask-ui] — so under Flux's names a primary button would be painted
+  daisyUI's pink. They take Flux's names in the commit that removes the plugin.
+*/
+@theme {
+  --color-fx-accent: var(--color-zinc-800);
+  --color-fx-accent-content: var(--color-zinc-800);
+  --color-fx-accent-foreground: var(--color-white);
+}
+
+@layer theme {
+  .dark {
+    --color-fx-accent: var(--color-white);
+    --color-fx-accent-content: var(--color-white);
+    --color-fx-accent-foreground: var(--color-zinc-800);
+  }
+}
+
+/*
+  `dark:` is Flux's — a `dark` class on an ancestor — and, while both libraries draw the kit, also
+  whatever daisyUI currently calls dark: one of its dark themes by name, or no theme named at all on a
+  machine that prefers dark. Without the last two a Flux-drawn button would stay light on a page whose
+  daisyUI-drawn card had gone dark. They are deleted with the theme list; `.dark` is what remains.
+*/
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+
+  &:where(:is([data-theme="dark"], [data-theme="synthwave"], [data-theme="halloween"], [data-theme="forest"], [data-theme="aqua"], [data-theme="black"], [data-theme="luxury"], [data-theme="dracula"], [data-theme="business"], [data-theme="night"], [data-theme="coffee"], [data-theme="dim"], [data-theme="sunset"], [data-theme="abyss"]), :is([data-theme="dark"], [data-theme="synthwave"], [data-theme="halloween"], [data-theme="forest"], [data-theme="aqua"], [data-theme="black"], [data-theme="luxury"], [data-theme="dracula"], [data-theme="business"], [data-theme="night"], [data-theme="coffee"], [data-theme="dim"], [data-theme="sunset"], [data-theme="abyss"]) *) {
+    @slot;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    &:where([data-rask-ui]:not([data-theme]), [data-rask-ui]:not([data-theme]) *) {
+      @slot;
+    }
+  }
+}
+
+/*
   AN -ink TOKEN IS ALSO THE ONLY SAFE FILL, and that is worth stating because it replaces a whole
   vocabulary nobody needs.
 

@@ -9,6 +9,8 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 
 ## Workflows → skills (use them automatically)
 `.claude/skills/` holds the committed playbooks; apply the matching one without being asked.
+- **flux-component** — a `Rask.Ui` component, EXACTLY as Flux UI draws and behaves it: measure fluxui.dev's live docs
+  (`scripts/flux/`), write it from the measurements, prove it with `parity.mjs`. Never read `livewire/flux` (proprietary).
 - **rask-ship** — definition-of-done gate before any commit: `dotnet format` (.editorconfig) →
   `dotnet build -warnaserror` (analyzers clean) → tests → benchmarks → CHANGELOG → review → land on main.
 - **add-html-tag** · **add-diagnostic** · **add-codefix** — elements from MDN (refresh + hand partial) / RASK0xx+docs+test / IDE quick-fix+test.

@@ -1227,6 +1227,19 @@ them until tagged releases begin.
   (`Rask.Cqrs.Generators`, `Rask.Data.Generators`, …); its types are now in `Rask.Batteries.Generators` (and
   `.Analyzers`), matching the project. Nothing an app names changes.
 
+### Changed
+
+- **Rask UI is moving from daisyUI to Flux UI, one component at a time.** The kit will mirror
+  [Flux UI](https://fluxui.dev) — its components, its names, its props, and its look and behaviour exactly —
+  and daisyUI goes when the last component drawn with it does. This first step is the ground it stands on,
+  and changes nothing an app draws: Flux's theme model sits in the kit's stylesheet beside daisyUI's (an
+  accent of three variables over Tailwind's `zinc` scale, and a `dark:` variant that follows a `dark` class
+  as well as whatever daisyUI currently calls dark), and the tooling that keeps the kit honest is in
+  `scripts/flux/`: `refresh.mjs` reads Flux's docs into a snapshot of every component, prop and value,
+  `parity.mjs` measures a Rask component against Flux's live examples — boxes, colours, borders, shadows,
+  hover, press and focus, in light and dark — and `sync.mjs` reports when Flux itself has moved. Written from
+  Flux's public documentation; none of Flux's source is used.
+
 ### Fixed
 
 - **UI kit: status text is readable on every theme, and `Ui.Card.Size` does something.** `Ui.Text.Tone(…)`

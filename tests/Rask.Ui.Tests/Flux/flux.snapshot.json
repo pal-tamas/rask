@@ -1,0 +1,5609 @@
+{
+  "source": "https://fluxui.dev",
+  "pages": [
+    {
+      "kind": "layouts",
+      "slug": "header",
+      "title": "Header",
+      "parts": [
+        {
+          "name": "flux:header",
+          "props": [
+            {
+              "name": "sticky"
+            },
+            {
+              "name": "container"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:sidebar.toggle",
+          "attributes": [
+            {
+              "name": "icon"
+            },
+            {
+              "name": "inset"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:main",
+          "props": [
+            {
+              "name": "inset"
+            },
+            {
+              "name": "container"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "layouts",
+      "slug": "sidebar",
+      "title": "Sidebar",
+      "parts": [
+        {
+          "name": "flux:sidebar",
+          "props": [
+            {
+              "name": "sticky"
+            },
+            {
+              "name": "collapsible"
+            },
+            {
+              "name": "breakpoint"
+            },
+            {
+              "name": "stashable"
+            },
+            {
+              "name": "persist"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:sidebar.header",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:sidebar.brand",
+          "props": [
+            {
+              "name": "href"
+            },
+            {
+              "name": "logo"
+            },
+            {
+              "name": "logo:dark"
+            },
+            {
+              "name": "name"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:sidebar.collapse",
+          "props": [
+            {
+              "name": "inset"
+            },
+            {
+              "name": "tooltip"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:sidebar.search",
+          "props": [
+            {
+              "name": "placeholder"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:sidebar.nav",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:sidebar.item",
+          "props": [
+            {
+              "name": "href"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "badge"
+            },
+            {
+              "name": "current"
+            },
+            {
+              "name": "tooltip"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:sidebar.group",
+          "props": [
+            {
+              "name": "heading"
+            },
+            {
+              "name": "expandable"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "expanded"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:sidebar.spacer",
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:sidebar.profile",
+          "props": [
+            {
+              "name": "avatar"
+            },
+            {
+              "name": "name"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:sidebar.toggle",
+          "props": [
+            {
+              "name": "icon"
+            },
+            {
+              "name": "inset"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:main",
+          "props": [
+            {
+              "name": "inset"
+            },
+            {
+              "name": "container"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "accordion",
+      "title": "Accordion",
+      "parts": [
+        {
+          "name": "flux:accordion",
+          "props": [
+            {
+              "name": "variant"
+            },
+            {
+              "name": "transition",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "exclusive",
+              "default": "false",
+              "boolean": true
+            }
+          ]
+        },
+        {
+          "name": "flux:accordion.item",
+          "props": [
+            {
+              "name": "heading"
+            },
+            {
+              "name": "expanded",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "disabled",
+              "default": "false",
+              "boolean": true
+            }
+          ]
+        },
+        {
+          "name": "flux:accordion.heading",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:accordion.content",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "autocomplete",
+      "title": "Autocomplete",
+      "parts": [
+        {
+          "name": "flux:autocomplete",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "type",
+              "default": "text"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            },
+            {
+              "name": "variant",
+              "options": [
+                "filled"
+              ],
+              "default": "outline"
+            },
+            {
+              "name": "disabled",
+              "boolean": true
+            },
+            {
+              "name": "readonly",
+              "boolean": true
+            },
+            {
+              "name": "invalid",
+              "boolean": true
+            },
+            {
+              "name": "multiple"
+            },
+            {
+              "name": "mask"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:trailing"
+            },
+            {
+              "name": "kbd"
+            },
+            {
+              "name": "clearable",
+              "boolean": true
+            },
+            {
+              "name": "copyable",
+              "boolean": true
+            },
+            {
+              "name": "viewable"
+            },
+            {
+              "name": "as",
+              "options": [
+                "button"
+              ],
+              "default": "input"
+            },
+            {
+              "name": "container:class"
+            },
+            {
+              "name": "input:class"
+            }
+          ],
+          "slots": [
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:leading"
+            },
+            {
+              "name": "icon:trailing"
+            }
+          ]
+        },
+        {
+          "name": "flux:autocomplete.item",
+          "props": [
+            {
+              "name": "disabled"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "avatar",
+      "title": "Avatar",
+      "parts": [
+        {
+          "name": "flux:avatar",
+          "props": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "src"
+            },
+            {
+              "name": "initials"
+            },
+            {
+              "name": "alt",
+              "default": "name"
+            },
+            {
+              "name": "size",
+              "options": [
+                "xs",
+                "sm",
+                "lg"
+              ]
+            },
+            {
+              "name": "color",
+              "options": [
+                "red",
+                "orange",
+                "amber",
+                "yellow",
+                "lime",
+                "green",
+                "emerald",
+                "teal",
+                "cyan",
+                "sky",
+                "blue",
+                "indigo",
+                "violet",
+                "purple",
+                "fuchsia",
+                "pink",
+                "rose",
+                "auto"
+              ]
+            },
+            {
+              "name": "color:seed"
+            },
+            {
+              "name": "circle"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:variant",
+              "options": [
+                "outline",
+                "solid"
+              ],
+              "default": "solid"
+            },
+            {
+              "name": "tooltip"
+            },
+            {
+              "name": "tooltip:position",
+              "options": [
+                "top",
+                "right",
+                "bottom",
+                "left"
+              ],
+              "default": "top"
+            },
+            {
+              "name": "badge"
+            },
+            {
+              "name": "badge:color",
+              "options": [
+                "color"
+              ]
+            },
+            {
+              "name": "badge:circle"
+            },
+            {
+              "name": "badge:position",
+              "options": [
+                "top left",
+                "top right",
+                "bottom left",
+                "bottom right"
+              ],
+              "default": "bottom right"
+            },
+            {
+              "name": "badge:variant",
+              "options": [
+                "solid",
+                "outline"
+              ],
+              "default": "solid"
+            },
+            {
+              "name": "as",
+              "options": [
+                "button",
+                "div"
+              ],
+              "default": "div"
+            },
+            {
+              "name": "href"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "badge"
+            }
+          ]
+        },
+        {
+          "name": "flux:avatar.group",
+          "props": [
+            {
+              "name": "class"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "badge",
+      "title": "Badge",
+      "parts": [
+        {
+          "name": "flux:badge",
+          "props": [
+            {
+              "name": "color",
+              "default": "zinc"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "lg"
+              ]
+            },
+            {
+              "name": "rounded"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "solid",
+                "pill",
+                "rounded"
+              ]
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:trailing"
+            },
+            {
+              "name": "icon:variant",
+              "options": [
+                "outline",
+                "solid",
+                "mini",
+                "micro"
+              ],
+              "default": "mini"
+            },
+            {
+              "name": "as",
+              "options": [
+                "button"
+              ],
+              "default": "div"
+            },
+            {
+              "name": "inset",
+              "options": [
+                "top",
+                "bottom",
+                "left",
+                "right"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "flux:badge.close",
+          "props": [
+            {
+              "name": "icon",
+              "default": "x-mark"
+            },
+            {
+              "name": "icon:variant",
+              "options": [
+                "outline",
+                "solid",
+                "mini",
+                "micro"
+              ],
+              "default": "mini"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "brand",
+      "title": "Brand",
+      "parts": [
+        {
+          "name": "flux:brand",
+          "props": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "logo"
+            },
+            {
+              "name": "alt"
+            },
+            {
+              "name": "href"
+            }
+          ],
+          "slots": [
+            {
+              "name": "logo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "button",
+      "title": "Button",
+      "parts": [
+        {
+          "name": "flux:button",
+          "props": [
+            {
+              "name": "as",
+              "options": [
+                "button",
+                "a",
+                "div"
+              ],
+              "default": "button"
+            },
+            {
+              "name": "href"
+            },
+            {
+              "name": "type",
+              "options": [
+                "button",
+                "submit"
+              ],
+              "default": "button"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "outline",
+                "primary",
+                "filled",
+                "danger",
+                "ghost",
+                "subtle"
+              ],
+              "default": "outline"
+            },
+            {
+              "name": "color"
+            },
+            {
+              "name": "size",
+              "options": [
+                "base",
+                "sm",
+                "xs"
+              ],
+              "default": "base"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:variant",
+              "options": [
+                "outline",
+                "solid",
+                "mini",
+                "micro"
+              ],
+              "default": "micro"
+            },
+            {
+              "name": "icon:trailing"
+            },
+            {
+              "name": "square",
+              "boolean": true
+            },
+            {
+              "name": "align",
+              "options": [
+                "start",
+                "center",
+                "end"
+              ],
+              "default": "center"
+            },
+            {
+              "name": "inset",
+              "options": [
+                "top",
+                "bottom",
+                "left",
+                "right"
+              ]
+            },
+            {
+              "name": "loading",
+              "default": "true",
+              "boolean": true
+            },
+            {
+              "name": "tooltip"
+            },
+            {
+              "name": "tooltip:position",
+              "options": [
+                "top",
+                "bottom",
+                "left",
+                "right"
+              ],
+              "default": "top"
+            },
+            {
+              "name": "tooltip:kbd"
+            },
+            {
+              "name": "kbd"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-button"
+            }
+          ]
+        },
+        {
+          "name": "flux:button.group",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "breadcrumbs",
+      "title": "Breadcrumbs",
+      "parts": [
+        {
+          "name": "flux:breadcrumbs",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:breadcrumbs.item",
+          "props": [
+            {
+              "name": "href"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:variant",
+              "options": [
+                "outline",
+                "solid",
+                "mini",
+                "micro"
+              ],
+              "default": "mini"
+            },
+            {
+              "name": "separator",
+              "default": "chevron-right"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "calendar",
+      "title": "Calendar",
+      "parts": [
+        {
+          "name": "flux:calendar",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "value"
+            },
+            {
+              "name": "mode",
+              "options": [
+                "single",
+                "multiple",
+                "range"
+              ],
+              "default": "single"
+            },
+            {
+              "name": "min"
+            },
+            {
+              "name": "max"
+            },
+            {
+              "name": "unavailable"
+            },
+            {
+              "name": "size",
+              "options": [
+                "base",
+                "xs",
+                "sm",
+                "lg",
+                "xl",
+                "2xl"
+              ],
+              "default": "base"
+            },
+            {
+              "name": "start-day",
+              "options": [
+                "0",
+                "6"
+              ]
+            },
+            {
+              "name": "months",
+              "default": "1"
+            },
+            {
+              "name": "min-range"
+            },
+            {
+              "name": "max-range"
+            },
+            {
+              "name": "open-to"
+            },
+            {
+              "name": "force-open-to",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "navigation",
+              "default": "true",
+              "boolean": true
+            },
+            {
+              "name": "static",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "multiple",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "week-numbers",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "selectable-header",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "with-today",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "with-inputs",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "locale"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-calendar"
+            }
+          ]
+        },
+        {
+          "name": "DateRange Object",
+          "methods": [
+            {
+              "name": "$range->start()"
+            },
+            {
+              "name": "$range->end()"
+            },
+            {
+              "name": "$range->count()"
+            },
+            {
+              "name": "$range->contains(date)"
+            },
+            {
+              "name": "$range->toArray()"
+            },
+            {
+              "name": "$range->preset()"
+            }
+          ],
+          "staticMethods": [
+            {
+              "name": "DateRange::today()"
+            },
+            {
+              "name": "DateRange::yesterday()"
+            },
+            {
+              "name": "DateRange::thisWeek()"
+            },
+            {
+              "name": "DateRange::lastWeek()"
+            },
+            {
+              "name": "DateRange::last7Days()"
+            },
+            {
+              "name": "DateRange::thisMonth()"
+            },
+            {
+              "name": "DateRange::lastMonth()"
+            },
+            {
+              "name": "DateRange::thisYear()"
+            },
+            {
+              "name": "DateRange::lastYear()"
+            },
+            {
+              "name": "DateRange::yearToDate()"
+            },
+            {
+              "name": "DateRange::tomorrow()"
+            },
+            {
+              "name": "DateRange::nextWeek()"
+            },
+            {
+              "name": "DateRange::next7Days()"
+            },
+            {
+              "name": "DateRange::next30Days()"
+            },
+            {
+              "name": "DateRange::nextMonth()"
+            },
+            {
+              "name": "DateRange::nextQuarter()"
+            },
+            {
+              "name": "DateRange::nextYear()"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "callout",
+      "title": "Callout",
+      "parts": [
+        {
+          "name": "flux:callout",
+          "props": [
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:variant"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "secondary",
+                "success",
+                "warning",
+                "danger"
+              ],
+              "default": "secondary"
+            },
+            {
+              "name": "color"
+            },
+            {
+              "name": "inline",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "heading"
+            },
+            {
+              "name": "text"
+            }
+          ],
+          "slots": [
+            {
+              "name": "icon"
+            },
+            {
+              "name": "actions"
+            },
+            {
+              "name": "controls"
+            }
+          ]
+        },
+        {
+          "name": "flux:callout.heading",
+          "props": [
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:variant"
+            }
+          ],
+          "slots": [
+            {
+              "name": "icon"
+            }
+          ]
+        },
+        {
+          "name": "flux:callout.text",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:callout.link",
+          "props": [
+            {
+              "name": "href"
+            },
+            {
+              "name": "external",
+              "default": "false",
+              "boolean": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "card",
+      "title": "Card",
+      "parts": [
+        {
+          "name": "flux:card",
+          "props": [
+            {
+              "name": "body",
+              "options": [
+                "seamless",
+                "inset",
+                "flush",
+                "divided",
+                "separated"
+              ],
+              "default": "seamless"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "muted",
+                "soft",
+                "outline",
+                "filled"
+              ],
+              "default": "default"
+            },
+            {
+              "name": "size",
+              "options": [
+                "xs",
+                "sm",
+                "md",
+                "lg"
+              ],
+              "default": "md"
+            },
+            {
+              "name": "divider"
+            },
+            {
+              "name": "highlight",
+              "default": "true"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-card"
+            }
+          ]
+        },
+        {
+          "name": "flux:card.header",
+          "props": [
+            {
+              "name": "size"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:card.heading",
+          "props": [
+            {
+              "name": "size",
+              "options": [
+                "base",
+                "lg",
+                "xl"
+              ],
+              "default": "base"
+            },
+            {
+              "name": "level"
+            }
+          ]
+        },
+        {
+          "name": "flux:card.subheading",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:card.actions",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:card.body",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:card.footer",
+          "props": [
+            {
+              "name": "size"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:card.bleed",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "cssVariables": [
+            {
+              "name": "--flux-bleed-x"
+            },
+            {
+              "name": "--flux-bleed-top / --flux-bleed-bottom"
+            },
+            {
+              "name": "--flux-bleed-top-radius / --flux-bleed-bottom-radius"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "carousel",
+      "title": "Carousel",
+      "parts": [
+        {
+          "name": "flux:carousel",
+          "props": [
+            {
+              "name": "arrows",
+              "default": "true",
+              "boolean": true
+            },
+            {
+              "name": "arrows:position",
+              "options": [
+                "inside",
+                "overlap",
+                "outside"
+              ],
+              "default": "inside"
+            },
+            {
+              "name": "arrows:class"
+            },
+            {
+              "name": "autoplay",
+              "boolean": true
+            },
+            {
+              "name": "autoplay:interval",
+              "default": "5000"
+            },
+            {
+              "name": "indicators",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "disabled",
+              "boolean": true
+            },
+            {
+              "name": "fade",
+              "boolean": true
+            },
+            {
+              "name": "bleed"
+            },
+            {
+              "name": "snap",
+              "options": [
+                "proximity",
+                "mandatory"
+              ],
+              "default": "proximity"
+            },
+            {
+              "name": "scroll",
+              "options": [
+                "smooth",
+                "instant"
+              ],
+              "default": "smooth"
+            },
+            {
+              "name": "advance",
+              "options": [
+                "slide",
+                "page"
+              ],
+              "default": "slide"
+            },
+            {
+              "name": "wrap",
+              "options": [
+                "none",
+                "rewind"
+              ],
+              "default": "none"
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "track:class"
+            }
+          ],
+          "cssVariables": [
+            {
+              "name": "--flux-bleed"
+            }
+          ]
+        },
+        {
+          "name": "flux:carousel.slide",
+          "props": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:carousel.controls",
+          "props": [
+            {
+              "name": "name"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "chart",
+      "title": "Chart",
+      "parts": [
+        {
+          "name": "flux:chart",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "value"
+            },
+            {
+              "name": "horizontal"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-chart"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.svg",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.line",
+          "props": [
+            {
+              "name": "field"
+            },
+            {
+              "name": "curve",
+              "options": [
+                "smooth",
+                "none"
+              ],
+              "default": "smooth"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.area",
+          "props": [
+            {
+              "name": "field"
+            },
+            {
+              "name": "curve",
+              "options": [
+                "smooth",
+                "none"
+              ],
+              "default": "smooth"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.point",
+          "props": [
+            {
+              "name": "field"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.pie",
+          "props": [
+            {
+              "name": "field",
+              "default": "value"
+            },
+            {
+              "name": "label-field"
+            },
+            {
+              "name": "inner-radius",
+              "default": "0"
+            },
+            {
+              "name": "radius",
+              "default": "0"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.axis",
+          "props": [
+            {
+              "name": "axis",
+              "options": [
+                "x",
+                "y"
+              ]
+            },
+            {
+              "name": "field"
+            },
+            {
+              "name": "format"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.axis.mark",
+          "props": [
+            {
+              "name": "position",
+              "options": [
+                "top",
+                "bottom",
+                "left",
+                "right"
+              ]
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.axis.line",
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.axis.grid",
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.axis.tick",
+          "props": [
+            {
+              "name": "format"
+            }
+          ],
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.zero-line",
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.tooltip",
+          "props": [
+            {
+              "name": "field"
+            },
+            {
+              "name": "format"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.tooltip.heading",
+          "props": [
+            {
+              "name": "field"
+            },
+            {
+              "name": "format"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.tooltip.value",
+          "props": [
+            {
+              "name": "field"
+            },
+            {
+              "name": "format"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "label-field"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.tooltip.indicator",
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.cursor",
+          "css": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.summary",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.summaryvalue",
+          "props": [
+            {
+              "name": "field"
+            },
+            {
+              "name": "fallback"
+            },
+            {
+              "name": "format"
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.legend",
+          "props": [
+            {
+              "name": "field"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "format"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "checkbox",
+      "title": "Checkbox",
+      "parts": [
+        {
+          "name": "flux:checkbox",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "value"
+            },
+            {
+              "name": "checked"
+            },
+            {
+              "name": "indeterminate"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "invalid"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-checkbox"
+            },
+            {
+              "name": "data-checked"
+            },
+            {
+              "name": "data-indeterminate"
+            }
+          ]
+        },
+        {
+          "name": "flux:checkbox.group",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "default",
+                "cards",
+                "pills",
+                "buttons"
+              ]
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "invalid"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:checkbox.all",
+          "props": [
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "disabled"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "color-picker",
+      "title": "Color picker",
+      "parts": [
+        {
+          "name": "flux:color-picker",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "value"
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "format",
+              "options": [
+                "hex",
+                "hexa",
+                "rgb",
+                "rgba",
+                "hsl",
+                "hsla"
+              ],
+              "default": "hex"
+            },
+            {
+              "name": "type",
+              "options": [
+                "input",
+                "button"
+              ],
+              "default": "input"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            },
+            {
+              "name": ":swatches"
+            },
+            {
+              "name": "dropper",
+              "default": "false"
+            },
+            {
+              "name": "clearable",
+              "default": "false"
+            },
+            {
+              "name": "copyable",
+              "default": "false"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "disabled",
+              "default": "false"
+            },
+            {
+              "name": "invalid"
+            }
+          ]
+        },
+        {
+          "name": "flux:color-picker.area",
+          "props": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:color-picker.slider",
+          "props": [
+            {
+              "name": "channel",
+              "options": [
+                "hue",
+                "alpha"
+              ],
+              "default": "hue"
+            }
+          ]
+        },
+        {
+          "name": "flux:color-picker.input",
+          "props": [
+            {
+              "name": "placeholder"
+            }
+          ]
+        },
+        {
+          "name": "flux:color-picker.swatches",
+          "props": [
+            {
+              "name": "class"
+            }
+          ]
+        },
+        {
+          "name": "flux:color-picker.swatch",
+          "props": [
+            {
+              "name": "value"
+            },
+            {
+              "name": "label"
+            }
+          ]
+        },
+        {
+          "name": "flux:color-picker.dropper",
+          "props": [
+            {
+              "name": "class"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "command",
+      "title": "Command palette",
+      "parts": [
+        {
+          "name": "flux:command",
+          "attributes": [
+            {
+              "name": "data-flux-command"
+            }
+          ]
+        },
+        {
+          "name": "flux:command.input",
+          "props": [
+            {
+              "name": "clearable",
+              "boolean": true
+            },
+            {
+              "name": "closable",
+              "boolean": true
+            },
+            {
+              "name": "icon",
+              "default": "magnifying-glass"
+            },
+            {
+              "name": "placeholder"
+            }
+          ]
+        },
+        {
+          "name": "flux:command.items"
+        },
+        {
+          "name": "flux:command.item",
+          "props": [
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:variant",
+              "options": [
+                "outline",
+                "solid",
+                "mini",
+                "micro"
+              ],
+              "default": "outline"
+            },
+            {
+              "name": "kbd"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-command-item"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "context",
+      "title": "Context menu",
+      "parts": [
+        {
+          "name": "flux:context",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "position"
+            },
+            {
+              "name": "gap",
+              "default": "4"
+            },
+            {
+              "name": "offset"
+            },
+            {
+              "name": "target"
+            },
+            {
+              "name": "detail"
+            },
+            {
+              "name": "disabled"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "composer",
+      "title": "Composer",
+      "parts": [
+        {
+          "name": "flux:composer",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "label:sr-only"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "description:sr-only"
+            },
+            {
+              "name": "rows",
+              "default": "2"
+            },
+            {
+              "name": "max-rows"
+            },
+            {
+              "name": "inline"
+            },
+            {
+              "name": "submit",
+              "options": [
+                "cmd+enter",
+                "enter"
+              ],
+              "default": "cmd+enter"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "invalid",
+              "boolean": true
+            }
+          ],
+          "slots": [
+            {
+              "name": "input"
+            },
+            {
+              "name": "header"
+            },
+            {
+              "name": "footer"
+            },
+            {
+              "name": "actionsLeading"
+            },
+            {
+              "name": "actionsTrailing"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-composer"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "date-picker",
+      "title": "Date picker",
+      "parts": [
+        {
+          "name": "flux:date-picker",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "value"
+            },
+            {
+              "name": "type",
+              "options": [
+                "button",
+                "input"
+              ],
+              "default": "button"
+            },
+            {
+              "name": "mode",
+              "options": [
+                "single",
+                "range"
+              ],
+              "default": "single"
+            },
+            {
+              "name": "min-range"
+            },
+            {
+              "name": "max-range"
+            },
+            {
+              "name": "min"
+            },
+            {
+              "name": "max"
+            },
+            {
+              "name": "unavailable"
+            },
+            {
+              "name": "open-to"
+            },
+            {
+              "name": "force-open-to",
+              "default": "false",
+              "boolean": true
+            },
+            {
+              "name": "months",
+              "default": "1"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "description:trailing"
+            },
+            {
+              "name": "badge"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "default",
+                "lg",
+                "xl",
+                "2xl"
+              ]
+            },
+            {
+              "name": "start-day",
+              "options": [
+                "0",
+                "6"
+              ]
+            },
+            {
+              "name": "week-numbers",
+              "boolean": true
+            },
+            {
+              "name": "selectable-header",
+              "boolean": true
+            },
+            {
+              "name": "with-today",
+              "boolean": true
+            },
+            {
+              "name": "with-inputs",
+              "options": [
+                "custom",
+                "native"
+              ],
+              "default": "native"
+            },
+            {
+              "name": "with-confirmation",
+              "boolean": true
+            },
+            {
+              "name": "with-presets",
+              "boolean": true
+            },
+            {
+              "name": "presets",
+              "default": "today yesterday thisWeek last7Days thisMonth yearToDate allTime"
+            },
+            {
+              "name": "clearable"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "invalid"
+            },
+            {
+              "name": "locale"
+            }
+          ],
+          "slots": [
+            {
+              "name": "trigger"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-date-picker"
+            }
+          ]
+        },
+        {
+          "name": "flux:date-picker.input",
+          "props": [
+            {
+              "name": "variant",
+              "options": [
+                "custom",
+                "native"
+              ],
+              "default": "native"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "clearable"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "invalid"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "flux:date-picker.button",
+          "props": [
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            },
+            {
+              "name": "clearable"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "invalid"
+            }
+          ]
+        },
+        {
+          "name": "DateRange Object",
+          "methods": [
+            {
+              "name": "$range->start()"
+            },
+            {
+              "name": "$range->end()"
+            },
+            {
+              "name": "$range->count()"
+            },
+            {
+              "name": "$range->preset()"
+            },
+            {
+              "name": "$range->toArray()"
+            }
+          ],
+          "staticMethods": [
+            {
+              "name": "DateRange::today()"
+            },
+            {
+              "name": "DateRange::yesterday()"
+            },
+            {
+              "name": "DateRange::thisWeek()"
+            },
+            {
+              "name": "DateRange::lastWeek()"
+            },
+            {
+              "name": "DateRange::last7Days()"
+            },
+            {
+              "name": "DateRange::last30Days()"
+            },
+            {
+              "name": "DateRange::thisMonth()"
+            },
+            {
+              "name": "DateRange::lastMonth()"
+            },
+            {
+              "name": "DateRange::thisQuarter()"
+            },
+            {
+              "name": "DateRange::lastQuarter()"
+            },
+            {
+              "name": "DateRange::thisYear()"
+            },
+            {
+              "name": "DateRange::lastYear()"
+            },
+            {
+              "name": "DateRange::yearToDate()"
+            },
+            {
+              "name": "DateRange::tomorrow()"
+            },
+            {
+              "name": "DateRange::nextWeek()"
+            },
+            {
+              "name": "DateRange::next7Days()"
+            },
+            {
+              "name": "DateRange::next30Days()"
+            },
+            {
+              "name": "DateRange::nextMonth()"
+            },
+            {
+              "name": "DateRange::nextQuarter()"
+            },
+            {
+              "name": "DateRange::nextYear()"
+            },
+            {
+              "name": "DateRange::allTime()"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "dropdown",
+      "title": "Dropdown",
+      "parts": [
+        {
+          "name": "flux:dropdown",
+          "props": [
+            {
+              "name": "position",
+              "options": [
+                "top",
+                "right",
+                "bottom",
+                "left"
+              ],
+              "default": "bottom"
+            },
+            {
+              "name": "align",
+              "options": [
+                "start",
+                "center",
+                "end"
+              ],
+              "default": "start"
+            },
+            {
+              "name": "offset",
+              "default": "0"
+            },
+            {
+              "name": "gap",
+              "default": "4"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-dropdown"
+            }
+          ]
+        },
+        {
+          "name": "flux:menu",
+          "props": [
+            {
+              "name": "keep-open"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-menu"
+            }
+          ]
+        },
+        {
+          "name": "flux:menu.item",
+          "props": [
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:trailing"
+            },
+            {
+              "name": "icon:variant",
+              "options": [
+                "outline",
+                "solid",
+                "mini",
+                "micro"
+              ]
+            },
+            {
+              "name": "kbd"
+            },
+            {
+              "name": "suffix"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "default",
+                "danger"
+              ]
+            },
+            {
+              "name": "disabled",
+              "boolean": true
+            },
+            {
+              "name": "keep-open"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-menu-item"
+            },
+            {
+              "name": "data-active"
+            }
+          ]
+        },
+        {
+          "name": "flux:menu.submenu",
+          "props": [
+            {
+              "name": "heading"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:trailing"
+            },
+            {
+              "name": "icon:variant",
+              "options": [
+                "outline",
+                "solid",
+                "mini",
+                "micro"
+              ]
+            },
+            {
+              "name": "keep-open"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:menu.separator"
+        },
+        {
+          "name": "flux:menu.checkbox.group",
+          "props": [
+            {
+              "name": "wire:model"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:menu.checkbox",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "checked",
+              "boolean": true
+            },
+            {
+              "name": "disabled",
+              "boolean": true
+            },
+            {
+              "name": "keep-open"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-active"
+            },
+            {
+              "name": "data-checked"
+            }
+          ]
+        },
+        {
+          "name": "flux:menu.radio.group",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "keep-open"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:menu.radio",
+          "props": [
+            {
+              "name": "checked",
+              "boolean": true
+            },
+            {
+              "name": "disabled",
+              "boolean": true
+            },
+            {
+              "name": "keep-open"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-active"
+            },
+            {
+              "name": "data-checked"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "editor",
+      "title": "Rich text editor",
+      "parts": [
+        {
+          "name": "flux:editor",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "value"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "description:trailing"
+            },
+            {
+              "name": "badge"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "toolbar"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "invalid"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-editor"
+            }
+          ]
+        },
+        {
+          "name": "flux:editor.toolbar",
+          "props": [
+            {
+              "name": "items"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:editor.button",
+          "props": [
+            {
+              "name": "icon"
+            },
+            {
+              "name": "iconVariant",
+              "options": [
+                "mini",
+                "micro",
+                "outline"
+              ],
+              "default": "mini"
+            },
+            {
+              "name": "tooltip"
+            },
+            {
+              "name": "disabled"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:editor.content",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "Toolbar Items",
+          "components": [
+            {
+              "name": "heading"
+            },
+            {
+              "name": "bold"
+            },
+            {
+              "name": "italic"
+            },
+            {
+              "name": "strike"
+            },
+            {
+              "name": "underline"
+            },
+            {
+              "name": "bullet"
+            },
+            {
+              "name": "ordered"
+            },
+            {
+              "name": "blockquote"
+            },
+            {
+              "name": "code"
+            },
+            {
+              "name": "link"
+            },
+            {
+              "name": "align"
+            },
+            {
+              "name": "undo"
+            },
+            {
+              "name": "redo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "field",
+      "title": "Field",
+      "parts": [
+        {
+          "name": "flux:field",
+          "props": [
+            {
+              "name": "variant",
+              "options": [
+                "block",
+                "inline"
+              ],
+              "default": "block"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-field"
+            }
+          ]
+        },
+        {
+          "name": "flux:label",
+          "props": [
+            {
+              "name": "badge"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "trailing"
+            }
+          ]
+        },
+        {
+          "name": "flux:description",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:error",
+          "props": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "message"
+            },
+            {
+              "name": "bag",
+              "default": "default"
+            },
+            {
+              "name": "deep",
+              "default": "true",
+              "boolean": true
+            },
+            {
+              "name": "icon",
+              "default": "exclamation-triangle"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:fieldset",
+          "props": [
+            {
+              "name": "legend"
+            },
+            {
+              "name": "description"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:legend",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "file-upload",
+      "title": "File upload",
+      "parts": [
+        {
+          "name": "flux:file-upload",
+          "props": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "multiple",
+              "default": "false"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "error"
+            },
+            {
+              "name": "disabled",
+              "default": "false"
+            }
+          ],
+          "livewireDirectives": [
+            {
+              "name": "wire:model"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-dragging"
+            },
+            {
+              "name": "data-loading"
+            }
+          ]
+        },
+        {
+          "name": "flux:file-upload.dropzone",
+          "props": [
+            {
+              "name": "heading"
+            },
+            {
+              "name": "text"
+            },
+            {
+              "name": "icon",
+              "default": "cloud-arrow-up"
+            },
+            {
+              "name": "inline",
+              "default": "false"
+            },
+            {
+              "name": "with-progress",
+              "default": "false"
+            }
+          ],
+          "cssVariables": [
+            {
+              "name": "--flux-file-upload-progress"
+            },
+            {
+              "name": "--flux-file-upload-progress-as-string"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-dragging"
+            },
+            {
+              "name": "data-loading"
+            }
+          ]
+        },
+        {
+          "name": "flux:file-item",
+          "props": [
+            {
+              "name": "heading"
+            },
+            {
+              "name": "text"
+            },
+            {
+              "name": "image"
+            },
+            {
+              "name": "size"
+            },
+            {
+              "name": "icon",
+              "default": "document"
+            },
+            {
+              "name": "invalid",
+              "default": "false"
+            }
+          ],
+          "slots": [
+            {
+              "name": "actions"
+            }
+          ]
+        },
+        {
+          "name": "flux:file-item.remove",
+          "livewireDirectives": [
+            {
+              "name": "wire:click"
+            },
+            {
+              "name": "aria-label"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "flag",
+      "title": "Flag",
+      "parts": [
+        {
+          "name": "flux:flag",
+          "props": [
+            {
+              "name": "country"
+            },
+            {
+              "name": "src"
+            },
+            {
+              "name": "alt"
+            },
+            {
+              "name": "size",
+              "options": []
+            },
+            {
+              "name": "circle"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "heading",
+      "title": "Heading",
+      "parts": [
+        {
+          "name": "flux:heading",
+          "props": [
+            {
+              "name": "size",
+              "options": [
+                "base",
+                "lg",
+                "xl",
+                "2xl"
+              ],
+              "default": "base"
+            },
+            {
+              "name": "level",
+              "options": [
+                "1",
+                "2",
+                "3",
+                "4"
+              ]
+            },
+            {
+              "name": "accent",
+              "boolean": true
+            }
+          ]
+        },
+        {
+          "name": "flux:text",
+          "props": [
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "base",
+                "lg",
+                "xl"
+              ],
+              "default": "base"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "icon",
+      "title": "Icon",
+      "parts": [
+        {
+          "name": "flux:icon.*",
+          "props": [
+            {
+              "name": "variant",
+              "options": [
+                "outline",
+                "solid",
+                "mini",
+                "micro"
+              ],
+              "default": "outline"
+            }
+          ],
+          "classes": [
+            {
+              "name": "size-*"
+            },
+            {
+              "name": "text-*"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-icon"
+            }
+          ]
+        },
+        {
+          "name": "Icon sizes",
+          "sizes": [
+            {
+              "name": "outline"
+            },
+            {
+              "name": "solid"
+            },
+            {
+              "name": "mini"
+            },
+            {
+              "name": "micro"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "input",
+      "title": "Input",
+      "parts": [
+        {
+          "name": "flux:input",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "description:trailing"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            },
+            {
+              "name": "variant",
+              "options": [
+                "filled"
+              ],
+              "default": "outline"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "readonly"
+            },
+            {
+              "name": "invalid"
+            },
+            {
+              "name": "multiple"
+            },
+            {
+              "name": "mask"
+            },
+            {
+              "name": "mask:dynamic"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:trailing"
+            },
+            {
+              "name": "kbd"
+            },
+            {
+              "name": "clearable",
+              "boolean": true
+            },
+            {
+              "name": "copyable",
+              "boolean": true
+            },
+            {
+              "name": "viewable"
+            },
+            {
+              "name": "as",
+              "options": [
+                "button"
+              ],
+              "default": "input"
+            },
+            {
+              "name": "input:class"
+            }
+          ],
+          "slots": [
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:leading"
+            },
+            {
+              "name": "icon:trailing"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-input"
+            }
+          ]
+        },
+        {
+          "name": "flux:input.group",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:input.group.prefix",
+          "props": [
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:input.group.suffix",
+          "props": [
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "kanban",
+      "title": "Kanban",
+      "parts": [
+        {
+          "name": "flux:kanban",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:kanban.column",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:kanban.column.header",
+          "props": [
+            {
+              "name": "heading"
+            },
+            {
+              "name": "subheading"
+            },
+            {
+              "name": "count"
+            },
+            {
+              "name": "badge"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "actions"
+            }
+          ]
+        },
+        {
+          "name": "flux:kanban.column.cards",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:kanban.column.footer",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:kanban.card",
+          "props": [
+            {
+              "name": "heading"
+            },
+            {
+              "name": "as",
+              "options": [
+                "button",
+                "div"
+              ],
+              "default": "div"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "header"
+            },
+            {
+              "name": "footer"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "modal",
+      "title": "Modal",
+      "parts": [
+        {
+          "name": "flux:modal",
+          "props": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "flyout",
+              "boolean": true
+            },
+            {
+              "name": "variant",
+              "options": [
+                "default",
+                "floating",
+                "bare",
+                "flyout"
+              ]
+            },
+            {
+              "name": "position",
+              "options": [
+                "right",
+                "left",
+                "bottom"
+              ],
+              "default": "right"
+            },
+            {
+              "name": "scroll",
+              "options": [
+                "body"
+              ]
+            },
+            {
+              "name": "dismissible",
+              "default": "true",
+              "boolean": true
+            },
+            {
+              "name": "escapable",
+              "default": "true",
+              "boolean": true
+            },
+            {
+              "name": "closable",
+              "default": "true",
+              "boolean": true
+            },
+            {
+              "name": "wire:model"
+            }
+          ],
+          "events": [
+            {
+              "name": "close"
+            },
+            {
+              "name": "cancel"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "classes": [
+            {
+              "name": "w-*"
+            }
+          ]
+        },
+        {
+          "name": "flux:modal.trigger",
+          "props": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "shortcut"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:modal.close",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "Flux::modal()",
+          "parameters": [
+            {
+              "name": "default|name"
+            }
+          ],
+          "methods": [
+            {
+              "name": "close()"
+            }
+          ]
+        },
+        {
+          "name": "Flux::modals()",
+          "methods": [
+            {
+              "name": "close()"
+            }
+          ]
+        },
+        {
+          "name": "$flux.modal()",
+          "parameters": [
+            {
+              "name": "default|name"
+            }
+          ],
+          "methods": [
+            {
+              "name": "show()"
+            },
+            {
+              "name": "close()"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "navbar",
+      "title": "Navbar",
+      "parts": [
+        {
+          "name": "flux:navbar",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-navbar"
+            }
+          ]
+        },
+        {
+          "name": "flux:navbar.item",
+          "props": [
+            {
+              "name": "href"
+            },
+            {
+              "name": "current",
+              "boolean": true
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:trailing"
+            },
+            {
+              "name": "badge"
+            },
+            {
+              "name": "badge:color",
+              "options": [
+                "color"
+              ]
+            },
+            {
+              "name": "badge:variant",
+              "options": [
+                "solid",
+                "outline"
+              ],
+              "default": "solid"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-current"
+            }
+          ]
+        },
+        {
+          "name": "flux:navlist",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-navlist"
+            }
+          ]
+        },
+        {
+          "name": "flux:navlist.item",
+          "props": [
+            {
+              "name": "href"
+            },
+            {
+              "name": "current",
+              "boolean": true
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "badge"
+            },
+            {
+              "name": "badge:color",
+              "options": [
+                "color"
+              ]
+            },
+            {
+              "name": "badge:variant",
+              "options": [
+                "solid",
+                "outline"
+              ],
+              "default": "solid"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-current"
+            }
+          ]
+        },
+        {
+          "name": "flux:navlist.group",
+          "props": [
+            {
+              "name": "heading"
+            },
+            {
+              "name": "expandable",
+              "boolean": true
+            },
+            {
+              "name": "expanded",
+              "boolean": true
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "Profile switcher"
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "otp-input",
+      "title": "OTP Input",
+      "parts": [
+        {
+          "name": "flux:otp",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "value"
+            },
+            {
+              "name": "length"
+            },
+            {
+              "name": "mode"
+            },
+            {
+              "name": "private"
+            },
+            {
+              "name": "submit",
+              "options": [
+                "auto"
+              ]
+            },
+            {
+              "name": "autocomplete",
+              "default": "one-time-code"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:otp.input",
+          "props": [
+            {
+              "name": "—"
+            }
+          ]
+        },
+        {
+          "name": "flux:otp.separator",
+          "props": [
+            {
+              "name": "—"
+            }
+          ]
+        },
+        {
+          "name": "flux:otp.group",
+          "slots": [
+            {
+              "name": "Default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "pagination",
+      "title": "Pagination",
+      "parts": [
+        {
+          "name": "flux:pagination",
+          "props": [
+            {
+              "name": "paginator"
+            },
+            {
+              "name": "scroll-to",
+              "default": "body"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "phone",
+      "title": "Phone",
+      "parts": [
+        {
+          "name": "flux:phone",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "value"
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "country"
+            },
+            {
+              "name": "countries"
+            },
+            {
+              "name": "country-order"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            },
+            {
+              "name": "variant",
+              "options": [
+                "filled"
+              ],
+              "default": "outline"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "readonly"
+            },
+            {
+              "name": "invalid"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-phone"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "pillbox",
+      "title": "Pillbox",
+      "parts": [
+        {
+          "name": "flux:pillbox",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm"
+              ]
+            },
+            {
+              "name": "searchable"
+            },
+            {
+              "name": "search:placeholder"
+            },
+            {
+              "name": "filter",
+              "boolean": true
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "invalid"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "trigger"
+            },
+            {
+              "name": "search"
+            },
+            {
+              "name": "empty"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-pillbox"
+            }
+          ]
+        },
+        {
+          "name": "flux:pillbox.option",
+          "props": [
+            {
+              "name": "value"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "selected-label"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "filterable",
+              "boolean": true
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:pillbox.option.create",
+          "props": [
+            {
+              "name": "min-length"
+            },
+            {
+              "name": "modal"
+            },
+            {
+              "name": "wire:click"
+            }
+          ]
+        },
+        {
+          "name": "flux:pillbox.option.empty",
+          "props": [
+            {
+              "name": "when-loading"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:pillbox.search",
+          "props": [
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "clearable",
+              "default": "true",
+              "boolean": true
+            }
+          ]
+        },
+        {
+          "name": "flux:pillbox.trigger",
+          "props": [
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "invalid"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm"
+              ]
+            },
+            {
+              "name": "clearable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "popover",
+      "title": "Popover",
+      "parts": [
+        {
+          "name": "flux:dropdown",
+          "props": [
+            {
+              "name": "position",
+              "options": [
+                "top",
+                "right",
+                "bottom",
+                "left"
+              ],
+              "default": "bottom"
+            },
+            {
+              "name": "align",
+              "options": [
+                "start",
+                "center",
+                "end"
+              ],
+              "default": "start"
+            },
+            {
+              "name": "hover"
+            },
+            {
+              "name": "wire:model"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-dropdown"
+            },
+            {
+              "name": "data-open"
+            }
+          ]
+        },
+        {
+          "name": "flux:popover",
+          "props": [
+            {
+              "name": "class"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-popover"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "profile",
+      "title": "Profile",
+      "parts": [
+        {
+          "name": "flux:profile",
+          "props": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "avatar"
+            },
+            {
+              "name": "avatar:name"
+            },
+            {
+              "name": "avatar:color"
+            },
+            {
+              "name": "circle"
+            },
+            {
+              "name": "initials"
+            },
+            {
+              "name": "chevron"
+            },
+            {
+              "name": "icon:trailing"
+            },
+            {
+              "name": "icon:variant",
+              "options": [
+                "micro",
+                "outline"
+              ],
+              "default": "micro"
+            }
+          ],
+          "slots": [
+            {
+              "name": "avatar"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "progress",
+      "title": "Progress",
+      "parts": [
+        {
+          "name": "flux:progress",
+          "props": [
+            {
+              "name": "value",
+              "default": "0"
+            },
+            {
+              "name": "max",
+              "default": "100"
+            },
+            {
+              "name": "color"
+            }
+          ],
+          "cssVariables": [
+            {
+              "name": "--flux-progress"
+            },
+            {
+              "name": "--flux-progress-percentage"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "radio",
+      "title": "Radio",
+      "parts": [
+        {
+          "name": "flux:radio.group",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "default",
+                "segmented",
+                "cards",
+                "pills",
+                "buttons"
+              ]
+            },
+            {
+              "name": "invalid"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-radio-group"
+            }
+          ]
+        },
+        {
+          "name": "flux:radio",
+          "props": [
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "value"
+            },
+            {
+              "name": "checked",
+              "boolean": true
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "icon"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-radio"
+            },
+            {
+              "name": "data-checked"
+            }
+          ]
+        },
+        {
+          "name": "flux:radio.indicator"
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "select",
+      "title": "Select",
+      "parts": [
+        {
+          "name": "flux:select",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "description:trailing"
+            },
+            {
+              "name": "badge"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            },
+            {
+              "name": "variant",
+              "options": [
+                "default",
+                "listbox",
+                "combobox"
+              ]
+            },
+            {
+              "name": "multiple"
+            },
+            {
+              "name": "filter",
+              "boolean": true
+            },
+            {
+              "name": "searchable"
+            },
+            {
+              "name": "empty",
+              "default": "No results found"
+            },
+            {
+              "name": "clearable"
+            },
+            {
+              "name": "prefix"
+            },
+            {
+              "name": "selected-suffix"
+            },
+            {
+              "name": "clear",
+              "options": [
+                "select",
+                "close"
+              ],
+              "default": "select"
+            },
+            {
+              "name": "position",
+              "options": [
+                "top",
+                "right",
+                "bottom",
+                "left"
+              ],
+              "default": "bottom"
+            },
+            {
+              "name": "align",
+              "options": [
+                "start",
+                "center",
+                "end"
+              ],
+              "default": "start"
+            },
+            {
+              "name": "options:class"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "invalid"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "trigger"
+            },
+            {
+              "name": "empty"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-select"
+            }
+          ]
+        },
+        {
+          "name": "flux:select.option",
+          "props": [
+            {
+              "name": "value"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "selected-label"
+            },
+            {
+              "name": "keywords"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:variant",
+              "options": [
+                "outline",
+                "solid",
+                "mini",
+                "micro"
+              ],
+              "default": "mini"
+            },
+            {
+              "name": "icon:class"
+            },
+            {
+              "name": "avatar"
+            },
+            {
+              "name": "avatar:*"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "disabled"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:select.group",
+          "props": [
+            {
+              "name": "label"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:select.option.create",
+          "props": [
+            {
+              "name": "min-length"
+            },
+            {
+              "name": "modal"
+            },
+            {
+              "name": "wire:click"
+            }
+          ]
+        },
+        {
+          "name": "flux:select.option.empty",
+          "props": [
+            {
+              "name": "when-loading"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:select.button",
+          "props": [
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "invalid"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "clearable"
+            }
+          ]
+        },
+        {
+          "name": "flux:select.input",
+          "props": [
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "invalid"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "flux:select.search",
+          "props": [
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "clearable",
+              "default": "true"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "separator",
+      "title": "Separator",
+      "parts": [
+        {
+          "name": "flux:separator",
+          "props": [
+            {
+              "name": "vertical"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "subtle"
+              ]
+            },
+            {
+              "name": "text"
+            },
+            {
+              "name": "orientation",
+              "options": [
+                "horizontal",
+                "vertical"
+              ],
+              "default": "horizontal"
+            }
+          ],
+          "classes": [
+            {
+              "name": "my-*"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-separator"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "skeleton",
+      "title": "Skeleton",
+      "parts": [
+        {
+          "name": "flux:skeleton",
+          "props": [
+            {
+              "name": "animate",
+              "options": [
+                "shimmer",
+                "pulse"
+              ]
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "cssVariables": [
+            {
+              "name": "--flux-shimmer-color"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-skeleton"
+            }
+          ]
+        },
+        {
+          "name": "flux:skeleton.line",
+          "props": [
+            {
+              "name": "size",
+              "options": [
+                "base",
+                "lg"
+              ]
+            },
+            {
+              "name": "animate",
+              "options": [
+                "shimmer",
+                "pulse"
+              ]
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-skeleton-line"
+            }
+          ]
+        },
+        {
+          "name": "flux:skeleton.group",
+          "props": [
+            {
+              "name": "animate",
+              "options": [
+                "shimmer",
+                "pulse"
+              ]
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-skeleton-group"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "slider",
+      "title": "Slider",
+      "parts": [
+        {
+          "name": "flux:slider",
+          "props": [
+            {
+              "name": "range"
+            },
+            {
+              "name": "min"
+            },
+            {
+              "name": "max"
+            },
+            {
+              "name": "step"
+            },
+            {
+              "name": "big-step"
+            },
+            {
+              "name": "min-steps-between"
+            },
+            {
+              "name": "tick:position",
+              "options": [
+                "below",
+                "inside"
+              ],
+              "default": "below"
+            },
+            {
+              "name": "track:class"
+            },
+            {
+              "name": "thumb:class"
+            }
+          ]
+        },
+        {
+          "name": "flux:slider.tick",
+          "props": [
+            {
+              "name": "value"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "line",
+                "dot"
+              ],
+              "default": "line"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "switch",
+      "title": "Switch",
+      "parts": [
+        {
+          "name": "flux:switch",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "align",
+              "options": [
+                "right|start",
+                "left|end"
+              ],
+              "default": "right|start"
+            },
+            {
+              "name": "disabled"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-switch"
+            },
+            {
+              "name": "data-checked"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "table",
+      "title": "Table",
+      "parts": [
+        {
+          "name": "flux:table",
+          "props": [
+            {
+              "name": "bleed"
+            },
+            {
+              "name": "paginate"
+            },
+            {
+              "name": "pagination:scroll-to",
+              "default": "body"
+            },
+            {
+              "name": "container:class"
+            }
+          ],
+          "cssVariables": [
+            {
+              "name": "--flux-bleed"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-table"
+            }
+          ]
+        },
+        {
+          "name": "flux:table.columns",
+          "props": [
+            {
+              "name": "sticky"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:table.column",
+          "props": [
+            {
+              "name": "align",
+              "options": [
+                "start",
+                "center",
+                "end"
+              ]
+            },
+            {
+              "name": "sortable"
+            },
+            {
+              "name": "sorted"
+            },
+            {
+              "name": "direction",
+              "options": [
+                "asc",
+                "desc"
+              ]
+            },
+            {
+              "name": "sticky"
+            }
+          ]
+        },
+        {
+          "name": "flux:table.rows",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:table.row",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "props": [
+            {
+              "name": "key"
+            },
+            {
+              "name": "sticky"
+            }
+          ]
+        },
+        {
+          "name": "flux:table.cell",
+          "props": [
+            {
+              "name": "align",
+              "options": [
+                "start",
+                "center",
+                "end"
+              ]
+            },
+            {
+              "name": "variant",
+              "options": [
+                "default",
+                "strong"
+              ]
+            },
+            {
+              "name": "sticky"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "tabs",
+      "title": "Tabs",
+      "parts": [
+        {
+          "name": "flux:tab.group",
+          "props": [
+            {
+              "name": "findable",
+              "boolean": true
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:tabs",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "default",
+                "segmented",
+                "pills"
+              ]
+            },
+            {
+              "name": "size",
+              "options": [
+                "base",
+                "sm"
+              ],
+              "default": "base"
+            },
+            {
+              "name": "scrollable"
+            },
+            {
+              "name": "scrollable:scrollbar",
+              "options": [
+                "hide"
+              ]
+            },
+            {
+              "name": "scrollable:fade"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-tabs"
+            }
+          ]
+        },
+        {
+          "name": "flux:tab",
+          "props": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "icon:trailing"
+            },
+            {
+              "name": "icon:variant",
+              "options": [
+                "outline",
+                "solid",
+                "mini",
+                "micro"
+              ]
+            },
+            {
+              "name": "selected",
+              "boolean": true
+            },
+            {
+              "name": "action"
+            },
+            {
+              "name": "accent",
+              "boolean": true
+            },
+            {
+              "name": "size",
+              "options": [
+                "base",
+                "sm"
+              ],
+              "default": "base"
+            },
+            {
+              "name": "disabled"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-tab"
+            },
+            {
+              "name": "data-selected"
+            }
+          ]
+        },
+        {
+          "name": "flux:tab.panel",
+          "props": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "selected",
+              "boolean": true
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-tab-panel"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "text",
+      "title": "Text",
+      "parts": [
+        {
+          "name": "flux:text",
+          "props": [
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "default",
+                "lg",
+                "xl"
+              ],
+              "default": "default"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "strong",
+                "subtle"
+              ],
+              "default": "default"
+            },
+            {
+              "name": "color",
+              "options": [
+                "default",
+                "red",
+                "orange",
+                "yellow",
+                "lime",
+                "green",
+                "emerald",
+                "teal",
+                "cyan",
+                "sky",
+                "blue",
+                "indigo",
+                "violet",
+                "purple",
+                "fuchsia",
+                "pink",
+                "rose"
+              ],
+              "default": "default"
+            },
+            {
+              "name": "inline",
+              "boolean": true
+            }
+          ]
+        },
+        {
+          "name": "flux:link",
+          "props": [
+            {
+              "name": "href"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "default",
+                "ghost",
+                "subtle"
+              ],
+              "default": "default"
+            },
+            {
+              "name": "external",
+              "boolean": true
+            },
+            {
+              "name": "as",
+              "options": [
+                "a",
+                "button"
+              ],
+              "default": "a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "textarea",
+      "title": "Textarea",
+      "parts": [
+        {
+          "name": "flux:textarea",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "description:trailing"
+            },
+            {
+              "name": "badge"
+            },
+            {
+              "name": "rows",
+              "default": "4"
+            },
+            {
+              "name": "resize",
+              "options": [
+                "vertical",
+                "horizontal",
+                "both",
+                "none"
+              ],
+              "default": "vertical"
+            },
+            {
+              "name": "invalid",
+              "boolean": true
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-textarea"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "timeline",
+      "title": "Timeline",
+      "parts": [
+        {
+          "name": "flux:timeline",
+          "props": [
+            {
+              "name": "horizontal"
+            },
+            {
+              "name": "align",
+              "options": [
+                "start",
+                "baseline",
+                "center",
+                "end"
+              ],
+              "default": "center"
+            },
+            {
+              "name": "size",
+              "options": [
+                "lg"
+              ]
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ],
+          "classes": [
+            {
+              "name": "--flux-timeline-item-gap"
+            },
+            {
+              "name": "--flux-timeline-content-gap"
+            }
+          ]
+        },
+        {
+          "name": "flux:timeline.item",
+          "props": [
+            {
+              "name": "status",
+              "options": [
+                "complete",
+                "current",
+                "incomplete"
+              ]
+            },
+            {
+              "name": "align",
+              "options": [
+                "start",
+                "baseline",
+                "center",
+                "end"
+              ]
+            },
+            {
+              "name": "size",
+              "options": [
+                "lg"
+              ]
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:timeline.indicator",
+          "props": [
+            {
+              "name": "variant",
+              "options": [
+                "bare"
+              ]
+            },
+            {
+              "name": "status",
+              "options": [
+                "complete",
+                "current",
+                "incomplete"
+              ]
+            },
+            {
+              "name": "color",
+              "options": [
+                "red",
+                "orange",
+                "amber",
+                "yellow",
+                "lime",
+                "green",
+                "emerald",
+                "teal",
+                "cyan",
+                "sky",
+                "blue",
+                "indigo",
+                "violet",
+                "purple",
+                "fuchsia",
+                "pink",
+                "rose"
+              ]
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:timeline.content",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:timeline.block",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:timeline.subgrid",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "time-picker",
+      "title": "Time picker",
+      "parts": [
+        {
+          "name": "flux:time-picker",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "value"
+            },
+            {
+              "name": "type",
+              "options": [
+                "input",
+                "button"
+              ],
+              "default": "button"
+            },
+            {
+              "name": "multiple",
+              "default": "false"
+            },
+            {
+              "name": "time-format",
+              "options": [
+                "auto",
+                "12-hour",
+                "24-hour"
+              ],
+              "default": "auto"
+            },
+            {
+              "name": "interval",
+              "default": "30"
+            },
+            {
+              "name": "min"
+            },
+            {
+              "name": "max"
+            },
+            {
+              "name": "unavailable"
+            },
+            {
+              "name": "open-to"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "description:trailing"
+            },
+            {
+              "name": "badge"
+            },
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            },
+            {
+              "name": "clearable"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "invalid"
+            },
+            {
+              "name": "locale"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-time-picker"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "toast",
+      "title": "Toast",
+      "parts": [
+        {
+          "name": "flux:toast",
+          "props": [
+            {
+              "name": "position",
+              "options": [
+                "bottom end",
+                "bottom center",
+                "bottom start",
+                "top end",
+                "top center",
+                "top start"
+              ],
+              "default": "bottom end"
+            },
+            {
+              "name": "invert",
+              "default": "false",
+              "boolean": true
+            }
+          ]
+        },
+        {
+          "name": "flux:toast.group",
+          "props": [
+            {
+              "name": "position",
+              "options": [
+                "bottom end",
+                "bottom center",
+                "bottom start",
+                "top end",
+                "top center",
+                "top start"
+              ],
+              "default": "bottom end"
+            },
+            {
+              "name": "expanded",
+              "default": "false",
+              "boolean": true
+            }
+          ]
+        },
+        {
+          "name": "Flux::toast()",
+          "parameters": [
+            {
+              "name": "heading"
+            },
+            {
+              "name": "text"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "success",
+                "warning",
+                "danger"
+              ]
+            },
+            {
+              "name": "duration",
+              "default": "5000"
+            },
+            {
+              "name": "link"
+            },
+            {
+              "name": "action"
+            }
+          ]
+        },
+        {
+          "name": "$flux.toast()",
+          "parameters": [
+            {
+              "name": "message"
+            },
+            {
+              "name": "options"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "toggle",
+      "title": "Toggle",
+      "parts": [
+        {
+          "name": "flux:toggle",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "icon"
+            },
+            {
+              "name": "on:icon"
+            },
+            {
+              "name": "off:icon"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "on:label"
+            },
+            {
+              "name": "off:label"
+            },
+            {
+              "name": "size",
+              "options": [
+                "base",
+                "sm",
+                "xs"
+              ],
+              "default": "base"
+            },
+            {
+              "name": "variant",
+              "options": [
+                "outline",
+                "filled",
+                "ghost",
+                "subtle"
+              ],
+              "default": "outline"
+            },
+            {
+              "name": "color"
+            },
+            {
+              "name": "tooltip"
+            },
+            {
+              "name": "checked"
+            },
+            {
+              "name": "disabled"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-toggle"
+            },
+            {
+              "name": "data-checked"
+            },
+            {
+              "name": "data-loading"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "icon"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
+      "slug": "tooltip",
+      "title": "Tooltip",
+      "parts": [
+        {
+          "name": "flux:tooltip",
+          "props": [
+            {
+              "name": "content"
+            },
+            {
+              "name": "position",
+              "options": [
+                "top",
+                "right",
+                "bottom",
+                "left"
+              ],
+              "default": "top"
+            },
+            {
+              "name": "align",
+              "options": [
+                "center",
+                "start",
+                "end"
+              ],
+              "default": "center"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "gap",
+              "default": "5"
+            },
+            {
+              "name": "offset",
+              "default": "0"
+            },
+            {
+              "name": "toggleable"
+            },
+            {
+              "name": "interactive"
+            },
+            {
+              "name": "kbd"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-tooltip"
+            }
+          ]
+        },
+        {
+          "name": "flux:tooltip.content",
+          "props": [
+            {
+              "name": "kbd"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
