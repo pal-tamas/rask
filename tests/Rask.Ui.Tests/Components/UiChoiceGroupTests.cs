@@ -66,6 +66,14 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_button_layout_takes_the_radius_every_other_control_has()
+    {
+        var html = Ui.RadioGroup.Value("free").Options(Plans).Label("Plan").Layout(Ui.ChoiceLayout.Buttons).ToHtml();
+
+        Assert.Contains("rounded-field", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_layouts_that_are_all_affordance_hide_the_box_without_hiding_it_from_a_screen_reader()
     {
         // sr-only, never `hidden` or `display: none`: those take the input out of the accessibility tree and

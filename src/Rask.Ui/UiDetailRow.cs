@@ -27,12 +27,7 @@ public sealed partial class UiDetailRow : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var tone = Tone switch
-        {
-            Ui.Tone.Error => "text-error",
-            Ui.Tone.Warning => "text-warning",
-            _ => "text-base-content",
-        };
+        var tone = UiClassNames.ValueTone(Tone) ?? "text-base-content";
 
         return Div.Class("flex flex-col gap-0.5 py-2.5 sm:flex-row sm:items-baseline sm:gap-3")[
             Span.Class("shrink-0 text-sm opacity-60")[Label],

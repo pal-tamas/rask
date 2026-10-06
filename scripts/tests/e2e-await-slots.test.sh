@@ -15,6 +15,15 @@
 # Usage:  scripts/tests/e2e-await-slots.test.sh   (run by scripts/run-unit-local.sh)
 set -uo pipefail
 
+# Not under CI, and said out loud rather than passed vacuously. What this pins is the wait a browser
+# gate does on a shared developer machine, and rask_e2e_await_slots returns at its first line under CI,
+# so nothing here is on a runner's path. It also makes REAL claims against the process table, where a
+# runner's own unit gate is a genuine senior: the table waited on it until the job was cancelled.
+if [ -n "${CI:-}" ]; then
+  echo "e2e-await-slots: skipped under CI — the wait it tests never runs there (see the note above)."
+  exit 0
+fi
+
 root="$(git rev-parse --show-toplevel)"
 # shellcheck source=../lib/machine-lane.sh
 . "$root/scripts/lib/machine-lane.sh"

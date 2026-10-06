@@ -1,0 +1,32 @@
+name: ci
+
+# Every gate that used to run in a git hook, run here instead, AFTER the push. Nothing in this
+# workflow blocks a commit or a push: own work lands on main directly and this says, a few minutes
+# later, whether it should have. A red main is fixed forward, and it stops at the door — nightly.yml
+# and pages.yml publish only from a commit this workflow passed.
+#
+# A ci/** branch runs the same gates without landing anything: push there to try a risky change
+# first. A ci/release/** branch also runs the release-only gates (see gates.yml), which is how to
+# find out before tagging rather than from a failed release.
+on:
+  push:
+    branches: [main, 'ci/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# On main a push never cancels the run in progress, so a red run names the push that caused it and a
+# green one gets to publish. (GitHub keeps one run waiting behind it: the newest.) Anywhere else only
+# the newest push matters.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  gates:
+    uses: ./.github/workflows/gates.yml
+    with:
+      set: ${{ startsWith(github.ref, 'refs/heads/ci/release/') && 'all' || 'push' }}

@@ -89,7 +89,7 @@ public sealed partial class UiMenuItem : Component
         UiClass.Compose(
             Active == true ? "menu-active" : "",
             level is not null && ordinal == level.Scope.Active ? "menu-focus" : "",
-            Tone == Ui.Tone.Error ? "text-error" : "",
+            Tone == Ui.Tone.Error ? "text-ui-danger-ink" : "",
             Disabled == true ? "menu-disabled" : "");
 
     private T Decorate<T>(T element, UiMenuLevel? level, int ordinal)

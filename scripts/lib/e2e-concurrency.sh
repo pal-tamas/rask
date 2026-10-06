@@ -198,7 +198,7 @@ rask_e2e_command_of() {
 #
 # This is the collision the guard above does NOT catch, and the one #850 is about. That guard detects
 # its own kind — a second browser gate — and refuses. The expensive case is everything else: a
-# pre-commit hook, a plain `dotnet build`, a `dotnet publish`, the CLI build gate. None of those is a
+# unit gate, a plain `dotnet build`, a `dotnet publish`, the CLI build gate. None of those is a
 # browser gate, so nothing refuses, nothing warns, and the contention is silent. The browser journeys
 # and the WebSocket tests are timing-sensitive; under load they fail in ways that look exactly like
 # real bugs, minutes after the contention, with nothing in the log pointing back at it.

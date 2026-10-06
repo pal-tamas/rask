@@ -37,9 +37,8 @@
     <!-- Caps cross-collection parallelism for LOCAL full-suite runs (see xunit.runner.json).
          Each browser-host collection fixture boots a full `dotnet run` host plus a Chromium
          page, so unbounded parallelism over-subscribes a small box. This cap is the ONLY thing
-         bounding that now: the suite runs on one developer machine via scripts/run-e2e-local.sh
-         (.githooks/pre-push), never in CI. It used to be belt-and-braces alongside a sharded `e2e`
-         job, which no longer exists — no workflow in this repo runs the browser E2E. -->
+         bounding that: the suite runs as ONE process via scripts/run-e2e-local.sh, on a developer
+         machine and in CI's "browser E2E" job alike; there is no sharded job to spread it. -->
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
