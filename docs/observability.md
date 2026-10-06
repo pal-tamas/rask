@@ -201,7 +201,7 @@ app.MapRask<App>();
 
 **Memory is checked as well as the session count, and outranks it.** A cap alone can't keep a host
 healthy, because what a session costs is a property of the page rather than of the user: the same host
-holds ~66,000 sessions of a trivial page or ~735 of a 200-row grid. A cap sized for the small page is no
+holds ~45,000 sessions of a trivial page or ~1,250 of a 200-row grid. A cap sized for the small page is no
 protection on the big one. The reading comes from `GCMemoryInfo`, which honours a container memory limit,
 so it reflects the ceiling a deployed app actually runs under — and an uncapped host, which is what most
 apps run, now reports something before an OOM does. A memory position the runtime won't disclose is

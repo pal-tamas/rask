@@ -3,7 +3,7 @@
 Reference numbers from the live-render diff codec. Each future PR touching the
 render path should compare against these and quote the delta in its description.
 
-> **`payload-bytes.csv` is enforced before push, on your machine.** `.githooks/pre-push` runs
+> **`payload-bytes.csv` is gated on request, on your machine.** No hook and no CI job runs it: you run
 > `scripts/run-benchmarks-local.sh`, which checks this baseline *and* the vs-Blazor one
 > (`dotnet run -c Release --project tests/Rask.Benchmarks -- payload-bytes --check`)
 > and **fails on a regression** — more diff bytes or more diff ops than the
@@ -13,7 +13,7 @@ render path should compare against these and quote the delta in its description.
 > the gate keeps tracking reality. `FullPayloadBytes` is informational only (it moves
 > whenever the scenario markup or runtime script changes) and is **not** gated.
 
-> **`client-bundle-size.csv` is enforced the same way**, and measures the other thing every visitor
+> **`client-bundle-size.csv` is gated the same way**, and measures the other thing every visitor
 > downloads: the client runtimes themselves, `rask.js` and `rask.wasm.js`. Nothing gated those before —
 > `BundleSizeReport` prints a table of a published WASM `_framework/` and has no committed numbers at
 > all, so the runtime script could double with every check in the repository still green. It is
@@ -23,7 +23,7 @@ render path should compare against these and quote the delta in its description.
 > the file measured is the Debug one, three times the size. The script therefore deletes
 > `obj/Release/net10.0-browser/rask-bundles/rask.wasm.stamp` before rebuilding, and the report
 > refuses outright to measure a bundle that is not minified. Both exist because the gate's first
-> run inside the pre-push hook reported a 74 KB regression that was not real. The tolerance is ±2% rather than byte-exact — esbuild's
+> run, back when the pre-push hook still ran it, reported a 74 KB regression that was not real. The tolerance is ±2% rather than byte-exact — esbuild's
 > output can shift a few bytes on a minifier bump nobody here chose, while the regression worth
 > catching (a module pulled into the wrong bundle, tree-shaking quietly stopping) is far larger.
 
@@ -53,19 +53,21 @@ dotnet run -c Release --project Rask.Benchmarks -- payload-bytes
 
 ### Current numbers (default `LiveDiffMode.Auto` on both Server and WASM)
 
-| Scenario            | Full payload | Diff payload | Diff ops |  Reduction |
-|---------------------|-------------:|-------------:|---------:|-----------:|
-| CounterOnLargePage  |       66,838 |           45 |        1 | **1,485×** |
-| KeyedList100Reorder |        6,691 |           47 |        1 |   **142×** |
-| TextNodeUpdate      |       66,721 |           54 |        1 | **1,236×** |
-| AppendRowToList100  |        6,759 |           46 |        1 |   **147×** |
+| Scenario                 | Full payload | Diff payload | Diff ops |  Reduction |
+|--------------------------|-------------:|-------------:|---------:|-----------:|
+| CounterOnLargePage       |       67,033 |           45 |        1 | **1,490×** |
+| KeyedList100Reorder      |        6,791 |           47 |        1 |   **144×** |
+| TextNodeUpdate           |       66,921 |           54 |        1 | **1,239×** |
+| AppendRowToList100       |        6,860 |          113 |        1 |    **61×** |
+| RawGuidePage             |        1,782 |          661 |        1 |   **2.7×** |
+| HandlerShiftAboveList100 |       15,228 |           94 |        1 |   **162×** |
 
-All four scenarios beat the plan's targets:
+The four original scenarios beat the plan's targets:
 
 - `CounterOnLargePage`  target ≤ **200** bytes → **45** ✓ (positional per-op JSON shaved ~12 B)
 - `KeyedList100Reorder` target ≤ **500** bytes → **47** ✓ (keyed minimal-moves collapse the reorder to one op)
 - `TextNodeUpdate`      target ≤ **100** bytes → **54** ✓
-- `AppendRowToList100`  target ≤ **300** bytes → **46** ✓ (relaxed JSON escaping + tighter fragment slice)
+- `AppendRowToList100`  target ≤ **300** bytes → **113** ✓ (the inserted row carries its key and handler attributes)
 
 Full-payload bytes also dropped ~40% across the board after the WS writer switched
 to `UnsafeRelaxedJsonEscaping` — the default `Utf8JsonWriter` escaping rewrites
