@@ -36,6 +36,11 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Rask.Cqrs: an authorization attribute the build cannot read is an error, not a handler left open
+  (#1187).** A handler's `[Authorize]` is read by name at compile time, so an attribute deriving from
+  `AuthorizeAttribute` (`[AdminOnly]`), one implementing `IAuthorizeData`, or any of them on the `Handle`
+  method was skipped without a word — over HTTP and in local dispatch. Each is now RASK101, on handlers
+  and on event and subscription records; write `[Authorize(...)]` on the handler class.
 - **Rask.SQLite.Litestream: two projects building for the first time at once no longer break each
   other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
   with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
