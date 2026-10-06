@@ -17,6 +17,13 @@ them until tagged releases begin.
   included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
   unchanged and still run by hand; each CI job is one of them.
 
+### Fixed
+
+- **Rask.SQLite.Litestream: two projects building for the first time at once no longer break each
+  other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
+  with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
+  verifies and unpacks in a directory of its own and moves the binary into the cache.
+
 ### Removed
 
 - **Docs: the "ASP.NET Identity" section of `docs/authentication-providers.md` is gone.** `Rask.Auth` has
