@@ -397,7 +397,7 @@ line elsewhere — the `22.12` build-floor figures quoted in `docs/islands.md`, 
 still only prose. `scripts/upstream/node-lts.sh` rewrites the stated line and the codename when the Active
 LTS moves, and `upstream.yml` lands it; the build floor is deliberately left alone.
 
-**Landing a Dependabot PR.** `ci.yml` runs the push set on the pull request, but `main` has no
+**Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (format, unit, CLI build, templates — the browser suites run on `main` after the merge), but `main` has no
 required checks, so a red run does not disable the merge button: read the run first. Then land it
 locally, not from the web UI — check the branch out and push it.
 
