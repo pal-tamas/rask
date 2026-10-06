@@ -102,7 +102,7 @@ public sealed partial class UiCommand : Component
             .Aria("haspopup", "dialog")
             .Attributes(Shortcut is { } shortcut ? [.. opens, ("data-rask-shortcut", shortcut)] : opens)[
             Span.Class("flex min-w-0 items-center gap-2 opacity-70")[
-                Ui.Icon.Name(Ui.IconName.Search).Class("size-4 shrink-0"),
+                Ui.Icon.Name(Ui.IconName.MagnifyingGlass).Class("size-4 shrink-0"),
                 Span.Class("truncate")[Label]
             ],
             Shortcut is { } keys ? Keys(keys) : null
@@ -153,7 +153,7 @@ public sealed partial class UiCommand : Component
             })[
             Div.Class("modal-box max-w-lg p-0")[
                 Div.Class("flex items-center gap-2 border-b border-base-300 px-4")[
-                    Ui.Icon.Name(Ui.IconName.Search).Class("size-4 shrink-0 opacity-60"),
+                    Ui.Icon.Name(Ui.IconName.MagnifyingGlass).Class("size-4 shrink-0 opacity-60"),
                     box
                 ],
                 Ul.Id(ListId)

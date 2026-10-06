@@ -38,6 +38,6 @@ public sealed partial class UiSidebarToggle : Component
             .Role("button")
             .TabIndex(0)
             .Aria("label", AccessibleLabel ?? "Toggle sidebar")[
-            Ui.Icon.Name(Ui.IconName.Menu).Class("size-5 shrink-0")
+            Ui.Icon.Name(Ui.IconName.Bars3).Class("size-5 shrink-0")
         ];
 }
