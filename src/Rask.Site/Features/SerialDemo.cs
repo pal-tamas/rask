@@ -32,7 +32,7 @@ public sealed partial class SerialDemo : Component
                     Ui.Button.Primary
                         .Id("serial-connect")
                         .Disabled(_port is not null)
-                        .OnClick(Connect)[Ui.Icon.Name(Ui.IconName.Cube), "Connect"],
+                        .OnClick(Connect)[Ui.Icon.Name(Ui.IconName.CubeTransparent), "Connect"],
                     Ui.Button.Error.Outline
                         .Id("serial-disconnect")
                         .Disabled(_port is null)

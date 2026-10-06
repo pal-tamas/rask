@@ -25,7 +25,7 @@ public sealed partial class ProgrammaticValidateDemo : Component, IDisposable
             // button below started it; IsValidatingAny is what holds Save back until it settles.
             Ui.Input.Bind(() => _model.Title).Label("Title").Id("v6-title"),
             Div.Class("flex gap-2 flex-wrap items-center")[
-                Ui.Button.Outline.Id("v6-validate-now").OnClick(ValidateNow)[Ui.Icon.Name(Ui.IconName.Search), "Validate now"],
+                Ui.Button.Outline.Id("v6-validate-now").OnClick(ValidateNow)[Ui.Icon.Name(Ui.IconName.MagnifyingGlass), "Validate now"],
                 Ui.Button.Primary.Submit.Id("v6-submit").Disabled(_ctx.IsValidatingAny)[Ui.Icon.Name(Ui.IconName.CheckCircle), "Save"]
             ]
         ],

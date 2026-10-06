@@ -47,7 +47,7 @@ public sealed partial class UiStat : Component
                 Div.Class(tone is null ? UiStyles.Value : $"{UiStyles.Value} {tone}")[Value],
                 Caption is null ? null : Div.Class(UiStyles.Caption)[Caption]
             ],
-            Ui.Icon.Name(Icon ?? Ui.IconName.Overview)
+            Ui.Icon.Name(Icon ?? Ui.IconName.Squares2x2)
                 .Class($"size-5 shrink-0 {tone ?? "opacity-60"}")
         ];
 

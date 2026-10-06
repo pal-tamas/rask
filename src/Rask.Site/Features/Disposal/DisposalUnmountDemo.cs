@@ -18,7 +18,7 @@ public sealed partial class DisposalUnmountDemo : Component
                 Ui.Button.Outline
                     .Id("unmount-hook-unmount")
                     .Disabled(!_hookMounted)
-                    .OnClick(UnmountHook)[Ui.Icon.Name(Ui.IconName.Stop), "Stop ticker"]
+                    .OnClick(UnmountHook)[Ui.Icon.Name(Ui.IconName.StopCircle), "Stop ticker"]
             ],
             _hookMounted
                 ? UnmountTimerProbe.InstanceId(_nextHookId).Log(AppendHookLog)
