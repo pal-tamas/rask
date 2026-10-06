@@ -1,0 +1,4 @@
+<Project>
+  <!-- Deliberately empty: MSBuild stops at the nearest Directory.Build.props, so the tools under this
+       folder do not inherit the repository's build rules. See RaskRename/RaskRename.csproj. -->
+</Project>

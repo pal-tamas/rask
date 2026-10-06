@@ -1,0 +1,3 @@
+<Project>
+  <!-- Deliberately empty: the tools pin their own package versions, outside central package management. -->
+</Project>
