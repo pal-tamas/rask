@@ -130,16 +130,45 @@ public sealed class IslandScaffoldTests
     [Fact]
     public void Lit_and_Angular_can_share_a_project()
     {
-        // They used to disagree: Lit 3's `accessor` form needs experimentalDecorators OFF and Angular
-        // needs it ON, so a project holding both could not type-check either way. The Lit fragment is
-        // written in the legacy form, which works under ON.
-        var tsconfig = TsConfig(Scaffold("lit", "angular"));
+        // Angular needs experimentalDecorators ON and Lit 3's `accessor` form needs it OFF. The Lit
+        // fragment decorates nothing, so the setting Angular needs costs it nothing.
+        var files = Scaffold("lit", "angular");
 
-        Assert.True(tsconfig.GetProperty("compilerOptions").GetProperty("experimentalDecorators").GetBoolean());
+        var lit = files.Single(f => f.Path.EndsWith("LitBadge.ts", StringComparison.Ordinal));
 
-        var lit = Scaffold("lit").Single(f => f.Path.EndsWith("LitBadge.ts", StringComparison.Ordinal));
-
+        Assert.True(TsConfig(files).GetProperty("compilerOptions").GetProperty("experimentalDecorators").GetBoolean());
+        Assert.DoesNotContain("lit/decorators", lit.Content, StringComparison.Ordinal);
         Assert.DoesNotContain("accessor ", lit.Content, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("react", ".tsx")]
+    [InlineData("preact", ".tsx")]
+    [InlineData("solid", ".tsx")]
+    [InlineData("lit", ".ts")]
+    [InlineData("angular", ".ts")]
+    public void A_script_island_default_exports_what_the_generated_entry_imports(string runtime, string extension)
+    {
+        // The build's entry is `import X from './Island'` for every runtime. A fragment with only a
+        // named export scaffolds, compiles its C#, and fails the first real bundle.
+        var files = Scaffold(runtime);
+
+        var island = files.Single(f => f.Path.EndsWith(extension, StringComparison.Ordinal)
+                                       && f.Path.Contains("Islands", StringComparison.Ordinal));
+
+        Assert.Contains("export default ", island.Content, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(Runtimes))]
+    public void Every_bundled_runtime_brings_the_bundler(string runtime)
+    {
+        var manifest = Scaffold(runtime).SingleOrDefault(f => Path.GetFileName(f.Path) == "package.json");
+
+        var bundled = manifest is not null;
+
+        Assert.Equal(runtime != "blazor", bundled);
+        Assert.True(!bundled || manifest!.Content.Contains("\"vite\"", StringComparison.Ordinal));
     }
 
     [Fact]

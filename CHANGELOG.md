@@ -1229,6 +1229,14 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask new --islands lit` scaffolds an island that bundles.** The build's entry imports a Lit island's
+  default export — its registered tag name — and the scaffolded `LitBadge.ts` had none, so the first
+  build after `npm install` stopped on `"default" is not exported by LitBadge.ts`. The fragment is now
+  written the way `docs/islands.md` tells you to write one: `static properties`,
+  `customElements.define('lit-badge', …)` and `export default 'lit-badge'`, with no decorators for the
+  bundler to lower. `--islands angular` also gets `vite` in its `package.json`, which every other
+  runtime already had and the Angular fragment left to a transitive install.
+
 - **A Dependabot pull request is no longer red on arrival.** Every one failed `commitlint`, and not on
   its title: Dependabot ends each commit with `Signed-off-by: dependabot[bot] <support@github.com>`,
   which it cannot be configured to drop, and the attribution guard in the same job counts a bot

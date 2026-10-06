@@ -328,11 +328,9 @@ internal static class IslandAssembly
             options["types"] = types;
         }
 
-        // Lit and Angular both decorate, and they used to disagree here: Lit 3's `accessor` form needs
-        // experimentalDecorators OFF while Angular needs it ON, so a project holding both islands could
-        // not type-check either way. The Lit fragment is written in the legacy form instead, which
-        // works under ON — one setting serves both, and there is no combination left to refuse.
-        if (runtimes.Any(r => r is "lit" or "angular"))
+        // Angular's decorators are the legacy form. The Lit fragment declares `static properties`
+        // instead of decorating, so it type-checks under either setting and the two share a project.
+        if (runtimes.Contains("angular", StringComparer.Ordinal))
         {
             options["experimentalDecorators"] = true;
             options["useDefineForClassFields"] = false;
