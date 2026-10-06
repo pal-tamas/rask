@@ -179,6 +179,12 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   public surface as it is in the tree; restore, the project file, the MSBuild targets and publish stay with
   `scripts/run-cli-build-e2e.sh`. A using that a package's `build/*.props` adds for an app is listed in that
   test by hand, so a new one is added there too.
+- **`run-all-gates.sh --parallel` runs two lanes.** The CLI build, template and watch gates pack with
+  MinVer on and everything else builds with `MinVerSkip`, so in one tree they recompile each other's
+  `obj/Release`. `--parallel` checks out a second worktree at HEAD (`.claude/worktrees/gates-<sha>`,
+  removed when everything passed) and runs that group there beside the rest; it refuses a dirty tree.
+  `--only 'E2E|CLI'` narrows either mode to the gates whose label matches, and the closing table gives each
+  gate's seconds and the wall clock.
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
   solution once, then runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
   analyzers, one workspace load) **concurrently with** every test except the browser E2E. The two share
