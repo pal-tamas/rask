@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Refresh Rask's element surface from MDN: install @webref/elements, @webref/idl and
+# Refresh Rask's element surface from MDN: install @webref/elements, @webref/idl, @webref/css and
 # @mdn/browser-compat-data, read UI Events' key and code tables, and rewrite src/Rask.Core/Dom/mdn.snapshot.json. Commit the diff.
 #
 # Versions default to each package's `latest` dist-tag (its stable release), webref's `curated` head and w3c/aria's
 # `main` head. The Rask.Core build runs this with exact pins when it sees a newer release (src/Rask.Core/Dom/Rask.Dom.targets):
-#   RASK_MDN_BCD, RASK_MDN_IDL, RASK_MDN_ELEMENTS, RASK_MDN_EVENTS  npm versions (stable releases)
+#   RASK_MDN_BCD, RASK_MDN_IDL, RASK_MDN_ELEMENTS, RASK_MDN_EVENTS, RASK_MDN_CSS  npm versions (stable releases)
 #   RASK_MDN_WEBIDL2                                the IDL parser's version
 #   RASK_MDN_PARSE5                                 the HTML parser's version, which reads the ARIA spec
 #   RASK_MDN_WEBREF                                 webref commit for the spec's attribute index
@@ -18,6 +18,6 @@ work="$(mktemp -d "${TMPDIR:-/tmp}/rask-mdn.XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 
 (cd "$work" && npm init -y >/dev/null && npm install --silent --no-audit --no-fund --ignore-scripts \
-  "@webref/elements@${RASK_MDN_ELEMENTS:-latest}" "@webref/events@${RASK_MDN_EVENTS:-latest}" "@webref/idl@${RASK_MDN_IDL:-latest}" \
+  "@webref/elements@${RASK_MDN_ELEMENTS:-latest}" "@webref/events@${RASK_MDN_EVENTS:-latest}" "@webref/idl@${RASK_MDN_IDL:-latest}" "@webref/css@${RASK_MDN_CSS:-latest}" \
   "@mdn/browser-compat-data@${RASK_MDN_BCD:-latest}" "webidl2@${RASK_MDN_WEBIDL2:-latest}" "parse5@${RASK_MDN_PARSE5:-latest}")
 node "$root/scripts/mdn/refresh.mjs" "$work" "$root/src/Rask.Core/Dom/mdn.snapshot.json"
