@@ -20,7 +20,13 @@ goes — a leaf inside a card, a subtree, or a whole `[Route]` page.
 dotnet add package Rask.External
 ```
 
-Node is needed at build time; the build bundles the islands with Vite.
+Node is needed at build time; the build bundles the islands with Vite. **A `package.json` beside the
+project is the gate**: without one the build runs no npm and bundles nothing, so add it (and the
+runtime's packages) before the first island.
+
+`rask new Shop --islands react` scaffolds all of it — the paired `.cs` and front-end file, the npm
+dependencies, the tsconfig mapping and this package reference. It takes `react`, `preact`, `solid`,
+`vue`, `svelte`, `angular`, `lit` and `blazor`, several at once.
 
 ## Use
 

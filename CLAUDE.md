@@ -69,10 +69,10 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; browsers subscribe via MDN's `PushManager`). Zero external deps.
 - `src/Rask.Blazor` — a REAL Blazor component as an ordinary Rask component: derive a `partial` class from
   `BlazorComponent<T>` (T from an RCL/MudBlazor/Radzen — the Razor SDK compiles `.razor` untouched). Rendered
-  server-side into the FIRST response via `OnPropsChangedAsync` + quiescence; params cross as live C# objects
+  server-side into the FIRST response via `OnUpdated` + quiescence; params cross as live C# objects
   (no serialization). The hosted component's own `@onclick` works with NO circuit — `BlazorFrameWriter` rewrites
   Blazor's handler ids as `data-rask-on-*` over the existing socket. **NOT opaque when static** (opaque ⇒
-  `FrameDiffer` skips children ⇒ island freezes after first paint). **Both hosts, trimmed publish included** —
+  `FrameDiffer` skips children ⇒ island freezes after first paint). **Both hosts; trimming is annotated, NOT gated end to end** —
   `BlazorComponent<T>`'s type parameter is DAM-annotated, or the trimmer eats the hosted `[Parameter]` setters
   and the island renders EMPTY with a green build. Compiling `.razor`→chain was rejected: Razor's syntax layer is `internal`
   in every version and the .NET 10 SDK compiler is closed (23 IVT friends) — see `docs/blazor-components.md`.

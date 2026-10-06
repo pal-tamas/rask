@@ -87,6 +87,10 @@ A component from npm needs no front-end file at all: name the package export in 
 steps are generated from the package's own TypeScript into a committed `ColorPicker.props.json`. An
 island takes children of its own runtime, so a React island can hold another.
 
+```bash
+rask new Shop --islands react    # scaffolds the pair, the npm dependencies and the package reference
+```
+
 ```csharp
 public sealed partial class Chart : ReactComponent
 {

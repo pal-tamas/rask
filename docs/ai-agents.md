@@ -28,6 +28,16 @@ Rask app correctly without you re-explaining the conventions.
   interactivity, typed utility classes). Each guide embeds its examples as live demos, so the source
   a user reads on GitHub and the running showcase stay in lockstep.
 
+## Islands
+
+When a user already has front-end components, an assistant should host them rather than rewrite them:
+a React, Preact, Solid, Vue, Svelte, Angular or Lit file becomes an ordinary Rask component by
+deriving a `partial` class from the matching base (`ReactComponent`, `VueComponent`, …) beside it, and
+a real Blazor component by deriving from `BlazorComponent<T>`. `rask new MyApp --islands react`
+scaffolds a working pair. The rules that are easy to get wrong — props declared in C#, a Lit element
+written without decorators, no Rask markup inside an island, no `AddRaskBlazor()` call needed — are in
+[islands](islands.md) and [Blazor components](blazor-components.md), and in their `llms.txt` entries.
+
 ## How to use it
 
 1. Scaffold: `rask new MyApp`.
