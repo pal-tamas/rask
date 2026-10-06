@@ -29,6 +29,16 @@ public sealed class AuthEmailBodies : IAuthEmailBodies
             "Reset password",
             lifetime);
 
+    /// <inheritdoc />
+    public string AlreadyRegistered(string link, string subject) =>
+        Body(
+            subject,
+            "Somebody tried to create an account with this address, which already has one. If it was you, "
+            + "sign in instead. If it was not, nothing has changed and you can ignore this email.",
+            link,
+            "Sign in",
+            lifetime: null);
+
     private static string Body(
         string heading, string lead, string link, string action, TimeSpan? lifetime) =>
         $"""

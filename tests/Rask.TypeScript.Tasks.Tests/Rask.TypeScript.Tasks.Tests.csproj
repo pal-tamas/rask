@@ -59,6 +59,8 @@
     <RaskTestReads Include="..\..\tests\**\*.ts" />
     <RaskTestReads Include="..\..\tests\**\*.js" />
     <RaskTestReads Include="..\..\**\*.csproj" />
+    <RaskTestReads Include="..\..\src\Rask.Core\build\Rask.Core.targets" />
+    <RaskTestReads Include="..\..\src\Rask.External\build\Rask.External.props" />
     <RaskTestReads Include="..\..\.github\workflows\commitlint.yml" />
     <RaskTestReads Include="..\..\commitlint.config.*" />
   </ItemGroup>

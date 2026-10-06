@@ -170,7 +170,7 @@
     <!-- Exact versions, no ranges: a fixture that quietly moved to a new minor would be reporting on a
          version nobody chose. -->
     <WriteLinesToFile File="$(_PreactFixtureRoot)/package.json" Overwrite="true" WriteOnlyWhenDifferent="true"
-                      Lines="{&quot;name&quot;:&quot;rask-preact-fixture&quot;,&quot;private&quot;:true,&quot;type&quot;:&quot;module&quot;,&quot;dependencies&quot;:{&quot;preact&quot;:&quot;$(RaskPreactFixtureVersion)&quot;,&quot;happy-dom&quot;:&quot;$(RaskHappyDomFixtureVersion)&quot;,&quot;react&quot;:&quot;$(RaskReactFixtureVersion)&quot;,&quot;react-dom&quot;:&quot;$(RaskReactFixtureVersion)&quot;,&quot;vue&quot;:&quot;$(RaskVueFixtureVersion)&quot;,&quot;solid-js&quot;:&quot;$(RaskSolidFixtureVersion)&quot;}}"/>
+                      Lines="{&quot;name&quot;:&quot;rask-preact-fixture&quot;,&quot;private&quot;:true,&quot;type&quot;:&quot;module&quot;,&quot;dependencies&quot;:{&quot;preact&quot;:&quot;$(RaskPreactFixtureVersion)&quot;,&quot;happy-dom&quot;:&quot;$(RaskHappyDomFixtureVersion)&quot;,&quot;react&quot;:&quot;$(RaskReactFixtureVersion)&quot;,&quot;react-dom&quot;:&quot;$(RaskReactFixtureVersion)&quot;,&quot;vue&quot;:&quot;$(RaskVueFixtureVersion)&quot;,&quot;solid-js&quot;:&quot;$(RaskSolidFixtureVersion)&quot;},&quot;overrides&quot;:{&quot;seroval&quot;:&quot;^1.6.8&quot;,&quot;seroval-plugins&quot;:&quot;^1.6.8&quot;}}"/>
 
     <Exec Command="npm install --no-audit --no-fund --loglevel=error"
           WorkingDirectory="$(_PreactFixtureRoot)"

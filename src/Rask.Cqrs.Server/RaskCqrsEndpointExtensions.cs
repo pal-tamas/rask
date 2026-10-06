@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
+using Rask.Hosting.Shared;
 using Rask.Wire;
 
 namespace Rask.Cqrs.Server;
@@ -227,9 +228,12 @@ public static class RaskCqrsEndpointExtensions
                    ?? string.Empty;
         }
 
-        // One shared anonymous owner, reachable only where the app has turned the authentication
-        // requirement off. That is the honest consequence of that setting, not a hole opened here.
-        return options.RequireAuthenticatedUser ? null : "anonymous";
+        // Anonymous callers are reachable only where the app has turned the authentication requirement
+        // off, and then each is known by where it connects from: one shared owner would let a single
+        // caller fill the open-upload quota and lock every other anonymous upload out.
+        return options.RequireAuthenticatedUser
+            ? null
+            : "anonymous:" + ClientNetwork.Of(context.Connection.RemoteIpAddress);
     }
 
     private static async Task HandleAsync(HttpContext context, RaskCqrsServerOptions options, bool fromQuery)
@@ -362,7 +366,7 @@ public static class RaskCqrsEndpointExtensions
 
     private static Task<bool> AuthorizedAsync(HttpContext context, RemoteContract contract) =>
         AuthorizedAsync(
-            context, contract.Name, contract.AllowAnonymous, contract.RequiresAuthentication, contract.Roles, contract.Policy);
+            context, contract.Name, contract.AllowAnonymous, contract.RequiresAuthentication, contract.RoleSets, contract.Policies);
 
     // The one authorization check, for a request (the handler's attributes) and a subscription (the event's).
     internal static async Task<bool> AuthorizedAsync(
@@ -370,8 +374,8 @@ public static class RaskCqrsEndpointExtensions
         string name,
         bool allowAnonymous,
         bool requiresAuthentication,
-        string? declaredRoles,
-        string? declaredPolicy)
+        IReadOnlyList<string> roleSets,
+        IReadOnlyList<string> policies)
     {
         if (allowAnonymous)
         {
@@ -388,7 +392,8 @@ public static class RaskCqrsEndpointExtensions
             return false;
         }
 
-        if (declaredRoles is { Length: > 0 } roles)
+        // One set per [Authorize(Roles = …)]: any role within a set, and every set.
+        foreach (var roles in roleSets)
         {
             var permitted = roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (!permitted.Any(user.IsInRole))
@@ -398,7 +403,7 @@ public static class RaskCqrsEndpointExtensions
             }
         }
 
-        if (declaredPolicy is { Length: > 0 } policy)
+        foreach (var policy in policies)
         {
             var authorization = context.RequestServices.GetService<IAuthorizationService>()
                                 ?? throw new InvalidOperationException(

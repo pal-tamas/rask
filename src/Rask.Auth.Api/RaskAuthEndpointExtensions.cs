@@ -340,8 +340,9 @@ public static class RaskAuthEndpointExtensions
     {
         if (outcome is not { Result.Succeeded: true, Principal: { } principal })
         {
-            // 401 for every refusal, carrying the code but never a hint about which account exists; 429 when the
-            // caller is being throttled, so a client can say "wait a minute" rather than "wrong password".
+            // 401 for every refusal, carrying the code; 429 when the caller is being throttled, so a client can say
+            // "wait a minute" rather than "wrong password". The code says which account exists in one case only:
+            // DuplicateAccount, from registering without the confirmation gate (see AccountService).
             return Refuse(
                 outcome.Result,
                 outcome.Result.Error == AuthError.TooManyAttempts

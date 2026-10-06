@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Microsoft.JSInterop;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
 using Rask.Core.Routing;
@@ -149,10 +150,30 @@ public sealed class BrowserAuthRecoveryTests
         Assert.Contains(id.ToString(), handler.LastBody, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Signing_out_empties_the_offline_cache_before_it_navigates(bool everywhere)
+    {
+        // #1184: what the service worker kept, it kept for whoever was signed in.
+        var js = new RecordingJs();
+        var auth = Auth(new StubHandler(HttpStatusCode.NoContent), out _, js: js);
+        var state = new RouteState();
+
+        using (new Navigator(state).EnterHandler())
+        {
+            await (everywhere ? auth.SignOutEverywhere("/bye") : auth.SignOut("/bye"));
+        }
+
+        Assert.Equal(["__raskOffline.clear"], js.Calls);
+        Assert.Equal("/bye", state.Path);
+    }
+
     private static BrowserAuth Auth(
         StubHandler handler,
         out SpyUserProvider users,
-        AuthClientOptions? options = null)
+        AuthClientOptions? options = null,
+        IJSRuntime? js = null)
     {
         users = new SpyUserProvider();
 
@@ -160,7 +181,23 @@ public sealed class BrowserAuthRecoveryTests
             new HttpClient(handler) { BaseAddress = new Uri("https://localhost") },
             users,
             new StubWebAuthn(),
-            options ?? new AuthClientOptions());
+            options ?? new AuthClientOptions(),
+            js ?? new RecordingJs());
+    }
+
+    private sealed class RecordingJs : IJSRuntime
+    {
+        public List<string> Calls { get; } = [];
+
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
+        {
+            Calls.Add(identifier);
+            return ValueTask.FromResult<TValue>(default!);
+        }
+
+        public ValueTask<TValue> InvokeAsync<TValue>(
+            string identifier, CancellationToken cancellationToken, object?[]? args) =>
+            InvokeAsync<TValue>(identifier, args);
     }
 
     /// <summary>A browser with no authenticator, which is what a support check is for.</summary>

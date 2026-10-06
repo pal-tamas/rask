@@ -56,6 +56,13 @@ internal abstract class DevHostPlatform(IProcessRunner process, IConsole console
     /// <summary>Trusts the authority at <paramref name="certificatePath" />.</summary>
     public abstract Task<bool> TrustAsync(string certificatePath, CancellationToken cancellationToken);
 
+    /// <summary>
+    ///     Stops trusting the authority with this fingerprint — the one a new authority is replacing.
+    ///     Best effort: its key is overwritten either way, so a root that could not be removed can no
+    ///     longer sign anything, and failing here must not cost the developer the setup.
+    /// </summary>
+    public abstract Task ForgetAsync(string thumbprint, CancellationToken cancellationToken);
+
     /// <summary>Replaces the hosts file with the staged copy at <paramref name="stagedPath" />.</summary>
     public abstract Task<bool> InstallHostsAsync(string stagedPath, CancellationToken cancellationToken);
 

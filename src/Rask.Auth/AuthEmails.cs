@@ -37,6 +37,15 @@ internal static partial class AuthEmails
                 $"This link works once, and expires in about {Describe(lifetime)}. "
                 + "If you did not ask for it, nothing has changed and you can ignore this message."]);
 
+    /// <summary>"Somebody tried to register with your address."</summary>
+    public static Component AlreadyRegistered(string link, string heading) =>
+        Wrap(
+            heading,
+            P["Somebody tried to create an account with this address, which already has one. If it was you:"],
+            link,
+            "Sign in",
+            P.Style(Muted)["If it was not you, nothing has changed and you can ignore this message."]);
+
     private const string Muted = "color:#666;font-size:0.875rem";
 
     private static Component Wrap(

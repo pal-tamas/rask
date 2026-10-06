@@ -54,17 +54,17 @@ internal sealed class PushHarness : IAsyncDisposable
     private readonly ServiceProvider _provider;
     private readonly string _database = Path.Combine(Path.GetTempPath(), $"rask-push-test-{Guid.NewGuid():N}.db");
 
-    public PushHarness(bool stubSender = true)
+    public PushHarness(bool stubSender = true, Action<WebPushOptions>? configure = null, IWebPush? sender = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddRaskWebPush<PushDbContext>();
+        services.AddRaskWebPush<PushDbContext>(configure);
         services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite($"Data Source={_database}"));
 
         if (stubSender)
         {
             // Last registration wins for a single resolve, so this stands in for the typed-client sender.
-            services.AddSingleton<IWebPush>(Sender);
+            services.AddSingleton(sender ?? Sender);
         }
 
         _provider = services.BuildServiceProvider();
