@@ -126,7 +126,8 @@ function collect(wrapper, { STYLES, index }) {
     }
 
     nodes.push(node);
-    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux'));
+    // A marked part is measured in every state on both sides: `data-flux-*` there, `data-ui-*` here.
+    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux') || a.name.startsWith('data-ui-'));
     if (interactive.length < 60 && (fluxed || el.matches('button, a, input, select, textarea, summary, label, [role], [tabindex]'))) {
       interactive.push(id);
     }

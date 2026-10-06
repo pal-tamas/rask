@@ -54,6 +54,9 @@ await browser.close();
 // Not compared: what the surrounding docs page decides rather than the component (where a top-level
 // node sits, how wide a stretched one is), and the two the box already states.
 const IGNORED = new Set(['width', 'height']);
+// Flux's own custom elements, which its script upgrades, and the native element Rask.Ui writes in their
+// place because it has that behaviour built in: a <label for> focuses its control with no script at all.
+const NATIVE = { 'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend' };
 const limit = flag('all') ? Infinity : 12;
 let failures = 0;
 for (const scheme of ['light', 'dark']) {
@@ -108,18 +111,25 @@ function mark(node, prefix) {
 }
 
 function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
-  if (a.tag !== b.tag) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
-  if (a.text !== b.text && a !== rootA) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
+  // A stand-in for a component that is not rebuilt yet (`data-parity-skip` on the Rask side): it has to
+  // take the same room in the same place, and what it looks like inside is that component's own page.
+  const standIn = 'data-parity-skip' in b.attrs;
+  if ((NATIVE[a.tag] ?? a.tag) !== b.tag && !standIn) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
+  if (a.text !== b.text && a !== rootA && !standIn) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
 
   const size = (n, i) => Math.abs(a.box[i] - b.box[i]) > 0.6;
   if (size(a, 2) || size(a, 3)) diffs.push(`${where}: size ${a.box[2]}x${a.box[3]} vs ${b.box[2]}x${b.box[3]}`);
-  if (a !== rootA) {
+  // A node that is not displayed has no box: its rectangle is the viewport's corner, which says how far
+  // each page is scrolled and nothing about the node.
+  const displayed = a.style.display !== 'none' || b.style.display !== 'none';
+  if (a !== rootA && displayed) {
     const off = (n, r, i) => n.box[i] - r.box[i];
     if (Math.abs(off(a, rootA, 0) - off(b, rootB, 0)) > 0.6 || Math.abs(off(a, rootA, 1) - off(b, rootB, 1)) > 0.6) {
       diffs.push(`${where}: offset ${fix(off(a, rootA, 0))},${fix(off(a, rootA, 1))} vs ${fix(off(b, rootB, 0))},${fix(off(b, rootB, 1))}`);
     }
   }
 
+  if (standIn) return;
   compareStyles(a.style, b.style, where, diffs);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);

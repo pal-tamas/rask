@@ -491,7 +491,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Fieldset` `Ui.Validator` `Ui.Label` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Divider` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
@@ -681,6 +681,49 @@ template is [RASK075](diagnostics.md#rask075).
 The browser still owns dismissal there — Escape and click-outside — and C# hears it through
 `OnToggle`, which is what keeps `aria-expanded` truthful rather than drifting the moment the list is
 dismissed.
+
+## Fields: label, description, error
+
+`Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
+[Flux UI's field](https://fluxui.dev/components/field), part for part. A field stacks a label, a control,
+its validation message and help text, and tells the parts which control they belong to:
+
+```csharp
+Form.Model(_signUp)[
+    Ui.Field[
+        Ui.Label.Badge("Required")["Email"],
+        Ui.Input.Bind(() => _signUp.Email).ShowValidation(false),
+        Ui.Error,                                          // the first message of the bound control
+        Ui.Description["We only write about your order."]  // after the control: under it
+    ]
+]
+```
+
+| Part | What it takes |
+| --- | --- |
+| `Ui.Field` | `Variant` — `Ui.Field.Inline` puts the label beside the control (a checkbox, a switch); `Block` is the default. |
+| `Ui.Label` | `Badge("Required")`, a `Trailing(…)` slot at the far end, and `For(id)` when it sits outside a field. |
+| `Ui.Description` | Help text. Before the control it sits under the label; after it, under the control. |
+| `Ui.Error` | `For(() => model.Email)`, `Name(nameof(model.Email))` or `Message("…")`; `Icon(Ui.IconName.Info)`, `Icon(false)`. |
+| `Ui.Fieldset` | `Legend("Shipping address")`, `Description("…")` — or place a `Ui.Legend` yourself. |
+
+**The label is a real `<label for>`.** Inside a field it points at the field's control — a kit control by
+the id it derives, a plain element by its `Id` — so a click on the label focuses the control with no script.
+Flux draws the same parts as custom elements wired by its JavaScript; the kit ships none, so each is the
+native element that already behaves that way: `<label>`, `<fieldset>`, `<legend>`.
+
+**`Ui.Error` reads the form.** Where Flux's `name` looks a key up in Laravel's error bag, a Rask field is a
+member of a model, so the error shows the first message the form holds for that member: bare inside a field
+(the control's own `Bind`), `For(() => model.Email)` anywhere, or `Name("Email")` for a member of the form's
+model. `Message` shows your own text whatever the form says. It is always in the page — hidden while there
+is nothing to say — because it is a `role="alert"` live region, and a screen reader only announces a
+message that arrives in one it already knows. Flux's `bag` and `deep` have no counterpart: a form has one
+edit context, and a nested member is named by its expression rather than by a dotted path.
+
+Markers mirror Flux's: `data-ui-field`, `data-ui-label`, `data-ui-description`, `data-ui-error`,
+`data-ui-fieldset`, `data-ui-legend`. The controls not yet rebuilt on Flux keep drawing their own label,
+`Hint` and message from `Label(…)`; as each is rebuilt its `Label` and `Description` draw this field around
+it instead.
 
 ## Form controls
 

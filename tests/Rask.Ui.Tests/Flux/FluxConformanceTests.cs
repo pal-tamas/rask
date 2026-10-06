@@ -22,10 +22,22 @@ namespace Rask.UiTests.Flux;
 public sealed class FluxConformanceTests
 {
     /// <summary>Flux part → the Rask.Ui type that mirrors it. A component joins this when it is built.</summary>
-    private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
+    {
+        ["flux:field"] = typeof(UiField),
+        ["flux:label"] = typeof(UiLabel),
+        ["flux:description"] = typeof(UiDescription),
+        ["flux:error"] = typeof(UiError),
+        ["flux:fieldset"] = typeof(UiFieldset),
+        ["flux:legend"] = typeof(UiLegend),
+    };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
-    private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal)
+    {
+        ["flux:error/bag"] = "Laravel's named error bags. A Rask form has one edit context, and Ui.Error reads that one.",
+        ["flux:error/deep"] = "Laravel's dotted paths (fields.*). A Rask field is the member of the object that owns it: Ui.Error.For(() => order.Lines[0].Name).",
+    };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;
 

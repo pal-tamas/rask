@@ -13,14 +13,21 @@ namespace Rask.UiTests.Flux;
 /// </remarks>
 public sealed class FluxParityPages
 {
-    // What Tailwind's preflight gives every app the kit is used in; the kit ships none of its own.
+    // What Tailwind's preflight gives every app the kit is used in; the kit ships none of its own. In
+    // `@layer base`, where preflight is: unlayered, `*{margin:0;padding:0}` would beat every utility the kit
+    // writes. The border colour and the text colour are what Flux's docs page sets around an example.
     private const string Reset =
-        "*,::before,::after{box-sizing:border-box;border:0 solid;margin:0;padding:0}"
+        "@layer base{*,::before,::after{box-sizing:border-box;border:0 solid oklch(0.928 0.006 264.531);margin:0;padding:0}"
+        + "[data-preview-wrapper]{color:#000}.dark [data-preview-wrapper]{color:#fff}"
         + "html{line-height:1.5;-webkit-text-size-adjust:100%;font-family:Inter,sans-serif}"
         + "button,input,select,textarea{font:inherit;letter-spacing:inherit;color:inherit;background:transparent;border-radius:0}"
         + "a{color:inherit;text-decoration:inherit}svg,img{display:block;vertical-align:middle}"
         + "h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}ol,ul,menu{list-style:none}"
-        + "[data-preview-wrapper]{padding:64px 24px}";
+        + "[data-preview-wrapper]{padding:64px 24px}"
+        // FluxParity.SpaceY: Tailwind's space-y-*, which the examples on Flux's pages are stacked with.
+        + "[data-space-y='2']>:not(:last-child){margin-bottom:8px}[data-space-y='3']>:not(:last-child){margin-bottom:12px}"
+        + "[data-space-y='4']>:not(:last-child){margin-bottom:16px}[data-space-y='6']>:not(:last-child){margin-bottom:24px}"
+        + "[data-space-y='8']>:not(:last-child){margin-bottom:32px}}";
 
     public static string Directory { get; } = Path.Combine(RepoRoot.FullPath, "artifacts", "flux-parity", "rask");
 
