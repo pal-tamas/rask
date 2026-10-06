@@ -8,8 +8,8 @@ for teams of any size; this package lets it reuse the Blazor components a team a
   first HTTP response**.
 - Parameters cross as **live C# objects**, not serialized — and the chain steps are read from the
   component's own `[Parameter]`s, so nothing is redeclared.
-- The hosted component's own `@onclick` and `@bind` fire over Rask's existing channel, with **no Blazor
-  circuit**.
+- The hosted component's own events (`@onclick`, `@onkeydown`, …) receive their real event args and
+  `@bind` writes back, over Rask's existing channel, with **no Blazor circuit**.
 - Works on the ASP.NET host and on WebAssembly, **trimmed publish included**.
 
 ## Install

@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Live;
-using Web = Microsoft.AspNetCore.Components.Web;
 
 namespace Rask.Blazor;
 
@@ -113,6 +112,10 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     // Refilled rather than reallocated per render. Not the render hot path — this runs from an async
     // lifecycle hook, not the serialize walk — but the habit is the repo's.
     private readonly Dictionary<string, object?> _parameters = new(StringComparer.Ordinal);
+
+    // Where an event that cannot be wired is reported, and which have been already.
+    private ILogger _log = NullLogger.Instance;
+    private HashSet<(string EventName, Type ArgsType)>? _unwired;
 
 
     /// <summary>The name this island is identified by. Its own simple type name.</summary>
@@ -334,11 +337,12 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
             return;
         }
 
-        var handlers = new List<(ulong BlazorHandlerId, string EventName)>();
+        var renderer = _renderer;
+        var handlers = new List<BlazorHandler>();
         var html = BlazorFrameWriter.Write(
-            _renderer,
+            renderer,
             _componentId,
-            (blazorId, eventName) =>
+            (blazorId, eventName, valueKind) =>
             {
                 // No live session to dispatch through, so no attribute at all: markup advertising a
                 // handler that cannot be delivered is worse than inert markup.
@@ -347,11 +351,29 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
                     return null;
                 }
 
-                handlers.Add((blazorId, eventName));
+                // What the handler takes is asked HERE, once per markup: this is the renderer's
+                // dispatcher, the one place its handler table may be read.
+                var handler = new BlazorHandler(blazorId, eventName, renderer.ArgsTypeFor(blazorId), valueKind);
+                if (!handler.CanBind)
+                {
+                    WarnUnwired(handler);
+                    return null;
+                }
+
+                handlers.Add(handler);
                 return Placeholder(handlers.Count - 1);
             });
 
         _markup = new IslandMarkup(html, handlers);
+    }
+
+    // Once per event and type, not once per render: the island is re-read on every self-render.
+    private void WarnUnwired(BlazorHandler handler)
+    {
+        if ((_unwired ??= []).Add((handler.EventName, handler.ArgsType)))
+        {
+            BlazorLog.UnmappedEventArgs(_log, ComponentName, handler.EventName, handler.ArgsType.ToString());
+        }
     }
 
     /// <summary>
@@ -400,18 +422,12 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         var sb = new System.Text.StringBuilder(markup.Html);
         for (var i = 0; i < markup.Handlers.Count; i++)
         {
-            var (blazorHandlerId, eventName) = markup.Handlers[i];
+            var hosted = markup.Handlers[i];
 
-            // A value-carrying event needs a delegate that TAKES the value: Rask routes an inbound
-            // frame to a handler by the delegate's shape, and only Action<string>/Func<string, Task>
-            // is fed the string payload. This is what carries @bind — Blazor's binding compiles to
-            // `value=` plus an onchange handler reading ChangeEventArgs.Value, and that value can
-            // only arrive here.
-            Delegate handler = eventName is "change" or "input"
-                ? (Func<string, Task>)(value => renderer.Dispatcher.InvokeAsync(
-                    () => renderer.DispatchAsync(blazorHandlerId, new ChangeEventArgs { Value = value })))
-                : (Func<Task>)(() => renderer.Dispatcher.InvokeAsync(
-                    () => renderer.DispatchAsync(blazorHandlerId, EventArgsFor(renderer, blazorHandlerId))));
+            // The handler's args decide the delegate's shape, and the shape is what Rask routes an
+            // inbound frame by — so a hosted @onkeydown is handed the key and @bind the value.
+            var handler = hosted.Bind(
+                args => renderer.Dispatcher.InvokeAsync(() => renderer.DispatchAsync(hosted.Id, args)));
 
             // RegisterHandlerFor, never owner.RegisterHandler: that overload treats its receiver as
             // the render ROOT and restarts the id sequence at zero, so the handler would collide with
@@ -420,66 +436,6 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         }
 
         return sb.ToString();
-    }
-
-    private static EventArgs EventArgsFor(BlazorIslandRenderer renderer, ulong handlerId)
-    {
-        // Blazor knows what each handler expects. A component reading e.ClientX would otherwise get a
-        // bare EventArgs and cast-fail at the worst moment.
-        try
-        {
-            return Empty(renderer.ArgsTypeFor(handlerId));
-        }
-        catch (Exception)
-        {
-            return EventArgs.Empty;
-        }
-    }
-
-    /// <summary>An empty instance of the event-args type Blazor asked for.</summary>
-    /// <remarks>
-    ///     <para>
-    ///         A switch over the closed set <c>Microsoft.AspNetCore.Components.Web</c> defines, rather
-    ///         than <c>Activator.CreateInstance(type)</c>. The activator form is IL2072 under the trim
-    ///         analyser — <c>GetEventArgsType</c> returns a bare <see cref="Type" /> with no
-    ///         <c>DynamicallyAccessedMembers</c> annotation to promise a constructor survives — and
-    ///         the warning is not pedantry: a WASM app publishes trimmed by default, and the removed
-    ///         constructor would surface as a <c>MissingMethodException</c> on the first click rather
-    ///         than at build time.
-    ///     </para>
-    ///     <para>
-    ///         Naming each type here also ROOTS it, which is what keeps the cast on the other side
-    ///         (a component's <c>@onclick="e => e.ClientX"</c>) working in a trimmed app.
-    ///     </para>
-    /// </remarks>
-    private static EventArgs Empty(Type type)
-    {
-        if (type == typeof(EventArgs))
-        {
-            return EventArgs.Empty;
-        }
-
-        // Exact type equality, never `is`: PointerEventArgs derives from MouseEventArgs, and a
-        // subtype test would hand a handler expecting the derived one an instance of its base. That
-        // also makes the order below presentation only.
-        return type switch
-        {
-            _ when type == typeof(ChangeEventArgs) => new ChangeEventArgs(),
-            _ when type == typeof(Web.ClipboardEventArgs) => new Web.ClipboardEventArgs(),
-            _ when type == typeof(Web.DragEventArgs) => new Web.DragEventArgs(),
-            _ when type == typeof(Web.ErrorEventArgs) => new Web.ErrorEventArgs(),
-            _ when type == typeof(Web.FocusEventArgs) => new Web.FocusEventArgs(),
-            _ when type == typeof(Web.KeyboardEventArgs) => new Web.KeyboardEventArgs(),
-            _ when type == typeof(Web.WheelEventArgs) => new Web.WheelEventArgs(),
-            _ when type == typeof(Web.PointerEventArgs) => new Web.PointerEventArgs(),
-            _ when type == typeof(Web.MouseEventArgs) => new Web.MouseEventArgs(),
-            _ when type == typeof(Web.ProgressEventArgs) => new Web.ProgressEventArgs(),
-            _ when type == typeof(Web.TouchEventArgs) => new Web.TouchEventArgs(),
-            // A type outside the set above is one this package does not know how to build without
-            // reflection. An empty base is what the handler gets, which is what it got before any of
-            // the web event args existed — never a crash on the click.
-            _ => EventArgs.Empty,
-        };
     }
 
     /// <summary>Releases the hosted component and its renderer.</summary>
@@ -548,6 +504,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         // nothing still renders, and one that does gets Blazor's own error naming the missing service.
         var services = AppServices ?? BlazorIslandServices.None;
         var logs = services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
+        _log = logs.CreateLogger("Rask.Blazor");
 
         // A render the hosted component asked for itself (a timer, an injected service's event) has
         // nowhere to go without a live session, so say so as well as repainting.
@@ -593,8 +550,6 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
 
     /// <summary>The hosted markup and the handlers its placeholders stand for, as one value.</summary>
     /// <param name="Html">The markup, with a placeholder wherever a handler id belongs.</param>
-    /// <param name="Handlers">(Blazor handler id, DOM event) in placeholder index order.</param>
-    private sealed record IslandMarkup(
-        string Html,
-        IReadOnlyList<(ulong BlazorHandlerId, string EventName)> Handlers);
+    /// <param name="Handlers">The hosted handlers, in placeholder index order.</param>
+    private sealed record IslandMarkup(string Html, IReadOnlyList<BlazorHandler> Handlers);
 }
