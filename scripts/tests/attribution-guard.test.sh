@@ -218,6 +218,21 @@ assert_pre_push "blocks a push carrying the trailer" "$dirty" 1
 assert_pre_push "lets a clean push through"          "$clean" 0
 assert_pre_push "has nothing to say about a deletion" "$zero_sha" 0
 
+# A branch that merged main pushes main's commits back in its range. One of them carrying a trailer is
+# not this push's to answer for — it is on the remote already — and what the branch added is clean.
+# Last, because it gives the throwaway repository a remote-tracking ref the cases above must not see.
+(
+  cd "$push_repo"
+  git checkout -q -b topic "$dirty"
+  echo three >> f
+  git commit -qa -m "chore: work on top of main"
+) >/dev/null 2>&1
+on_top="$(git -C "$push_repo" rev-parse HEAD)"
+
+assert_pre_push "still blocks it while no remote has that commit" "$on_top" 1
+git -C "$push_repo" update-ref refs/remotes/origin/main "$dirty"
+assert_pre_push "lets through a trailer the remote already has"  "$on_top" 0
+
 echo "==> .github/workflows/commitlint.yml (the CI backstop)"
 
 # Structural, and deliberately so: this one cannot be driven here, because it only runs inside a
