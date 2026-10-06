@@ -36,6 +36,9 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Every island build message starts `Rask islands:`.** The ones raised by the targets file
+  (RASKISLAND001–003, the origin check, the type-check skips, `bundling N island(s)`) still said
+  `Rask.External:`. RASKISLAND002 — the bundler wrote no manifest — now also says what to check.
 - **Rask.SQLite.Litestream: two projects building for the first time at once no longer break each
   other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
   with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,

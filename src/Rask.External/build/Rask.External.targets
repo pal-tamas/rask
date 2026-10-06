@@ -267,7 +267,7 @@
 
     <Message Importance="high"
              Condition="'$(_RaskExternalTaskStale)' == 'true'"
-             Text="Rask.External: build/Rask.External.Tasks.dll was built against a different Rask.External.targets, so the island targets are skipped for this build. The ProjectReference rebuilds it now; build again and they run. (Delete build/Rask.External.Tasks.dll if it persists.)"/>
+             Text="Rask islands: build/Rask.External.Tasks.dll was built against a different Rask.External.targets, so the island targets are skipped for this build. The ProjectReference rebuilds it now; build again and they run. (Delete build/Rask.External.Tasks.dll if it persists.)"/>
   </Target>
 
   <!--
@@ -277,9 +277,9 @@
   -->
   <Target Name="_RaskExternalCheckPublicBase" BeforeTargets="CoreCompile" Condition="'$(DesignTimeBuild)' != 'true'">
     <Error Condition="$(RaskExternalPublicBase.Contains('://')) OR $(RaskExternalPublicBase.StartsWith('//'))"
-           Text="Rask.External: RaskExternalPublicBase is '$(RaskExternalPublicBase)', which names another origin. Islands are loaded from the origin that serves the page, so the base has to be a path on it — '/_rask/external/' by default."/>
+           Text="Rask islands: RaskExternalPublicBase is '$(RaskExternalPublicBase)', which names another origin. Islands are loaded from the origin that serves the page, so the base has to be a path on it — '/_rask/external/' by default."/>
     <Error Condition="$(RaskExternalManifestUrl.Contains('://')) OR $(RaskExternalManifestUrl.StartsWith('//'))"
-           Text="Rask.External: RaskExternalManifestUrl is '$(RaskExternalManifestUrl)', which names another origin. Islands are loaded from the origin that serves the page, so the manifest has to be a path on it."/>
+           Text="Rask islands: RaskExternalManifestUrl is '$(RaskExternalManifestUrl)', which names another origin. Islands are loaded from the origin that serves the page, so the manifest has to be a path on it."/>
   </Target>
 
   <Target Name="_RaskExternalWritePropTypes"
@@ -364,7 +364,7 @@
     -->
     <Message Importance="high"
              Condition="'$(RaskTsgoVersion)' == ''"
-             Text="Rask.External: skipping the prop type-check — Rask.Core's TypeScript toolchain is not imported in this project, so tsgo cannot be resolved."/>
+             Text="Rask islands: skipping the prop type-check — Rask.Core's TypeScript toolchain is not imported in this project, so tsgo cannot be resolved."/>
 
     <PropertyGroup>
       <_RaskExternalDepsMissing Condition="Exists('$(MSBuildProjectDirectory)/package.json') AND !Exists('$(MSBuildProjectDirectory)/node_modules')">true</_RaskExternalDepsMissing>
@@ -398,7 +398,7 @@
 
     <Message Importance="high"
              Condition="'$(_RaskExternalDepsMissing)' == 'true'"
-             Text="Rask.External: skipping the prop type-check — this project has a package.json but no node_modules, so its imports cannot resolve. Run the install to enable it."/>
+             Text="Rask islands: skipping the prop type-check — this project has a package.json but no node_modules, so its imports cannot resolve. Run the install to enable it."/>
 
     <!--
       A node_modules OLDER than the package.json beside it (#966). The directory exists, so the probe
@@ -412,7 +412,7 @@
     -->
     <Message Importance="high"
              Condition="'$(_RaskExternalDepsStale)' == 'true' AND '$(_RaskExternalDepsMissing)' != 'true'"
-             Text="Rask.External: '$(MSBuildProjectName)' has a node_modules older than its package.json, so the type-check is reading packages that predate the manifest. If it reports errors on code you have not changed, run the install first."/>
+             Text="Rask islands: '$(MSBuildProjectName)' has a node_modules older than its package.json, so the type-check is reading packages that predate the manifest. If it reports errors on code you have not changed, run the install first."/>
 
     <!-- Resolved when ANY tsgo config exists. Gated on tsconfig.check.json alone, a project whose only
          islands are Solid or Angular resolved no tool, and every Exec below was skipped silently — a
@@ -493,7 +493,7 @@
     <Message Importance="high"
              Condition="Exists('$(_RaskExternalObj)tsconfig.vue.json') AND '$(_RaskExternalDepsMissing)' != 'true'
                         AND !Exists('$(_RaskVueTsc)')"
-             Text="Rask.External: skipping the Vue prop type-check — this project has .vue islands but no vue-tsc in node_modules. Add it as a devDependency to enable it."/>
+             Text="Rask islands: skipping the Vue prop type-check — this project has .vue islands but no vue-tsc in node_modules. Add it as a devDependency to enable it."/>
 
     <Exec Command="&quot;$(_RaskVueTsc)&quot; --noEmit --project &quot;$(_RaskExternalObj)tsconfig.vue.json&quot;"
           Condition="Exists('$(_RaskExternalObj)tsconfig.vue.json') AND '$(_RaskExternalDepsMissing)' != 'true'
@@ -505,7 +505,7 @@
     <Message Importance="high"
              Condition="Exists('$(_RaskExternalObj)tsconfig.svelte.json') AND '$(_RaskExternalDepsMissing)' != 'true'
                         AND !Exists('$(_RaskSvelteCheck)')"
-             Text="Rask.External: skipping the Svelte prop type-check — this project has .svelte islands but no svelte-check in node_modules. Add it as a devDependency to enable it."/>
+             Text="Rask islands: skipping the Svelte prop type-check — this project has .svelte islands but no svelte-check in node_modules. Add it as a devDependency to enable it."/>
 
     <!--
       svelte-check reports on stdout and exits non-zero on error, but its output is not in MSBuild's
@@ -685,7 +685,7 @@
                                    OutputDirectory="$(_RaskExternalObj)props"
                                    RequestPath="$(_RaskExternalObj)props/request.json"/>
 
-    <Message Importance="high" Text="Rask.External: reading the props of @(_RaskExternalPackageIsland->Count()) package island(s)"/>
+    <Message Importance="high" Text="Rask islands: reading the props of @(_RaskExternalPackageIsland->Count()) package island(s)"/>
     <Exec Command="node &quot;$(MSBuildThisFileDirectory)rask-extract-props.mjs&quot; &quot;$(_RaskExternalObj)props/request.json&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"
           IgnoreStandardErrorWarningFormat="true"/>
@@ -760,7 +760,7 @@
 
     <Error Condition="'$(_RaskExternalNodeExit)' != '0'"
            Code="RASKISLAND001"
-           Text="Rask.External: building the islands in $(MSBuildProjectName) needs Node.js, but 'node --version' did not run. Install Node.js $(RaskExternalMinimumNode) or newer from https://nodejs.org (macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; Linux: your distro's nodejs package), then build again."/>
+           Text="Rask islands: building the islands in $(MSBuildProjectName) needs Node.js, but 'node --version' did not run. Install Node.js $(RaskExternalMinimumNode) or newer from https://nodejs.org (macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; Linux: your distro's nodejs package), then build again."/>
 
     <PropertyGroup Condition="'$(_RaskExternalNodeExit)' == '0'">
       <_RaskExternalNodeFound>$(_RaskExternalNodeVersion.Trim().TrimStart('v'))</_RaskExternalNodeFound>
@@ -774,7 +774,7 @@
     -->
     <Error Condition="'$(_RaskExternalNodeComparable)' == 'true' AND $([MSBuild]::VersionLessThan('$(_RaskExternalNodeFound)', '$(RaskExternalMinimumNode)'))"
            Code="RASKISLAND001"
-           Text="Rask.External: building the islands in $(MSBuildProjectName) needs Node.js $(RaskExternalMinimumNode) or newer, but 'node --version' reported $(_RaskExternalNodeFound). Vite asks for ^20.19.0 || >=22.12.0, so a 20.19.x or 21.x Node fails inside the bundler instead. Install the current LTS (nvm install --lts, or https://nodejs.org), then build again. Set RaskExternalMinimumNode if you want a different bar."/>
+           Text="Rask islands: building the islands in $(MSBuildProjectName) needs Node.js $(RaskExternalMinimumNode) or newer, but 'node --version' reported $(_RaskExternalNodeFound). Vite asks for ^20.19.0 || >=22.12.0, so a 20.19.x or 21.x Node fails inside the bundler instead. Install the current LTS (nvm install --lts, or https://nodejs.org), then build again. Set RaskExternalMinimumNode if you want a different bar."/>
   </Target>
 
   <!--
@@ -794,7 +794,7 @@
       <_RaskExternalInstall Condition="Exists('$(MSBuildProjectDirectory)/package-lock.json')">$(RaskExternalInstallCommand)</_RaskExternalInstall>
       <_RaskExternalInstall Condition="'$(_RaskExternalInstall)' == ''">$(RaskExternalFirstInstallCommand)</_RaskExternalInstall>
     </PropertyGroup>
-    <Message Importance="high" Text="Rask.External: $(_RaskExternalInstall) in $(MSBuildProjectDirectory)"/>
+    <Message Importance="high" Text="Rask islands: $(_RaskExternalInstall) in $(MSBuildProjectDirectory)"/>
     <Exec Command="$(_RaskExternalInstall)" WorkingDirectory="$(MSBuildProjectDirectory)"
           IgnoreStandardErrorWarningFormat="true"/>
     <MakeDir Directories="$(IntermediateOutputPath)"/>
@@ -869,7 +869,7 @@
     </PropertyGroup>
     <Error Condition="Exists('$(_RaskExternalEndpoints)') AND !$(_RaskExternalEndpointsText.Contains('$(_RaskExternalRouteProbe)'))"
            Code="RASKISLAND003"
-           Text="Rask.External: the bundle was published but no endpoint serves it. '$(_RaskExternalEndpoints)' contains no route under '$(RaskExternalPublicBase)', and app.MapStaticAssets() serves only what that manifest lists — so every chunk request would fall through to the MapRask catch-all and come back as the page's HTML, and the client would report `Unexpected token '&lt;'` with nothing mounted. The bundle output has to be registered as a static web asset, which _RaskExternalStaticWebAssets does; check it ran and that RaskExternalOutputDir still sits under wwwroot (#884)."/>
+           Text="Rask islands: the bundle was published but no endpoint serves it. '$(_RaskExternalEndpoints)' contains no route under '$(RaskExternalPublicBase)', and app.MapStaticAssets() serves only what that manifest lists — so every chunk request would fall through to the MapRask catch-all and come back as the page's HTML, and the client would report `Unexpected token '&lt;'` with nothing mounted. The bundle output has to be registered as a static web asset, which _RaskExternalStaticWebAssets does; check it ran and that RaskExternalOutputDir still sits under wwwroot (#884)."/>
 
     <!--
       What this does NOT cover (#944).
@@ -916,7 +916,7 @@
           Condition="'$(_RaskExternalDevUrl)' != '' AND '@(_RaskExternalFile)' != ''
                      AND '$(_RaskExternalEnabled)' == 'true' AND '$(_RaskExternalConfig)' != ''">
     <Message Importance="high"
-             Text="Rask.External: @(_RaskExternalFile->Count()) island(s) served from $(_RaskExternalDevUrl) (hot reload); the production bundle is skipped."/>
+             Text="Rask islands: @(_RaskExternalFile->Count()) island(s) served from $(_RaskExternalDevUrl) (hot reload); the production bundle is skipped."/>
 
     <MakeDir Directories="$(_RaskExternalStableObj)"/>
     <WriteLinesToFile File="$(_RaskExternalStableObj)dev.json"
@@ -936,13 +936,13 @@
                      AND '$(_RaskExternalDevUrl)' == ''"
           Inputs="@(_RaskExternalFile);$(_RaskExternalConfig)"
           Outputs="$(_RaskExternalManifest);$(IntermediateOutputPath)rask-external.build.stamp">
-    <Message Importance="high" Text="Rask.External: bundling @(_RaskExternalFile->Count()) island(s) ($(Configuration))"/>
+    <Message Importance="high" Text="Rask islands: bundling @(_RaskExternalFile->Count()) island(s) ($(Configuration))"/>
     <Exec Command="$(RaskExternalBuildCommand) &quot;$(_RaskExternalConfig)&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"
           IgnoreStandardErrorWarningFormat="true"/>
     <Error Condition="!Exists('$(_RaskExternalManifest)')"
            Code="RASKISLAND002"
-           Text="Rask.External: the bundler finished but wrote no manifest at '$(_RaskExternalManifest)'. The client runtime resolves an island's chunk through that file, so every island on the page would fail to mount."/>
+           Text="Rask islands: the bundler finished but wrote no manifest at '$(_RaskExternalManifest)'. The client runtime resolves an island's chunk through that file, so every island on the page would fail to mount. Read the bundler's output just above this error for the file that failed. If RaskExternalBuildCommand is overridden, it has to run 'vite build' with the generated config it is handed ('$(_RaskExternalConfig)'): the manifest is written by a plugin in that config."/>
     <MakeDir Directories="$(IntermediateOutputPath)"/>
     <Touch Files="$(IntermediateOutputPath)rask-external.build.stamp" AlwaysCreate="true"/>
   </Target>
