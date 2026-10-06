@@ -13,10 +13,9 @@ internal sealed partial class DashboardParked : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Parked
-            ? Ui.Alert[
-                Span["Live updates paused to keep the database free."],
-                Ui.Button.Size(Ui.Size.Sm).OnClick(ResumeAsync)["Resume"]
-            ]
+            ? Ui.Callout.Secondary.Inline().Icon(Ui.IconName.PauseCircle).Role("status")
+                .Heading("Live updates paused to keep the database free.")
+                .Actions(Ui.Button.Size(Ui.Size.Sm).OnClick(ResumeAsync)["Resume"])
             : null;
 
     private Task ResumeAsync() => Resume.Invoke().AsTask();

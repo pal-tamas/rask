@@ -76,7 +76,7 @@ public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : 
     {
         if (_error is not null)
         {
-            return Ui.Alert.Error.Soft.Class("mb-0")[Strong["Error: "], _error];
+            return Ui.Callout.Danger.Icon(Ui.IconName.XCircle).Role("alert").Heading("Error: ").Text(_error);
         }
 
         if (_post is null)

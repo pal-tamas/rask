@@ -25,7 +25,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
 
         var final = page.Render();
         Assert.Contains("Created account for Ada Lovelace", final);
-        Assert.Contains("alert-success", final, StringComparison.Ordinal);
+        Assert.Contains("data-ui-callout role=\"status\"", final, StringComparison.Ordinal);
     }
 
     private static async Task Fill(Page page, string html, string id, string value)

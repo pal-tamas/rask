@@ -16,12 +16,11 @@ public sealed partial class BoomHandlerDemo : Component
         ];
 
     private static Component BoundaryFallback(Exception ex, Action recover) =>
-        Ui.Alert.Error.Soft.Class("flex items-start").Id("boom-fallback")[Ui.Icon.Name(Ui.IconName.ExclamationTriangle), Div[
-                Strong["Boundary caught: "],
-                Code.Class("ms-1")[ex.GetType().Name],
-                P.Class("mb-2 mt-1 text-sm")[ex.Message],
-                Ui.Button.Outline.Id("boom-recover").OnClick(recover)[Ui.Icon.Name(Ui.IconName.ArrowUturnLeft), "Recover"]
-            ]];
+        Ui.Callout.Danger.Icon(Ui.IconName.ExclamationTriangle).Id("boom-fallback").Role("alert")
+            .Actions(Ui.Button.Outline.Id("boom-recover").OnClick(recover)[Ui.Icon.Name(Ui.IconName.ArrowUturnLeft), "Recover"])[
+            Ui.CalloutHeading["Boundary caught: ", Code[ex.GetType().Name]],
+            Ui.CalloutText[ex.Message]
+        ];
 
     private static void ThrowFromHandler() =>
         throw new InvalidOperationException("kaboom — handler boundary demo");

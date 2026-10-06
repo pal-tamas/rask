@@ -13,8 +13,5 @@ internal sealed partial class DashboardError : Component
     protected override Component? Render() =>
         Message is null
             ? null
-            : Ui.Alert.Tone(Ui.Tone.Error)[
-                Ui.Icon.Name(Ui.IconName.ExclamationTriangle),
-                Span["Couldn't read: ", Message]
-            ];
+            : Ui.Callout.Danger.Icon(Ui.IconName.ExclamationTriangle).Role("alert").Heading("Couldn't read: ").Text(Message);
 }

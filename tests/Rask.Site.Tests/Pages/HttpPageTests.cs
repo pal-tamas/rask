@@ -50,7 +50,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         await Task.Delay(120, TestContext.Current.CancellationToken);
         var html = page.Render();
 
-        Assert.Contains("alert-error", html, StringComparison.Ordinal);
+        Assert.Contains("role=\"alert\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 
         // The fetch + retry self-heal lives in HttpFetchDemo (the page just embeds its source).
         // Drive the demo directly through LiveHost so we assert on its rendered RESULT, not the
-        // page's source-code pane (which contains the alert's own class names as literal text).
+        // page's source-code pane (which contains the callout's own markup as literal text).
         var page = Page.Render(() => HttpFetchDemo, Services(http, clock));
         await WaitFor.True(
             () => AdvanceAndRender(page, clock).Contains("the body text", StringComparison.Ordinal),
@@ -85,7 +85,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
             "the retried fetch never rendered its body");
         var html = page.Render();
 
-        Assert.DoesNotContain("alert-error", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("role=\"alert\"", html, StringComparison.Ordinal);
         Assert.Contains("the body text", html);
         Assert.Equal(2, attempts);
     }
@@ -108,12 +108,12 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         Assert.Equal(1, handler.RequestCount);
 
         await WaitFor.True(
-            () => AdvanceAndRender(page, clock).Contains("alert-error", StringComparison.Ordinal),
+            () => AdvanceAndRender(page, clock).Contains("role=\"alert\"", StringComparison.Ordinal),
             TimeSpan.FromSeconds(6),
             "the exhausted retry loop never surfaced its error banner");
         var html = page.Render();
 
-        Assert.Contains("alert-error", html, StringComparison.Ordinal);
+        Assert.Contains("role=\"alert\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Loading", html, StringComparison.Ordinal);
         // MaxTransientRetries + 1 attempts, then it stops.
         Assert.Equal(4, handler.RequestCount);
@@ -131,7 +131,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(() => HttpFetchDemo, Services(http, clock));
         await WaitFor.True(
-            () => AdvanceAndRender(page, clock).Contains("alert-error", StringComparison.Ordinal),
+            () => AdvanceAndRender(page, clock).Contains("role=\"alert\"", StringComparison.Ordinal),
             TimeSpan.FromSeconds(6),
             "four attempts that never settled never surfaced their timeout");
         var html = page.Render();
@@ -151,7 +151,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         await Task.Delay(120, TestContext.Current.CancellationToken);
         var html = page.Render();
 
-        Assert.Contains("alert-error", html, StringComparison.Ordinal);
+        Assert.Contains("role=\"alert\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 
         Assert.False(result.TimedOut, $"did not settle ({result.Waves} waves)");
         Assert.Contains("Components are just methods", result.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("alert-error", result.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("role=\"alert\"", result.Html, StringComparison.Ordinal);
     }
 
     private static IServiceProvider Services(HttpClient http, TimeProvider time) =>

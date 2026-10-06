@@ -56,7 +56,7 @@ public sealed partial class NestedListForeachDemo : Component
             ],
             _submission is null
                 ? null
-                : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0").Id("nf-list-result")[_submission]
+                : Ui.Callout.Success.Class("mt-3").Id("nf-list-result").Role("status").Text(_submission)
         ];
     }
 }

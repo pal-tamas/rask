@@ -89,23 +89,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string AlertTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Info => "alert-info",
-        Ui.Tone.Success => "alert-success",
-        Ui.Tone.Warning => "alert-warning",
-        Ui.Tone.Error => "alert-error",
-        _ => "",
-    };
-
-    internal static string AlertVariant(Ui.Variant value) => value switch
-    {
-        Ui.Variant.Outline => "alert-outline",
-        Ui.Variant.Soft => "alert-soft",
-        Ui.Variant.Dash => "alert-dash",
-        _ => "",
-    };
-
     internal static string InputTone(Ui.Tone value) => value switch
     {
         Ui.Tone.Neutral => "input-neutral",

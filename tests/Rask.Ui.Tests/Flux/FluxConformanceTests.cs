@@ -24,6 +24,10 @@ public sealed class FluxConformanceTests
     /// <summary>Flux part → the Rask.Ui type that mirrors it. A component joins this when it is built.</summary>
     private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
     {
+        ["flux:callout"] = typeof(UiCallout),
+        ["flux:callout.heading"] = typeof(UiCalloutHeading),
+        ["flux:callout.link"] = typeof(UiCalloutLink),
+        ["flux:callout.text"] = typeof(UiCalloutText),
         ["flux:icon.*"] = typeof(UiIcon),
     };
 

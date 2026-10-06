@@ -28,6 +28,6 @@ public sealed partial class FloatingLabelsDemo : Component
         ],
         _submission is null
             ? null
-            : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
+            : Ui.Callout.Success.Icon(Ui.IconName.CheckCircle).Class("mt-3").Role("status").Text(_submission)
     ];
 }

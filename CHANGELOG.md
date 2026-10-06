@@ -20,6 +20,40 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Callout` replaces `Ui.Alert`, drawn as Flux UI draws its callout.** The kit is being
+  rebuilt to mirror [Flux UI](https://fluxui.dev) component by component; this is the callout, measured from
+  Flux's page for every variant and every hue in light and dark and held to it by `scripts/flux/parity.mjs`.
+  `Ui.Alert`, its `Tone` and its `Variant` (`Soft`/`Outline`/`Dash`) are gone.
+
+  ```csharp
+  // before
+  Ui.Alert.Error[Ui.Icon.Name(Ui.IconName.XCircle), Span["Payment failed: "], Code[error]]
+  Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0")["Saved."]
+  Ui.Alert.Warning[Span["Drop the cache?"], Div[confirm, cancel]]
+
+  // after
+  Ui.Callout.Danger.Icon(Ui.IconName.XCircle).Role("alert").Heading("Payment failed")[Ui.CalloutText[Code[error]]]
+  Ui.Callout.Success.Class("mt-3").Role("status").Heading("Saved.")
+  Ui.Callout.Warning.Inline().Role("alert").Heading("Drop the cache?").Actions([confirm, cancel])
+  ```
+
+  - **Tones are Flux's variants:** `Error` → `.Danger`, `Warning` → `.Warning`, `Success` → `.Success`,
+    `Info` and no tone → `.Secondary` (or no variant at all, which is the same callout on a white surface).
+    `Color(Ui.Color.Blue)` takes any of Tailwind's seventeen hues instead. There is one fill, Flux's.
+  - **It announces nothing by itself.** `Ui.Alert` wrote `role="alert"` for an error or a warning and
+    `role="status"` for the rest. Flux's callout writes neither, and neither does this one: a callout that
+    is on the page when it loads is content. Add `.Role("alert")` to one that reports a failure and
+    `.Role("status")` to one that reports an outcome, or a screen reader is no longer told.
+  - **It is no longer one element.** An icon is the `Icon` prop rather than a first child, the lead-in is
+    `Heading(…)` or a `Ui.CalloutHeading`, the body `Text(…)` or a `Ui.CalloutText` (with `Ui.CalloutLink`
+    for a link in it), and buttons go in the `Actions` slot — under the text, or beside it with `Inline()`
+    once the callout itself is 28rem wide. `Controls` is the slot at the top right, for a dismiss button.
+    So only `Id`, `Class` and `Role` reach the callout from the call site; `Data`, `Aria` and the events
+    an alert took as an element do not.
+  - New alongside it: `Ui.Color` (Tailwind's hues, shared by every component that takes a colour) and
+    `Ui.CalloutVariant`. The `.alert-*` contrast corrections stay in the kit's sheet for an app's own
+    `alert alert-*` markup (the scaffolded sign-in pages write it); the kit itself writes no `alert` class.
+
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:

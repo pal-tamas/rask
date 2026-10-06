@@ -95,7 +95,7 @@ internal sealed partial class DevToolsRendersTab : Component
                 ]
             ],
             commits.Length == 0
-                ? Ui.Alert["No renders yet. Use the page, and every component that renders is counted here, with why."]
+                ? Ui.Callout.Secondary.Heading("No renders yet.").Text("Use the page, and every component that renders is counted here, with why.")
                 : Counted(commits, stats, renders, ticks)
         ];
     }

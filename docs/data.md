@@ -630,7 +630,7 @@ public sealed partial class EditProductPage : Component
     protected override Component? Render() =>
         _product is null ? P["Loading…"] :
         Form.Model(_product).OnSubmit(Save)[
-            _conflict is null ? null : Ui.Alert.Warning[_conflict],
+            _conflict is null ? null : Ui.Callout.Warning.Role("alert").Text(_conflict),
             Ui.Input.Bind(() => _product.Name).Label("Name"),
             Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
             Ui.Textarea.Bind(() => _product.Notes).Label("Notes"),

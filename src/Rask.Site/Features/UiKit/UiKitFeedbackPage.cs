@@ -12,8 +12,8 @@ public sealed partial class UiKitFeedbackPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "daisyUI alerts, toasts and progress in C# — Rask",
-            "daisyUI feedback components in C#: alert, loading, progress, radial progress, skeleton, toast "
+            "Callouts, toasts and progress in C# — Rask",
+            "Feedback components in C#: callout, loading, progress, radial progress, skeleton, toast "
             + "and tooltip, with status conveyed in words, not only color.",
             Routes.UiKitFeedbackPage());
 
@@ -30,7 +30,7 @@ public sealed partial class UiKitFeedbackPage : Component
             Em["icon"], " and not only its colour."
         ],
         CodeSample
-            .Files(["UiKitFeedbackDemo.cs"])
+            .Files(["UiKitFeedbackDemo.cs", "UiKitCalloutDemo.cs"])
             .Notes("The progress value and the toast are fields on the demo component. Loading shapes "
                 + "and tooltip placements are closed enums, because a misspelled class name is not a "
                 + "compile error and a class daisyUI never defined styles nothing.")

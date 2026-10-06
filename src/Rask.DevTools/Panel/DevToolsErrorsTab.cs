@@ -92,7 +92,7 @@ internal sealed partial class DevToolsErrorsTab : Component
                 Ui.Button.Size(Ui.Size.Sm).Title("Forget the errors listed").OnClick(Clear)["Clear"]
             ],
             errors.Count == 0
-                ? Ui.Alert.Tone(Ui.Tone.Success)[NothingText]
+                ? Ui.Callout.Success.Icon(Ui.IconName.CheckCircle).Heading(NothingText)
                 : Div.Class("flex flex-col gap-2")[
                     errors.Take(RowLimit).Select(Row).ToArray()
                 ]

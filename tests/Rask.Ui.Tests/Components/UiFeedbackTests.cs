@@ -88,14 +88,6 @@ public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("tabindex", Ui.Tooltip.Tip("Why")[Span["?"]].ToHtml());
     }
 
-    [Theory]
-    [InlineData(Ui.Tone.Error, "alert-error")]
-    [InlineData(Ui.Tone.Warning, "alert-warning")]
-    [InlineData(Ui.Tone.Success, "alert-success")]
-    [InlineData(Ui.Tone.Info, "alert-info")]
-    public void Every_alert_tone_writes_its_own_class(Ui.Tone tone, string expected) =>
-        Assert.Contains(expected, Ui.Alert.Tone(tone)["Payment failed"].ToHtml());
-
     [Fact]
     public void A_progress_bar_is_a_real_progress_element()
     {

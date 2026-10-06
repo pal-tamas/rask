@@ -10,7 +10,7 @@ namespace Rask.Core.Components;
 ///     <code>
 ///     Form.Model(_model).OnSubmit(async m =&gt; await Product.Create(m))[f =&gt; [
 ///         Ui.Input.Bind(() =&gt; _model.Name).Label("Name"),
-///         f.Error is not null ? Ui.Alert.Error["Something went wrong."] : null,
+///         f.Error is not null ? Ui.Callout.Danger.Role("alert").Heading("Something went wrong.") : null,
 ///         Ui.Button.Submit.Primary.Disabled(f.Submitting)[f.Submitting ? "Saving…" : "Save"],
 ///     ]]
 ///     </code>
