@@ -1,0 +1,76 @@
+name: gates
+
+# The gates, as jobs. Called by ci.yml (every push) and release.yml (before anything is published) —
+# ONE list, so the two cannot drift. Each job runs the same script a developer runs by hand, which
+# keeps a red job reproducible with one command.
+#
+#   push     what every push to main is held to
+#   release  what needs containers or a real host; run before a release, and on a ci/release/** branch
+#   all      both
+on:
+  workflow_call:
+    inputs:
+      set:
+        description: push | release | all
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      gates: ${{ steps.pick.outputs.gates }}
+    steps:
+      - id: pick
+        env:
+          SET: ${{ inputs.set }}
+          # Every core the runner has: nothing else is running on it.
+          GATES: >-
+            [
+              {"set": "push",    "name": "unit + format",      "run": "scripts/run-unit-local.sh --lane-slots $(nproc)"},
+              {"set": "push",    "name": "browser E2E",        "run": "scripts/run-e2e-local.sh", "browser": true},
+              {"set": "push",    "name": "devtools E2E",       "run": "scripts/run-devtools-e2e-local.sh", "browser": true},
+              {"set": "push",    "name": "browser SQLite E2E", "run": "scripts/run-browser-sqlite-e2e-local.sh", "browser": true},
+              {"set": "push",    "name": "data demo E2E",      "run": "scripts/run-data-demo-e2e-local.sh", "browser": true},
+              {"set": "push",    "name": "CLI build",          "run": "scripts/run-cli-build-e2e.sh"},
+              {"set": "push",    "name": "templates",          "run": "scripts/run-template-e2e.sh"},
+              {"set": "release", "name": "watch hot reload",   "run": "scripts/run-watch-e2e.sh"},
+              {"set": "release", "name": "deploy",             "run": "scripts/run-deploy-e2e-local.sh"},
+              {"set": "release", "name": "storage providers",  "run": "scripts/run-storage-providers-local.sh"},
+              {"set": "release", "name": "installer",          "run": "scripts/run-install-e2e-local.sh"},
+              {"set": "release", "name": "providers",          "run": "scripts/run-providers-local.sh"}
+            ]
+        run: |
+          gates="$(jq -c --arg set "$SET" '[.[] | select($set == "all" or .set == $set)]' <<<"$GATES")"
+          [ "$gates" != "[]" ] || { echo "gates: unknown set '$SET'" >&2; exit 1; }
+          echo "gates=$gates" >> "$GITHUB_OUTPUT"
+
+  gate:
+    needs: plan
+    name: ${{ matrix.gate.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false   # one red gate says nothing about the others; report all of them
+      matrix:
+        gate: ${{ fromJSON(needs.plan.outputs.gates) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # MinVer packs in the CLI gates, and GuideHistoryTests reads the log
+
+      - uses: ./.github/actions/setup
+        with:
+          workloads: wasm-tools
+          playwright: ${{ matrix.gate.browser && 'true' || 'false' }}
+
+      # The gate scripts install Chromium themselves; the system libraries it links are the runner's.
+      - name: Chromium system libraries
+        if: matrix.gate.browser
+        run: npx --yes playwright install-deps chromium
+
+      - name: ${{ matrix.gate.name }}
+        run: ${{ matrix.gate.run }}

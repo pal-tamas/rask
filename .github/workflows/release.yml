@@ -9,7 +9,15 @@ permissions:
   contents: read
 
 jobs:
+  # Every gate, the release-only ones included (deploy, installer, providers, watch): nothing is
+  # packed or pushed from a tag they did not pass. Try them ahead of the tag on a ci/release/** branch.
+  gates:
+    uses: ./.github/workflows/gates.yml
+    with:
+      set: all
+
   publish:
+    needs: gates
     runs-on: ubuntu-latest
     # GitHub's own maximum, said out loud so nobody lowers it. The verify step alone can take three hours of
     # validation (RASK_VERIFY_FLAT_DEADLINE) plus two half-hour restore waits, four hours in all, and the

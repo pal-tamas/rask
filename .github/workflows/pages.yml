@@ -1,7 +1,11 @@
 name: pages
 
+# Runs AFTER ci.yml, and only from a commit it passed: own work lands on main ungated, so this is the
+# door a red commit stops at before rask.sh. workflow_dispatch deploys whatever main holds.
 on:
-  push:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -16,10 +20,12 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }} # the commit ci passed
           fetch-depth: 0 # MinVer needs full history + tags to resolve the version
 
       # The shared setup — the SDK, the workload and the NuGet cache — so this workflow cannot drift from

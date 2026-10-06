@@ -1,60 +1,24 @@
 #!/usr/bin/env bash
-# Pre-commit gate: enforce formatting (dotnet format) and the local unit/integration suite before a
-# code commit.
+# Pre-commit: seconds, never minutes. The format check, the warnings-as-errors build and the unit
+# suite run in CI on every push (.github/workflows/ci.yml), not here.
 #
-# Both were moved OUT of CI — they run locally instead, and this hook enforces them on commit.
-# Enable it once with:  git config core.hooksPath .githooks  (installs commit-msg + pre-commit + pre-push)
+# They used to run here, scoped and budgeted to a minute — a budget that only held on an idle
+# machine. With several worktrees committing at once each gate shrank to two cores and took ten
+# minutes and more, so the gate that was meant to be cheap became the thing everyone waited for.
+# CI is free for a public repository and nobody waits on it.
 #
-# Runs ONLY when the staged change touches code (src/, tests/, docs/, scripts/, .githooks/, Rask.slnx,
-# Directory.*), so workflow-only commits stay fast. Bypass any commit with 'git commit --no-verify' or
-# RASK_SKIP_UNIT=1.
-#
-# There is no site/ or benchmarks/ prefix any more, and that is not an omission: every project now
-# lives under src/ (what ships) or tests/ (what verifies or measures), so those two prefixes are
-# covered by the two that remain. Adding a third root again means adding it HERE too, or the one
-# commit that touches only it is the one commit that skips this gate.
+# What is left is what costs under a second and is published the moment it lands.
+# Enable once with:  git config core.hooksPath .githooks  (commit-msg + pre-commit + pre-push)
+# Bypass with 'git commit --no-verify'. The full local gate is still scripts/run-unit-local.sh.
 set -euo pipefail
 
-if [ "${RASK_SKIP_UNIT:-}" = "1" ]; then
-  echo "pre-commit: RASK_SKIP_UNIT=1 set — skipping the local format + unit gate."
-  exit 0
-fi
-
-# `grep -E … >/dev/null`, never `grep -q`. With `set -o pipefail`, `-q` makes the gate skip PRECISELY
-# when there is most to check: grep exits on the first match, git takes SIGPIPE writing the rest, and the
-# pipeline reports failure — so a large staged change reads as "no code changes" and sails through
-# unchecked, while a small one gates normally. It let a 421-file commit touching all of src/ past.
-#
-# docs/ is in here for the same reason src/ is: the suite genuinely gates it. A tree that matches none
-# of these prefixes is not rejected — it is silently waved through with "no code changes staged", which
-# is how a whole feature once landed ungated.
-#
-#   src/Rask.Site is the published rask.sh app: the landing page, the guides and every live demo. It is
-#   compiled, analyzer-checked, warnings-as-errors code, and Rask.Site.Tests links its sources and owns
-#   DemoMarkup.golden.txt — so a site-only commit could break a committed golden with nothing objecting.
-#   It needs no prefix of its own now that it lives under src/.
-#
-#   docs/ is an input to the tests, not just prose: DocsIndexTests walks docs/**/*.md on disk for
-#   reachability from docs/README.md, and GuidesTests holds the GuideCatalog parity guard in both
-#   directions. A new page committed on its own skipped exactly the checks written to catch it.
-#   scripts/ and .githooks/ are in here because the gates are themselves code with tests now:
-#   scripts/run-unit-local.sh runs scripts/tests/*.test.sh, which covers the failure classification
-#   that decides whether a red gate blames your branch or your machine (#718). Without these prefixes a
-#   change to the gate logic is the one change that skips the gate.
-#   rask.sh / rask.ps1 are here for the same reason, one level worse: they sit at the repo root, so
-#   they matched none of the prefixes above, and a commit that touched only the public installer was
-#   the one commit that ran neither the formatter nor scripts/tests/install-script.test.sh.
 # The Counter sample is written on three front doors — README.md, NUGET.md and the site hero — and
-# scripts/tests/front-doors.test.sh is the only thing pinning them to each other. Two of those doors
-# sit at the REPO ROOT and match none of the prefixes below, so a commit that fixes a typo in the
-# README is precisely the commit that would skip the guard written to catch README drift. That is the
-# rask.sh shape again, and it is why the sample rotted in the first place.
+# scripts/tests/front-doors.test.sh is the only thing pinning them to each other. CI runs it too
+# (through scripts/run-unit-local.sh), but a front door that disagrees with the other two is live on
+# GitHub and nuget.org as soon as it is pushed, so the two root files are checked here as well.
 #
-# Running the one check here, rather than adding these files to the filter below, is deliberate: the
-# filter decides whether to run the FULL format + unit suite, and making a typo fix pay for that is
-# the cost scripts/tests/install-script.test.sh declined to impose. This costs well under a second.
-# The site hero needs no entry — it lives under src/Rask.Site, so it already runs the whole gate, which
-# runs this test through scripts/run-unit-local.sh.
+# `grep -E … >/dev/null`, never `grep -q`: with `set -o pipefail`, `-q` exits on the first match, git
+# takes SIGPIPE writing the rest, and a large staged change reads as "no match".
 front_doors='^(README\.md|NUGET\.md)$'
 
 if git diff --cached --name-only | grep -E "$front_doors" >/dev/null; then
@@ -64,60 +28,4 @@ if git diff --cached --name-only | grep -E "$front_doors" >/dev/null; then
     echo "pre-commit: the Counter sample differs between its front doors — see above." >&2
     exit 1
   fi
-fi
-
-if ! git diff --cached --name-only | grep -E '^(src/|docs/|tests/|scripts/|\.githooks/|Rask\.slnx$|rask\.(sh|ps1)$|Directory\.)' >/dev/null; then
-  echo "pre-commit: no code changes staged — skipping the format + unit gate."
-  exit 0
-fi
-
-root="$(git rev-parse --show-toplevel)"
-
-# WARNS, never refuses (#850). Every commit runs this hook, and nothing stops one landing in the middle
-# of someone's browser suite — that is the common shape of the contention, and the shape #847's guard
-# does not cover, because a pre-commit gate is not a browser gate. A refusal here would be a worse tax
-# than the flake: a blocked commit costs more than a slow one, and the person committing is usually not
-# the person who can decide to wait. So this only tells you what you are about to walk into.
-if [ -z "${CI:-}" ] && [ -f "$root/scripts/lib/e2e-concurrency.sh" ]; then
-  # shellcheck source=../scripts/lib/e2e-concurrency.sh
-  . "$root/scripts/lib/e2e-concurrency.sh"
-  live_gates="$(rask_other_e2e_runs | tr '\n' ' ')"
-
-  if [ -n "${live_gates// /}" ]; then
-    echo "pre-commit: HEADS UP — a browser E2E gate is running on this machine right now." >&2
-    for pid in $live_gates; do
-      elapsed="$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')"
-      cmd="$(ps -o command= -p "$pid" 2>/dev/null | cut -c1-120)"
-      [ -n "$elapsed" ] && echo "            pid $pid, running for ${elapsed}: $cmd" >&2
-    done
-    echo "            This gate builds and tests the whole solution, so it will compete with that" >&2
-    echo "            suite and may make it fail for reasons that have nothing to do with either" >&2
-    echo "            change. Not refusing — a blocked commit is worse than a slow one — but if that" >&2
-    echo "            run goes red, this is the first thing to suspect." >&2
-    echo >&2
-  fi
-fi
-
-echo "pre-commit: running the local format + unit gate (staged code changes detected)."
-
-# Format only what is being committed. A file this hook is not shown cannot be unformatted:
-# it would have had to pass this same gate to get into the tree. Measured 59s -> 30s.
-export RASK_FORMAT_SCOPE=staged
-
-# Build and test only the projects the staged change can reach, for the same reason and with the same
-# shape: a commit is the one moment where "what did I just change?" has an exact answer.
-# scripts/lib/affected_projects.py falls back to the full solution for anything it cannot map — a
-# repo-root import, a gate script, a source-linked file owned by no project — and the run always
-# prints which of the two it chose and why.
-#
-# .githooks/pre-push scopes the same way, over the whole push (origin/main...HEAD), so the graph IS the
-# safety: a test that reads a file no reference brings in must declare it with <RaskTestReads/> in its
-# csproj, or a change to that file will not run it. The browser E2E runs by hand (run-all-gates.sh).
-export RASK_TEST_SCOPE=affected
-echo "            build -> dotnet format --verify-no-changes -> tests. bypass with"
-echo "            'git commit --no-verify' or RASK_SKIP_UNIT=1."
-if ! "$root/scripts/run-unit-local.sh"; then
-  echo "pre-commit: format + unit gate FAILED — commit aborted. Fix it (e.g. 'dotnet format Rask.slnx'" >&2
-  echo "            then restage), or bypass with --no-verify." >&2
-  exit 1
 fi

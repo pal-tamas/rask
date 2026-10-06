@@ -4,8 +4,13 @@ name: nightly
 # (e.g. 0.10.1-alpha.0.N after the v0.10.0 tag) for untagged commits, so packs are naturally
 # prerelease on nuget.org. Stable releases (no -prerelease suffix) still come only from tagging
 # via release.yml.
+#
+# Runs AFTER ci.yml, and only from a commit it passed: own work lands on main ungated, so this is the
+# door a red commit stops at. workflow_dispatch publishes whatever main holds, verdict or not.
 on:
-  push:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -19,10 +24,14 @@ concurrency:
 
 jobs:
   publish-nightly:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}   # the commit ci passed
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ env.SHA }}
           fetch-depth: 0   # MinVer needs full history + tags
 
       - uses: ./.github/actions/setup
@@ -65,5 +74,6 @@ jobs:
           gh release delete nightly --yes --cleanup-tag || true
           gh release create nightly ./artifacts/*.nupkg \
             --prerelease \
-            --title "Nightly (${{ github.sha }})" \
-            --notes "Automated prerelease from main @ ${{ github.sha }}. Not published to nuget.org."
+            --target "$SHA" \
+            --title "Nightly ($SHA)" \
+            --notes "Automated prerelease from main @ $SHA. Not published to nuget.org."
