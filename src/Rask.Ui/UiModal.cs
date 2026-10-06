@@ -174,7 +174,7 @@ public sealed partial class UiModal : Component
             .Class("btn btn-ghost btn-sm btn-square")
             .Attributes(Closes(id))
             .Aria("label", "Close")[
-            Ui.Icon.Name(Ui.IconName.Close).Class("size-4 shrink-0")
+            Ui.Icon.Name(Ui.IconName.XMark).Class("size-4 shrink-0")
         ];
 
     // A MODAL dialog has no light-dismiss of its own in most browsers — the viewport-sized `.modal` is the
@@ -243,8 +243,8 @@ public sealed partial class UiModal : Component
         }
 
         return !OnCancel.HasValue
-            ? close[Ui.Icon.Name(Ui.IconName.Close)]
-            : [close[Ui.Icon.Name(Ui.IconName.Close)], EscapeTarget()];
+            ? close[Ui.Icon.Name(Ui.IconName.XMark)]
+            : [close[Ui.Icon.Name(Ui.IconName.XMark)], EscapeTarget()];
     }
 
     // Someone is listening for the page to stop rendering it open. Without either callback a dismissal would

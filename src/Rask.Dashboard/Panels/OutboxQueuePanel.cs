@@ -19,7 +19,7 @@ internal sealed class OutboxQueuePanel<TContext>(
 
     public override string Title => "Outbox";
 
-    public override Ui.IconName Icon => Ui.IconName.Outbox;
+    public override Ui.IconName Icon => Ui.IconName.PaperAirplane;
 
     public override int MaxAttempts => _options?.MaxAttempts ?? 0;
 

@@ -48,7 +48,20 @@ if (existsSync(fluxFile) && !flag('refresh')) {
   await writeFile(fluxFile, JSON.stringify(flux));
 }
 
-const rask = await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', slug));
+// The docs page hands each example its text: black or white by scheme, a 24px or 26px line by where the
+// example sits in the prose. A component inherits those, so each Rask example is given what its Flux
+// twin was given before anything is measured — the same surroundings, and only the component differs.
+const INHERITED = ['color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'];
+const rask = await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', slug), (document, scheme) =>
+  document.evaluate(({ examples, INHERITED }) => {
+    const seen = {};
+    for (const wrapper of document.querySelectorAll('[data-preview-wrapper]')) {
+      const section = wrapper.dataset.section ?? '';
+      const ordinal = seen[section] = (seen[section] ?? -1) + 1;
+      const theirs = examples.find(example => example.section === section && example.ordinal === ordinal);
+      for (const key of theirs ? INHERITED : []) wrapper.style[key] = theirs.nodes[0].style[key];
+    }
+  }, { examples: flux[scheme], INHERITED }));
 await browser.close();
 
 // Not compared: what the surrounding docs page decides rather than the component (where a top-level
@@ -148,6 +161,10 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
 function compareStyles(x, y, where, diffs) {
   for (const key of STYLES) {
     if (IGNORED.has(key) || same(x[key], y[key])) continue;
+    // The colour of a border neither side draws: Flux's page gives every element a grey one, a Tailwind
+    // app leaves it the text colour, and at no width it is nothing at all.
+    const width = /^border(Top|Right|Bottom|Left)Color$/.exec(key)?.[1];
+    if (width && x[`border${width}Width`] === '0px' && y[`border${width}Width`] === '0px') continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }
 }

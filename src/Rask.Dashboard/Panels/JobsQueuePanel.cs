@@ -19,7 +19,7 @@ internal sealed class JobsQueuePanel<TContext>(
 
     public override string Title => "Jobs";
 
-    public override Ui.IconName Icon => Ui.IconName.Gear;
+    public override Ui.IconName Icon => Ui.IconName.Cog6Tooth;
 
     public override int MaxAttempts => _options?.MaxAttempts ?? 0;
 

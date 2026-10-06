@@ -14,7 +14,7 @@ internal sealed partial class DashboardError : Component
         Message is null
             ? null
             : Ui.Alert.Tone(Ui.Tone.Error)[
-                Ui.Icon.Name(Ui.IconName.Warning),
+                Ui.Icon.Name(Ui.IconName.ExclamationTriangle),
                 Span["Couldn't read: ", Message]
             ];
 }

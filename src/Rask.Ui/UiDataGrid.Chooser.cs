@@ -59,7 +59,7 @@ public sealed partial class UiDataGrid<T, TKey>
             Ui.Button
                 .Size(Ui.Size.Sm)
                 .Variant(Ui.Variant.Outline)
-                .OnClick(() => _chooserOpen = !_chooserOpen)[Ui.Icon.Name(Ui.IconName.Menu), "Columns"],
+                .OnClick(() => _chooserOpen = !_chooserOpen)[Ui.Icon.Name(Ui.IconName.Bars3), "Columns"],
             !_chooserOpen
                 ? null
                 : Div
@@ -98,7 +98,7 @@ public sealed partial class UiDataGrid<T, TKey>
                 .OnDrop(ctx.Drop(ColumnZone, index))
                 .OnDragEnd(ctx.DragEnd)[
                 column.CanReorder && ReorderEnabled
-                    ? Ui.Icon.Name(Ui.IconName.Grip).Class("size-3 shrink-0 opacity-40")
+                    ? Ui.Icon.Name(Ui.IconName.EllipsisVertical).Class("size-3 shrink-0 opacity-40")
                     : null,
                 // RaskMarkup.Label, not Label: this grid has a Label PROPERTY, and a component's own
                 // member hides the injected entry of the same name — the rule that gives every kit
@@ -154,13 +154,13 @@ public sealed partial class UiDataGrid<T, TKey>
                 .OnDragOver(ctx.DragOver(GroupZone, index))
                 .OnDrop(ctx.Drop(GroupZone, index))
                 .OnDragEnd(ctx.DragEnd)[
-                Ui.Icon.Name(Ui.IconName.Grip).Class("size-3 shrink-0 opacity-40"),
+                Ui.Icon.Name(Ui.IconName.EllipsisVertical).Class("size-3 shrink-0 opacity-40"),
                 Span[column.Title ?? token],
                 MoveButton(index > 0, "Move group left", Ui.IconName.ArrowLeft,
                     () => MoveGroupAsync(token, -1)),
                 MoveButton(index < groups.Count - 1, "Move group right", Ui.IconName.ArrowRight,
                     () => MoveGroupAsync(token, 1)),
-                MoveButton(true, "Stop grouping by " + (column.Title ?? token), Ui.IconName.Close,
+                MoveButton(true, "Stop grouping by " + (column.Title ?? token), Ui.IconName.XMark,
                     () => UngroupAsync(token))
             ];
         }
