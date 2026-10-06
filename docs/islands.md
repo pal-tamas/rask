@@ -1029,7 +1029,8 @@ nightly, a release candidate — is allowed through rather than refused. Overrid
 `-p:RaskExternalMinimumNode=…` if you have a reason to.
 
 `rask new` does all of this. Naming a runtime scaffolds the pair, the dependencies, the tsconfig
-mapping that makes `@rask/<Name>.props` resolve, and the package reference:
+mapping that makes `@rask/<Name>.props` resolve, and the package reference, and puts the island on the
+home page (`Features/Home/HomePage.cs`), so the first `rask dev` shows it running:
 
 ```bash
 rask new Shop --islands react                  # one

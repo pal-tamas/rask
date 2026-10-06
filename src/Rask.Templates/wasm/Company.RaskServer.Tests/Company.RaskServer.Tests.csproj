@@ -11,6 +11,12 @@
     <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
     <!-- The app's own sources compile here too, and they expect its Routes class in its namespace. -->
     <RootNamespace>Company.RaskServer</RootNamespace>
+    <!-- rask:if islands -->
+    <!-- The home page renders the islands, so their C# half compiles here. Their front-end files are the
+         app's to type and bundle: with no package.json here nothing is bundled, and this stops the
+         prop-type step reporting each island as one this project will not build. -->
+    <RaskExternalPropTypes>false</RaskExternalPropTypes>
+    <!-- rask:end -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,6 +24,12 @@
     <PackageReference Include="Rask.Testing" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.Wasm" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
+    <!-- rask:if islands -->
+    <PackageReference Include="Rask.External" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if islands-blazor -->
+    <PackageReference Include="Rask.Blazor" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1"/>
     <PackageReference Include="xunit.v3" Version="4.0.1"/>
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" PrivateAssets="all"/>
@@ -34,13 +46,13 @@
     <Compile Include="..\**\*.cs"
              Exclude="..\Company.RaskServer.Tests\**;..\**\bin\**;..\**\obj\**;..\**\node_modules\**;..\Program.cs"
              LinkBase="App"/>
-    <!-- rask:if islands -->
-    <!-- An island's C# half needs the front-end build, which a desktop test does not have. -->
-    <Compile Remove="..\Features\Islands\**"/>
-    <!-- rask:end -->
-    <!-- rask:if islands-blazor -->
-    <Compile Remove="..\Features\Islands\**"/>
-    <!-- rask:end -->
   </ItemGroup>
+
+  <!-- rask:if islands-blazor -->
+  <ItemGroup>
+    <!-- The Razor Class Library the Blazor island hosts its component from. -->
+    <ProjectReference Include="..\Company.RaskServer.Components\Company.RaskServer.Components.csproj"/>
+  </ItemGroup>
+  <!-- rask:end -->
 
 </Project>

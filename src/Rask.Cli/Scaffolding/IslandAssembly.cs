@@ -231,6 +231,8 @@ internal static class IslandAssembly
     /// <remarks>
     ///     <c>islands</c> for the Rask.External reference every front-end runtime needs, and
     ///     <c>islands-blazor</c> for Rask.Blazor, which is a different package and a different kind.
+    ///     <c>islands-any</c> and one <c>islands-&lt;runtime&gt;</c> per chosen runtime are what the home
+    ///     page renders by: a scaffolded island nothing renders is files the user never sees working.
     /// </remarks>
     public static IEnumerable<string> Flags(IReadOnlyList<string> runtimes)
     {
@@ -246,9 +248,15 @@ internal static class IslandAssembly
             yield return "islands";
         }
 
-        if (runtimes.Contains(IslandRuntimes.Blazor, StringComparer.Ordinal))
+        if (runtimes.Count > 0)
         {
-            yield return "islands-blazor";
+            yield return "islands-any";
+        }
+
+        // islands-blazor is one of these, and means what it always has: the Blazor runtime was chosen.
+        foreach (var runtime in runtimes)
+        {
+            yield return "islands-" + runtime;
         }
     }
 

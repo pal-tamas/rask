@@ -89,6 +89,16 @@ public sealed class TemplateBuildE2ETests
                 exit == 0,
                 $"--template {template} --islands {runtime} does not compile:\n"
                 + CliBuildE2E.Diagnostics(output));
+
+            // The home page renders the island, so the scaffold's own first test renders one too.
+            var (tested, testOutput) = await CliBuildE2E.RunDotnet(
+                $"test \"{Path.Combine(projectDirectory, name + ".Tests", name + ".Tests.csproj")}\" -warnaserror -m:1 "
+                + "-p:RaskSpaBuild=false -p:RaskExternalBuild=false");
+
+            Assert.True(
+                tested == 0,
+                $"--template {template} --islands {runtime}: the scaffolded tests do not pass:\n"
+                + CliBuildE2E.Diagnostics(testOutput));
         }
         finally
         {

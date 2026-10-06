@@ -1071,6 +1071,14 @@ them until tagged releases begin.
   without a reload. `docs/islands.md` gains "An island as a whole page", and `docs/blazor-components.md`
   says a Blazor island can be the routed page — the choice for one a crawler must read, since it is
   rendered on the server.
+- **CLI: the scaffolded home page renders its islands.** `rask new Shop --islands react lit` wrote the
+  island files and no page that used them, so the first `rask dev` showed nothing of what was asked for.
+  The `server` and `wasm` home pages now render one of each chosen runtime, through the chain:
+  ```csharp
+  ReactCounter.Caption("React island"),
+  LitBadge.Caption("Lit island"),
+  ```
+  A project without `--islands` scaffolds the same home page as before.
 
 - **A Blazor island needs no `AddRaskBlazor()` call, and its `NavigationManager` is Rask's routing.**
   Referencing `Rask.Blazor` is the whole setup — which is what `rask new --islands blazor` always
