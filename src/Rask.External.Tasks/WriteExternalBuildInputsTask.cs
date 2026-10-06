@@ -247,7 +247,8 @@ public sealed class WriteExternalBuildInputsTask : Task
         {
             config = ExternalBuildPlan.ViteConfig(
                 islands, entryDirectory, OutputDirectory, ManifestPath, PublicBase, angularTsConfig,
-                string.IsNullOrEmpty(DevServerUrl) ? null : DevServerUrl);
+                string.IsNullOrEmpty(DevServerUrl) ? null : DevServerUrl,
+                Path.Combine(IntermediateDirectory, "types", ExternalBuildPlan.RoutesModule));
         }
         catch (ExternalBuildException ex)
         {

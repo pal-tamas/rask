@@ -1079,6 +1079,21 @@ them until tagged releases begin.
   LitBadge.Caption("Lit island"),
   ```
   A project without `--islands` scaffolds the same home page as before.
+- **Front-end code in an island navigates with the C# `Routes` and `Go`, type-safe, generated at build.**
+  A `.tsx`/`.vue`/`.svelte` page had no way to send the user anywhere but a hand-written `location.href`,
+  which reloaded the app and broke silently when a route changed. `@rask/routes` is the project's `Routes`
+  class — same page names, same nesting, same parameter names — and a wrong key or type fails the island
+  type-check `dotnet build` already runs:
+  ```tsx
+  location.href = `/users/${id}`                    // was: a string, a full reload
+  import { Routes, Go } from '@rask/routes'         // now
+  Routes.UserPage({ Id: 42 }).Go()                  // C#: Routes.UserPage(Id: 42).Go()
+  Routes.LoginPage().Go().Replacing()
+  Go.With('page', '2'); Go.Without('page')
+  <a {...Routes.UserPage({ Id: 42 }).Link}>View user</a>
+  ```
+  There is no string-path navigation: `Go.To` takes only a value `Routes.*` made. URLs are formatted as the
+  C# helpers format them and carry the app's path base. See `docs/islands.md#navigating-from-an-island`.
 
 - **A Blazor island needs no `AddRaskBlazor()` call, and its `NavigationManager` is Rask's routing.**
   Referencing `Rask.Blazor` is the whole setup — which is what `rask new --islands blazor` always
