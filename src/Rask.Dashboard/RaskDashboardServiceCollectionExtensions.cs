@@ -34,9 +34,9 @@ public static class RaskDashboardServiceCollectionExtensions
     /// this does not open anything by accident.
     /// </para>
     /// <para>
-    /// <see cref="RaskDashboardOptions"/> reads the <c>Rask:Ops</c> configuration section first and then
+    /// <see cref="OpsOptions"/> reads the <c>Rask:Ops</c> configuration section first and then
     /// <paramref name="configure"/>, so code wins. That includes
-    /// <see cref="RaskDashboardOptions.AllowAnonymousAccess"/>: an environment variable can open the console,
+    /// <see cref="OpsOptions.AllowAnonymousAccess"/>: an environment variable can open the console,
     /// which is the point of it being configuration, and a reason to keep the deploy environment's variables
     /// as guarded as its code.
     /// </para>
@@ -44,15 +44,15 @@ public static class RaskDashboardServiceCollectionExtensions
     /// <typeparam name="TContext">The application <see cref="DbContext"/> that owns the battery tables.</typeparam>
     public static IServiceCollection AddRaskDashboard<TContext>(
         this IServiceCollection services,
-        Action<RaskDashboardOptions>? configure = null)
+        Action<OpsOptions>? configure = null)
         where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddRaskOptions<RaskDashboardOptions>("Rask:Ops", static (section, o) => section.Bind(o),
+        services.AddRaskOptions<OpsOptions>("Rask:Ops", static (section, o) => section.Bind(o),
             configure, validate: null);
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IValidateOptions<RaskDashboardOptions>, RaskDashboardOptionsValidator>());
+            ServiceDescriptor.Singleton<IValidateOptions<OpsOptions>, OpsOptionsValidator>());
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
 
         // The console is its OWN application, not a set of pages inside the host's. RouteRegistry is
@@ -114,7 +114,7 @@ public static class RaskDashboardServiceCollectionExtensions
         // host's own AddRask() calls the full AddAuthorization() anyway.
         services.AddAuthorizationCore();
         services.AddOptions<AuthorizationOptions>()
-            .PostConfigure<IHostEnvironment, DashboardSecurityState, RaskDashboardOptions>(
+            .PostConfigure<IHostEnvironment, DashboardSecurityState, OpsOptions>(
                 static (authz, environment, state, options) =>
                 {
                     if (authz.GetPolicy(RaskDashboardPolicies.Access) is not null)

@@ -67,7 +67,7 @@ public static class RaskPushEndpointExtensions
     // Open to anyone, and every new endpoint is a row in the app's own database: so who may ask, how often, and
     // how many rows that can come to are all bounded before anything is read or stored.
     private static async Task<IResult> SubscribeAsync(
-        HttpContext context, IPush push, WebPushOptions options, SubscribeThrottle throttle)
+        HttpContext context, IPush push, PushOptions options, SubscribeThrottle throttle)
     {
         if (options.RequireUser && context.User.Identity?.IsAuthenticated != true)
         {

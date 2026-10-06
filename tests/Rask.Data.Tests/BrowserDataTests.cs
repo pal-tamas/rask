@@ -32,8 +32,8 @@ public sealed class BrowserDataTests : IDisposable
 
         page.GetRequiredService<ISessionWorkScope>().Enter(page)?.Dispose();
 
-        Assert.True(Db.IsConfigured);
-        Assert.True(ReadDb.IsConfigured);
+        Assert.True(Db.IsOn);
+        Assert.True(ReadDb.IsOn);
     }
 
     [Fact]

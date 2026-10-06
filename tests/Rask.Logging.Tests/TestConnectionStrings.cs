@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 internal static class TestConnectionStrings
 {
     internal static IServiceCollection AddRaskLoggingAt(
-        this IServiceCollection services, string connectionString, Action<RaskLoggingOptions>? configure = null)
+        this IServiceCollection services, string connectionString, Action<LogsOptions>? configure = null)
     {
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder()
             .AddInMemoryCollection([new KeyValuePair<string, string?>("Rask:ConnectionStrings:Logs", connectionString)])

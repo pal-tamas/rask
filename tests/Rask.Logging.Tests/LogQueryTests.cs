@@ -220,7 +220,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
         Assert.Equal("Shop�Input", entry.Category);
     }
 
-    private LoggingHarness Harness(Action<RaskLoggingOptions>? configure = null) => new(configure, kind: kind);
+    private LoggingHarness Harness(Action<LogsOptions>? configure = null) => new(configure, kind: kind);
 
     private async Task<LoggingHarness> SeededAsync()
     {

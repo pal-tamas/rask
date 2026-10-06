@@ -43,13 +43,6 @@ public static class Mail
             return fake;
         }
 
-        var services = Ambient.Services
-            ?? throw new InvalidOperationException(
-                "Mail was called outside any work in progress — a handler, a render, a request or a job — so "
-                + "there is no app to reach. Inject IMail in the constructor there instead.");
-
-        return services.GetService<IMail>()
-            ?? throw new InvalidOperationException(
-                "Mail needs Rask.Mail registered: call builder.Services.AddRaskMail<AppDbContext>().");
+        return Ambient.Reach<IMail>("Mail", "Program.cs says c.Mail.Off()", "AddRaskMail<AppDbContext>()");
     }
 }

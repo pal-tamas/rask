@@ -175,7 +175,7 @@ public sealed class JobProcessorTests
     [Fact]
     public async Task Completed_jobs_are_purged_after_the_retention_period()
     {
-        await using var h = new JobsHarness(o => o.RetentionPeriod = TimeSpan.FromHours(2));
+        await using var h = new JobsHarness(o => o.Retention = TimeSpan.FromHours(2));
         await h.Queue.Enqueue(new RecordJob("done"), TestContext.Current.CancellationToken);
 
         await h.Processor.StartAsync(CancellationToken.None);

@@ -54,7 +54,7 @@ public sealed class CheckExternalPropsSnapshotsTask : Task
                 Log.LogError(
                     subcategory: null, errorCode: ExternalDiagnosticCodes.MissingSnapshot, helpKeyword: null,
                     file: NullIfEmpty(file), lineNumber: line, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
-                    message: $"Rask.External: '{name}' has no {name}.props.json, and its props cannot be extracted on "
+                    message: $"Rask islands: '{name}' has no {name}.props.json, and its props cannot be extracted on "
                              + $"this build ({Reason}) — build once with the package installed and commit the file.");
                 continue;
             }
@@ -73,8 +73,9 @@ public sealed class CheckExternalPropsSnapshotsTask : Task
                 Log.LogWarning(
                     subcategory: null, warningCode: ExternalDiagnosticCodes.SnapshotVersionMismatch, helpKeyword: null,
                     file: NullIfEmpty(file), lineNumber: line, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
-                    message: $"Rask.External: {name}.props.json was taken from {package} {taken}, but package-lock.json "
-                             + $"pins {pinned} — build where props can be extracted to refresh it.");
+                    message: $"Rask islands: {name}.props.json was taken from {package} {taken}, but package-lock.json "
+                             + $"pins {pinned}. To refresh it, run npm install, then dotnet build without RaskExternalBuild=false "
+                             + "or RaskExternalPropsExtract=false, and commit the rewritten file.");
             }
         }
 

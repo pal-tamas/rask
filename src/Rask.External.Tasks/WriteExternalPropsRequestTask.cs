@@ -65,7 +65,7 @@ public sealed class WriteExternalPropsRequestTask : Task
                     subcategory: null, errorCode: ExternalDiagnosticCodes.InvalidDeclaration, helpKeyword: null,
                     file: item.GetMetadata("DeclaringFile"), lineNumber: LineOf(item), columnNumber: 0,
                     endLineNumber: 0, endColumnNumber: 0,
-                    message: $"Rask.External: '{name}' names the export '{export}', which is not an identifier — "
+                    message: $"Rask islands: '{name}' names the export '{export}', which is not an identifier — "
                              + "return the export's exact name from Export.");
                 continue;
             }

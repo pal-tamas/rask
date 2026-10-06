@@ -97,7 +97,7 @@ public sealed class FileWireTests
 
     // Small enough that a readable test file is over it, so the chunked route is taken by a payload a
     // failure message can print.
-    private static void Chunked(RaskCqrsClientOptions options)
+    private static void Chunked(CqrsClientOptions options)
     {
         options.ChunkedUploadThreshold = 8;
         options.UploadChunkSize = 8;

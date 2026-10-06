@@ -207,7 +207,7 @@ static Rask.Data.ConventionRegistry.DeclareCollection(System.Type! entity, strin
 static Rask.Data.Db.Configure(System.Func<Microsoft.EntityFrameworkCore.DbContext!>! createContext) -> void
 static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void
-static Rask.Data.Db.IsConfigured.get -> bool
+static Rask.Data.Db.IsOn.get -> bool
 static Rask.Data.Db.Reset() -> void
 static Rask.Data.Db.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
 static Rask.Data.FullText.Highlight(string? property) -> string?
@@ -236,7 +236,7 @@ static Rask.Data.RangeExclusionSpec.operator ==(Rask.Data.RangeExclusionSpec? le
 static Rask.Data.RangeOverlapException.ForTable(string! table, System.Exception? innerException = null) -> Rask.Data.RangeOverlapException!
 static Rask.Data.ReadDb.Configure(System.Func<Rask.Data.RaskReadDbContext!>! createContext) -> void
 static Rask.Data.ReadDb.Configure(System.IServiceProvider! services) -> void
-static Rask.Data.ReadDb.IsConfigured.get -> bool
+static Rask.Data.ReadDb.IsOn.get -> bool
 static Rask.Data.ReadDb.Reset() -> void
 static Rask.Data.ReadModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.Metadata.IModel? writeModel) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ReadModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.Metadata.IModel? writeModel, Microsoft.EntityFrameworkCore.DbContext? context) -> Microsoft.EntityFrameworkCore.ModelBuilder!

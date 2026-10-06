@@ -48,7 +48,7 @@ import {
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
-import { handlerClick, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
+import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {
     createJSObjectReference,
     disposeJSObjectReferenceById,
@@ -1497,6 +1497,11 @@ import {
     // queue-while-reconnecting, and the suppression window during an auth redirect.
     globalThis.__raskHost = globalThis.__raskHost || {};
     globalThis.__raskHost.send = send;
+    globalThis.__raskHost.navigate = (href: string, replace?: boolean) => {
+        const url = inAppUrl(href);
+        if (url) navigate(url, replace === true);
+        else console.error(`[Rask] navigate: "${href}" is not a URL of this app, so nothing navigated.`);
+    };
 
     function redeemAuthTicket(auth: { ticket?: string; url?: string }): void {
         suppressEvents = true;
@@ -1540,15 +1545,20 @@ import {
 
     document.addEventListener("click", (e) => {
         const url = navLinkClick(e);
-        if (!url) return;
+        if (url) navigate(url, false);
+    });
 
-        // Stash the link's "#fragment" so applyNavScroll can scroll to the anchor once
-        // the new page commits (the fragment is not sent to the server).
+    // One in-app navigation, whoever asked: a click on a nav link, or front-end code through the bridge.
+    function navigate(url: URL, replace: boolean): void {
+        // Stash the "#fragment" so applyNavScroll can scroll to the anchor once the new page commits
+        // (the fragment is not sent to the server).
         _pendingScrollHash = url.hash || "";
         flushInputsNow();
         beginNav();
-        send({type: "navigate", path: stripBase(url.pathname), query: url.search});
-    });
+        send(replace
+            ? {type: "navigate", path: stripBase(url.pathname), query: url.search, replace: true}
+            : {type: "navigate", path: stripBase(url.pathname), query: url.search});
+    }
 
     window.addEventListener("popstate", () => {
         flushInputsNow();

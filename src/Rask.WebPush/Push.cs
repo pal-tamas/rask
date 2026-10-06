@@ -46,13 +46,6 @@ public static class Push
             return fake;
         }
 
-        var services = Ambient.Services
-            ?? throw new InvalidOperationException(
-                "Push was called outside any work in progress — a handler, a render, a request or a job — so there "
-                + "is no app to reach. Inject IPush in the constructor there instead.");
-
-        return services.GetService<IPush>()
-            ?? throw new InvalidOperationException(
-                "Push needs the Web Push battery registered: call builder.Services.AddRaskWebPush<AppDbContext>().");
+        return Ambient.Reach<IPush>("Push", "Program.cs says c.Push.Off() or Rask:Push has no VAPID keys", "AddRaskWebPush<AppDbContext>()");
     }
 }

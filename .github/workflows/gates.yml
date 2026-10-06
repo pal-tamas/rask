@@ -5,15 +5,21 @@ name: gates
 # keeps a red job reproducible with one command.
 #
 #   push     what every push to main is held to
+#   deps     the part of push a version bump can break before it lands: format, unit, CLI build, templates
 #   release  what needs containers or a real host; run before a release, and on a ci/release/** branch
 #   all      both
 on:
   workflow_call:
     inputs:
       set:
-        description: push | release | all
+        description: push | deps | release | all
         type: string
         required: true
+      only:
+        description: an ERE over gate names; empty runs the whole set
+        type: string
+        required: false
+        default: ''
       ref:
         description: The commit to gate. Empty gates the one the caller ran on; upstream.yml names the commit it is about to land.
         type: string
@@ -31,6 +37,7 @@ jobs:
       - id: pick
         env:
           SET: ${{ inputs.set }}
+          ONLY: ${{ inputs.only }}
           # Every core the runner has: nothing else is running on it.
           #
           # The unit gate is two jobs, not one: both build the solution, then "format" runs the
@@ -42,8 +49,8 @@ jobs:
           # journeys included: a new or renamed class lands in 4 by itself and cannot fall between two.
           GATES: >-
             [
-              {"set": "push",    "name": "format",             "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format"},
-              {"set": "push",    "name": "unit",               "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests"},
+              {"set": "push", "deps": true,    "name": "format",             "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format"},
+              {"set": "push", "deps": true,    "name": "unit",               "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests"},
               {"set": "push",    "name": "browser E2E 1/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "filter": "FullyQualifiedName~.WasmExampleTests"},
               {"set": "push",    "name": "browser E2E 2/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "filter": "FullyQualifiedName~.UiKitActionsTests|FullyQualifiedName~.UiKitTreeTests"},
               {"set": "push",    "name": "browser E2E 3/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "filter": "FullyQualifiedName~.UiKitDataInputTests|FullyQualifiedName~.UiKitDataGridTests|FullyQualifiedName~.UiKitDataDisplayTests"},
@@ -51,8 +58,8 @@ jobs:
               {"set": "push",    "name": "devtools E2E",       "run": "scripts/run-devtools-e2e-local.sh", "browser": true},
               {"set": "push",    "name": "browser SQLite E2E", "run": "scripts/run-browser-sqlite-e2e-local.sh", "browser": true},
               {"set": "push",    "name": "data demo E2E",      "run": "scripts/run-data-demo-e2e-local.sh", "browser": true},
-              {"set": "push",    "name": "CLI build",          "run": "scripts/run-cli-build-e2e.sh"},
-              {"set": "push",    "name": "templates",          "run": "scripts/run-template-e2e.sh"},
+              {"set": "push", "deps": true,    "name": "CLI build",          "run": "scripts/run-cli-build-e2e.sh"},
+              {"set": "push", "deps": true,    "name": "templates",          "run": "scripts/run-template-e2e.sh"},
               {"set": "release", "name": "watch hot reload",   "run": "scripts/run-watch-e2e.sh"},
               {"set": "release", "name": "deploy",             "run": "scripts/run-deploy-e2e-local.sh"},
               {"set": "release", "name": "storage providers",  "run": "scripts/run-storage-providers-local.sh"},
@@ -60,15 +67,15 @@ jobs:
               {"set": "release", "name": "providers",          "run": "scripts/run-providers-local.sh"}
             ]
         run: |
-          gates="$(jq -c --arg set "$SET" '[.[] | select($set == "all" or .set == $set)]' <<<"$GATES")"
-          [ "$gates" != "[]" ] || { echo "gates: unknown set '$SET'" >&2; exit 1; }
+          gates="$(jq -c --arg set "$SET" --arg only "$ONLY" '[.[] | select($set == "all" or .set == $set or ($set == "deps" and .deps)) | select($only == "" or (.name | test($only)))]' <<<"$GATES")"
+          [ "$gates" != "[]" ] || { echo "gates: set '$SET' with only '$ONLY' selects no gate" >&2; exit 1; }
           echo "gates=$gates" >> "$GITHUB_OUTPUT"
 
   gate:
     needs: plan
     name: ${{ matrix.gate.name }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 30   # the longest gate takes about twelve; a hung one must not hold a runner
     strategy:
       fail-fast: false   # one red gate says nothing about the others; report all of them
       matrix:

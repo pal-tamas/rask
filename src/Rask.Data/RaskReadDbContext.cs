@@ -98,7 +98,7 @@ public class RaskReadDbContext : DbContext, ITenantScoped
     // way to see what the write side's own Configure decided.
     private static IModel? WriteModel()
     {
-        if (!Db.IsConfigured)
+        if (!Db.IsOn)
         {
             return null;
         }

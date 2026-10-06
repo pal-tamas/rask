@@ -9,7 +9,7 @@ namespace Rask.Signaling;
 ///     persisting, but it does mean a multi-instance deployment needs sticky routing for the signaling path
 ///     — two peers assigned to different instances never see each other.
 /// </summary>
-internal sealed class SignalingHub(RaskSignalingOptions options)
+internal sealed class SignalingHub(SignalingOptions options)
 {
     private readonly ConcurrentDictionary<string, Room> _rooms = new(StringComparer.Ordinal);
 

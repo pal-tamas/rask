@@ -13,15 +13,15 @@ internal sealed class CacheOptionsValidator : IValidateOptions<CacheOptions>
         ArgumentNullException.ThrowIfNull(options);
 
         var failures = new List<string>();
-        if (options.PurgeInterval <= TimeSpan.Zero)
+        if (options.SweepInterval <= TimeSpan.Zero)
         {
-            failures.Add("Rask:Cache:PurgeInterval must be positive.");
+            failures.Add("Rask:Cache:SweepInterval must be positive.");
         }
-        else if (options.PurgeInterval.TotalMilliseconds > uint.MaxValue - 1)
+        else if (options.SweepInterval.TotalMilliseconds > uint.MaxValue - 1)
         {
             // PeriodicTimer rejects an interval above (uint.MaxValue - 1) ms (~49.7 days). Rejected here so a bad
             // value fails fast at start instead of throwing later inside the background service and faulting the host.
-            failures.Add("Rask:Cache:PurgeInterval must be at most ~49 days.");
+            failures.Add("Rask:Cache:SweepInterval must be at most ~49 days.");
         }
 
         if (options.DefaultSlidingExpiration is { } sliding && sliding <= TimeSpan.Zero)

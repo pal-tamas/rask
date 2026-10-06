@@ -190,6 +190,13 @@ public sealed partial class OutboxProcessor<TContext>(
                 return;
             }
 
+            if (IsMissingColumn(ex, nameof(OutboxMessage.UserId)))
+            {
+                // Checked last, so a database missing an older column is sent to the older migration first.
+                UserColumnMissing(logger, ex);
+                return;
+            }
+
             CycleFailed(logger, ex);
         }
     }
@@ -256,13 +263,7 @@ public sealed partial class OutboxProcessor<TContext>(
         var startedAt = timeProvider.GetTimestamp();
         try
         {
-            // Publish AS the tenant the message was enqueued for. Without this a handler that reads a
-            // tenant-scoped table throws, because background work carries no principal and so has no
-            // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
-            using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
-
-            using var cancellation = Ambient.Enter(graceToken);
-            await Run(provider, message.Handler, e, graceToken).ConfigureAwait(false);
+            await RunAs(provider, message, e, graceToken).ConfigureAwait(false);
             message.Published(timeProvider.GetUtcNow().UtcDateTime);
             message.Release();
             metrics.Processed(message.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
@@ -300,6 +301,26 @@ public sealed partial class OutboxProcessor<TContext>(
 
     // A row runs the ONE durable handler it was written for. A handler that has since been renamed or deleted is a
     // failure like an unknown type, on its way to the dead letter where the dashboard shows it.
+    /// <summary>Runs the message's handler as the tenant and user it was enqueued for, inside its own work.</summary>
+    private static async Task RunAs(
+        IServiceProvider provider, OutboxMessage message, IEvent e, CancellationToken graceToken)
+    {
+        // Publish AS the tenant the message was enqueued for. Without this a handler that reads a
+        // tenant-scoped table throws, because background work carries no principal and so has no
+        // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
+        using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
+
+        // And AS the user, unconditionally: an event raised by nobody is handled for nobody, rather than
+        // for whatever user happened to be ambient on the processor's own flow.
+        using var user = Current.UseUser(message.UserId);
+
+        // A durable handler is work in progress like a request: the static facades (`Mail.Send`,
+        // `Jobs.Enqueue`) and the model's reads reach the app through this scope, with nothing injected.
+        using var work = Db.UseScope(provider);
+        using var cancellation = Ambient.Enter(graceToken);
+        await Run(provider, message.Handler, e, graceToken).ConfigureAwait(false);
+    }
+
     private static Task Run(IServiceProvider provider, string? handler, IEvent e, CancellationToken cancellationToken)
     {
         if (handler is not null)
@@ -392,7 +413,7 @@ public sealed partial class OutboxProcessor<TContext>(
 
     private async Task PurgeAsync(CancellationToken cancellationToken)
     {
-        if (options.RetentionPeriod <= TimeSpan.Zero)
+        if (options.Retention <= TimeSpan.Zero)
         {
             return;
         }
@@ -404,7 +425,7 @@ public sealed partial class OutboxProcessor<TContext>(
         }
 
         _lastPurge = now;
-        var cutoff = now - options.RetentionPeriod;
+        var cutoff = now - options.Retention;
         const int page = 1000;
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
@@ -476,6 +497,12 @@ public sealed partial class OutboxProcessor<TContext>(
         Message = "Rask.Outbox added a Handler column (one row per durable handler) that this database does not have. "
             + "Run: rask db add AddOutboxHandler && rask db update. See docs/{Doc}.")]
     private static partial void HandlerColumnMissing(ILogger logger, Exception exception, string doc);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Outbox added a UserId column (the user a durable handler runs for) that this database "
+            + "does not have. Run: rask db add AddOutboxUser && rask db update.")]
+    private static partial void UserColumnMissing(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Outbox processing cycle failed; retrying on the next poll.")]
     private static partial void CycleFailed(ILogger logger, Exception exception);

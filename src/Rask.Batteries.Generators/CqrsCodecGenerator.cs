@@ -241,7 +241,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     // EVERY attribute is kept, the type's own and its base types': ASP.NET requires all of them to pass, and
     // a page does (RouteAuthorizationGuard). Keeping only the last one checked [Authorize(Policy = "billing")]
     // and quietly dropped the [Authorize(Policy = "members")] above it (#1178).
-    private static (List<string> Policies, List<string> RoleSets, bool AllowAnonymous, bool Authorize) Authorization(
+    internal static (List<string> Policies, List<string> RoleSets, bool AllowAnonymous, bool Authorize) Authorization(
         INamedTypeSymbol? handler)
     {
         var policies = new List<string>();
