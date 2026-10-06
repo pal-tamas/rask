@@ -28,11 +28,7 @@ public sealed partial class UiCard : Component
     /// <summary>Shown before the heading.</summary>
     public Ui.IconName? Icon { get; set; }
 
-    /// <summary>How tight the card's padding is — daisyUI's own card sizes.</summary>
-    /// <remarks>
-    ///     The class map for this already existed and nothing reached it: a card could not be made denser
-    ///     without a raw class string, which is the one thing a call site drawn with the kit must not need.
-    /// </remarks>
+    /// <summary>How tight the card's padding is. Medium is the padding a card has with no size.</summary>
     public Ui.Size? Size { get; set; }
 
     /// <summary>Makes the whole card one link.</summary>
@@ -45,6 +41,20 @@ public sealed partial class UiCard : Component
     public RouteUrl? Href { get; set; }
 
     public string? Class { get; set; }
+
+    internal const string Frame = "rounded-xl border border-base-300 bg-base-100";
+
+    internal const string DefaultPadding = "p-4 sm:p-5";
+
+    // Medium is the default panel, so a card with no size does not move.
+    private static string Padding(Ui.Size? size) => size switch
+    {
+        Ui.Size.Xs => "p-2 sm:p-3",
+        Ui.Size.Sm => "p-3 sm:p-4",
+        Ui.Size.Lg => "p-5 sm:p-6",
+        Ui.Size.Xl => "p-6 sm:p-8",
+        _ => DefaultPadding,
+    };
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -64,8 +74,8 @@ public sealed partial class UiCard : Component
             : Div.Class("mb-4 flex flex-wrap items-center justify-between gap-3")[title, Action];
 
         var classes = UiClass.Compose(
-            UiStyles.Card,
-            Size is { } size ? UiClassNames.CardSize(size) : "",
+            Frame,
+            Padding(Size),
             Href is null ? "" : "block no-underline transition-colors hover:bg-base-200",
             Class);
 

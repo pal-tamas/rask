@@ -1229,6 +1229,19 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **UI kit: status text is readable on every theme, and `Ui.Card.Size` does something.** `Ui.Text.Tone(…)`
+  and the tones on `Ui.Stat`, `Ui.Metric`, `Ui.DetailRow`, `Ui.Code`, `Ui.MenuItem`, an alarming `Ui.Tab`
+  count and an accented `Ui.Heading` wrote daisyUI's status colours as text, which fail WCAG AA on most
+  palettes; they now use the kit's measured `-ink` tokens, and a test keeps the raw spelling out.
+  `Ui.Card.Size` wrote a daisyUI class the kit's card never reacted to; it is now the card's padding, with
+  `Md` equal to an unsized card:
+  ```csharp
+  Ui.Card.Sm[…]   // was identical to Ui.Card[…]; now p-3 sm:p-4
+  ```
+  Also: the `Buttons` choice layout has its corner radius back (`rounded-btn` is not a daisyUI 5 class), a
+  `Ui.Tone.Warning` toast shows the warning icon instead of a green check, and `dotnet pack` takes the
+  kit's stylesheet from a target framework the project builds rather than whichever `obj/*/` sorts last.
+
 - **A Dependabot pull request is no longer red on arrival.** Every one failed `commitlint`, and not on
   its title: Dependabot ends each commit with `Signed-off-by: dependabot[bot] <support@github.com>`,
   which it cannot be configured to drop, and the attribution guard in the same job counts a bot

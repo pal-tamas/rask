@@ -948,7 +948,7 @@
 @layer rask-ui-corrections {
   .floating-label:has(.validator:user-invalid, .validator[aria-invalid]:not([aria-invalid="false"])) ~ .validator-hint {
     visibility: visible;
-    color: var(--color-error);
+    color: var(--color-ui-danger-ink);
   }
 }
 
