@@ -23,6 +23,12 @@ internal sealed record DevHostPlan
     /// <summary>The authority is not in the system keychain (or a different one is).</summary>
     public bool TrustAuthority { get; init; }
 
+    /// <summary>
+    ///     The fingerprint of the authority a newly minted one replaces, to be taken back out of the trust
+    ///     store; null when there was none, or it could not be read.
+    /// </summary>
+    public string? ReplacedAuthority { get; init; }
+
     /// <summary>No usable certificate for <see cref="Hostname" />, or it is near expiry.</summary>
     public bool IssueCertificate { get; init; }
 
@@ -67,7 +73,9 @@ internal sealed record DevHostPlan
 
             if (TrustAuthority && TrustChange is not null)
             {
-                changes.Add(TrustChange);
+                changes.Add(ReplacedAuthority is null
+                    ? TrustChange
+                    : TrustChange + ", replacing the earlier one, which was not limited to .test names");
             }
 
             if (Hosts is not null)

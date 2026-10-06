@@ -19,7 +19,7 @@ public sealed class RaskJobsOptionsBindingTests
         ["Rask:Jobs:MaxAttempts"] = "9",
         ["Rask:Jobs:BaseRetryDelay"] = "00:00:11",
         ["Rask:Jobs:MaxRetryDelay"] = "00:30:00",
-        ["Rask:Jobs:RetentionPeriod"] = "2.00:00:00",
+        ["Rask:Jobs:Retention"] = "2.00:00:00",
         ["Rask:Jobs:ShutdownGracePeriod"] = "00:00:03",
         ["Rask:Jobs:TimeZone"] = "Europe/Budapest",
     };
@@ -37,7 +37,7 @@ public sealed class RaskJobsOptionsBindingTests
         Assert.Equal(9, options.MaxAttempts);
         Assert.Equal(TimeSpan.FromSeconds(11), options.BaseRetryDelay);
         Assert.Equal(TimeSpan.FromMinutes(30), options.MaxRetryDelay);
-        Assert.Equal(TimeSpan.FromDays(2), options.RetentionPeriod);
+        Assert.Equal(TimeSpan.FromDays(2), options.Retention);
         Assert.Equal(TimeSpan.FromSeconds(3), options.ShutdownGracePeriod);
         Assert.Equal(TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest"), options.TimeZone);
     }

@@ -26,6 +26,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Tailwind.Tasks\Rask.Tailwind.Tasks.csproj"/>
+    <!-- The task under test is executed here, so the tests need MSBuild's own assemblies at run time —
+         which the task project deliberately does not carry (the build supplies them there). -->
+    <PackageReference Include="Microsoft.Build.Utilities.Core"/>
+  </ItemGroup>
+
+  <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
+       read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\..\src\Rask.Tailwind\build\Rask.Tailwind.props" />
   </ItemGroup>
 
 </Project>

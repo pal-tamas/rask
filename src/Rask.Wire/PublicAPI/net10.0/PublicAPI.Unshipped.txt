@@ -1,4 +1,32 @@
 #nullable enable
+override Rask.Length.GetHashCode() -> int
+override Rask.Length.ToString() -> string!
+override Rask.Percentage.GetHashCode() -> int
+override Rask.Percentage.ToString() -> string!
+Rask.Length
+Rask.Length.Equals(Rask.Length other) -> bool
+Rask.Length.Length() -> void
+Rask.Percentage
+Rask.Percentage.Equals(Rask.Percentage other) -> bool
+Rask.Percentage.Percentage() -> void
+Rask.Units.extension(double).Ch.get -> Rask.Length
+Rask.Units.extension(double).Dvh.get -> Rask.Length
+Rask.Units.extension(double).Dvw.get -> Rask.Length
+Rask.Units.extension(double).Em.get -> Rask.Length
+Rask.Units.extension(double).Percent.get -> Rask.Percentage
+Rask.Units.extension(double).Px.get -> Rask.Length
+Rask.Units.extension(double).Rem.get -> Rask.Length
+Rask.Units.extension(double).Vh.get -> Rask.Length
+Rask.Units.extension(double).Vw.get -> Rask.Length
+Rask.Units.extension(int).Ch.get -> Rask.Length
+Rask.Units.extension(int).Dvh.get -> Rask.Length
+Rask.Units.extension(int).Dvw.get -> Rask.Length
+Rask.Units.extension(int).Em.get -> Rask.Length
+Rask.Units.extension(int).Percent.get -> Rask.Percentage
+Rask.Units.extension(int).Px.get -> Rask.Length
+Rask.Units.extension(int).Rem.get -> Rask.Length
+Rask.Units.extension(int).Vh.get -> Rask.Length
+Rask.Units.extension(int).Vw.get -> Rask.Length
 Rask.Wire.AuthApi
 Rask.Wire.AuthError
 Rask.Wire.AuthError.DuplicateAccount = 3 -> Rask.Wire.AuthError
@@ -157,6 +185,28 @@ override Rask.Wire.RegisterRequest.ToString() -> string!
 override Rask.Wire.ResetPasswordRequest.Equals(object? obj) -> bool
 override Rask.Wire.ResetPasswordRequest.GetHashCode() -> int
 override Rask.Wire.ResetPasswordRequest.ToString() -> string!
+static Rask.Length.operator !=(Rask.Length left, Rask.Length right) -> bool
+static Rask.Length.operator ==(Rask.Length left, Rask.Length right) -> bool
+static Rask.Percentage.operator !=(Rask.Percentage left, Rask.Percentage right) -> bool
+static Rask.Percentage.operator ==(Rask.Percentage left, Rask.Percentage right) -> bool
+static Rask.Units.get_Ch(double value) -> Rask.Length
+static Rask.Units.get_Ch(int value) -> Rask.Length
+static Rask.Units.get_Dvh(double value) -> Rask.Length
+static Rask.Units.get_Dvh(int value) -> Rask.Length
+static Rask.Units.get_Dvw(double value) -> Rask.Length
+static Rask.Units.get_Dvw(int value) -> Rask.Length
+static Rask.Units.get_Em(double value) -> Rask.Length
+static Rask.Units.get_Em(int value) -> Rask.Length
+static Rask.Units.get_Percent(double value) -> Rask.Percentage
+static Rask.Units.get_Percent(int value) -> Rask.Percentage
+static Rask.Units.get_Px(double value) -> Rask.Length
+static Rask.Units.get_Px(int value) -> Rask.Length
+static Rask.Units.get_Rem(double value) -> Rask.Length
+static Rask.Units.get_Rem(int value) -> Rask.Length
+static Rask.Units.get_Vh(double value) -> Rask.Length
+static Rask.Units.get_Vh(int value) -> Rask.Length
+static Rask.Units.get_Vw(double value) -> Rask.Length
+static Rask.Units.get_Vw(int value) -> Rask.Length
 static Rask.Wire.AuthFailure.operator !=(Rask.Wire.AuthFailure? left, Rask.Wire.AuthFailure? right) -> bool
 static Rask.Wire.AuthFailure.operator ==(Rask.Wire.AuthFailure? left, Rask.Wire.AuthFailure? right) -> bool
 static Rask.Wire.AuthResult.Fail(Rask.Wire.AuthError error, string? message = null) -> Rask.Wire.AuthResult!
@@ -408,6 +458,7 @@ static Rask.Ambient.Enter(System.IServiceProvider? services) -> Rask.Ambient.Ser
 static Rask.Ambient.Enter(System.Threading.CancellationToken token) -> Rask.Ambient.TokenScope
 static Rask.Ambient.FallbackServices.get -> System.Func<System.IServiceProvider?>?
 static Rask.Ambient.FallbackServices.set -> void
+static Rask.Ambient.Reach<T>(string! facade, string! unless, string! wiring) -> T!
 static Rask.Ambient.Or(System.Threading.CancellationToken token) -> System.Threading.CancellationToken
 static Rask.Ambient.Services.get -> System.IServiceProvider?
 static Rask.Ambient.FallbackToken.get -> System.Func<System.Threading.CancellationToken>?
@@ -435,3 +486,5 @@ override Rask.Wire.PushSubscription.GetHashCode() -> int
 override Rask.Wire.PushSubscription.ToString() -> string!
 static Rask.Wire.PushSubscription.operator !=(Rask.Wire.PushSubscription? left, Rask.Wire.PushSubscription? right) -> bool
 static Rask.Wire.PushSubscription.operator ==(Rask.Wire.PushSubscription? left, Rask.Wire.PushSubscription? right) -> bool
+~override Rask.Length.Equals(object obj) -> bool
+~override Rask.Percentage.Equals(object obj) -> bool

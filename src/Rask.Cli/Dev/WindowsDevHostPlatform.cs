@@ -79,6 +79,28 @@ internal sealed class WindowsDevHostPlatform(IProcessRunner process, IConsole co
         }
     }
 
+    public override Task ForgetAsync(string thumbprint, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            store.Open(OpenFlags.ReadWrite);
+
+            foreach (var stale in store.Certificates.Find(X509FindType.FindByThumbprint, thumbprint, validOnly: false))
+            {
+                // Windows asks before a root is removed, as it does before one is added. Declining is a
+                // CryptographicException, and leaves a root whose key no longer exists.
+                store.Remove(stale);
+            }
+        }
+        catch (CryptographicException)
+        {
+            // Declined, or the store is unreadable: nothing further to do.
+        }
+
+        return Task.CompletedTask;
+    }
+
     public override async Task<bool> InstallHostsAsync(string stagedPath, CancellationToken cancellationToken)
     {
         // Both paths are interpolated into a PowerShell single-quoted literal below. One is a constant

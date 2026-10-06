@@ -86,6 +86,7 @@
         <Project Path="tests/Rask.Jobs.Tests/Rask.Jobs.Tests.csproj" />
         <Project Path="tests/Rask.Logging.Tests/Rask.Logging.Tests.csproj" />
         <Project Path="tests/Rask.Mail.Tests/Rask.Mail.Tests.csproj" />
+        <Project Path="tests/Rask.Batteries.Tests/Rask.Batteries.Tests.csproj" />
         <Project Path="tests/Rask.Outbox.Tests/Rask.Outbox.Tests.csproj" />
         <Project Path="tests/Rask.Postgres.Tests/Rask.Postgres.Tests.csproj" />
         <Project Path="tests/Rask.SqlServer.Tests/Rask.SqlServer.Tests.csproj" />

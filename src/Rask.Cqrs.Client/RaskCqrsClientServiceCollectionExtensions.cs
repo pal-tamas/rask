@@ -32,7 +32,7 @@ public static class RaskCqrsClientServiceCollectionExtensions
     /// </remarks>
     public static IServiceCollection AddRaskCqrsClient(
         this IServiceCollection services,
-        Action<RaskCqrsClientOptions>? configure = null)
+        Action<CqrsClientOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -42,7 +42,7 @@ public static class RaskCqrsClientServiceCollectionExtensions
             return services;
         }
 
-        var options = new RaskCqrsClientOptions();
+        var options = new CqrsClientOptions();
         configure?.Invoke(options);
         options.Validate();
 
@@ -141,7 +141,7 @@ public static class RaskCqrsClientServiceCollectionExtensions
     // app's own origin is meant, which is what a browser client wants: the request is
     // same-origin, so the session cookie rides it and no CORS preflight is involved. The container's own
     // HttpClient carries that origin, and every Rask WASM template registers one.
-    private static HttpClient ResolveHttpClient(IServiceProvider provider, RaskCqrsClientOptions options)
+    private static HttpClient ResolveHttpClient(IServiceProvider provider, CqrsClientOptions options)
     {
         if (options.BaseAddress is not null)
         {

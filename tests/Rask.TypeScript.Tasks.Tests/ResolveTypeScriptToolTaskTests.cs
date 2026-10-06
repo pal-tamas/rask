@@ -390,6 +390,83 @@ public class ResolveTypeScriptToolTaskTests
         Assert.False(Directory.Exists(cache) && Directory.GetFiles(cache, "*", SearchOption.AllDirectories).Length > 0);
     }
 
+    // #1182: the registry's own integrity field comes from the same place as the tarball, so it cannot say
+    // whether the package was replaced. The digests are recorded in the repository instead — which only
+    // helps while every pinned version actually has one, for every platform it is published for.
+    [Fact]
+    public void Every_pinned_tool_version_has_a_recorded_digest_for_every_platform_it_publishes()
+    {
+        // esbuild's ia32 and arm builds exist for some systems only; these three are names the mapping can
+        // produce that npm has never had.
+        string[] unpublished = ["@esbuild/darwin-ia32", "@esbuild/darwin-arm", "@esbuild/win32-arm"];
+        (TypeScriptTool Tool, string Version)[] tools =
+            [(TypeScriptTool.Esbuild, Pins.Value.Esbuild), (TypeScriptTool.Tsgo, Pins.Value.Tsgo)];
+        var packages =
+            from tool in tools
+            from os in Enum.GetValues<ToolOs>()
+            from architecture in Enum.GetValues<System.Runtime.InteropServices.Architecture>()
+            let name = TypeScriptTools.PackageName(tool.Tool, os, architecture)
+            where name is not null && !unpublished.Contains(name)
+            select (Name: name, tool.Version);
+
+        var unpinned = packages
+            .Append((Name: "typescript", Version: ReadPinnedCompilerVersion()))
+            .Where(p => TypeScriptToolPins.For(p.Name, p.Version) is null)
+            .Select(p => $"{p.Name}@{p.Version}")
+            .Distinct()
+            .ToArray();
+
+        Assert.True(
+            unpinned.Length == 0,
+            "A tool version was bumped without its digests. Record each package's dist.integrity in "
+            + "src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs:\n  " + string.Join("\n  ", unpinned));
+    }
+
+    [Fact]
+    public void A_download_that_is_not_the_expected_package_is_refused_and_nothing_is_installed()
+    {
+        var cache = Path.Combine(Path.GetTempPath(), "rask-swapped-" + Guid.NewGuid().ToString("n"));
+        var engine = new RecordingBuildEngine();
+        var task = new ResolveTypeScriptToolTask
+        {
+            BuildEngine = engine,
+            Tool = "esbuild",
+            Version = Pins.Value.Esbuild,
+            CacheRoot = cache,
+            ExpectedIntegrity = "sha512-" + Convert.ToBase64String(new byte[64]),
+        };
+
+        var resolved = task.Execute();
+
+        Assert.False(resolved);
+        Assert.Contains("not the package that was expected", Assert.Single(engine.Errors), StringComparison.Ordinal);
+        Assert.False(Directory.Exists(cache) && Directory.GetFiles(cache, "*", SearchOption.AllDirectories).Length > 0);
+    }
+
+    [Theory]
+    // An app's own build resolves these two, so there is a property to set.
+    [InlineData("tsgo", "RaskTsgoIntegrity")]
+    [InlineData("typescript", "RaskExternalTypeScriptIntegrity")]
+    // esbuild is only fetched by Rask's own build, where the answer is to record the digest.
+    [InlineData("esbuild", "TypeScriptToolPins.cs")]
+    public void A_version_Rask_records_no_digest_for_says_so_and_how_to_pin_it(string tool, string remedy)
+    {
+        var cache = Path.Combine(Path.GetTempPath(), "rask-unpinned-" + Guid.NewGuid().ToString("n"));
+        var engine = new RecordingBuildEngine();
+        var task = new ResolveTypeScriptToolTask
+        {
+            BuildEngine = engine,
+            Tool = tool,
+            Version = "0.0.0-not-a-real-version",
+            CacheRoot = cache,
+        };
+
+        task.Execute();
+
+        Assert.Contains(engine.Messages, m =>
+            m.Contains("records no digest", StringComparison.Ordinal) && m.Contains(remedy, StringComparison.Ordinal));
+    }
+
     /// <summary>Resolving twice is a cache hit, not a second download.</summary>
     [Fact]
     public void Resolving_twice_returns_the_same_path_with_no_second_fetch()
@@ -524,6 +601,14 @@ public class ResolveTypeScriptToolTaskTests
 
         return (Read("RaskEsbuildVersion"), Read("RaskTsgoVersion"));
     }
+
+    // The compiler library's pin lives with the islands build rather than in Rask.Core.targets.
+    private static string ReadPinnedCompilerVersion() =>
+        XDocument.Load(Path.Combine(
+                PinnedTools.RepositoryRoot(), "src", "Rask.External", "build", "Rask.External.props"))
+            .Descendants()
+            .Single(e => e.Name.LocalName == "RaskExternalTypeScriptVersion")
+            .Value;
 
     /// <summary>The smallest build engine a task needs, keeping what it was told.</summary>
     private sealed class RecordingBuildEngine : IBuildEngine

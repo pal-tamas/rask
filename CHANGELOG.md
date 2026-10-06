@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Inline style as typed CSS.** `Css` has a step for every CSS property browsers ship — 455, generated
+  from MDN's data (`@webref/css` for the grammars, browser-compat-data for what two engines ship) —
+  and `Style` takes one wherever it takes text: `Div.Style(Css.Position().Sticky.Top(0.Px))`. A
+  property's empty call offers its keywords (`Css.Display().Grid`), a typed value is taken as its type
+  (`Css.Height(40.Px)`, `Css.Opacity(0.5)`, `Css.TransitionDuration(150.Milliseconds)`), and any text
+  CSS allows still goes through (`Css.Width("calc(100% - 2rem)")`; `null` declares nothing). The unit
+  literals gain CSS lengths: `12.Px`, `1.5.Rem`, `2.Em`, `60.Ch`, `100.Vw`, `100.Vh`, `100.Dvw`,
+  `100.Dvh` and `50.Percent`. The daily upstream run keeps the property list on MDN's latest release.
+
 ### Changed
 
 - **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
@@ -16,6 +27,12 @@ them until tagged releases begin.
   it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
   included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
   unchanged and still run by hand; each CI job is one of them.
+- **Upstream is followed without anyone watching.** `upstream.yml` runs daily: it moves the MDN snapshot
+  to the latest stable data, records the public surface that moved with it, moves the stated Node line
+  to the Active LTS, gates the result and lands it on `main`. `dependabot-merge.yml` merges a
+  Dependabot pull request once `ci` has passed it. An issue is opened only when a person is needed —
+  the gates refused what upstream shipped, or Flux UI moved. `lts-watch.yml`, which only reported, is
+  gone.
 
 ### Fixed
 
@@ -23,8 +40,23 @@ them until tagged releases begin.
   other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
   with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
   verifies and unpacks in a directory of its own and moves the binary into the cache.
+- **`rask`: Spectre.Console's CI detection no longer overrides the CLI's own decision about whether a
+  prompt may be shown.** The CLI decides from the streams it was handed; under `CI`/`GITHUB_ACTIONS`
+  Spectre switched interaction off behind it.
 
 ### Removed
+
+- **BREAKING: `Notify` is gone; `Dispatcher` now works everywhere.** Two statics published an event, and which
+  one worked depended on where the line stood: `Dispatcher.Publish` threw in a `BackgroundService`, and
+  `Notify.Send` existed to cover that. One word now, from a page, a handler, a job or a singleton:
+  ```csharp
+  await Notify.Send(new ReportReady(id), stoppingToken);          // was
+  await Dispatcher.Publish(new ReportReady(id), stoppingToken);   // now
+  ```
+  Outside any work in progress `Dispatcher.Publish`, `Send` and `Query` open a scope of their own and dispose it
+  when the handler finishes, so a command can be sent from a hosted service with the same line a page uses.
+  `Notify.IsConfigured` is `Dispatcher.IsOn`; `Notify.UseScope` and `Notify.Configure` have no replacement — the
+  host binds the scope.
 
 - **Docs: the "ASP.NET Identity" section of `docs/authentication-providers.md` is gone.** `Rask.Auth` has
   its own accounts, and moving an existing Identity database onto it is covered in
@@ -129,6 +161,46 @@ them until tagged releases begin.
   `docs/configuration.md` and `docs/observability.md` still quoted 1.39 MB for a connected 200-row session;
   `session-footprint` measures 0.86 MB (~1,250 sessions per GiB). The benchmark baseline notes no longer
   claim a pre-push hook runs the byte gates, and list all six payload scenarios.
+- **BREAKING: a handler's `[Authorize]` now holds for a request sent in-process, not only over HTTP.** A
+  server page that sent an admin-only command ran it for any signed-in visitor, because the declaration
+  was checked at the remote endpoint alone. A caller the handler does not admit now gets
+  `ForbiddenException` — `IsAuthenticated` says whether anyone was signed in — before validation runs:
+  ```csharp
+  [Authorize(Roles = "admin")]
+  public sealed class PurgeLogsHandler : ICommandHandler<PurgeLogs> { … }
+
+  await Dispatcher.Send(new PurgeLogs());   // was: ran for any visitor of the page
+                                            // now: throws ForbiddenException for a non-admin
+  ```
+  `[AllowAnonymous]` is never checked, and a job, a durable handler and a hosted service run as the system.
+
+- **BREAKING: one word per setting across the batteries.** The same knob had a different name in each
+  battery, and five options types carried a `Rask` prefix the others did not. The appsettings keys under
+  `Rask:<Area>` follow the property names, so rename them there too:
+
+  | Was | Now |
+  |---|---|
+  | `JobsOptions.RetentionPeriod`, `MailOptions.RetentionPeriod`, `OutboxOptions.RetentionPeriod` | `Retention` |
+  | `CacheOptions.PurgeInterval`, `RaskLoggingOptions.PurgeInterval` | `SweepInterval` |
+  | `RaskLoggingOptions.ShutdownDrainTimeout` | `ShutdownGracePeriod` |
+  | `WebPushOptions.DefaultTtl` | `DefaultLifetime` |
+  | `RaskLoggingOptions` | `LogsOptions` |
+  | `RaskDashboardOptions` | `OpsOptions` |
+  | `WebPushOptions` | `PushOptions` |
+  | `RaskSignalingOptions` | `SignalingOptions` |
+  | `RaskCqrsClientOptions`, `RaskCqrsServerOptions` | `CqrsClientOptions`, `CqrsServerOptions` |
+  | `Db.IsConfigured`, `ReadDb.IsConfigured` | `IsOn` |
+
+  ```jsonc
+  { "Rask": { "Jobs": { "RetentionPeriod": "7.00:00:00" } } }   // was
+  { "Rask": { "Jobs": { "Retention": "7.00:00:00" } } }         // now
+  ```
+  `RaskServerOptions.ShutdownDrainTimeout`, the live-session drain, keeps its name.
+
+- **Every battery's static call explains a missing battery the same way.** `Cache`, `Mail`, `Jobs`, `Files`,
+  `Push`, `Logs`, `Dispatcher` and `QueryClient` each worded it differently, and most told a `RaskApp` to
+  call an `AddRask…` it never calls. Now: "Jobs is not running in this app. A RaskApp has it on unless
+  Program.cs says c.Jobs.Off(); a hand-wired host calls builder.Services.AddRaskJobs<AppDbContext>()."
 
 - **Tooling: `scripts/tools/RaskRename` renames a public member across the solution in one pass.**
   `dotnet run --project scripts/tools/RaskRename -- Rask.Wasm.WasmHostBuilder.RunAsync Run [--dry-run]` is a
@@ -1001,6 +1073,84 @@ them until tagged releases begin.
 
 ### Security
 
+- **The build tools Rask downloads are verified against digests recorded in Rask, not ones fetched beside
+  them.** The Tailwind CLI was checked against its release's own `sha256sums.txt`, and esbuild, tsgo and the
+  `typescript` package against the registry's own `integrity` field — which catches a corrupted download
+  and nothing else, since whoever can replace the file can replace the checksum next to it. The digests
+  for the pinned versions now ship in the task assemblies, and a download that does not match fails the
+  build; **a Tailwind mismatch used to fall back to npm silently**. An app that overrides a tool version
+  gets a build warning and today's upstream check, or pins it with `RaskTailwindSha256`,
+  `RaskTsgoIntegrity` or `RaskExternalTypeScriptIntegrity`.
+- **The `rask dev` certificate authority can only sign for `.test` and loopback names.** The root it installs
+  in the system trust store carried no name constraint, so the key under `~/.rask` could mint a certificate
+  every browser on the machine accepts for any site. It now carries a critical NameConstraints extension —
+  `.test`, `localhost`, `127.0.0.1`, `::1`. **An existing authority is replaced on the next `rask dev`**: one
+  more permission prompt, which says so, and the old root is then removed from the macOS keychain or the
+  Windows certificate store (on Linux the new one overwrites it).
+- **The open Web Push subscribe route is bounded, and a send cannot be aimed at the server's own network.**
+  `POST /_rask/push/subscribe` is anonymous and every new endpoint is a row in the app's database, with no
+  cap and no rate limit. `Rask:Push` gains `MaxAnonymousSubscribers` (10 000 signed-out rows, then 429) and
+  `RequireUser` (off; 401 to a signed-out subscribe when on), and one client may subscribe ten times a
+  minute. A stored endpoint's name is now checked where it resolves: a send to a loopback, private,
+  link-local or carrier-NAT address never connects. A broadcast sends eight at a time with a ten-second
+  `SendTimeout`, so endpoints that accept and never answer no longer hold it for 100 s each in a row.
+  **The battery's sender still followed redirects** — only the sender-alone registration had been given the
+  no-redirect handler, against what the docs said; both now share one. A stored key that is the right length
+  but no point on the curve is dropped when a send finds it, instead of failing the whole broadcast. Behind
+  an egress proxy the connection is to the proxy, so the address check does not apply there.
+- **Registering a taken address no longer reveals it once email confirmation is required.** Registration
+  answered `AuthError.DuplicateAccount` for an address that has an account, against the battery's own claim
+  that no answer tells a caller which addresses do. With `Rask:Auth:RequireConfirmedEmail` on, a taken
+  address now answers exactly as a new one ("confirm your email"), the owner is mailed "you already have an
+  account" (`AuthOptions.AlreadyRegisteredSubject`, `IAuthEmailBodies.AlreadyRegistered`), and attempts
+  are throttled per address and client, taken or not. With it off — the default, since a new account is signed in at once —
+  `DuplicateAccount` stays, and the docs and comments now say that it does. **A custom `IAuthEmailBodies`**
+  gains one method to implement.
+- **Every `[Authorize]` on a CQRS handler is enforced, not only the last.** The codec generator kept one
+  policy and one roles string per handler, so `[Authorize(Policy = "members")]` above
+  `[Authorize(Policy = "billing")]` was never checked — while a page with the same two attributes required
+  both. Each attribute is now carried and required, including one on a base class, and the same holds for
+  an event record's subscribe attributes. `RemoteContract.Policy`/`Roles`/`SubscribePolicy`/`SubscribeRoles`
+  become the lists `Policies`/`RoleSets`/`SubscribePolicies`/`SubscribeRoleSets`, which generated code
+  writes; rebuild is the whole migration. A policy or role name containing a quote no longer breaks the
+  generated source.
+- **A caller can no longer fill the disk with chunked uploads it never sends.** One CQRS upload was capped at
+  `MaxUploadBytes`, but nothing capped how many upload ids a caller had open, so a loop over fresh ids wrote
+  32 MB per id to the temp directory. `Rask:Cqrs:Server` gains `MaxOpenUploads` (4) and `MaxOpenUploadBytes`
+  (64 MB) per caller; past either the next chunk answers 429. With `RequireAuthenticatedUser` off, anonymous
+  callers are told apart by address instead of sharing one owner. **An app that raised `MaxUploadBytes`
+  above 64 MB** raises `MaxOpenUploadBytes` with it, or the host refuses to start. An upload's running total
+  is also counted under one lock now — two files of one upload arriving together could slip past the cap.
+- **The signaling relay refuses a WebSocket upgrade from another origin.** `MapRaskSignaling()` accepted the
+  upgrade without looking at `Origin`, and the endpoint is cookie-authenticated, so a page on a site the
+  browser still sends the cookie for could join a room as the signed-in visitor and read the peers' SDP and
+  ICE candidates. An upgrade whose `Origin` is not the host's own now answers 403; a client that sends no
+  `Origin` is unaffected. **A relay mapped on a different host from the app** lists the app in
+  `Rask:Signaling:AllowedOrigins`. The check is the live endpoint's, now shared through `Rask.Hosting.Shared`.
+- **The WASM service worker no longer keeps a signed-in visitor's responses after they sign out.** It stored
+  every successful same-origin GET, ignoring `Cache-Control`, so `/api/…` answers stayed in Cache Storage and
+  were replayed offline to whoever used the browser next. It now keeps the app shell only — navigations,
+  scripts, styles, fonts, images, `_framework/`, `_rask/`, `_content/` — never a response marked `no-store`
+  or `private`, and anything else only when the server marks it `Cache-Control: public`. `Auth.SignOut()`,
+  `SignOutEverywhere()` and `WasmAuthSignIn.SignOut` empty the cache. **An app that relied on `fetch`ed API
+  GETs being available offline** marks those responses `public`, or keeps the data in a local store.
+  `BrowserAuth` and `WasmAuthSignIn` take an `IJSRuntime`, which only matters to code constructing them by hand.
+- **An island is loaded from the page's own origin only.** `rask-external.js` fetched whatever URL an
+  element's `manifest` attribute named and imported the chunk it listed, so an app rendering sanitized user
+  HTML through a sanitizer that keeps unknown elements could be handed
+  `<rask-external manifest="https://elsewhere.example/m.json">`. A manifest or chunk on another origin is now
+  refused with a console error; the loopback island dev server is the one exception, and only while
+  `rask dev` has stamped it on the page. A `RaskExternalPublicBase` or `RaskExternalManifestUrl` naming
+  another origin fails the build — a CDN-hosted island bundle was never documented and is not supported.
+- **A freshly scaffolded Solid island passes `npm audit`.** `rask new --islands solid` wrote `solid-js`
+  `^1.9.15`, whose pinned `seroval` carries two critical advisories. An island fragment can now declare npm
+  `overrides`, which the CLI merges into the app's `package.json`, and Solid's takes `seroval` and
+  `seroval-plugins` to `^1.6.8`. An app scaffolded earlier adds the same two lines by hand.
+- **A hosted Blazor component's `<iframe src>` or `<embed src>` no longer accepts an inline image URL.** The
+  island writer chose the media exemption by attribute name, so `src` and `poster` let `data:image/svg+xml`
+  through on every element, where a frame renders it as a document. The exemption now follows the element,
+  as it does for Rask's own: `src` on `img`/`audio`/`video`/`source`/`track`/`input`, `poster` on `video`,
+  and `href` on an SVG `image`, which had been refused. `srcset` is written as Core writes it.
 - **A sign-in `returnUrl` no longer opens a page the new identity may not see.** The reconnect that follows a
   sign-in or sign-out rendered its destination without the route guard, so `/login?returnUrl=/admin/users`
   mounted an `[Authorize(Roles = "admin")]` page for anyone who could sign in. The guard now runs before the
@@ -1102,6 +1252,24 @@ them until tagged releases begin.
   events keep their own serializers, so persistence is unchanged.
 
 ### Added
+
+- **Test fakes can run what they recorded, so one test proves a flow across batteries.** `Jobs.Fake()`
+  recorded and ran nothing; `await jobs.Run()` now sends every recorded job through its real handler, as the
+  tenant and user who enqueued it. `Outbox.Fake()` is new: it records a durable handler's event instead of
+  writing a row, and `await outbox.Run()` runs the handler.
+  ```csharp
+  using var outbox = Outbox.Fake();
+  using var jobs = Jobs.Fake();
+  using var mail = Mail.Fake();
+
+  page.Click("Place order");
+  await outbox.Run();   // the durable handlers run
+  await jobs.Run();     // the jobs they enqueued run
+
+  mail.Sent().To("ann@example.com").Once();
+  ```
+  `Run()` also runs work a running handler enqueues, and delayed jobs; a handler that throws lets its
+  exception out.
 
 - **`rask new --dry-run --json` and `rask dev --dry-run --json`: the plan as a document.** `new` prints the
   template, the name, the directory and the files it would write; `dev` prints the command, its arguments,
@@ -1306,8 +1474,49 @@ them until tagged releases begin.
   (`Rask.Cqrs.Generators`, `Rask.Data.Generators`, …); its types are now in `Rask.Batteries.Generators` (and
   `.Analyzers`), matching the project. Nothing an app names changes.
 
+### Changed
+
+- **Rask UI is moving from daisyUI to Flux UI, one component at a time.** The kit will mirror
+  [Flux UI](https://fluxui.dev) — its components, its names, its props, and its look and behaviour exactly —
+  and daisyUI goes when the last component drawn with it does. This first step is the ground it stands on,
+  and changes nothing an app draws: Flux's theme model sits in the kit's stylesheet beside daisyUI's (an
+  accent of three variables over Tailwind's `zinc` scale, and a `dark:` variant that follows a `dark` class
+  as well as whatever daisyUI currently calls dark), and the tooling that keeps the kit honest is in
+  `scripts/flux/`: `refresh.mjs` reads Flux's docs into a snapshot of every component, prop and value,
+  `parity.mjs` measures a Rask component against Flux's live examples — boxes, colours, borders, shadows,
+  hover, press and focus, in light and dark — and `sync.mjs` reports when Flux itself has moved. Written from
+  Flux's public documentation; none of Flux's source is used.
+
 ### Fixed
 
+- **`Mail.Send`, `Jobs.Enqueue` and every other static call now work inside a job, a durable handler and a
+  custom mail sender.** The three processors restored the tenant but never made the app reachable, so a
+  handler written the way the tutorial writes one threw "called outside any work in progress":
+  ```csharp
+  public async Task Handle(SendOrderReceipt job) =>
+      await Mail.Send(Email.To(job.Customer).Subject("Your receipt").Body(Receipt.OrderId(job.OrderId)));
+  ```
+  Each now binds its scope around the handler, as a request and a live session already did. A durable
+  handler and a queued email also run **for the user who started them** — `Current.UserId` reads the same
+  inside the handler as on the page that saved the change, where before only a job carried it.
+  **Upgrading adds a column to each table:** `rask db add AddOutboxUser && rask db add AddMailUser && rask db
+  update`. Until then each processor logs exactly that line instead of a generic failure.
+- **The packaging gate passes in a fresh worktree.** `Every_file_a_project_packs_by_name_exists` called the
+  four gitignored JavaScript files `Rask.Wasm` and `Rask.External` bundle from TypeScript "produced by
+  nothing" until those projects had been built. It now reads each project's own esbuild `--outfile` and
+  reports such a file as not built yet, the way it already does for a task assembly.
+- **UI kit: status text is readable on every theme, and `Ui.Card.Size` does something.** `Ui.Text.Tone(…)`
+  and the tones on `Ui.Stat`, `Ui.Metric`, `Ui.DetailRow`, `Ui.Code`, `Ui.MenuItem`, an alarming `Ui.Tab`
+  count and an accented `Ui.Heading` wrote daisyUI's status colours as text, which fail WCAG AA on most
+  palettes; they now use the kit's measured `-ink` tokens, and a test keeps the raw spelling out.
+  `Ui.Card.Size` wrote a daisyUI class the kit's card never reacted to; it is now the card's padding, with
+  `Md` equal to an unsized card:
+  ```csharp
+  Ui.Card.Sm[…]   // was identical to Ui.Card[…]; now p-3 sm:p-4
+  ```
+  Also: the `Buttons` choice layout has its corner radius back (`rounded-btn` is not a daisyUI 5 class), a
+  `Ui.Tone.Warning` toast shows the warning icon instead of a green check, and `dotnet pack` takes the
+  kit's stylesheet from a target framework the project builds rather than whichever `obj/*/` sorts last.
 - **Docs, rask.sh and the package pages describe the framework as it is now.** A sweep of everything the
   recent removals left behind. `llms.txt` no longer describes a wizard with styling, auth and battery
   questions, front-end and meta-framework templates, opt-in `--pwa`/`--docker` flags, a `Rask`

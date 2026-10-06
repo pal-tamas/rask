@@ -1,28 +1,32 @@
 #nullable enable
 Rask.Cqrs.Server.RaskCqrsEndpointExtensions
-Rask.Cqrs.Server.RaskCqrsServerOptions
-Rask.Cqrs.Server.RaskCqrsServerOptions.IncludeExceptionDetail.get -> bool
-Rask.Cqrs.Server.RaskCqrsServerOptions.IncludeExceptionDetail.set -> void
-Rask.Cqrs.Server.RaskCqrsServerOptions.MaxFileCount.get -> int
-Rask.Cqrs.Server.RaskCqrsServerOptions.MaxFileCount.set -> void
-Rask.Cqrs.Server.RaskCqrsServerOptions.MaxRequestBytes.get -> long
-Rask.Cqrs.Server.RaskCqrsServerOptions.MaxRequestBytes.set -> void
-Rask.Cqrs.Server.RaskCqrsServerOptions.MaxUploadBytes.get -> long
-Rask.Cqrs.Server.RaskCqrsServerOptions.MaxUploadBytes.set -> void
-Rask.Cqrs.Server.RaskCqrsServerOptions.MaxUploadChunkBytes.get -> long
-Rask.Cqrs.Server.RaskCqrsServerOptions.MaxUploadChunkBytes.set -> void
-Rask.Cqrs.Server.RaskCqrsServerOptions.RaskCqrsServerOptions() -> void
-Rask.Cqrs.Server.RaskCqrsServerOptions.RequireAuthenticatedUser.get -> bool
-Rask.Cqrs.Server.RaskCqrsServerOptions.RequireAuthenticatedUser.set -> void
-Rask.Cqrs.Server.RaskCqrsServerOptions.RoutePrefix.get -> string!
-Rask.Cqrs.Server.RaskCqrsServerOptions.RoutePrefix.set -> void
-Rask.Cqrs.Server.RaskCqrsServerOptions.UploadSessionLifetime.get -> System.TimeSpan
-Rask.Cqrs.Server.RaskCqrsServerOptions.UploadSessionLifetime.set -> void
+Rask.Cqrs.Server.CqrsServerOptions
+Rask.Cqrs.Server.CqrsServerOptions.IncludeExceptionDetail.get -> bool
+Rask.Cqrs.Server.CqrsServerOptions.IncludeExceptionDetail.set -> void
+Rask.Cqrs.Server.CqrsServerOptions.MaxFileCount.get -> int
+Rask.Cqrs.Server.CqrsServerOptions.MaxFileCount.set -> void
+Rask.Cqrs.Server.CqrsServerOptions.MaxRequestBytes.get -> long
+Rask.Cqrs.Server.CqrsServerOptions.MaxRequestBytes.set -> void
+Rask.Cqrs.Server.CqrsServerOptions.MaxUploadBytes.get -> long
+Rask.Cqrs.Server.CqrsServerOptions.MaxUploadBytes.set -> void
+Rask.Cqrs.Server.CqrsServerOptions.MaxOpenUploadBytes.get -> long
+Rask.Cqrs.Server.CqrsServerOptions.MaxOpenUploadBytes.set -> void
+Rask.Cqrs.Server.CqrsServerOptions.MaxOpenUploads.get -> int
+Rask.Cqrs.Server.CqrsServerOptions.MaxOpenUploads.set -> void
+Rask.Cqrs.Server.CqrsServerOptions.MaxUploadChunkBytes.get -> long
+Rask.Cqrs.Server.CqrsServerOptions.MaxUploadChunkBytes.set -> void
+Rask.Cqrs.Server.CqrsServerOptions.CqrsServerOptions() -> void
+Rask.Cqrs.Server.CqrsServerOptions.RequireAuthenticatedUser.get -> bool
+Rask.Cqrs.Server.CqrsServerOptions.RequireAuthenticatedUser.set -> void
+Rask.Cqrs.Server.CqrsServerOptions.RoutePrefix.get -> string!
+Rask.Cqrs.Server.CqrsServerOptions.RoutePrefix.set -> void
+Rask.Cqrs.Server.CqrsServerOptions.UploadSessionLifetime.get -> System.TimeSpan
+Rask.Cqrs.Server.CqrsServerOptions.UploadSessionLifetime.set -> void
 Rask.Cqrs.Server.RaskCqrsServerServiceCollectionExtensions
 static Rask.Cqrs.Server.RaskCqrsEndpointExtensions.MapRaskCqrs(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
-static Rask.Cqrs.Server.RaskCqrsServerServiceCollectionExtensions.AddRaskCqrsServer(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cqrs.Server.RaskCqrsServerOptions!>? configure = null, System.Action<Rask.Cqrs.CqrsOptions!>? configureCqrs = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-Rask.Cqrs.Server.RaskCqrsServerOptions.EventKeepAlive.get -> System.TimeSpan
-Rask.Cqrs.Server.RaskCqrsServerOptions.EventKeepAlive.set -> void
+static Rask.Cqrs.Server.RaskCqrsServerServiceCollectionExtensions.AddRaskCqrsServer(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cqrs.Server.CqrsServerOptions!>? configure = null, System.Action<Rask.Cqrs.CqrsOptions!>? configureCqrs = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Cqrs.Server.CqrsServerOptions.EventKeepAlive.get -> System.TimeSpan
+Rask.Cqrs.Server.CqrsServerOptions.EventKeepAlive.set -> void
 Rask.Cqrs.Server.BadRequestException
 Rask.Cqrs.Server.BadRequestException.BadRequestException() -> void
 Rask.Cqrs.Server.BadRequestException.BadRequestException(int status, string! title, string? detail) -> void
@@ -37,3 +41,6 @@ Rask.Cqrs.Server.UploadOffsetException.UploadOffsetException() -> void
 Rask.Cqrs.Server.UploadOffsetException.UploadOffsetException(long expected) -> void
 Rask.Cqrs.Server.UploadOffsetException.UploadOffsetException(string! message) -> void
 Rask.Cqrs.Server.UploadOffsetException.UploadOffsetException(string! message, System.Exception! innerException) -> void
+Rask.Cqrs.Server.AuthorizationPolicyEvaluator
+Rask.Cqrs.Server.AuthorizationPolicyEvaluator.AuthorizationPolicyEvaluator(System.IServiceProvider! services) -> void
+Rask.Cqrs.Server.AuthorizationPolicyEvaluator.Permits(System.Security.Claims.ClaimsPrincipal! user, string! policy) -> System.Threading.Tasks.Task<bool>!

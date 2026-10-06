@@ -30,7 +30,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>
   </ItemGroup>
 
-  <!-- WebPushOptions binds Rask:Push. The configuration binding source generator writes that bind at compile
+  <!-- PushOptions binds Rask:Push. The configuration binding source generator writes that bind at compile
        time, so no reflection binder runs; the SDK leaves it off unless a project asks. -->
   <PropertyGroup>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
@@ -43,6 +43,7 @@
     <Compile Include="..\Rask.Batteries.Shared\Counting.cs" Link="Shared\Counting.cs"/>
     <Compile Include="..\Rask.Batteries.Shared\CountingException.cs" Link="Shared\CountingException.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\ClientNetwork.cs" Link="Shared\ClientNetwork.cs"/>
   </ItemGroup>
 
   <ItemGroup>

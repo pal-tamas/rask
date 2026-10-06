@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization.Metadata;
+using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
@@ -21,7 +22,8 @@ public sealed class BrowserAuth(
     HttpClient http,
     IUserProvider users,
     IWebAuthn webAuthn,
-    AuthClientOptions options) : IAuth
+    AuthClientOptions options,
+    IJSRuntime js) : IAuth
 {
     /// <inheritdoc />
     public Task<AuthResult> Register(
@@ -47,8 +49,7 @@ public sealed class BrowserAuth(
         using var request = Request(AuthApi.Logout);
         await http.SendAsync(request).ConfigureAwait(false);
 
-        await users.Refresh().ConfigureAwait(false);
-        Go.To(LocalUrl.Sanitize(returnUrl));
+        await SignedOut(returnUrl).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -64,7 +65,14 @@ public sealed class BrowserAuth(
         using var request = Request(AuthApi.LogoutEverywhere);
         await http.SendAsync(request).ConfigureAwait(false);
 
+        await SignedOut(returnUrl).ConfigureAwait(false);
+    }
+
+    // What the service worker kept offline, it kept for whoever was signed in: emptied before moving on.
+    private async Task SignedOut(string? returnUrl)
+    {
         await users.Refresh().ConfigureAwait(false);
+        await OfflineCache.Clear(js).ConfigureAwait(false);
         Go.To(LocalUrl.Sanitize(returnUrl));
     }
 

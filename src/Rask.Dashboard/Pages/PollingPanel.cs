@@ -17,7 +17,7 @@ namespace Rask.Dashboard.Pages;
 ///     no diff and no WebSocket traffic at all.
 ///   </item>
 ///   <item>
-///     <b>The loop is bounded.</b> After <see cref="RaskDashboardOptions.MaxPollDuration" /> the panel parks
+///     <b>The loop is bounded.</b> After <see cref="OpsOptions.MaxPollDuration" /> the panel parks
 ///     and offers a Resume button. Every open tab is a reader competing for the write lock, and a dashboard
 ///     left open on a wall display would otherwise poll forever.
 ///   </item>
@@ -33,7 +33,7 @@ public abstract partial class PollingPanel : Component
     private bool _running;
 
     /// <summary>The dashboard options. Inject them and return them.</summary>
-    protected abstract RaskDashboardOptions Options { get; }
+    protected abstract OpsOptions Options { get; }
 
     /// <summary>
     /// Reads the panel's data into fields and returns a value used purely for change detection — return a

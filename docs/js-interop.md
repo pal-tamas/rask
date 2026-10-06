@@ -170,7 +170,9 @@ methods, so the component renders a control that does nothing, with no error any
 ### What compiles it
 
 `tsgo` — the Go build of the TypeScript compiler — fetched once as a native binary into
-`~/.rask/typescript` and verified against the checksum its registry publishes. **No npm, no Node, no
+`~/.rask/typescript` and verified against an integrity recorded in Rask itself for the pinned version
+(a registry's own checksum comes from where the tarball does; an overridden `RaskTsgoVersion` is checked
+against that alone, with a warning, unless `RaskTsgoIntegrity` pins it). **No npm, no Node, no
 `node_modules`**, the same arrangement [Tailwind](tailwind.md) uses. `RaskTypeScriptBuild=false`
 turns it off, and `RaskTypeScriptOffline=true` refuses to fetch and fails naming the file to put in
 place.

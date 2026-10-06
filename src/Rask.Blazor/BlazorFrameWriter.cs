@@ -51,13 +51,20 @@ internal static class BlazorFrameWriter
     // un-encoded path — so nothing downstream would catch a miss here.
     private static readonly HashSet<string> UrlAttributes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "href", "xlink:href", "action", "formaction", "ping", "cite", "background", "data",
+        "href", "xlink:href", "action", "formaction", "ping", "cite", "background", "data", "src", "poster",
     };
 
-    // As above, but inline media is both common and inert, so data:image/* and friends stay allowed.
-    private static readonly HashSet<string> MediaUrlAttributes = new(StringComparer.OrdinalIgnoreCase)
+    // Inline media is both common and inert, so data:image/* and friends stay allowed — but only where
+    // the element can do nothing except draw or play it, the same elements Core exempts. An <iframe src>
+    // or <embed src> renders a data:image/svg+xml value as a DOCUMENT.
+    private static readonly HashSet<string> MediaSourceElements = new(StringComparer.OrdinalIgnoreCase)
     {
-        "src", "poster", "srcset",
+        "img", "audio", "video", "source", "track", "input",
+    };
+
+    private static readonly HashSet<string> MediaLinkElements = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "image", "feImage",
     };
 
     /// <summary>Renders <paramref name="componentId" />'s current tree.</summary>
@@ -157,7 +164,7 @@ internal static class BlazorFrameWriter
         var child = i + 1;
         while (child < subtreeEnd && frames.Array[child].FrameType == RenderTreeFrameType.Attribute)
         {
-            WriteAttribute(ref frames.Array[child], sb, registerEvent);
+            WriteAttribute(name, ref frames.Array[child], sb, registerEvent);
             child++;
         }
 
@@ -176,6 +183,7 @@ internal static class BlazorFrameWriter
     }
 
     private static void WriteAttribute(
+        string element,
         ref RenderTreeFrame frame,
         StringBuilder sb,
         Func<ulong, string, string?> registerEvent)
@@ -214,7 +222,7 @@ internal static class BlazorFrameWriter
             return;
         }
 
-        WriteAttributeValue(name, frame.AttributeValue, sb);
+        WriteAttributeValue(element, name, frame.AttributeValue, sb);
     }
 
     private static void WriteEventHandler(
@@ -252,7 +260,16 @@ internal static class BlazorFrameWriter
         sb.Append(" data-rask-on-").Append(eventName).Append("=\"").Append(raskId).Append('"');
     }
 
-    private static void WriteAttributeValue(string name, object? value, StringBuilder sb)
+    private static bool IsInlineMedia(string element, string attribute) =>
+        attribute.ToUpperInvariant() switch
+        {
+            "SRC" => MediaSourceElements.Contains(element),
+            "POSTER" => element.Equals("video", StringComparison.OrdinalIgnoreCase),
+            "HREF" or "XLINK:HREF" => MediaLinkElements.Contains(element),
+            _ => false,
+        };
+
+    private static void WriteAttributeValue(string element, string name, object? value, StringBuilder sb)
     {
         switch (value)
         {
@@ -274,11 +291,9 @@ internal static class BlazorFrameWriter
                 // a hosted <a href="@Url"> fed from a parameter cannot emit javascript: verbatim.
                 if (UrlAttributes.Contains(name))
                 {
-                    text = UrlSanitizer.Sanitize(text);
-                }
-                else if (MediaUrlAttributes.Contains(name))
-                {
-                    text = UrlSanitizer.SanitizeMedia(text);
+                    text = IsInlineMedia(element, name)
+                        ? UrlSanitizer.SanitizeMedia(text)
+                        : UrlSanitizer.Sanitize(text);
                 }
 
                 sb.Append(' ').Append(name).Append("=\"");

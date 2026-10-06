@@ -144,6 +144,20 @@ public partial class CrossAssemblyTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void An_inline_image_URL_is_kept_on_an_image_and_neutralised_on_a_frame()
+    {
+        // data:image/svg+xml only draws in an <img>. In an <iframe> or <embed> it is a document, with
+        // its own script — so the media exemption belongs to the element, not to the name `src`.
+        const string Svg = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'/%3E";
+
+        var html = Page.Render(TickerIsland.Symbol("RASK").Url(Svg), Services()).Html;
+
+        Assert.Contains("<iframe src=\"about:blank\"", html, StringComparison.Ordinal);
+        Assert.Contains("<embed src=\"about:blank\"", html, StringComparison.Ordinal);
+        Assert.Contains("<img src=\"data:image/svg", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_renamed_parameter_actually_REACHES_the_hosted_component()
     {
         // The step existing is not the claim — the value arriving is. A hand-declared property used to

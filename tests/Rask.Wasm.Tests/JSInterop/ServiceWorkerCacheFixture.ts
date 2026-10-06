@@ -20,6 +20,7 @@ const workerSource = readFileSync(workerPath, "utf8");
 interface StubResponse {
     ok: boolean;
     body: string;
+    headers: {get(name: string): string | null};
     clone(): StubResponse;
 }
 
@@ -27,6 +28,7 @@ interface StubRequest {
     url: string;
     method: string;
     mode: string;
+    destination: string;
 }
 
 interface Case {
@@ -38,7 +40,17 @@ interface Case {
     shell?: string;
 }
 
-const response = (body: string): StubResponse => ({ok: true, body, clone: () => response(body)});
+const response = (body: string): StubResponse =>
+    ({ok: true, body, headers: {get: () => null}, clone: () => response(body)});
+
+// What the browser would label the request: the worker keeps the shell by this (see keptOffline), and
+// the runtime's own files, fetched by script, carry none.
+const destinationOf = (path: string): string =>
+    path.endsWith(".html") ? "document"
+        : path.includes("/_framework/") ? ""
+        : path.endsWith(".js") ? "script"
+        : path.endsWith(".css") ? "style"
+        : "";
 
 async function run(c: Case) {
     const url = ORIGIN + c.path;
@@ -79,7 +91,7 @@ async function run(c: Case) {
 
     const answers: Promise<StubResponse>[] = [];
     listeners.get("fetch")!({
-        request: {url, method: "GET", mode: c.navigate ? "navigate" : "cors"},
+        request: {url, method: "GET", mode: c.navigate ? "navigate" : "cors", destination: destinationOf(c.path)},
         respondWith: (promise: Promise<StubResponse>) => void answers.push(promise),
     });
 

@@ -39,10 +39,21 @@ internal sealed partial class AuthMail(
         SendAsync(
             email,
             options.ConfirmEmailSubject,
-            options.ConfirmEmailPath,
-            userId,
-            token,
+            origin => Link(origin, options.ConfirmEmailPath, userId, token),
             link => bodies.Confirm(link, options.ConfirmEmailSubject),
+            cancellationToken);
+
+    /// <summary>
+    /// Tells an account's owner that somebody tried to register with their address. Returns false when the app
+    /// cannot send.
+    /// </summary>
+    /// <remarks>The link is the sign-in page and carries no token: there is nothing here to prove.</remarks>
+    public Task<bool> SendAlreadyRegisteredAsync(string email, CancellationToken cancellationToken) =>
+        SendAsync(
+            email,
+            options.AlreadyRegisteredSubject,
+            origin => origin.TrimEnd('/') + options.LoginPath,
+            link => bodies.AlreadyRegistered(link, options.AlreadyRegisteredSubject),
             cancellationToken);
 
     /// <summary>Sends the "reset your password" email. Returns false when the app cannot send.</summary>
@@ -51,18 +62,14 @@ internal sealed partial class AuthMail(
         SendAsync(
             email,
             options.ResetPasswordSubject,
-            options.ResetPasswordPath,
-            userId,
-            token,
+            origin => Link(origin, options.ResetPasswordPath, userId, token),
             link => bodies.Reset(link, options.ResetPasswordSubject, options.TokenLifetime),
             cancellationToken);
 
     private async Task<bool> SendAsync(
         string address,
         string subject,
-        string path,
-        string userId,
-        string token,
+        Func<string, string> linkFrom,
         Func<string, string> body,
         CancellationToken cancellationToken)
     {
@@ -72,7 +79,7 @@ internal sealed partial class AuthMail(
             return false;
         }
 
-        var link = Link(origin, path, userId, token);
+        var link = linkFrom(origin);
 
         try
         {

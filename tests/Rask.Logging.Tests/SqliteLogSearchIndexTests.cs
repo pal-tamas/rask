@@ -99,7 +99,7 @@ public sealed class SqliteLogSearchIndexTests
         }
 
         SqliteConnection.ClearAllPools();
-        var reopened = new SqliteLogStore(harness.ConnectionString, new RaskLoggingOptions(), harness.Clock);
+        var reopened = new SqliteLogStore(harness.ConnectionString, new LogsOptions(), harness.Clock);
 
         Assert.Single((await reopened.Search(new LogQuery { Search = "needle" }, TestContext.Current.CancellationToken)).Entries);
         await AssertIntegrityAsync(harness.DbPath);

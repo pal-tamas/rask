@@ -4,8 +4,8 @@ namespace Rask.Dashboard.Logging;
 
 /// <summary>
 /// A bounded, in-memory tail of the application's log — <b>not</b> a log store. It holds the last
-/// <see cref="RaskDashboardOptions.LogBufferSize" /> entries at or above
-/// <see cref="RaskDashboardOptions.LogMinimumLevel" /> and is gone when the process restarts; point a real
+/// <see cref="OpsOptions.LogBufferSize" /> entries at or above
+/// <see cref="OpsOptions.LogMinimumLevel" /> and is gone when the process restarts; point a real
 /// logging provider somewhere durable for anything you need to keep.
 /// <para>
 /// It exists because the failures that matter most here leave no row in any table: Litestream exiting,
@@ -13,7 +13,7 @@ namespace Rask.Dashboard.Logging;
 /// otherwise send you to the container's stdout to read them.
 /// </para>
 /// </summary>
-public sealed class DashboardLogBuffer(RaskDashboardOptions options, TimeProvider timeProvider)
+public sealed class DashboardLogBuffer(OpsOptions options, TimeProvider timeProvider)
 {
     private readonly Lock _gate = new();
     private readonly Queue<DashboardLogEntry> _entries = new();

@@ -12,7 +12,7 @@ namespace Rask.Background;
 /// <c>Rask.Cqrs</c>' <see cref="IDispatcher"/> to its <see cref="ICommandHandler{TCommand}"/>. At-least-once:
 /// a job runs at least once and, on failure, is retried with exponential backoff up to
 /// <see cref="JobsOptions.MaxAttempts"/> (after which it is left as a dead letter). Also enqueues due
-/// interval-recurring jobs and purges completed jobs past <see cref="JobsOptions.RetentionPeriod"/>. A failing
+/// interval-recurring jobs and purges completed jobs past <see cref="JobsOptions.Retention"/>. A failing
 /// job never crashes the app. Each processor <b>leases</b> the batch it claims, so several instances is
 /// safe; see <c>docs/scaling.md</c> for what a lease does and does not guarantee.
 /// </summary>
@@ -269,6 +269,10 @@ public sealed partial class JobProcessor<TContext>(
         await using var jobScope = scope.ConfigureAwait(false);
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
+        // A job is work in progress like a request: the static facades (`Mail.Send`, `Jobs.Enqueue`) and the
+        // model's reads reach the app through this scope, with nothing injected into the handler.
+        using var work = Db.UseScope(scope.ServiceProvider);
+
         // Run AS the tenant the job was enqueued for. Without this a handler that reads a
         // tenant-scoped table throws, because background work carries no principal and so has no
         // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
@@ -474,7 +478,7 @@ public sealed partial class JobProcessor<TContext>(
 
     private async Task PurgeAsync(CancellationToken cancellationToken)
     {
-        if (options.RetentionPeriod <= TimeSpan.Zero)
+        if (options.Retention <= TimeSpan.Zero)
         {
             return;
         }
@@ -486,7 +490,7 @@ public sealed partial class JobProcessor<TContext>(
         }
 
         _lastPurge = now;
-        var cutoff = now - options.RetentionPeriod;
+        var cutoff = now - options.Retention;
         const int page = 1000;
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);

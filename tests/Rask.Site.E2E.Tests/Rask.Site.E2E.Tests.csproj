@@ -32,6 +32,17 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!--
+    An ordering edge and nothing else: _RaskBundleBrowserFixtures below runs ResolveTypeScriptToolTask
+    out of the assembly this project builds. Without the edge a solution build may reach this project
+    first and fail with MSB4062 — it did, on a four-core runner.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.TypeScript.Tasks\Rask.TypeScript.Tasks.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
     <!-- Caps cross-collection parallelism for LOCAL full-suite runs (see xunit.runner.json).
