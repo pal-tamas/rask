@@ -313,6 +313,36 @@ rearranged.
 The handler-id API in section 0 is still there underneath, and the two mix freely: reach for
 `page.HandlerId`/`page.Invoke` when what you are testing genuinely is the wiring.
 
+### A flow across batteries
+
+Each battery's static has a fake: `Mail.Fake()`, `Jobs.Fake()`, `Outbox.Fake()`, `Cache.Fake()`, `Files.Fake()`,
+`Push.Fake()`. A fake records, sends nothing outside the test, and runs nothing until asked — so a test steps a
+flow one stage at a time and stays deterministic:
+
+```csharp
+[Fact]
+public async Task Placing_an_order_mails_the_customer_a_receipt()
+{
+    using var outbox = Outbox.Fake();
+    using var jobs = Jobs.Fake();
+    using var mail = Mail.Fake();
+    var page = Page.Visit("/orders/new").As(ann);
+
+    page.Type("Tea").Into("Item");
+    await page.Click("Place order");
+    await outbox.Run();   // the durable handlers of what was saved run
+    await jobs.Run();     // the jobs they enqueued run, through their real handlers
+
+    outbox.Stored<OrderPlaced>().Once();
+    jobs.Enqueued<SendOrderReceipt>().Once();
+    mail.Sent().To("ann@example.com").Once();
+}
+```
+
+`Run()` executes each recorded piece of work as the tenant and user who started it, includes work a running
+handler enqueues and delayed jobs (`.In`, `.At`), and lets a handler's exception out. `Outbox.Fake()` records
+where the outbox is on; without it a durable handler already runs in line.
+
 ---
 
 ## 2. The test stack

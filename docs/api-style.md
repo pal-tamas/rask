@@ -200,13 +200,16 @@ What the rules above settled, so a new package has one place to look rather than
 | Transactional email | `IMail` | `Send(email)`, `.In(24.Hours)`, `.At(moment)` |
 | Background work | `IJobs` | `Enqueue(job)`, `.In(24.Hours)`, `.At(moment)` |
 | Cache | `Cache` (static) / `ICache` | `Remember`, `Set`, `Get`, `Forget`; `.For`, `.Sliding`, `.Until` |
-| Mediator | `IDispatcher` | `Query`, `Send`, `Publish` |
+| Mediator | `Dispatcher` (static) / `IDispatcher` | `Query`, `Send`, `Publish` — the static works outside any work too |
 | Cached reads | `QueryClient` (static) / `IQueryClient` | `Query`, `Load`, `Warm`, `Send`, `Command`, `Invalidate` |
 | Durable log | `ILogs` | `Search`, `Categories`, `Count`, `Trim().OlderThan(30.Days)` |
 | SQLite connections | `ISqlite` | `InImmediateTransaction` |
 | Time | `Clock` (static) | `Now`; `Clock.Fake(at:)` + `Advance` in tests |
 | Durations and sizes | `Units` (ambient) | `3.Seconds`, `1.Hour`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow` |
-| Web Push | `Push` (static) / `IWebPush` | `Subscribe`, `Send`, `Unsubscribe` |
+| Web Push | `Push` (static) / `IPush` | `Subscribe`, `Send`, `Unsubscribe` |
+| Is the battery running | every static | `IsOn` |
+| Battery settings | `JobsOptions`, `LogsOptions`, `PushOptions`, `OpsOptions`… | `Retention`, `SweepInterval`, `PollInterval`, `ShutdownGracePeriod`, `DefaultLifetime` |
+| Test fakes | `Jobs.Fake()`, `Mail.Fake()`, `Outbox.Fake()`… | `Run()`, `Enqueued<T>()`, `Sent()`, `Stored<T>()`; `.Once()`, `.Never()` |
 
 The browser subscribes through MDN's own `PushManager` from `Rask.Web`; `Push.Subscribe` keeps what its
 `ToJSON()` answers.
