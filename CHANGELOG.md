@@ -84,6 +84,12 @@ them until tagged releases begin.
   payload. The URL is rebuilt when the route changes and the writer is kept per thread: another 0.3 KB off
   each update, 2.7 KB → 2.3 KB on the same 20-row page.
 
+- **A WASM app's service worker serves content-addressed files from its cache.** `rask-sw.js` went to the
+  network for every request, so a repeat visit downloaded the .NET runtime again. A fingerprinted file under
+  `_framework/` and a scoped-asset bundle (`/_rask/a/{hash}.css|js`) are now served cache-first; `index.html`,
+  `main.js` and anything unfingerprinted stay network-first, with the offline fallback as before. A
+  fingerprint with no digit in it is treated as unfingerprinted, to keep a name like `my.extensions.wasm` out.
+
 - **A first response is encoded once, from one copy of the page.** Stamping the session id onto `<body>`
   built a second string the size of the page, and the encoder then rented three bytes per character for it.
   Outside development the page now goes straight to UTF-8 with the id spliced in, into a buffer of the exact
