@@ -330,7 +330,13 @@ generated codec carries the bytes and hands the handler a `IRaskFile` over what 
 changes and the code does not. Every host reads a `IRaskFile` in bounded slices (the browser ones
 through `Blob.slice`), and a download is streamed back headers-first.
 
-Bounded by the server's `MaxUploadBytes` and `MaxFileCount`.
+Bounded by the server's `MaxUploadBytes` and `MaxFileCount`. A chunked upload sits on the server's disk
+until its message arrives, so what one caller may leave there is bounded as well: `MaxOpenUploads` (4)
+uploads begun and not yet sent, holding `MaxOpenUploadBytes` (64 MB) between them. Past either, the
+next chunk answers **429** until an upload is sent or lapses after `UploadSessionLifetime`. A caller is
+the signed-in user; with `RequireAuthenticatedUser` off it is the address the request came from (an
+IPv6 `/64` counts as one), so behind a reverse proxy wire `UseForwardedHeaders` or every visitor shares
+the proxy's budget.
 
 **`ChunkedUploadThreshold` is load-bearing in the browser, not a tuning knob.** `fetch` has no request
 streaming, so a browser reads a whole request body into memory before sending it — a single-shot

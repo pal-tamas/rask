@@ -922,6 +922,13 @@ them until tagged releases begin.
 
 ### Security
 
+- **A caller can no longer fill the disk with chunked uploads it never sends.** One CQRS upload was capped at
+  `MaxUploadBytes`, but nothing capped how many upload ids a caller had open, so a loop over fresh ids wrote
+  32 MB per id to the temp directory. `Rask:Cqrs:Server` gains `MaxOpenUploads` (4) and `MaxOpenUploadBytes`
+  (64 MB) per caller; past either the next chunk answers 429. With `RequireAuthenticatedUser` off, anonymous
+  callers are told apart by address instead of sharing one owner. **An app that raised `MaxUploadBytes`
+  above 64 MB** raises `MaxOpenUploadBytes` with it, or the host refuses to start. An upload's running total
+  is also counted under one lock now — two files of one upload arriving together could slip past the cap.
 - **The signaling relay refuses a WebSocket upgrade from another origin.** `MapRaskSignaling()` accepted the
   upgrade without looking at `Origin`, and the endpoint is cookie-authenticated, so a page on a site the
   browser still sends the cookie for could join a room as the signed-in visitor and read the peers' SDP and
