@@ -55,7 +55,7 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_icon_sits_before_the_heading()
     {
-        var html = Ui.Card.Title("Jobs").Icon(Ui.IconName.Gear)[Span["body"]].ToHtml();
+        var html = Ui.Card.Title("Jobs").Icon(Ui.IconName.Cog6Tooth)[Span["body"]].ToHtml();
 
         var icon = html.IndexOf("size-5 shrink-0 opacity-60", StringComparison.Ordinal);
         Assert.True(icon >= 0, "the icon was not rendered");

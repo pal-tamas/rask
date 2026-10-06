@@ -106,19 +106,19 @@ public sealed partial class GuideChrome : Component
             .Href(PageMeta.LinkTo(Routes.GuidesIndexPage()))
             .ActiveClass("")
             .Class("inline-flex items-center mb-3 no-underline text-sm guide-backlink")[
-            Ui.Icon.Name(Ui.IconName.ArrowLeft).Class("me-1"), "All guides"
+            Ui.Icon.Name(Ui.IconName.ArrowLeft).Class("size-5 me-1"), "All guides"
         ];
 
     private Component Banner() =>
         Div.Class("guide-banner")[
-            Ui.Icon.Name(Ui.IconName.Info).Class("me-2"),
+            Ui.Icon.Name(Ui.IconName.InformationCircle).Class("size-5 me-2"),
             Span[$"You're reading the Rask v{RaskVersion.Current} guides.", Updated()],
             A
                 .Href($"https://github.com/pal-tamas/rask/blob/main/docs/{Features.GuideCatalog.SourcePath(Slug)}")
                 .Target("_blank")
                 .Rel("noopener")
                 .Class("guide-banner-src")[
-                Ui.Icon.Name(Ui.IconName.CodeBracket).Class("me-1"), "View source"
+                Ui.Icon.Name(Ui.IconName.CodeBracket).Class("size-5 me-1"), "View source"
             ]
         ];
 
@@ -222,7 +222,7 @@ public sealed partial class GuideChrome : Component
                     .Href(PageMeta.LinkTo(Routes.GuidePage(prev.Slug)))
                     .ActiveClass("")
                     .Class("guide-prevnext-link guide-prevnext-prev")[
-                    Ui.Icon.Name(Ui.IconName.ArrowLeft).Class("me-2"),
+                    Ui.Icon.Name(Ui.IconName.ArrowLeft).Class("size-5 me-2"),
                     Span.Class("guide-prevnext-body")[
                         Span.Class("guide-prevnext-label")["Previous"],
                         Span.Class("guide-prevnext-title")[prev.Title]
@@ -238,7 +238,7 @@ public sealed partial class GuideChrome : Component
                         Span.Class("guide-prevnext-label")["Next"],
                         Span.Class("guide-prevnext-title")[next.Title]
                     ],
-                    Ui.Icon.Name(Ui.IconName.ArrowRight).Class("ms-2")
+                    Ui.Icon.Name(Ui.IconName.ArrowRight).Class("size-5 ms-2")
                 ]
         ];
     }

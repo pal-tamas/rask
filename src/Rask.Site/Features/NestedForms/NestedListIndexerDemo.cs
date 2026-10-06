@@ -43,7 +43,7 @@ public sealed partial class NestedListIndexerDemo : Component
                         .Square()
                         .Error
                         .Outline
-                        .OnClick(() => _model.Skus.RemoveAt(i))[Ui.Icon.Name(Ui.IconName.Close)]
+                        .OnClick(() => _model.Skus.RemoveAt(i))[Ui.Icon.Name(Ui.IconName.XMark)]
                 ]
             ]);
         }
