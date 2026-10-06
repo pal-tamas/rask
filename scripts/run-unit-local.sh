@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The format + unit/integration gate.
 #
-# CI runs this script as its "build + format" job and its eight "unit K/8" jobs (RASK_UNIT_PART) on every push (.github/workflows/gates.yml), and it
+# CI runs this script as its "format" and "unit" jobs (RASK_UNIT_PART) on every push (.github/workflows/gates.yml), and it
 # runs the same way by hand. No git hook runs it. Steps: build once, run the FULL formatter
 # (whitespace + style + analyzers), then run every test EXCEPT the browser E2E (that's its own gate —
 # see run-e2e-local.sh).
@@ -157,32 +157,21 @@ if [ "${RASK_TEST_SCOPE:-}" = "affected" ]; then
   fi
 fi
 
-# RASK_UNIT_PART cuts this gate into pieces that can run on separate machines; CI sets it
-# (.github/workflows/gates.yml), a hand run leaves it unset and gets everything.
+# RASK_UNIT_PART cuts this gate in two so CI can run the halves on separate machines
+# (.github/workflows/gates.yml); a hand run leaves it unset and gets everything.
 #
-#   checks   the gate script tests, the whole-solution warnings-as-errors build and the formatter — no tests
-#   K/N      shard K of N of the test projects: builds only those (and what they reference) and runs them
+#   format   the gate script tests and the formatter — no Release build, no tests
+#   tests    the whole-solution warnings-as-errors build and the tests — nothing else
 #
-# The shards deal the test projects out round-robin from a sorted list, so every project is in exactly
-# one shard whatever N is and a new project needs no entry anywhere. `checks` keeps the solution build
-# because the shards only compile what a test project reaches — an app or a benchmark no test
-# references would otherwise compile nowhere.
+# Two, not one per test project: the formatter is the slowest single step and the build is the
+# second, so each half carries one of them and they finish together. Cutting the tests finer made
+# every piece rebuild the shared projects, and left tests that read a build product of a project
+# they do not reference (rask.wasm.js) with nothing to read.
 unit_part="${RASK_UNIT_PART:-}"
 case "$unit_part" in
-  ""|checks) ;;
-  [0-9]*/[0-9]*)
-    scope_changed=""
-    scope_projects="$(ls tests/*/*.csproj | grep -E '\.Tests/[^/]+\.csproj$' | grep -v '\.E2E\.Tests/' | LC_ALL=C sort \
-      | awk -v k="${unit_part%/*}" -v n="${unit_part#*/}" 'NR % n == k % n')"
-    if [ -z "$scope_projects" ]; then
-      echo "run-unit-local: RASK_UNIT_PART=$unit_part names no test project." >&2
-      exit 1
-    fi
-    echo "==> Part $unit_part: $(printf '%s\n' "$scope_projects" | grep -c .) test project(s)"
-    printf '        %s\n' $scope_projects
-    ;;
+  ""|format|tests) ;;
   *)
-    echo "run-unit-local: RASK_UNIT_PART must be 'checks' or K/N, not '$unit_part'." >&2
+    echo "run-unit-local: RASK_UNIT_PART must be 'format' or 'tests', not '$unit_part'." >&2
     exit 1
     ;;
 esac
@@ -205,7 +194,7 @@ gate_tests_failed=0
 # imports. An unscoped or FULL run executes every one. This was the costliest step a narrow commit
 # paid for: ~45 s, nearly all of it the prober's four builds, on changes that could not affect it.
 rask_gate_test_applies() {
-  case "$unit_part" in */*) return 1 ;; esac   # a test shard: the `checks` part runs these
+  [ "$unit_part" = "tests" ] && return 1   # the `format` part runs these
   [ -z "$scope_projects" ] && return 0
   inputs="$(sed -n 's/^# gate-inputs: //p' "$1" | head -1)"
   printf '%s\n' "$scope_changed" | grep -E "^(scripts/|\.githooks/)${inputs:+|$inputs}" >/dev/null
@@ -267,7 +256,9 @@ done
 rask_phase "gate script tests"
 [ "$gate_tests_failed" -eq 0 ] || exit 1
 
-if [ -n "$scope_projects" ]; then
+if [ "$unit_part" = "format" ]; then
+  echo "==> Build: not in the 'format' part — the 'tests' part builds the solution."
+elif [ -n "$scope_projects" ]; then
   # ONE MSBuild invocation over the affected set, not a loop of `dotnet build` per project. The set
   # has edges inside it, and two concurrent builds of a project that both depend on a third race on
   # that third one's obj/ and bin/. The traversal file lives in TMPDIR precisely so it does NOT pick
@@ -391,12 +382,10 @@ format_pid=""
 format_label=""
 
 rask_start_format() {
-  case "$unit_part" in
-    */*)
-      echo "==> Formatting check: not in a test shard — the 'checks' part runs it."
-      return 0
-      ;;
-  esac
+  if [ "$unit_part" = "tests" ]; then
+    echo "==> Formatting check: not in the 'tests' part — the 'format' part runs it."
+    return 0
+  fi
   # `range` is `staged` for commits that already exist: the files are the ones RASK_SCOPE_RANGE
   # changed. Same soundness argument as above, over the same range the tests are scoped to.
   if [ "${RASK_FORMAT_SCOPE:-}" = "staged" ] || { [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; }; then
@@ -499,8 +488,8 @@ test_slots="$lane_slots"
 # `The_feature_switch_is_on_in_this_assembly` — guards that exist so those files cannot pass vacuously
 # with the switch off. They did their job on this experiment.
 
-if [ "$unit_part" = "checks" ]; then
-  echo "==> Tests: not in the 'checks' part — the test shards run them."
+if [ "$unit_part" = "format" ]; then
+  echo "==> Tests: not in the 'format' part — the 'tests' part runs them."
   unit_status=0
 elif [ -n "$scope_projects" ]; then
   # The affected TEST projects, handed to the same traversal shape as the build. VSTest is invoked

@@ -23,6 +23,9 @@ them until tagged releases begin.
   other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
   with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
   verifies and unpacks in a directory of its own and moves the binary into the cache.
+- **`rask`: Spectre.Console's CI detection no longer overrides the CLI's own decision about whether a
+  prompt may be shown.** The CLI decides from the streams it was handed; under `CI`/`GITHUB_ACTIONS`
+  Spectre switched interaction off behind it.
 
 ### Removed
 

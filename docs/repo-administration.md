@@ -64,7 +64,7 @@ JSON
 
 Only ever require a check that actually runs on every PR. A required check that is skipped — by a path
 filter, or because its workflow was deleted — blocks the branch for ever with no way to satisfy it.
-The gate jobs are named by `gates.yml`'s matrix (`build + format`, `unit 1/8`, `browser E2E`, …); requiring one
+The gate jobs are named by `gates.yml`'s matrix (`format`, `unit`, `browser E2E`, …); requiring one
 means keeping that name in step with the list there.
 
 The reviews-and-restrictions half, set once (example):
