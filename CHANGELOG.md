@@ -1229,6 +1229,10 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The packaging gate passes in a fresh worktree.** `Every_file_a_project_packs_by_name_exists` called the
+  four gitignored JavaScript files `Rask.Wasm` and `Rask.External` bundle from TypeScript "produced by
+  nothing" until those projects had been built. It now reads each project's own esbuild `--outfile` and
+  reports such a file as not built yet, the way it already does for a task assembly.
 - **A Dependabot pull request is no longer red on arrival.** Every one failed `commitlint`, and not on
   its title: Dependabot ends each commit with `Signed-off-by: dependabot[bot] <support@github.com>`,
   which it cannot be configured to drop, and the attribution guard in the same job counts a bot

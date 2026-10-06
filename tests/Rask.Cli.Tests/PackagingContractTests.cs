@@ -108,6 +108,9 @@ public sealed class PackagingContractTests
         // solution (#1006). So the two cases are now separated by the only thing that distinguishes them:
         // whether anything in the project PRODUCES the file. `Foo.Tasks.dll` alongside a ProjectReference
         // to `Foo.Tasks.csproj` is an unbuilt tree; anything else is the NU5019 trap this test exists for.
+        //
+        // The project's own bundle step is the second producer (#1163): Rask.Wasm and Rask.External
+        // pack gitignored JavaScript that esbuild writes from TypeScript during their build.
         var offenders = new SortedSet<string>(StringComparer.Ordinal);
         var unbuilt = new SortedSet<string>(StringComparer.Ordinal);
 
@@ -121,6 +124,7 @@ public sealed class PackagingContractTests
                 .Where(i => i is not null)
                 .Select(i => Path.GetFileNameWithoutExtension(i!.Replace('\\', '/')))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var bundled = BundleOutputs(project);
 
             foreach (var none in project.Descendants("None"))
             {
@@ -147,6 +151,10 @@ public sealed class PackagingContractTests
                     unbuilt.Add($"{name} packs '{include}', produced by its ProjectReference to "
                         + $"{Path.GetFileNameWithoutExtension(assembly)}");
                 }
+                else if (bundled.Contains(include.Replace('\\', '/')))
+                {
+                    unbuilt.Add($"{name} packs '{include}', written by its own bundle step");
+                }
                 else
                 {
                     offenders.Add($"{name} packs '{include}', which does not exist and nothing produces");
@@ -156,13 +164,29 @@ public sealed class PackagingContractTests
 
         Assert.True(
             offenders.Count == 0,
-            "These projects name a file to pack that is not on disk and that no ProjectReference "
-            + "produces, so `dotnet pack` fails NU5019 — invisible to build and test:\n  "
+            "These projects name a file to pack that is not on disk and that neither a ProjectReference "
+            + "nor a bundle step produces, so `dotnet pack` fails NU5019 — invisible to build and test:\n  "
             + string.Join("\n  ", offenders)
             + (unbuilt.Count == 0
                 ? string.Empty
                 : "\n\nSeparately, and NOT a defect: these are produced by a build that has not run "
                     + "here yet (`dotnet build Rask.slnx`):\n  " + string.Join("\n  ", unbuilt)));
+    }
+
+    [Fact]
+    public void A_file_the_projects_own_bundle_step_writes_is_not_reported_as_missing()
+    {
+        var project = XDocument.Parse("""
+            <Project>
+              <Target Name="_Bundle">
+                <Exec Command="&quot;$(Esbuild)&quot; &quot;$(MSBuildProjectDirectory)/Resources/app.ts&quot; --bundle --outfile=&quot;$(MSBuildProjectDirectory)/Browser/app.js&quot; $(Minify)" />
+              </Target>
+            </Project>
+            """);
+
+        var outputs = BundleOutputs(project);
+
+        Assert.Equal(["Browser/app.js"], outputs);
     }
 
     [Fact]
@@ -298,6 +322,33 @@ public sealed class PackagingContractTests
             "These hooks reach a direct reference only. An app that reaches the package through Rask.Server or "
             + "Rask.Wasm never imports them, so the feature they carry silently does nothing there. Pack each one a "
             + "second time under buildTransitive\\:\n  " + string.Join("\n  ", offenders));
+    }
+
+    // The project-relative files a project's own esbuild steps write, read off each Exec's --outfile.
+    private static HashSet<string> BundleOutputs(XDocument project)
+    {
+        const string Marker = "--outfile=\"$(MSBuildProjectDirectory)/";
+        var outputs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var command in project.Descendants("Exec").Select(e => e.Attribute("Command")?.Value))
+        {
+            var start = command?.IndexOf(Marker, StringComparison.Ordinal) ?? -1;
+
+            if (start < 0)
+            {
+                continue;
+            }
+
+            start += Marker.Length;
+            var end = command!.IndexOf('"', start);
+
+            if (end > start)
+            {
+                outputs.Add(command[start..end]);
+            }
+        }
+
+        return outputs;
     }
 
     private static Dictionary<string, string> SourceProjects() =>
