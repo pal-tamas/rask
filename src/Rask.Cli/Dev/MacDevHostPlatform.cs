@@ -45,6 +45,14 @@ internal sealed class MacDevHostPlatform(IProcessRunner process, IConsole consol
             ["-n", "/usr/bin/security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", SystemKeychain, certificatePath],
             cancellationToken).ConfigureAwait(false) == 0;
 
+    public override async Task ForgetAsync(string thumbprint, CancellationToken cancellationToken) =>
+        // By SHA-1 hash, which is what a thumbprint is, so only that one certificate goes; -t takes its
+        // trust settings with it.
+        await RunAsync(
+            "sudo",
+            ["-n", "/usr/bin/security", "delete-certificate", "-Z", thumbprint, "-t", SystemKeychain],
+            cancellationToken).ConfigureAwait(false);
+
     /// <summary>
     ///     Overwrites the hosts file, writing through the existing file rather than replacing it.
     /// </summary>

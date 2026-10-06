@@ -212,6 +212,13 @@ internal sealed class LinuxDevHostPlatform(IProcessRunner process, IConsole cons
     }
 
     /// <summary>
+    ///     Nothing: trusting the new authority already replaces the old one here. The anchor is a single
+    ///     file that <see cref="TrustAsync" /> overwrites, and the NSS entry is deleted before the new
+    ///     one is added.
+    /// </summary>
+    public override Task ForgetAsync(string thumbprint, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    /// <summary>
     ///     Adds the authority to the per-user NSS database Chrome reads, and to every Firefox profile.
     /// </summary>
     private async Task TrustInNssAsync(string certificatePath, CancellationToken cancellationToken)

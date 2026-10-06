@@ -1,6 +1,8 @@
+using System.Formats.Asn1;
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Rask.Hosting.Shared;
 
 namespace Rask.Cli.Dev;
 
@@ -34,6 +36,7 @@ internal static class DevCertificates
 
     /// <summary>OID for TLS server authentication.</summary>
     private const string ServerAuthenticationOid = "1.3.6.1.5.5.7.3.1";
+    private const string NameConstraintsOid = "2.5.29.30";
 
     /// <summary>
     ///     How long a newly minted authority is good for. Long, because re-trusting it is the one step
@@ -83,11 +86,15 @@ internal static class DevCertificates
             RSASignaturePadding.Pkcs1);
 
         // pathLengthConstraint 0: this authority may sign server certificates and nothing that is
-        // itself an authority. If the key ever leaked it still could not be used to mint a subordinate
-        // CA, which is the difference between "can impersonate .test sites" and "can impersonate
-        // anything at all".
+        // itself an authority, so a leaked key cannot mint a subordinate CA.
         request.CertificateExtensions.Add(
             new X509BasicConstraintsExtension(certificateAuthority: true, hasPathLengthConstraint: true, pathLengthConstraint: 0, critical: true));
+
+        // And only for the names `rask dev` serves. This root sits in the system trust store, so
+        // without it the key under ~/.rask could sign a certificate every browser on the machine
+        // accepts for ANY site — a bank, a mail provider. Critical, so a verifier that does not
+        // understand the constraint rejects the chain rather than ignoring it.
+        request.CertificateExtensions.Add(NameConstraints());
 
         request.CertificateExtensions.Add(
             new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, critical: true));
@@ -151,6 +158,52 @@ internal static class DevCertificates
         return Export(issued, key);
     }
 
+    /// <summary>
+    ///     The names the authority may sign for: anything under <c>.test</c>, and loopback by name and
+    ///     by address — exactly what <see cref="SubjectAlternativeNames" /> puts in a leaf.
+    /// </summary>
+    /// <remarks>
+    ///     .NET has a reader for most extensions and a builder for few, and none for this one, so it is
+    ///     written out (RFC 5280 §4.2.1.10): a sequence holding <c>permittedSubtrees [0]</c>, each entry
+    ///     a <c>dNSName [2]</c> or an <c>iPAddress [7]</c>. A DNS constraint covers the name and every
+    ///     name beneath it; an address constraint is the address followed by its mask.
+    /// </remarks>
+    private static X509Extension NameConstraints()
+    {
+        var writer = new AsnWriter(AsnEncodingRules.DER);
+
+        using (writer.PushSequence())
+        using (writer.PushSequence(new Asn1Tag(TagClass.ContextSpecific, 0)))
+        {
+            foreach (var name in (string[])[DevHostName.Suffix, .. LoopbackNames])
+            {
+                using (writer.PushSequence())
+                {
+                    writer.WriteCharacterString(
+                        UniversalTagNumber.IA5String, name, new Asn1Tag(TagClass.ContextSpecific, 2));
+                }
+            }
+
+            foreach (var address in LoopbackAddresses)
+            {
+                var bytes = address.GetAddressBytes();
+                var mask = new byte[bytes.Length];
+                mask.AsSpan().Fill(0xFF);
+
+                using (writer.PushSequence())
+                {
+                    writer.WriteOctetString([.. bytes, .. mask], new Asn1Tag(TagClass.ContextSpecific, 7));
+                }
+            }
+        }
+
+        return new X509Extension(NameConstraintsOid, writer.Encode(), critical: true);
+    }
+
+    private static bool IsConstrained(X509Certificate2 authority) =>
+        authority.Extensions.Any(
+            extension => string.Equals(extension.Oid?.Value, NameConstraintsOid, StringComparison.Ordinal));
+
     private static X509Extension SubjectAlternativeNames(string hostname)
     {
         // The subject alternative name is what browsers actually read; a CN alone has not been
@@ -199,8 +252,10 @@ internal static class DevCertificates
         try
         {
             using var loaded = Load(present);
+            // An authority minted before it was confined to these names could sign for any site, and it
+            // is in the trust store: replaced on sight, rather than left there until it nears expiry.
             return loaded.NotAfter - now.LocalDateTime <= RenewalWindow
-                   || (hostname is not null && !CoversEveryName(loaded, hostname));
+                   || (hostname is null ? !IsConstrained(loaded) : !CoversEveryName(loaded, hostname));
         }
         catch (CryptographicException)
         {

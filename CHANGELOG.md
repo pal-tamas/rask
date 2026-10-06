@@ -922,6 +922,12 @@ them until tagged releases begin.
 
 ### Security
 
+- **The `rask dev` certificate authority can only sign for `.test` and loopback names.** The root it installs
+  in the system trust store carried no name constraint, so the key under `~/.rask` could mint a certificate
+  every browser on the machine accepts for any site. It now carries a critical NameConstraints extension —
+  `.test`, `localhost`, `127.0.0.1`, `::1`. **An existing authority is replaced on the next `rask dev`**: one
+  more permission prompt, which says so, and the old root is then removed from the macOS keychain or the
+  Windows certificate store (on Linux the new one overwrites it).
 - **The open Web Push subscribe route is bounded, and a send cannot be aimed at the server's own network.**
   `POST /_rask/push/subscribe` is anonymous and every new endpoint is a row in the app's database, with no
   cap and no rate limit. `Rask:Push` gains `MaxAnonymousSubscribers` (10 000 signed-out rows, then 429) and

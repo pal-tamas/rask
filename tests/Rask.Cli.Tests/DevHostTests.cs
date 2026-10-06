@@ -262,6 +262,58 @@ public sealed class DevHostTests
     }
 
     [Fact]
+    public void The_authority_cannot_sign_for_a_name_outside_test_and_loopback()
+    {
+        // #1181: this root is in the system trust store. Unconstrained, the key under ~/.rask could mint a
+        // certificate every browser on the machine accepts for any site at all.
+        var authority = DevCertificates.CreateAuthority(DateTimeOffset.Now);
+        using var root = DevCertificates.Load(authority);
+        using var outside = DevCertificates.Load(
+            DevCertificates.IssueServerCertificate(authority, "bank.example.com", DateTimeOffset.Now));
+        using var chain = new X509Chain();
+        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+        chain.ChainPolicy.CustomTrustStore.Add(root);
+        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+
+        var constraint = root.Extensions.Single(e => e.Oid?.Value == "2.5.29.30");
+        var chained = chain.Build(outside);
+
+        // Critical, so a verifier that does not understand it refuses the chain rather than ignoring it.
+        Assert.True(constraint.Critical);
+        Assert.False(chained, "a certificate for bank.example.com chained to the dev authority");
+    }
+
+    [Fact]
+    public void An_authority_that_predates_the_name_constraint_needs_reissuing()
+    {
+        // It is still years from expiry, so a dates-only check would leave it in the trust store.
+        var unconstrained = AuthorityWithoutNameConstraints();
+
+        var stale = DevCertificates.NeedsReissue(unconstrained, hostname: null, DateTimeOffset.Now);
+        var current = DevCertificates.NeedsReissue(
+            DevCertificates.CreateAuthority(DateTimeOffset.Now), hostname: null, DateTimeOffset.Now);
+
+        Assert.True(stale);
+        Assert.False(current);
+    }
+
+    [Fact]
+    public void The_prompt_says_when_the_authority_replaces_an_earlier_one()
+    {
+        var plan = new DevHostPlan
+        {
+            Hostname = "appname.test",
+            TrustAuthority = true,
+            TrustChange = "trust 'Rask Local Development CA'",
+            ReplacedAuthority = "0123456789ABCDEF",
+        };
+
+        var change = Assert.Single(plan.PrivilegedChanges);
+
+        Assert.Contains("replacing the earlier one", change, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_issued_certificate_never_outlives_its_authority()
     {
         var authority = DevCertificates.CreateAuthority(DateTimeOffset.Now);
@@ -641,6 +693,20 @@ public sealed class DevHostTests
             new MacDevHostPlatform(process, console, store),
             new WindowsDevHostPlatform(process, console),
             new LinuxDevHostPlatform(process, console));
+    }
+
+    /// <summary>An authority shaped the way Rask minted them before #1181: a CA, and nothing more.</summary>
+    private static DevCertificate AuthorityWithoutNameConstraints()
+    {
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest(
+            $"CN={DevCertificates.AuthorityName}, O=Rask", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, critical: true));
+        using var certificate = request.CreateSelfSigned(DateTimeOffset.Now.AddHours(-1), DateTimeOffset.Now.AddYears(10));
+
+        return new DevCertificate(
+            new string(PemEncoding.Write("CERTIFICATE", certificate.RawData)),
+            new string(PemEncoding.Write("PRIVATE KEY", key.ExportPkcs8PrivateKey())));
     }
 
     private static DevCertificate Issue(string hostname) =>
