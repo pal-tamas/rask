@@ -8,7 +8,7 @@ namespace Rask.Site.Features;
 /// <remarks>
 ///     <para>
 ///         The guides ARE the site. Without this the pass writes the twenty pages around them and skips
-///         the route that holds ~80 documents, so the whole of the site's content ships to a crawler as
+///         the route that holds every guide, so the whole of the site's content ships to a crawler as
 ///         a boot shell — and the publish log reads as a success, because everything it knew about was
 ///         written.
 ///     </para>

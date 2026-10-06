@@ -425,7 +425,7 @@ carry its renderer.
 - **No `RenderFragment` parameter gets a chain step** — not `ChildContent`, not a named one, not a
   templated `RenderFragment<T>`. See [children](#an-island-takes-no-children).
 - **Events beyond the set above** emit no attribute, so a hosted `@onkeydown` is inert.
-- **Circuit mode.** `BlazorInteractivity.Circuit` is reserved in the enum and not implemented.
+- **Circuit mode.** There is none: a hosted component never gets a Blazor circuit of its own.
 
 ## Diagnostics
 

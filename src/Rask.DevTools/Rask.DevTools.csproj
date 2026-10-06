@@ -19,7 +19,7 @@
 
     <PackageId>Rask.DevTools</PackageId>
     <Title>Rask — DevTools</Title>
-    <Description>Debug-only developer tools for Rask apps on ASP.NET Core and .NET WebAssembly. Referencing it attaches the tools to both hosts in a Debug build with no code in the app, and a Release publish carries none of it: the build strips the assembly and its deps.json entry, then fails if either remains. The in-page tools themselves are in progress.</Description>
+    <Description>Debug-only developer tools for Rask apps on ASP.NET Core and .NET WebAssembly. Referencing it attaches the tools to both hosts in a Debug build with no code in the app, and a Release publish carries none of it: the build strips the assembly and its deps.json entry, then fails if either remains. The in-page panel shows every frame the page and the app exchange, and the component tree with each component's props.</Description>
     <PackageTags>dotnet csharp aspnetcore webassembly wasm net10 devtools debugging developer-tools</PackageTags>
   </PropertyGroup>
 

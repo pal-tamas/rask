@@ -20,7 +20,7 @@ rask deploy --host root@box --domain app.example.com
 
 It builds and runs the app **on the host over SSH** — every deploy step is `docker -H ssh://<host> …`,
 so there's no registry, no local Docker daemon, and no image tarball to copy; the build context ships
-to the host's daemon and builds there. It deploys the [`--docker`](#scaffolding-a-dockerfile----docker)
+to the host's daemon and builds there. It deploys the [scaffolded](#scaffolding-a-dockerfile)
 Dockerfile below (override with `--dockerfile`).
 
 - **Automatic HTTPS.** With `--domain`, Rask runs a shared [Caddy](https://caddyserver.com) reverse
@@ -341,17 +341,17 @@ The same two cautions as the log store apply, and the first is sharper here:
 - **They share the volume's disk.** `MaxFileSize` bounds one file, not the total, so size the volume for the
   uploads you expect alongside both databases.
 
-## Scaffolding a Dockerfile — `--docker`
+## Scaffolding a Dockerfile
 
-The three web templates take an opt-in `--docker` flag that drops a production-ready multi-stage
-`Dockerfile` (+ `.dockerignore`) into the generated project:
+Every template drops a production-ready multi-stage `Dockerfile` (+ `.dockerignore`) into the generated
+project:
 
 ```bash
 rask new MyApp                                   # Kestrel app → aspnet:10.0 runtime image
 rask new MyApp --template wasm                   # static WASM bundle → nginx:alpine
 ```
 
-Without `--docker` no container files are emitted.
+`--no-docker` leaves the container files out.
 
 The Dockerfile references your project by name (the template renames `Company.RaskServer.dll` to
 `MyApp.dll` when it scaffolds), so `docker build` works with no edits.

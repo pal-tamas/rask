@@ -67,8 +67,8 @@ public static class SiteIdentity
     /// <summary>The source repository.</summary>
     public const string Repository = "https://github.com/pal-tamas/rask";
 
-    /// <summary>The one package an application references.</summary>
-    public const string Package = "https://www.nuget.org/packages/Rask";
+    /// <summary>The package a server application references — the one the footer links.</summary>
+    public const string Package = "https://www.nuget.org/packages/Rask.Server";
 
     /// <summary>The licence, as a URL — which is the form schema.org's <c>license</c> expects.</summary>
     public const string License = "https://opensource.org/licenses/MIT";

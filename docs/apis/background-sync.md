@@ -45,7 +45,7 @@ public sealed class DraftQueue(IBackgroundSync sync) : Component, IAsyncDisposab
         // the first subscriber, so an event that beat your startup code still reaches it.
         _subscription = await sync.OnSync(async e =>
         {
-            if (e.Tag == "flush-drafts") await FlushAsync();
+            if (e.Tag == "flush-drafts") await Flush();
             StateHasChanged();
         });
 

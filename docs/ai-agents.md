@@ -5,12 +5,13 @@ Rask app correctly without you re-explaining the conventions.
 
 ## What's included
 
-- **`AGENTS.md`** (repo root) — the AI guidance that ships with the Rask repository. It's the
-  cross-tool standard most AI coding assistants read automatically; it captures the rules that make
-  Rask code compile (the chain not `new`, the children indexer, step-vs-setter props, the full-shell
-  root, routing/lifecycle, scoped CSS/TypeScript, callbacks, forms, auth). Generated projects no longer ship
-  their own `AGENTS.md` — point your assistant at this repo-root guidance (and `llms.txt`).
-- **`llms.txt`** (repo root) — the emerging standard index that points AI tools at the docs.
+- **`llms.txt`** (repo root) — the index AI tools read first. One dense entry per guide carries the rules
+  that make Rask code compile (the chain not `new`, the children indexer, required steps versus optional
+  setters, the root rendering into `<body>`, routing and lifecycle, scoped CSS/TypeScript, callbacks, forms,
+  auth) and links the guide behind each. A generated project ships no `AGENTS.md` of its own — point your
+  assistant at `llms.txt`.
+- **`AGENTS.md`** (repo root) — for an assistant working **on Rask itself**: the gate, the repo's
+  workflows, how a change lands. It is not app guidance.
 - **The published set on rask.sh**, for an assistant that reads the web rather than a checkout:
   [`https://rask.sh/llms.txt`](https://rask.sh/llms.txt) indexes every guide with a one-line summary,
   [`https://rask.sh/llms-full.txt`](https://rask.sh/llms-full.txt) is every app-building guide in one
@@ -30,7 +31,7 @@ Rask app correctly without you re-explaining the conventions.
 ## How to use it
 
 1. Scaffold: `rask new MyApp`.
-2. Point your assistant at Rask's repo-root `AGENTS.md` (and `llms.txt` if it fetches docs).
+2. Point your assistant at Rask's `llms.txt` — the repo-root file, or `https://rask.sh/llms.txt` if it reads the web.
 3. Ask for features in plain language — the assistant follows the conventions and links to
    `docs/diagnostics.md` when it hits a `RASKxxx` compile diagnostic.
 4. Ship it: `rask deploy --host user@box --domain app.example.com` builds and runs it on a single
@@ -38,6 +39,6 @@ Rask app correctly without you re-explaining the conventions.
 
 ## Keeping it accurate
 
-The repo-root `AGENTS.md` and `llms.txt` are part of the public API surface: when a user-facing
-behavior changes, they're updated in the same PR (see `docs/development-workflow.md`). GitHub is
+The repo-root `llms.txt` and this guide are part of the public API surface: when a user-facing
+behavior changes, they're updated in the same commit (see `docs/development-workflow.md`). GitHub is
 the single source of truth — these files are committed, not local-only.

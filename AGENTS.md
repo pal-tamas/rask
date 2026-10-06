@@ -14,6 +14,8 @@ Apply the matching playbook automatically:
 - **run-rask** / **run-rask-cli** — build, launch and drive the real thing (the site, the `rask` CLI)
   when a test passing isn't the same as it working.
 - **rask-review** — security/perf/memory/best-practices. **land-on-main** — Conventional-Commit, land straight on `main`.
+- **rask-seo** — search + AI-assistant discoverability, on every site/docs/package-metadata change.
+  **rename-public-member** — one-pass Roslyn rename of a public name, then baselines, templates and docs.
 - **cut-release** — tag `vX.Y.Z`. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 
 ## The gate (every change)

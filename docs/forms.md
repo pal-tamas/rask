@@ -124,7 +124,7 @@ Uploading the bytes (streaming to a server endpoint, size limits, progress) is c
 Input.Bind(() => _model.Subscribe)   // bool     → checkbox
 Input.Bind(() => _model.Age)         // int      → number
 Input.Bind(() => _model.StartDate)   // DateOnly → date
-Select.Bind(() => _model.Favorite)[Option("Red")["Red"], Option("Blue")["Blue"]]
+Select.Bind(() => _model.Favorite)[Option.Value("Red")["Red"], Option.Value("Blue")["Blue"]]
 Textarea.Bind(() => _model.Notes).Rows(3)
 ```
 
