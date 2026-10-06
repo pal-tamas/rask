@@ -39,12 +39,12 @@ host.UsePwa(new WebAppManifest
     Categories = ["developer", "productivity"],
     Shortcuts =
     [
-        new ManifestShortcut("Browser APIs", "browser/clipboard", ShortName: "APIs",
+        new ManifestShortcut("Browser APIs", "docs/guides/browser-apis-reference/", ShortName: "APIs",
             Description: "Jump straight to the Browser APIs showcase")
     ]
 });
 // What /docs/guides/{slug} expands to at publish. A parameterised route has no path without data, so
-// the prerender pass skips it — and the guides are the site, so skipping it means ~80 documents ship to
+// the prerender pass skips it — and the guides are the site, so skipping it means every guide ships to
 // crawlers as an empty boot shell while the publish reports every page it knew about as written.
 host.Services.AddSingleton<Rask.Core.Live.IPrerenderPaths, Rask.Site.Features.GuidePrerenderPaths>();
 
@@ -62,7 +62,7 @@ host.Services.AddSingleton<Rask.Core.Live.IPrerenderPaths, Rask.Site.Features.Gu
 // find that twelve of them teach the same idea. PwaPage still answers all thirteen old URLs (repeated
 // [Route]), so nothing that was linked or bookmarked 404s.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.PwaPage(), "PWA & device APIs", Ui.IconName.Phone, "PWA"));
-// The islands showcase: the same .vue/.tsx/.svelte the Server host builds, mounted client-side.
+// The islands showcase: .vue/.tsx/.svelte and Lit components, mounted client-side.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.IslandsPage(), "Islands", Ui.IconName.Overview, "Islands"));
 // The UI kit, one page per daisyUI category. The guide at /guides/ui-kit is the prose; these are the
 // components themselves, live, which is the half a paragraph cannot do.

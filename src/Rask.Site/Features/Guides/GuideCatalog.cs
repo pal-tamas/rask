@@ -15,10 +15,10 @@ public static class GuideCatalog
             SearchTitle = "Getting started: a full-stack C# web app in .NET",
             Description = "Scaffold and run your first app, then write a C# component, handle events and add a route. Components render on the server over WebSocket or in WebAssembly.",
         },
-        new("cheatsheet", "Cheat sheet", "Every CLI command, feature flag, and wiring one-liner on one page.", "Start here")
+        new("cheatsheet", "Cheat sheet", "Every CLI command, flag, and wiring one-liner on one page.", "Start here")
         {
             SearchTitle = "Cheat sheet: CLI commands and .NET wiring lines",
-            Description = "One dense page of every rask CLI command, a CRUD slice in one place, and the Program.cs wiring for CQRS, EF Core data, jobs, mail, cache, outbox and SQLite.",
+            Description = "One dense page of every rask CLI command and flag, a CRUD slice in one place, and the idioms for data, CQRS, jobs, mail, cache, outbox, auth and routing.",
         },
         new("recipes", "Recipes", "Task-first: how do I add a feature, gate a page, run a job, deploy?", "Start here")
         {
@@ -61,7 +61,7 @@ public static class GuideCatalog
         new("02-first-feature", "Ch 2 · First feature", "Declare an entity and build its list, create and edit pages.", "Tutorial", "tutorial/02-first-feature.md")
         {
             SearchTitle = "Tutorial 2: CRUD with EF Core and SQLite in C#",
-            Description = "Build a database-backed Products catalog: declare the entity, write through commands and handlers, bind Rask.Ui forms, list it in a data grid.",
+            Description = "Build a database-backed Products catalog: declare the aggregate, write its list, create and edit pages, bind Rask.Ui forms, then add the migration.",
         },
         new("03-orders-and-auth", "Ch 3 · Orders & auth", "A second feature, and locking it down.", "Tutorial", "tutorial/03-orders-and-auth.md")
         {
@@ -125,10 +125,10 @@ public static class GuideCatalog
             SearchTitle = "TanStack Query-style data caching for C#",
             Description = "Wrap the CQRS dispatcher in a TanStack Query-style cache for C# components: request dedup, staleness, background refetch, keys, invalidation and commands.",
         },
-        new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.", "Data")
+        new("cqrs", "CQRS", "Source-generated queries, commands, events, behaviors.", "Data")
         {
             SearchTitle = "CQRS in .NET with source-generated handlers",
-            Description = "A source-generated CQRS mediator for .NET: dispatch queries, commands and notifications via IDispatcher with no reflection, plus pipeline behaviors.",
+            Description = "A source-generated CQRS mediator for .NET: dispatch queries, commands and events through IDispatcher with no reflection, plus pipeline behaviors.",
         },
         new("sqlite", "Production SQLite", "WAL + busy-timeout pragmas, continuous backup, snapshots.", "Data")
         {
@@ -235,7 +235,7 @@ public static class GuideCatalog
             SearchTitle = "Building C# components with the markup chain",
             Description = "Learn how C# markup chains work: required steps come first, bound versus controlled form controls, callbacks, your own components, and lists of components.",
         },
-        new("elements", "Elements & the DSL", "Primitives, tag factories, universal props, SVG, the element catalog.", "Frontend")
+        new("elements", "Elements & the DSL", "Primitives, tag entries, universal props, SVG, the element catalog.", "Frontend")
         {
             SearchTitle = "HTML and SVG elements as typed C# components",
             Description = "Reference for HTML in C#: Text, Raw and Doctype primitives, a typed entry for every HTML and SVG element, universal attributes and the children indexer.",
@@ -260,7 +260,7 @@ public static class GuideCatalog
             SearchTitle = "Virtualized lists, toasts and drag and drop",
             Description = "Render windowed lists with Virtualize, keep list identity with keys, and add toast messages, drag-and-drop and error boundaries to C# web components.",
         },
-        new("lifecycle", "Lifecycle", "Mount, props-changed, rendered, unmount, cancellation.", "Frontend")
+        new("lifecycle", "Lifecycle", "Mount, updated, first render, rendered, unmount, cancellation.", "Frontend")
         {
             SearchTitle = "Component lifecycle hooks in C#",
             Description = "The lifecycle hooks a component can override, their order and sync vs async rules, plus disposal, cancellation tied to component lifetime and hosted services.",
@@ -346,7 +346,7 @@ public static class GuideCatalog
         // ---- Deploy & operate ----
         // No "generate": that command was removed, and a card naming a verb the CLI does not have
         // is the first thing a reader types. The list is the commands `rask --help` prints.
-        new("cli", "The rask CLI", "Scaffold, run, dev, db, deploy — the front door.",
+        new("cli", "The rask CLI", "new, dev, db, deploy, info, doctor — the front door.",
             "Deploy & operate")
         {
             SearchTitle = "A .NET CLI to scaffold, run, migrate and deploy apps",
@@ -375,7 +375,7 @@ public static class GuideCatalog
         new("dashboard", "Dashboard", "An operator dashboard over every battery's table.", "Deploy & operate")
         {
             SearchTitle = "Operator dashboard for jobs, outbox and logs",
-            Description = "Mount an operator dashboard over your own database: outbox, background job and mail queues, dead letters, cache, live logs, backups and SQLite status.",
+            Description = "The operator dashboard a server app ships with, over your own database: outbox, job and mail queues, dead letters, cache, live logs, backups and SQLite status.",
         },
         new("logging", "Logging", "A durable log store in a database of its own.", "Deploy & operate")
         {
@@ -394,20 +394,20 @@ public static class GuideCatalog
             SearchTitle = "Call any browser Web API from C#, generated from MDN",
             Description = "Every web API the browser ships, generated from MDN into C#: Navigator, Window, Document, localStorage by MDN's names, one round trip per await.",
         },
-        new("browser-apis", "Browser APIs", "The typed wrappers over the platform's browser APIs.", "Browser & devices")
+        new("browser-apis", "Browser APIs", "MDN's browser APIs in C#, and the few typed wrappers beside them.", "Browser & devices")
         {
-            SearchTitle = "Typed C# wrappers for browser Web APIs",
-            Description = "Call browser Web APIs from C# through typed, injectable wrappers instead of raw IJSRuntime calls. A map of the whole surface on server and WASM hosts.",
+            SearchTitle = "Browser Web APIs from C#: MDN's surface, typed",
+            Description = "Call browser Web APIs from C#: MDN's own surface generated into Rask.Web, plus a few typed wrappers. A map of the whole surface on server and WASM hosts.",
         },
         new("browser-apis-sharing", "Browser APIs — sharing model", "Where wrappers live; declarative vs imperative; subscriptions.", "Browser & devices")
         {
             SearchTitle = "Web Share, gesture triggers and API subscriptions",
             Description = "Which typed browser APIs run on server and WASM hosts, declarative Web Share and gesture triggers on the server, and subscriptions that push updates into C#.",
         },
-        new("browser-apis-reference", "Browser APIs — reference & demos", "Every typed browser wrapper with a runnable live demo.", "Browser & devices")
+        new("browser-apis-reference", "Browser APIs — reference & demos", "Every browser API with a runnable live demo.", "Browser & devices")
         {
             SearchTitle = "Browser API reference with live C# demos",
-            Description = "Runnable demos for every typed browser API wrapper, C# source beside the result: storage, environment, location, sensors, observers, media, crypto and files.",
+            Description = "Runnable demos for the browser APIs, C# source beside the live result: storage, environment, location, sensors, observers, media, crypto and files.",
         },
         new("pwa", "Mobile & PWA", "Service workers, Web Push, offline, installable apps.", "Browser & devices")
         {
@@ -419,7 +419,7 @@ public static class GuideCatalog
         new("browser-capabilities", "Capability matrix", "Which browser/device API works on which host.", "Browser API reference")
         {
             SearchTitle = "Browser API Support Matrix for C# and .NET",
-            Description = "See which typed C# browser and device API wrappers work on the Server host and on WebAssembly, which need a click-gesture component, and which are WASM-only.",
+            Description = "See which browser and device APIs work from C# on the Server host and on WebAssembly, which need a click-gesture component, and which are WASM-only.",
         },
         new("background-sync", "IBackgroundSync", "Typed browser API: IBackgroundSync.", "Browser API reference", "apis/background-sync.md")
         {
@@ -471,7 +471,7 @@ public static class GuideCatalog
         new("api-style", "Public API style", "How every public name is chosen, and the gate that records the surface.", "Advanced")
         {
             SearchTitle = "Public API naming guidelines for .NET libraries",
-            Description = "The naming rules every public API in the framework follows: short nouns, BCL verbs, Async plus a CancellationToken, no bare bool, and the RS0016/RS0017 gate.",
+            Description = "The naming rules every public API in the framework follows: short nouns, BCL verbs, no Async suffix, an ambient token, no bare bool, and the RS0016/RS0017 gate.",
         },
         new("diagnostics", "Diagnostics", "Every RASK0xx descriptor, its trigger, and the fix.", "Advanced")
         {
@@ -490,10 +490,10 @@ public static class GuideCatalog
             SearchTitle = "GitHub branch protection and repository settings",
             Description = "The GitHub settings behind the repository: branch protection on main, required code owner review, why no status checks are required, and workflow secrets.",
         },
-        new("ai-agents", "Building with AI assistants", "Conventions for AI coding agents working on Rask.", "Contributing & internals")
+        new("ai-agents", "Building with AI assistants", "llms.txt and the published guides, for an assistant building on Rask.", "Contributing & internals")
         {
             SearchTitle = "Building .NET apps with AI coding assistants",
-            Description = "Point an AI coding assistant at the repo's AGENTS.md and llms.txt so it scaffolds and extends C# apps following the framework's conventions and diagnostics.",
+            Description = "Point an AI coding assistant at llms.txt and the published guides so it scaffolds and extends C# apps following the framework's conventions and diagnostics.",
         },
         new("live-rendering", "Live-rendering internals", "The diff codec and the live-render pipeline.", "Contributing & internals", "architecture/live-rendering.md")
         {

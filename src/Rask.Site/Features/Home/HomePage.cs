@@ -135,7 +135,7 @@ public sealed partial class HomePage : Component
                                 .Rel("noopener")["GitHub"]
                         ],
                         Div.Class("mt-8 flex flex-wrap gap-2")[
-                            Span.Class(Badge)[B[".NET 10"], " · 11"],
+                            Span.Class(Badge)[B[".NET 10"]],
                             Span.Class(Badge)["MIT"],
                             Span.Class(Badge)[B["Server"], " · WASM"],
                             Span.Class(Badge)[B["SQLite"], " · Postgres · SQL Server"]
@@ -227,9 +227,9 @@ public sealed partial class HomePage : Component
             Div.Class(Wrap)[
                 SecHead("Three front ends · one back end",
                     "Bring your own components — or don't.",
-                    "Rask is a superset, not a rival: React, Vue, Svelte, Angular and Lit components, and real Blazor components, run inside C# pages as islands, against the same C# back end — mixed freely in one component tree."),
+                    "Rask is a superset, not a rival: React, Preact, Solid, Vue, Svelte, Angular and Lit components, and real Blazor components, run inside C# pages as islands, against the same C# back end — mixed freely in one component tree."),
                 Div.Class("grid gap-4 md:grid-cols-3")[
-                    LaneCard(Ui.IconName.CodeBracket, "Rask.Core", "Rask components", "render-modes", "rask new Shop",
+                    LaneCard(Ui.IconName.CodeBracket, "Rask", "Rask components", "render-modes", "rask new Shop",
                         "C# components server-rendered over a WebSocket, every state change streaming as a minimal diff. Pick ", Code["-t wasm-hosted"], " and the same components publish as a WebAssembly bundle the host serves, out of the same project."),
                     LaneCard(Ui.IconName.Puzzle, "Rask.External", "Islands", "islands", "class Chart : ReactComponent",
                         "A ", Code[".tsx"], ", ", Code[".vue"], ", ", Code[".svelte"], " or Lit file as an ordinary Rask component — props declared in C#, callbacks re-entering C#, and the live diff leaving the subtree to its own renderer."),
@@ -339,11 +339,11 @@ public sealed partial class HomePage : Component
                     Feature(Ui.IconName.Clipboard, "Forms & validation", "forms", Code["Form.Model(m)"], " with two-way binding, plus inline, DataAnnotations, FluentValidation, and async validators — the same rules checked again on the server."),
                     Feature(Ui.IconName.PaintBrush, "Scoped CSS & TypeScript", "js-interop", "Drop a sibling ", Code["{Component}.css"], "/", Code[".ts"], ". Auto-scoped, no leaks — a mismatch is a build error. Tailwind v4 compiles from ", Code["dotnet build"], ", with no npm and no config file."),
                     Feature(Ui.IconName.Desktop, "A typed UI kit", "ui-kit", "Every daisyUI component as a C# component — ", Code["Ui.Button"], ", ", Code["Ui.DataGrid"], ", ", Code["Ui.Tree"], " — accessible and themed, with no npm and no Tailwind config."),
-                    Feature(Ui.IconName.Phone, $"{BrowserApiCount} typed browser APIs", "browser-apis", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, WebRTC, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),
+                    Feature(Ui.IconName.Phone, $"{BrowserApiCount} typed browser APIs", "browser-apis", "IndexedDB, passkeys, WebRTC with its signaling, view transitions and background sync as awaitable C# — and every other web API straight from MDN through ", Code["Rask.Web"], ". Serial, USB, HID and Bluetooth pickers are WebAssembly's."),
                     Feature(Ui.IconName.Download, "Installable PWA", "pwa", "A typed manifest, a default service worker, offline and background sync — the ", Code["wasm"], " template is installable out of the box."),
                     Feature(Ui.IconName.Retry, "C# Hot Reload", "getting-started", "Edit ", Code["Render()"], " or scoped css/js under ", Code["rask dev"], " and it re-renders live — the closest a compiled framework gets to a no-build loop."),
                     Feature(Ui.IconName.Sparkles, "Prerendering", "prerendering", "A WASM app renders every route to real HTML at publish, so a crawler is served the page rather than a spinner. On the server, every page is live, and its first response waits for its data."),
-                    Feature(Ui.IconName.ShieldOk, "70+ compile-time diagnostics", "diagnostics", "A missing required step, a public setter on an aggregate, an image with no alt text — each is a RASK error at build time that names the fix, several with an IDE quick-fix.")
+                    Feature(Ui.IconName.ShieldOk, $"{DiagnosticCount} compile-time diagnostics", "diagnostics", "A missing required step, a public setter on an aggregate, an image with no alt text — each is a RASK error at build time that names the fix, several with an IDE quick-fix.")
                 ]
             ]
         ];
@@ -355,6 +355,10 @@ public sealed partial class HomePage : Component
     /// Rask.Web. <c>BrowserApiCountTests</c> recounts the source and fails when this goes stale.
     /// </remarks>
     internal const int BrowserApiCount = 6;
+
+    /// <summary>How many compile-time diagnostics the diagnostics guide documents.</summary>
+    /// <remarks><c>HomePageTests</c> recounts the guide's sections and fails when this goes stale.</remarks>
+    internal const int DiagnosticCount = 87;
 
     // ---- install ----
     private static Component InstallSection() =>

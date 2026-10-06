@@ -78,7 +78,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 | **[`Rask.Outbox`](outbox.md)** | Transactional outbox — domain events captured in the same transaction and relayed at-least-once, no external broker. |
 | **[`Rask.Dashboard`](dashboard.md)** | An operator dashboard at `/_rask` over the pillars above: queue depth, dead letters and the error behind each, one-click retry, and the log. |
 | **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
-| **[Auth](authentication.md)** | Accounts, on by default: register, sign in, sign out, with the first account as administrator. Cookie sessions, claims and authorization. Verification, reset and MFA are still [ahead](roadmap.md#not-shipped). |
+| **[Auth](authentication.md)** | Accounts, on by default: register, sign in, sign out, email confirmation, password reset and passkeys, with the first account as administrator. Cookie sessions, claims and authorization. MFA beyond passkeys and built-in external providers are still [ahead](roadmap.md#not-shipped). |
 | **[PWA](pwa.md)** | Installable, offline, native-feeling apps from the same components. |
 | **[Web Push](webpush.md)** | Server-sent Web Push on your own VAPID keys (RFC 8292/8291), zero external deps — the browser subscribes with MDN's `PushManager` from `Rask.Web`. |
 | **[Secrets](secrets.md)** | Environment variables, remembered by name so a redeploy can't silently drop one. No vault or rotation. |
@@ -95,8 +95,8 @@ file.
 ## What isn't in the box
 
 The claim above is "everything a solo developer needs to go from empty folder to shipped", and it's worth
-being precise about the edges. Rask does **not** ship the rest of the account lifecycle (email
-verification, password reset, MFA, external providers), rate limiting, or a
+being precise about the edges. Rask does **not** ship the rest of the account lifecycle (MFA beyond
+passkeys, built-in external providers), rate limiting, or a
 secret store beyond environment variables. The [roadmap](roadmap.md#not-shipped) lists each one and what
 you'd reach for instead. Knowing that before you start is worth more than a longer list of batteries.
 

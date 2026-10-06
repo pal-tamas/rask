@@ -455,7 +455,7 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
   spaces it.
 - **`Ui.Heading`** separates how big a heading looks (`Size`) from where it sits in the outline (`Level` 1–6, a
   `<div>` without one); **`Ui.Subheading`** and **`Ui.Text`** (`Strong`, `Subtle`, `Tone`, `Inline`) are the rest of the
-  type scale. `Ui.Header` and `Ui.Card` take a `HeadingLevel` instead of a fixed `<h1>`/`<h2>`.
+  type scale. `Ui.Header` and `Ui.Card` take a `TitleLevel` instead of a fixed `<h1>`/`<h2>`.
 
 ## Buttons that wait
 
@@ -467,7 +467,7 @@ the handler's ack, the WebAssembly runtime when its dispatch returns.
 
 ```csharp
 Ui.Button.Primary.OnClick(Save)["Save"]          // waits automatically
-Ui.Button.Loading(false).OnClick(StepAsync)[Ui.Icon.Name(Ui.IconName.Plus)]  // a stepper: presses queue
+Ui.Button.Loading(false).OnClick(Step)[Ui.Icon.Name(Ui.IconName.Plus)]  // a stepper: presses queue
 Ui.Button.Loading(_exporting)["Export"]                            // work that outlives the handler
 ```
 

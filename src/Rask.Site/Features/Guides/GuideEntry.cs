@@ -34,8 +34,8 @@ public sealed record GuideEntry(string Slug, string Title, string Blurb, string 
 
     /// <summary>The group's icon.</summary>
     /// <remarks>
-    /// Derived rather than stored. Every guide used to name its own, which meant 67 distinct glyphs
-    /// across ~80 guides — and the sidebar already groups them, so the icon only ever repeated what the
+    /// Derived rather than stored. Every guide used to name its own, which meant dozens of distinct glyphs
+    /// across the guides — and the sidebar already groups them, so the icon only ever repeated what the
     /// heading said. One per group is the information that was actually there, and a guide added later
     /// cannot forget to pick one.
     /// </remarks>

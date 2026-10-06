@@ -229,7 +229,7 @@ protected override async Task OnFirstRender()
 protected override async Task OnUpdated() => await Update(_host, DataAsJson());
 
 // Sync and fire-and-forget — see the note below on why this must not be an awaited DisposeAsync.
-protected override async Task OnUnmount() => _ = DestroyQuietlyAsync();
+protected override async Task OnUnmount() => _ = DestroyQuietly();
 ```
 
 There is one exception to "the diff can't reach it", and it is not optional. Not every frame is a diff:
