@@ -299,7 +299,9 @@ True of the scripts wherever they run — a CI job or your terminal.
   `-warnaserror`. The script exports `RASK_CLI_BUILD_E2E=1`; without it every case reports
   **SKIPPED** rather than passing silently.
 - **Templates — `scripts/run-template-e2e.sh`** (push set). Scaffolds `server`, `wasm` and
-  `wasm-hosted` through the dispatch `rask new` uses and builds what it wrote. Exports
+  `wasm-hosted` through the dispatch `rask new` uses and builds what it wrote. It also scaffolds a server
+  app per npm island runtime and runs the real island build (`npm install` and Vite), asserting the
+  manifest lists the scaffolded island: a compile-only row cannot see a scaffold that does not bundle. Exports
   `RASK_TEMPLATE_E2E=1`, with the same SKIPPED rule.
 - **Watch hot reload — `scripts/run-watch-e2e.sh`** (release set). See [the inner loop](#the-inner-loop).
 - **Deploy — `scripts/run-deploy-e2e-local.sh`** (release set). Points the real `rask deploy` at a

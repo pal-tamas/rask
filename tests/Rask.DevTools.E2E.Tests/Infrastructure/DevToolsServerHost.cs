@@ -54,7 +54,6 @@ internal sealed class DevToolsServerHost : IAsyncDisposable
         builder.Logging.ClearProviders();
         builder.Services.AddRouting();
         builder.Services.AddRask(configureServer: o => o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200));
-        builder.Services.AddRaskBlazor();
 
         var app = builder.Build();
         if (islands)

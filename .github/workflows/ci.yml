@@ -13,7 +13,19 @@ on:
     branches: [main, 'ci/**']
   pull_request:
     branches: [main]
+  # By hand, on any ref, and narrowed to the gates worth a runner:
+  #   gh workflow run ci.yml --ref <branch> -f set=all -f only='CLI build|deploy'
   workflow_dispatch:
+    inputs:
+      set:
+        description: push | deps | release | all
+        type: choice
+        options: [push, deps, release, all]
+        default: push
+      only:
+        description: an ERE over gate names (e.g. 'CLI build|unit'); empty runs the whole set
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -22,7 +34,7 @@ permissions:
 # green one gets to publish. (GitHub keeps one run waiting behind it: the newest.) Anywhere else only
 # the newest push matters.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
@@ -33,6 +45,8 @@ jobs:
       # runners main is waiting for, several of them arrive at once, and the browser suites run on main
       # the moment it is merged.
       set: >-
-        ${{ startsWith(github.ref, 'refs/heads/ci/release/') && 'all'
+        ${{ github.event_name == 'workflow_dispatch' && inputs.set
+            || startsWith(github.ref, 'refs/heads/ci/release/') && 'all'
             || (github.event_name == 'pull_request' && github.actor == 'dependabot[bot]') && 'deps'
             || 'push' }}
+      only: ${{ inputs.only }}
