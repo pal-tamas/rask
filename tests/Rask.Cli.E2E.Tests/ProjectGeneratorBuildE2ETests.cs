@@ -8,8 +8,9 @@ namespace Rask.Cli.E2E.Tests;
 /// <summary>
 /// The build-the-output gate: generate every build-affecting flag combination and prove it actually compiles
 /// against <b>this commit's</b> Rask packages, packed to a local feed. This packs the repo, restores, and runs
-/// the full C# build, so it's opt-in — set <c>RASK_CLI_BUILD_E2E=1</c> to run it (matches the repo's "tests run
-/// locally, not in CI" model). The exhaustive file/shape assertions live in <see cref="ProjectGeneratorTests"/>
+/// the full C# build, so it's opt-in — set <c>RASK_CLI_BUILD_E2E=1</c> to run it, which
+/// <c>scripts/run-cli-build-e2e.sh</c> does, by hand and as CI's "CLI build" job.
+/// The exhaustive file/shape assertions live in <see cref="ProjectGeneratorTests"/>
 /// and always run. The pack + build plumbing lives in <see cref="CliBuildE2E"/>, shared with
 /// <see cref="TutorialWalkthroughE2ETests"/> so the feed is packed once per session.
 /// </summary>

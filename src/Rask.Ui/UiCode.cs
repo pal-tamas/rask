@@ -26,7 +26,7 @@ public sealed partial class UiCode : Component
         var failed = Tone == Ui.Tone.Error;
         Component block = Pre.Class(
             "max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-base-300 bg-base-200 "
-            + "p-3 font-mono text-xs " + (failed ? "text-error" : "opacity-60"))[
+            + "p-3 font-mono text-xs " + (failed ? "text-ui-danger-ink" : "opacity-60"))[
             Content
         ];
 
@@ -36,7 +36,7 @@ public sealed partial class UiCode : Component
         }
 
         return Div[
-            Div.Class("mb-1.5 text-xs font-medium " + (failed ? "text-error" : "opacity-60"))[Label],
+            Div.Class("mb-1.5 text-xs font-medium " + (failed ? "text-ui-danger-ink" : "opacity-60"))[Label],
             block
         ];
     }

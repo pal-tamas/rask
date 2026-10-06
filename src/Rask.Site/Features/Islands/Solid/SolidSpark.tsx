@@ -1,3 +1,4 @@
+/** @jsxImportSource solid-js */
 // An ordinary Solid component. Nothing here imports Rask, and nothing here knows it is an island.
 //
 // The props type is GENERATED from SolidSpark.cs, so renaming a C# property stops this compiling —

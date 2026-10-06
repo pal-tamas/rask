@@ -3,21 +3,16 @@
 #
 # Wire-bytes-per-update for a fixed set of scenarios is noise-free (no timing: every render emits the
 # same payload shape with one small value differing), so the numbers are compared byte-for-byte against
-# the committed baselines and a regression fails the push. TWO baselines are gated, and both matter:
+# the committed baselines and a regression fails the run. TWO baselines are gated, and both matter:
 #
 #   tests/Rask.Benchmarks/Baselines/payload-bytes.csv                  (standalone codec)
 #   tests/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor-payload-bytes.csv  (head-to-head)
 #
-# This is the ONLY place they run. A CI job used to duplicate them, but nothing on main was a required
-# check, so its answer stopped nobody — the gate rode red through three merges before anyone noticed
-# (#919). It runs here now, the same way the browser E2E and the CLI build gate do.
-#
-# UNCONDITIONAL, deliberately. Every other gate here is path-filtered because it costs minutes; this one
-# costs about one, and a hand-listed filter is itself a way for a gate to stop running without saying so
-# — see the note above `generator_paths` in .githooks/pre-push, where exactly that happened.
+# This is the ONLY place they run, and ONLY WHEN YOU ASK: no git hook, no CI workflow and not
+# scripts/run-all-gates.sh either. Run it for a render or live-runtime hot-path change.
 #
 # Usage:  scripts/run-benchmarks-local.sh
-# Skip:   RASK_SKIP_BENCHMARKS=1 (also honoured by the pre-push hook)
+# Skip:   RASK_SKIP_BENCHMARKS=1
 set -euo pipefail
 
 if [ "${RASK_SKIP_BENCHMARKS:-}" = "1" ]; then
@@ -92,9 +87,9 @@ echo "==> Client bundle-size gate (rask.js, rask.wasm.js)"
 # (file overwritten, unminified, three times the size) -> build Release again and MSBuild skips it,
 # because its own stamp still looks current. The file measured is then the Debug one.
 #
-# That is not hypothetical: this gate's first run inside the pre-push hook reported rask.wasm.js at
+# That is not hypothetical: this gate's first run after a browser E2E gate reported rask.wasm.js at
 # 160,881 bytes against an 86,174 baseline — a 74 KB regression that did not exist, because the E2E
-# lane above had built Debug in between.
+# gate had built Debug in between.
 #
 # It is the STAMP that has to go, not the bundle. _RaskBundleClientJs declares its Outputs as
 # obj/<config>/rask-bundles/rask.wasm.stamp — the .js is not listed — so deleting the bundle is

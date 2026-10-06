@@ -105,7 +105,7 @@ public sealed partial class UiTab : Component
     private Component Content()
     {
         var countClass = Alarm == true
-            ? "rounded bg-error/10 px-1.5 py-0.5 text-xs tabular-nums text-error"
+            ? "rounded bg-error/10 px-1.5 py-0.5 text-xs tabular-nums text-ui-danger-ink"
             : "rounded bg-base-200 px-1.5 py-0.5 text-xs tabular-nums opacity-60";
         return
         [

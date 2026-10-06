@@ -3,7 +3,8 @@
 #
 # Opt-in, like every other heavyweight here (CLI build, watch, deploy, installer) and for the same
 # reason: it packs this commit's Rask packages, then restores and builds each scaffolded project, which is
-# minutes rather than the one the hooks are held to. Run it by hand and before a release.
+# minutes. CI runs it as its "templates" job on every push (.github/workflows/gates.yml); run it by hand
+# to reproduce that job.
 #
 # Two tiers, because the costs differ by an order of magnitude:
 #

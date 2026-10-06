@@ -35,7 +35,7 @@ public sealed partial class UiHeading : Component
         var classes = UiClass.Compose(
             "text-base-content",
             SizeClasses(Size ?? Ui.Size.Default),
-            Accent == true ? "text-primary" : "",
+            Accent == true ? "text-ui-brand-ink" : "",
             Class);
 
         return Element(Level)(classes)[Children ?? []];
