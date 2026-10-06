@@ -239,8 +239,10 @@ public sealed partial class UiKitDataInputDemo : Component
             Div.Data(Testid("ui-labels")).Class("grid gap-3 sm:grid-cols-2")[
                 Ui.Input.Of<string>().Key("float").Label("Company"),
                 Ui.Input.Of<string>().Key("legend").Label("Company number").Floating(false),
-                Ui.Label.Key("price").Text("€").Trailing("per month")[
-                    Ui.Input.Of<string>().AccessibleLabel("Price per month").Placeholder("29")
+                Label.Key("price").Class("label")[
+                    Span["€"],
+                    Ui.Input.Of<string>().AccessibleLabel("Price per month").Placeholder("29"),
+                    Span["per month"]
                 ]
             ]);
 

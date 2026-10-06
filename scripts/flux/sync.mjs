@@ -10,13 +10,8 @@
 // usual ones: FluxConformanceTests names the props Rask.Ui now lacks, and `parity.mjs <slug>` names the
 // pixels. The fresh measurements stay in artifacts/flux-parity/flux/, where parity.mjs reads them.
 //
-// A look is measured in pixels and text measures differently on every OS, so the lock belongs to ONE
-// platform: `measuredOn`, the CI runner's. Anywhere else the looks are measured but neither compared
-// nor locked. `--baseline` takes the lock over: every look is locked as measured here, none reported.
-//
 // Usage:  node scripts/flux/sync.mjs              # everything
 //         node scripts/flux/sync.mjs button card  # these pages only (the lock keeps the others)
-//         node scripts/flux/sync.mjs --baseline   # lock every look as this platform measures it
 // Exit:   0 nothing moved · 2 something did · 1 it could not tell
 
 import { createHash } from 'node:crypto';
@@ -29,108 +24,69 @@ import { chromium, measurePage, root } from './lib.mjs';
 const flux = join(root, 'tests', 'Rask.Ui.Tests', 'Flux');
 const snapshotFile = join(flux, 'flux.snapshot.json');
 const lockFile = join(flux, 'flux.lock.json');
-const baseline = process.argv.includes('--baseline');
-const only = process.argv.slice(2).filter(arg => arg !== '--baseline');
-if (baseline && only.length) {
-  console.error('flux sync: --baseline locks every page on this platform, so it takes no page filter.');
-  process.exit(1);
-}
+const only = process.argv.slice(2);
 
 const before = existsSync(snapshotFile) ? await readFile(snapshotFile, 'utf8') : '';
 execFileSync(process.execPath, [join(root, 'scripts', 'flux', 'refresh.mjs')], { stdio: 'inherit' });
 const snapshot = JSON.parse(await readFile(snapshotFile, 'utf8'));
-const moved = [];   // the report: a line per catalogue or release move, and ONE per page whose look moved
-const detail = [];  // every example behind those pages — printed above the report, for the log
+const moved = [];
 if (before && before !== JSON.stringify(snapshot, null, 2) + '\n') moved.push(...catalogueChanges(JSON.parse(before), snapshot));
 
 const lock = existsSync(lockFile) ? JSON.parse(await readFile(lockFile, 'utf8')) : { release: '', pages: {} };
-const lockedOn = lock.measuredOn ?? 'another platform';
-const compare = !baseline && lock.measuredOn === process.platform;
 const release = await latestRelease();
 if (release && release !== lock.release) {
   if (lock.release) moved.push(`release: ${lock.release} -> ${release}`);
   lock.release = release;
 }
 
-if (baseline) lock.pages = {};
+// Examples whose docs markup is random on every load (`width: rand(50, 100)%`): their widths are left out
+// of the print, or the example would "move" on every run. parity.mjs lets go of the same axis, by
+// `data-parity-skip="width"` on the Rask node.
+const RANDOM_WIDTH = new Set(['skeleton/examples#0']);
+
 const browser = await chromium().launch();
 for (const page of snapshot.pages.filter(p => only.length === 0 || only.includes(p.slug))) {
-  const known = compare && lock.pages[page.slug];
-  let prints = await measure(page);
-  // Moved means REPRODUCIBLY moved: Flux draws some examples at random, so a difference is measured twice.
-  if (known && !alike(known, prints)) prints = twice(page.slug, known, prints, await measure(page));
-  if (known) moved.push(...lookChanges(page.slug, known, prints));
-  if (compare || baseline) lock.pages[page.slug] = prints;
-  console.log(`flux sync: measured ${page.slug} (${Object.keys(prints).length / 2} examples)`);
-}
-
-await browser.close();
-if (baseline) lock.measuredOn = process.platform;
-await writeFile(lockFile, JSON.stringify({ release: lock.release, measuredOn: lock.measuredOn, pages: lock.pages }, null, 1) + '\n');
-
-if (detail.length) console.log(`\nflux sync: every example that moved:\n  ${detail.join('\n  ')}`);
-if (baseline) console.log(`\nflux sync: looks baselined on ${process.platform} (were locked on ${lockedOn}).`);
-else if (!compare) console.log(`\nflux sync: looks are locked on ${lockedOn}; this is ${process.platform}, so they were measured but not compared.`);
-console.log(moved.length
-  ? `\nflux sync: Flux moved in ${moved.length} place(s):\n  ${moved.join('\n  ')}`
-  : `\nflux sync: ${compare ? 'Flux is where Rask.Ui last matched it' : 'the catalogue and the release are where Rask.Ui last matched them'}.`);
-process.exit(moved.length ? 2 : 0);
-
-// Measures a page, leaves what parity.mjs reads, and hands back its fingerprints.
-async function measure(page) {
   const dir = join(root, 'artifacts', 'flux-parity', 'flux', page.slug);
   const schemes = await measurePage(browser, `https://fluxui.dev/${page.kind}/${page.slug}`, dir);
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, 'measurements.json'), JSON.stringify(schemes));
-  return fingerprints(schemes);
-}
 
-function alike(a, b) {
-  return Object.keys({ ...a, ...b }).every(key => a[key] === b[key]);
-}
-
-// Two fresh measurements of one page: where they agree, that is the look; where they do not, the
-// example is unstable — it keeps what the lock holds and is never reported.
-function twice(slug, known, first, second) {
-  const prints = {};
-  const unstable = new Set();
-  for (const key of Object.keys({ ...first, ...second })) {
-    if (first[key] !== second[key]) unstable.add(key.slice(key.indexOf('/') + 1));
-    const print = first[key] === second[key] ? first[key] : known[key];
-    if (print) prints[key] = print;
+  const prints = fingerprints(schemes, page.slug);
+  const known = lock.pages[page.slug];
+  if (known) {
+    for (const key of new Set([...Object.keys(known), ...Object.keys(prints)])) {
+      if (known[key] !== prints[key]) moved.push(`look: ${page.slug} ${key} ${!known[key] ? 'is new' : !prints[key] ? 'is gone' : 'changed'}`);
+    }
   }
 
-  if (unstable.size) console.log(`flux sync: ${slug} ${[...unstable].join(', ')} does not measure the same twice; ignored`);
-  return prints;
+  lock.pages[page.slug] = prints;
+  console.log(`flux sync: measured ${page.slug} (${Object.keys(prints).length / 2} examples)`);
 }
 
-// One line per page for the report; the examples behind it go to the log.
-function lookChanges(slug, known, prints) {
-  const counts = { changed: new Set(), new: new Set(), gone: new Set() };
-  for (const key of new Set([...Object.keys(known), ...Object.keys(prints)])) {
-    if (known[key] === prints[key]) continue;
-    const how = !known[key] ? 'new' : !prints[key] ? 'gone' : 'changed';
-    counts[how].add(key.slice(key.indexOf('/') + 1));   // light and dark are one example
-    detail.push(`look: ${slug} ${key} ${how === 'changed' ? how : `is ${how}`}`);
-  }
+await browser.close();
+await writeFile(lockFile, JSON.stringify(lock, null, 1) + '\n');
 
-  const summary = Object.entries(counts).filter(([, examples]) => examples.size).map(([how, examples]) => `${examples.size} ${how}`);
-  return summary.length ? [`look: ${slug} — example(s): ${summary.join(', ')}`] : [];
-}
+console.log(moved.length ? `\nflux sync: Flux moved in ${moved.length} place(s):\n  ${moved.join('\n  ')}` : '\nflux sync: Flux is where Rask.Ui last matched it.');
+process.exit(moved.length ? 2 : 0);
 
 // One short hash per example and scheme: enough to say WHICH example moved; parity.mjs says how.
-function fingerprints(schemes) {
+function fingerprints(schemes, slug) {
   const prints = {};
   for (const [scheme, examples] of Object.entries(schemes)) {
     for (const example of examples) {
       const round = v => (typeof v === 'string' ? v.replace(/-?\d*\.\d+(e-?\d+)?/g, n => String(Math.round(Number(n) * 100) / 100)) : v);
+      const name = `${example.section || 'intro'}#${example.ordinal}`;
+      const loose = RANDOM_WIDTH.has(`${slug}/${name}`);
+      const look = style => Object.entries(style).filter(([k]) => !(loose && k === 'width')).map(([, v]) => round(v));
       const facts = example.nodes.map(n => [
         n.tag, Object.keys(n.attrs).filter(a => a.startsWith('data-flux')).sort(), n.text,
-        n.box.slice(2).map(v => Math.round(v)), Object.values(n.style).map(round),
-        n['::before'] ? Object.values(n['::before']).map(round) : 0, n['::after'] ? Object.values(n['::after']).map(round) : 0,
+        n.box.slice(loose ? 3 : 2).map(v => Math.round(v)), look(n.style),
+        n['::before'] ? look(n['::before']) : 0, n['::after'] ? look(n['::after']) : 0,
+        // Only where something animates, so an example with nothing moving keeps the print it had.
+        ...(n.animations ? [n.animations] : []),
       ]);
       const states = example.states.map(s => [s.state, Object.entries(s.changed).map(([k, v]) => [k, round(v)])]);
-      prints[`${scheme}/${example.section || 'intro'}#${example.ordinal}`] =
+      prints[`${scheme}/${name}`] =
         createHash('sha256').update(JSON.stringify([facts, states])).digest('hex').slice(0, 16);
     }
   }

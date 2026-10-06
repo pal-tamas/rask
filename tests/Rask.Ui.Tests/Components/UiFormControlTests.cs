@@ -185,18 +185,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         Assert.Contains(expected, Ui.Mask.Shape(shape)[Span["x"]].ToHtml());
 
     [Fact]
-    public void A_label_is_decoration_and_says_so_by_not_naming_anything()
-    {
-        // A <label> element names a control; this one styles text beside one. The control keeps its own
-        // required name, which is why nothing here is aria-anything.
-        var html = Ui.Label.Text("Price").Trailing("EUR")[Span["field"]].ToHtml();
-
-        Assert.Contains("class=\"label\"", html);
-        Assert.Contains("Price", html);
-        Assert.Contains("EUR", html);
-    }
-
-    [Fact]
     public void A_filter_is_a_radio_group_with_a_reset()
     {
         // Radios rather than buttons is what lets daisyUI hide the unpicked options in CSS, and gives

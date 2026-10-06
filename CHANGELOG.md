@@ -48,6 +48,24 @@ them until tagged releases begin.
   490 KB (107 KB compressed) for the path data. `scripts/flux/icons.mjs` regenerates the set from the
   pinned npm package.
 
+- **BREAKING: `Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
+  [Flux UI's field](https://fluxui.dev/components/field).** The first family of the kit drawn without
+  daisyUI: Flux's parts, props, spacing and colours in light and dark, held to its docs page by
+  `scripts/flux/parity.mjs field`. A field stacks a label, a control, its message and help text —
+  `Ui.Field[Ui.Label.Badge("Required")["Email"], Ui.Input.Bind(() => m.Email).ShowValidation(false), Ui.Error, Ui.Description["…"]]`
+  — and `Ui.Field.Inline` puts the label beside a checkbox or a switch. `Ui.Label` is a real `<label for>`
+  that finds the field's control by itself, so a click focuses it with no script. `Ui.Error` is an
+  always-rendered `role="alert"` live region showing the first message of the bound member: bare inside a
+  field, `Ui.Error.For(() => m.Email)` anywhere, `Name("Email")` on the form's model, or `Message("…")`.
+  Two daisyUI components are replaced:
+  - `Ui.Fieldset.Text("Shipping").Help("…")[…]` → `Ui.Fieldset.Legend("Shipping").Description("…")[…]`
+    (`Legend` is optional now; `Ui.Legend["…"]` places it by hand).
+  - `Ui.Label.Text("€").Trailing("per month")[input]` — daisyUI's caption inside a control's frame — is
+    gone; `Ui.Label` is now the control's NAME (`Ui.Label["Email"]`, `Badge`, a `Trailing` slot). For the
+    old look write the daisyUI markup: `Label.Class("label")[Span["€"], input, Span["per month"]]`.
+
+  `Ui.Input`, `Ui.Select` and the other controls are unchanged and still draw their own label, `Hint` and
+  message; each takes Flux's `Label`/`Description` field as it is rebuilt.
 - **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
   keeps the front-door check, `pre-push` the attribution guard. `ci.yml` runs the format check, the
   warnings-as-errors build, the unit suite, the browser E2Es, the CLI build and the templates as
