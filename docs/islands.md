@@ -1041,6 +1041,12 @@ would rebuild every island in the project on every save and nothing would read t
 else still runs — the entry modules, the prop types, the type-check — and the manifest is still
 written, pointing at the dev server rather than at chunks.
 
+**It works the same on both hosts.** The page has to know where the dev server is before it will load
+a module from it, and it learns that from the manifest: a dev session's manifest names the server under
+a reserved `$dev` key, beside the islands. That is all a WASM app has — its page is a static file — and
+a Rask.Server page is also stamped with `data-rask-islands-dev` on `<body>`. Either way the origin is
+used only when it is a loopback one, and a built manifest never carries the key.
+
 **How much you get back depends on the runtime, and that is upstream's call, not Rask's.** Once the
 modules are served by the dev server, each framework's own refresh integration owns them:
 
@@ -1164,11 +1170,18 @@ shipping an app whose components silently never mount.
 
 **Islands load from the page's own origin, and nowhere else.** The client resolves a manifest and every
 chunk it names against the page and refuses one another origin serves, with a console error naming the
-URL; the only exception is the loopback island dev server, while `rask dev` has stamped it on the page.
+URL; the only exception is the loopback island dev server, while a `rask dev` session's manifest (or the
+Server host's stamp on the page) names it.
 An island is code and its `manifest` attribute is markup, so without that rule an app that renders
 sanitized user HTML could be handed `<rask-external manifest="https://elsewhere.example/m.json">`. A
 bundle on a CDN host is therefore not a supported deployment, and a `RaskExternalPublicBase` that names
 another origin fails the build.
+
+**An app served under a sub-path needs nothing extra.** With a [path base](deployment.md) of `/shop`
+the runtime script is written as `/shop/_content/Rask.External/rask-external.js`, and the client reads
+the base back off that URL and asks for the manifest and every chunk under it — on Rask.Server and on a
+WASM app alike. The manifest itself is unchanged: its chunk URLs are baked at build, before anyone knows
+where the app will be deployed, so one bundle serves any base.
 
 A `.ts` is picked up when a `.cs` of the same name sits beside it. Declare one explicitly only when it
 lives somewhere that pairing cannot reach — the build-side counterpart of overriding `Module`:

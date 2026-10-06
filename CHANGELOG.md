@@ -80,6 +80,12 @@ them until tagged releases begin.
   it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
   included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
   unchanged and still run by hand; each CI job is one of them.
+- **A push to `main` is gated by the gates its change can reach, and the whole set runs every hour.**
+  `scripts/lib/affected_gates.py` maps the change to gates from the project graph and runs everything
+  for a change it cannot narrow (the CI definition, a gate script, the package pins). `full.yml` runs
+  the whole push set each hour `main` has moved, and `nightly.yml` and `pages.yml` now publish from a
+  commit that run passed, not from a push's scoped run. The CLI build and template gates run on a push
+  only when the CLI, a template or a project file changed.
 - **Upstream is followed without anyone watching.** `upstream.yml` runs daily: it moves the MDN snapshot
   to the latest stable data, records the public surface that moved with it, moves the stated Node line
   to the Active LTS, gates the result and lands it on `main`. `dependabot-merge.yml` merges a
@@ -107,6 +113,32 @@ them until tagged releases begin.
   measured with motion at rest — a transition at its end, a spinner or shimmer on its first frame, on
   Flux's page and on Rask's alike — and a difference is measured twice, so an example Flux draws at
   random is ignored instead of reported.
+- **Islands load in an app served under a path base.** With `PathBase = "/shop"` the island runtime, the
+  manifest and every chunk were still asked for at the root and answered 404, on both hosts. The script
+  is now written under the base, as scoped assets are, and the client reads the base back off its own
+  URL — never off `<base href>`, which markup can inject — and applies it to the manifest and the chunks:
+  ```
+  /_content/Rask.External/rask-external.js        →  /shop/_content/Rask.External/rask-external.js
+  /_rask/external/manifest.json                   →  /shop/_rask/external/manifest.json
+  ```
+  The bundle is unchanged, so one build serves any base.
+- **Islands load, and hot-reload, in a WASM app under `rask dev`.** Since islands became own-origin only,
+  the page had to name the Vite dev server before a chunk on it would load, and only Rask.Server did —
+  by stamping `<body>`. A WASM app's page is a static file, so every island there was refused under
+  `rask dev` (`refusing the chunk http://localhost:5174/…`) and `@vite/client` was never loaded. A dev
+  session's manifest now names the server itself under a reserved `$dev` key; the client accepts it on
+  the same terms as the stamp — a loopback origin only — and a built manifest never has the key.
+- **One failed manifest fetch no longer fails every island until a reload.** The rejected fetch was kept
+  for the life of the page, so a 404 in the middle of a deploy or a dropped connection left every later
+  island unmounted. The next island to mount asks again, and the error says where and what to check:
+  ```
+  islands manifest: HTTP 404                                                             (was)
+  Rask islands: the manifest at https://app.test/_rask/external/manifest.json could not
+  be loaded (HTTP 404). The build writes it and the app serves it as a static file, …    (now)
+  ```
+- **Every island build message starts `Rask islands:`.** The ones raised by the targets file
+  (RASKISLAND001–003, the origin check, the type-check skips, `bundling N island(s)`) still said
+  `Rask.External:`. RASKISLAND002 — the bundler wrote no manifest — now also says what to check.
 - **Rask.SQLite.Litestream: two projects building for the first time at once no longer break each
   other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
   with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,

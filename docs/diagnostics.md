@@ -2610,7 +2610,7 @@ handlers, name a policy (`[Authorize(Policy = "admin")]`) or put the `[Authorize
 
 These come from the [islands](islands.md) build — `Rask.External`'s MSBuild targets and tasks — rather than from
 an analyzer, so they appear in `dotnet build` output and not as squiggles, and have no quick-fix. Every message
-starts `Rask islands:` (or `Rask.External:` for the three raised by the targets file) and ends with what to do.
+starts `Rask islands:` and ends with what to do.
 A warning can be demoted per project with `MSBuildWarningsAsMessages` — not `NoWarn`, which is the compiler's
 switch and does not reach a build task:
 
