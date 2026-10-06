@@ -32,12 +32,7 @@ public sealed partial class UiMetric : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var tone = Tone switch
-        {
-            Ui.Tone.Error => "text-error",
-            Ui.Tone.Warning => "text-warning",
-            _ => "text-base-content",
-        };
+        var tone = UiClassNames.ValueTone(Tone) ?? "text-base-content";
 
         Component body =
             // Stacked on a phone, label-and-value on one line from sm up. Side by side inside a 150px cell

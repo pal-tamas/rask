@@ -34,6 +34,19 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_warning_is_drawn_as_a_problem_and_still_announced_politely()
+    {
+        var done = Ui.Toast.Message("Saved").ToHtml();
+
+        var warning = Ui.Toast.Message("Saved, but the mail did not send").Tone(Ui.Tone.Warning).ToHtml();
+
+        Assert.Contains("text-warning", warning, StringComparison.Ordinal);
+        Assert.DoesNotContain("text-success", warning, StringComparison.Ordinal);
+        Assert.Contains("role=\"status\"", warning, StringComparison.Ordinal);
+        Assert.Contains("text-success", done, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Without_a_handler_there_is_nothing_to_dismiss_with() =>
         Assert.DoesNotContain("data-rask-dismiss",
             Ui.Toast.Message("Saved").ToHtml(), StringComparison.Ordinal);

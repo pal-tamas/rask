@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Inline style as typed CSS.** `Css` has a step for every CSS property browsers ship — 455, generated
+  from MDN's data (`@webref/css` for the grammars, browser-compat-data for what two engines ship) —
+  and `Style` takes one wherever it takes text: `Div.Style(Css.Position().Sticky.Top(0.Px))`. A
+  property's empty call offers its keywords (`Css.Display().Grid`), a typed value is taken as its type
+  (`Css.Height(40.Px)`, `Css.Opacity(0.5)`, `Css.TransitionDuration(150.Milliseconds)`), and any text
+  CSS allows still goes through (`Css.Width("calc(100% - 2rem)")`; `null` declares nothing). The unit
+  literals gain CSS lengths: `12.Px`, `1.5.Rem`, `2.Em`, `60.Ch`, `100.Vw`, `100.Vh`, `100.Dvw`,
+  `100.Dvh` and `50.Percent`. The daily upstream run keeps the property list on MDN's latest release.
+
 ### Changed
 
 - **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
@@ -16,6 +27,12 @@ them until tagged releases begin.
   it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
   included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
   unchanged and still run by hand; each CI job is one of them.
+- **Upstream is followed without anyone watching.** `upstream.yml` runs daily: it moves the MDN snapshot
+  to the latest stable data, records the public surface that moved with it, moves the stated Node line
+  to the Active LTS, gates the result and lands it on `main`. `dependabot-merge.yml` merges a
+  Dependabot pull request once `ci` has passed it. An issue is opened only when a person is needed —
+  the gates refused what upstream shipped, or Flux UI moved. `lts-watch.yml`, which only reported, is
+  gone.
 
 ### Fixed
 
@@ -23,6 +40,9 @@ them until tagged releases begin.
   other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
   with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
   verifies and unpacks in a directory of its own and moves the binary into the cache.
+- **`rask`: Spectre.Console's CI detection no longer overrides the CLI's own decision about whether a
+  prompt may be shown.** The CLI decides from the streams it was handed; under `CI`/`GITHUB_ACTIONS`
+  Spectre switched interaction off behind it.
 
 ### Removed
 
@@ -1322,12 +1342,37 @@ them until tagged releases begin.
   (`Rask.Cqrs.Generators`, `Rask.Data.Generators`, …); its types are now in `Rask.Batteries.Generators` (and
   `.Analyzers`), matching the project. Nothing an app names changes.
 
+### Changed
+
+- **Rask UI is moving from daisyUI to Flux UI, one component at a time.** The kit will mirror
+  [Flux UI](https://fluxui.dev) — its components, its names, its props, and its look and behaviour exactly —
+  and daisyUI goes when the last component drawn with it does. This first step is the ground it stands on,
+  and changes nothing an app draws: Flux's theme model sits in the kit's stylesheet beside daisyUI's (an
+  accent of three variables over Tailwind's `zinc` scale, and a `dark:` variant that follows a `dark` class
+  as well as whatever daisyUI currently calls dark), and the tooling that keeps the kit honest is in
+  `scripts/flux/`: `refresh.mjs` reads Flux's docs into a snapshot of every component, prop and value,
+  `parity.mjs` measures a Rask component against Flux's live examples — boxes, colours, borders, shadows,
+  hover, press and focus, in light and dark — and `sync.mjs` reports when Flux itself has moved. Written from
+  Flux's public documentation; none of Flux's source is used.
+
 ### Fixed
 
 - **The packaging gate passes in a fresh worktree.** `Every_file_a_project_packs_by_name_exists` called the
   four gitignored JavaScript files `Rask.Wasm` and `Rask.External` bundle from TypeScript "produced by
   nothing" until those projects had been built. It now reads each project's own esbuild `--outfile` and
   reports such a file as not built yet, the way it already does for a task assembly.
+- **UI kit: status text is readable on every theme, and `Ui.Card.Size` does something.** `Ui.Text.Tone(…)`
+  and the tones on `Ui.Stat`, `Ui.Metric`, `Ui.DetailRow`, `Ui.Code`, `Ui.MenuItem`, an alarming `Ui.Tab`
+  count and an accented `Ui.Heading` wrote daisyUI's status colours as text, which fail WCAG AA on most
+  palettes; they now use the kit's measured `-ink` tokens, and a test keeps the raw spelling out.
+  `Ui.Card.Size` wrote a daisyUI class the kit's card never reacted to; it is now the card's padding, with
+  `Md` equal to an unsized card:
+  ```csharp
+  Ui.Card.Sm[…]   // was identical to Ui.Card[…]; now p-3 sm:p-4
+  ```
+  Also: the `Buttons` choice layout has its corner radius back (`rounded-btn` is not a daisyUI 5 class), a
+  `Ui.Tone.Warning` toast shows the warning icon instead of a green check, and `dotnet pack` takes the
+  kit's stylesheet from a target framework the project builds rather than whichever `obj/*/` sorts last.
 - **Docs, rask.sh and the package pages describe the framework as it is now.** A sweep of everything the
   recent removals left behind. `llms.txt` no longer describes a wizard with styling, auth and battery
   questions, front-end and meta-framework templates, opt-in `--pwa`/`--docker` flags, a `Rask`

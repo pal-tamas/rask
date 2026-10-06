@@ -55,7 +55,7 @@ project=tests/Rask.DevTools.E2E.Tests
 # Rask.Core twice.
 echo "==> Publish the WASM fixture the WASM journeys serve (Debug, with the kit)"
 build_status=0
-dotnet publish tests/Rask.DevTools.Fixture.Wasm/Rask.DevTools.Fixture.Wasm.csproj -c Debug -m:1 \
+dotnet publish tests/Rask.DevTools.Fixture.Wasm/Rask.DevTools.Fixture.Wasm.csproj -c Debug -m:"${RASK_BUILD_SLOTS:-1}" \
   -p:RaskDevToolsFixtureUi=true -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
   | tee "$build_log" || build_status=$?
 

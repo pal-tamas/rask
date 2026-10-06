@@ -78,7 +78,7 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
         ].ToHtml();
 
         Assert.Contains("<kbd class=\"kbd kbd-xs ui-menu-kbd\">", html);
-        Assert.Contains("text-error", html);
+        Assert.Contains("text-ui-danger-ink", html);
         Assert.True(
             html.IndexOf("Edit", StringComparison.Ordinal) < html.IndexOf("<kbd", StringComparison.Ordinal),
             "the shortcut comes after the words.");

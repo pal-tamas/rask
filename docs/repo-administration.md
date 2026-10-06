@@ -11,14 +11,14 @@ anyone can open issues and PRs — but **only the owner (@pal-tamas) can merge**
 
 ## Protect `main` (only the owner merges)
 **Settings → Branches → Add branch ruleset** (or classic protection) for `main`:
-- ✅ Require a pull request before merging
-  - ✅ Require approvals (1)
-  - ✅ **Require review from Code Owners** ← with `.github/CODEOWNERS` (`* @pal-tamas`) this means
-    no PR merges without the owner's approval.
+- ❌ Require a pull request before merging — **off**. `upstream.yml` lands what it regenerated with
+  the workflow's own token, which is not an admin and cannot bypass the rule; and the rule held
+  nobody else, because only the owner has write access and an outside contribution arrives from a
+  fork as a pull request whatever this says. Turn it back on and the daily run stops at `land`.
 - ✅ Require status checks to pass: see below — in practice this list stays **empty**.
 - ✅ Require branches to be up to date before merging.
-- ✅ Do not allow bypassing the above settings (so even pushes must go through PRs).
-- ✅ Restrict who can push to matching branches → only @pal-tamas (blocks direct pushes/merges).
+- ✅ Block force pushes and deletions.
+- Write access stays with @pal-tamas alone: that, not a branch rule, is what "only the owner merges" rests on.
 
 ### Why the required-checks list is empty
 
@@ -64,7 +64,7 @@ JSON
 
 Only ever require a check that actually runs on every PR. A required check that is skipped — by a path
 filter, or because its workflow was deleted — blocks the branch for ever with no way to satisfy it.
-The gate jobs are named by `gates.yml`'s matrix (`unit + format`, `browser E2E`, …); requiring one
+The gate jobs are named by `gates.yml`'s matrix (`format`, `unit`, `browser E2E`, …); requiring one
 means keeping that name in step with the list there.
 
 The reviews-and-restrictions half, set once (example):
