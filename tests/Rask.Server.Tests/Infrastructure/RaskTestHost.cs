@@ -96,6 +96,10 @@ internal sealed class RaskTestHost : IDisposable
         app.UseRouting();
         app.UseWebSockets();
         configureMiddleware?.Invoke(app);
+        // A host that names its environment claims IsDevelopment itself. Dispose clears it for the next
+        // host, but a RaskApp-built host never comes through here, and what it left behind would answer.
+        if (environment is not null)
+            LiveOptions.IsDevelopment = null;
         app.MapRask<TApp>(pathBase: pathBase);
 
         app.StartAsync().GetAwaiter().GetResult();
