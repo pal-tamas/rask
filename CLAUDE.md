@@ -24,7 +24,11 @@ Standing rules: do your best every change, holding **UX + security + performance
 standard .NET APIs (don't reinvent); refactor duplication you touch; **SOLID + Clean Code** (one
 responsibility per type and file, small well-named methods, no copied helper — `docs/code-analysis.md#design`);
 unit-test every feature (E2E
-only when unreachable); E2E for every `src/Rask.Site` change — **tests run locally, not in CI**.
+only when unreachable); **PARALLEL BY DEFAULT** — independent reads/searches/commands go out in ONE batch,
+independent sub-tasks fan out to subagents (a worktree each: two builds in one tree fight over `obj/`), a long
+build or gate runs in the background while the next step is prepared; a new script, gate or test runs
+concurrently on all cores under ONE shared `-m` budget, and anything serial states its reason at the site
+(a shared `obj/`, a port, a global sink); E2E for every `src/Rask.Site` change — **tests run locally, not in CI**.
 **BOTH HOOKS ARE HELD TO A HARD ONE-MINUTE BUDGET**, at any scope: `.githooks/pre-commit` and
 `.githooks/pre-push` each run `scripts/run-unit-local.sh` scoped to what changed (staged files /
 `origin/main...HEAD`). When a gate goes over budget the answer is to **make the tests faster, never to
