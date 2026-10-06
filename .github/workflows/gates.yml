@@ -1,13 +1,17 @@
 name: gates
 
-# The gates, as jobs. Called by ci.yml (every push) and release.yml (before anything is published) —
-# ONE list, so the two cannot drift. Each job runs the same script a developer runs by hand, which
-# keeps a red job reproducible with one command.
+# The gates, as jobs. Called by ci.yml (every push), full.yml (the whole push set, on a schedule),
+# soak.yml and release.yml — ONE list, so they cannot drift. Each job runs the same script a developer
+# runs by hand, which keeps a red job reproducible with one command.
 #
-#   push     what every push to main is held to
-#   deps     the part of push a version bump can break before it lands: format, unit, CLI build, templates
+#   push     what a push to main is held to
+#   deps     the part of push a version bump can break before it lands: build, unit, format, CLI build, templates
 #   release  what needs containers or a real host; run before a release, and on a ci/release/** branch
-#   all      both
+#   all      push and release
+#
+# scope: affected narrows the set to the gates the change can reach — scripts/lib/affected_gates.py
+# answers from the diff base..HEAD, and each gate names the answer that selects it ("when"). Anything
+# that script will not narrow runs the whole set, and so does scope: full.
 on:
   workflow_call:
     inputs:
@@ -24,6 +28,14 @@ on:
         description: The commit to gate. Empty gates the one the caller ran on; upstream.yml names the commit it is about to land.
         type: string
         default: ''
+      scope:
+        description: full | affected
+        type: string
+        default: full
+      base:
+        description: With scope affected, the commit the change is measured from. Empty runs the whole set.
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -33,38 +45,51 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       gates: ${{ steps.pick.outputs.gates }}
+      mode: ${{ steps.pick.outputs.mode }}
+      range: ${{ steps.pick.outputs.range }}
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0   # the diff from the base commit
+
       - id: pick
         env:
           SET: ${{ inputs.set }}
           ONLY: ${{ inputs.only }}
-          # Every core the runner has: nothing else is running on it.
+          SCOPE: ${{ inputs.scope }}
+          BASE: ${{ inputs.base }}
+          # "mode" says which kind of run a gate belongs to: the whole set cuts the unit tests and the
+          # formatter in two, a scoped run has little enough of either for one job each.
+          # "when" is the key from scripts/lib/affected_gates.py that selects the gate in a scoped run.
           #
-          # The unit gate is five jobs: "build" is the warnings-as-errors build with the analyzers and
-          # the gate script tests; the two "unit" and the two "format" jobs each build without analyzers
-          # and then run half the tests or half the formatter. run-unit-local.sh says why at RASK_UNIT_PART.
+          # The unit gate: "build" is the warnings-as-errors build with the analyzers and the gate
+          # script tests; the "unit" and "format" jobs build without analyzers and then run tests or
+          # the formatter. run-unit-local.sh says why at RASK_UNIT_PART.
           #
-          # The browser suite runs its 150 journeys one at a time, so it is cut four ways by class.
+          # The browser suite runs its journeys one at a time, so it is cut four ways by class.
           # Shards 1-3 NAME their classes and shard 4 takes everything they do not: a new or renamed
           # class lands in 4 by itself and cannot fall between two. The Rask.Server journeys need no
           # site publish and are a job of their own.
           GATES: >-
             [
-              {"set": "push", "deps": true,    "name": "build",              "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "build"},
-              {"set": "push", "deps": true,    "name": "unit 1/2",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests-1/2"},
-              {"set": "push", "deps": true,    "name": "unit 2/2",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests-2/2"},
-              {"set": "push", "deps": true,    "name": "format src",         "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-src"},
-              {"set": "push", "deps": true,    "name": "format tests",       "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-tests"},
-              {"set": "push",    "name": "browser E2E 1/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.WasmExampleTests"},
-              {"set": "push",    "name": "browser E2E 2/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitActionsTests|FullyQualifiedName~.UiKitTreeTests"},
-              {"set": "push",    "name": "browser E2E 3/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitDataInputTests|FullyQualifiedName~.UiKitDataGridTests|FullyQualifiedName~.UiKitDataDisplayTests"},
-              {"set": "push",    "name": "browser E2E 4/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName!~.WasmExampleTests&FullyQualifiedName!~.UiKitActionsTests&FullyQualifiedName!~.UiKitTreeTests&FullyQualifiedName!~.UiKitDataInputTests&FullyQualifiedName!~.UiKitDataGridTests&FullyQualifiedName!~.UiKitDataDisplayTests"},
-              {"set": "push",    "name": "server E2E",         "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "server"},
-              {"set": "push",    "name": "devtools E2E",       "run": "scripts/run-devtools-e2e-local.sh", "browser": true},
-              {"set": "push",    "name": "browser SQLite E2E", "run": "scripts/run-browser-sqlite-e2e-local.sh", "browser": true},
-              {"set": "push",    "name": "data demo E2E",      "run": "scripts/run-data-demo-e2e-local.sh", "browser": true},
-              {"set": "push", "deps": true,    "name": "CLI build",          "run": "scripts/run-cli-build-e2e.sh"},
-              {"set": "push", "deps": true,    "name": "templates",          "run": "scripts/run-template-e2e.sh"},
+              {"set": "push", "deps": true, "when": "code",                    "name": "build",              "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "build"},
+              {"set": "push",               "when": "code", "mode": "scoped",  "name": "unit",               "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests"},
+              {"set": "push", "deps": true,                 "mode": "full",    "name": "unit 1/2",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests-1/2"},
+              {"set": "push", "deps": true,                 "mode": "full",    "name": "unit 2/2",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests-2/2"},
+              {"set": "push",               "when": "cs",   "mode": "scoped",  "name": "format",             "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format"},
+              {"set": "push", "deps": true,                 "mode": "full",    "name": "format src",         "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-src"},
+              {"set": "push", "deps": true,                 "mode": "full",    "name": "format tests",       "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-tests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 1/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.WasmExampleTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 2/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitActionsTests|FullyQualifiedName~.UiKitTreeTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 3/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitDataInputTests|FullyQualifiedName~.UiKitDataGridTests|FullyQualifiedName~.UiKitDataDisplayTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 4/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName!~.WasmExampleTests&FullyQualifiedName!~.UiKitActionsTests&FullyQualifiedName!~.UiKitTreeTests&FullyQualifiedName!~.UiKitDataInputTests&FullyQualifiedName!~.UiKitDataGridTests&FullyQualifiedName!~.UiKitDataDisplayTests"},
+              {"set": "push", "when": "server",    "name": "server E2E",         "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "server"},
+              {"set": "push", "when": "devtools",  "name": "devtools E2E",       "run": "scripts/run-devtools-e2e-local.sh", "browser": true},
+              {"set": "push", "when": "sqlite",    "name": "browser SQLite E2E", "run": "scripts/run-browser-sqlite-e2e-local.sh", "browser": true},
+              {"set": "push", "when": "datademo",  "name": "data demo E2E",      "run": "scripts/run-data-demo-e2e-local.sh", "browser": true},
+              {"set": "push", "deps": true, "when": "packaging", "name": "CLI build", "run": "scripts/run-cli-build-e2e.sh"},
+              {"set": "push", "deps": true, "when": "packaging", "name": "templates", "run": "scripts/run-template-e2e.sh"},
               {"set": "release", "name": "watch hot reload",   "run": "scripts/run-watch-e2e.sh"},
               {"set": "release", "name": "deploy",             "run": "scripts/run-deploy-e2e-local.sh"},
               {"set": "release", "name": "storage providers",  "run": "scripts/run-storage-providers-local.sh"},
@@ -72,9 +97,44 @@ jobs:
               {"set": "release", "name": "providers",          "run": "scripts/run-providers-local.sh"}
             ]
         run: |
-          gates="$(jq -c --arg set "$SET" --arg only "$ONLY" '[.[] | select($set == "all" or .set == $set or ($set == "deps" and .deps)) | select($only == "" or (.name | test($only)))]' <<<"$GATES")"
+          mode=full
+          keys=""
+          range=""
+
+          if [ "$SCOPE" = "affected" ] && [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            answer="$(git diff --name-only "$BASE" HEAD | python3 scripts/lib/affected_gates.py .)"
+            case "$answer" in
+              FULL*)
+                echo "gates: the whole set — $(printf '%s' "$answer" | cut -f2-)"
+                ;;
+              *)
+                mode=scoped
+                keys="$answer"
+                range="$BASE..$(git rev-parse HEAD)"
+                echo "gates: scoped to [$keys] over $range"
+                ;;
+            esac
+          elif [ "$SCOPE" = "affected" ]; then
+            echo "gates: the whole set — no usable base commit ('$BASE') to measure the change from"
+          fi
+
+          gates="$(jq -c --arg set "$SET" --arg only "$ONLY" --arg mode "$mode" --arg keys "$keys" '
+            ($keys | split(" ")) as $reached
+            | [ .[]
+                | select($set == "all" or .set == $set or ($set == "deps" and .deps))
+                | select($only == "" or (.name | test($only)))
+                | select(if $mode == "full"
+                         then (.mode // "") != "scoped"
+                         else (.mode // "") != "full" and ((.when // "") as $when | $reached | index($when)) != null
+                         end) ]' <<<"$GATES")"
           [ "$gates" != "[]" ] || { echo "gates: set '$SET' with only '$ONLY' selects no gate" >&2; exit 1; }
-          echo "gates=$gates" >> "$GITHUB_OUTPUT"
+
+          echo "gates: $(jq -r '[.[].name] | join(", ")' <<<"$gates")"
+          {
+            echo "gates=$gates"
+            echo "mode=$mode"
+            echo "range=$range"
+          } >> "$GITHUB_OUTPUT"
 
   gate:
     needs: plan
@@ -89,7 +149,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
-          fetch-depth: 0   # MinVer packs in the CLI gates, and GuideHistoryTests reads the log
+          fetch-depth: 0   # MinVer packs in the CLI gates, GuideHistoryTests reads the log, a scoped run diffs
 
       - uses: ./.github/actions/setup
         with:
@@ -103,4 +163,9 @@ jobs:
           RASK_E2E_SUITE: ${{ matrix.gate.suite }}
           RASK_UNIT_PART: ${{ matrix.gate.part }}
           RASK_BUILD_SLOTS: 4   # the browser gates publish on one core unless told otherwise
+          # A scoped run: the unit gate builds, tests and formats what the range reaches. Empty on a
+          # whole run, where the gate does everything.
+          RASK_TEST_SCOPE: ${{ needs.plan.outputs.mode == 'scoped' && 'affected' || '' }}
+          RASK_FORMAT_SCOPE: ${{ needs.plan.outputs.mode == 'scoped' && 'range' || '' }}
+          RASK_SCOPE_RANGE: ${{ needs.plan.outputs.range }}
         run: ${{ matrix.gate.run }}
