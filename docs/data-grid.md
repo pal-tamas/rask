@@ -74,7 +74,7 @@ total.
 ```csharp
 Ui.DataGrid.Of<Product, int>().RowKey(p => p.Id).PageSize(25).Source(async request =>
 {
-    var page = await _api.GetProductsAsync(request.Sort, request.Descending, request.Page, request.PageSize);
+    var page = await _api.GetProducts(request.Sort, request.Descending, request.Page, request.PageSize);
     return new UiGridPage<Product>(page.Rows, page.Total);
 })[c => [ … ]]
 ```
@@ -212,7 +212,7 @@ wrapper of your own:
 ```csharp
 .Toolbar([
     Ui.Tabs[ … ],
-    Ui.Select.Value(_category).Options(_categories).Label("Category").OnChange(FilterAsync),
+    Ui.Select.Value(_category).Options(_categories).Label("Category").OnChange(Filter),
     Ui.Search.Placeholder("Search").AccessibleLabel("Search entries").OnSearch(Search),
 ])
 ```

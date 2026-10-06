@@ -60,12 +60,14 @@
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Client.targets') "/>
 
   <!--
-    Auto-enable the repo's git hooks (pre-commit: dotnet format + unit; pre-push: browser E2E) so a fresh
+    Auto-enable the repo's git hooks (commit-msg: Conventional Commits + no attribution trailers;
+    pre-commit: the README/NUGET front-door check; pre-push: the attribution guard again) so a fresh
     clone picks them up on first build — no manual `git config core.hooksPath .githooks`. The hook contents
     live in .githooks/; this only points git at them. Skipped in CI (GitHub sets CI=true) and during IDE
     design-time builds, and only runs inside a git working copy (.git present — a directory in the main
-    clone, a file in a worktree), so a restored/consumed package never triggers it. Hooks stay advisory:
-    bypass any with the git no-verify flag, RASK_SKIP_UNIT=1, or RASK_SKIP_E2E=1. See .github/CONTRIBUTING.md.
+    clone, a file in a worktree), so a restored/consumed package never triggers it. No hook builds or
+    tests anything — the gates run in CI (.github/workflows/ci.yml). Hooks stay advisory: bypass any with
+    the git no-verify flag. See .github/CONTRIBUTING.md.
 
     READ before writing (#964). `git config` with no per-worktree flag writes the COMMON config, so a build
     in a linked worktree writes the main checkout's .git/config — and the write takes .git/config.lock. Several

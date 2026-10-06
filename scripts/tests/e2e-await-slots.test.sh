@@ -15,6 +15,10 @@
 # Usage:  scripts/tests/e2e-await-slots.test.sh   (run by scripts/run-unit-local.sh)
 set -uo pipefail
 
+# The table is driven with CI unset, and sets it itself for the one CI case below. Inherited from a
+# runner, it would skip every refusal and wait asserted here.
+unset CI
+
 root="$(git rev-parse --show-toplevel)"
 # shellcheck source=../lib/machine-lane.sh
 . "$root/scripts/lib/machine-lane.sh"

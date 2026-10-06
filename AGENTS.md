@@ -14,11 +14,13 @@ Apply the matching playbook automatically:
 - **run-rask** / **run-rask-cli** — build, launch and drive the real thing (the site, the `rask` CLI)
   when a test passing isn't the same as it working.
 - **rask-review** — security/perf/memory/best-practices. **land-on-main** — Conventional-Commit, land straight on `main`.
+- **rask-seo** — search + AI-assistant discoverability, on every site/docs/package-metadata change.
+  **rename-public-member** — one-pass Roslyn rename of a public name, then baselines, templates and docs.
 - **cut-release** — tag `vX.Y.Z`. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 
 ## The gate (every change)
-1. `dotnet format Rask.slnx` (+ `--verify-no-changes`) — the full pass, not `whitespace`; the
-   `pre-commit` gate verifies it too.
+1. `dotnet format Rask.slnx` (+ `--verify-no-changes`) — the full pass, not `whitespace`; CI's
+   `unit + format` job verifies it after the push.
 2. `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true` (analyzers clean).
    The same build runs the **public-API gate**: a public member you added, renamed or removed is an
    error until it is recorded in `src/<Project>/PublicAPI/<tfm>/PublicAPI.Unshipped.txt`. Names obey
@@ -29,8 +31,10 @@ Apply the matching playbook automatically:
    `llms.txt`, and `docs/ai-agents.md` current). Add a `CHANGELOG.md` `[Unreleased]` entry.
 6. Review (security + performance + UX together; prefer standard .NET APIs; refactor duplication).
 7. Land it on `main` (`type(scope): subject`, Conventional Commits — enforced by commitlint): merge
-   `origin/main` in with `--no-commit` (a clean merge is otherwise ungated), then
-   `git push origin HEAD:main`. **No pull request** — PRs are for external contributions from forks.
+   `origin/main` in, then `git push origin HEAD:main`. **No pull request** — PRs are for external
+   contributions from forks. No hook builds or tests: `ci.yml` runs every gate AFTER the push, each
+   job the same `scripts/run-*.sh` you can run by hand. A red `main` is fixed forward; push to a
+   `ci/**` branch first to try a risky change without landing it.
 
 ## CI hygiene (`.github/workflows/`)
 Keep the annotation panel clean. Pin runners to an explicit image, never a moving `*-latest` label. Keep

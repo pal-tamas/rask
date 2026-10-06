@@ -511,33 +511,19 @@ check "pages.yml emits the CNAME" yes \
     "$(grep -qE '^ *echo "rask\.sh" > "\$SITE/CNAME"$' .github/workflows/pages.yml && printf yes || printf no)"
 
 # --- gate wiring --------------------------------------------------------------------------------
-# rask.sh and rask.ps1 sit at the REPO ROOT, and the pre-commit hook's path filter is a list of
-# directory prefixes. Before this file existed, a commit touching only the public installer matched
-# none of them and skipped the format + unit gate entirely — which is to say it skipped this test.
-# The filter is extracted from the hook and run, rather than grepped for a substring, so this cannot
-# pass against a filter that has been edited into something that no longer matches.
-
+# rask.sh and rask.ps1 sit at the REPO ROOT, where a path filter is most likely to miss them. CI has
+# no path filter — every push runs this file through run-unit-local.sh — and the installer's own
+# end-to-end gate runs before a release. Both are pinned here, because a guard nothing invokes is
+# not a guard.
 echo "==> gate wiring"
-precommit_filter="$(sed -n "s/^if ! git diff --cached --name-only | grep -E '\(.*\)' >\/dev\/null; then$/\1/p" .githooks/pre-commit)"
-check "the pre-commit path filter is still where we think" yes \
-    "$([ -n "$precommit_filter" ] && printf yes || printf no)"
-
-matches_precommit() { printf '%s\n' "$1" | grep -qE "$precommit_filter" && printf yes || printf no; }
-check "a rask.sh-only commit runs the unit gate"  yes "$(matches_precommit rask.sh)"
-check "a rask.ps1-only commit runs the unit gate" yes "$(matches_precommit rask.ps1)"
-check "a scripts/ change still runs it"           yes "$(matches_precommit scripts/tests/install-script.test.sh)"
-# Still true, and still deliberate: a commit touching ONLY the root README/NUGET.md/llms.txt skips the
-# full format + unit gate, so the URL checks above do not run for it. Widening this filter would make
-# every typo fix pay for the whole unit suite, which is a call for the repo owner, not for this test.
-#
-# The narrower half of that gap IS now closed: pre-commit runs scripts/tests/front-doors.test.sh on its
-# own path list when README.md or NUGET.md is staged, because the Counter sample had already rotted
-# apart across those files unnoticed. That check costs milliseconds; this gate costs minutes, which is
-# the whole reason one is wired that way and the other is not.
-check "a root README-only commit still skips it"  no  "$(matches_precommit README.md)"
-
-check "pre-push registers the install gate" yes \
-    "$(grep -q 'scripts/run-install-e2e-local.sh' .githooks/pre-push && printf yes || printf no)"
+check "CI runs the unit gate, and so this file" yes \
+    "$(grep -q 'scripts/run-unit-local\.sh' .github/workflows/gates.yml && printf yes || printf no)"
+check "CI is not narrowed by a path filter" "" \
+    "$(grep -nE '^ *paths(-ignore)?:' .github/workflows/ci.yml .github/workflows/gates.yml || true)"
+check "the release gates include the installer" yes \
+    "$(grep -q 'scripts/run-install-e2e-local\.sh' .github/workflows/gates.yml && printf yes || printf no)"
+check "a release runs the gates before it publishes" yes \
+    "$(grep -qE '^    needs: gates$' .github/workflows/release.yml && printf yes || printf no)"
 check "the install gate honours its skip flag" yes \
     "$(grep -q 'RASK_SKIP_INSTALL_E2E' scripts/run-install-e2e-local.sh && printf yes || printf no)"
 

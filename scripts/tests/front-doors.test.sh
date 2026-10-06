@@ -94,11 +94,6 @@ check "the hero has no 'override string Route'" "" \
     "$(printf '%s' "$hero" | grep -n 'override string Route' || true)"
 
 # --- gate wiring ---------------------------------------------------------------------------------
-# A guard nothing invokes is not a guard. README.md and NUGET.md sit at the repo root and match none
-# of the pre-commit filter's directory prefixes, so without its own hook entry this file would never
-# run for the commit most likely to break it: an edit to the README alone. The filter is extracted
-# from the hook and run, rather than grepped for, so it cannot pass against one that has been edited
-# into something that no longer matches.
 echo
 echo "==> gate wiring"
 
@@ -115,37 +110,13 @@ matches_front_doors() {
 check "a README-only commit runs this guard"   yes "$(matches_front_doors README.md)"
 check "a NUGET.md-only commit runs this guard" yes "$(matches_front_doors NUGET.md)"
 
-# The hero needs no entry of its own: it lives under src/Rask.Site, which the ordinary filter already
-# matches, so its commits run the full gate — and that runs this file via run-unit-local.sh.
-check "the site hero is under site/" yes \
-    "$([ -f src/Rask.Site/Features/Home/HomePage.cs ] && printf yes || printf no)"
-
-# ...which is only true while the ordinary filter really does match the tree the hero lives in. That
-# filter decides whether the WHOLE format + unit suite runs, and its failure mode is silence: a prefix
-# it does not match is not rejected, it is waved through with "no code changes staged". A tree could sit
-# in the repository for weeks, ungated, with every commit reporting success.
-#
-# So it is extracted from the hook and EXECUTED here, the same way the front-door filter above is —
-# grepping for the prefix would pass against a filter edited into something that no longer matches.
-gate_filter="$(sed -n "s/^if ! git diff --cached --name-only | grep -E '\(.*\)' >\/dev\/null; then\$/\1/p" .githooks/pre-commit)"
-check "the gate filter is still where we think" yes \
-    "$([ -n "$gate_filter" ] && printf yes || printf no)"
-
-runs_full_gate() {
-    grep -qE "$gate_filter" <<<"$1" && printf yes || printf no
-}
-
-# Every tree the suite actually gates. site/ is the published rask.sh app; it is listed explicitly
-# because it is the newest and the one a future reader is most likely to leave out.
-check "a site/ commit runs the gate"      yes "$(runs_full_gate src/Rask.Site/Program.cs)"
-check "a src/ commit runs the gate"       yes "$(runs_full_gate src/Rask.Core/Component.cs)"
-check "a second site/ path runs the gate" yes "$(runs_full_gate src/Rask.Site/Program.cs)"
-check "a docs/ commit runs the gate"      yes "$(runs_full_gate docs/routing.md)"
-check "a tests/ commit runs the gate"     yes "$(runs_full_gate tests/Rask.Core.Tests/X.cs)"
-check "a scripts/ commit runs the gate"   yes "$(runs_full_gate scripts/run-unit-local.sh)"
-
-# And the negative, so the check above cannot pass by matching everything.
-check "a stray root file does not"        no  "$(runs_full_gate NOTES.txt)"
+# The hero is the third door and has no hook entry: a site commit is checked by CI, which runs every
+# scripts/tests/*.test.sh through run-unit-local.sh on every push, whatever the push touched. That is
+# only true while ci.yml has no path filter and gates.yml still names the script.
+check "CI runs the unit gate, and so this file" yes \
+    "$(grep -q 'scripts/run-unit-local\.sh' .github/workflows/gates.yml && printf yes || printf no)"
+check "CI is not narrowed by a path filter" "" \
+    "$(grep -nE '^ *paths(-ignore)?:' .github/workflows/ci.yml .github/workflows/gates.yml || true)"
 
 echo
 if [ "$failures" -gt 0 ]; then

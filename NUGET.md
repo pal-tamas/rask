@@ -20,7 +20,7 @@ The UI is C# too. Write components as plain C# classes that return a tree of HTM
 state is a field, and an event handler is a delegate. The *same* component code runs server-rendered with live WebSocket
 updates or fully client-side on WebAssembly.
 
-Rask is a superset, not a rival: React, Vue, Svelte, Angular and Lit components and real Blazor
+Rask is a superset, not a rival: React, Preact, Solid, Vue, Svelte, Angular and Lit components and real Blazor
 components (`Rask.Blazor`) run inside Rask pages as islands — and it builds on ASP.NET Core and EF Core
 rather than replacing them.
 
@@ -88,7 +88,7 @@ dotnet add package Rask.Data              # declare a model and that is the data
 dotnet add package Rask.Api               # host API controllers and minimal APIs, with a real 404 under /api
 dotnet add package Rask.Api.Client        # typed clients generated from those endpoints — no URL at the call site
 dotnet add package Rask.Wire              # reflection-free JSON primitives the generated codecs call
-dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (queries, commands, notifications)
+dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (queries, commands, events)       
 dotnet add package Rask.Cqrs.Client       # dispatch a message to the server from a WASM client
 dotnet add package Rask.Query             # cache, dedup and invalidate dispatched queries per session
 dotnet add package Rask.Cqrs.Server       # host the endpoint those clients dispatch to
@@ -143,7 +143,7 @@ the page). It's a craft project built in the open, deep on Roslyn source generat
 - **Markup is a chain** — a Roslyn generator emits `Div.Class("panel")`, `Counter.Start(3)` and type-safe routes, so the IDE lists every step and a missing one is a compile error.
 - **Scoped CSS & TypeScript** — sibling `Component.css`/`Component.ts`, compiled with no npm, content-addressed and cached; the component calls its script's exports as typed private methods (`await Width(_box)`).
 - **Routing, lifecycle, forms, validation, auth** — batteries included, no JavaScript required.
-- **Toast messages** — inject `IToaster` for transient messages that survive a client-side navigation.
+- **Toast messages** — `Toast.Success("Saved")`, nothing injected: transient messages that survive a client-side navigation.
 - **Tiny live updates** — a minimal edit-op diff ships instead of the whole page.
 - **Slow-link aware** — WASM boot shows download progress; a slow Server round-trip surfaces a pending bar.
 

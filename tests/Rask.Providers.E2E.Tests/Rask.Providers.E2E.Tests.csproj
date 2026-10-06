@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Real database servers, started by scripts/run-providers-local.sh. The .E2E.Tests suffix keeps this suite
-       out of both git hooks' unit gate: it needs Docker, and a hook that needs Docker ends up skipped. Every fact
+       out of the unit gate: it needs Docker, and a unit gate that needs Docker ends up skipped. Every fact
        reports SKIPPED rather than failing when its server's connection string is not set. -->
   <PropertyGroup>
     <TargetFramework>$(RaskTestTarget)</TargetFramework>

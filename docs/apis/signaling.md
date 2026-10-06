@@ -26,7 +26,7 @@ builder.Services.AddRaskSignaling(o =>
     // The framework can't know who belongs in which room. This is where you say.
     o.AuthorizeRoom = ctx => ctx.Services
         .GetRequiredService<IConversations>()
-        .IsMemberAsync(ctx.User, ctx.Room);
+        .IsMember(ctx.User, ctx.Room);
 });
 
 app.MapRaskSignaling();
@@ -51,9 +51,9 @@ when every user of the app may talk to every other.
 _signal = await signaling.Join("room-42", new SignalingHandlers
 {
     // The peers already here are the ones WE offer to. A peer arriving later offers to us instead.
-    OnJoined = async (self, peers) => { foreach (var p in peers) await OfferToAsync(p); },
+    OnJoined = async (self, peers) => { foreach (var p in peers) await OfferTo(p); },
     OnSignal = (from, payload) => ApplyAsync(from, payload),
-    OnPeerLeft = id => DropAsync(id),
+    OnPeerLeft = id => Drop(id),
 });
 
 await _signal.Send(peerId, JsonSerializer.Serialize(offer));

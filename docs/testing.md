@@ -165,7 +165,7 @@ using var storage = LocalStorage.Fake();
 storage.Returns(s => s.GetItem("theme"), "dark");
 
 var page = Page.Render(() => ThemeToggle, services);
-await page.ClickAsync();
+await page.On("button").Click();
 
 Assert.Equal(["getItem", "setItem"], storage.Calls.Select(c => c.Member));
 ```
@@ -311,7 +311,7 @@ rearranged.
 - **`page.IsAt(path)`** — asserts where the app navigated to.
 
 The handler-id API in section 0 is still there underneath, and the two mix freely: reach for
-`page.HandlerId`/`InvokeAsync` when what you are testing genuinely is the wiring.
+`page.HandlerId`/`page.Invoke` when what you are testing genuinely is the wiring.
 
 ---
 
@@ -326,7 +326,7 @@ which compiles the same scanner `Rask.Testing`'s `Page.Attr` uses — there is o
 
 - **`RenderHarness`** — `Render<T>(component, services)` begins a `LiveRenderContext`, resolves the
   component, and fires `NotifyParameters`; `EmptyServices()` builds an empty `IServiceProvider` for
-  components that need no registrations. (`Test`'s default provider resolves *nothing*, by design,
+  components that need no registrations. (`Page.Render`'s default provider resolves *nothing*, by design,
   so the package takes no DI dependency — these are different tools, not duplicates.)
 - **`MarkupAssert`** — the asserting/live-payload lookups: `RequireAttr`, `SessionId`,
   `FirstHandlerId(html)` and `FirstHandlerId(byte[] jsonPayload)`.
@@ -359,24 +359,26 @@ Assert.Equal("<button data-rask-on-click=\"h0\">x</button>", view.RenderAsLiveRo
 ```
 
 `RenderAsLiveRoot(IServiceProvider)` takes a service provider when the component needs DI
-(`RenderHarness.EmptyServices()`, or a project-specific builder like the example suite's
-`TestServiceProvider.Default(...)`).
+(`RenderHarness.EmptyServices()`, or a project-specific builder like the site suite's
+`TestServices.Default(...)` in `tests/Rask.Site.Tests/Infrastructure/`).
 
 ---
 
 ## 3. Unit-testing HTML output
 
-The per-tag convention (`tests/Rask.Core.Tests/Components/{Tag}Tests.cs`) pairs a `Render_NullProps_…`
-case with a `Render_AllPropsSet_…` case that asserts the **exact attribute order**: `id`, `class`,
-`style`, `data-*`, then the tag-specific attributes. Tests pin this with full-string equality.
+A tag with behaviour of its own has a file in `tests/Rask.Core.Tests/Components/` (`InputTests.cs`,
+`SelectTests.cs`), and the two cases worth writing first are the tag with nothing set and the tag with
+everything set, which asserts the **exact attribute order**: `id`, `class`, `style`, `data-*`, then the
+tag-specific attributes. Tests pin this with full-string equality, and a test is named as the sentence it
+proves.
 
 ```csharp
 [Fact]
-public void Render_NullProps_ReturnsEmptyButtonTags() =>
+public void Unset_props_render_empty_button_tags() =>
     Assert.Equal("<button></button>", Button.ToHtml());
 
 [Fact]
-public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder() =>
+public void Setting_every_prop_emits_the_base_attributes_before_the_tags_own() =>
     Assert.Equal(
         "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
         Button
@@ -385,7 +387,7 @@ public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder() =>
             .Name("action")
             .Value("save")
             .Id("go")
-            .Class("action")
+            .Class("btn")
             .Style("color:red")
             .Data("test-id", "primary")
             .ToHtml());
@@ -396,8 +398,8 @@ Useful patterns from the suite:
 - Boolean HTML attributes emit bare (`disabled`, not `disabled="true"`) when `true`, and are omitted
   when `false`/`null`.
 - `Text` HTML-encodes (`Button["<click>"]` → `&lt;click&gt;`); `Raw(...)` emits verbatim.
-- When adding a new tag, add the matching `{Tag}Tests.cs` with both cases (see the project CLAUDE.md
-  conventions). Test files opt out of the `RASK014` "build it with the chain" analyzer with
+- Elements are generated from MDN, so a new tag needs a test file only for behaviour written by hand
+  (a typed binding, an event). Test files opt out of the `RASK014` "build it with the chain" analyzer with
   `#pragma warning disable RASK014` since they define their own `Component` subclasses.
 
 ---
@@ -506,7 +508,7 @@ it needs, then asserted on the resulting HTML:
 
 ```csharp
 var routeState = new RouteState { Path = "/" };
-var html = new App().RenderAsLiveRoot(TestServiceProvider.Default(routeState: routeState));
+var html = new App().RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 Assert.Contains("Hello, world!", html);
 ```
 
@@ -515,7 +517,7 @@ assertion is about the *page* (the doctype, `<html lang>`, what landed in `<head
 through `Page.RenderDocument` instead, which composes the document the way a host does:
 
 ```csharp
-var html = Page.RenderDocument(App, TestServiceProvider.Default(routeState: routeState)).Html;
+var html = Page.RenderDocument(App, TestServices.Default(routeState: routeState)).Html;
 Assert.StartsWith("<!DOCTYPE html>", html);
 ```
 
@@ -530,7 +532,7 @@ dotnet build
 dotnet test                                                   # everything
 
 dotnet test --filter "FullyQualifiedName!~Rask.Site.E2E"  # skip e2e (faster inner loop)
-dotnet test --filter FullyQualifiedName~ButtonTests           # one class
+dotnet test --filter FullyQualifiedName~InputTests            # one class
 ```
 
 ---

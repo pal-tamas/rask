@@ -55,6 +55,7 @@ workload and Node — all under `$HOME`, no `sudo`. With the SDK already in plac
 |---------------------|-----------------------------------------------------------------------------------------------|
 | `server` (default)  | One ASP.NET project. Components render on the server; live updates ship over a WebSocket. **Best default.** |
 | `wasm`              | One browser-WASM project that publishes to a static `wwwroot/` you can host anywhere (GitHub Pages, S3, nginx). Bring your own API. |
+| `wasm-hosted`       | A WebAssembly app in `Client/`, served by its own ASP.NET host — the browser runs the UI, the server keeps the database, the handlers and every battery. |
 
 They emit the same starter pages, so the rest of this guide applies whichever you chose.
 
@@ -94,7 +95,7 @@ page — so there's nothing to delete before you start building.
 > itself. The full list is in [what hot-reloads](cli.md#what-hot-reloads).
 
 > **First build is slower, and the IDE may look broken — that's expected.** The first build is when
-> Rask's source generators run. Until then your IDE may flag `HomePage`, `Counter`, or
+> Rask's source generators run. Until then your IDE may flag `HomePage` or
 > `Routes.HomePage()` as undefined — they're *generated* members that don't exist until you build. Build
 > once, then reload the solution so IntelliSense picks them up. (More on this in
 > [Troubleshooting](#troubleshooting) below.)
@@ -188,14 +189,14 @@ public sealed partial class Greeting : Component
 
 `Render()` returns `Component?`, which accepts three shapes — you'll mostly use the first two:
 
-- a single node — `Render() => Div()[...]`;
-- a **collection expression** for several top-level nodes with no wrapper — `Render() => [H1()["Title"],
-  P()["Body"]]`;
+- a single node — `Render() => Div[...]`;
+- a **collection expression** for several top-level nodes with no wrapper — `Render() => [H1["Title"],
+  P["Body"]]`;
 - `null` — render nothing.
 
 > **Safe by default — good to know, not needed yet.** Two security defaults are worth knowing about but
 > won't get in your way:
-> - **Strings are HTML-encoded.** A plain string becomes a `Text` node, so `P()["<b>hi</b>"]` shows the
+> - **Strings are HTML-encoded.** A plain string becomes a `Text` node, so `P["<b>hi</b>"]` shows the
 >   angle brackets as text. When you genuinely need verbatim markup, use `Raw("<b>hi</b>")`.
 > - **URL attributes are scheme-sanitized.** `href`/`src`/etc. neutralize dangerous schemes
 >   (`javascript:` → `about:blank`) so a user-supplied URL can't run script on click. For a URL you
@@ -397,7 +398,7 @@ query with `Go.With("tab", "settings")`. For nested layouts
 
 The snags you're most likely to hit on a fresh project:
 
-- **The IDE flags `HomePage`, `Counter`, or `Routes.HomePage()` as undefined.** These are
+- **The IDE flags `HomePage` or `Routes.HomePage()` as undefined.** These are
   *source-generated* — the chain surface for every component, the URL builder for every `[Route]`. They don't
   exist until the generator runs, which happens on build. Run `dotnet build` once, then reload the
   solution / restart the language server.
@@ -429,12 +430,12 @@ step by step (database, auth, jobs, email, cache, events, and deployment). In sh
    battery like the rest, so there is nothing to register.
 2. **Make SQLite production-ready** → [Why one server, no PaaS](sqlite.md) — WAL, busy-timeout, and
    continuous backup so one SQLite file is your production database.
-3. **Ship to one server** → a `--docker` template emits a production Dockerfile; deploy the whole app to
-   one box.
+3. **Ship to one server** → the scaffold already carries a production Dockerfile; [`rask deploy`](cli.md)
+   puts the whole app on one box.
 
 Read **[the doctrine](one-person-framework.md)** for the why. Reference guides for the next thing you need:
 
-- **Build a form** → [forms](forms.md) — `Form.Model(m)`, `Input(() => model.X)`, validation.
+- **Build a form** → [forms](forms.md) — `Form.Model(m)`, `Input.Bind(() => model.X)`, validation.
 - **Add more routes / layouts** → [routing](routing.md) — nested layouts, route/query params, `Go`.
 - **Load or save data** → [Rask.Data](data.md) — declare a model, read and write it off the type; or
   [plain EF Core](data-access.md) with a `DbContext` of your own.

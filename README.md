@@ -80,8 +80,8 @@ A `.tsx`, `.vue`, `.svelte` or Lit file as an *ordinary* Rask component. Derive 
 `AngularComponent` or `LitComponent`, drop the front-end file beside
 it, and place it anywhere the chain goes — a leaf inside a card, or a whole route. Props are declared
 in C#, callbacks re-enter C# over the channel every handler already uses, and the live diff leaves the
-subtree alone because its own renderer owns it. This is the one pillar `Rask` does not bring on its
-own: add `Rask.External`, and Node, because your React does.
+subtree alone because its own renderer owns it. Neither host brings this pillar on its own: add
+`Rask.External`, and Node, because your React does.
 
 A component from npm needs no front-end file at all: name the package export in `Module`, and its chain
 steps are generated from the package's own TypeScript into a committed `ColorPicker.props.json`. An

@@ -1,7 +1,7 @@
 namespace Rask.Site.Features;
 
-// Every text-level / inline element, live. Each is a generator-emitted factory in
-// Rask.Core.Components.Generated; children go through the [...] indexer.
+// Every text-level / inline element, live. Each is a chain entry generated from MDN,
+// and its children go through the [...] indexer.
 public sealed partial class ElementsTextDemo : Component
 {
     protected override Component? Render() => Div.Class("flex flex-col gap-2")[
@@ -12,7 +12,7 @@ public sealed partial class ElementsTextDemo : Component
             ", and ", Span.Class("text-ui-brand-ink")["a plain span"], "."
         ],
         P[
-            "Inline code ", Code["Div()[…]"], ", a key ", Kbd["Ctrl"], "+", Kbd["C"],
+            "Inline code ", Code["Div[…]"], ", a key ", Kbd["Ctrl"], "+", Kbd["C"],
             ", sample output ", Samp["exit 0"], ", a variable ", Var["x"], Sub["1"], " to the n", Sup["2"], "."
         ],
         P[

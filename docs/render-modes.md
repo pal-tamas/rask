@@ -80,7 +80,7 @@ public sealed partial class Weather(IForecastService service) : Component
     private Forecast[]? _forecasts;
 
     protected override async Task OnMount() =>
-        _forecasts = await service.GetForecastsAsync();
+        _forecasts = await service.GetForecasts();
 
     protected override Component? Render() =>
         _forecasts is null ? P["Loading…"] : Ul[_forecasts.Select(f => Li[f.Summary])];
@@ -105,7 +105,7 @@ Blowing the budget is not an error. The page is served as it stands, and the loa
 connection. It does mean a slow page holds a request open for up to that long, so size it together with
 `MaxSessions` — the two multiply.
 
-**Work you deliberately detach is not waited on.** A polling loop started with `_ = LoopAsync()` returns
+**Work you deliberately detach is not waited on.** A polling loop started with `_ = Loop()` returns
 immediately from the hook, so the response goes out and the loop keeps pushing over the connection.
 
 **Work blocked on JavaScript is not waited on either**, and cannot be. A JS call made during a render queues
@@ -177,7 +177,7 @@ public sealed partial class ProductPage(IPageResponse response, IProducts produc
 
     protected override async Task OnMount()
     {
-        _product = await products.FindAsync(Id);
+        _product = await products.Find(Id);
         if (_product is null)
         {
             response.SetStatus(404);

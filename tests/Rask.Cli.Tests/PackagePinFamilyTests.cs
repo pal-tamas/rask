@@ -14,9 +14,9 @@ namespace Rask.Cli.Tests;
 ///         as that other one" are held together by comments beside the pins. Comments do not fail.
 ///     </para>
 ///     <para>
-///         These assertions are cheap and offline. They run in the local unit gate, which
-///         <c>.githooks/pre-commit</c> triggers on any <c>Directory.</c> path — so the gate that already
-///         fires for a version bump is the one that now checks the bump was complete.
+///         These assertions are cheap and offline. They run in the unit gate, which CI runs on every
+///         push to main and on every pull request — a Dependabot bump included — so the gate that
+///         fires for a version bump is the one that checks the bump was complete.
 ///     </para>
 /// </remarks>
 public sealed class PackagePinFamilyTests

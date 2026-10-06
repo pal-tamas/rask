@@ -10,7 +10,7 @@ namespace Rask.Site.E2E.Tests;
 ///     list a human maintains, and it drifted exactly as you'd expect — <c>WasmWatchAppFixture</c> and
 ///     <c>SiteWasmAppFixture</c> both held <c>5101</c> in different collections xUnit runs in parallel.
 ///     Uniqueness was also only ever per <em>run</em>: a second worktree mid-suite claimed the same numbers,
-///     and <c>5099</c> is the port <c>.githooks/pre-push</c> gates on, so one straggler blocked pushing from
+///     and <c>5099</c> was the port the browser gate ran on, so one straggler blocked that gate
 ///     everywhere on the machine.
 ///     <para>
 ///         This is a source scan rather than a reflection check on purpose: the thing being prevented is
