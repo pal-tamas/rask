@@ -21,33 +21,6 @@ public partial class UiFluxLayoutTests : global::Rask.Core.RaskMarkup
         return LiveRenderContext.Begin(new StubComponent(Span), services);
     }
 
-    // ---- separator ------------------------------------------------------------------------------
-
-    [Fact]
-    public void A_plain_divider_is_a_separator_and_a_worded_one_is_text()
-    {
-        Assert.Contains("role=\"separator\"", Ui.Divider.ToHtml());
-        Assert.Contains("aria-orientation=\"vertical\"", Ui.Divider.Vertical(true).ToHtml());
-        // A separator's content is not read, so a divider carrying words keeps them as text.
-        Assert.DoesNotContain("role=", Ui.Divider.Text("or").ToHtml());
-    }
-
-    [Fact]
-    public void A_divider_can_be_subtle_and_put_its_word_at_one_end()
-    {
-        var html = Ui.Divider.Text("then").Subtle(true).Align(Ui.Align.Start).ToHtml();
-
-        Assert.Contains("ui-divider-subtle", html);
-        Assert.Contains("divider-start", html);
-        Assert.Contains("divider-end", Ui.Divider.Text("then").Align(Ui.Align.End).ToHtml());
-        Assert.DoesNotContain("divider-center", Ui.Divider.Text("then").Align(Ui.Align.Center).ToHtml());
-    }
-
-    [Fact]
-    public void The_kit_stylesheet_takes_daisyUIs_margin_off_the_divider() =>
-        // We style, you space: daisyUI's 1rem margin is zeroed at the variable it is built from.
-        Assert.Matches(@"\.divider[^{]*\{[^}]*--divider-m:\s*0", UiStylesheet.Css);
-
     // ---- spacer ---------------------------------------------------------------------------------
 
     [Fact]

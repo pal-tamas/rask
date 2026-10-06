@@ -11,7 +11,8 @@ public sealed partial class UiKitLayoutDemo : Component
     protected override Component? Render() =>
     [
         DrawerSection(),
-        DividerJoinIndicatorSection(),
+        SeparatorSection(),
+        JoinIndicatorSection(),
         ApplicationLayoutSection(),
         MaskSection(),
         MockupsSection()
@@ -48,12 +49,32 @@ public sealed partial class UiKitLayoutDemo : Component
                 ]
             ]);
 
-    private static Component DividerJoinIndicatorSection() =>
+    // Flux UI's separator page, example for example: plain, with text, vertical, limited height, subtle.
+    private static Component SeparatorSection() =>
         Section(
-            "Divider, join, indicator and stack",
+            "Separator",
+            "A line between sections of content or groups of items. It carries no margin — the page spaces "
+            + "it — and a vertical one is as tall as its row until vertical margin shortens it.",
+            Div.Data(Testid("ui-separator")).Class("mx-auto flex max-w-sm flex-col gap-8")[
+                Ui.Separator.Key("plain"),
+                Ui.Separator.Key("text").Text("or"),
+                SeparatorRow("vertical", Ui.Separator.Vertical()),
+                SeparatorRow("limited", Ui.Separator.Vertical().Class("my-2")),
+                SeparatorRow("subtle", Ui.Separator.Vertical().Subtle)
+            ]);
+
+    private static Component SeparatorRow(string key, UiSeparator separator) =>
+        Div.Key(key).Class("flex items-center justify-center gap-6")[
+            Ui.Button.Key("theme").Ghost.AccessibleLabel("Switch to dark theme")[Ui.Icon.Name(Ui.IconName.Moon)],
+            separator.Key("separator"),
+            Ui.Button.Key("login")["Log in"]
+        ];
+
+    private static Component JoinIndicatorSection() =>
+        Section(
+            "Join, indicator and stack",
             "Structure with no state.",
             Div.Data(Testid("ui-layout-rest")).Class("space-y-4")[
-                Ui.Divider.Key("d").Text("or"),
                 Ui.Join.Key("j")[
                     Ui.Button.Key("1")["«"],
                     Ui.Button.Key("2")["1"],
@@ -110,7 +131,7 @@ public sealed partial class UiKitLayoutDemo : Component
                 Div.Class("flex flex-col gap-4")[
                     Div.Data(Testid("ui-spacer-row")).Class("flex items-center gap-2 rounded-xl border border-base-300 p-2")[
                         Ui.Button.Key("left").Ghost.Sm["Rask"],
-                        Ui.Divider.Key("bar-sep").Vertical().Subtle().Class("my-1"),
+                        Ui.Separator.Key("bar-sep").Vertical().Subtle.Class("my-1"),
                         Ui.Button.Key("docs").Ghost.Sm["Docs"],
                         Ui.Spacer.Key("spacer"),
                         Ui.Button.Key("right").Sm["Sign in"]
@@ -119,7 +140,7 @@ public sealed partial class UiKitLayoutDemo : Component
                         Ui.Heading.Key("h").Level(3).Lg["Orders"],
                         Ui.Subheading.Key("sh")["Everything placed in the last 30 days."]
                     ],
-                    Ui.Divider.Key("then").Text("then").Align(Ui.Align.Start),
+                    Ui.Separator.Key("then").Text("then"),
                     Ui.Text.Key("t")["Body copy in the kit's scale. ", Ui.Text.Key("strong").Inline().Strong()["Strong"],
                         " for what matters, ", Ui.Text.Key("subtle").Inline().Subtle()["subtle"], " for what can be skipped."]
                 ]

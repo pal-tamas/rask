@@ -3,7 +3,7 @@
 //
 // Two measurements of the same examples, taken the same way (lib.mjs): Flux's docs page, and the page
 // FluxParityPages wrote for the Rask component (artifacts/flux-parity/rask/<slug>.html). Every marked
-// node — `data-flux-*` there, `data-ui-*` here — is paired in document order, and its whole subtree is
+// node — `data-flux-*` there, `data-ui-*` here — is paired by marker in document order, and its whole subtree is
 // compared: tag, box, computed styles, pseudo-elements, and what hover / active / focus-visible change.
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
@@ -69,9 +69,11 @@ for (const scheme of ['light', 'dark']) {
       continue;
     }
 
-    const diffs = compareExample(theirs, mine);
+    const notes = [];
+    const diffs = compareExample(theirs, mine, notes);
     failures += diffs.length ? 1 : 0;
     console.log(`${diffs.length ? 'FAIL' : 'ok  '} ${label}${diffs.length ? ` — ${diffs.length} difference(s)` : ''}`);
+    for (const note of notes) console.log(`       (${note})`);
     for (const d of diffs.slice(0, limit)) console.log(`       ${d}`);
     if (diffs.length > limit) console.log(`       … ${diffs.length - limit} more (--all)`);
   }
@@ -80,15 +82,32 @@ for (const scheme of ['light', 'dark']) {
 console.log(failures ? `\nflux parity: ${slug} differs in ${failures} example(s).` : `\nflux parity: ${slug} matches Flux.`);
 process.exit(failures ? 1 : 0);
 
-function compareExample(theirs, mine) {
+function compareExample(theirs, mine, notes) {
   const a = tops(theirs, 'data-flux-');
   const b = tops(mine, 'data-ui-');
-  if (a.length !== b.length) {
-    return [`marked nodes: Flux has ${a.length} [${a.map(n => mark(n, 'data-flux-')).join(' ')}], Rask has ${b.length} [${b.map(n => mark(n, 'data-ui-')).join(' ')}]`];
+  const named = (nodes, prefix, name) => nodes.filter(n => mark(n, prefix) === name);
+  const diffs = [];
+
+  // Paired by marker, in document order. This page's own component has to be there node for node. A
+  // NEIGHBOUR from another page (the buttons beside a separator) may be a plain unmarked stand-in until
+  // that component is built: none of it marked on the Rask side means "not compared", and is said so.
+  for (const name of new Set([...a.map(n => mark(n, 'data-flux-')), ...b.map(n => mark(n, 'data-ui-'))])) {
+    const x = named(a, 'data-flux-', name);
+    const y = named(b, 'data-ui-', name);
+    const own = name === slug || name.startsWith(`${slug}-`);
+    if (!own && y.length === 0) {
+      notes.push(`${name} ×${x.length}: a stand-in on the Rask page, not compared`);
+      continue;
+    }
+
+    if (x.length !== y.length) {
+      diffs.push(`marked nodes: Flux has ${x.length} ${name}, Rask has ${y.length}`);
+      continue;
+    }
+
+    x.forEach((node, i) => compareTree(theirs, node, mine, y[i], node, y[i], `${name}[${i}]${node.text ? ` "${node.text.slice(0, 16)}"` : ''}`, diffs));
   }
 
-  const diffs = [];
-  a.forEach((node, i) => compareTree(theirs, node, mine, b[i], node, b[i], `${mark(node, 'data-flux-')}[${i}]${node.text ? ` "${node.text.slice(0, 16)}"` : ''}`, diffs));
   return diffs;
 }
 
