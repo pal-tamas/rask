@@ -11,7 +11,7 @@ public sealed partial class ValidationSummaryDemo : Component
 
     private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
         Ui.Alert.Error.Soft.Class("text-sm mb-0")[Div.Class("font-semibold mb-1")[
-                Ui.Icon.Name(Ui.IconName.Warning).Class("me-1"),
+                Ui.Icon.Name(Ui.IconName.ExclamationTriangle).Class("size-5 me-1"),
                 $"Please fix {entries.Count} error{(entries.Count == 1 ? "" : "s")}:"
             ], Ul.Class("mb-0 ps-3")[
                 entries.Select((e, i) => Li.Key(i)[
