@@ -56,7 +56,7 @@ public sealed partial class UiKitActionsDemo : Component
                 Ui.Button.Key("ghost").Ghost["Ghost"],
                 Ui.Button.Key("link").Variant(Ui.Variant.Link)["Link"],
                 Ui.Button.Key("wide").Wide()["Wide"],
-                Ui.Button.Key("circle").AccessibleLabel("Close").Circle()[Ui.Icon.Name(Ui.IconName.Close)],
+                Ui.Button.Key("circle").AccessibleLabel("Close").Circle()[Ui.Icon.Name(Ui.IconName.XMark)],
                 Ui.Button.Key("square").AccessibleLabel("Add").Square()[Ui.Icon.Name(Ui.IconName.Plus)],
                 Ui.Button.Key("disabled").Disabled()["Disabled"]
             ]);
@@ -164,10 +164,10 @@ public sealed partial class UiKitActionsDemo : Component
                     Ui.MenuGroup.Title("Invoices")[
                         Ui.MenuItem.Text("New invoice").Icon(Ui.IconName.Plus)
                             .OnClick(() => { _lastAction = "started a new invoice"; }),
-                        Ui.MenuItem.Text("Export all").Icon(Ui.IconName.Download).Disabled()
+                        Ui.MenuItem.Text("Export all").Icon(Ui.IconName.ArrowDownTray).Disabled()
                     ],
                     Ui.MenuSeparator,
-                    Ui.MenuItem.Text("Copy invoice link").Icon(Ui.IconName.Clipboard)
+                    Ui.MenuItem.Text("Copy invoice link").Icon(Ui.IconName.ClipboardDocumentCheck)
                         .OnClick(() => { _lastAction = "copied the invoice link"; }),
                     Ui.MenuItem.Text("Sign out").Error
                         .OnClick(() => { _lastAction = "signed out"; })
@@ -183,7 +183,7 @@ public sealed partial class UiKitActionsDemo : Component
             + "inside it. Same machinery, no menu semantics — a [popover] the browser lifts, dismisses on "
             + "Escape and on a click outside, placed with the same Position and Align everything else uses.",
             Div.Data(Testid("ui-popover"))[
-                Ui.Popover.Trigger("Filters").Icon(Ui.IconName.Gear).Align(Ui.Align.Start)
+                Ui.Popover.Trigger("Filters").Icon(Ui.IconName.Cog6Tooth).Align(Ui.Align.Start)
                     .PanelClass("w-72")[
                     Ui.Heading.Key("h").Level(3).Sm.Class("mb-2")["Narrow the list"],
                     Ui.CheckboxGroup.Values(_filters).Key("f")
@@ -269,7 +269,7 @@ public sealed partial class UiKitActionsDemo : Component
             Div.Data(Testid("ui-swap")).Class("flex items-center gap-3")[
                 Ui.Swap
                     .AccessibleLabel(_muted ? "Unmute" : "Mute")
-                    .On(Ui.Icon.Name(Ui.IconName.Close).Class("size-5"))
+                    .On(Ui.Icon.Name(Ui.IconName.XMark).Class("size-5"))
                     .Off(Ui.Icon.Name(Ui.IconName.Check).Class("size-5"))
                     .Animation(Ui.SwapAnimation.Rotate)
                     .Active(_muted)
