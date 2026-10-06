@@ -153,4 +153,49 @@ public sealed class ExternalRuntimeTests
         Assert.Contains(reports, r => r!.StartsWith("props:Unreadable:", StringComparison.Ordinal));
         Assert.False(doc.Value.GetProperty("updateThrew").GetBoolean(), "a failed update was thrown out of the runtime");
     }
+
+    [Fact]
+    public void The_loading_placeholder_is_gone_when_the_island_mounts()
+    {
+        // Removed by the runtime, before the adapter sees the element: Lit's adapter appends to the host and
+        // would otherwise leave the skeleton beside the component for good.
+        var doc = NodeFixture.Run("ExternalLoadingFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        Assert.Empty(Classes(doc.Value, "seenByEagerMount"));
+        Assert.Equal(["mounted"], Classes(doc.Value, "eagerAfterMount"));
+    }
+
+    [Fact]
+    public void The_loading_placeholder_stays_while_a_deferred_island_waits()
+    {
+        var doc = NodeFixture.Run("ExternalLoadingFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        Assert.Equal(["skeleton"], Classes(doc.Value, "deferredWhileWaiting"));
+        Assert.Equal(["mounted"], Classes(doc.Value, "deferredAfterMount"));
+        Assert.Equal(["skeleton"], Classes(doc.Value, "inertNeverMounted"));
+    }
+
+    [Fact]
+    public void What_the_adapter_puts_in_the_host_is_never_removed()
+    {
+        // Once, at the first mount. Clearing again on an update would take the island itself.
+        var doc = NodeFixture.Run("ExternalLoadingFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        Assert.Equal(["mounted"], Classes(doc.Value, "eagerAfterUpdate"));
+    }
+
+    private static string?[] Classes(System.Text.Json.JsonElement run, string name) =>
+        [.. run.GetProperty(name).EnumerateArray().Select(e => e.GetString())];
 }

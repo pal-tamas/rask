@@ -13,6 +13,8 @@ goes — a leaf inside a card, a subtree, or a whole `[Route]` page.
 - **Callbacks re-enter C#** over the page's existing channel.
 - **npm components directly.** A package island (`Mui.Button`) needs no front-end file at all.
 - The island's subtree is a diff boundary: the live diff leaves it to its own renderer.
+- **An island can be the whole page**: put `[Route]` on it, set the title in `HeadAssets`, and give the
+  first response a placeholder with `.Loading(…)`.
 
 ## Install
 

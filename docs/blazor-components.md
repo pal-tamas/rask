@@ -191,6 +191,23 @@ That works because the island does its rendering in `OnUpdated`, whose task is r
 in the page's quiescence scope — Rask renders, waits for outstanding work, and renders again, sending
 the settled wave. See [lifecycle](lifecycle.md).
 
+It is also why a Blazor island suits a whole page a crawler must read. Put `[Route]` on the island and
+it is the page — a `[RouteParam]` property is a step like any other and can feed a `[Parameter]`:
+
+```csharp
+[Route("/tickers/{symbol}")]
+public sealed partial class TickerPage : BlazorComponent<Ticker>
+{
+    [RouteParam] public string Symbol { get; set; } = "";
+
+    protected override Component? HeadAssets => [base.HeadAssets, Title[$"{Symbol} — quotes"]];
+}
+```
+
+Keep `base.HeadAssets` in an override: it is how the stylesheets in `RaskBlazorOptions.HeadAssets` reach
+the page, and leaving it out drops them. A route parameter that feeds a value-typed `[Parameter]` is
+declared nullable (`int? Id`), like any other optional step you declare yourself.
+
 ## Parameters cross as C#, not JSON
 
 Unlike a `.tsx` island, whose props are serialized, parameters here are passed as **live CLR

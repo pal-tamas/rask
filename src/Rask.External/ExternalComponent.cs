@@ -53,6 +53,19 @@ public abstract partial class ExternalComponent : Component
     /// </remarks>
     public ExternalHydration? Hydration { get; set; }
 
+    /// <summary>
+    ///     What the host element holds in the first response, until the island mounts: a skeleton, or the real
+    ///     content for a page a crawler should read. Unset means an empty host.
+    /// </summary>
+    /// <remarks>
+    ///     Plain Rask markup rendered once on the server, inside the host element and never in the props. It is
+    ///     below the island's diff boundary, so it is first-paint only: a later render does not patch it, a handler
+    ///     inside it is not supported, and the client runtime removes it right before the first mount — which, for
+    ///     <see cref="ExternalHydration.None" />, never comes. An island used as another island's child has no host
+    ///     element of its own, so its <c>Loading</c> renders nowhere.
+    /// </remarks>
+    public Component? Loading { get; set; }
+
     /// <summary>Which adapter mounts this component. Fixed by the base class it derives from.</summary>
     protected abstract string Runtime { get; }
 
@@ -116,36 +129,44 @@ public abstract partial class ExternalComponent : Component
     protected sealed override bool OpaqueSubtree => true;
 
     /// <summary>
-    ///     Boots the client runtime. Deduplicated across every such component on the page.
+    ///     Puts the runtime script, then this island's own <see cref="Component.HeadAssets" />, in the page's
+    ///     <c>&lt;head&gt;</c>.
     /// </summary>
     /// <remarks>
-    ///     Registered from <see cref="WriteAttributes" /> rather than left for the serializer to
-    ///     collect, and that is not a preference. The serializer only reads a component's head
-    ///     contribution in its COMPONENT branch, right after <c>RenderForLive()</c>. Anything with a
-    ///     <see cref="TagName" /> takes the element branch instead and never passes that code — so
-    ///     this override, on its own, produced an empty <c>&lt;head&gt;</c>, no runtime script, and a
-    ///     page where nothing could ever mount. It rendered perfectly and did nothing.
-    ///
-    ///     Kept as an override as well so the contribution is discoverable where a reader expects it.
+    ///     <para>
+    ///         Registered from <see cref="WriteAttributes" /> rather than left for the serializer to collect, and
+    ///         that is not a preference. The serializer only reads a component's head contribution in its
+    ///         COMPONENT branch, right after <c>RenderForLive()</c>. Anything with a <see cref="TagName" /> takes
+    ///         the element branch instead and never passes that code — reading <c>HeadAssets</c> there would add
+    ///         a virtual call per <c>&lt;div&gt;</c> to the render hot path for a case only this component has.
+    ///     </para>
+    ///     <para>
+    ///         The script is registered on its own rather than returned from <c>HeadAssets</c>. An island that is a
+    ///         whole page overrides that for its <c>Title</c>, and while the script lived there the override
+    ///         replaced it: the page rendered perfectly and nothing ever mounted. The registry dedupes by the tag
+    ///         itself, so every island on the page registers the same script and exactly one is emitted.
+    ///     </para>
     /// </remarks>
-    protected override Component? HeadAssets =>
-        Script.Src(ExternalDefaults.RuntimeScriptUrl).Type("module");
-
-    /// <summary>
-    ///     Puts the runtime script in the page's <c>&lt;head&gt;</c>.
-    /// </summary>
-    /// <remarks>
-    ///     The registry dedupes by the tag itself, so every component on the page can register the
-    ///     same script and exactly one is emitted. Doing it here costs nothing for ordinary elements —
-    ///     the alternative, reading <see cref="HeadAssets" /> for every element the serializer walks,
-    ///     would add a virtual call per <c>&lt;div&gt;</c> to the render hot path for a case only this
-    ///     component has.
-    /// </remarks>
-    private void RegisterRuntimeScript()
+    private void RegisterHead()
     {
-        if (HeadAssets is { } script)
+        if (LiveRenderContext.CurrentSync is not { } live)
         {
-            LiveRenderContext.CurrentSync?.HeadAssets.Add(script);
+            return;
+        }
+
+        // Built during serialization, so no enclosing Render() is left to drain the entry slots these chains push.
+        var slotDepth = BuilderRuntime.SlotDepth;
+        try
+        {
+            live.HeadAssets.Add(Script.Src(ExternalDefaults.RuntimeScriptUrl).Type("module"));
+            if (HeadAssets is { } own)
+            {
+                live.HeadAssets.Add(own);
+            }
+        }
+        finally
+        {
+            BuilderRuntime.DrainSlotsAbove(slotDepth);
         }
     }
 
@@ -185,7 +206,7 @@ public abstract partial class ExternalComponent : Component
             LiveRenderContext.MarkSubtreeUncacheable();
         }
 
-        RegisterRuntimeScript();
+        RegisterHead();
 
         AppendAttr(sb, ExternalDefaults.NameAttribute, ComponentName);
         AppendAttr(sb, ExternalDefaults.ModuleAttribute, Module);
@@ -259,14 +280,14 @@ public abstract partial class ExternalComponent : Component
     public new NotAChildOfThisIsland this[params object?[] children] => default;
 
     /// <summary>
-    ///     Nothing: an island's children travel inside its props and its framework renders them, so the host element
-    ///     stays empty on the server.
+    ///     <see cref="Loading" /> and nothing else: an island's children travel inside its props and its framework
+    ///     renders them, so without a placeholder the host element stays empty on the server.
     /// </summary>
     /// <remarks>
     ///     Sealed so no island can put Rask children below the opaque boundary, where the diff would never reach them
     ///     again. <see cref="Component.Children" /> assigned by hand is reported as RASK062 and lands here unrendered.
     /// </remarks>
-    protected sealed override IEnumerable<Component?> RenderChildren() => [];
+    protected sealed override IEnumerable<Component?> RenderChildren() => Loading is { } loading ? [loading] : [];
 
     /// <summary>Stores text children. Called by the generated <c>this[IEnumerable&lt;string?&gt;]</c> indexer.</summary>
     /// <param name="children">The text, one child per element; a null element renders nothing.</param>
