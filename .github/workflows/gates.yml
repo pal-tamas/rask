@@ -93,4 +93,5 @@ jobs:
         env:
           RASK_E2E_FILTER: ${{ matrix.gate.filter }}
           RASK_UNIT_PART: ${{ matrix.gate.part }}
+          RASK_BUILD_SLOTS: 4   # the browser gates publish on one core unless told otherwise
         run: ${{ matrix.gate.run }}
