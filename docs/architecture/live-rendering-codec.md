@@ -66,7 +66,7 @@ surrounding level). The op kinds (`EditOpKind`):
 DOM node**. Two cases would otherwise break that 1:1 mapping, so the runtime normalizes
 them (`Live/RenderFrame.cs`, `FrameWriter.Text`):
 
-- **Adjacent text coalesces.** `Div()["a", value]` is two `Text` frames, but the browser
+- **Adjacent text coalesces.** `Div["a", value]` is two `Text` frames, but the browser
   merges adjacent text into a *single* DOM node. The frame writer concatenates contiguous
   text frames into one so the model matches — including text on either side of a
   transparent component (a `[...]` collection or `Context`), which emits no markup of its own. (Contiguity is

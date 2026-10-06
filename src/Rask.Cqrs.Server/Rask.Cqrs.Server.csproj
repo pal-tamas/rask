@@ -9,7 +9,7 @@
     <PackageId>Rask.Cqrs.Server</PackageId>
     <Title>Rask.Cqrs.Server — The Remote Dispatch Endpoint</Title>
     <Description>The server half of Rask.Cqrs remote dispatch. `MapRaskCqrs()` maps one GET and one POST endpoint that resolve a message by name against the generated allow-list, authorize it, and dispatch it to its ordinary handler — no controllers, no DTO plumbing, no per-message routes. Queries answer JSON or a streamed file; commands accept JSON or multipart uploads; a subscription is served as server-sent events, admitted by the event's watch policy.</Description>
-    <PackageTags>cqrs mediator rpc remote-dispatch aspnetcore minimal-api endpoint source-generator</PackageTags>
+    <PackageTags>cqrs mediator rpc remote-dispatch aspnetcore minimal-api endpoint source-generator dotnet net10</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

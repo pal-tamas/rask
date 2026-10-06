@@ -57,7 +57,7 @@ show ? Panel() : null    // null renders nothing
 ```
 
 > The `..` spread fails inside `[…]` (the compiler parses it as a `Range`). Pass the
-> enumerable directly — `Div()[items]` — instead of `Div()[..items]`.
+> enumerable directly — `Div[items]` — instead of `Div[..items]`.
 
 A layout is often a fragment for the same reason — several siblings that share no wrapper:
 

@@ -28,7 +28,7 @@ service to operate.
 | **Cache** | ✅ | [`Rask.Cache`](cache.md) — a developer-facing cache on the app's own database; standard `IDistributedCache` plus a typed `ICache` with `Cache.Remember(…).For(…)`, absolute/sliding expiry. |
 | **File storage** | ✅ | [`Rask.Storage`](file-storage.md) — uploads kept on disk, in an S3-compatible bucket or in Azure Blob, with a `StoredFile` row per file on the app's own database; content types sniffed from the bytes, public and temporary URLs, downloads behind your own check. Files on the disk provider are not yet backed up. |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
-| **The door out of one box** | ❌ | Not shipped — the PostgreSQL and SQL Server providers exist, but `rask new` and `rask deploy` wire SQLite only ([below](#another-database)). Jobs, mail and the outbox do **lease** the work they claim ([`scaling.md`](scaling.md#running-more-than-one-instance)), so the claim is safe when several processors race and a lease bounds, but does not eliminate, a duplicate side effect. See [below](#not-shipped). |
+| **The door out of one box** | ❌ | Not shipped — the PostgreSQL and SQL Server providers exist, but `rask new` starts on SQLite and `rask deploy` provisions SQLite only ([below](#another-database)). Jobs, mail and the outbox do **lease** the work they claim ([`scaling.md`](scaling.md#running-more-than-one-instance)), so the claim is safe when several processors race and a lease bounds, but does not eliminate, a duplicate side effect. See [below](#not-shipped). |
 | **Auth — sign-in** | ✅ | [`authentication.md`](authentication.md) — the cookie session, claims, authorization, and hardening guidance. |
 | **Auth — user store** | ✅ | Accounts on the app's own `User` aggregate, with a revocable session row per device, on by default. Register, sign in and sign out work in a fresh app with no auth code; the first account to register is the administrator. Email confirmation, password reset, passkeys and sign-in throttling ship on; MFA beyond passkeys and external sign-in providers are [not shipped](#not-shipped) yet. |
 | **Web Push (server send)** | ✅ | [`webpush.md`](webpush.md) — `Rask.WebPush`: VAPID (RFC 8292) + aes128gcm (RFC 8291), zero deps. |
@@ -67,7 +67,8 @@ credential and verifies WebAuthn itself, on the base class library, with no FIDO
 app's own `User`.
 
 What is **not** here yet is MFA beyond what a passkey already is (TOTP codes, recovery codes) and external providers
-(Google, GitHub, an enterprise OIDC). Each is an addition rather than a redesign — the sealed-token and session
+(Google, GitHub) as a battery — an OpenID Connect provider composes by hand today
+([providers](authentication-providers.md)). Each is an addition rather than a redesign — the sealed-token and session
 machinery those flows need is already here — but none of them exists today.
 
 ### Another database
@@ -75,8 +76,8 @@ The provider packages have shipped: [`Rask.Postgres`](data.md#postgresql) and
 [`Rask.SqlServer`](data.md#sql-server), and `Rask:Database:Provider` (`sqlite`, `postgres` or `sqlserver`)
 picks between them for an app that opens its context with `UseRaskDatabase(sp)` — see
 [Choosing the database](data.md#choosing-the-database). What is **not** here yet is the tooling around them:
-`rask new` has no database choice and scaffolds `UseRaskSqlite(sp)`, so moving a scaffolded app is a
-hand edit of `Program.cs` plus migrations generated against the new provider; `rask deploy` points
+`rask new` has no database choice — a scaffold starts on SQLite, and moving it is `Rask:Database:Provider`
+and a connection string in `appsettings.json`, plus migrations generated against the new provider; `rask deploy` points
 `Rask:ConnectionStrings:App` at a SQLite file on its volume, so a server-database app is deployed another
 way for now. On PostgreSQL or SQL Server you also give up everything that treats the database as a file —
 Litestream, snapshots, `rask db backup`. See [Scaling](scaling.md) for where the single-writer wall

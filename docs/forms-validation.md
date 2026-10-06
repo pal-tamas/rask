@@ -144,7 +144,7 @@ public sealed class OrderValidator : AbstractValidator<OrderModel>
 {
     public OrderValidator(IProductCatalog catalog) =>
         RuleFor(x => x.Product)
-            .MustAsync(async (sku, ct) => await catalog.ExistsAsync(sku, ct))
+            .MustAsync(async (sku, ct) => await catalog.Exists(sku, ct))
             .WithMessage("No such product.");
 }
 ```
@@ -179,7 +179,7 @@ Three ways to validate asynchronously:
            if (ctx.Model is SignupModel m && field.FieldName == nameof(SignupModel.Username))
            {
                await Task.Delay(400, ct);            // pretend it's an API call
-               if (await IsTakenAsync(m.Username))
+               if (await IsTaken(m.Username))
                    ctx.AddValidationMessage(field, "Already taken.");
            }
        }

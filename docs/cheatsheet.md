@@ -1,6 +1,6 @@
 # Cheat sheet
 
-The one page to keep open. Every command, token, and wiring line you reach for while building — dense
+The one page to keep open. Every command, flag, and wiring line you reach for while building — dense
 and scannable. For the prose reference see [the `rask` CLI](cli.md); to learn it in order, follow the
 [Tutorial](tutorial/00-overview.md). Looking for "how do I do X?" — that's the [Recipes](recipes.md).
 
@@ -120,8 +120,8 @@ Routes.UpdateProduct(Id: id).Go();                     // edit page → Update<E
 
 // Gate on auth — route-level attribute, or a component that renders only when signed in:
 [Authorize]                                            // redirects anonymous deep-links to /login
-Authorize[ NewProductButton() ]                      // shown only to signed-in users
-Authorize.Role("admin")[ DeleteProductButton(id) ]
+Authorize[ NewProductButton ]                        // shown only to signed-in users
+Authorize.Role("admin")[ DeleteProductButton.Id(id) ]
 
 // Declare an aggregate: private setters, no constructor, a static factory; value objects need no marker (Rask.Data):
 public sealed class Product : Aggregate<Guid> { public string Name { get; private set; } = ""; }

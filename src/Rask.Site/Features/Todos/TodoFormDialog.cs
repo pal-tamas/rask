@@ -22,7 +22,7 @@ public sealed partial class TodoFormDialog : Component
         Div.Class("field-error text-sm text-ui-danger-ink")[errors.Select(e => Div.Key(e)[e])];
 
     protected override Component? Render() =>
-        // The native <dialog>. BsModal supplied a backdrop, Escape-to-dismiss and a focus trap. A
+        // The native <dialog>. A modal supplies a backdrop, Escape-to-dismiss and a focus trap. A
         // <dialog> rendered with the `open` attribute is NON-modal, so it supplies none of the three —
         // showModal() would, but it needs JS. The first two are cheap to keep as Rask state and a
         // dialog without them is a worse dialog, so they are rebuilt below. The true focus TRAP (tab

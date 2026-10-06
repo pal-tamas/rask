@@ -7,6 +7,23 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
+  keeps the front-door check, `pre-push` the attribution guard. `ci.yml` runs the format check, the
+  warnings-as-errors build, the unit suite, the browser E2Es, the CLI build and the templates as
+  separate jobs after each push to `main`, and `nightly.yml` and `pages.yml` publish only from a commit
+  it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
+  included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
+  unchanged and still run by hand; each CI job is one of them.
+
+### Fixed
+
+- **Rask.SQLite.Litestream: two projects building for the first time at once no longer break each
+  other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
+  with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
+  verifies and unpacks in a directory of its own and moves the binary into the cache.
+
 ### Removed
 
 - **Docs: the "ASP.NET Identity" section of `docs/authentication-providers.md` is gone.** `Rask.Auth` has
@@ -1301,6 +1318,27 @@ them until tagged releases begin.
   four gitignored JavaScript files `Rask.Wasm` and `Rask.External` bundle from TypeScript "produced by
   nothing" until those projects had been built. It now reads each project's own esbuild `--outfile` and
   reports such a file as not built yet, the way it already does for a task assembly.
+- **Docs, rask.sh and the package pages describe the framework as it is now.** A sweep of everything the
+  recent removals left behind. `llms.txt` no longer describes a wizard with styling, auth and battery
+  questions, front-end and meta-framework templates, opt-in `--pwa`/`--docker` flags, a `Rask`
+  meta-package, `ToListAsync`-style read terminals or batteries you have to add — and it indexes 37 guides
+  it did not list. The settings keys it names are the ones a scaffold writes (`Rask:Cultures`,
+  `Rask:Push:Subject`). `AGENTS.md` is described as what it is, the contributor guide; app guidance is
+  `llms.txt` and `docs/ai-agents.md`. The last factory-call snippets are chains:
+  ```csharp
+  Div()[items]                 // was
+  Div[items]                   // now
+  Input(() => model.X)         // was
+  Input.Bind(() => model.X)    // now
+  ```
+  `docs/testing.md` uses the names `Rask.Testing` has (`page.On("button").Click()`, `page.Invoke`), the
+  guides' own sample helpers drop their `Async` suffix, `docs/diagnostics.md` lists the MSBuild errors
+  (`RASKISLAND002`, `RASKSPA006/008/009`, `RASKDOM001/002`), and the docs index links twelve guides it left
+  out. On the site: the landing page says .NET 10, names the `Rask` package, describes the browser APIs as
+  MDN's surface through `Rask.Web`, and counts its diagnostics from the guide (87, pinned by a test); the
+  structured data links `Rask.Server`; the installed app's shortcut opens a page that exists. Six package
+  descriptions stop naming types that are gone (`IMail.SendAsync`, `IRaskSqliteConnectionFactory`).
+
 - **A Dependabot pull request is no longer red on arrival.** Every one failed `commitlint`, and not on
   its title: Dependabot ends each commit with `Signed-off-by: dependabot[bot] <support@github.com>`,
   which it cannot be configured to drop, and the attribution guard in the same job counts a bot

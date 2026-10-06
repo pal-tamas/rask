@@ -13,8 +13,7 @@ namespace Rask.Site.Features.Islands;
 ///         it builds, it ships, and it mounts nothing. The build refuses that arrangement by name.
 ///     </para>
 ///     <para>
-///         Byte-identical to the Server showcase's <c>SolidSpark.tsx</c>, which is the claim: nothing
-///         in it knows which host it is on. Here a callback is a <c>[JSExport]</c> call straight into
+///         Nothing in <c>SolidSpark.tsx</c> knows which host it is on. Here a callback is a <c>[JSExport]</c> call straight into
 ///         this tab's own runtime rather than a trip over the live WebSocket.
 ///     </para>
 /// </remarks>

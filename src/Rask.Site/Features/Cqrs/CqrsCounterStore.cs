@@ -2,8 +2,8 @@ using Rask.Cqrs;
 
 namespace Rask.Site.Features;
 
-// A tiny vertical slice that shows all four Rask.Cqrs message shapes wired reflection-free by the
-// source generator: a query, a command that returns a value, a notification the command publishes,
+// A tiny vertical slice wired reflection-free by the Rask.Cqrs
+// source generator: a query, a command that returns a value, an event the command publishes,
 // and a pipeline behavior (decorator) that wraps every dispatch. The store is the slice's state.
 public sealed class CqrsCounterStore
 {

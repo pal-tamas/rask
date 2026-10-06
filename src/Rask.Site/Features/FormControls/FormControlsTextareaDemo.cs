@@ -1,7 +1,7 @@
 
 namespace Rask.Site.Features;
 
-// UiTextarea<T> — Rask.Core's Textarea<T> underneath — in both shapes side by side.
+// UiTextarea<T> — Rask.Core's HTMLTextAreaElement<T> underneath — in both shapes side by side.
 //   • Controlled — Value + OnChange: the parent owns the text; OnChange fires on commit (blur) and
 //     re-renders this consumer so the character-count readout updates (the controlled-OnChange fix).
 //   • Bound — Textarea.Bind(() => model.X): two-way binds and streams per keystroke through the EditContext.

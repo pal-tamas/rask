@@ -26,7 +26,7 @@ public static partial class DemoRegistry
                 + "declares [ParentRoute(typeof(ShowcaseLayout))]."),
             ["routing-route-state"] = () => CodeSample
                 .Files(["PathDisplay.cs"])
-                .Notes("Subscribe to RouteState.Changed in Mount and unsubscribe in Unmount. Useful for "
+                .Notes("Subscribe to RouteState.Changed in OnMount and unsubscribe in OnUnmount. Useful for "
                 + "components rendered above the Router (sidebars, breadcrumbs, the header path display) "
                 + "that must refresh on every nav, including browser back/forward."),
             // Live: change the current URL's query with Go. GoDemo.cs is the teaching source.
@@ -219,12 +219,12 @@ public static partial class DemoRegistry
                 .Result(Div.Class("flex gap-2 flex-col")[ScopedRed, ScopedBlue]),
             ["js-interop-jsruntime"] = () => CodeSample.Files(["JsRuntimeDemo.cs"]).Result(JsRuntimeDemo),
 
-            // --- CQRS guide: one vertical slice (query + result-command + notification + a pipeline
+            // --- CQRS guide: one vertical slice (query + result-command + event + a pipeline
             //     behaviour), dispatched reflection-free by the Rask.Cqrs source generator. ---
             ["cqrs-counter"] = () => CodeSample
                 .Files(["CqrsCounterDemo.cs", "CqrsCounterStore.cs", "CounterState.cs", "GetCounterState.cs", "GetCounterStateHandler.cs", "IncrementCounter.cs", "IncrementCounterHandler.cs", "CounterIncremented.cs", "CounterIncrementedHandler.cs", "DispatchLogBehavior.cs"])
-                .Notes("One slice, all four message shapes: a query (GetCounterState), a command that returns "
-                + "a value (IncrementCounter), a notification the command publishes (CounterIncremented), "
+                .Notes("One slice: a query (GetCounterState), a command that returns "
+                + "a value (IncrementCounter), an event the command publishes (CounterIncremented), "
                 + "and a pipeline behaviour (DispatchLogBehavior) that wraps every dispatch — the "
                 + "generator wires them with no runtime reflection.")
                 .Result(CqrsCounterDemo),
@@ -328,7 +328,7 @@ public static partial class DemoRegistry
                 + "callback, so the readouts update on their own. MouseEvent carries button/coords/modifiers, "
                 + "WheelEvent adds deltas, ClipboardEvent the pasted text. "
                 + "KeyboardEvent's Key and Code compare against Keys.Escape / Codes.KeyQ, UI Events' values as "
-                + "generated constants. Wiring both OnX and OnXAsync for one event is not expressible: one name, one slot.")
+                + "generated constants. One Callback per event takes a sync or an async handler: one name, one slot.")
                 .Result(EventsDemo),
             ["events-click"] = () => CodeSample.Files(["EventsClickDemo.cs"]).Result(EventsClickDemo),
             ["events-input"] = () => CodeSample.Files(["EventsInputDemo.cs"]).Result(EventsInputDemo),
@@ -351,7 +351,7 @@ public static partial class DemoRegistry
                 + "background. For whole-page gating use [Authorize] on the page instead.")
                 .Result(AuthorizeDemo),
 
-            // --- User components (factory generation) → getting-started.md §6 (its /components page folded in). ---
+            // --- User components (chain generation) → getting-started.md §6 (its /components page folded in). ---
             ["components-greeting"] = () => CodeSample
                 .Files(["ComponentsGreetingDemo.cs", "Greeting.cs"])
                 .Notes("Non-nullable property without an initializer → required chain step. Nullable property "
@@ -365,8 +365,8 @@ public static partial class DemoRegistry
                 + "settable properties become chain steps."),
             ["components-skipfactory"] = () => CodeSample
                 .Files(["ComponentsSkipFactoryDemo.cs", "SkipFactoryCounter.cs"])
-                .Notes("[SkipFactory] keeps a property settable in code while removing it from the generated factory "
-                + "signature. The counter below started at 7 — click it and the state persists across re-renders.")
+                .Notes("[SkipFactory] keeps a property settable in code while leaving it out of the generated chain. "
+                + "The counter below started at 7 — click it and the state persists across re-renders.")
                 .Result(ComponentsSkipFactoryDemo),
         };
 

@@ -21,7 +21,7 @@ namespace Rask.Site;
 ///     <para>
 ///         The theme picker is the kit's <see cref="UiThemeDropdown" />, a popover so it closes on Escape
 ///         and on a click outside; its panel reports its toggle through one C# handler. The hamburger is a
-///         label for the sidebar's checkbox. <c>App.ThemeInitJs</c> remembers the theme — the radios are
+///         label for the sidebar's checkbox. <c>Ui.ThemeScript</c> remembers the theme — the radios are
 ///         CSS-only, so no handler runs when one is picked.
 ///     </para>
 /// </remarks>
