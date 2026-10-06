@@ -72,6 +72,10 @@ expect_has   "a journey edit reaches its own suite"                site      tes
 expect_has   "the data demo reaches its journeys"                  datademo  src/Rask.Site.DataDemo/Program.cs
 expect_has   "a devtools fixture reaches the devtools journeys"    devtools  tests/Rask.DevTools.Fixture.Wasm/Program.cs
 
+# The byte and allocation budgets follow what they measure.
+expect_has   "the core reaches the benchmark budgets"              bench     src/Rask.Core/Component.cs
+expect_lacks "a site page does not reach them"                     bench     src/Rask.Site/Program.cs
+
 # The CLI gates are selected by file, not by the graph (affected_gates.py says why): the graph would
 # select them for every source change, and they are the longest gates there are.
 expect_lacks "an ordinary core change does not pack the CLI feed"  packaging src/Rask.Core/Component.cs

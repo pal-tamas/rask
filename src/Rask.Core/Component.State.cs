@@ -91,7 +91,12 @@ public abstract partial class Component
         // life. It has to. A key that is new this frame must get a FRESH instance, and the ordinal path
         // would hand it a recycled one belonging to whichever item used to sit at that position — which
         // is the very bug being fixed, moved one step along.
-        public HashSet<Type>? KeyedTypes;
+        //
+        // The value is that type's SPARE: the instance the last entry built by position and its Key step
+        // then set aside for the one it kept. It never started a lifecycle, so the next entry takes it
+        // instead of constructing another — otherwise every keyed row costs an instance and a LiveState
+        // per render, to be thrown away one step later.
+        public Dictionary<Type, Component?>? KeyedTypes;
         public Dictionary<(Type, object), Component>? KeyedChildren;
         public Dictionary<(Type, object), Component>? PreviousKeyedChildren;
 

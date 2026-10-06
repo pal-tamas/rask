@@ -20,6 +20,7 @@ gates, for the gates whose subject is not a test project's references:
     devtools   the devtools journeys or their fixtures
     sqlite     the browser SQLite journeys or their fixture
     datademo   the data demo app or its journeys
+    bench      what the byte and allocation budgets measure
     packaging  the CLI, the templates, or how a project is built and packed (by FILE, see below)
                                                  -> the CLI build and the templates
 
@@ -42,6 +43,7 @@ PROJECT_GATES = {
     "devtools": ("tests/Rask.DevTools.E2E.Tests/", "tests/Rask.DevTools.Fixture.Wasm/", "tests/Rask.DevTools.Fixture.Server/"),
     "sqlite": ("tests/Rask.SQLite.Browser.E2E.Tests/", "tests/Rask.SQLite.Browser.Fixture.Wasm/"),
     "datademo": ("src/Rask.Site.DataDemo/", "tests/Rask.Site.DataDemo.E2E.Tests/"),
+    "bench": ("tests/Rask.Benchmarks/", "tests/Rask.Benchmarks.VsBlazor/"),
 }
 
 # The CLI build and template gates are selected by the FILES that changed, not by the projects reached,

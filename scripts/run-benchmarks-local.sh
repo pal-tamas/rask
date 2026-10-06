@@ -8,8 +8,9 @@
 #   tests/Rask.Benchmarks/Baselines/payload-bytes.csv                  (standalone codec)
 #   tests/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor-payload-bytes.csv  (head-to-head)
 #
-# This is the ONLY place they run, and ONLY WHEN YOU ASK: no git hook, no CI workflow and not
-# scripts/run-all-gates.sh either. Run it for a render or live-runtime hot-path change.
+# CI runs this on every push (the `benchmarks` gate in .github/workflows/gates.yml); no hook does.
+# Everything here is a count of bytes, so a shared runner gives the answer a quiet machine would. Run
+# it by hand only to reproduce a red job.
 #
 # Usage:  scripts/run-benchmarks-local.sh
 # Skip:   RASK_SKIP_BENCHMARKS=1
@@ -131,10 +132,21 @@ echo "==> Live-session capacity: session-load (smoke, real Kestrel + real socket
 "$standalone_bin" session-load --smoke \
   >/dev/null || status=1
 
+# What a live update allocates, in bytes — the other thing a render-path change can make worse without
+# moving a single byte on the wire. Deterministic like the byte gates, so it is gated the same way; the
+# times BenchmarkDotNet reports are not, and are in no gate.
+echo
+echo "==> Allocation gate (a live update of the 20-row page)"
+"$standalone_bin" allocation-profile --check || status=1
+
 if [ "$status" -ne 0 ]; then
   cat >&2 <<'EOF'
 
   A benchmark gate failed. Read the section above that went red — they fail for different reasons.
+
+  THE ALLOCATION GATE. A live update allocates more than Baselines/allocation-budget.csv allows.
+  `-- allocation-profile 20` names the types responsible, as shares of those bytes; fix the code. Raise
+  the budget only for a feature that has to cost something, in the same commit, saying what.
 
   A CAPACITY SMOKE. session-churn reports the bytes a disposed session leaves behind: anything above
   the budget means a session is outliving its own teardown, and the full report (`-- session-churn`)
@@ -163,4 +175,4 @@ EOF
 fi
 
 echo
-echo "==> Benchmark gates passed (both payload-bytes baselines + the capacity smokes)."
+echo "==> Benchmark gates passed (both payload-bytes baselines, the allocation budget + the capacity smokes)."

@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -69,14 +68,15 @@ public static class RouteAuthorizationGuard
         Type? failingPage = null;
         foreach (var type in chain)
         {
-            if (type.GetCustomAttribute<AllowAnonymousAttribute>(true) is not null)
+            var declared = PageAuthorizeData.Of(type);
+            if (declared.AllowsAnonymous)
             {
                 authzData.Clear();
                 failingPage = null;
                 continue;
             }
 
-            var attrs = type.GetCustomAttributes(true).OfType<IAuthorizeData>().ToArray();
+            var attrs = declared.Data;
             if (attrs.Length == 0)
             {
                 continue;
