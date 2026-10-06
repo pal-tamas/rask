@@ -51,6 +51,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Tooling: `scripts/tools/RaskRename` renames a public member across the solution in one pass.**
+  `dotnet run --project scripts/tools/RaskRename -- Rask.Wasm.WasmHostBuilder.RunAsync Run [--dry-run]` is a
+  Roslyn symbol rename over `Rask.slnx` (about half a minute), followed by a sweep of the templates, docs
+  and agent guides, which no project reaches. It stops when the new name is already taken on the type. The
+  `rename-public-member` skill is the playbook around it.
+
 - **Gates: `scripts/run-all-gates.sh --parallel` runs the packing gates beside the rest.** The CLI build,
   template and watch gates get a second worktree at the same commit, so they no longer wait for the browser
   suites or rewrite each other's `obj/`. `--only '<pattern>'` runs just the gates whose label matches, and

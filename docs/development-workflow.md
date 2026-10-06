@@ -185,6 +185,12 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   removed when everything passed) and runs that group there beside the rest; it refuses a dirty tree.
   `--only 'E2E|CLI'` narrows either mode to the gates whose label matches, and the closing table gives each
   gate's seconds and the wall clock.
+- **A public rename is one command.** `scripts/tools/RaskRename` loads `Rask.slnx` and renames a symbol the
+  way an IDE does — implementations and overloads together — then rewrites `Type.Old` in the templates, docs
+  and agent guides and lists the remaining `.Old`/`Old(` there for a person to read. It refuses a name the
+  type already has. It lives under `scripts/tools/`, cut off from the repository's build rules by the empty
+  `Directory.Build.*` there, in no solution and never packed. `.claude/skills/rename-public-member` is the
+  playbook: rename, build once for the RS0016/RS0017 baselines, then what no build covers.
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
   solution once, then runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
   analyzers, one workspace load) **concurrently with** every test except the browser E2E. The two share
