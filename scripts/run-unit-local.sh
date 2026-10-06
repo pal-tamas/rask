@@ -162,23 +162,30 @@ fi
 #
 #   build          the gate script tests and the warnings-as-errors build, analyzers on — nothing else
 #   tests          a build without analyzers, then the tests
+#   tests-K/N      the same build, then shard K of N of the test projects (dealt round-robin from a
+#                  sorted list, so a new project joins a shard by existing)
 #   format-src     a build without analyzers, then the formatter over src/
 #   format-tests   a build without analyzers, then the formatter over tests/
 #
 # Every piece builds, because the tests need the assemblies and the formatter resolves types the build
 # generates (the site's scoped-TypeScript types; without them it reports CS0246 for code that
 # compiles). Only `build` pays for the analyzers. The formatter is the slowest single step and decides
-# per document, so its two halves cover exactly what the whole does. The TESTS are not cut finer:
-# that made every piece rebuild the shared projects and left tests that read a build product of a
-# project they do not reference (rask.wasm.js) with nothing to read.
+# per document, so its two halves cover exactly what the whole does. A test shard builds the WHOLE
+# solution and narrows only what it runs: narrowing the build as well left tests that read a build
+# product of a project they do not reference (rask.wasm.js) with nothing to read.
 unit_part="${RASK_UNIT_PART:-}"
 format_include=""
+test_shard=""
 case "$unit_part" in
   ""|build|tests) ;;
+  tests-[0-9]*/[0-9]*)
+    test_shard="${unit_part#tests-}"
+    unit_part="tests"
+    ;;
   format-src) format_include="src/" ;;
   format-tests) format_include="tests/" ;;
   *)
-    echo "run-unit-local: RASK_UNIT_PART must be build, tests, format-src or format-tests, not '$unit_part'." >&2
+    echo "run-unit-local: RASK_UNIT_PART must be build, tests, tests-K/N, format-src or format-tests, not '$unit_part'." >&2
     exit 1
     ;;
 esac
@@ -317,6 +324,18 @@ dotnet build Rask.slnx -c Release -m:"$lane_slots" \
 
 fi
 rask_phase "build (Release)"
+
+# A test shard: the build above was the whole solution; from here on only this shard's projects run.
+if [ -n "$test_shard" ]; then
+  scope_changed=""
+  scope_projects="$(ls tests/*/*.csproj | grep -E '\.Tests/[^/]+\.csproj$' | grep -v '\.E2E\.Tests/' | LC_ALL=C sort \
+    | awk -v k="${test_shard%/*}" -v n="${test_shard#*/}" 'NR % n == k % n')"
+  if [ -z "$scope_projects" ]; then
+    echo "run-unit-local: test shard $test_shard names no test project." >&2
+    exit 1
+  fi
+  echo "==> Test shard $test_shard: $(printf '%s\n' "$scope_projects" | grep -c .) test project(s)"
+fi
 
 # Built ONLY on the paths that go on to run `dotnet format`, which is the only consumer: the formatter
 # evaluates the solution in the DEFAULT configuration (Debug) and resolves the OutputItemType="Analyzer"
