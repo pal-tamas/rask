@@ -36,7 +36,7 @@ cleanup
 
 docker run -d --name "$MINIO" -p "127.0.0.1:${S3_PORT}:9000" \
   -e MINIO_ROOT_USER=raskminio -e MINIO_ROOT_PASSWORD=raskminiosecret \
-  docker.io/minio/minio:latest server /data >/dev/null
+  docker.io/pgsty/minio:latest server /data >/dev/null   # minio/minio left Docker Hub; this is the community build
 
 # --skipApiVersionCheck: an Azurite image older than the pinned x-ms-version would refuse it outright, which
 # tests the image, not the signature.
