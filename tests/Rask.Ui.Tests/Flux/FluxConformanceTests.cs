@@ -25,6 +25,10 @@ public sealed class FluxConformanceTests
     private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
     {
         ["flux:icon.*"] = typeof(UiIcon),
+        ["flux:tab.group"] = typeof(UiTabGroup),
+        ["flux:tabs"] = typeof(UiTabs),
+        ["flux:tab"] = typeof(UiTab),
+        ["flux:tab.panel"] = typeof(UiTabPanel),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>

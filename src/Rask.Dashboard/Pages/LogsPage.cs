@@ -183,18 +183,17 @@ public sealed partial class LogsPage(
             ModeTab("history", "History")
         ];
 
-    private UiTab ModeTab(string? view, string label) =>
+    private Component ModeTab(string? view, string label) =>
         Ui.Tab
             .Key(label)
-            .Label(label)
             .Href(Routes.LogsPage(View: view, Level: Level, Category: Category))
-            .Active(IsHistory == (view is not null));
+            .Selected(IsHistory == (view is not null))[label];
 
     // The grid's toolbar lays these out as one row from sm up and one control per line below it, which is
     // what three filters at 360px need: side by side, each is too narrow to show the value it is set to.
     private Component Filters() =>
         [
-            Ui.Tabs[
+            Ui.Tabs.Pills[
                 LevelPill(null, "All"),
                 LevelPill(LogLevel.Information, "Info+"),
                 LevelPill(LogLevel.Warning, "Warning+"),
@@ -204,12 +203,11 @@ public sealed partial class LogsPage(
             IsHistory ? SearchBox() : null
         ];
 
-    private UiTab LevelPill(LogLevel? level, string label) =>
+    private Component LevelPill(LogLevel? level, string label) =>
         Ui.Tab
             .Key(label)
-            .Label(label)
             .Href(Link(level: level?.ToString(), category: Category))
-            .Active(MinimumLevel == level);
+            .Selected(MinimumLevel == level)[label];
 
     // A native select rather than a drawn list: a real application has dozens of logger categories, and the
     // platform's own picker is keyboard-navigable, needs no script and is the right control on a phone. Only

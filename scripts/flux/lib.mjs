@@ -50,6 +50,8 @@ export async function measurePage(browser, url, shots, prepare) {
     // and between a node and its own forced states. Held a quarter of a second in, it measures the same
     // each time, and still says what the animation is: a spin of another speed or easing is another angle.
     await page.evaluate(() => document.getAnimations().forEach(animation => {
+      // A scroll-driven animation has no clock to hold: where it is IS how far its box is scrolled.
+      if (!(animation.timeline instanceof DocumentTimeline)) return;
       animation.pause();
       animation.currentTime = 250;
     }));
@@ -134,7 +136,7 @@ function collect(wrapper, { STYLES, index }) {
     }
 
     nodes.push(node);
-    // Either side's marker: a Flux node's states were measured, so its Rask twin's have to be too.
+    // A marked part is measured in every state on both sides: `data-flux-*` there, `data-ui-*` here.
     const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux') || a.name.startsWith('data-ui-'));
     if (interactive.length < 60 && (fluxed || el.matches('button, a, input, select, textarea, summary, label, [role], [tabindex]'))) {
       interactive.push(id);

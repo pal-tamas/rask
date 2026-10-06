@@ -454,16 +454,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string TabsSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "tabs-xs",
-        Ui.Size.Sm => "tabs-sm",
-        Ui.Size.Md => "tabs-md",
-        Ui.Size.Lg => "tabs-lg",
-        Ui.Size.Xl => "tabs-xl",
-        _ => "",
-    };
-
     internal static string MenuSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "menu-xs",
@@ -615,26 +605,6 @@ internal static class UiClassNames
     {
         Ui.Marker.Arrow => "collapse-arrow",
         Ui.Marker.Plus => "collapse-plus",
-        _ => "",
-    };
-
-    internal static string TabsStyle(Ui.TabStyle value) => value switch
-    {
-        Ui.TabStyle.Box => "tabs-box",
-        Ui.TabStyle.Border => "tabs-border",
-        Ui.TabStyle.Lift => "tabs-lift",
-        _ => "",
-    };
-
-    /// <summary>Where a row of tabs sits against its panel.</summary>
-    /// <remarks>
-    ///     A row of tabs sits above or below its panel and nowhere else, so the horizontal members of
-    ///     <see cref="Ui.Position" /> return nothing rather than a class daisyUI never defined.
-    /// </remarks>
-    internal static string TabsPosition(Ui.Position value) => value switch
-    {
-        Ui.Position.Top => "tabs-top",
-        Ui.Position.Bottom => "tabs-bottom",
         _ => "",
     };
 

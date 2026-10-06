@@ -20,6 +20,50 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Tabs` is Flux's tabs, with its group and panels.** `Ui.TabGroup`, `Ui.Tabs`, `Ui.Tab` and
+  `Ui.TabPanel` now mirror [`flux:tab.group`, `flux:tabs`, `flux:tab` and
+  `flux:tab.panel`](https://fluxui.dev/components/tabs) — every documented prop, the same markup, the same
+  pixels in light and dark, the same keys — and the daisyUI drawings are gone. A tab's label is its
+  children, and the selected tab is the ROW's value rather than the group's:
+  ```csharp
+  // was
+  Ui.TabGroup.Selected(_pane).OnSelect(p => _pane = p)[
+      Ui.Tabs.Style(Ui.TabStyle.Border)[
+          Ui.Tab.Label("Details").Name("details").Icon(Ui.IconName.BookOpen),
+          Ui.Tab.Label("History").Name("history").Count("4")
+      ],
+      Ui.TabPanel.Name("details")[ … ], Ui.TabPanel.Name("history")[ … ]
+  ]
+  // now
+  Ui.TabGroup[
+      Ui.Tabs.Value(_pane).OnChange(p => _pane = p)[          // or .Bind(() => Pane), or neither
+          Ui.Tab.Name("details").Icon(Ui.IconName.BookOpen)["Details"],
+          Ui.Tab.Name("history")["History", Ui.Badge["4"]]
+      ],
+      Ui.TabPanel.Name("details")[ … ], Ui.TabPanel.Name("history")[ … ]
+  ]
+  ```
+  - `Ui.Tab.Label("x")` → `Ui.Tab["x"]`; `.Active(b)` → `.Selected(b)`; `.Count("4")` / `.Alarm()` → a
+    badge child (`Ui.Badge["4"]`, `Ui.Badge.Tone(Ui.Tone.Error)["3"]`); `.Href` takes a `RouteUrl` (a string
+    still converts) and stays a real link.
+  - `Ui.TabGroup.Selected(x).OnSelect(f)` → `Ui.Tabs.Value(x).OnChange(f)` on the row inside it, or
+    `Ui.Tabs.Bind(() => Property)`. With neither, the row keeps track itself.
+  - `Ui.TabStyle` is removed with `Ui.Tabs.Style`: `Box` → `.Segmented`, `Border` and `Default` → the default
+    row, `Lift` has no Flux counterpart; `.Pills` is new. `Ui.Tabs.Size` takes `Ui.TabsSize` (`Base`, `Sm`)
+    in place of `Ui.Size`, and `Ui.Tabs.Position` is removed — Flux's tabs sit above their panels.
+  - New, from Flux: `Ui.Tabs.Scrollable()`, `.ScrollableFade()`, `.ScrollableScrollbar(Ui.TabsScrollbar.Hide)`;
+    `Ui.Tab.IconTrailing`, `.IconVariant`, `.Selected()`, `.Accent(false)`, `.Action().OnClick(…)`;
+    `Ui.TabPanel.Selected()`; `Ui.TabGroup.Findable()` (`hidden="until-found"`, and a find-in-page match
+    selects its tab).
+  - The markers are `data-ui-tab-group`, `data-ui-tabs`, `data-ui-tab`, `data-ui-tab-panel` and
+    `data-selected`; `.tabs`, `.tab` and `.tab-active` are no longer written. The row no longer forces a
+    44px touch height or scrolls by itself — ask with `Scrollable()`.
+  - **The keyboard moved into the runtime and changed to Flux's.** Any `role="tablist"` of
+    `<button role="tab">` now gets ArrowRight/ArrowDown and ArrowLeft/ArrowUp from `rask.js`: they move
+    FOCUS as well as the selection (the C# handler moved only the selection), pass over disabled tabs
+    (they used to land on them) and wrap. Home and End are no longer handled, as Flux does not handle
+    them.
+
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:

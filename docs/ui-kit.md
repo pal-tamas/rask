@@ -278,7 +278,7 @@ Not every component honours every member — daisyUI defines no `input-outline`,
 the markup looking as though it styled something.
 
 Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.ModalPosition`, `Ui.MaskShape`,
-`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`, `Ui.TabStyle`, `Ui.Marker`, `Ui.OpenOn`.
+`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`, `Ui.Marker`, `Ui.OpenOn`.
 
 ### One vocabulary for placing things
 
@@ -290,7 +290,6 @@ daisyUI composes them — a menu above its trigger, flush with the trigger's end
 ```csharp
 Ui.Dropdown.Trigger("Actions").Position(Ui.Position.Top).Align(Ui.Align.End)[ … ]
 Ui.Tooltip.Tip("Copy").Position(Ui.Position.Right)[ … ]
-Ui.Tabs.Position(Ui.Position.Bottom)[ … ]
 Ui.Drawer.Id("nav").Panel(menu).Position(Ui.Position.Right)[ … ]
 Ui.Modal.Title("Details").Position(Ui.ModalPosition.End)[ … ]   // placed against the viewport, not a trigger
 ```
@@ -381,6 +380,63 @@ an element-derived component cannot draw anything around them. The two places th
 The kit pads cells and rows with a stylesheet rule on its `ui-table` / `ui-list` marker, in the layer
 below your utilities. A `px-0` on a cell therefore gets flush content. A `[&_td]:px-3` variant would have
 out-specified it.
+
+## Tabs
+
+`Ui.TabGroup`, `Ui.Tabs`, `Ui.Tab` and `Ui.TabPanel` are [Flux's tabs](https://fluxui.dev/components/tabs):
+the same four parts, the same props, drawn and behaving the same.
+
+```csharp
+Ui.TabGroup[
+    Ui.Tabs.Bind(() => Tab)[                       // or .Value(_tab).OnChange(t => _tab = t), or neither
+        Ui.Tab.Name("profile")["Profile"],
+        Ui.Tab.Name("account").Icon(Ui.IconName.Cog6Tooth)["Account"],
+        Ui.Tab.Name("billing")["Billing"]
+    ],
+    Ui.TabPanel.Name("profile")[ /* … */ ],
+    Ui.TabPanel.Name("account")[ /* … */ ],
+    Ui.TabPanel.Name("billing")[ /* … */ ]
+]
+```
+
+**The selected tab is the row's value** — the tab's `Name` — where Flux has `wire:model`. `Bind` two-way binds
+it to a property, `Value` with `OnChange` leaves it with the page, and with neither the row keeps track
+itself, starting on the tab that says `Selected()` or else the first one that is not disabled. A tab with no
+`Name` is known by its place in the row: `"0"`, `"1"`…
+
+`Bind` writes the property and redraws the row and its panels; like every bound control it does not redraw
+the page around them. A page that shows the selected name somewhere else takes it from `OnChange`, which
+runs in every mode.
+
+| Flux | Rask |
+|---|---|
+| `<flux:tabs variant="segmented" size="sm">` | `Ui.Tabs.Segmented.Size(Ui.TabsSize.Sm)` |
+| `<flux:tabs variant="pills">` | `Ui.Tabs.Pills` |
+| `<flux:tabs scrollable scrollable:fade scrollable:scrollbar="hide">` | `Ui.Tabs.Scrollable().ScrollableFade().ScrollableScrollbar(Ui.TabsScrollbar.Hide)` |
+| `<flux:tabs class="px-4">` | `Ui.Tabs.Class("px-4")` |
+| `<flux:tab icon="user" icon:trailing="chevron-down" icon:variant="solid">` | `Ui.Tab.Icon(Ui.IconName.User).IconTrailing(Ui.IconName.ChevronDown).IconVariant(Ui.IconVariant.Solid)` |
+| `<flux:tab selected>` · `disabled` · `:accent="false"` | `.Selected()` · `.Disabled()` · `.Accent(false)` |
+| `<flux:tab icon="plus" wire:click="addTab" action>` | `Ui.Tab.Icon(Ui.IconName.Plus).Action().OnClick(AddTab)` |
+| `<flux:tab.group findable>` | `Ui.TabGroup.Findable()` |
+
+A row needs no group: a segmented `List / Board / Timeline` on its own is a choice the page reads from
+`OnChange`. Inside a group, write the row before its panels — a panel learns which tab is selected from the
+row above it. Every panel is rendered and the ones not shown are `hidden`; in a `Findable()` group they are
+`hidden="until-found"` instead, so the browser's find-in-page reaches them and a match selects its tab. A
+panel's top padding (`pt-8`) gives way to a `pt-*` of your own.
+
+A count beside a label is a child, like any other content: `Ui.Tab.Name("open")["Open", Ui.Badge["12"]]`.
+
+**The keyboard** is the runtime's, for every `role="tablist"` ([accessibility.md](accessibility.md#tabs)):
+ArrowRight/ArrowDown and ArrowLeft/ArrowUp move to the next and the previous tab, past a disabled one and
+around the ends, and **select as they go**. Only the selected tab is a tab stop, so Tab leaves the row for the
+panel. An `Action()` tab is an ordinary button in the row: a tab stop of its own, which the arrows pass over.
+Home and End are not handled, as Flux does not handle them.
+
+**A tab that is a link** is Rask's addition: `Ui.Tab.Href(Routes.LogsPage())["Live"]` is a real `<a>` with
+client-side navigation — bookmarkable, and it answers the back button. A link is selected only when it is
+told to be (`.Selected(…)`, or the row's `Value` naming it), never by default, and the arrow keys leave links
+to Tab.
 
 ## Buttons and links that go somewhere
 
@@ -519,7 +575,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
-| **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
+| **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Fieldset` `Ui.Validator` `Ui.Label` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Divider` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
@@ -604,35 +660,11 @@ Ui.Dropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
 **The page owns it, in C#.** `Ui.Collapse`, `Ui.Accordion`, `Ui.Swap`, `Ui.Tabs` and `Ui.Modal`'s `Open` path hold
 their state in a field and redraw through the live diff.
 
-**The markup owns it.** `Ui.Tab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
-survives a refresh and answers the back button. `Ui.Drawer` keeps its checkbox because daisyUI's rules are
-written against `.drawer-toggle:checked`; C# sets it and hears it change, but the input is the component.
+**The markup owns it.** `Ui.Drawer` keeps its checkbox because daisyUI's rules are written against
+`.drawer-toggle:checked`; C# sets it and hears it change, but the input is the component.
 
-**And for a view with no URL, the same tab takes a `Name` instead.** Wrap the row in a `Ui.TabGroup` and give
-each tab a `Ui.TabPanel`:
-
-```csharp
-Ui.TabGroup.Selected(_pane).OnSelect(p => _pane = p)[
-    Ui.Tabs[
-        Ui.Tab.Label("Details").Name("details"),
-        Ui.Tab.Label("History").Name("history")
-    ],
-    Ui.TabPanel.Name("details")[ /* … */ ],
-    Ui.TabPanel.Name("history")[ /* … */ ]
-]
-```
-
-One component for both, because a reader sees one thing — what it is comes from what it is given. The
-`Ui.Tabs` inside the group is not ceremony: a `tablist` may contain only tabs, so the panels cannot be its
-siblings, and it is the structure Flux uses for the same reason. Leave `Selected` off and the group shows the
-first tab and keeps track itself.
-
-Inside a group the tab is a real `<button>`, not a link — there is nowhere for it to go, and an `href="#"` is
-one the browser follows, putting a stray fragment in the address bar and breaking the back button it was meant
-to protect. The keyboard is the tabs pattern: **ArrowLeft/ArrowRight move and show as they go**, Home and End
-jump to the ends, and they wrap. Only the selected tab is a tab stop, so Tab out of the row lands *in* the
-panel rather than walking every remaining tab. Every panel is rendered, with the ones not shown carrying
-`hidden`, so their content is still findable by the browser's own in-page search.
+**And one whose state is a value.** `Ui.Tabs` keeps its selected tab itself until the page binds it — see
+[Tabs](#tabs).
 
 **And one that lets you choose.** `Ui.Select` is the platform's `<select>` by default and draws its own
 list when `Native` is `false` — a `[popover]` `role="listbox"` under a `role="combobox"` box, with the

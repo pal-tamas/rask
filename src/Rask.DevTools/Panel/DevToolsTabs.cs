@@ -86,12 +86,12 @@ internal sealed partial class DevToolsTabs : Component
         var unseen = Unseen(page, _seenPage) + Unseen(app, _seenApp);
 
         return Div.Class("flex items-center gap-1")[
-            Div.Role("tablist").Class("flex flex-wrap items-center gap-1")[
-                TabButton(Wire, "Wire", 0),
-                TabButton(Tree, "Tree", 0),
-                TabButton(Renders, "Renders", 0),
-                TabButton(Perf, "Perf", 0),
-                TabButton(Errors, "Errors", unseen)
+            Ui.Tabs.Segmented.Size(Ui.TabsSize.Sm).Value(Current).OnChange(id => OnSelect.Invoke(id).AsTask())[
+                Tab(Wire, "Wire", 0),
+                Tab(Tree, "Tree", 0),
+                Tab(Renders, "Renders", 0),
+                Tab(Perf, "Perf", 0),
+                Tab(Errors, "Errors", unseen)
             ],
             // For the panel's script: the count, for the pill's dot, and the page's request to show the errors.
             Span.Hidden(true)
@@ -108,18 +108,11 @@ internal sealed partial class DevToolsTabs : Component
     private Task Requested(string? key) =>
         string.Equals(key, DevToolsTabIds.ShowErrorsKey, StringComparison.Ordinal) ? OnSelect.Invoke(Errors).AsTask() : Task.CompletedTask;
 
-    private Component TabButton(string id, string label, int count) =>
-        Ui.Button
-            .Key(id)
-            .Size(Ui.Size.Sm)
-            .Role("tab")
-            // daisyUI's own marker, written whole: a composed class name is invisible to the kit's Tailwind scan.
-            .Class(IsCurrent(id) ? "btn-active" : null)
-            .Aria("selected", IsCurrent(id) ? "true" : "false")
-            .OnClick(() => OnSelect.Invoke(id).AsTask())[
-                label,
-                count > 0 ? Ui.Badge.Size(Ui.Size.Xs).Tone(Ui.Tone.Error)[count.ToString(CultureInfo.InvariantCulture)] : null
-            ];
+    private static Component Tab(string id, string label, int count) =>
+        Ui.Tab.Key(id).Name(id)[
+            label,
+            count > 0 ? Ui.Badge.Size(Ui.Size.Xs).Tone(Ui.Tone.Error)[count.ToString(CultureInfo.InvariantCulture)] : null
+        ];
 
     // Only errors: a warning is listed, but does not call for attention.
     internal static int Unseen(DevToolsError[] errors, long seen)
