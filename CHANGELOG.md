@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Inline style as typed CSS.** `Css` has a step for every CSS property browsers ship — 455, generated
+  from MDN's data (`@webref/css` for the grammars, browser-compat-data for what two engines ship) —
+  and `Style` takes one wherever it takes text: `Div.Style(Css.Position().Sticky.Top(0.Px))`. A
+  property's empty call offers its keywords (`Css.Display().Grid`), a typed value is taken as its type
+  (`Css.Height(40.Px)`, `Css.Opacity(0.5)`, `Css.TransitionDuration(150.Milliseconds)`), and any text
+  CSS allows still goes through (`Css.Width("calc(100% - 2rem)")`; `null` declares nothing). The unit
+  literals gain CSS lengths: `12.Px`, `1.5.Rem`, `2.Em`, `60.Ch`, `100.Vw`, `100.Vh`, `100.Dvw`,
+  `100.Dvh` and `50.Percent`. The daily upstream run keeps the property list on MDN's latest release.
+
 ### Changed
 
 - **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
