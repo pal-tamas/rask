@@ -722,26 +722,52 @@
 }
 
 /*
-  THE PADDING OF A TABLE CELL AND A LIST ROW — the kit's default, and only a default.
+  THE PADDING OF A LIST ROW — the kit's default, and only a default.
 
-  UiTable and UiList render the element itself and pass the call site's rows and cells straight through, so
-  their padding has to reach elements the kit never builds. A Tailwind descendant variant on the container
-  (`[&_td]:px-3`) does that and is wrong in a way nothing reports: `.x td` outranks the `.px-0` a cell writes
-  on itself, so the cell asks for flush content and silently does not get it.
+  UiList renders the element itself and passes the call site's rows straight through, so its padding has to
+  reach elements the kit never builds. A Tailwind descendant variant on the container (`[&>li]:px-4`) does
+  that and is wrong in a way nothing reports: `.x > li` outranks the `.px-0` a row writes on itself, so the
+  row asks for flush content and silently does not get it.
 
   In `rask`, which the order statement at the top of this file puts BEFORE `utilities`: any utility the app
-  writes on a cell or a row wins, whatever its specificity. Keyed to the kit's own markers, so hand-written
-  daisyUI `list` and `table` markup is left exactly as daisyUI draws it. `list-row` keeps daisyUI's own grid
-  padding.
+  writes on a row wins, whatever its specificity. Keyed to the kit's own marker, so hand-written daisyUI
+  `list` markup is left exactly as daisyUI draws it. `list-row` keeps daisyUI's own grid padding.
 */
 @layer rask {
-  .ui-table th,
-  .ui-table td {
-    padding: 0.5rem 0.75rem;
-  }
-
   .ui-list > li:not(.list-row) {
     padding: 0.5rem 1rem;
+  }
+}
+
+/*
+  A STICKY TABLE COLUMN CASTS A SHADOW ONCE SOMETHING HAS SCROLLED UNDER IT, and not before.
+
+  Flux marks its scroll area from script (`data-scrolled-right`) and styles on that. The kit ships no
+  script, and does not need one for this: a keyframe on the cell's ::after, driven by how far the nearest
+  scroller — the table's scroll area — has moved sideways, switches the shadow on. `step-end` over the
+  first pixel makes it a switch rather than a fade, which is what Flux's is.
+
+  The keyframe sets a custom property rather than the shadow itself. An animated box-shadow computes to a
+  transparent shadow at rest, not to `none`; an unregistered property has nothing to interpolate, so at
+  rest it is simply unset.
+
+  Behind @supports because a browser without scroll timelines would run it as an ordinary animation of no
+  length, land on the last frame, and draw the shadow on a table that has not moved.
+*/
+@layer rask {
+  @keyframes ui-table-scrolled {
+    to {
+      --ui-table-scrolled: inset 8px 0 8px -8px rgb(0 0 0 / 0.05);
+    }
+  }
+
+  @supports (animation-timeline: scroll()) {
+    :is([data-ui-column], [data-ui-cell]).sticky::after {
+      box-shadow: var(--ui-table-scrolled, none);
+      animation: ui-table-scrolled step-end both;
+      animation-timeline: scroll(nearest inline);
+      animation-range: 0 1px;
+    }
   }
 }
 

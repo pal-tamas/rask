@@ -45,16 +45,14 @@ public sealed partial class MasterDetailDemo : Component
         var orders = SortOrders(_orders, _orderSort);
 
         return Ui.Card.Class("shadow-sm !p-0")[
-            Div.Class("overflow-x-auto")[
-                Ui.Table.Id("md-orders").Class("[&_tbody_tr:hover]:bg-ui-well align-middle mb-0")[
-                    Thead.Class("bg-ui-well")[
-                        Tr[_orderColumns.Select(c =>
-                            c.Sortable
-                                ? SortHeader(c.Id, c.Header, _orderSort, ToggleOrderSort)
-                                : Th.Scope(ThScope.Col).Key(c.Id))]
-                    ],
-                    Tbody[BuildOrderRows(orders)]
-                ]
+            Ui.Table.Id("md-orders").Class("[&_tbody_tr:hover]:bg-ui-well")[
+                Ui.TableColumns.Class("bg-ui-well")[
+                    _orderColumns.Select(c =>
+                        c.Sortable
+                            ? SortHeader(c.Id, c.Header, _orderSort, ToggleOrderSort)
+                            : Ui.TableColumn.Key(c.Id))
+                ],
+                Ui.TableRows[BuildOrderRows(orders)]
             ]
         ];
     }
@@ -66,8 +64,8 @@ public sealed partial class MasterDetailDemo : Component
         {
             var open = _expanded.Contains(order.Id);
 
-            rows.Add(Tr.Key(order.Id).Class("md-row")[
-                Td.Style("width:44px;")[
+            rows.Add(Ui.TableRow.Key(order.Id).Class("md-row")[
+                Ui.TableCell.Style("width:44px;")[
                     Ui.Button
                         .AccessibleLabel(open ? $"Collapse order {order.Id}" : $"Expand order {order.Id}")
                         .Square()
@@ -76,19 +74,19 @@ public sealed partial class MasterDetailDemo : Component
                         .Data("testid", $"expander-{order.Id}")
                         .OnClick(() => Toggle(order.Id))[Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)]
                 ],
-                Td.Class("font-semibold")[order.Customer],
-                Td.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
-                Td[Ui.Badge.Tone(StatusTone(order.Status)).Soft[order.Status]],
-                Td.Class("text-ui-muted")[order.Items.Count],
-                Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
+                Ui.TableCell.Class("font-semibold")[order.Customer],
+                Ui.TableCell.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
+                Ui.TableCell[Ui.Badge.Tone(StatusTone(order.Status)).Soft[order.Status]],
+                Ui.TableCell.Class("text-ui-muted")[order.Items.Count],
+                Ui.TableCell.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                     "$" + order.Total.ToString("N2", CultureInfo.InvariantCulture)
                 ]
             ]);
 
             if (open)
             {
-                rows.Add(Tr.Key($"detail-{order.Id}").Class("md-detail")[
-                    Td.ColSpan(_orderColumns.Length).Class("p-0 bg-ui-well")[
+                rows.Add(Ui.TableRow.Key($"detail-{order.Id}").Class("md-detail")[
+                    Ui.TableCell.Attributes(("colspan", _orderColumns.Length.ToString(CultureInfo.InvariantCulture))).Class("p-0 bg-ui-well")[
                         Div
                             .Class("p-3")
                             .Data("testid", $"inner-{order.Id}")[
@@ -107,21 +105,20 @@ public sealed partial class MasterDetailDemo : Component
         var sort = _itemSort.GetValueOrDefault(order.Id, ("", true));
         var items = SortItems(order.Items, sort);
 
-        return Ui.Table.Class("[&_tbody_tr:nth-child(odd)]:bg-ui-well align-middle mb-0 bg-white")[
-            Thead[
-                Tr[_itemColumns.Select(c =>
-                    SortHeader(c.Id, c.Header, sort, col => ToggleItemSort(order.Id, col)))]
+        return Ui.Table.Class("[&_tbody_tr:nth-child(odd)]:bg-ui-well bg-white")[
+            Ui.TableColumns[
+                _itemColumns.Select(c => SortHeader(c.Id, c.Header, sort, col => ToggleItemSort(order.Id, col)))
             ],
-            Tbody[
+            Ui.TableRows[
                 items.Select(it =>
-                    Tr.Key(it.Id)[
-                        Td[Code[it.Sku]],
-                        Td[it.Product],
-                        Td.Class("text-ui-muted")[it.Qty],
-                        Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
+                    Ui.TableRow.Key(it.Id)[
+                        Ui.TableCell[Code[it.Sku]],
+                        Ui.TableCell[it.Product],
+                        Ui.TableCell.Class("text-ui-muted")[it.Qty],
+                        Ui.TableCell.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                             "$" + it.UnitPrice.ToString("N2", CultureInfo.InvariantCulture)
                         ],
-                        Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
+                        Ui.TableCell.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                             "$" + it.LineTotal.ToString("N2", CultureInfo.InvariantCulture)
                         ]
                     ])
@@ -204,24 +201,15 @@ public sealed partial class MasterDetailDemo : Component
 
     // Shared sort-aware header: a link button that toggles the column's sort, with a chevron reflecting
     // its current direction. Used by both the outer and the inner grid.
+    // The table draws the sort button and its chevron; the page keeps which column is sorted and which way.
     private static Component SortHeader(string columnId, string header, (string Col, bool Asc) sort,
-        Action<string> toggle)
-    {
-        var sorted = string.Equals(sort.Col, columnId, StringComparison.Ordinal);
-        var icon = (sorted, sort.Asc) switch
-        {
-            (false, _) => Ui.IconName.ArrowsUpDown,
-            (true, true) => Ui.IconName.ChevronUp,
-            (true, false) => Ui.IconName.ChevronDown,
-        };
-
-        return Th.Scope(ThScope.Col).Key(columnId)[
-            Ui.Button
-                .Variant(Ui.Variant.Link)
-                .Class("p-0 no-underline text-ui-ink font-semibold" + (sorted ? "" : " [&_svg]:opacity-50"))
-                .OnClick(() => toggle(columnId))[Ui.Icon.Name(icon), header]
-        ];
-    }
+        Action<string> toggle) =>
+        Ui.TableColumn
+            .Key(columnId)
+            .Sortable()
+            .Sorted(string.Equals(sort.Col, columnId, StringComparison.Ordinal))
+            .Direction(sort.Asc ? Ui.TableColumnDirection.Asc : Ui.TableColumnDirection.Desc)
+            .OnSort(() => toggle(columnId))[header];
 
     // A TONE, not a class. The call site says what the status MEANS and Ui.Badge decides how a tone looks,
     // which is the whole point of the kit owning the vocabulary.

@@ -62,6 +62,8 @@ async function measure(page, shots) {
   const examples = [];
   for (const [index, wrapper] of wrappers.entries()) {
     const example = await wrapper.evaluate(collect, { STYLES, index });
+    const targets = stateTargets(example.nodes);
+    await page.evaluate(baseline, { STYLES, targets });
     await wrapper.scrollIntoViewIfNeeded();
     const name = `${String(index).padStart(2, '0')}-${example.section || 'intro'}`;
     await wrapper.screenshot({ path: join(shots, `${name}.png`) }).catch(() => {});
@@ -69,7 +71,7 @@ async function measure(page, shots) {
     // Forced pseudo-states rather than real pointer moves: a hover that opens a tooltip or a menu would
     // move the page under the next measurement, and :focus-visible cannot be reached by el.focus().
     example.states = [];
-    for (const target of example.interactive) {
+    for (const target of targets) {
       const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
       const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `[data-m="${target}"]` });
       if (!nodeId) continue;
@@ -83,7 +85,6 @@ async function measure(page, shots) {
       await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
     }
 
-    delete example.interactive;
     examples.push(example);
   }
 
@@ -107,7 +108,6 @@ function collect(wrapper, { STYLES, index }) {
   };
 
   const nodes = [];
-  const interactive = [];
   const elements = [wrapper, ...wrapper.querySelectorAll('*')].slice(0, 500);
   elements.forEach((el, i) => {
     const id = `${index}-${i}`;
@@ -126,20 +126,31 @@ function collect(wrapper, { STYLES, index }) {
     }
 
     nodes.push(node);
-    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux'));
-    if (interactive.length < 60 && (fluxed || el.matches('button, a, input, select, textarea, summary, label, [role], [tabindex]'))) {
-      interactive.push(id);
-    }
   });
 
-  // The baseline every forced state is compared against.
+  return { index, section, ordinal, size: [Math.round(origin.width), Math.round(origin.height)], nodes };
+}
+
+// The nodes of one example whose hover, active and focus-visible states are measured: every component
+// root and part (`data-flux-*` on Flux's page, `data-ui-*` on a Rask one) and every native control, in
+// document order, up to a limit that keeps a long example affordable. From the recorded nodes rather
+// than the live page, so parity.mjs can ask the same question of a measurement taken earlier.
+export function stateTargets(nodes) {
+  const controls = new Set(['button', 'a', 'input', 'select', 'textarea', 'summary', 'label']);
+  const marked = node => Object.keys(node.attrs).some(name => name.startsWith('data-flux') || name.startsWith('data-ui-'));
+  return nodes
+    .filter(node => marked(node) || controls.has(node.tag) || 'role' in node.attrs || 'tabindex' in node.attrs)
+    .slice(0, 60)
+    .map(node => node.id);
+}
+
+// Runs in the page. The resting styles every forced state is compared against.
+function baseline({ STYLES, targets }) {
   window.__fluxBase ??= {};
-  for (const id of interactive) {
+  for (const id of targets) {
     const el = document.querySelector(`[data-m="${id}"]`);
     window.__fluxBase[id] = Object.fromEntries(STYLES.map(k => [k, getComputedStyle(el)[k]]));
   }
-
-  return { index, section, ordinal, size: [Math.round(origin.width), Math.round(origin.height)], nodes, interactive };
 }
 
 // Runs in the page. What a forced state changed on a control, and on its descendants.

@@ -177,12 +177,12 @@ internal sealed partial class DevToolsRendersTab : Component
         for (var i = 0; i < shown; i++)
         {
             var stat = stats[i];
-            rows[i] = Tr.Key(stat.Id)[
-                Td[Name(stat.Type, stat.Key)],
-                Td.Class("tabular-nums")[Count(stat.Renders)],
-                Td[Reasons(stat.ReasonCounts)],
-                Td.Class("tabular-nums whitespace-nowrap")[Milliseconds(stat.Ticks)],
-                Td.Class("tabular-nums opacity-60")[stat.LastCommit.ToString(CultureInfo.InvariantCulture)]
+            rows[i] = Ui.TableRow.Key(stat.Id)[
+                Ui.TableCell[Name(stat.Type, stat.Key)],
+                Ui.TableCell.Class("tabular-nums")[Count(stat.Renders)],
+                Ui.TableCell[Reasons(stat.ReasonCounts)],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap")[Milliseconds(stat.Ticks)],
+                Ui.TableCell.Class("tabular-nums opacity-60")[stat.LastCommit.ToString(CultureInfo.InvariantCulture)]
             ];
         }
 
@@ -192,9 +192,9 @@ internal sealed partial class DevToolsRendersTab : Component
                     ? "Most renders first. Time is each component's own Render(), not its children's."
                     : $"The {Count(shown)} components with the most renders, of {Count(stats.Count)}."
             ],
-            Ui.Table.Scroll(true)[
-                Thead[Tr[Th["Component"], Th["Renders"], Th["Why"], Th["Time"], Th["Last commit"]]],
-                Tbody[rows]
+            Ui.Table[
+                Ui.TableColumns[Ui.TableColumn["Component"], Ui.TableColumn["Renders"], Ui.TableColumn["Why"], Ui.TableColumn["Time"], Ui.TableColumn["Last commit"]],
+                Ui.TableRows[rows]
             ]
         ];
     }
@@ -213,12 +213,12 @@ internal sealed partial class DevToolsRendersTab : Component
                 ticks += Math.Max(0, render.SelfTicks);
             }
 
-            rows[i] = Tr.Key(commit.Sequence)[
-                Td.Class("tabular-nums opacity-60")[commit.Sequence.ToString(CultureInfo.InvariantCulture)],
-                Td.Class("tabular-nums whitespace-nowrap")[$"{Count(commit.Renders.Length)} of {Count(commit.Walked)}"],
-                Td[Rendered(commit)],
-                Td.Class("tabular-nums whitespace-nowrap")[Milliseconds(ticks)],
-                Td.Class("tabular-nums whitespace-nowrap opacity-60")[
+            rows[i] = Ui.TableRow.Key(commit.Sequence)[
+                Ui.TableCell.Class("tabular-nums opacity-60")[commit.Sequence.ToString(CultureInfo.InvariantCulture)],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap")[$"{Count(commit.Renders.Length)} of {Count(commit.Walked)}"],
+                Ui.TableCell[Rendered(commit)],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap")[Milliseconds(ticks)],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap opacity-60")[
                     at > 0 ? Gap(commits[at - 1].Timestamp, commit.Timestamp) : ""
                 ]
             ];
@@ -230,9 +230,9 @@ internal sealed partial class DevToolsRendersTab : Component
                     ? "Newest first. Rendered counts the components that ran Render(), of all the render walked."
                     : $"The newest {Count(shown)} of {Count(commits.Length)} commits."
             ],
-            Ui.Table.Scroll(true)[
-                Thead[Tr[Th["#"], Th["Rendered"], Th["Components"], Th["Time"], Th["Gap"]]],
-                Tbody[rows]
+            Ui.Table[
+                Ui.TableColumns[Ui.TableColumn["#"], Ui.TableColumn["Rendered"], Ui.TableColumn["Components"], Ui.TableColumn["Time"], Ui.TableColumn["Gap"]],
+                Ui.TableRows[rows]
             ]
         ];
     }

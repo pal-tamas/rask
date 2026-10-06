@@ -17,7 +17,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, measurePage, root, STYLES } from './lib.mjs';
+import { chromium, measurePage, root, stateTargets, STYLES } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const flag = name => args.includes(`--${name}`);
@@ -108,8 +108,15 @@ function mark(node, prefix) {
 }
 
 function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
-  if (a.tag !== b.tag) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
-  if (a.text !== b.text && a !== rootA) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
+  // `data-parity-skip` on a Rask node: a plain-HTML stand-in for a Flux component Rask.Ui has not rebuilt
+  // yet (a badge in a table cell). Only the room it takes is compared — that is all the component under
+  // test can feel of it — and nothing beneath it. `data-parity-skip="self"` is a stand-in that HOLDS the
+  // component under test (the card around a table): its own look is skipped, its children are not.
+  const standIn = b.attrs['data-parity-skip'];
+  if (standIn === undefined) {
+    if (a.tag !== b.tag) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
+    if (a.text !== b.text && a !== rootA) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
+  }
 
   const size = (n, i) => Math.abs(a.box[i] - b.box[i]) > 0.6;
   if (size(a, 2) || size(a, 3)) diffs.push(`${where}: size ${a.box[2]}x${a.box[3]} vs ${b.box[2]}x${b.box[3]}`);
@@ -120,19 +127,8 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
     }
   }
 
-  compareStyles(a.style, b.style, where, diffs);
-  for (const pseudo of ['::before', '::after']) {
-    if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
-    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
-  }
-
-  for (const state of ['hover', 'active', 'focus-visible']) {
-    const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
-    const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};
-    for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) {
-      if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
-    }
-  }
+  if (standIn === undefined) compareLook(theirs, a, mine, b, where, diffs);
+  else if (standIn !== 'self') return;
 
   const kids = (example, n) => example.nodes.filter(c => c.parent === n.id);
   const ca = kids(theirs, a);
@@ -145,11 +141,43 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
   ca.forEach((child, i) => compareTree(theirs, child, mine, cb[i], rootA, rootB, `${where} > ${child.tag}[${i}]`, diffs));
 }
 
+// Everything about one node but its box: computed styles, pseudo-elements, and what each state changes.
+function compareLook(theirs, a, mine, b, where, diffs) {
+  compareStyles(a.style, b.style, where, diffs);
+  for (const pseudo of ['::before', '::after']) {
+    if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
+    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
+  }
+
+  // A long example is measured for its first controls only, and the two pages need not run out at the
+  // same node: a state is compared where both sides measured it.
+  if (!measured(theirs).has(a.id) || !measured(mine).has(b.id)) return;
+  for (const state of ['hover', 'active', 'focus-visible']) {
+    const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
+    const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};
+    for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) {
+      if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
+    }
+  }
+}
+
+function measured(example) {
+  return (example.measured ??= new Set(stateTargets(example.nodes)));
+}
+
 function compareStyles(x, y, where, diffs) {
   for (const key of STYLES) {
-    if (IGNORED.has(key) || same(x[key], y[key])) continue;
+    if (IGNORED.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }
+}
+
+// The colour of a border or an outline neither side draws is whatever each PAGE's reset left there —
+// Flux's docs default every border to gray-200, a bare preflight to the text colour — not the component's.
+function undrawn(key, x, y) {
+  const side = /^border(Top|Right|Bottom|Left)Color$/.exec(key)?.[1];
+  if (side) return x[`border${side}Width`] === '0px' && y[`border${side}Width`] === '0px';
+  return key === 'outlineColor' && x.outlineStyle === 'none' && y.outlineStyle === 'none';
 }
 
 // Colours and lengths print with float noise that differs between two pages computing the same value.

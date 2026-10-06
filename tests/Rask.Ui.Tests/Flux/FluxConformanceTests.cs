@@ -22,10 +22,21 @@ namespace Rask.UiTests.Flux;
 public sealed class FluxConformanceTests
 {
     /// <summary>Flux part → the Rask.Ui type that mirrors it. A component joins this when it is built.</summary>
-    private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
+    {
+        ["flux:table"] = typeof(UiTable),
+        ["flux:table.columns"] = typeof(UiTableColumns),
+        ["flux:table.column"] = typeof(UiTableColumn),
+        ["flux:table.rows"] = typeof(UiTableRows),
+        ["flux:table.row"] = typeof(UiTableRow),
+        ["flux:table.cell"] = typeof(UiTableCell),
+    };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
-    private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal)
+    {
+        ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
+    };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;
 

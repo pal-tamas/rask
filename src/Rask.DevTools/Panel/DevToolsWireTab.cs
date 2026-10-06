@@ -99,9 +99,9 @@ internal sealed partial class DevToolsWireTab : Component
                     ? $"{Count(events.Length)} frames, newest first."
                     : $"The newest {Count(shown)} of {Count(events.Length)} frames."
             ],
-            Ui.Table.Scroll(true)[
-                Thead[Tr[Th["#"], Th["Direction"], Th["Type"], Th["Size"], Th["Diff"], Th["Gap"]]],
-                Tbody[rows]
+            Ui.Table[
+                Ui.TableColumns[Ui.TableColumn["#"], Ui.TableColumn["Direction"], Ui.TableColumn["Type"], Ui.TableColumn["Size"], Ui.TableColumn["Diff"], Ui.TableColumn["Gap"]],
+                Ui.TableRows[rows]
             ]
         ];
     }
@@ -109,14 +109,14 @@ internal sealed partial class DevToolsWireTab : Component
     private void OnFeedChanged(object? sender, EventArgs e) => _gate?.Notify();
 
     private static Component Row(DevToolsWireEvent e, DevToolsWireEvent? previous) =>
-        Tr.Key(e.Sequence)[
-            Td.Class("tabular-nums opacity-60")[e.Sequence.ToString(CultureInfo.InvariantCulture)],
-            Td[e.Direction == DevToolsWireDirection.Out ? Ui.Badge.Tone(Ui.Tone.Info)["sent"] : Ui.Badge["received"]],
-            Td.Class("font-mono")[e.Kind],
-            Td.Class("tabular-nums whitespace-nowrap")[Size(e.Bytes)],
-            Td.Class("tabular-nums whitespace-nowrap")[e.DiffOps is { } ops ? Ops(ops) : ""],
+        Ui.TableRow.Key(e.Sequence)[
+            Ui.TableCell.Class("tabular-nums opacity-60")[e.Sequence.ToString(CultureInfo.InvariantCulture)],
+            Ui.TableCell[e.Direction == DevToolsWireDirection.Out ? Ui.Badge.Tone(Ui.Tone.Info)["sent"] : Ui.Badge["received"]],
+            Ui.TableCell.Class("font-mono")[e.Kind],
+            Ui.TableCell.Class("tabular-nums whitespace-nowrap")[Size(e.Bytes)],
+            Ui.TableCell.Class("tabular-nums whitespace-nowrap")[e.DiffOps is { } ops ? Ops(ops) : ""],
             // Time since the frame before it, which is what a round trip or a chatty handler looks like in a list.
-            Td.Class("tabular-nums whitespace-nowrap opacity-60")[previous is { } p ? Gap(p.Timestamp, e.Timestamp) : ""]
+            Ui.TableCell.Class("tabular-nums whitespace-nowrap opacity-60")[previous is { } p ? Gap(p.Timestamp, e.Timestamp) : ""]
         ];
 
     private static string Ops(int ops) => Count(ops) + (ops == 1 ? " op" : " ops");
