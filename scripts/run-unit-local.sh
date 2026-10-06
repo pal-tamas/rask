@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The format + unit/integration gate.
 #
-# CI runs this script as its "unit + format" job on every push (.github/workflows/gates.yml), and it
+# CI runs this script as its "format" and "unit" jobs (RASK_UNIT_PART) on every push (.github/workflows/gates.yml), and it
 # runs the same way by hand. No git hook runs it. Steps: build once, run the FULL formatter
 # (whitespace + style + analyzers), then run every test EXCEPT the browser E2E (that's its own gate —
 # see run-e2e-local.sh).
@@ -157,6 +157,26 @@ if [ "${RASK_TEST_SCOPE:-}" = "affected" ]; then
   fi
 fi
 
+# RASK_UNIT_PART cuts this gate in two so CI can run the halves on separate machines
+# (.github/workflows/gates.yml); a hand run leaves it unset and gets everything.
+#
+#   format   the gate script tests, the solution build and the formatter — no tests
+#   tests    the solution build and the tests — nothing else
+#
+# Both build: the formatter resolves types the build generates (the site's scoped-TypeScript types),
+# and without them it reports CS0246 for code that compiles. Two halves, not one per test project:
+# the formatter and the test run are the two long steps, so each half carries one. Cutting the tests finer made
+# every piece rebuild the shared projects, and left tests that read a build product of a project
+# they do not reference (rask.wasm.js) with nothing to read.
+unit_part="${RASK_UNIT_PART:-}"
+case "$unit_part" in
+  ""|format|tests) ;;
+  *)
+    echo "run-unit-local: RASK_UNIT_PART must be 'format' or 'tests', not '$unit_part'." >&2
+    exit 1
+    ;;
+esac
+
 rask_phase "scope"
 
 # Cheap and first: the gates' own shared logic. rask_build_failure_kind decides whether a red gate tells
@@ -175,6 +195,7 @@ gate_tests_failed=0
 # imports. An unscoped or FULL run executes every one. This was the costliest step a narrow commit
 # paid for: ~45 s, nearly all of it the prober's four builds, on changes that could not affect it.
 rask_gate_test_applies() {
+  [ "$unit_part" = "tests" ] && return 1   # the `format` part runs these
   [ -z "$scope_projects" ] && return 0
   inputs="$(sed -n 's/^# gate-inputs: //p' "$1" | head -1)"
   printf '%s\n' "$scope_changed" | grep -E "^(scripts/|\.githooks/)${inputs:+|$inputs}" >/dev/null
@@ -360,6 +381,10 @@ format_pid=""
 format_label=""
 
 rask_start_format() {
+  if [ "$unit_part" = "tests" ]; then
+    echo "==> Formatting check: not in the 'tests' part — the 'format' part runs it."
+    return 0
+  fi
   # `range` is `staged` for commits that already exist: the files are the ones RASK_SCOPE_RANGE
   # changed. Same soundness argument as above, over the same range the tests are scoped to.
   if [ "${RASK_FORMAT_SCOPE:-}" = "staged" ] || { [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; }; then
@@ -462,7 +487,10 @@ test_slots="$lane_slots"
 # `The_feature_switch_is_on_in_this_assembly` — guards that exist so those files cannot pass vacuously
 # with the switch off. They did their job on this experiment.
 
-if [ -n "$scope_projects" ]; then
+if [ "$unit_part" = "format" ]; then
+  echo "==> Tests: not in the 'format' part — the 'tests' part runs them."
+  unit_status=0
+elif [ -n "$scope_projects" ]; then
   # The affected TEST projects, handed to the same traversal shape as the build. VSTest is invoked
   # per project so each assembly keeps its own testhost and therefore its own runtimeconfig.json —
   # the MetadataUpdaterSupport point above applies here exactly as it does to the solution run, so

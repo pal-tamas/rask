@@ -136,7 +136,10 @@ trap 'rm -f "$build_log"; rask_lane_release' EXIT
 # static-file host. WASM apps load every assembly from the bundle, so the version identity never has
 # to resolve. If an out-of-process host fixture is ever reintroduced, this flag has to come back off.
 build_status=0
-dotnet publish src/Rask.Site -c Release -m:1 -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
+# One core by default, for the double build of Rask.Core.dll described above — on a shared developer
+# machine. CI sets RASK_BUILD_SLOTS to the runner's cores: pages.yml has published this same project
+# in parallel on every push, and a runner has nothing else competing for the output.
+dotnet publish src/Rask.Site -c Release -m:"${RASK_BUILD_SLOTS:-1}" -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
   | tee "$build_log" || build_status=$?
 
 if [ "$build_status" -eq 0 ]; then
