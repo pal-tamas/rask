@@ -136,7 +136,7 @@ public sealed partial class SystemPage(
                 .Caption(r.LastStartedAt is { } started
                     ? $"since {DashboardParts.Ago(started.UtcDateTime, now)}"
                     : "never started")
-                .Icon(Ui.IconName.Retry);
+                .Icon(Ui.IconName.ArrowPath);
 
             yield return Ui.Stat
                 .Key("restarts")
@@ -144,7 +144,7 @@ public sealed partial class SystemPage(
                 .Label("Restarts")
                 .Tone(r.RestartCount > 0 ? Ui.Tone.Warning : null)
                 .Caption(r.LastError ?? "no failures recorded")
-                .Icon(Ui.IconName.Warning);
+                .Icon(Ui.IconName.ExclamationTriangle);
         }
 
         // Restorability is its own fact: "the replicator is running" says nothing about whether what it
@@ -169,8 +169,8 @@ public sealed partial class SystemPage(
                     ? $"verified {DashboardParts.Ago(verified.UtcDateTime, now)}"
                     : v.LastError ?? "never verified")
                 .Icon(v.Level == BackupVerificationLevel.Broken
-                    ? Ui.IconName.ShieldWarning
-                    : Ui.IconName.ShieldOk);
+                    ? Ui.IconName.ShieldExclamation
+                    : Ui.IconName.ShieldCheck);
         }
     }
 

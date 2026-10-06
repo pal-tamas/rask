@@ -25,7 +25,7 @@ public sealed partial class DragDropSortableDemo : Component
             .OnDrop(ctx.Drop("list", index))
             .OnDragEnd(ctx.DragEnd)
             .Data("testid", $"fruit-{index}")[
-                Ui.Icon.Name(Ui.IconName.Grip).Class("text-ui-muted"),
+                Ui.Icon.Name(Ui.IconName.EllipsisVertical).Class("size-5 text-ui-muted"),
                 Span.Class("font-semibold")[fruit]
             ])];
 

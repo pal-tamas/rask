@@ -18,7 +18,7 @@ public sealed partial class DisposalAsyncDemo : Component
                 Ui.Button.Outline
                     .Id("dispose-async-unmount")
                     .Disabled(!_asyncMounted)
-                    .OnClick(UnmountAsync)[Ui.Icon.Name(Ui.IconName.Stop), "Unmount async probe"]
+                    .OnClick(UnmountAsync)[Ui.Icon.Name(Ui.IconName.StopCircle), "Unmount async probe"]
             ],
             _asyncMounted
                 ? DisposableAsyncProbe.InstanceId(_nextAsyncId).Log(AppendAsyncLog)
