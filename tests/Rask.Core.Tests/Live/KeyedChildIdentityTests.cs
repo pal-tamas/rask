@@ -63,6 +63,41 @@ public class KeyedChildIdentityTests
     }
 
     [Fact]
+    public void Re_rendering_an_unchanged_keyed_list_constructs_no_rows()
+    {
+        // The entry builds a row by position before its Key step can say which row it is, and sets that
+        // one aside when the key already has a row. It is set aside for the NEXT entry, not thrown away.
+        var list = new KeyedList();
+        list.Ids.AddRange([1, 2, 3]);
+        list.RenderAsLiveRoot();
+        list.RenderAsLiveRoot();
+        KeyedRow.Constructed = 0;
+
+        list.RenderAsLiveRoot();
+        list.RenderAsLiveRoot();
+
+        Assert.Equal(0, KeyedRow.Constructed);
+    }
+
+    [Fact]
+    public void A_key_that_is_new_after_several_renders_gets_a_row_that_never_mounted()
+    {
+        KeyedRow.MountCount = 0;
+        var list = new KeyedList();
+        list.Ids.AddRange([1, 2, 3]);
+        list.RenderAsLiveRoot();
+        list.RenderAsLiveRoot();
+        list.RenderAsLiveRoot();
+
+        list.Ids.Insert(0, 0);
+        list.Ids.Add(4);
+
+        // Items 0 and 4 mount for the first time, as instances #4 and #5 — neither inherits a number
+        // from a row that was set aside while the list was being re-rendered.
+        Assert.Equal(Rows((0, 4), (1, 1), (2, 2), (3, 3), (4, 5)), list.RenderAsLiveRoot());
+    }
+
+    [Fact]
     public void A_key_written_last_still_keeps_the_instance_and_its_steps()
     {
         // #1118: the steps written before Key land on the provisional instance; when the key claims the one
@@ -202,8 +237,11 @@ public sealed partial class SlottedRow : Component
 public sealed partial class KeyedRow : Component
 {
     internal static int MountCount;
+    internal static int Constructed;
 
     private int _instance;
+
+    public KeyedRow() => Constructed++;
 
     public required int Id { get; set; }
 

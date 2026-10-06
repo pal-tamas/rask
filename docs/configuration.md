@@ -517,13 +517,13 @@ Measured on the framework's own data-table page (Apple M4, .NET 10, Server GC, 2
 
 | Page | Page HTML | Unconnected | Connected | Sessions per GiB |
 | --- | ---: | ---: | ---: | ---: |
-| Empty shell | 292 B | 11 KB | 16 KB | ~66,000 |
-| 5-row table | 1 KB | 35 KB | 52 KB | ~20,300 |
-| 200-row grid | 29 KB | 1.01 MB | 1.39 MB | ~735 |
-| 1,000-row grid | 147 KB | 5.3 MB | 7.0 MB | ~146 |
+| Empty shell | 415 B | 12 KB | 24 KB | ~45,000 |
+| 5-row table | 1 KB | 25 KB | 46 KB | ~23,000 |
+| 200-row grid | 29 KB | 0.50 MB | 0.86 MB | ~1,250 |
+| 1,000-row grid | 147 KB | 2.8 MB | 4.2 MB | ~250 |
 
-**Page size, not user count, is what moves this** — the same host holds ~66,000 sessions of a trivial
-page or ~146 of a big grid, a ~450× swing. Sessions are cheap until the page isn't. A session retains
+**Page size, not user count, is what moves this** — the same host holds ~45,000 sessions of a trivial
+page or ~250 of a big grid, a ~180× swing. Sessions are cheap until the page isn't. A session retains
 roughly:
 
 - **two rendered-HTML buffers** — the current render plus the last-applied baseline, used for

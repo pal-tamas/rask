@@ -36,6 +36,15 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The daily upstream run can push what it regenerated when `main`'s workflows moved meanwhile (#1188).**
+  Its branch was cut from the commit the run started on, and a branch whose workflow files differ from
+  `main`'s is one the workflow's own token may not push. The regenerated commit is rebased onto `main`
+  first.
+- **Rask.Cqrs: an authorization attribute the build cannot read is an error, not a handler left open
+  (#1187).** A handler's `[Authorize]` is read by name at compile time, so an attribute deriving from
+  `AuthorizeAttribute` (`[AdminOnly]`), one implementing `IAuthorizeData`, or any of them on the `Handle`
+  method was skipped without a word — over HTTP and in local dispatch. Each is now RASK101, on handlers
+  and on event and subscription records; write `[Authorize(...)]` on the handler class.
 - **The daily upstream run no longer reports every Flux UI look as changed.** The lock was measured on
   macOS and checked on Linux, where text measures differently, so 866 of 870 looks "moved" (#1189).
   The lock now records the platform it was measured on and belongs to the CI runner: `upstream.yml`
@@ -135,6 +144,67 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Re-rendering a keyed list no longer builds a throwaway component per row.** A keyed component is built
+  by position first and its `Key` step then swaps in the row that key already had; the one built by position
+  was discarded — an instance and its live state, about 300 B a row, on every update of the page:
+  ```csharp
+  Tbody[items.Select(item => Row.Item(item).Key(item.Id))]   // unchanged — each row cost ~300 B a render
+  ```
+  The instance set aside is now handed to the next row instead. A live update of a 20-row page allocates
+  8.7 KB → 2.7 KB (`LiveSessionSend.RenderAndSend`, −70%), and the saving grows with the list.
+  `Rask.Benchmarks -- allocation-profile [rows]` is the report that found it: it names the types an update
+  allocates, as shares of that benchmark's bytes.
+
+- **A live update no longer rebuilds its URL or its JSON writer.** Every update built the page's URL from the
+  route's path and query to see whether the resume record had moved, and created a `Utf8JsonWriter` for the
+  payload. The URL is rebuilt when the route changes and the writer is kept per thread: another 0.3 KB off
+  each update, 2.7 KB → 2.3 KB on the same 20-row page.
+
+- **The benchmark gates run in CI.** `scripts/run-benchmarks-local.sh` is a `benchmarks` job on every push
+  (`.github/workflows/gates.yml`), beside the unit and browser gates: both wire-byte baselines, the client
+  bundle size, the session smokes, and a new allocation budget — a live update of the 20-row page against
+  `Baselines/allocation-budget.csv`, +5%. All of it is exact byte counts; no time is gated, because a shared
+  runner's clock proves nothing. Nothing has to be run by hand.
+
+- **An event no longer matches the session's path against the route table twice.** Each match allocated per
+  route it tried, so the cost grew with the app — 6 KB of a 28 KB click with 22 routes. The session remembers
+  its last resolution (`SessionRouteMemo`); both authorization checks still run on every event, against the
+  current user. `EventDispatchBenchmarks` measures a click end to end: 28.00 KB → 21.75 KB on an open page,
+  31.64 KB → 25.32 KB behind `[Authorize]`.
+
+- **A chain step clears its pending bit in place.** `BuilderRuntime.Written` copied the whole entry slot back
+  into the list to change one mask. About 3.5% off a re-render of 50 chain-built rows (16.08 → 15.51 µs,
+  fastest-round median of six interleaved runs); allocation unchanged at 19.79 KB.
+
+- **A WASM app's service worker serves content-addressed files from its cache.** `rask-sw.js` went to the
+  network for every request, so a repeat visit downloaded the .NET runtime again. A fingerprinted file under
+  `_framework/` and a scoped-asset bundle (`/_rask/a/{hash}.css|js`) are now served cache-first; `index.html`,
+  `main.js` and anything unfingerprinted stay network-first, with the offline fallback as before. A
+  fingerprint with no digit in it is treated as unfingerprinted, to keep a name like `my.extensions.wasm` out.
+
+- **A first response is encoded once, from one copy of the page.** Stamping the session id onto `<body>`
+  built a second string the size of the page, and the encoder then rented three bytes per character for it.
+  Outside development the page now goes straight to UTF-8 with the id spliced in, into a buffer of the exact
+  size — one page-sized string fewer per request (~160 KB on an 80 KB page).
+
+- **The route guard reads a page's `[Authorize]` once.** It reflected over the page type's attributes on
+  every request and every event, building each attribute afresh. They are read once per type now (and again
+  after a hot reload). With the item above, a first GET allocates 68.5 KB → 63.0 KB on the benchmark page
+  (`allocation-profile page`).
+
+- **A Server app's client runtime is cached and compressed.** `/rask/rask.js` was re-encoded from a string on
+  every request and sent with no `Cache-Control`, no `ETag` and no compression — ~100 KB a visit. The page
+  now names it by content hash, and that URL is `immutable`, with an `ETag` and brotli/gzip built once:
+  ```html
+  <script src="/rask/rask.js"></script>                       <!-- was -->
+  <script src="/rask/rask.js?v=3f9c1a7be02d4c55"></script>    <!-- now -->
+  ```
+  The bare URL still answers, `no-cache`, and a request carrying the `ETag` gets a `304`.
+
+- **Docs: the session-footprint tables match the report again.** `docs/scaling.md`,
+  `docs/configuration.md` and `docs/observability.md` still quoted 1.39 MB for a connected 200-row session;
+  `session-footprint` measures 0.86 MB (~1,250 sessions per GiB). The benchmark baseline notes no longer
+  claim a pre-push hook runs the byte gates, and list all six payload scenarios.
 - **BREAKING: a handler's `[Authorize]` now holds for a request sent in-process, not only over HTTP.** A
   server page that sent an admin-only command ran it for any signed-in visitor, because the declaration
   was checked at the remote endpoint alone. A caller the handler does not admit now gets

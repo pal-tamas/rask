@@ -27,7 +27,7 @@ public sealed class RuntimeScriptInjectionTests
 
         var body = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        Assert.Contains("<script src=\"/rask/rask.js\"></script></body>", body);
+        Assert.Matches("<script src=\"/rask/rask\\.js\\?v=[0-9a-f]+\"></script></body>", body);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class RuntimeScriptInjectionTests
 
         var body = await (await host.Http.GetAsync("/appA/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        Assert.Contains("<script src=\"/appA/rask/rask.js\"></script></body>", body);
+        Assert.Matches("<script src=\"/appA/rask/rask\\.js\\?v=[0-9a-f]+\"></script></body>", body);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class RuntimeScriptInjectionTests
 
         var body = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        var marker = "src=\"/rask/rask.js\"";
+        var marker = "src=\"/rask/rask.js?v=";
         var first = body.IndexOf(marker, StringComparison.Ordinal);
         Assert.True(first >= 0);
         Assert.Equal(-1, body.IndexOf(marker, first + marker.Length, StringComparison.Ordinal));

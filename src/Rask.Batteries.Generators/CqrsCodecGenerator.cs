@@ -51,6 +51,24 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                      + "should say so with [LocalOnly], which exempts it entirely.",
         helpLinkUri: DiagnosticHelp.Link("RASK053"));
 
+    internal static readonly DiagnosticDescriptor Rask101 = new(
+        "RASK101",
+        "Authorization attribute is not read",
+        "'{0}' on '{1}' is ignored: {2}",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Error,
+        true,
+        description: "Who may send a message is read off its handler at compile time, by name: [Authorize] and "
+                     + "[AllowAnonymous] on the handler class or a base class, and on an event or subscription record. "
+                     + "An attribute that derives from AuthorizeAttribute or implements IAuthorizeData sets its roles "
+                     + "and policy in code no generator can run, and one on the Handle method is never looked at — "
+                     + "either would leave the handler open while reading as protected.",
+        helpLinkUri: DiagnosticHelp.Link("RASK101"));
+
+    internal const string NotReadable =
+        "authorization is read at compile time, and only [Authorize] and [AllowAnonymous] themselves can be seen — "
+        + "write [Authorize(...)] directly";
+
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -92,6 +110,11 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             if (spc.CancellationToken.IsCancellationRequested)
             {
                 return;
+            }
+
+            if (message.Kind is RemoteKind.Event or RemoteKind.Subscription)
+            {
+                ReportUnreadAuthorization(spc, message.Type, compilation);
             }
 
             var model = Describe(message.Type, message.Kind, message.ResultType, compilation);
@@ -146,6 +169,26 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             model.SubscribeAnonymously = subscribe.AllowAnonymous;
         }
     }
+
+    // RASK101 for a record: its handler, if it has one, is reported where it is declared (CqrsDispatchGenerator).
+    private static void ReportUnreadAuthorization(SourceProductionContext spc, INamedTypeSymbol record, Compilation compilation)
+    {
+        foreach (var (attribute, on) in UnreadAuthorization(record))
+        {
+            var written = attribute.ApplicationSyntaxReference?.GetSyntax(spc.CancellationToken).GetLocation();
+            spc.ReportDiagnostic(Diagnostic.Create(
+                Rask101,
+                InCompilation(written, compilation) ?? InCompilation(record.Locations.FirstOrDefault(), compilation),
+                attribute.AttributeClass!.Name,
+                on.Name,
+                NotReadable));
+        }
+    }
+
+    // A record from a referenced project is written in a tree this compilation does not hold, and a diagnostic
+    // may not point into one.
+    private static Location? InCompilation(Location? location, Compilation compilation) =>
+        location?.SourceTree is { } tree && compilation.ContainsSyntaxTree(tree) ? location : null;
 
     // A transport is what makes wire encoding meaningful. Without one, generating codecs would impose
     // the contract shape rules on an app that never sends anything anywhere.
@@ -295,8 +338,43 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         }
     }
 
+    // What Authorization() walks straight past: an attribute that is not [Authorize] itself but derives from it, or
+    // implements IAuthorizeData. Its roles are set in a constructor, which nothing here can run (RASK101). A
+    // derived [AllowAnonymous] is left alone — ignoring that one fails closed.
+    internal static IEnumerable<(AttributeData Attribute, INamedTypeSymbol On)> UnreadAuthorization(INamedTypeSymbol? type)
+    {
+        for (var current = type; current is not null; current = current.BaseType)
+        {
+            foreach (var attribute in current.GetAttributes().Where(static a => IsUnreadAuthorization(a.AttributeClass)))
+            {
+                yield return (attribute, current);
+            }
+        }
+    }
+
+    internal static bool IsReadAuthorization(INamedTypeSymbol? attribute) =>
+        attribute?.Name is "AuthorizeAttribute" or "AllowAnonymousAttribute";
+
+    internal static bool IsUnreadAuthorization(INamedTypeSymbol? attribute)
+    {
+        if (attribute is null || IsReadAuthorization(attribute))
+        {
+            return false;
+        }
+
+        for (var current = attribute.BaseType; current is not null; current = current.BaseType)
+        {
+            if (current.Name is "AuthorizeAttribute")
+            {
+                return true;
+            }
+        }
+
+        return attribute.AllInterfaces.Any(static i => i.Name is "IAuthorizeData");
+    }
+
     private static bool HasAuthorization(INamedTypeSymbol type) =>
-        DeclaredAndInherited(type).Any(a => a.AttributeClass?.Name is "AuthorizeAttribute" or "AllowAnonymousAttribute");
+        DeclaredAndInherited(type).Any(a => IsReadAuthorization(a.AttributeClass));
 
     // A policy or role name is whatever the author typed, so it is written as a literal rather than
     // between two quotes: a name holding a quote or a backslash would otherwise end the string early.

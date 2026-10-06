@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK100, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK101, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -126,6 +126,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK098](#rask098) | Warning | A web API member is missing from a browser `<RaskBrowserTargets>` names |
 | [RASK099](#rask099) | Warning | A `<RaskBrowserTargets>` entry is not `<browser> >= <version>` |
 | [RASK100](#rask100) | Error | `[BlazorParameter]` names a parameter the hosted component does not declare |
+| [RASK101](#rask101) | Error | An authorization attribute on a handler or event is not one Rask reads |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2573,6 +2574,37 @@ Not reported when the hosted component cannot be read at all — a `.razor` in t
 
 **Fix:** spell the name exactly as the component declares it (it is case-sensitive, and a library upgrade may
 have renamed it), or remove the attribute if the property is not meant to reach the component.
+
+## RASK101
+
+**Authorization attribute is not read** · Error
+
+Who may send a [`Rask.Cqrs`](cqrs.md#who-may-send-it) message is read off its handler at compile time:
+`[Authorize]` and `[AllowAnonymous]` on the handler class or a base class, and on an event or subscription
+record for who may subscribe. An attribute that derives from `AuthorizeAttribute`, or implements
+`IAuthorizeData`, sets its roles and policy in code the build cannot run, and an attribute on the `Handle`
+method is never looked at. Either would leave the handler open while reading as protected, so both are
+refused.
+
+```csharp
+public sealed class AdminOnlyAttribute : AuthorizeAttribute
+{
+    public AdminOnlyAttribute() => Roles = "admin";
+}
+
+[AdminOnly]                                          // ✗ RASK101 — derives from AuthorizeAttribute
+public sealed class PurgeLogsHandler : ICommandHandler<PurgeLogs>
+{
+    [Authorize(Roles = "admin")]                     // ✗ RASK101 — on Handle, not on the class
+    public Task Handle(PurgeLogs command) => /* … */;
+}
+
+[Authorize(Roles = "admin")]                         // ✅
+public sealed class PurgeLogsHandler : ICommandHandler<PurgeLogs> { /* … */ }
+```
+
+**Fix:** write `[Authorize(Roles = …, Policy = …)]` on the handler class itself. To share one rule between
+handlers, name a policy (`[Authorize(Policy = "admin")]`) or put the `[Authorize]` on a common base class.
 
 ## Island build diagnostics (RASKISLAND)
 

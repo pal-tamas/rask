@@ -142,6 +142,10 @@ what was wrong with a request they could not send. `[AllowAnonymous]` is never c
 a job, a durable handler, a hosted service — runs as the system and is not checked either; the check that
 matters there was made when the user's own request enqueued it.
 
+The attribute is read at compile time, so it has to be `[Authorize]` itself, on the handler class or a base
+class. One that derives from `AuthorizeAttribute`, or sits on the `Handle` method, is a build error
+([RASK101](diagnostics.md#rask101)) rather than a check that silently never runs.
+
 ## Pipeline behaviors (decorators)
 
 Behaviors are the extension point for cross-cutting concerns — logging, transactions, caching. You

@@ -38,7 +38,8 @@ ONLY the project you touched (`dotnet test tests/Rask.X.Tests`), never the solut
 (`gh run list --workflow ci --branch main`) is fixed forward, first; a job is reproduced with the script
 it names. Risky change → push to a `ci/**` branch first (`ci/release/**` adds the release-only gates:
 watch, deploy, storage providers, installer, providers — `release.yml` runs them all before it packs).
-**Benchmarks run ONLY when you ask** — `scripts/run-benchmarks-local.sh`, in no hook and no CI;
+**The benchmark gates run in CI** — `scripts/run-benchmarks-local.sh` is the `benchmarks` job: wire bytes,
+bundle size and the allocation budget, all exact counts; times are in no gate (a runner's clock proves nothing);
 the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by `pages.yml`, gated by
 `scripts/tests/install-script.test.sh` + `scripts/run-install-e2e-local.sh`, `docs/installation.md`);
 **user-facing change → update `src/Rask.Site` + docs/README/NUGET.md/llms.txt/docs/ai-agents.md**; keep
@@ -157,15 +158,15 @@ dotnet run --project src/Rask.Site
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–100, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–101, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **HTML elements are GENERATED from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`, refreshed daily by the local build): MDN type names
   (`HTMLAnchorElement`), entries named after tags (`A`), IDL attribute names (`ColSpan`). Missing/behaviour → `add-html-tag` skill.
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–100 are documented in `docs/diagnostics.md`
-  (RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK101). **Grep `src/`
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–101 are documented in `docs/diagnostics.md`
+  (RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK102). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space
   (`Rask.Generators`, `Rask.Batteries.Generators`, `Rask.Api.Generators`, and `Rask.Generators.Shared`'s
   source-linked `RegistryGeneratorBase`) and
