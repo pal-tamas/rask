@@ -1274,6 +1274,21 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An island that is a whole page can set its title.** The script that boots the island runtime was the
+  island's own `HeadAssets`, so overriding it replaced the script: the page rendered its host element
+  and nothing ever mounted. And an island's `HeadAssets` was never collected at all, because it renders
+  down the serializer's element branch. The script is now registered on its own and the island's
+  contribution follows it:
+  ```csharp
+  [Route("/reports/{id:int}")]
+  public sealed partial class Report : ReactComponent
+  {
+      [RouteParam] public int Id { get; set; }
+
+      protected override Component? HeadAssets => Title[$"Report {Id}"];   // was: no runtime, no title
+  }
+  ```
+
 - **WASM: an island pressed before the app has booted is no longer a click that did nothing.** A
   prerendered page mounts its islands from the served HTML, so they are interactive seconds before
   .NET exists, and a callback fired in that window was dropped with `send: dotnetExports not set` —

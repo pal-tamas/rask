@@ -79,7 +79,6 @@ const Rask.External.ExternalDefaults.NameAttribute = "name" -> string!
 const Rask.External.ExternalDefaults.PropsAttribute = "props" -> string!
 const Rask.External.ExternalDefaults.RuntimeAttribute = "runtime" -> string!
 const Rask.External.ExternalDefaults.RuntimeScriptUrl = "/_content/Rask.External/rask-external.js" -> string!
-override Rask.External.ExternalComponent.HeadAssets.get -> Rask.Core.Component?
 override sealed Rask.External.AngularComponent.Runtime.get -> string!
 override sealed Rask.External.ExternalComponent.OpaqueSubtree.get -> bool
 override sealed Rask.External.ExternalComponent.Render() -> Rask.Core.Component?
