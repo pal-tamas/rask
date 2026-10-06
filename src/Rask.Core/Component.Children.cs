@@ -264,7 +264,8 @@ public abstract partial class Component
         var type = provisional.GetType();
 
         // From now on this parent identifies the type by key rather than by position — see LiveState.KeyedTypes.
-        (Live.KeyedTypes ??= new HashSet<Type>()).Add(type);
+        var keyedTypes = Live.KeyedTypes ??= new Dictionary<Type, Component?>();
+        keyedTypes.TryAdd(type, null);
 
         var mapKey = (type, key);
         var chosen = provisional;
@@ -279,6 +280,14 @@ public abstract partial class Component
             // and the subtree it already wrote when Key comes after the indexer (#1118).
             chosen.Children = provisional.Children;
             chosen.RenderHandle ??= provisional.RenderHandle;
+
+            // Set aside for the next entry of this type. A spare is handed out as new, so only an instance
+            // that never ran may become one.
+            if (!provisional.HasInitializedInternal)
+            {
+                provisional.Children = null;
+                keyedTypes[type] = provisional;
+            }
         }
 
         (Live.KeyedChildren ??= new Dictionary<(Type, object), Component>())[mapKey] = chosen;
@@ -306,12 +315,21 @@ public abstract partial class Component
         // A type this parent identifies by Key is NOT identified by position (#685): recycling the
         // instance that happens to sit at this ordinal would hand a brand-new key whichever item used
         // to be here, state and all. Create, and let the Key step that follows claim the right one.
-        if (Live.KeyedTypes is not null && Live.KeyedTypes.Contains(typeof(T)))
+        if (Live.KeyedTypes is not null && Live.KeyedTypes.TryGetValue(typeof(T), out var spare))
         {
-            instance = factory(services!);
-            if (instance is Forms.IFormControl newControl)
+            if (spare is T unused)
             {
-                Forms.BindingConsumerRegistry.Record(newControl, this);
+                // Taken, not shared: if no Key step follows, this instance IS the child from here on.
+                Live.KeyedTypes[typeof(T)] = null;
+                instance = unused;
+            }
+            else
+            {
+                instance = factory(services!);
+                if (instance is Forms.IFormControl newControl)
+                {
+                    Forms.BindingConsumerRegistry.Record(newControl, this);
+                }
             }
         }
         else if (Live.PreviousChildren is not null && Live.PreviousChildren.TryGetValue(key, out var prev) &&

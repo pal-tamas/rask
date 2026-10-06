@@ -43,5 +43,12 @@ if (args.Length >= 1 && args[0] == "session-load")
     return SessionLoadReport.Run(args);
 }
 
+// `allocation-profile [rows]` names the types a live update allocates, as shares of the bytes
+// LiveSessionSendBenchmarks reports.
+if (args.Length >= 1 && args[0] == "allocation-profile")
+{
+    return AllocationProfileReport.Run(args);
+}
+
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 return 0;

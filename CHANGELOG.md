@@ -51,6 +51,17 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Re-rendering a keyed list no longer builds a throwaway component per row.** A keyed component is built
+  by position first and its `Key` step then swaps in the row that key already had; the one built by position
+  was discarded — an instance and its live state, about 300 B a row, on every update of the page:
+  ```csharp
+  Tbody[items.Select(item => Row.Item(item).Key(item.Id))]   // unchanged — each row cost ~300 B a render
+  ```
+  The instance set aside is now handed to the next row instead. A live update of a 20-row page allocates
+  8.7 KB → 2.7 KB (`LiveSessionSend.RenderAndSend`, −70%), and the saving grows with the list.
+  `Rask.Benchmarks -- allocation-profile [rows]` is the report that found it: it names the types an update
+  allocates, as shares of that benchmark's bytes.
+
 - **A Server app's client runtime is cached and compressed.** `/rask/rask.js` was re-encoded from a string on
   every request and sent with no `Cache-Control`, no `ETag` and no compression — ~100 KB a visit. The page
   now names it by content hash, and that URL is `immutable`, with an `ETag` and brotli/gzip built once:
