@@ -1,8 +1,10 @@
 // A whole page, written in React. ReactReport.cs carries the [Route]; nothing here knows that.
 //
-// `data-rask-nav` is the one Rask-specific thing in the file: it makes the link an in-app navigation,
-// so pressing it swaps the page without reloading the document.
+// `data-rask-nav` makes the link an in-app navigation, so pressing it swaps the page without reloading
+// the document. The button does the same from code, with the app's C# routes: `@rask/routes` is
+// generated from the [Route] pages, so a page that is renamed or gains a parameter stops this compiling.
 import type { ReactReportProps } from '@rask/ReactReport.props'
+import { Routes } from '@rask/routes'
 
 export default function ReactReport({ back }: ReactReportProps) {
   return (
@@ -17,6 +19,15 @@ export default function ReactReport({ back }: ReactReportProps) {
       <a href={back} data-rask-nav="" data-testid="react-report-back" className="underline">
         Back to the islands
       </a>
+
+      <button
+        type="button"
+        data-testid="react-report-routes"
+        className="underline ms-4"
+        onClick={() => Routes.RoutingAboutPage().Go()}
+      >
+        Go to a C# route
+      </button>
     </article>
   )
 }

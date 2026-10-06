@@ -219,4 +219,21 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
         await Expect(Page.GetByTestId("react-counter")).ToBeVisibleAsync();
         Assert.Equal("kept", await Page.EvaluateAsync<string>("() => window.raskProbe"));
     });
+
+    [Fact]
+    public Task Front_end_code_navigates_with_the_apps_typed_routes_without_a_reload() => RunAsync(async () =>
+    {
+        // The button calls Routes.RoutingAboutPage().Go() from `@rask/routes`, the module the build
+        // generates from the C# [Route] pages: no path is written in the .tsx, and the navigation takes
+        // the same road a nav link's does.
+        await Page.GotoAsync(Docs + "/islands/report");
+        await WaitForInteractiveAsync();
+        await Expect(Page.GetByTestId("react-report")).ToBeVisibleAsync();
+
+        await Page.EvaluateAsync("() => { window.raskProbe = 'kept'; }");
+        await Page.GetByTestId("react-report-routes").ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/routing-demo/about/?$"));
+        Assert.Equal("kept", await Page.EvaluateAsync<string>("() => window.raskProbe"));
+    });
 }

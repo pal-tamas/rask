@@ -37,7 +37,7 @@ import {
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
-import { handlerClick, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
+import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {
     createJSObjectReference,
     disposeJSObjectReferenceById,
@@ -618,16 +618,27 @@ setHost({send, inRoot});
 // like a DOM handler's.
 globalThis.__raskHost = globalThis.__raskHost || {};
 globalThis.__raskHost.send = send;
+globalThis.__raskHost.navigate = (href: string, replace?: boolean) => {
+    const url = inAppUrl(href);
+    if (url) navigate(url, replace === true);
+    else console.error(`[Rask] navigate: "${href}" is not a URL of this app, so nothing navigated.`);
+};
 
 document.addEventListener("click", (e) => {
     const url = navLinkClick(e);
-    if (!url) return;
-    // Stash the link's "#fragment" so applyNavScroll can scroll to the anchor once
-    // the new page commits (the fragment is not sent to the server).
+    if (url) navigate(url, false);
+});
+
+// One in-app navigation, whoever asked: a click on a nav link, or front-end code through the bridge.
+function navigate(url: URL, replace: boolean): void {
+    // Stash the "#fragment" so applyNavScroll can scroll to the anchor once the new page commits
+    // (the fragment is not sent to .NET).
     _pendingScrollHash = url.hash || "";
     flushInputsNow();
-    send({type: "navigate", path: stripBase(url.pathname), query: url.search});
-});
+    send(replace
+        ? {type: "navigate", path: stripBase(url.pathname), query: url.search, replace: true}
+        : {type: "navigate", path: stripBase(url.pathname), query: url.search});
+}
 
 window.addEventListener("popstate", () => {
     flushInputsNow();
