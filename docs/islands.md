@@ -154,8 +154,9 @@ rather than leaving an ERESOLVE tree that names four Babel packages and neither 
 both. New code should reach for
 `PreactComponent`, which imports Preact directly and needs no aliasing to be right.
 
-This is also why neither showcase carries a Preact island — both already carry a React one. It is
-covered without a browser instead; see [Preact, verified without a browser](#preact-verified-without-a-browser).
+This is also why the islands page on rask.sh carries no Preact island — it already carries a React
+one. Preact is covered without a browser instead; see
+[Preact, verified without a browser](#preact-verified-without-a-browser).
 
 ### What Angular needs
 
@@ -323,10 +324,12 @@ the build instead of being refreshed, so CI proves the committed files are true 
 | `RASKISLAND009` | warning | The compiler found a package island the build did not see before compiling, so its props were not read. Return `Module` as a constant from the class's own body. |
 | `RASKISLAND010` | warning | The snapshot was taken from a different package version than `package-lock.json` pins. |
 
-Props are read from packages of **all seven runtimes**.
+Props are read from packages of **all seven runtimes**. Each runtime's declarations are read where
+they put the props:
 
-Each runtime's declarations are read where they put the props:
-
+- **React, Preact, Solid** — the first parameter of the component's call signature (a plain function,
+  `memo`, `forwardRef`), or a class component's `props`. A `children` typed as rendered content is
+  skipped as a prop and makes the island take content.
 - **Vue** — the instance's `$props` for `defineComponent` and vue-tsc's `<script setup>` output, or the first
   parameter of a generic component or a functional one. Emits declared only as `$emit` overloads become handler
   props named the way Vue matches them — `onUpdate:modelValue` — which the generator turns into `OnUpdateModelValue`.
@@ -344,9 +347,12 @@ Each runtime's declarations are read where they put the props:
 - **Angular** — a standalone component's inputs and outputs, including those inherited from a base class, read from
   the declarations ng-packagr writes. An input travels under its public alias (`aria-label`), signal inputs, `model()`
   and transformed inputs included; an output becomes `On<Alias>` and the adapter subscribes to it. A directive, or a
-  component that is not standalone, is refused.
-  The build links Angular's partially compiled packages, so nothing is compiled in the browser. A Solid package island cannot yet share a project with React or Preact islands — Solid's Vite
-plugin would have to be confined to folders a package does not have — and the build refuses that by name.
+  component that is not standalone, is refused. The build links Angular's partially compiled packages,
+  so nothing is compiled in the browser.
+
+One combination is refused: a **Solid package island cannot yet share a project with React or Preact
+islands**. Solid's Vite plugin would have to be confined to folders a package does not have, and the
+build refuses that by name.
 
 ### How the TypeScript maps
 
@@ -444,6 +450,16 @@ unwired one omits its key entirely. And it returns **`void` even for an asynchro
 crosses as a handler reference and the client hands back a plain function that ships the payload, so
 there is no promise on that side to await.
 
+That null rule is one of three, and they differ on purpose:
+
+| | A nullable prop left `null` | Why |
+|---|---|---|
+| Hand-written island (`Chart.tsx` beside `Chart.cs`) | sent as JSON `null` | the generated type says `T \| null` and required — "never set" and "set to nothing" are different facts |
+| [Package island](#using-a-package-component-directly) | **left out** of the JSON | a `null` would override the package's own default |
+| [Blazor island](blazor-components.md#parameters-cross-as-c-not-json) | **parameter omitted** | `ParameterView` is authoritative, so a `null` would overwrite the component's own default |
+
+An unwired callback is left out in all three.
+
 `@rask/*` comes from a tsconfig fragment the build writes into `obj/`. Extend it once:
 
 ```jsonc
@@ -519,7 +535,6 @@ A callback prop becomes a function on the front end, and calling it re-enters C#
 
 ```csharp
 public Callback<int> OnPointClick { get; set; }
-public Callback<Range> OnZoom { get; set; }
 ```
 
 ```tsx
@@ -537,6 +552,10 @@ Chart.Series(_points).OnPointClick(async i => await Load(i))   // asynchronous �
 handler or an asynchronous one, so there is no `…Async` sibling to declare and no pair to get wrong.
 The wire is identical either way: the front end never learns whether the C# on the other side awaits,
 and should not.
+
+**The argument is a scalar**: a number, `bool`, `string`, `Guid`, `DateTime`, `DateTimeOffset` or an
+enum. A record or a list as a callback argument is [RASK057](diagnostics.md#rask057) at compile time —
+send an id and look the rest up in C#.
 
 A carrier rather than a bare `Action<T>?` because a delegate-typed property is *invocable* — C# would
 read `.OnPointClick(fn)` as invoking the property and never reach the chain step of the same name
@@ -588,6 +607,168 @@ Two consequences worth stating, because both are easy to assume the other way:
 > authentication is what `Rask.Server.Tests`'s dispatch suite pins — including that a handler is not
 > invoked at all once access is revoked mid-session. There is no island-specific auth path to test
 > separately, because there is no island-specific channel: that is the design, stated above.
+
+## A complete front-end file, per runtime
+
+The `.tsx` shape is shown above. These are the other four, exactly as `rask new --islands <runtime>`
+writes them, each against the same three props:
+
+```csharp
+public sealed partial class VueCounter : VueComponent   // or Svelte…, Angular…, Lit…
+{
+    public int Step { get; set; } = 1;
+    public required string Caption { get; set; }
+    public Callback<int> OnTotal { get; set; }
+}
+```
+
+**Vue** — `VueCounter.vue`. Props arrive through `defineProps`, typed by the generated interface:
+
+```vue
+<!-- An ordinary Vue single-file component. The props type is generated from VueCounter.cs. -->
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import type { VueCounterProps } from '@rask/VueCounter.props'
+
+const props = defineProps<VueCounterProps>()
+const total = ref(0)
+
+watch(total, value => props.onTotal?.(value))
+</script>
+
+<template>
+  <div class="island-counter" data-testid="vue-counter">
+    <div class="caption">{{ props.caption }}</div>
+    <button type="button" data-testid="vue-counter-add" @click="total += props.step">
+      add {{ props.step }}
+    </button>
+    <span class="total">
+      total <strong data-testid="vue-counter-total">{{ total }}</strong>
+    </span>
+  </div>
+</template>
+```
+
+**Svelte 5** — `SvelteCounter.svelte`, in runes mode:
+
+```svelte
+<!-- An ordinary Svelte 5 component, in runes mode. The props type is generated from SvelteCounter.cs. -->
+<script lang="ts">
+  import type { SvelteCounterProps } from '@rask/SvelteCounter.props'
+
+  const props: SvelteCounterProps = $props()
+  let total = $state(0)
+
+  $effect(() => {
+    props.onTotal?.(total)
+  })
+</script>
+
+<div class="island-counter" data-testid="svelte-counter">
+  <div class="caption">{props.caption}</div>
+  <button type="button" data-testid="svelte-counter-add" onclick={() => (total += props.step)}>
+    add {props.step}
+  </button>
+  <span class="total">
+    total <strong data-testid="svelte-counter-total">{total}</strong>
+  </span>
+</div>
+```
+
+**Angular** — `AngularCounter.ts`, a standalone component that is the module's default export. Every
+prop is an `@Input()` ([What Angular needs](#what-angular-needs)), a callback included:
+
+```ts
+// An ordinary standalone Angular component, compiled by @analogjs/vite-plugin-angular.
+import { Component, Input, signal } from '@angular/core'
+import type { AngularCounterProps } from '@rask/AngularCounter.props'
+
+@Component({
+  selector: 'angular-counter',
+  standalone: true,
+  template: `
+    <div class="island-counter" data-testid="angular-counter">
+      <div class="caption">{{ caption }}</div>
+      <button type="button" data-testid="angular-counter-add" (click)="add()">add {{ step }}</button>
+      <span class="total">
+        total <strong data-testid="angular-counter-total">{{ total() }}</strong>
+      </span>
+    </div>
+  `,
+})
+export default class AngularCounter implements AngularCounterProps {
+  @Input() step = 1
+  @Input() caption = ''
+  @Input() onTotal?: (total: number) => void
+
+  readonly total = signal(0)
+
+  add() {
+    this.total.update(t => t + this.step)
+    this.onTotal?.(this.total())
+  }
+}
+```
+
+**Lit** — `LitBadge.ts`. No decorators, and the module default-exports the tag it registered
+([why](#what-the-build-does)):
+
+```ts
+// An ordinary Lit element. Lit needs no bundler plugin — this is plain TypeScript — but it still
+// pairs with a .cs by filename, which is what tells Rask it is an island rather than scoped script.
+//
+// Written without decorators on purpose: lowering `@customElement` is the bundler's job, and an
+// element whose decorator was not lowered never upgrades — the island renders empty with nothing in
+// the console. `static properties` plus `customElements.define` is the same API with no transform.
+import { LitElement, css, html } from 'lit'
+import type { LitBadgeProps } from '@rask/LitBadge.props'
+
+class LitBadge extends LitElement implements LitBadgeProps {
+  static properties = {
+    step: { type: Number },
+    caption: { type: String },
+    onTotal: { attribute: false },
+    total: { state: true },
+  }
+
+  static styles = css`
+    :host { display: inline-flex; align-items: center; gap: 0.5rem; }
+  `
+
+  // `declare`, never an initializer: a class field would shadow the getter and setter Lit installs
+  // for each reactive property, and assigning it would stop re-rendering.
+  declare step: number
+  declare caption: string
+  declare onTotal?: (total: number) => void
+  private declare total: number
+
+  constructor() {
+    super()
+    this.step = 1
+    this.caption = ''
+    this.total = 0
+  }
+
+  private add() {
+    this.total += this.step
+    this.onTotal?.(this.total)
+  }
+
+  render() {
+    return html`
+      <span class="caption">${this.caption}</span>
+      <button type="button" data-testid="lit-badge-add" @click=${this.add}>add ${this.step}</button>
+      <strong data-testid="lit-badge-total">${this.total}</strong>
+    `
+  }
+}
+
+customElements.define('lit-badge', LitBadge)
+
+// A Lit-runtime module default-exports its registered tag name: a custom element registers its own
+// tag and nothing else about the file reveals it.
+export default 'lit-badge'
+```
 
 ## Hydration
 
@@ -787,7 +968,8 @@ rask new Shop --islands react                  # one
 rask new Shop --islands react angular blazor   # several, on a server, wasm or wasm-hosted app
 ```
 
-It refuses `--islands react preact` by name, because npm cannot install both plugins (below), and
+It refuses `--islands react preact` by name, because npm cannot install both plugins
+([above](#react-and-preact-cannot-share-a-project)), and
 gives each runtime its own folder so two that share an extension never overlap. `blazor` needs no npm
 at all: the Razor SDK compiles the `.razor` and Rask renders it into the first response.
 
@@ -795,15 +977,20 @@ By hand, if you are adding islands to a project you already have:
 
 ```bash
 npm init -y
-npm install -D vite @vitejs/plugin-react react react-dom          # React
-npm install -D vite @preact/preset-vite preact                    # Preact (not beside React)
-npm install -D vite vite-plugin-solid solid-js                    # Solid
-npm install -D vite @vitejs/plugin-vue vue vue-tsc                # Vue
-npm install -D vite @sveltejs/vite-plugin-svelte svelte svelte-check   # Svelte
-npm install -D vite lit                                           # Lit
-npm install -D vite @analogjs/vite-plugin-angular @angular/compiler-cli @angular/build \
+npm install -D vite typescript                                    # every runtime
+npm install -D @vitejs/plugin-react react react-dom @types/react @types/react-dom   # React
+npm install -D @preact/preset-vite preact                         # Preact (not beside React)
+npm install -D vite-plugin-solid solid-js                         # Solid
+npm install -D @vitejs/plugin-vue vue vue-tsc                     # Vue
+npm install -D @sveltejs/vite-plugin-svelte svelte svelte-check   # Svelte
+npm install -D lit                                                # Lit
+npm install -D @analogjs/vite-plugin-angular @angular/compiler-cli @angular/build \
     @angular/core @angular/common @angular/compiler @angular/platform-browser rxjs   # Angular
 ```
+
+These are the packages `rask new --islands` writes for each runtime. Then extend the generated
+tsconfig fragment ([above](#c-owns-the-props)) so `@rask/<Name>.props` resolves, and reference
+`Rask.External`.
 
 Install only what you use. A plugin is written into the generated Vite config **only** when an island
 of that runtime exists, so a Lit-only app is never asked for `@vitejs/plugin-react`, and a Vue-only
@@ -829,18 +1016,14 @@ The no-npm audience was also narrower than it first appeared. A real Lit compone
 qualified, which is a genuine case but a small one, and not worth a permanent second toolchain.
 
 Vite is also what made Vue and Svelte cheap when they landed: a single-file component is compiled by a
-*Vite plugin*, so each was an adapter rather than a compiler integration. Angular is the one still
-outstanding, and the one where that is not true.
+*Vite plugin*, so each was an adapter rather than a compiler integration. Angular arrived the same
+way, through `@analogjs/vite-plugin-angular` — and it is the one whose plugin asks for more than
+itself; see [What Angular needs](#what-angular-needs).
 
 **Plugin order is not cosmetic.** A Vue or Svelte plugin claims one extension it alone understands;
 the React plugin installs a *general* JSX transform. Rask registers the single-file compilers first,
 because the other order sends a `.vue` to the JSX parser and fails as `Unexpected JSX expression` at
 line 1 — naming neither Vue nor the plugin that should have handled it.
-
-| Property | Default | |
-|---|---|---|
-| `RaskExternalBuild` | `true` | `false` skips node entirely. They still render their host elements. |
-| `RaskExternalOutputDir` | `wwwroot/_rask/external` | Under `wwwroot` so the SDK publishes it with no publish target of its own. |
 
 The bundle is written after `wwwroot` has already been globbed, so the build registers it as a
 **static web asset** rather than relying on that glob. Without it `app.MapStaticAssets()` — which
@@ -850,6 +1033,10 @@ needed in `Program.cs`; in particular `app.UseStaticFiles()` is **not** required
 somehow produced no endpoint for the bundle fails the build with `RASKISLAND003` rather than
 shipping an app whose components silently never mount.
 
+| Property | Default | |
+|---|---|---|
+| `RaskExternalBuild` | `true` | `false` skips node entirely. They still render their host elements. |
+| `RaskExternalOutputDir` | `wwwroot/_rask/external` | Under `wwwroot` so the SDK publishes it with no publish target of its own. |
 | `RaskExternalPublicBase` | `/_rask/external/` | The URL prefix the manifest gives each chunk. |
 
 A `.ts` is picked up when a `.cs` of the same name sits beside it. Declare one explicitly only when it
@@ -920,21 +1107,37 @@ Two consequences worth knowing:
 `<RaskExternal Include="widgets/gauge.ts" Runtime="lit"/>` is still there for a file the convention
 cannot reach. The other runtimes have extensions of their own and were never ambiguous.
 
-### Both hosts, verified
+### What is verified, and by which test
 
-The same component, byte-identical `.tsx`, was built and driven in a browser on both hosts: it mounts,
-receives its C# props, and round-trips a typed callback back into C# — server state and React's own
-local state advancing together, which is what shows the adapter reconciles rather than remounts.
+Stated exactly, because "it works on both hosts" is a claim worth being able to check.
 
-On WASM the callback reaches C# through a `[JSExport]` call into this tab's runtime rather than over a
-socket; nothing in the front-end file knows which.
+**WebAssembly, in a browser** — `tests/Rask.Site.E2E.Tests/WasmIslandsExampleTests.cs` drives the
+islands page of the site (`src/Rask.Site`): Vue, React, Svelte, Solid and a Lit-runtime custom element
+mount and take their C# props; a Vue and a Lit callback re-enter C# through a `[JSExport]` call into
+this tab's runtime; a prop change reconciles rather than remounting, each component keeping its own
+state; and a package island (react-colorful) nested inside the React island calls back into C#.
+
+**Server, in a browser** — narrower. `tests/Rask.DevTools.E2E.Tests/ServerIslandJourneyTests.cs`
+mounts a Lit-runtime island on the Server host and reads the props C# passed, reports one that fails to
+mount, and clicks a [Blazor island](blazor-components.md)'s own `@onclick` through to its callback. No
+browser test drives a React, Vue, Svelte, Solid, Preact or Angular island, or a JS island's callback,
+on the Server host — what covers those there is the unit suites: the React, Preact, Solid, Vue and Lit
+adapters under Node (`tests/Rask.External.Tests`) and the handler channel they share with every DOM handler
+(`tests/Rask.Server.Tests`).
+
+**Neither host, in a browser** — Preact and Angular. The site carries no island of either. Preact is
+covered under Node, below; nothing in this repository mounts an Angular island — its rendering, build
+plan and prop extraction are unit-tested, its adapter in a browser is not.
+
+Both browser suites run in CI after a push to `main` (the browser E2E and devtools E2E jobs), not on
+a commit.
 
 ### Preact, verified without a browser
 
-Preact is the one runtime with no showcase island, and it cannot have one: both showcases carry a
-React island, and [React and Preact cannot share a project](#react-and-preact-cannot-share-a-project).
-That is a constraint on a bundled **app**, not on a test — a fixture installs Preact and nothing
-else — so it is covered instead by `PreactAdapterTests` in `tests/Rask.External.Tests`, a Node harness
+The site cannot carry a Preact island: it carries a React one, and
+[React and Preact cannot share a project](#react-and-preact-cannot-share-a-project).
+That is a constraint on a bundled **app**, not on a test — the conflict is between the two Vite
+plugins, and a test harness installs neither — so it is covered instead by `PreactAdapterTests` in `tests/Rask.External.Tests`, a Node harness
 that drives the shipped client runtime, the shipped adapter, real Preact and a real DOM (happy-dom):
 
 - it mounts into the island element and the component's own `useEffect` runs once;
@@ -993,5 +1196,7 @@ Two things worth knowing:
   ([RASK062](diagnostics.md#rask062)). Handing Rask-owned nodes to a framework that then owns them
   needs updates addressed by MARKER rather than by DOM path, since `EditOp` paths are positional
   `childNodes` indices — see [children](#children).
+- **A callback argument richer than a scalar** — a record or a list is
+  [RASK057](diagnostics.md#rask057); see [callbacks](#callbacks).
 - **Server-side rendering** for the bundler-backed runtimes, which is what would make `Hydration.None`
   broadly useful.

@@ -37,7 +37,7 @@ namespace Rask.Blazor;
 ///         Because the hosted type is a type argument, a component that already extends something
 ///         else cannot host one. That is deliberate and matches the islands feature: chrome in Rask
 ///         comes from the chain, not from inheritance, so the answer is to compose —
-///         <c>BsCard[ Chart.Series(points) ]</c> — rather than to inherit both.
+///         <c>Ui.Card[ Chart.Series(points) ]</c> — rather than to inherit both.
 ///     </para>
 /// </remarks>
 public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(HostedMembers)] TComponent> : Component
@@ -47,17 +47,17 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     ///     What the trimmer must keep on the hosted component, and why it is not optional.
     /// </summary>
     /// <remarks>
-    ///     Blazor assigns a hosted component's parameters through
-    ///     <c>ParameterView.SetParameterProperties</c>, which reflects over its public properties —
-    ///     inside <c>Microsoft.AspNetCore.Components</c>, on a type this package does not own. So under
-    ///     <c>PublishTrimmed</c>, which is a WASM app's default, the trimmer removes the very setters
-    ///     the renderer is about to call and the island renders EMPTY: no analyser warning (there is
-    ///     nothing in this assembly for it to point at), no exception, nothing in the console, and a
-    ///     green build. Annotating the type parameter states the requirement in the one place that
-    ///     knows the concrete type — the island's own declaration — so the trimmer keeps those
-    ///     properties in whatever assembly the component lives in.
-    /// </remarks>
-    /// <remarks>
+    ///     <para>
+    ///         Blazor assigns a hosted component's parameters through
+    ///         <c>ParameterView.SetParameterProperties</c>, which reflects over its public properties —
+    ///         inside <c>Microsoft.AspNetCore.Components</c>, on a type this package does not own. So
+    ///         under <c>PublishTrimmed</c>, which is a WASM app's default, the trimmer removes the very
+    ///         setters the renderer is about to call and the island renders EMPTY: no analyser warning
+    ///         (there is nothing in this assembly for it to point at), no exception, nothing in the
+    ///         console, and a green build. Annotating the type parameter states the requirement in the
+    ///         one place that knows the concrete type — the island's own declaration — so the trimmer
+    ///         keeps the component's members in whatever assembly it lives in.
+    ///     </para>
     ///     <para>
     ///         <c>All</c>, and not by preference. The hosted component is built through the renderer's
     ///         own <c>InstantiateComponent</c> — the only path that runs Blazor's <c>[Inject]</c>
@@ -293,22 +293,6 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         }
     }
 
-    /// <summary>
-    ///     Registers one of the hosted component's event handlers as an ordinary Rask handler.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         This is what makes a hosted component's own <c>@onclick</c> work with no Blazor
-    ///         circuit. Blazor assigns the handler an id during the static render; we hand that id a
-    ///         Rask handler id, the browser's existing delegated listener sends it over the socket
-    ///         that is already open, and it comes back here to be dispatched into Blazor. The same
-    ///         contract the React and Lit islands use, over the same channel.
-    ///     </para>
-    ///     <para>
-    ///         Returns null when there is no live session, so no attribute is written at all — an
-    ///         inert island is better than markup advertising a handler that cannot be delivered.
-    ///     </para>
-    /// </remarks>
     /// <summary>The stand-in a handler id occupies until BindHandlers mints the real one.</summary>
     /// <remarks>
     ///     Delimited by U+0001 because it is substituted into rendered HTML, where an undelimited

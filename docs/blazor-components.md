@@ -39,7 +39,7 @@ Read this table before anything else — it is the whole shape of the feature.
 | `ElementReference`, and anything that takes one | ❌ — captures are discarded |
 | Its own `@onkeydown`, `@onsubmit`, `@onmouseover` | ❌ — see [events](#events) |
 | `@bind` writing a value back | ✅ (see [binding](#binding)) |
-| WebAssembly, published **trimmed** | ✅ — see [both hosts](#both-hosts) |
+| WebAssembly, published **trimmed** | ✅ annotated for it, but not gated end to end — see [both hosts](#both-hosts) |
 
 ## A worked example
 
@@ -353,10 +353,10 @@ walk is not a Blazor render — the island is walked whenever anything on the pa
 every render" would fire far more often than a `.razor` author expects, for reasons that have nothing
 to do with the component. Use `OnParametersSet` to react to later prop changes.
 
-> **Do not call `StateHasChanged` from `OnAfterRenderAsync`.** This is Blazor's own documented trap —
-> the hook feeds the render that fires it — and hosted in an island it recurses through the renderer
-> rather than merely spinning, because this path is synchronous. Read what you need, assign it, and
-> let the single repaint Rask performs after the hook carry it to the page.
+Calling `StateHasChanged` from the hook is safe. The island holds back the repaint a hosted component
+asks for while its hook is running and publishes it once when the hook returns — and because the hook
+fires once, that repaint cannot feed it again. So the usual shape works: read what you need, assign
+it, call `StateHasChanged`.
 
 `IJSRuntime` only falls back to a runtime that **throws with a message naming the fix** when the app
 registered none of its own. Both hosts register a real one, so in practice you get that.
@@ -368,13 +368,13 @@ not need one works.
 
 ## Both hosts
 
-`Rask.Blazor` targets the server **and** browser faces of every shipped .NET version, and the two share one code path with no
+`Rask.Blazor` targets `net10.0` **and** `net10.0-browser`, and the two share one code path with no
 `#if`: a hosted component is rendered to markup in process, which browser-WebAssembly does as readily
 as a server. The only difference is where the renderer comes from — the ASP.NET shared framework on
 the server, the `Microsoft.AspNetCore.Components.Web` package in the browser.
 
-**Trimmed, which is the default a WASM app publishes with.** That took an annotation rather than a
-caveat, and the reason is worth stating: `[Parameter]` discovery reflects inside
+**Trimmed, which is the default a WASM app publishes with.** That took an annotation, and the reason
+is worth stating: `[Parameter]` discovery reflects inside
 `Microsoft.AspNetCore.Components`, on the hosted type — so the trimmer removes the very property
 setters `ParameterView` is about to call, and **nothing reports it**. The trim analyser has nothing to
 point at (the reflection is in someone else's assembly), the build stays green, no exception is
@@ -383,12 +383,13 @@ therefore annotates its type parameter:
 
 ```csharp
 public abstract partial class BlazorComponent<
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TComponent>
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TComponent>
 ```
 
 which moves the requirement to the one place that knows the concrete type — your island's own
-declaration — and the trimmer keeps those properties in whatever assembly the component lives in.
-Nothing to configure.
+declaration — and the trimmer keeps the hosted component's members in whatever assembly it lives in.
+`All` rather than only the public properties, because `[Inject]` reaches non-public properties too and
+Blazor's own activation path asks for exactly that. Nothing to configure.
 
 What that does **not** cover is a component library reaching for members by name beyond its
 parameters — reflection Rask cannot see and cannot annotate for. If a hosted component from a large
@@ -405,16 +406,29 @@ trimming off for the whole app.
 `.razor` from a Razor Class Library on a **Blazor island** page, published trimmed on every build, and
 a browser E2E checked the hosted component's *output* — its parameters, its own `@onclick`, its
 `@bind` — because an empty island is exactly what a "the element is there" check would pass on. Both
-projects were deleted with the rest of the samples, and RASK066 blocks a `.razor` in the same project
-as the app that hosts it, so the site cannot carry a replacement without a second project. If you host
-a Blazor component in a trimmed publish, verify it renders content yourself; a green build proves
-nothing here.
+projects were deleted with the rest of the samples. The site cannot carry a replacement without a
+second project: a `.razor` in the same project as its island is [RASK066](diagnostics.md#rask066), a
+warning, and this repository builds with warnings as errors. What remains is
+`TrimmingContractTests`, which pins that the annotation is still on the type parameter — not that a
+trimmed app renders. If you host a Blazor component in a trimmed publish, verify it renders content
+yourself; a green build proves nothing here.
 
 It is deliberately **not** among the batteries `Rask.Server` or `Rask.Wasm` bring. Everything there is
 referenced by every app on that host, and an app that wants nothing to do with Blazor should not
 carry its renderer.
 
 ## What is not here yet
+
+The Blazor features a hosted component may reach for, and where each stands:
+
+| Blazor feature | In an island | Why |
+|---|---|---|
+| A cascading value supplied from Rask | not addressed | Only `[Parameter]`s become chain steps, and nothing maps Rask's `Context.Provide` onto a `[CascadingParameter]`. |
+| `<PageTitle>`, `<HeadContent>` | not supported | They render into a `HeadOutlet`, and the page has none — the `<head>` is Rask's. Set the title from the Rask page. |
+| `<Virtualize>` | not supported | It drives its spacers from Blazor's own JavaScript through `ElementReference`, and neither is there. |
+| Element `@ref` / `ElementReference` | not supported | The frame writer discards the capture, so the reference never points at an element. |
+| `RenderFragment`, `ChildContent`, `RenderFragment<T>` | not supported | No chain step is generated, and children are [RASK062](diagnostics.md#rask062). |
+| A circuit, `@rendermode` | not supported | There is no circuit and no `blazor.web.js`; the island's renderer resolves no render mode. |
 
 - **`ElementReference`, and interop that needs one.** Element-reference captures are discarded by the
   frame writer, so a component that hands its own JavaScript a reference to bootstrap against — which
