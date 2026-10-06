@@ -305,7 +305,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
                         .Class("cursor-pointer opacity-70 hover:opacity-100")
                         .Aria("label", "Remove " + TextOf(value))
                         .OnClick(() => CommitAsync(acc, ctx, chosen, Without(chosen.Shown, value)))[
-                        Ui.Icon.Name(Ui.IconName.Close).Class("size-3")
+                        Ui.Icon.Name(Ui.IconName.XMark).Class("size-3")
                     ]
             ];
         }
@@ -318,7 +318,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
                 .Aria("label", "Clear all")
                 // Clears the answers this control drew, and only those.
                 .OnClick(() => CommitAsync(acc, ctx, chosen, []))[
-                Ui.Icon.Name(Ui.IconName.Close).Class("size-4")
+                Ui.Icon.Name(Ui.IconName.XMark).Class("size-4")
             ];
         }
     }

@@ -87,7 +87,7 @@ public sealed partial class UiKitLayoutDemo : Component
                     ],
                     Ui.NavList.Key("nav").AccessibleLabel("Demo")[
                         Ui.NavItem.Key("layout").Label("Layout").Href(PageMeta.LinkTo(Routes.UiKitLayoutPage()))
-                            .Icon(Ui.IconName.Book),
+                            .Icon(Ui.IconName.BookOpen),
                         Ui.NavItem.Key("actions").Label("Actions").Href(PageMeta.LinkTo(Routes.UiKitActionsPage()))
                             .Icon(Ui.IconName.Sparkles).Badge("5").BadgeTone(Ui.Tone.Primary),
                         Ui.NavGroup.Key("more").Title("More").Expandable()[
@@ -101,7 +101,7 @@ public sealed partial class UiKitLayoutDemo : Component
                     // scrolls between the header and this rather than pushing the account row off the bottom.
                     Ui.SidebarFooter.Key("foot")[
                         Ui.Profile.Key("me").Name("Ada Lovelace").Caption("ada@example.com")[
-                            Ui.MenuItem.Key("settings").Text("Settings").Icon(Ui.IconName.Gear),
+                            Ui.MenuItem.Key("settings").Text("Settings").Icon(Ui.IconName.Cog6Tooth),
                             Ui.MenuSeparator.Key("sep"),
                             Ui.MenuItem.Key("out").Text("Sign out").Error
                         ]

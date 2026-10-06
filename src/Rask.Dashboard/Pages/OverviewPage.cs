@@ -70,7 +70,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
 
         var worst = _queues.Where(q => q.Counts.Failed > 0).OrderByDescending(q => q.Counts.Failed).ToList();
         return Ui.Alert.Tone(Ui.Tone.Error)[
-            Ui.Icon.Name(Ui.IconName.Warning),
+            Ui.Icon.Name(Ui.IconName.ExclamationTriangle),
             Span[
                 $"{failed} dead letter{(failed == 1 ? "" : "s")} — ",
                 string.Join(", ", worst.Select(q => $"{q.Counts.Failed} in {q.Panel.Title.ToLowerInvariant()}")),
