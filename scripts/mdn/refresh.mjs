@@ -1,7 +1,8 @@
 // Builds src/Rask.Core/Dom/mdn.snapshot.json from MDN's own data: @webref/elements (which interface each
 // tag uses), @webref/idl (the WebIDL MDN's pages are written from) and @mdn/browser-compat-data (what
 // exists, what is deprecated, what ships), and the WAI-ARIA roles and aria-* attributes from the spec's own
-// source (aria.mjs). Run through refresh.sh, which installs the latest of each.
+// source (aria.mjs), and every CSS property with its value grammar from @webref/css (css.mjs). Run through
+// refresh.sh, which installs the latest of each.
 //
 // The snapshot is pure MDN data. Mapping it to C# (names, types, aliases) is the generator's job.
 
@@ -9,6 +10,7 @@ import { createRequire } from "node:module";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { readAria } from "./aria.mjs";
+import { readCss } from "./css.mjs";
 
 const require = createRequire(resolve(process.argv[2] ?? ".", "package.json"));
 const out = process.argv[3];
@@ -18,6 +20,7 @@ const webidl = require("webidl2");
 const idlPkg = require("@webref/idl");
 const elementsPkg = require("@webref/elements");
 const eventsPkg = require("@webref/events");
+const cssPkg = require("@webref/css");
 const bcd = require("@mdn/browser-compat-data");
 const parse5 = require("parse5");
 const version = name => JSON.parse(readFileSync(resolve(process.argv[2], "node_modules", name, "package.json"), "utf8")).version;
@@ -551,7 +554,7 @@ const aria = await readAria(parse5, ariaSha);
 
 const snapshot = {
   schema: 1,
-  sources: { ...Object.fromEntries(["@mdn/browser-compat-data", "@webref/elements", "@webref/events", "@webref/idl", "parse5", "webidl2"].map(p => [p, version(p)])), "webref/dfns": webrefSha,
+  sources: { ...Object.fromEntries(["@mdn/browser-compat-data", "@webref/css", "@webref/elements", "@webref/events", "@webref/idl", "parse5", "webidl2"].map(p => [p, version(p)])), "webref/dfns": webrefSha,
     "w3c/uievents-code": uieventsSha.code, "w3c/uievents-key": uieventsSha.key, "w3c/aria": ariaSha },
   engines: Object.keys(ENGINES),
   elements,
@@ -572,6 +575,8 @@ const snapshot = {
   keys,
   codes,
   aria,
+  // Every CSS property two engines ship, with the keywords and value types that are a whole value alone.
+  css: readCss(await cssPkg.listAll(), bcd, { ships, meta }),
 };
 writeFileSync(out, JSON.stringify(snapshot, null, 1) + "\n");
-console.log(`${elements.length} elements, ${events.length} events, ${Object.keys(interfaceOut).length} interfaces, ${keys.length} keys, ${codes.length} codes, ${aria.roles.length} ARIA roles → ${out}`);
+console.log(`${elements.length} elements, ${events.length} events, ${Object.keys(interfaceOut).length} interfaces, ${keys.length} keys, ${codes.length} codes, ${aria.roles.length} ARIA roles, ${snapshot.css.properties.length} CSS properties → ${out}`);

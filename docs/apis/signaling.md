@@ -36,7 +36,7 @@ The host must have WebSocket support in the pipeline: `Rask.Server`'s `MapRask()
 `app.UseWebSockets()` for you, but a static-file host serving a published WASM bundle does not — call it
 yourself before mapping. The relay says so explicitly rather than refusing clients with a bare 400.
 
-The relay's plain values — `Path`, `RequireAuthorization`, `MaxRooms`, `MaxPeersPerRoom` and the message
+The relay's plain values — `Path`, `RequireAuthorization`, `AllowedOrigins`, `MaxRooms`, `MaxPeersPerRoom` and the message
 limits — are `Rask:Signaling` in `appsettings.json`, and the callback runs after them. `AuthorizeRoom` is a
 delegate, so it can only be set in code.
 
@@ -44,6 +44,18 @@ Authentication is **required by default**. A signaling relay anyone can join is 
 people's browsers, so a public default would make that an accident rather than a decision. `AuthorizeRoom`
 is the per-room hook on top; its default lets any authenticated caller into any room, which is only right
 when every user of the app may talk to every other.
+
+**The socket opens for the host's own pages only.** A browser sends the visitor's cookie with a WebSocket
+upgrade from any site it treats as the same one, so the relay answers 403 to an upgrade whose `Origin` is
+another host — before `AuthorizeRoom` is ever asked about a room as the signed-in visitor. When the relay
+is mapped on a different host from the app, name the app:
+
+```json
+{ "Rask": { "Signaling": { "AllowedOrigins": [ "https://app.example.com" ] } } }
+```
+
+An origin is scheme and host, with a port when it is not the default and no path. A client that sends no
+`Origin` — anything that is not a browser — connects as before.
 
 ## Client: joining a room
 

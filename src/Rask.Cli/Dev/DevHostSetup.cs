@@ -111,6 +111,7 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
             Hostname = hostname,
             MintAuthority = mintAuthority,
             TrustAuthority = trustAuthority,
+            ReplacedAuthority = mintAuthority ? Thumbprint(authority) : null,
             IssueCertificate = issueCertificate,
             Hosts = hosts,
             PortSetup = await platform.RequiredPortSetupAsync(cancellationToken).ConfigureAwait(false),
@@ -197,8 +198,36 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
             return true;
         }
 
+        // The old root goes FIRST, by fingerprint. Its key was overwritten when the new authority was
+        // minted, so nothing is lost by removing it — and this run is the only one that still knows its
+        // fingerprint: were trusting the new one to fail, the next run would find a constrained authority
+        // on disk, replace nothing, and leave the unconstrained root trusted for good.
+        if (plan.ReplacedAuthority is { } replaced)
+        {
+            await platform.ForgetAsync(replaced, cancellationToken).ConfigureAwait(false);
+        }
+
         return await platform.TrustAsync(store.AuthorityCertificatePath, cancellationToken).ConfigureAwait(false)
                || Fallback("trust the local certificate authority");
+    }
+
+    // Null for a missing or unreadable authority: there is nothing in the trust store to name.
+    private static string? Thumbprint(DevCertificate? authority)
+    {
+        if (authority is not { } present)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var certificate = DevCertificates.Load(present);
+            return certificate.Thumbprint;
+        }
+        catch (CryptographicException)
+        {
+            return null;
+        }
     }
 
     private async Task<bool> WriteHostsAsync(DevHostPlatform platform, DevHostPlan plan, CancellationToken cancellationToken)

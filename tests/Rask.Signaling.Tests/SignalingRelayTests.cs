@@ -186,6 +186,31 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
+    public async Task A_page_on_another_origin_cannot_open_the_socket()
+    {
+        // #1175, Cross-Site WebSocket Hijacking: the browser sends the visitor's cookie with an upgrade
+        // from any site it considers the same, so that site's page would join a room as them.
+        using var host = Host();
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => ConnectAsync(host, "https://elsewhere.example"));
+
+        Assert.Contains("403", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("https://localhost")]
+    [InlineData("https://app.example.com")]
+    public async Task The_hosts_own_pages_and_a_listed_origin_can_open_the_socket(string origin)
+    {
+        using var host = Host(o => o.AllowedOrigins.Add("https://app.example.com"));
+
+        using var socket = await ConnectAsync(host, origin);
+
+        Assert.Equal(WebSocketState.Open, socket.State);
+    }
+
+    [Fact]
     public async Task A_host_without_UseWebSockets_says_which_call_is_missing()
     {
         // Without the middleware there is no upgrade feature, and IsWebSocketRequest is false for every
@@ -251,9 +276,14 @@ public class SignalingRelayTests : IDisposable
         return new SignalingTestHost(app, app.GetTestServer());
     }
 
-    private async Task<WebSocket> ConnectAsync(SignalingTestHost host)
+    private async Task<WebSocket> ConnectAsync(SignalingTestHost host, string? origin = null)
     {
         var client = host.Server.CreateWebSocketClient();
+        if (origin is not null)
+        {
+            client.ConfigureRequest = request => request.Headers.Origin = origin;
+        }
+
         var uri = new Uri(new Uri(host.Server.BaseAddress, "/rask/signaling").ToString().Replace("http://", "ws://"));
         return await client.ConnectAsync(uri, _cts.Token);
     }

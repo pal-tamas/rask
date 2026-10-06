@@ -218,7 +218,7 @@ server, and **closed unless opened**:
 | What is asked for | A remote subscriber |
 |---|---|
 | an `ISubscription<T>` record | may open it when its `IWatchPolicy<T>` says so; authenticated by default |
-| an event carrying `[Authorize]` / `[Authorize(Roles = "admin")]` itself | may watch the type when signed in / in the role |
+| an event carrying `[Authorize]` / `[Authorize(Roles = "admin")]` itself | may watch the type when signed in / in the role — every `[Authorize]` on the record has to pass |
 | an event carrying `[AllowAnonymous]` itself | may watch the type signed out |
 | an event that declares nothing | may not — `404`, the same as a name that does not exist |
 

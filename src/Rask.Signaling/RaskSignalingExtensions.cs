@@ -103,7 +103,25 @@ public static class RaskSignalingExtensions
         AtLeast(nameof(o.MaxRooms), o.MaxRooms, 1);
         AtLeast(nameof(o.MaxRoomIdLength), o.MaxRoomIdLength, 1);
         AtLeast(nameof(o.MaxMessagesPerSecond), o.MaxMessagesPerSecond, 0);
+
+        foreach (var origin in o.AllowedOrigins)
+        {
+            // An origin is scheme, host and port — what a browser puts in the header. A trailing path would
+            // never match one, so it is refused here rather than silently admitting nobody.
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                || !string.Equals(uri.GetLeftPart(UriPartial.Authority), origin, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"AllowedOrigins holds '{origin}', which is not an origin. Write scheme and host, "
+                    + "with a port if it is not the default and no path: https://app.example.com.");
+            }
+        }
     }
+
+    // A browser always names the page behind a WebSocket upgrade, and sends the visitor's cookie with it.
+    private static bool FromAnAllowedPage(HttpRequest request, SignalingOptions options) =>
+        SameOrigin.Allows(request)
+        || options.AllowedOrigins.Contains(request.Headers.Origin.ToString(), StringComparer.OrdinalIgnoreCase);
 
     private static void AtLeast(string setting, int value, int minimum)
     {
@@ -135,6 +153,15 @@ public static class RaskSignalingExtensions
         }
 
         var options = ctx.RequestServices.GetRequiredService<SignalingOptions>();
+
+        // Cross-Site WebSocket Hijacking: refused before the upgrade, so another site's page never holds
+        // a socket that AuthorizeRoom would then be asked about as the signed-in visitor.
+        if (!FromAnAllowedPage(ctx.Request, options))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
         var hub = ctx.RequestServices.GetRequiredService<SignalingHub>();
 
         using var socket = await ctx.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false);

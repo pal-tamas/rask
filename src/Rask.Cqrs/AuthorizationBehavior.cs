@@ -26,7 +26,7 @@ internal sealed class AuthorizationBehavior<TRequest, TResult>(IServiceProvider 
     private async Task<TResult> Checked(ClaimsPrincipal user, RequestAuthorization declared, RequestHandler<TResult> next)
     {
         var refusal = await RequestAccess
-            .Refusal(user, typeof(TRequest).Name, requiresAuthentication: true, declared.Roles, declared.Policy, services)
+            .Refusal(user, typeof(TRequest).Name, requiresAuthentication: true, declared.RoleSets, declared.Policies, services)
             .ConfigureAwait(false);
 
         return refusal is null ? await next().ConfigureAwait(false) : throw refusal;

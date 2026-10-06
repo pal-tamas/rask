@@ -43,6 +43,7 @@
     <Compile Include="..\Rask.Batteries.Shared\Counting.cs" Link="Shared\Counting.cs"/>
     <Compile Include="..\Rask.Batteries.Shared\CountingException.cs" Link="Shared\CountingException.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\ClientNetwork.cs" Link="Shared\ClientNetwork.cs"/>
   </ItemGroup>
 
   <ItemGroup>

@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\SameOrigin.cs" Link="Shared\SameOrigin.cs"/>
   </ItemGroup>
 
   <ItemGroup>

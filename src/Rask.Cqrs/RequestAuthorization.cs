@@ -3,17 +3,18 @@ using System.ComponentModel;
 namespace Rask.Cqrs;
 
 /// <summary>
-///     What a handler's <c>[Authorize]</c> asks of whoever sends its request. Emitted by the Rask.Cqrs source
-///     generator for every handler that carries one and is not <c>[AllowAnonymous]</c>; you do not construct one.
+///     What a handler's <c>[Authorize]</c> attributes ask of whoever sends its request. Emitted by the Rask.Cqrs
+///     source generator for every handler that carries one and is not <c>[AllowAnonymous]</c>; you do not
+///     construct one.
 /// </summary>
-/// <param name="roles">The roles named by <c>[Authorize(Roles = …)]</c>, comma-separated, or null.</param>
-/// <param name="policy">The policy named by <c>[Authorize(Policy = …)]</c>, or null.</param>
+/// <param name="roleSets">The roles of each <c>[Authorize(Roles = …)]</c>, one comma-separated set per attribute.</param>
+/// <param name="policies">The policy of each <c>[Authorize(Policy = …)]</c>.</param>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public sealed class RequestAuthorization(string? roles, string? policy)
+public sealed class RequestAuthorization(IReadOnlyList<string> roleSets, IReadOnlyList<string> policies)
 {
-    /// <summary>The roles the sender must hold one of, comma-separated, or null for any signed-in user.</summary>
-    public string? Roles { get; } = roles;
+    /// <summary>One comma-separated set per attribute: the sender needs a role from every set.</summary>
+    public IReadOnlyList<string> RoleSets { get; } = roleSets;
 
-    /// <summary>The policy the sender must meet, or null.</summary>
-    public string? Policy { get; } = policy;
+    /// <summary>Every policy the sender must meet.</summary>
+    public IReadOnlyList<string> Policies { get; } = policies;
 }

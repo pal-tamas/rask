@@ -4,7 +4,7 @@ namespace Rask.Cqrs.Tests;
 
 // The generator matches [Authorize] and [AllowAnonymous] by name, so Rask.Cqrs needs no reference to ASP.NET —
 // and neither does this project.
-[AttributeUsage(AttributeTargets.Class)]
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 public sealed class AuthorizeAttribute : Attribute
 {
     public string? Roles { get; set; }
@@ -23,6 +23,19 @@ public sealed class DeleteEverythingHandler(Recorder recorder) : ICommandHandler
     public Task Handle(DeleteEverything command)
     {
         recorder.Add("deleted");
+        return Task.CompletedTask;
+    }
+}
+
+public sealed record CloseBooks : ICommand;
+
+[Authorize(Roles = "admin")]
+[Authorize(Roles = "finance")]
+public sealed class CloseBooksHandler(Recorder recorder) : ICommandHandler<CloseBooks>
+{
+    public Task Handle(CloseBooks command)
+    {
+        recorder.Add("closed");
         return Task.CompletedTask;
     }
 }

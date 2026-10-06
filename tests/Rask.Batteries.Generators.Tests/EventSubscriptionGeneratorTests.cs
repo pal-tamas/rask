@@ -128,7 +128,7 @@ public sealed class EventSubscriptionGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         var codecs = run.GeneratedSource("__RaskCqrsCodecs");
-        Assert.Contains("SubscribeDeclared = true,\n            SubscribeRoles = \"admin\",", codecs.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.Contains("SubscribeDeclared = true,\n            SubscribeRoleSets = [\"admin\"],", codecs.ReplaceLineEndings("\n"), StringComparison.Ordinal);
         Assert.Contains("SubscribeDeclared = true,\n            SubscribeAnonymously = true,", codecs.ReplaceLineEndings("\n"), StringComparison.Ordinal);
         Assert.Equal(2, Occurrences(codecs, "SubscribeDeclared = true"));
     }
@@ -150,12 +150,50 @@ public sealed class EventSubscriptionGeneratorTests
         Assert.DoesNotContain("SubscribeDeclared", codecs, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Every_Authorize_on_a_handler_and_on_a_record_reaches_the_manifest()
+    {
+        // #1178: one policy and one roles string were kept per type, so the last attribute won.
+        var run = CodecRun("Rask.Cqrs.Client", """
+            public sealed record Charge(Guid OrderId) : ICommand;
+            [Authorize(Policy = "members")]
+            [Authorize(Policy = "billing", Roles = "admin,owner")]
+            [Authorize(Roles = "finance")]
+            public sealed class ChargeHandler : ICommandHandler<Charge>
+            {
+                public Task Handle(Charge c) => Task.CompletedTask;
+            }
+            [Authorize(Policy = "members")]
+            [Authorize(Policy = "audit")]
+            public sealed record Charged(Guid OrderId) : IEvent;
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        var codecs = run.GeneratedSource("__RaskCqrsCodecs");
+        Assert.Contains("Policies = [\"members\", \"billing\"],", codecs, StringComparison.Ordinal);
+        Assert.Contains("RoleSets = [\"admin,owner\", \"finance\"],", codecs, StringComparison.Ordinal);
+        Assert.Contains("SubscribePolicies = [\"members\", \"audit\"],", codecs, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_policy_name_holding_a_quote_is_written_as_a_literal()
+    {
+        var run = CodecRun("Rask.Cqrs.Client", """
+            [Authorize(Policy = "say \"when\"")]
+            public sealed record Poured(Guid Id) : IEvent;
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            """SubscribePolicies = ["say \"when\""],""", run.GeneratedSource("__RaskCqrsCodecs"), StringComparison.Ordinal);
+    }
+
     // The attributes are matched by name, so the test declares its own rather than pulling in ASP.NET.
     private static GeneratorRun CodecRun(string transport, string source) =>
         GeneratorHarness.Run(
             Preamble + """
 
-                [AttributeUsage(AttributeTargets.Class)] public sealed class AuthorizeAttribute : Attribute { public string? Roles { get; set; } }
+                [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)] public sealed class AuthorizeAttribute : Attribute { public string? Policy { get; set; } public string? Roles { get; set; } }
                 [AttributeUsage(AttributeTargets.Class)] public sealed class AllowAnonymousAttribute : Attribute;
 
                 """ + source,

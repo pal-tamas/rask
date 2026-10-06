@@ -168,7 +168,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     {
         var declared = CqrsCodecGenerator.Authorization(handler);
         return declared.Authorize && !declared.AllowAnonymous
-            ? new AuthorizationModel(declared.Roles, declared.Policy)
+            ? new AuthorizationModel(new EquatableArray<string>(declared.RoleSets.ToArray()), new EquatableArray<string>(declared.Policies.ToArray()))
             : null;
     }
 
@@ -545,7 +545,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             {
                 sb.Append("            (typeof(").Append(request.RequestTypeFqn)
                     .Append("), new global::Rask.Cqrs.RequestAuthorization(")
-                    .Append(Literal(declared.Roles)).Append(", ").Append(Literal(declared.Policy)).AppendLine(")),");
+                    .Append(Literals(declared.RoleSets)).Append(", ").Append(Literals(declared.Policies)).AppendLine(")),");
             }
         }
 
@@ -553,8 +553,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         sb.AppendLine();
     }
 
-    private static string Literal(string? value) =>
-        value is null ? "null" : Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, quote: true);
+    private static string Literals(EquatableArray<string> values) =>
+        "new string[] { " + string.Join(", ", values.Select(static v => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(v, quote: true))) + " }";
 
     private static void AppendSubscriptions(StringBuilder sb, List<SubscriptionModel> subscriptions)
     {
@@ -697,7 +697,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         string? RegisterabilityRemedy,
         AuthorizationModel? Authorization) : IEquatable<HandlerModel>;
 
-    private sealed record AuthorizationModel(string? Roles, string? Policy);
+    private sealed record AuthorizationModel(EquatableArray<string> RoleSets, EquatableArray<string> Policies);
 
     private sealed record Candidate(
         EquatableArray<HandlerModel> Handlers,

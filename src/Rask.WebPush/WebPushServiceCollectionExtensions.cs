@@ -27,12 +27,7 @@ public static class WebPushServiceCollectionExtensions
             return services;
         }
 
-        // Typed client: IHttpClientFactory supplies the HttpClient; PushOptions + the optional
-        // ILogger resolve from DI.
-        // No redirects: a push service never sends one, and following one would let whoever owns a stored
-        // endpoint point this server's POST somewhere the subscription check never saw.
-        services.AddHttpClient<IWebPush, WebPushSender>()
-            .ConfigurePrimaryHttpMessageHandler(static () => new SocketsHttpHandler { AllowAutoRedirect = false });
+        AddSender(services);
         return services;
     }
 
@@ -57,9 +52,10 @@ public static class WebPushServiceCollectionExtensions
         if (services.AddRaskOptions<PushOptions>(
                 "Rask:Push", static (section, o) => section.Bind(o), configure, validate: null))
         {
-            services.AddHttpClient<IWebPush, WebPushSender>();
+            AddSender(services);
         }
 
+        services.TryAddSingleton<SubscribeThrottle>();
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<IPush, PushStore<TContext>>();
 
@@ -69,4 +65,13 @@ public static class WebPushServiceCollectionExtensions
         services.AddHostedService<PushModelCheck<TContext>>();
         return services;
     }
+
+    // Typed client: IHttpClientFactory supplies the HttpClient; PushOptions + the optional ILogger resolve
+    // from DI. ONE registration for the sender alone and for the battery — the battery's used to leave the
+    // handler at its defaults, so the path every scaffolded app takes still followed redirects.
+    private static void AddSender(IServiceCollection services) =>
+        services.AddHttpClient<IWebPush, WebPushSender>()
+            .ConfigureHttpClient(static (provider, http) =>
+                http.Timeout = provider.GetRequiredService<PushOptions>().SendTimeout)
+            .ConfigurePrimaryHttpMessageHandler(static () => PushConnection.Handler());
 }

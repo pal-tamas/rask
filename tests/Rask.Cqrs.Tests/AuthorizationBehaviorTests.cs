@@ -65,6 +65,27 @@ public sealed class AuthorizationBehaviorTests
     }
 
     [Fact]
+    public async Task Every_authorize_attribute_must_admit_the_user()
+    {
+        await using var sp = Build(SignedIn("admin"));
+
+        var refused = await Assert.ThrowsAsync<ForbiddenException>(() => Send(sp, new CloseBooks()));
+
+        Assert.Equal("CloseBooks requires the role finance, which the signed-in user does not hold.", refused.Message);
+        Assert.Empty(sp.GetRequiredService<Recorder>().Entries);
+    }
+
+    [Fact]
+    public async Task A_user_holding_a_role_from_every_attribute_is_admitted()
+    {
+        await using var sp = Build(SignedIn("admin", "finance"));
+
+        await Send(sp, new CloseBooks());
+
+        Assert.Equal(["closed"], sp.GetRequiredService<Recorder>().Entries);
+    }
+
+    [Fact]
     public async Task An_anonymous_visitor_is_refused_a_bare_authorize()
     {
         await using var sp = Build(Anonymous);

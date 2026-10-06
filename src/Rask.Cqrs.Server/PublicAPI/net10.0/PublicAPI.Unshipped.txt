@@ -9,6 +9,10 @@ Rask.Cqrs.Server.CqrsServerOptions.MaxRequestBytes.get -> long
 Rask.Cqrs.Server.CqrsServerOptions.MaxRequestBytes.set -> void
 Rask.Cqrs.Server.CqrsServerOptions.MaxUploadBytes.get -> long
 Rask.Cqrs.Server.CqrsServerOptions.MaxUploadBytes.set -> void
+Rask.Cqrs.Server.CqrsServerOptions.MaxOpenUploadBytes.get -> long
+Rask.Cqrs.Server.CqrsServerOptions.MaxOpenUploadBytes.set -> void
+Rask.Cqrs.Server.CqrsServerOptions.MaxOpenUploads.get -> int
+Rask.Cqrs.Server.CqrsServerOptions.MaxOpenUploads.set -> void
 Rask.Cqrs.Server.CqrsServerOptions.MaxUploadChunkBytes.get -> long
 Rask.Cqrs.Server.CqrsServerOptions.MaxUploadChunkBytes.set -> void
 Rask.Cqrs.Server.CqrsServerOptions.CqrsServerOptions() -> void

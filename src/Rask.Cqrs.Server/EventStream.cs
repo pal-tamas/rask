@@ -79,8 +79,8 @@ internal static class EventStream
                     contract.SubscribeAnonymously,
                     // A record that declared something other than [AllowAnonymous] declared [Authorize].
                     requiresAuthentication: contract.SubscribeDeclared,
-                    contract.SubscribeRoles,
-                    contract.SubscribePolicy)
+                    contract.SubscribeRoleSets,
+                    contract.SubscribePolicies)
                 .ConfigureAwait(false))
         {
             return;

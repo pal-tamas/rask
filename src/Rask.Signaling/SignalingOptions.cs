@@ -20,6 +20,15 @@ public sealed class SignalingOptions
     public bool RequireAuthorization { get; set; } = true;
 
     /// <summary>
+    ///     Other origins whose pages may open the socket: <c>https://app.example.com</c>. Empty by default,
+    ///     which admits the host's own pages and nothing else — a browser sends the visitor's cookie with a
+    ///     WebSocket upgrade from any site it considers the same, so an unchecked relay lets that site join
+    ///     a room as them. Name the app's origin here when the relay is mapped on a different host. A
+    ///     client that sends no <c>Origin</c> (anything that is not a browser) is not affected.
+    /// </summary>
+    public IList<string> AllowedOrigins { get; } = [];
+
+    /// <summary>
     ///     Decides whether this caller may join this room. Return <c>false</c> to refuse. Runs after
     ///     authentication, once per join, and is the hook for "is this user a member of this conversation" —
     ///     the question the framework cannot answer for you. The default allows any authenticated caller

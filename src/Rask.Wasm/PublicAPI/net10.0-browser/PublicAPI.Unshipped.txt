@@ -405,7 +405,7 @@ Rask.Web.Types.WEBGL_lose_context
 Rask.Web.Types.WEBGL_lose_context.LoseContext() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.WEBGL_lose_context.RestoreContext() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.WEBGL_multi_draw
-Rask.Wasm.Authentication.WasmAuthSignIn.WasmAuthSignIn(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! userProvider) -> void
+Rask.Wasm.Authentication.WasmAuthSignIn.WasmAuthSignIn(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! userProvider, Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Web.Types.AudioWorklet.Port.get -> Rask.Web.Types.MessagePort!
 Rask.Web.Types.EXT_disjoint_timer_query_webgl2
 Rask.Web.Types.GPUAdapterInfo.SubgroupMaxSize.get -> System.Threading.Tasks.ValueTask<int>

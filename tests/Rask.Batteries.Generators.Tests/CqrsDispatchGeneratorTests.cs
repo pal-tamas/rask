@@ -69,7 +69,7 @@ public sealed class CqrsDispatchGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         var source = run.GeneratedSource("__RaskCqrsRegistry");
-        Assert.Contains("(typeof(global::Demo.Wipe), new global::Rask.Cqrs.RequestAuthorization(\"admin\", null)),", source);
+        Assert.Contains("(typeof(global::Demo.Wipe), new global::Rask.Cqrs.RequestAuthorization(new string[] { \"admin\" }, new string[] {  })),", source);
         Assert.DoesNotContain("(typeof(global::Demo.Peek), new global::Rask.Cqrs.RequestAuthorization", source);
     }
 

@@ -193,6 +193,59 @@ public sealed class AccountRecoveryTests
     }
 
     [Fact]
+    public async Task Behind_the_confirmation_gate_a_taken_address_is_answered_exactly_as_a_new_one()
+    {
+        // #1180: "that address is taken" tells anybody which addresses have an account. With the gate on a new
+        // account is only asked to confirm, so a taken one can say the same — and its owner is told by mail.
+        await using var harness = await ClaimedAsync(o => o.RequireConfirmedEmail = true);
+        using var scope = harness.NewScope();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+
+        var fresh = await accounts.RegisterAsync(
+            "someone@example.com", Password, firstRunToken: null, client: null, cancellationToken: TestContext.Current.CancellationToken);
+        var taken = await accounts.RegisterAsync(
+            Owner, Password, firstRunToken: null, client: null, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(AuthError.EmailNotConfirmed, fresh.Result.Error);
+        Assert.Equal(fresh.Result.Error, taken.Result.Error);
+        Assert.Equal(fresh.Result.Message, taken.Result.Message);
+        Assert.Null(taken.Principal);
+        Assert.Equal("You already have an account", harness.Mail!.LastTo(Owner)?.Subject);
+        Assert.Contains("/login", harness.Mail.LastTo(Owner)!.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Behind_the_confirmation_gate_taken_and_new_addresses_are_throttled_alike()
+    {
+        // Counted differently, the throttle itself would be the oracle: a taken address would start answering
+        // "too many attempts" where a new one would not.
+        await using var harness = await ClaimedAsync(o =>
+        {
+            o.RequireConfirmedEmail = true;
+            o.SignInAttemptsPerMinute = 2;
+        });
+        using var scope = harness.NewScope();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        Task<AccountOutcome> Register(string email) => accounts.RegisterAsync(
+            email, Password, firstRunToken: null, client: "203.0.113.7", cancellationToken: TestContext.Current.CancellationToken);
+
+        await Register("new@example.com");
+        await Register("new@example.com");
+        var newAgain = await Register("new@example.com");
+        await Register(Owner);
+        await Register(Owner);
+        var takenAgain = await Register(Owner);
+        var someoneElse = await Register("colleague@example.com");
+
+        // Per address and client: asking about one address is stopped the same whether it has an account…
+        Assert.Equal(AuthError.TooManyAttempts, newAgain.Result.Error);
+        Assert.Equal(AuthError.TooManyAttempts, takenAgain.Result.Error);
+
+        // …and several people registering from behind one address are not.
+        Assert.Equal(AuthError.EmailNotConfirmed, someoneElse.Result.Error);
+    }
+
+    [Fact]
     public async Task A_wrong_password_on_an_unconfirmed_account_still_reads_as_a_wrong_password()
     {
         await using var harness = await ClaimedAsync(o => o.RequireConfirmedEmail = true);

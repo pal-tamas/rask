@@ -25,6 +25,12 @@ namespace Rask.Cqrs.Server;
 internal sealed class UploadSessionStore : IDisposable
 {
     private readonly ConcurrentDictionary<string, UploadSession> _sessions = new(StringComparer.Ordinal);
+
+    // What each caller holds open. One upload is bounded by MaxUploadBytes, but a caller looping over
+    // fresh upload ids is bounded only by this — so every open, close and written byte is counted here,
+    // under one lock, where the two limits can be read and moved together.
+    private readonly Dictionary<string, OwnerUsage> _owners = new(StringComparer.Ordinal);
+    private readonly Lock _quota = new();
     private readonly string _root;
     private readonly TimeProvider _time;
 
@@ -64,7 +70,7 @@ internal sealed class UploadSessionStore : IDisposable
 
         Prune(options);
 
-        var session = _sessions.GetOrAdd(Key(owner, uploadId), _ => new UploadSession(_time.GetUtcNow()));
+        var session = Open(owner, uploadId, options);
         var part = session.Part(fileIndex, _root);
 
         // Kept from the first chunk. A later chunk claiming a different name would be a sender changing
@@ -96,7 +102,86 @@ internal sealed class UploadSessionStore : IDisposable
         }
     }
 
-    private static async Task WriteAsync(
+    // The caller's session for this id, opened if it is new and the caller has room for another.
+    private UploadSession Open(string owner, string uploadId, CqrsServerOptions options)
+    {
+        var key = Key(owner, uploadId);
+
+        lock (_quota)
+        {
+            if (_sessions.TryGetValue(key, out var open))
+            {
+                return open;
+            }
+
+            if (!_owners.TryGetValue(owner, out var usage))
+            {
+                _owners[owner] = usage = new OwnerUsage(owner);
+            }
+
+            if (usage.Sessions >= options.MaxOpenUploads)
+            {
+                throw new BadRequestException(
+                    StatusCodes.Status429TooManyRequests, "Too many open uploads",
+                    $"A caller may have {options.MaxOpenUploads} uploads open at once. Send the message one "
+                    + "belongs to, or wait for an abandoned one to lapse.");
+            }
+
+            usage.Sessions++;
+            return _sessions[key] = new UploadSession(usage, _time.GetUtcNow());
+        }
+    }
+
+    // Counts bytes BEFORE they are written, so both caps bound what reaches the disk rather than
+    // reporting afterwards on something already there.
+    private void Reserve(UploadSession session, int bytes, CqrsServerOptions options)
+    {
+        lock (_quota)
+        {
+            if (session.Closed)
+            {
+                throw new BadRequestException(
+                    StatusCodes.Status400BadRequest, "Unknown upload", "The upload was already spent.");
+            }
+
+            if (session.Total + bytes > options.MaxUploadBytes)
+            {
+                throw new BadRequestException(
+                    StatusCodes.Status413PayloadTooLarge, "Upload too large",
+                    $"The upload exceeds the {options.MaxUploadBytes} byte limit.");
+            }
+
+            if (session.Owner.Bytes + bytes > options.MaxOpenUploadBytes)
+            {
+                throw new BadRequestException(
+                    StatusCodes.Status429TooManyRequests, "Too much uploaded and not sent",
+                    $"A caller's open uploads may hold {options.MaxOpenUploadBytes} bytes between them. Send "
+                    + "the message one belongs to, or wait for an abandoned one to lapse.");
+            }
+
+            session.Total += bytes;
+            session.Owner.Bytes += bytes;
+        }
+    }
+
+    // Gives a removed session's share back to its caller.
+    private void Close(UploadSession session)
+    {
+        lock (_quota)
+        {
+            var usage = session.Owner;
+            session.Closed = true;
+            usage.Sessions--;
+            usage.Bytes -= session.Total;
+
+            if (usage.Sessions == 0)
+            {
+                _owners.Remove(usage.Name);
+            }
+        }
+    }
+
+    private async Task WriteAsync(
         UploadSession session,
         UploadPart part,
         Stream body,
@@ -111,18 +196,10 @@ internal sealed class UploadSessionStore : IDisposable
             int read;
             while ((read = await body.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
             {
-                // Counted as it is written, so the cap bounds what reaches the disk rather than reporting
-                // afterwards on something already there.
-                if (session.Total + read > options.MaxUploadBytes)
-                {
-                    throw new BadRequestException(
-                        StatusCodes.Status413PayloadTooLarge, "Upload too large",
-                        $"The upload exceeds the {options.MaxUploadBytes} byte limit.");
-                }
+                Reserve(session, read, options);
 
                 await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
                 part.Length += read;
-                session.Total += read;
             }
         }
     }
@@ -141,6 +218,8 @@ internal sealed class UploadSessionStore : IDisposable
         {
             return null;
         }
+
+        Close(session);
 
         // Contiguous from zero, or the message's indices do not line up with what arrived. A gap would
         // hand a handler the wrong file, which is the failure this pairing exists to prevent.
@@ -175,6 +254,7 @@ internal sealed class UploadSessionStore : IDisposable
         {
             if (session.Touched < cutoff && _sessions.TryRemove(key, out var dropped))
             {
+                Close(dropped);
                 dropped.Delete();
             }
         }
@@ -210,13 +290,28 @@ internal sealed class UploadSessionStore : IDisposable
     /// <summary>A new, unguessable upload id.</summary>
     public static string NewId() => Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
 
-    private sealed class UploadSession(DateTimeOffset opened)
+    // Read and written under _quota only.
+    private sealed class OwnerUsage(string name)
+    {
+        public string Name { get; } = name;
+
+        public int Sessions { get; set; }
+
+        public long Bytes { get; set; }
+    }
+
+    private sealed class UploadSession(OwnerUsage owner, DateTimeOffset opened)
     {
         public ConcurrentDictionary<int, UploadPart> Parts { get; } = new();
 
+        public OwnerUsage Owner { get; } = owner;
+
         public DateTimeOffset Touched { get; set; } = opened;
 
+        // Total and Closed are read and written under _quota only: two parts of one upload write at once.
         public long Total { get; set; }
+
+        public bool Closed { get; set; }
 
         public UploadPart Part(int index, string root) =>
             Parts.GetOrAdd(index, i => new UploadPart(

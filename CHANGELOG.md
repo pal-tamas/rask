@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Inline style as typed CSS.** `Css` has a step for every CSS property browsers ship — 455, generated
+  from MDN's data (`@webref/css` for the grammars, browser-compat-data for what two engines ship) —
+  and `Style` takes one wherever it takes text: `Div.Style(Css.Position().Sticky.Top(0.Px))`. A
+  property's empty call offers its keywords (`Css.Display().Grid`), a typed value is taken as its type
+  (`Css.Height(40.Px)`, `Css.Opacity(0.5)`, `Css.TransitionDuration(150.Milliseconds)`), and any text
+  CSS allows still goes through (`Css.Width("calc(100% - 2rem)")`; `null` declares nothing). The unit
+  literals gain CSS lengths: `12.Px`, `1.5.Rem`, `2.Em`, `60.Ch`, `100.Vw`, `100.Vh`, `100.Dvw`,
+  `100.Dvh` and `50.Percent`. The daily upstream run keeps the property list on MDN's latest release.
+
 ### Changed
 
 - **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
@@ -1001,6 +1012,84 @@ them until tagged releases begin.
 
 ### Security
 
+- **The build tools Rask downloads are verified against digests recorded in Rask, not ones fetched beside
+  them.** The Tailwind CLI was checked against its release's own `sha256sums.txt`, and esbuild, tsgo and the
+  `typescript` package against the registry's own `integrity` field — which catches a corrupted download
+  and nothing else, since whoever can replace the file can replace the checksum next to it. The digests
+  for the pinned versions now ship in the task assemblies, and a download that does not match fails the
+  build; **a Tailwind mismatch used to fall back to npm silently**. An app that overrides a tool version
+  gets a build warning and today's upstream check, or pins it with `RaskTailwindSha256`,
+  `RaskTsgoIntegrity` or `RaskExternalTypeScriptIntegrity`.
+- **The `rask dev` certificate authority can only sign for `.test` and loopback names.** The root it installs
+  in the system trust store carried no name constraint, so the key under `~/.rask` could mint a certificate
+  every browser on the machine accepts for any site. It now carries a critical NameConstraints extension —
+  `.test`, `localhost`, `127.0.0.1`, `::1`. **An existing authority is replaced on the next `rask dev`**: one
+  more permission prompt, which says so, and the old root is then removed from the macOS keychain or the
+  Windows certificate store (on Linux the new one overwrites it).
+- **The open Web Push subscribe route is bounded, and a send cannot be aimed at the server's own network.**
+  `POST /_rask/push/subscribe` is anonymous and every new endpoint is a row in the app's database, with no
+  cap and no rate limit. `Rask:Push` gains `MaxAnonymousSubscribers` (10 000 signed-out rows, then 429) and
+  `RequireUser` (off; 401 to a signed-out subscribe when on), and one client may subscribe ten times a
+  minute. A stored endpoint's name is now checked where it resolves: a send to a loopback, private,
+  link-local or carrier-NAT address never connects. A broadcast sends eight at a time with a ten-second
+  `SendTimeout`, so endpoints that accept and never answer no longer hold it for 100 s each in a row.
+  **The battery's sender still followed redirects** — only the sender-alone registration had been given the
+  no-redirect handler, against what the docs said; both now share one. A stored key that is the right length
+  but no point on the curve is dropped when a send finds it, instead of failing the whole broadcast. Behind
+  an egress proxy the connection is to the proxy, so the address check does not apply there.
+- **Registering a taken address no longer reveals it once email confirmation is required.** Registration
+  answered `AuthError.DuplicateAccount` for an address that has an account, against the battery's own claim
+  that no answer tells a caller which addresses do. With `Rask:Auth:RequireConfirmedEmail` on, a taken
+  address now answers exactly as a new one ("confirm your email"), the owner is mailed "you already have an
+  account" (`AuthOptions.AlreadyRegisteredSubject`, `IAuthEmailBodies.AlreadyRegistered`), and attempts
+  are throttled per address and client, taken or not. With it off — the default, since a new account is signed in at once —
+  `DuplicateAccount` stays, and the docs and comments now say that it does. **A custom `IAuthEmailBodies`**
+  gains one method to implement.
+- **Every `[Authorize]` on a CQRS handler is enforced, not only the last.** The codec generator kept one
+  policy and one roles string per handler, so `[Authorize(Policy = "members")]` above
+  `[Authorize(Policy = "billing")]` was never checked — while a page with the same two attributes required
+  both. Each attribute is now carried and required, including one on a base class, and the same holds for
+  an event record's subscribe attributes. `RemoteContract.Policy`/`Roles`/`SubscribePolicy`/`SubscribeRoles`
+  become the lists `Policies`/`RoleSets`/`SubscribePolicies`/`SubscribeRoleSets`, which generated code
+  writes; rebuild is the whole migration. A policy or role name containing a quote no longer breaks the
+  generated source.
+- **A caller can no longer fill the disk with chunked uploads it never sends.** One CQRS upload was capped at
+  `MaxUploadBytes`, but nothing capped how many upload ids a caller had open, so a loop over fresh ids wrote
+  32 MB per id to the temp directory. `Rask:Cqrs:Server` gains `MaxOpenUploads` (4) and `MaxOpenUploadBytes`
+  (64 MB) per caller; past either the next chunk answers 429. With `RequireAuthenticatedUser` off, anonymous
+  callers are told apart by address instead of sharing one owner. **An app that raised `MaxUploadBytes`
+  above 64 MB** raises `MaxOpenUploadBytes` with it, or the host refuses to start. An upload's running total
+  is also counted under one lock now — two files of one upload arriving together could slip past the cap.
+- **The signaling relay refuses a WebSocket upgrade from another origin.** `MapRaskSignaling()` accepted the
+  upgrade without looking at `Origin`, and the endpoint is cookie-authenticated, so a page on a site the
+  browser still sends the cookie for could join a room as the signed-in visitor and read the peers' SDP and
+  ICE candidates. An upgrade whose `Origin` is not the host's own now answers 403; a client that sends no
+  `Origin` is unaffected. **A relay mapped on a different host from the app** lists the app in
+  `Rask:Signaling:AllowedOrigins`. The check is the live endpoint's, now shared through `Rask.Hosting.Shared`.
+- **The WASM service worker no longer keeps a signed-in visitor's responses after they sign out.** It stored
+  every successful same-origin GET, ignoring `Cache-Control`, so `/api/…` answers stayed in Cache Storage and
+  were replayed offline to whoever used the browser next. It now keeps the app shell only — navigations,
+  scripts, styles, fonts, images, `_framework/`, `_rask/`, `_content/` — never a response marked `no-store`
+  or `private`, and anything else only when the server marks it `Cache-Control: public`. `Auth.SignOut()`,
+  `SignOutEverywhere()` and `WasmAuthSignIn.SignOut` empty the cache. **An app that relied on `fetch`ed API
+  GETs being available offline** marks those responses `public`, or keeps the data in a local store.
+  `BrowserAuth` and `WasmAuthSignIn` take an `IJSRuntime`, which only matters to code constructing them by hand.
+- **An island is loaded from the page's own origin only.** `rask-external.js` fetched whatever URL an
+  element's `manifest` attribute named and imported the chunk it listed, so an app rendering sanitized user
+  HTML through a sanitizer that keeps unknown elements could be handed
+  `<rask-external manifest="https://elsewhere.example/m.json">`. A manifest or chunk on another origin is now
+  refused with a console error; the loopback island dev server is the one exception, and only while
+  `rask dev` has stamped it on the page. A `RaskExternalPublicBase` or `RaskExternalManifestUrl` naming
+  another origin fails the build — a CDN-hosted island bundle was never documented and is not supported.
+- **A freshly scaffolded Solid island passes `npm audit`.** `rask new --islands solid` wrote `solid-js`
+  `^1.9.15`, whose pinned `seroval` carries two critical advisories. An island fragment can now declare npm
+  `overrides`, which the CLI merges into the app's `package.json`, and Solid's takes `seroval` and
+  `seroval-plugins` to `^1.6.8`. An app scaffolded earlier adds the same two lines by hand.
+- **A hosted Blazor component's `<iframe src>` or `<embed src>` no longer accepts an inline image URL.** The
+  island writer chose the media exemption by attribute name, so `src` and `poster` let `data:image/svg+xml`
+  through on every element, where a frame renders it as a document. The exemption now follows the element,
+  as it does for Rask's own: `src` on `img`/`audio`/`video`/`source`/`track`/`input`, `poster` on `video`,
+  and `href` on an SVG `image`, which had been refused. `srcset` is written as Core writes it.
 - **A sign-in `returnUrl` no longer opens a page the new identity may not see.** The reconnect that follows a
   sign-in or sign-out rendered its destination without the route guard, so `/login?returnUrl=/admin/users`
   mounted an `[Authorize(Roles = "admin")]` page for anyone who could sign in. The guard now runs before the
@@ -1351,6 +1440,10 @@ them until tagged releases begin.
   inside the handler as on the page that saved the change, where before only a job carried it.
   **Upgrading adds a column to each table:** `rask db add AddOutboxUser && rask db add AddMailUser && rask db
   update`. Until then each processor logs exactly that line instead of a generic failure.
+- **The packaging gate passes in a fresh worktree.** `Every_file_a_project_packs_by_name_exists` called the
+  four gitignored JavaScript files `Rask.Wasm` and `Rask.External` bundle from TypeScript "produced by
+  nothing" until those projects had been built. It now reads each project's own esbuild `--outfile` and
+  reports such a file as not built yet, the way it already does for a task assembly.
 - **UI kit: status text is readable on every theme, and `Ui.Card.Size` does something.** `Ui.Text.Tone(…)`
   and the tones on `Ui.Stat`, `Ui.Metric`, `Ui.DetailRow`, `Ui.Code`, `Ui.MenuItem`, an alarming `Ui.Tab`
   count and an accented `Ui.Heading` wrote daisyUI's status colours as text, which fail WCAG AA on most
