@@ -922,6 +922,11 @@ them until tagged releases begin.
 
 ### Security
 
+- **A hosted Blazor component's `<iframe src>` or `<embed src>` no longer accepts an inline image URL.** The
+  island writer chose the media exemption by attribute name, so `src` and `poster` let `data:image/svg+xml`
+  through on every element, where a frame renders it as a document. The exemption now follows the element,
+  as it does for Rask's own: `src` on `img`/`audio`/`video`/`source`/`track`/`input`, `poster` on `video`,
+  and `href` on an SVG `image`, which had been refused. `srcset` is written as Core writes it.
 - **A sign-in `returnUrl` no longer opens a page the new identity may not see.** The reconnect that follows a
   sign-in or sign-out rendered its destination without the route guard, so `/login?returnUrl=/admin/users`
   mounted an `[Authorize(Roles = "admin")]` page for anyone who could sign in. The guard now runs before the
