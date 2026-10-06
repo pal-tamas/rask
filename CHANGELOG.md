@@ -961,13 +961,15 @@ them until tagged releases begin.
   link-local or carrier-NAT address never connects. A broadcast sends eight at a time with a ten-second
   `SendTimeout`, so endpoints that accept and never answer no longer hold it for 100 s each in a row.
   **The battery's sender still followed redirects** — only the sender-alone registration had been given the
-  no-redirect handler, against what the docs said; both now share one.
+  no-redirect handler, against what the docs said; both now share one. A stored key that is the right length
+  but no point on the curve is dropped when a send finds it, instead of failing the whole broadcast. Behind
+  an egress proxy the connection is to the proxy, so the address check does not apply there.
 - **Registering a taken address no longer reveals it once email confirmation is required.** Registration
   answered `AuthError.DuplicateAccount` for an address that has an account, against the battery's own claim
   that no answer tells a caller which addresses do. With `Rask:Auth:RequireConfirmedEmail` on, a taken
   address now answers exactly as a new one ("confirm your email"), the owner is mailed "you already have an
-  account" (`AuthOptions.AlreadyRegisteredSubject`, `IAuthEmailBodies.AlreadyRegistered`), and every
-  attempt counts against the throttle. With it off — the default, since a new account is signed in at once —
+  account" (`AuthOptions.AlreadyRegisteredSubject`, `IAuthEmailBodies.AlreadyRegistered`), and attempts
+  are throttled per address and client, taken or not. With it off — the default, since a new account is signed in at once —
   `DuplicateAccount` stays, and the docs and comments now say that it does. **A custom `IAuthEmailBodies`**
   gains one method to implement.
 - **Every `[Authorize]` on a CQRS handler is enforced, not only the last.** The codec generator kept one

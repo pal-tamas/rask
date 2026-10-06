@@ -72,7 +72,9 @@ URL of at most 2048 characters that names a public host — not an IP address, n
 sender never follows a redirect. A real push service is always all of those. The name is checked again
 when a send connects: one that resolves to a loopback, private, link-local or carrier-NAT address is
 refused there, so a stored endpoint cannot aim the server's own POST at its network or at a cloud
-metadata service.
+metadata service. Where the server reaches the internet through an egress proxy (`HTTPS_PROXY`), the
+connection is to the proxy and the proxy resolves the name, so that check cannot run — restrict
+destinations at the proxy.
 
 The same openness is why the route is bounded:
 

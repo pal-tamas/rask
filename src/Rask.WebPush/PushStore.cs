@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -175,8 +176,11 @@ internal sealed partial class PushStore<TContext>(
         {
             return await sender.Send(subscriber.Subscription, message, cancellationToken).ConfigureAwait(false);
         }
-        catch (ArgumentException ex)
+        catch (Exception ex) when (ex is ArgumentException or CryptographicException)
         {
+            // CryptographicException: a key of the right length that is not a point on the curve, which
+            // only shows when it is used. Left to escape, that one row — anyone can post one — would
+            // fail every broadcast, and never be removed.
             MalformedRemoved(logger, ex.Message);
             gone.Add(subscriber.Id);
             return null;

@@ -258,8 +258,15 @@ taken address has to answer differently: `AuthError.DuplicateAccount`, "an accou
 That is the friendlier form and the throttle slows a list being walked through it, but it does not stop one. With
 `Rask:Auth:RequireConfirmedEmail` on, a taken address answers exactly as a new one does — "confirm your email" —
 the owner gets a "you already have an account" mail (`AlreadyRegisteredSubject`, body from `IAuthEmailBodies`)
-with a link to sign in, and every registration attempt counts against the throttle, taken or not. Turn it on
+with a link to sign in, and registration attempts are throttled per address and client, taken or not. Turn it on
 where who has an account is itself sensitive; it needs a working mailer and `PublicOrigin`.
+
+That makes one request say nothing; it does not make an address unknowable. Somebody who registers an
+address and then signs in with the password they just chose is told "confirm your email" if the
+registration created the account and "wrong email or password" if it already existed. Each such probe
+costs a real account and a confirmation mail to the address, and is throttled per address — a list
+cannot be walked quietly — but an app for which even that is too much should not offer open
+registration at all.
 
 ## Passkeys
 

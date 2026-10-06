@@ -105,11 +105,9 @@ internal sealed partial class AccountService<TUser>(
         user.Register(normalized, hasher.Hash(password), now);
         apply?.Invoke(user);
 
-        // Behind the confirmation gate a taken address and a new one get the same answer, so they have to cost the same
-        // too: every attempt counts, or five "taken" answers in a row would throttle where five new accounts do not.
-        if (options.RequireConfirmedEmail)
+        if (options.RequireConfirmedEmail && !CountAgainstAddress(normalized, client))
         {
-            attempt.Fail();
+            return Fail(AuthError.TooManyAttempts);
         }
 
         if (!await InsertAsync(user, normalized, cancellationToken).ConfigureAwait(false))
@@ -120,6 +118,22 @@ internal sealed partial class AccountService<TUser>(
         await GrantRoleAsync(user, cancellationToken).ConfigureAwait(false);
 
         return await WelcomeAsync(user, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Behind the confirmation gate a taken address and a new one get the same answer, so they have to cost the same
+    // too — and a taken one mails its owner. Counted per ADDRESS and client, the way a reset is: a client that keeps
+    // asking about one address is stopped whether or not it has an account, while an office behind one address is
+    // not told to wait after its fifth new colleague. False once that client has asked about it too often.
+    private bool CountAgainstAddress(string normalized, string? client)
+    {
+        using var perAddress = throttle.Begin(AuthThrottle.Key(RegisterPurpose, normalized, client));
+        if (perAddress.IsThrottled)
+        {
+            return false;
+        }
+
+        perAddress.Fail();
+        return true;
     }
 
     // The address already has an account. Said plainly where a new account would have been signed in — the two cannot be

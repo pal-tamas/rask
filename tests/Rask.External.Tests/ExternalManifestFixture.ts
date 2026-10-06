@@ -133,7 +133,11 @@ const tables = {
 served.set("https://app.test/_content/Acme.Ui/_rask/external/assets/Gauge.js", served.get(tables[LIB_MANIFEST].Gauge));
 
 const fetched = [];
-globalThis.fetch = (url) => {
+globalThis.fetch = (address) => {
+    // The runtime fetches the absolute address it checked; a manifest on the page's own origin is named
+    // here by its path, the way the tables above and the C# assertions name it.
+    const own = new URL(address);
+    const url = own.origin === globalThis.location.origin ? own.pathname : address;
     fetched.push(url);
     const table = tables[url];
     if (!table) return Promise.resolve({ok: false, status: 404});

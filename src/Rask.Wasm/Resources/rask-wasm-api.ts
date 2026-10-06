@@ -9,8 +9,8 @@
 import { RASK_CACHE } from "./rask-offline-cache.js";
 
 // The offline cache, emptied when the visitor signs out (WasmAuthSignIn / BrowserAuth). Whatever the
-// worker kept was kept for the person who was signed in; the online navigation that follows refills
-// the shell. `caches` is absent outside a secure context, where there is no worker and nothing to drop.
+// worker kept was kept for the person who was signed in. It fills again on the next online page load —
+// sign-out itself navigates without one, so until then there is no offline shell (docs/pwa.md). `caches` is absent outside a secure context, where there is no worker and nothing to drop.
 window.__raskOffline = window.__raskOffline || {
     clear: (): Promise<boolean> =>
         typeof caches === "undefined" ? Promise.resolve(false) : caches.delete(RASK_CACHE).catch(() => false),

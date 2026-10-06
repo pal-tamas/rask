@@ -118,6 +118,23 @@ public sealed class PushAbuseTests
     }
 
     [Fact]
+    public async Task A_subscription_whose_key_is_not_on_the_curve_is_dropped_without_failing_the_broadcast()
+    {
+        // The key is the right length, so it is stored; that it is no point on the curve only shows when it
+        // is used. Anyone can post one, and left to escape it would fail every send and never be removed.
+        var sender = new RejectingSender("https://push.example/forged");
+        await using var harness = new PushHarness(sender: sender);
+        await harness.Push.Subscribe(PushHarness.Browser("phone"), TestContext.Current.CancellationToken);
+        await harness.Push.Subscribe(PushHarness.Browser("forged"), TestContext.Current.CancellationToken);
+
+        var delivered = await harness.Push.Deliver(
+            new WebPushMessage { Title = "hi" }, userId: null, TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, delivered);
+        Assert.Equal(1, harness.Rows());
+    }
+
+    [Fact]
     public async Task The_subscribe_endpoint_answers_401_to_a_visitor_when_the_app_requires_a_user()
     {
         await using var app = await HostAsync(o => o.RequireUser = true);
@@ -205,6 +222,16 @@ public sealed class PushAbuseTests
         }
 
         return Assert.IsType<SocketsHttpHandler>(handler);
+    }
+
+    // Fails one endpoint the way the encryptor does for a key that is no point on the curve.
+    private sealed class RejectingSender(string forged) : IWebPush
+    {
+        public Task<WebPushResult> Send(
+            PushSubscription subscription, WebPushMessage message, CancellationToken cancellationToken = default) =>
+            string.Equals(subscription.Endpoint, forged, StringComparison.Ordinal)
+                ? throw new System.Security.Cryptography.CryptographicException("The specified key is not valid.")
+                : Task.FromResult(new WebPushResult(WebPushStatus.Success, 201));
     }
 
     // Answers only once a second send has started, so it completes at all only when sends overlap.

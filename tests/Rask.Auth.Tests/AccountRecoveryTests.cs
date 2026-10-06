@@ -217,8 +217,8 @@ public sealed class AccountRecoveryTests
     [Fact]
     public async Task Behind_the_confirmation_gate_taken_and_new_addresses_are_throttled_alike()
     {
-        // Counted differently, the throttle itself would be the oracle: five "taken" answers would start
-        // answering "too many attempts" where five new accounts would not.
+        // Counted differently, the throttle itself would be the oracle: a taken address would start answering
+        // "too many attempts" where a new one would not.
         await using var harness = await ClaimedAsync(o =>
         {
             o.RequireConfirmedEmail = true;
@@ -229,11 +229,20 @@ public sealed class AccountRecoveryTests
         Task<AccountOutcome> Register(string email) => accounts.RegisterAsync(
             email, Password, firstRunToken: null, client: "203.0.113.7", cancellationToken: TestContext.Current.CancellationToken);
 
-        await Register("first@example.com");
-        await Register("second@example.com");
-        var third = await Register("third@example.com");
+        await Register("new@example.com");
+        await Register("new@example.com");
+        var newAgain = await Register("new@example.com");
+        await Register(Owner);
+        await Register(Owner);
+        var takenAgain = await Register(Owner);
+        var someoneElse = await Register("colleague@example.com");
 
-        Assert.Equal(AuthError.TooManyAttempts, third.Result.Error);
+        // Per address and client: asking about one address is stopped the same whether it has an account…
+        Assert.Equal(AuthError.TooManyAttempts, newAgain.Result.Error);
+        Assert.Equal(AuthError.TooManyAttempts, takenAgain.Result.Error);
+
+        // …and several people registering from behind one address are not.
+        Assert.Equal(AuthError.EmailNotConfirmed, someoneElse.Result.Error);
     }
 
     [Fact]

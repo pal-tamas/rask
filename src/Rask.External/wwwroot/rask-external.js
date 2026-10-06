@@ -110,9 +110,12 @@ function devOrigin() {
 function trusted(url, alsoFrom) {
     if (typeof location === "undefined") return null;
 
+    // Against the document's base, which is what fetch() itself resolves a relative URL against.
+    const base = (typeof document !== "undefined" && document.baseURI) || location.href;
+
     let resolved;
     try {
-        resolved = new URL(url, location.href);
+        resolved = new URL(url, base);
     } catch {
         return null;
     }
@@ -164,14 +167,16 @@ function resolver() {
 async function defaultResolve(name, _module, manifestUrl) {
     const url = manifestUrl || DEFAULT_MANIFEST_URL;
 
-    if (!trusted(url)) {
+    const address = trusted(url);
+    if (!address) {
         throw new Error(
             `Rask islands: refusing the manifest at ${url} for '${name}'. A manifest is loaded from ` +
             "the page's own origin only.");
     }
 
     if (!manifests.has(url)) {
-        manifests.set(url, fetch(url, {credentials: "same-origin"})
+        // The address that was checked, not the string it was made from: the two must be the same request.
+        manifests.set(url, fetch(address, {credentials: "same-origin"})
             .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`islands manifest: HTTP ${r.status}`)))));
     }
 

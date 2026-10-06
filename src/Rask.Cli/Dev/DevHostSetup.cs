@@ -198,18 +198,17 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
             return true;
         }
 
-        if (!await platform.TrustAsync(store.AuthorityCertificatePath, cancellationToken).ConfigureAwait(false))
-        {
-            return Fallback("trust the local certificate authority");
-        }
-
-        // Only once the new one is in: the old root goes by fingerprint, so the two never collide.
+        // The old root goes FIRST, by fingerprint. Its key was overwritten when the new authority was
+        // minted, so nothing is lost by removing it — and this run is the only one that still knows its
+        // fingerprint: were trusting the new one to fail, the next run would find a constrained authority
+        // on disk, replace nothing, and leave the unconstrained root trusted for good.
         if (plan.ReplacedAuthority is { } replaced)
         {
             await platform.ForgetAsync(replaced, cancellationToken).ConfigureAwait(false);
         }
 
-        return true;
+        return await platform.TrustAsync(store.AuthorityCertificatePath, cancellationToken).ConfigureAwait(false)
+               || Fallback("trust the local certificate authority");
     }
 
     // Null for a missing or unreadable authority: there is nothing in the trust store to name.

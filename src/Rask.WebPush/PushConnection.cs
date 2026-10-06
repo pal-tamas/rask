@@ -64,7 +64,14 @@ internal static class PushConnection
     {
         var host = context.DnsEndPoint.Host;
         var addresses = await Dns.GetHostAddressesAsync(host, cancellationToken).ConfigureAwait(false);
-        var reachable = Array.FindAll(addresses, IsPublic);
+
+        // Behind an egress proxy this connection is to the PROXY, which is expected to be on the private
+        // network and resolves the push service itself — so there is no address here to judge, and
+        // refusing would stop every send. Where traffic leaves through a proxy, the proxy is the place
+        // that says where it may go.
+        var direct = string.Equals(
+            host, context.InitialRequestMessage.RequestUri?.IdnHost, StringComparison.OrdinalIgnoreCase);
+        var reachable = direct ? Array.FindAll(addresses, IsPublic) : addresses;
 
         if (reachable.Length == 0)
         {

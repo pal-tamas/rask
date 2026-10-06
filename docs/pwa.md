@@ -182,7 +182,11 @@ worker decides, per response:
 So an authenticated API answer is not replayed offline to whoever opens the browser next, and data the
 app must read offline belongs in a local store ([browser SQLite](sqlite.md#sqlite-in-the-browser-wasm), IndexedDB) rather
 than in the HTTP cache. Signing out — `Auth.SignOut()`, or `IAuthSignIn.SignOut` — empties the cache
-as well; the navigation that follows refills the shell.
+as well. It fills again as the browser next loads the app while online; sign-out itself navigates
+without a reload, so **an app signed out of and then opened offline has no shell until it has been
+loaded online once more**. Two limits to know: the cache is emptied by the framework's own sign-out
+only — not by a cookie that expires or a logout the app wrote itself — and a navigation or an image
+is kept unless its response says `no-store` or `private`, so mark one that shows a person's own data.
 
 Bring your own worker (custom caching/routing) by registering a different URL there instead. Whichever
 worker the page registered is the one `await Navigator.ServiceWorker.Ready` answers, so push follows it.
