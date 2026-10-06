@@ -389,7 +389,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                    + "opacity-60 hover:opacity-100")
             .Aria("label", "Clear " + (Label ?? AccessibleLabel ?? "selection"))
             .OnClick(() => CommitAsync(acc, ctx, default!))[
-            Ui.Icon.Name(Ui.IconName.Close).Class("size-4")
+            Ui.Icon.Name(Ui.IconName.XMark).Class("size-4")
         ];
 
     // A listbox of buttons submits nothing. Without this a control inside a plain <form> would silently drop its

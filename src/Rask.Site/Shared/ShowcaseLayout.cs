@@ -146,7 +146,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
     private static IEnumerable<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> GuidesNav()
     {
-        yield return (Routes.GuidesIndexPage(), "All guides", Ui.IconName.Book, "Overview", null);
+        yield return (Routes.GuidesIndexPage(), "All guides", Ui.IconName.BookOpen, "Overview", null);
         foreach (var g in Features.GuideCatalog.All)
         {
             yield return (Routes.GuidePage(g.Slug), g.Title, g.Icon, g.Group, null);

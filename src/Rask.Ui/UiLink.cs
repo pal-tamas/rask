@@ -76,7 +76,7 @@ public sealed partial class UiLink : Component
         return anchor.Target("_blank").Rel("noopener noreferrer")[
             Children ?? [],
             // Ui.Icon is aria-hidden throughout, so the mark is decoration and the words below carry the meaning.
-            Ui.Icon.Name(Ui.IconName.ExternalLink).Class("size-3.5 shrink-0"),
+            Ui.Icon.Name(Ui.IconName.ArrowTopRightOnSquare).Class("size-3.5 shrink-0"),
             Span.Class("sr-only")[" (opens in a new tab)"]
         ];
     }

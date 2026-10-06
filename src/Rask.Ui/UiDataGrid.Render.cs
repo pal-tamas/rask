@@ -169,7 +169,7 @@ public sealed partial class UiDataGrid<T, TKey>
             .Size(Ui.Size.Xs)
             .Variant(on ? Ui.Variant.Soft : Ui.Variant.Ghost)
             .Disabled(Busy)
-            .OnClick(() => on ? UngroupAsync(token) : GroupByAsync(token))[Ui.Icon.Name(Ui.IconName.Stack)];
+            .OnClick(() => on ? UngroupAsync(token) : GroupByAsync(token))[Ui.Icon.Name(Ui.IconName.RectangleStack)];
     }
 
     private HTMLInputElement<bool> SelectAllBox(IReadOnlyList<T> pageRows)

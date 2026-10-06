@@ -98,7 +98,7 @@ public sealed partial class StoragePage(
     private Component? DiskNotice() =>
         _stats.ActiveProvider == StorageProvider.Disk || _stats.ByProvider.Any(p => p.Provider == StorageProvider.Disk)
             ? Ui.Alert.Tone(Ui.Tone.Warning)[
-                Ui.Icon.Name(Ui.IconName.Warning),
+                Ui.Icon.Name(Ui.IconName.ExclamationTriangle),
                 Span[
                     "Files on disk live on this host only. rask db backup archives them beside the database, but "
                     + "Litestream and snapshots copy the database alone. Use S3 or Azure for uploads you can't afford to lose."

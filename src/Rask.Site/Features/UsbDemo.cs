@@ -21,7 +21,7 @@ public sealed partial class UsbDemo : Component
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Ui.Button.Primary.Id("usb-request").OnClick(RequestDevice)[Ui.Icon.Name(Ui.IconName.Cube), "Pair device"],
+                    Ui.Button.Primary.Id("usb-request").OnClick(RequestDevice)[Ui.Icon.Name(Ui.IconName.CubeTransparent), "Pair device"],
                     Ui.Button.Primary.Outline
                         .Id("usb-open")
                         .Disabled(_device is null || _open)

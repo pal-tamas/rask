@@ -10,7 +10,7 @@ namespace Rask;
 /// rest announce politely as <c>status</c>. A role the call site sets wins.
 /// </para>
 /// <para>
-/// A <see cref="UiElement" />, so an alert is <c>Ui.Alert.Tone(Ui.Tone.Error)[Ui.Icon.Name(Ui.IconName.Warning),
+/// A <see cref="UiElement" />, so an alert is <c>Ui.Alert.Tone(Ui.Tone.Error)[Ui.Icon.Name(Ui.IconName.ExclamationTriangle),
 /// "Payment failed"]</c> — the icon, a <c>&lt;strong&gt;</c> lead-in, a <c>&lt;code&gt;</c> span or an
 /// exception message are all just children, which is what twenty-six of the showcase's thirty-five alerts
 /// needed and a string <c>Message</c> had nowhere to put.
