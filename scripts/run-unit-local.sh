@@ -157,22 +157,28 @@ if [ "${RASK_TEST_SCOPE:-}" = "affected" ]; then
   fi
 fi
 
-# RASK_UNIT_PART cuts this gate in two so CI can run the halves on separate machines
-# (.github/workflows/gates.yml); a hand run leaves it unset and gets everything.
+# RASK_UNIT_PART cuts this gate into pieces CI runs on separate machines (.github/workflows/gates.yml);
+# a hand run leaves it unset and gets everything.
 #
-#   format   the gate script tests, the solution build and the formatter — no tests
-#   tests    the solution build and the tests — nothing else
+#   build          the gate script tests and the warnings-as-errors build, analyzers on — nothing else
+#   tests          a build without analyzers, then the tests
+#   format-src     a build without analyzers, then the formatter over src/
+#   format-tests   a build without analyzers, then the formatter over tests/
 #
-# Both build: the formatter resolves types the build generates (the site's scoped-TypeScript types),
-# and without them it reports CS0246 for code that compiles. Two halves, not one per test project:
-# the formatter and the test run are the two long steps, so each half carries one. Cutting the tests finer made
-# every piece rebuild the shared projects, and left tests that read a build product of a project
-# they do not reference (rask.wasm.js) with nothing to read.
+# Every piece builds, because the tests need the assemblies and the formatter resolves types the build
+# generates (the site's scoped-TypeScript types; without them it reports CS0246 for code that
+# compiles). Only `build` pays for the analyzers. The formatter is the slowest single step and decides
+# per document, so its two halves cover exactly what the whole does. The TESTS are not cut finer:
+# that made every piece rebuild the shared projects and left tests that read a build product of a
+# project they do not reference (rask.wasm.js) with nothing to read.
 unit_part="${RASK_UNIT_PART:-}"
+format_include=""
 case "$unit_part" in
-  ""|format|tests) ;;
+  ""|build|tests) ;;
+  format-src) format_include="src/" ;;
+  format-tests) format_include="tests/" ;;
   *)
-    echo "run-unit-local: RASK_UNIT_PART must be 'format' or 'tests', not '$unit_part'." >&2
+    echo "run-unit-local: RASK_UNIT_PART must be build, tests, format-src or format-tests, not '$unit_part'." >&2
     exit 1
     ;;
 esac
@@ -195,7 +201,7 @@ gate_tests_failed=0
 # imports. An unscoped or FULL run executes every one. This was the costliest step a narrow commit
 # paid for: ~45 s, nearly all of it the prober's four builds, on changes that could not affect it.
 rask_gate_test_applies() {
-  [ "$unit_part" = "tests" ] && return 1   # the `format` part runs these
+  case "$unit_part" in ""|build) ;; *) return 1 ;; esac   # the `build` part runs these
   [ -z "$scope_projects" ] && return 0
   inputs="$(sed -n 's/^# gate-inputs: //p' "$1" | head -1)"
   printf '%s\n' "$scope_changed" | grep -E "^(scripts/|\.githooks/)${inputs:+|$inputs}" >/dev/null
@@ -303,7 +309,7 @@ echo "==> Build once (Release; no WASM bundle)"
 # them on another machine at the same moment, so running them twice buys nothing, and the tests only
 # need the assemblies. Source generators are not analyzers and still run.
 build_analyzers=""
-[ "$unit_part" = "tests" ] && build_analyzers="-p:RunAnalyzers=false"
+case "$unit_part" in ""|build) ;; *) build_analyzers="-p:RunAnalyzers=false" ;; esac
 # shellcheck disable=SC2086  # empty unless set above
 dotnet build Rask.slnx -c Release -m:"$lane_slots" \
   -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
@@ -388,10 +394,12 @@ format_pid=""
 format_label=""
 
 rask_start_format() {
-  if [ "$unit_part" = "tests" ]; then
-    echo "==> Formatting check: not in the 'tests' part — the 'format' part runs it."
-    return 0
-  fi
+  case "$unit_part" in
+    build|tests)
+      echo "==> Formatting check: not in the '$unit_part' part — the format parts run it."
+      return 0
+      ;;
+  esac
   # `range` is `staged` for commits that already exist: the files are the ones RASK_SCOPE_RANGE
   # changed. Same soundness argument as above, over the same range the tests are scoped to.
   if [ "${RASK_FORMAT_SCOPE:-}" = "staged" ] || { [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; }; then
@@ -430,7 +438,8 @@ rask_start_format() {
   (
     set +e   # the seconds are written on a red run too
     format_began=$SECONDS
-    dotnet format Rask.slnx --verify-no-changes
+    # shellcheck disable=SC2086  # empty on a whole run, one path in a format part
+    dotnet format Rask.slnx --verify-no-changes ${format_include:+--include $format_include}
     format_exit=$?
     echo "$((SECONDS - format_began))" >"$format_log.secs"
     exit "$format_exit"
@@ -494,8 +503,8 @@ test_slots="$lane_slots"
 # `The_feature_switch_is_on_in_this_assembly` — guards that exist so those files cannot pass vacuously
 # with the switch off. They did their job on this experiment.
 
-if [ "$unit_part" = "format" ]; then
-  echo "==> Tests: not in the 'format' part — the 'tests' part runs them."
+if [ -n "$unit_part" ] && [ "$unit_part" != "tests" ]; then
+  echo "==> Tests: not in the '$unit_part' part — the 'tests' part runs them."
   unit_status=0
 elif [ -n "$scope_projects" ]; then
   # The affected TEST projects, handed to the same traversal shape as the build. VSTest is invoked
