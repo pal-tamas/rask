@@ -25,7 +25,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, measurePage, root, STYLES } from './lib.mjs';
+import { chromium, measurePage, root, stateTargets, STYLES } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const flag = name => args.includes(`--${name}`);
@@ -79,6 +79,7 @@ const IGNORED = new Set(['width', 'height']);
 // place because it has that behaviour built in: a <label for> focuses its control with no script at all.
 const NATIVE = {
   'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend', 'ui-progress': 'div',
+  'ui-table-scroll-area': 'div',
 };
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
 const snapshot = JSON.parse(await readFile(join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json'), 'utf8'));
@@ -211,6 +212,9 @@ function compareLook(theirs, a, mine, b, where, diffs) {
   const moves = n => JSON.stringify(n.animations ?? []).replaceAll('"name":"flux-', '"name":"ui-');
   if (moves(a) !== moves(b)) diffs.push(`${where}: animations: ${moves(a)} vs ${moves(b)}`);
 
+  // A long example is measured for its first 60 controls only, and the two pages need not run out at the
+  // same node: a state is compared where both sides measured it.
+  if (!measured(theirs).has(a.id) || !measured(mine).has(b.id)) return;
   for (const state of ['hover', 'active', 'focus-visible']) {
     const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
     const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};
@@ -221,19 +225,23 @@ function compareLook(theirs, a, mine, b, where, diffs) {
   }
 }
 
+function measured(example) {
+  return (example.measured ??= new Set(stateTargets(example.nodes)));
+}
+
 function compareStyles(x, y, where, diffs) {
   for (const key of STYLES) {
-    if (IGNORED.has(key) || same(x[key], y[key])) continue;
-    if (undrawn(key, x, y)) continue;
+    if (IGNORED.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }
 }
 
-// The colour of a border neither side draws, in the state being compared: Flux's page gives every element
-// a grey one, a Tailwind app leaves it the text colour, and at no width it is nothing at all.
+// The colour of a border or an outline neither side draws is whatever each PAGE's reset left there —
+// Flux's docs default every border to gray-200, a bare preflight to the text colour — not the component's.
 function undrawn(key, x, y) {
   const side = /^border(Top|Right|Bottom|Left)Color$/.exec(key)?.[1];
-  return Boolean(side) && x[`border${side}Width`] === '0px' && y[`border${side}Width`] === '0px';
+  if (side) return x[`border${side}Width`] === '0px' && y[`border${side}Width`] === '0px';
+  return key === 'outlineColor' && x.outlineStyle === 'none' && y.outlineStyle === 'none';
 }
 
 // Colours and lengths print with float noise that differs between two pages computing the same value.

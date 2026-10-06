@@ -29,6 +29,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
         HoverGallerySection(),
         CardsFiguresEmptySection(),
         ChartSection(),
+        TableSection(),
         RestOfCategorySection()
     ];
 

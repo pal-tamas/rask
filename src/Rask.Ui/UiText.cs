@@ -10,7 +10,7 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiText : UiElement
 {
-    private static readonly IReadOnlyDictionary<string, string?> Marker = UiDataMarker.Of("ui-text");
+    private static readonly UiPartMarker Marker = new("ui-text");
 
     /// <summary>How big it looks. Unset, <see cref="Ui.TextSize.Default" />.</summary>
     public Ui.TextSize? Size { get; set; }
@@ -38,16 +38,10 @@ public sealed partial class UiText : UiElement
             Class);
 
     /// <inheritdoc />
-    private protected override IReadOnlyDictionary<string, string?> ResolveData()
-    {
-        if (Color is not { } color || ColorName(color) is not { Length: > 0 } name)
-        {
-            return UiDataMarker.Join(Marker, Data);
-        }
-
-        var coloured = new Dictionary<string, string?>(Marker, StringComparer.Ordinal) { ["color"] = name };
-        return UiDataMarker.Join(coloured, Data);
-    }
+    private protected override IReadOnlyDictionary<string, string?> ResolveData() =>
+        Color is { } color && ColorName(color) is { Length: > 0 } name
+            ? Marker.With(Data, "color", name)
+            : Marker.With(Data);
 
     private static string SizeClass(Ui.TextSize? size) => size switch
     {

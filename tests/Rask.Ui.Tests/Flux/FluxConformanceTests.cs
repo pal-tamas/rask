@@ -39,6 +39,12 @@ public sealed class FluxConformanceTests
         ["flux:skeleton"] = typeof(UiSkeleton),
         ["flux:skeleton.line"] = typeof(UiSkeletonLine),
         ["flux:skeleton.group"] = typeof(UiSkeletonGroup),
+        ["flux:table"] = typeof(UiTable),
+        ["flux:table.columns"] = typeof(UiTableColumns),
+        ["flux:table.column"] = typeof(UiTableColumn),
+        ["flux:table.rows"] = typeof(UiTableRows),
+        ["flux:table.row"] = typeof(UiTableRow),
+        ["flux:table.cell"] = typeof(UiTableCell),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -52,6 +58,7 @@ public sealed class FluxConformanceTests
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
+        ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
     };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;

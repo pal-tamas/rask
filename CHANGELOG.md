@@ -108,6 +108,35 @@ them until tagged releases begin.
   Neither skeleton animation stops under `prefers-reduced-motion`, as Flux's do not. The parity tool now
   measures a running animation at its first frame and compares each animation's timing and keyframes, and
   the parity page carries the docs page's inherited text colour, line height and default border colour.
+- **BREAKING — `Ui.Table` is Flux's table, with its columns, rows and cells.** The kit is moving from
+  daisyUI to [Flux UI](https://fluxui.dev/components/table)'s catalogue, look and behaviour, and the
+  table is the first data-display component across. It has parts now, one per Flux part, and each
+  writes the marker Flux writes (`data-ui-table`, `data-ui-columns`, `data-ui-column`, `data-ui-rows`,
+  `data-ui-row`, `data-ui-cell`):
+
+  ```csharp
+  // before
+  Ui.Table.Scroll()[
+      Thead[Tr[Th["Order"], Th["Total"]]],
+      Tbody[Tr[Td["#428"], Td["$49.00"]]]
+  ]
+
+  // after
+  Ui.Table[
+      Ui.TableColumns[Ui.TableColumn["Order"], Ui.TableColumn["Total"]],
+      Ui.TableRows[Ui.TableRow[Ui.TableCell["#428"], Ui.TableCell["$49.00"]]]
+  ]
+  ```
+
+  - `Scroll` is gone: the table always sits in a scroll area, and the bordered box around it went with
+    daisyUI. `ContainerClass` styles the box (`max-h-80`); `Class` still lands on the `<table>`.
+  - A raw `Th`/`Td` inside `Ui.Table` is no longer padded — the `ui-table` stylesheet rule is removed.
+    Use the parts, or the raw `Table` element with your own classes.
+  - New: `Bleed()`, `Paginate(…)`, `Ui.TableColumns.Sticky()`, a column's `Align`, `Sortable()`,
+    `Sorted(…)`, `Direction(…)`, `Sticky()` and `OnSort`, a row's `Sticky()`, a cell's `Align`,
+    `Variant(Ui.TableCellVariant.Strong)` and `Sticky()`. The table sorts and pages nothing itself; the
+    page sets `Sorted`/`Direction` and answers `OnSort`.
+  - Cells no longer wrap (`whitespace-nowrap`, as Flux); write `whitespace-normal` on one that should.
 
 - **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
   keeps the front-door check, `pre-push` the attribution guard. `ci.yml` runs the format check, the

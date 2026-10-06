@@ -2013,8 +2013,6 @@ Rask.Ui.TabStyle.Box = 1 -> Rask.Ui.TabStyle
 Rask.Ui.TabStyle.Default = 0 -> Rask.Ui.TabStyle
 Rask.Ui.TabStyle.Lift = 3 -> Rask.Ui.TabStyle
 Rask.UiTable
-Rask.UiTable.Scroll.get -> bool?
-Rask.UiTable.Scroll.set -> void
 Rask.UiTable.UiTable() -> void
 Rask.UiTabs
 Rask.UiTabs.Class.get -> string?
@@ -3132,7 +3130,6 @@ static RaskBuilderSettersRask_Ui.RowKey<T, TKey>(this Rask.UiDataGrid<T, TKey>! 
 static RaskBuilderSettersRask_Ui.RowTone<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Fn<T, Rask.Ui.Tone?>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.RowTone<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<T, Rask.Ui.Tone?>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Rows<T>(this Rask.UiTextarea<T>! __b, int? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.Scroll(this Rask.UiTable! __b, bool? value) -> Rask.UiTable!
 static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiSelect<T>! __b, bool? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.SelectAll<T>(this Rask.UiMultiSelect<T>! __b, bool? value) -> Rask.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Selected(this Rask.UiTabGroup! __b, string? value) -> Rask.UiTabGroup!
@@ -6531,7 +6528,6 @@ static RaskBuilderSettersRask_Ui.Outline(this Rask.UiNavList! __b) -> Rask.UiNav
 static RaskBuilderSettersRask_Ui.Reorderable<T>(this Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Round(this Rask.UiAvatar! __b) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.RowClickable<T>(this Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Scroll(this Rask.UiTable! __b) -> Rask.UiTable!
 static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.SelectAll<T>(this Rask.UiMultiSelect<T>! __b) -> Rask.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.ShowGroupedColumns<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
@@ -6833,3 +6829,108 @@ static RaskBuilderSettersRask_Ui.get_Pulse(Rask.UiSkeletonLine! __b) -> Rask.UiS
 static RaskBuilderSettersRask_Ui.get_Shimmer(Rask.UiSkeleton! __b) -> Rask.UiSkeleton!
 static RaskBuilderSettersRask_Ui.get_Shimmer(Rask.UiSkeletonGroup! __b) -> Rask.UiSkeletonGroup!
 static RaskBuilderSettersRask_Ui.get_Shimmer(Rask.UiSkeletonLine! __b) -> Rask.UiSkeletonLine!
+Rask.Ui.TableCellVariant
+Rask.Ui.TableCellVariant.Default = 0 -> Rask.Ui.TableCellVariant
+Rask.Ui.TableCellVariant.Strong = 1 -> Rask.Ui.TableCellVariant
+Rask.Ui.TableColumnDirection
+Rask.Ui.TableColumnDirection.Asc = 0 -> Rask.Ui.TableColumnDirection
+Rask.Ui.TableColumnDirection.Desc = 1 -> Rask.Ui.TableColumnDirection
+Rask.UiTable.Bleed.get -> bool?
+Rask.UiTable.Bleed.set -> void
+Rask.UiTable.ContainerClass.get -> string?
+Rask.UiTable.ContainerClass.set -> void
+Rask.UiTable.Paginate.get -> Rask.Core.Component?
+Rask.UiTable.Paginate.set -> void
+Rask.UiTableCell
+Rask.UiTableCell.Align.get -> Rask.Ui.Align?
+Rask.UiTableCell.Align.set -> void
+Rask.UiTableCell.Sticky.get -> bool?
+Rask.UiTableCell.Sticky.set -> void
+Rask.UiTableCell.UiTableCell() -> void
+Rask.UiTableCell.Variant.get -> Rask.Ui.TableCellVariant?
+Rask.UiTableCell.Variant.set -> void
+Rask.UiTableColumn
+Rask.UiTableColumn.Align.get -> Rask.Ui.Align?
+Rask.UiTableColumn.Align.set -> void
+Rask.UiTableColumn.Direction.get -> Rask.Ui.TableColumnDirection?
+Rask.UiTableColumn.Direction.set -> void
+Rask.UiTableColumn.OnSort.get -> Rask.Core.Callback
+Rask.UiTableColumn.OnSort.set -> void
+Rask.UiTableColumn.Sortable.get -> bool?
+Rask.UiTableColumn.Sortable.set -> void
+Rask.UiTableColumn.Sorted.get -> bool?
+Rask.UiTableColumn.Sorted.set -> void
+Rask.UiTableColumn.Sticky.get -> bool?
+Rask.UiTableColumn.Sticky.set -> void
+Rask.UiTableColumn.UiTableColumn() -> void
+Rask.UiTableColumns
+Rask.UiTableColumns.Sticky.get -> bool?
+Rask.UiTableColumns.Sticky.set -> void
+Rask.UiTableColumns.UiTableColumns() -> void
+Rask.UiTableRow
+Rask.UiTableRow.Sticky.get -> bool?
+Rask.UiTableRow.Sticky.set -> void
+Rask.UiTableRow.UiTableRow() -> void
+Rask.UiTableRows
+Rask.UiTableRows.UiTableRows() -> void
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableCell!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableCell!).Center.get -> Rask.UiTableCell!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableCell!).Default.get -> Rask.UiTableCell!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableCell!).End.get -> Rask.UiTableCell!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableCell!).Start.get -> Rask.UiTableCell!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableCell!).Strong.get -> Rask.UiTableCell!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Asc.get -> Rask.UiTableColumn!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Center.get -> Rask.UiTableColumn!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Default.get -> Rask.UiTableColumn!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Desc.get -> Rask.UiTableColumn!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).End.get -> Rask.UiTableColumn!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Start.get -> Rask.UiTableColumn!
+static Rask.Ui.TableCell.get -> Rask.UiTableCell!
+static Rask.Ui.TableColumn.get -> Rask.UiTableColumn!
+static Rask.Ui.TableColumns.get -> Rask.UiTableColumns!
+static Rask.Ui.TableRow.get -> Rask.UiTableRow!
+static Rask.Ui.TableRows.get -> Rask.UiTableRows!
+static RaskBuilderSettersRask_Ui.Align(this Rask.UiTableCell! __b, Rask.Ui.Align? value) -> Rask.UiTableCell!
+static RaskBuilderSettersRask_Ui.Align(this Rask.UiTableColumn! __b, Rask.Ui.Align? value) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.Bleed(this Rask.UiTable! __b) -> Rask.UiTable!
+static RaskBuilderSettersRask_Ui.Bleed(this Rask.UiTable! __b, bool? value) -> Rask.UiTable!
+static RaskBuilderSettersRask_Ui.ContainerClass(this Rask.UiTable! __b, string? value) -> Rask.UiTable!
+static RaskBuilderSettersRask_Ui.Direction(this Rask.UiTableColumn! __b, Rask.Ui.TableColumnDirection? value) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.OnSort(this Rask.UiTableColumn! __b, Rask.Core.Callback? value) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.OnSort(this Rask.UiTableColumn! __b, System.Action? value) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.OnSort(this Rask.UiTableColumn! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.OnSort(this Rask.UiTableColumn! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.Paginate(this Rask.UiTable! __b, Rask.Core.Component? value) -> Rask.UiTable!
+static RaskBuilderSettersRask_Ui.Sortable(this Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.Sortable(this Rask.UiTableColumn! __b, bool? value) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.Sorted(this Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.Sorted(this Rask.UiTableColumn! __b, bool? value) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.Sticky(this Rask.UiTableCell! __b) -> Rask.UiTableCell!
+static RaskBuilderSettersRask_Ui.Sticky(this Rask.UiTableCell! __b, bool? value) -> Rask.UiTableCell!
+static RaskBuilderSettersRask_Ui.Sticky(this Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.Sticky(this Rask.UiTableColumn! __b, bool? value) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.Sticky(this Rask.UiTableColumns! __b) -> Rask.UiTableColumns!
+static RaskBuilderSettersRask_Ui.Sticky(this Rask.UiTableColumns! __b, bool? value) -> Rask.UiTableColumns!
+static RaskBuilderSettersRask_Ui.Sticky(this Rask.UiTableRow! __b) -> Rask.UiTableRow!
+static RaskBuilderSettersRask_Ui.Sticky(this Rask.UiTableRow! __b, bool? value) -> Rask.UiTableRow!
+static RaskBuilderSettersRask_Ui.Variant(this Rask.UiTableCell! __b, Rask.Ui.TableCellVariant? value) -> Rask.UiTableCell!
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTableCell(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTableColumn(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTableColumns(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTableRow(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTableCell(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTableColumn(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTableColumns(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTableRow(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.get_Asc(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.get_Center(Rask.UiTableCell! __b) -> Rask.UiTableCell!
+static RaskBuilderSettersRask_Ui.get_Center(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.get_Default(Rask.UiTableCell! __b) -> Rask.UiTableCell!
+static RaskBuilderSettersRask_Ui.get_Default(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.get_Desc(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.get_End(Rask.UiTableCell! __b) -> Rask.UiTableCell!
+static RaskBuilderSettersRask_Ui.get_End(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.get_Start(Rask.UiTableCell! __b) -> Rask.UiTableCell!
+static RaskBuilderSettersRask_Ui.get_Start(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.get_Strong(Rask.UiTableCell! __b) -> Rask.UiTableCell!

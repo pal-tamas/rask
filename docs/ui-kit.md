@@ -310,8 +310,8 @@ placement: `Ui.NavTab`'s `-mb-px`, which joins the active tab's border to its na
 
 ## Components that are one element
 
-A button is a `<button>`, and a table is a `<table>`. `Ui.Button`, `Ui.Badge`, `Ui.Alert`, `Ui.Table` and
-`Ui.List` do not wrap a raw element; they are the element. They derive from **`UiElement`**, which derives
+A button is a `<button>`, and a table cell is a `<td>`. `Ui.Button`, `Ui.Badge`, `Ui.Alert`, `Ui.List` and
+the parts of a `Ui.Table` do not wrap a raw element; they are the element. They derive from **`UiElement`**, which derives
 from `Element`, so every step an element takes works on them unchanged, the events included. What they
 show is their **children**, the same as a raw element's:
 
@@ -322,10 +322,7 @@ Ui.Badge.Success["Live"]
 
 Ui.Alert.Error[Ui.Icon.Name(Ui.IconName.ExclamationTriangle), Span["Payment failed: "], Code[error]]
 
-Ui.Table.Id("orders").Data("testid", "orders").Aria(("label", "Orders"))[
-    Thead[Tr[Th["Order"], Th["Total"]]],
-    Tbody[rows]
-]
+Ui.TableCell.Id("total").Class("py-0")[Ui.Badge.Success["Paid"]]
 ```
 
 A bare `Ui.Icon.Name(…)` is the right size in all of these. The kit's stylesheet sizes an icon nobody sized
@@ -372,15 +369,67 @@ through `ResolveAria()`, which writes into Core's `aria-*` slot so the attribute
 **One tag, and that has a consequence.** An element's children are written straight from the indexer, so
 an element-derived component cannot draw anything around them. The two places this shows:
 
-- **`Ui.Table.Scroll()`** puts the table in a bordered box that scrolls sideways. While it does,
-  `Ui.Table` renders as the box with the `<table>` inside. The id, classes, data, ARIA and handlers stay on
-  the `<table>`, so `#orders tbody tr` finds the same rows either way.
+- **`Ui.Table`** sits in a box that scrolls, and a heading wraps its label. Each renders its own tag
+  with what it adds inside or around it. The id, classes, data, ARIA and handlers you set stay on the
+  `<table>` and the `<th>`, so `#orders tbody tr` finds the rows.
 - **`Ui.List.Ordered()`** is an `<ol>`, numbered. Use it when the order means something, such as a log
   or a set of steps. A row is a plain `Li`.
 
-The kit pads cells and rows with a stylesheet rule on its `ui-table` / `ui-list` marker, in the layer
-below your utilities. A `px-0` on a cell therefore gets flush content. A `[&_td]:px-3` variant would have
+The kit pads a list's rows with a stylesheet rule on its `ui-list` marker, in the layer below your
+utilities. A `px-0` on a row therefore gets flush content. A `[&>li]:px-4` variant would have
 out-specified it.
+
+## Tables
+
+`Ui.Table` is [Flux's table](https://fluxui.dev/components/table), part for part: `Ui.TableColumns` holds a
+`Ui.TableColumn` per heading, and `Ui.TableRows` holds a `Ui.TableRow` of `Ui.TableCell`s per record.
+
+```csharp
+Ui.Table.Paginate(Ui.Pagination.Pages(pages).Current(page).OnPage(Go))[
+    Ui.TableColumns[
+        Ui.TableColumn["Customer"],
+        Ui.TableColumn.Sortable().Sorted(sortBy == "date").Direction(direction).OnSort(() => Sort("date"))["Date"],
+        Ui.TableColumn["Status"],
+        Ui.TableColumn.End["Amount"]
+    ],
+    Ui.TableRows[
+        orders.Select(order => Ui.TableRow.Key(order.Id)[
+            Ui.TableCell[order.Customer],
+            Ui.TableCell[order.Date],
+            Ui.TableCell.Class("py-0")[Ui.Badge.Success["Paid"]],
+            Ui.TableCell.Variant(Ui.TableCellVariant.Strong).End[order.Amount]
+        ])
+    ]
+]
+```
+
+| Part | Props |
+| --- | --- |
+| `Ui.Table` | `Bleed()` runs the dividers through the padding of the box it sits in; `Paginate(…)` is the pager under the rows; `ContainerClass("max-h-80")` styles the box around the table. |
+| `Ui.TableColumns` | `Sticky()` keeps the headings in view while the rows scroll. |
+| `Ui.TableColumn` | `Align` (`.Start` `.Center` `.End`), `Sortable()`, `Sorted(…)`, `Direction(Ui.TableColumnDirection.Asc \| Desc)`, `Sticky()`, and `OnSort`. |
+| `Ui.TableRows` | The rows. |
+| `Ui.TableRow` | `Key(…)`, `Sticky()`. |
+| `Ui.TableCell` | `Align`, `Variant(Ui.TableCellVariant.Strong)`, `Sticky()`. |
+
+**The table sorts nothing and pages nothing.** The page keeps the sorted column, its direction and the
+page number. A `Sortable()` heading draws its label as a button with a chevron, and `OnSort` fires when
+the heading is clicked or its button is activated from the keyboard. `Sorted` and `Direction` are what
+you set in answer.
+
+**Sticky parts need a background.** `Ui.TableColumns.Sticky()` holds the headings at the top of the box,
+and a sticky `Ui.TableColumn` with sticky `Ui.TableCell`s under it holds a column at the left. Give each
+`.Class("bg-white dark:bg-zinc-900")`, or the rows show through. A sticky column casts a shadow once the
+others have scrolled under it; that is a CSS scroll timeline, so a browser without one shows no shadow.
+
+**`Bleed()` needs to know the gutter.** It reads `--ui-bleed`, 1.5rem unless the box says otherwise:
+`Div.Class("p-4 [--ui-bleed:1rem]")[Ui.Table.Bleed()[…]]`.
+
+A cell pads itself 12px at zero specificity, so `py-0` or `px-6` on a cell wins. A cell does not wrap;
+write `whitespace-normal` on one that should. `colspan` and `scope` go through `.Attributes(("colspan", "3"))`.
+
+`Strong` and `Desc` are also HTML tags, and a tag's entry hides a step of the same name: those two
+values are passed as `Variant(Ui.TableCellVariant.Strong)` and `Direction(Ui.TableColumnDirection.Desc)`.
 
 ## Buttons and links that go somewhere
 
@@ -547,7 +596,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |

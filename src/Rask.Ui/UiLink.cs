@@ -24,7 +24,7 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiLink : UiElement
 {
-    private static readonly IReadOnlyDictionary<string, string?> Marker = UiDataMarker.Of("ui-link");
+    private static readonly UiPartMarker Marker = new("ui-link");
 
     /// <summary>
     ///     Where it goes: a generated route (<c>Routes.Orders()</c>) to stay inside the app, or a URL string to
@@ -66,7 +66,7 @@ public sealed partial class UiLink : UiElement
             Class);
 
     /// <inheritdoc />
-    private protected override IReadOnlyDictionary<string, string?> ResolveData() => UiDataMarker.Join(Marker, Data);
+    private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);
 
     // The text, and an underline at a fifth of it — which is what the pointer brings up to full.
     private static string Ink(bool accent) => accent

@@ -12,9 +12,8 @@ public sealed class SkeletonParity : FluxParity
 {
     private const string Round = "border-radius:calc(infinity * 1px)";
 
-    // STAND-INS for flux:card and flux:table, not rebuilt yet: plain elements styled to what Flux's measure,
-    // so the examples that place skeletons inside them can be compared whole. Each goes when its component
-    // lands, and the example then names the component instead.
+    // A STAND-IN for flux:card, not rebuilt yet: plain elements styled to what Flux's measure, so the example
+    // that places a skeleton inside one can be compared whole. It goes when the card lands.
     private const string StandIns =
         "<style>"
         + "[data-ui-card]{position:relative;padding:24px;border-radius:12px;background:#fff;"
@@ -22,20 +21,9 @@ public sealed class SkeletonParity : FluxParity
         + "box-shadow:0 0 #0000,0 0 #0000,0 0 #0000,0 0 #0000,0 1px 2px 0 rgb(0 0 0/.05)}"
         + "[data-ui-card]::after{content:'';position:absolute;inset:0;border-radius:11px;"
         + "box-shadow:0 0 #0000,inset 0 0 0 1px color-mix(in oklab,#fff 25%,transparent),0 0 #0000,0 0 #0000,0 0 #0000}"
-        + "[data-ui-table]{min-width:100%;white-space:nowrap;border-collapse:separate;border-spacing:0;color:oklch(0.274 0.006 286.033)}"
-        + "[data-ui-column],[data-ui-cell]{padding:12px;font-size:14px;line-height:20px;text-align:start}"
-        + "[data-ui-column]:first-child,[data-ui-cell]:first-child{padding-left:0}"
-        + "[data-ui-column]:last-child,[data-ui-cell]:last-child{padding-right:0}"
-        + "[data-ui-column],[data-ui-cell]{border-color:color-mix(in oklab,oklch(0.274 0.006 286.033) 10%,transparent)}"
-        + "[data-ui-column]{font-weight:500;border-bottom-width:1px}"
-        + "[data-ui-cell]{color:oklch(0.552 0.016 285.938)}"
-        + "[data-ui-row]+[data-ui-row]>[data-ui-cell]{border-top-width:1px}"
-        + ".dark [data-ui-column]{color:#fff}"
         + ".dark [data-ui-card]{background:oklch(0.274 0.006 286.033);border-color:color-mix(in oklab,#fff 10%,transparent);"
         + "box-shadow:0 0 #0000,0 0 #0000,0 0 #0000,0 0 #0000,0 0 #0000}"
         + ".dark [data-ui-card]::after{display:none}"
-        + ".dark [data-ui-column],.dark [data-ui-cell]{border-color:color-mix(in oklab,#fff 20%,transparent)}"
-        + ".dark [data-ui-cell]{color:oklch(0.871 0.006 286.286)}"
         + "</style>";
 
     public override string Page => "skeleton";
@@ -70,16 +58,15 @@ public sealed class SkeletonParity : FluxParity
         // load of Flux's page, so those five lines are `data-parity-skip="width"` — everything but that is held.
         yield return ("examples", Rows(
             Ui.SkeletonGroup.Shimmer[
-                Raw.Value(
-                    "<div style=\"display:flex;flex-direction:column\"><ui-table-scroll-area style=\"display:block;overflow:auto\">"
-                    + "<table data-ui-table><thead data-ui-columns><tr>"
-                    + "<th data-ui-column><div style=\"display:flex\">Customer</div></th>"
-                    + "<th data-ui-column><div style=\"display:flex\">Date</div></th>"
-                    + "<th data-ui-column><div style=\"display:flex\">Status</div></th>"
-                    + "<th data-ui-column><div style=\"display:flex\">Amount</div></th>"
-                    + "</tr></thead><tbody data-ui-rows>"),
-                Enumerable.Range(1, 5).SelectMany(Order),
-                Raw.Value("</tbody></table></ui-table-scroll-area></div>")
+                Ui.Table[
+                    Ui.TableColumns[
+                        Ui.TableColumn["Customer"],
+                        Ui.TableColumn["Date"],
+                        Ui.TableColumn["Status"],
+                        Ui.TableColumn["Amount"]
+                    ],
+                    Ui.TableRows[Enumerable.Range(1, 5).Select(Order)]
+                ]
             ]));
 
         yield return ("examples", Rows(
@@ -103,22 +90,21 @@ public sealed class SkeletonParity : FluxParity
 
     private static Component Heading(string text) => Ui.Heading.Style("margin-bottom:8px")[text];
 
-    private static Component[] Order(int order) =>
-    [
-        Raw.Value("<tr data-ui-row><td data-ui-cell><div style=\"display:flex;align-items:center;gap:8px\">"),
-        Ui.Skeleton.Style("width:20px;height:20px;" + Round),
-        // On the cell's flex item, whose only child is the random line.
-        Div.Data("parity-skip", "width").Style("flex:1")[
-            Ui.SkeletonLine.Style(string.Create(CultureInfo.InvariantCulture, $"width:{50 + (order * 10)}%"))
-        ],
-        Raw.Value("</div></td><td data-ui-cell>"),
-        Ui.SkeletonLine,
-        Raw.Value("</td><td data-ui-cell>"),
-        Ui.SkeletonLine,
-        Raw.Value("</td><td data-ui-cell>"),
-        Ui.SkeletonLine,
-        Raw.Value("</td></tr>"),
-    ];
+    private static Component Order(int order) =>
+        Ui.TableRow.Key(order)[
+            Ui.TableCell[
+                Div.Style("display:flex;align-items:center;gap:8px")[
+                    Ui.Skeleton.Style("width:20px;height:20px;" + Round),
+                    // On the cell's flex item, whose only child is the random line.
+                    Div.Data("parity-skip", "width").Style("flex:1")[
+                        Ui.SkeletonLine.Style(string.Create(CultureInfo.InvariantCulture, $"width:{50 + (order * 10)}%"))
+                    ]
+                ]
+            ],
+            Ui.TableCell[Ui.SkeletonLine],
+            Ui.TableCell[Ui.SkeletonLine],
+            Ui.TableCell[Ui.SkeletonLine]
+        ];
 
     // The 512px flex column Flux's page lays its two larger examples out in.
     private static Component Rows(params Component[] items) =>

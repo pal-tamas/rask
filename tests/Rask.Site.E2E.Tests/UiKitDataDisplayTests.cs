@@ -24,7 +24,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         foreach (var id in new[]
                  {
                      "ui-accordion", "ui-collapse", "ui-aura", "ui-text-rotate", "ui-hover-3d",
-                     "ui-hover-gallery", "ui-console-pieces", "ui-chart", "ui-display-rest",
+                     "ui-hover-gallery", "ui-console-pieces", "ui-chart", "ui-table", "ui-display-rest",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -196,6 +196,54 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         // And the numbers are there for a screen reader, one row per month.
         await Expect(chart.Locator("table.sr-only tbody tr")).ToHaveCountAsync(6);
+    });
+
+    [Fact]
+    public Task A_sortable_table_heading_sorts_the_rows_and_turns_round_on_a_second_click() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var table = Page.Locator("#ui-orders");
+        var amount = table.Locator("th").Filter(new LocatorFilterOptions { HasText = "Amount" });
+        var firstAmount = table.Locator("tbody tr").First.Locator("td").Last;
+        await table.ScrollIntoViewIfNeededAsync();
+
+        // Sorted by date at first, so the Amount heading keeps its chevron hidden until it is hovered.
+        await Expect(amount.Locator("button div div")).ToHaveCSSAsync("opacity", "0");
+
+        await amount.GetByRole(AriaRole.Button).ClickAsync();
+
+        await Expect(firstAmount).ToHaveTextAsync("$12.00");
+
+        // The cell is the target, not only the button inside it: Flux's click lands on the heading.
+        await amount.ClickAsync(new LocatorClickOptions { Position = new Position { X = 2, Y = 2 } });
+
+        await Expect(firstAmount).ToHaveTextAsync("$313.00");
+        await Expect(table.Locator("tbody tr")).ToHaveCountAsync(4);
+    });
+
+    [Fact]
+    public Task A_sticky_table_column_stays_put_and_casts_its_shadow_only_once_scrolled() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var area = Page.Locator("[data-testid='ui-table'] div:has(> table[data-ui-table])").Last;
+        var id = area.Locator("tbody td").First;
+        await area.ScrollIntoViewIfNeededAsync();
+        const string shadow = "el => getComputedStyle(el, '::after').boxShadow";
+        Assert.Equal("none", await id.EvaluateAsync<string>(shadow));
+
+        await area.EvaluateAsync("el => el.scrollTo(60, 80)");
+
+        // Scroll-driven, so it needs a frame to catch up.
+        await Page.WaitForFunctionAsync(
+            "el => getComputedStyle(el, '::after').boxShadow !== 'none'", await id.ElementHandleAsync());
+        var offset = await id.EvaluateAsync<double>(
+            "el => el.getBoundingClientRect().left - el.closest('table').parentElement.getBoundingClientRect().left");
+        Assert.InRange(offset, -0.5, 0.5);
+        var head = await area.Locator("thead").EvaluateAsync<double>(
+            "el => el.getBoundingClientRect().top - el.closest('table').parentElement.getBoundingClientRect().top");
+        Assert.InRange(head, -0.5, 0.5);
     });
 
     private async Task OpenAsync()

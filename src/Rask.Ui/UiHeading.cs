@@ -17,7 +17,7 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiHeading : UiElement
 {
-    private static readonly IReadOnlyDictionary<string, string?> Marker = UiDataMarker.Of("ui-heading");
+    private static readonly UiPartMarker Marker = new("ui-heading");
 
     /// <summary>How big it looks. Unset, <see cref="Ui.HeadingSize.Base" />.</summary>
     public Ui.HeadingSize? Size { get; set; }
@@ -49,7 +49,7 @@ public sealed partial class UiHeading : UiElement
             Class);
 
     /// <inheritdoc />
-    private protected override IReadOnlyDictionary<string, string?> ResolveData() => UiDataMarker.Join(Marker, Data);
+    private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);
 
     private static string SizeClass(Ui.HeadingSize? size) => size switch
     {

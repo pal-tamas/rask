@@ -11,7 +11,7 @@ public partial class UiProgressTests : global::Rask.Core.RaskMarkup
         var html = Ui.Progress.Value(75).ToHtml();
 
         Assert.StartsWith("<div ", html, StringComparison.Ordinal);
-        Assert.Contains("data-ui-progress=\"\" role=\"progressbar\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-ui-progress role=\"progressbar\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-valuemin=\"0\" aria-valuenow=\"75\" aria-valuemax=\"100\"", html, StringComparison.Ordinal);
     }
 

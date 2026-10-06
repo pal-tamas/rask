@@ -24,8 +24,7 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiProgress : UiElement
 {
-    private static readonly IReadOnlyDictionary<string, string?> Marker =
-        new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-progress"] = "" };
+    private static readonly UiPartMarker Marker = new("ui-progress");
 
     private static readonly IReadOnlyDictionary<string, string?> Empty =
         new Dictionary<string, string?>(StringComparer.Ordinal);
@@ -61,15 +60,7 @@ public sealed partial class UiProgress : UiElement
     private protected override string? ResolveRole() => Role ?? "progressbar";
 
     /// <inheritdoc />
-    private protected override IReadOnlyDictionary<string, string?>? ResolveData()
-    {
-        if (Data is not { Count: > 0 } own)
-        {
-            return Marker;
-        }
-
-        return new Dictionary<string, string?>(own, StringComparer.Ordinal) { ["ui-progress"] = "" };
-    }
+    private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);
 
     /// <inheritdoc />
     protected override IReadOnlyDictionary<string, string?>? ResolveAria()
