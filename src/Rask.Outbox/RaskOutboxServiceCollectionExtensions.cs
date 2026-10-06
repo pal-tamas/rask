@@ -48,7 +48,10 @@ public static class RaskOutboxServiceCollectionExtensions
         {
             services.AddSingleton(static _ => new OutboxSignal());
             services.AddSingleton<ISaveChangesInterceptor>(static sp =>
-                new OutboxInterceptor(sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<OutboxSignal>()));
+                new OutboxInterceptor(
+                    sp.GetRequiredService<TimeProvider>(),
+                    sp.GetRequiredService<OutboxSignal>(),
+                    sp.GetRequiredService<IServiceScopeFactory>()));
         }
 
         // Where a bare dispatcher.Publish stores an event for its durable handlers.

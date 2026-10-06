@@ -76,6 +76,15 @@ public sealed class QueuedMail : Entity<long>
     /// </summary>
     public DateTime? ClaimedUntil { get; internal set; }
 
+    /// <summary>
+    /// The user the email was queued for — <c>Current.UserId</c> at the time — or <c>null</c> when it was
+    /// queued for nobody.
+    /// </summary>
+    /// <remarks>
+    /// The processor re-enters it with <c>Current.UseUser</c> before calling the sender, exactly as a job does.
+    /// </remarks>
+    public Guid? UserId { get; internal set; }
+
     /// <summary>Records the tenant this email was queued for, so the sender can re-enter it.</summary>
     /// <remarks>
     ///     Here rather than at the construction site because <c>RecordTenant</c> is the entity's own: only

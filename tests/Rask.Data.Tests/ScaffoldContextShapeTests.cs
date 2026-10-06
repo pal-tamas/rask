@@ -89,7 +89,7 @@ public sealed class ScaffoldContextShapeTests
         try
         {
             Db.Configure(provider);
-            Assert.True(Db.IsConfigured);
+            Assert.True(Db.IsOn);
 
             // Translating a query needs the bound context's model but no table, so an in-memory database
             // with no schema is enough to prove the read opened RaskShapedContext and found Doodad mapped.

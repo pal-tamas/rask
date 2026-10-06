@@ -64,14 +64,7 @@ public static class Cache
             return fake;
         }
 
-        var services = Ambient.Services
-            ?? throw new InvalidOperationException(
-                "Cache was called outside any work in progress — a handler, a render, a request or a job — so "
-                + "there is no app to reach. Inject ICache in the constructor there instead.");
-
-        return services.GetService<ICache>()
-            ?? throw new InvalidOperationException(
-                "Cache needs Rask.Cache registered: call builder.Services.AddRaskCache<AppDbContext>().");
+        return Ambient.Reach<ICache>("Cache", "Program.cs says c.Cache.Off()", "AddRaskCache<AppDbContext>()");
     }
 
     internal static Func<CancellationToken, Task<T>> Loader<T>(Func<Task<T>> load)

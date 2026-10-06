@@ -155,6 +155,16 @@ public class PackageIslandGeneratorTests
     }
 
     [Fact]
+    public void A_packages_own_loading_prop_sits_beside_the_islands_Loading_placeholder()
+    {
+        // Every island has a `Loading` step for its first paint, and `loading` is a common prop of a button.
+        var run = Run(IslandSource, PropSnapshot("loading", """{ "kind": "boolean" }"""));
+
+        Assert.Contains("bool? LoadingProp", run.GeneratedSource("MuiButton.External"), StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
     public void Package_prose_cannot_escape_its_doc_comment()
     {
         var snapshot = PropSnapshot("label", """{ "kind": "string" }""", doc: "Line\\n}\\nclass Evil {");

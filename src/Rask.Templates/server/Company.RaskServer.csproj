@@ -43,6 +43,13 @@
   </ItemGroup>
 
   <!-- rask:if islands-blazor -->
+  <PropertyGroup>
+    <!-- The library lives in a folder of this project and its files are its own: without this, the
+         second build would compile the library's obj/ into this app and stop on duplicate attributes. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);Company.RaskServer.Components/**</DefaultItemExcludes>
+    <RaskScopedSourceExclude>$(RaskScopedSourceExclude);Company.RaskServer.Components\**</RaskScopedSourceExclude>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- The Razor Class Library holding this app's Blazor components. A separate project because a
          .razor compiled in THIS project is generated during this same compilation, so Rask cannot

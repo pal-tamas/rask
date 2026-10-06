@@ -35,13 +35,13 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
     private const int PurgePageSize = 1000;
 
     private readonly string _connectionString;
-    private readonly RaskLoggingOptions _options;
+    private readonly LogsOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly SemaphoreSlim _schemaGate = new(1, 1);
 
     private volatile bool _schemaReady;
 
-    public SqliteLogStore(string connectionString, RaskLoggingOptions options, TimeProvider timeProvider)
+    public SqliteLogStore(string connectionString, LogsOptions options, TimeProvider timeProvider)
     {
         ArgumentException.ThrowIfNullOrEmpty(connectionString);
         ArgumentNullException.ThrowIfNull(options);

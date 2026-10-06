@@ -78,6 +78,13 @@ interface RaskHostBridge {
      * rather than something to type away.
      */
     send?(payload: unknown): void;
+
+    /**
+     * Navigates in-app to a URL of this origin, exactly as a click on an `a[data-rask-nav]` does;
+     * `replace` replaces the current history entry. The generated `@rask/routes` calls it, which is
+     * how front-end code navigates without ever writing a path.
+     */
+    navigate?(url: string, replace?: boolean): void;
 }
 
 declare var __raskHost: RaskHostBridge | undefined;

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace Rask.Signaling.Tests;
 
-// RaskSignalingOptions come from Rask:Signaling first and the AddRaskSignaling callback second. Validation runs
+// SignalingOptions come from Rask:Signaling first and the AddRaskSignaling callback second. Validation runs
 // when the options are built — at host start, or the first resolve on a bare container — not at registration.
 public class SignalingOptionsBindingTests
 {
@@ -20,7 +20,7 @@ public class SignalingOptionsBindingTests
             ["Rask:Signaling:RequireAuthorization"] = "false",
         });
 
-        var options = provider.GetRequiredService<RaskSignalingOptions>();
+        var options = provider.GetRequiredService<SignalingOptions>();
 
         Assert.Equal("/rtc", options.Path);
         Assert.Equal(4, options.MaxPeersPerRoom);
@@ -34,7 +34,7 @@ public class SignalingOptionsBindingTests
             new() { ["Rask:Signaling:MaxPeersPerRoom"] = "4" },
             o => o.MaxPeersPerRoom = 6);
 
-        Assert.Equal(6, provider.GetRequiredService<RaskSignalingOptions>().MaxPeersPerRoom);
+        Assert.Equal(6, provider.GetRequiredService<SignalingOptions>().MaxPeersPerRoom);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class SignalingOptionsBindingTests
             new() { ["Rask:Signaling:MaxRooms"] = "50" },
             o => o.MaxPeersPerRoom = 6);
 
-        var options = provider.GetRequiredService<RaskSignalingOptions>();
+        var options = provider.GetRequiredService<SignalingOptions>();
 
         Assert.Equal(50, options.MaxRooms);
         Assert.Equal(6, options.MaxPeersPerRoom);
@@ -57,7 +57,7 @@ public class SignalingOptionsBindingTests
         services.AddRaskSignaling();
         using var provider = services.BuildServiceProvider();
 
-        Assert.Equal(8, provider.GetRequiredService<RaskSignalingOptions>().MaxPeersPerRoom);
+        Assert.Equal(8, provider.GetRequiredService<SignalingOptions>().MaxPeersPerRoom);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class SignalingOptionsBindingTests
     {
         using var provider = Provider(new() { ["Signaling:MaxPeersPerRoom"] = "4" });
 
-        Assert.Equal(8, provider.GetRequiredService<RaskSignalingOptions>().MaxPeersPerRoom);
+        Assert.Equal(8, provider.GetRequiredService<SignalingOptions>().MaxPeersPerRoom);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class SignalingOptionsBindingTests
 
         using var provider = services.BuildServiceProvider();
 
-        Assert.Equal(10, provider.GetRequiredService<RaskSignalingOptions>().MaxRooms);
+        Assert.Equal(10, provider.GetRequiredService<SignalingOptions>().MaxRooms);
         Assert.Single(services, d => d.ServiceType == typeof(SignalingHub));
     }
 
@@ -88,7 +88,7 @@ public class SignalingOptionsBindingTests
     {
         using var provider = Provider(new(), o => o.Path = path);
 
-        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskSignalingOptions>());
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<SignalingOptions>());
 
         Assert.Contains("Rask:Signaling", ex.Message, StringComparison.Ordinal);
     }
@@ -98,7 +98,7 @@ public class SignalingOptionsBindingTests
     {
         using var provider = Provider(new() { ["Rask:Signaling:AllowedOrigins:0"] = "https://app.example.com" });
 
-        var options = provider.GetRequiredService<RaskSignalingOptions>();
+        var options = provider.GetRequiredService<SignalingOptions>();
 
         Assert.Equal(["https://app.example.com"], options.AllowedOrigins);
     }
@@ -111,7 +111,7 @@ public class SignalingOptionsBindingTests
     {
         using var provider = Provider(new(), o => o.AllowedOrigins.Add(origin));
 
-        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskSignalingOptions>());
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<SignalingOptions>());
 
         Assert.Contains("AllowedOrigins", ex.Message, StringComparison.Ordinal);
     }
@@ -125,7 +125,7 @@ public class SignalingOptionsBindingTests
             o.MaxPayloadBytes = 4096;
         });
 
-        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskSignalingOptions>());
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<SignalingOptions>());
 
         Assert.Contains("MaxPayloadBytes", ex.Message, StringComparison.Ordinal);
     }
@@ -135,7 +135,7 @@ public class SignalingOptionsBindingTests
     {
         using var provider = Provider(new() { ["Rask:Signaling:MaxPeersPerRoom"] = "1" });
 
-        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskSignalingOptions>());
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<SignalingOptions>());
 
         Assert.Contains("Rask:Signaling", ex.Message, StringComparison.Ordinal);
         Assert.Contains("MaxPeersPerRoom", ex.Message, StringComparison.Ordinal);
@@ -146,7 +146,7 @@ public class SignalingOptionsBindingTests
     {
         using var provider = Provider(new() { ["Rask:Signaling:MaxRooms"] = "lots" });
 
-        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskSignalingOptions>());
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<SignalingOptions>());
 
         Assert.Contains("Rask:Signaling", ex.Message, StringComparison.Ordinal);
     }
@@ -169,7 +169,7 @@ public class SignalingOptionsBindingTests
     }
 
     private static ServiceProvider Provider(
-        Dictionary<string, string?> settings, Action<RaskSignalingOptions>? configure = null)
+        Dictionary<string, string?> settings, Action<SignalingOptions>? configure = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());

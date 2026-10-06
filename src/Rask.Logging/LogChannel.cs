@@ -16,7 +16,7 @@ internal sealed class LogChannel
 {
     private readonly Channel<LogRecord> _channel;
 
-    public LogChannel(RaskLoggingOptions options, LogMetrics metrics)
+    public LogChannel(LogsOptions options, LogMetrics metrics)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(metrics);

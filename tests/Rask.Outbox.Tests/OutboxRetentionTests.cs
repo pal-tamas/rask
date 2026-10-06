@@ -21,7 +21,7 @@ public sealed class OutboxRetentionTests : IDisposable
     [Fact]
     public async Task Published_messages_older_than_the_retention_period_are_purged()
     {
-        Build(o => o.RetentionPeriod = TimeSpan.FromDays(7));
+        Build(o => o.Retention = TimeSpan.FromDays(7));
         var now = _clock.GetUtcNow().UtcDateTime;
 
         await SeedAsync(
@@ -39,7 +39,7 @@ public sealed class OutboxRetentionTests : IDisposable
     {
         // The row an operator still needs. It has no ProcessedAt, so the retention predicate can't see it —
         // and that has to hold for a message far older than any cutoff.
-        Build(o => o.RetentionPeriod = TimeSpan.FromDays(7));
+        Build(o => o.Retention = TimeSpan.FromDays(7));
         var now = _clock.GetUtcNow().UtcDateTime;
 
         await SeedAsync(
@@ -57,7 +57,7 @@ public sealed class OutboxRetentionTests : IDisposable
     [Fact]
     public async Task A_non_positive_retention_period_keeps_everything_forever()
     {
-        Build(o => o.RetentionPeriod = TimeSpan.Zero);
+        Build(o => o.Retention = TimeSpan.Zero);
         var now = _clock.GetUtcNow().UtcDateTime;
 
         await SeedAsync(Message(processedAt: now.AddYears(-5)));
@@ -70,7 +70,7 @@ public sealed class OutboxRetentionTests : IDisposable
     [Fact]
     public async Task Retention_defaults_to_seven_days_matching_jobs_and_mail()
     {
-        Assert.Equal(TimeSpan.FromDays(7), new OutboxOptions().RetentionPeriod);
+        Assert.Equal(TimeSpan.FromDays(7), new OutboxOptions().Retention);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class OutboxRetentionTests : IDisposable
     {
         // The first sweep on an app that has been running without retention has to catch up rather than
         // remove one page an hour — otherwise a large table never shrinks.
-        Build(o => o.RetentionPeriod = TimeSpan.FromDays(7));
+        Build(o => o.Retention = TimeSpan.FromDays(7));
         var now = _clock.GetUtcNow().UtcDateTime;
 
         await SeedAsync([.. Enumerable.Range(0, 2500).Select(_ => Message(processedAt: now.AddDays(-30)))]);
@@ -91,7 +91,7 @@ public sealed class OutboxRetentionTests : IDisposable
     [Fact]
     public async Task The_sweep_runs_at_most_once_an_hour()
     {
-        Build(o => o.RetentionPeriod = TimeSpan.FromDays(7));
+        Build(o => o.Retention = TimeSpan.FromDays(7));
         var now = _clock.GetUtcNow().UtcDateTime;
 
         await SeedAsync(Message(processedAt: now.AddDays(-30)));

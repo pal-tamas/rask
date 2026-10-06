@@ -2,6 +2,7 @@ using System.Data.Common;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Cqrs;
 using Rask.Data;
 
@@ -22,14 +23,16 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
 {
     private readonly TimeProvider _timeProvider;
     private readonly OutboxSignal _signal;
+    private readonly IServiceScopeFactory _scopes;
 
     // The contexts whose save wrote rows, until those rows are committed and the processor woken.
     private readonly ConditionalWeakTable<DbContext, object> _wrote = new();
 
-    internal OutboxInterceptor(TimeProvider timeProvider, OutboxSignal signal)
+    internal OutboxInterceptor(TimeProvider timeProvider, OutboxSignal signal, IServiceScopeFactory scopes)
     {
         _timeProvider = timeProvider;
         _signal = signal;
+        _scopes = scopes;
     }
 
     /// <inheritdoc/>
@@ -110,7 +113,15 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
                 var handlers = CqrsRegistry.DurableHandlersOf(e.GetType());
                 if (handlers.Count > 0)
                 {
-                    rows.AddRange(Rows(e, handlers, now));
+                    // A test's fake takes the event in place of the rows.
+                    if (Cqrs.Outbox.Faked.Value is { } fake)
+                    {
+                        fake.Record(e, handlers, _scopes);
+                    }
+                    else
+                    {
+                        rows.AddRange(Rows(e, handlers, now));
+                    }
 
                     // So the publish after the commit runs only the in-memory handlers.
                     DurableEvents.MarkStored(e);

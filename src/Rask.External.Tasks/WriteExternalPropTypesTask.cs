@@ -33,21 +33,6 @@ public sealed class WriteExternalPropTypesTask : Task
     private const string GeneratedNamespace = "Rask.External.Generated";
     private const string GeneratedTypeName = "RaskExternalGeneratedTypeScript";
 
-    /// <summary>The diagnostic code the unbuilt-island warning carries, so it can be suppressed.</summary>
-    /// <remarks>
-    ///     <para>
-    ///         A PREFIXED id rather than a <c>RASK0xx</c> number, deliberately. Five assemblies allocate
-    ///         in that space and RS1019 only checks one compilation, so a number claimed there goes stale
-    ///         on the next merge from main; the island BUILD diagnostics have their own sequence
-    ///         (<c>RASKISLAND001</c>–<c>003</c>, in Rask.External.targets) and this joins it as 004.
-    ///     </para>
-    ///     <para>
-    ///         Grep before reusing: this is the only place the sequence is allocated from C#, and the
-    ///         rest of it lives in a .targets file that no analyzer reads.
-    ///     </para>
-    /// </remarks>
-    internal const string UnbuiltIslandCode = "RASKISLAND004";
-
     /// <summary>The just-compiled assembly to read the constants out of.</summary>
     [Required]
     public string AssemblyPath { get; set; } = string.Empty;
@@ -134,7 +119,7 @@ public sealed class WriteExternalPropTypesTask : Task
             // for its own reasons. Either way a second error here would only bury the first.
             Log.LogMessage(
                 MessageImportance.Low,
-                $"Rask.External: no assembly at '{AssemblyPath}' yet — wrote the path mapping only.");
+                $"Rask islands: no assembly at '{AssemblyPath}' yet — wrote the path mapping only.");
             return true;
         }
 
@@ -146,7 +131,12 @@ public sealed class WriteExternalPropTypesTask : Task
         {
             // Failing the build is right: the alternative is a front end compiling against the last
             // build's props, which type-checks and then arrives wrong in the browser.
-            Log.LogError($"Rask.External: could not read the generated prop types from '{AssemblyPath}' — {ex.Message}");
+            Log.LogError(
+                subcategory: null, errorCode: ExternalDiagnosticCodes.UnreadablePropTypes, helpKeyword: null,
+                file: null, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
+                message: $"Rask islands: could not read the generated prop types from '{AssemblyPath}' ({ex.Message}). "
+                + "Rebuild the project (dotnet build --no-incremental) so the assembly is written afresh; if it "
+                + "still fails, the message in brackets is the one to report.");
             return false;
         }
     }
@@ -185,6 +175,8 @@ public sealed class WriteExternalPropTypesTask : Task
         // no longer renders.
         Prune(constants.Keys);
 
+        written += WriteRoutes() ? 1 : 0;
+
         if (WriteCheckConfig(declared))
         {
             written++;
@@ -210,7 +202,7 @@ public sealed class WriteExternalPropTypesTask : Task
             // reads, which is how the real occurrence would be missed.
             Log.LogMessage(
                 FrontEndFiles.Length > 0 ? MessageImportance.Normal : MessageImportance.Low,
-                $"Rask.External: '{Path.GetFileName(AssemblyPath)}' declares no external components, "
+                $"Rask islands: '{Path.GetFileName(AssemblyPath)}' declares no external components, "
                 + $"so the prop type-check is skipped for the {FrontEndFiles.Length} front-end file(s) "
                 + "beside it. Without a declaration nothing distinguishes an island from scoped "
                 + "TypeScript or from a meta framework's own front end, and checking those reports "
@@ -222,7 +214,7 @@ public sealed class WriteExternalPropTypesTask : Task
         {
             Log.LogMessage(
                 MessageImportance.High,
-                $"Rask.External: wrote prop types for {components} component(s) to '{OutputDirectory}'.");
+                $"Rask islands: wrote prop types for {components} component(s) to '{OutputDirectory}'.");
         }
     }
 
@@ -284,7 +276,7 @@ public sealed class WriteExternalPropTypesTask : Task
     ///     Split from the reader above so it can be driven from a test. The map otherwise comes out of
     ///     PE metadata, and producing an assembly that declares islands is a compile — far more
     ///     apparatus than the rule being pinned, which is that an island with no file is named and that
-    ///     the naming carries <see cref="UnbuiltIslandCode" />. Without the code the warning cannot be
+    ///     the naming carries <see cref="ExternalDiagnosticCodes.UnbuiltIsland" />. Without the code the warning cannot be
     ///     suppressed by anybody, which is the whole of #1042.
     /// </remarks>
     internal void ReportUnbuiltIslands(IReadOnlyDictionary<string, string> modules)
@@ -334,7 +326,7 @@ public sealed class WriteExternalPropTypesTask : Task
             columnNumber: 0,
             endLineNumber: 0,
             endColumnNumber: 0,
-            message: $"Rask.External: '{island}' names the package '{package}' as its Module, but the "
+            message: $"Rask islands: '{island}' names the package '{package}' as its Module, but the "
             + "build did not find it before the compile, so its props were not read from the package "
             + "and its snapshot was not refreshed. Return the module as a constant string from the "
             + "class's own body — protected override string Module => \"" + package + "\"; — "
@@ -348,22 +340,39 @@ public sealed class WriteExternalPropTypesTask : Task
         // the target that invoked this task, exactly as before.
         Log.LogWarning(
             subcategory: null,
-            warningCode: UnbuiltIslandCode,
+            warningCode: ExternalDiagnosticCodes.UnbuiltIsland,
             helpKeyword: null,
             file: null,
             lineNumber: 0,
             columnNumber: 0,
             endLineNumber: 0,
             endColumnNumber: 0,
-            message: $"Rask.External: '{island}' declares the front-end file '{file}', which is not among "
+            message: $"Rask islands: '{island}' declares the front-end file '{file}', which is not among "
             + "the files this project will bundle. Its markup will render and its chunk will not "
             + "exist, so the browser reports \"'" + island + "' is not in the manifest\" and the "
             + "island never mounts. Either put the file where the island globs reach it, or declare "
             + "it explicitly with a <RaskExternal Include=\"…\"/> item. A project whose islands are "
             + "test fixtures with no module on purpose can demote this code with "
-            + "<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);" + UnbuiltIslandCode
+            + "<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);" + ExternalDiagnosticCodes.UnbuiltIsland
             + "</MSBuildWarningsAsMessages>.",
             messageArgs: null);
+    }
+
+    /// <summary>
+    ///     Writes <c>@rask/routes</c> — the project's <c>Routes</c> class and <c>Go</c>, for its front-end code —
+    ///     beside the prop types, or removes it when the assembly no longer carries one.
+    /// </summary>
+    private bool WriteRoutes()
+    {
+        var path = Path.Combine(OutputDirectory, ExternalBuildPlan.RoutesModule);
+        if (GeneratedTypeScript.Read(AssemblyPath, GeneratedNamespace, "RaskExternalRoutes")
+            .TryGetValue("TypeScript", out var routes))
+        {
+            return GeneratedTypeScript.WriteIfDifferent(path, routes);
+        }
+
+        File.Delete(path);
+        return false;
     }
 
     /// <summary>Deletes the <c>.d.ts</c> of a component that no longer exists.</summary>
@@ -383,7 +392,7 @@ public sealed class WriteExternalPropTypesTask : Task
             }
 
             File.Delete(file);
-            Log.LogMessage(MessageImportance.Low, $"Rask.External: removed stale '{Path.GetFileName(file)}'.");
+            Log.LogMessage(MessageImportance.Low, $"Rask islands: removed stale '{Path.GetFileName(file)}'.");
         }
     }
 
@@ -633,9 +642,12 @@ public sealed class WriteExternalPropTypesTask : Task
         catch (Exception ex)
         {
             Log.LogWarning(
-                $"Rask.External: could not read the declared runtimes ({ex.Message}). Solid, Preact and "
+                subcategory: null, warningCode: ExternalDiagnosticCodes.UnreadableRuntimes, helpKeyword: null,
+                file: null, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
+                message: $"Rask islands: could not read the declared runtimes ({ex.Message}). Solid, Preact and "
                 + "Angular islands will be type-checked with React's JSX settings, which will report "
-                + "errors that are not in your code.");
+                + "errors that are not in your code — rebuild the project (dotnet build --no-incremental) "
+                + "so the assembly is written afresh.");
 
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }

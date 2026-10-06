@@ -35,18 +35,20 @@ export const STYLES = [
   'fill', 'stroke', 'strokeWidth', 'backdropFilter',
 ];
 
-// Every `[data-preview-wrapper]` on `url`, measured in light and in dark. `prepare(page, scheme)` runs on
-// the loaded page before anything is measured.
-export async function measurePage(browser, url, shots, prepare) {
+// Every `[data-preview-wrapper]` on `url`, measured in light and in dark.
+export async function measurePage(browser, url, shots) {
   const schemes = {};
   for (const scheme of ['light', 'dark']) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
     // A fixed clock: a calendar that opens on today would measure differently every morning.
     await context.clock.setFixedTime(new Date('2026-01-15T12:00:00Z'));
+    // Motion at rest (rest, below), for Flux's page and Rask's alike: a look read mid-flight measures
+    // differently every run.
+    await context.addInitScript(`window.__fluxRest = ${rest}`);
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     await page.evaluate(() => document.fonts.ready);
-    if (prepare) await prepare(page, scheme);
+    await page.evaluate(() => window.__fluxRest());
     schemes[scheme] = await measure(page, join(shots, scheme));
     await context.close();
   }
@@ -59,18 +61,6 @@ async function measure(page, shots) {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('DOM.enable');
   await cdp.send('CSS.enable');
-
-  // A running animation is held at its first frame, not wherever the clock caught it: a spinner's angle or a
-  // shimmer half-way across would measure differently on every run. What the animation IS — duration,
-  // easing, keyframes — is recorded per node in collect(), and that is what the two sides are compared on.
-  await page.evaluate(() => {
-    for (const animation of document.getAnimations()) {
-      if (animation instanceof CSSAnimation && animation.playState === 'running') {
-        animation.pause();
-        animation.currentTime = 0;
-      }
-    }
-  });
 
   const wrappers = await page.$$('[data-preview-wrapper]');
   const examples = [];
@@ -104,8 +94,22 @@ async function measure(page, shots) {
   return examples;
 }
 
+// Runs in the page. Everything in motion, put where it rests: what ends (a transition, an entrance) at
+// its end — the state Flux draws — and what never ends (a spinner, a shimmer) on its first frame.
+function rest() {
+  for (const animation of document.getAnimations()) {
+    if (animation.effect?.getComputedTiming().endTime === Infinity) {
+      animation.pause();
+      animation.currentTime = 0;
+    } else {
+      animation.finish();
+    }
+  }
+}
+
 // Runs in the page. Every element of one example: where it is, what it is, how it computed.
 function collect(wrapper, { STYLES, index }) {
+  window.__fluxRest();
   // Flux's page names a section with the heading above it; a Rask parity page states it on the wrapper.
   const headings = [...document.querySelectorAll('h2[id]')];
   const section = wrapper.dataset.section
@@ -119,18 +123,6 @@ function collect(wrapper, { STYLES, index }) {
     const computed = getComputedStyle(el, pseudo);
     return Object.fromEntries(STYLES.map(k => [k, computed[k]]));
   };
-
-  // What moves, and how: each CSS animation's timing and keyframes, on the element or pseudo it runs on.
-  const animations = new Map();
-  for (const animation of document.getAnimations()) {
-    if (!(animation instanceof CSSAnimation)) continue;
-    const { target, pseudoElement } = animation.effect;
-    const { duration, delay, iterations, direction, fill } = animation.effect.getTiming();
-    const keyframes = animation.effect.getKeyframes().map(({ composite, computedOffset, ...frame }) => frame);
-    (animations.get(target) ?? animations.set(target, []).get(target)).push({
-      on: pseudoElement ?? '', name: animation.animationName, duration, delay, iterations: String(iterations), direction, fill, keyframes,
-    });
-  }
 
   const nodes = [];
   const interactive = [];
@@ -151,10 +143,8 @@ function collect(wrapper, { STYLES, index }) {
       if (content && content !== 'none' && content !== 'normal') node[pseudo] = { content, ...style(el, pseudo) };
     }
 
-    if (animations.has(el)) node.animations = animations.get(el);
     nodes.push(node);
-    // A marked part is measured in every state on both sides: `data-flux-*` there, `data-ui-*` here.
-    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux') || a.name.startsWith('data-ui-'));
+    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux'));
     if (interactive.length < 60 && (fluxed || el.matches('button, a, input, select, textarea, summary, label, [role], [tabindex]'))) {
       interactive.push(id);
     }
@@ -175,6 +165,7 @@ function diff({ STYLES, target }) {
   const changed = {};
   const el = document.querySelector(`[data-m="${target}"]`);
   if (!el) return changed;
+  window.__fluxRest();   // the state's own transition, taken to the end it settles on
   const computed = getComputedStyle(el);
   const base = window.__fluxBase[target];
   for (const k of STYLES) if (computed[k] !== base[k]) changed[k] = computed[k];

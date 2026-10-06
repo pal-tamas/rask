@@ -36,7 +36,7 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
 [CI](#ci)), so what you skip here you find out there, on `main`.
 
 1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`. CI's
-   `format` job runs the same verify after the push.
+   `format src` and `format tests` jobs run the same verify after the push.
 2. **Clean build, warnings-as-errors** —
    `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true`.
    Enforced in `Directory.Build.props` (`TreatWarningsAsErrors`, `EnableNETAnalyzers`,
@@ -153,7 +153,7 @@ you); bypass one with `--no-verify`.
 is that command; run it in a worktree at that commit:
 
 ```bash
-scripts/run-unit-local.sh                    # the "format" and "unit" jobs (RASK_UNIT_PART=format | tests runs one half)
+scripts/run-unit-local.sh                    # the build, unit and format jobs (RASK_UNIT_PART=build | tests-1/2 | format-src … runs one piece)
 scripts/run-e2e-local.sh                     # the "browser E2E" job
 scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
 scripts/run-all-gates.sh --list              # every gate, and what it needs
@@ -195,7 +195,9 @@ did not pass. `release.yml`'s `publish` job needs its `gates` job (both sets). A
   MDN snapshot to the latest stable data, records the public surface that moved with it
   (`scripts/public-api/record.py`) and moves the stated Node line to the Active LTS; the result is
   gated and THEN landed on `main`, with nobody watching. It opens an issue only when it needs a
-  person: the gates refused what upstream shipped, or Flux UI moved.
+  person: the gates refused what upstream shipped, or Flux UI moved. The Flux lock
+  (`tests/Rask.Ui.Tests/Flux/flux.lock.json`) is measured on its runner, so it is relocked there:
+  `gh workflow run upstream.yml -f relock=true`.
 - `dependabot-merge.yml` — merges a Dependabot pull request once `ci` has passed it. What must not
   move on its own is in `.github/dependabot.yml`'s ignore lists.
 
@@ -299,7 +301,9 @@ True of the scripts wherever they run — a CI job or your terminal.
   `-warnaserror`. The script exports `RASK_CLI_BUILD_E2E=1`; without it every case reports
   **SKIPPED** rather than passing silently.
 - **Templates — `scripts/run-template-e2e.sh`** (push set). Scaffolds `server`, `wasm` and
-  `wasm-hosted` through the dispatch `rask new` uses and builds what it wrote. Exports
+  `wasm-hosted` through the dispatch `rask new` uses and builds what it wrote. It also scaffolds a server
+  app per npm island runtime and runs the real island build (`npm install` and Vite), asserting the
+  manifest lists the scaffolded island: a compile-only row cannot see a scaffold that does not bundle. Exports
   `RASK_TEMPLATE_E2E=1`, with the same SKIPPED rule.
 - **Watch hot reload — `scripts/run-watch-e2e.sh`** (release set). See [the inner loop](#the-inner-loop).
 - **Deploy — `scripts/run-deploy-e2e-local.sh`** (release set). Points the real `rask deploy` at a
@@ -389,7 +393,7 @@ matter most are asserted by an offline unit test rather than by a comment:
 | `EfToolProbeTests` | the `dotnet-ef` floor the CLI checks for vs. the EF Core version in `Directory.Packages.props` |
 | `ResolveTypeScriptToolTaskTests` | reads `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
 
-They need no network and run in the ordinary unit gate — CI's `unit` job, on every push and
+They need no network and run in the ordinary unit gate — CI's `unit` jobs, on every push and
 every pull request — so the gate that runs for a version bump is the one that checks it was complete.
 
 **Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node
@@ -397,7 +401,7 @@ line elsewhere — the `22.12` build-floor figures quoted in `docs/islands.md`, 
 still only prose. `scripts/upstream/node-lts.sh` rewrites the stated line and the codename when the Active
 LTS moves, and `upstream.yml` lands it; the build floor is deliberately left alone.
 
-**Landing a Dependabot PR.** `ci.yml` runs the push set on the pull request, but `main` has no
+**Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (format, unit, CLI build, templates — the browser suites run on `main` after the merge), but `main` has no
 required checks, so a red run does not disable the merge button: read the run first. Then land it
 locally, not from the web UI — check the branch out and push it.
 
