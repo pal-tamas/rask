@@ -1383,6 +1383,13 @@ them until tagged releases begin.
   that fired it; one whose island is no longer on the rendered page is dropped with a warning that
   names it. DOM events before boot are still dropped, as before.
 
+- **An app scaffolded with `--islands blazor` builds a second time.** The Razor class library sits in a
+  folder of the app, and the app compiled everything under itself — so once the library had been built,
+  the next `dotnet build` (or the first `dotnet test`) picked up the library's `obj/` and stopped on
+  `CS0579: Duplicate 'AssemblyCompanyAttribute'`. All three templates now keep that folder out of the
+  app's sources, as they already did for the test project, and the template gate runs the scaffold's
+  own tests after building it.
+
 - **`rask new --template wasm --islands blazor` builds.** The scaffolded Razor class library referenced
   the ASP.NET shared framework, which a browser-WASM app does not have, so the first build stopped on
   `NETSDK1082`. It now references the `Microsoft.AspNetCore.Components.Web` package — the same types,

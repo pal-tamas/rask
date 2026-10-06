@@ -165,6 +165,21 @@ public sealed class IslandScaffoldTests
         Assert.Contains("export default ", island.Content, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("server")]
+    [InlineData("wasm")]
+    [InlineData("wasm-hosted")]
+    public void The_app_does_not_compile_the_Blazor_class_library_nested_in_its_folder(string template)
+    {
+        // The library sits in a folder of the app. Unexcluded, the app's own **/*.cs glob picks up the
+        // library's obj/ once it has been built, and the SECOND build stops on duplicate assembly attributes.
+        var files = ScaffoldFrom(template, "blazor");
+
+        var app = files.Single(f => f.Path.EndsWith($"{Path.DirectorySeparatorChar}Shop.csproj", StringComparison.Ordinal));
+
+        Assert.Contains("$(DefaultItemExcludes);Shop.Components/**", app.Content, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_Blazor_class_library_builds_for_the_browser_host_too()
     {
