@@ -67,28 +67,42 @@
     <Warning Condition="'$(_RaskLsSupported)' != 'true'"
              Text="Rask.SQLite.Litestream: litestream ships no binary for runtime '$(_RaskLsRid)'. Install litestream and set LitestreamOptions.ExecutablePath, or set RaskLitestreamDownload=false." />
 
-    <MakeDir Condition="'$(_RaskLsSupported)' == 'true'" Directories="$(_RaskLsCacheDir)" />
+    <!--
+      Fetched, verified and unpacked in a directory of this build's own, then moved into the cache. The
+      cache is per user, so two projects building for the first time at once (a solution, a test run)
+      shared one archive path: one download failed on the other's open file and the hash read a file
+      still being written. A rename is atomic, and both movers carry the same verified bytes.
+    -->
+    <PropertyGroup Condition="'$(_RaskLsSupported)' == 'true' and !Exists('$(_RaskLsBinary)')">
+      <_RaskLsFetch>true</_RaskLsFetch>
+      <_RaskLsStageDir>$(_RaskLsCacheDir).stage-$([System.Guid]::NewGuid().ToString('N'))$([System.IO.Path]::DirectorySeparatorChar)</_RaskLsStageDir>
+      <_RaskLsArchivePath>$(_RaskLsStageDir)$(_RaskLsAsset)</_RaskLsArchivePath>
+    </PropertyGroup>
 
-    <DownloadFile Condition="'$(_RaskLsSupported)' == 'true' and !Exists('$(_RaskLsBinary)')"
+    <MakeDir Condition="'$(_RaskLsFetch)' == 'true'" Directories="$(_RaskLsStageDir)" />
+
+    <DownloadFile Condition="'$(_RaskLsFetch)' == 'true'"
                   SourceUrl="$(_RaskLsUrl)"
-                  DestinationFolder="$(_RaskLsCacheDir)"
-                  DestinationFileName="$(_RaskLsAsset)"
-                  SkipUnchangedFiles="true" />
+                  DestinationFolder="$(_RaskLsStageDir)"
+                  DestinationFileName="$(_RaskLsAsset)" />
 
-    <GetFileHash Condition="'$(_RaskLsSupported)' == 'true' and '$(_RaskLsSha)' != '' and !Exists('$(_RaskLsBinary)')"
+    <GetFileHash Condition="'$(_RaskLsFetch)' == 'true' and '$(_RaskLsSha)' != ''"
                  Files="$(_RaskLsArchivePath)" Algorithm="SHA256">
       <Output TaskParameter="Hash" PropertyName="_RaskLsActualSha" />
     </GetFileHash>
-    <Error Condition="'$(_RaskLsSupported)' == 'true' and '$(_RaskLsSha)' != '' and !Exists('$(_RaskLsBinary)') and '$(_RaskLsActualSha.ToLowerInvariant())' != '$(_RaskLsSha.ToLowerInvariant())'"
+    <Error Condition="'$(_RaskLsFetch)' == 'true' and '$(_RaskLsSha)' != '' and '$(_RaskLsActualSha.ToLowerInvariant())' != '$(_RaskLsSha.ToLowerInvariant())'"
            Text="Rask.SQLite.Litestream: checksum mismatch for $(_RaskLsAsset). Expected $(_RaskLsSha), got $(_RaskLsActualSha). The download may be corrupt or tampered with." />
-    <Warning Condition="'$(_RaskLsSupported)' == 'true' and '$(_RaskLsSha)' == '' and !Exists('$(_RaskLsBinary)')"
+    <Warning Condition="'$(_RaskLsFetch)' == 'true' and '$(_RaskLsSha)' == ''"
              Text="Rask.SQLite.Litestream: no pinned checksum for litestream $(RaskLitestreamVersion) on $(_RaskLsRid); set RaskLitestreamSha256 to verify the download." />
 
-    <!-- Extract the binary (litestream / litestream.exe) into the cache. -->
-    <Exec Condition="'$(_RaskLsSupported)' == 'true' and '$(_RaskLsIsZip)' != 'true' and !Exists('$(_RaskLsBinary)')"
-          Command="tar -xzf &quot;$(_RaskLsArchivePath)&quot; -C &quot;$(_RaskLsCacheDir)&quot;" />
-    <Unzip Condition="'$(_RaskLsSupported)' == 'true' and '$(_RaskLsIsZip)' == 'true' and !Exists('$(_RaskLsBinary)')"
-           SourceFiles="$(_RaskLsArchivePath)" DestinationFolder="$(_RaskLsCacheDir)" />
+    <!-- Extract the binary (litestream / litestream.exe), then move it into the cache. -->
+    <Exec Condition="'$(_RaskLsFetch)' == 'true' and '$(_RaskLsIsZip)' != 'true'"
+          Command="tar -xzf &quot;$(_RaskLsArchivePath)&quot; -C &quot;$(_RaskLsStageDir)&quot;" />
+    <Unzip Condition="'$(_RaskLsFetch)' == 'true' and '$(_RaskLsIsZip)' == 'true'"
+           SourceFiles="$(_RaskLsArchivePath)" DestinationFolder="$(_RaskLsStageDir)" />
+    <Move Condition="'$(_RaskLsFetch)' == 'true' and !Exists('$(_RaskLsBinary)')"
+          SourceFiles="$(_RaskLsStageDir)litestream$(_RaskLsExeSuffix)" DestinationFiles="$(_RaskLsBinary)" />
+    <RemoveDir Condition="'$(_RaskLsFetch)' == 'true'" Directories="$(_RaskLsStageDir)" ContinueOnError="true" />
 
     <!-- Copy it next to the app on build and publish. -->
     <ItemGroup Condition="'$(_RaskLsSupported)' == 'true' and Exists('$(_RaskLsBinary)')">

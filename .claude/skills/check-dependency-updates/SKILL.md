@@ -7,7 +7,7 @@ description: Check every dependency axis in the Rask repo — NuGet, the Node LT
 
 The on-demand path. Dependabot covers NuGet, GitHub Actions and the site's own npm manifest weekly
 (`.github/dependabot.yml`), and
-`.github/workflows/lts-watch.yml` opens an issue when Node's Active LTS line moves. Neither sees the
+`.github/workflows/upstream.yml` moves the stated Node line when the Active LTS does. Neither sees the
 pins in §2, and nothing schedules a vulnerability scan any more — see the warning under §1.
 
 ## 1. NuGet (central package management)
@@ -56,7 +56,7 @@ user's own `package.json` once scaffolded.
 
 ## 3. Node
 
-`lts-watch.yml` reports this monthly, but to check by hand:
+`upstream.yml` follows this daily (`scripts/upstream/node-lts.sh`), but to check by hand:
 
 ```bash
 curl -fsS https://nodejs.org/dist/index.json | grep -o '"lts":"[^"]*"' | head -1
@@ -85,11 +85,10 @@ Edit the pins, then run the **`rask-ship`** gate (warnings-as-errors, so analyze
 SDK bump surface immediately). Note the bump in `CHANGELOG.md` when it is user-visible; routine
 Dependabot patch waves are not changelogged.
 
-**Land a Dependabot PR locally, never from the web UI.** Its PRs are authored server-side, so they
-never touch `.githooks/` — and `main` has no required checks, so a merge from the web is a version
-change that nothing built, formatted, or tested. Check the branch out, let `pre-commit` and
-`pre-push` run, and push. `Directory.Packages.props` is in `pre-push`'s `generator_paths`, so the CLI
-build gate runs too; budget for it.
+**Read the PR's `ci` run before landing a Dependabot PR.** `ci.yml` runs the push set of gates on
+every pull request, Dependabot's included, but `main` has no required checks: a red run does not
+block the merge button, so the run is yours to look at. Then land it locally, not from the web UI:
+check the branch out, drop the sign-off below, and push.
 
 Its commit ends `Signed-off-by: dependabot[bot] <support@github.com>`. CI lets that one line through
 on a PR Dependabot opened (so the PR's `commitlint` check is green and means something); `pre-push`

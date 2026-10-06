@@ -11,34 +11,36 @@ anyone can open issues and PRs — but **only the owner (@pal-tamas) can merge**
 
 ## Protect `main` (only the owner merges)
 **Settings → Branches → Add branch ruleset** (or classic protection) for `main`:
-- ✅ Require a pull request before merging
-  - ✅ Require approvals (1)
-  - ✅ **Require review from Code Owners** ← with `.github/CODEOWNERS` (`* @pal-tamas`) this means
-    no PR merges without the owner's approval.
+- ❌ Require a pull request before merging — **off**. `upstream.yml` lands what it regenerated with
+  the workflow's own token, which is not an admin and cannot bypass the rule; and the rule held
+  nobody else, because only the owner has write access and an outside contribution arrives from a
+  fork as a pull request whatever this says. Turn it back on and the daily run stops at `land`.
 - ✅ Require status checks to pass: see below — in practice this list stays **empty**.
 - ✅ Require branches to be up to date before merging.
-- ✅ Do not allow bypassing the above settings (so even pushes must go through PRs).
-- ✅ Restrict who can push to matching branches → only @pal-tamas (blocks direct pushes/merges).
+- ✅ Block force pushes and deletions.
+- Write access stays with @pal-tamas alone: that, not a branch rule, is what "only the owner merges" rests on.
 
 ### Why the required-checks list is empty
 
-**This repo gates locally, not in CI.** The unit suite, the browser E2E journeys, the CLI build gate
-and the payload-bytes gates all run from `.githooks/pre-commit` / `.githooks/pre-push`, so nothing
-leaves the machine unproven. `unit` and the `e2e` shards were listed here as required checks for a
-long time and could never have engaged — they do not run in CI at all. See
-[development-workflow.md](development-workflow.md).
+**CI runs the gates after the push, and blocks nothing.** The owner's own work lands on `main` by a
+direct push, so a required check would have nothing to hold: by the time `ci.yml` runs, the commit is
+already there. It runs the format check, the warnings-as-errors build, the unit suite, the browser
+E2E journeys, the CLI build and the template gate on every push to `main` and on every pull request,
+and a red `main` is fixed forward. See [development-workflow.md](development-workflow.md#ci).
 
-**GitHub does the bare minimum — only what GitHub alone can do:** `commitlint.yml`, `pages.yml`,
-`release.yml`, and `nightly.yml`'s prerelease publish. There is no `ci.yml`; the benchmark byte-gates
-it held moved into `.githooks/pre-push`. `commitlint` earns its place on the one path a local hook
-cannot reach: an **external** contribution, where the **PR title** becomes the squash commit on
-`main` and no `commit-msg` hook ever sees it. It triggers `on: pull_request` only, so it says nothing
-about the maintainer's own work — that lands by a direct push and is linted by `.githooks/commit-msg`
-instead (which also refuses AI-attribution trailers).
+**What a red run does stop is publishing.** `nightly.yml` and `pages.yml` trigger on `ci`'s
+completion and publish only from a commit it passed; `release.yml` runs every gate, the release-only
+ones included, before it packs. That is in the workflows, not in a branch setting, so it needs
+nothing configured here.
 
-The one CI gate that did exist rode red through three merges without stopping anyone
-([#919](https://github.com/pal-tamas/rask/issues/919)), which is what a non-required check on a repo
-with no required checks does. The fix was to give it teeth locally, not to start requiring it.
+`commitlint.yml` covers the one path a local hook cannot reach: an **external** contribution, where
+the **PR title** becomes the squash commit on `main` and no `commit-msg` hook ever sees it. It
+triggers `on: pull_request` only, so it says nothing about the maintainer's own work — that is linted
+by `.githooks/commit-msg` instead (which also refuses AI-attribution trailers).
+
+An unrequired check on a pull request is advisory: a red `ci` run does not disable the merge button
+([#919](https://github.com/pal-tamas/rask/issues/919) is a gate that rode red through three merges
+that way). Read the run before merging an external PR.
 
 If a required check is ever added, read the live state back — `contexts: []` means nothing is
 enforced, whatever this file claims:
@@ -62,6 +64,8 @@ JSON
 
 Only ever require a check that actually runs on every PR. A required check that is skipped — by a path
 filter, or because its workflow was deleted — blocks the branch for ever with no way to satisfy it.
+The gate jobs are named by `gates.yml`'s matrix (`format`, `unit`, `browser E2E`, …); requiring one
+means keeping that name in step with the list there.
 
 The reviews-and-restrictions half, set once (example):
 ```bash

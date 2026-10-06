@@ -39,6 +39,9 @@ internal static class AnsiConsoleFactory
             Ansi = ansi ? AnsiSupport.Yes : AnsiSupport.No,
             ColorSystem = color ? ColorSystemSupport.Detect : ColorSystemSupport.NoColors,
             Interactive = interactive ? InteractionSupport.Yes : InteractionSupport.No,
+            // The caller has already decided all three. Spectre's default enrichers look for a CI
+            // environment and switch interaction off behind that decision.
+            Enrichment = new ProfileEnrichment { UseDefaultEnrichers = false },
             Out = new AnsiConsoleOutput(writer),
         });
 

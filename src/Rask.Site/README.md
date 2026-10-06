@@ -36,7 +36,8 @@ dotnet test tests/Rask.Site.Tests      # page, routing and guide tests (unit)
 scripts/run-e2e-local.sh               # the browser E2E suite, tests/Rask.Site.E2E.Tests
 ```
 
-Every change here needs an E2E test. The E2E suite runs locally, not in CI.
+Every change here needs an E2E test. CI runs the suite on every push to `main`; the script above is the
+same run by hand.
 
 ## Layout
 

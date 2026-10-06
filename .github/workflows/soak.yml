@@ -1,0 +1,25 @@
+name: soak
+
+# What the runners do while nobody is pushing: the release-only gates, against main, around the clock.
+#
+# Those gates boot containers, download installers and scaffold from a packed feed, so most of what
+# breaks them is not a commit — an image leaves its registry, a download moves, a base image updates.
+# Run only at a release, that is found on the day of the release. Run here, it is found within hours
+# and a tag is cut from a main already known to pass them.
+on:
+  schedule:
+    - cron: '23 */3 * * *'   # every three hours, off the hour (the top of the hour is when Actions queues)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: soak
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    uses: ./.github/workflows/gates.yml
+    with:
+      set: release

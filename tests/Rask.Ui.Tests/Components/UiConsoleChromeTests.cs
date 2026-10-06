@@ -33,6 +33,18 @@ public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_figure_that_reports_a_problem_is_written_in_the_readable_ink()
+    {
+        var failed = Ui.Metric.Label("Failed").Value("3").Tone(Ui.Tone.Error).ToHtml();
+        var unproven = Ui.DetailRow.Label("Backup").Value("inconclusive").Tone(Ui.Tone.Warning).ToHtml();
+        var stat = Ui.Stat.Label("Failed").Value("3").Tone(Ui.Tone.Error).ToHtml();
+
+        Assert.Contains("text-ui-danger-ink", failed, StringComparison.Ordinal);
+        Assert.Contains("text-ui-warn-ink", unproven, StringComparison.Ordinal);
+        Assert.Contains("text-ui-danger-ink", stat, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_code_block_with_no_label_is_the_block_alone() =>
         Assert.StartsWith("<pre", Ui.Code.Content("{}").ToHtml(), StringComparison.Ordinal);
 
@@ -43,7 +55,7 @@ public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
 
         Assert.True(
             html.IndexOf("Last error", StringComparison.Ordinal) < html.IndexOf("<pre", StringComparison.Ordinal));
-        Assert.Contains("font-medium text-error", html, StringComparison.Ordinal);
+        Assert.Contains("font-medium text-ui-danger-ink", html, StringComparison.Ordinal);
     }
 
     [Fact]
