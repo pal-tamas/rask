@@ -54,6 +54,15 @@ Behaviour is measured too: open the page, use the component with keyboard and po
 - Markup, ARIA and keyboard are part of "exactly": same element, same roles, same states.
 - Follow `CLAUDE.md` and `docs/api-style.md`; XML-doc every public member in a line or two.
 
+**Form controls** take Flux's `Label` / `Description` / `DescriptionTrailing` / `Badge` and never draw a
+label themselves: implement `IUiFieldControl` (`ControlId` = `UiFieldId.Derive(Id, Bind, Label)`, `Bound` =
+`Bind`) and, in `Render`, `var field = UiWithField.For(this, Label, Description, DescriptionTrailing, Badge);`
+→ put `field.ControlId`, `data-ui-control` and `.Aria(field.Aria)` on the control's own element →
+`return field.Wrap(control);` (a checkbox, radio or switch: `field.Wrap(control, Ui.FieldVariant.Inline, controlFirst: true)`).
+A custom element is written as the native one that behaves that way without script (`ui-label` → `<label for>`);
+`parity.mjs`'s `NATIVE` table names each pair, and a stand-in for a control not rebuilt yet carries
+`data-parity-skip` (held to its place and size only).
+
 ## 3. Prove it
 1. `tests/Rask.Ui.Tests/Flux/Parity/<Name>Parity.cs` — derive from `FluxParity`, translate EVERY
    example on Flux's page (same order, same words; section = the `<h2>` id above it).
