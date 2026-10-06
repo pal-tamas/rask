@@ -1,6 +1,7 @@
 #nullable enable
 Rask.Auth.AuthEmailBodies
 Rask.Auth.AuthEmailBodies.AuthEmailBodies() -> void
+Rask.Auth.AuthEmailBodies.AlreadyRegistered(string! link, string! subject) -> string!
 Rask.Auth.AuthEmailBodies.Confirm(string! link, string! subject) -> string!
 Rask.Auth.AuthEmailBodies.Reset(string! link, string! subject, System.TimeSpan lifetime) -> string!
 Rask.Auth.AuthHost
@@ -33,6 +34,8 @@ Rask.Auth.AuthOptions.BearerLifetime.get -> System.TimeSpan
 Rask.Auth.AuthOptions.BearerLifetime.set -> void
 Rask.Auth.AuthOptions.BearerSigningKey.get -> string?
 Rask.Auth.AuthOptions.BearerSigningKey.set -> void
+Rask.Auth.AuthOptions.AlreadyRegisteredSubject.get -> string!
+Rask.Auth.AuthOptions.AlreadyRegisteredSubject.set -> void
 Rask.Auth.AuthOptions.ConfirmEmailPath.get -> string!
 Rask.Auth.AuthOptions.ConfirmEmailPath.set -> void
 Rask.Auth.AuthOptions.ConfirmEmailSubject.get -> string!
@@ -106,6 +109,7 @@ Rask.Auth.FirstRunToken.IsPending.get -> bool
 Rask.Auth.FirstRunToken.Matches(string? candidate) -> bool
 Rask.Auth.FirstRunToken.Value.get -> string?
 Rask.Auth.IAuthEmailBodies
+Rask.Auth.IAuthEmailBodies.AlreadyRegistered(string! link, string! subject) -> string!
 Rask.Auth.IAuthEmailBodies.Confirm(string! link, string! subject) -> string!
 Rask.Auth.IAuthEmailBodies.Reset(string! link, string! subject, System.TimeSpan lifetime) -> string!
 Rask.Auth.IAuthHostServices

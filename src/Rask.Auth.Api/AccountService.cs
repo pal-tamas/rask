@@ -19,8 +19,11 @@ namespace Rask.Auth;
 /// started (<see cref="AuthCookieEvents" />).
 /// </para>
 /// <para>
-/// No answer here tells a caller whether an address has an account: an unknown address costs a password check anyway, a
-/// reset request answers the same for every address, and "confirm your email" is only said after the right password.
+/// Sign-in and recovery never tell a caller whether an address has an account: an unknown address costs a password check
+/// anyway, a reset request answers the same for every address, and "confirm your email" is only said after the right
+/// password. <b>Registration does, unless <see cref="AuthOptions.RequireConfirmedEmail" /> is on.</b> With the gate off a new
+/// account is signed in on the spot, so "that address is taken" cannot be made to look like it; the throttle slows a list
+/// being walked and does not stop it. With the gate on, both answers are "confirm your email" and the owner is told by mail.
 /// </para>
 /// </remarks>
 /// <typeparam name="TUser">The application's user aggregate.</typeparam>
@@ -102,14 +105,37 @@ internal sealed partial class AccountService<TUser>(
         user.Register(normalized, hasher.Hash(password), now);
         apply?.Invoke(user);
 
-        if (await InsertAsync(user, normalized, attempt, cancellationToken).ConfigureAwait(false) is { } refused)
+        // Behind the confirmation gate a taken address and a new one get the same answer, so they have to cost the same
+        // too: every attempt counts, or five "taken" answers in a row would throttle where five new accounts do not.
+        if (options.RequireConfirmedEmail)
         {
-            return refused;
+            attempt.Fail();
+        }
+
+        if (!await InsertAsync(user, normalized, cancellationToken).ConfigureAwait(false))
+        {
+            return await TakenAsync(normalized, attempt, cancellationToken).ConfigureAwait(false);
         }
 
         await GrantRoleAsync(user, cancellationToken).ConfigureAwait(false);
 
         return await WelcomeAsync(user, cancellationToken).ConfigureAwait(false);
+    }
+
+    // The address already has an account. Said plainly where a new account would have been signed in — the two cannot be
+    // made to look alike — and answered exactly as a new account is where it would only have been asked to confirm.
+    private async Task<AccountOutcome> TakenAsync(
+        string normalized, AuthThrottle.Attempt attempt, CancellationToken cancellationToken)
+    {
+        if (!options.RequireConfirmedEmail)
+        {
+            attempt.Fail();
+            return Fail(AuthError.DuplicateAccount);
+        }
+
+        // The owner hears about it; whoever asked learns nothing. A send that fails is the mailer's to log.
+        await mail.SendAlreadyRegisteredAsync(normalized, cancellationToken).ConfigureAwait(false);
+        return Fail(AuthError.EmailNotConfirmed);
     }
 
     // Mails the confirmation link, then signs the new account in — unless the gate says it has to be proved first.
@@ -132,9 +158,8 @@ internal sealed partial class AccountService<TUser>(
         return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user));
     }
 
-    // Saves the new user, or answers why not.
-    private async Task<AccountOutcome?> InsertAsync(
-        TUser user, string normalized, AuthThrottle.Attempt attempt, CancellationToken cancellationToken)
+    // Saves the new user. False when the address already has an account.
+    private async Task<bool> InsertAsync(TUser user, string normalized, CancellationToken cancellationToken)
     {
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
@@ -145,8 +170,7 @@ internal sealed partial class AccountService<TUser>(
                     .AnyAsync(u => u.Email == normalized, cancellationToken)
                     .ConfigureAwait(false))
             {
-                attempt.Fail();
-                return Fail(AuthError.DuplicateAccount);
+                return false;
             }
 
             db.Add(user);
@@ -158,11 +182,11 @@ internal sealed partial class AccountService<TUser>(
             catch (DbUpdateException)
             {
                 // Two registrations for one address arrived together and the unique index kept one.
-                return Fail(AuthError.DuplicateAccount);
+                return false;
             }
         }
 
-        return null;
+        return true;
     }
 
     private async Task GrantRoleAsync(TUser user, CancellationToken cancellationToken)

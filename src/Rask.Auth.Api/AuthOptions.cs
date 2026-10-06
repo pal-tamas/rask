@@ -83,6 +83,12 @@ public sealed class AuthOptions
     public string ResetPasswordSubject { get; set; } = "Reset your password";
 
     /// <summary>
+    /// The subject line of the email an account's owner gets when somebody registers with their address while
+    /// <see cref="RequireConfirmedEmail" /> is on.
+    /// </summary>
+    public string AlreadyRegisteredSubject { get; set; } = "You already have an account";
+
+    /// <summary>
     /// The absolute origin to build email links against, when the app cannot know it from a request.
     /// </summary>
     /// <remarks>

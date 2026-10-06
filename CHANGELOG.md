@@ -922,6 +922,14 @@ them until tagged releases begin.
 
 ### Security
 
+- **Registering a taken address no longer reveals it once email confirmation is required.** Registration
+  answered `AuthError.DuplicateAccount` for an address that has an account, against the battery's own claim
+  that no answer tells a caller which addresses do. With `Rask:Auth:RequireConfirmedEmail` on, a taken
+  address now answers exactly as a new one ("confirm your email"), the owner is mailed "you already have an
+  account" (`AuthOptions.AlreadyRegisteredSubject`, `IAuthEmailBodies.AlreadyRegistered`), and every
+  attempt counts against the throttle. With it off — the default, since a new account is signed in at once —
+  `DuplicateAccount` stays, and the docs and comments now say that it does. **A custom `IAuthEmailBodies`**
+  gains one method to implement.
 - **Every `[Authorize]` on a CQRS handler is enforced, not only the last.** The codec generator kept one
   policy and one roles string per handler, so `[Authorize(Policy = "members")]` above
   `[Authorize(Policy = "billing")]` was never checked — while a page with the same two attributes required

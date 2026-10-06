@@ -250,7 +250,16 @@ same way. Guesses sent in parallel do not get extra tries: a sign-in counts agai
 so the sixth of six simultaneous wrong passwords is refused like the sixth of six in a row. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
 
 An unknown address costs a password check anyway, a reset request answers the same for every address, and "confirm
-your email" is only said after the right password — so no answer tells anybody which addresses have an account.
+your email" is only said after the right password — so signing in and recovering an account tell nobody which
+addresses have one.
+
+**Registering does, unless `RequireConfirmedEmail` is on.** By default a new account is signed in on the spot, so a
+taken address has to answer differently: `AuthError.DuplicateAccount`, "an account with that email already exists".
+That is the friendlier form and the throttle slows a list being walked through it, but it does not stop one. With
+`Rask:Auth:RequireConfirmedEmail` on, a taken address answers exactly as a new one does — "confirm your email" —
+the owner gets a "you already have an account" mail (`AlreadyRegisteredSubject`, body from `IAuthEmailBodies`)
+with a link to sign in, and every registration attempt counts against the throttle, taken or not. Turn it on
+where who has an account is itself sensitive; it needs a working mailer and `PublicOrigin`.
 
 ## Passkeys
 

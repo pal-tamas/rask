@@ -7,7 +7,8 @@ namespace Company.RaskServer.Features.Auth;
 internal static class AuthMessages
 {
     // InvalidCredentials never says which half was wrong: saying so would tell anybody which addresses have an
-    // account here.
+    // account here. DuplicateAccount does say it, and is only ever answered while Rask:Auth:RequireConfirmedEmail
+    // is off — turn that on and registering a taken address reads as "confirm your email" instead.
     public static string For(AuthError error) => error switch
     {
         AuthError.TooManyAttempts => "Too many attempts. Wait a minute and try again.",
