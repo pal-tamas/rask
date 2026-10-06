@@ -939,6 +939,14 @@ them until tagged releases begin.
 
 ### Security
 
+- **The build tools Rask downloads are verified against digests recorded in Rask, not ones fetched beside
+  them.** The Tailwind CLI was checked against its release's own `sha256sums.txt`, and esbuild, tsgo and the
+  `typescript` package against the registry's own `integrity` field — which catches a corrupted download
+  and nothing else, since whoever can replace the file can replace the checksum next to it. The digests
+  for the pinned versions now ship in the task assemblies, and a download that does not match fails the
+  build; **a Tailwind mismatch used to fall back to npm silently**. An app that overrides a tool version
+  gets a build warning and today's upstream check, or pins it with `RaskTailwindSha256`,
+  `RaskTsgoIntegrity` or `RaskExternalTypeScriptIntegrity`.
 - **The `rask dev` certificate authority can only sign for `.test` and loopback names.** The root it installs
   in the system trust store carried no name constraint, so the key under `~/.rask` could mint a certificate
   every browser on the machine accepts for any site. It now carries a critical NameConstraints extension —

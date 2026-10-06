@@ -426,6 +426,7 @@
                                Version="$(RaskTsgoVersion)"
                                CacheRoot="$(RaskTypeScriptCacheRoot)"
                                Registry="$(RaskTypeScriptRegistry)"
+                               ExpectedIntegrity="$(RaskTsgoIntegrity)"
                                Offline="$(RaskTypeScriptOffline)">
       <Output TaskParameter="ToolPath" PropertyName="_RaskExternalTsgoPath"/>
     </ResolveTypeScriptToolTask>
@@ -672,6 +673,7 @@
                                Version="$(RaskExternalTypeScriptVersion)"
                                CacheRoot="$(RaskTypeScriptCacheRoot)"
                                Registry="$(RaskTypeScriptRegistry)"
+                               ExpectedIntegrity="$(RaskExternalTypeScriptIntegrity)"
                                Offline="$(RaskTypeScriptOffline)">
       <Output TaskParameter="ToolPath" PropertyName="_RaskExternalTypeScriptPath"/>
     </ResolveTypeScriptToolTask>
