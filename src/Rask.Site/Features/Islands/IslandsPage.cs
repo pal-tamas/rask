@@ -3,12 +3,11 @@ using Rask.Core.Routing;
 namespace Rask.Site.Features.Islands;
 
 /// <summary>
-///     WASM showcase page for <see cref="IslandsDemo" /> — the same islands the Server host runs,
-///     from byte-identical front-end files.
+///     The page for <see cref="IslandsDemo" /> — front-end components as islands in a WebAssembly app.
 /// </summary>
 /// <remarks>
-///     This page is the point of the pair: the <c>.vue</c>, <c>.tsx</c> and <c>.svelte</c> are copies
-///     of the Server showcase's, and nothing in them knows which host they are on. What differs is
+///     Nothing in the <c>.vue</c>, <c>.tsx</c> and <c>.svelte</c> knows which host it is on: the same
+///     files build unchanged on the Server host. What differs is
 ///     underneath — a callback reaches C# through a <c>[JSExport]</c> call into this tab's runtime
 ///     instead of over a WebSocket.
 /// </remarks>
@@ -18,7 +17,7 @@ public sealed partial class IslandsPage : Component
 {
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "Islands demo: React, Vue, Svelte and Lit in C# — Rask",
+            "Islands demo: React, Vue, Svelte, Solid, Lit in C# — Rask",
             "Vue, React, Svelte, Solid and Lit components — and an npm React component used directly — "
             + "as ordinary C# components in a WebAssembly app.",
             Routes.IslandsPage());
@@ -28,7 +27,7 @@ public sealed partial class IslandsPage : Component
         H1.Class("text-3xl font-bold mb-1")["Islands on WebAssembly"],
         P.Class("text-ui-muted")[
             "An island is an ordinary Rask component whose markup a front-end framework produces. ",
-            "These are the same files the Server showcase builds — C# owns the props, the generated ",
+            "The same files build unchanged on the Server host — C# owns the props, the generated ",
             "types cross back into the ", Code[".vue"], ", the two ", Code[".tsx"], " and the ",
             Code[".svelte"], ", and the subtree is a diff boundary Rask never patches into. Only the ",
             "transport differs. The colour picker and its hex field have no front-end file at all: they are ",
@@ -43,11 +42,12 @@ public sealed partial class IslandsPage : Component
                 "Colorful.cs", "ColorfulHexColorPicker.props.json", "ColorfulHexColorInput.props.json",
                 "SvelteMeter.cs", "SvelteMeter.svelte",
                 "SolidSpark.cs", "SolidSpark.tsx",
+                "LitBadge.cs", "LitBadge.ts",
             ])
-            .Notes("Four runtimes in one tree, running client-side, and a package component nested inside "
+            .Notes("Five runtimes in one tree, running client-side, and a package component nested inside "
                 + "the React island as a child. The callback that reaches C# here does so through a "
-                + "[JSExport] call into this tab's own runtime; the front-end files are byte-identical to "
-                + "the Server showcase's.")
+                + "[JSExport] call into this tab's own runtime; on the Server host the same front-end files "
+                + "call back over the live socket.")
             .Result(IslandsDemo)
     ];
 }

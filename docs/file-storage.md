@@ -137,7 +137,7 @@ Bytes that don't come from a picker — a generated report, a file fetched from 
 overload. The stream is read to its end and not disposed:
 
 ```csharp
-await using var pdf = await invoices.RenderPdfAsync(invoiceId, ct);
+await using var pdf = await invoices.RenderPdf(invoiceId, ct);
 var saved = await Files.Save(pdf, "invoice.pdf");
 ```
 
@@ -239,7 +239,7 @@ the response to `Download`:
 ```csharp
 app.MapEndpoints(e => e.MapGet("/invoices/{id:guid}/pdf",
     async (Guid id, ClaimsPrincipal user, Invoices invoices) =>
-        await invoices.PdfFileIdForAsync(user, id) is Guid fileId
+        await invoices.PdfFileIdFor(user, id) is Guid fileId
             ? Files.Download(fileId)
             : Results.NotFound()));
 ```

@@ -39,7 +39,7 @@ app.MapRaskServer<RaskDashboardShell>("/_rask/{**path}");   // the dashboard, se
 app.MapRaskSpa();                                           // the app, everywhere else
 ```
 
-`rask new --ops` writes all of it on a server app, including the database the panels read. A wasm-hosted
+`rask new` turns all of it on for a server app (`--no-ops` leaves it out), including the database the panels read. A wasm-hosted
 app gets it from `RaskApp.Create(args).Serve()`, which mounts the dashboard under `/_rask` and maps the
 browser app's fallback after it; the lines above are the same thing by hand.
 

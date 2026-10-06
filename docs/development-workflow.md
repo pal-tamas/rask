@@ -533,8 +533,8 @@ matter most are asserted by an offline unit test rather than by a comment:
 | --- | --- |
 | `NodeRequirementTests` | `ScaffoldLine` vs. `rask.sh`, `rask.ps1`, and `docs/installation.md` (both platform columns, the `≥ NN.NN` sentence, the "Node NN LTS" summary) |
 | `PackagePinFamilyTests` | the Spectre and SQLitePCLRaw pairs, the one-version platform stack, and that every SQLite project can still reach the patched SQLitePCLRaw |
-| `ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin` | the WASM scaffold's framework version vs. `Directory.Packages.props` |
-| `TypeScriptCompilesTests`, `ResolveTypeScriptToolTaskTests` | read `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
+| `EfToolProbeTests` | the `dotnet-ef` floor the CLI checks for vs. the EF Core version in `Directory.Packages.props` |
+| `ResolveTypeScriptToolTaskTests` | reads `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
 
 They need no network and run in the ordinary unit gate — which `pre-commit` already triggers for any
 `Directory.` path, so the gate that fires for a version bump is the one that checks it was complete.

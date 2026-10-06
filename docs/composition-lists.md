@@ -38,7 +38,7 @@ requests:
 ```csharp
 ItemsProvider: async req =>
 {
-    var page = await _api.GetRowsAsync(req.StartIndex, req.Count, req.CancellationToken);
+    var page = await _api.GetRows(req.StartIndex, req.Count, req.CancellationToken);
     return new ItemsProviderResult<Row>(page.Items, page.TotalCount);
 }
 ```

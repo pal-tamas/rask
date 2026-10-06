@@ -469,7 +469,7 @@ the handler's ack, the WebAssembly runtime when its dispatch returns.
 
 ```csharp
 Ui.Button.Primary.OnClick(Save)["Save"]          // waits automatically
-Ui.Button.Loading(false).OnClick(StepAsync)[Ui.Icon.Name(Ui.IconName.Plus)]  // a stepper: presses queue
+Ui.Button.Loading(false).OnClick(Step)[Ui.Icon.Name(Ui.IconName.Plus)]  // a stepper: presses queue
 Ui.Button.Loading(_exporting)["Export"]                            // work that outlives the handler
 ```
 

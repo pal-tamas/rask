@@ -1254,6 +1254,26 @@ them until tagged releases begin.
   Also: the `Buttons` choice layout has its corner radius back (`rounded-btn` is not a daisyUI 5 class), a
   `Ui.Tone.Warning` toast shows the warning icon instead of a green check, and `dotnet pack` takes the
   kit's stylesheet from a target framework the project builds rather than whichever `obj/*/` sorts last.
+- **Docs, rask.sh and the package pages describe the framework as it is now.** A sweep of everything the
+  recent removals left behind. `llms.txt` no longer describes a wizard with styling, auth and battery
+  questions, front-end and meta-framework templates, opt-in `--pwa`/`--docker` flags, a `Rask`
+  meta-package, `ToListAsync`-style read terminals or batteries you have to add — and it indexes 37 guides
+  it did not list. The settings keys it names are the ones a scaffold writes (`Rask:Cultures`,
+  `Rask:Push:Subject`). `AGENTS.md` is described as what it is, the contributor guide; app guidance is
+  `llms.txt` and `docs/ai-agents.md`. The last factory-call snippets are chains:
+  ```csharp
+  Div()[items]                 // was
+  Div[items]                   // now
+  Input(() => model.X)         // was
+  Input.Bind(() => model.X)    // now
+  ```
+  `docs/testing.md` uses the names `Rask.Testing` has (`page.On("button").Click()`, `page.Invoke`), the
+  guides' own sample helpers drop their `Async` suffix, `docs/diagnostics.md` lists the MSBuild errors
+  (`RASKISLAND002`, `RASKSPA006/008/009`, `RASKDOM001/002`), and the docs index links twelve guides it left
+  out. On the site: the landing page says .NET 10, names the `Rask` package, describes the browser APIs as
+  MDN's surface through `Rask.Web`, and counts its diagnostics from the guide (87, pinned by a test); the
+  structured data links `Rask.Server`; the installed app's shortcut opens a page that exists. Six package
+  descriptions stop naming types that are gone (`IMail.SendAsync`, `IRaskSqliteConnectionFactory`).
 
 - **A Dependabot pull request is no longer red on arrival.** Every one failed `commitlint`, and not on
   its title: Dependabot ends each commit with `Signed-off-by: dependabot[bot] <support@github.com>`,

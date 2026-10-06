@@ -126,6 +126,18 @@ public sealed partial class HomePageTests : global::Rask.Core.RaskMarkup
         Assert.Equal(BrowserApiCount, RaskHostContracts.BrowserApis.Count + wasmOnly);
     }
 
+    /// <summary>The diagnostics count on the page is the number of sections the guide documents.</summary>
+    [Fact]
+    public void The_diagnostic_count_is_every_section_the_guide_documents()
+    {
+        var guide = global::Rask.Site.Features.GuideCatalog.ReadMarkdown("diagnostics")!;
+
+        var sections = guide.Split('\n').Count(line => line.StartsWith("## RASK", StringComparison.Ordinal));
+
+        Assert.Equal(global::Rask.Site.Pages.HomePage.DiagnosticCount, sections);
+        Assert.Contains($"{sections} compile-time diagnostics", Slice(FrontendId), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("vs Blazor")]
     [InlineData("vs-blazor")]
