@@ -1229,6 +1229,19 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`Mail.Send`, `Jobs.Enqueue` and every other static call now work inside a job, a durable handler and a
+  custom mail sender.** The three processors restored the tenant but never made the app reachable, so a
+  handler written the way the tutorial writes one threw "called outside any work in progress":
+  ```csharp
+  public async Task Handle(SendOrderReceipt job) =>
+      await Mail.Send(Email.To(job.Customer).Subject("Your receipt").Body(Receipt.OrderId(job.OrderId)));
+  ```
+  Each now binds its scope around the handler, as a request and a live session already did. A durable
+  handler and a queued email also run **for the user who started them** — `Current.UserId` reads the same
+  inside the handler as on the page that saved the change, where before only a job carried it.
+  **Upgrading adds a column to each table:** `rask db add AddOutboxUser && rask db add AddMailUser && rask db
+  update`. Until then each processor logs exactly that line instead of a generic failure.
+
 - **A Dependabot pull request is no longer red on arrival.** Every one failed `commitlint`, and not on
   its title: Dependabot ends each commit with `Signed-off-by: dependabot[bot] <support@github.com>`,
   which it cannot be configured to drop, and the attribution guard in the same job counts a bot

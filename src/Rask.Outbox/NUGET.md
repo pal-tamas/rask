@@ -37,7 +37,8 @@ modelBuilder.AddRaskOutbox(); // maps the OutboxMessage table
 ```
 
 In a multi-tenant app each message records the tenant the change was saved in, and the processor re-enters it
-before running the handler, so a handler reading a tenant-scoped table sees that tenant. `OutboxMessage.Where(…)`
+before running the handler, so a handler reading a tenant-scoped table sees that tenant. The user travels the same
+way (`Current.UserId`), and `Jobs.Enqueue(…)` or `Mail.Send(…)` work inside a handler. `OutboxMessage.Where(…)`
 queries the table with no context of your own.
 
 **Server-side.** The processor is a hosted `BackgroundService` and the store is your EF Core database

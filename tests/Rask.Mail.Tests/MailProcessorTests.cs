@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Data;
 
 namespace Rask.Mailing.Tests;
 
@@ -33,6 +34,20 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
         {
             await harness.Processor.StopAsync(CancellationToken.None);
         }
+    }
+
+    [Fact]
+    public async Task A_queued_email_records_the_user_it_was_sent_for()
+    {
+        var alice = Guid.NewGuid();
+        await using var harness = new MailHarness();
+
+        using (Current.UseUser(alice))
+        {
+            await harness.Queue.Send(SampleEmail(), TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(alice, (await harness.SingleMailAsync()).UserId);
     }
 
     [Fact]

@@ -269,6 +269,10 @@ public sealed partial class JobProcessor<TContext>(
         await using var jobScope = scope.ConfigureAwait(false);
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
+        // A job is work in progress like a request: the static facades (`Mail.Send`, `Jobs.Enqueue`) and the
+        // model's reads reach the app through this scope, with nothing injected into the handler.
+        using var work = Db.UseScope(scope.ServiceProvider);
+
         // Run AS the tenant the job was enqueued for. Without this a handler that reads a
         // tenant-scoped table throws, because background work carries no principal and so has no
         // tenant of its own — the drain sees every tenant's rows precisely so it can do this.

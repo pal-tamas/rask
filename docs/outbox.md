@@ -110,6 +110,9 @@ Two changes arrive together.
   then. The processor drains only while the app has a durable handler, so keep at least one until those rows are
   gone.
 
+A later release added a `UserId` column, the user a handler runs for. Add it with
+`rask db add AddOutboxUser && rask db update`; the processor logs that line until you do.
+
 ## How it works
 
 - **`OutboxInterceptor`**: in `SavingChanges`, writes an `OutboxMessage` row for each durable handler of each event
@@ -135,6 +138,9 @@ Two changes arrive together.
   tenant in flight when the change was saved, and the processor re-enters it before running the handler. So a
   handler that reads a tenant-scoped table sees the same tenant the change was made in, even though no one is
   signed in on the processor's thread. An event raised by the host itself, or inside `Tenant.Across()`, records none.
+- **So does the user.** Each row records `Current.UserId` when the change was saved, and the handler reads the same
+  value. A handler is work in progress like a request, so `Jobs.Enqueue(…)`, `Mail.Send(…)` and the model's reads
+  work inside it with nothing injected.
   The table is not partitioned by a filter, because one processor drains every tenant's events.
 - **`OutboxMessage` has a read face**, like every Rask.Data entity, so the queue can be queried with no context of
   your own: `OutboxMessage.Where(m => m.ProcessedAt == null).Count()`.

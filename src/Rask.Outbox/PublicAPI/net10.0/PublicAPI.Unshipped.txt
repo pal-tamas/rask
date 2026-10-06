@@ -12,6 +12,7 @@ Rask.Outbox.OutboxMessage.ProcessedAt.get -> System.DateTime?
 Rask.Outbox.OutboxMessage.Published(System.DateTime at) -> void
 Rask.Outbox.OutboxMessage.Release() -> void
 Rask.Outbox.OutboxMessage.Type.get -> string!
+Rask.Outbox.OutboxMessage.UserId.get -> System.Guid?
 Rask.Outbox.OutboxMessageConfiguration
 Rask.Outbox.OutboxMessageConfiguration.OutboxMessageConfiguration() -> void
 Rask.Outbox.OutboxMessageRead
@@ -36,6 +37,8 @@ Rask.Outbox.OutboxMessageRead.ProcessedAt.get -> System.DateTime?
 Rask.Outbox.OutboxMessageRead.ProcessedAt.init -> void
 Rask.Outbox.OutboxMessageRead.Type.get -> string!
 Rask.Outbox.OutboxMessageRead.Type.init -> void
+Rask.Outbox.OutboxMessageRead.UserId.get -> System.Guid?
+Rask.Outbox.OutboxMessageRead.UserId.init -> void
 Rask.Outbox.OutboxMessageRead.UpdatedAt.get -> System.DateTime
 Rask.Outbox.OutboxMessageRead.UpdatedAt.init -> void
 Rask.Outbox.OutboxMessageReadAccess
