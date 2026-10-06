@@ -1,4 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Batteries;
+using Rask.Data;
 
 namespace Rask.Background.Tests;
 
@@ -109,6 +111,92 @@ public sealed class JobsFakeTests
         await injected.Enqueue(new ChaseInvoice(7), TestContext.Current.CancellationToken).In(2.Hours);
 
         jobs.Enqueued<ChaseInvoice>().In(2.Hours).Once();
+    }
+
+    [Fact]
+    public async Task Run_sends_a_recorded_job_through_its_handler()
+    {
+        await using var app = App(out var recorder);
+        using var work = Ambient.Enter(app);
+        using var jobs = Jobs.Fake();
+        await Jobs.Enqueue(new RecordJob("receipt"), TestContext.Current.CancellationToken).In(24.Hours);
+
+        await jobs.Run(TestContext.Current.CancellationToken);
+
+        Assert.Equal(["receipt"], recorder.Values);
+    }
+
+    [Fact]
+    public async Task A_job_enqueued_by_a_running_handler_runs_in_the_same_Run()
+    {
+        await using var app = App(out var recorder);
+        using var work = Ambient.Enter(app);
+        using var jobs = Jobs.Fake();
+        await Jobs.Enqueue(new ChainJob("second"), TestContext.Current.CancellationToken);
+
+        await jobs.Run(TestContext.Current.CancellationToken);
+
+        Assert.Equal(["second"], recorder.Values);
+        jobs.Enqueued<RecordJob>().Once();
+    }
+
+    [Fact]
+    public async Task A_job_runs_as_the_user_who_enqueued_it()
+    {
+        var alice = Guid.NewGuid();
+        await using var app = App(out var recorder);
+        using var work = Ambient.Enter(app);
+        using var jobs = Jobs.Fake();
+        using (Current.UseUser(alice))
+        {
+            await Jobs.Enqueue(new WhoAmIJob("alice"), TestContext.Current.CancellationToken);
+        }
+
+        using (Current.UseUser(Guid.NewGuid()))
+        {
+            await jobs.Run(TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal([$"alice:{alice}"], recorder.Values);
+    }
+
+    [Fact]
+    public async Task Run_twice_does_not_run_a_job_again()
+    {
+        await using var app = App(out var recorder);
+        using var work = Ambient.Enter(app);
+        using var jobs = Jobs.Fake();
+        await Jobs.Enqueue(new RecordJob("once"), TestContext.Current.CancellationToken);
+
+        await jobs.Run(TestContext.Current.CancellationToken);
+        await jobs.Run(TestContext.Current.CancellationToken);
+
+        Assert.Equal(["once"], recorder.Values);
+    }
+
+    [Fact]
+    public async Task A_handler_that_throws_lets_its_exception_out_of_Run()
+    {
+        await using var app = App(out _);
+        using var work = Ambient.Enter(app);
+        using var jobs = Jobs.Fake();
+        await Jobs.Enqueue(new FailingJob(), TestContext.Current.CancellationToken);
+
+        var run = () => jobs.Run(TestContext.Current.CancellationToken);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(run);
+        Assert.Equal("boom", error.Message);
+    }
+
+    // The handlers and nothing else: no queue, no processor, no database.
+    private static ServiceProvider App(out Recorder recorder)
+    {
+        recorder = new Recorder();
+        var services = new ServiceCollection();
+        services.AddSingleton(recorder);
+        services.AddSingleton(new Gate());
+        services.AddRaskCqrs();
+        return services.BuildServiceProvider();
     }
 }
 

@@ -17,12 +17,12 @@ dotnet run -c Release --project tests/Rask.Benchmarks -- session-footprint
 
 | Page | Connected | Sessions per GiB |
 | --- | ---: | ---: |
-| Empty shell | 16 KB | ~66,000 |
-| 5-row table | 52 KB | ~20,300 |
-| 200-row grid | 1.39 MB | ~735 |
-| 1,000-row grid | 7.0 MB | ~146 |
+| Empty shell | 24 KB | ~45,000 |
+| 5-row table | 46 KB | ~23,000 |
+| 200-row grid | 0.86 MB | ~1,250 |
+| 1,000-row grid | 4.2 MB | ~250 |
 
-**Page size, not user count, is what moves this** — a ~450× swing across the sweep. Sessions are cheap
+**Page size, not user count, is what moves this** — a ~180× swing across the sweep. Sessions are cheap
 until the page isn't. See [sizing `MaxSessions`](configuration.md#sizing-maxsessions-for-a-memory-budget)
 for turning that into a cap, and note the two exclusions: Kestrel's ~32 KB per connection, and your own
 scoped services — one `DbContext` per session can dwarf everything in the table.

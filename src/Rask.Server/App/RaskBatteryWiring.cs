@@ -18,6 +18,7 @@ using Rask.Core.Browser;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Cqrs;
+using Rask.Cqrs.Server;
 using Rask.Dashboard;
 using Rask.Data;
 using Rask.Logging;
@@ -200,6 +201,11 @@ internal static class RaskBatteryWiring
         // read, a write's tenant stamp and Current.UserId.
         services.AddScoped<ClaimsPrincipalSource>();
         services.AddScoped<IPrincipalSource>(static sp => sp.GetRequiredService<ClaimsPrincipalSource>());
+
+        // The same user is who a handler's [Authorize] is held to when a page dispatches to it in-process, and
+        // ASP.NET's authorization is what decides a policy it names.
+        services.AddSingleton<IDispatchPrincipal, DispatchPrincipal>();
+        services.TryAddTransient<IPolicyEvaluator, AuthorizationPolicyEvaluator>();
 
         // A write refreshes the queries about what it wrote, on the screen of the session that made it:
         // Person.Create(model) refetches QueryKey.For<Person> queries with no invalidation to write.
@@ -627,7 +633,7 @@ internal static class RaskBatteryWiring
     // AddRaskWebPush binds the section itself.
     private static bool HasVapidKeys(ConfigurationManager configuration, RaskAppOptions options)
     {
-        var probe = new WebPushOptions();
+        var probe = new PushOptions();
         options.Push.Apply(probe);
         if (probe.VapidKeys is not null)
         {

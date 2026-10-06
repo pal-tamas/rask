@@ -3,7 +3,7 @@ using Rask.Querying;
 
 namespace Rask.Site.Features;
 
-// Publishes with Notify.Send, the same call a command handler or a background job makes and with nothing injected. It
+// Publishes with Dispatcher.Publish, the same call a command handler or a background job makes and with nothing injected. It
 // holds no reference to the boards below — they only subscribe to OrderPlaced — so a board anywhere else (or, on a
 // server, in anyone else's open tab) would receive the same order.
 public sealed partial class SubscriptionDemo : Component
@@ -38,7 +38,7 @@ public sealed partial class SubscriptionDemo : Component
     };
 
     private Task PlaceOrder() =>
-        Notify.Send(new OrderPlaced(++_placed, Items[(_placed - 1) % Items.Length]));
+        Dispatcher.Publish(new OrderPlaced(++_placed, Items[(_placed - 1) % Items.Length]));
 
-    private Task ShipOrder() => Notify.Send(new OrderShipped(_placed));
+    private Task ShipOrder() => Dispatcher.Publish(new OrderShipped(_placed));
 }

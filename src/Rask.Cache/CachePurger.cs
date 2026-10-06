@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace Rask.Caching;
 
 /// <summary>
-/// Sweeps expired <see cref="CacheEntry"/> rows out of the table on a schedule (<see cref="CacheOptions.PurgeInterval"/>).
+/// Sweeps expired <see cref="CacheEntry"/> rows out of the table on a schedule (<see cref="CacheOptions.SweepInterval"/>).
 /// Reads renew and lazily evict entries, so this sweep is a bulk backstop for entries that are simply never read
 /// again. A transient database error never crashes the app. Run <b>one purger per app</b> (SQLite is single-writer).
 /// </summary>
@@ -20,7 +20,7 @@ public sealed partial class CachePurger<TContext>(
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(options.PurgeInterval);
+        using var timer = new PeriodicTimer(options.SweepInterval);
         try
         {
             do

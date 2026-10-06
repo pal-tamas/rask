@@ -80,3 +80,7 @@ One commit per component, the solution building throughout:
 
 Then the `rask-ship` gate and `land-on-main`. Screenshot the showcase demo in light and dark
 (`run-rask`) before landing.
+
+When the daily run reports that Flux moved: `flux.lock.json` is CI's, measured on its Linux runner, so
+a local `node scripts/flux/sync.mjs <slug>` measures for `parity.mjs` but compares nothing. Match the
+component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.

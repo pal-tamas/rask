@@ -110,8 +110,8 @@
     <!-- The browser host, with the trim-safe client batteries it brings: the mediator, the query cache,
          remote dispatch, accounts and validation. -->
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
-    <!-- The islands showcase. Same front-end files as the Server sample, bundled here because the
-         client runtime resolves the manifest app-rooted at /_rask/external/manifest.json. -->
+    <!-- The islands page (Features/Islands): the island base classes, and the build layer that
+         bundles their front-end files into wwwroot/_rask/external. -->
     <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <!-- Arrived with the guides and demos when the Shared library folded into this project. Rask.Core
          is named explicitly rather than left to the host package: the library used to carry it,

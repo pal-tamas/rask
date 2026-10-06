@@ -21,8 +21,14 @@ public sealed class IslandScaffoldTests
     public static TheoryData<string> Runtimes() => [.. IslandRuntimes.All];
 
     private static IReadOnlyList<ScaffoldFile> Scaffold(params string[] runtimes) =>
+        ScaffoldFrom("server", runtimes);
+
+    private static IReadOnlyList<ScaffoldFile> ScaffoldFrom(string template, params string[] runtimes) =>
         TemplateMaterializer.Files(
-            Target, "server", "Shop", new ServerBatteries(), "9.9.9", runtimes);
+            Target, template, "Shop", new ServerBatteries(), "9.9.9", runtimes);
+
+    private static string HomePage(IReadOnlyList<ScaffoldFile> files) =>
+        files.Single(f => string.Equals(Path.GetFileName(f.Path), "HomePage.cs", StringComparison.Ordinal)).Content;
 
     [Theory]
     [MemberData(nameof(Runtimes))]
@@ -148,16 +154,76 @@ public sealed class IslandScaffoldTests
     [Fact]
     public void Lit_and_Angular_can_share_a_project()
     {
-        // They used to disagree: Lit 3's `accessor` form needs experimentalDecorators OFF and Angular
-        // needs it ON, so a project holding both could not type-check either way. The Lit fragment is
-        // written in the legacy form, which works under ON.
-        var tsconfig = TsConfig(Scaffold("lit", "angular"));
+        // Angular needs experimentalDecorators ON and Lit 3's `accessor` form needs it OFF. The Lit
+        // fragment decorates nothing, so the setting Angular needs costs it nothing.
+        var files = Scaffold("lit", "angular");
 
-        Assert.True(tsconfig.GetProperty("compilerOptions").GetProperty("experimentalDecorators").GetBoolean());
+        var lit = files.Single(f => f.Path.EndsWith("LitBadge.ts", StringComparison.Ordinal));
 
-        var lit = Scaffold("lit").Single(f => f.Path.EndsWith("LitBadge.ts", StringComparison.Ordinal));
-
+        Assert.True(TsConfig(files).GetProperty("compilerOptions").GetProperty("experimentalDecorators").GetBoolean());
+        Assert.DoesNotContain("lit/decorators", lit.Content, StringComparison.Ordinal);
         Assert.DoesNotContain("accessor ", lit.Content, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("react", ".tsx")]
+    [InlineData("preact", ".tsx")]
+    [InlineData("solid", ".tsx")]
+    [InlineData("lit", ".ts")]
+    [InlineData("angular", ".ts")]
+    public void A_script_island_default_exports_what_the_generated_entry_imports(string runtime, string extension)
+    {
+        // The build's entry is `import X from './Island'` for every runtime. A fragment with only a
+        // named export scaffolds, compiles its C#, and fails the first real bundle.
+        var files = Scaffold(runtime);
+
+        var island = files.Single(f => f.Path.EndsWith(extension, StringComparison.Ordinal)
+                                       && f.Path.Contains("Islands", StringComparison.Ordinal));
+
+        Assert.Contains("export default ", island.Content, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("server")]
+    [InlineData("wasm")]
+    [InlineData("wasm-hosted")]
+    public void The_app_does_not_compile_the_Blazor_class_library_nested_in_its_folder(string template)
+    {
+        // The library sits in a folder of the app. Unexcluded, the app's own **/*.cs glob picks up the
+        // library's obj/ once it has been built, and the SECOND build stops on duplicate assembly attributes.
+        var files = ScaffoldFrom(template, "blazor");
+
+        var app = files.Single(f => f.Path.EndsWith($"{Path.DirectorySeparatorChar}Shop.csproj", StringComparison.Ordinal));
+
+        Assert.Contains("$(DefaultItemExcludes);Shop.Components/**", app.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_Blazor_class_library_builds_for_the_browser_host_too()
+    {
+        // A browser-WASM app has no ASP.NET shared framework: a FrameworkReference there is NETSDK1082,
+        // and `rask new --template wasm --islands blazor` did not build. The package is the same types.
+        var pinned = RepoPins.Packages()["Microsoft.AspNetCore.Components.Web"];
+
+        var library = Scaffold("blazor").Single(f => f.Path.EndsWith(".Components.csproj", StringComparison.Ordinal));
+
+        Assert.DoesNotContain("<FrameworkReference", library.Content, StringComparison.Ordinal);
+        Assert.Contains(
+            $"<PackageReference Include=\"Microsoft.AspNetCore.Components.Web\" Version=\"{pinned}\"/>",
+            library.Content,
+            StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(Runtimes))]
+    public void Every_bundled_runtime_brings_the_bundler(string runtime)
+    {
+        var manifest = Scaffold(runtime).SingleOrDefault(f => Path.GetFileName(f.Path) == "package.json");
+
+        var bundled = manifest is not null;
+
+        Assert.Equal(runtime != "blazor", bundled);
+        Assert.True(!bundled || manifest!.Content.Contains("\"vite\"", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -201,6 +267,86 @@ public sealed class IslandScaffoldTests
 
         Assert.DoesNotContain("Rask.External", csproj.Content, StringComparison.Ordinal);
         Assert.DoesNotContain("Rask.Blazor", csproj.Content, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("server")]
+    [InlineData("wasm")]
+    public void The_home_page_renders_every_chosen_island(string template)
+    {
+        // Files nothing renders are files the user never sees working: the island has to be on the
+        // first page the app serves.
+        var home = HomePage(ScaffoldFrom(template, "react", "lit", "blazor"));
+
+        Assert.Contains("ReactCounter.Caption(", home, StringComparison.Ordinal);
+        Assert.Contains("LitBadge.Caption(", home, StringComparison.Ordinal);
+        Assert.Contains("BlazorCounterIsland.Caption(", home, StringComparison.Ordinal);
+        Assert.DoesNotContain("VueCounter", home, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(Runtimes))]
+    public void The_home_page_names_the_class_the_runtime_scaffolds(string runtime)
+    {
+        // The page and the fragment are two places that name one class, and the build is the only
+        // other thing that would notice them disagree.
+        var files = Scaffold(runtime);
+
+        var island = Path.GetFileNameWithoutExtension(files
+            .Single(f => f.Path.Contains("Islands", StringComparison.Ordinal)
+                         && f.Path.EndsWith(".cs", StringComparison.Ordinal)).Path);
+
+        Assert.Contains(island + ".Caption(", HomePage(files), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("server")]
+    [InlineData("wasm")]
+    public void A_project_with_no_islands_has_no_island_markup_on_its_home_page(string template)
+    {
+        var home = HomePage(ScaffoldFrom(template));
+
+        Assert.DoesNotContain("Island", home, StringComparison.Ordinal);
+        Assert.DoesNotContain("rask:", home, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_browser_test_project_compiles_the_islands_its_home_page_renders()
+    {
+        // That project compiles the app's sources a second time. It used to leave Features/Islands out,
+        // which a home page that names an island turns into a test project that does not build.
+        var csproj = TemplateMaterializer
+            .Files(Target, "wasm", "Shop", new ServerBatteries { Tests = true }, "9.9.9", ["lit", "blazor"])
+            .Single(f => f.Path.EndsWith("Shop.Tests.csproj", StringComparison.Ordinal)).Content;
+
+        Assert.DoesNotContain("Compile Remove", csproj, StringComparison.Ordinal);
+        Assert.Contains("Include=\"Rask.External\"", csproj, StringComparison.Ordinal);
+        Assert.Contains("Include=\"Rask.Blazor\"", csproj, StringComparison.Ordinal);
+        Assert.Contains("Shop.Components.csproj", csproj, StringComparison.Ordinal);
+    }
+
+    public static TheoryData<string> Combinations() =>
+    [
+        "",
+        .. IslandRuntimes.All,
+        "react blazor",
+        "lit angular",
+        string.Join(' ', IslandRuntimes.All.Where(runtime => runtime != "preact")),
+    ];
+
+    [Theory]
+    [MemberData(nameof(Combinations))]
+    public void The_home_page_is_well_formed_whichever_islands_are_on_it(string runtimes)
+    {
+        // Conditional siblings in one indexer: the comma between them is what breaks, and it breaks
+        // for one combination rather than for all of them.
+        var home = HomePage(Scaffold(runtimes.Split(' ', StringSplitOptions.RemoveEmptyEntries)));
+
+        var dense = string.Concat(home.Where(c => !char.IsWhiteSpace(c)));
+
+        Assert.DoesNotContain(",]", dense, StringComparison.Ordinal);
+        Assert.Equal(home.Count(c => c == '['), home.Count(c => c == ']'));
+        Assert.DoesNotContain("rask:", home, StringComparison.Ordinal);
     }
 
     [Fact]

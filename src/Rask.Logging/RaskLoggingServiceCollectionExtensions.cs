@@ -25,15 +25,15 @@ public static class RaskLoggingServiceCollectionExtensions
     /// <see cref="AddRaskLogging{TContext}"/> instead.
     /// </para>
     /// <para>
-    /// <see cref="RaskLoggingOptions"/> reads the <c>Rask:Logs</c> configuration section first and then
+    /// <see cref="LogsOptions"/> reads the <c>Rask:Logs</c> configuration section first and then
     /// <paramref name="configure"/>, so code wins. The schema is created on first use — there is no migration to
-    /// add. Entries below <see cref="RaskLoggingOptions.MinimumLevel"/> are skipped, and so is anything your
+    /// add. Entries below <see cref="LogsOptions.MinimumLevel"/> are skipped, and so is anything your
     /// <c>Logging:LogLevel</c> configuration already filtered, since that runs first.
     /// </para>
     /// </summary>
     public static IServiceCollection AddRaskLogging(
         this IServiceCollection services,
-        Action<RaskLoggingOptions>? configure = null)
+        Action<LogsOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -41,7 +41,7 @@ public static class RaskLoggingServiceCollectionExtensions
         // reported, naming the key to set.
         return AddStore(services, configure, static sp => new SqliteLogStore(
             RaskOptionsRegistration.ConnectionString(sp, "Logs"),
-            sp.GetRequiredService<RaskLoggingOptions>(),
+            sp.GetRequiredService<LogsOptions>(),
             sp.GetRequiredService<TimeProvider>()));
     }
 
@@ -63,11 +63,11 @@ public static class RaskLoggingServiceCollectionExtensions
     /// through <typeparamref name="TContext"/>.
     /// </para>
     /// <para>
-    /// <see cref="RaskLoggingOptions"/> reads the <c>Rask:Logs</c> section first and then
+    /// <see cref="LogsOptions"/> reads the <c>Rask:Logs</c> section first and then
     /// <paramref name="configure"/>, as the file store's do. On SQLite prefer
-    /// <see cref="AddRaskLogging(IServiceCollection, Action{RaskLoggingOptions}?)"/>: a file of its own keeps a
-    /// machine-rate writer off the single write lock your requests share. <see cref="RaskLoggingOptions.Pragmas"/>
-    /// and <see cref="RaskLoggingOptions.BusyRetry"/> do not apply here. Register <typeparamref name="TContext"/> as
+    /// <see cref="AddRaskLogging(IServiceCollection, Action{LogsOptions}?)"/>: a file of its own keeps a
+    /// machine-rate writer off the single write lock your requests share. <see cref="LogsOptions.Pragmas"/>
+    /// and <see cref="LogsOptions.BusyRetry"/> do not apply here. Register <typeparamref name="TContext"/> as
     /// an <see cref="IDbContextFactory{TContext}"/>; a model that never mapped the table fails the boot with the line
     /// to add. Idempotent.
     /// </para>
@@ -75,7 +75,7 @@ public static class RaskLoggingServiceCollectionExtensions
     /// <typeparam name="TContext">The application <see cref="DbContext"/> whose model maps the log table.</typeparam>
     public static IServiceCollection AddRaskLogging<TContext>(
         this IServiceCollection services,
-        Action<RaskLoggingOptions>? configure = null)
+        Action<LogsOptions>? configure = null)
         where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -93,13 +93,13 @@ public static class RaskLoggingServiceCollectionExtensions
 
     private static IServiceCollection AddStore(
         IServiceCollection services,
-        Action<RaskLoggingOptions>? configure,
+        Action<LogsOptions>? configure,
         Func<IServiceProvider, ILogs> store)
     {
-        services.AddRaskOptions<RaskLoggingOptions>(
+        services.AddRaskOptions<LogsOptions>(
             "Rask:Logs", static (section, o) => section.Bind(o), configure, validate: null);
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IValidateOptions<RaskLoggingOptions>, RaskLoggingOptionsValidator>());
+            ServiceDescriptor.Singleton<IValidateOptions<LogsOptions>, LogsOptionsValidator>());
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<LogMetrics>();
         services.TryAddSingleton<LogChannel>();

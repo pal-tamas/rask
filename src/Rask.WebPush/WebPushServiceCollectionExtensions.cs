@@ -16,12 +16,12 @@ public static class WebPushServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddRaskWebPush(
         this IServiceCollection services,
-        Action<WebPushOptions>? configure = null)
+        Action<PushOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         // A second call registers nothing — before, it added a second options instance and a second typed client.
-        if (!services.AddRaskOptions<WebPushOptions>(
+        if (!services.AddRaskOptions<PushOptions>(
                 "Rask:Push", static (section, o) => section.Bind(o), configure, static o => o.Validate()))
         {
             return services;
@@ -42,14 +42,14 @@ public static class WebPushServiceCollectionExtensions
     /// </remarks>
     public static IServiceCollection AddRaskWebPush<TContext>(
         this IServiceCollection services,
-        Action<WebPushOptions>? configure = null)
+        Action<PushOptions>? configure = null)
         where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(services);
 
         // Validated at the first send (WebPushSender checks its options when it is built), not at start. An app that
         // also called AddRaskWebPush() first keeps that call's start-time validation: the options are registered once.
-        if (services.AddRaskOptions<WebPushOptions>(
+        if (services.AddRaskOptions<PushOptions>(
                 "Rask:Push", static (section, o) => section.Bind(o), configure, validate: null))
         {
             AddSender(services);
@@ -66,12 +66,12 @@ public static class WebPushServiceCollectionExtensions
         return services;
     }
 
-    // Typed client: IHttpClientFactory supplies the HttpClient; WebPushOptions + the optional ILogger resolve
+    // Typed client: IHttpClientFactory supplies the HttpClient; PushOptions + the optional ILogger resolve
     // from DI. ONE registration for the sender alone and for the battery — the battery's used to leave the
     // handler at its defaults, so the path every scaffolded app takes still followed redirects.
     private static void AddSender(IServiceCollection services) =>
         services.AddHttpClient<IWebPush, WebPushSender>()
             .ConfigureHttpClient(static (provider, http) =>
-                http.Timeout = provider.GetRequiredService<WebPushOptions>().SendTimeout)
+                http.Timeout = provider.GetRequiredService<PushOptions>().SendTimeout)
             .ConfigurePrimaryHttpMessageHandler(static () => PushConnection.Handler());
 }
