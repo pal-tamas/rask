@@ -55,13 +55,11 @@ if (release && release !== lock.release) {
 if (baseline) lock.pages = {};
 const browser = await chromium().launch();
 for (const page of snapshot.pages.filter(p => only.length === 0 || only.includes(p.slug))) {
-  const dir = join(root, 'artifacts', 'flux-parity', 'flux', page.slug);
-  const schemes = await measurePage(browser, `https://fluxui.dev/${page.kind}/${page.slug}`, dir);
-  await mkdir(dir, { recursive: true });
-  await writeFile(join(dir, 'measurements.json'), JSON.stringify(schemes));
-
-  const prints = fingerprints(schemes);
-  if (compare && lock.pages[page.slug]) moved.push(...lookChanges(page.slug, lock.pages[page.slug], prints));
+  const known = compare && lock.pages[page.slug];
+  let prints = await measure(page);
+  // Moved means REPRODUCIBLY moved: Flux draws some examples at random, so a difference is measured twice.
+  if (known && !alike(known, prints)) prints = twice(page.slug, known, prints, await measure(page));
+  if (known) moved.push(...lookChanges(page.slug, known, prints));
   if (compare || baseline) lock.pages[page.slug] = prints;
   console.log(`flux sync: measured ${page.slug} (${Object.keys(prints).length / 2} examples)`);
 }
@@ -77,6 +75,34 @@ console.log(moved.length
   ? `\nflux sync: Flux moved in ${moved.length} place(s):\n  ${moved.join('\n  ')}`
   : `\nflux sync: ${compare ? 'Flux is where Rask.Ui last matched it' : 'the catalogue and the release are where Rask.Ui last matched them'}.`);
 process.exit(moved.length ? 2 : 0);
+
+// Measures a page, leaves what parity.mjs reads, and hands back its fingerprints.
+async function measure(page) {
+  const dir = join(root, 'artifacts', 'flux-parity', 'flux', page.slug);
+  const schemes = await measurePage(browser, `https://fluxui.dev/${page.kind}/${page.slug}`, dir);
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, 'measurements.json'), JSON.stringify(schemes));
+  return fingerprints(schemes);
+}
+
+function alike(a, b) {
+  return Object.keys({ ...a, ...b }).every(key => a[key] === b[key]);
+}
+
+// Two fresh measurements of one page: where they agree, that is the look; where they do not, the
+// example is unstable — it keeps what the lock holds and is never reported.
+function twice(slug, known, first, second) {
+  const prints = {};
+  const unstable = new Set();
+  for (const key of Object.keys({ ...first, ...second })) {
+    if (first[key] !== second[key]) unstable.add(key.slice(key.indexOf('/') + 1));
+    const print = first[key] === second[key] ? first[key] : known[key];
+    if (print) prints[key] = print;
+  }
+
+  if (unstable.size) console.log(`flux sync: ${slug} ${[...unstable].join(', ')} does not measure the same twice; ignored`);
+  return prints;
+}
 
 // One line per page for the report; the examples behind it go to the log.
 function lookChanges(slug, known, prints) {
