@@ -922,6 +922,14 @@ them until tagged releases begin.
 
 ### Security
 
+- **The WASM service worker no longer keeps a signed-in visitor's responses after they sign out.** It stored
+  every successful same-origin GET, ignoring `Cache-Control`, so `/api/…` answers stayed in Cache Storage and
+  were replayed offline to whoever used the browser next. It now keeps the app shell only — navigations,
+  scripts, styles, fonts, images, `_framework/`, `_rask/`, `_content/` — never a response marked `no-store`
+  or `private`, and anything else only when the server marks it `Cache-Control: public`. `Auth.SignOut()`,
+  `SignOutEverywhere()` and `WasmAuthSignIn.SignOut` empty the cache. **An app that relied on `fetch`ed API
+  GETs being available offline** marks those responses `public`, or keeps the data in a local store.
+  `BrowserAuth` and `WasmAuthSignIn` take an `IJSRuntime`, which only matters to code constructing them by hand.
 - **An island is loaded from the page's own origin only.** `rask-external.js` fetched whatever URL an
   element's `manifest` attribute named and imported the chunk it listed, so an app rendering sanitized user
   HTML through a sanitizer that keeps unknown elements could be handed

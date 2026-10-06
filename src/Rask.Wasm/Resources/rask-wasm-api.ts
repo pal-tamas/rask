@@ -6,6 +6,16 @@
 // by Rask.Web's patches in the shared runtime (Rask.Core/Resources/rask-web-patches.ts). Only the manifest injector
 // (page-side boot behaviour WASM provides) stays here.
 
+import { RASK_CACHE } from "./rask-offline-cache.js";
+
+// The offline cache, emptied when the visitor signs out (WasmAuthSignIn / BrowserAuth). Whatever the
+// worker kept was kept for the person who was signed in; the online navigation that follows refills
+// the shell. `caches` is absent outside a secure context, where there is no worker and nothing to drop.
+window.__raskOffline = window.__raskOffline || {
+    clear: (): Promise<boolean> =>
+        typeof caches === "undefined" ? Promise.resolve(false) : caches.delete(RASK_CACHE).catch(() => false),
+};
+
 // PWA web app manifest (driven by WasmHostBuilder.UseManifest / WebAppManifest). Applied at boot:
 // relative URLs are made absolute (against <base href>, so sub-path deploys stay correct), then the
 // manifest is injected as a data: URL <link rel="manifest"> plus, when the page declares none, a

@@ -79,6 +79,8 @@
   -->
   <ItemGroup>
     <_RaskNodeFixture Include="JSInterop\*Fixture.ts"/>
+    <!-- OfflineCacheFixture imports this one source directly; an edit to it has to re-bundle the fixture. -->
+    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Wasm\Resources\rask-offline-cache.ts"/>
   </ItemGroup>
 
   <!-- Bundled by the target every fixture-running test project shares; node20 covers the top-level await both

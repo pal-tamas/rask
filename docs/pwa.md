@@ -170,6 +170,20 @@ Register it from `index.html` (the `--pwa` templates do this for you). It resolv
 </script>
 ```
 
+**What it keeps is the shell, not your data.** The Cache Storage API honours no header by itself, so the
+worker decides, per response:
+
+| Response | Kept offline |
+|---|---|
+| Marked `Cache-Control: no-store` or `private` | Never |
+| A navigation; a script, style, font, image or manifest; anything under `_framework/`, `_rask/`, `_content/` | Yes |
+| Anything else — a `fetch("/api/orders")` | Only when the server marks it `Cache-Control: public` |
+
+So an authenticated API answer is not replayed offline to whoever opens the browser next, and data the
+app must read offline belongs in a local store ([browser SQLite](sqlite.md#sqlite-in-the-browser-wasm), IndexedDB) rather
+than in the HTTP cache. Signing out — `Auth.SignOut()`, or `IAuthSignIn.SignOut` — empties the cache
+as well; the navigation that follows refills the shell.
+
 Bring your own worker (custom caching/routing) by registering a different URL there instead. Whichever
 worker the page registered is the one `await Navigator.ServiceWorker.Ready` answers, so push follows it.
 

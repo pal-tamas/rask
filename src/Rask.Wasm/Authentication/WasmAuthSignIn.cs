@@ -1,6 +1,8 @@
 using System.Security.Claims;
+using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Authentication;
+using Rask.Core.Browser;
 using Rask.Core.Routing;
 
 namespace Rask.Wasm.Authentication;
@@ -12,7 +14,7 @@ namespace Rask.Wasm.Authentication;
 ///     Sign-in is not supported here: WASM apps validate credentials by POSTing them to a server
 ///     endpoint that varies per app. Use <see cref="HttpClient" /> directly from the LoginPage.
 /// </summary>
-public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider) : IAuthSignIn
+public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider, IJSRuntime js) : IAuthSignIn
 {
     /// <summary>
     ///     The server endpoint that sign-out posts to, so the server can clear the auth cookie. Defaults to
@@ -39,7 +41,7 @@ public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider) 
 
     /// <summary>
     ///     Signs the user out: posts to <see cref="LogoutPath" /> so the server clears the auth cookie,
-    ///     refreshes the current user, then navigates to <paramref name="returnUrl" /> without a full page
+    ///     refreshes the current user, empties the service worker's offline cache, then navigates to <paramref name="returnUrl" /> without a full page
     ///     reload.
     /// </summary>
     /// <param name="returnUrl">Where to go afterwards.</param>
@@ -48,6 +50,7 @@ public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider) 
     {
         await http.PostAsync(LogoutPath, null).ConfigureAwait(false);
         await userProvider.Refresh().ConfigureAwait(false);
+        await OfflineCache.Clear(js).ConfigureAwait(false);
         // Open-redirect guard: returnUrl is whatever the caller passed (often a login/query value
         // that can be attacker-influenced), and NavigateTo can leave the origin. Collapse anything
         // non-local to "/" at this boundary — the same LocalUrl rule the server sign-in path applies.
