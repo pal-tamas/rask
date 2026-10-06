@@ -33,8 +33,8 @@ jobs:
           SET: ${{ inputs.set }}
           # Every core the runner has: nothing else is running on it.
           #
-          # The unit gate is two jobs, not one: the formatter is its slowest step and the solution
-          # build its second, so "format" takes one and "unit" (build + tests) the other and they
+          # The unit gate is two jobs, not one: both build the solution, then "format" runs the
+          # formatter and the gate script tests and "unit" runs the tests — its two long steps — and they
           # finish with the browser shards. Nothing is cut finer than the slowest job needs.
           #
           # The browser suite runs its 150 journeys one at a time, so it is cut four ways by class.
