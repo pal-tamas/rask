@@ -56,7 +56,7 @@ echo "==> Build the CLI E2E test project (Release)"
 # Rask.Cli as stale as its last build. The gate then scaffolded from old templates against freshly packed packages,
 # and failed on an API the templates had already moved past. It would pass just as readily on templates that no
 # longer exist.
-dotnet build tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj -c Release -m:1 2>&1 | tee "$log" || status=$?
+dotnet build tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj -c Release -m:"${RASK_BUILD_SLOTS:-1}" 2>&1 | tee "$log" || status=$?
 
 # A package cache of the gate's OWN, and the reason is that this gate MUTATES one.
 #
@@ -75,8 +75,9 @@ mkdir -p "$gate_packages"
 
 if [ "$status" -eq 0 ]; then
   echo "==> CLI build gates (scaffold output + tutorial walk-through must compile)"
-  # Serial (-m:1 above, and one pack at a time inside the fixture): the gates share a single packed feed,
-  # built lazily on first use.
+  # The gates share a single packed feed, built lazily on first use by ONE MSBuild invocation over every
+  # package (CliBuildE2E.PackLocalFeedAsync). RASK_BUILD_SLOTS sizes it and the build above: one core on
+  # a shared machine, the runner's own in CI.
   #
   # The filter matches the SUFFIX every E2E class here shares, not a list of names. It used to name
   # them, and a class whose name the list did not happen to contain was simply never run -- silently,
