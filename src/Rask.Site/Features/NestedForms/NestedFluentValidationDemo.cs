@@ -36,7 +36,7 @@ public sealed partial class NestedFluentValidationDemo : Component
                         .Square()
                         .Error
                         .Outline
-                        .OnClick(() => _model.Lines.Remove(captured))[Ui.Icon.Name(Ui.IconName.Close)]
+                        .OnClick(() => _model.Lines.Remove(captured))[Ui.Icon.Name(Ui.IconName.XMark)]
                 ]
             ]);
         }

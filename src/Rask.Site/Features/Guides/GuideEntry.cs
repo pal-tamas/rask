@@ -41,18 +41,18 @@ public sealed record GuideEntry(string Slug, string Title, string Blurb, string 
     /// </remarks>
     public Ui.IconName Icon => Group switch
     {
-        "Start here" => Ui.IconName.Rocket,
-        "Tutorial" => Ui.IconName.Book,
-        "Data" => Ui.IconName.Database,
-        "Auth" => Ui.IconName.Lock,
-        "Backend services" => Ui.IconName.Server,
+        "Start here" => Ui.IconName.RocketLaunch,
+        "Tutorial" => Ui.IconName.BookOpen,
+        "Data" => Ui.IconName.CircleStack,
+        "Auth" => Ui.IconName.LockClosed,
+        "Backend services" => Ui.IconName.ServerStack,
         "Realtime" => Ui.IconName.Signal,
-        "Frontend" => Ui.IconName.Cube,
-        "Deploy & operate" => Ui.IconName.Globe,
-        "Browser & devices" => Ui.IconName.Phone,
+        "Frontend" => Ui.IconName.CubeTransparent,
+        "Deploy & operate" => Ui.IconName.GlobeAlt,
+        "Browser & devices" => Ui.IconName.DevicePhoneMobile,
         "Browser API reference" => Ui.IconName.CodeBracket,
         "Advanced" => Ui.IconName.Sparkles,
-        "Contributing & internals" => Ui.IconName.Terminal,
-        _ => Ui.IconName.Document,
+        "Contributing & internals" => Ui.IconName.CommandLine,
+        _ => Ui.IconName.DocumentText,
     };
 }

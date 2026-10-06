@@ -41,7 +41,7 @@ public sealed partial class UiBrand : Component
         [
             Logo is { Length: > 0 } logo
                 ? Img.Src(logo).Alt("").Class("size-5 shrink-0 object-contain")
-                : Ui.Icon.Name(Icon ?? Ui.IconName.Overview).Class("size-5 shrink-0"),
+                : Ui.Icon.Name(Icon ?? Ui.IconName.Squares2x2).Class("size-5 shrink-0"),
             // The wordmark is the first thing to go: on a phone the crumb beside it says where you are,
             // which is the part someone actually needs. ui-rail-hide takes it for the same reason when a
             // collapsable sidebar is narrowed to its rail.
