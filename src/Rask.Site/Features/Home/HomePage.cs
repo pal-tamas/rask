@@ -358,7 +358,7 @@ public sealed partial class HomePage : Component
 
     /// <summary>How many compile-time diagnostics the diagnostics guide documents.</summary>
     /// <remarks><c>HomePageTests</c> recounts the guide's sections and fails when this goes stale.</remarks>
-    internal const int DiagnosticCount = 88;
+    internal const int DiagnosticCount = 89;
 
     // ---- install ----
     private static Component InstallSection() =>
