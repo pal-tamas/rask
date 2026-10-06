@@ -13,11 +13,11 @@
 # Requirements: a `docker` CLI and a daemon. Nothing is installed on your machine — every case runs in
 # a --rm container, and the only thing mounted is rask.sh itself, read-only.
 #
-# Slow by construction: each case downloads an SDK. It is path-gated in the pre-push hook, so it only
-# runs when the installer itself changes.
+# Slow by construction: each case downloads an SDK. CI runs it before a release and on a ci/release/**
+# branch (.github/workflows/gates.yml); run it by hand when the installer itself changes.
 #
 # Usage:  scripts/run-install-e2e-local.sh
-# Skip:   RASK_SKIP_INSTALL_E2E=1 (also honoured by the pre-push hook)
+# Skip:   RASK_SKIP_INSTALL_E2E=1
 set -euo pipefail
 
 if [ "${RASK_SKIP_INSTALL_E2E:-}" = "1" ]; then

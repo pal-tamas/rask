@@ -8,7 +8,8 @@
 # "hot reload applied" frame actually arrives.
 #
 # They are opt-in because they pack this commit's packages, build the generated app, and run several
-# watch sessions with 2-minute ceilings — far too slow for the pre-commit inner loop.
+# watch sessions with 2-minute ceilings — far too slow for the inner loop. CI runs this script before a
+# release, and on a ci/release/** branch (.github/workflows/gates.yml).
 #
 # If an edit ever stops applying here, check the PATH before anything else: `dotnet watch` computes an
 # empty Edit-and-Continue delta, with no error, when the project path traverses a symlink (macOS temp is

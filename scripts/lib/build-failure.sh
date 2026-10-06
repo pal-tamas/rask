@@ -53,8 +53,8 @@ rask_build_failure_kind() {
   [ -n "$log" ] && [ -f "$log" ] || { printf 'unknown\n'; return 0; }
 
   # `grep -c`, never `grep -q`. With `set -o pipefail` a `-q` grep exits on the first match, the writer
-  # takes SIGPIPE, and the pipeline reports failure — the same trap that let a 421-file commit past the
-  # pre-commit hook (see the note in .githooks/pre-commit). `|| true` because grep exits 1 on no match.
+  # takes SIGPIPE, and the pipeline reports failure — the same trap that once let a 421-file commit past
+  # the pre-commit hook (see the note in .githooks/pre-commit). `|| true` because grep exits 1 on no match.
   local cs netsdk workload busy
   cs=$(grep -Ec 'error[[:space:]]+(CS|RS|ASP|IDE)[0-9]+' "$log" 2>/dev/null || true)
   netsdk=$(grep -Ec 'error[[:space:]]+NETSDK[0-9]+' "$log" 2>/dev/null || true)

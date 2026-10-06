@@ -3,8 +3,8 @@
 Reference numbers from the live-render diff codec. Each future PR touching the
 render path should compare against these and quote the delta in its description.
 
-> **`payload-bytes.csv` is enforced before push, on your machine.** `.githooks/pre-push` runs
-> `scripts/run-benchmarks-local.sh`, which checks this baseline *and* the vs-Blazor one
+> **`payload-bytes.csv` is enforced when you ask, on your machine.** No hook and no CI job runs
+> `scripts/run-benchmarks-local.sh`; run it for a render-path change. It checks this baseline *and* the vs-Blazor one
 > (`dotnet run -c Release --project tests/Rask.Benchmarks -- payload-bytes --check`)
 > and **fails on a regression** — more diff bytes or more diff ops than the
 > committed baseline, for any scenario. These metrics are deterministic (no timing noise),
@@ -23,7 +23,7 @@ render path should compare against these and quote the delta in its description.
 > the file measured is the Debug one, three times the size. The script therefore deletes
 > `obj/Release/net10.0-browser/rask-bundles/rask.wasm.stamp` before rebuilding, and the report
 > refuses outright to measure a bundle that is not minified. Both exist because the gate's first
-> run inside the pre-push hook reported a 74 KB regression that was not real. The tolerance is ±2% rather than byte-exact — esbuild's
+> run after a browser E2E gate reported a 74 KB regression that was not real. The tolerance is ±2% rather than byte-exact — esbuild's
 > output can shift a few bytes on a minifier bump nobody here chose, while the regression worth
 > catching (a module pulled into the wrong bundle, tree-shaking quietly stopping) is far larger.
 

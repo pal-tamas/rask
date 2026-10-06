@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# Pre-push gate: the attribution guard, then the unit suite scoped to this push.
+# Pre-push: the attribution guard, and nothing else.
 #
-# HARD BUDGET: under a minute, the same one .githooks/pre-commit runs to. That budget is the whole
-# design of this file. Every gate that could not fit moved out — the browser E2E, the CLI build gate,
-# watch, deploy and the installer are now run by hand (scripts/run-all-gates.sh runs the
-# set), and the benchmark byte-gates run only when you ask for them. The list and the
-# reasons are repeated at the gate itself, and printed on every push, so nobody has to read this file
-# to learn what is no longer covered.
+# The unit gate that ran here moved to CI (.github/workflows/ci.yml), which runs the format check,
+# the warnings-as-errors build, the unit suite and the browser E2E on every push to main. The gates
+# that need containers or a real host run before a release (.github/workflows/release.yml).
+# scripts/run-unit-local.sh and scripts/run-all-gates.sh still run all of it by hand.
 #
 # Enable the hooks once with:  git config core.hooksPath .githooks
 # Bypass:  git push --no-verify
@@ -14,8 +12,6 @@ set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
 
-# --- Attribution guard (cheap, and first) ------------------------------------
-#
 # .githooks/commit-msg already rejects Co-authored-by / Generated-with footers at
 # commit time — but ONLY when core.hooksPath is set. A fresh clone that never ran
 # that config, or an agent committing in a new worktree, bypasses it in silence.
@@ -25,29 +21,18 @@ root="$(git rev-parse --show-toplevel)"
 # 18 release tags.
 #
 # So the rule is re-checked here, against the commits actually being pushed. This
-# is the last boundary at which the fix is still free: one line, one amend.
+# is the last boundary at which the fix is still free: one line, one amend. It is
+# also the one check CI cannot take over — by the time CI sees the commit it is on main.
 # shellcheck source=../scripts/lib/attribution.sh
 . "$root/scripts/lib/attribution.sh"
 
 zero="0000000000000000000000000000000000000000"
 offending=""
 
-# git feeds the hook "<local ref> <local sha> <remote ref> <remote sha>" per ref, ON STDIN, and stdin
-# can only be read once. It is captured here because two things now need it: the attribution guard
-# below, and the deletion check after it. Reading it inline in the loop — which is what this did —
-# left nothing for a second reader, so any later question about what is being pushed had to be
-# answered by guessing.
-push_refs="$(cat)"
-
-pushes_content=0
-ref_lines=0
-
-# shellcheck disable=SC2086
+# git feeds the hook "<local ref> <local sha> <remote ref> <remote sha>" per ref, on stdin.
 while read -r _local_ref local_sha _remote_ref remote_sha; do
   [ -n "$local_sha" ] || continue          # the empty line a here-string appends
-  ref_lines=$((ref_lines + 1))
   [ "$local_sha" = "$zero" ] && continue   # branch deletion — nothing to inspect
-  pushes_content=1
 
   if [ "$remote_sha" = "$zero" ]; then
     # New branch: everything on it that no remote already has.
@@ -64,7 +49,7 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
     fi
   done
 done <<EOF
-$push_refs
+$(cat)
 EOF
 
 if [ -n "$offending" ]; then
@@ -84,121 +69,3 @@ $offending
 EOF
   exit 1
 fi
-# -----------------------------------------------------------------------------
-
-# --- Deletion-only pushes run nothing ----------------------------------------
-#
-# `git push origin --delete <branch>` sends one ref line whose LOCAL sha is all zeroes: no commit
-# reaches the remote, no tree changes, and there is nothing a build or a browser journey could have
-# an opinion about. The hook ran the whole gate on it anyway — the full browser E2E suite, both
-# payload-bytes baselines and the capacity smokes — because every gate below is written in terms of
-# "is this push path-relevant", and a deletion matches those filters the same way any other push does.
-#
-# Found by deleting a merged branch and watching ~40 minutes of browser suite start up behind it. The
-# attribution loop above had the right idea all along (`local_sha = $zero` -> nothing to inspect); it
-# just kept the conclusion to itself.
-#
-# NO REF LINES AT ALL is a different thing, and saying "deletion" for it was wrong (#1047).
-#
-# git hands this hook one line per ref it is about to send. It hands it NOTHING when it has already
-# decided to send nothing — a non-fast-forward it will reject client-side, or a push that is simply up
-# to date. `pushes_content` cannot tell that apart from "every line was a deletion", because both leave
-# the loop body unrun, so the deletion message below was printed for a push that deleted nothing.
-#
-# Why the wrong message is worse than no message: the reader's next move after a rejection is
-# `git fetch && git merge origin/main`, and a CLEAN merge auto-commits without the pre-commit gate
-# (git runs `pre-merge-commit`, which this repo does not have). So "Skipping the gates" sat in front of
-# a sequence in which nothing had been gated, while reading as though gating had been unnecessary.
-if [ "$ref_lines" -eq 0 ]; then
-  echo "pre-push: git is sending no refs — nothing to build or test. This is what an up-to-date push"
-  echo "          looks like, and also what a non-fast-forward looks like just before git rejects it."
-  echo "          If a rejection follows, NOTHING has been gated: fetch, merge, and let the merge's own"
-  echo "          commit run the gate before pushing again."
-  exit 0
-fi
-
-# Only when EVERY ref is a deletion. A push that deletes one branch and updates another still has
-# content on it, and that content gets the gate.
-if [ "$pushes_content" -eq 0 ]; then
-  echo "pre-push: every ref in this push is a DELETION — no commits reach the remote, so there is"
-  echo "          nothing to build or test. Skipping the gates."
-  exit 0
-fi
-# -----------------------------------------------------------------------------
-
-# --- The unit gate, scoped to this push -------------------------------------
-#
-# ONE gate now, and a hard budget: this hook must finish in under a minute, the same budget
-# .githooks/pre-commit runs to. Everything that could not fit has moved, and where it went is spelled
-# out below rather than left for someone to discover.
-#
-# What runs: the unit/integration suite, scoped to the projects THIS PUSH can reach.
-# scripts/run-unit-local.sh does the scoping (scripts/lib/affected_projects.py owns the graph) and
-# falls back to the whole solution for anything it cannot map precisely.
-#
-# The range is origin/main...HEAD, not the tip commit. A push is many commits, and scoping to the last
-# one would leave a file changed earlier in the same push untested — the exact shape of gap this hook
-# exists to prevent.
-#
-# WHAT THIS HOOK NO LONGER RUNS, and where it went:
-#
-#   * The browser E2E journeys   -> scripts/run-e2e-local.sh          (run it by hand)
-#   * The devtools E2E journeys  -> scripts/run-devtools-e2e-local.sh (run it by hand)
-#   * The browser SQLite journeys -> scripts/run-browser-sqlite-e2e-local.sh (run it by hand)
-#   * The data demo journeys     -> scripts/run-data-demo-e2e-local.sh (run it by hand)
-#   * The benchmark byte-gates   -> scripts/run-benchmarks-local.sh   (ONLY when you ask; no hook,
-#                                                                     no CI, not in run-all-gates)
-#   * The CLI build gate         -> scripts/run-cli-build-e2e.sh      (run it by hand)
-#   * The watch hot-reload gate  -> scripts/run-watch-e2e.sh          (run it by hand)
-#   * The deploy gate            -> scripts/run-deploy-e2e-local.sh   (run it by hand)
-#   * The installer gate         -> scripts/run-install-e2e-local.sh  (run it by hand)
-#
-# Be clear about the cost of that: NONE of those run automatically any more. The browser suite in
-# particular has caught most of the false greens in this repository's casebook, and it cannot fit in a
-# minute — its first step is `dotnet publish src/Rask.Site -c Release`, a WASM bundle, before Chromium
-# even opens. `scripts/run-all-gates.sh` runs the whole set when you want the old guarantee back;
-# before a release, run it.
-# RECURSION GUARD, and it is not hypothetical.
-#
-# This hook's gate is scripts/run-unit-local.sh, which runs every scripts/tests/*.test.sh — and two of
-# those tests drive THIS HOOK to pin its behaviour. Without a guard that is a fork bomb: hook -> gate
-# -> test -> hook, multiplying bash processes until someone notices. It ran for ten minutes on the
-# merge that introduced the second such test.
-#
-# The tests pass RASK_SKIP_UNIT=1 and would not recurse anyway; this is the belt to that pair of
-# braces, because the next test to drive the hook will be written by someone who does not know that.
-if [ "${RASK_PRE_PUSH_ACTIVE:-}" = "1" ]; then
-  echo "pre-push: already running inside a pre-push gate — not re-entering."
-  exit 0
-fi
-
-if [ "${RASK_SKIP_UNIT:-}" = "1" ]; then
-  echo "pre-push: RASK_SKIP_UNIT=1 set — skipping the unit gate."
-else
-  set +e
-  RASK_PRE_PUSH_ACTIVE=1 \
-  RASK_TEST_SCOPE=affected \
-  RASK_FORMAT_SCOPE=range \
-  RASK_SCOPE_RANGE="origin/main...HEAD" \
-  "$root/scripts/run-unit-local.sh"
-  unit_status=$?
-  set -e
-
-  if [ "$unit_status" -ne 0 ]; then
-    echo >&2
-    echo "pre-push: the unit gate FAILED — push aborted." >&2
-    echo "          Fix it, or bypass with 'git push --no-verify' or RASK_SKIP_UNIT=1." >&2
-    # A flat 1, not the gate's own status. `dotnet test` and a missing script report different
-    # non-zero codes (1 vs 127), and a hook that leaks those makes "did the gate fail or did it fail
-    # to RUN?" indistinguishable to anything scripting around it.
-    exit 1
-  fi
-fi
-
-# Said on every push, deliberately. A gate that quietly stopped covering something is this
-# repository's most expensive recurring failure, and the fix for it is not silence.
-echo
-echo "pre-push: unit gate passed. NOT run here (see .githooks/pre-push for why):"
-echo "          browser E2E · CLI build · watch · deploy · installer."
-echo "          Benchmarks run ONLY on request: scripts/run-benchmarks-local.sh"
-echo "          Run the full set with: scripts/run-all-gates.sh"

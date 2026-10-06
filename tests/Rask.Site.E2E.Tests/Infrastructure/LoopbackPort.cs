@@ -13,7 +13,7 @@ namespace Rask.Site.E2E.Tests.Infrastructure;
 ///         comments claimed, but each copy of the suite on the machine claimed the same numbers — so a
 ///         straggler host, or a second worktree mid-suite, produced either a bind failure or, worse, a poll
 ///         that succeeded against somebody else's process. <c>5099</c> was the sharpest case: the
-///         <c>pre-push</c> hook runs its gate on it, so one leftover host blocked pushing from every
+///         browser gate ran on it, so one leftover host blocked that gate in every
 ///         worktree on the machine.
 ///     </para>
 ///     <para>

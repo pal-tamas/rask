@@ -483,7 +483,7 @@ public static class GuideCatalog
         new("development-workflow", "Development workflow", "How the repo builds, tests, and ships.", "Contributing & internals")
         {
             SearchTitle = "Contributor workflow: build, test and release gates",
-            Description = "How changes to the framework are built, tested and shipped: warnings-as-errors builds, local pre-commit and pre-push gates, MinVer tags and NuGet releases.",
+            Description = "How changes to the framework are built, tested and shipped: warnings-as-errors builds, CI gates on every push, MinVer tags and NuGet releases.",
         },
         new("repo-administration", "Repo administration", "Governance, CODEOWNERS, releases, automation.", "Contributing & internals")
         {

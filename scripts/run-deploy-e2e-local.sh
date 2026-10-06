@@ -12,7 +12,9 @@
 # generates a throwaway key and reaches the container through its own ssh config.
 #
 # Usage:  scripts/run-deploy-e2e-local.sh
-# Skip:   RASK_SKIP_DEPLOY_E2E=1 (also honoured by the pre-push hook)
+# Skip:   RASK_SKIP_DEPLOY_E2E=1
+#
+# CI runs this script before a release, and on a ci/release/** branch (.github/workflows/gates.yml).
 set -euo pipefail
 
 if [ "${RASK_SKIP_DEPLOY_E2E:-}" = "1" ]; then
