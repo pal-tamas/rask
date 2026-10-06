@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The format + unit/integration gate.
 #
-# CI runs this script as its "format" and "unit" jobs (RASK_UNIT_PART) on every push (.github/workflows/gates.yml), and it
+# CI runs this script as its build, unit and format jobs (RASK_UNIT_PART) on every push (.github/workflows/gates.yml), and it
 # runs the same way by hand. No git hook runs it. Steps: build once, run the FULL formatter
 # (whitespace + style + analyzers), then run every test EXCEPT the browser E2E (that's its own gate —
 # see run-e2e-local.sh).
