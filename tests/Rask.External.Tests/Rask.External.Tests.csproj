@@ -73,6 +73,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Rask.TestFiles"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <!-- For NodeFixture: the client runtime is exercised as the JavaScript it ships, in node. -->
@@ -93,7 +97,7 @@
     <!-- The adapter fixtures are excluded because they need npm packages and therefore their own targets
          below; everything else here bundles with nothing installed. -->
     <_RaskNodeFixture Include="*Fixture.ts"
-                      Exclude="PreactAdapterFixture.ts;LitAdapterFixture.ts;ReactAdapterFixture.ts;VueAdapterFixture.ts;SolidAdapterFixture.ts"/>
+                      Exclude="PreactAdapterFixture.ts;LitAdapterFixture.ts;ReactAdapterFixture.ts;VueAdapterFixture.ts;SolidAdapterFixture.ts;IslandRoutesFixture.ts"/>
   </ItemGroup>
 
   <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
@@ -304,6 +308,45 @@
 
     <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;SolidAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:solid-js=&quot;$(_PreactFixtureModules)/solid-js/dist/solid.js&quot; --alias:solid-js/web=&quot;$(_PreactFixtureModules)/solid-js/web/dist/web.js&quot; --alias:solid-js/store=&quot;$(_PreactFixtureModules)/solid-js/store/dist/store.js&quot; --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; $(_RaskFixtureRequireBanner) --outfile=&quot;$(OutDir)node-fixtures/SolidAdapterFixture.mjs&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!--
+    IslandRoutesFixture.ts imports `@rask/routes` the way an island does. The module is the one THIS build
+    generated from this project's own [Route] pages, so it is bundled apart from the others: after the build
+    has written it, with the alias the generated Vite config gives a real island.
+  -->
+  <Target Name="_RaskBundleRoutesFixture" AfterTargets="Build"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(DesignTimeBuild)' != 'true'"
+          Inputs="IslandRoutesFixture.ts;$(_RaskExternalTypes)routes.ts"
+          Outputs="$(OutDir)node-fixtures/IslandRoutesFixture.mjs">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)node-fixtures"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;IslandRoutesFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning &quot;--alias:@rask/routes=$(_RaskExternalTypes)routes.ts&quot; --outfile=&quot;$(OutDir)node-fixtures/IslandRoutesFixture.mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!-- IslandRoutesTests type-checks front-end code against that module with the compiler the build pins.
+       The build already knows how to find it, so it leaves the path where the test can read it. -->
+  <Target Name="_RaskNameTsgoForTests" AfterTargets="Build" DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <ResolveTypeScriptToolTask Tool="tsgo"
+                               Version="$(RaskTsgoVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskTestTsgoPath"/>
+    </ResolveTypeScriptToolTask>
+    <WriteLinesToFile File="$(OutDir)node-fixtures/tsgo.path" Lines="$(_RaskTestTsgoPath)"
+                      Overwrite="true" WriteOnlyWhenDifferent="true"/>
   </Target>
 
   <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is

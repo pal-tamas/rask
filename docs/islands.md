@@ -513,6 +513,60 @@ keeps a property out of the props entirely.
 > natural prop names cost nothing. Inside the component the hidden name resolves to your property —
 > qualify the tag on the rare occasion you want the element instead.
 
+## Navigating from an island
+
+An island that is a whole page has to send the user somewhere. It does that with the same `Routes` and `Go`
+the C# side uses, generated from the project's `[Route]` pages at build and imported from `@rask/routes`:
+
+```csharp
+Routes.UserPage(Id: 42).Go();                    // C#
+Routes.LoginPage().Go().Replacing();
+Go.To(Routes.UserPage(Id: 42));
+Go.With("page", "2"); Go.Without("page"); Go.Without();
+NavLink.Href(Routes.UserPage(42))["View user"];
+string href = Routes.UserPage(Id: 42);
+```
+
+```tsx
+import { Routes, Go } from '@rask/routes'
+
+Routes.UserPage({ Id: 42 }).Go()                 // TypeScript
+Routes.LoginPage().Go().Replacing()
+Go.To(Routes.UserPage({ Id: 42 }))
+Go.With('page', '2'); Go.Without('page'); Go.Without()
+<a {...Routes.UserPage({ Id: 42 }).Link}>View user</a>
+const href = Routes.UserPage({ Id: 42 }).Url
+```
+
+The rules:
+
+- **It is generated, and it is the C# `Routes` class.** Page names, the folder nesting two pages sharing a
+  type name get (`Routes.Admin.HomePage()`), and every member's spelling — `Go()`, `Replacing()`, `Url`,
+  `Link`, `Go.To`, `Go.With`, `Go.Without` — are the C# ones, capital letter included. Rename a page or a
+  route parameter in C# and the island stops compiling in the type-check `dotnet build` already runs.
+- **Parameters are one object whose keys are the C# parameter names.** `Routes.UserPage(Id: 42, Tab: "billing")`
+  is `Routes.UserPage({ Id: 42, Tab: 'billing' })`: required where C# requires it, optional where C# defaults
+  it to `null`, and a page with no parameters takes no argument. The types are the ones
+  [props use](#c-owns-the-props): `number`, `string`, `boolean`, `Guid`, `DateOnly`, `TimeOnly`, `Date`.
+- **Type-safe only.** There is no `navigate('/users/42')`. `Go.To` takes a value `Routes.*` made and nothing
+  else, so a path typed by hand, or an object built to look like a route, does not compile.
+- **The URL is the one C# formats** — same encoding, same optional segments, same query — under the app's
+  path base, so `Url` and `Link.href` are right on a sub-path deploy too.
+- **`Link` is for links inside the app.** It is `{ href, 'data-rask-nav': '' }`, the two attributes
+  [`NavLink`](routing.md#type-safe-urls--somepageurl-and-somepagego) writes, so a click navigates client-side
+  and open-in-new-tab still has a real address. A link that leaves the app is a plain `<a href="https://…">`.
+- **`Go.With` / `Go.Without` change this page's query** and leave its path alone, matching keys without
+  regard to case, as [in C#](routing.md#methods). Each is a new history entry.
+
+Navigation runs after your handler returns, which is what lets `.Replacing()` follow `.Go()`. Called before
+the Rask runtime has booted it navigates nowhere and says so in the console (`Rask islands: …`).
+
+What has no TypeScript counterpart: the per-page `UserPage.Go(42)` / `UserPage.Url(42)` shorthands (use
+`Routes.UserPage(…)`), `Go.To` with a path string, and the several-keys-at-once `Go.With(…)` overload. A
+`double` or `decimal` in a URL is written the way JavaScript prints a number, which differs from .NET only
+past fifteen digits or in trailing zeros, and a parameter typed with your own `IParsable<T>` is a `string`
+you format yourself.
+
 ## Callbacks
 
 A callback prop becomes a function on the front end, and calling it re-enters C#:

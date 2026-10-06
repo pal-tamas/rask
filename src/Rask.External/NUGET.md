@@ -49,4 +49,6 @@ Div.Class("grid")[
 ]
 ```
 
+An island navigates with the C# `Routes` and `Go`, generated into `@rask/routes`: `Routes.UserPage({ Id: 42 }).Go()`.
+
 Guide: [Islands](https://rask.sh/docs/guides/islands)

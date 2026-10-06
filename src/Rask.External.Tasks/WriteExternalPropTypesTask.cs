@@ -185,6 +185,8 @@ public sealed class WriteExternalPropTypesTask : Task
         // no longer renders.
         Prune(constants.Keys);
 
+        written += WriteRoutes() ? 1 : 0;
+
         if (WriteCheckConfig(declared))
         {
             written++;
@@ -364,6 +366,23 @@ public sealed class WriteExternalPropTypesTask : Task
             + "<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);" + UnbuiltIslandCode
             + "</MSBuildWarningsAsMessages>.",
             messageArgs: null);
+    }
+
+    /// <summary>
+    ///     Writes <c>@rask/routes</c> — the project's <c>Routes</c> class and <c>Go</c>, for its front-end code —
+    ///     beside the prop types, or removes it when the assembly no longer carries one.
+    /// </summary>
+    private bool WriteRoutes()
+    {
+        var path = Path.Combine(OutputDirectory, ExternalBuildPlan.RoutesModule);
+        if (GeneratedTypeScript.Read(AssemblyPath, GeneratedNamespace, "RaskExternalRoutes")
+            .TryGetValue("TypeScript", out var routes))
+        {
+            return GeneratedTypeScript.WriteIfDifferent(path, routes);
+        }
+
+        File.Delete(path);
+        return false;
     }
 
     /// <summary>Deletes the <c>.d.ts</c> of a component that no longer exists.</summary>
