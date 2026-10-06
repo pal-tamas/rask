@@ -258,7 +258,9 @@ authentication and rate limit.
 ### It fails closed
 
 - **Authenticated by default.** `[AllowAnonymous]` on the handler is the only way past;
-  `[Authorize]` supplies a policy *and* roles, both enforced.
+  `[Authorize]` supplies a policy *and* roles, both enforced — and a handler carrying several
+  `[Authorize]` attributes, its own or a base class's, has to pass every one, exactly as a page does.
+  `AuthenticationSchemes` is not read: the endpoint authenticates with the app's default scheme.
 - **An anonymous caller cannot enumerate your messages.** A real name and a typo get the same answer, so
   the endpoint can't be walked to discover what the app has.
 - **Both verbs require the `X-Rask-Cqrs` header**, which no cross-site markup can set — adding the GET

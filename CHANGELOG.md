@@ -922,6 +922,14 @@ them until tagged releases begin.
 
 ### Security
 
+- **Every `[Authorize]` on a CQRS handler is enforced, not only the last.** The codec generator kept one
+  policy and one roles string per handler, so `[Authorize(Policy = "members")]` above
+  `[Authorize(Policy = "billing")]` was never checked — while a page with the same two attributes required
+  both. Each attribute is now carried and required, including one on a base class, and the same holds for
+  an event record's subscribe attributes. `RemoteContract.Policy`/`Roles`/`SubscribePolicy`/`SubscribeRoles`
+  become the lists `Policies`/`RoleSets`/`SubscribePolicies`/`SubscribeRoleSets`, which generated code
+  writes; rebuild is the whole migration. A policy or role name containing a quote no longer breaks the
+  generated source.
 - **A caller can no longer fill the disk with chunked uploads it never sends.** One CQRS upload was capped at
   `MaxUploadBytes`, but nothing capped how many upload ids a caller had open, so a loop over fresh ids wrote
   32 MB per id to the temp directory. `Rask:Cqrs:Server` gains `MaxOpenUploads` (4) and `MaxOpenUploadBytes`

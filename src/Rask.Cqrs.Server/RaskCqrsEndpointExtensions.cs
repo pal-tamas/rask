@@ -390,7 +390,7 @@ public static class RaskCqrsEndpointExtensions
 
     private static Task<bool> AuthorizedAsync(HttpContext context, RemoteContract contract) =>
         AuthorizedAsync(
-            context, contract.Name, contract.AllowAnonymous, contract.RequiresAuthentication, contract.Roles, contract.Policy);
+            context, contract.Name, contract.AllowAnonymous, contract.RequiresAuthentication, contract.RoleSets, contract.Policies);
 
     // The one authorization check, for a request (the handler's attributes) and a subscription (the event's).
     internal static async Task<bool> AuthorizedAsync(
@@ -398,8 +398,8 @@ public static class RaskCqrsEndpointExtensions
         string name,
         bool allowAnonymous,
         bool requiresAuthentication,
-        string? declaredRoles,
-        string? declaredPolicy)
+        IReadOnlyList<string> roleSets,
+        IReadOnlyList<string> policies)
     {
         if (allowAnonymous)
         {
@@ -416,7 +416,8 @@ public static class RaskCqrsEndpointExtensions
             return false;
         }
 
-        if (declaredRoles is { Length: > 0 } roles)
+        // One set per [Authorize(Roles = …)]: any role within a set, and every set.
+        foreach (var roles in roleSets)
         {
             var permitted = roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (!permitted.Any(user.IsInRole))
@@ -426,7 +427,7 @@ public static class RaskCqrsEndpointExtensions
             }
         }
 
-        if (declaredPolicy is { Length: > 0 } policy)
+        foreach (var policy in policies)
         {
             var authorization = context.RequestServices.GetService<IAuthorizationService>()
                                 ?? throw new InvalidOperationException(

@@ -64,6 +64,25 @@ public sealed class MembersOnlyHandler : ICommandHandler<MembersOnly>
     public Task Handle(MembersOnly command) => Task.CompletedTask;
 }
 
+public sealed record StaffMembersOnly : ICommand;
+
+[Authorize(Policy = "staff")]
+[Authorize(Policy = "members")]
+public sealed class StaffMembersOnlyHandler : ICommandHandler<StaffMembersOnly>
+{
+    public Task Handle(StaffMembersOnly command) => Task.CompletedTask;
+}
+
+public sealed record InheritsItsGuard : ICommand;
+
+[Authorize(Roles = "admin")]
+public abstract class AdminHandler;
+
+public sealed class InheritsItsGuardHandler : AdminHandler, ICommandHandler<InheritsItsGuard>
+{
+    public Task Handle(InheritsItsGuard command) => Task.CompletedTask;
+}
+
 public sealed class ExplodesHandler : IQueryHandler<Explodes, int>
 {
     public Task<int> Handle(Explodes query) =>
