@@ -55,7 +55,7 @@ public sealed partial class PwaPage : Component
     protected override Component? HeadAssets =>
         PageMeta.For(
             "PWA and device APIs in C# for WebAssembly — Rask",
-            "Typed C# wrappers for browser device APIs, each with a live WebAssembly demo: install prompt, "
+            "MDN's browser device APIs called from C#, each with a live WebAssembly demo: install prompt, "
             + "push, wake lock, fullscreen, camera, Web Serial and WebUSB.",
             Routes.PwaPage());
 
@@ -67,10 +67,13 @@ public sealed partial class PwaPage : Component
         [
             H1.Class("text-3xl font-bold mb-1")["PWA & device APIs"],
             P.Class("text-ui-muted max-w-3xl")[
-                "Every browser capability Rask wraps in typed C#, live. They are ",
+                "The browser's device and app capabilities called from C#, live — MDN's own APIs, through ",
+                Code["Rask.Web"],
+                ". Nearly all are ",
                 Strong["WASM-only"],
-                " — each one needs a live user gesture, the live document, or a device handle that a Server ",
-                "round-trip cannot carry — so each demo runs in your browser, in this page's own WebAssembly ",
+                " — each of those needs a live user gesture, the live document, or a device handle that a Server ",
+                "round-trip cannot carry; the screen wake lock and the declarative install trigger are the ",
+                "exceptions — so each demo runs in your browser, in this page's own WebAssembly ",
                 "app. This site is itself an installable, offline PWA: install it from your address bar and ",
                 "the same code runs as an app."
             ],
@@ -80,10 +83,10 @@ public sealed partial class PwaPage : Component
                 Code["IsSupported"],
                 "), call it from a real click, and dispose what it hands back — most of these return an ",
                 Code["IAsyncDisposable"],
-                " that releases the hardware or the lock. A request without user activation rejects, and a ",
-                "chooser the reader dismisses returns ",
-                Code["null"],
-                " rather than throwing: dismissal is an answer, not an error."
+                " that releases the hardware or the lock. A request without user activation rejects, and so ",
+                "does a chooser the reader dismisses — catch ",
+                Code["JSException"],
+                " and treat dismissal as an answer, not an error."
             ],
             Rail(sections),
             // A wrapper, because a collection expression's elements are each ONE component and this is a

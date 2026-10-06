@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# Everything the fast hooks no longer run.
+# Every gate, in one local run.
 #
-# .githooks/pre-commit and .githooks/pre-push are both held to a hard one-minute budget, which the
-# heavyweight gates cannot fit: the browser E2E starts by publishing a WASM bundle, the CLI build gate
-# packs 19 packages, the deploy and installer gates boot containers. They did not stop mattering when
-# they stopped being automatic — this script is where they live now.
-#
-# RUN THIS BEFORE A RELEASE, and after any change big enough that you want the old guarantee back.
-# The browser suite in particular has caught most of the false greens in this repository's casebook.
+# CI runs these as separate jobs (.github/workflows/gates.yml): unit + format, the browser suites, the
+# CLI build and the template gate on every push, the container and real-host ones before a release.
+# This script is the same list on your own machine, for when you want the answer before pushing
+# rather than after — the browser suite in particular has caught most of the false greens in this
+# repository's casebook. Keep the two lists in step.
 #
 # BENCHMARKS ARE NOT HERE, and that is deliberate rather than an omission. They run when you ask for
 # them and at no other time — no hook, no CI workflow, and not this script either:

@@ -24,7 +24,13 @@ runs:
   using: composite
   steps:
     # The band global.json pins (10.0.x, rollForward latestFeature): the build runs on a .NET 10 SDK everywhere.
+    #
+    # Installed into a runner-owned directory, not the image's /usr/share/dotnet: that one is root's, so
+    # the workload cache below could be saved from it but never restored into it — tar failed on every
+    # chmod, the restore was abandoned with a warning, and each job reinstalled the workload from scratch.
     - uses: actions/setup-dotnet@v5
+      env:
+        DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
       with:
         dotnet-version: 10.0.x
 
@@ -45,9 +51,8 @@ runs:
       run: echo "version=$(dotnet --version)" >> "$GITHUB_OUTPUT"
 
     # Cache the workload packs under the SDK root so the install below is a fast unpack rather than a
-    # multi-minute download. actions/cache save/restore are non-fatal, so a cold or perm-blocked cache
-    # simply falls back to a full install — the job never fails on it. If the default $DOTNET_ROOT ever
-    # fights the cache on perms, set DOTNET_INSTALL_DIR to a runner-owned dir on setup-dotnet above.
+    # multi-minute download. actions/cache save/restore are non-fatal, so a cold cache
+    # simply falls back to a full install — the job never fails on it.
     - name: Cache .NET workloads
       if: inputs.workloads != ''
       uses: actions/cache@v6
@@ -58,10 +63,10 @@ runs:
           ${{ env.DOTNET_ROOT }}/metadata
           ${{ env.DOTNET_ROOT }}/library-packs
           ${{ env.DOTNET_ROOT }}/template-packs
-        key: workloads-${{ runner.os }}-${{ steps.sdk.outputs.version }}-${{ inputs.workloads }}-${{ hashFiles('Directory.Packages.props') }}
+        key: workloads-v2-${{ runner.os }}-${{ steps.sdk.outputs.version }}-${{ inputs.workloads }}-${{ hashFiles('Directory.Packages.props') }}
         restore-keys: |
-          workloads-${{ runner.os }}-${{ steps.sdk.outputs.version }}-${{ inputs.workloads }}-
-          workloads-${{ runner.os }}-${{ steps.sdk.outputs.version }}-
+          workloads-v2-${{ runner.os }}-${{ steps.sdk.outputs.version }}-${{ inputs.workloads }}-
+          workloads-v2-${{ runner.os }}-${{ steps.sdk.outputs.version }}-
 
     - name: Install workloads
       if: inputs.workloads != ''

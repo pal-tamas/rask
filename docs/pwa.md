@@ -28,7 +28,7 @@ share sheet, geolocation, clipboard) through typed C# — the same component cod
 
 ## Make your app a PWA
 
-Start a new app with the **`--pwa`** option:
+Every template is a PWA from the start (`--no-pwa` leaves it out):
 
 ```bash
 rask new MyApp --template wasm                # standalone browser-WASM PWA (full offline)
@@ -36,8 +36,8 @@ rask new MyApp                                # installable + push-capable Serve
 ```
 
 The WASM templates scaffold a manifest + icon and register Rask's default service worker from
-`index.html`. The Server template calls `AddRaskPwa(...)`, which serves the manifest + service worker
-and registers it for you, plus a static `offline.html`. To add PWA to an existing app, follow the steps
+`index.html`. On the Server template `RaskApp` serves the manifest + service worker and registers it
+for you, plus a static `offline.html` (`AddRaskPwa(...)` on a hand-wired host). To add PWA to an existing app, follow the steps
 below — the [manifest](#installable--the-web-app-manifest) and, for WASM,
 [service-worker registration](#offline--the-service-worker); for Server, just
 [`AddRaskPwa`](#pwa-on-the-server-host).
@@ -69,7 +69,7 @@ await host.Run<App>();
 
 Relative URLs (`StartUrl`/`Scope` default to `"."`, and icon `src`) are made **absolute against
 `<base href>`** when applied, so they stay correct under a sub-path deploy (GitHub Pages). Put your
-icon(s) in `wwwroot` (the `--pwa` templates ship an `icon.svg`). `WebAppManifest.ToJson()` is also
+icon(s) in `wwwroot` (the templates ship an `icon.svg`). `WebAppManifest.ToJson()` is also
 available if you'd rather serve a physical `manifest.webmanifest` (e.g. from an ASP.NET host).
 
 Beyond the basics, `WebAppManifest` also exposes typed members for the richer manifest features — all
@@ -155,7 +155,7 @@ Rask ships a default service worker, **`rask-sw.js`**, served at the app root. I
    offline), with navigations falling back to the cached shell so deep links work offline.
 2. **Web Push** — shows the pushed notification and focuses/opens a window on click.
 
-Register it from `index.html` (the `--pwa` templates do this for you). It resolves relative to
+Register it from `index.html` (the templates do this for you). It resolves relative to
 `<base href>`, so it works at the origin root and under a sub-path deploy:
 
 ```html
@@ -182,7 +182,7 @@ without the user coming back to the tab and waiting for a spinner. `IBackgroundS
 `Rask.Wasm.Browser`, injected through the constructor) wraps both the
 [Background Synchronization API](https://developer.mozilla.org/en-US/docs/Web/API/Background_Synchronization_API)
 and [Periodic Background Sync](https://developer.mozilla.org/en-US/docs/Web/API/Web_Periodic_Background_Synchronization_API).
-It rides the service worker above, so it is **WASM-only** and needs no extra wiring in a `--pwa` app.
+It rides the service worker above, so it is **WASM-only** and needs no extra wiring in a scaffolded app.
 
 ### Know the boundary before you design around it
 
@@ -215,7 +215,7 @@ public sealed class DraftQueue(IBackgroundSync sync) : Component, IAsyncDisposab
         // the first subscriber, so an event that beat your startup code still reaches it.
         _subscription = await sync.OnSync(async e =>
         {
-            if (e.Tag == "flush-drafts") await FlushAsync();
+            if (e.Tag == "flush-drafts") await Flush();
             StateHasChanged();
         });
 
@@ -256,7 +256,7 @@ Full reference: [`IBackgroundSync`](apis/background-sync.md).
 
 A browser subscribes to Web Push through MDN's own [`PushManager`](https://developer.mozilla.org/docs/Web/API/PushManager),
 from [`Rask.Web`](web-apis.md) — there is no Rask wrapper. It hangs off the service worker the page already
-registered (`rask-sw.js`: the `--pwa` templates' `index.html` on WASM, [`AddRaskPwa`](#pwa-on-the-server-host)'s
+registered (`rask-sw.js`: the templates' `index.html` on WASM, [`AddRaskPwa`](#pwa-on-the-server-host)'s
 `<head>` on Server), so the subscription starts at `Navigator.ServiceWorker.Ready`. Drive it from an event handler:
 
 ```csharp
@@ -368,7 +368,8 @@ The browser APIs that make a web app feel native. Rows marked *(Rask.Web)* are M
 works on **both transports** (and is registered on Server too), as do the screen wake lock from `Rask.Web` and the
 headless declarative `Shareable` *(all hosts)*. The
 `*(WASM)*` ones need a live user gesture or the installed-app instance the Server round-trip can't carry: the
-device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server.
+device/handle set is `Rask.Web` members that run on WebAssembly alone, background sync is `IBackgroundSync` in
+`Rask.Wasm.Browser`, and none is registered on Server.
 
 | Capability | API | Use |
 | --- | --- | --- |

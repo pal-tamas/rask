@@ -7,6 +7,32 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
+  keeps the front-door check, `pre-push` the attribution guard. `ci.yml` runs the format check, the
+  warnings-as-errors build, the unit suite, the browser E2Es, the CLI build and the templates as
+  separate jobs after each push to `main`, and `nightly.yml` and `pages.yml` publish only from a commit
+  it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
+  included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
+  unchanged and still run by hand; each CI job is one of them.
+- **Upstream is followed without anyone watching.** `upstream.yml` runs daily: it moves the MDN snapshot
+  to the latest stable data, records the public surface that moved with it, moves the stated Node line
+  to the Active LTS, gates the result and lands it on `main`. `dependabot-merge.yml` merges a
+  Dependabot pull request once `ci` has passed it. An issue is opened only when a person is needed —
+  the gates refused what upstream shipped, or Flux UI moved. `lts-watch.yml`, which only reported, is
+  gone.
+
+### Fixed
+
+- **Rask.SQLite.Litestream: two projects building for the first time at once no longer break each
+  other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
+  with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
+  verifies and unpacks in a directory of its own and moves the binary into the cache.
+- **`rask`: Spectre.Console's CI detection no longer overrides the CLI's own decision about whether a
+  prompt may be shown.** The CLI decides from the streams it was handed; under `CI`/`GITHUB_ACTIONS`
+  Spectre switched interaction off behind it.
+
 ### Removed
 
 - **BREAKING: `Notify` is gone; `Dispatcher` now works everywhere.** Two statics published an event, and which
@@ -1298,6 +1324,19 @@ them until tagged releases begin.
   (`Rask.Cqrs.Generators`, `Rask.Data.Generators`, …); its types are now in `Rask.Batteries.Generators` (and
   `.Analyzers`), matching the project. Nothing an app names changes.
 
+### Changed
+
+- **Rask UI is moving from daisyUI to Flux UI, one component at a time.** The kit will mirror
+  [Flux UI](https://fluxui.dev) — its components, its names, its props, and its look and behaviour exactly —
+  and daisyUI goes when the last component drawn with it does. This first step is the ground it stands on,
+  and changes nothing an app draws: Flux's theme model sits in the kit's stylesheet beside daisyUI's (an
+  accent of three variables over Tailwind's `zinc` scale, and a `dark:` variant that follows a `dark` class
+  as well as whatever daisyUI currently calls dark), and the tooling that keeps the kit honest is in
+  `scripts/flux/`: `refresh.mjs` reads Flux's docs into a snapshot of every component, prop and value,
+  `parity.mjs` measures a Rask component against Flux's live examples — boxes, colours, borders, shadows,
+  hover, press and focus, in light and dark — and `sync.mjs` reports when Flux itself has moved. Written from
+  Flux's public documentation; none of Flux's source is used.
+
 ### Fixed
 
 - **`Mail.Send`, `Jobs.Enqueue` and every other static call now work inside a job, a durable handler and a
@@ -1312,6 +1351,38 @@ them until tagged releases begin.
   inside the handler as on the page that saved the change, where before only a job carried it.
   **Upgrading adds a column to each table:** `rask db add AddOutboxUser && rask db add AddMailUser && rask db
   update`. Until then each processor logs exactly that line instead of a generic failure.
+- **UI kit: status text is readable on every theme, and `Ui.Card.Size` does something.** `Ui.Text.Tone(…)`
+  and the tones on `Ui.Stat`, `Ui.Metric`, `Ui.DetailRow`, `Ui.Code`, `Ui.MenuItem`, an alarming `Ui.Tab`
+  count and an accented `Ui.Heading` wrote daisyUI's status colours as text, which fail WCAG AA on most
+  palettes; they now use the kit's measured `-ink` tokens, and a test keeps the raw spelling out.
+  `Ui.Card.Size` wrote a daisyUI class the kit's card never reacted to; it is now the card's padding, with
+  `Md` equal to an unsized card:
+  ```csharp
+  Ui.Card.Sm[…]   // was identical to Ui.Card[…]; now p-3 sm:p-4
+  ```
+  Also: the `Buttons` choice layout has its corner radius back (`rounded-btn` is not a daisyUI 5 class), a
+  `Ui.Tone.Warning` toast shows the warning icon instead of a green check, and `dotnet pack` takes the
+  kit's stylesheet from a target framework the project builds rather than whichever `obj/*/` sorts last.
+- **Docs, rask.sh and the package pages describe the framework as it is now.** A sweep of everything the
+  recent removals left behind. `llms.txt` no longer describes a wizard with styling, auth and battery
+  questions, front-end and meta-framework templates, opt-in `--pwa`/`--docker` flags, a `Rask`
+  meta-package, `ToListAsync`-style read terminals or batteries you have to add — and it indexes 37 guides
+  it did not list. The settings keys it names are the ones a scaffold writes (`Rask:Cultures`,
+  `Rask:Push:Subject`). `AGENTS.md` is described as what it is, the contributor guide; app guidance is
+  `llms.txt` and `docs/ai-agents.md`. The last factory-call snippets are chains:
+  ```csharp
+  Div()[items]                 // was
+  Div[items]                   // now
+  Input(() => model.X)         // was
+  Input.Bind(() => model.X)    // now
+  ```
+  `docs/testing.md` uses the names `Rask.Testing` has (`page.On("button").Click()`, `page.Invoke`), the
+  guides' own sample helpers drop their `Async` suffix, `docs/diagnostics.md` lists the MSBuild errors
+  (`RASKISLAND002`, `RASKSPA006/008/009`, `RASKDOM001/002`), and the docs index links twelve guides it left
+  out. On the site: the landing page says .NET 10, names the `Rask` package, describes the browser APIs as
+  MDN's surface through `Rask.Web`, and counts its diagnostics from the guide (87, pinned by a test); the
+  structured data links `Rask.Server`; the installed app's shortcut opens a page that exists. Six package
+  descriptions stop naming types that are gone (`IMail.SendAsync`, `IRaskSqliteConnectionFactory`).
 
 - **A Dependabot pull request is no longer red on arrival.** Every one failed `commitlint`, and not on
   its title: Dependabot ends each commit with `Signed-off-by: dependabot[bot] <support@github.com>`,

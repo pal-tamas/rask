@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
-# Local E2E gate.
+# The browser E2E gate.
 #
-# The browser-journey E2E (tests/Rask.Site.E2E.Tests, Playwright) no longer runs in CI — it runs
-# here, locally, and the
-# pre-push hook (.githooks/pre-push) enforces this browser gate before code leaves the machine.
-#
-# This mirrors the build-once → publish-samples → run-shards flow the old .github/workflows/e2e.yml
+# The browser-journey E2E (tests/Rask.Site.E2E.Tests and tests/Rask.Server.E2E.Tests, Playwright). CI
+# runs this script as its "browser E2E" job on every push (.github/workflows/gates.yml), and it runs
+# the same way by hand. No git hook runs it.
 #
 # Usage:  scripts/run-e2e-local.sh
-# Skip:   RASK_SKIP_E2E=1 (also honoured by the pre-push hook)
+# Skip:   RASK_SKIP_E2E=1
 set -euo pipefail
 
 if [ "${RASK_SKIP_E2E:-}" = "1" ]; then
@@ -91,7 +89,7 @@ rask_e2e_refuse_before_build
 # has NO ProjectReference at all (it is a leaf that drives a served bundle over HTTP), and every
 # fixture in it boots exactly one app: `src/Rask.Site`. Transitively that is 39 projects. The other
 # 66 — every unit-test assembly, all three benchmark projects, the CLI — were compiled by this gate
-# and then never loaded by it, and .githooks/pre-commit had already built and RUN them on the way in.
+# and then never loaded by it, and the unit gate builds and RUNS them anyway.
 #
 # Order is load-bearing, and it is why the publish comes first. The E2E project's own
 # _RaskBundleBrowserFixtures target calls ResolveTypeScriptToolTask, whose UsingTask resolves
@@ -99,10 +97,10 @@ rask_e2e_refuse_before_build
 # build of src/Rask.TypeScript.Tasks puts there. That project is inside the site's graph, so
 # publishing the site bootstraps it; building the leaf first in a fresh worktree would not find it.
 #
-# What is no longer proved here: that the whole solution compiles. That is pre-commit's job and it
-# runs on every code commit, so nothing can reach a push without having passed it. The one thing this
-# gate builds that pre-commit does not is the WASM bundle (pre-commit passes -p:RaskWasm=false) — and
-# that IS the site publish below, which is the artifact the suite actually drives.
+# What is not proved here: that the whole solution compiles. That is the unit gate's job
+# (scripts/run-unit-local.sh, its own CI job on the same push). The one thing this gate builds that
+# the unit gate does not is the WASM bundle (the unit gate passes -p:RaskWasm=false) — and that IS the
+# site publish below, which is the artifact the suite actually drives.
 echo "==> Publish the site the E2E fixtures boot (Release, serial, prebuilt WASM runtime)"
 # The one app the browser suite drives: the published site bundle, served by a plain static host the
 # way GitHub Pages serves it. It used to be eight publishes across eight samples; there is one site now.
@@ -138,7 +136,10 @@ trap 'rm -f "$build_log"; rask_lane_release' EXIT
 # static-file host. WASM apps load every assembly from the bundle, so the version identity never has
 # to resolve. If an out-of-process host fixture is ever reintroduced, this flag has to come back off.
 build_status=0
-dotnet publish src/Rask.Site -c Release -m:1 -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
+# One core by default, for the double build of Rask.Core.dll described above — on a shared developer
+# machine. CI sets RASK_BUILD_SLOTS to the runner's cores: pages.yml has published this same project
+# in parallel on every push, and a runner has nothing else competing for the output.
+dotnet publish src/Rask.Site -c Release -m:"${RASK_BUILD_SLOTS:-1}" -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
   | tee "$build_log" || build_status=$?
 
 if [ "$build_status" -eq 0 ]; then
@@ -158,8 +159,8 @@ if [ "$build_status" -eq 0 ]; then
 fi
 
 if [ "$build_status" -ne 0 ]; then
-  # .githooks/pre-push captures this same output and delivers the verdict itself when it is the caller
-  # (RASK_GATE_WRAPPED=1) — a direct run gets the explanation here, a wrapped one is not told twice.
+  # A caller that captures this output and delivers the verdict itself sets RASK_GATE_WRAPPED=1 — a
+  # direct run gets the explanation here, a wrapped one is not told twice.
   if [ "${RASK_GATE_WRAPPED:-}" != "1" ]; then
     echo >&2
     rask_explain_build_failure \
@@ -196,7 +197,7 @@ fi
 # RASK_E2E_FILTER narrows the run while you are iterating on ONE journey. The publishes above still
 # happen — they are what makes the bundles the tests boot — but a single journey then costs one run
 # instead of the whole suite. Unset (the gate's own case) it runs everything, which is the only
-# setting the pre-push hook should ever use.
+# setting CI should ever use.
 #
 #   RASK_E2E_FILTER='FullyQualifiedName~WasmExampleTests' scripts/run-e2e-local.sh
 # The one point in this gate that serialises. Everything above — the preflight, the solution build,

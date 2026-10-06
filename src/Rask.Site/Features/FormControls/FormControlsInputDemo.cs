@@ -1,6 +1,6 @@
 namespace Rask.Site.Features;
 
-// UiInput<T> — Rask.Core's Input<T> underneath — in both shapes side by side.
+// UiInput<T> — Rask.Core's HTMLInputElement<T> underneath — in both shapes side by side.
 //   • Controlled — Value + OnChange: the parent owns the text; OnChange fires on commit (blur/Enter) and
 //     re-renders this consumer so the "Echo:" readout updates (the controlled-OnChange fix).
 //   • Bound — Input.Bind(() => model.X): two-way binds and streams per keystroke through the EditContext.

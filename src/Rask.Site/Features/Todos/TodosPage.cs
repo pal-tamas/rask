@@ -108,8 +108,8 @@ public sealed partial class TodosPage : Component
                 .Class("size-4"),
             Span.Class(item.Completed ? "todo-title completed" : "todo-title")[item.Title],
             // Icon-only, so the glyph is the whole button: without an accessible name a
-            // screen reader announces "button" and nothing else. Bootstrap Icons carried no
-            // name either -- the label is what the icon was always standing in for.
+            // screen reader announces "button" and nothing else. An icon carries no
+            // name of its own -- the label is what it stands in for.
             // The Aria step is gone because the Label IS the accessible name here: a
             // square button holds one glyph, so Ui.Button writes the label as aria-label
             // rather than as visible text.

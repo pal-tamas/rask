@@ -4,8 +4,7 @@ using Rask.Site;
 namespace Rask.Site.Features.Islands;
 
 /// <summary>
-///     The same islands the Server showcase runs, on the WASM host — from byte-identical front-end
-///     files.
+///     Vue, React, Svelte, Solid and Lit islands in one tree, on the WASM host.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -74,7 +73,7 @@ public sealed partial class IslandsDemo : Component
         Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Vue island calling back into C#, in WebAssembly"],
                 P.Class("text-sm text-ui-muted")[
-                    "The same ", Code["VueChart.vue"], " the Server showcase builds. Clicking a bar ",
+                    Code["VueChart.vue"], " builds unchanged on either host. Clicking a bar ",
                     "re-enters C# — here through a ", Code["[JSExport]"], " call into this tab's ",
                     "runtime rather than over a socket."
                 ],
@@ -146,9 +145,9 @@ public sealed partial class IslandsDemo : Component
 
     private Component SolidCard() =>
         Ui.Card.Class("shadow-sm mb-3")[
-                H6.Class("font-bold")["A Solid island, from the same file the Server showcase builds"],
+                H6.Class("font-bold")["A Solid island, keeping its own state"],
                 P.Class("text-sm text-ui-muted")[
-                    "Byte-identical to ", Code["SolidSpark.tsx"], " on the Server host. Its hover count ",
+                    Code["SolidSpark.tsx"], " knows nothing of the host it runs on. Its hover count ",
                     "belongs to Solid and C# never sees it, so raising the reading has to reach it as a ",
                     "prop change rather than a remount."
                 ],

@@ -24,12 +24,12 @@ public sealed partial class ElementsGroupingDemo : Component
                 P.Class("font-semibold mb-1")["Description"],
                 Dl.Class("mb-0")[
                     Dt["Rask"], Dd.Class("mb-1")["A full-stack C# web framework."],
-                    Dt["Tag"], Dd.Class("mb-0")["A generated factory method."]
+                    Dt["Tag"], Dd.Class("mb-0")["A generated chain entry."]
                 ]
             ]
         ],
         Figure.Class("mb-0")[
-            Pre.Class("bg-slate-900 text-slate-100 rounded p-2")["Div()[Span()[\"hi\"]]"],
+            Pre.Class("bg-slate-900 text-slate-100 rounded p-2")["Div[Span[\"hi\"]]"],
             Figcaption.Class("mt-2 text-sm text-ui-muted")["Figure: a tiny component tree."]
         ]
     ];

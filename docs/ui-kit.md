@@ -455,7 +455,9 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
   spaces it.
 - **`Ui.Heading`** separates how big a heading looks (`Size`) from where it sits in the outline (`Level` 1–6, a
   `<div>` without one); **`Ui.Subheading`** and **`Ui.Text`** (`Strong`, `Subtle`, `Tone`, `Inline`) are the rest of the
-  type scale. `Ui.Header` and `Ui.Card` take a `HeadingLevel` instead of a fixed `<h1>`/`<h2>`.
+  type scale. `Ui.Header` and `Ui.Card` take a `TitleLevel` instead of a fixed `<h1>`/`<h2>`.
+- **`Ui.Card`**'s `Size` is its padding: `Ui.Card.Sm[…]` for a dense panel, `Lg`/`Xl` for a roomy one, and `Md`
+  is what a card has with no size.
 
 ## Buttons that wait
 
@@ -467,7 +469,7 @@ the handler's ack, the WebAssembly runtime when its dispatch returns.
 
 ```csharp
 Ui.Button.Primary.OnClick(Save)["Save"]          // waits automatically
-Ui.Button.Loading(false).OnClick(StepAsync)[Ui.Icon.Name(Ui.IconName.Plus)]  // a stepper: presses queue
+Ui.Button.Loading(false).OnClick(Step)[Ui.Icon.Name(Ui.IconName.Plus)]  // a stepper: presses queue
 Ui.Button.Loading(_exporting)["Export"]                            // work that outlives the handler
 ```
 
@@ -715,7 +717,8 @@ Ui.Toaster.Position(Ui.Position.Bottom).Align(Ui.Align.End)[
 The hook is the **runtime's**, not the kit's, and it is generic: any element with
 `data-rask-dismiss-after="<ms>"` is dismissed by clicking its own `[data-rask-dismiss]` — the same convention
 the focus trap presses on Escape. An `Ui.Tone.Error` toast says `role="alert"`; every other outcome is
-announced politely as `status`.
+announced politely as `status`. `Error` and `Warning` are drawn with the warning icon, everything else
+with a check.
 
 **`Ui.ContextMenu` is the same menu, opened by a right-click.** Its children are the rows a `Ui.Dropdown` takes,
 and it is the same control underneath (`UiMenuSurface`), so the keyboard is identical; only the opening differs:

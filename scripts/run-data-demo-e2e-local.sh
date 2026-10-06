@@ -52,7 +52,7 @@ project=tests/Rask.Site.DataDemo.E2E.Tests
 # Serial, because a WASM publish builds Rask.Core twice. MinVerSkip=true like every other gate.
 echo "==> Publish the data demo (Release, native-linked, under /demos/data/)"
 build_status=0
-dotnet publish src/Rask.Site.DataDemo/Rask.Site.DataDemo.csproj -c Release -m:1 \
+dotnet publish src/Rask.Site.DataDemo/Rask.Site.DataDemo.csproj -c Release -m:"${RASK_BUILD_SLOTS:-1}" \
   -p:MinVerSkip=true --nologo 2>&1 | tee "$build_log" || build_status=$?
 
 if [ "$build_status" -eq 0 ]; then

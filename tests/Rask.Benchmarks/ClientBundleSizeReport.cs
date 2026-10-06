@@ -79,7 +79,7 @@ internal static class ClientBundleSizeReport
             // configurations share — so the file on disk is whichever one built last, no matter which
             // configuration was asked for a moment ago. Measuring that reports a regression of tens of
             // kilobytes which does not exist, and the first version of this gate did exactly that
-            // inside the pre-push hook, after the E2E lane built Debug in between.
+            // after a browser E2E gate had built Debug in between.
             //
             // esbuild --minify emits one line. Refusing here turns a confusing phantom regression into
             // a sentence naming the cause.

@@ -67,9 +67,9 @@ public sealed class GuideHistoryTests
             Assert.NotNull(stream);
         }
 
-        // MOST guides, not every one. A guide being added has no commit yet, and the pre-commit gate runs this
-        // before that commit exists — while GuidesTests forces a doc and its catalog entry into the same
-        // commit. Requiring every guide made a new guide uncommittable without --no-verify. Nine in ten
+        // MOST guides, not every one. A guide being added has no commit yet, and a unit gate run before the
+        // commit sees it without one — while GuidesTests forces a doc and its catalog entry into the same
+        // commit. Requiring every guide made a new guide fail the gate it was written under. Nine in ten
         // still tells "the history reached the assembly" apart from "it did not", which dates none.
         var dated = GuideCatalog.All.Count(guide => GuideHistory.LastModified(guide.Slug) is not null);
 

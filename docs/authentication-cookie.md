@@ -269,6 +269,6 @@ host.Services.AddSingleton<WasmLoginService>();
 await host.Run<App>();
 ```
 
-Wire the form to `WasmLoginService.LoginAsync` and the sign-out button to `WasmLoginService.LogoutAsync`.
+Wire the form to `WasmLoginService.Login` and the sign-out button to `WasmLoginService.Logout`.
 (The built-in `WasmAuthSignIn.SignOut` also works, but doing it through your own service keeps the
 navigate-before-refresh ordering explicit.)

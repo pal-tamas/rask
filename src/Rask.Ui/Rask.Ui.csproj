@@ -22,7 +22,7 @@
     <PackageId>Rask.Ui</PackageId>
     <Title>Rask — UI Kit</Title>
     <Description>The Rask component kit: the chrome, controls, data display and overlays the framework's own surfaces are built from — shell, top bar, breadcrumb switcher, tab bar, buttons, search, status dots, metric rows, detail lists, code blocks, sheets and toasts. Mobile-first, Tailwind v4 only, and ships no JavaScript. The stylesheet is compiled here and embedded, so a consuming app needs no Tailwind configuration to render it.</Description>
-    <PackageTags>web component framework net10 ui kit components tailwind design-system mobile-first</PackageTags>
+    <PackageTags>dotnet csharp aspnetcore webassembly net10 ui-kit components daisyui tailwind design-system mobile-first</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README instead of the shared framework overview Directory.Build.props
@@ -143,8 +143,12 @@
   <Target Name="PackRaskUiStylesheet"
           Condition=" '$(TargetFramework)' == '' "
           BeforeTargets="_GetPackageFiles">
+    <!-- The faces THIS build targets, not `obj/*/`: a face the project no longer targets leaves its
+         sheet behind in obj/, and a glob ships whichever one sorts last. -->
     <ItemGroup>
-      <_RaskUiPackCandidate Include="obj/*/ui.generated.css"/>
+      <_RaskUiPackFace Include="$(TargetFrameworks)"/>
+      <_RaskUiPackCandidate Include="obj/%(_RaskUiPackFace.Identity)/ui.generated.css"
+                            Condition="Exists('obj/%(_RaskUiPackFace.Identity)/ui.generated.css')"/>
     </ItemGroup>
 
     <!-- Batched to ONE value: every built face is a match (net10.0 and net10.0-browser)

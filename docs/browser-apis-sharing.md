@@ -98,7 +98,7 @@ click (WASM); `Trigger.Install` is the declarative one that also works on Server
 | --- | --- | --- | --- |
 | `IBackgroundSync` | Background Sync + Periodic Background Sync | Ask the browser to wake the app when connectivity returns, or on a schedule, to drain an offline queue | service-worker registration |
 
-PWA infrastructure (the typed `WebAppManifest`, the default service worker, `--pwa` templates) is
+PWA infrastructure (the typed `WebAppManifest`, the default service worker, what the templates scaffold) is
 covered separately in the [Mobile & PWA guide](pwa.md).
 
 ## Subscriptions — the push pattern

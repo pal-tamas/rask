@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Local format + unit/integration gate.
+# The format + unit/integration gate.
 #
-# Formatting and the unit suite no longer run in CI — they run here, locally, and the pre-commit hook
-# (.githooks/pre-commit) enforces this before a code commit. Steps: build once, run the FULL formatter
+# CI runs this script as its "format" and "unit" jobs (RASK_UNIT_PART) on every push (.github/workflows/gates.yml), and it
+# runs the same way by hand. No git hook runs it. Steps: build once, run the FULL formatter
 # (whitespace + style + analyzers), then run every test EXCEPT the browser E2E (that's its own gate —
 # see run-e2e-local.sh).
 #
@@ -22,7 +22,7 @@
 # earlier build hides it.
 #
 # Usage:  scripts/run-unit-local.sh
-# Skip:   RASK_SKIP_UNIT=1 (also honoured by the pre-commit hook)
+# Skip:   RASK_SKIP_UNIT=1
 set -euo pipefail
 
 if [ "${RASK_SKIP_UNIT:-}" = "1" ]; then
@@ -47,11 +47,10 @@ cd "$root"
 
 # How much of this machine may we take?
 #
-# This gate NEVER WAITS, and that is a deliberate inheritance from .githooks/pre-commit, which runs it
-# on every commit and decided that a blocked commit costs more than a slow one -- "the person
-# committing is usually not the person who can decide to wait". So instead of queueing, it asks how
-# much room is left and SHRINKS INTO IT. On an idle box that is the full eight slots and nothing has
-# changed; on a box with two other gates running it is two, and the commit still starts immediately.
+# This gate NEVER WAITS: a run that starts small costs less than one that queues behind every other
+# worktree. So instead of queueing, it asks how much room is left and SHRINKS INTO IT. On an idle box
+# that is the full eight slots; on a box with two other gates running it is two, and the run still
+# starts immediately. (CI passes --lane-slots itself: nothing else is running on the runner.)
 #
 # The count goes into ARGV via a one-time re-exec rather than into the environment, because the whole
 # point is that a gate in ANOTHER worktree can read it back out of `ps` and account for it. An
@@ -82,8 +81,8 @@ echo "run-unit-local: taking $lane_slots of $(rask_lane_budget) slots on this ma
 
 # --- Where the time goes --------------------------------------------------------------------------
 #
-# Printed on EVERY exit, red ones included: the budget is one minute, and a gate that cannot say which
-# phase spent it gets "optimised" by guesswork. rask_phase closes the phase that just ended; the
+# Printed on EVERY exit, red ones included: a gate that cannot say which phase spent its time gets
+# "optimised" by guesswork. rask_phase closes the phase that just ended; the
 # formatter and the scoped test projects run alongside other work, so they report their own seconds
 # and are listed apart rather than added to a total they do not extend.
 phase_table=""
@@ -111,10 +110,9 @@ trap rask_print_phases EXIT
 
 # --- Scope: which projects can this change actually reach? --------------------------------------
 #
-# The pre-commit hook sets RASK_TEST_SCOPE=affected, because a commit is the one moment where the
-# question "what did I just change?" has an exact answer. Everything else — the standalone
-# definition-of-done run, and the pre-push gate behind it — still does the whole solution, which is
-# what makes this safe to narrow: nothing leaves the machine on the strength of a scoped run alone.
+# Opt-in: RASK_TEST_SCOPE=affected narrows a hand run to the projects the change can reach. Unset — the
+# default, and what CI runs — it does the whole solution, which is what makes narrowing safe: nothing
+# is published on the strength of a scoped run alone.
 #
 # scripts/lib/affected_projects.py owns the graph, follows both ProjectReference and the
 # source-linked <Compile Include="..\..."/> edges this repo uses, and answers FULL for anything it
@@ -123,11 +121,11 @@ trap rask_print_phases EXIT
 # repository has paid for most often, so a scoped run says what it scoped to and a full run says why
 # it could not.
 #
-# Two callers, two ways of asking "what changed":
-#   * pre-commit has an index, so it scopes to the STAGED files.
-#   * pre-push has no index — the commits already exist — so it sets RASK_SCOPE_RANGE to a git range
-#     (origin/main...HEAD) and the whole push is scoped as one unit. Scoping a push to only its tip
-#     commit would be unsound: a file changed in an earlier commit of the same push would go untested.
+# Two ways of asking "what changed":
+#   * by default, the STAGED files.
+#   * with RASK_SCOPE_RANGE set to a git range (origin/main...HEAD), everything that range changed, as
+#     one unit. Scoping a branch to only its tip commit would be unsound: a file changed in an earlier
+#     commit of the same range would go untested.
 scope_projects=""
 if [ "${RASK_TEST_SCOPE:-}" = "affected" ]; then
   if [ -n "${RASK_SCOPE_RANGE:-}" ]; then
@@ -159,6 +157,26 @@ if [ "${RASK_TEST_SCOPE:-}" = "affected" ]; then
   fi
 fi
 
+# RASK_UNIT_PART cuts this gate in two so CI can run the halves on separate machines
+# (.github/workflows/gates.yml); a hand run leaves it unset and gets everything.
+#
+#   format   the gate script tests, the solution build and the formatter — no tests
+#   tests    the solution build and the tests — nothing else
+#
+# Both build: the formatter resolves types the build generates (the site's scoped-TypeScript types),
+# and without them it reports CS0246 for code that compiles. Two halves, not one per test project:
+# the formatter and the test run are the two long steps, so each half carries one. Cutting the tests finer made
+# every piece rebuild the shared projects, and left tests that read a build product of a project
+# they do not reference (rask.wasm.js) with nothing to read.
+unit_part="${RASK_UNIT_PART:-}"
+case "$unit_part" in
+  ""|format|tests) ;;
+  *)
+    echo "run-unit-local: RASK_UNIT_PART must be 'format' or 'tests', not '$unit_part'." >&2
+    exit 1
+    ;;
+esac
+
 rask_phase "scope"
 
 # Cheap and first: the gates' own shared logic. rask_build_failure_kind decides whether a red gate tells
@@ -177,6 +195,7 @@ gate_tests_failed=0
 # imports. An unscoped or FULL run executes every one. This was the costliest step a narrow commit
 # paid for: ~45 s, nearly all of it the prober's four builds, on changes that could not affect it.
 rask_gate_test_applies() {
+  [ "$unit_part" = "tests" ] && return 1   # the `format` part runs these
   [ -z "$scope_projects" ] && return 0
   inputs="$(sed -n 's/^# gate-inputs: //p' "$1" | head -1)"
   printf '%s\n' "$scope_changed" | grep -E "^(scripts/|\.githooks/)${inputs:+|$inputs}" >/dev/null
@@ -315,8 +334,8 @@ rask_build_debug_generators() {
   fi
 }
 
-# Scoped to the files being committed when the caller says so (the pre-commit hook does), and the whole
-# solution otherwise. Measured: 59s full, 30s scoped — the remaining 30s is solution load, which no
+# Scoped to the files being committed when the caller says so (RASK_FORMAT_SCOPE=staged|range), and the
+# whole solution otherwise. Measured: 59s full, 30s scoped — the remaining 30s is solution load, which no
 # scoping avoids.
 #
 # Sound rather than merely cheaper: dotnet format decides per DOCUMENT, so a file it is not shown is a
@@ -362,8 +381,12 @@ format_pid=""
 format_label=""
 
 rask_start_format() {
-  # `range` is pre-push's `staged`: the commits already exist, so the files are the ones the push
-  # range changed. Same soundness argument as above, over the same range the tests are scoped to.
+  if [ "$unit_part" = "tests" ]; then
+    echo "==> Formatting check: not in the 'tests' part — the 'format' part runs it."
+    return 0
+  fi
+  # `range` is `staged` for commits that already exist: the files are the ones RASK_SCOPE_RANGE
+  # changed. Same soundness argument as above, over the same range the tests are scoped to.
   if [ "${RASK_FORMAT_SCOPE:-}" = "staged" ] || { [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; }; then
     if [ "$RASK_FORMAT_SCOPE" = "range" ]; then
       staged_cs="$(git diff --name-only --diff-filter=ACMR "$RASK_SCOPE_RANGE" | grep -E '\.cs$' || true)"
@@ -464,7 +487,10 @@ test_slots="$lane_slots"
 # `The_feature_switch_is_on_in_this_assembly` — guards that exist so those files cannot pass vacuously
 # with the switch off. They did their job on this experiment.
 
-if [ -n "$scope_projects" ]; then
+if [ "$unit_part" = "format" ]; then
+  echo "==> Tests: not in the 'format' part — the 'tests' part runs them."
+  unit_status=0
+elif [ -n "$scope_projects" ]; then
   # The affected TEST projects, handed to the same traversal shape as the build. VSTest is invoked
   # per project so each assembly keeps its own testhost and therefore its own runtimeconfig.json —
   # the MetadataUpdaterSupport point above applies here exactly as it does to the solution run, so
@@ -482,8 +508,8 @@ if [ -n "$scope_projects" ]; then
     unit_status=0
 
     # A project that already passed on a tree nothing has reached it from since is not run again.
-    # pre-push repeats pre-commit minutes later on the same tree, and that repeat was the whole of its
-    # cost. scripts/lib/gate_stamps.py asks the scoper, so "reached" means exactly what it means for
+    # A second scoped run minutes later on the same tree would otherwise repeat the first in full.
+    # scripts/lib/gate_stamps.py asks the scoper, so "reached" means exactly what it means for
     # the scope above; anything it cannot narrow is run. RASK_GATE_REUSE=0 runs everything.
     gate_tree=""
     gate_salt="$(dotnet --version 2>/dev/null)|Release"

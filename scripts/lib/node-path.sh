@@ -1,6 +1,6 @@
 # Puts Node on PATH for a gate started from a shell that never ran nvm's init.
 #
-# A git hook fired by an IDE, an agent or `env -i` inherits no nvm shim, so `node --version` fails and
+# A gate started by an IDE, an agent or `env -i` inherits no nvm shim, so `node --version` fails and
 # the islands build stops with RASKISLAND001 on a machine that has Node installed. This looks where nvm
 # keeps its versions and takes the newest; whether that one is new enough stays the build's question
 # (RaskExternalMinimumNode), so there is one bar and it is not restated here.

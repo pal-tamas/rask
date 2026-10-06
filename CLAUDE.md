@@ -9,25 +9,35 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 
 ## Workflows → skills (use them automatically)
 `.claude/skills/` holds the committed playbooks; apply the matching one without being asked.
-- **rask-ship** — definition-of-done gate before any commit: `dotnet format` (.editorconfig) →
-  `dotnet build -warnaserror` (analyzers clean) → tests → benchmarks → CHANGELOG → review → land on main.
+- **flux-component** — a `Rask.Ui` component, EXACTLY as Flux UI draws and behaves it: measure fluxui.dev's live docs
+  (`scripts/flux/`), write it from the measurements, prove it with `parity.mjs`. Never read `livewire/flux` (proprietary).
+- **rask-ship** — definition of done before any commit: format the files you changed → build + test the
+  project you touched → CHANGELOG → review → land on main; CI runs the full gates after the push.
 - **add-html-tag** · **add-diagnostic** · **add-codefix** — elements from MDN (refresh + hand partial) / RASK0xx+docs+test / IDE quick-fix+test.
 - **run-benchmarks** — before/after `Allocated` delta for render-hotpath changes (required evidence).
 - **rask-review** — security / performance / memory / .NET-C# review lens (wraps /code-review, /security-review).
 - **rask-seo** — search + AI-assistant discoverability of rask.sh and the packages (page/guide copy, JSON-LD, sitemap, llms.txt); on EVERY site/docs/package-metadata change.
-- **land-on-main** — Conventional-Commit, gated merge of `origin/main`, `git push origin HEAD:main`. **Never open a PR** for own work.
+- **land-on-main** — Conventional-Commit, merge `origin/main`, `git push origin HEAD:main`, CI reports after. **Never open a PR** for own work.
 - **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 
 Standing rules: do your best every change, holding **UX + security + performance** together; prefer
 standard .NET APIs (don't reinvent); refactor duplication you touch; **SOLID + Clean Code** (one
 responsibility per type and file, small well-named methods, no copied helper — `docs/code-analysis.md#design`);
 unit-test every feature (E2E
-only when unreachable); E2E for every `src/Rask.Site` change — **tests run locally, not in CI**.
-**BOTH HOOKS ARE HELD TO A HARD ONE-MINUTE BUDGET**, at any scope: `.githooks/pre-commit` and
-`.githooks/pre-push` each run `scripts/run-unit-local.sh` scoped to what changed (staged files /
-`origin/main...HEAD`). When a gate goes over budget the answer is to **make the tests faster, never to
-skip or narrow a gate** — a slow gate beats a lying one. Everything that could not fit runs BY HAND:
-`scripts/run-all-gates.sh` (browser E2E, devtools E2E, CLI build, watch, deploy, installer).
+only when unreachable); **PARALLEL BY DEFAULT** — independent reads/searches/commands go out in ONE batch,
+independent sub-tasks fan out to subagents (a worktree each: two builds in one tree fight over `obj/`), a long
+build or gate runs in the background while the next step is prepared; a new script, gate or test runs
+concurrently on all cores under ONE shared `-m` budget, and anything serial states its reason at the site
+(a shared `obj/`, a port, a global sink); E2E for every `src/Rask.Site` change.
+**THE GATES RUN IN CI, NOT ON THIS MACHINE — never wait on one.** The hooks take seconds (commit-msg,
+front doors, attribution) and nothing blocks a commit or a push. `ci.yml` runs every gate as its own job
+AFTER the push to `main` — format, warnings-as-errors build, unit suite, the browser E2Es, CLI build,
+templates — and `nightly.yml`/`pages.yml` publish only from a commit it passed. Locally, build and test
+ONLY the project you touched (`dotnet test tests/Rask.X.Tests`), never the solution, never a gate script
+— several worktrees doing that at once is what made every gate take ten minutes. A red `main`
+(`gh run list --workflow ci --branch main`) is fixed forward, first; a job is reproduced with the script
+it names. Risky change → push to a `ci/**` branch first (`ci/release/**` adds the release-only gates:
+watch, deploy, storage providers, installer, providers — `release.yml` runs them all before it packs).
 **Benchmarks run ONLY when you ask** — `scripts/run-benchmarks-local.sh`, in no hook and no CI;
 the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by `pages.yml`, gated by
 `scripts/tests/install-script.test.sh` + `scripts/run-install-e2e-local.sh`, `docs/installation.md`);
@@ -87,9 +97,8 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
 
 ## Layout — TWO roots, no others
 `src/` is what ships, `tests/` is what verifies or measures. There is no `site/`, `samples/` or
-`benchmarks/` any more. Adding a third root means teaching `.githooks/pre-commit`'s path filter and
-`scripts/lib/affected_projects.py`'s `PROJECT_ROOTS` about it, or the one commit that touches only it
-is the one commit that skips the gate.
+`benchmarks/` any more. Adding a third root means teaching
+`scripts/lib/affected_projects.py`'s `PROJECT_ROOTS` about it, or a scoped run skips it.
 - **Every test is named as a sentence and shaped in three blocks** (setup · action · checks, blank-line separated):
   `Remember_loads_once_then_serves_from_the_cache`. `tests/Shared/TestNamesReadAsSentences.cs`, linked into every
   `*.Tests` project, fails the build's tests on a name that isn't one.

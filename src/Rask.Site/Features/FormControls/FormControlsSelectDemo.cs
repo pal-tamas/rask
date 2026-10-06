@@ -1,6 +1,6 @@
 namespace Rask.Site.Features;
 
-// UiSelect<T> — Rask.Core's Select<T> underneath — in both shapes side by side.
+// UiSelect<T> — Rask.Core's HTMLSelectElement<T> underneath — in both shapes side by side.
 //   • Controlled — Value + OnChange: the parent owns the value in a field; OnChange writes it back and
 //     re-renders this consumer, so the "Picked:" readout updates live (the controlled-OnChange fix).
 //   • Bound — Ui.Select.Bind(() => model.X): two-way binds the model property through the ambient EditContext.

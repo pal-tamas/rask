@@ -21,24 +21,22 @@ async lifecycle hook shows over the running app, which stays mounted with its st
 
 The framework side of that loop has its own gate, `scripts/run-watch-e2e.sh` — it scaffolds an app, runs
 it under a real `dotnet watch`, edits a file, and asserts the change reached the open live session
-without it being torn down. It's opt-in (`RASK_WATCH_E2E=1`); run it when you touch the hot-reload
-coordinator, the scoped-asset registry, the generated registries, or `rask dev`.
-
-`.githooks/pre-push` runs it when a push touches the hot-reload path (bypass with
-`RASK_SKIP_WATCH_E2E=1`).
+without it being torn down. Run it when you touch the hot-reload coordinator, the scoped-asset
+registry, the generated registries, or `rask dev`. CI runs it before a release and on a
+`ci/release/**` branch, not on every push (see [CI](#ci)).
 
 There used to be a browser half, `scripts/run-wasm-watch-e2e.sh`, driving a WASM sample under
 `dotnet watch`. It is gone with the app it edited, so **Mono applying a metadata delta to a live WASM
-runtime is covered by nothing**. Its last run demonstrated the failure mode it was written to fix: with
-its tests deleted, `dotnet test --filter` matched nothing, printed "No test matches the given testcase
-filter", exited 0, and the hook announced the gate had passed.
+runtime is covered by nothing**.
 
 ## The definition-of-done gate
 
-Every change passes this gate before it lands on `main` (the `rask-ship` skill):
+Every change passes this gate before it lands on `main` (the `rask-ship` skill). No hook enforces
+it: CI runs the format check, the build, the tests and the browser journeys after the push (see
+[CI](#ci)), so what you skip here you find out there, on `main`.
 
-1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`. The `pre-commit` gate
-   runs the verify for you, so this is a fast pre-check rather than the last line of defence.
+1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`. CI's
+   `format` job runs the same verify after the push.
 2. **Clean build, warnings-as-errors** —
    `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true`.
    Enforced in `Directory.Build.props` (`TreatWarningsAsErrors`, `EnableNETAnalyzers`,
@@ -74,20 +72,21 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
 6. **Review** — security, performance, and memory held together with UX; prefer standard .NET
    APIs over hand-rolled code; refactor duplication you touch (the `rask-review` skill).
 7. **Land on `main`** — Conventional Commit `type(scope): subject` (enforced by commitlint), then
-   merge `origin/main` in with `git merge --no-commit` (a *clean* merge auto-commits and runs
-   `pre-merge-commit`, a hook this repo does not have, so it lands ungated) and
-   `git push origin HEAD:main`. **Own work never goes through a pull request** — PRs are reserved
-   for external contributions, which arrive from forks. See the `land-on-main` skill.
+   merge `origin/main` in and `git push origin HEAD:main`. **Own work never goes through a pull
+   request** — PRs are reserved for external contributions, which arrive from forks. `ci.yml` runs
+   on the push; a red `main` is fixed forward. See the `land-on-main` skill.
 
 ## Versioning & releases
 
 - **Versions come from git tags via MinVer** (`vX.Y.Z`); assemblies carry `AssemblyVersion`,
   `FileVersion`, and `InformationalVersion` automatically.
 - **Stable release:** promote `CHANGELOG.md` `[Unreleased]` to a dated section, tag `vX.Y.Z`,
-  push — `release.yml` runs the unit gate, packs the NuGets, and publishes to nuget.org + a GitHub
-  release (the `cut-release` skill). Run the local E2E gate (`scripts/run-e2e-local.sh`) before tagging.
-- **Nightly:** every push to `main` runs `nightly.yml` — unit gate, then packs the MinVer
-  prerelease versions and publishes them to nuget.org (prerelease) and GitHub Packages.
+  push — `release.yml` runs every gate, the release-only ones included, and only then packs the
+  NuGets and publishes to nuget.org + a GitHub release (the `cut-release` skill). Try those gates
+  ahead of the tag on a `ci/release/**` branch.
+- **Nightly:** `nightly.yml` runs when `ci` has passed on a push to `main` — it packs the MinVer
+  prerelease versions and publishes them to nuget.org (prerelease) and GitHub Packages. A commit
+  `ci` did not pass publishes nothing.
 - **The released version is the only one left listed.** After publishing, `release.yml` runs
   [`scripts/unlist-old-versions.sh`](../scripts/unlist-old-versions.sh), which unlists every older
   version of each package it just pushed — previous stables and the nightly prereleases alike. A
@@ -122,388 +121,242 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
 
 ## CI
 
-- **GitHub runs the bare minimum: only what GitHub alone can do.** `commitlint.yml` (PR commits + the
-  PR title — the squash subject, which no local hook ever sees), `pages.yml`, `release.yml`, and
-  `nightly.yml`'s prerelease publish. There is no `ci.yml`: the benchmark byte-gates moved into
-  `.githooks/pre-push` alongside the browser E2E, so **nothing in CI runs a test or a benchmark** —
-  your machine is the only thing that will tell you something broke.
-- **Commits and pushes are scoped.** Both hooks set `RASK_TEST_SCOPE=affected` (a commit over its staged
-  files, a push over `origin/main...HEAD`), and the gate builds and tests only the projects the change
-  can reach — `scripts/lib/affected_projects.py` walks `ProjectReference`, the `..\…` items a project
-  pulls in (`Compile`, `EmbeddedResource`, `None`, `Content`, `AdditionalFiles`), and every test's
-  `<RaskTestReads/>` declarations. It answers FULL for anything it cannot map precisely (a repo-root
-  import, the solution, a gate script, a hook, `.editorconfig`, a packaged `build/` import, a shared
-  file owned by no project, or a file outside `src/`/`tests/` that no test declares reading). The run
-  always prints which of the two it chose and why. Run the whole thing by hand any time with
-  `scripts/run-unit-local.sh`, which is unscoped by default.
+**Nothing blocks a commit or a push.** The git hooks take seconds and build nothing; the gates run in
+GitHub Actions *after* the push, each as its own job. Own work still lands on `main` directly, and
+`ci.yml` says afterwards whether it should have. A red `main` is fixed forward.
+
+They used to run in the hooks, under a one-minute budget that only held on an idle machine: with
+several worktrees gating at once each run shrank to two cores and took ten minutes and more. CI is
+free for a public repository and nobody waits on it.
+
+### What runs where
+
+| When | What |
+|---|---|
+| `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
+| `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
+| `pre-push` hook | The attribution guard again, over the commits being pushed. |
+| **CI, every push** — `ci.yml` on `main`, on `ci/**` branches and on pull requests | The **push** set: unit + format (`run-unit-local.sh`), browser E2E (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`). |
+| **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
+| **Only when you ask** | Benchmarks (`run-benchmarks-local.sh`), the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
+
+The list of gates lives once, in `.github/workflows/gates.yml`, which `ci.yml` and `release.yml` both
+call, so the two cannot drift. Jobs do not fail fast: one red gate says nothing about the others, and
+every one reports.
+
+Enable the hooks with `git config core.hooksPath .githooks` (the first `dotnet build` does it for
+you); bypass one with `--no-verify`.
+
+### A red job
+
+**Every job runs one script from `scripts/`, the same one you run by hand.** The job's last step
+is that command; run it in a worktree at that commit:
+
+```bash
+scripts/run-unit-local.sh                    # the "format" and "unit" jobs (RASK_UNIT_PART=format | tests runs one half)
+scripts/run-e2e-local.sh                     # the "browser E2E" job
+scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
+scripts/run-all-gates.sh --list              # every gate, and what it needs
+```
+
+On `main` the next push does not cancel a run in progress, so "which push broke it" has an answer.
+
+### Trying a change first
+
+Push to a `ci/**` branch to run the push set without landing anything; only the newest push to a
+branch is kept running. A `ci/release/**` branch runs the release set too — the way to find out
+before tagging rather than from a failed release.
+
+```bash
+git push origin HEAD:refs/heads/ci/my-change
+gh run watch          # pick the run
+git push origin --delete ci/my-change
+```
+
+### What a red `main` stops
+
+Publishing. `nightly.yml` and `pages.yml` trigger when `ci` completes on `main` and do nothing unless
+it concluded `success`, so neither a prerelease package nor rask.sh is built from a commit the gates
+did not pass. `release.yml`'s `publish` job needs its `gates` job (both sets). A manual
+`workflow_dispatch` of `nightly` or `pages` publishes whatever `main` holds, verdict or not.
+
+### The workflows
+
+- `ci.yml` — the gates, on every push to `main`, `ci/**` branches and pull requests.
+- `gates.yml` — the reusable list of gate jobs `ci.yml`, `release.yml` and `soak.yml` call.
+- `soak.yml` — the release set against `main` every three hours, so an image or a download that
+  disappears is found within hours and not on the day of a release.
+- `commitlint.yml` — Conventional Commits and the attribution guard on PRs: the commits and the PR
+  title, which is the squash subject and passes through no local hook.
+- `nightly.yml` — prerelease publish from a commit `ci` passed.
+- `pages.yml` — rask.sh, from a commit `ci` passed.
+- `release.yml` — tag-triggered: every gate, then the stable publish.
+- `upstream.yml` — daily; follows what Rask is generated from. `scripts/upstream/follow.sh` moves the
+  MDN snapshot to the latest stable data, records the public surface that moved with it
+  (`scripts/public-api/record.py`) and moves the stated Node line to the Active LTS; the result is
+  gated and THEN landed on `main`, with nobody watching. It opens an issue only when it needs a
+  person: the gates refused what upstream shipped, or Flux UI moved.
+- `dependabot-merge.yml` — merges a Dependabot pull request once `ci` has passed it. What must not
+  move on its own is in `.github/dependabot.yml`'s ignore lists.
+
+### The gate scripts
+
+True of the scripts wherever they run — a CI job or your terminal.
+
+- **Format + unit tests: `scripts/run-unit-local.sh`.** It builds the solution once, then runs the
+  full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style + analyzers) **concurrently
+  with** every test except the browser E2E, and reports both statuses: a run that is red for
+  formatting still tells you whether your tests pass. The full pass earns its place — import ordering
+  is enforced by `dotnet format` alone, not by the warnings-as-errors build (#584). Before formatting
+  it builds `src/*.Generators` in **Debug**: `dotnet format` evaluates the solution in the default
+  configuration and resolves the analyzer references to `bin/Debug/`, and without those DLLs no
+  source generator runs and the routing tests fail to bind with CS1503. The gate's own bash tests
+  (`scripts/tests/*.test.sh`) run first, and every run ends with one line per phase saying where the
+  time went.
+- **`dotnet format` never gets `--no-restore`.** With it,
+  `dotnet format Rask.slnx --verify-no-changes` **modified 57 files it was only asked to check**:
+  without a restore the workspace cannot resolve the source generators, every generated symbol goes
+  missing, the usings look dead, and it writes. Check `git status` after any format run.
+- **A hand run can be scoped to what changed.** `RASK_TEST_SCOPE=affected scripts/run-unit-local.sh`
+  builds and tests only the projects the staged files can reach (or a range's, with
+  `RASK_SCOPE_RANGE=origin/main...HEAD`); `RASK_FORMAT_SCOPE=staged|range` narrows the formatter the
+  same way. `scripts/lib/affected_projects.py` walks `ProjectReference`, the `..\…` items a project
+  pulls in, and every test's `<RaskTestReads/>` declarations, and answers FULL for anything it cannot
+  map precisely (a repo-root import, the solution, a gate script, a hook, `.editorconfig`, a file no
+  project owns). The run prints which it chose and why. A project that passed is stamped with the
+  tree it passed on (`scripts/lib/gate_stamps.py`), and the next scoped run skips it when nothing in
+  reach changed; `RASK_GATE_REUSE=0` runs everything. Unscoped is the default, and it is what CI runs.
 - **A test that reads a file from disk declares it.** A contract test on another project's `rask.ts`,
-  a walk of `docs/**/*.md`, a scan of every `.cs` in the repo: no reference carries that edge, so the
-  test's csproj names it, and a change to that file then runs the test —
+  a walk of `docs/**/*.md`: no reference carries that edge, so the test's csproj names it —
   ```xml
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\..\src\Rask.Server\Resources\**" />
   </ItemGroup>
   ```
   The group is `Condition="false"` so MSBuild never expands the glob (the scoper reads it as text;
-  `scripts/tests/affected-projects.test.sh` enforces this). Forget the declaration and a change to that
-  file skips the test that pins it, which is how `CHANGELOG.md` and `docs/` could map to their readers
-  instead of forcing FULL on almost every commit.
-- **The gate's own tests (`scripts/tests/*.test.sh`) are scoped the same way.** A change under `scripts/`
-  or `.githooks/` runs all of them, and so does any unscoped or FULL run. Otherwise a test runs only when
-  the change touches what its `# gate-inputs:` header names — an ERE over repo-relative paths, e.g. the
-  public-API prober's `src/Rask\.Cache/|…Directory\.…`. A test that starts reading something outside
-  `scripts/` adds it there, or a change to that thing will not run it. This took ~45 s off a narrow
-  commit, nearly all of it the prober's four builds of Rask.Cache.
-- **The unit gate says where its time went, and finds Node itself.** `scripts/run-unit-local.sh` ends
-  every run, red ones included, with one line per phase (scope, gate script tests, Release build, Debug
-  generators, tests) and the slowest test projects and the formatter listed apart, because those run
-  alongside each other. Every `scripts/run-*.sh` sources `scripts/lib/node-path.sh`: when `node` is not
-  on PATH — a hook fired from an IDE or an agent shell that never ran nvm's init — it takes the newest
-  version under `~/.nvm/versions/node` instead of failing the islands build with RASKISLAND001.
-- **Every gate opts the .NET CLI out of telemetry, for speed.** `scripts/lib/dotnet-env.sh` exports
-  `DOTNET_CLI_TELEMETRY_OPTOUT=1`. The CLI spools each command's telemetry under
-  `~/.dotnet/TelemetryStorageService` and walks that folder, locking every file, as it exits; where the
-  upload does not get through, the spool only grows (9,769 files on the machine this was found on) and a
-  gate's hundreds of `dotnet` processes queue on it with the cores idle. A one-line `Rask.Core` change went
-  from 372 s to 125 s, its test phase from 253 s to 58 s. If plain `dotnet` commands feel slow on your
-  machine, look at the size of that folder.
-- **pre-push does not repeat what pre-commit just proved.** A test project that passed is stamped with the
-  working tree it passed on (`artifacts/gate-stamps/`, by `scripts/lib/gate_stamps.py`). The next scoped
-  gate skips it when the scoper says nothing between that tree and the current one can reach it, and
-  prints what it reused; a changed or untracked file in reach, another SDK, a gate-script change or a
-  stamp whose tree is gone all run it. `RASK_GATE_REUSE=0` runs everything. pre-push also format-checks
-  only the `.cs` files in its push range (`RASK_FORMAT_SCOPE=range`), as pre-commit does for staged ones.
-- **The scaffold templates compile in the unit gate.** `src/Rask.Templates` is in no project the solution
-  builds, so `tests/Rask.Generators.Tests/TemplatesCompileTests.cs` materialises each template the way
-  `rask new` does and compiles the C# in memory with the real generators. It proves the sources bind to the
-  public surface as it is in the tree; restore, the project file, the MSBuild targets and publish stay with
-  `scripts/run-cli-build-e2e.sh`. A using that a package's `build/*.props` adds for an app is listed in that
-  test by hand, so a new one is added there too.
-- **`run-all-gates.sh --parallel` runs two lanes.** The CLI build, template and watch gates pack with
+  `scripts/tests/affected-projects.test.sh` enforces this). Forget the declaration and a scoped run
+  skips the test that pins the file. The gate's own tests declare theirs on a `# gate-inputs:` header
+  line, an ERE over repo-relative paths; a change under `scripts/` or `.githooks/` runs all of them.
+- **Every script finds Node and opts out of .NET CLI telemetry.** `scripts/lib/node-path.sh` takes the
+  newest version under `~/.nvm/versions/node` when `node` is not on PATH (a shell started by an IDE
+  or an agent), instead of failing the islands build with RASKISLAND001. `scripts/lib/dotnet-env.sh`
+  exports `DOTNET_CLI_TELEMETRY_OPTOUT=1`: the CLI walks and locks its spool under
+  `~/.dotnet/TelemetryStorageService` on every exit, and a gate's hundreds of `dotnet` processes
+  queue on a large one with the cores idle.
+- **The scaffold templates compile in the unit gate.** `src/Rask.Templates` is in no project the
+  solution builds, so `tests/Rask.Generators.Tests/TemplatesCompileTests.cs` materialises each
+  template the way `rask new` does and compiles the C# in memory with the real generators. Restore,
+  the project file, the MSBuild targets and publish stay with `scripts/run-cli-build-e2e.sh`. A using
+  that a package's `build/*.props` adds for an app is listed in that test by hand.
+- **`run-all-gates.sh` is every gate in one local run.** `--only 'E2E|CLI'` narrows it to the gates
+  whose label matches. `--parallel` runs two lanes: the CLI build, template and watch gates pack with
   MinVer on and everything else builds with `MinVerSkip`, so in one tree they recompile each other's
-  `obj/Release`. `--parallel` checks out a second worktree at HEAD (`.claude/worktrees/gates-<sha>`,
-  removed when everything passed) and runs that group there beside the rest; it refuses a dirty tree.
-  `--only 'E2E|CLI'` narrows either mode to the gates whose label matches, and the closing table gives each
-  gate's seconds and the wall clock.
-- **A public rename is one command.** `scripts/tools/RaskRename` loads `Rask.slnx` and renames a symbol the
-  way an IDE does — implementations and overloads together — then rewrites `Type.Old` in the templates, docs
-  and agent guides and lists the remaining `.Old`/`Old(` there for a person to read. It refuses a name the
-  type already has. It lives under `scripts/tools/`, cut off from the repository's build rules by the empty
-  `Directory.Build.*` there, in no solution and never packed. `.claude/skills/rename-public-member` is the
-  playbook: rename, build once for the RS0016/RS0017 baselines, then what no build covers.
-- **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
-  solution once, then runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
-  analyzers, one workspace load) **concurrently with** every test except the browser E2E. The two share
-  nothing either of them writes — the formatter restores and reads a Debug workspace, the tests load
-  the already-built `bin/Release` — so the only thing that had ever serialised them was the order they
-  were written in. Both statuses are collected and both are reported: a run that is red for formatting
-  still tells you whether your tests pass, instead of costing a second full gate to find out. The full
-  pass earns its
-  place: import ordering is enforced by `dotnet format` alone — the warnings-as-errors build covers the
-  analyzer rules but not the sorting of using directives, which is how a misordered `using` drifted into
-  `Rask.Server` unnoticed (#584). Before formatting, the script builds `src/*.Generators` in **Debug**:
-  `dotnet format` evaluates the solution in the default configuration, so it resolves the
-  `OutputItemType="Analyzer"` references to `bin/Debug/`, and without those DLLs no source generator runs
-  — `Routes.*` is never emitted and the routing tests fail to bind with CS1503. That is the real cause of
-  the "spurious CS1503" that kept this gate on the whitespace pass alone until #584. That Debug build
-  happens **only on the runs that go on to format**: the formatter is its only consumer, so a commit
-  staging no `.cs` at all (a docs page, a workflow, a `.ts` file) no longer pays for three Debug
-  compilations and then skips the formatter. The three projects build concurrently — they have no
-  `ProjectReference`, so there is no shared output to race over — each pinned to `-m:1` so they cannot
-  each claim the box. The gate's own bash tests run concurrently too, for the same reason: ten
-  independent scripts that stub `ps`/`pgrep` rather than touching the machine.
-  The `.githooks/pre-commit` hook runs it whenever a commit stages code (enable hooks with
-  `git config core.hooksPath .githooks`; bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`).
-- **`dotnet format` never gets `--no-restore`, and that is not an oversight.** Both arms of the gate
-  passed it until now, and `dotnet format Rask.slnx --verify-no-changes --no-restore` **modified 57
-  files it was only asked to check**, rewriting `using` directives across the repo. Without a restore
-  the workspace cannot resolve the source generators; every generated symbol goes missing, the
-  remove-unnecessary-imports analysis concludes those usings are dead, and it writes — which
-  `--verify-no-changes` did not stop. The restore it now does is already up to date from the build
-  above, so this costs seconds. Do not put the flag back to shave them off, and check `git status`
-  after any format run: a destructive pass and a clean one differ only in how many files moved.
+  `obj/Release`; it checks out a second worktree at HEAD for that group and refuses a dirty tree.
+- **A red gate names the culprit it actually found.** The CLI build and browser gates build browser
+  targets, so they can fail for a reason that has nothing to do with your branch — most often
+  `NETSDK1147`, the `wasm-tools` workload resolving as missing. `scripts/lib/build-failure.sh`
+  classifies the build log — `code` (`error CS`, your branch), `workload`, `sdk`, `unknown` — and the
+  gate prints the matching explanation. `CS` wins when both appear.
 - **Attribution trailers are rejected, at both boundaries.** Commit messages carry no
-  `Co-authored-by:`, no `Claude-Session:` and no "Generated with …" footer. GitHub's contributor list
-  credits co-authors as well as authors, so one footer adds an account to the sidebar that only a
-  history rewrite removes — two of them (one Claude, one Copilot Autofix) cost a rewrite of all 970
-  commits plus a force-push of `main` and 18 release tags. The rule lives once, in
-  `scripts/lib/attribution.sh`, and is consulted by **both** hooks: `.githooks/commit-msg` at commit
-  time, and `.githooks/pre-push` over the commits actually being pushed. The second is not
-  redundant — the first only runs once `core.hooksPath` is set, and a fresh clone or a new worktree
-  has not set it, which is exactly how the two trailers got in. A human `Signed-off-by:` passes;
-  `scripts/tests/attribution-guard.test.sh` states every case, both directions. CI's copy of the
-  check (`commitlint.yml`) makes one allowance the hooks do not: on a pull request **Dependabot
-  opened**, Dependabot's own `Signed-off-by: dependabot[bot] <support@github.com>` is dropped before
-  the check, because Dependabot writes it on every commit and cannot be configured not to — counted,
-  it made every Dependabot PR red on arrival.
-- **A deletion-only push runs no gate.** `git push origin --delete <branch>` moves no commits and
-  changes no tree, so there is nothing for a build or a browser journey to have an opinion about. The
-  hook used to run the whole gate on it regardless — every gate below it is phrased as "is this push
-  path-relevant", and a deletion matches those filters like anything else. It now returns early when
-  **every** ref in the push is a deletion; a push that deletes one branch and updates another still
-  gets the full gate.
-
-- **E2E runs locally, enforced before push.** The browser-journey E2E
-  (`tests/Rask.Site.E2E.Tests`, Playwright) was moved out of the CI pipeline. Run it with
-  `scripts/run-e2e-local.sh`; the `.githooks/pre-push` hook runs it on `git push` (enable hooks
-  with `git config core.hooksPath .githooks`; bypass with `git push --no-verify` or `RASK_SKIP_E2E=1`).
-  While iterating on **one** journey, narrow the run with `RASK_E2E_FILTER` — the sample publishes still
-  happen (they are what the tests boot), but you pay for one journey instead of the whole suite:
-  `RASK_E2E_FILTER='FullyQualifiedName~WasmExampleTests' scripts/run-e2e-local.sh`. It says loudly
-  that the run was filtered, because a narrowed green is not the gate.
-
-  **It builds the graph the suite runs, not the solution.** This gate used to open with
-  `dotnet build Rask.slnx -m:1` — 105 projects, serially, on one core, before a browser opened.
-  `Rask.Site.E2E.Tests` has no `ProjectReference` at all (it drives a served bundle over HTTP) and
-  every fixture in it boots exactly one app, `src/Rask.Site`; transitively that is 39 projects. The
-  other 66 — every unit-test assembly, all three benchmark projects, the CLI — were compiled here and
-  never loaded, after `pre-commit` had already built **and run** them on the way in. The gate now
-  publishes the site (which bootstraps the MSBuild task assemblies the leaf needs) and then builds the
-  one leaf project. What it stops proving is that the whole solution compiles, which is `pre-commit`'s
-  job on every code commit; the one thing it built that `pre-commit` does not is the WASM bundle, and
-  that is the site publish itself.
-
-  **All three gates now agree on `MinVerSkip=true`.** The unit and benchmark gates already passed it;
-  this one did not, and that disagreement was expensive in a way none of them could see. MinVer stamps
-  the commit height and SHA into `AssemblyInformationalVersion`, so every project's generated
-  `AssemblyInfo.cs` changes on **every commit**, and any project whose version flag differs from the
-  last gate to touch `obj/` is recompiled from scratch. The three were rebuilding each other's output
-  in a loop. It is safe here because the recorded hazard — a MinVer fallback version breaking a
-  published app launched **out-of-process** whose routes live in a separate assembly — cannot arise:
-  `ExampleAppFixture`, the only out-of-process host runner, has no derived class left, and the one
-  fixture in use serves a published browser-WASM bundle from an in-process static-file host. If an
-  out-of-process host fixture is ever reintroduced, the flag has to come back off.
-
-  **The machine has a slot budget, and every gate claims against it.** Several worktrees share one
-  box, and the two things that go wrong there pull in opposite directions: too much work at once
-  (nothing used to throttle the unit gate — three of them ran together and put 35 MSBuild worker nodes
-  on 14 cores, load average 98 at 0.0% idle), and too little (the browser gate used to take the whole
-  machine for its *whole run*, including a build that uses one core). Both are fixed by the same
-  mechanism, in `scripts/lib/machine-lane.sh`.
-
-  The box publishes **10 slots** — the performance cores, deliberately not all 14, so the efficiency
-  cores stay free for your editor and no timing-sensitive test gets scheduled somewhere slower than
-  the run that set its timeout. A gate then asks one of two questions:
-
-  | gate | what it does | blocks? |
-  |---|---|---|
-  | `run-unit-local.sh` | takes whatever is left, floor 2, and **shrinks into it** — `-m` on the build and on `dotnet test` follow the number, and it prints the size it chose | **never** |
-  | `run-e2e-local.sh` — preflight, build, publishes | a partial claim; several worktrees may build at once | **never** |
-  | `run-e2e-local.sh` — the browser suite | claims the whole budget | **yes** — see the exact guarantee below |
-
-  **What "exclusive" does and does not promise.** Two browser suites never overlap: whichever gate is
-  older is waited for, and a younger one finds the budget fully claimed and waits in turn. What it does
-  *not* promise is an empty machine. A unit gate that started while the browser gate was still building
-  is **younger** than it, so the browser gate does not count it and does not wait for it — that unit
-  gate keeps the slots it sized itself to and runs alongside the suite. That is a deliberate
-  consequence of the unit gate never blocking a commit, not an oversight: making the suite wait for
-  every unit gate as well would let a steady stream of commits starve the browser gate indefinitely,
-  since unit gates never queue. If you need a genuinely quiet machine for a suspicious red, check with
-  `ps -Ao pid,etime,command | grep -E '[r]un-(e2e|unit)-local'` and re-run alone.
-
-  So a commit is never delayed — `.githooks/pre-commit` decided that a blocked commit costs more than
-  a slow one, and that still holds; the gate just gets smaller on a busy box. And a browser gate no
-  longer blocks seven worktrees while it builds: on a measured run, 9m30s of its first 10m12s was
-  build and publish, roughly a quarter of the ~40m norm, spent holding a machine it was using one core
-  of. Only the suite itself is exclusive now, and a gate queued for it has already finished building.
-
-  The queue is ordered by process age: a gate waits only for gates *older* than itself, so the run
-  holding the machine is ahead of everyone and each waiter is ahead of the ones that arrived later.
-  Exactly one is released at a time, and nothing starves — a gate's age only grows and a new gate
-  starts at zero, so nobody can ever be inserted ahead of you. That ordering is load-bearing rather
-  than decorative: a waiting gate is itself a gate process, so "wait until no other gate exists" would
-  deadlock two waiters against each other, and "start when the holder exits" would release them
-  simultaneously into the very contention this prevents.
-
-  Claims are processes, not files (`scripts/lib/lane-claim.sh`) — a file survives `kill -9` and a
-  laptop sleep and then wedges every gate on the box until someone works out what to delete, whereas a
-  claim whose owner is gone stops counting the moment `ps` forgets it. A gate that is *queued* for the
-  browser suite publishes its claim **before** it waits: it has not started `dotnet test` yet, so
-  nothing in its process tree would otherwise say what it is about to need, and a junior would start
-  work the waiter is about to need the whole machine for.
-
-  | variable | effect |
-  |---|---|
-  | `RASK_LANE_SLOTS` | the budget (default `10`). |
-  | `RASK_LANE_DISABLE=1` | switch the whole mechanism off: every gate gets its maximum and nothing waits. |
-  | `RASK_E2E_QUEUE_TIMEOUT` | seconds to wait before giving up (default `5400`, 90m). Past it the gate exits 1 and names what still holds the slots — a run past the ~40m norm is usually wedged, not busy. |
-  | `RASK_E2E_QUEUE_POLL` | seconds between checks (default `20`). |
-  | `RASK_E2E_QUEUE=0` | do not wait; refuse immediately. |
-  | `RASK_E2E_ALLOW_CONCURRENT=1` | do not wait; run alongside. The claim is still published, so others account for the load — but treat anything the run reports as suspect until re-run alone. |
-
-  Worth knowing when you read a red: contention produces boot timeouts and dead fixtures, never a false
-  assertion pass. **A green under contention is trustworthy; a red is not.**
-
-  **What the budget does not cover.** Only the two gates above claim against it. The rest —
-  `run-benchmarks-local.sh`, `run-cli-build-e2e.sh`, the watch and deploy and install gates — and any
-  plain `dotnet build` you run by hand are invisible to it, so the accounting is *incomplete* rather
-  than wrong: work exists that nobody counted. A gate that goes unseen costs some over-subscription,
-  which is the safe direction; the alternative, a phantom gate, would shrink everyone else for as long
-  as it was believed in. Two older hints still soften the uncounted cases ([#850]): `pre-commit` says
-  so before it starts when a browser gate is live (it never refuses), and a red suite that finds a
-  heavy build still running names it and asks you to re-run alone before investigating. Neither claims
-  your failure is not real; they say the run was not clean enough to conclude that it is.
-
-- **The devtools run in a real browser by hand.** `scripts/run-devtools-e2e-local.sh` drives Rask DevTools
-  (`tests/Rask.DevTools.E2E.Tests`, Playwright) against real pages: the pill and the dock, and the Wire, Tree,
-  Renders, Perf and Errors tabs reading a live page. It is a gate of its own, listed in `run-all-gates.sh`, because
-  the devtools exist only in a **Debug** build and `run-e2e-local.sh` builds Release. The Server journeys host their
-  app in the test process, in Development, on a loopback port. The WASM journeys serve the Debug publish of
-  `tests/Rask.DevTools.Fixture.Wasm` (with the kit, `-p:RaskDevToolsFixtureUi=true`), which the script makes first,
-  from a static host on `localhost`, and refuse a bundle without the devtools in it. The island journeys put a real
-  Lit-runtime island (bundled by the project's own build, so **node** must be on `PATH` and the first build runs
-  `npm ci`) and a component from `tests/Rask.Blazor.Library.Fixture` on a Server page. The script sets `DOTNET_MODIFIABLE_ASSEMBLIES=debug`
-  for that process, the only way the runtime draws the dev-error overlay the Errors journey opens the panel from. A
-  Release build of the project, or a run without the variable, fails with a message naming the script rather than
-  passing on nothing. It waits for the machine through the same admission as the browser gate
-  (`scripts/lib/e2e-admission.sh`, printing under its own name), so the same overrides and `RASK_E2E_FILTER` apply,
-  and the slot budget counts it as a browser gate.
-
-- **Browser SQLite runs in a real browser by hand.** `scripts/run-browser-sqlite-e2e-local.sh` publishes
-  `tests/Rask.SQLite.Browser.Fixture.Wasm` — a plain `UseSqlite(BrowserSqlite.ConnectionString("app"))` plus
-  `UseRaskFullTextSearch()` over a table declaring `HasFullTextSearch` — and drives it with Playwright
-  (`tests/Rask.SQLite.Browser.E2E.Tests`): a search, its `<mark>`ed highlight and snippet, a prefix match and a miss.
-  It and the data demo gate below are the only gates that link `e_sqlite3` natively into a WebAssembly bundle, so
-  they need the `wasm-tools` workload and refuse to start without it; every other browser gate publishes with
-  `WasmBuildNative=false` and so never proves the SQLite a browser app ships. Listed in `run-all-gates.sh`.
-
-- **The rask.sh data demo runs in a real browser by hand.** `scripts/run-data-demo-e2e-local.sh` publishes
-  `src/Rask.Site.DataDemo` — the notes demo served at `/demos/data/` and embedded on the data, query and
-  full-text-search guides: a Rask.Data aggregate in browser SQLite, trimmed with EF Core rooted — and drives it
-  with Playwright (`tests/Rask.Site.DataDemo.E2E.Tests`): add a note and watch the list refresh, search it, reload
-  and find it kept, and a 390px viewport with no sideways scroll. Listed in `run-all-gates.sh`.
-
-- **Every gate says whether it ran.** The path-filtered gates — CLI build, watch hot-reload, deploy,
-  install — used to take a silent branch when nothing in the push matched their paths, printing
-  nothing at all. A gate that does not run then looks exactly like one that passed, which is this
-  repo's most expensive bug class and the thing [#845] was reported over. Each now prints one
-  `… SKIPPED — nothing in this push matches the … paths.` line, so the absence of a gate is visible
-  rather than inferred.
-
+  `Co-authored-by:`, no `Claude-Session:` and no "Generated with …" footer: GitHub's contributor list
+  credits co-authors, and taking two such accounts back off cost a rewrite of all 970 commits. The
+  rule lives once, in `scripts/lib/attribution.sh`, consulted by `.githooks/commit-msg` and again by
+  `.githooks/pre-push` over the commits being pushed — the first only runs once `core.hooksPath` is
+  set, which a fresh clone has not done. It is the one check CI cannot take over for own work: by
+  the time CI sees the commit it is on `main`. A human `Signed-off-by:` passes. `commitlint.yml`
+  makes one allowance the hooks do not: on a pull request **Dependabot opened**, Dependabot's own
+  sign-off is dropped before the check.
 - **Hooks in a worktree run the worktree's own copy.** `core.hooksPath` is the relative path
-  `.githooks`, and git resolves it against the **pushing worktree's** top level, not the main
-  checkout's — so a hook change *is* exercised by the push that introduces it, from a worktree as much
-  as from the main clone. Verified on git 2.50.1 by pushing from a linked worktree whose
-  `.githooks/pre-push` differed from the main checkout's, from the worktree root and from a
-  subdirectory: the worktree's copy ran in both. One caveat worth knowing: if a branch does not
-  contain `.githooks/` at all, **no hook runs and nothing says so** — git does not fall back to the
-  main checkout's copy.
+  `.githooks`, resolved against the **pushing worktree's** top level. If a branch does not contain
+  `.githooks/` at all, **no hook runs and nothing says so**.
+- **A public rename is one command.** `scripts/tools/RaskRename` renames a symbol across `Rask.slnx`
+  the way an IDE does, then rewrites `Type.Old` in the templates, docs and agent guides.
+  `.claude/skills/rename-public-member` is the playbook.
 
-[#845]: https://github.com/pal-tamas/rask/issues/845
-[#850]: https://github.com/pal-tamas/rask/issues/850
-- **The benchmark gates run locally, enforced before push.** `scripts/run-benchmarks-local.sh`
-  checks both wire-byte baselines — the standalone codec numbers and the head-to-head against Blazor —
-  byte-for-byte. The numbers are noise-free (no timing: every render emits the same payload shape with
-  one value differing), so a change is a real change. `.githooks/pre-push` runs it on every push,
-  UNFILTERED unlike the heavier gates below: it costs about a minute, and a hand-listed path filter is
-  itself a way for a gate to stop running silently. Bypass with `git push --no-verify` or
-  `RASK_SKIP_BENCHMARKS=1`.
+### The gates, one by one
 
-  It exists because CI's copy stopped nobody. A CI job ran the same two gates, but `main` has no
-  required checks, so it rode red through three merges before anyone noticed
-  ([#919](https://github.com/pal-tamas/rask/issues/919)). That job is gone; this is the only copy.
-
-  **It also smoke-runs the three live-session capacity reports** (`session-footprint`, `session-churn`,
-  `session-load`) for about four seconds in total. Two of the three had been dead on startup for four days with
-  nothing to notice, because the nightly job that ran them went when the rest of CI did
-  ([#922](https://github.com/pal-tamas/rask/issues/922)) — and that outage hid a leak in which every
-  page served retained its whole live session. So `session-churn --smoke` does not merely run: it
-  **asserts** that 100 create→dispose cycles leave nothing behind. The full reports stay hand-run; run
-  them yourself before claiming a capacity number.
-
-  **Every gate always runs, even when an earlier one fails.** In CI they are two steps in one job, so a
-  fail-fast on the first leaves the second unrun — which is how the vs-Blazor baseline stayed broken
-  while the standalone one was being fixed, how a half-fix looked complete, and how `session-churn`'s
-  crash stayed invisible while `session-footprint`'s identical one was being looked at. Locally you get
-  every answer at once.
-
-  **A regression here means one of two opposite things.** Either the render/diff path got heavier —
-  fix the code, do not touch the baseline — or a benchmark scenario's own markup changed, which *does*
-  reach a gated number: `AppendRowToList100`'s diff is an `InsertSubtree` whose value is the new row's
-  HTML. In that case refresh the baseline in the same commit and say why. The vs-Blazor report tells
-  them apart: it records `BlazorBatchBytes` too, and if Blazor's numbers moved by the same amount the
-  bytes came from markup both frameworks render, not from anything Rask encodes. Build before
-  `--check` — the baseline is read from `bin/`, so `--no-build` compares against a stale copy.
-- **The CLI build gate runs locally, enforced before push.** `scripts/run-cli-build-e2e.sh` is the only
-  thing proving the code the CLI *writes* actually compiles — every other CLI test asserts on generated
-  strings. It packs this commit's Rask packages to a local feed, scaffolds every `rask new` flag
-  combination (see the [tutorial](tutorial/00-overview.md) walk-through), then builds each one with
-  `-warnaserror`. Because it packs 15 packages and runs several
-  full builds it is too slow for the pre-commit loop, so the `.githooks/pre-push` hook runs it instead
-  (bypass with `git push --no-verify` or `RASK_SKIP_CLI_BUILD_E2E=1`). The gates are opted into by
-  `RASK_CLI_BUILD_E2E=1`, which the script exports; without it every case reports **SKIPPED** rather than
-  passing silently, so an un-run gate is always visible in the test output.
-- **The template gate builds every template.** `scripts/run-template-e2e.sh` scaffolds `server`, `wasm`
-  and `wasm-hosted` through the same dispatch `rask new` uses and builds what it wrote with `-warnaserror`,
-  and `run-all-gates.sh` includes it.
-
-  Opted into by `RASK_TEMPLATE_E2E=1`, which the script exports; without it every case reports
+- **Browser E2E — `scripts/run-e2e-local.sh`** (push set). The Playwright journeys in
+  `tests/Rask.Site.E2E.Tests` and `tests/Rask.Server.E2E.Tests`. It publishes `src/Rask.Site` and
+  builds the leaf test projects — the graph the suite runs, not the solution; that the whole solution
+  compiles is the unit gate's claim. It passes `MinVerSkip=true` like the unit gate, so the two do
+  not recompile each other's `obj/`; that is safe only while no fixture launches a published host
+  out of process. While iterating on one journey, narrow it:
+  `RASK_E2E_FILTER='FullyQualifiedName~WasmExampleTests' scripts/run-e2e-local.sh` — it says loudly
+  that the run was filtered, because a narrowed green is not the gate.
+- **Devtools E2E — `scripts/run-devtools-e2e-local.sh`** (push set). Rask DevTools against real pages
+  (`tests/Rask.DevTools.E2E.Tests`): the pill, the dock and every tab. A gate of its own because the
+  devtools exist only in a **Debug** build. It needs **node** on `PATH` (a real Lit island is bundled)
+  and sets `DOTNET_MODIFIABLE_ASSEMBLIES=debug`; a Release build, or a run without the variable,
+  fails naming the script rather than passing on nothing.
+- **Browser SQLite E2E — `scripts/run-browser-sqlite-e2e-local.sh`** and **data demo E2E —
+  `scripts/run-data-demo-e2e-local.sh`** (push set). The only gates that link `e_sqlite3` natively
+  into a WebAssembly bundle, so they need the `wasm-tools` workload and refuse to start without it.
+  The first drives full-text search over `tests/Rask.SQLite.Browser.Fixture.Wasm`; the second drives
+  `src/Rask.Site.DataDemo`, the notes demo served at `/demos/data/`.
+- **CLI build — `scripts/run-cli-build-e2e.sh`** (push set). The only thing proving the code the CLI
+  *writes* compiles: it packs this commit's packages to a local feed, scaffolds every `rask new` flag
+  combination and the [tutorial](tutorial/00-overview.md) walk-through, and builds each with
+  `-warnaserror`. The script exports `RASK_CLI_BUILD_E2E=1`; without it every case reports
   **SKIPPED** rather than passing silently.
-- **A red gate names the culprit it actually found.** Both the CLI build gate and the E2E gate build
-  browser targets, so both can fail for a reason that has nothing to do with your branch — most often
-  `NETSDK1147`, the `wasm-tools` workload resolving as missing because a workload install elsewhere on
-  the machine bumped the shared manifests mid-flight (`dotnet workload list` keeps listing it as
-  installed throughout, so it will not tell you). They used to report that as *"the code the CLI writes
-  doesn't compile"*, which cost two sessions an hour chasing a scaffolder bug that did not exist.
-  `scripts/lib/build-failure.sh` now classifies a captured build log by error kind — `code` (`error CS`
-  present, your branch), `workload` (`NETSDK1147` and no `CS`), `sdk` (another `NETSDK`), `unknown`
-  (neither, so not a compile failure at all) — and the matching explanation is printed once, by the gate
-  script when you run it yourself and by `.githooks/pre-push` when the hook is driving, which is how all
-  four arms (browser E2E, CLI build, watch, deploy) get the same verdict without saying it twice. `CS`
-  wins when both appear: a workload problem does not excuse real compile errors. Only the two machine
-  kinds suppress the gate's own advice — a gate that failed at something other than compiling still knows
-  what you should do about it. The decision is four rows of bash that had already been wrong once, so it
-  has a table test, `scripts/tests/build-failure-kind.test.sh`, run by `run-unit-local.sh` before
-  anything else.
-- **The deploy gate runs locally, on pushes that touch the deploy path.**
-  `scripts/run-deploy-e2e-local.sh` points the real `rask deploy` at a throwaway container standing in for
-  a bare VPS — sshd plus its own Docker daemon (`docker:dind`, privileged) — and asserts on what happened
-  *on the host*: an image that built over SSH, a container that answers its health check, a blue-green
-  swap that retired the old colour, a Caddyfile a real Caddy accepted, and a named volume whose contents
-  outlived the container. Every other deploy test is mocked, so this is the only coverage that the deploy
-  actually deploys. It needs a `docker` CLI and a daemon that can run a privileged container; it installs
-  nothing and never reads or writes your `~/.ssh`. The `.githooks/pre-push` hook runs it only when the
-  push changes `DeployCommand`/`Host*`/`SshTarget`/`DockerProbe`/`DeployConfig` or the deploy tests
-  (bypass with `RASK_SKIP_DEPLOY_E2E=1`). **Not covered:** real DNS and Let's Encrypt issuance — the gate
-  uses a `.test` domain, so ACME never runs.
-- **The Linux dev-host gate is opt-in and runs in a container.** `scripts/run-devhost-linux-local.sh`
-  verifies the Linux half of [`https://<name>.test`](cli.md#httpsnametest) against a real Linux machine:
-  a throwaway container running as an ordinary user with passwordless sudo, where the CA anchors,
-  `certutil`'s NSS databases, `/etc/hosts` and the `ip_unprivileged_port_start` sysctl are all genuinely
-  modified. It finishes by having `curl` complete a TLS handshake to `https://appname.test` with **no
-  `--cacert`** and nothing told about the authority — only a correctly installed system trust can make
-  that succeed. Everything else about the dev host is a pure function or a fake process runner, which
-  proves the argv Rask *builds* and nothing about whether a machine ends up trusting anything; this is
-  the only coverage that the setup actually sets anything up. It rewrites the machine it runs on, so it
-  is gated behind `RASK_DEVHOST_E2E=1` and is never part of a push. It needs a `docker` CLI and a daemon
-  that can run a privileged container. **Not covered:** macOS and Windows, whose keychain, UAC and pf
-  steps have no equivalent sandbox — those remain exercised by hand.
-- **The install gate runs locally, on pushes that touch the public installer.** `rask.sh` and `rask.ps1`
-  at the repo root are what [`docs/installation.md`](installation.md) tells people to `curl | sh`, and
-  they are published to GitHub Pages by `pages.yml`. Two things cover them.
-  `scripts/tests/install-script.test.sh` runs on every commit that touches the installer, the pages that
-  quote it, or the gate scripts (its `# gate-inputs:` header — see below): it sources `rask.sh` with `RASK_INSTALL_LIB_ONLY=1` to table-test the
-  pure helpers, drives the real `step_path` against a throwaway `HOME`, asserts the file stays POSIX `sh`
-  (`dash -n` plus greps for the bashisms `dash` accepts and then dies on), asserts truncation safety by
-  *running prefixes of the file* and requiring that none reaches `main`, and checks that the install URL
-  is byte-identical in all nine places it is written. `scripts/run-install-e2e-local.sh` is the other
-  half, and covers what that one structurally cannot: it runs the working tree's `rask.sh` inside
-  containers that genuinely lack a .NET SDK, Node and tools, then asserts a working `rask`, `dotnet-ef`
-  and Node ≥ 22.12 on the box afterwards, plus a scaffolded project that builds. It is slow (an SDK
-  download per case), so `.githooks/pre-push` runs it only when the push changes `rask.sh`, `rask.ps1` or
-  the gate itself (bypass with `RASK_SKIP_INSTALL_E2E=1`). **Not covered:** a real Windows host — case 7
-  runs `rask.ps1` under PowerShell on Linux with the Windows-only steps off, so the SDK install and the
-  user `PATH` write are unproven there.
+- **Templates — `scripts/run-template-e2e.sh`** (push set). Scaffolds `server`, `wasm` and
+  `wasm-hosted` through the dispatch `rask new` uses and builds what it wrote. Exports
+  `RASK_TEMPLATE_E2E=1`, with the same SKIPPED rule.
+- **Watch hot reload — `scripts/run-watch-e2e.sh`** (release set). See [the inner loop](#the-inner-loop).
+- **Deploy — `scripts/run-deploy-e2e-local.sh`** (release set). Points the real `rask deploy` at a
+  throwaway privileged container standing in for a bare VPS and asserts on the host: an image built
+  over SSH, a container answering its health check, a blue-green swap, a Caddyfile a real Caddy
+  accepted, a volume that outlived its container. Every other deploy test is mocked. **Not covered:**
+  real DNS and Let's Encrypt — the gate uses a `.test` domain.
+- **Installer — `scripts/run-install-e2e-local.sh`** (release set). Runs the working tree's `rask.sh`
+  in containers that lack a .NET SDK, Node and tools, then asserts a working `rask`, `dotnet-ef` and
+  Node, plus a scaffolded project that builds. Its cheap half, `scripts/tests/install-script.test.sh`,
+  is one of the unit gate's own tests: the pure helpers, POSIX `sh`, truncation safety (by running
+  prefixes of the file) and the install URL byte-identical everywhere it is written. **Not covered:**
+  a real Windows host.
+- **Storage providers — `scripts/run-storage-providers-local.sh`** and **providers —
+  `scripts/run-providers-local.sh`** (release set). Rask.Storage's S3 and Azure signing against MinIO
+  and Azurite, and the database batteries against real servers, all in containers; a provider fact
+  whose server is not reachable reports SKIPPED, never PASSED.
+- **Linux dev host — `scripts/run-devhost-linux-local.sh`** (on request, `RASK_DEVHOST_E2E=1`, in no
+  CI job). Verifies the Linux half of [`https://<name>.test`](cli.md#httpsnametest) in a throwaway
+  container where the CA anchors, NSS databases, `/etc/hosts` and the port sysctl are really
+  modified, ending with a `curl` TLS handshake with no `--cacert`. **Not covered:** macOS and Windows.
+- **Benchmarks — `scripts/run-benchmarks-local.sh`** (on request). Checks both wire-byte baselines —
+  the standalone codec and the head-to-head against Blazor — byte-for-byte, and smoke-runs the three
+  live-session capacity reports; `session-churn --smoke` asserts that 100 create→dispose cycles leave
+  nothing behind. Every check runs even when an earlier one fails. A regression means one of two
+  opposite things: the render/diff path got heavier (fix the code, leave the baseline), or a
+  scenario's own markup changed (refresh the baseline in the same commit and say why) — the vs-Blazor
+  report tells them apart, because Blazor's numbers move by the same amount in the second case.
+  Build before `--check`: the baseline is read from `bin/`.
 
-  Note that `rask.sh`/`rask.ps1` are also listed explicitly in the **pre-commit** path filter. They sit at
-  the repo root, which matched none of that filter's directory prefixes, so before they were added a
-  commit touching only the public installer was the one commit that ran neither the formatter nor its own
-  test.
-- `commitlint.yml` — Conventional Commits check on PRs.
-- `nightly.yml` — prerelease publish on `main`.
-- `release.yml` — tag-triggered stable publish.
-- `lts-watch.yml` — monthly; opens an issue when Node's Active LTS line moves past the one the repo
-  states. Not a gate: it cannot go red on a branch and blocks nothing.
+### Sharing one machine
+
+A CI runner has its machine to itself and skips all of this. By hand, several worktrees share one
+box, so `scripts/lib/machine-lane.sh` gives it a budget of **10 slots** (the performance cores) that
+the unit and browser gates claim against:
+
+| gate | what it does | waits? |
+|---|---|---|
+| `run-unit-local.sh` | takes whatever is left, floor 2, and **shrinks into it**; prints the size it chose | never |
+| a browser gate — build and publish | a partial claim; several worktrees may build at once | never |
+| a browser gate — the suite | claims the whole budget; two browser suites never overlap | yes, oldest first |
+
+A unit gate younger than a waiting browser suite is not waited for, so "exclusive" is not "an empty
+machine". Contention produces boot timeouts and dead fixtures, never a false assertion pass: **a
+green under contention is trustworthy; a red is not** — re-run it alone
+(`ps -Ao pid,etime,command | grep -E '[r]un-(e2e|unit)-local'` shows what else is live). Every other
+gate, and any plain `dotnet build`, is invisible to the budget; a red browser suite that finds a
+heavy build still running names it ([#850](https://github.com/pal-tamas/rask/issues/850)).
+
+| variable | effect |
+|---|---|
+| `RASK_LANE_SLOTS` | the budget (default `10`). |
+| `RASK_LANE_DISABLE=1` | switch the mechanism off: every gate gets its maximum and nothing waits. |
+| `RASK_E2E_QUEUE_TIMEOUT` | seconds to wait before giving up (default `5400`); the gate then exits 1 and names what holds the slots. |
+| `RASK_E2E_QUEUE_POLL` | seconds between checks (default `20`). |
+| `RASK_E2E_QUEUE=0` | do not wait; refuse immediately. |
+| `RASK_E2E_ALLOW_CONCURRENT=1` | do not wait; run alongside. Treat a red from that run as suspect until re-run alone. |
 
 ## Dependencies
 
@@ -533,22 +386,20 @@ matter most are asserted by an offline unit test rather than by a comment:
 | --- | --- |
 | `NodeRequirementTests` | `ScaffoldLine` vs. `rask.sh`, `rask.ps1`, and `docs/installation.md` (both platform columns, the `≥ NN.NN` sentence, the "Node NN LTS" summary) |
 | `PackagePinFamilyTests` | the Spectre and SQLitePCLRaw pairs, the one-version platform stack, and that every SQLite project can still reach the patched SQLitePCLRaw |
-| `ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin` | the WASM scaffold's framework version vs. `Directory.Packages.props` |
-| `TypeScriptCompilesTests`, `ResolveTypeScriptToolTaskTests` | read `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
+| `EfToolProbeTests` | the `dotnet-ef` floor the CLI checks for vs. the EF Core version in `Directory.Packages.props` |
+| `ResolveTypeScriptToolTaskTests` | reads `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
 
-They need no network and run in the ordinary unit gate — which `pre-commit` already triggers for any
-`Directory.` path, so the gate that fires for a version bump is the one that checks it was complete.
+They need no network and run in the ordinary unit gate — CI's `unit` job, on every push and
+every pull request — so the gate that runs for a version bump is the one that checks it was complete.
 
 **Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node
 line elsewhere — the `22.12` build-floor figures quoted in `docs/islands.md`, and the codename in `NodeRequirement`'s own doc comment — are
-still only prose. `lts-watch.yml`'s issue lists the files to change; treat that list, not this table, as
-the checklist when the line moves.
+still only prose. `scripts/upstream/node-lts.sh` rewrites the stated line and the codename when the Active
+LTS moves, and `upstream.yml` lands it; the build floor is deliberately left alone.
 
-**Landing a Dependabot PR.** Merge it locally, not from the web UI. Dependabot authors server-side, so
-its PRs never touch `.githooks/`, and `main` has no required checks — a web merge is a version change
-that nothing built, formatted or tested. Check the branch out and push it so `pre-commit` and
-`pre-push` run. Note that `Directory.Packages.props` is in `pre-push`'s `generator_paths`, so the CLI
-build gate runs too.
+**Landing a Dependabot PR.** `ci.yml` runs the push set on the pull request, but `main` has no
+required checks, so a red run does not disable the merge button: read the run first. Then land it
+locally, not from the web UI — check the branch out and push it.
 
 A green `commitlint` check on a Dependabot PR means its title and commits are Conventional and carry
 no trailer *other than* Dependabot's own sign-off, which CI lets through on those PRs only. The hooks
@@ -556,4 +407,4 @@ do not: `pre-push` refuses the commit until that line is gone, so landing one st
 `git commit --amend --reset-author` and deleting the `Signed-off-by:` line.
 
 **Vulnerability scanning is manual.** `dotnet list Rask.slnx package --vulnerable --include-transitive`
-is the only scan that runs anywhere; the CI job that used to do it went with `ci.yml` in #923.
+is the only scan that runs anywhere; no workflow runs it.

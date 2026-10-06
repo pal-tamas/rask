@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local CLI build gate — does the code the CLI writes actually compile?
+# The CLI build gate — does the code the CLI writes actually compile?
 #
 # Every other CLI test asserts on generated *strings*. These are the only tests that pack this commit's
 # Rask packages to a local feed, drop a generated project on disk, restore it against that feed, and run
@@ -7,11 +7,11 @@
 # combination, and the whole docs/tutorial walk-through (chapters 1-8).
 #
 # They are opt-in because they pack 15 packages and run several full builds — far too slow for the
-# pre-commit inner loop. The pre-push hook (.githooks/pre-push) runs them, so a scaffolding break is
-# caught before it leaves the machine rather than in a beginner's terminal.
+# inner loop. CI runs this script as its "CLI build" job on every push (.github/workflows/gates.yml),
+# so a scaffolding break is caught before a nightly is published rather than in a beginner's terminal.
 #
 # Usage:  scripts/run-cli-build-e2e.sh
-# Skip:   RASK_SKIP_CLI_BUILD_E2E=1 (also honoured by the pre-push hook)
+# Skip:   RASK_SKIP_CLI_BUILD_E2E=1
 set -euo pipefail
 
 if [ "${RASK_SKIP_CLI_BUILD_E2E:-}" = "1" ]; then
@@ -37,8 +37,8 @@ export RASK_CLI_BUILD_E2E=1
 # anyone. It used to report every failure as "the code the CLI writes doesn't compile", which is a lie
 # when the machine cannot build browser targets at that moment — see scripts/lib/build-failure.sh.
 #
-# When .githooks/pre-push runs this gate it captures the same log and delivers the verdict itself
-# (RASK_GATE_WRAPPED=1), so a direct run gets an explanation and a wrapped one is not told twice.
+# A caller that captures the same log and delivers the verdict itself sets RASK_GATE_WRAPPED=1, so a
+# direct run gets an explanation and a wrapped one is not told twice.
 log="$(mktemp -t rask-cli-build-gate.XXXXXX)"
 trap 'rm -f "$log"' EXIT
 

@@ -171,7 +171,7 @@ public partial class UiFluxLayoutTests : global::Rask.Core.RaskMarkup
         Assert.StartsWith("<div class=\"text-base-content/60", Ui.Subheading["Everything you have ordered"].ToHtml(), StringComparison.Ordinal);
         Assert.StartsWith("<p ", Ui.Text["Body"].ToHtml(), StringComparison.Ordinal);
         Assert.StartsWith("<span ", Ui.Text.Inline(true)["run"].ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("text-error", Ui.Text.Tone(Ui.Tone.Error)["Failed"].ToHtml());
+        Assert.Contains("text-ui-danger-ink", Ui.Text.Tone(Ui.Tone.Error)["Failed"].ToHtml());
         Assert.Contains("font-medium", Ui.Text.Strong(true)["Total"].ToHtml());
     }
 

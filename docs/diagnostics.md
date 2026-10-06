@@ -552,7 +552,7 @@ NavLink.Href("/todos")["Todos"];    // ✗ RASK033 — string → RouteUrl conve
 
 Routes.TodosPage().Go();             // ✓ type-safe; a renamed route is a compile error
 Go.To("/todos/new");                // ✓ secondary template — no helper, left alone
-A("https://example.com", "_blank")["Docs"]; // ✓ external — untouched
+A.Href("https://example.com")["Docs"];   // ✓ external — untouched
 ```
 
 **Fix:** call the generated `Routes.<Page>()` (with arguments for any route/query params). For a genuinely
@@ -763,8 +763,8 @@ namespace Features.Orders   { public sealed partial class Card : Component { } }
 ```
 
 Neither component gets an entry, because choosing which type `Card` means is the author's decision,
-not the generator's. Both stay reachable through their generated factories, so nothing stops
-compiling — you just cannot write `Card` bare.
+not the generator's. Both types still compile and nothing else breaks — you just cannot write
+`Card` bare.
 
 **Fix:** rename one of them (`ProductCard` / `OrderCard`). Suppress with
 `#pragma warning disable RASK040` / `.editorconfig` (`dotnet_diagnostic.RASK040.severity = none`) if
@@ -2546,3 +2546,17 @@ once per build, since it would otherwise check nothing.
 ```
 
 **Fix:** write `chrome`, `edge`, `firefox` or `safari`, then `>=`, then the version: `safari >= 16`.
+
+## Build errors from MSBuild
+
+These come from Rask's build targets rather than from an analyzer, so they have no severity to configure and
+no quick-fix. `RASKISLAND001` and `RASKISLAND003`–`010` are in the [islands guide](islands.md).
+
+| Code | What happened | Fix |
+| --- | --- | --- |
+| `RASKISLAND002` | The island bundler finished but wrote no manifest, so no island on the page could mount. | Read the bundler's own output just above the error; it names the file that failed. |
+| `RASKSPA006` | A host references more than one WebAssembly client. | A host serves one client — give each its own host. |
+| `RASKSPA008` | The WebAssembly client reported no target framework, so its bundle cannot be located. | Give the client project a `<TargetFramework>`. |
+| `RASKSPA009` | The WebAssembly client targets several frameworks. | Give it exactly one, such as `net10.0-browser`. |
+| `RASKDOM001` | Contributors only: the MDN snapshot could not be turned into element types. | The message names the member that collides. |
+| `RASKDOM002` | Contributors only: an event name has a part the emitter cannot split into words. | Add the word to `DomEventEmitter.Words`. |

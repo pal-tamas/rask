@@ -15,7 +15,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 |-------|----------------|
 | [**The One Person Framework**](one-person-framework.md) | The philosophy: a whole product from one C# codebase on one server, SQLite-first — why it lets one developer ship alone and a team move as fast. |
 | [**Tutorial: zero to deploy**](tutorial/00-overview.md) | Build the "Shop" app end to end — scaffold → first DB-backed feature → auth → jobs → email → cache → events → production SQLite → push → ops → deploy to one box. One chapter per pillar; you build the app as you go, starting from `rask new Shop`. |
-| [**Cheat sheet**](cheatsheet.md) | The one page to keep open — every CLI command, feature field token, wiring one-liner (`AddRask…`), and code idiom, dense and scannable. |
+| [**Cheat sheet**](cheatsheet.md) | The one page to keep open — every CLI command and flag, wiring one-liner (`AddRask…`), and code idiom, dense and scannable. |
 | [**Recipes**](recipes.md) | Task-first "how do I do X?" — add a feature to an existing database, gate a page, run a job, cache a query, deploy an update — the command, the wiring line, and where to go deeper. |
 | [Roadmap](roadmap.md) | The pillars — what's shipped (DB-backed jobs, outbox, mail, cache, file storage, subscriptions, multi-tenancy, full-text search), what's partial, and what's next. |
 
@@ -25,31 +25,42 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 |-------|----------------|
 | [Installing Rask](installation.md) | The one-line installer — what it puts where, every option, upgrading, uninstalling, and the manual path if you would rather not run a script from the internet. |
 | [Getting started](getting-started.md) | Prerequisites, scaffold an app, a tour of the generated files, your first component, interactivity, routing, and troubleshooting. |
-| [The `rask` CLI](cli.md) | The `Rask.Cli` .NET tool — the whole lifecycle: `rask new` (scaffold), `rask db` (migrations), `rask dev` (hot-reload run), `rask deploy` (bare box → live HTTPS site), `rask info`. |
+| [The `rask` CLI](cli.md) | The `Rask.Cli` .NET tool — the whole lifecycle: `rask new` (scaffold), `rask db` (migrations), `rask dev` (hot-reload run), `rask deploy` (bare box → live HTTPS site), `rask info`, `rask doctor`, `rask completion`. |
 | [Best practices](best-practices.md) | Production patterns and common pitfalls across component design, state, forms, data access, security, accessibility, performance and testing — each linking to the deep dive. |
 | [Building components](building-components.md) | How markup is written: naming a component and chaining onto it, the properties a component demands before it exists, bound versus controlled form controls, and what the IDE offers at each step. |
+| [Building form controls](building-form-controls.md) | Author your own `IFormControl<T>`: two-way binding, per-field validation and a controlled mode, with a full example. |
 | [Elements & the DSL](elements.md) | The primitives every component is built from: tag entries, universal attributes, the children indexer, `Text`/`Raw`, SVG, and the element catalog. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Go`, `RouteState`. |
 | [Subscriptions](subscriptions.md) | Keeping a page current. `[Live(typeof(Order))]` on a query refetches it when anyone writes an order — no event, no record, no policy, and nothing in `Render`. For what is genuinely an event, `QueryClient.Subscribe<T>()` re-renders every subscribed page, narrowed by an `ISubscription<T>` record and its watch policy, over server-sent events from WebAssembly. `Dispatcher.Publish(…)` publishes with nothing injected. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), built-in toasts (`Toast.Success("Saved")`), `VirtualizeModel`, drag-and-drop. |
-| [JS interop](js-interop.md) | Scoped CSS & TypeScript conventions (a `.js` sibling is RASK055), calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
+| [Composition — callbacks & context](composition-callbacks-context.md) | `Callback` properties that re-render the owner, and values passed down with context instead of prop drilling. |
+| [Composition — lists & more](composition-lists.md) | `Virtualize`, keyed lists, toasts, drag-and-drop and error boundaries. |
+| [JS interop](js-interop.md) | Scoped CSS & TypeScript conventions (a `.js` sibling is RASK055), calling JS via `IJSRuntime`, element refs (`ElementRef<T>`), typed browser APIs, asset delivery. |
+| [JS interop — runtime](js-interop-runtime.md) | Calling JavaScript through `IJSRuntime`, typed element refs, and wrapping a third-party library with TypeScript types. |
 | [Web APIs from MDN](web-apis.md) | Every web API the browser ships, generated from MDN into C# (`Rask.Web`): `await Navigator.Clipboard.WriteText("hi")`, one round trip per await, kept objects as handles. |
 | [Browser APIs](browser-apis.md) | The map of the typed Web-API wrappers and where `Rask.Web` takes over — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
+| [Browser APIs — sharing model](browser-apis-sharing.md) | Which APIs run on which host, declarative Web Share and gesture triggers on the server, and subscriptions that push updates into C#. |
+| [Browser APIs — reference & demos](browser-apis-reference.md) | A runnable demo per API with the C# beside the result: storage, environment, location, sensors, observers, media, crypto and files. |
 | [Capability matrix](browser-capabilities.md) | Where each typed wrapper works (Web / PWA) — links to a reference page per API under [`apis/`](apis/). |
 | [📱 Mobile & PWA](pwa.md) | Build installable, offline mobile apps in C# (WASM): web app manifest, service worker, Web Push (MDN's `PushManager`), `rask new MyApp --template wasm`. |
 | [AOT compilation](aot.md) | Opt-in full WASM AOT (`-p:RaskWasmAot=true`): the reflection-free binding registry, registering custom `IParsable` types, `InvokeAsync<T>` under AOT, and the continuous analyzer gate. |
 | [Prerendering](prerendering.md) | Render a standalone WASM app's pages to real HTML at publish (`<RaskPrerender>true</RaskPrerender>`), so a crawler gets the page instead of the boot spinner: what is written, which routes are skipped and why, and why a route that throws is deliberately left out. |
 | [Forms & validation](forms.md) | Two-way binding, `Form.Model(m)`/`EditContext`, inline / DataAnnotations / FluentValidation / async validators, radio & checkbox groups. |
+| [Forms — validation](forms-validation.md) | Inline rules, DataAnnotations and FluentValidation, async validators, the validating indicator and first-error-wins. |
+| [Forms — advanced](forms-advanced.md) | Nested models and collections, radio and checkbox groups, form state kept across a redeploy. |
 | [Validation](validation.md) | Built in and on: `[Required]` and `AbstractValidator<T>` run in a form and on every dispatched request, with nothing declared. The off switch, validators that need services, and what a rejected request looks like on the wire. |
 | [Live pages](render-modes.md) | How a Server page reaches the browser: every page live with a session of its own, waiting for async data before the first byte, cache headers, and setting a status or redirecting on load. |
 | [Lifecycle](lifecycle.md) | `OnMount` / `OnUpdated` / `OnFirstRender` / `OnRendered` / `OnUnmount` — one hook per moment, cancellation, common gotchas. |
 | [Authentication](authentication.md) | Accounts on your own `User`: sessions you can list and end, PBKDF2 or bcrypt, `Authorize`, route guards, OIDC (Keycloak / Auth0 / Cognito / Duende). |
+| [Authentication — cookie](authentication-cookie.md) | Cookie login and sessions wired by hand, for the Server host and for a WebAssembly app backed by your own API. |
+| [Authentication — providers](authentication-providers.md) | Sign in through Keycloak, Auth0, AWS Cognito or Duende IdentityServer over OpenID Connect, with Rask still owning the session cookie. |
+| [Authentication — hardening](authentication-hardening.md) | The session trust model, CSRF, forwarded headers behind a proxy, Content-Security-Policy and a production checklist. |
 | [Accessibility](accessibility.md) | Setting ARIA attributes, `Role`/`TabIndex`, and focus on any element; the `Img` alt-text analyzer (RASK023). |
 | [Localization](localization.md) | Ship in more than one language: the visitor's culture negotiated per request, dates and numbers in their format, text from typed JSON catalogs (a missing key is a compile error), plural grammar per language, `<html lang>`/`dir`, and the WASM ICU opt-in. |
 | [Testing](testing.md) | Unit-testing components with `Rask.Testing`, driving event handlers, when to reach for E2E. |
 | [DevTools](devtools.md) | The in-page panel of a Debug build: every frame the page and the app exchange, and the component tree nested as on the page with each component's props (sensitive ones redacted at build time). On only in Development on this machine; nothing of it ships. |
 | [Migrating from Blazor](migration-from-blazor.md) | Concept mapping, behavioural gotchas, and what stays the same. |
-| [Building with AI assistants](ai-agents.md) | The `AGENTS.md` / `llms.txt` artifacts that let AI tools scaffold and extend Rask apps. |
+| [Building with AI assistants](ai-agents.md) | `llms.txt` and the published guide set that let AI tools scaffold and extend Rask apps. |
 
 ## The full-stack batteries (the back half)
 
@@ -67,6 +78,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | [Full-text search](full-text-search.md) | `HasFullTextSearch` + `Search(text)`: ranked, word-aware, diacritic-insensitive search from LINQ, with highlighted matches — on SQLite FTS5, in the browser and on PostgreSQL (`tsvector` + GIN). |
 | [CQRS](cqrs.md) | Source-generated, trim-safe queries / commands / events and pipeline behaviors via `AddRaskCqrs()` + `IDispatcher` (standalone `Rask.Cqrs`). |
 | [HTTP APIs](api-endpoints.md) | Ordinary API controllers and minimal API endpoints, hosted properly and callable without a URL: `AddRaskApi()` + `MapRaskApi()` map them and answer 404 with a problem document under `/api` — where the catch-all used to render the app with a 200 — and `Rask.Api.Client` generates one typed client per controller straight from the declaration, so a route renamed on the server breaks the call site at compile time instead of at 404 time. For when someone other than your own browser code has to call you; [CQRS](cqrs.md) is the answer when nobody does. |
+| [HTTP & files](http-and-files.md) | Fetching JSON with an injected `HttpClient`, uploads through a typed file picker, and downloads sent to the browser, on both hosts. |
 | [Blazor components](blazor-components.md) | A **real** Blazor component — from a Razor Class Library, MudBlazor, Radzen — as an ordinary Rask component: derive a `partial` class from `BlazorComponent<T>` and place it anywhere the chain goes. The Razor SDK compiles `.razor` untouched; Rask renders the result server-side into the *first* HTTP response, passes parameters as live C# objects rather than JSON, and wires the hosted component's own `@onclick` to Rask's existing channel so it fires with no Blazor circuit. Runs on both hosts, a trimmed WebAssembly publish included (the hosted type is DAM-annotated, or the trimmer removes its `[Parameter]` setters and the island renders empty). A statically rendered island is deliberately not opaque. |
 | [Islands](islands.md) | A `.tsx`, `.vue`, `.svelte`, Angular or Lit file as an *ordinary Rask component*: derive from one of seven base classes — `ReactComponent`, `PreactComponent`, `SolidComponent`, `VueComponent`, `SvelteComponent`, `AngularComponent`, `LitComponent` — drop the front-end file beside it, and place it anywhere the chain goes — a leaf, a subtree, or a whole route. Props are declared in C# and serialized without reflection, callbacks re-enter C# over the channel every DOM handler already uses, and the live diff treats the subtree as opaque because its own renderer owns it. |
 | [Tailwind CSS](tailwind.md) | Every project, no flag and no package: Tailwind v4 ships inside the host package and is compiled by `dotnet build` with no npm, no config file and no `node_modules` — it scans your C# string literals for class names. The standalone binary where one exists, npm where it doesn't, so no platform is left out. |
@@ -92,7 +104,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 | Reference | What it covers |
 |-----------|----------------|
-| [Diagnostics (RASK001–042)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
+| [Diagnostics (RASK001–099)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
 | [Public API style](api-style.md) | How every public name is chosen, and the gate that records the surface. |
 
@@ -100,7 +112,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 | Doc | What it covers |
 |-----|----------------|
-| [Development workflow](development-workflow.md) | The format → warnings-as-errors → tests → benchmarks → docs → review → PR gate, CI, nightly, releases. |
+| [Development workflow](development-workflow.md) | The format → warnings-as-errors → tests → benchmarks → docs → review gate, landing on `main`, CI, nightly, releases. |
 | [Repo administration](repo-administration.md) | Branch protection, required checks, secrets, and the settings this repository expects. |
 
 ## Architecture
