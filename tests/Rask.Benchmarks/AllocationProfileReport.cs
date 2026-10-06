@@ -7,7 +7,8 @@ using Rask.Server;
 namespace Rask.Benchmarks;
 
 /// <summary>
-///     Which types a live update allocates — the question <c>Allocated</c> raises and cannot answer.
+///     Which types a live update, or a page request, allocates — the question <c>Allocated</c> raises and
+///     cannot answer.
 /// </summary>
 /// <remarks>
 ///     Drives the page <see cref="LiveSessionSendBenchmarks" /> measures and histograms the runtime's
@@ -16,28 +17,63 @@ namespace Rask.Benchmarks;
 /// </remarks>
 internal static class AllocationProfileReport
 {
-    private const int Updates = 200_000;
+    private const int LiveUpdates = 200_000;
+    private const int PageRequests = 20_000;
 
     public static int Run(string[] args)
     {
-        var rows = args.Length > 1 ? int.Parse(args[1], CultureInfo.InvariantCulture) : 20;
+        if (args.Length > 1 && string.Equals(args[1], "page", StringComparison.Ordinal))
+        {
+            return ProfilePageRequest();
+        }
+
+        return ProfileLiveUpdate(args.Length > 1 ? int.Parse(args[1], CultureInfo.InvariantCulture) : 20);
+    }
+
+    private static int ProfileLiveUpdate(int rows)
+    {
         var services = SessionHarness.NewHost();
         var store = services.GetRequiredService<LiveSessionStore>();
         var handle = SessionHarness.Create(store, rows, connected: true);
         SessionHarness.Drive(handle.Session, handle.App, 2_000);
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        using (var ticks = new AllocationTicks())
-        {
-            SessionHarness.Drive(handle.Session, handle.App, Updates);
-            var perUpdate = (GC.GetAllocatedBytesForCurrentThread() - before) / Updates;
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"# {rows} rows, {perUpdate} B per update"));
-            ticks.Print(perUpdate);
-        }
+        Profile($"{rows} rows, live update", LiveUpdates, () => SessionHarness.Drive(handle.Session, handle.App, LiveUpdates));
 
         SessionHarness.Remove(store, handle);
         services.DisposeAsync().AsTask().GetAwaiter().GetResult();
         return 0;
+    }
+
+    // The page PageRequestBenchmarks measures, through the same in-memory host.
+    private static int ProfilePageRequest()
+    {
+        var page = new PageRequestBenchmarks();
+        page.Setup();
+        for (var i = 0; i < 500; i++)
+        {
+            page.GetPage().GetAwaiter().GetResult();
+        }
+
+        Profile("page request", PageRequests, () =>
+        {
+            for (var i = 0; i < PageRequests; i++)
+            {
+                page.GetPage().GetAwaiter().GetResult();
+            }
+        });
+
+        page.Cleanup();
+        return 0;
+    }
+
+    private static void Profile(string what, int iterations, Action run)
+    {
+        var before = GC.GetTotalAllocatedBytes(precise: true);
+        using var ticks = new AllocationTicks();
+        run();
+        var each = (GC.GetTotalAllocatedBytes(precise: true) - before) / iterations;
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"# {what}: {each} B each"));
+        ticks.Print(each);
     }
 
     private sealed class AllocationTicks : EventListener

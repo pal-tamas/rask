@@ -44,7 +44,7 @@ if (args.Length >= 1 && args[0] == "session-load")
 }
 
 // `allocation-profile [rows]` names the types a live update allocates, as shares of the bytes
-// LiveSessionSendBenchmarks reports.
+// LiveSessionSendBenchmarks reports; `allocation-profile page` does the same for a first GET.
 if (args.Length >= 1 && args[0] == "allocation-profile")
 {
     return AllocationProfileReport.Run(args);

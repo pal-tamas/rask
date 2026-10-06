@@ -67,6 +67,16 @@ them until tagged releases begin.
   payload. The URL is rebuilt when the route changes and the writer is kept per thread: another 0.3 KB off
   each update, 2.7 KB → 2.3 KB on the same 20-row page.
 
+- **A first response is encoded once, from one copy of the page.** Stamping the session id onto `<body>`
+  built a second string the size of the page, and the encoder then rented three bytes per character for it.
+  Outside development the page now goes straight to UTF-8 with the id spliced in, into a buffer of the exact
+  size — one page-sized string fewer per request (~160 KB on an 80 KB page).
+
+- **The route guard reads a page's `[Authorize]` once.** It reflected over the page type's attributes on
+  every request and every event, building each attribute afresh. They are read once per type now (and again
+  after a hot reload). With the item above, a first GET allocates 68.5 KB → 63.0 KB on the benchmark page
+  (`allocation-profile page`).
+
 - **A Server app's client runtime is cached and compressed.** `/rask/rask.js` was re-encoded from a string on
   every request and sent with no `Cache-Control`, no `ETag` and no compression — ~100 KB a visit. The page
   now names it by content hash, and that URL is `immutable`, with an `ETag` and brotli/gzip built once:

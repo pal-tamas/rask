@@ -758,10 +758,6 @@ public static partial class RaskEndpointExtensions
         // The devtools host script and the panel it frames, when AddRask attached the devtools and they switched on
         // (Development).
         var devTools = httpContext.RequestServices.GetService<IRaskServerDevTools>()?.PageTag(httpContext, session.Id);
-        var content = Prerender.PageDocument.Live(
-            render.Html, session.Id, dev,
-            dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
-
         httpContext.Response.ContentType = "text/html; charset=utf-8";
         ApplyPageSecurityHeaders(httpContext.Response.Headers);
         // A page that crashed is not a 200, a page may set its own status, and the not-found page
@@ -780,6 +776,18 @@ public static partial class RaskEndpointExtensions
         httpContext.Response.Headers.CacheControl = ShellCachePolicy.CacheControl;
         httpContext.Response.Headers.Pragma = ShellCachePolicy.Pragma;
 
+        // Outside development the session id is the only thing stamped onto the render, and that goes
+        // straight to UTF-8; the development attributes are composed as a string first.
+        if (!dev && devTools is null)
+        {
+            await PageCompression.WriteLiveAsync(httpContext, render.Html, session.Id, limits.CompressPageHtml)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        var content = Prerender.PageDocument.Live(
+            render.Html, session.Id, dev,
+            dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
         await PageCompression.WriteAsync(httpContext, content, limits.CompressPageHtml).ConfigureAwait(false);
     }
 

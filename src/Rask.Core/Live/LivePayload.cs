@@ -676,6 +676,33 @@ public static class LivePayload
         }
     }
 
+    /// <summary>
+    ///     <see cref="InjectRootAttr(string, string, bool)" /> straight to UTF-8: the page with its session id
+    ///     on <c>&lt;body&gt;</c>, in a buffer rented from <see cref="ArrayPool{T}.Shared" />.
+    /// </summary>
+    /// <remarks>What a first response sends. The string in between was a second copy of the whole page.</remarks>
+    internal static byte[] RentUtf8WithRootAttr(string html, string sessionId, out int length)
+    {
+        var bodyOpen = IndexOfBodyOpen(html);
+        if (bodyOpen < 0)
+        {
+            var plain = ArrayPool<byte>.Shared.Rent(Encoding.UTF8.GetByteCount(html));
+            length = Encoding.UTF8.GetBytes(html, plain);
+            return plain;
+        }
+
+        var head = html.AsSpan(0, bodyOpen + "<body".Length);
+        var tail = html.AsSpan(head.Length);
+        var encodedSessionId = HtmlEncoder.Default.Encode(sessionId);
+        var total = Encoding.UTF8.GetByteCount(head) + RootAttrPrefix.Length
+                    + Encoding.UTF8.GetByteCount(encodedSessionId) + 1
+                    + Encoding.UTF8.GetByteCount(tail);
+
+        var buffer = ArrayPool<byte>.Shared.Rent(total);
+        length = EncodeSplice(buffer.AsSpan(0, total), head, encodedSessionId, tail);
+        return buffer;
+    }
+
     private static ReadOnlySpan<byte> RootAttrPrefix => " data-rask-root=\""u8;
 
     // head + ` data-rask-root="{sessionId}"` + tail, UTF-8, into `span`; returns the bytes written.
