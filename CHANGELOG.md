@@ -51,6 +51,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Gates: `scripts/run-all-gates.sh --parallel` runs the packing gates beside the rest.** The CLI build,
+  template and watch gates get a second worktree at the same commit, so they no longer wait for the browser
+  suites or rewrite each other's `obj/`. `--only '<pattern>'` runs just the gates whose label matches, and
+  the summary lists each gate's seconds.
+
 - **Tests: what `rask new` writes is compiled in the unit gate.** `TemplatesCompileTests` materialises the
   server, browser and hosted templates in memory and compiles their C# with the real generators, in about
   two seconds. A public rename that breaks a scaffold now fails the commit hook; before, only the CLI build
