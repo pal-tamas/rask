@@ -11,7 +11,7 @@ public sealed partial class StorageDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("mb-2 flex gap-2")[
                     Ui.Input.Value(_input).AccessibleLabel("Value to persist")
                         .Id("storage-input")

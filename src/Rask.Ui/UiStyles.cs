@@ -11,8 +11,8 @@ namespace Rask;
 /// </remarks>
 public static class UiStyles
 {
-    /// <summary>A panel: hairline border, no shadow, and padding that tightens on a phone.</summary>
-    public const string Card = UiCard.Frame + " " + UiCard.DefaultPadding;
+    /// <summary>The default <see cref="UiCard" />'s surface, for an element that is not one: an <c>&lt;article&gt;</c>, a link.</summary>
+    public const string Card = "rounded-xl border border-zinc-900/10 bg-white p-6 shadow-xs dark:border-white/10 dark:bg-white/10 dark:shadow-none";
 
     /// <summary>The small muted label above a value.</summary>
     public const string Label = "text-xs font-medium tracking-wide opacity-60";

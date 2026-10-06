@@ -8,9 +8,10 @@ import { fileURLToPath } from 'node:url';
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 export function chromium() {
-  const driver = ['Release', 'Debug']
-    .map(cfg => join(root, 'tests', 'Rask.Site.E2E.Tests', 'bin', cfg, 'net10.0', '.playwright', 'package'))
-    .find(existsSync);
+  // RASK_FLUX_PLAYWRIGHT names a driver directly: a fresh worktree has not built the E2E project yet.
+  const driver = [process.env.RASK_FLUX_PLAYWRIGHT, ...['Release', 'Debug']
+    .map(cfg => join(root, 'tests', 'Rask.Site.E2E.Tests', 'bin', cfg, 'net10.0', '.playwright', 'package'))]
+    .find(path => path && existsSync(path));
   if (!driver) {
     console.error('flux: no Playwright driver — run `dotnet build tests/Rask.Site.E2E.Tests -c Release` first.');
     process.exit(1);
@@ -39,6 +40,8 @@ export async function measurePage(browser, url, shots) {
   const schemes = {};
   for (const scheme of ['light', 'dark']) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
+    // A fixed clock: a calendar that opens on today would measure differently every morning.
+    await context.clock.setFixedTime(new Date('2026-01-15T12:00:00Z'));
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     await page.evaluate(() => document.fonts.ready);
@@ -123,7 +126,9 @@ function collect(wrapper, { STYLES, index }) {
     }
 
     nodes.push(node);
-    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux'));
+    // A marked component is forced through every state on BOTH pages — `data-flux-*` there, `data-ui-*` here —
+    // or a state the browser gives any element (a focus ring) reads as a difference between them.
+    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux') || a.name.startsWith('data-ui-'));
     if (interactive.length < 60 && (fluxed || el.matches('button, a, input, select, textarea, summary, label, [role], [tabindex]'))) {
       interactive.push(id);
     }

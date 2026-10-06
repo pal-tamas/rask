@@ -23,7 +23,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         foreach (var id in new[]
                  {
-                     "ui-accordion", "ui-collapse", "ui-aura", "ui-text-rotate", "ui-hover-3d",
+                     "ui-card", "ui-accordion", "ui-collapse", "ui-aura", "ui-text-rotate", "ui-hover-3d",
                      "ui-hover-gallery", "ui-console-pieces", "ui-chart", "ui-display-rest",
                  })
         {
@@ -106,6 +106,21 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         await Expect(aura).ToBeVisibleAsync();
         Assert.Null(await aura.GetAttributeAsync("role"));
         Assert.Null(await aura.GetAttributeAsync("aria-label"));
+    });
+
+    [Fact]
+    public Task A_card_draws_its_parts_as_Flux_does() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var profile = Page.Locator("[data-testid='ui-card'] [data-ui-card][data-ui-card-body-variant='inset'][data-ui-card-size='lg']");
+        var body = profile.Locator("> [data-ui-card-body]");
+
+        // The inset body is its own panel: four pixels in from the card, with corners four pixels tighter.
+        await Expect(profile).ToHaveCSSAsync("border-radius", "16px");
+        await Expect(profile).ToHaveCSSAsync("padding", "4px");
+        await Expect(body).ToHaveCSSAsync("border-radius", "12px");
+        await Expect(profile.Locator("> [data-ui-card-header] [data-ui-card-heading]")).ToHaveTextAsync("Profile");
     });
 
     [Fact]

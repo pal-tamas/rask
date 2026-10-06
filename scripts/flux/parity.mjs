@@ -5,6 +5,8 @@
 // FluxParityPages wrote for the Rask component (artifacts/flux-parity/rask/<slug>.html). Every marked
 // node — `data-flux-*` there, `data-ui-*` here — is paired in document order, and its whole subtree is
 // compared: tag, box, computed styles, pseudo-elements, and what hover / active / focus-visible change.
+// A Rask node marked `data-parity-skip` stands in for a Flux component built elsewhere: its box is compared,
+// its styles and subtree are not.
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
 //         node scripts/flux/parity.mjs button                           # components/button
@@ -108,8 +110,12 @@ function mark(node, prefix) {
 }
 
 function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
-  if (a.tag !== b.tag) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
-  if (a.text !== b.text && a !== rootA) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
+  // A stand-in: a neighbouring Flux component the Rask example does not have yet, drawn as a box of its measured
+  // size and marked `data-parity-skip`. It is held to that box — so everything around it still has to line up —
+  // and nothing inside it, on either side, is compared.
+  const standIn = 'data-parity-skip' in b.attrs;
+  if (!standIn && a.tag !== b.tag) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
+  if (!standIn && a.text !== b.text && a !== rootA) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
 
   const size = (n, i) => Math.abs(a.box[i] - b.box[i]) > 0.6;
   if (size(a, 2) || size(a, 3)) diffs.push(`${where}: size ${a.box[2]}x${a.box[3]} vs ${b.box[2]}x${b.box[3]}`);
@@ -120,6 +126,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
     }
   }
 
+  if (standIn) return;
   compareStyles(a.style, b.style, where, diffs);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
@@ -156,7 +163,9 @@ function compareStyles(x, y, where, diffs) {
 function same(x, y) {
   if (x === y) return true;
   if (x === undefined || y === undefined) return false;
-  const round = v => v.replace(/-?\d*\.\d+(e-?\d+)?/g, n => String(Math.round(Number(n) * 1000) / 1000));
+  // …and a gray's hue, which means nothing at zero chroma, prints as `none` once a minifier has been at the sheet.
+  const round = v => v.replace(/(okl(?:ch|ab)\([^)]*?) none\)/g, '$1 0)')
+    .replace(/-?\d*\.\d+(e-?\d+)?/g, n => String(Math.round(Number(n) * 1000) / 1000));
   return round(x) === round(y);
 }
 

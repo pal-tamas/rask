@@ -70,7 +70,7 @@ public sealed partial class IslandsDemo : Component
     ];
 
     private Component VueCard() =>
-        Ui.Card.Class("shadow-sm mb-3")[
+        Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")["A Vue island calling back into C#, in WebAssembly"],
                 P.Class("text-sm text-ui-muted")[
                     Code["VueChart.vue"], " builds unchanged on either host. Clicking a bar ",
@@ -90,7 +90,7 @@ public sealed partial class IslandsDemo : Component
             ];
 
     private Component ReactSvelteCard() =>
-        Ui.Card.Class("shadow-sm mb-3")[
+        Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")["React and Svelte keeping their own state"],
                 P.Class("text-sm text-ui-muted")[
                     "Both hold state C# never sees. Raising the reading re-renders this component, and ",
@@ -125,7 +125,7 @@ public sealed partial class IslandsDemo : Component
             ];
 
     private Component LitCard() =>
-        Ui.Card.Class("shadow-sm mb-3")[
+        Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")["A Lit island, beside this app's own scoped TypeScript"],
                 P.Class("text-sm text-ui-muted")[
                     Code["LitBadge.ts"], " imports nothing at all — a custom element needs no ",
@@ -144,7 +144,7 @@ public sealed partial class IslandsDemo : Component
             ];
 
     private Component SolidCard() =>
-        Ui.Card.Class("shadow-sm mb-3")[
+        Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")["A Solid island, keeping its own state"],
                 P.Class("text-sm text-ui-muted")[
                     Code["SolidSpark.tsx"], " knows nothing of the host it runs on. Its hover count ",

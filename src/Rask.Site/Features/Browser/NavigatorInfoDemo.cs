@@ -8,7 +8,7 @@ public sealed partial class NavigatorInfoDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Ui.Button.Primary.Outline.Class("mb-2")
                     .Id("nav-read")
                     .OnClick(Read)["Read navigator info"],

@@ -81,7 +81,7 @@ public sealed partial class InstallPromptDemo : Component
     }
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button.Primary
                         .Id("install-button")

@@ -45,7 +45,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
     }
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 !_supported
                     ? Div.Class("text-sm text-ui-muted italic").Id("rtc-state")[
                         "This browser has no WebRTC support."]

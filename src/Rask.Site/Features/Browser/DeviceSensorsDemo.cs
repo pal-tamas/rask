@@ -65,7 +65,7 @@ public sealed partial class DeviceSensorsDemo : Component
     }
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Ui.Button.Primary.Class("mb-3").Id("sensor-start").OnClick(Start)["Start"],
                 Div.Class("text-sm text-ui-muted mb-2")["Status: ", Code.Id("sensor-status")[_status]],
                 Div.Class("grid grid-cols-12 gap-4")[

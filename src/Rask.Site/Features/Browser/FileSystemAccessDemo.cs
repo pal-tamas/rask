@@ -15,7 +15,7 @@ public sealed partial class FileSystemAccessDemo : Component
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Ui.Button.Primary.Id("fs-open").OnClick(Open)[Ui.Icon.Name(Ui.IconName.Folder), "Open file"],
                     Ui.Button.Primary.Outline

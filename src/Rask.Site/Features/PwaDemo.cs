@@ -25,7 +25,7 @@ public sealed partial class PwaDemo(HttpClient http) : Component
 
     protected override Component? Render() =>
     [
-        Ui.Card.Class("shadow-sm mb-3")[
+        Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Bell).Class("me-2"), "Local notification (Notification)"],
                 P.Class("text-sm text-ui-muted")[
                     "Requests permission, then shows a notification straight from C# — no server."
@@ -34,7 +34,7 @@ public sealed partial class PwaDemo(HttpClient http) : Component
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-notify-status")[_notifyStatus ?? "(idle)"]]
             ],
 
-        Ui.Card.Class("shadow-sm mb-3")[
+        Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Signal).Class("me-2"), "Web Push (PushManager)"],
                 P.Class("text-sm text-ui-muted")[
                     "Subscribes, then hands the subscription to a ", Code["RaskApp"],
@@ -53,7 +53,7 @@ public sealed partial class PwaDemo(HttpClient http) : Component
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-push-status")[_pushStatus ?? "(idle)"]]
             ],
 
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Overview).Class("me-2"), "App badge (Navigator.SetAppBadge)"],
                 P.Class("text-sm text-ui-muted")[
                     "Sets a count on the installed app's icon — install the PWA first, then watch the icon. ",

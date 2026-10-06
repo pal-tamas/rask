@@ -51,6 +51,29 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Card` is Flux UI's card, with its header, body, footer and bleed.** The daisyUI-drawn
+  panel is replaced by [Flux's](https://fluxui.dev/components/card), part for part — `Ui.CardHeader`,
+  `Ui.CardHeading`, `Ui.CardSubheading`, `Ui.CardActions`, `Ui.CardBody`, `Ui.CardFooter`, `Ui.CardBleed` —
+  measured against Flux's live docs in light and dark. `Title`, `TitleLevel`, `Action`, `Icon` and `Href` are
+  gone; `Size` is `Ui.CardSize` (`Xs`/`Sm`/`Md`/`Lg`, no `Xl`), and `Body` (`Seamless`/`Inset`/`Flush`/`Divided`/
+  `Separated`), `Variant` (`Default`/`Muted`/`Soft`/`Outline`/`Filled`), `Divider` and `Highlight` are new.
+  ```csharp
+  // before
+  Ui.Card.Title("Database").Action(Ui.Button["Vacuum"])[details]
+  Ui.Card.Title("Total").TitleLevel(3)[figures]
+  Ui.Card.Size(Ui.Size.Sm).Class("shadow-sm")[body]
+  Ui.Card.Href(Routes.QueuePage(slug)).Icon(Ui.IconName.Gear).Title("Jobs")[figures]
+  // now
+  Ui.Card[Ui.CardHeader[Ui.CardHeading.Level(2)["Database"], Ui.CardActions[Ui.Button["Vacuum"]]], Ui.CardBody[details]]
+  Ui.Card[Ui.CardHeader[Ui.CardHeading.Level(3)["Total"]], Ui.CardBody[figures]]
+  Ui.Card.Sm[body]                                   // the default surface carries Flux's own shadow
+  NavLink.Href(Routes.QueuePage(slug))[              // a link card is a link AROUND a card
+      Ui.Card.Class("hover:bg-zinc-50 dark:hover:bg-zinc-700")[Ui.CardHeader[Ui.CardHeading.Level(2)["Jobs"]], Ui.CardBody[figures]]]
+  ```
+  A heading is no longer an `<h2>` unless it is given a `Level`. `UiStyles.Card` stays, and is now the default
+  card's surface in Flux's colours (`zinc`, `p-6`, `shadow-xs`) for an element that is not a card. The
+  `/_rask` console's queue tiles show their status under the title, and no longer an icon or a hover.
+
 - **Tooling: `scripts/tools/RaskRename` renames a public member across the solution in one pass.**
   `dotnet run --project scripts/tools/RaskRename -- Rask.Wasm.WasmHostBuilder.RunAsync Run [--dry-run]` is a
   Roslyn symbol rename over `Rask.slnx` (about half a minute), followed by a sweep of the templates, docs

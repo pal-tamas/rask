@@ -19,7 +19,7 @@ public sealed partial class UsbDemo : Component
     private sealed record UsbInfo(int VendorId, int ProductId, string? ManufacturerName, string? ProductName, string? SerialNumber);
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button.Primary.Id("usb-request").OnClick(RequestDevice)[Ui.Icon.Name(Ui.IconName.Cube), "Pair device"],
                     Ui.Button.Primary.Outline

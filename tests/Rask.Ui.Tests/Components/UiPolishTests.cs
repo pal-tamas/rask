@@ -110,24 +110,6 @@ public partial class UiPolishTests : global::Rask.Core.RaskMarkup
             Ui.Popover.Trigger("Filters")[Div["x"]].ToHtml(), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void A_card_can_be_made_denser()
-    {
-        var dense = Ui.Card.Size(Ui.Size.Sm)["x"].ToHtml();
-
-        Assert.Contains("p-3 sm:p-4", dense, StringComparison.Ordinal);
-        Assert.DoesNotContain("p-4 sm:p-5", dense, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_card_with_no_size_keeps_the_kit_panel()
-    {
-        var html = Ui.Card["x"].ToHtml();
-
-        Assert.Contains($"class=\"{UiStyles.Card}\"", html, StringComparison.Ordinal);
-        Assert.Equal(html, Ui.Card.Size(Ui.Size.Md)["x"].ToHtml());
-    }
-
     private static int Occurrences(string haystack, string needle)
     {
         var n = 0;
