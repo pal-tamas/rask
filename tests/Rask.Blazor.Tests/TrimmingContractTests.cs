@@ -17,9 +17,10 @@ namespace Rask.Blazor.Tests;
 ///         exception at runtime and nothing in the console.
 ///     </para>
 ///     <para>
-///         The browser E2E over the WASM showcase's Blazor island page is what proves the mechanism
-///         end to end. These tests are the fast half — they fail in the unit gate, in seconds, and say
-///         what was removed and why it mattered.
+///         Nothing proves the mechanism end to end any more: the browser E2E over the WASM showcase's
+///         Blazor island page went with the samples. These tests are what is left — they fail in the
+///         unit gate, in seconds, and say what was removed and why it mattered — and they pin that the
+///         annotations exist, not that a trimmed app renders.
 ///     </para>
 /// </remarks>
 public sealed class TrimmingContractTests

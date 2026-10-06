@@ -329,7 +329,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
         return new QueryCollection(d);
     }
 
-    private static string BuildUrl(RouteState rs)
+    internal static string BuildUrl(RouteState rs)
     {
         if (rs.Query.Count == 0)
         {

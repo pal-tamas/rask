@@ -1,7 +1,7 @@
 // rask-external adapter contract, vendored from Rask.External.
 //
-// Everything Rask needs from React, Lit, Vue or Svelte fits in three functions. That is what makes the
-// second and third runtimes cheap once the first exists — and why rask-external.js imports no
+// Everything Rask needs from a runtime — React, Preact, Solid, Vue, Svelte, Angular or Lit — fits in three
+// functions. That is what makes each further runtime cheap once the first exists — and why rask-external.js imports no
 // framework: an island's built chunk default-exports its own adapter, so adding a runtime never
 // touches the runtime.
 //
