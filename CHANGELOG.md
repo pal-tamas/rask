@@ -1041,6 +1041,21 @@ them until tagged releases begin.
 
 ### Added
 
+- **An island has something to show before it mounts: `Loading`.** A JavaScript island is rendered in
+  the browser, so its host element was empty in the first response until the chunk had loaded — a blank
+  page, when the island is the page. `Loading` is an optional step on every island that puts plain Rask
+  markup there:
+  ```csharp
+  Report.Id(Id)                                              // <rask-external …></rask-external>
+  Report.Id(Id).Loading(Ui.Skeleton.Class("h-64 w-full"))    // <rask-external …><div class="…"></div></rask-external>
+  ```
+  It is rendered once on the server and never sent in the props; the island runtime removes it right
+  before the first mount, so a `Hydration(Visible)` or `Idle` island keeps it while it waits. It is below
+  the diff boundary: first paint only, and a handler inside it does not run. An island that carries the
+  `[Route]` itself sets `Loading` in its constructor, since the router builds it and no chain is left to
+  take the step. **A package island whose package has its own `loading` prop now gets it as
+  `LoadingProp`**, the way `key` is `KeyProp`.
+
 - **A Blazor island needs no `AddRaskBlazor()` call, and its `NavigationManager` is Rask's routing.**
   Referencing `Rask.Blazor` is the whole setup — which is what `rask new --islands blazor` always
   scaffolded, so a hosted component that injected `NavigationManager` failed there with Blazor's own

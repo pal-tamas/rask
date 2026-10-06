@@ -10,6 +10,8 @@ Rask.External.ExternalComponent
 Rask.External.ExternalComponent.ExternalComponent() -> void
 Rask.External.ExternalComponent.Hydration.get -> Rask.External.ExternalHydration?
 Rask.External.ExternalComponent.Hydration.set -> void
+Rask.External.ExternalComponent.Loading.get -> Rask.Core.Component?
+Rask.External.ExternalComponent.Loading.set -> void
 Rask.External.ExternalComponent.SetTextChildren(System.Collections.Generic.IEnumerable<string?>! children) -> void
 Rask.External.ExternalComponent.this[System.Collections.Generic.IEnumerable<Rask.Core.Component?>! children].get -> Rask.External.NotAChildOfThisIsland
 Rask.External.ExternalComponent.this[params Rask.Core.Component?[]! children].get -> Rask.External.NotAChildOfThisIsland

@@ -51,6 +51,19 @@ public abstract partial class ExternalComponent : Component
     /// </remarks>
     public ExternalHydration? Hydration { get; set; }
 
+    /// <summary>
+    ///     What the host element holds in the first response, until the island mounts: a skeleton, or the real
+    ///     content for a page a crawler should read. Unset means an empty host.
+    /// </summary>
+    /// <remarks>
+    ///     Plain Rask markup rendered once on the server, inside the host element and never in the props. It is
+    ///     below the island's diff boundary, so it is first-paint only: a later render does not patch it, a handler
+    ///     inside it is not supported, and the client runtime removes it right before the first mount — which, for
+    ///     <see cref="ExternalHydration.None" />, never comes. An island used as another island's child has no host
+    ///     element of its own, so its <c>Loading</c> renders nowhere.
+    /// </remarks>
+    public Component? Loading { get; set; }
+
     /// <summary>Which adapter mounts this component. Fixed by the base class it derives from.</summary>
     protected abstract string Runtime { get; }
 
@@ -265,14 +278,14 @@ public abstract partial class ExternalComponent : Component
     public new NotAChildOfThisIsland this[params object?[] children] => default;
 
     /// <summary>
-    ///     Nothing: an island's children travel inside its props and its framework renders them, so the host element
-    ///     stays empty on the server.
+    ///     <see cref="Loading" /> and nothing else: an island's children travel inside its props and its framework
+    ///     renders them, so without a placeholder the host element stays empty on the server.
     /// </summary>
     /// <remarks>
     ///     Sealed so no island can put Rask children below the opaque boundary, where the diff would never reach them
     ///     again. <see cref="Component.Children" /> assigned by hand is reported as RASK062 and lands here unrendered.
     /// </remarks>
-    protected sealed override IEnumerable<Component?> RenderChildren() => [];
+    protected sealed override IEnumerable<Component?> RenderChildren() => Loading is { } loading ? [loading] : [];
 
     /// <summary>Stores text children. Called by the generated <c>this[IEnumerable&lt;string?&gt;]</c> indexer.</summary>
     /// <param name="children">The text, one child per element; a null element renders nothing.</param>
