@@ -290,7 +290,7 @@ internal sealed partial class DevToolsRendersTab : Component
     private static Component Name(string type, string? key) =>
         key is null
             ? Span.Class("font-mono")[type]
-            : Span.Class("whitespace-nowrap")[Span.Class("font-mono")[type], " ", Ui.Badge.Size(Ui.Size.Sm).Mono(true)[key]];
+            : Span.Class("whitespace-nowrap")[Span.Class("font-mono")[type], " ", Ui.Badge.Sm.Mono()[key]];
 
     private static Component Reasons(int[] counts)
     {
@@ -309,8 +309,8 @@ internal sealed partial class DevToolsRendersTab : Component
     private static Component ReasonBadge(DevToolsRenderReason reason, int? count) =>
         Ui.Badge
             .Key((int)reason)
-            .Size(Ui.Size.Sm)
-            .Tone(reason == DevToolsRenderReason.Mount ? Ui.Tone.Info : null)
+            .Sm
+            .Color(reason == DevToolsRenderReason.Mount ? Ui.Color.Blue : null)
             .Title(Explain(reason))[count is { } n and > 1 ? $"{DevToolsNames.Label(reason)} ×{n}" : DevToolsNames.Label(reason)];
 
     private static string Explain(DevToolsRenderReason reason) => reason switch

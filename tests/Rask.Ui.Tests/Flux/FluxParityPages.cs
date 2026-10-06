@@ -13,14 +13,16 @@ namespace Rask.UiTests.Flux;
 /// </remarks>
 public sealed class FluxParityPages
 {
-    // What Tailwind's preflight gives every app the kit is used in; the kit ships none of its own.
+    // What Tailwind's preflight gives every app the kit is used in; the kit ships none of its own. In
+    // `@layer base`, where preflight is: unlayered, `*{margin:0;padding:0}` would beat every utility the kit
+    // writes.
     private const string Reset =
-        "*,::before,::after{box-sizing:border-box;border:0 solid;margin:0;padding:0}"
+        "@layer base{*,::before,::after{box-sizing:border-box;border:0 solid;margin:0;padding:0}"
         + "html{line-height:1.5;-webkit-text-size-adjust:100%;font-family:Inter,sans-serif}"
         + "button,input,select,textarea{font:inherit;letter-spacing:inherit;color:inherit;background:transparent;border-radius:0}"
         + "a{color:inherit;text-decoration:inherit}svg,img{display:block;vertical-align:middle}"
         + "h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}ol,ul,menu{list-style:none}"
-        + "[data-preview-wrapper]{padding:64px 24px}";
+        + "[data-preview-wrapper]{padding:64px 24px}}";
 
     public static string Directory { get; } = Path.Combine(RepoRoot.FullPath, "artifacts", "flux-parity", "rask");
 
@@ -47,8 +49,9 @@ public sealed class FluxParityPages
             .Append("<!doctype html><html lang=\"en\" ").Append(UiStylesheet.ThemeScopeAttribute).Append("><head>")
             .Append("<meta charset=\"utf-8\"><title>").Append(parity.Page).Append(" · parity</title>")
             .Append("<link href=\"https://fonts.bunny.net/css?family=inter:400,500,600&display=swap\" rel=\"stylesheet\">")
-            .Append("<style>").Append(Reset).Append("</style>")
+            // The kit's sheet first: it states the layer order, and `base` has to take its place in it.
             .Append("<style>").Append(UiStylesheet.Css).Append("</style>")
+            .Append("<style>").Append(Reset).Append("</style>")
             // Flux's own switch: a `dark` class on the root. The measurer asks for each scheme in turn.
             .Append("<script>if(matchMedia('(prefers-color-scheme: dark)').matches)")
             .Append("document.documentElement.classList.add('dark')</script>")

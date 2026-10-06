@@ -235,7 +235,7 @@ colours are generated for 3:1, not 4.5.
 
 ### The kit's own components are corrected the same way
 
-`Ui.Button`, `Ui.Badge`, `Ui.Alert`, `Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
+`Ui.Button`, `Ui.Alert`, `Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
 daisyUI labels each tone with its own `-content` colour — generated for 3:1, so small text on them fails
 AA on between two and ten palettes per tone (`secondary` is 3.05:1 on daisyUI's own `dark`, `error`
 under AA on ten). The kit corrects them to the `-ink` fill with the ground as the label, in
@@ -243,7 +243,7 @@ under AA on ten). The kit corrects them to the `-ink` fill with the ground as th
 
 Two consequences worth knowing:
 
-- **It is all custom properties** (`--btn-color`, `--badge-fg`, `--tt-bg`) except where daisyUI declares
+- **It is all custom properties** (`--btn-color`, `--tt-bg`) except where daisyUI declares
   `color` outright — alert, link, tooltip content. Those three therefore also outrank your own `text-*`
   utility on those elements, because the corrections layer is appended after `utilities`.
 - **`checkbox-*`, `radio-*`, `toggle-*`, `range-*` and `progress-*` are deliberately untouched** — they
@@ -310,7 +310,7 @@ placement: `Ui.NavTab`'s `-mb-px`, which joins the active tab's border to its na
 
 ## Components that are one element
 
-A button is a `<button>`, and a table is a `<table>`. `Ui.Button`, `Ui.Badge`, `Ui.Alert`, `Ui.Table` and
+A button is a `<button>`, and a table is a `<table>`. `Ui.Button`, `Ui.Badge`, `Ui.BadgeClose`, `Ui.Alert`, `Ui.Table` and
 `Ui.List` do not wrap a raw element; they are the element. They derive from **`UiElement`**, which derives
 from `Element`, so every step an element takes works on them unchanged, the events included. What they
 show is their **children**, the same as a raw element's:
@@ -318,7 +318,7 @@ show is their **children**, the same as a raw element's:
 ```csharp
 Ui.Button.Id("save").Primary.OnClick(Save)[Ui.Icon.Name(Ui.IconName.Check), "Save"]
 
-Ui.Badge.Success["Live"]
+Ui.Badge.Color(Ui.Color.Green)["Live"]
 
 Ui.Alert.Error[Ui.Icon.Name(Ui.IconName.ExclamationTriangle), Span["Payment failed: "], Code[error]]
 
@@ -329,7 +329,49 @@ Ui.Table.Id("orders").Data("testid", "orders").Aria(("label", "Orders"))[
 ```
 
 A bare `Ui.Icon.Name(…)` is the right size in all of these. The kit's stylesheet sizes an icon nobody sized
-from the button, badge or alert it sits in, and leaves alone an icon that has a size class of its own.
+from the button or alert it sits in, and leaves alone an icon that has a size class of its own.
+
+## Badges
+
+`Ui.Badge` is [Flux's badge](https://fluxui.dev/components/badge), prop for prop and pixel for pixel: a
+status, a category or a count. It is a `<div>` whose children are what it says.
+
+```csharp
+Ui.Badge["Draft"]                                   // zinc, 14px type in a 28px badge
+Ui.Badge.Color(Ui.Color.Lime)["New"]                // any Tailwind colour
+Ui.Badge.Solid.Color(Ui.Color.Red)["3"]             // the colour itself under white text
+Ui.Badge.Sm["Small"]   Ui.Badge.Lg["Large"]         // Ui.BadgeSize: Base, Sm, Lg
+Ui.Badge.Rounded().Icon(Ui.IconName.User)["Users"]  // round ends; an icon before the words
+Ui.Badge.IconTrailing(Ui.IconName.VideoCamera)["Videos"]
+
+// The whole badge pressed: a <button type="button">, and OnClick is the element's own.
+Ui.Badge.As(Ui.BadgeAs.Button).Rounded().Icon(Ui.IconName.Plus).Lg.OnClick(Add)["Amount"]
+
+// Removable: a close button among its children.
+Ui.Badge[role, Ui.BadgeClose.Aria("label", "Remove " + role).OnClick(() => Remove(role))]
+
+// In a line of text, the padding is given back so the line is no taller.
+Ui.Heading["Page builder ", Ui.Badge.Color(Ui.Color.Lime).Inset(Ui.BadgeInset.Top | Ui.BadgeInset.Bottom)["New"]]
+```
+
+| Prop | Values | Unset |
+| --- | --- | --- |
+| `Color` | `Ui.Color` — Tailwind's seventeen hues `Red` … `Rose`, then `Slate` `Gray` `Zinc` `Neutral` `Stone` | zinc |
+| `Size` | `Ui.BadgeSize.Base` · `Sm` · `Lg` (steps `.Sm`, `.Lg`) | `Base` |
+| `Variant` | `Ui.BadgeVariant.Soft` · `Solid` (steps `.Soft`, `.Solid`) | `Soft` |
+| `Rounded` | `.Rounded()` | square-ish, 6px |
+| `Icon`, `IconTrailing` | `Ui.IconName` | none |
+| `IconVariant` | `Ui.IconVariant` | `Micro` (16px) |
+| `As` | `Ui.BadgeAs.Div` · `Button` | `Div` |
+| `Inset` | `Ui.BadgeInset.Top` · `Bottom` · `Left` · `Right`, combined with `\|` | none |
+
+`Ui.BadgeClose` takes `Icon` (unset, `XMark`) and `IconVariant`, and is named "Remove" for a screen reader
+unless you name it. A badge holds its words on one line; for a long token that has to break instead — a
+request id in a table cell — `.Mono()` sets it in monospace and lets it break anywhere. It is the one prop
+that is not Flux's.
+
+There is no tone: a status names its colour. `Green` for success, `Red` for an error, `Yellow` for a warning
+(the hue Flux's own warning callout uses) and `Blue` for information are what the kit's own surfaces use.
 
 ## Icons
 
@@ -518,7 +560,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Fieldset` `Ui.Validator` `Ui.Label` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |

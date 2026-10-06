@@ -118,7 +118,7 @@ internal sealed partial class DevToolsTabs : Component
             .Aria("selected", IsCurrent(id) ? "true" : "false")
             .OnClick(() => OnSelect.Invoke(id).AsTask())[
                 label,
-                count > 0 ? Ui.Badge.Size(Ui.Size.Xs).Tone(Ui.Tone.Error)[count.ToString(CultureInfo.InvariantCulture)] : null
+                count > 0 ? Ui.Badge.Sm.Solid.Color(Ui.Color.Red)[count.ToString(CultureInfo.InvariantCulture)] : null
             ];
 
     // Only errors: a warning is listed, but does not call for attention.

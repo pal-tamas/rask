@@ -57,38 +57,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string BadgeTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "badge-neutral",
-        Ui.Tone.Primary => "badge-primary",
-        Ui.Tone.Secondary => "badge-secondary",
-        Ui.Tone.Accent => "badge-accent",
-        Ui.Tone.Info => "badge-info",
-        Ui.Tone.Success => "badge-success",
-        Ui.Tone.Warning => "badge-warning",
-        Ui.Tone.Error => "badge-error",
-        _ => "",
-    };
-
-    internal static string BadgeVariant(Ui.Variant value) => value switch
-    {
-        Ui.Variant.Outline => "badge-outline",
-        Ui.Variant.Soft => "badge-soft",
-        Ui.Variant.Dash => "badge-dash",
-        Ui.Variant.Ghost => "badge-ghost",
-        _ => "",
-    };
-
-    internal static string BadgeSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "badge-xs",
-        Ui.Size.Sm => "badge-sm",
-        Ui.Size.Md => "badge-md",
-        Ui.Size.Lg => "badge-lg",
-        Ui.Size.Xl => "badge-xl",
-        _ => "",
-    };
-
     internal static string AlertTone(Ui.Tone value) => value switch
     {
         Ui.Tone.Info => "alert-info",

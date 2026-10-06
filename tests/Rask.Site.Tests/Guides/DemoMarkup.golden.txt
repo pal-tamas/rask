@@ -800,7 +800,7 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-span .badge .badge-neutral .badge-soft
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
 span .text-sm .text-ui-muted
 p .mb-2 .text-sm .text-ui-muted
 div
@@ -1429,9 +1429,9 @@ div .bg-base-100 .border .border-base-300 .h-full .p-4 .rounded-xl .sm:p-5
 h6 .font-semibold .mb-1
 p .text-sm .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center
-span .badge .badge-neutral .badge-soft
-span .badge .badge-neutral .badge-soft
-span .badge .badge-neutral .badge-soft
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
 div .col-span-12 .md:col-span-4
 div .bg-base-100 .border .border-base-300 .h-full .p-4 .rounded-xl .sm:p-5
 h6 .font-semibold .mb-1
@@ -1531,7 +1531,7 @@ div .border .p-3 .rounded
 button .btn .btn-outline .mb-3
 div .flex .flex-wrap .gap-2 .items-center .items-center
 span .text-sm .text-ui-muted
-span .badge .badge-neutral .badge-soft .bg-amber-100 .text-amber-900 .theme-badge
+div .bg-amber-500 .dark:text-zinc-950 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-white .theme-badge .whitespace-nowrap
 
 === cqrs-counter ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -1768,7 +1768,7 @@ div .col-span-12
 div .dd-column .h-full
 div .dd-column-header .flex .items-center .justify-between
 span .font-semibold
-span .badge .badge-neutral .badge-soft
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2
@@ -1789,7 +1789,7 @@ div .col-span-12
 div .dd-column .h-full
 div .dd-column-header .flex .items-center .justify-between
 span .font-semibold
-span .badge .badge-neutral .badge-soft
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2
@@ -1800,7 +1800,7 @@ div .col-span-12
 div .dd-column .h-full
 div .dd-column-header .flex .items-center .justify-between
 span .font-semibold
-span .badge .badge-neutral .badge-soft
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2
@@ -2638,23 +2638,23 @@ svg .[:where(&amp;)]:size-6 .shrink-0
 path
 ul .bg-base-100 .border .border-base-300 .divide-base-300 .divide-y .list .overflow-hidden .rounded-box .ui-list
 li .flex .gap-3 .items-center
-span .badge .badge-neutral .badge-soft
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
 span .font-semibold
 input .input .kl-note .validator
 li .flex .gap-3 .items-center
-span .badge .badge-neutral .badge-soft
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
 span .font-semibold
 input .input .kl-note .validator
 li .flex .gap-3 .items-center
-span .badge .badge-neutral .badge-soft
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
 span .font-semibold
 input .input .kl-note .validator
 li .flex .gap-3 .items-center
-span .badge .badge-neutral .badge-soft
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
 span .font-semibold
 input .input .kl-note .validator
 li .flex .gap-3 .items-center
-span .badge .badge-neutral .badge-soft
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
 span .font-semibold
 input .input .kl-note .validator
 
@@ -2702,7 +2702,7 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .flex .flex-wrap .gap-3 .items-center .mb-3
-span .badge .badge-primary .badge-soft .text-base
+div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1.5 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
 path
@@ -2828,7 +2828,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-primary .badge-soft
+div .bg-blue-400/20 .dark:bg-blue-400/40 .dark:text-blue-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-blue-800 .text-sm .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2839,7 +2839,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-soft .badge-warning
+div .bg-yellow-400/25 .dark:bg-yellow-400/40 .dark:text-yellow-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-yellow-800 .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2850,7 +2850,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-error .badge-soft
+div .bg-red-400/20 .dark:bg-red-400/40 .dark:text-red-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-red-700 .text-sm .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2861,7 +2861,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-soft .badge-success
+div .bg-green-400/20 .dark:bg-green-400/40 .dark:text-green-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-green-800 .text-sm .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2872,7 +2872,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-primary .badge-soft
+div .bg-blue-400/20 .dark:bg-blue-400/40 .dark:text-blue-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-blue-800 .text-sm .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2883,7 +2883,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-soft .badge-success
+div .bg-green-400/20 .dark:bg-green-400/40 .dark:text-green-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-green-800 .text-sm .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2894,7 +2894,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-primary .badge-soft
+div .bg-blue-400/20 .dark:bg-blue-400/40 .dark:text-blue-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-blue-800 .text-sm .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2905,7 +2905,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-error .badge-soft
+div .bg-red-400/20 .dark:bg-red-400/40 .dark:text-red-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-red-700 .text-sm .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2916,7 +2916,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-soft .badge-warning
+div .bg-yellow-400/25 .dark:bg-yellow-400/40 .dark:text-yellow-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-yellow-800 .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2927,7 +2927,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-soft .badge-warning
+div .bg-yellow-400/25 .dark:bg-yellow-400/40 .dark:text-yellow-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-yellow-800 .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2938,7 +2938,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-error .badge-soft
+div .bg-red-400/20 .dark:bg-red-400/40 .dark:text-red-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-red-700 .text-sm .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2949,7 +2949,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-error .badge-soft
+div .bg-red-400/20 .dark:bg-red-400/40 .dark:text-red-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-red-700 .text-sm .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2960,7 +2960,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-soft .badge-success
+div .bg-green-400/20 .dark:bg-green-400/40 .dark:text-green-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-green-800 .text-sm .whitespace-nowrap
 td .text-ui-muted
 td
 tr .md-row
@@ -2971,7 +2971,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .badge .badge-soft .badge-success
+div .bg-green-400/20 .dark:bg-green-400/40 .dark:text-green-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-green-800 .text-sm .whitespace-nowrap
 td .text-ui-muted
 td
 

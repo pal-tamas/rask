@@ -143,7 +143,7 @@ internal sealed partial class DevToolsPerfTab : Component
 
     private static Component Trigger(DevToolsInteraction item) =>
         Span.Class("flex flex-wrap items-center gap-1")[
-            Ui.Badge.Size(Ui.Size.Sm).Mono(true).Tone(item.Faulted ? Ui.Tone.Error : null)[item.Trigger],
+            Ui.Badge.Sm.Mono().Color(item.Faulted ? Ui.Color.Red : null)[item.Trigger],
             item.Target is { } target ? Span.Class("font-mono")[target] : null,
             item.Faulted ? Span.Class("text-xs")["threw"] : null
         ];
@@ -192,7 +192,7 @@ internal sealed partial class DevToolsPerfTab : Component
                     item.Key is null
                         ? Span.Class("font-mono")[item.Type]
                         : Span.Class("whitespace-nowrap")[
-                            Span.Class("font-mono")[item.Type], " ", Ui.Badge.Size(Ui.Size.Sm).Mono(true)[item.Key]
+                            Span.Class("font-mono")[item.Type], " ", Ui.Badge.Sm.Mono()[item.Key]
                         ]
                 ],
                 Td.Class("tabular-nums")[Count(item.Renders)],

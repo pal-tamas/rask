@@ -20,6 +20,31 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Badge` is Flux's badge — its props, its look in every Tailwind colour, and
+  `Ui.BadgeClose`.** The daisyUI `badge` is gone, and with it `Tone` and the daisyUI `Variant`/`Size`. A badge names its colour (`Ui.Color`: Tailwind's seventeen hues, then `Slate`, `Gray`, `Zinc`,
+  `Neutral`, `Stone`; unset is zinc), and is a `<div>` where it was a `<span>`:
+  ```csharp
+  Ui.Badge.Success["Live"]                      // was
+  Ui.Badge.Color(Ui.Color.Green)["Live"]        // now
+
+  Ui.Badge.Tone(Ui.Tone.Error).Size(Ui.Size.Xs)["3"]      // was
+  Ui.Badge.Sm.Solid.Color(Ui.Color.Red)["3"]              // now
+
+  Ui.Badge.Neutral.Soft[count]                  // was
+  Ui.Badge[count]                               // now
+  ```
+  `Error` → `Red`, `Success` → `Green`, `Warning` → `Yellow`, `Info` → `Blue`; `Neutral`, `Primary`,
+  `Secondary` and `Accent` → no colour. The tinted look is the default (`Ui.BadgeVariant.Soft`), so `.Soft`
+  goes and a filled badge says `.Solid`; `Outline`, `Dash` and `Ghost` have no Flux counterpart. Sizes are
+  `Ui.BadgeSize.Base`, `Sm` and `Lg`: `Xs` → `.Sm`, `Md` → nothing, `Xl` → `.Lg`. New from Flux:
+  `.Rounded()`, `Icon` / `IconTrailing` / `IconVariant`, `.As(Ui.BadgeAs.Button)` for a badge that is
+  pressed (`OnClick` is the element's), `Inset(Ui.BadgeInset.Top | Ui.BadgeInset.Bottom)` for a badge in a
+  line of text, and `Ui.BadgeClose` — the close button of a removable badge:
+  `Ui.Badge["Admin", Ui.BadgeClose.OnClick(Remove)]`. `Mono` stays, for a long token that must break
+  instead of widening its row. The count badges of `Ui.NavItem` and `Ui.NavTab`, the label badge
+  of a form field and the chips of a multi-select are drawn with it too, so the kit writes no `badge` class
+  any more; an app that selected on `.badge` selects on `[data-ui-badge]`.
+
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:
@@ -42,7 +67,7 @@ them until tagged releases begin.
 
   A new `Variant` (`Ui.IconVariant`: `Outline`, `Solid`, `Mini`, `Micro`) picks the drawing —
   `Ui.Icon.Name(Ui.IconName.Bolt).Solid`. **An icon with no size class is now 24px (20px for `Mini`, 16px
-  for `Micro`), where it was 20px**; inside a `Ui.Button`, `Ui.Badge` or `Ui.Alert` it is sized as before.
+  for `Micro`), where it was 20px**; inside a `Ui.Button` or `Ui.Alert` it is sized as before.
   A `size-*` class overrides the default wherever it sits in the class list. The markup is Flux's:
   `data-ui-icon`, `data-slot="icon"`, `aria-hidden`, and no `focusable` attribute. `Rask.Ui.dll` grows by
   490 KB (107 KB compressed) for the path data. `scripts/flux/icons.mjs` regenerates the set from the

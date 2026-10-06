@@ -79,11 +79,11 @@ public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_mono_badge_wraps_a_long_token_instead_of_widening_its_row()
     {
-        var html = Ui.Badge.Mono(true)["requestId=0HN8Q2V3R1T0K:00000001"].ToHtml();
+        var html = Ui.Badge.Mono()["requestId=0HN8Q2V3R1T0K:00000001"].ToHtml();
 
         Assert.Contains("font-mono", html, StringComparison.Ordinal);
         Assert.Contains("break-all", html, StringComparison.Ordinal);
-        Assert.Contains("h-auto", html, StringComparison.Ordinal);
+        Assert.Contains("whitespace-normal!", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -94,6 +94,6 @@ public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
             StringComparison.Ordinal);
 
     [Fact]
-    public void A_plain_badge_keeps_its_fixed_height() =>
+    public void A_plain_badge_keeps_its_words_on_one_line() =>
         Assert.DoesNotContain("break-all", Ui.Badge["Live"].ToHtml(), StringComparison.Ordinal);
 }

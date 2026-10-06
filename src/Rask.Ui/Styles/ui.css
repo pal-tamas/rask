@@ -224,7 +224,7 @@
 
   /*
     The three daisyUI tones the kit's own palette never named, given the same treatment for the same
-    reason: the components below write .btn-secondary, .badge-accent and .step-neutral, and those are
+    reason: the components below write .btn-secondary, .alert-info and .step-neutral, and those are
     fills whose label has to be readable too. Weights solved like the others — the largest that clears
     4.6:1 against both grounds on every palette — and lower than the semantic tones because these three
     run to pale mid-tones (`accent` needs 14%, and no palette needs a correction on top).
@@ -331,7 +331,7 @@
   THE COMPONENTS' OWN COLOURS, CORRECTED — the same defect as the -ink tiers above, one layer down.
 
   daisyUI pairs every filled component with its tone's `-content` colour: `.btn-primary` sets
-  `--btn-fg: var(--color-primary-content)`, `.badge-success` its `--badge-fg`, `.alert-warning` a plain
+  `--btn-fg: var(--color-primary-content)`, `.alert-warning` a plain
   `color`. Those pairs are generated to clear 3:1 — enough for a large label, not for the small text
   these components actually render — and measured across all thirty-six palettes they fail WCAG AA on
   between two and ten of them per tone: `secondary` is 3.05:1 on daisyUI's own `dark`, `warning` 3.06:1
@@ -410,40 +410,6 @@
   .btn-error {
     --btn-color: var(--color-ui-danger-ink);
     --btn-fg: var(--color-ui-bg);
-  }
-
-  /* Filled badges. */
-  .badge-primary {
-    --badge-color: var(--color-ui-brand-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-secondary {
-    --badge-color: var(--color-ui-secondary-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-accent {
-    --badge-color: var(--color-ui-accent-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-neutral {
-    --badge-color: var(--color-ui-neutral-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-info {
-    --badge-color: var(--color-ui-info-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-success {
-    --badge-color: var(--color-ui-ok-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-warning {
-    --badge-color: var(--color-ui-warn-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-error {
-    --badge-color: var(--color-ui-danger-ink);
-    --badge-fg: var(--color-ui-bg);
   }
 
   /* Alerts: daisyUI puts the text colour on the element and the fill in --alert-color. */
@@ -824,7 +790,7 @@
     overflow-wrap: anywhere;
   }
 
-  .ui-grid-cell :where(.badge:not(.font-mono), .btn, .tab, .status, .loading) {
+  .ui-grid-cell :where([data-ui-badge]:not(.font-mono), .btn, .tab, .status, .loading) {
     overflow-wrap: normal;
     white-space: nowrap;
   }
@@ -970,10 +936,10 @@
 }
 
 /*
-  AN ICON IN A DAISY BUTTON, BADGE OR ALERT IS SIZED BY WHAT IT SITS IN — unless the call site sized it.
+  AN ICON IN A DAISY BUTTON OR ALERT IS SIZED BY WHAT IT SITS IN — unless the call site sized it.
 
   Ui.Icon is Flux's icon now and 24px when nobody names a size, which is right in Flux's components and too
-  big for these three: a button's line takes 16px, a badge 1em, an alert the 20px the icon used to default
+  big for these two: a button's line takes 16px, an alert the 20px the icon used to default
   to. The icon is their child, which the kit does not build and cannot give a class to, so it is sized here
   from what it sits in. THIS RULE GOES WITH THE DAISY COMPONENTS IT NAMES: Flux's button sizes its own icon.
 
@@ -988,12 +954,6 @@
   .btn > svg.size-5[class*=" shrink-0"] {
     width: 1rem;
     height: 1rem;
-  }
-
-  .badge > svg[data-ui-icon]:not([class*=" size-"], [class*=" w-"], [class*=" h-"]),
-  .badge > svg.size-5[class*=" shrink-0"] {
-    width: 1em;
-    height: 1em;
   }
 
   .alert > svg[data-ui-icon]:not([class*=" size-"], [class*=" w-"], [class*=" h-"]) {

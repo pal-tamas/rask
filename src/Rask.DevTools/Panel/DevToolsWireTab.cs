@@ -111,7 +111,7 @@ internal sealed partial class DevToolsWireTab : Component
     private static Component Row(DevToolsWireEvent e, DevToolsWireEvent? previous) =>
         Tr.Key(e.Sequence)[
             Td.Class("tabular-nums opacity-60")[e.Sequence.ToString(CultureInfo.InvariantCulture)],
-            Td[e.Direction == DevToolsWireDirection.Out ? Ui.Badge.Tone(Ui.Tone.Info)["sent"] : Ui.Badge["received"]],
+            Td[e.Direction == DevToolsWireDirection.Out ? Ui.Badge.Color(Ui.Color.Blue)["sent"] : Ui.Badge["received"]],
             Td.Class("font-mono")[e.Kind],
             Td.Class("tabular-nums whitespace-nowrap")[Size(e.Bytes)],
             Td.Class("tabular-nums whitespace-nowrap")[e.DiffOps is { } ops ? Ops(ops) : ""],

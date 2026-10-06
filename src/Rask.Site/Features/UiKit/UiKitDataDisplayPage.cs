@@ -12,9 +12,9 @@ public sealed partial class UiKitDataDisplayPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "daisyUI accordion, badge and card components in C# — Rask",
-            "daisyUI data display components in C#: accordion, collapse, card, badge, kbd, status, "
-            + "countdown, chat bubble, text rotate, aura and hover effects.",
+            "Badge, accordion and card components in C# — Rask",
+            "Data display components in C#: a Flux UI badge in every Tailwind colour, accordion, collapse, card, "
+            + "kbd, status, countdown, chat bubble, aura and hover effects.",
             Routes.UiKitDataDisplayPage());
 
     /// <inheritdoc />
@@ -22,7 +22,10 @@ public sealed partial class UiKitDataDisplayPage : Component
     [
         H1.Class("text-3xl font-bold mb-1")["Data display"],
         P.Class("text-ui-muted")[
-            "Most of this category is static. The two that hold state — the accordion and the collapse ",
+            "The badge is Flux UI's, example for example: ", Code["Ui.Badge.Color(Ui.Color.Lime)[\"New\"]"],
+            ", pressed with ", Code[".As(Ui.BadgeAs.Button).OnClick(…)"], " and removable with a ",
+            Code["Ui.BadgeClose"], " among its children. ",
+            "The rest of this category is mostly static. The two that hold state — the accordion and the collapse ",
             "— hold it in C#: ", Code["Open"], " is nullable, so unset leaves the browser to open it on ",
             "focus and a value takes ownership. Closed writes ", Code["collapse-close"], " rather than ",
             "merely omitting ", Code["collapse-open"], ", because daisyUI also opens on ",

@@ -60,7 +60,7 @@ public sealed partial class UiKitLayoutDemo : Component
                     Ui.Button.Key("3")["»"]
                 ],
                 Div.Class("flex flex-wrap items-center gap-6")[
-                    Ui.Indicator.Key("i").Badge(Ui.Badge.Error["9"])[
+                    Ui.Indicator.Key("i").Badge(Ui.Badge.Sm.Solid.Rounded().Color(Ui.Color.Red)["9"])[
                         Ui.Button["Inbox"]
                     ],
                     Ui.Avatar.Key("a").Src("/img/favicon.svg").Alt("The Rask mark").Round()
