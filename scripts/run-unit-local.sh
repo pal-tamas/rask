@@ -298,9 +298,16 @@ echo "==> Build once (Release; no WASM bundle)"
 # RaskWasm / RaskSpaBuild off: this gate runs UNIT tests, and not one of them needs a published
 # WebAssembly bundle — the browser E2E gate publishes those. The gate's real cost is elsewhere — the test
 # run and `dotnet format --verify-no-changes` are about 90% of a warm run.
+#
+# The `tests` part builds without the analyzers: the `format` part builds this same solution with
+# them on another machine at the same moment, so running them twice buys nothing, and the tests only
+# need the assemblies. Source generators are not analyzers and still run.
+build_analyzers=""
+[ "$unit_part" = "tests" ] && build_analyzers="-p:RunAnalyzers=false"
+# shellcheck disable=SC2086  # empty unless set above
 dotnet build Rask.slnx -c Release -m:"$lane_slots" \
   -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
-  -p:RaskSpaBuild=false
+  -p:RaskSpaBuild=false $build_analyzers
 
 fi
 rask_phase "build (Release)"
