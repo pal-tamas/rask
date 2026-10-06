@@ -90,3 +90,7 @@ never touch `.githooks/` — and `main` has no required checks, so a merge from 
 change that nothing built, formatted, or tested. Check the branch out, let `pre-commit` and
 `pre-push` run, and push. `Directory.Packages.props` is in `pre-push`'s `generator_paths`, so the CLI
 build gate runs too; budget for it.
+
+Its commit ends `Signed-off-by: dependabot[bot] <support@github.com>`. CI lets that one line through
+on a PR Dependabot opened (so the PR's `commitlint` check is green and means something); `pre-push`
+does not. Start with `git commit --amend --reset-author` and delete the line.

@@ -13,8 +13,8 @@
 # commit, so the prose rows below are as load-bearing as the trailer rows: a body that *discusses*
 # the trailer, or a human Signed-off-by, must pass.
 #
-# Four sections, because "the regex is right" and "the callers consult it" are different claims:
-#   1. the predicate, over a table
+# Sections, because "the regex is right" and "the callers consult it" are different claims:
+#   1. the predicate, over a table — and what CI drops first on a Dependabot pull request
 #   2. the real .githooks/commit-msg, driven end to end
 #   3. the real .githooks/pre-push, driven end to end in an isolated throwaway repository
 #   4. .github/workflows/commitlint.yml — structural only; it needs a pull_request event to run,
@@ -104,6 +104,29 @@ assert_predicate "a HUMAN sign-off"                 clean 'fix: x\n\nSigned-off-
 assert_predicate "a body mentioning Claude Code"    clean 'docs: mention the agent\n\nClaude Code is one of the supported agents.\n'
 assert_predicate "a subject naming a bot file"      clean 'chore: update dependabot.yml\n'
 
+echo "==> rask_without_dependabot_signoff"
+
+# What CI applies to a pull request Dependabot opened, and to nothing else. The rows that stay dirty
+# are the point: dropping one literal line must not become a way past the guard.
+#
+# assert_dependabot_pr <name> <dirty|clean> <message>
+assert_dependabot_pr() {
+  checked=$((checked + 1))
+  if printf '%b' "$3" | rask_without_dependabot_signoff | rask_message_has_attribution; then
+    actual="dirty"
+  else
+    actual="clean"
+  fi
+  if [ "$actual" = "$2" ]; then pass "$1"; else fail "$1" "-> $actual (expected $2)"; fi
+}
+
+assert_dependabot_pr "Dependabot's own sign-off"          clean 'build(deps): bump x\n\nBumps x.\n\nSigned-off-by: dependabot[bot] <support@github.com>\n'
+assert_dependabot_pr "a message with no sign-off at all"  clean 'build(deps): bump x\n'
+assert_dependabot_pr "a co-author beside the sign-off"    dirty 'build(deps): bump x\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: a <a@b.c>\n'
+assert_dependabot_pr "another bot's sign-off"             dirty 'build(deps): bump x\n\nSigned-off-by: renovate[bot] <bot@renovateapp.com>\n'
+assert_dependabot_pr "the sign-off from another address"  dirty 'build(deps): bump x\n\nSigned-off-by: dependabot[bot] <someone@example.com>\n'
+assert_dependabot_pr "the sign-off with more on the line" dirty 'build(deps): bump x\n\nSigned-off-by: dependabot[bot] <support@github.com> and Claude <noreply@anthropic.com>\n'
+
 echo "==> .githooks/commit-msg (the real hook)"
 
 msg_tmp="$(mktemp)"
@@ -122,7 +145,8 @@ assert_commit_msg() {
 
 assert_commit_msg "rejects the trailer"            1 'fix: x\n\nCo-Authored-By: Claude <noreply@anthropic.com>\n'
 assert_commit_msg "rejects it on a MERGE commit"   1 'Merge branch a\n\nCo-authored-by: Claude <noreply@anthropic.com>\n'
-assert_commit_msg "accepts a clean commit"         0 'feat(forms): add RadioGroup disabled state\n'
+assert_commit_msg "rejects Dependabot's sign-off"  1 'build(deps): bump x\n\nSigned-off-by: dependabot[bot] <support@github.com>\n'
+assert_commit_msg "accepts a clean commit"        0 'feat(forms): add RadioGroup disabled state\n'
 assert_commit_msg "accepts a clean merge"          0 'Merge branch main into topic\n'
 assert_commit_msg "still rejects a bad subject"    1 'random text\n'
 
@@ -240,6 +264,19 @@ assert_contains() {
 assert_contains "CI sources the shared predicate"  'scripts/lib/attribution.sh'
 assert_contains "CI calls it, not its own regex"   'rask_message_has_attribution'
 assert_contains "CI checks the PR body"            'PR_BODY'
+assert_contains "CI keys Dependabot on the PR author" 'PR_AUTHOR: ${{ github.event.pull_request.user.login }}'
+assert_contains "CI drops only Dependabot's sign-off" 'rask_without_dependabot_signoff'
+
+# The exemption is CI's alone. A hook that learned it would let the sign-off through the one path
+# that actually reaches main.
+for hook in commit-msg pre-push; do
+  checked=$((checked + 1))
+  if grep -q 'rask_without_dependabot_signoff' "$root/.githooks/$hook"; then
+    fail "$hook keeps rejecting the sign-off" "-> .githooks/$hook calls rask_without_dependabot_signoff"
+  else
+    pass "$hook keeps rejecting the sign-off"
+  fi
+done
 
 if grep -q 'RASK_ATTRIBUTION_RE=' "$workflow"; then
   fail "CI does not redefine the regex" "-> commitlint.yml sets RASK_ATTRIBUTION_RE; it must source the lib"

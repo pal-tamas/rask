@@ -32,3 +32,18 @@ rask_message_has_attribution() {
 rask_attribution_offenders() {
   grep -inE "$RASK_ATTRIBUTION_RE" || true
 }
+
+# The one line Dependabot appends to every commit it authors. It is not configurable, so on a pull
+# request Dependabot opened it is not something the pull request can fix — and with it counted, every
+# Dependabot PR was red before anyone had read it, which hides the day one is red for a real reason.
+#
+# CI ONLY, and only for a PR whose author is Dependabot (.github/workflows/commitlint.yml). The hooks
+# never call this: a bump lands by being checked out and pushed, and commit-msg / pre-push still
+# reject the sign-off there, which is what keeps it off main.
+RASK_DEPENDABOT_SIGNOFF='Signed-off-by: dependabot[bot] <support@github.com>'
+
+# rask_without_dependabot_signoff — reads a commit message on stdin, writes it back without that
+# exact line. Whole-line and literal: any other bot, address or trailer is left for the predicate.
+rask_without_dependabot_signoff() {
+  grep -vxF "$RASK_DEPENDABOT_SIGNOFF" || true
+}

@@ -1187,6 +1187,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A Dependabot pull request is no longer red on arrival.** Every one failed `commitlint`, and not on
+  its title: Dependabot ends each commit with `Signed-off-by: dependabot[bot] <support@github.com>`,
+  which it cannot be configured to drop, and the attribution guard in the same job counts a bot
+  sign-off as a trailer. CI now drops that one exact line before the check, on pull requests Dependabot
+  opened and nowhere else — a co-author, another bot or a different address beside it still fails. The
+  hooks are unchanged, so `pre-push` still refuses the line when the bump is landed locally.
+
 - **A field inside a form's submit-state function keeps what you type while the page renders around it.**
   `Form.Model(m)[f => [ … ]]` builds its fields during the render walk, and a component served from the
   render cache used to build them afresh on every unrelated render of the page — new instances, new handler
