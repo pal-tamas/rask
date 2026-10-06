@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Removed
 
+- **BREAKING: `Notify` is gone; `Dispatcher` now works everywhere.** Two statics published an event, and which
+  one worked depended on where the line stood: `Dispatcher.Publish` threw in a `BackgroundService`, and
+  `Notify.Send` existed to cover that. One word now, from a page, a handler, a job or a singleton:
+  ```csharp
+  await Notify.Send(new ReportReady(id), stoppingToken);          // was
+  await Dispatcher.Publish(new ReportReady(id), stoppingToken);   // now
+  ```
+  Outside any work in progress `Dispatcher.Publish`, `Send` and `Query` open a scope of their own and dispose it
+  when the handler finishes, so a command can be sent from a hosted service with the same line a page uses.
+  `Notify.IsConfigured` is `Dispatcher.IsOn`; `Notify.UseScope` and `Notify.Configure` have no replacement — the
+  host binds the scope.
+
 - **Docs: the "ASP.NET Identity" section of `docs/authentication-providers.md` is gone.** `Rask.Auth` has
   its own accounts, and moving an existing Identity database onto it is covered in
   `docs/authentication.md`. The retired diagnostics (RASK027/030/032/034/042/046/047/048–050/054/081) no

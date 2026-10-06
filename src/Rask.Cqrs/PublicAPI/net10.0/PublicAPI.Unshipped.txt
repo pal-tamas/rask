@@ -57,7 +57,6 @@ Rask.Cqrs.EventDispatch
 Rask.Cqrs.EventPublishStrategy
 Rask.Cqrs.EventPublishStrategy.Sequential = 0 -> Rask.Cqrs.EventPublishStrategy
 Rask.Cqrs.EventPublishStrategy.WhenAll = 1 -> Rask.Cqrs.EventPublishStrategy
-Rask.Cqrs.Notify
 Rask.Cqrs.RaskCqrsTransportAttribute
 Rask.Cqrs.RaskCqrsTransportAttribute.RaskCqrsTransportAttribute() -> void
 Rask.Cqrs.RaskValidationException
@@ -186,10 +185,6 @@ static Rask.Cqrs.CqrsServiceCollectionExtensions.AddRaskCqrs(this Microsoft.Exte
 static Rask.Cqrs.DataChanged.operator !=(Rask.Cqrs.DataChanged? left, Rask.Cqrs.DataChanged? right) -> bool
 static Rask.Cqrs.DataChanged.operator ==(Rask.Cqrs.DataChanged? left, Rask.Cqrs.DataChanged? right) -> bool
 static Rask.Cqrs.EventDispatch.PublishAll<TEvent>(System.IServiceProvider! provider, TEvent e, System.Collections.Generic.IEnumerable<Rask.Cqrs.IEventHandler<TEvent>!>! handlers, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-static Rask.Cqrs.Notify.Configure(System.IServiceProvider! services) -> void
-static Rask.Cqrs.Notify.IsConfigured.get -> bool
-static Rask.Cqrs.Notify.Send<TEvent>(TEvent e, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-static Rask.Cqrs.Notify.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
 static Rask.Cqrs.RemoteContractRegistry.All.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RemoteContract!>!
 static Rask.Cqrs.RemoteContractRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<Rask.Cqrs.RemoteContract!>! contracts) -> void
 static Rask.Cqrs.RemoteContractRegistry.TryGet(System.Type! messageType, out Rask.Cqrs.RemoteContract? contract) -> bool
@@ -225,6 +220,7 @@ Rask.Cqrs.IQueryHandler<TQuery, TResult>.Handle(TQuery query) -> System.Threadin
 Rask.Cqrs.IRemoteRequestValidator.Validate(object! request) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.Cqrs.IRequestValidator<TRequest>.Validate(TRequest request) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.Cqrs.ValidationBehavior<TRequest, TResult>.Handle(TRequest request, Rask.Cqrs.RequestHandler<TResult>! next) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Cqrs.Dispatcher.IsOn.get -> bool
 static Rask.Cqrs.Dispatcher.Publish<TEvent>(TEvent e, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Cqrs.Dispatcher.Query<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 static Rask.Cqrs.Dispatcher.Send(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
