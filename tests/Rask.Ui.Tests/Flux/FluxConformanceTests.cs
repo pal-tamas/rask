@@ -30,6 +30,9 @@ public sealed class FluxConformanceTests
         ["flux:error"] = typeof(UiError),
         ["flux:fieldset"] = typeof(UiFieldset),
         ["flux:legend"] = typeof(UiLegend),
+        ["flux:heading"] = typeof(UiHeading),
+        ["flux:link"] = typeof(UiLink),
+        ["flux:text"] = typeof(UiText),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -37,6 +40,9 @@ public sealed class FluxConformanceTests
     {
         ["flux:error/bag"] = "Laravel's named error bags. A Rask form has one edit context, and Ui.Error reads that one.",
         ["flux:error/deep"] = "Laravel's dotted paths (fields.*). A Rask field is the member of the object that owns it: Ui.Error.For(() => order.Lines[0].Name).",
+        ["flux:heading/size=2xl"] = "an identifier cannot start with a digit: Ui.HeadingSize.Xxl",
+        ["flux:text/color=default"] = "no colour is an unset Color; Ui.Color holds Tailwind's hues only",
+        ["flux:text/size=base"] = "the heading page's name for the text page's `default`: Ui.TextSize.Default",
     };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;

@@ -27,6 +27,32 @@ them until tagged releases begin.
 
   `Ui.Input`, `Ui.Select` and the other controls are unchanged and still draw their own label, `Hint` and
   message; each takes Flux's `Label`/`Description` field as it is rebuilt.
+- **BREAKING: UI kit — `Ui.Heading`, `Ui.Text` and `Ui.Link` are Flux UI's, and `Ui.Subheading` is gone.**
+  Same names, props and look as [fluxui.dev](https://fluxui.dev/components/heading)'s `flux:heading`,
+  `flux:text` and `flux:link`, measured against its docs in light and dark; none of the three is drawn
+  with daisyUI any more. Each is now one HTML element (`Id`, `Style`, `Data`, `Aria`, events) and carries
+  `data-ui-heading` / `data-ui-text` / `data-ui-link`. Each has its own option enums, and `Ui.Color` is
+  new: Tailwind's seventeen hues.
+  ```csharp
+  Ui.Heading.Size(Ui.Size.Xl)            // was — Ui.Size, Xs…Xl, semibold from Default up
+  Ui.Heading.Xl                          // now — Ui.HeadingSize: Base 14px, Lg 16px, Xl 24px, Xxl 36px, all medium
+  Ui.Subheading["Placed this month."]    // was
+  Ui.Text["Placed this month."]          // now — there is no subheading; Flux puts a text under a heading
+  Ui.Text.Strong()  Ui.Text.Subtle()     // was — two flags, and Strong was medium weight
+  Ui.Text.Variant(Ui.TextVariant.Strong)  Ui.Text.Subtle   // now — an ink only, the weight stays regular
+  Ui.Text.Tone(Ui.Tone.Error)            // was
+  Ui.Text.Color(Ui.Color.Red)            // now — a Tailwind hue (600, 400 in dark), not a theme tone
+  Ui.Text.Size(Ui.Size.Xs)               // was
+  Ui.Text.Sm                             // now — Ui.TextSize: Sm 12px, Default 14px, Lg 16px, Xl 18px
+  Ui.Link.Href(url).Tone(Ui.Tone.Primary)   // was
+  Ui.Link.Href(url)                         // now — the accent by default; .Accent(false) for the page's ink
+  Ui.Link.Href(url).Underline(false)        // was — underlined on hover unless told not to
+  Ui.Link.Href(url).Subtle                  // now — Ui.LinkVariant: Default underlined, Ghost on hover, Subtle never
+  ```
+  `Ui.Link.External()` no longer adds an icon or the screen-reader "(opens in a new tab)": it is
+  `target="_blank"` with `rel="noopener noreferrer"`, as Flux's is. `Ui.Link.Href` is optional, for
+  `Ui.Link.As(Ui.LinkAs.Button)` — a `<button type="button">` drawn as a link, taking `OnClick`.
+
 - **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
   keeps the front-door check, `pre-push` the attribution guard. `ci.yml` runs the format check, the
   warnings-as-errors build, the unit suite, the browser E2Es, the CLI build and the templates as

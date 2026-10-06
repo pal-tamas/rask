@@ -185,7 +185,7 @@ public sealed partial class UiKitActionsDemo : Component
             Div.Data(Testid("ui-popover"))[
                 Ui.Popover.Trigger("Filters").Icon(Ui.IconName.Gear).Align(Ui.Align.Start)
                     .PanelClass("w-72")[
-                    Ui.Heading.Key("h").Level(3).Sm.Class("mb-2")["Narrow the list"],
+                    Ui.Heading.Key("h").Level(3).Class("mb-2")["Narrow the list"],
                     Ui.CheckboxGroup.Values(_filters).Key("f")
                         .Options([("open", "Open"), ("mine", "Assigned to me"), ("old", "Older than a week")])
                         .Label("Show")

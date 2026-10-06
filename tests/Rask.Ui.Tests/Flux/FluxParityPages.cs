@@ -54,8 +54,9 @@ public sealed class FluxParityPages
             .Append("<!doctype html><html lang=\"en\" ").Append(UiStylesheet.ThemeScopeAttribute).Append("><head>")
             .Append("<meta charset=\"utf-8\"><title>").Append(parity.Page).Append(" · parity</title>")
             .Append("<link href=\"https://fonts.bunny.net/css?family=inter:400,500,600&display=swap\" rel=\"stylesheet\">")
-            .Append("<style>").Append(Reset).Append("</style>")
+            // The kit's sheet first: it states the layer order, and `base` has to take its place in it.
             .Append("<style>").Append(UiStylesheet.Css).Append("</style>")
+            .Append("<style>").Append(Reset).Append("</style>")
             // Flux's own switch: a `dark` class on the root. The measurer asks for each scheme in turn.
             .Append("<script>if(matchMedia('(prefers-color-scheme: dark)').matches)")
             .Append("document.documentElement.classList.add('dark')</script>")

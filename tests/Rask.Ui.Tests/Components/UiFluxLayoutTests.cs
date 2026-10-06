@@ -152,29 +152,6 @@ public partial class UiFluxLayoutTests : global::Rask.Core.RaskMarkup
 
     // ---- type -----------------------------------------------------------------------------------
 
-    [Theory]
-    [InlineData(null, "<div ")]
-    [InlineData(1, "<h1 ")]
-    [InlineData(3, "<h3 ")]
-    [InlineData(6, "<h6 ")]
-    public void A_headings_level_is_its_element_and_its_size_is_separate(int? level, string expected)
-    {
-        var html = Ui.Heading.Level(level).Size(Ui.Size.Xl)["Orders"].ToHtml();
-
-        Assert.StartsWith(expected, html, StringComparison.Ordinal);
-        Assert.Contains("text-2xl", html);
-    }
-
-    [Fact]
-    public void Subheading_and_text_stay_out_of_the_outline()
-    {
-        Assert.StartsWith("<div class=\"text-base-content/60", Ui.Subheading["Everything you have ordered"].ToHtml(), StringComparison.Ordinal);
-        Assert.StartsWith("<p ", Ui.Text["Body"].ToHtml(), StringComparison.Ordinal);
-        Assert.StartsWith("<span ", Ui.Text.Inline(true)["run"].ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("text-ui-danger-ink", Ui.Text.Tone(Ui.Tone.Error)["Failed"].ToHtml());
-        Assert.Contains("font-medium", Ui.Text.Strong(true)["Total"].ToHtml());
-    }
-
     [Fact]
     public void A_page_header_and_a_card_take_a_heading_level()
     {

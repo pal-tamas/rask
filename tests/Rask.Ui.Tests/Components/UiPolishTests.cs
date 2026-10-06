@@ -1,7 +1,7 @@
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The smaller Flux UI affordances: a resizable textarea, an outbound link, a shaped placeholder, a popover
+///     The smaller Flux UI affordances: a resizable textarea, a shaped placeholder, a popover
 ///     that is not a menu.
 /// </summary>
 /// <remarks>
@@ -30,33 +30,6 @@ public partial class UiPolishTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("ui-textarea-auto", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-on-input", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void An_external_link_opens_away_and_cannot_reach_back()
-    {
-        // All three together: a new tab without rel=noopener can reach the opener through window.opener, and
-        // a tab that opens unannounced takes the back button away from a reader who did not ask for one.
-        var html = Ui.Link.Href("https://example.com").External(true)["The spec"].ToHtml();
-
-        Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
-        Assert.Contains("rel=\"noopener noreferrer\"", html, StringComparison.Ordinal);
-        Assert.Contains("opens in a new tab", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void An_ordinary_link_is_untouched() =>
-        Assert.DoesNotContain("target=\"_blank\"",
-            Ui.Link.Href("/docs")["Docs"].ToHtml(), StringComparison.Ordinal);
-
-    [Fact]
-    public void A_generated_route_is_never_external()
-    {
-        // It is one of your own pages by definition. Opening it in a second tab would be the app twice over.
-        var route = new global::Rask.Core.Routing.RouteUrl("/docs", null, typeof(UiPolishTests));
-        var html = Ui.Link.Href(route).External(true)["Docs"].ToHtml();
-
-        Assert.DoesNotContain("target=\"_blank\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
