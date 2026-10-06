@@ -36,6 +36,15 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The daily upstream run no longer reports every Flux UI look as changed.** The lock was measured on
+  macOS and checked on Linux, where text measures differently, so 866 of 870 looks "moved" (#1189).
+  The lock now records the platform it was measured on and belongs to the CI runner: `upstream.yml`
+  baselines it there and lands it, `gh workflow run upstream.yml -f relock=true` relocks once Rask.Ui
+  matches again, and a local `sync.mjs` measures for `parity.mjs` without comparing. The report is one
+  line per page, and the run's Playwright is pinned to the E2E projects' release. A look is also
+  measured with motion at rest — a transition at its end, a spinner or shimmer on its first frame, on
+  Flux's page and on Rask's alike — and a difference is measured twice, so an example Flux draws at
+  random is ignored instead of reported.
 - **Rask.SQLite.Litestream: two projects building for the first time at once no longer break each
   other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
   with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
