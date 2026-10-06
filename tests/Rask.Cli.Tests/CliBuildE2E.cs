@@ -105,13 +105,19 @@ internal static class CliBuildE2E
         var feed = Path.Combine(Path.GetTempPath(), "rask-cli-e2e-feed", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(feed);
 
-        // One `dotnet pack` per package, in order. Packing them all from a single MSBuild invocation is
-        // several minutes faster and WRONG: a package then names a project it references at version
-        // 1.0.0 instead of the MinVer version it was packed at, and no scaffold can restore.
+        // Built once, packed one at a time. The build is the expensive half and safe to do side by side
+        // in ONE MSBuild invocation, where a project several packages share is compiled once. The pack is
+        // still a `dotnet pack` per package: packing them all from one invocation named a referenced
+        // project at version 1.0.0 instead of the MinVer version it was packed at, and no scaffold could
+        // restore. With --no-build each of those is a few seconds of writing a nuspec.
+        var (built, buildOutput) = await RunDotnet(
+            $"msbuild \"{WriteBuildTraversal(repoRoot)}\" -t:Build -m:{BuildSlots} -nologo -v:minimal");
+        Assert.True(built == 0, $"failed to build the feed's projects for the build gate.{Diagnostics(buildOutput)}");
+
         foreach (var package in FeedPackages)
         {
             var csproj = ProjectFor(repoRoot, package);
-            var (exit, output) = await RunDotnet($"pack \"{csproj}\" -c Release -o \"{feed}\" -m:1");
+            var (exit, output) = await RunDotnet($"pack \"{csproj}\" -c Release -o \"{feed}\" -m:1 --no-build");
             Assert.True(exit == 0, $"failed to pack {package} for the build gate.{Diagnostics(output)}");
         }
 
@@ -126,6 +132,38 @@ internal static class CliBuildE2E
 
         EvictFromGlobalCache(version);
         return (feed, version);
+    }
+
+    /// <summary>How many cores the feed's build may take: one on a shared machine, the runner's own in CI.</summary>
+    private static string BuildSlots =>
+        Environment.GetEnvironmentVariable("RASK_BUILD_SLOTS") is { Length: > 0 } slots ? slots : "1";
+
+    /// <summary>A project that restores and builds every one of <see cref="FeedPackages"/> in Release.</summary>
+    /// <remarks>
+    ///     The restore carries a session id of its own so the build does not reuse the evaluation made
+    ///     before the NuGet imports existed — the reason scripts/run-unit-local.sh gives for the same shape.
+    /// </remarks>
+    private static string WriteBuildTraversal(string repoRoot)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "rask-cli-e2e-build", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+
+        var projects = string.Join(
+            Environment.NewLine,
+            FeedPackages.Select(package => $"    <FeedProject Include=\"{ProjectFor(repoRoot, package)}\" />"));
+        var traversal = Path.Combine(directory, "build.proj");
+        File.WriteAllText(traversal, $"""
+            <Project>
+              <ItemGroup>
+            {projects}
+              </ItemGroup>
+              <Target Name="Build">
+                <MSBuild Projects="@(FeedProject)" Targets="Restore" Properties="MSBuildRestoreSessionId=$([System.Guid]::NewGuid())" />
+                <MSBuild Projects="@(FeedProject)" Targets="Build" Properties="Configuration=Release" BuildInParallel="true" />
+              </Target>
+            </Project>
+            """);
+        return traversal;
     }
 
     /// <summary>No package carries a file out of a project's <c>obj/</c> as content.</summary>

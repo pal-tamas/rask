@@ -92,10 +92,6 @@ jobs:
           playwright: ${{ matrix.gate.browser && 'true' || 'false' }}
 
       # The gate scripts install Chromium themselves; the system libraries it links are the runner's.
-      - name: Chromium system libraries
-        if: matrix.gate.browser
-        run: npx --yes playwright install-deps chromium
-
       - name: ${{ matrix.gate.name }}
         env:
           RASK_E2E_FILTER: ${{ matrix.gate.filter }}
