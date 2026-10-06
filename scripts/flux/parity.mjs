@@ -67,6 +67,9 @@ await browser.close();
 // Not compared: what the surrounding docs page decides rather than the component (where a top-level
 // node sits, how wide a stretched one is), and the two the box already states.
 const IGNORED = new Set(['width', 'height']);
+// Flux's custom elements, and the native element Rask.Ui writes in their place: the kit ships no script,
+// so it has nothing to define one with.
+const NATIVE = { 'ui-tooltip': 'div', 'ui-dropdown': 'div' };
 const limit = flag('all') ? Infinity : 12;
 let failures = 0;
 for (const scheme of ['light', 'dark']) {
@@ -121,12 +124,15 @@ function mark(node, prefix) {
 }
 
 function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
-  if (a.tag !== b.tag) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
+  if ((NATIVE[a.tag] ?? a.tag) !== b.tag) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
   if (a.text !== b.text && a !== rootA) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
 
   const size = (n, i) => Math.abs(a.box[i] - b.box[i]) > 0.6;
   if (size(a, 2) || size(a, 3)) diffs.push(`${where}: size ${a.box[2]}x${a.box[3]} vs ${b.box[2]}x${b.box[3]}`);
-  if (a !== rootA) {
+  // A node inside something that is not displayed has no box: its rect is the page's origin, wherever the
+  // example happens to sit on it. A closed popover is the case.
+  const boxless = n => n.box[2] === 0 && n.box[3] === 0;
+  if (a !== rootA && !(boxless(a) && boxless(b))) {
     const off = (n, r, i) => n.box[i] - r.box[i];
     if (Math.abs(off(a, rootA, 0) - off(b, rootB, 0)) > 0.6 || Math.abs(off(a, rootA, 1) - off(b, rootB, 1)) > 0.6) {
       diffs.push(`${where}: offset ${fix(off(a, rootA, 0))},${fix(off(a, rootA, 1))} vs ${fix(off(b, rootB, 0))},${fix(off(b, rootB, 1))}`);

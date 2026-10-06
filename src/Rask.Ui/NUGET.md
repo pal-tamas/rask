@@ -86,7 +86,7 @@ and a reset arriving from a library restyles pages that never asked for it.
 | Actions | `Ui.Button` `Ui.Dropdown` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
 | Data display | `Ui.Accordion` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.List` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` |
 | Navigation | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.Menu` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Tabs` |
-| Feedback | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
+| Feedback | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` `Ui.TooltipContent` (Flux's tooltip: hover, focus or `Toggleable`, wired to its trigger for screen readers) |
 | Data input | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.MultiSelect` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Fieldset` `Ui.Validator` `Ui.Label` `Ui.Otp` `Ui.Filter` `Ui.Calendar` |
 | Layout | `Ui.Divider` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | Mockup | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |

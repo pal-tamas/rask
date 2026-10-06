@@ -235,7 +235,7 @@ colours are generated for 3:1, not 4.5.
 
 ### The kit's own components are corrected the same way
 
-`Ui.Button`, `Ui.Badge`, `Ui.Alert`, `Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
+`Ui.Button`, `Ui.Badge`, `Ui.Alert` and the `link-*` tones render daisyUI classes, and
 daisyUI labels each tone with its own `-content` colour — generated for 3:1, so small text on them fails
 AA on between two and ten palettes per tone (`secondary` is 3.05:1 on daisyUI's own `dark`, `error`
 under AA on ten). The kit corrects them to the `-ink` fill with the ground as the label, in
@@ -243,8 +243,8 @@ under AA on ten). The kit corrects them to the `-ink` fill with the ground as th
 
 Two consequences worth knowing:
 
-- **It is all custom properties** (`--btn-color`, `--badge-fg`, `--tt-bg`) except where daisyUI declares
-  `color` outright — alert, link, tooltip content. Those three therefore also outrank your own `text-*`
+- **It is all custom properties** (`--btn-color`, `--badge-fg`) except where daisyUI declares
+  `color` outright — alert and link. Those two therefore also outrank your own `text-*`
   utility on those elements, because the corrections layer is appended after `utilities`.
 - **`checkbox-*`, `radio-*`, `toggle-*`, `range-*` and `progress-*` are deliberately untouched** — they
   carry no text, so WCAG asks 3:1 of them as non-text UI, and recolouring them would be a redesign.
@@ -273,8 +273,7 @@ These are daisyUI's own words, deliberately. Translating them into a private voc
 thing this kit did and the first thing it stopped doing: daisyUI's documentation is the documentation
 for everything the components render, and a second set of words made every example a translation.
 
-Not every component honours every member — daisyUI defines no `input-outline`, and no `tooltip-neutral`
-— and **a member a component has no class for writes nothing**, rather than a class that would sit in
+Not every component honours every member — daisyUI defines no `input-outline` — and **a member a component has no class for writes nothing**, rather than a class that would sit in
 the markup looking as though it styled something.
 
 Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.ModalPosition`, `Ui.MaskShape`,
@@ -289,7 +288,7 @@ daisyUI composes them — a menu above its trigger, flush with the trigger's end
 
 ```csharp
 Ui.Dropdown.Trigger("Actions").Position(Ui.Position.Top).Align(Ui.Align.End)[ … ]
-Ui.Tooltip.Tip("Copy").Position(Ui.Position.Right)[ … ]
+Ui.Tooltip.Content("Copy").Right[ … ]   // Flux's own Ui.TooltipPosition / Ui.TooltipAlign — see Tooltips
 Ui.Tabs.Position(Ui.Position.Bottom)[ … ]
 Ui.Drawer.Id("nav").Panel(menu).Position(Ui.Position.Right)[ … ]
 Ui.Modal.Title("Details").Position(Ui.ModalPosition.End)[ … ]   // placed against the viewport, not a trigger
@@ -381,6 +380,62 @@ an element-derived component cannot draw anything around them. The two places th
 The kit pads cells and rows with a stylesheet rule on its `ui-table` / `ui-list` marker, in the layer
 below your utilities. A `px-0` on a cell therefore gets flush content. A `[&_td]:px-3` variant would have
 out-specified it.
+
+## Tooltips
+
+`Ui.Tooltip` is [Flux's tooltip](https://fluxui.dev/components/tooltip): a line of help beside whatever it
+wraps, shown while that is hovered or has keyboard focus. Its first child is the trigger.
+
+```csharp
+Ui.Tooltip.Content("Settings")[Ui.Button.Square()[Ui.Icon.Name(Ui.IconName.Cog6Tooth)]]   // above, centred, 5px away
+
+Ui.Tooltip.Content("Settings").Right[ … ]            // .Top (default) .Right .Bottom .Left — Ui.TooltipPosition
+Ui.Tooltip.Content("Settings").Bottom.Start[ … ]     // .Center (default) .Start .End        — Ui.TooltipAlign
+Ui.Tooltip.Content("Save").Kbd("⌘S")[ … ]            // a shortcut after the text
+Ui.Tooltip.Content("Settings").Gap(12).Offset(20)[ … ]   // pixels: away from the trigger, and along its side
+Ui.Tooltip.Content("Settings").Disabled(!ready)[ … ]     // never shows
+
+// More than a line of text, and reachable on a phone: Toggleable opens it on a click.
+Ui.Tooltip.Toggleable()[
+    Ui.Button.Sm.Ghost.Square()[Ui.Icon.Name(Ui.IconName.InformationCircle).Mini],
+    Ui.TooltipContent.Class("max-w-[20rem] space-y-2")[
+        P["For US businesses, enter your 9-digit Employer Identification Number (EIN) without hyphens."],
+        P["For European companies, enter your VAT number including the country prefix (e.g., DE123456789)."]
+    ]
+]
+```
+
+It looks and behaves as Flux's does — measured on fluxui.dev, in light and dark, by
+`scripts/flux/parity-tooltip.mjs`: zinc-800 with white 12px text (zinc-700 inside a hairline in dark), 5px
+from its trigger, no arrow, no shadow, no transition and **no delay**; it flips to the other side at the
+viewport's edge and slides along it to stay 5px inside; the pointer cannot rest on it; pressing the trigger
+hides it. One look — the daisyUI tones are gone.
+
+**It is announced.** The kit wires the trigger to the tooltip the way Flux's script does, at render: a trigger
+with text of its own gets `aria-describedby`, and one without — an icon button — gets `aria-labelledby`, so
+the tooltip is its name and it needs no `AccessibleLabel`. `Interactive()` says the content is more than a
+description: the trigger gets `aria-controls` instead and the content stays in the reading order. This needs
+the trigger to be ONE element — an HTML element (`Button[…]`, `A[…]`, `Span[…]`) or a kit component that is
+one, like `Ui.Button`. Around anything else the tooltip's own wrapper carries `role="group"` and the
+description, which is the weaker association; prefer an element.
+
+**No script.** The content is a `[popover]` placed by CSS anchor positioning. What opens it depends on the
+trigger:
+
+| Trigger | Opened by | Top layer | Escape |
+| --- | --- | --- | --- |
+| a `<button>` or `<a>`, in an engine with interest invokers (Chromium, today) | the browser — `interestfor` | yes | dismisses it |
+| anything else: a `Span`, a disabled button, any engine without interest invokers | `:hover` and `:focus-visible` | no — an ancestor that clips or transforms can cut it off | does nothing |
+| `Toggleable()` around a `<button>` | the browser — `popovertarget`, a click | yes | closes it; so does a click outside |
+| `Toggleable()` around anything else | focus on the wrapper, which a tap gives it | no | does nothing |
+
+Four things Flux's script does are therefore not reproduced, and `parity-tooltip.mjs` lists them on every run
+rather than hiding them: Escape does not dismiss a tooltip shown by `:hover`/`:focus-visible`; a tooltip
+hidden by a press comes back when the press is released, where Flux keeps it away until the pointer returns;
+an interest-invoked tooltip goes when the pointer leaves even if the trigger still has focus; and
+`aria-expanded` is not written on an `Interactive()` trigger (the browser reports it for `popovertarget`
+itself). All four close with one runtime hook the kit does not have yet — a `[data-ui-tooltip]` listener in
+`rask-dom.ts` that calls `showPopover()`/`hidePopover()` on pointer, focus, Escape and press for every trigger.
 
 ## Buttons and links that go somewhere
 
@@ -520,7 +575,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
-| **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
+| **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` `Ui.TooltipContent` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Fieldset` `Ui.Validator` `Ui.Label` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Divider` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
@@ -557,8 +612,8 @@ any kit dialog is open the page behind it does not scroll. The state-driven `Ope
 top layer, but it is not left without containment: it carries the runtime's `data-rask-focus-trap`, so focus
 moves in, Tab cycles inside, Escape runs `OnCancel` then `OnClose`, and focus returns when it closes.
 
-`Ui.Tooltip` takes `Kbd("⌘S")` to teach a shortcut where the reader is already looking, and `Toggleable(true)`
-to show on a tap — a touch screen has no hover, so an ordinary tooltip is never seen there.
+`Ui.Tooltip` is Flux's, and is the same idea one step further: the browser opens it too. See
+[Tooltips](#tooltips).
 
 **The browser owns the open state, C# owns the cursor.** `Ui.Dropdown` is a menu button over a `[popover]`
 menu: the browser opens and closes it — top layer, Escape, a click outside, focus back on the trigger — and

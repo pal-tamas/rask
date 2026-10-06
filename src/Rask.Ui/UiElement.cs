@@ -37,6 +37,9 @@ public abstract partial class UiElement : Element
     /// </returns>
     protected virtual IReadOnlyDictionary<string, string?>? ResolveAria() => Aria;
 
+    /// <summary>The tag this element renders as, for kit code that wires one element to another.</summary>
+    internal string? Tag => TagName;
+
     /// <summary>
     ///     The <c>role</c> this element renders — by default exactly <see cref="Element.Role" />. For a kit
     ///     component whose role follows from its props, as an alert's does from its tone; a role the call
