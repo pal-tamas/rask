@@ -11,8 +11,8 @@ tested, CHANGELOG entry, review).
 **Own work goes straight to `main`. Do not open a pull request.** The owner is the only regular
 committer, so a PR per change is ceremony that buys nothing. **Nothing gates the commit or the push:**
 `ci.yml` runs every gate after the push and nobody waits for it (`docs/repo-administration.md`). PRs
-stay for **external** contributions, which arrive from forks anyway: `main`'s "require a pull request"
-rule is still on for everyone without admin, and `enforce_admins` is off so the owner's own push lands.
+stay for **external** contributions, which arrive from forks anyway. `main` no longer requires a pull
+request: `upstream.yml` lands regenerated sources with the workflow's own token (`docs/repo-administration.md`).
 
 ## 1. Commit on the worktree branch — Conventional Commits
 Format `type(scope): subject`, imperative, lower-case subject, ≤100 chars. Allowed types:

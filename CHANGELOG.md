@@ -16,6 +16,12 @@ them until tagged releases begin.
   it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
   included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
   unchanged and still run by hand; each CI job is one of them.
+- **Upstream is followed without anyone watching.** `upstream.yml` runs daily: it moves the MDN snapshot
+  to the latest stable data, records the public surface that moved with it, moves the stated Node line
+  to the Active LTS, gates the result and lands it on `main`. `dependabot-merge.yml` merges a
+  Dependabot pull request once `ci` has passed it. An issue is opened only when a person is needed —
+  the gates refused what upstream shipped, or Flux UI moved. `lts-watch.yml`, which only reported, is
+  gone.
 
 ### Fixed
 

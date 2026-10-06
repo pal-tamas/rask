@@ -14,6 +14,10 @@ on:
         description: push | release | all
         type: string
         required: true
+      ref:
+        description: The commit to gate. Empty gates the one the caller ran on; upstream.yml names the commit it is about to land.
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -72,6 +76,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.ref }}
           fetch-depth: 0   # MinVer packs in the CLI gates, and GuideHistoryTests reads the log
 
       - uses: ./.github/actions/setup
