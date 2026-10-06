@@ -30,16 +30,14 @@ zero="0000000000000000000000000000000000000000"
 offending=""
 
 # git feeds the hook "<local ref> <local sha> <remote ref> <remote sha>" per ref, on stdin.
-while read -r _local_ref local_sha _remote_ref remote_sha; do
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
   [ -n "$local_sha" ] || continue          # the empty line a here-string appends
   [ "$local_sha" = "$zero" ] && continue   # branch deletion — nothing to inspect
 
-  if [ "$remote_sha" = "$zero" ]; then
-    # New branch: everything on it that no remote already has.
-    range_args="$local_sha --not --remotes"
-  else
-    range_args="$remote_sha..$local_sha"
-  fi
+  # Everything on it that no remote already has — for a new branch and an existing one alike. Asking
+  # for $remote_sha..$local_sha instead sweeps in whatever a merge of main brought along, and blames
+  # this push for commits that are on main already.
+  range_args="$local_sha --not --remotes"
 
   # shellcheck disable=SC2086  # range_args is deliberately word-split into rev-list
   for sha in $(git rev-list $range_args); do
