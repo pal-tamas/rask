@@ -922,6 +922,15 @@ them until tagged releases begin.
 
 ### Security
 
+- **The open Web Push subscribe route is bounded, and a send cannot be aimed at the server's own network.**
+  `POST /_rask/push/subscribe` is anonymous and every new endpoint is a row in the app's database, with no
+  cap and no rate limit. `Rask:Push` gains `MaxAnonymousSubscribers` (10 000 signed-out rows, then 429) and
+  `RequireUser` (off; 401 to a signed-out subscribe when on), and one client may subscribe ten times a
+  minute. A stored endpoint's name is now checked where it resolves: a send to a loopback, private,
+  link-local or carrier-NAT address never connects. A broadcast sends eight at a time with a ten-second
+  `SendTimeout`, so endpoints that accept and never answer no longer hold it for 100 s each in a row.
+  **The battery's sender still followed redirects** — only the sender-alone registration had been given the
+  no-redirect handler, against what the docs said; both now share one.
 - **Registering a taken address no longer reveals it once email confirmation is required.** Registration
   answered `AuthError.DuplicateAccount` for an address that has an account, against the battery's own claim
   that no answer tells a caller which addresses do. With `Rask:Auth:RequireConfirmedEmail` on, a taken

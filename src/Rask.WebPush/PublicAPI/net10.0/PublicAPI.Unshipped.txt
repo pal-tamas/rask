@@ -41,6 +41,12 @@ Rask.WebPush.WebPushMessage.WebPushMessage() -> void
 Rask.WebPush.WebPushOptions
 Rask.WebPush.WebPushOptions.DefaultTtl.get -> System.TimeSpan
 Rask.WebPush.WebPushOptions.DefaultTtl.set -> void
+Rask.WebPush.WebPushOptions.MaxAnonymousSubscribers.get -> int
+Rask.WebPush.WebPushOptions.MaxAnonymousSubscribers.set -> void
+Rask.WebPush.WebPushOptions.RequireUser.get -> bool
+Rask.WebPush.WebPushOptions.RequireUser.set -> void
+Rask.WebPush.WebPushOptions.SendTimeout.get -> System.TimeSpan
+Rask.WebPush.WebPushOptions.SendTimeout.set -> void
 Rask.WebPush.WebPushOptions.Subject.get -> string?
 Rask.WebPush.WebPushOptions.Subject.set -> void
 Rask.WebPush.WebPushOptions.Validate() -> void

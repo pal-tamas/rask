@@ -1,7 +1,5 @@
 using System.Buffers;
 using System.Globalization;
-using System.Net;
-using System.Net.Sockets;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -12,6 +10,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
+using Rask.Hosting.Shared;
 using Rask.Wire;
 
 namespace Rask.Cqrs.Server;
@@ -232,32 +231,9 @@ public static class RaskCqrsEndpointExtensions
         // Anonymous callers are reachable only where the app has turned the authentication requirement
         // off, and then each is known by where it connects from: one shared owner would let a single
         // caller fill the open-upload quota and lock every other anonymous upload out.
-        return options.RequireAuthenticatedUser ? null : "anonymous:" + Network(context.Connection.RemoteIpAddress);
-    }
-
-    // The caller's address as a quota key. An IPv6 caller owns its whole /64 — the smallest block a
-    // network hands out — so the low 64 bits are dropped, or one host would be 2^64 callers.
-    private static string Network(IPAddress? address)
-    {
-        if (address is null)
-        {
-            return "unknown";
-        }
-
-        if (address.IsIPv4MappedToIPv6)
-        {
-            address = address.MapToIPv4();
-        }
-
-        if (address.AddressFamily != AddressFamily.InterNetworkV6)
-        {
-            return address.ToString();
-        }
-
-        Span<byte> bytes = stackalloc byte[16];
-        address.TryWriteBytes(bytes, out _);
-        bytes[8..].Clear();
-        return new IPAddress(bytes).ToString();
+        return options.RequireAuthenticatedUser
+            ? null
+            : "anonymous:" + ClientNetwork.Of(context.Connection.RemoteIpAddress);
     }
 
     private static async Task HandleAsync(HttpContext context, RaskCqrsServerOptions options, bool fromQuery)

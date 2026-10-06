@@ -151,7 +151,7 @@ A few things to know:
 | `Rask:Logs` | `RaskLoggingOptions` | `Rask.Logging` | `ExcludedCategories` is appended to. See [logging](logging.md). |
 | `Rask:Mail` | `MailOptions` | `Rask.Mail` | Any `Rask:Mail:Smtp` key turns SMTP delivery on; put `Rask__Mail__Smtp__Password` in the environment. See [mail](mail.md). |
 | `Rask:Outbox` | `OutboxOptions` | `Rask.Outbox` | See [outbox](outbox.md). |
-| `Rask:Push` | `WebPushOptions` | `Rask.WebPush` | `VapidKeys:PublicKey`, `VapidKeys:PrivateKey`, `Subject`, `DefaultTtl`. `rask new` writes a development pair to the gitignored `appsettings.Development.json`; deployed, the keys come from the environment. See [Web Push](webpush.md). |
+| `Rask:Push` | `WebPushOptions` | `Rask.WebPush` | `VapidKeys:PublicKey`, `VapidKeys:PrivateKey`, `Subject`, `DefaultTtl`, and the bounds on the open subscribe route: `MaxAnonymousSubscribers`, `RequireUser`, `SendTimeout`. `rask new` writes a development pair to the gitignored `appsettings.Development.json`; deployed, the keys come from the environment. See [Web Push](webpush.md). |
 | `Rask:Cqrs` | `CqrsOptions` | `Rask.Cqrs` | `HandlerLifetime`, `EventPublishStrategy`, `StopOnFirstEventException`, `ValidateRequests`, and the subscription knobs `ReplayCapacity`, `SubscriptionBuffer`, `SubscriptionReconnectDelay`, `SubscriptionReconnectCeiling`. Read at registration (above); behaviors are code-only. See [CQRS](cqrs.md). |
 | `Rask:Cqrs:Server` | `RaskCqrsServerOptions` | `Rask.Cqrs.Server` | `RequireAuthenticatedUser`, `RoutePrefix`, the request and upload limits (`MaxOpenUploads` and `MaxOpenUploadBytes` bound what one caller leaves unsent), and `EventKeepAlive` for a [subscription](subscriptions.md#in-a-webassembly-front-end) stream. |
 

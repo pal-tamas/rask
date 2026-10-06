@@ -69,7 +69,23 @@ again from the same browser renews its row rather than adding one.
 
 Because anyone may post one, a subscription is checked before it is kept: the endpoint has to be an `https`
 URL of at most 2048 characters that names a public host — not an IP address, not `localhost` — and the
-sender never follows a redirect. A real push service is always all of those.
+sender never follows a redirect. A real push service is always all of those. The name is checked again
+when a send connects: one that resolves to a loopback, private, link-local or carrier-NAT address is
+refused there, so a stored endpoint cannot aim the server's own POST at its network or at a cloud
+metadata service.
+
+The same openness is why the route is bounded:
+
+| `Rask:Push` | Default | What it bounds |
+| --- | --- | --- |
+| `MaxAnonymousSubscribers` | 10 000 | rows kept for visitors who are not signed in; past it a signed-out subscribe answers **429**. A signed-in user's rows are not counted. |
+| `RequireUser` | `false` | turn on in an app that only pushes to its users: a signed-out subscribe answers **401** and no anonymous row is ever written |
+| `SendTimeout` | 10 s | how long one send waits on a push service |
+
+One client may also subscribe ten times a minute, then gets 429 (behind a proxy, wire
+`UseForwardedHeaders` so that is the visitor's address). A broadcast sends to eight subscribers at a time,
+so an endpoint that accepts and never answers costs it one timeout rather than holding every send behind
+it. A row is still dropped only when the push service says it is gone.
 
 ## Keys
 
