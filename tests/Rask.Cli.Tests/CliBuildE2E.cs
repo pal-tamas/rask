@@ -111,7 +111,7 @@ internal static class CliBuildE2E
         foreach (var package in FeedPackages)
         {
             var csproj = ProjectFor(repoRoot, package);
-            var (exit, output) = await RunDotnet($"pack \"{csproj}\" -c Release -o \"{feed}\" -m:1");
+            var (exit, output) = await RunDotnet($"pack \"{csproj}\" -c Release -o \"{feed}\" -m:{BuildSlots}");
             Assert.True(exit == 0, $"failed to pack {package} for the build gate.{Diagnostics(output)}");
         }
 
@@ -127,6 +127,13 @@ internal static class CliBuildE2E
         EvictFromGlobalCache(version);
         return (feed, version);
     }
+
+    /// <summary>
+    ///     How many cores one pack may take: one on a shared machine, the runner's own in CI
+    ///     (<c>RASK_BUILD_SLOTS</c>). The packs still run one after another, each its own invocation.
+    /// </summary>
+    private static string BuildSlots =>
+        Environment.GetEnvironmentVariable("RASK_BUILD_SLOTS") is { Length: > 0 } slots ? slots : "1";
 
     /// <summary>No package carries a file out of a project's <c>obj/</c> as content.</summary>
     /// <remarks>

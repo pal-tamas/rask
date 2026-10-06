@@ -139,17 +139,29 @@ build_status=0
 # One core by default, for the double build of Rask.Core.dll described above — on a shared developer
 # machine. CI sets RASK_BUILD_SLOTS to the runner's cores: pages.yml has published this same project
 # in parallel on every push, and a runner has nothing else competing for the output.
-dotnet publish src/Rask.Site -c Release -m:"${RASK_BUILD_SLOTS:-1}" -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
-  | tee "$build_log" || build_status=$?
+#
+# RASK_E2E_SUITE=site|server runs one of the two suites this gate holds and builds only what that one
+# needs; unset, a hand run gets both. CI gives the Rask.Server journeys a job of their own, so the
+# four site shards stop building a project only one of them ran.
+suite="${RASK_E2E_SUITE:-}"
+case "$suite" in
+  ""|site|server) ;;
+  *) echo "run-e2e-local: RASK_E2E_SUITE must be site or server, not '$suite'." >&2; exit 1 ;;
+esac
 
-if [ "$build_status" -eq 0 ]; then
+if [ "$suite" != "server" ]; then
+  dotnet publish src/Rask.Site -c Release -m:"${RASK_BUILD_SLOTS:-1}" -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
+    | tee "$build_log" || build_status=$?
+fi
+
+if [ "$build_status" -eq 0 ] && [ "$suite" != "server" ]; then
   echo "==> Build the browser-journey project (leaf; bundles BrowserFixtures/*.ts with esbuild)"
   dotnet build tests/Rask.Site.E2E.Tests/Rask.Site.E2E.Tests.csproj \
     -c Release -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
     | tee -a "$build_log" || build_status=$?
 fi
 
-if [ "$build_status" -eq 0 ]; then
+if [ "$build_status" -eq 0 ] && [ "$suite" != "site" ]; then
   # The Rask.Server journeys host their app IN this test process (Kestrel on a loopback port), so the
   # MinVerSkip caveat above holds for them too: no out-of-process host has to resolve a version identity.
   echo "==> Build the Rask.Server browser-journey project"
@@ -184,7 +196,9 @@ echo "==> Ensure Playwright browsers are installed"
 # inside an `if` condition, so running the install there would swallow a failed download into the else
 # branch and let the gate continue having installed nothing. Only the lookup belongs in the condition,
 # where "not found" genuinely is not fatal; the install then runs under `set -e` and stops the gate.
-if pw_driver="$(rask_playwright_driver tests/Rask.Site.E2E.Tests/bin/Release)"; then
+pw_project="tests/Rask.Site.E2E.Tests"
+[ "$suite" = "server" ] && pw_project="tests/Rask.Server.E2E.Tests"   # the only one built in that case
+if pw_driver="$(rask_playwright_driver "$pw_project/bin/Release")"; then
   pw_node="$(printf '%s\n' "$pw_driver" | sed -n 1p)"
   pw_cli="$(printf '%s\n' "$pw_driver" | sed -n 2p)"
   "$pw_node" "$pw_cli" install chromium
@@ -218,20 +232,26 @@ fi
 # as a defect. Naming the suspicion at the moment of failure is the cheapest thing that attacks that,
 # and it adds a line rather than making a decision, so it has no false-positive cost.
 set +e
-dotnet test tests/Rask.Site.E2E.Tests/bin/Release/net10.0/Rask.Site.E2E.Tests.dll \
-  --filter "$e2e_filter" \
-  --logger "console;verbosity=normal"
-e2e_status=$?
+e2e_status=0
+if [ "$suite" != "server" ]; then
+  dotnet test tests/Rask.Site.E2E.Tests/bin/Release/net10.0/Rask.Site.E2E.Tests.dll \
+    --filter "$e2e_filter" \
+    --logger "console;verbosity=normal"
+  e2e_status=$?
+fi
 
 # Server-rendered live pages in a real browser — what the WebAssembly site above cannot exercise: the
 # runtime a Rask.Server app ships, its WebSocket, and the HTTP fallback for networks that refuse one.
 # Run even when the site suite failed, so one red run reports both; the first failure decides the exit.
 server_filter="${RASK_E2E_FILTER:-FullyQualifiedName~Rask.Server.E2E.Tests}"
-echo "==> Browser journey E2E (Rask.Server.E2E.Tests)"
-dotnet test tests/Rask.Server.E2E.Tests/bin/Release/net10.0/Rask.Server.E2E.Tests.dll \
-  --filter "$server_filter" \
-  --logger "console;verbosity=normal"
-server_status=$?
+server_status=0
+if [ "$suite" != "site" ]; then
+  echo "==> Browser journey E2E (Rask.Server.E2E.Tests)"
+  dotnet test tests/Rask.Server.E2E.Tests/bin/Release/net10.0/Rask.Server.E2E.Tests.dll \
+    --filter "$server_filter" \
+    --logger "console;verbosity=normal"
+  server_status=$?
+fi
 if [ "$e2e_status" -eq 0 ]; then
   e2e_status=$server_status
 fi
