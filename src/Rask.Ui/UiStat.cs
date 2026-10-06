@@ -39,12 +39,7 @@ public sealed partial class UiStat : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var tone = Tone switch
-        {
-            Ui.Tone.Error => "text-error",
-            Ui.Tone.Warning => "text-warning",
-            _ => null,
-        };
+        var tone = UiClassNames.ValueTone(Tone);
 
         Component body = Div.Class("flex items-start justify-between gap-3")[
             Div.Class("min-w-0")[

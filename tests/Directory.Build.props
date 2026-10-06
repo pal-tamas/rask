@@ -22,6 +22,14 @@
       mapping back by unsetting it for that run: `dotnet test -p:DisableMsCoverageReferencedPathMaps=false`.
     -->
     <DisableMsCoverageReferencedPathMaps>true</DisableMsCoverageReferencedPathMaps>
+
+    <!--
+      A test finds the repository through [CallerFilePath], and reads docs, stylesheets and goldens
+      from there. Under ContinuousIntegrationBuild (every GitHub Actions build) the compiler maps the
+      source root to /_/, which is right for a package and leaves these tests looking for /_/src/….
+      Nothing under tests/ is packed, so they keep the real path.
+    -->
+    <DeterministicSourcePaths>false</DeterministicSourcePaths>
   </PropertyGroup>
 
   <!--

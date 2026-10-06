@@ -1,0 +1,215 @@
+name: upstream
+
+# Follows everything Rask is generated from, every day, with nobody watching.
+#
+#   follow   scripts/upstream/follow.sh — MDN's latest stable data and the public surface that moves
+#            with it, and Node's Active LTS line. Nothing moved: the run ends here, green.
+#   gates    the same gates a push to main is held to (gates.yml), on the commit about to land.
+#   land     that commit onto main. Publishing follows, as it does for any commit ci passed.
+#   flux     scripts/flux/sync.mjs — has Flux UI's catalogue, look or release moved?
+#   report   an issue, only when a person is needed: the gates refused what upstream shipped, or Flux
+#            moved (a look is matched by rewriting a component, which no script does).
+#
+# Unlike a hand push, this is gated BEFORE it lands: a red main waits for whoever pushed it, and
+# nobody pushed this.
+on:
+  schedule:
+    - cron: '41 3 * * *'   # daily, off the hour (the top of the hour is when Actions queues)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream
+  cancel-in-progress: false
+
+jobs:
+  follow:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write   # push the branch the gates run on
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      branch: ${{ steps.commit.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup
+        with:
+          workloads: wasm-tools
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      - name: Follow upstream
+        run: scripts/upstream/follow.sh
+
+      - name: Commit what moved
+        id: commit
+        env:
+          BRANCH: upstream/${{ github.run_id }}
+        run: |
+          set -eu
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing moved upstream."
+            exit 0
+          fi
+
+          # What moved, read off the paths: the subject says it and the stat is the body.
+          moved=""
+          git diff --cached --quiet -- src/Rask.Core/Dom/mdn.snapshot.json || moved="MDN"
+          git diff --cached --quiet -- src/Rask.Cli/NodeRequirement.cs || moved="${moved:+$moved and }Node LTS"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "chore: follow upstream (${moved:-generated sources})" -m "$(git diff --cached --stat)"
+          git push -q origin "HEAD:refs/heads/$BRANCH"
+
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+  gates:
+    needs: follow
+    if: needs.follow.outputs.sha != ''
+    uses: ./.github/workflows/gates.yml
+    with:
+      set: push
+      ref: ${{ needs.follow.outputs.sha }}
+
+  land:
+    needs: [follow, gates]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write   # main, and removing the branch
+      actions: write    # start the workflows a push from here cannot start
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: ${{ needs.follow.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.follow.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Land on main
+        run: |
+          set -eu
+          gated="$(git rev-parse HEAD)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # main moved while the gates ran: carry the one commit over it. A conflict stops here and
+          # tomorrow's run starts from the new main.
+          git fetch -q origin main
+          git rebase -q origin/main
+          git push -q origin HEAD:main
+          git push -q origin --delete "$BRANCH"
+
+          # A push made with the workflow's own token starts no workflow. The commit the gates passed
+          # goes straight to publishing; a rebased one is a commit nothing has gated, so ci goes first
+          # and publishing follows it as usual.
+          if [ "$(git rev-parse HEAD)" = "$gated" ]; then
+            gh workflow run nightly.yml --ref main
+            gh workflow run pages.yml --ref main
+          else
+            gh workflow run ci.yml --ref main
+          fi
+
+  flux:
+    runs-on: ubuntu-24.04
+    outputs:
+      moved: ${{ steps.sync.outputs.moved }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      # The scripts take any Playwright driver (RASK_FLUX_PLAYWRIGHT); the one the E2E project
+      # carries would cost a build of the whole site to get at.
+      - name: Chromium
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/playwright" && cd "$RUNNER_TEMP/playwright"
+          npm init -y >/dev/null
+          npm install --silent --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium
+          echo "RASK_FLUX_PLAYWRIGHT=$RUNNER_TEMP/playwright/node_modules/playwright" >> "$GITHUB_ENV"
+
+      - name: Has Flux UI moved?
+        id: sync
+        run: |
+          set -u
+          node scripts/flux/sync.mjs | tee "$RUNNER_TEMP/flux.log"
+          case "${PIPESTATUS[0]}" in
+            0) echo "moved=false" >> "$GITHUB_OUTPUT" ;;
+            2) echo "moved=true"  >> "$GITHUB_OUTPUT" ;;
+            *) exit 1 ;;
+          esac
+
+      - uses: actions/upload-artifact@v7
+        if: steps.sync.outputs.moved == 'true'
+        with:
+          name: flux
+          path: ${{ runner.temp }}/flux.log
+
+  report:
+    needs: [follow, gates, land, flux]
+    if: always() && (contains(needs.*.result, 'failure') || needs.flux.outputs.moved == 'true')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      BRANCH: ${{ needs.follow.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        if: needs.flux.outputs.moved == 'true'
+        with:
+          name: flux
+          path: ${{ runner.temp }}
+
+      - name: Upstream could not be followed
+        if: contains(needs.*.result, 'failure')
+        run: |
+          set -eu
+          {
+            echo "The daily upstream run could not land what moved: $RUN"
+            echo
+            if [ -n "$BRANCH" ]; then
+              echo "The regenerated tree is on \`$BRANCH\`. The red job names the gate script to run against it;"
+              echo "fix forward on main, and the next run lands a fresh regeneration."
+            else
+              echo "It failed before there was anything to gate — see the \`follow\` or \`flux\` job."
+            fi
+            echo
+            echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another. Close it once a run is green.</sub>"
+          } > "$RUNNER_TEMP/body.md"
+          scripts/upstream/issue.sh "Upstream moved and Rask could not follow" "$RUNNER_TEMP/body.md"
+
+      - name: Flux UI moved
+        if: needs.flux.outputs.moved == 'true'
+        run: |
+          set -eu
+          {
+            echo "Flux UI is no longer where Rask.Ui last matched it ($RUN):"
+            echo
+            echo '```'
+            sed -n '/flux sync: Flux moved/,$p' "$RUNNER_TEMP/flux.log"
+            echo '```'
+            echo
+            echo "Run \`node scripts/flux/sync.mjs\` to rewrite the snapshot and the lock, then the"
+            echo "\`flux-component\` skill for each page named above: \`FluxConformanceTests\` names the props,"
+            echo "\`parity.mjs <slug>\` the pixels."
+            echo
+            echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another. Close it once the lock is committed.</sub>"
+          } > "$RUNNER_TEMP/body.md"
+          scripts/upstream/issue.sh "Flux UI moved past the Rask.Ui that matches it" "$RUNNER_TEMP/body.md"
