@@ -84,6 +84,10 @@ them until tagged releases begin.
   payload. The URL is rebuilt when the route changes and the writer is kept per thread: another 0.3 KB off
   each update, 2.7 KB → 2.3 KB on the same 20-row page.
 
+- **A chain step clears its pending bit in place.** `BuilderRuntime.Written` copied the whole entry slot back
+  into the list to change one mask. About 3.5% off a re-render of 50 chain-built rows (16.08 → 15.51 µs,
+  fastest-round median of six interleaved runs); allocation unchanged at 19.79 KB.
+
 - **A WASM app's service worker serves content-addressed files from its cache.** `rask-sw.js` went to the
   network for every request, so a repeat visit downloaded the .NET runtime again. A fingerprinted file under
   `_framework/` and a scoped-asset bundle (`/_rask/a/{hash}.css|js`) are now served cache-first; `index.html`,
