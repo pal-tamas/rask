@@ -36,6 +36,29 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Islands load in an app served under a path base.** With `PathBase = "/shop"` the island runtime, the
+  manifest and every chunk were still asked for at the root and answered 404, on both hosts. The script
+  is now written under the base, as scoped assets are, and the client reads the base back off its own
+  URL — never off `<base href>`, which markup can inject — and applies it to the manifest and the chunks:
+  ```
+  /_content/Rask.External/rask-external.js        →  /shop/_content/Rask.External/rask-external.js
+  /_rask/external/manifest.json                   →  /shop/_rask/external/manifest.json
+  ```
+  The bundle is unchanged, so one build serves any base.
+- **Islands load, and hot-reload, in a WASM app under `rask dev`.** Since islands became own-origin only,
+  the page had to name the Vite dev server before a chunk on it would load, and only Rask.Server did —
+  by stamping `<body>`. A WASM app's page is a static file, so every island there was refused under
+  `rask dev` (`refusing the chunk http://localhost:5174/…`) and `@vite/client` was never loaded. A dev
+  session's manifest now names the server itself under a reserved `$dev` key; the client accepts it on
+  the same terms as the stamp — a loopback origin only — and a built manifest never has the key.
+- **One failed manifest fetch no longer fails every island until a reload.** The rejected fetch was kept
+  for the life of the page, so a 404 in the middle of a deploy or a dropped connection left every later
+  island unmounted. The next island to mount asks again, and the error says where and what to check:
+  ```
+  islands manifest: HTTP 404                                                             (was)
+  Rask islands: the manifest at https://app.test/_rask/external/manifest.json could not
+  be loaded (HTTP 404). The build writes it and the app serves it as a static file, …    (now)
+  ```
 - **Every island build message starts `Rask islands:`.** The ones raised by the targets file
   (RASKISLAND001–003, the origin check, the type-check skips, `bundling N island(s)`) still said
   `Rask.External:`. RASKISLAND002 — the bundler wrote no manifest — now also says what to check.
