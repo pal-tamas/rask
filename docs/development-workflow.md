@@ -183,7 +183,9 @@ did not pass. `release.yml`'s `publish` job needs its `gates` job (both sets). A
 ### The workflows
 
 - `ci.yml` — the gates, on every push to `main`, `ci/**` branches and pull requests.
-- `gates.yml` — the reusable list of gate jobs `ci.yml` and `release.yml` call.
+- `gates.yml` — the reusable list of gate jobs `ci.yml`, `release.yml` and `soak.yml` call.
+- `soak.yml` — the release set against `main` every three hours, so an image or a download that
+  disappears is found within hours and not on the day of a release.
 - `commitlint.yml` — Conventional Commits and the attribution guard on PRs: the commits and the PR
   title, which is the squash subject and passes through no local hook.
 - `nightly.yml` — prerelease publish from a commit `ci` passed.
