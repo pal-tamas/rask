@@ -422,7 +422,8 @@ public static class LivePayload
         List<string>? internedNames = null;
         var nameIndex = ops.Count >= 3 ? BuildNameTable(ops, out internedNames) : null;
 
-        using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
+        using var rented = PayloadJsonWriter.Rent(output, DiffWriterOptions);
+        var writer = rented.Writer;
         writer.WriteStartObject();
         writer.WriteString("kind", "diff");
 
@@ -666,8 +667,8 @@ public static class LivePayload
             // Same relaxed encoder as the diff path — the WS payload is parsed by JSON.parse,
             // not embedded into HTML, so the default HTML-safe escaping inflates the "html"
             // field's `<` / `>` 5× for no security benefit. Shaves ~3-5 KB off a 10 KB page.
-            using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
-            WriteJsonUtf8Body(writer, span, historyUrl, replace, auth, download, jsInvokes, resume, devError);
+            using var rented = PayloadJsonWriter.Rent(output, DiffWriterOptions);
+            WriteJsonUtf8Body(rented.Writer, span, historyUrl, replace, auth, download, jsInvokes, resume, devError);
         }
         finally
         {

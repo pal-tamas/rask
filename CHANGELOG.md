@@ -62,6 +62,11 @@ them until tagged releases begin.
   `Rask.Benchmarks -- allocation-profile [rows]` is the report that found it: it names the types an update
   allocates, as shares of that benchmark's bytes.
 
+- **A live update no longer rebuilds its URL or its JSON writer.** Every update built the page's URL from the
+  route's path and query to see whether the resume record had moved, and created a `Utf8JsonWriter` for the
+  payload. The URL is rebuilt when the route changes and the writer is kept per thread: another 0.3 KB off
+  each update, 2.7 KB → 2.3 KB on the same 20-row page.
+
 - **A Server app's client runtime is cached and compressed.** `/rask/rask.js` was re-encoded from a string on
   every request and sent with no `Cache-Control`, no `ETag` and no compression — ~100 KB a visit. The page
   now names it by content hash, and that URL is `immutable`, with an `ETag` and brotli/gzip built once:
