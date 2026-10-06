@@ -29,7 +29,7 @@ namespace Rask.Dashboard.Pages;
 [ParentRoute(typeof(DashboardLayout))]
 public sealed partial class LogsPage(
     DashboardLogBuffer buffer,
-    RaskDashboardOptions options,
+    OpsOptions options,
     TimeProvider timeProvider) : PollingPanel, IDisposable
 {
     private bool _subscribed;
@@ -57,7 +57,7 @@ public sealed partial class LogsPage(
     public int? Page { get; set; }
 
     /// <inheritdoc />
-    protected override RaskDashboardOptions Options => options;
+    protected override OpsOptions Options => options;
 
     /// <summary><c>true</c> when a durable store is registered, so History is offered at all.</summary>
     // Logs.IsOn rather than an injected ILogs?: the battery may not be registered, and this page renders
@@ -154,7 +154,7 @@ public sealed partial class LogsPage(
             return Ui.Card[
                 Ui.Empty
                     .Title("Log capture is off")
-                    .Detail("Set CaptureLogs = true on RaskDashboardOptions to keep a tail of recent entries, or add "
+                    .Detail("Set CaptureLogs = true on OpsOptions to keep a tail of recent entries, or add "
                     + "Rask.Logging to keep them across restarts.")
             ];
         }

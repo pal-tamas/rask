@@ -6,7 +6,9 @@ name: upstream
 #            with it, and Node's Active LTS line. Nothing moved: the run ends here, green.
 #   gates    the same gates a push to main is held to (gates.yml), on the commit about to land.
 #   land     that commit onto main. Publishing follows, as it does for any commit ci passed.
-#   flux     scripts/flux/sync.mjs — has Flux UI's catalogue, look or release moved?
+#   flux     scripts/flux/sync.mjs — has Flux UI's catalogue, look or release moved? A look is pixels,
+#            so the lock is measured HERE, on the runner: `-f relock=true` (or a lock from another
+#            platform) re-measures every look and lands the lock instead of reporting them.
 #   report   an issue, only when a person is needed: the gates refused what upstream shipped, or Flux
 #            moved (a look is matched by rewriting a component, which no script does).
 #
@@ -16,6 +18,11 @@ on:
   schedule:
     - cron: '41 3 * * *'   # daily, off the hour (the top of the hour is when Actions queues)
   workflow_dispatch:
+    inputs:
+      relock:
+        description: Rask.Ui matches Flux UI again — lock every look as the runner measures it now
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -34,6 +41,8 @@ jobs:
       branch: ${{ steps.commit.outputs.branch }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the commit is rebased onto main before it is pushed
 
       - uses: ./.github/actions/setup
         with:
@@ -66,6 +75,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -q -m "chore: follow upstream (${moved:-generated sources})" -m "$(git diff --cached --stat)"
+
+          # Onto main as it is NOW: a branch whose workflows differ from main's is a workflow change to
+          # GitHub, which this token may not push — and main moves while the regeneration builds.
+          git fetch -q origin main
+          git rebase -q origin/main
           git push -q origin "HEAD:refs/heads/$BRANCH"
 
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -120,6 +134,10 @@ jobs:
 
   flux:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write   # main, for the lock a baseline measured
+    env:
+      LOCK: tests/Rask.Ui.Tests/Flux/flux.lock.json
     outputs:
       moved: ${{ steps.sync.outputs.moved }}
     steps:
@@ -130,26 +148,54 @@ jobs:
           node-version: lts/*
 
       # The scripts take any Playwright driver (RASK_FLUX_PLAYWRIGHT); the one the E2E project
-      # carries would cost a build of the whole site to get at.
+      # carries would cost a build of the whole site to get at. Pinned to that one's release
+      # (Microsoft.Playwright in Directory.Packages.props): a new Chromium is a relock, so it is a choice.
       - name: Chromium
         run: |
           set -eu
           mkdir -p "$RUNNER_TEMP/playwright" && cd "$RUNNER_TEMP/playwright"
           npm init -y >/dev/null
-          npm install --silent --no-audit --no-fund playwright
+          npm install --silent --no-audit --no-fund playwright@1.63
           npx playwright install --with-deps chromium
           echo "RASK_FLUX_PLAYWRIGHT=$RUNNER_TEMP/playwright/node_modules/playwright" >> "$GITHUB_ENV"
 
       - name: Has Flux UI moved?
         id: sync
+        env:
+          RELOCK: ${{ inputs.relock }}
         run: |
           set -u
-          node scripts/flux/sync.mjs | tee "$RUNNER_TEMP/flux.log"
+          mode=()
+          if [ "$RELOCK" = "true" ] || [ "$(jq -r '.measuredOn // ""' "$LOCK")" != "linux" ]; then
+            mode=(--baseline)
+            echo "baselined=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          node scripts/flux/sync.mjs "${mode[@]}" | tee "$RUNNER_TEMP/flux.log"
           case "${PIPESTATUS[0]}" in
             0) echo "moved=false" >> "$GITHUB_OUTPUT" ;;
             2) echo "moved=true"  >> "$GITHUB_OUTPUT" ;;
             *) exit 1 ;;
           esac
+
+      # No test reads the lock, so it lands ungated like nothing else the bot writes. The snapshot stays
+      # behind: FluxConformanceTests read it, so a catalogue move is reported and waits for a person.
+      - name: Land the baselined lock
+        if: steps.sync.outputs.baselined == 'true' && github.ref == 'refs/heads/main'
+        run: |
+          set -eu
+          if git diff --quiet -- "$LOCK"; then
+            echo "The lock already holds what this runner measures."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "chore(ui): baseline the Flux lock on linux" -- "$LOCK"
+          git reset -q --hard
+          git fetch -q origin main
+          git rebase -q origin/main
+          git push -q origin HEAD:main
 
       - uses: actions/upload-artifact@v7
         if: steps.sync.outputs.moved == 'true'
@@ -206,10 +252,10 @@ jobs:
             sed -n '/flux sync: Flux moved/,$p' "$RUNNER_TEMP/flux.log"
             echo '```'
             echo
-            echo "Run \`node scripts/flux/sync.mjs\` to rewrite the snapshot and the lock, then the"
-            echo "\`flux-component\` skill for each page named above: \`FluxConformanceTests\` names the props,"
-            echo "\`parity.mjs <slug>\` the pixels."
+            echo "Match the components named above (\`flux-component\` skill: \`FluxConformanceTests\` names the"
+            echo "props, \`parity.mjs <slug>\` the pixels), then \`gh workflow run upstream.yml -f relock=true\`."
+            echo "The lock is measured on the runner, so a local \`sync.mjs\` measures but does not compare."
             echo
-            echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another. Close it once the lock is committed.</sub>"
+            echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another. Close it once that run is green.</sub>"
           } > "$RUNNER_TEMP/body.md"
           scripts/upstream/issue.sh "Flux UI moved past the Rask.Ui that matches it" "$RUNNER_TEMP/body.md"

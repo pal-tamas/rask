@@ -123,10 +123,10 @@ Rask.RaskAppOptions.HealthPath.set -> void
 Rask.RaskAppOptions.MigrateOnStart.get -> bool
 Rask.RaskAppOptions.MigrateOnStart.set -> void
 Rask.RaskAppOptions.Jobs.get -> Rask.Battery<Rask.Background.JobsOptions!>!
-Rask.RaskAppOptions.Logs.get -> Rask.Battery<Rask.Logging.RaskLoggingOptions!>!
+Rask.RaskAppOptions.Logs.get -> Rask.Battery<Rask.Logging.LogsOptions!>!
 Rask.RaskAppOptions.Mail.get -> Rask.Battery<Rask.Mailing.MailOptions!>!
 Rask.RaskAppOptions.Ops.get -> Rask.Battery!
-Rask.RaskAppOptions.Push.get -> Rask.Battery<Rask.WebPush.WebPushOptions!>!
+Rask.RaskAppOptions.Push.get -> Rask.Battery<Rask.WebPush.PushOptions!>!
 Rask.RaskAppOptions.Pwa.get -> Rask.Battery<Rask.Core.Browser.WebAppManifest!>!
 Rask.RaskAppOptions.RaskAppOptions() -> void
 Rask.RaskAppOptions.RunBeforeDatabaseOpens.get -> System.Func<System.IServiceProvider!, System.Threading.Tasks.Task!>?

@@ -36,23 +36,19 @@ export const STYLES = [
 ];
 
 // Every `[data-preview-wrapper]` on `url`, measured in light and in dark.
-export async function measurePage(browser, url, shots, prepare) {
+export async function measurePage(browser, url, shots) {
   const schemes = {};
   for (const scheme of ['light', 'dark']) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
     // A fixed clock: a calendar that opens on today would measure differently every morning.
     await context.clock.setFixedTime(new Date('2026-01-15T12:00:00Z'));
+    // Motion at rest (rest, below), for Flux's page and Rask's alike: a look read mid-flight measures
+    // differently every run.
+    await context.addInitScript(`window.__fluxRest = ${rest}`);
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     await page.evaluate(() => document.fonts.ready);
-    if (prepare) await prepare(page, scheme);
-    // A running animation measures wherever it happens to be — a spinner's angle differed on every run,
-    // and between a node and its own forced states. Held a quarter of a second in, it measures the same
-    // each time, and still says what the animation is: a spin of another speed or easing is another angle.
-    await page.evaluate(() => document.getAnimations().forEach(animation => {
-      animation.pause();
-      animation.currentTime = 250;
-    }));
+    await page.evaluate(() => window.__fluxRest());
     schemes[scheme] = await measure(page, join(shots, scheme));
     await context.close();
   }
@@ -98,8 +94,22 @@ async function measure(page, shots) {
   return examples;
 }
 
+// Runs in the page. Everything in motion, put where it rests: what ends (a transition, an entrance) at
+// its end — the state Flux draws — and what never ends (a spinner, a shimmer) on its first frame.
+function rest() {
+  for (const animation of document.getAnimations()) {
+    if (animation.effect?.getComputedTiming().endTime === Infinity) {
+      animation.pause();
+      animation.currentTime = 0;
+    } else {
+      animation.finish();
+    }
+  }
+}
+
 // Runs in the page. Every element of one example: where it is, what it is, how it computed.
 function collect(wrapper, { STYLES, index }) {
+  window.__fluxRest();
   // Flux's page names a section with the heading above it; a Rask parity page states it on the wrapper.
   const headings = [...document.querySelectorAll('h2[id]')];
   const section = wrapper.dataset.section
@@ -134,8 +144,7 @@ function collect(wrapper, { STYLES, index }) {
     }
 
     nodes.push(node);
-    // Either side's marker: a Flux node's states were measured, so its Rask twin's have to be too.
-    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux') || a.name.startsWith('data-ui-'));
+    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux'));
     if (interactive.length < 60 && (fluxed || el.matches('button, a, input, select, textarea, summary, label, [role], [tabindex]'))) {
       interactive.push(id);
     }
@@ -156,6 +165,7 @@ function diff({ STYLES, target }) {
   const changed = {};
   const el = document.querySelector(`[data-m="${target}"]`);
   if (!el) return changed;
+  window.__fluxRest();   // the state's own transition, taken to the end it settles on
   const computed = getComputedStyle(el);
   const base = window.__fluxBase[target];
   for (const k of STYLES) if (computed[k] !== base[k]) changed[k] = computed[k];

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Rask.Core.Authentication;
 using Rask.Data;
+using Rask.Server.JSInterop;
 
 namespace Rask;
 
@@ -32,7 +33,7 @@ namespace Rask;
 ///         references the other.
 ///     </para>
 /// </remarks>
-internal sealed class ClaimsPrincipalSource(IUserProvider users) : IPrincipalSource
+internal sealed class ClaimsPrincipalSource(IUserProvider users, LiveSessionAccessor? session = null) : IPrincipalSource
 {
     /// <summary>The HTTP request this scope belongs to, or null in a live session's scope.</summary>
     /// <remarks>Held rather than its <c>User</c> copied, so a principal replaced later in the pipeline is the one read.</remarks>
@@ -40,4 +41,18 @@ internal sealed class ClaimsPrincipalSource(IUserProvider users) : IPrincipalSou
 
     /// <inheritdoc />
     public ClaimsPrincipal? Current => Request is { } request ? request.User : users.Current;
+
+    /// <summary>
+    ///     Who a dispatch from this scope is checked against: the request's user, the live session's, or whoever
+    ///     signed in to it — and null for a scope nobody owns, which runs as the system.
+    /// </summary>
+    /// <remarks>
+    ///     Narrower than <see cref="Current" /> on purpose. Every scope has an <c>IUserProvider</c>, so a job's or
+    ///     a hosted service's answers "anonymous" there; refusing those an <c>[Authorize]</c> handler would refuse
+    ///     the system its own commands.
+    /// </remarks>
+    internal ClaimsPrincipal? InFlight =>
+        Request is not null || session?.Session is not null || users.Current.Identity?.IsAuthenticated == true
+            ? Current
+            : null;
 }

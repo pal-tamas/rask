@@ -8,7 +8,8 @@
 #
 # Two tiers, because the costs differ by an order of magnitude:
 #
-#   scripts/run-template-e2e.sh              scaffold and build server, wasm and wasm-hosted
+#   scripts/run-template-e2e.sh              scaffold and build server, wasm and wasm-hosted, and npm-install
+#                                            and BUNDLE one scaffolded island per npm runtime
 #   scripts/run-template-e2e.sh --front-end  also build and RUN the scaffolded app in a browser (server
 #                                            journey)
 set -euo pipefail

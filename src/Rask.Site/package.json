@@ -2,7 +2,7 @@
   "name": "rask-example-wasm-islands",
   "private": true,
   "type": "module",
-  "description": "Island dependencies for the WASM showcase. The same front-end files the Server showcase builds, bundled by this app because the client runtime resolves the manifest app-rooted at /_rask/external/manifest.json. No lit and no Angular here: both pair with a plain .ts, which collides with the scoped TypeScript this app genuinely uses.",
+  "description": "Island dependencies for the islands page of the rask.sh site: React (and react-colorful, used as a package island), Vue, Svelte and Solid. The Lit-runtime island on that page is a plain custom element and needs no package. No Angular, whose toolchain this bundle does not carry, and no Preact, whose Vite plugin npm cannot install beside React's.",
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/react": "^19.3.0",

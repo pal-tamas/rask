@@ -92,6 +92,9 @@ internal static class RaskHotReload
             InvokeAll(Collect(assemblies, typeName));
         }
 
+        // An edit can add or drop an [Authorize]; the guard must read the page again before the repaint.
+        Authorization.PageAuthorizeData.Forget();
+
         // Phase 4 — repaint. Off the caller's thread because the runtime invokes update handlers
         // on the hot-reload agent's thread and a render can await application code.
         _ = Task.Run(async () =>

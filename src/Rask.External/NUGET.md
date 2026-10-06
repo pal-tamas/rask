@@ -13,6 +13,8 @@ goes — a leaf inside a card, a subtree, or a whole `[Route]` page.
 - **Callbacks re-enter C#** over the page's existing channel.
 - **npm components directly.** A package island (`Mui.Button`) needs no front-end file at all.
 - The island's subtree is a diff boundary: the live diff leaves it to its own renderer.
+- **An island can be the whole page**: put `[Route]` on it, set the title in `HeadAssets`, and give the
+  first response a placeholder with `.Loading(…)`.
 
 ## Install
 
@@ -20,7 +22,13 @@ goes — a leaf inside a card, a subtree, or a whole `[Route]` page.
 dotnet add package Rask.External
 ```
 
-Node is needed at build time; the build bundles the islands with Vite.
+Node is needed at build time; the build bundles the islands with Vite. **A `package.json` beside the
+project is the gate**: without one the build runs no npm and bundles nothing, so add it (and the
+runtime's packages) before the first island.
+
+`rask new Shop --islands react` scaffolds all of it — the paired `.cs` and front-end file, the npm
+dependencies, the tsconfig mapping and this package reference. It takes `react`, `preact`, `solid`,
+`vue`, `svelte`, `angular`, `lit` and `blazor`, several at once.
 
 ## Use
 
@@ -48,5 +56,7 @@ Div.Class("grid")[
     Chart.Series(_points).Heading("This year")  // Chart.tsx, rendered by React
 ]
 ```
+
+An island navigates with the C# `Routes` and `Go`, generated into `@rask/routes`: `Routes.UserPage({ Id: 42 }).Go()`.
 
 Guide: [Islands](https://rask.sh/docs/guides/islands)

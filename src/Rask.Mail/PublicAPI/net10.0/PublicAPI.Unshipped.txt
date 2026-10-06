@@ -69,8 +69,8 @@ Rask.Mailing.MailOptions.PickupDirectory.get -> string?
 Rask.Mailing.MailOptions.PickupDirectory.set -> void
 Rask.Mailing.MailOptions.PollInterval.get -> System.TimeSpan
 Rask.Mailing.MailOptions.PollInterval.set -> void
-Rask.Mailing.MailOptions.RetentionPeriod.get -> System.TimeSpan
-Rask.Mailing.MailOptions.RetentionPeriod.set -> void
+Rask.Mailing.MailOptions.Retention.get -> System.TimeSpan
+Rask.Mailing.MailOptions.Retention.set -> void
 Rask.Mailing.MailOptions.ShutdownGracePeriod.get -> System.TimeSpan
 Rask.Mailing.MailOptions.ShutdownGracePeriod.set -> void
 Rask.Mailing.MailOptions.Smtp.get -> Rask.Mailing.SmtpOptions?
@@ -119,6 +119,7 @@ Rask.Mailing.QueuedMail.RunAt.get -> System.DateTime
 Rask.Mailing.QueuedMail.Subject.get -> string!
 Rask.Mailing.QueuedMail.TextBody.get -> string?
 Rask.Mailing.QueuedMail.To.get -> string!
+Rask.Mailing.QueuedMail.UserId.get -> System.Guid?
 Rask.Mailing.QueuedMailConfiguration
 Rask.Mailing.QueuedMailConfiguration.QueuedMailConfiguration() -> void
 Rask.Mailing.QueuedMailRead
@@ -159,6 +160,8 @@ Rask.Mailing.QueuedMailRead.To.get -> string!
 Rask.Mailing.QueuedMailRead.To.init -> void
 Rask.Mailing.QueuedMailRead.UpdatedAt.get -> System.DateTime
 Rask.Mailing.QueuedMailRead.UpdatedAt.init -> void
+Rask.Mailing.QueuedMailRead.UserId.get -> System.Guid?
+Rask.Mailing.QueuedMailRead.UserId.init -> void
 Rask.Mailing.QueuedMailReadAccess
 Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!)
 Rask.Mailing.RaskMailServiceCollectionExtensions

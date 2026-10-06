@@ -262,7 +262,7 @@ public sealed class ChunkedUploadTests
         return await client.SendAsync(request);
     }
 
-    private static TestServer Host(Action<RaskCqrsServerOptions>? configure = null)
+    private static TestServer Host(Action<CqrsServerOptions>? configure = null)
     {
         var builder = new HostBuilder().ConfigureWebHost(web =>
         {
