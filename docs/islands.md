@@ -300,7 +300,7 @@ project's own copy, so two machines write the same file. A snapshot whose conten
 announced:
 
 ```text
-Rask.External: refreshed MuiButton.props.json (7.3.1 → 7.4.0) — commit it.
+Rask islands: refreshed MuiButton.props.json (7.3.1 → 7.4.0) — commit it.
 ```
 
 A prop the package removed then fails where you set it, as a compile error. That is the loud half of the contract.
@@ -314,14 +314,29 @@ snapshot was taken from another version than `package-lock.json` pins.
 `-p:RaskExternalPropsLocked=true`, the build still reads the package but a snapshot that no longer matches fails
 the build instead of being refreshed, so CI proves the committed files are true rather than quietly fixing them.
 
+Each code has its own entry, with the fix, in the [diagnostics reference](diagnostics.md#island-build-diagnostics-raskisland).
+
 | Code | Severity | When |
 | --- | --- | --- |
-| `RASKISLAND005` | error | The class also has a front-end file beside it; its `Export` is not an identifier or a dotted path of them; it declares an `Export` but its `Module` names no package; or it still writes the export after a `#` in `Module` (the message gives the two overrides to write instead). |
-| `RASKISLAND006` | error | There is no snapshot, and this build cannot extract one; the message says why. |
-| `RASKISLAND007` | error | The package or the export could not be read, or it is not a component — reported at the `Module` line. |
-| `RASKISLAND008` | error | A locked build found an out-of-date snapshot. |
-| `RASKISLAND009` | warning | The compiler found a package island the build did not see before compiling, so its props were not read. Return `Module` as a constant from the class's own body. |
-| `RASKISLAND010` | warning | The snapshot was taken from a different package version than `package-lock.json` pins. |
+| [`RASKISLAND005`](diagnostics.md#raskisland005) | error | The class also has a front-end file beside it; its `Export` is not an identifier or a dotted path of them; it declares an `Export` but its `Module` names no package; or it still writes the export after a `#` in `Module` (the message gives the two overrides to write instead). |
+| [`RASKISLAND006`](diagnostics.md#raskisland006) | error | There is no snapshot, and this build cannot extract one; the message says why. |
+| [`RASKISLAND007`](diagnostics.md#raskisland007) | error | The package or the export could not be read, or it is not a component — reported at the `Module` line. |
+| [`RASKISLAND008`](diagnostics.md#raskisland008) | error | A locked build found an out-of-date snapshot. |
+| [`RASKISLAND009`](diagnostics.md#raskisland009) | warning | The compiler found a package island the build did not see before compiling, so its props were not read. Return `Module` as a constant from the class's own body. |
+| [`RASKISLAND010`](diagnostics.md#raskisland010) | warning | The snapshot was taken from a different package version than `package-lock.json` pins. |
+
+The rest of the islands build reports under the same sequence:
+
+| Code | Severity | When |
+| --- | --- | --- |
+| [`RASKISLAND011`](diagnostics.md#raskisland011) | error | Two front-end files would register under one island name. Rename one. |
+| [`RASKISLAND012`](diagnostics.md#raskisland012) | error | A `<RaskExternal>` item names a runtime Rask has no adapter for. |
+| [`RASKISLAND013`](diagnostics.md#raskisland013) | error | `RaskExternalDevServerUrl` is not an `http(s)` origin that stops at the port. |
+| [`RASKISLAND014`](diagnostics.md#raskisland014) | error | React and Preact islands in one project — [npm cannot install both](#react-and-preact-cannot-share-a-project). |
+| [`RASKISLAND015`](diagnostics.md#raskisland015) | error | Two runtimes that compile the same extension [share a folder tree](#two-runtimes-that-share-an-extension-need-separate-folders). |
+| [`RASKISLAND016`](diagnostics.md#raskisland016) | error | A package island's Vite plugin cannot be kept off another runtime's files. Separate projects. |
+| [`RASKISLAND017`](diagnostics.md#raskisland017) | error | The generated prop types could not be read from the compiled assembly. Rebuild. |
+| [`RASKISLAND018`](diagnostics.md#raskisland018) | warning | The declared runtimes could not be read from the compiled assembly, so the file extension decides. Rebuild. |
 
 Props are read from packages of **all seven runtimes**.
 

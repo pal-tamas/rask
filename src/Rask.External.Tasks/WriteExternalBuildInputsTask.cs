@@ -133,10 +133,11 @@ public sealed class WriteExternalBuildInputsTask : Task
         // two front-end files collide before any class has claimed them.
         if (seen.TryGetValue(name, out var already))
         {
-            Log.LogError(
+            Error(
+                ExternalDiagnosticCodes.DuplicateIslandName,
                 $"Rask islands: '{source}' and '{already}' would both register as '{name}'. "
                 + "The island name is the key the browser resolves a module by, so it has to be "
-                + "unique. Rename one of the files.");
+                + "unique. Rename one of the files, and its C# class with it.");
             return null;
         }
 
@@ -188,9 +189,10 @@ public sealed class WriteExternalBuildInputsTask : Task
         // mounts — with the browser reporting a failure that names none of this.
         if (ExternalRuntime.Find(runtime) is null)
         {
-            Log.LogError(
+            Error(
+                ExternalDiagnosticCodes.UnknownRuntime,
                 $"Rask islands: '{source}' declares the runtime '{runtime}', which Rask has no adapter for. "
-                + $"Known runtimes: {ExternalRuntime.KeyList}.");
+                + $"Use one of: {ExternalRuntime.KeyList}.");
             return null;
         }
 
@@ -208,11 +210,11 @@ public sealed class WriteExternalBuildInputsTask : Task
             {
                 module = ExternalBuildPlan.EntryModule(island, AdapterDirectory);
             }
-            catch (InvalidOperationException ex)
+            catch (ExternalBuildException ex)
             {
                 // A declaration no entry can be written for — a Lit element named by its class whose snapshot records no
                 // tag. Reported as the build error it is, naming the fix, rather than as MSB4018 and a stack trace.
-                Log.LogError(ex.Message);
+                Error(ex.Code, ex.Message);
                 return null;
             }
 
@@ -247,13 +249,13 @@ public sealed class WriteExternalBuildInputsTask : Task
                 islands, entryDirectory, OutputDirectory, ManifestPath, PublicBase, angularTsConfig,
                 string.IsNullOrEmpty(DevServerUrl) ? null : DevServerUrl);
         }
-        catch (InvalidOperationException ex)
+        catch (ExternalBuildException ex)
         {
             // A combination no generated config could build correctly — two JSX runtimes sharing a
             // directory, or React beside Preact. Reported as a build error rather than written out,
             // because both alternatives are silent: one ships a bundle that mounts nothing, the other
             // fails inside npm with a message naming neither island.
-            Log.LogError(ex.Message);
+            Error(ex.Code, ex.Message);
             return null;
         }
 
@@ -295,10 +297,19 @@ public sealed class WriteExternalBuildInputsTask : Task
             // mixing .tsx runtimes the fallback is exactly the silent mis-pairing this read exists to
             // prevent.
             Log.LogWarning(
-                $"Rask islands: could not read the declared runtimes from '{AssemblyPath}' ({ex.Message}). "
-                + "Falling back to the file extension, which cannot tell React, Preact and Solid apart.");
+                subcategory: null, warningCode: ExternalDiagnosticCodes.UnreadableRuntimes, helpKeyword: null,
+                file: null, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
+                message: $"Rask islands: could not read the declared runtimes from '{AssemblyPath}' ({ex.Message}). "
+                + "Falling back to the file extension, which cannot tell React, Preact and Solid apart — "
+                + "rebuild the project (dotnet build --no-incremental) so the assembly is written afresh.");
 
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
     }
+
+    // The long overload purely to carry the CODE: an error logged without one cannot be looked up.
+    private void Error(string code, string message) =>
+        Log.LogError(
+            subcategory: null, errorCode: code, helpKeyword: null,
+            file: null, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0, message: message);
 }

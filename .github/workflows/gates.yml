@@ -33,12 +33,17 @@ jobs:
           SET: ${{ inputs.set }}
           # Every core the runner has: nothing else is running on it.
           #
+          # The unit gate is two jobs, not one: the formatter is its slowest step and the solution
+          # build its second, so "format" takes one and "unit" (build + tests) the other and they
+          # finish with the browser shards. Nothing is cut finer than the slowest job needs.
+          #
           # The browser suite runs its 150 journeys one at a time, so it is cut four ways by class.
           # Shards 1-3 NAME their classes and shard 4 takes everything they do not, the Rask.Server
           # journeys included: a new or renamed class lands in 4 by itself and cannot fall between two.
           GATES: >-
             [
-              {"set": "push",    "name": "unit + format",      "run": "scripts/run-unit-local.sh --lane-slots $(nproc)"},
+              {"set": "push",    "name": "format",             "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format"},
+              {"set": "push",    "name": "unit",               "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests"},
               {"set": "push",    "name": "browser E2E 1/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "filter": "FullyQualifiedName~.WasmExampleTests"},
               {"set": "push",    "name": "browser E2E 2/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "filter": "FullyQualifiedName~.UiKitActionsTests|FullyQualifiedName~.UiKitTreeTests"},
               {"set": "push",    "name": "browser E2E 3/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "filter": "FullyQualifiedName~.UiKitDataInputTests|FullyQualifiedName~.UiKitDataGridTests|FullyQualifiedName~.UiKitDataDisplayTests"},
@@ -87,4 +92,5 @@ jobs:
       - name: ${{ matrix.gate.name }}
         env:
           RASK_E2E_FILTER: ${{ matrix.gate.filter }}
+          RASK_UNIT_PART: ${{ matrix.gate.part }}
         run: ${{ matrix.gate.run }}

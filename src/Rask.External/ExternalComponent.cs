@@ -11,7 +11,9 @@ namespace Rask.External;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Derive from <see cref="ReactComponent" /> or <see cref="LitComponent" /> rather than from
+///         Derive from one of the seven runtime bases — <see cref="ReactComponent" />,
+///         <see cref="PreactComponent" />, <see cref="SolidComponent" />, <see cref="VueComponent" />,
+///         <see cref="SvelteComponent" />, <see cref="AngularComponent" /> or <see cref="LitComponent" /> — rather than from
 ///         this directly — the runtime has to be known at compile time, because the build needs it to
 ///         pair the component with an adapter, and naming it in the base class is the one place it
 ///         cannot drift from what actually mounts.

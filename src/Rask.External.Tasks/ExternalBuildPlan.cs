@@ -40,13 +40,14 @@ internal static class ExternalBuildPlan
     ///     a custom element registers its own tag and nothing about the file reveals it. Importing the
     ///     module is also what runs that registration side effect.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">The island names a runtime nothing declares.</exception>
+    /// <exception cref="ExternalBuildException">The island names a runtime nothing declares.</exception>
     public static string EntryModule(ExternalEntry island, string adapterDirectory)
     {
         var runtime = ExternalRuntime.Find(island.Runtime)
-                      ?? throw new InvalidOperationException(
-                          $"Island '{island.Name}' names the runtime '{island.Runtime}', which Rask has no adapter "
-                          + $"for. Known runtimes: {ExternalRuntime.KeyList}.");
+                      ?? throw new ExternalBuildException(
+                          ExternalDiagnosticCodes.UnknownRuntime,
+                          $"Rask islands: '{island.Name}' names the runtime '{island.Runtime}', which Rask has no "
+                          + $"adapter for. Use one of: {ExternalRuntime.KeyList}.");
 
         var adapter = Specifier(Path.Combine(adapterDirectory, runtime.AdapterModule));
 
@@ -76,8 +77,10 @@ internal static class ExternalBuildPlan
         var export = island.Export;
         if (!ExternalPackageSpecifier.IsValidExport(export, island.Runtime))
         {
-            throw new InvalidOperationException(
-                $"Island '{island.Name}' names the export '{export}', which is not an identifier.");
+            throw new ExternalBuildException(
+                ExternalDiagnosticCodes.InvalidDeclaration,
+                $"Rask islands: '{island.Name}' names the export '{export}', which is not an identifier — return "
+                + "the export's exact name from Export.");
         }
 
         if (ReferenceEquals(runtime, ExternalRuntime.Lit))
@@ -108,8 +111,9 @@ internal static class ExternalBuildPlan
         var tag = ExternalPackageSpecifier.IsTag(export) ? export : island.Tag;
         if (!ExternalPackageSpecifier.IsTag(tag))
         {
-            throw new InvalidOperationException(
-                $"Island '{island.Name}' is a Lit package island whose tag is not known: return it from Export — "
+            throw new ExternalBuildException(
+                ExternalDiagnosticCodes.InvalidDeclaration,
+                $"Rask islands: '{island.Name}' is a Lit package island whose tag is not known: return it from Export — "
                 + "protected override string Export => \"my-element\"; — or build once with the package installed so its snapshot records it.");
         }
 
@@ -167,7 +171,7 @@ internal static class ExternalBuildPlan
     ///     adds the <c>server</c> block the same config serves both roles through — <c>vite build</c>
     ///     ignores it, so there is no second file to keep in step with this one.
     /// </param>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="ExternalBuildException">
     ///     The islands name a combination no config can express — see <see cref="Refuse" />.
     /// </exception>
     public static string ViteConfig(
@@ -238,7 +242,7 @@ internal static class ExternalBuildPlan
     }
 
     /// <summary>The runtimes whose Vite plugin this config imports, in table order.</summary>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="ExternalBuildException">
     ///     The islands name a combination no config can express — see <see cref="Refuse" />.
     /// </exception>
     private static List<ExternalRuntime> UsedPlugins(IReadOnlyList<ExternalEntry> islands)
@@ -398,14 +402,15 @@ internal static class ExternalBuildPlan
     ///         absorbing.
     ///     </para>
     /// </remarks>
-    /// <exception cref="InvalidOperationException">The URL is not one this can serve from.</exception>
+    /// <exception cref="ExternalBuildException">The URL is not one this can serve from.</exception>
     private static string Port(string url)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var parsed)
             || (!string.Equals(parsed.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
                 && !string.Equals(parsed.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)))
         {
-            throw new InvalidOperationException(
+            throw new ExternalBuildException(
+                ExternalDiagnosticCodes.InvalidDevServerUrl,
                 $"Rask islands: '{url}' is not a usable dev-server URL. RaskExternalDevServerUrl has to "
                 + "be an absolute http(s) URL naming the port the islands are served from, e.g. "
                 + "http://localhost:5174.");
@@ -413,7 +418,8 @@ internal static class ExternalBuildPlan
 
         if (parsed.AbsolutePath.Trim('/').Length > 0)
         {
-            throw new InvalidOperationException(
+            throw new ExternalBuildException(
+                ExternalDiagnosticCodes.InvalidDevServerUrl,
                 $"Rask islands: '{url}' carries a path. The dev server is addressed by origin only, so "
                 + "RaskExternalDevServerUrl has to stop at the port — e.g. http://localhost:5174.");
         }
@@ -552,7 +558,7 @@ internal static class ExternalBuildPlan
     ///     point the config would have been written, so the message can name the islands rather than
     ///     leaving npm or the browser to describe the symptom.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">The combination cannot be built.</exception>
+    /// <exception cref="ExternalBuildException">The combination cannot be built.</exception>
     private static void Refuse(IReadOnlyList<ExternalEntry> islands, IReadOnlyList<ExternalRuntime> present)
     {
         // React and Preact cannot be INSTALLED together, let alone configured: @vitejs/plugin-react
@@ -560,7 +566,8 @@ internal static class ExternalBuildPlan
         // failure is an ERESOLVE tree that names four Babel packages and neither island.
         if (present.Contains(ExternalRuntime.React) && present.Contains(ExternalRuntime.Preact))
         {
-            throw new InvalidOperationException(
+            throw new ExternalBuildException(
+                ExternalDiagnosticCodes.ReactBesidePreact,
                 "Rask islands: this project has both React and Preact islands ("
                 + Naming(islands, ExternalRuntime.React) + " and " + Naming(islands, ExternalRuntime.Preact)
                 + "), and their Vite plugins cannot be installed side by side — @vitejs/plugin-react "
@@ -595,7 +602,8 @@ internal static class ExternalBuildPlan
                             continue;
                         }
 
-                        throw new InvalidOperationException(
+                        throw new ExternalBuildException(
+                            ExternalDiagnosticCodes.OverlappingRuntimeTrees,
                             $"Rask islands: the {a.Key} island(s) in '{left}' ({Naming(islands, a, left)}) and "
                             + $"the {b.Key} island(s) in '{right}' ({Naming(islands, b, right)}) share a "
                             + "directory tree, and both runtimes compile "
@@ -621,7 +629,7 @@ internal static class ExternalBuildPlan
     ///     the package. Both build, ship and mount nothing, so the combination is named here until a scope for a
     ///     package has been measured.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">Such a package island exists.</exception>
+    /// <exception cref="ExternalBuildException">Such a package island exists.</exception>
     private static void RefuseUnscopablePackages(IReadOnlyList<ExternalEntry> islands, IReadOnlyList<ExternalRuntime> used)
     {
         foreach (var runtime in used)
@@ -643,7 +651,8 @@ internal static class ExternalBuildPlan
                 continue;
             }
 
-            throw new InvalidOperationException(
+            throw new ExternalBuildException(
+                ExternalDiagnosticCodes.UnscopablePackageIsland,
                 $"Rask islands: the {runtime.Key} package island(s) {string.Join(", ", packages)} need {runtime.Key}'s "
                 + $"Vite plugin, and this project also has {rival.Key} islands ({Naming(islands, rival)}), which compile "
                 + "the same files. The two plugins can only share a project confined to separate folders, and a package "

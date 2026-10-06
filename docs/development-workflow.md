@@ -36,7 +36,7 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
 [CI](#ci)), so what you skip here you find out there, on `main`.
 
 1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`. CI's
-   `unit + format` job runs the same verify after the push.
+   `format` job runs the same verify after the push.
 2. **Clean build, warnings-as-errors** —
    `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true`.
    Enforced in `Directory.Build.props` (`TreatWarningsAsErrors`, `EnableNETAnalyzers`,
@@ -153,7 +153,7 @@ you); bypass one with `--no-verify`.
 is that command; run it in a worktree at that commit:
 
 ```bash
-scripts/run-unit-local.sh                    # the "unit + format" job
+scripts/run-unit-local.sh                    # the "format" and "unit" jobs (RASK_UNIT_PART=format | tests runs one half)
 scripts/run-e2e-local.sh                     # the "browser E2E" job
 scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
 scripts/run-all-gates.sh --list              # every gate, and what it needs
@@ -391,7 +391,7 @@ matter most are asserted by an offline unit test rather than by a comment:
 | `EfToolProbeTests` | the `dotnet-ef` floor the CLI checks for vs. the EF Core version in `Directory.Packages.props` |
 | `ResolveTypeScriptToolTaskTests` | reads `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
 
-They need no network and run in the ordinary unit gate — CI's `unit + format` job, on every push and
+They need no network and run in the ordinary unit gate — CI's `unit` job, on every push and
 every pull request — so the gate that runs for a version bump is the one that checks it was complete.
 
 **Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node
