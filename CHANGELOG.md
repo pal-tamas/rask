@@ -36,6 +36,10 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The daily upstream run can push what it regenerated when `main`'s workflows moved meanwhile (#1188).**
+  Its branch was cut from the commit the run started on, and a branch whose workflow files differ from
+  `main`'s is one the workflow's own token may not push. The regenerated commit is rebased onto `main`
+  first.
 - **Rask.Cqrs: an authorization attribute the build cannot read is an error, not a handler left open
   (#1187).** A handler's `[Authorize]` is read by name at compile time, so an attribute deriving from
   `AuthorizeAttribute` (`[AdminOnly]`), one implementing `IAuthorizeData`, or any of them on the `Handle`

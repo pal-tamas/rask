@@ -41,6 +41,8 @@ jobs:
       branch: ${{ steps.commit.outputs.branch }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the commit is rebased onto main before it is pushed
 
       - uses: ./.github/actions/setup
         with:
@@ -73,6 +75,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -q -m "chore: follow upstream (${moved:-generated sources})" -m "$(git diff --cached --stat)"
+
+          # Onto main as it is NOW: a branch whose workflows differ from main's is a workflow change to
+          # GitHub, which this token may not push — and main moves while the regeneration builds.
+          git fetch -q origin main
+          git rebase -q origin/main
           git push -q origin "HEAD:refs/heads/$BRANCH"
 
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
