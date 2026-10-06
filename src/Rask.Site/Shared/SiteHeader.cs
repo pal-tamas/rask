@@ -19,10 +19,8 @@ namespace Rask.Site;
 ///         sidebar's hamburger, which has to be in the bar because that is where a thumb reaches for it.
 ///     </para>
 ///     <para>
-///         The theme picker is the kit's <see cref="UiThemeDropdown" />, a popover so it closes on Escape
-///         and on a click outside; its panel reports its toggle through one C# handler. The hamburger is a
-///         label for the sidebar's checkbox. <c>Ui.ThemeScript</c> remembers the theme — the radios are
-///         CSS-only, so no handler runs when one is picked.
+///         Dark mode is <see cref="AppearanceToggle" />, the moon at the trailing edge. The hamburger is a
+///         label for the sidebar's checkbox. Neither runs a C# handler.
 ///     </para>
 /// </remarks>
 internal sealed partial class SiteHeader : Component
@@ -61,7 +59,7 @@ internal sealed partial class SiteHeader : Component
     private const string FullBleedRow = SiteLayout.FullBleed + " " + Row;
 
     // Hidden below sm, like the "Docs" link beside it: the bar carries a hamburger, a wordmark, two links
-    // and the theme picker, and on a 390px screen the docs bar used to measure 399px and scroll the whole
+    // and the moon, and on a 390px screen the docs bar used to measure 399px and scroll the whole
     // document sideways on every page.
     private const string VersionBadge =
         "hidden shrink-0 rounded-full border border-ui-line px-2 py-0.5 text-xs font-medium "
@@ -92,7 +90,7 @@ internal sealed partial class SiteHeader : Component
                 Nav.Class("flex shrink-0 items-center gap-1 text-sm sm:gap-2")[
                     NavItem("Docs", Routes.GuidesIndexPage(), hideOnPhone: true),
                     ExternalNavItem("GitHub", SiteIdentity.Repository),
-                    Ui.ThemeDropdown.Align(Ui.Align.End)
+                    AppearanceToggle
                 ]
             ]
         ];

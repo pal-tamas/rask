@@ -13,6 +13,12 @@
 @plugin "@tailwindcss/typography";
 
 /*
+  `dark:` follows the `dark` class Ui.AppearanceScript puts on <html> — Flux's dark mode — rather than
+  Tailwind's default, the operating system's preference, which a reader's own choice has to override.
+*/
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
   The kit's palette, so THIS project's Tailwind can emit the ui-* utilities this project writes.
 
   Rask.Ui ships a compiled sheet carrying the utilities the KIT's own components use, and that is not
@@ -125,7 +131,7 @@
 
 /*
   `prose` on the kit's palette. The plugin colours everything from its own gray scale by default — a
-  fixed light-theme ink that would sit at a few percent contrast on every dark theme the picker offers —
+  fixed light-theme ink that would sit at a few percent contrast in dark mode —
   so each of its variables is pointed at the ui-* token the rest of the site reads. Unlayered, so it wins
   over the plugin's utility-layer defaults whatever order the sheets land in.
 

@@ -20,6 +20,36 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: dark mode the way Flux UI does it — themes are gone.** The kit no longer offers daisyUI's
+  35 themes. A page is light or dark: `Ui.AppearanceScript` (was `Ui.ThemeScript`) puts a `dark` class
+  on `<html>` before the first paint from the reader's stored appearance — `light`, `dark` or `system`
+  (the default, following `prefers-color-scheme` while the page is open) — and a control flips it with
+  no C# handler through `Rask.dark` / `Rask.appearance`, the pair Flux documents as `Flux.dark` /
+  `Flux.appearance`. `Ui.ThemeController`, `Ui.ThemePicker` and `Ui.ThemeDropdown` are removed, with
+  `window.raskTheme()` / `window.raskSetTheme()` and `UiThemeScript.Themes`. The `localStorage` key
+  moved from `rask-theme` to `rask.appearance`, so a stored theme is not carried over. rask.sh's top
+  bar wears a moon where the theme list was (and <kbd>D</kbd> toggles it), as fluxui.dev's does.
+
+  ```csharp
+  // before
+  protected override Component? HeadAssets => [Title["…"], Ui.ThemeScript];
+  Ui.ThemeDropdown.Align(Ui.Align.End)
+
+  // after
+  protected override Component? HeadAssets => [Title["…"], Ui.AppearanceScript];
+  Button.Type(ButtonType.Button).AriaLabel("Toggle dark mode")
+      .Attributes(("onclick", "Rask.dark = !Rask.dark"))[Ui.Icon.Name(Ui.IconName.Moon).Mini]
+  ```
+
+  ```js
+  window.raskSetTheme('dracula')   // before
+  Rask.appearance = 'dark'         // after: 'light' | 'dark' | 'system'
+  ```
+
+  While daisyUI still draws part of the kit the script also writes `data-theme="dark"`/`"light"` on
+  `<html>`; `Ui.ThemeName`, `UiTheme` and `Ui.Shell.Theme(…)` stay until daisyUI goes. Re-skin by
+  re-pointing `--color-zinc-*` and the accent variables in your own `@theme` — `docs/ui-kit.md`.
+
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:

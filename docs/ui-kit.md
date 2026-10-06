@@ -143,70 +143,90 @@ safelist for the whole library.
 both. Reference the kit for its components, take the plugin for your own markup, and take both when you
 want both.
 
-## Themes
+## Dark mode
 
-daisyUI's 35 themes all ship, as the `Ui.ThemeName` enum. Light is the default and dark follows the
-operating system — a scope with **no** `data-theme` matches `[data-rask-ui]:not([data-theme])`, which
-daisyUI compiles under `prefers-color-scheme: dark`. To pin one, put `data-theme` on the element
-carrying the theme scope — or on any container, to re-theme just that subtree.
+Dark mode is [Flux UI's](https://fluxui.dev/docs/dark-mode): a `dark` class on `<html>`, and `dark:`
+utilities that follow it. There is no theme list and no theme picker.
 
-`Ui.Shell` carries the scope itself, so it names its own theme:
+Put `Ui.AppearanceScript` in your root component's head assets, **before the stylesheets**:
 
 ```csharp
-Ui.Shell.Theme(Ui.ThemeName.Light)[ /* … */ ]
+protected override Component? HeadAssets => [Title["…"], Ui.AppearanceScript, /* stylesheets */];
 ```
 
-Leave it off and that subtree follows the OS. Writing `data-theme` on an ancestor does **not** settle
-it, because the rule that follows the OS is `[data-rask-ui]:not([data-theme])` and it matches the
-shell's own element — which is how a surface with its own fixed palette can render its chrome dark and
-its content light on the same screen. `Rask.Dashboard` pins `Light` on both its `<html>` and its shell for
-exactly that reason; see [the dashboard](dashboard.md).
+It runs before the first paint, so a dark page starts dark. The reader's **appearance** is `light`,
+`dark` or `system` — `system` is the default, follows `prefers-color-scheme` while the page is open, and
+is stored as no key at all; the other two are kept in `localStorage` under `rask.appearance`
+(`.StorageKey("…")` to change it). Only those exact words are a choice: anything else in storage means
+system. The class is put back after every morph, and another tab's change is followed.
+
+A control needs two properties, the ones Flux documents as `Flux.appearance` and `Flux.dark`:
+
+```js
+Rask.appearance = 'light' | 'dark' | 'system'   // get or set the reader's preference
+Rask.dark = true | false                        // get or set whether the page is dark right now
+```
+
+So a toggle is one line and **no C# handler** — it works before the app has booted, and costs no
+handler id (ids are positional, and one handler in every page's chrome moves every id after it):
 
 ```csharp
-Ui.ThemeController.Label("Dark").Theme(Ui.ThemeName.Dark).Active(_theme is Ui.ThemeName.Dark)
-                 .OnChange(theme => _theme = theme)
+Button.Type(ButtonType.Button).AriaLabel("Toggle dark mode")
+    .Attributes(("onclick", "Rask.dark = !Rask.dark"))[Ui.Icon.Name(Ui.IconName.Moon).Mini]
 ```
 
-The control **reports** a choice and cannot apply it: the palette is set by an ancestor, and no
-component can write an attribute onto something above it. The page holds the value and writes
-`UiTheme.Value(theme)` there — which is also what lets it be persisted, something daisyUI's CSS-only
-`theme-controller` could not offer, since nothing in C# knew which theme was showing.
+That is the moon in rask.sh's own top bar. A Light / Dark / System menu sets `Rask.appearance` the same
+way.
 
-`Ui.ThemePicker` and `Ui.ThemeDropdown` are ready-made pickers over the whole set, and both offer
-**System** as their first entry — `Ui.ThemeName.System`, whose value is `UiTheme.SystemValue`. It is not
-a palette: it means the absence of a choice, so selecting it **removes** `data-theme` and lets
-`prefers-color-scheme` decide again. Turn it off with `.ShowSystem(false)`, rename it with
-`.SystemLabel("Automatic")`.
+In your own Tailwind sheet, point `dark:` at the class, as Flux does:
 
-`Ui.ThemeDropdown` puts the picker in a `Ui.Popover`, so it closes on Escape, on a click outside and on its
-trigger. It stays open while a theme is picked — the page restyles on each pick, so the arrow keys preview the
-palettes one after another.
-
-Never stamp `data-theme="system"`. daisyUI compiles no block for it, so it matches nothing and leaves
-every `--color-base-*` undefined on the element your document inherits from — a fully laid-out page
-with no colour in it, and nothing reports why.
-
-### Remembering the choice
-
-`Ui.ThemeScript` is the other half of the picker. Put it in your root component's head assets, before
-the stylesheets:
-
-```csharp
-protected override Component? HeadAssets => [Title["…"], Ui.ThemeScript, /* stylesheets */];
+```css
+@custom-variant dark (&:where(.dark, .dark *));
 ```
 
-It applies the stored palette **before the first paint** (so a saved dark theme never flashes light),
-re-applies it after every morph (a full-document morph strips attributes off `<html>`), ticks the
-reader's radio back on, and exposes `window.raskSetTheme(value)` / `window.raskTheme()`.
+### Re-skinning
 
-With nothing stored it writes **no `data-theme` at all**, which is what makes the page follow the
-operating system — in CSS, with nothing running, and repainting if the reader flips their OS while the
-page is open. A stored value is checked against the themes that exist (built from `UiTheme.All`), so a
-hand-edited `localStorage` entry means "no choice" rather than an uncoloured page.
+Two colours, per [Flux's theming](https://fluxui.dev/docs/theming). The **base** is Tailwind's `zinc`
+scale, written directly in the components, so an app changes every gray by re-pointing it in its own
+`@theme`:
 
-It carries **no C# event handlers**, deliberately. Handler ids are positional, so one handler in the
-chrome of every page shifts every id after it — and an island captures its callback id from the
-prerendered markup, so moving the ids breaks its clicks silently on a page that still looks alive.
+```css
+@theme {
+  --color-zinc-50: var(--color-slate-50);
+  /* … 100 through 900 … */
+  --color-zinc-950: var(--color-slate-950);
+}
+```
+
+The **accent** is three variables — the fill of a primary action, the same hue as readable text, and
+the text on the fill — with a second set under `.dark`:
+
+```css
+@theme {
+  --color-fx-accent: var(--color-red-500);
+  --color-fx-accent-content: var(--color-red-600);
+  --color-fx-accent-foreground: var(--color-white);
+}
+
+@layer theme {
+  .dark {
+    --color-fx-accent: var(--color-red-500);
+    --color-fx-accent-content: var(--color-red-400);
+    --color-fx-accent-foreground: var(--color-white);
+  }
+}
+```
+
+(Flux's names are `--color-accent*`; the kit's carry `fx-` until daisyUI, which defines `--color-accent`
+with another meaning, is gone.)
+
+### While daisyUI still draws part of the kit
+
+The components not yet rebuilt on Flux's model are daisyUI's, and daisyUI reads `data-theme`. Until the
+last of them is replaced, `Ui.AppearanceScript` also writes `data-theme="dark"` or `"light"` on
+`<html>` to match the class — daisyUI's other 33 themes are no longer reachable from it. `Ui.Shell`
+still takes `.Theme(Ui.ThemeName.Light)` to pin a subtree (`Rask.Dashboard` pins its console light; see
+[the dashboard](dashboard.md)); `Ui.ThemeName` and `UiTheme` leave with daisyUI.
 
 ### Reading the palette
 
@@ -517,7 +537,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
+| **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
@@ -525,7 +545,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Layout** | `Ui.Divider` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
-| **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `UiTheme` / `Ui.ThemeName`, `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
+| **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
 
 ## Who owns the state
 
