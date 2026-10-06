@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The SQLite load gate: run it for any change under src/Rask.SQLite* (the rask-ship skill does this for you).
 #
-# It is deliberately NOT part of scripts/run-unit-local.sh: that one is the pre-commit hook, and adding ~2
-# minutes to every commit is how a gate ends up permanently RASK_SKIP'd.
+# It is deliberately NOT part of scripts/run-unit-local.sh: that one is the gate everybody runs by hand, and
+# adding ~2 minutes to every run is how a gate ends up permanently RASK_SKIP'd. No CI job runs this one.
 #
 # The gate asserts invariants and same-run ratios, never absolute milliseconds — see LoadGate.cs for why, and
 # for what it does and does not catch.

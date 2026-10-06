@@ -25,7 +25,7 @@ concurrency:
 jobs:
   publish-nightly:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}   # the commit ci passed
     steps:

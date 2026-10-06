@@ -14,9 +14,9 @@
 # a budget, each gate declares what it is taking, and a gate asks one of two questions:
 #
 #   rask_lane_fit  -- "how big may I be?"   Answers immediately. NEVER blocks. Used by the unit gate,
-#                     which runs from .githooks/pre-commit -- and that hook decided deliberately (see
-#                     its comment) that a blocked commit costs more than a slow one. Shrinking is how
-#                     a gate honours a busy machine without ever making someone wait for it.
+#                     the one everybody runs by hand, where a blocked run costs more than a slow one.
+#                     Shrinking is how a gate honours a busy machine without ever making someone
+#                     wait for it.
 #
 #   rask_lane_fits -- "does this much fit?"  The predicate a blocking caller polls. Used only where
 #                     the work genuinely cannot share the box: the browser suite, whose journeys and
@@ -308,7 +308,7 @@ rask_lane_headroom() {
 # `-m:0` to MSBuild, which means "use every core" -- so the BUSIEST possible machine would produce
 # the LEAST bounded run, silently, in exactly the circumstances where that does the most damage.
 # Clamped low rather than refused: a slow gate is a working gate, and this is what lets the unit gate
-# keep .githooks/pre-commit's promise never to block a commit.
+# keep its promise never to wait.
 rask_lane_fit() {
   min="${1:-2}"
   max="${2:-8}"
@@ -401,10 +401,10 @@ rask_lane_fits() {
 # Publish a claim: start a lane-claim.sh child advertising <cost> for <phase>, replacing any claim
 # this process already had. Returns immediately -- claiming is not waiting.
 #
-# The redirections are not cosmetic. .githooks/pre-push runs the gate as `... | tee "$gate_log"`, and
+# The redirections are not cosmetic. A caller may run the gate as `... | tee "$gate_log"`, and
 # a background child that inherits stdout holds the pipe's write end open, so `tee` cannot exit while
 # the marker lives. Without </dev/null and the output redirects, a marker outliving its gate by even
-# a few seconds would hang the push.
+# a few seconds would hang that caller.
 rask_lane_claim() {
   cost="${1:-1}"
   phase="${2:-work}"

@@ -18,8 +18,9 @@ on:
 permissions:
   contents: read
 
-# On main every commit keeps its verdict: runs queue rather than cancel, so "which push broke it" has
-# an answer. Anywhere else only the newest push matters.
+# On main a push never cancels the run in progress, so a red run names the push that caused it and a
+# green one gets to publish. (GitHub keeps one run waiting behind it: the newest.) Anywhere else only
+# the newest push matters.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}

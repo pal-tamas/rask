@@ -1,6 +1,6 @@
 ---
 name: cut-release
-description: Cut a Rask release. Use when publishing a new version to NuGet/GitHub. Promotes the CHANGELOG [Unreleased] section to a dated version, then tags vX.Y.Z so MinVer derives the version and release.yml builds, packs and pushes the NuGet packages and GitHub release. release.yml runs no tests, so the local gates must be run before tagging.
+description: Cut a Rask release. Use when publishing a new version to NuGet/GitHub. Promotes the CHANGELOG [Unreleased] section to a dated version, then tags vX.Y.Z so MinVer derives the version and release.yml runs every gate, then builds, packs and pushes the NuGet packages and GitHub release. Try the release-only gates on a ci/release/** branch before tagging.
 ---
 
 # cut-release
@@ -17,8 +17,16 @@ off, so an admin push is accepted. A **commitlint** check enforces Conventional 
 `Release vX.Y.Z` FAILS (`type-empty` / `subject-empty`) — use `chore(release): vX.Y.Z`.
 
 ## 1. Pre-flight
-- On `main`, clean tree, CI green.
-- Run the **`rask-ship`** gate once more (format → warnings-as-errors → tests).
+- On `main`, clean tree, `ci` green on the commit you are about to tag
+  (`gh run list --workflow=ci.yml --branch main -L 1`).
+- **Try the release-only gates before the tag.** `ci.yml` on `main` runs the push set only; the watch,
+  deploy, storage-provider, installer and provider gates first run inside `release.yml`. Push the
+  commit to a `ci/release/**` branch, which runs both sets and publishes nothing, and wait for green:
+  ```bash
+  git push origin HEAD:refs/heads/ci/release/vX.Y.Z
+  gh run watch "$(gh run list --workflow=ci.yml --branch ci/release/vX.Y.Z -L 1 --json databaseId --jq '.[0].databaseId')" --exit-status
+  git push origin --delete ci/release/vX.Y.Z
+  ```
 - Decide the SemVer bump from the `[Unreleased]` changes (breaking→major, feature→minor, fix→patch).
   Pre-1.0, a new feature is still a minor bump (e.g. 0.8.0 → 0.9.0).
 - **Leave `PublicAPI.Shipped.txt` empty.** The public-API baselines
@@ -42,8 +50,9 @@ git pull --ff-only                             # make sure nothing landed in bet
 git tag vX.Y.Z
 git push origin vX.Y.Z                          # push ONLY the tag — main is already up to date
 ```
-`release.yml` (on `push: tags: v*`) builds, packs every project that is not `IsPackable=false`,
-pushes them to nuget.org, and creates the GitHub release.
+`release.yml` (on `push: tags: v*`) runs every gate (`gates.yml`, set `all`), and only when all of
+them pass builds, packs every project that is not `IsPackable=false`, pushes them to nuget.org, and
+creates the GitHub release.
 
 Deliberately NOT enumerated here. This list said eight packages, named `Rask.Bootstrap` (no longer
 packable), and predated a dozen projects — a hand-kept list of a set the build already knows is one
@@ -55,11 +64,9 @@ for f in src/*/*.csproj; do grep -q "<IsPackable>false" "$f" || basename "$f" .c
 
 Watch the run (`run watch` on the bare run id, not a job, exits on the run's conclusion):
 
-> **`release.yml` runs NO tests** — not the unit gate, not E2E. It restores, builds, packs and
-> pushes. (This skill used to claim it ran the unit gate and a sharded E2E matrix; those jobs went
-> with `ci.yml`/`e2e.yml`.) Nothing between your tag and nuget.org will catch a regression, and a
-> push to nuget.org is permanent. **Run `scripts/run-unit-local.sh` and `scripts/run-e2e-local.sh`
-> before you tag.**
+> **`publish` needs `gates`.** A red gate means nothing was packed or pushed: fix forward on `main`
+> and tag the next patch, or delete the tag and re-tag the fixed commit (nothing reached nuget.org).
+> A push to nuget.org is permanent, which is why the gates come first.
 ```bash
 gh run list --workflow=release.yml -L 1     # grab the run id
 gh run watch <run-id> --exit-status

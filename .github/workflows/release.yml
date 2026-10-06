@@ -18,7 +18,7 @@ jobs:
 
   publish:
     needs: gates
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # GitHub's own maximum, said out loud so nobody lowers it. The verify step alone can take three hours of
     # validation (RASK_VERIFY_FLAT_DEADLINE) plus two half-hour restore waits, four hours in all, and the
     # build, pack and push before it take most of an hour -- so a longer validation wait would not fit.

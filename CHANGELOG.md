@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
+  keeps the front-door check, `pre-push` the attribution guard. `ci.yml` runs the format check, the
+  warnings-as-errors build, the unit suite, the browser E2Es, the CLI build and the templates as
+  separate jobs after each push to `main`, and `nightly.yml` and `pages.yml` publish only from a commit
+  it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
+  included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
+  unchanged and still run by hand; each CI job is one of them.
+
 ### Removed
 
 - **Docs: the "ASP.NET Identity" section of `docs/authentication-providers.md` is gone.** `Rask.Auth` has

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Remember which test projects passed on which tree, so the next gate need not run them again.
 
-pre-push repeats pre-commit: same build, same tests, minutes apart, on a tree that has not moved. A
+Two scoped runs of scripts/run-unit-local.sh minutes apart, on a tree that has not moved, are the same
+build and the same tests. A
 project's pass is reusable when nothing that can reach it changed since, and "what can reach it" is
 already answered in one place, scripts/lib/affected_projects.py. So this holds no graph of its own. A
 stamp is the tree a project last passed on; the question is put to the scoper as a diff from that

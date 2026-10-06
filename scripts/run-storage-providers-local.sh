@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# By hand, never in a hook: proves Rask.Storage's S3 and Azure signing against real implementations.
+# By hand, and in CI before a release (.github/workflows/gates.yml); never in a hook. Proves Rask.Storage's
+# S3 and Azure signing against real implementations.
 #
 # The unit tests pin the exact strings SigV4 and Shared Key sign, and AWS's published vectors; they cannot prove a
 # service accepts them. This starts MinIO (S3) and Azurite (Azure Blob) in containers, runs ProviderSmokeTests —
