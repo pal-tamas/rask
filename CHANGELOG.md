@@ -27,6 +27,12 @@ them until tagged releases begin.
   it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
   included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
   unchanged and still run by hand; each CI job is one of them.
+- **A push to `main` is gated by the gates its change can reach, and the whole set runs every hour.**
+  `scripts/lib/affected_gates.py` maps the change to gates from the project graph and runs everything
+  for a change it cannot narrow (the CI definition, a gate script, the package pins). `full.yml` runs
+  the whole push set each hour `main` has moved, and `nightly.yml` and `pages.yml` now publish from a
+  commit that run passed, not from a push's scoped run. The CLI build and template gates run on a push
+  only when the CLI, a template or a project file changed.
 - **Upstream is followed without anyone watching.** `upstream.yml` runs daily: it moves the MDN snapshot
   to the latest stable data, records the public surface that moved with it, moves the stated Node line
   to the Active LTS, gates the result and lands it on `main`. `dependabot-merge.yml` merges a

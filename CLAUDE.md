@@ -30,12 +30,15 @@ build or gate runs in the background while the next step is prepared; a new scri
 concurrently on all cores under ONE shared `-m` budget, and anything serial states its reason at the site
 (a shared `obj/`, a port, a global sink); E2E for every `src/Rask.Site` change.
 **THE GATES RUN IN CI, NOT ON THIS MACHINE — never wait on one.** The hooks take seconds (commit-msg,
-front doors, attribution) and nothing blocks a commit or a push. `ci.yml` runs every gate as its own job
-AFTER the push to `main` — format, warnings-as-errors build, unit suite, the browser E2Es, CLI build,
-templates — and `nightly.yml`/`pages.yml` publish only from a commit it passed. Locally, build and test
+front doors, attribution) and nothing blocks a commit or a push. AFTER the push to `main`, `ci.yml`
+runs the gates the change can REACH, each its own job (`scripts/lib/affected_gates.py` decides, and runs
+everything for whatever it cannot narrow); `full.yml` runs the whole set — build, unit, format, every
+browser E2E, CLI build, templates — every hour `main` has moved, and `nightly.yml`/`pages.yml` publish
+only from a commit THAT run passed. Locally, build and test
 ONLY the project you touched (`dotnet test tests/Rask.X.Tests`), never the solution, never a gate script
 — several worktrees doing that at once is what made every gate take ten minutes. A red `main`
-(`gh run list --workflow ci --branch main`) is fixed forward, first; a job is reproduced with the script
+(`gh run list --branch main --workflow ci`, and `--workflow full` for what a scoped run cannot see) is
+fixed forward, first; a job is reproduced with the script
 it names. Risky change → push to a `ci/**` branch first (`ci/release/**` adds the release-only gates:
 watch, deploy, storage providers, installer, providers — `release.yml` runs them all before it packs).
 **Benchmarks run ONLY when you ask** — `scripts/run-benchmarks-local.sh`, in no hook and no CI;
