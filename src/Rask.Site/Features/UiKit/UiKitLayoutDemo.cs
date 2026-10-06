@@ -13,6 +13,7 @@ public sealed partial class UiKitLayoutDemo : Component
         DrawerSection(),
         DividerJoinIndicatorSection(),
         ApplicationLayoutSection(),
+        TypographySection(),
         MaskSection(),
         MockupsSection()
     ];
@@ -117,11 +118,54 @@ public sealed partial class UiKitLayoutDemo : Component
                     ],
                     Div[
                         Ui.Heading.Key("h").Level(3).Lg["Orders"],
-                        Ui.Subheading.Key("sh")["Everything placed in the last 30 days."]
+                        Ui.Text.Key("sh").Class("mt-2")["Everything placed in the last 30 days."]
                     ],
                     Ui.Divider.Key("then").Text("then").Align(Ui.Align.Start),
-                    Ui.Text.Key("t")["Body copy in the kit's scale. ", Ui.Text.Key("strong").Inline().Strong()["Strong"],
-                        " for what matters, ", Ui.Text.Key("subtle").Inline().Subtle()["subtle"], " for what can be skipped."]
+                    Ui.Text.Key("t")["Body copy in the kit's scale. ", Ui.Text.Key("strong").Inline().Variant(Ui.TextVariant.Strong)["Strong"],
+                        " for what matters, ", Ui.Text.Key("subtle").Inline().Subtle["subtle"], " for what can be skipped."]
+                ]
+            ]);
+
+    // Flux UI's own examples for heading, text and link, in its order.
+    private static Component TypographySection() =>
+        Section(
+            "Heading, text and link",
+            "Flux UI's type: a heading whose size and outline level are separate, body copy in three inks or any "
+            + "Tailwind hue, and a link that takes the accent.",
+            Div.Data(Testid("ui-typography")).Class("grid gap-8 sm:grid-cols-2")[
+                Div.Key("sizes").Class("flex flex-col gap-4")[
+                    Ui.Heading.Key("base")["Default"],
+                    Ui.Heading.Key("lg").Lg["Large"],
+                    Ui.Heading.Key("xl").Xl["Extra large"],
+                    Ui.Heading.Key("xxl").Xxl["Extra extra large"]
+                ],
+                Div.Key("level")[
+                    Ui.Heading.Key("h").Level(3)["User profile"],
+                    Ui.Text.Key("t").Class("mt-2")["This information will be displayed publicly."]
+                ],
+                Div.Key("leading")[
+                    Ui.Text.Key("t")["Year to date"],
+                    Ui.Heading.Key("h").Xl.Class("mb-1")["$7,532.16"],
+                    Ui.Text.Key("up").Color(Ui.Color.Green)["15.2%"]
+                ],
+                Div.Key("inks").Class("flex flex-col gap-2")[
+                    Ui.Text.Key("strong").Variant(Ui.TextVariant.Strong)["Strong text color"],
+                    Ui.Text.Key("default")["Default text color"],
+                    Ui.Text.Key("subtle").Subtle["Subtle text color"],
+                    Ui.Text.Key("blue").Color(Ui.Color.Blue)["Colored text"]
+                ],
+                Div.Key("text-sizes").Class("flex flex-col gap-2")[
+                    Ui.Text.Key("lg").Lg["Larger text size"],
+                    Ui.Text.Key("default")["Default text size"],
+                    Ui.Text.Key("sm").Sm["Smaller text"]
+                ],
+                Div.Key("links").Class("flex flex-col gap-2")[
+                    Ui.Text.Key("in-text")["Visit our ",
+                        Ui.Link.Key("docs").Href("https://rask.sh/docs").External()["documentation"], " for more information."],
+                    Ui.Text.Key("default")[Ui.Link.Key("l").Href("#")["Default link"]],
+                    Ui.Text.Key("ghost")[Ui.Link.Key("l").Href("#").Ghost["Ghost link"]],
+                    Ui.Text.Key("subtle")[Ui.Link.Key("l").Href("#").Subtle["Subtle link"]],
+                    Ui.Text.Key("button")[Ui.Link.Key("l").As(Ui.LinkAs.Button)["Create new account →"]]
                 ]
             ]);
 

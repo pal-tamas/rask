@@ -371,6 +371,35 @@ Ui.Button.Href("https://github.com/pal-tamas/rask").NewTab()["GitHub"]     // le
 A string that happens to name one of your own pages is still a string: it reloads the whole app to get
 there. Use the route. `NewTab(true)` is never intercepted, because the reader asked for another tab.
 
+## Heading, text and link
+
+Flux UI's [heading](https://fluxui.dev/components/heading) and [text](https://fluxui.dev/components/text), with
+Flux's names, props and look — measured against its docs in light and dark by `scripts/flux/parity.mjs`.
+
+```csharp
+Ui.Heading["User profile"]                                    // <div>, 14px, medium
+Ui.Heading.Level(3).Lg["Orders"]                              // <h3>, 16px
+Ui.Text.Class("mt-2")["This information will be displayed publicly."]
+
+Ui.Text.Variant(Ui.TextVariant.Strong)["Total"]               // or .Subtle, or .Color(Ui.Color.Blue)
+Ui.Text["Visit our ", Ui.Link.Href(Routes.ProductsPage())["documentation"], " for more information."]
+Ui.Link.Href("https://example.com").External()["The spec"]    // new tab, rel="noopener noreferrer"
+Ui.Link.As(Ui.LinkAs.Button).OnClick(Save)["Create account →"] // a <button type="button"> drawn as a link
+```
+
+| Component | Props |
+| --- | --- |
+| `Ui.Heading` | `Size` — `Base` (14px), `Lg` (16px), `Xl` (24px), `Xxl` (36px, Flux's `2xl`); `Level` 1–6, a `<div>` without one; `Accent()` |
+| `Ui.Text` | `Size` — `Sm`, `Default`, `Lg`, `Xl`; `Variant` — `Default`, `Strong`, `Subtle`; `Color` — a `Ui.Color` (Tailwind's hues), which wins over the variant; `Inline()` for a `<span>` |
+| `Ui.Link` | `Href` — a generated route navigates inside the app, a string is an ordinary link; `Variant` — `Default` (underlined), `Ghost` (underlined under the pointer), `Subtle`; `External()`; `As` — `A`, `Button`; `Accent(false)` to draw it in the page's ink |
+
+Each value is also a step — `Ui.Heading.Xl`, `Ui.Text.Subtle`, `Ui.Link.Ghost` — except the three that are also HTML
+tags: write `Variant(Ui.TextVariant.Strong)` and `As(Ui.LinkAs.Button)`, because `.Strong`, `.Button` and `.A` on a
+component are the inherited tag entries. Each is one HTML element, so
+`Id`, `Class`, `Style`, `Data`, `Aria` and the events are the element's own. There is no subheading: the line under
+a heading is a `Ui.Text`, as on Flux's page. A heading is zinc-800 (white in dark), text zinc-500 (white at 70%),
+and a link takes the accent with an underline at a fifth of it that fills in under the pointer.
+
 ## Application layout
 
 Flux UI's layout pieces, drawn with daisyUI. The sidebar beside the docs on this site is exactly this.
@@ -453,9 +482,8 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
 - **`Ui.Divider`** is Flux's separator: `Vertical`, `Subtle`, and `Align(Ui.Align.Start|End)` for its words, a
   `separator` to assistive tech when it has none, and **no outer margin** — daisyUI's 1rem is zeroed, so the page
   spaces it.
-- **`Ui.Heading`** separates how big a heading looks (`Size`) from where it sits in the outline (`Level` 1–6, a
-  `<div>` without one); **`Ui.Subheading`** and **`Ui.Text`** (`Strong`, `Subtle`, `Tone`, `Inline`) are the rest of the
-  type scale. `Ui.Header` and `Ui.Card` take a `TitleLevel` instead of a fixed `<h1>`/`<h2>`.
+- **`Ui.Heading`**, **`Ui.Text`** and **`Ui.Link`** are Flux's own — see [Heading, text and link](#heading-text-and-link).
+  `Ui.Header` and `Ui.Card` take a `TitleLevel` instead of a fixed `<h1>`/`<h2>`.
 - **`Ui.Card`**'s `Size` is its padding: `Ui.Card.Sm[…]` for a dense panel, `Lg`/`Xl` for a roomy one, and `Md`
   is what a card has with no size.
 
@@ -796,10 +824,9 @@ extra height would break), and `AutoSize` grows the box to fit what is typed. Th
 shipped it the box keeps its `Rows` and scrolls, which is what it does today, so the feature degrades to the
 current behaviour rather than to a broken one.
 
-**`Ui.Link.External` opens away and says so.** `target="_blank"`, `rel="noopener noreferrer"` (a new tab opened
-without it can reach back through `window.opener`), a small mark and a screen-reader-only "opens in a new
-tab" — all three, because any one alone is worse than none. A generated route is one of your own pages and is
-never external, so it is ignored there.
+**`Ui.Link.External()` opens in a new tab.** `target="_blank"` with `rel="noopener noreferrer"` (a new tab opened
+without it can reach back through `window.opener`). A generated route is one of your own pages and is never
+external, so it is ignored there.
 
 **`Ui.Skeleton` has shapes.** `Lines(3)` draws a paragraph with the last line short, because a stack of equal
 bars reads as a table; `Circle` is what an avatar leaves behind. It stays `aria-hidden` throughout.

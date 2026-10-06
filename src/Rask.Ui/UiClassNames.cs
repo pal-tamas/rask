@@ -383,19 +383,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string LinkTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "link-neutral",
-        Ui.Tone.Primary => "link-primary",
-        Ui.Tone.Secondary => "link-secondary",
-        Ui.Tone.Accent => "link-accent",
-        Ui.Tone.Info => "link-info",
-        Ui.Tone.Success => "link-success",
-        Ui.Tone.Warning => "link-warning",
-        Ui.Tone.Error => "link-error",
-        _ => "",
-    };
-
     internal static string LoadingSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "loading-xs",
@@ -794,37 +781,6 @@ internal static class UiClassNames
         Ui.Breakpoint.Lg => "lg:inline-flex",
         Ui.Breakpoint.Xl => "xl:inline-flex",
         _ => "lg:inline-flex",
-    };
-
-    internal static string SubheadingSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "text-xs",
-        Ui.Size.Lg => "text-base",
-        Ui.Size.Xl => "text-lg",
-        _ => "text-sm",
-    };
-
-    internal static string TextSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "text-xs",
-        Ui.Size.Sm => "text-sm",
-        Ui.Size.Lg => "text-base",
-        Ui.Size.Xl => "text-lg",
-        _ => "text-sm",
-    };
-
-    /// <summary>The ink a run of text takes for a tone.</summary>
-    /// <remarks>The ink colours, which are what keep body text readable on every theme's base.</remarks>
-    internal static string TextTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Primary => "text-ui-brand-ink",
-        Ui.Tone.Secondary => "text-ui-secondary-ink",
-        Ui.Tone.Accent => "text-ui-accent-ink",
-        Ui.Tone.Info => "text-ui-info-ink",
-        Ui.Tone.Success => "text-ui-ok-ink",
-        Ui.Tone.Warning => "text-ui-warn-ink",
-        Ui.Tone.Error => "text-ui-danger-ink",
-        _ => "",
     };
 
     /// <summary>The ink a value takes when it reports a problem; null for a value that reports none.</summary>

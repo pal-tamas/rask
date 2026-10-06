@@ -84,7 +84,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
 
         return Main.Class("notes")[
             Div[
-                Ui.Heading.Level(1).Size(Ui.Size.Lg)["Notes"],
+                Ui.Heading.Level(1).Lg["Notes"],
                 P.Class("notes-lede")[
                     "A SQLite database inside this browser tab, written through EF Core and Rask.Data. "
                     + "Add a note, search for it, reload the page — it is still here."

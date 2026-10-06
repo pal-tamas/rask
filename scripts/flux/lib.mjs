@@ -126,7 +126,8 @@ function collect(wrapper, { STYLES, index }) {
     }
 
     nodes.push(node);
-    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux'));
+    // Either side's marker: Flux's page forces the states on a marked <div> or <p>, so the Rask page has to as well.
+    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux') || a.name.startsWith('data-ui-'));
     if (interactive.length < 60 && (fluxed || el.matches('button, a, input, select, textarea, summary, label, [role], [tabindex]'))) {
       interactive.push(id);
     }

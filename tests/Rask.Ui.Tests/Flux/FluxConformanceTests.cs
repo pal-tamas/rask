@@ -22,10 +22,20 @@ namespace Rask.UiTests.Flux;
 public sealed class FluxConformanceTests
 {
     /// <summary>Flux part → the Rask.Ui type that mirrors it. A component joins this when it is built.</summary>
-    private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
+    {
+        ["flux:heading"] = typeof(UiHeading),
+        ["flux:link"] = typeof(UiLink),
+        ["flux:text"] = typeof(UiText),
+    };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
-    private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal)
+    {
+        ["flux:heading/size=2xl"] = "an identifier cannot start with a digit: Ui.HeadingSize.Xxl",
+        ["flux:text/color=default"] = "no colour is an unset Color; Ui.Color holds Tailwind's hues only",
+        ["flux:text/size=base"] = "the heading page's name for the text page's `default`: Ui.TextSize.Default",
+    };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;
 
