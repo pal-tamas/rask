@@ -16,7 +16,7 @@ public sealed partial class CancellationDemo : Component
                 Ui.Button.Outline
                     .Id("cancel-unmount")
                     .Disabled(!_mounted)
-                    .OnClick(UnmountProbe)[Ui.Icon.Name(Ui.IconName.Stop), "Unmount probe"]
+                    .OnClick(UnmountProbe)[Ui.Icon.Name(Ui.IconName.StopCircle), "Unmount probe"]
             ],
             _mounted
                 ? CancellationProbe.InstanceId(_nextInstance).Log(AppendLog)
