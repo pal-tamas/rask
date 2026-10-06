@@ -14,7 +14,7 @@ namespace Rask.Dashboard.Pages;
 [ParentRoute(typeof(DashboardLayout))]
 public sealed partial class StoragePage(
     IStoragePanelReader storage,
-    RaskDashboardOptions options,
+    OpsOptions options,
     TimeProvider timeProvider) : PollingPanel
 {
     private StorageStats _stats = StorageStats.Empty;
@@ -27,7 +27,7 @@ public sealed partial class StoragePage(
     public string? Search { get; set; }
 
     /// <inheritdoc />
-    protected override RaskDashboardOptions Options => options;
+    protected override OpsOptions Options => options;
 
     /// <inheritdoc />
     protected override async Task<object?> Load(CancellationToken cancellationToken)

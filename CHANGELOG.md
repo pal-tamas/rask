@@ -46,6 +46,18 @@ them until tagged releases begin.
 
 ### Removed
 
+- **BREAKING: `Notify` is gone; `Dispatcher` now works everywhere.** Two statics published an event, and which
+  one worked depended on where the line stood: `Dispatcher.Publish` threw in a `BackgroundService`, and
+  `Notify.Send` existed to cover that. One word now, from a page, a handler, a job or a singleton:
+  ```csharp
+  await Notify.Send(new ReportReady(id), stoppingToken);          // was
+  await Dispatcher.Publish(new ReportReady(id), stoppingToken);   // now
+  ```
+  Outside any work in progress `Dispatcher.Publish`, `Send` and `Query` open a scope of their own and dispose it
+  when the handler finishes, so a command can be sent from a hosted service with the same line a page uses.
+  `Notify.IsConfigured` is `Dispatcher.IsOn`; `Notify.UseScope` and `Notify.Configure` have no replacement — the
+  host binds the scope.
+
 - **Docs: the "ASP.NET Identity" section of `docs/authentication-providers.md` is gone.** `Rask.Auth` has
   its own accounts, and moving an existing Identity database onto it is covered in
   `docs/authentication.md`. The retired diagnostics (RASK027/030/032/034/042/046/047/048–050/054/081) no
@@ -87,6 +99,47 @@ them until tagged releases begin.
   `subscription.toJSON()` answers in any client — and still reads the flat `{ endpoint, p256dh, auth }`.
 
 ### Changed
+
+- **BREAKING: a handler's `[Authorize]` now holds for a request sent in-process, not only over HTTP.** A
+  server page that sent an admin-only command ran it for any signed-in visitor, because the declaration
+  was checked at the remote endpoint alone. A caller the handler does not admit now gets
+  `ForbiddenException` — `IsAuthenticated` says whether anyone was signed in — before validation runs:
+  ```csharp
+  [Authorize(Roles = "admin")]
+  public sealed class PurgeLogsHandler : ICommandHandler<PurgeLogs> { … }
+
+  await Dispatcher.Send(new PurgeLogs());   // was: ran for any visitor of the page
+                                            // now: throws ForbiddenException for a non-admin
+  ```
+  `[AllowAnonymous]` is never checked, and a job, a durable handler and a hosted service run as the system.
+
+- **BREAKING: one word per setting across the batteries.** The same knob had a different name in each
+  battery, and five options types carried a `Rask` prefix the others did not. The appsettings keys under
+  `Rask:<Area>` follow the property names, so rename them there too:
+
+  | Was | Now |
+  |---|---|
+  | `JobsOptions.RetentionPeriod`, `MailOptions.RetentionPeriod`, `OutboxOptions.RetentionPeriod` | `Retention` |
+  | `CacheOptions.PurgeInterval`, `RaskLoggingOptions.PurgeInterval` | `SweepInterval` |
+  | `RaskLoggingOptions.ShutdownDrainTimeout` | `ShutdownGracePeriod` |
+  | `WebPushOptions.DefaultTtl` | `DefaultLifetime` |
+  | `RaskLoggingOptions` | `LogsOptions` |
+  | `RaskDashboardOptions` | `OpsOptions` |
+  | `WebPushOptions` | `PushOptions` |
+  | `RaskSignalingOptions` | `SignalingOptions` |
+  | `RaskCqrsClientOptions`, `RaskCqrsServerOptions` | `CqrsClientOptions`, `CqrsServerOptions` |
+  | `Db.IsConfigured`, `ReadDb.IsConfigured` | `IsOn` |
+
+  ```jsonc
+  { "Rask": { "Jobs": { "RetentionPeriod": "7.00:00:00" } } }   // was
+  { "Rask": { "Jobs": { "Retention": "7.00:00:00" } } }         // now
+  ```
+  `RaskServerOptions.ShutdownDrainTimeout`, the live-session drain, keeps its name.
+
+- **Every battery's static call explains a missing battery the same way.** `Cache`, `Mail`, `Jobs`, `Files`,
+  `Push`, `Logs`, `Dispatcher` and `QueryClient` each worded it differently, and most told a `RaskApp` to
+  call an `AddRask…` it never calls. Now: "Jobs is not running in this app. A RaskApp has it on unless
+  Program.cs says c.Jobs.Off(); a hand-wired host calls builder.Services.AddRaskJobs<AppDbContext>()."
 
 - **Tooling: `scripts/tools/RaskRename` renames a public member across the solution in one pass.**
   `dotnet run --project scripts/tools/RaskRename -- Rask.Wasm.WasmHostBuilder.RunAsync Run [--dry-run]` is a
@@ -1139,6 +1192,24 @@ them until tagged releases begin.
 
 ### Added
 
+- **Test fakes can run what they recorded, so one test proves a flow across batteries.** `Jobs.Fake()`
+  recorded and ran nothing; `await jobs.Run()` now sends every recorded job through its real handler, as the
+  tenant and user who enqueued it. `Outbox.Fake()` is new: it records a durable handler's event instead of
+  writing a row, and `await outbox.Run()` runs the handler.
+  ```csharp
+  using var outbox = Outbox.Fake();
+  using var jobs = Jobs.Fake();
+  using var mail = Mail.Fake();
+
+  page.Click("Place order");
+  await outbox.Run();   // the durable handlers run
+  await jobs.Run();     // the jobs they enqueued run
+
+  mail.Sent().To("ann@example.com").Once();
+  ```
+  `Run()` also runs work a running handler enqueues, and delayed jobs; a handler that throws lets its
+  exception out.
+
 - **`rask new --dry-run --json` and `rask dev --dry-run --json`: the plan as a document.** `new` prints the
   template, the name, the directory and the files it would write; `dev` prints the command, its arguments,
   the working directory and the environment it would set. Like every other `--json`, it is the document and
@@ -1357,6 +1428,18 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`Mail.Send`, `Jobs.Enqueue` and every other static call now work inside a job, a durable handler and a
+  custom mail sender.** The three processors restored the tenant but never made the app reachable, so a
+  handler written the way the tutorial writes one threw "called outside any work in progress":
+  ```csharp
+  public async Task Handle(SendOrderReceipt job) =>
+      await Mail.Send(Email.To(job.Customer).Subject("Your receipt").Body(Receipt.OrderId(job.OrderId)));
+  ```
+  Each now binds its scope around the handler, as a request and a live session already did. A durable
+  handler and a queued email also run **for the user who started them** — `Current.UserId` reads the same
+  inside the handler as on the page that saved the change, where before only a job carried it.
+  **Upgrading adds a column to each table:** `rask db add AddOutboxUser && rask db add AddMailUser && rask db
+  update`. Until then each processor logs exactly that line instead of a generic failure.
 - **The packaging gate passes in a fresh worktree.** `Every_file_a_project_packs_by_name_exists` called the
   four gitignored JavaScript files `Rask.Wasm` and `Rask.External` bundle from TypeScript "produced by
   nothing" until those projects had been built. It now reads each project's own esbuild `--outfile` and

@@ -10,30 +10,30 @@ namespace Rask.Logging.Tests;
 /// The options come from <c>Rask:Logs</c> and then the callback, and a bad value fails when they are built — at host
 /// start in a real app, where the message names the key — not hours later when the first flush tears the host down.
 /// </summary>
-public sealed class RaskLoggingOptionsTests
+public sealed class LogsOptionsTests
 {
     [Theory]
     [MemberData(nameof(InvalidOptions))]
-    public void Invalid_options_are_rejected_when_they_are_built(Action<RaskLoggingOptions> configure)
+    public void Invalid_options_are_rejected_when_they_are_built(Action<LogsOptions> configure)
     {
         var services = new ServiceCollection();
         services.AddRaskLogging(configure);
         using var provider = services.BuildServiceProvider();
 
-        var error = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskLoggingOptions>());
+        var error = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<LogsOptions>());
 
         Assert.Contains("Rask:Logs", error.Message, StringComparison.Ordinal);
     }
 
-    public static TheoryData<Action<RaskLoggingOptions>> InvalidOptions() => new()
+    public static TheoryData<Action<LogsOptions>> InvalidOptions() => new()
     {
         o => o.Retention = TimeSpan.FromDays(-1),
         o => o.MaxRows = -1,
         o => o.FlushInterval = TimeSpan.Zero,
         o => o.BatchSize = 0,
         o => o.QueueCapacity = 0,
-        o => o.PurgeInterval = TimeSpan.Zero,
-        o => o.ShutdownDrainTimeout = TimeSpan.FromSeconds(-1),
+        o => o.SweepInterval = TimeSpan.Zero,
+        o => o.ShutdownGracePeriod = TimeSpan.FromSeconds(-1),
         o => o.Pragmas.JournalMode = (SqliteJournalMode)99,
     };
 
@@ -64,7 +64,7 @@ public sealed class RaskLoggingOptionsTests
         services.AddRaskLogging(o => o.ExcludedCategories.Add("App.Chatter"));
         using var provider = services.BuildServiceProvider();
 
-        var options = provider.GetRequiredService<RaskLoggingOptions>();
+        var options = provider.GetRequiredService<LogsOptions>();
 
         Assert.Equal(50, options.MaxRows);
         Assert.Equal(LogLevel.Warning, options.MinimumLevel);
@@ -76,7 +76,7 @@ public sealed class RaskLoggingOptionsTests
     [Fact]
     public void The_defaults_bound_the_store_by_both_age_and_row_count()
     {
-        var options = new RaskLoggingOptions();
+        var options = new LogsOptions();
 
         // Either limit alone leaves the disk unbounded — age lets a storm fill it inside the window, and a
         // row cap alone can shrink the window to minutes. The defaults set both on purpose.
@@ -103,7 +103,7 @@ public sealed class RaskLoggingOptionsTests
     [Fact]
     public void The_stores_own_categories_are_excluded_by_prefix()
     {
-        var options = new RaskLoggingOptions();
+        var options = new LogsOptions();
 
         Assert.True(options.IsExcluded("Rask.Logging"));
         Assert.True(options.IsExcluded("Rask.Logging.LogWriter"));
@@ -115,7 +115,7 @@ public sealed class RaskLoggingOptionsTests
     [Fact]
     public void Configured_prefixes_are_excluded()
     {
-        var options = new RaskLoggingOptions();
+        var options = new LogsOptions();
         options.ExcludedCategories.Add("Microsoft.AspNetCore.");
 
         Assert.True(options.IsExcluded("Microsoft.AspNetCore.Routing.Matcher"));

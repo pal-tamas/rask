@@ -4,12 +4,12 @@ using Rask.SQLite;
 namespace Rask.Logging;
 
 /// <summary>
-/// Checks <see cref="RaskLoggingOptions"/> once <c>Rask:Logs</c> and the callback have applied — at host start,
+/// Checks <see cref="LogsOptions"/> once <c>Rask:Logs</c> and the callback have applied — at host start,
 /// so a bad value fails fast, naming its key.
 /// </summary>
-internal sealed class RaskLoggingOptionsValidator : IValidateOptions<RaskLoggingOptions>
+internal sealed class LogsOptionsValidator : IValidateOptions<LogsOptions>
 {
-    public ValidateOptionsResult Validate(string? name, RaskLoggingOptions options)
+    public ValidateOptionsResult Validate(string? name, LogsOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -20,7 +20,7 @@ internal sealed class RaskLoggingOptionsValidator : IValidateOptions<RaskLogging
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
     }
 
-    private static void CheckRetention(RaskLoggingOptions options, List<string> failures)
+    private static void CheckRetention(LogsOptions options, List<string> failures)
     {
         if (options.Retention < TimeSpan.Zero)
         {
@@ -32,13 +32,13 @@ internal sealed class RaskLoggingOptionsValidator : IValidateOptions<RaskLogging
             failures.Add("Rask:Logs:MaxRows cannot be negative.");
         }
 
-        if (options.PurgeInterval <= TimeSpan.Zero)
+        if (options.SweepInterval <= TimeSpan.Zero)
         {
-            failures.Add("Rask:Logs:PurgeInterval must be positive.");
+            failures.Add("Rask:Logs:SweepInterval must be positive.");
         }
     }
 
-    private static void CheckWriter(RaskLoggingOptions options, List<string> failures)
+    private static void CheckWriter(LogsOptions options, List<string> failures)
     {
         if (options.FlushInterval <= TimeSpan.Zero)
         {
@@ -65,13 +65,13 @@ internal sealed class RaskLoggingOptionsValidator : IValidateOptions<RaskLogging
             failures.Add("Rask:Logs:QueueCapacity must be at least 1.");
         }
 
-        if (options.ShutdownDrainTimeout < TimeSpan.Zero)
+        if (options.ShutdownGracePeriod < TimeSpan.Zero)
         {
-            failures.Add("Rask:Logs:ShutdownDrainTimeout cannot be negative.");
+            failures.Add("Rask:Logs:ShutdownGracePeriod cannot be negative.");
         }
     }
 
-    private static void CheckSqlite(RaskLoggingOptions options, List<string> failures)
+    private static void CheckSqlite(LogsOptions options, List<string> failures)
     {
         if (options.BusyRetry is null)
         {

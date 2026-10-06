@@ -56,7 +56,7 @@ public class CqrsOptionsTests
 
         services.AddRaskCqrs();
 
-        Assert.DoesNotContain(services, d => d.ServiceType == typeof(IPipelineBehavior<,>));
+        Assert.DoesNotContain(services, d => d.ImplementationType == typeof(ValidationBehavior<,>));
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class CqrsOptionsTests
     }
 
     private static ServiceDescriptor ValidationBehavior(IServiceCollection services) =>
-        services.Single(d => d.ServiceType == typeof(IPipelineBehavior<,>));
+        services.Single(d => d.ImplementationType == typeof(ValidationBehavior<,>));
 
     // What HostApplicationBuilder and WebApplicationBuilder put in the collection before any AddX runs.
     private static ServiceCollection Host(Dictionary<string, string?> settings)

@@ -13,7 +13,7 @@ namespace Rask.Dashboard.Pages;
 [ParentRoute(typeof(DashboardLayout))]
 public sealed partial class CachePage(
     ICachePanelReader cache,
-    RaskDashboardOptions options,
+    OpsOptions options,
     TimeProvider timeProvider) : PollingPanel
 {
     private CacheStats _stats;
@@ -28,7 +28,7 @@ public sealed partial class CachePage(
     public string? Search { get; set; }
 
     /// <inheritdoc />
-    protected override RaskDashboardOptions Options => options;
+    protected override OpsOptions Options => options;
 
     /// <inheritdoc />
     protected override async Task<object?> Load(CancellationToken cancellationToken)

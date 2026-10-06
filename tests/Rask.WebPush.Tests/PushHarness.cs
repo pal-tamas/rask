@@ -54,7 +54,7 @@ internal sealed class PushHarness : IAsyncDisposable
     private readonly ServiceProvider _provider;
     private readonly string _database = Path.Combine(Path.GetTempPath(), $"rask-push-test-{Guid.NewGuid():N}.db");
 
-    public PushHarness(bool stubSender = true, Action<WebPushOptions>? configure = null, IWebPush? sender = null)
+    public PushHarness(bool stubSender = true, Action<PushOptions>? configure = null, IWebPush? sender = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();

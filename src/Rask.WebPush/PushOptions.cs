@@ -6,7 +6,7 @@ namespace Rask.WebPush;
 ///     Configures the push sender, through <c>AddRaskWebPush</c>. One VAPID pair and one contact address
 ///     serve every message the app sends.
 /// </summary>
-public sealed class WebPushOptions
+public sealed class PushOptions
 {
     /// <summary>
     ///     The application-server key pair — required. Generate it once with
@@ -26,7 +26,7 @@ public sealed class WebPushOptions
     ///     How long a push service holds a message for an offline device when the message itself sets no
     ///     TTL. Defaults to 12 hours.
     /// </summary>
-    public TimeSpan DefaultTtl { get; set; } = TimeSpan.FromHours(12);
+    public TimeSpan DefaultLifetime { get; set; } = TimeSpan.FromHours(12);
 
     /// <summary>
     ///     How long one send waits on a push service before it is given up on. Ten seconds by default: a
@@ -59,24 +59,24 @@ public sealed class WebPushOptions
     {
         if (VapidKeys is null || string.IsNullOrEmpty(VapidKeys.PublicKey) || string.IsNullOrEmpty(VapidKeys.PrivateKey))
             throw new InvalidOperationException(
-                "WebPushOptions.VapidKeys must be set. Generate a pair once with VapidKeys.Generate() and store it.");
+                "PushOptions.VapidKeys must be set. Generate a pair once with VapidKeys.Generate() and store it.");
 
         if (string.IsNullOrEmpty(Subject))
             throw new InvalidOperationException(
-                "WebPushOptions.Subject must be set to a 'mailto:' address or an 'https:' URL.");
+                "PushOptions.Subject must be set to a 'mailto:' address or an 'https:' URL.");
 
         if (!Subject.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) &&
             !Subject.StartsWith("https:", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException(
-                $"WebPushOptions.Subject must start with 'mailto:' or 'https:' (was '{Subject}').");
+                $"PushOptions.Subject must start with 'mailto:' or 'https:' (was '{Subject}').");
 
-        if (DefaultTtl < TimeSpan.Zero)
-            throw new InvalidOperationException("WebPushOptions.DefaultTtl cannot be negative.");
+        if (DefaultLifetime < TimeSpan.Zero)
+            throw new InvalidOperationException("PushOptions.DefaultLifetime cannot be negative.");
 
         if (SendTimeout <= TimeSpan.Zero)
-            throw new InvalidOperationException("WebPushOptions.SendTimeout must be positive.");
+            throw new InvalidOperationException("PushOptions.SendTimeout must be positive.");
 
         if (MaxAnonymousSubscribers < 0)
-            throw new InvalidOperationException("WebPushOptions.MaxAnonymousSubscribers cannot be negative.");
+            throw new InvalidOperationException("PushOptions.MaxAnonymousSubscribers cannot be negative.");
     }
 }

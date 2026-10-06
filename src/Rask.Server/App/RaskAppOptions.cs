@@ -122,7 +122,7 @@ public sealed class RaskAppOptions
     /// The table and the <c>/_rask/push</c> endpoints work before any VAPID key pair exists, so a fresh clone
     /// starts; sending is what needs the keys, and a send without them names the settings.
     /// </remarks>
-    public Battery<WebPushOptions> Push { get; } = new();
+    public Battery<PushOptions> Push { get; } = new();
 
     /// <summary>Scheduled point-in-time snapshots of the SQLite file.</summary>
     /// <remarks>
@@ -136,7 +136,7 @@ public sealed class RaskAppOptions
     /// survives the restart that hid the log you wanted. On PostgreSQL or SQL Server, with <see cref="Data"/> on, it
     /// keeps the log in the application database's <c>RaskLog</c> table instead (unless the app wired a store itself).
     /// </summary>
-    public Battery<RaskLoggingOptions> Logs { get; } = new();
+    public Battery<LogsOptions> Logs { get; } = new();
 
     /// <summary>
     /// The UI kit, applied to the whole document: its stylesheet first in <c>&lt;head&gt;</c> and its theme

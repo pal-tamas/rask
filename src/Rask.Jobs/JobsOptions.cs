@@ -33,7 +33,7 @@ public sealed class JobsOptions
     public TimeSpan MaxRetryDelay { get; set; } = TimeSpan.FromHours(1);
 
     /// <summary>How long completed jobs are kept before being purged. <see cref="TimeSpan.Zero"/> keeps them forever. Default 7 days.</summary>
-    public TimeSpan RetentionPeriod { get; set; } = TimeSpan.FromDays(7);
+    public TimeSpan Retention { get; set; } = TimeSpan.FromDays(7);
 
     /// <summary>
     /// How long a job that is already running may keep running after the host is asked to stop.

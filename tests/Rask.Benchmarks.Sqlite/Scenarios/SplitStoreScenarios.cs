@@ -23,7 +23,7 @@ namespace Rask.Benchmarks.Sqlite.Scenarios;
 internal enum ChurnLevel
 {
     /// <summary>
-    /// The shipped defaults on a quiet app: <c>JobsOptions.PollInterval</c> 5s, <c>CacheOptions.PurgeInterval</c>
+    /// The shipped defaults on a quiet app: <c>JobsOptions.PollInterval</c> 5s, <c>CacheOptions.SweepInterval</c>
     /// 5min. The control arm — at this cadence the purge does not fire at all inside a 15s measurement, which
     /// is precisely why a quiet app has nothing to gain from splitting.
     /// </summary>

@@ -158,7 +158,18 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             // A durable handler is resolved by its own type: the outbox runs ONE handler per row, not the set.
             kind == HandlerKind.Durable ? Fqn(symbol, compilation) : Fqn(iface, compilation),
             registerability?.Problem,
-            registerability?.Remedy);
+            registerability?.Remedy,
+            kind is HandlerKind.Event or HandlerKind.Durable ? null : Declared(symbol));
+    }
+
+    // What the handler's [Authorize] asks, for local dispatch to hold a caller to. Nothing when it carries none, or
+    // carries [AllowAnonymous], which is never checked.
+    private static AuthorizationModel? Declared(INamedTypeSymbol handler)
+    {
+        var declared = CqrsCodecGenerator.Authorization(handler);
+        return declared.Authorize && !declared.AllowAnonymous
+            ? new AuthorizationModel(new EquatableArray<string>(declared.RoleSets.ToArray()), new EquatableArray<string>(declared.Policies.ToArray()))
+            : null;
     }
 
     private static readonly EquatableArray<HandlerModel> NoHandlers = new(Array.Empty<HandlerModel>());
@@ -469,6 +480,13 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         sb.AppendLine("    internal static void RefreshAll()");
         sb.AppendLine("    {");
 
+        // Before the invokers, so a request is never dispatchable ahead of what its handler asks of the caller.
+        // Only when there is something to install, as with subscriptions below.
+        if (requests.Any(static r => r.Authorization is not null))
+        {
+            AppendAuthorization(sb, requests);
+        }
+
         // One Replace per table, keyed on this class, rather than a run of upserts. An upsert only ever
         // adds or overwrites, so deleting the last handler for a request left its invoker in the table and
         // dispatch kept succeeding through IL that no longer had a handler behind it. Replacing this
@@ -514,6 +532,29 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         sb.AppendLine("    }");
         sb.AppendLine();
     }
+
+    private static void AppendAuthorization(StringBuilder sb, List<HandlerModel> requests)
+    {
+        sb.AppendLine(
+            "        global::Rask.Cqrs.CqrsRegistry.ReplaceAuthorization(typeof(__RaskCqrsRegistry), " +
+            "new (global::System.Type, global::Rask.Cqrs.RequestAuthorization)[]");
+        sb.AppendLine("        {");
+        foreach (var request in requests)
+        {
+            if (request.Authorization is { } declared)
+            {
+                sb.Append("            (typeof(").Append(request.RequestTypeFqn)
+                    .Append("), new global::Rask.Cqrs.RequestAuthorization(")
+                    .Append(Literals(declared.RoleSets)).Append(", ").Append(Literals(declared.Policies)).AppendLine(")),");
+            }
+        }
+
+        sb.AppendLine("        });");
+        sb.AppendLine();
+    }
+
+    private static string Literals(EquatableArray<string> values) =>
+        "new string[] { " + string.Join(", ", values.Select(static v => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(v, quote: true))) + " }";
 
     private static void AppendSubscriptions(StringBuilder sb, List<SubscriptionModel> subscriptions)
     {
@@ -653,7 +694,10 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         string ResultTypeFqn,
         string ServiceInterfaceFqn,
         string? RegisterabilityProblem,
-        string? RegisterabilityRemedy) : IEquatable<HandlerModel>;
+        string? RegisterabilityRemedy,
+        AuthorizationModel? Authorization) : IEquatable<HandlerModel>;
+
+    private sealed record AuthorizationModel(EquatableArray<string> RoleSets, EquatableArray<string> Policies);
 
     private sealed record Candidate(
         EquatableArray<HandlerModel> Handlers,

@@ -4,7 +4,7 @@ namespace Rask.Cqrs.Server;
 ///     Configures the endpoint pair <c>MapRaskCqrs()</c> maps. Every default here is the safe one; each
 ///     property is a deliberate loosening.
 /// </summary>
-public sealed class RaskCqrsServerOptions
+public sealed class CqrsServerOptions
 {
     /// <summary>
     ///     The path the two endpoints are mapped under. The message's wire name is appended as a route

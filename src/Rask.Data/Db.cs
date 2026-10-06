@@ -36,7 +36,7 @@ public static class Db
     private static int _generation;
 
     /// <summary>Whether <see cref="Configure(IServiceProvider)" /> (or an overload) has run.</summary>
-    public static bool IsConfigured => _factory is not null;
+    public static bool IsOn => _factory is not null;
 
     /// <summary>
     ///     How many times the model surface has been pointed at a database. Part of the read context's
