@@ -195,7 +195,9 @@ did not pass. `release.yml`'s `publish` job needs its `gates` job (both sets). A
   MDN snapshot to the latest stable data, records the public surface that moved with it
   (`scripts/public-api/record.py`) and moves the stated Node line to the Active LTS; the result is
   gated and THEN landed on `main`, with nobody watching. It opens an issue only when it needs a
-  person: the gates refused what upstream shipped, or Flux UI moved.
+  person: the gates refused what upstream shipped, or Flux UI moved. The Flux lock
+  (`tests/Rask.Ui.Tests/Flux/flux.lock.json`) is measured on its runner, so it is relocked there:
+  `gh workflow run upstream.yml -f relock=true`.
 - `dependabot-merge.yml` — merges a Dependabot pull request once `ci` has passed it. What must not
   move on its own is in `.github/dependabot.yml`'s ignore lists.
 

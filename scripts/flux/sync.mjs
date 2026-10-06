@@ -10,8 +10,13 @@
 // usual ones: FluxConformanceTests names the props Rask.Ui now lacks, and `parity.mjs <slug>` names the
 // pixels. The fresh measurements stay in artifacts/flux-parity/flux/, where parity.mjs reads them.
 //
+// A look is measured in pixels and text measures differently on every OS, so the lock belongs to ONE
+// platform: `measuredOn`, the CI runner's. Anywhere else the looks are measured but neither compared
+// nor locked. `--baseline` takes the lock over: every look is locked as measured here, none reported.
+//
 // Usage:  node scripts/flux/sync.mjs              # everything
 //         node scripts/flux/sync.mjs button card  # these pages only (the lock keeps the others)
+//         node scripts/flux/sync.mjs --baseline   # lock every look as this platform measures it
 // Exit:   0 nothing moved · 2 something did · 1 it could not tell
 
 import { createHash } from 'node:crypto';
@@ -24,21 +29,30 @@ import { chromium, measurePage, root } from './lib.mjs';
 const flux = join(root, 'tests', 'Rask.Ui.Tests', 'Flux');
 const snapshotFile = join(flux, 'flux.snapshot.json');
 const lockFile = join(flux, 'flux.lock.json');
-const only = process.argv.slice(2);
+const baseline = process.argv.includes('--baseline');
+const only = process.argv.slice(2).filter(arg => arg !== '--baseline');
+if (baseline && only.length) {
+  console.error('flux sync: --baseline locks every page on this platform, so it takes no page filter.');
+  process.exit(1);
+}
 
 const before = existsSync(snapshotFile) ? await readFile(snapshotFile, 'utf8') : '';
 execFileSync(process.execPath, [join(root, 'scripts', 'flux', 'refresh.mjs')], { stdio: 'inherit' });
 const snapshot = JSON.parse(await readFile(snapshotFile, 'utf8'));
-const moved = [];
+const moved = [];   // the report: a line per catalogue or release move, and ONE per page whose look moved
+const detail = [];  // every example behind those pages — printed above the report, for the log
 if (before && before !== JSON.stringify(snapshot, null, 2) + '\n') moved.push(...catalogueChanges(JSON.parse(before), snapshot));
 
 const lock = existsSync(lockFile) ? JSON.parse(await readFile(lockFile, 'utf8')) : { release: '', pages: {} };
+const lockedOn = lock.measuredOn ?? 'another platform';
+const compare = !baseline && lock.measuredOn === process.platform;
 const release = await latestRelease();
 if (release && release !== lock.release) {
   if (lock.release) moved.push(`release: ${lock.release} -> ${release}`);
   lock.release = release;
 }
 
+if (baseline) lock.pages = {};
 const browser = await chromium().launch();
 for (const page of snapshot.pages.filter(p => only.length === 0 || only.includes(p.slug))) {
   const dir = join(root, 'artifacts', 'flux-parity', 'flux', page.slug);
@@ -47,22 +61,36 @@ for (const page of snapshot.pages.filter(p => only.length === 0 || only.includes
   await writeFile(join(dir, 'measurements.json'), JSON.stringify(schemes));
 
   const prints = fingerprints(schemes);
-  const known = lock.pages[page.slug];
-  if (known) {
-    for (const key of new Set([...Object.keys(known), ...Object.keys(prints)])) {
-      if (known[key] !== prints[key]) moved.push(`look: ${page.slug} ${key} ${!known[key] ? 'is new' : !prints[key] ? 'is gone' : 'changed'}`);
-    }
-  }
-
-  lock.pages[page.slug] = prints;
+  if (compare && lock.pages[page.slug]) moved.push(...lookChanges(page.slug, lock.pages[page.slug], prints));
+  if (compare || baseline) lock.pages[page.slug] = prints;
   console.log(`flux sync: measured ${page.slug} (${Object.keys(prints).length / 2} examples)`);
 }
 
 await browser.close();
-await writeFile(lockFile, JSON.stringify(lock, null, 1) + '\n');
+if (baseline) lock.measuredOn = process.platform;
+await writeFile(lockFile, JSON.stringify({ release: lock.release, measuredOn: lock.measuredOn, pages: lock.pages }, null, 1) + '\n');
 
-console.log(moved.length ? `\nflux sync: Flux moved in ${moved.length} place(s):\n  ${moved.join('\n  ')}` : '\nflux sync: Flux is where Rask.Ui last matched it.');
+if (detail.length) console.log(`\nflux sync: every example that moved:\n  ${detail.join('\n  ')}`);
+if (baseline) console.log(`\nflux sync: looks baselined on ${process.platform} (were locked on ${lockedOn}).`);
+else if (!compare) console.log(`\nflux sync: looks are locked on ${lockedOn}; this is ${process.platform}, so they were measured but not compared.`);
+console.log(moved.length
+  ? `\nflux sync: Flux moved in ${moved.length} place(s):\n  ${moved.join('\n  ')}`
+  : `\nflux sync: ${compare ? 'Flux is where Rask.Ui last matched it' : 'the catalogue and the release are where Rask.Ui last matched them'}.`);
 process.exit(moved.length ? 2 : 0);
+
+// One line per page for the report; the examples behind it go to the log.
+function lookChanges(slug, known, prints) {
+  const counts = { changed: new Set(), new: new Set(), gone: new Set() };
+  for (const key of new Set([...Object.keys(known), ...Object.keys(prints)])) {
+    if (known[key] === prints[key]) continue;
+    const how = !known[key] ? 'new' : !prints[key] ? 'gone' : 'changed';
+    counts[how].add(key.slice(key.indexOf('/') + 1));   // light and dark are one example
+    detail.push(`look: ${slug} ${key} ${how === 'changed' ? how : `is ${how}`}`);
+  }
+
+  const summary = Object.entries(counts).filter(([, examples]) => examples.size).map(([how, examples]) => `${examples.size} ${how}`);
+  return summary.length ? [`look: ${slug} — example(s): ${summary.join(', ')}`] : [];
+}
 
 // One short hash per example and scheme: enough to say WHICH example moved; parity.mjs says how.
 function fingerprints(schemes) {
