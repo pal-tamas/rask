@@ -1283,6 +1283,21 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Blazor islands: a hosted handler receives the event it asked for.** A hosted `@onkeydown` fired but
+  was handed an empty args object, so the key was never there to read:
+  ```razor
+  void OnKey(KeyboardEventArgs e) => _last = e.Key;   // was: "" — now: "Enter"
+  ```
+  The island now builds Blazor's args from the event Rask already receives, on both hosts and with no
+  reflection: `MouseEventArgs`, `PointerEventArgs`, `WheelEventArgs`, `DragEventArgs`,
+  `KeyboardEventArgs`, `TouchEventArgs`, `FocusEventArgs` and `ClipboardEventArgs`
+  (`ProgressEventArgs` and `ErrorEventArgs` carry `Type` only). `@bind` on a checkbox receives a `bool`
+  and on a `<select multiple>` a `string[]`, where both were handed a string the binder cannot use.
+  A handler that takes `EventArgs` or nothing still asks the browser for no payload. An event whose
+  args are a library's own type is no longer wired with empty args it would cast-fail on: it gets no
+  attribute and one logged warning. `@bind:event="oninput"` on a checkbox or multi-select still
+  receives a string. See `docs/blazor-components.md#events`.
+
 - **WASM: an island pressed before the app has booted is no longer a click that did nothing.** A
   prerendered page mounts its islands from the served HTML, so they are interactive seconds before
   .NET exists, and a callback fired in that window was dropped with `send: dotnetExports not set` —

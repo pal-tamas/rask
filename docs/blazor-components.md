@@ -32,12 +32,12 @@ Read this table before anything else — it is the whole shape of the feature.
 | Renders, styled, in the **first HTTP response** | ✅ |
 | `OnInitialized`, `OnInitializedAsync`, `OnParametersSet`, `BuildRenderTree` | ✅ |
 | Reacts to a Rask prop change, keeping its own state | ✅ |
-| Its own `@onclick` / `EventCallback` firing from the browser | ✅ (see [events](#events)) |
+| Its own `@onclick`, `@onkeydown`, `@onwheel`, … firing from the browser, with their real event args | ✅ (see [events](#events)) |
 | Rask children inside it | ❌ — a compile error ([RASK062](#an-island-takes-no-children)) |
 | `[Inject]` services — `IJSRuntime`, `NavigationManager`, Rask's browser APIs | ✅ (see [services](#services)) |
 | `OnAfterRenderAsync` | ✅ — **once**, after the first paint (see [services](#services)) |
 | `ElementReference`, and anything that takes one | ❌ — captures are discarded |
-| Its own `@onkeydown`, `@onsubmit`, `@onmouseover` | ❌ — see [events](#events) |
+| Its own `@onsubmit`, or an event whose args are a library's own type | ❌ — see [events](#events) |
 | `@bind` writing a value back | ✅ (see [binding](#binding)) |
 | WebAssembly, published **trimmed** | ✅ — see [both hosts](#both-hosts) |
 
@@ -215,17 +215,38 @@ and Lit islands use for their callbacks.
 Table.Rows(_rows).OnRowClick(row => _selected = row)   // fires
 ```
 
-**Not every event, and the ones that cannot work render nothing rather than pretending.** Rask routes
-an inbound event to a handler by the delegate's shape and refuses a mismatch, so an event it cannot
-feed gets no attribute at all — a component that looks wired and does nothing on the first click is
-the failure this package exists to avoid. What works today:
+**Every event a Rask element has an `On…` step for is wired, and the handler receives the event it
+asked for.** The browser sends each
+event's own fields — the same payload a Rask `OnKeyDown(e => …)` reads — and the island turns it into
+the args type the hosted handler declares:
 
-| | |
+```razor
+<input @onkeydown="OnKey" />
+
+@code {
+    void OnKey(KeyboardEventArgs e) => _last = e.Key;   // "Enter", not ""
+}
+```
+
+| Blazor's args | Filled with |
 |---|---|
-| `click`, `focus`, `blur`, `focusin`, `focusout` | ✅ |
-| `select`, `invalid`, `reset`, the `drag*` family | ✅ |
-| `change`, `input` — including `@bind` | ✅ |
-| `keydown`, `keyup`, `submit`, `mouseover`, `wheel`, `paste`, … | ❌ no attribute emitted |
+| `MouseEventArgs`, `PointerEventArgs`, `WheelEventArgs`, `DragEventArgs` | position, buttons, modifier keys; the pointer, the deltas, the `DataTransfer` |
+| `KeyboardEventArgs` | `Key`, `Code`, `Location`, `Repeat`, `IsComposing`, modifier keys |
+| `TouchEventArgs` | the three touch lists, modifier keys |
+| `FocusEventArgs`, `ClipboardEventArgs` | `Type` — all Blazor declares on them |
+| `ProgressEventArgs`, `ErrorEventArgs` | `Type` only: Rask models these two as a plain event |
+| `EventArgs`, or a handler that takes nothing | nothing is asked of the browser at all |
+
+Two things are not wired, and both render **no attribute** rather than pretending — a component that
+looks wired and does nothing on the first click is the failure this package exists to avoid:
+
+- **An args type outside that table** — a component library's own `[EventHandler]` args. Building one
+  would take reflection, which a trimmed WebAssembly publish does not survive. The island logs one
+  warning naming the island, the event and the type.
+- **`@onsubmit`.** A form's submit travels Rask's form channel, which the island does not bridge.
+
+Each event is one round trip to .NET, as it is for any Rask handler. That is nothing for a click and
+worth a thought for `@onpointermove`, `@onmousemove` or `@onwheel`, which fire many times a second.
 
 ## Binding
 
@@ -234,9 +255,9 @@ that is the whole reason it works: `change` and `input` are deliberately absent 
 table, because a value-carrying event goes through Rask's **input** channel instead — the one that
 ships the element's value alongside the handler id.
 
-So a bound input renders with `data-rask-on-input` rather than `data-rask-on-change`, the browser
-sends the value, Rask hands it to the island as a string, and the island turns it into the
-`ChangeEventArgs` the binder `@bind` generated is waiting for.
+So a bound input renders with `data-rask-on-change` (or `data-rask-on-input` under
+`@bind:event="oninput"`), the browser sends the value, Rask hands it to the island, and the island
+turns it into the `ChangeEventArgs` the binder `@bind` generated is waiting for.
 
 ```razor
 <input @bind="Text" />
@@ -244,6 +265,19 @@ sends the value, Rask hands it to the island as a string, and the island turns i
 ```
 
 Typing updates `Text` inside the hosted component and the echo follows, with no circuit involved.
+
+Blazor's binder casts rather than parses, so the value arrives in the type it expects: a string for a
+text input or a single select, a `bool` for `<input type="checkbox">`, a `string[]` for
+`<select multiple>`.
+
+```razor
+<input type="checkbox" @bind="Done" />
+<select multiple @bind="Tags">…</select>
+```
+
+One limit: `@bind:event="oninput"` on a checkbox or a multi-select still receives a string, because
+only the `change` frame carries the checked state and the whole selection. Leave those two on the
+default event.
 
 ## An island takes no children
 
@@ -424,7 +458,8 @@ carry its renderer.
   fine diff, so scroll position and text selection inside the island are lost when a prop changes.
 - **No `RenderFragment` parameter gets a chain step** — not `ChildContent`, not a named one, not a
   templated `RenderFragment<T>`. See [children](#an-island-takes-no-children).
-- **Events beyond the set above** emit no attribute, so a hosted `@onkeydown` is inert.
+- **`@onsubmit`, and an event whose args are a library's own type**, emit no attribute. See
+  [events](#events).
 - **Circuit mode.** There is none: a hosted component never gets a Blazor circuit of its own.
 
 ## Diagnostics
