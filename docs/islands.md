@@ -43,6 +43,9 @@ public sealed partial class ReportPage : Component
 }
 ```
 
+The island can also carry the `[Route]` itself, with its own title and a placeholder for the first
+paint — see [An island as a whole page](#an-island-as-a-whole-page).
+
 That is what "every component is replaceable" means here: replaceability is a property of the
 *component*, not of the route, so it composes at every level of the tree.
 
@@ -369,7 +372,8 @@ exactly as it would in a `.tsx`.
 A name no C# identifier can spell keeps the package's spelling on the wire: `aria-label` is the step
 `AriaLabel` and is sent as `"aria-label"`. A prop named after one of Rask's own members is renamed rather than
 allowed to hide it — `key` becomes `KeyProp`, because a generated `Key` would silently replace the island's
-reconciliation identity.
+reconciliation identity, and a package's own `loading` becomes `LoadingProp`, beside the island's
+[`Loading`](#an-island-as-a-whole-page) placeholder.
 
 ### Callbacks never send an event
 
@@ -601,6 +605,55 @@ Chart.Series(_points).Hydration(ExternalHydration.Visible)
 | `Idle` | On `requestIdleCallback`. |
 | `Visible` | On `IntersectionObserver` — the chunk is not even **fetched** until the component is scrolled to. |
 | `None` | Never. Server markup only, and no JavaScript is requested at all. |
+
+## An island as a whole page
+
+An island can carry the `[Route]` itself. Route parameters are ordinary props, so `/reports/41` reaches
+the front-end file as `id: 41`, and `Report.Url(41)` / `Routes.Report(41)` are generated as for any page:
+
+```csharp
+[Route("/reports/{id:int}")]
+public sealed partial class Report : ReactComponent
+{
+    [RouteParam] public int Id { get; set; }
+
+    protected override Component? HeadAssets => Title[$"Report {Id}"];
+}
+```
+
+**The title and meta come from `HeadAssets`,** exactly as on a Rask page. Overriding it used to replace
+the script that boots the island runtime, so the page rendered and nothing mounted; the script is
+registered separately now.
+
+**`Loading` is what the first response shows.** A JavaScript island is rendered in the browser, so
+until its chunk has loaded the host element is empty — a blank page, when the island is the page:
+
+```csharp
+Report.Id(Id)                                              // <rask-external …></rask-external>
+Report.Id(Id).Loading(Ui.Skeleton.Class("h-64 w-full"))    // <rask-external …><div class="…"></div></rask-external>
+```
+
+It is plain Rask markup, rendered once on the server and never sent in the props. The runtime removes
+it right before the island mounts, so under `Hydration(ExternalHydration.Visible)` or `Idle` it stays
+for as long as the island waits. It sits below the [diff boundary](#the-diff-boundary): a later render
+does not patch it and a handler inside it does not run. The router builds a routed island, so there is
+no chain to take the step on — that island sets it in its constructor:
+
+```csharp
+public Report() => Loading = Ui.Skeleton.Class("h-64 w-full");
+```
+
+**A link navigates in-app with `data-rask-nav`.** Without it an `<a>` inside an island is a full page
+load:
+
+```tsx
+<a href="/orders">Orders</a>                  // reloads the document
+<a href="/orders" data-rask-nav>Orders</a>    // swaps the page, like NavLink
+```
+
+**A page a crawler must read needs real markup in the first response.** A JavaScript island has none
+of its own, so give `Loading` the content rather than a skeleton, write the page in Rask, or use a
+[Blazor island](blazor-components.md), which *is* rendered on the server.
 
 ## Children
 

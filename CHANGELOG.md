@@ -1056,6 +1056,13 @@ them until tagged releases begin.
   take the step. **A package island whose package has its own `loading` prop now gets it as
   `LoadingProp`**, the way `key` is `KeyProp`.
 
+- **rask.sh shows an island as a whole page, and the guides say how.** `/docs/islands/report` is a route
+  a React component owns outright (`ReactReport : ReactComponent` carries the `[Route]`): its title comes
+  from `HeadAssets`, a `Ui.Skeleton` stands in the first response, and its `<a data-rask-nav>` goes back
+  without a reload. `docs/islands.md` gains "An island as a whole page", and `docs/blazor-components.md`
+  says a Blazor island can be the routed page — the choice for one a crawler must read, since it is
+  rendered on the server.
+
 - **A Blazor island needs no `AddRaskBlazor()` call, and its `NavigationManager` is Rask's routing.**
   Referencing `Rask.Blazor` is the whole setup — which is what `rask new --islands blazor` always
   scaffolded, so a hosted component that injected `NavigationManager` failed there with Blazor's own
