@@ -99,7 +99,7 @@ updates:
         patterns:
           - "*"
 
-  # GitHub Actions used by commitlint.yml / release.yml / nightly.yml / pages.yml / lts-watch.yml
+  # GitHub Actions used by commitlint.yml / release.yml / nightly.yml / pages.yml / upstream.yml
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

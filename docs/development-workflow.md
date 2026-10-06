@@ -191,8 +191,13 @@ did not pass. `release.yml`'s `publish` job needs its `gates` job (both sets). A
 - `nightly.yml` — prerelease publish from a commit `ci` passed.
 - `pages.yml` — rask.sh, from a commit `ci` passed.
 - `release.yml` — tag-triggered: every gate, then the stable publish.
-- `lts-watch.yml` — monthly; opens an issue when Node's Active LTS line moves past the one the repo
-  states. Not a gate: it cannot go red on a branch and blocks nothing.
+- `upstream.yml` — daily; follows what Rask is generated from. `scripts/upstream/follow.sh` moves the
+  MDN snapshot to the latest stable data, records the public surface that moved with it
+  (`scripts/public-api/record.py`) and moves the stated Node line to the Active LTS; the result is
+  gated and THEN landed on `main`, with nobody watching. It opens an issue only when it needs a
+  person: the gates refused what upstream shipped, or Flux UI moved.
+- `dependabot-merge.yml` — merges a Dependabot pull request once `ci` has passed it. What must not
+  move on its own is in `.github/dependabot.yml`'s ignore lists.
 
 ### The gate scripts
 
@@ -389,8 +394,8 @@ every pull request — so the gate that runs for a version bump is the one that 
 
 **Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node
 line elsewhere — the `22.12` build-floor figures quoted in `docs/islands.md`, and the codename in `NodeRequirement`'s own doc comment — are
-still only prose. `lts-watch.yml`'s issue lists the files to change; treat that list, not this table, as
-the checklist when the line moves.
+still only prose. `scripts/upstream/node-lts.sh` rewrites the stated line and the codename when the Active
+LTS moves, and `upstream.yml` lands it; the build floor is deliberately left alone.
 
 **Landing a Dependabot PR.** `ci.yml` runs the push set on the pull request, but `main` has no
 required checks, so a red run does not disable the merge button: read the run first. Then land it
