@@ -922,6 +922,10 @@ them until tagged releases begin.
 
 ### Security
 
+- **A freshly scaffolded Solid island passes `npm audit`.** `rask new --islands solid` wrote `solid-js`
+  `^1.9.15`, whose pinned `seroval` carries two critical advisories. An island fragment can now declare npm
+  `overrides`, which the CLI merges into the app's `package.json`, and Solid's takes `seroval` and
+  `seroval-plugins` to `^1.6.8`. An app scaffolded earlier adds the same two lines by hand.
 - **A hosted Blazor component's `<iframe src>` or `<embed src>` no longer accepts an inline image URL.** The
   island writer chose the media exemption by attribute name, so `src` and `poster` let `data:image/svg+xml`
   through on every element, where a frame renders it as a document. The exemption now follows the element,

@@ -106,6 +106,24 @@ public sealed class IslandScaffoldTests
     }
 
     [Fact]
+    public void A_runtimes_overrides_reach_the_manifest_and_only_with_that_runtime()
+    {
+        // solid-js pins a seroval `npm audit` reports critical; the fragment forces the fixed line, or
+        // a freshly scaffolded app fails its first audit (#1179).
+        using var solid = JsonDocument.Parse(Manifest(Scaffold("solid")));
+        using var react = JsonDocument.Parse(Manifest(Scaffold("react")));
+
+        var overrides = solid.RootElement.GetProperty("overrides");
+
+        Assert.Equal("^1.6.8", overrides.GetProperty("seroval").GetString());
+        Assert.Equal("^1.6.8", overrides.GetProperty("seroval-plugins").GetString());
+        Assert.False(react.RootElement.TryGetProperty("overrides", out _));
+
+        static string Manifest(IReadOnlyList<ScaffoldFile> files) => files.Single(f =>
+            string.Equals(Path.GetFileName(f.Path), "package.json", StringComparison.Ordinal)).Content;
+    }
+
+    [Fact]
     public void Blazor_alone_needs_no_node()
     {
         // The one island kind with no npm side: the Razor SDK compiles the .razor and Rask renders it
