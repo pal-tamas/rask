@@ -67,7 +67,8 @@ public sealed class SyncExternalPropsSnapshotsTask : Task
             Log.LogError(
                 subcategory: null, errorCode: ExternalDiagnosticCodes.ExtractionFailed, helpKeyword: null,
                 file: null, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
-                message: "Rask.External: the props extractor wrote no result — its output above says why.");
+                message: "Rask islands: the props extractor wrote no result — its output above says why. Fix what it "
+                         + "reports (most often a package missing from node_modules: run npm install), then build again.");
             return false;
         }
 
@@ -75,50 +76,59 @@ public sealed class SyncExternalPropsSnapshotsTask : Task
 
         foreach (var island in Islands)
         {
-            var name = island.GetMetadata("IslandName");
-            var file = island.GetMetadata("DeclaringFile");
-            var line = int.TryParse(island.GetMetadata("ModuleLine"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
-
-            if (!results.TryGetValue(name, out var result))
-            {
-                Error(ExternalDiagnosticCodes.ExtractionFailed, file, line,
-                    $"Rask.External: the props extractor did not report on '{name}' — rebuild; if it persists, please report it.");
-                continue;
-            }
-
-            if (!result.Ok)
-            {
-                Error(ExternalDiagnosticCodes.ExtractionFailed, file, line,
-                    $"Rask.External: the props of '{name}' could not be read from its package ({result.Code}): {result.Message}");
-                continue;
-            }
-
-            var extractedPath = Path.Combine(OutputDirectory, name + ".props.json");
-            var extracted = File.ReadAllText(extractedPath);
-            var snapshotPath = island.ItemSpec;
-            var committed = File.Exists(snapshotPath) ? File.ReadAllText(snapshotPath) : null;
-
-            if (string.Equals(Normalize(committed), extracted, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            var change = Describe(committed, extracted);
-            if (Locked)
-            {
-                Error(ExternalDiagnosticCodes.SnapshotDrift, file, line,
-                    $"Rask.External: {Path.GetFileName(snapshotPath)} is out of date ({change}) and this build is locked "
-                    + "(RaskExternalPropsLocked) — build once without it and commit the refreshed file.");
-                continue;
-            }
-
-            File.WriteAllText(snapshotPath, extracted, new UTF8Encoding(false));
-            Log.LogMessage(
-                MessageImportance.High,
-                $"Rask.External: {(committed is null ? "wrote" : "refreshed")} {Path.GetFileName(snapshotPath)} ({change}) — commit it.");
+            Sync(island, results);
         }
 
         return !Log.HasLoggedErrors;
+    }
+
+    /// <summary>Brings one island's committed snapshot in line with what the extractor read, or says why it cannot.</summary>
+    private void Sync(ITaskItem island, Dictionary<string, (bool Ok, string Code, string Message)> results)
+    {
+        var name = island.GetMetadata("IslandName");
+        var file = island.GetMetadata("DeclaringFile");
+        var line = int.TryParse(island.GetMetadata("ModuleLine"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
+
+        if (!results.TryGetValue(name, out var result))
+        {
+            Error(ExternalDiagnosticCodes.ExtractionFailed, file, line,
+                $"Rask islands: the props extractor did not report on '{name}' — rebuild the project "
+                + "(dotnet build --no-incremental); if it persists, please report it.");
+            return;
+        }
+
+        if (!result.Ok)
+        {
+            Error(ExternalDiagnosticCodes.ExtractionFailed, file, line,
+                $"Rask islands: the props of '{name}' could not be read from its package ({result.Code}): {result.Message} "
+                + "Check that the package is installed (npm install) and that Module and Export name a component "
+                + "it exports, then build again.");
+            return;
+        }
+
+        var extractedPath = Path.Combine(OutputDirectory, name + ".props.json");
+        var extracted = File.ReadAllText(extractedPath);
+        var snapshotPath = island.ItemSpec;
+        var committed = File.Exists(snapshotPath) ? File.ReadAllText(snapshotPath) : null;
+
+        if (string.Equals(Normalize(committed), extracted, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var change = Describe(committed, extracted);
+        if (Locked)
+        {
+            Error(ExternalDiagnosticCodes.SnapshotDrift, file, line,
+                $"Rask islands: {Path.GetFileName(snapshotPath)} is out of date ({change}) and this build is locked "
+                + "(RaskExternalPropsLocked) — build once without it and commit the refreshed file.");
+            return;
+        }
+
+        File.WriteAllText(snapshotPath, extracted, new UTF8Encoding(false));
+        Log.LogMessage(
+            MessageImportance.High,
+            $"Rask islands: {(committed is null ? "wrote" : "refreshed")} {Path.GetFileName(snapshotPath)} ({change}) — commit it.");
     }
 
     /// <summary>The extractor's per-island verdicts, keyed by island name.</summary>

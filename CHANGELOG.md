@@ -1244,6 +1244,25 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Islands: every build error has a code and names its fix.** Nine failures of the islands build were logged
+  with no code, so they could not be looked up, demoted or searched for; they are `RASKISLAND011`–`018` now —
+  two files registering one island name (011), an unknown runtime (012), a `RaskExternalDevServerUrl` that is
+  not an origin (013), React beside Preact (014), two runtimes sharing a folder tree (015), a package island
+  whose plugin cannot be scoped (016), unreadable prop types (017) and unreadable declared runtimes (018, a
+  warning). `RASKISLAND007` and `RASKISLAND010` now say how to refresh a snapshot (`npm install`, `dotnet build`,
+  commit the file), every message from the build tasks starts `Rask islands:`, and `docs/diagnostics.md` has an
+  entry per code, 001–018. In the browser, an Angular island that fails to bootstrap is reported like any other
+  mount failure — `Rask islands: 'Name' failed to mount`, and to Rask DevTools — and a callback sent for an
+  output the component does not declare warns once, by name, instead of never firing.
+
+- **Blazor: `[BlazorParameter("X")]` naming a parameter the hosted component does not declare is a compile
+  error (`RASK100`).** It was accepted silently: the property stayed a chain step, and nothing passed its value
+  on.
+  ```csharp
+  [BlazorParameter("ChartSeris")]                  // was: compiles, Series is never set on MudChart
+  public List<ChartSeries>? Series { get; set; }   // now: RASK100 — 'MudChart' declares no [Parameter] of that name
+  ```
+
 - **WASM: an island pressed before the app has booted is no longer a click that did nothing.** A
   prerendered page mounts its islands from the served HTML, so they are interactive seconds before
   .NET exists, and a callback fired in that window was dropped with `send: dotnetExports not set` —

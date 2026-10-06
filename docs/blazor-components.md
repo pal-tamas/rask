@@ -159,7 +159,9 @@ public sealed partial class Chart : BlazorComponent<MudChart>
 }
 ```
 
-A property you declare yourself always wins over the generated one.
+A property you declare yourself always wins over the generated one. The name is checked: one the hosted
+component does not declare as a `[Parameter]` is a compile error ([RASK100](diagnostics.md#rask100)) rather
+than a chain step that sets nothing.
 
 ### Where the `.razor` has to live
 
