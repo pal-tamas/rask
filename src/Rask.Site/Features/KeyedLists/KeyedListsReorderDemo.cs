@@ -31,7 +31,7 @@ public sealed partial class KeyedListsReorderDemo : Component
                     .OnClick(() => _useKeys = !_useKeys)[Ui.Icon.Name(Ui.IconName.Key), _useKeys ? "Keys: ON" : "Keys: OFF"],
                 Span.Class("vr mx-1"),
                 Ui.Button.Primary.Outline.Id("kl-rotate").OnClick(Rotate)[Ui.Icon.Name(Ui.IconName.ArrowsUpDown), "Rotate"],
-                Ui.Button.Primary.Outline.Id("kl-reverse").OnClick(Reverse)[Ui.Icon.Name(Ui.IconName.Retry), "Reverse"],
+                Ui.Button.Primary.Outline.Id("kl-reverse").OnClick(Reverse)[Ui.Icon.Name(Ui.IconName.ArrowPath), "Reverse"],
                 Ui.Button.Primary.Outline.Id("kl-add").OnClick(AddTop)[Ui.Icon.Name(Ui.IconName.Plus), "Add to top"],
                 Ui.Button.Error.Outline
                     .Id("kl-remove")

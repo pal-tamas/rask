@@ -157,7 +157,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
                     .Class("shrink-0 opacity-60 hover:opacity-100")
                     .Aria("label", "Clear " + (Label ?? AccessibleLabel ?? "field"))
                     .OnClick(ClearAsync)[
-                    Ui.Icon.Name(Ui.IconName.Close).Class("size-4")
+                    Ui.Icon.Name(Ui.IconName.XMark).Class("size-4")
                 ]
                 : null,
             IconTrailing is { } trailing ? Ui.Icon.Name(trailing).Class("size-4 shrink-0 opacity-60") : null

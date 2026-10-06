@@ -98,8 +98,8 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         // A square holds one glyph, so its name cannot be visible text. It still has to be SOMEWHERE: a
         // button whose only content is a decorative icon is announced as "button", with no clue what it does.
         var html = shape == "btn-square"
-            ? Ui.Button.AccessibleLabel("Close").Square(true)[Ui.Icon.Name(Ui.IconName.Close)].ToHtml()
-            : Ui.Button.AccessibleLabel("Close").Circle(true)[Ui.Icon.Name(Ui.IconName.Close)].ToHtml();
+            ? Ui.Button.AccessibleLabel("Close").Square(true)[Ui.Icon.Name(Ui.IconName.XMark)].ToHtml()
+            : Ui.Button.AccessibleLabel("Close").Circle(true)[Ui.Icon.Name(Ui.IconName.XMark)].ToHtml();
 
         Assert.Contains(shape, html);
         Assert.Contains("aria-label=\"Close\"", html);
@@ -108,7 +108,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_aria_label_the_call_site_wrote_wins_over_the_accessible_label_and_is_written_once()
     {
-        var html = Ui.Button.AccessibleLabel("Close").Aria(("label", "Close the dialog"))[Ui.Icon.Name(Ui.IconName.Close)]
+        var html = Ui.Button.AccessibleLabel("Close").Aria(("label", "Close the dialog"))[Ui.Icon.Name(Ui.IconName.XMark)]
             .ToHtml();
 
         Assert.Contains("aria-label=\"Close the dialog\"", html);
@@ -118,7 +118,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_accessible_label_keeps_the_call_sites_other_aria()
     {
-        var html = Ui.Button.AccessibleLabel("Menu").Aria(("expanded", "false"))[Ui.Icon.Name(Ui.IconName.Menu)].ToHtml();
+        var html = Ui.Button.AccessibleLabel("Menu").Aria(("expanded", "false"))[Ui.Icon.Name(Ui.IconName.Bars3)].ToHtml();
 
         Assert.Contains("aria-label=\"Menu\"", html);
         Assert.Contains("aria-expanded=\"false\"", html);
@@ -140,10 +140,33 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     public void The_kit_stylesheet_sizes_an_icon_nobody_sized_by_the_button_it_sits_in()
     {
         // The icon is a child now, so the kit does not build it and cannot hand it `size-4` as the Icon
-        // prop did. The compiled sheet has to carry the rule, keyed to Ui.Icon's DEFAULT pair so an icon a
-        // call site sized on purpose is left alone.
-        Assert.Matches(new Regex(@"\.btn\s*>\s*svg\.size-5\.shrink-0\s*\{[^}]*width:\s*1rem"), UiStylesheet.Css);
-        Assert.Matches(new Regex(@"\.badge\s*>\s*svg\.size-5\.shrink-0\s*\{[^}]*width:\s*1em"), UiStylesheet.Css);
+        // prop did. The compiled sheet has to carry the rule, keyed to an icon whose call site wrote no
+        // size after Ui.Icon's own classes, so one sized on purpose is left alone.
+        const string unsized = @"svg\[data-ui-icon\]:not\(\[class\*=\\ size-\],\[class\*=\\ w-\],\[class\*=\\ h-\]\)";
+
+        Assert.Matches(new Regex(@"\.btn>" + unsized + @"[^{]*\{width:1rem"), UiStylesheet.Css);
+        Assert.Matches(new Regex(@"\.badge>" + unsized + @"[^{]*\{width:1em"), UiStylesheet.Css);
+        Assert.Matches(new Regex(@"\.alert>" + unsized + @"\{width:1\.25rem"), UiStylesheet.Css);
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("me-1", true)]
+    [InlineData("text-ui-muted opacity-60", true)]
+    [InlineData("size-4", false)]
+    [InlineData("me-1 size-3.5", false)]
+    [InlineData("h-4 w-4", false)]
+    public void An_icon_counts_as_unsized_exactly_when_its_call_site_named_no_size(string? extra, bool unsized)
+    {
+        // The stylesheet rule above reads the class attribute, so what it reads is pinned here: a size
+        // from the call site always follows a space, and Ui.Icon's own default never does.
+        var classes = Regex.Match(Ui.Icon.Name(Ui.IconName.Check).Class(extra).ToHtml(), "class=\"([^\"]*)\"").Groups[1].Value;
+
+        var sized = classes.Contains(" size-", StringComparison.Ordinal)
+            || classes.Contains(" w-", StringComparison.Ordinal)
+            || classes.Contains(" h-", StringComparison.Ordinal);
+
+        Assert.Equal(unsized, !sized);
     }
 
     [Fact]
@@ -211,7 +234,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
             .Href("/install")
             .Tone(Ui.Tone.Primary)
             .Variant(Ui.Variant.Outline)
-            .Size(Ui.Size.Sm)[Ui.Icon.Name(Ui.IconName.Download), "Install"]
+            .Size(Ui.Size.Sm)[Ui.Icon.Name(Ui.IconName.ArrowDownTray), "Install"]
             .ToHtml();
 
         Assert.StartsWith("<a class=\"btn btn-primary btn-outline btn-sm\"", html, StringComparison.Ordinal);
@@ -340,6 +363,6 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     public void An_icon_only_anchor_still_has_an_accessible_name() =>
         Assert.Contains(
             "aria-label=\"Settings\"",
-            Ui.Button.Href("/settings").AccessibleLabel("Settings").Square(true)[Ui.Icon.Name(Ui.IconName.Gear)].ToHtml(),
+            Ui.Button.Href("/settings").AccessibleLabel("Settings").Square(true)[Ui.Icon.Name(Ui.IconName.Cog6Tooth)].ToHtml(),
             StringComparison.Ordinal);
 }

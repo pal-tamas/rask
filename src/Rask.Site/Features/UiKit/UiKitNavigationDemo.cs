@@ -80,7 +80,7 @@ public sealed partial class UiKitNavigationDemo : Component
             Div.Data(Testid("ui-tab-group"))[
                 Ui.TabGroup.Selected(_pane).OnSelect(p => { _pane = p; })[
                     Ui.Tabs.Key("row").Style(Ui.TabStyle.Border)[
-                        Ui.Tab.Key("t1").Label("Details").Name("details").Icon(Ui.IconName.Book),
+                        Ui.Tab.Key("t1").Label("Details").Name("details").Icon(Ui.IconName.BookOpen),
                         Ui.Tab.Key("t2").Label("History").Name("history").Icon(Ui.IconName.Clock).Count("4"),
                         Ui.Tab.Key("t3").Label("Danger").Name("danger").Disabled()
                     ],

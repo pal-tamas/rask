@@ -124,7 +124,7 @@ public sealed partial class UiFileInput : UiFormField<string>
                       + "has-[:focus-visible]:outline-primary data-[dragging]:border-primary "
                       + "data-[dragging]:bg-primary/5",
                 Class))[
-            Ui.Icon.Name(Ui.IconName.Upload).Class("mb-1 size-8 text-ui-muted"),
+            Ui.Icon.Name(Ui.IconName.ArrowUpTray).Class("mb-1 size-8 text-ui-muted"),
             P.Class("text-sm font-medium")[Title ?? Label ?? AccessibleLabel, BadgeFor()],
             Text is null
                 ? null
