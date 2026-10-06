@@ -31,7 +31,8 @@ public sealed partial class UiToast : Component
     /// <summary>A stronger first line above the message — what happened, with the message saying more.</summary>
     public new string? Title { get; set; }
 
-    /// <summary><see cref="Ui.Tone.Error" /> when the action failed. Anything else reads as done.</summary>
+    /// <summary><see cref="Ui.Tone.Error" /> when the action failed, <see cref="Ui.Tone.Warning" /> when it
+    /// needs a second look. Anything else reads as done.</summary>
     public Ui.Tone? Tone { get; set; }
 
     /// <summary>Runs when the reader acknowledges it. Without one the toast has no dismiss button.</summary>
@@ -77,6 +78,7 @@ public sealed partial class UiToast : Component
     protected override Component? Render()
     {
         var stacked = Context.Has<UiToastStack>();
+        var problem = Tone is Ui.Tone.Error or Ui.Tone.Warning;
 
         var toast = Div
             // A failure is the one outcome worth interrupting for: the reader is usually about to act on the
@@ -102,8 +104,8 @@ public sealed partial class UiToast : Component
             // ui-danger on this ground is the low-contrast one. The icon shape (Warning vs Check) is what
             // actually carries the outcome; the colour only reinforces it.
             Ui.Icon
-                .Name(Tone == Ui.Tone.Error ? Ui.IconName.Warning : Ui.IconName.Check)
-                .Class($"size-5 shrink-0 {(Tone == Ui.Tone.Error ? "text-warning" : "text-success")}"),
+                .Name(problem ? Ui.IconName.Warning : Ui.IconName.Check)
+                .Class($"size-5 shrink-0 {(problem ? "text-warning" : "text-success")}"),
             Title is { Length: > 0 } heading
                 ? Div.Class("flex min-w-0 grow flex-col gap-0.5")[
                     Span.Class("font-medium")[heading],

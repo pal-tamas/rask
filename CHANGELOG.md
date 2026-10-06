@@ -1244,8 +1244,33 @@ them until tagged releases begin.
   (`Rask.Cqrs.Generators`, `Rask.Data.Generators`, …); its types are now in `Rask.Batteries.Generators` (and
   `.Analyzers`), matching the project. Nothing an app names changes.
 
+### Changed
+
+- **Rask UI is moving from daisyUI to Flux UI, one component at a time.** The kit will mirror
+  [Flux UI](https://fluxui.dev) — its components, its names, its props, and its look and behaviour exactly —
+  and daisyUI goes when the last component drawn with it does. This first step is the ground it stands on,
+  and changes nothing an app draws: Flux's theme model sits in the kit's stylesheet beside daisyUI's (an
+  accent of three variables over Tailwind's `zinc` scale, and a `dark:` variant that follows a `dark` class
+  as well as whatever daisyUI currently calls dark), and the tooling that keeps the kit honest is in
+  `scripts/flux/`: `refresh.mjs` reads Flux's docs into a snapshot of every component, prop and value,
+  `parity.mjs` measures a Rask component against Flux's live examples — boxes, colours, borders, shadows,
+  hover, press and focus, in light and dark — and `sync.mjs` reports when Flux itself has moved. Written from
+  Flux's public documentation; none of Flux's source is used.
+
 ### Fixed
 
+- **UI kit: status text is readable on every theme, and `Ui.Card.Size` does something.** `Ui.Text.Tone(…)`
+  and the tones on `Ui.Stat`, `Ui.Metric`, `Ui.DetailRow`, `Ui.Code`, `Ui.MenuItem`, an alarming `Ui.Tab`
+  count and an accented `Ui.Heading` wrote daisyUI's status colours as text, which fail WCAG AA on most
+  palettes; they now use the kit's measured `-ink` tokens, and a test keeps the raw spelling out.
+  `Ui.Card.Size` wrote a daisyUI class the kit's card never reacted to; it is now the card's padding, with
+  `Md` equal to an unsized card:
+  ```csharp
+  Ui.Card.Sm[…]   // was identical to Ui.Card[…]; now p-3 sm:p-4
+  ```
+  Also: the `Buttons` choice layout has its corner radius back (`rounded-btn` is not a daisyUI 5 class), a
+  `Ui.Tone.Warning` toast shows the warning icon instead of a green check, and `dotnet pack` takes the
+  kit's stylesheet from a target framework the project builds rather than whichever `obj/*/` sorts last.
 - **Docs, rask.sh and the package pages describe the framework as it is now.** A sweep of everything the
   recent removals left behind. `llms.txt` no longer describes a wizard with styling, auth and battery
   questions, front-end and meta-framework templates, opt-in `--pwa`/`--docker` flags, a `Rask`
