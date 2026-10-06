@@ -22,7 +22,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         foreach (var id in new[]
                  {
-                     "ui-drawer", "ui-layout-rest", "ui-typography", "ui-layout-mask", "ui-mockups",
+                     "ui-drawer", "ui-separator", "ui-layout-rest", "ui-typography", "ui-layout-mask", "ui-mockups",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -54,8 +54,8 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Sign in" }).BoundingBoxAsync();
         Assert.True(row!.X + row.Width - (signIn!.X + signIn.Width) < 16, "the spacer did not push the last button to the end.");
 
-        // The separator has no margin of its own — daisyUI's 1rem is zeroed.
-        var margin = await scope.Locator(".divider").Last.EvaluateAsync<string>("d => getComputedStyle(d).marginTop");
+        // The separator has no margin of its own: the page spaces it.
+        var margin = await scope.Locator("[data-ui-separator]").Last.EvaluateAsync<string>("d => getComputedStyle(d).marginTop");
         Assert.Equal("0px", margin);
     });
 

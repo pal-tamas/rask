@@ -15,10 +15,10 @@ public sealed class FluxParityPages
 {
     // What Tailwind's preflight gives every app the kit is used in; the kit ships none of its own. In
     // `@layer base`, where preflight is: unlayered, `*{margin:0;padding:0}` would beat every utility the kit
-    // writes. The border colour and the text colour are what Flux's docs page sets around an example.
+    // writes. What the DOCS page hands an example by inheritance (ink, font, line height) is not here:
+    // parity.mjs copies it from each example's Flux twin before measuring.
     private const string Reset =
-        "@layer base{*,::before,::after{box-sizing:border-box;border:0 solid oklch(0.928 0.006 264.531);margin:0;padding:0}"
-        + "[data-preview-wrapper]{color:#000}.dark [data-preview-wrapper]{color:#fff}"
+        "@layer base{*,::before,::after{box-sizing:border-box;border:0 solid;margin:0;padding:0}"
         + "html{line-height:1.5;-webkit-text-size-adjust:100%;font-family:Inter,sans-serif}"
         + "button,input,select,textarea{font:inherit;letter-spacing:inherit;color:inherit;background:transparent;border-radius:0}"
         + "a{color:inherit;text-decoration:inherit}svg,img{display:block;vertical-align:middle}"

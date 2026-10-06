@@ -148,6 +148,17 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Divider` is gone; `Ui.Separator` replaces it, drawn as Flux UI draws its separator.** Flux's
+  props and nothing else — `Vertical`, `Variant` (`Ui.SeparatorVariant.Subtle`), `Text`, `Orientation` — a 1px
+  zinc line in light and dark with no daisyUI class behind it, `role="none"` and `data-ui-separator` on the
+  root. `Tone` and `Align` have no Flux counterpart and went with the divider: the word sits in the middle.
+  ```csharp
+  Ui.Divider.Text("or")                          // before
+  Ui.Divider.Vertical().Subtle().Class("my-1")
+  Ui.Separator.Text("or")                        // now
+  Ui.Separator.Vertical().Subtle.Class("my-1")
+  ```
+
 - **Tooling: `scripts/tools/RaskRename` renames a public member across the solution in one pass.**
   `dotnet run --project scripts/tools/RaskRename -- Rask.Wasm.WasmHostBuilder.RunAsync Run [--dry-run]` is a
   Roslyn symbol rename over `Rask.slnx` (about half a minute), followed by a sweep of the templates, docs

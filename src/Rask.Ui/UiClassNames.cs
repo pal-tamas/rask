@@ -500,19 +500,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string DividerTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "divider-neutral",
-        Ui.Tone.Primary => "divider-primary",
-        Ui.Tone.Secondary => "divider-secondary",
-        Ui.Tone.Accent => "divider-accent",
-        Ui.Tone.Info => "divider-info",
-        Ui.Tone.Success => "divider-success",
-        Ui.Tone.Warning => "divider-warning",
-        Ui.Tone.Error => "divider-error",
-        _ => "",
-    };
-
     internal static string DockSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "dock-xs",
@@ -695,19 +682,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    /// <summary>Where a divider's words sit along its line.</summary>
-    /// <remarks>
-    ///     A drawer opens from the left or the right edge, and daisyUI's one class for it is <c>drawer-end</c>,
-    ///     so only <see cref="Ui.Position.Right" /> writes anything.
-    /// </remarks>
-    /// <remarks>daisyUI hides one side of a divider's line with these, so its words sit at that edge.</remarks>
-    internal static string DividerAlign(Ui.Align value) => value switch
-    {
-        Ui.Align.Start => "divider-start",
-        Ui.Align.End => "divider-end",
-        _ => "",
-    };
-
     /// <summary>The classes that keep a sidebar in the page's flow from a breakpoint up.</summary>
     /// <remarks>
     ///     The width from which a sidebar sits in the page's flow instead of sliding over it. Every member a complete
@@ -791,6 +765,11 @@ internal static class UiClassNames
         _ => null,
     };
 
+    /// <summary>The edge a drawer opens from.</summary>
+    /// <remarks>
+    ///     A drawer opens from the left or the right edge, and daisyUI's one class for it is <c>drawer-end</c>,
+    ///     so only <see cref="Ui.Position.Right" /> writes anything.
+    /// </remarks>
     internal static string DrawerPosition(Ui.Position value) => value switch
     {
         Ui.Position.Right => "drawer-end",
