@@ -74,6 +74,7 @@ expect_has   "a devtools fixture reaches the devtools journeys"    devtools  tes
 
 # The byte and allocation budgets follow what they measure.
 expect_has   "the core reaches the benchmark budgets"              bench     src/Rask.Core/Component.cs
+expect_has   "the browser runtime's bundle is one of them"          bench     src/Rask.Wasm/Browser/rask.wasm.ts
 expect_lacks "a site page does not reach them"                     bench     src/Rask.Site/Program.cs
 
 # The CLI gates are selected by file, not by the graph (affected_gates.py says why): the graph would

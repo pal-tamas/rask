@@ -43,7 +43,9 @@ PROJECT_GATES = {
     "devtools": ("tests/Rask.DevTools.E2E.Tests/", "tests/Rask.DevTools.Fixture.Wasm/", "tests/Rask.DevTools.Fixture.Server/"),
     "sqlite": ("tests/Rask.SQLite.Browser.E2E.Tests/", "tests/Rask.SQLite.Browser.Fixture.Wasm/"),
     "datademo": ("src/Rask.Site.DataDemo/", "tests/Rask.Site.DataDemo.E2E.Tests/"),
-    "bench": ("tests/Rask.Benchmarks/", "tests/Rask.Benchmarks.VsBlazor/"),
+    # src/Rask.Wasm: ClientBundleSizeReport measures src/Rask.Wasm/Browser/rask.wasm.js, and neither
+    # benchmark project references Rask.Wasm — the gate script builds it itself.
+    "bench": ("tests/Rask.Benchmarks/", "tests/Rask.Benchmarks.VsBlazor/", "src/Rask.Wasm/"),
 }
 
 # The CLI build and template gates are selected by the FILES that changed, not by the projects reached,
