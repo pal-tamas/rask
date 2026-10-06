@@ -116,7 +116,7 @@ internal sealed partial class DevToolsTreeTab : Component
                         .Class(_picking ? "btn-active" : null)
                         .Title(_picking ? "Click something on the page, or press Esc" : "Pick something on the page")
                         .Aria("pressed", _picking ? "true" : "false")
-                        .OnClick(() => _picking = !_picking)[Ui.Icon.Name(Ui.IconName.Cursor), "Pick"],
+                        .OnClick(() => _picking = !_picking)[Ui.Icon.Name(Ui.IconName.CursorArrowRays), "Pick"],
                     Ui.Toggle.Value(_showTags).Size(Ui.Size.Sm).OnChange(v => _showTags = v)["Show HTML tags"]
                 ]
             ],

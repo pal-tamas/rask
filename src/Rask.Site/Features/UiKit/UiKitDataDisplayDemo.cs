@@ -128,7 +128,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
                     Ui.Card
                         .Key("queue")
                         .Href(PageMeta.LinkTo(Routes.UiKitDataGridPage()))
-                        .Icon(Ui.IconName.Gear)
+                        .Icon(Ui.IconName.Cog6Tooth)
                         .Title("Jobs")
                         .Action(Ui.StatusDot.Label("2 failed").Error)[
                         Ui.MetricRow.Columns(2)[
