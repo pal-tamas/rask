@@ -18,6 +18,7 @@ Rask.Signaling.RaskSignalingOptions.MaxRooms.set -> void
 Rask.Signaling.RaskSignalingOptions.Path.get -> string!
 Rask.Signaling.RaskSignalingOptions.Path.set -> void
 Rask.Signaling.RaskSignalingOptions.RaskSignalingOptions() -> void
+Rask.Signaling.RaskSignalingOptions.AllowedOrigins.get -> System.Collections.Generic.IList<string!>!
 Rask.Signaling.RaskSignalingOptions.RequireAuthorization.get -> bool
 Rask.Signaling.RaskSignalingOptions.RequireAuthorization.set -> void
 Rask.Signaling.SignalingJoinContext

@@ -32,6 +32,9 @@ It is a relay between untrusted peers, so:
 - **Payload size, message rate, room size and room count are capped.**
 - **Authentication is required by default** — a relay anyone can join is a way to reach other people's
   browsers, so opening it should be a decision, not an accident.
+- **The socket opens for the host's own pages only.** An upgrade from another origin answers 403, so
+  another site cannot join a room with the visitor's cookie; `Rask:Signaling:AllowedOrigins` names the
+  app when the relay runs on a different host.
 - **A refused join says the same thing whether the room was full or you weren't allowed in**, so a caller
   can't probe which rooms exist.
 

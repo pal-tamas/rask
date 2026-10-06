@@ -922,6 +922,12 @@ them until tagged releases begin.
 
 ### Security
 
+- **The signaling relay refuses a WebSocket upgrade from another origin.** `MapRaskSignaling()` accepted the
+  upgrade without looking at `Origin`, and the endpoint is cookie-authenticated, so a page on a site the
+  browser still sends the cookie for could join a room as the signed-in visitor and read the peers' SDP and
+  ICE candidates. An upgrade whose `Origin` is not the host's own now answers 403; a client that sends no
+  `Origin` is unaffected. **A relay mapped on a different host from the app** lists the app in
+  `Rask:Signaling:AllowedOrigins`. The check is the live endpoint's, now shared through `Rask.Hosting.Shared`.
 - **The WASM service worker no longer keeps a signed-in visitor's responses after they sign out.** It stored
   every successful same-origin GET, ignoring `Cache-Control`, so `/api/…` answers stayed in Cache Storage and
   were replayed offline to whoever used the browser next. It now keeps the app shell only — navigations,

@@ -3155,37 +3155,11 @@ public static partial class RaskEndpointExtensions
     }
 
     // True when the request carries no Origin/Referer (same-origin fetches may omit Origin — the
-    // ticket secrecy covers those) or one whose host matches the request's own host.
-    //
-    // We compare host only — NOT scheme/port. Behind a TLS-terminating reverse proxy the browser's
-    // Origin is https://app (:443) while request.Scheme/Host can be http (:80) unless ForwardedHeaders
-    // is wired, so a scheme/port match would 403 a legitimate sign-in. Host is the CSRF-relevant axis
-    // and the single-use session-bound ticket is the real authority (see RedeemAuthTicketAsync), so a
-    // host-only check is the right belt-and-braces.
-    internal static bool IsSameOrigin(HttpRequest request)
-    {
-        var origin = request.Headers.Origin.ToString();
-        if (string.IsNullOrEmpty(origin))
-        {
-            var referer = request.Headers.Referer.ToString();
-            if (string.IsNullOrEmpty(referer))
-            {
-                return true;
-            }
-
-            origin = referer;
-        }
-
-        if (!Uri.TryCreate(origin, UriKind.Absolute, out var originUri))
-        {
-            return false;
-        }
-
-        // request.Host.Host is the host without the port (empty if the Host header is missing/malformed).
-        var selfHost = request.Host.Host;
-        return !string.IsNullOrEmpty(selfHost)
-               && string.Equals(originUri.Host, selfHost, StringComparison.OrdinalIgnoreCase);
-    }
+    // ticket secrecy covers those) or one whose host matches the request's own host. Host only, for the
+    // reason SameOrigin gives; here the single-use session-bound ticket is the real authority (see
+    // RedeemAuthTicketAsync), so a host-only check is the right belt-and-braces. The rule itself is
+    // shared with Rask.Signaling, which cannot reference this assembly.
+    internal static bool IsSameOrigin(HttpRequest request) => SameOrigin.Allows(request);
 
     // Binds an id-addressed endpoint (upload / download) to the principal that owns the live
     // session. The {sessionId} in the URL is the only thing tying the request to a session, so a

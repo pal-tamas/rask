@@ -133,7 +133,7 @@ A few things to know:
 | `Rask:DataProtection:KeyPath` | — | `Rask.Server` | Where the key ring persists. See [deployment](deployment.md#your-users-stay-signed-in-across-a-deploy). |
 | `Rask:Auth` | `AuthOptions` | `Rask.Auth` | `Bearer`, `BearerSigningKey`, `BearerLifetime`, `FirstRunToken`, `CookieName`, the page paths, password and lockout rules. Keep `BearerSigningKey` in user secrets or the environment. See [authentication](authentication.md). |
 | `Rask:Api` | `ApiOptions` | `Rask.Api` | `NotFound`, `Controllers`. |
-| `Rask:Signaling` | `RaskSignalingOptions` | `Rask.Signaling` | `Path`, `RequireAuthorization` and the relay limits. `AuthorizeRoom` is code-only. |
+| `Rask:Signaling` | `RaskSignalingOptions` | `Rask.Signaling` | `Path`, `RequireAuthorization`, `AllowedOrigins` (other origins whose pages may connect; the host's own always may) and the relay limits. `AuthorizeRoom` is code-only. |
 | `Rask:Ops` | `RaskDashboardOptions` | `Rask.Dashboard` | Includes `AllowAnonymousAccess` — see [below](#guard-the-environment-like-code). See [dashboard](dashboard.md). |
 | `Rask:Spa` | `SpaHostingOptions` | `Rask.Spa.Hosting` | Read when `MapRaskSpa` maps the app. `ImmutablePathPrefixes` is appended to; `ExcludeFromFallback` and `OnPrepareResponse` are code-only. See [serving a WebAssembly app](deployment.md#serving-a-webassembly-app). |
 | `Rask:Database:Provider` | — | `Rask` | Which database the app opens at `Rask:ConnectionStrings:App`: `sqlite` (the default), `postgres` or `sqlserver`. Read by `UseRaskDatabase(sp)`, and by `RaskApp` while services are registered. See [choosing the database](data.md#choosing-the-database). |
