@@ -1,9 +1,9 @@
 namespace Rask.WebPush.Tests;
 
-// Coverage for WebPushOptions.Validate — the config guard the sender runs once when it resolves.
-public class WebPushOptionsTests
+// Coverage for PushOptions.Validate — the config guard the sender runs once when it resolves.
+public class PushOptionsTests
 {
-    private static WebPushOptions Valid() => new()
+    private static PushOptions Valid() => new()
     {
         VapidKeys = VapidKeys.Generate(),
         Subject = "mailto:admin@example.com",
@@ -56,7 +56,7 @@ public class WebPushOptionsTests
     public void Validate_rejects_a_negative_default_ttl()
     {
         var options = Valid();
-        options.DefaultTtl = TimeSpan.FromSeconds(-1);
+        options.DefaultLifetime = TimeSpan.FromSeconds(-1);
 
         Assert.Throws<InvalidOperationException>(options.Validate);
     }

@@ -69,8 +69,8 @@ Rask.Mailing.MailOptions.PickupDirectory.get -> string?
 Rask.Mailing.MailOptions.PickupDirectory.set -> void
 Rask.Mailing.MailOptions.PollInterval.get -> System.TimeSpan
 Rask.Mailing.MailOptions.PollInterval.set -> void
-Rask.Mailing.MailOptions.RetentionPeriod.get -> System.TimeSpan
-Rask.Mailing.MailOptions.RetentionPeriod.set -> void
+Rask.Mailing.MailOptions.Retention.get -> System.TimeSpan
+Rask.Mailing.MailOptions.Retention.set -> void
 Rask.Mailing.MailOptions.ShutdownGracePeriod.get -> System.TimeSpan
 Rask.Mailing.MailOptions.ShutdownGracePeriod.set -> void
 Rask.Mailing.MailOptions.Smtp.get -> Rask.Mailing.SmtpOptions?

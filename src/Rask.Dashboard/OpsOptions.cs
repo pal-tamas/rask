@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 namespace Rask.Dashboard;
 
 /// <summary>Options for the batteries dashboard.</summary>
-public sealed class RaskDashboardOptions
+public sealed class OpsOptions
 {
     /// <summary>
     /// Which actions the dashboard offers. Defaults to <see cref="RaskDashboardActions.Safe"/> — the

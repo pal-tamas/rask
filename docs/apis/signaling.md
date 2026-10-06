@@ -70,7 +70,7 @@ that avoids it.
 - **A message reaches only a peer in the sender's own room**, checked at delivery rather than trusted from
   the message.
 - **Nothing is ever echoed to its sender**, so the relay can't be aimed at itself.
-- **Payload size, message rate, room size and room count are all capped** (`RaskSignalingOptions`).
+- **Payload size, message rate, room size and room count are all capped** (`SignalingOptions`).
 - **A refused join says the same thing whether the room was full or you weren't allowed in** — anything
   else would let a caller probe which rooms exist.
 

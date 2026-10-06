@@ -57,7 +57,9 @@ public static class Dispatcher
 
     private static IDispatcher Of(IServiceProvider services) =>
         services.GetService<IDispatcher>()
-        ?? throw new InvalidOperationException("Dispatcher needs Rask.Cqrs registered: call builder.Services.AddRaskCqrs().");
+        ?? throw new InvalidOperationException(
+            "Dispatcher is not running in this app. A RaskApp has it on unless Program.cs says c.Cqrs.Off(); a "
+            + "hand-wired host calls builder.Services.AddRaskCqrs().");
 
     // Awaits the handler before the scope goes: disposing it underneath would take away the services it was given.
     private static async Task Alone<TMessage>(

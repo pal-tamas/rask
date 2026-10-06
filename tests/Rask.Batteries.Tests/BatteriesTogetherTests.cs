@@ -10,6 +10,9 @@ using Rask.Mailing;
 
 namespace Rask.Batteries.Tests;
 
+// Inside Rask.* the bare word is the namespace; an app, outside it, writes `Outbox.Fake()` with no alias.
+using Outbox = Rask.Cqrs.Outbox;
+
 public sealed record OrderPlaced(string Customer) : IEvent;
 
 public sealed record SendReceipt(string Customer) : IJob;
@@ -84,6 +87,27 @@ public sealed class BatteriesTogetherTests
         }
 
         Assert.Equal(("ann@example.com", alice), Assert.Single(inbox.Received));
+    }
+
+    [Fact]
+    public async Task The_same_flow_runs_on_the_fakes_alone_with_no_processor_and_no_database()
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"rask-together-{Guid.NewGuid():N}.db");
+        await using var app = Built(file, new ReceiptInbox());
+        using var session = app.Services.CreateScope();
+        using var work = Ambient.Enter(session.ServiceProvider);
+        using var outbox = Outbox.Fake();
+        using var jobs = Jobs.Fake();
+        using var mail = Mail.Fake();
+
+        await Dispatcher.Publish(new OrderPlaced("ann@example.com"), TestContext.Current.CancellationToken);
+        await outbox.Run(TestContext.Current.CancellationToken);
+        await jobs.Run(TestContext.Current.CancellationToken);
+
+        outbox.Stored<OrderPlaced>().Once();
+        jobs.Enqueued<SendReceipt>().Once();
+        mail.Sent().To("ann@example.com").Once();
+        Assert.False(File.Exists(file));
     }
 
     private static Microsoft.AspNetCore.Builder.WebApplication Built(string file, ReceiptInbox inbox)

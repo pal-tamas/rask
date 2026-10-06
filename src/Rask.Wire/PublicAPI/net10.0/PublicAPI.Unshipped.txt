@@ -408,6 +408,7 @@ static Rask.Ambient.Enter(System.IServiceProvider? services) -> Rask.Ambient.Ser
 static Rask.Ambient.Enter(System.Threading.CancellationToken token) -> Rask.Ambient.TokenScope
 static Rask.Ambient.FallbackServices.get -> System.Func<System.IServiceProvider?>?
 static Rask.Ambient.FallbackServices.set -> void
+static Rask.Ambient.Reach<T>(string! facade, string! unless, string! wiring) -> T!
 static Rask.Ambient.Or(System.Threading.CancellationToken token) -> System.Threading.CancellationToken
 static Rask.Ambient.Services.get -> System.IServiceProvider?
 static Rask.Ambient.FallbackToken.get -> System.Func<System.Threading.CancellationToken>?

@@ -8,7 +8,7 @@ durably, on the app's own database, with no broker or Redis.
   Plain `IEventHandler<T>`s of the same event keep running in memory; each handler chooses.
 - A background **`OutboxProcessor`** is woken by every save that wrote rows and runs each row's handler, **at
   least once**, with retries and an attempt count. Each durable handler is its own row, retried on its own.
-- Published messages are **purged after `RetentionPeriod`** (default 7 days) so the table doesn't grow
+- Published messages are **purged after `Retention`** (default 7 days) so the table doesn't grow
   forever. Dead letters are never purged, because they have no `ProcessedAt` for the predicate to match.
 - **Metrics** on the `Rask.Outbox` meter: processed / failed / **dead-lettered** counters, a duration
   histogram, and pending / dead-letter gauges. `rask.outbox.deadletters` is the one to alert on.

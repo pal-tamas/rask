@@ -5,7 +5,7 @@ namespace Rask.Cqrs.Client;
 /// <summary>
 ///     Configures how the client sends a message the local process has no handler for.
 /// </summary>
-public sealed class RaskCqrsClientOptions
+public sealed class CqrsClientOptions
 {
     /// <summary>
     ///     The origin to send to. Null — the default — means the app's own origin, which is what a

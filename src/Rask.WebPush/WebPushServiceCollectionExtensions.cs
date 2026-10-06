@@ -16,18 +16,18 @@ public static class WebPushServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddRaskWebPush(
         this IServiceCollection services,
-        Action<WebPushOptions>? configure = null)
+        Action<PushOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         // A second call registers nothing — before, it added a second options instance and a second typed client.
-        if (!services.AddRaskOptions<WebPushOptions>(
+        if (!services.AddRaskOptions<PushOptions>(
                 "Rask:Push", static (section, o) => section.Bind(o), configure, static o => o.Validate()))
         {
             return services;
         }
 
-        // Typed client: IHttpClientFactory supplies the HttpClient; WebPushOptions + the optional
+        // Typed client: IHttpClientFactory supplies the HttpClient; PushOptions + the optional
         // ILogger resolve from DI.
         // No redirects: a push service never sends one, and following one would let whoever owns a stored
         // endpoint point this server's POST somewhere the subscription check never saw.
@@ -47,14 +47,14 @@ public static class WebPushServiceCollectionExtensions
     /// </remarks>
     public static IServiceCollection AddRaskWebPush<TContext>(
         this IServiceCollection services,
-        Action<WebPushOptions>? configure = null)
+        Action<PushOptions>? configure = null)
         where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(services);
 
         // Validated at the first send (WebPushSender checks its options when it is built), not at start. An app that
         // also called AddRaskWebPush() first keeps that call's start-time validation: the options are registered once.
-        if (services.AddRaskOptions<WebPushOptions>(
+        if (services.AddRaskOptions<PushOptions>(
                 "Rask:Push", static (section, o) => section.Bind(o), configure, validate: null))
         {
             services.AddHttpClient<IWebPush, WebPushSender>();

@@ -237,7 +237,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     // Matched by name so this generator needs no reference to ASP.NET. Roles is read as well as Policy
     // because dropping it silently would leave an author believing [Authorize(Roles = "admin")] was
     // enforced when nothing checked it.
-    private static (string? Policy, string? Roles, bool AllowAnonymous, bool Authorize) Authorization(
+    internal static (string? Policy, string? Roles, bool AllowAnonymous, bool Authorize) Authorization(
         INamedTypeSymbol? handler)
     {
         if (handler is null)

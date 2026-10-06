@@ -62,7 +62,7 @@ app.Configure(c => c.Outbox.Configure(o => o.PollInterval = 1.Second));
       "PollInterval": "00:00:05",        // the safety-net poll; a save wakes the processor at once
       "BatchSize": 100,
       "MaxAttempts": 10,
-      "RetentionPeriod": "7.00:00:00"   // "00:00:00" keeps published messages forever
+      "Retention": "7.00:00:00"   // "00:00:00" keeps published messages forever
     }
   }
 }
@@ -123,7 +123,7 @@ A later release added a `UserId` column, the user a handler runs for. Add it wit
 - **`OutboxProcessor<TContext>`**: a hosted `BackgroundService` woken by every save that wrote rows. It also polls
   every `PollInterval`, as the safety net for rows another instance wrote, for a backlog, and after a restart. It
   runs each row's handler and stamps `ProcessedAt`, or records the error and attempt count, retrying up to
-  `MaxAttempts`. Published messages older than `RetentionPeriod` are purged hourly, in pages, so the table doesn't
+  `MaxAttempts`. Published messages older than `Retention` are purged hourly, in pages, so the table doesn't
   grow for the life of the app. **Dead letters are never purged**, because they have no `ProcessedAt` for the
   retention predicate to match. A failing handler never crashes the app, and neither does a failing poll: a
   transient database error is logged and retried on the next one. Each message's outcome is saved on its own, so a

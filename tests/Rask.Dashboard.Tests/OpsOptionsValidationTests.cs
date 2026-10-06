@@ -6,7 +6,7 @@ namespace Rask.Dashboard.Tests;
 /// <summary>
 ///     A bad <c>Rask:Ops</c> value fails when the options are built, naming the key it came from.
 /// </summary>
-public sealed class RaskDashboardOptionsValidationTests
+public sealed class OpsOptionsValidationTests
 {
     [Fact]
     public void A_page_size_below_one_is_refused_by_its_configuration_key()
@@ -16,7 +16,7 @@ public sealed class RaskDashboardOptionsValidationTests
         using var provider = services.BuildServiceProvider();
 
         var error = Assert.Throws<OptionsValidationException>(
-            () => provider.GetRequiredService<IOptions<RaskDashboardOptions>>().Value);
+            () => provider.GetRequiredService<IOptions<OpsOptions>>().Value);
 
         Assert.Contains("Rask:Ops:PageSize must be at least 1.", error.Failures);
     }
@@ -34,7 +34,7 @@ public sealed class RaskDashboardOptionsValidationTests
         using var provider = services.BuildServiceProvider();
 
         var error = Assert.Throws<OptionsValidationException>(
-            () => provider.GetRequiredService<IOptions<RaskDashboardOptions>>().Value);
+            () => provider.GetRequiredService<IOptions<OpsOptions>>().Value);
 
         Assert.Equal(
             [
@@ -52,7 +52,7 @@ public sealed class RaskDashboardOptionsValidationTests
         services.AddRaskDashboard<HarnessDbContext>();
         using var provider = services.BuildServiceProvider();
 
-        var options = provider.GetRequiredService<IOptions<RaskDashboardOptions>>().Value;
+        var options = provider.GetRequiredService<IOptions<OpsOptions>>().Value;
 
         Assert.Equal(25, options.PageSize);
     }

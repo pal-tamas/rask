@@ -63,8 +63,8 @@ Rask.Outbox.OutboxOptions.MaxAttempts.set -> void
 Rask.Outbox.OutboxOptions.OutboxOptions() -> void
 Rask.Outbox.OutboxOptions.PollInterval.get -> System.TimeSpan
 Rask.Outbox.OutboxOptions.PollInterval.set -> void
-Rask.Outbox.OutboxOptions.RetentionPeriod.get -> System.TimeSpan
-Rask.Outbox.OutboxOptions.RetentionPeriod.set -> void
+Rask.Outbox.OutboxOptions.Retention.get -> System.TimeSpan
+Rask.Outbox.OutboxOptions.Retention.set -> void
 Rask.Outbox.OutboxOptions.ShutdownGracePeriod.get -> System.TimeSpan
 Rask.Outbox.OutboxOptions.ShutdownGracePeriod.set -> void
 Rask.Outbox.OutboxProcessor<TContext>
@@ -141,3 +141,27 @@ override Rask.Outbox.OutboxInterceptor.SavedChanges(Microsoft.EntityFrameworkCor
 override Rask.Outbox.OutboxInterceptor.SavedChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesCompletedEventData! eventData, int result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<int>
 static Rask.Outbox.OutboxMessage.For(string! type, string! payload, string! handler, System.DateTime occurredAt) -> Rask.Outbox.OutboxMessage!
 static Rask.Outbox.OutboxSerializerRegistry.Serialize(Rask.Cqrs.IEvent! e) -> (string! Type, string! Payload)
+Rask.Batteries.Counting<T>
+Rask.Batteries.Counting<T>.Count.get -> int
+Rask.Batteries.Counting<T>.Counting() -> void
+Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>! all, string! noun, string! verb, System.Func<T, string!>! describe, string? whenNoneAtAll = null) -> void
+Rask.Batteries.Counting<T>.Exactly(int times) -> void
+Rask.Batteries.Counting<T>.None() -> void
+Rask.Batteries.Counting<T>.Once() -> void
+Rask.Batteries.Counting<T>.Twice() -> void
+Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
+Rask.Batteries.CountingException
+Rask.Batteries.CountingException.CountingException(string! message) -> void
+Rask.Batteries.Counting<T>.Only() -> T
+Rask.Batteries.CountingException.CountingException() -> void
+Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void
+Rask.Cqrs.Outbox
+Rask.Cqrs.OutboxFake
+Rask.Cqrs.OutboxFake.Clear() -> void
+Rask.Cqrs.OutboxFake.Dispose() -> void
+Rask.Cqrs.OutboxFake.Run(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Cqrs.OutboxFake.Stored<TEvent>() -> Rask.Batteries.Counting<TEvent>
+Rask.Cqrs.OutboxFakes
+Rask.Cqrs.OutboxFakes.extension(Rask.Cqrs.Outbox!)
+static Rask.Cqrs.OutboxFakes.Fake() -> Rask.Cqrs.OutboxFake!
+static Rask.Cqrs.OutboxFakes.extension(Rask.Cqrs.Outbox!).Fake() -> Rask.Cqrs.OutboxFake!

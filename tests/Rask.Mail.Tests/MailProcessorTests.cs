@@ -195,7 +195,7 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Sent_email_is_purged_after_the_retention_period()
     {
-        await using var harness = new MailHarness(o => o.RetentionPeriod = TimeSpan.FromMinutes(1));
+        await using var harness = new MailHarness(o => o.Retention = TimeSpan.FromMinutes(1));
         await harness.Processor.StartAsync(CancellationToken.None);
         try
         {

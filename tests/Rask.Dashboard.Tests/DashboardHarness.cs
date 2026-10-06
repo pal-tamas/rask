@@ -75,7 +75,7 @@ public sealed class DashboardHarness : IAsyncDisposable
         Batteries registered = Batteries.All,
         Batteries? mapped = null,
         string? environment = null,
-        Action<RaskDashboardOptions>? configure = null,
+        Action<OpsOptions>? configure = null,
         Action<IServiceCollection>? extra = null)
     {
         DbPath = Path.Combine(Path.GetTempPath(), $"rask-dash-test-{Guid.NewGuid():N}.db");

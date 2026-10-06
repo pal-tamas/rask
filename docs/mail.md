@@ -106,7 +106,7 @@ so `Rask__Mail__Smtp__Host` in the environment is enough to start. Nothing else 
   failure it records the error, increments the attempt count, and pushes `RunAt` out by an **exponential
   backoff** (`BaseRetryDelay × 2^(attempts-1)`, capped at `MaxRetryDelay`), retrying until `MaxAttempts` — after
   which the message is left as a **dead letter** for inspection. A failing send never crashes the app. Sent
-  messages are purged after `RetentionPeriod` (default 7 days; `TimeSpan.Zero` keeps them).
+  messages are purged after `Retention` (default 7 days; `TimeSpan.Zero` keeps them).
 - **The tenant travels with the message.** In an app with [multi-tenancy](multi-tenancy.md), each row records
   the tenant in flight when it was queued, and the processor re-enters it before sending — so anything the
   send reads is scoped as the page that queued it was. A message queued by the host itself records none.

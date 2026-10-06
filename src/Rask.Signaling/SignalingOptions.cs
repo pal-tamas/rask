@@ -4,7 +4,7 @@ namespace Rask.Signaling;
 ///     How the WebRTC signaling endpoint behaves. Every limit here exists because the endpoint is a
 ///     <b>relay between untrusted peers</b>: whatever one client sends, another client receives.
 /// </summary>
-public sealed class RaskSignalingOptions
+public sealed class SignalingOptions
 {
     /// <summary>
     ///     The path the signaling socket is served from. Separate from the live render socket on purpose —

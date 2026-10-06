@@ -48,6 +48,32 @@ public sealed class CqrsDispatchGeneratorTests
     }
 
     [Fact]
+    public void A_handlers_authorize_is_recorded_for_local_dispatch_and_allow_anonymous_is_not()
+    {
+        var run = CqrsGeneratorFixture.Run(Preamble + """
+            public sealed class AuthorizeAttribute : System.Attribute { public string? Roles { get; set; } }
+            public sealed class AllowAnonymousAttribute : System.Attribute;
+            public sealed record Wipe : ICommand;
+            [Authorize(Roles = "admin")]
+            public sealed class WipeHandler : ICommandHandler<Wipe>
+            {
+                public Task Handle(Wipe command) => Task.CompletedTask;
+            }
+            public sealed record Peek : ICommand;
+            [Authorize, AllowAnonymous]
+            public sealed class PeekHandler : ICommandHandler<Peek>
+            {
+                public Task Handle(Peek command) => Task.CompletedTask;
+            }
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        var source = run.GeneratedSource("__RaskCqrsRegistry");
+        Assert.Contains("(typeof(global::Demo.Wipe), new global::Rask.Cqrs.RequestAuthorization(\"admin\", null)),", source);
+        Assert.DoesNotContain("(typeof(global::Demo.Peek), new global::Rask.Cqrs.RequestAuthorization", source);
+    }
+
+    [Fact]
     public void Emits_unit_result_for_a_void_command()
     {
         var run = CqrsGeneratorFixture.Run(Preamble + """

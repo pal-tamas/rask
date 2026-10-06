@@ -46,7 +46,7 @@ public sealed class LogMetricsTests
         {
             o.Retention = TimeSpan.FromDays(1);
             o.MaxRows = 0;
-            o.PurgeInterval = TimeSpan.FromMinutes(1);
+            o.SweepInterval = TimeSpan.FromMinutes(1);
         });
         using var collector = new Collector(harness.Get<LogMetrics>());
 

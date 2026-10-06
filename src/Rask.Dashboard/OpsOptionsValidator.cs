@@ -3,12 +3,12 @@ using Microsoft.Extensions.Options;
 namespace Rask.Dashboard;
 
 /// <summary>
-/// Checks <see cref="RaskDashboardOptions"/> once <c>Rask:Ops</c> and the callback have applied — at host
+/// Checks <see cref="OpsOptions"/> once <c>Rask:Ops</c> and the callback have applied — at host
 /// start, so a bad value fails fast, naming its key.
 /// </summary>
-internal sealed class RaskDashboardOptionsValidator : IValidateOptions<RaskDashboardOptions>
+internal sealed class OpsOptionsValidator : IValidateOptions<OpsOptions>
 {
-    public ValidateOptionsResult Validate(string? name, RaskDashboardOptions options)
+    public ValidateOptionsResult Validate(string? name, OpsOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 

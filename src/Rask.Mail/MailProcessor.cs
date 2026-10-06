@@ -10,7 +10,7 @@ namespace Rask.Mailing;
 /// Polls the <see cref="QueuedMail"/> table on a schedule and delivers each due message through the registered
 /// <see cref="IMailSender"/>. At-least-once: a message is sent at least once and, on failure, is retried with
 /// exponential backoff up to <see cref="MailOptions.MaxAttempts"/> (after which it is left as a dead letter).
-/// Also purges sent messages past <see cref="MailOptions.RetentionPeriod"/>. A failing send — or a transient
+/// Also purges sent messages past <see cref="MailOptions.Retention"/>. A failing send — or a transient
 /// database error — never crashes the app. Each processor <b>leases</b> the batch it claims, so several
 /// instances is safe; see <c>docs/scaling.md</c> for what a lease does and does not guarantee.
 /// </summary>
@@ -375,7 +375,7 @@ public sealed partial class MailProcessor<TContext>(
 
     private async Task PurgeAsync(CancellationToken cancellationToken)
     {
-        if (options.RetentionPeriod <= TimeSpan.Zero)
+        if (options.Retention <= TimeSpan.Zero)
         {
             return;
         }
@@ -387,7 +387,7 @@ public sealed partial class MailProcessor<TContext>(
         }
 
         _lastPurge = now;
-        var cutoff = now - options.RetentionPeriod;
+        var cutoff = now - options.Retention;
         const int page = 1000;
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);

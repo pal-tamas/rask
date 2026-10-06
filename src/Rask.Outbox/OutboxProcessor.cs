@@ -413,7 +413,7 @@ public sealed partial class OutboxProcessor<TContext>(
 
     private async Task PurgeAsync(CancellationToken cancellationToken)
     {
-        if (options.RetentionPeriod <= TimeSpan.Zero)
+        if (options.Retention <= TimeSpan.Zero)
         {
             return;
         }
@@ -425,7 +425,7 @@ public sealed partial class OutboxProcessor<TContext>(
         }
 
         _lastPurge = now;
-        var cutoff = now - options.RetentionPeriod;
+        var cutoff = now - options.Retention;
         const int page = 1000;
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);

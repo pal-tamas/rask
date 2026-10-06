@@ -228,7 +228,7 @@ public sealed class LogsPageTests
         private readonly string _dbPath =
             Path.Combine(Path.GetTempPath(), $"rask-dash-logs-{Guid.NewGuid():N}.db");
 
-        public DashboardHarness Dashboard(Action<RaskDashboardOptions>? configure = null) =>
+        public DashboardHarness Dashboard(Action<OpsOptions>? configure = null) =>
             _dashboard ??= new DashboardHarness(
                 Batteries.None,
                 configure: configure,

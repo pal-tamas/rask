@@ -42,7 +42,7 @@ public static class RaskCqrsEndpointExtensions
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
-        var options = endpoints.ServiceProvider.GetService<RaskCqrsServerOptions>()
+        var options = endpoints.ServiceProvider.GetService<CqrsServerOptions>()
                       ?? throw new InvalidOperationException(
                           "MapRaskCqrs() needs AddRaskCqrsServer() to have run during startup.");
 
@@ -84,7 +84,7 @@ public static class RaskCqrsEndpointExtensions
     /// </remarks>
     private static async Task UploadChunkAsync(
         HttpContext context,
-        RaskCqrsServerOptions options,
+        CqrsServerOptions options,
         UploadSessionStore uploads)
     {
         if (await ReadChunkAsync(context, options).ConfigureAwait(false) is not { } chunk)
@@ -139,7 +139,7 @@ public static class RaskCqrsEndpointExtensions
     private readonly record struct Chunk(string Caller, string UploadId, int FileIndex, long Offset);
 
     // The headers that say which chunk this is. Null once the refusal has been written.
-    private static async Task<Chunk?> ReadChunkAsync(HttpContext context, RaskCqrsServerOptions options)
+    private static async Task<Chunk?> ReadChunkAsync(HttpContext context, CqrsServerOptions options)
     {
         if (!context.Request.Headers.ContainsKey(RemoteEndpointDefaults.RequestHeader))
         {
@@ -214,7 +214,7 @@ public static class RaskCqrsEndpointExtensions
         }
     }
 
-    private static string? Owner(HttpContext context, RaskCqrsServerOptions options)
+    private static string? Owner(HttpContext context, CqrsServerOptions options)
     {
         if (context.User.Identity?.IsAuthenticated == true)
         {
@@ -232,7 +232,7 @@ public static class RaskCqrsEndpointExtensions
         return options.RequireAuthenticatedUser ? null : "anonymous";
     }
 
-    private static async Task HandleAsync(HttpContext context, RaskCqrsServerOptions options, bool fromQuery)
+    private static async Task HandleAsync(HttpContext context, CqrsServerOptions options, bool fromQuery)
     {
         if (await AdmitAsync(context, options, fromQuery).ConfigureAwait(false) is not { LocalInvoker: { } invoker } contract)
         {
@@ -266,7 +266,7 @@ public static class RaskCqrsEndpointExtensions
     }
 
     // The message's contract once the request may reach it, or null once the refusal has been written.
-    private static async Task<RemoteContract?> AdmitAsync(HttpContext context, RaskCqrsServerOptions options, bool fromQuery)
+    private static async Task<RemoteContract?> AdmitAsync(HttpContext context, CqrsServerOptions options, bool fromQuery)
     {
         // The header is the CSRF control: no form, <img> or <script> can set one, so neither endpoint is
         // reachable by cross-site markup — only by a same-origin fetch. Checked first because it is the
@@ -324,7 +324,7 @@ public static class RaskCqrsEndpointExtensions
         HttpContext context,
         RemoteLocalInvoker invoker,
         object message,
-        RaskCqrsServerOptions options)
+        CqrsServerOptions options)
     {
         try
         {
@@ -348,6 +348,12 @@ public static class RaskCqrsEndpointExtensions
                 detail: null,
                 ValidationProblemType,
                 ex.Errors).ConfigureAwait(false);
+            return (false, null);
+        }
+        catch (ForbiddenException ex)
+        {
+            // A handler that dispatched on to a request this caller may not send: theirs to be refused, not a fault.
+            await RefusedAsync(context, ex).ConfigureAwait(false);
             return (false, null);
         }
         catch (Exception ex)
@@ -378,49 +384,25 @@ public static class RaskCqrsEndpointExtensions
             return true;
         }
 
-        var user = context.User;
-        var authenticated = user.Identity?.IsAuthenticated == true;
+        // The decision local dispatch makes too. RequireAuthenticatedUser may be off, so a bare [Authorize] is its own ask.
+        var refusal = await RequestAccess
+            .Refusal(context.User, name, requiresAuthentication, declaredRoles, declaredPolicy, context.RequestServices)
+            .ConfigureAwait(false);
 
-        // A bare [Authorize] names nothing to check below, and RequireAuthenticatedUser may be off.
-        if (requiresAuthentication && !authenticated)
+        if (refusal is not null)
         {
-            await ProblemAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", null).ConfigureAwait(false);
+            await RefusedAsync(context, refusal).ConfigureAwait(false);
             return false;
-        }
-
-        if (declaredRoles is { Length: > 0 } roles)
-        {
-            var permitted = roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (!permitted.Any(user.IsInRole))
-            {
-                await ProblemAsync(context, StatusCodes.Status403Forbidden, "Forbidden", null).ConfigureAwait(false);
-                return false;
-            }
-        }
-
-        if (declaredPolicy is { Length: > 0 } policy)
-        {
-            var authorization = context.RequestServices.GetService<IAuthorizationService>()
-                                ?? throw new InvalidOperationException(
-                                    $"'{name}' declares the policy '{policy}', but no authorization "
-                                    + "services are registered. Call AddAuthorization() during startup — the "
-                                    + "alternative would be to ignore the policy, which is not a choice this "
-                                    + "endpoint gets to make.");
-
-            var outcome = await authorization.AuthorizeAsync(user, policy).ConfigureAwait(false);
-            if (!outcome.Succeeded)
-            {
-                await ProblemAsync(
-                    context,
-                    authenticated ? StatusCodes.Status403Forbidden : StatusCodes.Status401Unauthorized,
-                    authenticated ? "Forbidden" : "Unauthorized",
-                    null).ConfigureAwait(false);
-                return false;
-            }
         }
 
         return true;
     }
+
+    // Opaque, like every other refusal here: the message names what the handler requires, which is the server's business.
+    private static Task RefusedAsync(HttpContext context, ForbiddenException refusal) =>
+        refusal.IsAuthenticated
+            ? ProblemAsync(context, StatusCodes.Status403Forbidden, "Forbidden", null)
+            : ProblemAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", null);
 
     private static object DecodeFromQuery(HttpContext context, RemoteContract contract)
     {
@@ -441,7 +423,7 @@ public static class RaskCqrsEndpointExtensions
     private static async Task<object> DecodeFromBodyAsync(
         HttpContext context,
         RemoteContract contract,
-        RaskCqrsServerOptions options)
+        CqrsServerOptions options)
     {
         if (context.Request.HasFormContentType && contract.CarriesFiles)
         {
@@ -482,7 +464,7 @@ public static class RaskCqrsEndpointExtensions
     private static async Task<object> DecodeMultipartAsync(
         HttpContext context,
         RemoteContract contract,
-        RaskCqrsServerOptions options)
+        CqrsServerOptions options)
     {
         // The cap has to be applied BEFORE the body is read, not checked after. ReadFormAsync consumes
         // and spools the entire upload, so a limit enforced on the other side of it has already let a
@@ -518,7 +500,7 @@ public static class RaskCqrsEndpointExtensions
         return contract.ReadMessage(ref reader, files);
     }
 
-    private static List<RemoteFile> Files(IFormFileCollection formFiles, RaskCqrsServerOptions options)
+    private static List<RemoteFile> Files(IFormFileCollection formFiles, CqrsServerOptions options)
     {
         long total = 0;
 

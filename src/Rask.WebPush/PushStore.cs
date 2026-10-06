@@ -14,7 +14,7 @@ internal sealed partial class PushStore<TContext>(
     ILogger<PushStore<TContext>> logger) : IPush
     where TContext : DbContext
 {
-    public string? PublicKey => services.GetService<WebPushOptions>()?.VapidKeys?.PublicKey;
+    public string? PublicKey => services.GetService<PushOptions>()?.VapidKeys?.PublicKey;
 
     public async Task<PushSubscriber> Subscribe(PushSubscription subscription, CancellationToken cancellationToken = default)
     {

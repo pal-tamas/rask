@@ -38,15 +38,15 @@ Rask.WebPush.WebPushMessage.Urgency.init -> void
 Rask.WebPush.WebPushMessage.Url.get -> string?
 Rask.WebPush.WebPushMessage.Url.init -> void
 Rask.WebPush.WebPushMessage.WebPushMessage() -> void
-Rask.WebPush.WebPushOptions
-Rask.WebPush.WebPushOptions.DefaultTtl.get -> System.TimeSpan
-Rask.WebPush.WebPushOptions.DefaultTtl.set -> void
-Rask.WebPush.WebPushOptions.Subject.get -> string?
-Rask.WebPush.WebPushOptions.Subject.set -> void
-Rask.WebPush.WebPushOptions.Validate() -> void
-Rask.WebPush.WebPushOptions.VapidKeys.get -> Rask.WebPush.VapidKeys?
-Rask.WebPush.WebPushOptions.VapidKeys.set -> void
-Rask.WebPush.WebPushOptions.WebPushOptions() -> void
+Rask.WebPush.PushOptions
+Rask.WebPush.PushOptions.DefaultLifetime.get -> System.TimeSpan
+Rask.WebPush.PushOptions.DefaultLifetime.set -> void
+Rask.WebPush.PushOptions.Subject.get -> string?
+Rask.WebPush.PushOptions.Subject.set -> void
+Rask.WebPush.PushOptions.Validate() -> void
+Rask.WebPush.PushOptions.VapidKeys.get -> Rask.WebPush.VapidKeys?
+Rask.WebPush.PushOptions.VapidKeys.set -> void
+Rask.WebPush.PushOptions.PushOptions() -> void
 Rask.WebPush.WebPushResult
 Rask.WebPush.WebPushResult.<Clone>$() -> Rask.WebPush.WebPushResult!
 Rask.WebPush.WebPushResult.Deconstruct(out Rask.WebPush.WebPushStatus Status, out int? StatusCode, out string? ReasonPhrase) -> void
@@ -62,7 +62,7 @@ Rask.WebPush.WebPushResult.StatusCode.get -> int?
 Rask.WebPush.WebPushResult.StatusCode.init -> void
 Rask.WebPush.WebPushResult.WebPushResult(Rask.WebPush.WebPushStatus Status, int? StatusCode = null, string? ReasonPhrase = null) -> void
 Rask.WebPush.WebPushSender
-Rask.WebPush.WebPushSender.WebPushSender(System.Net.Http.HttpClient! http, Rask.WebPush.WebPushOptions! options, Microsoft.Extensions.Logging.ILogger<Rask.WebPush.WebPushSender!>? logger = null) -> void
+Rask.WebPush.WebPushSender.WebPushSender(System.Net.Http.HttpClient! http, Rask.WebPush.PushOptions! options, Microsoft.Extensions.Logging.ILogger<Rask.WebPush.WebPushSender!>? logger = null) -> void
 Rask.WebPush.WebPushServiceCollectionExtensions
 Rask.WebPush.WebPushStatus
 Rask.WebPush.WebPushStatus.Expired = 1 -> Rask.WebPush.WebPushStatus
@@ -87,7 +87,7 @@ static Rask.WebPush.WebPushMessage.operator !=(Rask.WebPush.WebPushMessage? left
 static Rask.WebPush.WebPushMessage.operator ==(Rask.WebPush.WebPushMessage? left, Rask.WebPush.WebPushMessage? right) -> bool
 static Rask.WebPush.WebPushResult.operator !=(Rask.WebPush.WebPushResult? left, Rask.WebPush.WebPushResult? right) -> bool
 static Rask.WebPush.WebPushResult.operator ==(Rask.WebPush.WebPushResult? left, Rask.WebPush.WebPushResult? right) -> bool
-static Rask.WebPush.WebPushServiceCollectionExtensions.AddRaskWebPush(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.WebPush.WebPushOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.WebPush.WebPushServiceCollectionExtensions.AddRaskWebPush(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.WebPush.PushOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.WebPush.IWebPush.Send(Rask.Wire.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
 Rask.WebPush.WebPushSender.Send(Rask.Wire.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
 Rask.Batteries.Counting<T>
@@ -208,7 +208,7 @@ static Rask.WebPush.SentPushCounting.To(this Rask.Batteries.Counting<Rask.WebPus
 static Rask.WebPush.SentPushCounting.ToEveryone(this Rask.Batteries.Counting<Rask.WebPush.SentPush!> sent) -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
 static Rask.WebPush.SentPushCounting.WithTitle(this Rask.Batteries.Counting<Rask.WebPush.SentPush!> sent, string! title) -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
 static Rask.WebPush.WebPushModelBuilderExtensions.AddRaskWebPush(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
-static Rask.WebPush.WebPushServiceCollectionExtensions.AddRaskWebPush<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.WebPush.WebPushOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.WebPush.WebPushServiceCollectionExtensions.AddRaskWebPush<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.WebPush.PushOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.WebPush.PushSubscriberReadAccess.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.WebPush.PushSubscriberRead!>!
 static Rask.WebPush.PushSubscriberReadAccess.AsQueryable() -> System.Linq.IQueryable<Rask.WebPush.PushSubscriberRead!>!
 static Rask.WebPush.PushSubscriberReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.WebPush.PushSubscriberRead!>!

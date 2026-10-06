@@ -241,3 +241,18 @@ static Rask.Cqrs.CqrsRegistry.NameOf(System.Type! type) -> string!
 static Rask.Cqrs.CqrsRegistry.ReplaceDurableHandlers(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! EventType, System.Type! HandlerType, Rask.Cqrs.CqrsRegistry.EventInvoker! Invoker)>! registrations) -> void
 static Rask.Cqrs.DurableEvents.MarkStored(Rask.Cqrs.IEvent! e) -> void
 static Rask.Cqrs.CqrsRegistry.HasDurableHandlers.get -> bool
+Rask.Cqrs.ForbiddenException
+Rask.Cqrs.ForbiddenException.ForbiddenException() -> void
+Rask.Cqrs.ForbiddenException.ForbiddenException(string! message) -> void
+Rask.Cqrs.ForbiddenException.ForbiddenException(string! message, System.Exception! innerException) -> void
+Rask.Cqrs.ForbiddenException.ForbiddenException(string! message, bool isAuthenticated) -> void
+Rask.Cqrs.ForbiddenException.IsAuthenticated.get -> bool
+Rask.Cqrs.IDispatchPrincipal
+Rask.Cqrs.IDispatchPrincipal.Current.get -> System.Security.Claims.ClaimsPrincipal?
+Rask.Cqrs.IPolicyEvaluator
+Rask.Cqrs.IPolicyEvaluator.Permits(System.Security.Claims.ClaimsPrincipal! user, string! policy) -> System.Threading.Tasks.Task<bool>!
+Rask.Cqrs.RequestAuthorization
+Rask.Cqrs.RequestAuthorization.Policy.get -> string?
+Rask.Cqrs.RequestAuthorization.RequestAuthorization(string? roles, string? policy) -> void
+Rask.Cqrs.RequestAuthorization.Roles.get -> string?
+static Rask.Cqrs.CqrsRegistry.ReplaceAuthorization(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.RequestAuthorization! Declared)>! registrations) -> void

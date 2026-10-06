@@ -82,13 +82,6 @@ public static class Files
             return fake;
         }
 
-        var services = Ambient.Services
-            ?? throw new InvalidOperationException(
-                "Files was called outside any work in progress — a handler, a render, a request or a job — so "
-                + "there is no app to reach. Inject IFiles in the constructor there instead.");
-
-        return services.GetService<IFiles>()
-            ?? throw new InvalidOperationException(
-                "Files needs Rask.Storage registered: call builder.Services.AddRaskStorage<AppDbContext>().");
+        return Ambient.Reach<IFiles>("Files", "Program.cs says c.Storage.Off()", "AddRaskStorage<AppDbContext>()");
     }
 }
