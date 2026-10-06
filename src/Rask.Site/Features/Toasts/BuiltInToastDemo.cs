@@ -7,7 +7,7 @@ public sealed partial class BuiltInToastDemo : Component
         Div.Class("flex flex-wrap gap-2")[
             Ui.Button.Primary.Id("toast-save").OnClick(() => Toast.Success("Saved"))["Save"],
             Ui.Button.Id("toast-order").OnClick(() => Toast.Info("Your order was placed").Title("Order 42"))["Place order"],
-            Ui.Button.Error.Outline.Id("toast-fail")
+            Ui.Button.Red.Id("toast-fail")
                 .OnClick(() => Toast.Error("Couldn't reach the server").UntilDismissed())["Fail"]
         ];
 }

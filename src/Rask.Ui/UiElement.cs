@@ -19,9 +19,9 @@ namespace Rask;
 /// writes wins over one the kit would have derived.
 /// </para>
 /// <para>
-/// One tag. An element's children are serialized straight from the indexer's array, so an element-derived
-/// component has nowhere to put markup of its own around or between them — anything it shows is either an
-/// attribute or a child the call site passes.
+/// One tag. An element's children are serialized straight from the indexer's array, so what an element-derived
+/// component shows is an attribute or a child the call site passes. The one that adds parts of its own —
+/// <see cref="UiButton" />, for its icons and its spinner — does it through <c>RenderChildren</c>.
 /// </para>
 /// </remarks>
 public abstract partial class UiElement : Element
@@ -57,6 +57,26 @@ public abstract partial class UiElement : Element
     ///     documented slot in the attribute order.
     /// </remarks>
     private protected virtual IReadOnlyDictionary<string, string?>? ResolveData() => Data;
+
+    /// <summary>
+    ///     A component's own <c>data-*</c> — its <c>data-ui-*</c> marker, a state — with the call site's
+    ///     <see cref="Element.Data" /> on top. Nothing is allocated when the call site set none.
+    /// </summary>
+    private protected IReadOnlyDictionary<string, string?> DataWith(Dictionary<string, string?> own)
+    {
+        if (Data is not { } callerData)
+        {
+            return own;
+        }
+
+        var data = new Dictionary<string, string?>(own, StringComparer.Ordinal);
+        foreach (var (name, value) in callerData)
+        {
+            data[name] = value;
+        }
+
+        return data;
+    }
 
     /// <inheritdoc />
     /// <remarks>

@@ -79,7 +79,7 @@ internal sealed partial class DevToolsRendersTab : Component
 
         return Div.Class("flex flex-col gap-3")[
             Div.Class("flex flex-wrap items-center justify-between gap-2")[
-                Ui.Join[
+                Ui.ButtonGroup[
                     ViewButton("By component", byCommit: false),
                     ViewButton("By commit", byCommit: true)
                 ],
@@ -91,7 +91,7 @@ internal sealed partial class DevToolsRendersTab : Component
                             Swatch(DomColour, "changed in the DOM")
                         ]
                         : null,
-                    Ui.Button.Size(Ui.Size.Sm).Title("Forget the renders counted so far").OnClick(Feed.ClearCommits)["Clear"]
+                    Ui.Button.Sm.Title("Forget the renders counted so far").OnClick(Feed.ClearCommits)["Clear"]
                 ]
             ],
             commits.Length == 0
@@ -114,11 +114,9 @@ internal sealed partial class DevToolsRendersTab : Component
     private void OnFeedChanged(object? sender, EventArgs e) => _gate?.Notify();
 
     private Component ViewButton(string label, bool byCommit) =>
-        Ui.Button
-            .Size(Ui.Size.Sm)
-            // daisyUI's own markers, written whole: a composed class name is invisible to the kit's Tailwind scan.
-            .Class(_byCommit == byCommit ? "join-item btn-active" : "join-item")
-            .Aria("pressed", _byCommit == byCommit ? "true" : "false")
+        Ui.Button.Sm
+            .Variant(_byCommit == byCommit ? Ui.ButtonVariant.Primary : Ui.ButtonVariant.Outline)
+            .AriaPressed(_byCommit == byCommit ? AriaPressed.True : AriaPressed.False)
             .OnClick(() => _byCommit = byCommit)[label];
 
     /// <summary>One component instance's renders across the commits held.</summary>

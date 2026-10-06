@@ -142,13 +142,13 @@ public sealed partial class CachePage(
                 // confirmation. Flushing everything is correctness-safe too, but a cold cache on a busy app
                 // means a stampede — hence the Destructive tier and a confirmation.
                 options.Actions.HasFlag(RaskDashboardActions.Safe)
-                    ? c.Column().Cell(r => Ui.Button.Size(Ui.Size.Sm).OnClick(() => EvictAsync(r.Key))["Evict"])
+                    ? c.Column().Cell(r => Ui.Button.Sm.OnClick(() => EvictAsync(r.Key))["Evict"])
                     : null,
             ]];
 
     private Component? FlushButton() =>
         options.Actions.HasFlag(RaskDashboardActions.Destructive) && _stats.Entries > 0
-            ? Ui.Button.Tone(Ui.Tone.Error).OnClick(() => Confirm(true))[Ui.Icon.Name(Ui.IconName.Trash), "Flush cache"]
+            ? Ui.Button.Danger.Icon(Ui.IconName.Trash).OnClick(() => Confirm(true))["Flush cache"]
             : null;
 
     private Component? ConfirmPrompt() =>
@@ -158,9 +158,9 @@ public sealed partial class CachePage(
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],
                 Div[
-                    Ui.Button.Key("confirm").Tone(Ui.Tone.Error).Size(Ui.Size.Sm).OnClick(FlushAsync)["Confirm"],
+                    Ui.Button.Danger.Sm.Key("confirm").OnClick(FlushAsync)["Confirm"],
                     " ",
-                    Ui.Button.Key("cancel").Size(Ui.Size.Sm).OnClick(() => Confirm(false))["Cancel"]
+                    Ui.Button.Sm.Key("cancel").OnClick(() => Confirm(false))["Cancel"]
                 ]
             ]
             : null;

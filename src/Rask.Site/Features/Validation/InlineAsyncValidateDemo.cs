@@ -52,7 +52,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
                 .Validate(CheckCodeAsync),
             Validation.Summary.Template(SummaryAlert),
             Div[
-                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.Gift), "Redeem"]
+                Ui.Button.Primary.Icon(Ui.IconName.Gift).Submit["Redeem"]
             ]
         ],
         _submission is null

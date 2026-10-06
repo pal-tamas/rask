@@ -17,8 +17,7 @@ public sealed partial class FormSubmitStateDemo : Component
                     Ui.Input.Bind(() => _model.Username).Label("Username")
                         .Disabled(f.Submitting)
                         .Id("fss-input").Class("mb-2"),
-                    Ui.Button
-                        .Primary
+                    Ui.Button.Primary
                         .Submit
                         .Disabled(f.Submitting)
                         .Id("fss-submit")[f.Submitting ? "Saving…" : "Sign up"]

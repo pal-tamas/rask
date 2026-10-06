@@ -312,7 +312,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // all — a panel that redacted on the way out would still have put it on the wire.
         bool IsSensitive = false,
         // For an enum-typed property: its type's fully-qualified name and its members, so each can be
-        // offered as a step of its own — `UiButton.Primary` rather than `UiButton.Tone(UiTone.Primary)`.
+        // offered as a step of its own — `Ui.Button.Primary` rather than `Ui.Button.Variant(Ui.ButtonVariant.Primary)`.
         // ONE string rather than a list: PropInfo is an incremental generator's cache key, and an array
         // compares by reference, so a list here would defeat the cache on every compilation.
         //

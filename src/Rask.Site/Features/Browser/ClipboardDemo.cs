@@ -13,7 +13,7 @@ public sealed partial class ClipboardDemo : Component
                 Div.Class("mb-2 flex gap-2")[
                     Ui.Input.Value(_input).AccessibleLabel("Text to copy").Id("clipboard-input").OnInput(v => _input = v),
                     Ui.Button.Primary.Id("clipboard-copy").OnClick(Copy)["Copy"],
-                    Ui.Button.Primary.Outline.Id("clipboard-paste").OnClick(Paste)["Paste"]
+                    Ui.Button.Id("clipboard-paste").OnClick(Paste)["Paste"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Pasted: ", Code.Id("clipboard-read-value")[_read ?? "(nothing yet)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("clipboard-status")[_status ?? "(idle)"]]

@@ -20,10 +20,10 @@ public sealed partial class FullscreenDemo : Component
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button.Primary.Id("fullscreen-enter").OnClick(() => Enter(_stage, "Box"))["Fullscreen this box"],
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("fullscreen-page")
                         .OnClick(() => Enter(_demo, "Demo"))["Fullscreen the whole demo"],
-                    Ui.Button.Error.Outline.Id("fullscreen-exit").OnClick(Exit)["Exit"]
+                    Ui.Button.Red.Id("fullscreen-exit").OnClick(Exit)["Exit"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
             ]

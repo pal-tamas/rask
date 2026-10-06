@@ -56,7 +56,7 @@ protected override Component Shell(Component head, Component body) =>
 ```csharp
 protected override Component? Render() =>
 [
-    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Size(Ui.Size.Lg)["Save"],
+    Ui.Button.Primary.Icon(Ui.IconName.Check)["Save"],
 
     Ui.Modal.Title("Delete order").Id("confirm").Trigger("Delete")[
         P["This cannot be undone."]
@@ -83,7 +83,7 @@ and a reset arriving from a library restyles pages that never asked for it.
 
 | | |
 | --- | --- |
-| Actions | `Ui.Button` `Ui.Dropdown` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
+| Actions | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
 | Data display | `Ui.Accordion` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.List` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` |
 | Navigation | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.Menu` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Tabs` |
 | Feedback | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |

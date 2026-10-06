@@ -174,10 +174,11 @@ public sealed partial class ComponentFactoryGenerator
 
     /// <summary>
     ///     The most members an enum may have before its values stop being styles and start being names.
-    ///     <c>UiTone</c> has 8 and every one of them reads as a step; <c>UiIconName</c> has 78, and
-    ///     <c>UiButton.ChevronRight</c> would say the button IS a chevron rather than that it shows one.
+    ///     <c>Ui.Color</c> has 22 — Tailwind's hues — and each reads as a step, <c>Ui.Button.Primary.Blue</c>;
+    ///     <c>Ui.IconName</c> has hundreds, and <c>Ui.Button.ChevronRight</c> would say the button IS a
+    ///     chevron rather than that it shows one.
     /// </summary>
-    private const int MaxEnumStepMembers = 8;
+    private const int MaxEnumStepMembers = 24;
 
     /// <summary>
     ///     An enum-typed property's type and members, for the per-member steps — or empty when its values
@@ -292,7 +293,7 @@ public sealed partial class ComponentFactoryGenerator
 
     /// <summary>
     ///     One step per member of a small enum property, so a value reads as a word rather than as an
-    ///     argument: <c>UiButton.Primary.Outline</c> beside <c>UiButton.Tone(UiTone.Primary)</c>.
+    ///     argument: <c>Ui.Button.Primary.Sm</c> beside <c>Ui.Button.Variant(Ui.ButtonVariant.Primary)</c>.
     /// </summary>
     /// <remarks>
     ///     <para>

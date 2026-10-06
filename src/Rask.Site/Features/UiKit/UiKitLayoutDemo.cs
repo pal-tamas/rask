@@ -109,11 +109,11 @@ public sealed partial class UiKitLayoutDemo : Component
                 ],
                 Div.Class("flex flex-col gap-4")[
                     Div.Data(Testid("ui-spacer-row")).Class("flex items-center gap-2 rounded-xl border border-base-300 p-2")[
-                        Ui.Button.Key("left").Ghost.Sm["Rask"],
+                        Ui.Button.Ghost.Sm.Key("left")["Rask"],
                         Ui.Divider.Key("bar-sep").Vertical().Subtle().Class("my-1"),
-                        Ui.Button.Key("docs").Ghost.Sm["Docs"],
+                        Ui.Button.Ghost.Sm.Key("docs")["Docs"],
                         Ui.Spacer.Key("spacer"),
-                        Ui.Button.Key("right").Sm["Sign in"]
+                        Ui.Button.Sm.Key("right")["Sign in"]
                     ],
                     Div[
                         Ui.Heading.Key("h").Level(3).Lg["Orders"],

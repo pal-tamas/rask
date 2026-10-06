@@ -11,7 +11,7 @@ public sealed partial class BoomHandlerDemo : Component
             .Fallback(BoundaryFallback)[
             Div.Class("p-3 border rounded bg-white").Id("boom-handler-host")[
                 P.Class("text-ui-muted text-sm mb-2")["Healthy subtree — click to throw."],
-                Ui.Button.Error.Id("boom-throw").OnClick(ThrowFromHandler)[Ui.Icon.Name(Ui.IconName.ExclamationTriangle), "Throw a handler exception"]
+                Ui.Button.Danger.Icon(Ui.IconName.ExclamationTriangle).Id("boom-throw").OnClick(ThrowFromHandler)["Throw a handler exception"]
             ]
         ];
 
@@ -20,7 +20,7 @@ public sealed partial class BoomHandlerDemo : Component
                 Strong["Boundary caught: "],
                 Code.Class("ms-1")[ex.GetType().Name],
                 P.Class("mb-2 mt-1 text-sm")[ex.Message],
-                Ui.Button.Outline.Id("boom-recover").OnClick(recover)[Ui.Icon.Name(Ui.IconName.ArrowUturnLeft), "Recover"]
+                Ui.Button.Icon(Ui.IconName.ArrowUturnLeft).Id("boom-recover").OnClick(recover)["Recover"]
             ]];
 
     private static void ThrowFromHandler() =>

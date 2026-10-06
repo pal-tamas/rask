@@ -56,16 +56,14 @@ public sealed partial class UiDataGrid<T, TKey>
 
     private Component ChooserBar(IReadOnlyList<UiColumn<T>> columns, DragDropContext ctx) =>
         Div.Class("relative")[
-            Ui.Button
-                .Size(Ui.Size.Sm)
-                .Variant(Ui.Variant.Outline)
-                .OnClick(() => _chooserOpen = !_chooserOpen)[Ui.Icon.Name(Ui.IconName.Bars3), "Columns"],
+            Ui.Button.Sm.Icon(Ui.IconName.Bars3)
+                .OnClick(() => _chooserOpen = !_chooserOpen)["Columns"],
             !_chooserOpen
                 ? null
                 : Div
                     .Class("absolute z-10 mt-1 flex w-64 flex-col gap-1 rounded-box border "
                         + "border-base-300 bg-base-100 p-2 shadow-lg")
-                    .Aria("label", "Columns")
+                    .AriaLabel("Columns")
                     .Role("group")[ChooserRows(columns, ctx)]
         ];
 
@@ -124,7 +122,7 @@ public sealed partial class UiDataGrid<T, TKey>
         Div
             .Class("flex flex-wrap items-center gap-2 rounded-box border border-dashed "
                 + "border-base-300 p-2")
-            .Aria("label", "Grouping")
+            .AriaLabel("Grouping")
             .Role("group")[
             // The chips as a sequence rather than wrapped in a Fragment: Fragment is internal to
             // Rask.Core, so its entry is private protected and no other assembly can name it. The
@@ -166,14 +164,11 @@ public sealed partial class UiDataGrid<T, TKey>
         }
     }
 
-    private static Component? MoveButton(bool enabled, string label, Ui.IconName icon, Func<Task> click) =>
-        Ui.Button
-            .AccessibleLabel(label)
-            .Square()
-            .Size(Ui.Size.Xs)
-            .Variant(Ui.Variant.Ghost)
+    private static UiButton? MoveButton(bool enabled, string label, Ui.IconName icon, Func<Task> click) =>
+        Ui.Button.Ghost.Xs.Icon(icon)
+            .AriaLabel(label)
             .Disabled(!enabled)
-            .OnClick(click)[Ui.Icon.Name(icon)];
+            .OnClick(click);
 
     private static UiColumn<T>? Find(IReadOnlyList<UiColumn<T>> columns, string token) =>
         columns.FirstOrDefault(column => string.Equals(column.FieldName, token, StringComparison.Ordinal));

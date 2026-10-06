@@ -35,9 +35,9 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Ui.Button.Primary.Id("idb-set").OnClick(Set)["Set"],
-                    Ui.Button.Primary.Outline.Id("idb-get").OnClick(Get)["Get"],
-                    Ui.Button.Outline.Id("idb-keys").OnClick(Keys)["List keys"],
-                    Ui.Button.Error.Outline.Id("idb-clear").OnClick(Clear)["Clear"]
+                    Ui.Button.Id("idb-get").OnClick(Get)["Get"],
+                    Ui.Button.Id("idb-keys").OnClick(Keys)["List keys"],
+                    Ui.Button.Red.Id("idb-clear").OnClick(Clear)["Clear"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
                 Div.Class("text-sm text-ui-muted")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],

@@ -44,7 +44,7 @@ public sealed partial class PwaDemo(HttpClient http) : Component
                     "so it stops at the subscription — see ", Code["docs/webpush.md"], "."
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Ui.Button.Primary.Outline.Id("pwa-push").OnClick(EnablePush)["Enable push (subscribe)"],
+                    Ui.Button.Id("pwa-push").OnClick(EnablePush)["Enable push (subscribe)"],
                     Ui.Button.Primary
                         .Id("pwa-push-send")
                         .Disabled(!_subscribed)
@@ -60,8 +60,8 @@ public sealed partial class PwaDemo(HttpClient http) : Component
                     "A silent no-op in a normal browser tab."
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Ui.Button.Primary.Outline.Id("pwa-badge-inc").OnClick(BumpBadge)["Increment badge"],
-                    Ui.Button.Error.Outline.Id("pwa-badge-clear").OnClick(ClearBadge)["Clear badge"]
+                    Ui.Button.Id("pwa-badge-inc").OnClick(BumpBadge)["Increment badge"],
+                    Ui.Button.Red.Id("pwa-badge-clear").OnClick(ClearBadge)["Clear badge"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-badge-status")[_badgeStatus ?? "(idle)"]]
             ]

@@ -49,7 +49,7 @@ public sealed partial class InlineValidateDemo : Component
             ],
             Validation.Summary.Template(SummaryAlert),
             Div[
-                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.CheckCircle), "Sign in"]
+                Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit["Sign in"]
             ]
         ],
         _submission is null

@@ -55,7 +55,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
                                 .Id("rtc-connect")
                                 .Disabled(_connecting)
                                 .OnClick(Connect)["Connect the two peers"],
-                            Ui.Button.Secondary
+                            Ui.Button.Filled
                                 .Id("rtc-send")
                                 .Disabled(!_everConnected)
                                 .OnClick(Send)["Send a message"]

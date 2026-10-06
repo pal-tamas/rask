@@ -22,7 +22,7 @@ public sealed partial class FluentValidationDemo : Component
                 Validation.Message.Template(FieldError).For(() => _model.Quantity)
             ],
             Div[
-                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.ShoppingBag), "Order"]
+                Ui.Button.Primary.Icon(Ui.IconName.ShoppingBag).Submit["Order"]
             ]
         ],
         _submission is null

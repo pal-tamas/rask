@@ -143,6 +143,9 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
     const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
     const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};
     for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) {
+      // As in compareStyles: a border neither side draws follows the text colour here and stays grey there.
+      const side = /^border(Top|Right|Bottom|Left)Color$/.exec(key)?.[1];
+      if (side && a.style[`border${side}Width`] === '0px' && b.style[`border${side}Width`] === '0px') continue;
       if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
     }
   }
@@ -173,7 +176,9 @@ function compareStyles(x, y, where, diffs) {
 function same(x, y) {
   if (x === y) return true;
   if (x === undefined || y === undefined) return false;
-  const round = v => v.replace(/-?\d*\.\d+(e-?\d+)?/g, n => String(Math.round(Number(n) * 1000) / 1000));
+  // A gray has no hue: Tailwind 4.3 writes it `none`, the Tailwind Flux's site is built with writes it 0.
+  const round = v => v.replace(/(oklch\([^)]*) none\)/g, '$1 0)')
+    .replace(/-?\d*\.\d+(e-?\d+)?/g, n => String(Math.round(Number(n) * 1000) / 1000));
   return round(x) === round(y);
 }
 

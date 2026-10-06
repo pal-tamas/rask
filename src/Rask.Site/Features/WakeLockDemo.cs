@@ -16,7 +16,7 @@ public sealed partial class WakeLockDemo : Component
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button
-                        .Tone(_sentinel is null ? Ui.Tone.Primary : Ui.Tone.Error)
+                        .Variant(_sentinel is null ? Ui.ButtonVariant.Primary : Ui.ButtonVariant.Danger)
                         .Id("wakelock-toggle")
                         .OnClick(Toggle)[_sentinel is null ? "Keep screen awake" : "Release"]
                 ],

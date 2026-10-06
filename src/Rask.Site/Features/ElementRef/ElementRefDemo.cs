@@ -18,9 +18,9 @@ public sealed partial class ElementRefDemo : Component
                 .Ref(_input).Class("mb-2"),
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                 Ui.Button.Primary.OnClick(FocusInput)["Focus the input"],
-                Ui.Button.Outline.OnClick(MeasureBox)["Measure the box"],
-                Ui.Button.Outline.OnClick(MeasureInJs)["Measure it in TypeScript"],
-                Ui.Button.Outline.OnClick(OpenDialog)["Open the dialog"]
+                Ui.Button.OnClick(MeasureBox)["Measure the box"],
+                Ui.Button.OnClick(MeasureInJs)["Measure it in TypeScript"],
+                Ui.Button.OnClick(OpenDialog)["Open the dialog"]
             ],
             Div.Ref(_box).Class("border rounded p-3 bg-ui-well")[
                 "A box carrying an ElementRef — measured from C# through MDN's getBoundingClientRect, or in TypeScript."

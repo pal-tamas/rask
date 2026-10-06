@@ -91,7 +91,7 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_action_sits_in_the_row() =>
         Assert.Contains("Undo",
-            Ui.Toast.Message("Deleted").Action(Ui.Button.Size(Ui.Size.Xs)["Undo"]).ToHtml(),
+            Ui.Toast.Message("Deleted").Action(Ui.Button.Xs["Undo"]).ToHtml(),
             StringComparison.Ordinal);
 
     [Fact]

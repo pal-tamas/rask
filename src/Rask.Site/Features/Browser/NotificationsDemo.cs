@@ -13,16 +13,16 @@ public sealed partial class NotificationsDemo : Component
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("notif-permission")
                         .OnClick(RequestPermission)["Request permission"],
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("notif-show")
                         .OnClick(Notify)["Notify"],
-                    Ui.Button.Outline
+                    Ui.Button
                         .Id("badge-set")
                         .OnClick(SetBadge)["Set badge 3"],
-                    Ui.Button.Error.Outline
+                    Ui.Button.Red
                         .Id("badge-clear")
                         .OnClick(ClearBadge)["Clear badge"]
                 ],

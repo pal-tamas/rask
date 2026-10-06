@@ -68,13 +68,11 @@ public sealed partial class MasterDetailDemo : Component
 
             rows.Add(Tr.Key(order.Id).Class("md-row")[
                 Td.Style("width:44px;")[
-                    Ui.Button
-                        .AccessibleLabel(open ? $"Collapse order {order.Id}" : $"Expand order {order.Id}")
-                        .Square()
-                        .Variant(Ui.Variant.Link)
+                    Ui.Button.Subtle.Icon(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)
+                        .AriaLabel(open ? $"Collapse order {order.Id}" : $"Expand order {order.Id}")
                         .Class("p-0 no-underline")
                         .Data("testid", $"expander-{order.Id}")
-                        .OnClick(() => Toggle(order.Id))[Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)]
+                        .OnClick(() => Toggle(order.Id))
                 ],
                 Td.Class("font-semibold")[order.Customer],
                 Td.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
@@ -216,10 +214,9 @@ public sealed partial class MasterDetailDemo : Component
         };
 
         return Th.Scope(ThScope.Col).Key(columnId)[
-            Ui.Button
-                .Variant(Ui.Variant.Link)
+            Ui.Button.Subtle.Icon(icon)
                 .Class("p-0 no-underline text-ui-ink font-semibold" + (sorted ? "" : " [&_svg]:opacity-50"))
-                .OnClick(() => toggle(columnId))[Ui.Icon.Name(icon), header]
+                .OnClick(() => toggle(columnId))[header]
         ];
     }
 

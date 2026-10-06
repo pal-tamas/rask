@@ -15,7 +15,7 @@ internal sealed partial class DashboardParked : Component
         Parked
             ? Ui.Alert[
                 Span["Live updates paused to keep the database free."],
-                Ui.Button.Size(Ui.Size.Sm).OnClick(ResumeAsync)["Resume"]
+                Ui.Button.Sm.OnClick(ResumeAsync)["Resume"]
             ]
             : null;
 

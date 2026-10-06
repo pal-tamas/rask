@@ -9,13 +9,13 @@ public sealed partial class VibrationDemo : Component
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("vibrate-buzz")
                         .OnClick(() => Vibrate([200], "Vibrated"))["Buzz"],
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("vibrate-pattern")
                         .OnClick(() => Vibrate([100, 50, 100, 50, 300], "Pattern played"))["Pattern"],
-                    Ui.Button.Error.Outline
+                    Ui.Button.Red
                         .Id("vibrate-cancel")
                         .OnClick(() => Vibrate([0], "Cancelled"))["Cancel"]
                 ],

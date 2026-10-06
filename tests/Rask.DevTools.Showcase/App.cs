@@ -41,7 +41,7 @@ public sealed partial class TaskBoard : Component
         Context.Provide(new Release(Heading ?? "Tasks"))[
             Ui.Card.Title(Heading ?? "Tasks")[
                 Ui.List[_tasks.Select((task, i) => TaskRow.Key(task).Done(i == 0).Label(task).Assignee(Owner))],
-                Ui.Button.Tone(Ui.Tone.Primary).OnClick(() => _tasks.Add($"Follow-up {_tasks.Count - 2}"))["Add task"]
+                Ui.Button.Primary.OnClick(() => _tasks.Add($"Follow-up {_tasks.Count - 2}"))["Add task"]
             ]
         ];
 }

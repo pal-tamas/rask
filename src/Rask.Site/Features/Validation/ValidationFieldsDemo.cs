@@ -37,7 +37,7 @@ public sealed partial class ValidationFieldsDemo : Component
                 Validation.Message.Template(FieldError).For(() => _model.Plan)
             ],
             Div[
-                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.CheckCircle), "Register"]
+                Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit["Register"]
             ]
         ],
         _submission is null

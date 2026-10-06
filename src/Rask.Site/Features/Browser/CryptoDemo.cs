@@ -14,8 +14,8 @@ public sealed partial class CryptoDemo : Component
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Button.Primary.Outline.Id("crypto-uuid").OnClick(Uuid)["Random UUID"],
-                    Ui.Button.Primary.Outline.Id("crypto-bytes").OnClick(Bytes)["Random bytes"]
+                    Ui.Button.Id("crypto-uuid").OnClick(Uuid)["Random UUID"],
+                    Ui.Button.Id("crypto-bytes").OnClick(Bytes)["Random bytes"]
                 ],
                 Div.Class("text-sm text-ui-muted")["UUID: ", Code.Id("crypto-uuid-value")[_uuid ?? "(none)"]],
                 Div.Class("text-sm text-ui-muted mb-2")["Bytes: ", Code.Id("crypto-bytes-value")[_bytes ?? "(none)"]],

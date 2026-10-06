@@ -20,7 +20,7 @@ public sealed partial class DownloadDemo : Component
 
     protected override Component? Render() =>
         Div[
-            Ui.Button.Primary.Id("download-report").OnClick(DownloadReport)[Ui.Icon.Name(Ui.IconName.DocumentText), "Download report"],
+            Ui.Button.Primary.Icon(Ui.IconName.DocumentText).Id("download-report").OnClick(DownloadReport)["Download report"],
             Div
                 .Class("text-sm text-ui-muted mt-2")
                 .Data("rask-report-count", "true")[

@@ -59,9 +59,9 @@ public sealed partial class UiKitFeedbackDemo : Component
             Div.Data(Testid("ui-progress")).Class("space-y-3")[
                 Ui.Progress.Label("Upload").Value(_progress).Max(100).Primary,
                 Div.Class("flex gap-2")[
-                    Ui.Button.Key("less").Sm
+                    Ui.Button.Sm.Key("less")
                         .OnClick(() => { _progress = Math.Max(0, _progress - 10); })["−10"],
-                    Ui.Button.Key("more").Sm
+                    Ui.Button.Sm.Key("more")
                         .OnClick(() => { _progress = Math.Min(100, _progress + 10); })["+10"]
                 ],
                 Ui.RadialProgress.Label("Disk used").Percent(_progress)
@@ -121,11 +121,11 @@ public sealed partial class UiKitFeedbackDemo : Component
             + "says role=alert; everything else is announced politely.",
             Div.Data(Testid("ui-toast"))[
                 Div.Class("flex flex-wrap gap-2")[
-                    Ui.Button.Key("ok").Primary
+                    Ui.Button.Primary.Key("ok")
                         .OnClick(() => Push("Saved.", null, Ui.Tone.Success))["Save"],
-                    Ui.Button.Key("undo").Outline
+                    Ui.Button.Key("undo")
                         .OnClick(() => Push("Moved to the bin.", "Order deleted", Ui.Tone.Success))["Delete"],
-                    Ui.Button.Key("bad").Error
+                    Ui.Button.Danger.Key("bad")
                         .OnClick(() => Push("Payment failed.", null, Ui.Tone.Error))["Fail"]
                 ],
                 Ui.Toaster.Key("toaster").Position(Ui.Position.Bottom).Align(Ui.Align.End)[
@@ -138,7 +138,7 @@ public sealed partial class UiKitFeedbackDemo : Component
                             .Duration(6.Seconds)
                             .Action(t.Heading is null
                                 ? null
-                                : Ui.Button.Xs.Ghost
+                                : Ui.Button.Ghost.Xs
                                     .OnClick(() => Drop(t.Id))["Undo"])
                             .OnDismiss(() => Drop(t.Id)))
                 ]

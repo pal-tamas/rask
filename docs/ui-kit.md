@@ -235,7 +235,7 @@ colours are generated for 3:1, not 4.5.
 
 ### The kit's own components are corrected the same way
 
-`Ui.Button`, `Ui.Badge`, `Ui.Alert`, `Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
+`Ui.Badge`, `Ui.Alert`, `Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
 daisyUI labels each tone with its own `-content` colour — generated for 3:1, so small text on them fails
 AA on between two and ten palettes per tone (`secondary` is 3.05:1 on daisyUI's own `dark`, `error`
 under AA on ten). The kit corrects them to the `-ink` fill with the ground as the label, in
@@ -254,13 +254,69 @@ Two consequences worth knowing:
 If you write your own daisyUI classes (see above), you are on daisyUI's `-content` pairs, not these —
 the corrections name the classes the kit writes.
 
-## The three axes
+## Buttons
 
-Colour, fill and size are independent and compose, so an outlined error button needs no member of its
-own:
+`Ui.Button` is [Flux's button](https://fluxui.dev/components/button) and `Ui.ButtonGroup` its `button.group`,
+measured against Flux's own page in light and in dark. A variant, a size and a colour are steps:
 
 ```csharp
-Ui.Button.Error.Outline.Lg["Delete"]
+Ui.Button["Cancel"]                         // the outline — Flux's default
+Ui.Button.Primary["Save"]                   // filled with the accent; one per view
+Ui.Button.Filled["Edit"]                    // a tinted fill, no border
+Ui.Button.Danger["Delete"]                  // red
+Ui.Button.Ghost["More"]                     // no surface until hovered
+Ui.Button.Subtle["Skip"]                    // a ghost with a muted label
+
+Ui.Button.Sm["Small"]                       // 32px tall; 40px without a size
+Ui.Button.Xs["Extra small"]                 // 24px
+
+Ui.Button.Primary.Blue["Deploy"]            // any Tailwind hue: Ui.Color
+Ui.Button.Red["Remove"]                     // on the outline it tints the label, the border and the hover
+```
+
+An icon is a prop, which is what lets the button pad itself around it — 12px on the icon's side, 16px on
+the other — and size the drawing: 16px beside a label, 20px alone.
+
+```csharp
+Ui.Button.Icon(Ui.IconName.ArrowDownTray)["Export"]
+Ui.Button.IconTrailing(Ui.IconName.ChevronDown)["Open"]
+Ui.Button.Icon(Ui.IconName.XMark).AriaLabel("Close")          // no children: a square. Name it.
+Ui.Button.Icon(Ui.IconName.Cog6Tooth).Tooltip("Settings")     // a tooltip names it too
+```
+
+```csharp
+Ui.Button.Primary.Class("w-full")["Send invite"]                    // full width is a class, as in Flux
+Ui.Button.Ghost.Sm.Icon(Ui.IconName.XMark).Inset(Ui.Inset.All)      // pulled out by its invisible padding
+Ui.Button.Type(Ui.ButtonType.Submit)["Sign in"]                     // `type="button"` unless you say so
+
+Ui.ButtonGroup[Ui.Button["Oldest"], Ui.Button["Newest"], Ui.Button["Top"]]   // fused: one border between each pair
+```
+
+| Prop | What it takes |
+| --- | --- |
+| `Variant` | `Ui.ButtonVariant`: `Outline` (default) `Primary` `Filled` `Danger` `Ghost` `Subtle` |
+| `Size` | `Ui.ButtonSize`: `Base` (default) `Sm` `Xs` |
+| `Color` | `Ui.Color`: Tailwind's seventeen hues, `Red` … `Rose`, and its five grays. A hue recolours every variant but `Danger`; a gray changes only `Primary` |
+| `Icon`, `IconTrailing` | a `Ui.IconName`; `IconVariant` picks another drawing of it |
+| `Square` | as wide as tall. Automatic with an icon and no children; `Square(false)` turns that off |
+| `Align` | `Ui.Align.Start` / `Center` / `End`, for a button wider than its content |
+| `Inset` | `Ui.Inset` flags — `Top`, `Bottom`, `Left`, `Right`, `All` — for a ghost or subtle button |
+| `Loading` | see [Buttons that wait](#buttons-that-wait) |
+| `Tooltip`, `TooltipPosition`, `TooltipKbd`, `Kbd` | a hint on hover and keyboard focus, and the shortcut shown in it |
+| `Href`, `NewTab` | see [Buttons and links that go somewhere](#buttons-and-links-that-go-somewhere) |
+| `As` | `Ui.ButtonAs.Div` for the look of a button on something that is not one |
+| `Type`, `Disabled`, `Command`, `CommandFor` | the `<button>`'s own attributes |
+
+`Ui.Tone`, `Ui.Variant` and `Ui.Size` do not apply to it: a button has Flux's variants, not daisyUI's tones.
+A selected toggle is `.AriaPressed(AriaPressed.True)` on the variant that reads as selected — `Filled`.
+
+## The three axes
+
+On the components daisyUI still draws, colour, fill and size are independent and compose, so an outlined
+error badge needs no member of its own:
+
+```csharp
+Ui.Badge.Error.Outline["Failed"]
 ```
 
 | Enum | Members |
@@ -316,7 +372,7 @@ from `Element`, so every step an element takes works on them unchanged, the even
 show is their **children**, the same as a raw element's:
 
 ```csharp
-Ui.Button.Id("save").Primary.OnClick(Save)[Ui.Icon.Name(Ui.IconName.Check), "Save"]
+Ui.Button.Primary.Icon(Ui.IconName.Check).Id("save").OnClick(Save)["Save"]
 
 Ui.Badge.Success["Live"]
 
@@ -328,8 +384,9 @@ Ui.Table.Id("orders").Data("testid", "orders").Aria(("label", "Orders"))[
 ]
 ```
 
-A bare `Ui.Icon.Name(…)` is the right size in all of these. The kit's stylesheet sizes an icon nobody sized
-from the button, badge or alert it sits in, and leaves alone an icon that has a size class of its own.
+A button takes its icons as props and sizes them itself. In a badge or an alert a bare `Ui.Icon.Name(…)`
+is the right size: the kit's stylesheet sizes an icon nobody sized from what it sits in, and leaves alone
+one that has a size class of its own.
 
 ## Icons
 
@@ -351,7 +408,7 @@ Ui.Icon.Name(Ui.IconName.Loading)                                               
 Each variant (`Ui.IconVariant`) is a separate drawing made for its size, so pick the variant for the size you
 want rather than resizing one. A `size-*` class still overrides it, from any position in the class list: the
 default size carries no specificity. An icon is painted in `currentColor`, so a `text-*` class — or the text
-it sits in — colours it. It is `aria-hidden`; give a control that is only an icon an `AccessibleLabel`.
+it sits in — colours it. It is `aria-hidden`; give a control that is only an icon an `AriaLabel`.
 
 `Ui.IconName.Loading` is the one name that is not a Heroicon: Flux's spinner, which turns once a second. A
 variant only sizes it.
@@ -361,8 +418,8 @@ The set is generated by `scripts/flux/icons.mjs` from the `heroicons` npm packag
 extras do not carry over: `php artisan flux:icon` (importing Lucide) and Blade icon files. An icon outside
 the set is an ordinary component that draws its own `Svg`.
 
-A square or circle button holds one glyph, so it names itself with **`AccessibleLabel`**:
-`Ui.Button.AccessibleLabel("Close").Square()[Ui.Icon.Name(Ui.IconName.XMark)]`.
+A button with an icon and no children is a square holding one glyph, so name it:
+`Ui.Button.Icon(Ui.IconName.XMark).AriaLabel("Close")`.
 
 The kit's classes and ARIA compose with yours instead of replacing them. `.Class("mb-0")` is added to the
 kit's classes through `ResolveClass()`. A label you set with `.Aria(…)` wins over one the kit would derive
@@ -370,7 +427,8 @@ through `ResolveAria()`, which writes into Core's `aria-*` slot so the attribute
 `Element` documents.
 
 **One tag, and that has a consequence.** An element's children are written straight from the indexer, so
-an element-derived component cannot draw anything around them. The two places this shows:
+an element-derived component cannot draw anything around them — `Ui.Button` adds its icons, its spinner and
+its tooltip INSIDE the tag, beside the label. The two places this shows:
 
 - **`Ui.Table.Scroll()`** puts the table in a bordered box that scrolls sideways. While it does,
   `Ui.Table` renders as the box with the `<table>` inside. The id, classes, data, ARIA and handlers stay on
@@ -492,21 +550,26 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
 ## Buttons that wait
 
 A button whose handler is still running shows it — with nothing to set. Press "Save" on a slow link and,
-once the handler has gone 200 ms without finishing, the button swaps its label for a spinner at the same
-width, carries `aria-busy="true"`, and drops a second press until the first one's render has landed. This
-is Flux UI's answer to the double submit, and it holds on both hosts: the Server runtime ends the wait on
-the handler's ack, the WebAssembly runtime when its dispatch returns.
+once the handler has gone 200 ms without finishing, the label fades out where it stands, Flux's spinner
+fades in over it at the same width, the button carries `aria-busy="true"`, takes no pointer events, and
+drops a second press until the first one's render has landed. This is Flux UI's answer to the double
+submit, and it holds on both hosts: the Server runtime ends the wait on the handler's ack, the WebAssembly
+runtime when its dispatch returns.
 
 ```csharp
-Ui.Button.Primary.OnClick(Save)["Save"]          // waits automatically
-Ui.Button.Loading(false).OnClick(Step)[Ui.Icon.Name(Ui.IconName.Plus)]  // a stepper: presses queue
+Ui.Button.Primary.OnClick(Save)["Save"]                            // waits automatically
+Ui.Button.Type(Ui.ButtonType.Submit)["Sign in"]                    // so does a form's submit
+Ui.Button.Icon(Ui.IconName.Plus).Loading(false).OnClick(Step)      // a stepper: presses queue
 Ui.Button.Loading(_exporting)["Export"]                            // work that outlives the handler
 ```
 
+As in Flux, a button carries the spinner when it has something to wait on: an `OnClick`, `type="submit"`,
+or a `Loading` you set. `Loading(false)` tells the runtime to leave the button alone.
+
 It is the **runtime** that marks the button, not script in the kit, because only the runtime knows when a
 dispatch starts and ends. So every `<button>` with a handler gets the same `data-loading` + `aria-busy`
-attributes — the kit's stylesheet is what turns them into a spinner, and your own CSS can style
-`[data-loading]` on any control. `data-rask-loading="off"` on an element, or on a toolbar around several,
+attributes — `Ui.Button` is what turns them into a spinner, a hand-written daisyUI `btn` still gets the
+kit's older one, and your own CSS can style `[data-loading]` on any control. `data-rask-loading="off"` on an element, or on a toolbar around several,
 opts them out; `data-rask-loading` on a non-button element opts it in. It is never `disabled`, which would
 throw keyboard focus off the control mid-press. A Blazor island's buttons get it too — their handlers
 dispatch over the same channel.
@@ -517,7 +580,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
+| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |

@@ -4,192 +4,316 @@ using Rask.Core.Routing;
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The button's class composition, its two tags, and its icon-only form.
+///     Flux's button: what each prop writes, its two tags, its parts, and Rask's own behaviour on top.
 /// </summary>
 /// <remarks>
-///     Deriving from <c>RaskMarkup</c> is what makes <c>UiButton</c> here the chain's entry rather than
-///     the type: a component's opening step only exists inside a markup host.
+///     How it LOOKS is held to fluxui.dev by <c>scripts/flux/parity.mjs button</c>; these hold the markup
+///     contract. Deriving from <c>RaskMarkup</c> is what makes <c>Ui.Button</c> here the chain's entry.
 /// </remarks>
 public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void A_plain_button_carries_the_base_class_and_shows_its_children() =>
-        Assert.Equal("<button class=\"btn\" type=\"button\">Save</button>", Ui.Button["Save"].ToHtml());
-
-    [Theory]
-    [InlineData(Ui.Tone.Neutral, "btn-neutral")]
-    [InlineData(Ui.Tone.Primary, "btn-primary")]
-    [InlineData(Ui.Tone.Secondary, "btn-secondary")]
-    [InlineData(Ui.Tone.Accent, "btn-accent")]
-    [InlineData(Ui.Tone.Info, "btn-info")]
-    [InlineData(Ui.Tone.Success, "btn-success")]
-    [InlineData(Ui.Tone.Warning, "btn-warning")]
-    [InlineData(Ui.Tone.Error, "btn-error")]
-    public void Every_tone_writes_its_own_class(Ui.Tone tone, string expected) =>
-        Assert.Contains(expected, Ui.Button.Tone(tone)["Save"].ToHtml());
-
-    [Theory]
-    [InlineData(Ui.Variant.Outline, "btn-outline")]
-    [InlineData(Ui.Variant.Soft, "btn-soft")]
-    [InlineData(Ui.Variant.Dash, "btn-dash")]
-    [InlineData(Ui.Variant.Ghost, "btn-ghost")]
-    [InlineData(Ui.Variant.Link, "btn-link")]
-    public void Every_variant_writes_its_own_class(Ui.Variant variant, string expected) =>
-        Assert.Contains(expected, Ui.Button.Variant(variant)["Save"].ToHtml());
-
-    [Fact]
-    public void Solid_is_the_absence_of_a_variant_class_rather_than_one_of_its_own() =>
-        Assert.DoesNotContain("btn-solid", Ui.Button.Variant(Ui.Variant.Solid)["Save"].ToHtml());
-
-    [Theory]
-    [InlineData(Ui.Size.Xs, "btn-xs")]
-    [InlineData(Ui.Size.Sm, "btn-sm")]
-    [InlineData(Ui.Size.Md, "btn-md")]
-    [InlineData(Ui.Size.Lg, "btn-lg")]
-    [InlineData(Ui.Size.Xl, "btn-xl")]
-    public void Every_size_writes_its_own_class(Ui.Size size, string expected) =>
-        Assert.Contains(expected, Ui.Button.Size(size)["Save"].ToHtml());
-
-    [Fact]
-    public void Colour_fill_and_size_compose_rather_than_replacing_each_other()
+    public void A_plain_button_is_the_outline_at_the_base_size_and_shows_its_children()
     {
-        // The three axes are independent, which is what lets an outlined error button exist without the
-        // kit enumerating every pairing as a member of its own.
-        var html = Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Size(Ui.Size.Lg)["Delete"].ToHtml();
+        var html = Ui.Button["Save"].ToHtml();
 
-        Assert.Contains("btn-error", html);
-        Assert.Contains("btn-outline", html);
-        Assert.Contains("btn-lg", html);
-    }
-
-    [Fact]
-    public void Block_fills_its_container() =>
-        Assert.Contains("btn-block", Ui.Button.Block(true)["Save"].ToHtml());
-
-    [Fact]
-    public void Wide_is_not_block() =>
-        Assert.DoesNotContain("btn-block", Ui.Button.Wide(true)["Save"].ToHtml());
-
-    [Fact]
-    public void Wide_writes_its_own_class() =>
-        Assert.Contains("btn-wide", Ui.Button.Wide(true)["Save"].ToHtml());
-
-    [Fact]
-    public void Active_draws_it_as_pressed() =>
-        Assert.Contains("btn-active", Ui.Button.Active(true)["Filter"].ToHtml());
-
-    [Fact]
-    public void A_disabled_button_is_disabled_by_ATTRIBUTE_not_by_class()
-    {
-        // daisyUI has a `btn-disabled` class, and it styles without disabling: a button carrying only
-        // that class still takes a click and still reaches its handler. The attribute is the one that
-        // makes the browser refuse the interaction, which is what "disabled" has to mean.
-        var html = Ui.Button.Disabled(true)["Save"].ToHtml();
-
-        Assert.Contains(" disabled", html);
-        Assert.DoesNotContain("btn-disabled", html);
+        Assert.StartsWith("<button class=\"relative inline-flex ", html, StringComparison.Ordinal);
+        Assert.Contains(" h-10 px-4 text-sm rounded-lg gap-2 ", html, StringComparison.Ordinal);
+        Assert.Contains(" bg-white ", html, StringComparison.Ordinal);
+        Assert.EndsWith(" data-ui-button type=\"button\">Save</button>", html, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData("btn-square")]
-    [InlineData("btn-circle")]
-    public void An_icon_only_button_names_itself_to_a_screen_reader(string shape)
-    {
-        // A square holds one glyph, so its name cannot be visible text. It still has to be SOMEWHERE: a
-        // button whose only content is a decorative icon is announced as "button", with no clue what it does.
-        var html = shape == "btn-square"
-            ? Ui.Button.AccessibleLabel("Close").Square(true)[Ui.Icon.Name(Ui.IconName.XMark)].ToHtml()
-            : Ui.Button.AccessibleLabel("Close").Circle(true)[Ui.Icon.Name(Ui.IconName.XMark)].ToHtml();
+    [InlineData(Ui.ButtonVariant.Outline, "border-b-zinc-300/80")]
+    [InlineData(Ui.ButtonVariant.Primary, "bg-fx-accent")]
+    [InlineData(Ui.ButtonVariant.Filled, "bg-zinc-800/5")]
+    [InlineData(Ui.ButtonVariant.Danger, "bg-red-500")]
+    [InlineData(Ui.ButtonVariant.Ghost, "hover:bg-zinc-800/5")]
+    [InlineData(Ui.ButtonVariant.Subtle, "text-zinc-500")]
+    public void Every_variant_draws_its_own_surface(Ui.ButtonVariant variant, string expected) =>
+        Assert.Contains(expected, Ui.Button.Variant(variant)["Save"].ToHtml(), StringComparison.Ordinal);
 
-        Assert.Contains(shape, html);
-        Assert.Contains("aria-label=\"Close\"", html);
+    [Theory]
+    [InlineData(Ui.ButtonSize.Base, "h-10 px-4 text-sm rounded-lg gap-2")]
+    [InlineData(Ui.ButtonSize.Sm, "h-8 px-3 text-sm rounded-md gap-2")]
+    [InlineData(Ui.ButtonSize.Xs, "h-6 px-2 text-xs rounded-md gap-1")]
+    public void Every_size_sets_its_height_padding_and_type(Ui.ButtonSize size, string expected) =>
+        Assert.Contains(expected, Ui.Button.Size(size)["Save"].ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
+    public void A_variant_a_size_and_a_colour_are_steps_that_compose()
+    {
+        var html = Ui.Button.Filled.Sm.Blue["Save"].ToHtml();
+
+        Assert.Contains("h-8 px-3", html, StringComparison.Ordinal);
+        Assert.Contains("bg-(--ui-hue-400)/20", html, StringComparison.Ordinal);
+        Assert.Contains("[--ui-hue-400:var(--color-blue-400)]", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void An_aria_label_the_call_site_wrote_wins_over_the_accessible_label_and_is_written_once()
+    public void The_smallest_outline_casts_no_shadow()
     {
-        var html = Ui.Button.AccessibleLabel("Close").Aria(("label", "Close the dialog"))[Ui.Icon.Name(Ui.IconName.XMark)]
-            .ToHtml();
+        var small = Ui.Button.Xs["Save"].ToHtml();
+        var regular = Ui.Button["Save"].ToHtml();
 
-        Assert.Contains("aria-label=\"Close the dialog\"", html);
+        Assert.Contains("shadow-none", small, StringComparison.Ordinal);
+        Assert.Contains("shadow-xs", regular, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_hue_on_the_outline_keeps_the_white_surface_and_mixes_into_text_and_border()
+    {
+        var html = Ui.Button.Color(Ui.Color.Green)["Approve"].ToHtml();
+
+        Assert.Contains(" bg-white ", html, StringComparison.Ordinal);
+        Assert.Contains("text-(color:--ui-hue-700)", html, StringComparison.Ordinal);
+        Assert.Contains("border-[color:color-mix(in_oklab,var(--ui-hue-500)_18%,var(--color-zinc-200))]", html, StringComparison.Ordinal);
+        Assert.Contains("[--ui-hue-500:var(--color-green-500)]", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(Ui.Color.Blue, "var(--color-blue-400)")]
+    [InlineData(Ui.Color.Indigo, "var(--color-indigo-300)")]
+    [InlineData(Ui.Color.Purple, "var(--color-purple-300)")]
+    public void The_shade_that_reads_on_a_dark_surface_is_400_and_300_for_indigo_and_purple(Ui.Color hue, string shade) =>
+        Assert.Contains("[--ui-hue-accent:" + shade + "]", Ui.Button.Color(hue)["Save"].ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
+    public void A_primary_of_a_colour_repoints_the_accent_for_that_one_button()
+    {
+        var blue = Ui.Button.Primary.Blue["Save"].ToHtml();
+        var amber = Ui.Button.Primary.Amber["Save"].ToHtml();
+
+        Assert.Contains("[--color-fx-accent:var(--color-blue-500)] [--color-fx-accent-foreground:var(--color-white)]", blue, StringComparison.Ordinal);
+        Assert.Contains("[--color-fx-accent:var(--color-amber-400)] [--color-fx-accent-foreground:var(--color-amber-950)]", amber, StringComparison.Ordinal);
+        Assert.DoesNotContain("--ui-hue-", blue, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_gray_changes_a_primary_button_and_no_other()
+    {
+        var primary = Ui.Button.Primary.Slate["Save"].ToHtml();
+        var outline = Ui.Button.Slate["Save"].ToHtml();
+
+        Assert.Contains("[--color-fx-accent:var(--color-slate-800)]", primary, StringComparison.Ordinal);
+        Assert.Equal(Ui.Button["Save"].ToHtml(), outline);
+    }
+
+    [Fact]
+    public void Danger_is_red_whatever_colour_it_is_given() =>
+        Assert.Equal(Ui.Button.Danger["Delete"].ToHtml(), Ui.Button.Danger.Blue["Delete"].ToHtml());
+
+    [Fact]
+    public void An_icon_sits_before_the_label_which_is_wrapped_and_the_button_pads_less_on_its_side()
+    {
+        var html = Ui.Button.Icon(Ui.IconName.ArrowDownTray)["Export"].ToHtml();
+
+        Assert.Contains("h-10 ps-3 pe-4", html, StringComparison.Ordinal);
+        Assert.Matches("<svg class=\"shrink-0 [^\"]*size-4\"[^>]*viewBox=\"0 0 16 16\"", html);
+        Assert.EndsWith("</svg><span>Export</span></button>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_trailing_icon_sits_after_the_label()
+    {
+        var html = Ui.Button.IconTrailing(Ui.IconName.ChevronDown)["Open"].ToHtml();
+
+        Assert.Contains("h-10 ps-4 pe-3", html, StringComparison.Ordinal);
+        Assert.Contains("<span>Open</span><svg", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_icon_on_each_side_pads_both_sides_alike() =>
+        Assert.Contains(
+            "h-10 px-3",
+            Ui.Button.Icon(Ui.IconName.Funnel).IconTrailing(Ui.IconName.ChevronDown)["Filter"].ToHtml(),
+            StringComparison.Ordinal);
+
+    [Fact]
+    public void An_icon_with_no_children_is_a_square_holding_the_20px_drawing()
+    {
+        var html = Ui.Button.Icon(Ui.IconName.XMark).ToHtml();
+
+        Assert.Contains("h-10 w-10", html, StringComparison.Ordinal);
+        Assert.Matches("<svg class=\"shrink-0 [^\"]*size-5\"[^>]*viewBox=\"0 0 20 20\"", html);
+        Assert.DoesNotContain("<span", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_smallest_square_holds_the_16px_drawing() =>
+        Assert.Matches(
+            "<svg class=\"shrink-0 [^\"]*size-4\"[^>]*viewBox=\"0 0 16 16\"",
+            Ui.Button.Xs.Icon(Ui.IconName.XMark).ToHtml());
+
+    [Fact]
+    public void An_icon_variant_picks_the_drawing_and_the_button_still_sizes_it() =>
+        Assert.Matches(
+            "<svg class=\"shrink-0 [^\"]*size-5\"[^>]*viewBox=\"0 0 24 24\"",
+            Ui.Button.Icon(Ui.IconName.Cog6Tooth).IconVariant(Ui.IconVariant.Outline).ToHtml());
+
+    [Fact]
+    public void Square_makes_a_labelled_button_square_and_false_keeps_an_icon_only_one_padded()
+    {
+        var square = Ui.Button.Square()["..."].ToHtml();
+        var padded = Ui.Button.Icon(Ui.IconName.XMark).Square(false).ToHtml();
+
+        Assert.Contains("h-10 w-10", square, StringComparison.Ordinal);
+        Assert.Contains("h-10 ps-3 pe-4", padded, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(Ui.Align.Start, "justify-start")]
+    [InlineData(Ui.Align.Center, "justify-center")]
+    [InlineData(Ui.Align.End, "justify-end")]
+    public void Align_places_the_content_in_a_wide_button(Ui.Align align, string expected) =>
+        Assert.Contains(expected, Ui.Button.Align(align).Class("w-full")["Save"].ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
+    public void Inset_pulls_only_the_named_sides_out_by_what_the_size_pads()
+    {
+        var html = Ui.Button.Ghost.Sm.Inset(Ui.Inset.Top | Ui.Inset.Bottom)["Edit"].ToHtml();
+        var all = Ui.Button.Ghost.Inset(Ui.Inset.All)["Edit"].ToHtml();
+
+        Assert.Contains("-mt-1.5 -mb-1.5", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("-ms-", html, StringComparison.Ordinal);
+        Assert.Contains("-mt-2.5 -mb-2.5 -ms-2.5 -me-2.5", all, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_button_with_nothing_to_wait_on_carries_no_spinner() =>
+        Assert.DoesNotContain("data-ui-loading-indicator", Ui.Button["Save"].ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
+    public void A_button_with_a_click_handler_carries_the_spinner_the_runtime_will_show()
+    {
+        var html = Ui.Button.OnClick(() => { })["Save"].ToHtml();
+
+        Assert.Contains("<div class=\"absolute inset-0 flex items-center justify-center opacity-0 ", html, StringComparison.Ordinal);
+        Assert.Contains("data-ui-loading-indicator><svg class=\"shrink-0 [:where(&amp;)]:size-4 animate-spin\"", html, StringComparison.Ordinal);
+        Assert.Contains("<span class=\"transition-opacity [[data-loading]&gt;&amp;]:opacity-0\">Save</span>", html, StringComparison.Ordinal);
+        Assert.DoesNotMatch(" data-loading[ >]", html);
+    }
+
+    [Fact]
+    public void A_submit_button_carries_the_spinner_too() =>
+        Assert.Contains(
+            "data-ui-loading-indicator",
+            Ui.Button.Type(Ui.ButtonType.Submit)["Save"].ToHtml(),
+            StringComparison.Ordinal);
+
+    [Fact]
+    public void Loading_true_marks_it_from_the_render_in_the_documented_attribute_order()
+    {
+        var html = Ui.Button.Id("save").Data("testid", "save").AriaLabel("Save").Loading(true)["Save"].ToHtml();
+
+        Assert.StartsWith("<button id=\"save\" class=\"", html, StringComparison.Ordinal);
+        Assert.Contains(
+            "\" data-ui-button data-loading data-testid=\"save\" aria-label=\"Save\" aria-busy=\"true\" type=\"button\"><div ",
+            html,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Loading_false_opts_out_of_the_runtimes_mark_and_keeps_the_markup_loading_true_has()
+    {
+        var off = Ui.Button.Loading(false)["+"].ToHtml();
+        var on = Ui.Button.Loading(true)["+"].ToHtml();
+
+        Assert.Contains("data-rask-loading=\"off\"", off, StringComparison.Ordinal);
+        Assert.DoesNotMatch(" data-loading[ >]", off);
+        Assert.Equal(Regex.Replace(on, "<button[^>]*>", ""), Regex.Replace(off, "<button[^>]*>", ""));
+    }
+
+    [Fact]
+    public void A_link_waits_on_nothing()
+    {
+        var html = Ui.Button.Href("/orders").Loading(true)["Orders"].ToHtml();
+
+        Assert.DoesNotMatch(" data-loading[ >]", html);
+        Assert.DoesNotContain("aria-busy", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-ui-loading-indicator", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rendering_twice_gives_the_same_markup_and_leaves_the_call_sites_data_untouched()
+    {
+        var own = new Dictionary<string, string?> { ["testid"] = "save" };
+        var button = Ui.Button.Data(own).Icon(Ui.IconName.Check).Loading(true)["Save"];
+
+        var first = button.ToHtml();
+        var second = button.ToHtml();
+
+        Assert.Equal(first, second);
+        Assert.Same(own, ((UiButton)button).Data);
+        Assert.Single(own);
+    }
+
+    [Fact]
+    public void A_tooltip_is_a_hidden_hint_inside_the_button_and_names_one_that_shows_only_an_icon()
+    {
+        var html = Ui.Button.Icon(Ui.IconName.Cog6Tooth).Tooltip("Settings").ToHtml();
+
+        Assert.Contains(" aria-label=\"Settings\"", html, StringComparison.Ordinal);
+        Assert.Matches("<span class=\"[^\"]*bottom-full[^\"]*\" data-ui-tooltip-content role=\"tooltip\" aria-hidden=\"true\">Settings</span></button>$", html);
+    }
+
+    [Fact]
+    public void A_tooltip_leaves_a_labelled_button_named_by_its_label() =>
+        Assert.DoesNotContain("aria-label", Ui.Button.Tooltip("Saves the draft")["Save"].ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
+    public void A_label_the_call_site_wrote_wins_over_the_tooltip_and_is_written_once()
+    {
+        var html = Ui.Button.Icon(Ui.IconName.XMark).Tooltip("Close").AriaLabel("Close the dialog").ToHtml();
+
+        Assert.Contains("aria-label=\"Close the dialog\"", html, StringComparison.Ordinal);
         Assert.Single(Regex.Matches(html, "aria-label="));
     }
 
-    [Fact]
-    public void An_accessible_label_keeps_the_call_sites_other_aria()
-    {
-        var html = Ui.Button.AccessibleLabel("Menu").Aria(("expanded", "false"))[Ui.Icon.Name(Ui.IconName.Bars3)].ToHtml();
-
-        Assert.Contains("aria-label=\"Menu\"", html);
-        Assert.Contains("aria-expanded=\"false\"", html);
-    }
-
-    [Fact]
-    public void An_ordinary_button_needs_no_aria_label() =>
-        Assert.DoesNotContain("aria-label", Ui.Button["Save"].ToHtml());
-
-    [Fact]
-    public void An_icon_and_a_label_are_children_in_the_order_given()
-    {
-        var html = Ui.Button[Ui.Icon.Name(Ui.IconName.Check), "Save"].ToHtml();
-
-        Assert.True(html.IndexOf("<svg", StringComparison.Ordinal) < html.IndexOf("Save</button>", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void The_kit_stylesheet_sizes_an_icon_nobody_sized_by_the_button_it_sits_in()
-    {
-        // The icon is a child now, so the kit does not build it and cannot hand it `size-4` as the Icon
-        // prop did. The compiled sheet has to carry the rule, keyed to an icon whose call site wrote no
-        // size after Ui.Icon's own classes, so one sized on purpose is left alone.
-        const string unsized = @"svg\[data-ui-icon\]:not\(\[class\*=\\ size-\],\[class\*=\\ w-\],\[class\*=\\ h-\]\)";
-
-        Assert.Matches(new Regex(@"\.btn>" + unsized + @"[^{]*\{width:1rem"), UiStylesheet.Css);
-        Assert.Matches(new Regex(@"\.badge>" + unsized + @"[^{]*\{width:1em"), UiStylesheet.Css);
-        Assert.Matches(new Regex(@"\.alert>" + unsized + @"\{width:1\.25rem"), UiStylesheet.Css);
-    }
-
     [Theory]
-    [InlineData(null, true)]
-    [InlineData("me-1", true)]
-    [InlineData("text-ui-muted opacity-60", true)]
-    [InlineData("size-4", false)]
-    [InlineData("me-1 size-3.5", false)]
-    [InlineData("h-4 w-4", false)]
-    public void An_icon_counts_as_unsized_exactly_when_its_call_site_named_no_size(string? extra, bool unsized)
+    [InlineData(Ui.Position.Top, "bottom-full")]
+    [InlineData(Ui.Position.Bottom, "top-full")]
+    [InlineData(Ui.Position.Left, "right-full")]
+    [InlineData(Ui.Position.Right, "left-full")]
+    public void The_tooltip_opens_on_the_side_it_is_given(Ui.Position position, string expected) =>
+        Assert.Contains(
+            expected,
+            Ui.Button.Tooltip("Settings").TooltipPosition(position)["Open"].ToHtml(),
+            StringComparison.Ordinal);
+
+    [Fact]
+    public void A_keyboard_shortcut_is_shown_at_the_end_of_the_tooltip_or_as_one_of_its_own()
     {
-        // The stylesheet rule above reads the class attribute, so what it reads is pinned here: a size
-        // from the call site always follows a space, and Ui.Icon's own default never does.
-        var classes = Regex.Match(Ui.Icon.Name(Ui.IconName.Check).Class(extra).ToHtml(), "class=\"([^\"]*)\"").Groups[1].Value;
+        var both = Ui.Button.Tooltip("Save").TooltipKbd("Esc")["Save"].ToHtml();
+        var alone = Ui.Button.Kbd("K")["Search"].ToHtml();
 
-        var sized = classes.Contains(" size-", StringComparison.Ordinal)
-            || classes.Contains(" w-", StringComparison.Ordinal)
-            || classes.Contains(" h-", StringComparison.Ordinal);
-
-        Assert.Equal(unsized, !sized);
+        Assert.Contains("role=\"tooltip\" aria-hidden=\"true\">Save<span class=\"text-zinc-300 not-first:ps-1\">Esc</span></span>", both, StringComparison.Ordinal);
+        Assert.Contains("role=\"tooltip\" aria-hidden=\"true\"><span class=\"text-zinc-300 not-first:ps-1\">K</span></span>", alone, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Call_site_classes_are_added_to_the_kit_class_rather_than_replacing_it() =>
-        Assert.Contains("class=\"btn mt-2\"", Ui.Button.Class("mt-2")["Save"].ToHtml());
+    public void A_disabled_button_is_disabled_by_attribute() =>
+        Assert.Contains(" disabled>", Ui.Button.Disabled(true)["Save"].ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
+    public void Call_site_classes_are_added_after_the_kits_own() =>
+        Assert.Contains(" mt-2\" data-ui-button", Ui.Button.Class("mt-2")["Save"].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void Every_element_step_reaches_the_button_in_the_documented_order()
     {
-        // None of these is declared on Ui.Button — they are Element's, which is the point of deriving from
-        // it rather than mirroring a hand-picked few. Tag-specific attributes follow the universal ones.
         var html = Ui.Button
             .Id("save")
             .Data("testid", "save")
             .Role("switch")
             .TabIndex(0)
-            .AccessibleLabel("Save the draft")
-            .Type(Ui.ButtonType.Submit)["Save"]
+            .AriaLabel("Save the draft")
+            .Type(Ui.ButtonType.Reset)["Save"]
             .ToHtml();
 
-        Assert.Equal(
-            "<button id=\"save\" class=\"btn\" data-testid=\"save\" role=\"switch\" tabindex=\"0\" "
-            + "aria-label=\"Save the draft\" type=\"submit\">Save</button>",
+        Assert.Matches(
+            "^<button id=\"save\" class=\"[^\"]*\" data-ui-button data-testid=\"save\" role=\"switch\" tabindex=\"0\" "
+            + "aria-label=\"Save the draft\" type=\"reset\">Save</button>$",
             html);
     }
 
@@ -203,52 +327,33 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void With_an_href_it_is_an_anchor_rather_than_a_button()
+    public void With_an_href_it_is_an_anchor_that_looks_the_same()
     {
-        // A link that looks like a button is an ordinary thing to want, and the alternative was a class
-        // string in the application — the parallel vocabulary the kit exists to remove.
-        var html = Ui.Button.Href("/docs")["Read the guide"].ToHtml();
+        var link = Ui.Button.Href("/docs")["Read the guide"].ToHtml();
+        var button = Ui.Button["Read the guide"].ToHtml();
 
-        Assert.Equal("<a class=\"btn\" href=\"/docs\">Read the guide</a>", html);
+        Assert.StartsWith("<a class=\"", link, StringComparison.Ordinal);
+        Assert.EndsWith(" data-ui-button href=\"/docs\">Read the guide</a>", link, StringComparison.Ordinal);
+        Assert.Equal(Regex.Match(button, "class=\"[^\"]*\"").Value, Regex.Match(link, "class=\"[^\"]*\"").Value);
     }
 
     [Fact]
     public void An_anchor_href_is_sanitised_as_cores_own_anchor_sanitises_it()
     {
-        // The href is written by the kit now rather than by Core's A, so the sanitiser has to come with it:
-        // a javascript: URL that reaches a kit button from data would otherwise run on click.
         var html = Ui.Button.Href("javascript:alert(1)")["Go"].ToHtml();
 
         Assert.DoesNotContain("javascript:", html, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(A.Href("javascript:alert(1)").ToHtml().Replace("<a ", "", StringComparison.Ordinal)
-                .Replace("></a>", "", StringComparison.Ordinal),
+        Assert.Equal(
+            Regex.Match(A.Href("javascript:alert(1)").ToHtml(), "href=\"[^\"]*\"").Value,
             Regex.Match(html, "href=\"[^\"]*\"").Value);
     }
 
     [Fact]
-    public void An_anchor_keeps_every_axis_the_button_has()
+    public void An_anchor_is_never_disabled_never_typed_and_never_an_invoker()
     {
-        // The whole reason this is one component rather than two: the tone, fill and size axes are
-        // identical either way, so a sibling component would duplicate all of them to change one tag.
-        var html = Ui.Button
-            .Href("/install")
-            .Tone(Ui.Tone.Primary)
-            .Variant(Ui.Variant.Outline)
-            .Size(Ui.Size.Sm)[Ui.Icon.Name(Ui.IconName.ArrowDownTray), "Install"]
-            .ToHtml();
-
-        Assert.StartsWith("<a class=\"btn btn-primary btn-outline btn-sm\"", html, StringComparison.Ordinal);
-        Assert.Contains("<svg", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void An_anchor_is_never_disabled_and_never_an_invoker()
-    {
-        // There is no disabled state for a link in HTML. Faking one leaves it focusable and followable by
-        // keyboard, which is worse than not offering it — a disabled link is a link you do not render.
         var html = Ui.Button.Href("/x").Disabled(true).Type(Ui.ButtonType.Submit).Command("close")["Go"].ToHtml();
 
-        Assert.DoesNotContain("disabled", html, StringComparison.Ordinal);
+        Assert.DoesNotMatch(" disabled[ >]", html);
         Assert.DoesNotContain("type=", html, StringComparison.Ordinal);
         Assert.DoesNotContain("command", html, StringComparison.Ordinal);
     }
@@ -256,8 +361,6 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_new_tab_carries_the_rel_that_makes_it_safe()
     {
-        // noopener is the attribute with no visible effect, so it is the one a caller forgets — a new tab
-        // opened without it can reach back through window.opener.
         var html = Ui.Button.Href("https://example.test").NewTab(true)["Docs"].ToHtml();
 
         Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
@@ -269,100 +372,90 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("target", Ui.Button.NewTab(true)["Save"].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
-    public void A_generated_route_navigates_inside_the_app()
-    {
-        // A route carries its page type, which is what makes the URL this app's to route: the runtime
-        // intercepts a[data-rask-nav], where a bare anchor would boot the whole app again to reach a page it
-        // already has.
-        var html = Ui.Button.Href(new RouteUrl("/orders", null, typeof(UiButtonTests)))["Orders"].ToHtml();
-
-        Assert.Equal("<a class=\"btn\" href=\"/orders\" data-rask-nav>Orders</a>", html);
-    }
+    public void A_generated_route_navigates_inside_the_app() =>
+        Assert.EndsWith(
+            " href=\"/orders\" data-rask-nav>Orders</a>",
+            Ui.Button.Href(new RouteUrl("/orders", null, typeof(UiButtonTests)))["Orders"].ToHtml(),
+            StringComparison.Ordinal);
 
     [Fact]
     public void A_string_stays_an_ordinary_link_even_to_an_in_app_path() =>
-        // A string names no page, so it is followed by the browser: the right thing for a URL that leaves the
-        // app, and the reason a page of this app should be reached through its route.
         Assert.DoesNotContain("data-rask-nav", Ui.Button.Href("/orders")["Orders"].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void A_null_string_destination_leaves_it_a_button() =>
-        // string -> RouteUrl is an implicit conversion, so a null string arrives as a RouteUrl with no path,
-        // not as a missing Href. It must still render the button it did when Href was a string.
-        Assert.Equal(
-            "<button class=\"btn\" type=\"button\">Save</button>",
-            Ui.Button.Href((string)null!)["Save"].ToHtml());
+        Assert.Equal(Ui.Button["Save"].ToHtml(), Ui.Button.Href((string)null!)["Save"].ToHtml());
 
     [Fact]
     public void A_generated_route_in_a_new_tab_is_not_intercepted()
     {
         var html = Ui.Button.Href(new RouteUrl("/orders", null, typeof(UiButtonTests))).NewTab(true)["Orders"].ToHtml();
 
-        // The runtime would skip a target anyway; writing no data-rask-nav keeps the markup saying so.
         Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-nav", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Loading_is_automatic_by_default_and_writes_nothing_of_its_own()
+    public void As_a_div_it_keeps_the_look_and_drops_what_only_a_button_has()
     {
-        // Unset is the runtime's to decide per press, so the render says nothing either way.
-        var html = Ui.Button["Save"].ToHtml();
+        var html = Ui.Button.As(Ui.ButtonAs.Div).Disabled(true).OnClick(() => { })["Drop a file"].ToHtml();
 
-        Assert.DoesNotContain("data-loading", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-rask-loading", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("aria-busy", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"relative inline-flex ", html, StringComparison.Ordinal);
+        Assert.EndsWith(" data-ui-button>Drop a file</div>", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Loading_true_marks_it_from_the_render_in_the_documented_attribute_order()
-    {
-        // The same data-loading the runtime writes, so one stylesheet rule draws both; aria-busy for what is
-        // announced. data-* stays in its slot ahead of role and aria-*, and the call site's data survives.
-        var html = Ui.Button.Id("save").Data("testid", "save").AccessibleLabel("Save").Loading(true)["Save"].ToHtml();
+    public void As_an_anchor_without_an_href_it_is_an_anchor_with_none() =>
+        Assert.EndsWith(" data-ui-button>Top</a>", Ui.Button.As(Ui.ButtonAs.A)["Top"].ToHtml(), StringComparison.Ordinal);
 
-        Assert.Equal(
-            "<button id=\"save\" class=\"btn\" data-testid=\"save\" data-loading aria-label=\"Save\" aria-busy=\"true\" "
-            + "type=\"button\">Save</button>",
-            html);
+    [Fact]
+    public void A_group_is_a_flex_row_its_buttons_fuse_inside()
+    {
+        var html = Ui.ButtonGroup[Ui.Button["Oldest"], Ui.Button["Newest"]].ToHtml();
+
+        Assert.StartsWith("<div class=\"flex\" data-ui-button-group><button ", html, StringComparison.Ordinal);
+        Assert.Contains("in-data-ui-button-group:not-first:border-s-0", html, StringComparison.Ordinal);
+        Assert.Contains("in-data-ui-button-group:first:rounded-s-lg", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Loading_false_opts_the_button_out_of_the_runtimes_mark() =>
-        Assert.Contains(
-            "data-rask-loading=\"off\"",
-            Ui.Button.Loading(false)["+"].ToHtml(),
+    public void A_ghost_button_has_no_surface_to_fuse_so_a_group_leaves_it_alone() =>
+        Assert.DoesNotContain("in-data-ui-button-group", Ui.Button.Ghost["More"].ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
+    public void A_group_keeps_the_call_sites_classes_and_data() =>
+        Assert.StartsWith(
+            "<div class=\"flex w-full\" data-ui-button-group data-testid=\"sort\">",
+            Ui.ButtonGroup.Class("w-full").Data("testid", "sort")[Ui.Button["Top"]].ToHtml(),
             StringComparison.Ordinal);
 
     [Fact]
-    public void A_link_waits_on_nothing()
+    public void Every_class_a_button_can_write_is_in_the_shipped_stylesheet()
     {
-        var html = Ui.Button.Href("/orders").Loading(true)["Orders"].ToHtml();
+        var buttons = new List<string>();
+        foreach (var variant in Enum.GetValues<Ui.ButtonVariant>())
+        {
+            foreach (var size in Enum.GetValues<Ui.ButtonSize>())
+            {
+                buttons.Add(Ui.Button.Variant(variant).Size(size).Inset(Ui.Inset.All).Loading(true).Tooltip("t").Kbd("k")["x"].ToHtml());
+                buttons.Add(Ui.Button.Variant(variant).Size(size).Icon(Ui.IconName.Check).IconTrailing(Ui.IconName.Check)["x"].ToHtml());
+                buttons.Add(Ui.Button.Variant(variant).Size(size).Icon(Ui.IconName.Check).ToHtml());
+                buttons.Add(Ui.Button.Variant(variant).Size(size).IconTrailing(Ui.IconName.Check)["x"].ToHtml());
+            }
 
-        Assert.DoesNotContain("data-loading", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("aria-busy", html, StringComparison.Ordinal);
+            buttons.AddRange(Enum.GetValues<Ui.Color>().Select(color => Ui.Button.Variant(variant).Color(color)["x"].ToHtml()));
+        }
+
+        var written = buttons
+            .SelectMany(html => Regex.Matches(html, "class=\"([^\"]*)\"").Select(match => match.Groups[1].Value))
+            .SelectMany(classes => System.Net.WebUtility.HtmlDecode(classes).Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.All(written, name => Assert.Contains("." + CssEscaped(name), UiStylesheet.Css, StringComparison.Ordinal));
     }
 
-    [Fact]
-    public void Resolving_the_loading_data_leaves_the_call_sites_own_bag_untouched()
-    {
-        // The resolved bag stands in for the walk and is put back afterwards: rendering twice must not
-        // accumulate, and the property a caller set must still read as what they set.
-        var own = new Dictionary<string, string?> { ["testid"] = "save" };
-        var button = Ui.Button.Data(own).Loading(true)["Save"];
-
-        var first = button.ToHtml();
-        var second = button.ToHtml();
-
-        Assert.Equal(first, second);
-        Assert.Same(own, ((UiButton)button).Data);
-        Assert.Single(own);
-    }
-
-    [Fact]
-    public void An_icon_only_anchor_still_has_an_accessible_name() =>
-        Assert.Contains(
-            "aria-label=\"Settings\"",
-            Ui.Button.Href("/settings").AccessibleLabel("Settings").Square(true)[Ui.Icon.Name(Ui.IconName.Cog6Tooth)].ToHtml(),
-            StringComparison.Ordinal);
+    // A class name as a stylesheet spells it: everything but letters, digits, `-` and `_` behind a backslash.
+    private static string CssEscaped(string name) =>
+        Regex.Replace(name, "[^A-Za-z0-9_-]", match => "\\" + match.Value);
 }

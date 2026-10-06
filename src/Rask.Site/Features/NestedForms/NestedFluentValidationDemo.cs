@@ -31,12 +31,9 @@ public sealed partial class NestedFluentValidationDemo : Component
                     Validation.Message.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
-                    Ui.Button
-                        .AccessibleLabel("Remove line")
-                        .Square()
-                        .Error
-                        .Outline
-                        .OnClick(() => _model.Lines.Remove(captured))[Ui.Icon.Name(Ui.IconName.XMark)]
+                    Ui.Button.Red.Icon(Ui.IconName.XMark)
+                        .AriaLabel("Remove line")
+                        .OnClick(() => _model.Lines.Remove(captured))
                 ]
             ]);
         }
@@ -66,10 +63,10 @@ public sealed partial class NestedFluentValidationDemo : Component
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    Ui.Button.Outline
+                    Ui.Button.Icon(Ui.IconName.Plus)
                         .Id("nf-fv-add")
-                        .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[Ui.Icon.Name(Ui.IconName.Plus), "Add line"],
-                    Ui.Button.Primary.Submit.Id("nf-fv-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Place"]
+                        .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))["Add line"],
+                    Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit.Id("nf-fv-submit")["Place"]
                 ]
             ],
             _submission is null
