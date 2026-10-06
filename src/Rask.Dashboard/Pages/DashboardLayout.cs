@@ -190,7 +190,7 @@ public sealed partial class DashboardLayout(
     private Component? UnsecuredWarning() =>
         security.IsUnsecured
             ? Ui.Alert.Tone(Ui.Tone.Warning)[
-                Ui.Icon.Name(Ui.IconName.ShieldWarning),
+                Ui.Icon.Name(Ui.IconName.ShieldExclamation),
                 Span[
                     "Unsecured — anyone who can reach this URL can read job payloads, stored emails and logs. Define the ",
                     Code[RaskDashboardPolicies.Access],

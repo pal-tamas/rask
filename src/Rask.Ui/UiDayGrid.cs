@@ -202,7 +202,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
                 .Aria(aria)
                 .Attributes(("popovertarget", panelId), ("style", "anchor-name:--" + picker.Prefix))[
                 Span.Class(picker.Text is null ? "truncate opacity-60" : "truncate")[picker.Text ?? picker.Placeholder],
-                Ui.Icon.Name(Ui.IconName.Calendar).Class("size-4 shrink-0 opacity-60")
+                Ui.Icon.Name(Ui.IconName.CalendarDays).Class("size-4 shrink-0 opacity-60")
             ],
             panel[grid]
         ];

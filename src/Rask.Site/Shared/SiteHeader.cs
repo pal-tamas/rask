@@ -129,6 +129,6 @@ internal sealed partial class SiteHeader : Component
             .Target("_blank")
             .Rel("noopener")[
             label,
-            Ui.Icon.Name(Ui.IconName.ExternalLink).Class("size-3.5 shrink-0 opacity-60")
+            Ui.Icon.Name(Ui.IconName.ArrowTopRightOnSquare).Class("size-3.5 shrink-0 opacity-60")
         ];
 }

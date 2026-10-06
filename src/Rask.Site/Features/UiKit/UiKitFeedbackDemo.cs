@@ -78,7 +78,7 @@ public sealed partial class UiKitFeedbackDemo : Component
                     Ui.Button.Sm["Shortcut"]
                 ],
                 Ui.Tooltip.Key("tap").Tip("Tapping shows this on a phone").Toggleable()[
-                    Ui.Icon.Name(Ui.IconName.Info).Class("size-5")
+                    Ui.Icon.Name(Ui.IconName.InformationCircle).Class("size-5")
                 ],
                 Ui.Tooltip.Key("disabled").Tip("Available once the form is valid")[
                     Ui.Button.Sm.Disabled()["Disabled"]

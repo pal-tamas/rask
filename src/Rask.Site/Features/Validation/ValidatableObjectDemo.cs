@@ -44,7 +44,7 @@ public sealed partial class ValidatableObjectDemo : Component
                 Validation.Message.Template(FieldError).For(() => _model.Arrival)
             ],
             Div[
-                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.Calendar), "Book"]
+                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.CalendarDays), "Book"]
             ]
         ],
         _submission is null

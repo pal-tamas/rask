@@ -285,7 +285,7 @@ public sealed partial class QueuePage(
                 .OnClick(() => RunAsync(
                     $"Retry all {_counts.Failed} dead letters?",
                     async ct => $"Re-queued {await _panel!.RetryAll(ct).ConfigureAwait(false)}."))[
-                Ui.Icon.Name(Ui.IconName.Retry),
+                Ui.Icon.Name(Ui.IconName.ArrowPath),
                 "Retry all failed"
             ];
         }
