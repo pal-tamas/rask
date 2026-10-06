@@ -104,8 +104,8 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_alarming_count_is_coloured_and_a_calm_one_is_not()
     {
-        Assert.Contains("text-error", Tab("Live", true, "12", alarm: true).ToHtml());
-        Assert.DoesNotContain("text-error", Tab("Live", true, "12").ToHtml());
+        Assert.Contains("text-ui-danger-ink", Tab("Live", true, "12", alarm: true).ToHtml());
+        Assert.DoesNotContain("text-ui-danger-ink", Tab("Live", true, "12").ToHtml());
     }
 
     [Fact]

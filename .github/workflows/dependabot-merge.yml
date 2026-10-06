@@ -1,0 +1,54 @@
+name: dependabot-merge
+
+# Merges a Dependabot pull request once ci has passed it, so a dependency bump lands with nobody
+# reading it. What must NOT move on its own is said in .github/dependabot.yml's ignore lists, beside
+# the reason; everything else is trusted to the gates, exactly as a hand push is.
+#
+# workflow_run, not pull_request: a run Dependabot starts gets a read-only token and no secrets, and
+# this one — started by ci finishing — runs from main with a token that can merge. It never checks
+# out or executes the pull request's code.
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write   # start the workflows a merge from here cannot start
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Merge the pull request ci passed
+        run: |
+          set -eu
+          listed="$(gh pr list --state open --author 'app/dependabot' --json number,headRefOid)"
+          pr="$(jq -r --arg sha "$SHA" '[.[] | select(.headRefOid == $sha)][0].number // empty' <<<"$listed")"
+          if [ -z "$pr" ]; then
+            echo "No open Dependabot pull request is at $SHA; it moved on, and its next ci run will be back here."
+            exit 0
+          fi
+
+          # --match-head-commit: merge the commit that was gated, or nothing. A pull request behind
+          # main is refused by the branch rule; Dependabot rebases it and ci brings it back here.
+          if ! gh pr merge "$pr" --squash --match-head-commit "$SHA"; then
+            echo "::warning::#$pr passed ci but could not be merged yet (behind main, or a conversation is open)."
+            exit 0
+          fi
+
+          # A merge made with the workflow's own token starts no workflow, and ci has just passed
+          # this change: publish what main now holds.
+          gh workflow run nightly.yml --ref main
+          gh workflow run pages.yml --ref main

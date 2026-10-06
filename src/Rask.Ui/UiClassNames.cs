@@ -464,16 +464,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string CardSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "card-xs",
-        Ui.Size.Sm => "card-sm",
-        Ui.Size.Md => "card-md",
-        Ui.Size.Lg => "card-lg",
-        Ui.Size.Xl => "card-xl",
-        _ => "",
-    };
-
     internal static string MenuSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "menu-xs",
@@ -827,14 +817,22 @@ internal static class UiClassNames
     /// <remarks>The ink colours, which are what keep body text readable on every theme's base.</remarks>
     internal static string TextTone(Ui.Tone value) => value switch
     {
-        Ui.Tone.Primary => "text-primary",
-        Ui.Tone.Secondary => "text-secondary",
-        Ui.Tone.Accent => "text-accent",
-        Ui.Tone.Info => "text-info",
-        Ui.Tone.Success => "text-success",
-        Ui.Tone.Warning => "text-warning",
-        Ui.Tone.Error => "text-error",
+        Ui.Tone.Primary => "text-ui-brand-ink",
+        Ui.Tone.Secondary => "text-ui-secondary-ink",
+        Ui.Tone.Accent => "text-ui-accent-ink",
+        Ui.Tone.Info => "text-ui-info-ink",
+        Ui.Tone.Success => "text-ui-ok-ink",
+        Ui.Tone.Warning => "text-ui-warn-ink",
+        Ui.Tone.Error => "text-ui-danger-ink",
         _ => "",
+    };
+
+    /// <summary>The ink a value takes when it reports a problem; null for a value that reports none.</summary>
+    internal static string? ValueTone(Ui.Tone? value) => value switch
+    {
+        Ui.Tone.Error => "text-ui-danger-ink",
+        Ui.Tone.Warning => "text-ui-warn-ink",
+        _ => null,
     };
 
     internal static string DrawerPosition(Ui.Position value) => value switch
