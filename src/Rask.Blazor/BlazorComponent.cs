@@ -501,6 +501,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         }
 
         await _renderer.DisposeAsync();
+        _afterRendered = 0;
         _renderer = null;
         _instance = default;
         _markup = null;
@@ -523,8 +524,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     {
         get
         {
-            var services = LiveRenderContext.Current?.Services ?? LiveRenderContext.CurrentSync?.Services;
-            var assets = services?.GetService<RaskBlazorOptions>()?.HeadAssets;
+            var assets = AppServices is { } services ? BlazorIslandServices.OptionsOf(services).HeadAssets : null;
 
             return assets is { Count: > 0 } ? Fragment[assets] : null;
         }
@@ -544,18 +544,14 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
 
     private BlazorIslandRenderer CreateRenderer()
     {
-        var services = LiveRenderContext.Current?.Services
-                       ?? LiveRenderContext.CurrentSync?.Services
-                       ?? throw new InvalidOperationException(
-                           $"'{GetType().Name}' hosts the Blazor component '{typeof(TComponent).Name}', which needs the "
-                           + "application's services to render. Rask could not find them for this render. Call "
-                           + "'services.AddRaskBlazor()' in Program.cs.");
-
+        // No application services is a render nothing hosts — a bare test. A component that injects
+        // nothing still renders, and one that does gets Blazor's own error naming the missing service.
+        var services = AppServices ?? BlazorIslandServices.None;
         var logs = services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
 
         // A render the hosted component asked for itself (a timer, an injected service's event) has
         // nowhere to go without a live session, so say so as well as repainting.
-        return new BlazorIslandRenderer(services, logs, () =>
+        return new BlazorIslandRenderer(new BlazorIslandServices(services), logs, () =>
         {
             // Re-read BEFORE telling Rask to repaint, or the repaint ships the previous markup.
             RewriteHtml();
@@ -583,6 +579,9 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
             StateHasChanged();
         });
     }
+
+    private static IServiceProvider? AppServices =>
+        LiveRenderContext.Current?.Services ?? LiveRenderContext.CurrentSync?.Services;
 
     private ParameterView BuildParameterView()
     {

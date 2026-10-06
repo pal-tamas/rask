@@ -1024,6 +1024,21 @@ them until tagged releases begin.
 
 ### Added
 
+- **A Blazor island needs no `AddRaskBlazor()` call, and its `NavigationManager` is Rask's routing.**
+  Referencing `Rask.Blazor` is the whole setup — which is what `rask new --islands blazor` always
+  scaffolded, so a hosted component that injected `NavigationManager` failed there with Blazor's own
+  "no registered service" error:
+  ```csharp
+  builder.Services.AddRaskBlazor();   // was: required, and missing from every scaffold
+  RaskApp.Create(args).Run<App>();    // now: nothing to add
+  ```
+  An island supplies `NavigationManager` and `IJSRuntime` itself and steps aside for anything the app
+  registers. `NavigationManager.Uri` used to be `http://localhost/` for the life of the app and
+  `NavigateTo` moved nothing; now `Uri` is the page on screen under the path base (a hosted `NavLink`
+  highlights the right entry), `NavigateTo` from a hosted handler moves the browser like `Go.To`, and a
+  Rask navigation raises `LocationChanged`. `AddRaskBlazor(o => …)` remains for options and registers
+  nothing else; `RaskBlazorOptions.BaseUri` now supplies only the scheme and host.
+
 - **`rask new --dry-run --json` and `rask dev --dry-run --json`: the plan as a document.** `new` prints the
   template, the name, the directory and the files it would write; `dev` prints the command, its arguments,
   the working directory and the environment it would set. Like every other `--json`, it is the document and

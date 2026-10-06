@@ -21,12 +21,6 @@ dotnet add package Rask.Blazor
 ## Use
 
 ```csharp
-// Program.cs
-builder.Services.AddRask();
-builder.Services.AddRaskBlazor();
-```
-
-```csharp
 // The whole declaration: PriceTag is an ordinary .razor component from a class library.
 public sealed partial class Quote : BlazorComponent<PriceTag>;
 ```

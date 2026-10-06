@@ -78,14 +78,9 @@ component's own `[Parameter]`s:
 public sealed partial class Quote : BlazorComponent<PriceTag>;
 ```
 
-**3. The services**, once in `Program.cs`:
+There is no third step in `Program.cs`: referencing `Rask.Blazor` is the whole setup.
 
-```csharp
-builder.Services.AddRask();
-builder.Services.AddRaskBlazor();
-```
-
-**4. Use it** anywhere the chain goes — a leaf, a subtree, or a whole page:
+**3. Use it** anywhere the chain goes — a leaf, a subtree, or a whole page:
 
 ```csharp
 Div.Class("grid")[
@@ -317,8 +312,17 @@ neither — it ships its own CSS, which you add through `HeadAssets` the same wa
 
 ## Services
 
-Call `AddRaskBlazor()` in `Program.cs`. It registers what a library component will demand — most
-notably `NavigationManager`, which many components inject and throw without.
+There is nothing to register. An island supplies what a library component demands and an app has no
+reason to provide — most notably `NavigationManager`, which many components inject and throw without —
+and steps aside for anything the app registers itself. `AddRaskBlazor(o => …)` exists only to change
+an option.
+
+**`NavigationManager` is Rask's own routing.** `Uri` is the page on screen under the app's path base,
+so a hosted `NavLink`, breadcrumb or tab strip highlights the right entry; `NavigateTo` from a hosted
+handler moves the browser exactly as `Go.To` does; and a navigation Rask makes raises
+`LocationChanged`. Rask's route carries no scheme or host, so those come from
+`RaskBlazorOptions.BaseUri` (`http://localhost/` unless you set it) — set it if a hosted component
+prints absolute URLs. `NavigateTo` to another site, or with `forceLoad`, only updates `Uri`.
 
 **`[Inject]` works, and resolves out of your app's own container.** The island builds its hosted
 component through Blazor's own activator, so anything you registered is available — `IJSRuntime`,
