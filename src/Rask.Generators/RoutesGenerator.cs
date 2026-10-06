@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -88,9 +89,9 @@ public sealed partial class RoutesGenerator : IIncrementalGenerator
             return;
         }
 
-        var filtered = DropAmbiguous(spc, candidates);
+        var filtered = DropAmbiguous(spc.ReportDiagnostic, candidates);
 
-        filtered = DropDuplicateNotFound(spc, filtered);
+        filtered = DropDuplicateNotFound(spc.ReportDiagnostic, filtered);
 
         ReportRouteCollisions(spc, filtered);
 
@@ -127,6 +128,9 @@ public sealed partial class RoutesGenerator : IIncrementalGenerator
     private sealed record ParamPart(string Name, string? Constraint, bool Optional) : ITemplatePart;
 
     private sealed record ResolvedPathParam(ParamPart Part, RoutePropInfo Prop);
+
+    private sealed record ResolvedRoute(
+        List<ITemplatePart> Parts, List<ResolvedPathParam> PathParams, List<RoutePropInfo> QueryProps);
 
     private sealed record Candidate(
         string Namespace,

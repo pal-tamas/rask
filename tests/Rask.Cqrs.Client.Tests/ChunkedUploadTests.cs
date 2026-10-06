@@ -154,7 +154,7 @@ public sealed class ChunkedUploadTests
         Assert.Equal(409, error.StatusCode);
     }
 
-    private static IDispatcher Dispatcher(RecordingHandler handler, Action<RaskCqrsClientOptions>? configure = null)
+    private static IDispatcher Dispatcher(RecordingHandler handler, Action<CqrsClientOptions>? configure = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton(new HttpClient(handler) { BaseAddress = new Uri("https://unit.test/") });

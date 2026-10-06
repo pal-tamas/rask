@@ -171,22 +171,21 @@ out, `Status` is `Ended`; when it throws, the subscription reopens it.
 
 Everything that publishes an event reaches subscribers, because they are the same event:
 
-- **A command handler** or any code with `IDispatcher` — `dispatcher.Publish(new OrderShipped(id, "Shipped"))`.
-- **A background job or a hosted service** — `Notify.Send(new ReportReady(id), ct)`, with nothing injected, so progress
-  and "your report is ready" reach the page that is waiting for them:
+- **A page, a command handler, a job** — `await Dispatcher.Publish(new OrderShipped(id, "Shipped"))`, with nothing
+  injected.
+- **A hosted service, a timer, a webhook** — the same line, so progress and "your report is ready" reach the page
+  that is waiting for them:
 
   ```csharp
   public sealed class ReportWorker : BackgroundService
   {
       protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
-          Notify.Send(new ReportReady(reportId), stoppingToken);
+          Dispatcher.Publish(new ReportReady(reportId), stoppingToken);
   }
   ```
 
-  `IDispatcher` is registered transient and reaches its handlers through the provider that built it, so publishing from
-  a singleton would otherwise mean opening a scope by hand. `Notify.Send` does that part, and is the same publish in
-  every other respect. Where a dispatcher is already to hand — a command handler, an endpoint — injecting it stays
-  exactly right, and is what the facade does underneath.
+  A singleton has no scope for the handlers to run in, so outside any work in progress `Dispatcher` opens one of its
+  own and disposes it when they finish. Injecting `IDispatcher` where one is already to hand stays exactly right.
 - **A domain event** raised by an aggregate is published after its save commits ([Rask.Data](data.md)), and one relayed by
   the [outbox](outbox.md) is published when it is relayed.
 

@@ -16,8 +16,12 @@
     <RootNamespace>Company.RaskServer.Components</RootNamespace>
   </PropertyGroup>
 
+  <!--
+    The package rather than the ASP.NET shared framework: a browser-WASM app has no shared framework to
+    reference, and the same components build for both hosts this way.
+  -->
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.12"/>
   </ItemGroup>
 
 </Project>

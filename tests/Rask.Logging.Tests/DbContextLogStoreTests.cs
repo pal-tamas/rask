@@ -147,7 +147,7 @@ public sealed class DbContextLogStoreTests
     [Fact]
     public void The_database_drivers_are_never_captured()
     {
-        var options = new RaskLoggingOptions();
+        var options = new LogsOptions();
 
         Assert.True(options.IsExcluded("Npgsql.Connection"));
         Assert.True(options.IsExcluded("Microsoft.Data.SqlClient"));

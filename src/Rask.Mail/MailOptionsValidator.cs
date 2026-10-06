@@ -79,9 +79,9 @@ internal sealed class MailOptionsValidator : IValidateOptions<MailOptions>
             failures.Add("Rask:Mail:MaxRetryDelay cannot be less than BaseRetryDelay.");
         }
 
-        if (options.RetentionPeriod < TimeSpan.Zero)
+        if (options.Retention < TimeSpan.Zero)
         {
-            failures.Add("Rask:Mail:RetentionPeriod cannot be negative.");
+            failures.Add("Rask:Mail:Retention cannot be negative.");
         }
     }
 

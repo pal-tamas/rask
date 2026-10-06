@@ -75,6 +75,15 @@ public sealed class OutboxMessage : Entity<long>
     /// </summary>
     public DateTime? ClaimedUntil { get; private set; }
 
+    /// <summary>
+    /// The user the event was raised for — <c>Current.UserId</c> at the time — or <c>null</c> when it was
+    /// raised for nobody.
+    /// </summary>
+    /// <remarks>
+    /// The processor re-enters it with <c>Current.UseUser</c> before running the handler, exactly as a job does.
+    /// </remarks>
+    public Guid? UserId { get; private set; }
+
     /// <summary>Enqueues <paramref name="payload" /> for publication.</summary>
     /// <param name="type">The event's registered type name.</param>
     /// <param name="payload">The serialized event.</param>
@@ -83,14 +92,14 @@ public sealed class OutboxMessage : Entity<long>
     /// <remarks>
     ///     <para>The key is the store's, and is also the processing order, so nothing assigns one here.</para>
     ///     <para>
-    ///         The row records the tenant it was enqueued for, so the processor can re-enter it before
-    ///         publishing. Null when there is none — a message raised by the host itself belongs to nobody,
+    ///         The row records the tenant and the user it was enqueued for, so the processor can re-enter
+    ///         them before publishing. Null when there is none — a message raised by the host itself belongs to nobody,
     ///         and refusing to write it would be wrong.
     ///     </para>
     /// </remarks>
     public static OutboxMessage For(string type, string payload, string handler, DateTime occurredAt)
     {
-        var message = new OutboxMessage { Type = type, Payload = payload, Handler = handler, OccurredAt = occurredAt };
+        var message = new OutboxMessage { Type = type, Payload = payload, Handler = handler, OccurredAt = occurredAt, UserId = Current.UserId };
         message.RecordTenant(Current.Tenant);
         return message;
     }

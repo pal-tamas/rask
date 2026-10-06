@@ -11,7 +11,7 @@ namespace Rask.Logging;
 [ProviderAlias("Rask")]
 internal sealed class RaskLoggerProvider(
     LogChannel channel,
-    RaskLoggingOptions options,
+    LogsOptions options,
     TimeProvider timeProvider) : ILoggerProvider
 {
     public ILogger CreateLogger(string categoryName) =>
@@ -26,7 +26,7 @@ internal sealed class RaskLoggerProvider(
     private sealed class StoreLogger : ILogger
     {
         private readonly LogChannel _channel;
-        private readonly RaskLoggingOptions _options;
+        private readonly LogsOptions _options;
         private readonly TimeProvider _timeProvider;
         private readonly string _category;
 
@@ -36,7 +36,7 @@ internal sealed class RaskLoggerProvider(
 
         public StoreLogger(
             LogChannel channel,
-            RaskLoggingOptions options,
+            LogsOptions options,
             TimeProvider timeProvider,
             string category)
         {

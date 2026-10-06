@@ -49,7 +49,7 @@ internal sealed class Wire : IAsyncDisposable
         IHost host,
         HttpClient http,
         RecordingHandler recorder,
-        RaskCqrsClientOptions options)
+        CqrsClientOptions options)
     {
         _host = host;
         Http = http;
@@ -87,8 +87,8 @@ internal sealed class Wire : IAsyncDisposable
     public static Wire Connect(
         string? user = "tester",
         string? roles = null,
-        Action<RaskCqrsServerOptions>? configureServer = null,
-        Action<RaskCqrsClientOptions>? configureClient = null)
+        Action<CqrsServerOptions>? configureServer = null,
+        Action<CqrsClientOptions>? configureClient = null)
     {
         var builder = new HostBuilder().ConfigureWebHost(web =>
         {
@@ -122,7 +122,7 @@ internal sealed class Wire : IAsyncDisposable
         // decides where "/_rask/cqrs/request/…" actually goes.
         var http = new HttpClient(recorder) { BaseAddress = server.BaseAddress };
 
-        var options = new RaskCqrsClientOptions
+        var options = new CqrsClientOptions
         {
             // The credential hook, used for what it is for: the server authenticates from a header, so a
             // test states the identity it means and the transport carries it on every request — chunk

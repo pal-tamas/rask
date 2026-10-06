@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
+using Rask.Core.Live;
 using Rask.Hosting.Shared;
 
 namespace Rask.Server.Http;
@@ -38,10 +39,42 @@ internal static class PageCompression
     /// <summary>Writes <paramref name="content" /> as the response body, compressed when possible.</summary>
     internal static async Task WriteAsync(HttpContext context, string content, bool compress)
     {
+        var buffer = ArrayPool<byte>.Shared.Rent(_utf8.GetByteCount(content));
+        try
+        {
+            var length = _utf8.GetBytes(content, buffer);
+            await WriteAsync(context, buffer.AsMemory(0, length), compress).ConfigureAwait(false);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    /// <summary>
+    ///     Writes <paramref name="html" /> with its session id stamped on <c>&lt;body&gt;</c> — what
+    ///     <see cref="Prerender.PageDocument.Live" /> builds for a page with no development attributes,
+    ///     without the second copy of the page that building it as a string costs.
+    /// </summary>
+    internal static async Task WriteLiveAsync(HttpContext context, string html, string sessionId, bool compress)
+    {
+        var buffer = LivePayload.RentUtf8WithRootAttr(html, sessionId, out var length);
+        try
+        {
+            await WriteAsync(context, buffer.AsMemory(0, length), compress).ConfigureAwait(false);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    private static async Task WriteAsync(HttpContext context, ReadOnlyMemory<byte> utf8, bool compress)
+    {
         var response = context.Response;
         if (!compress)
         {
-            await response.WriteAsync(content, context.RequestAborted).ConfigureAwait(false);
+            await response.Body.WriteAsync(utf8, context.RequestAborted).ConfigureAwait(false);
             return;
         }
 
@@ -54,29 +87,18 @@ internal static class PageCompression
         var encoding = ContentEncodingNegotiation.Negotiate(context.Request);
         if (encoding is null || response.Headers.ContainsKey(HeaderNames.ContentEncoding))
         {
-            await response.WriteAsync(content, context.RequestAborted).ConfigureAwait(false);
+            await response.Body.WriteAsync(utf8, context.RequestAborted).ConfigureAwait(false);
             return;
         }
 
         response.Headers.ContentEncoding = encoding;
 
-        // One pooled UTF-8 buffer rather than a StreamWriter: the document is already a single string, so
-        // there is nothing to stream, and this avoids a writer and its char buffer per request.
-        var buffer = ArrayPool<byte>.Shared.Rent(_utf8.GetMaxByteCount(content.Length));
-        try
+        Stream compressed = string.Equals(encoding, "br", StringComparison.Ordinal)
+            ? new BrotliStream(response.Body, CompressionLevel.Optimal, leaveOpen: true)
+            : new GZipStream(response.Body, CompressionLevel.Optimal, leaveOpen: true);
+        await using (compressed.ConfigureAwait(false))
         {
-            var length = _utf8.GetBytes(content, buffer);
-            Stream compressed = string.Equals(encoding, "br", StringComparison.Ordinal)
-                ? new BrotliStream(response.Body, CompressionLevel.Optimal, leaveOpen: true)
-                : new GZipStream(response.Body, CompressionLevel.Optimal, leaveOpen: true);
-            await using (compressed.ConfigureAwait(false))
-            {
-                await compressed.WriteAsync(buffer.AsMemory(0, length), context.RequestAborted).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buffer);
+            await compressed.WriteAsync(utf8, context.RequestAborted).ConfigureAwait(false);
         }
     }
 }

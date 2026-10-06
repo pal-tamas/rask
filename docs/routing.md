@@ -316,6 +316,9 @@ Go.To("/login").Replacing();               // redirect without a back-stack entr
 Routes.LoginPage().Go().Replacing();
 ```
 
+Front-end code in an [island](islands.md#navigating-from-an-island) navigates with the same two names —
+`Routes.UserPage({ Id: 42 }).Go()`, `Go.With('page', '2')` — generated from these pages into `@rask/routes`.
+
 Files go to the browser with `Download.File(…)`, under the same event-handler-only rule — see
 [HTTP & files](http-and-files.md#downloading-files).
 

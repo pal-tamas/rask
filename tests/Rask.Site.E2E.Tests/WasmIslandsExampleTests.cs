@@ -195,4 +195,45 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
         await Expect(field).ToHaveValueAsync("#c026d3");
         await Expect(picker).ToHaveAttributeAsync("data-rask-probe", "kept");
     });
+
+    [Fact]
+    public Task An_island_that_is_the_whole_page_names_it_mounts_and_navigates_without_a_reload() => RunAsync(async () =>
+    {
+        // The island carries the [Route] itself. Three things had to hold for that to be a page rather than
+        // a component with a URL: its HeadAssets reaches the head without displacing the runtime script,
+        // the Loading placeholder gives way to the mounted component, and a link inside React's own
+        // subtree is an in-app navigation.
+        await Page.GotoAsync(Docs + "/islands/report");
+        await WaitForInteractiveAsync();
+
+        await Expect(Page).ToHaveTitleAsync("A React island as a whole page in C# — Rask");
+        var host = Page.Locator("rask-external[name=ReactReport]");
+        await Expect(host.GetByTestId("react-report")).ToBeVisibleAsync();
+        await Expect(host.Locator("> :not([data-testid=react-report])")).ToHaveCountAsync(0);
+
+        // A property on window dies with the document, so finding it afterwards is what "no reload" means.
+        await Page.EvaluateAsync("() => { window.raskProbe = 'kept'; }");
+        await Page.GetByTestId("react-report-back").ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/islands/?$"));
+        await Expect(Page.GetByTestId("react-counter")).ToBeVisibleAsync();
+        Assert.Equal("kept", await Page.EvaluateAsync<string>("() => window.raskProbe"));
+    });
+
+    [Fact]
+    public Task Front_end_code_navigates_with_the_apps_typed_routes_without_a_reload() => RunAsync(async () =>
+    {
+        // The button calls Routes.RoutingAboutPage().Go() from `@rask/routes`, the module the build
+        // generates from the C# [Route] pages: no path is written in the .tsx, and the navigation takes
+        // the same road a nav link's does.
+        await Page.GotoAsync(Docs + "/islands/report");
+        await WaitForInteractiveAsync();
+        await Expect(Page.GetByTestId("react-report")).ToBeVisibleAsync();
+
+        await Page.EvaluateAsync("() => { window.raskProbe = 'kept'; }");
+        await Page.GetByTestId("react-report-routes").ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/routing-demo/about/?$"));
+        Assert.Equal("kept", await Page.EvaluateAsync<string>("() => window.raskProbe"));
+    });
 }

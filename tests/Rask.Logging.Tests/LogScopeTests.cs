@@ -39,7 +39,7 @@ public sealed class FileStoreLogScopeTests() : LogScopeContract(LogStoreKind.Fil
                 await create.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
             }
 
-            var options = new RaskLoggingOptions();
+            var options = new LogsOptions();
             var store = new SqliteLogStore($"Data Source={dbPath}", options, TimeProvider.System);
 
             await store.Append(
@@ -295,5 +295,5 @@ public abstract class LogScopeContract(LogStoreKind kind)
         Assert.All(entry.Scopes, s => Assert.Equal(4, s.Value.Length)); // each value truncated
     }
 
-    private LoggingHarness Harness(Action<RaskLoggingOptions>? configure = null) => new(configure, kind: kind);
+    private LoggingHarness Harness(Action<LogsOptions>? configure = null) => new(configure, kind: kind);
 }

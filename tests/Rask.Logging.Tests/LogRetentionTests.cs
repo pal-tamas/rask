@@ -20,7 +20,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         {
             o.Retention = TimeSpan.FromDays(7);
             o.MaxRows = 0;
-            o.PurgeInterval = TimeSpan.FromMinutes(1);
+            o.SweepInterval = TimeSpan.FromMinutes(1);
         });
 
         harness.Logger().LogInformation("ancient");
@@ -39,7 +39,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         {
             o.Retention = TimeSpan.FromDays(7);
             o.MaxRows = 0;
-            o.PurgeInterval = TimeSpan.FromMinutes(1);
+            o.SweepInterval = TimeSpan.FromMinutes(1);
         });
 
         harness.Logger().LogInformation("recent");
@@ -59,7 +59,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
             o.Retention = TimeSpan.Zero;
             o.MaxRows = 5;
             o.QueueCapacity = 100;
-            o.PurgeInterval = TimeSpan.FromMinutes(1);
+            o.SweepInterval = TimeSpan.FromMinutes(1);
         });
         var logger = harness.Logger();
 
@@ -82,7 +82,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         {
             o.Retention = TimeSpan.Zero;
             o.MaxRows = 0;
-            o.PurgeInterval = TimeSpan.FromMinutes(1);
+            o.SweepInterval = TimeSpan.FromMinutes(1);
         });
 
         harness.Logger().LogInformation("forever");
@@ -143,5 +143,5 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         Assert.Equal(0, await harness.Store.Trim(TestContext.Current.CancellationToken).OlderThan(1.Day).KeepingNewest(10));
     }
 
-    private LoggingHarness Harness(Action<RaskLoggingOptions>? configure = null) => new(configure, kind: kind);
+    private LoggingHarness Harness(Action<LogsOptions>? configure = null) => new(configure, kind: kind);
 }

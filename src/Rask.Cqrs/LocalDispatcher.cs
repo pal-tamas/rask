@@ -18,9 +18,9 @@ internal sealed class LocalDispatcher : IDispatcher
     {
         this.provider = provider;
 
-        // Resolving the singleton is what gives Notify the ROOT provider: asking for it here, rather than from a
-        // hosted service, is what makes Notify.Send work in a browser app and in a test that starts no host.
-        provider.GetService<NotifyRoot>();
+        // Resolving the singleton is what gives Dispatcher the ROOT provider: asking for it here, rather than from
+        // a hosted service, is what makes Dispatcher.Publish work in a browser app and in a test that starts no host.
+        provider.GetService<DispatcherRoot>();
     }
 
     private EventFeed? _feed;

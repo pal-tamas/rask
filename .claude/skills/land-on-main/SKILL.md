@@ -58,7 +58,10 @@ git push origin HEAD:main
   then the script the failing job names, filtered to the failing test).
 - **Not sure it will pass?** Push to a `ci/<name>` branch first
   (`git push origin HEAD:refs/heads/ci/<name>`): same gates, nothing lands, nothing is published.
-  `ci/release/<name>` adds the release-only gates. Delete the branch afterwards.
+  `ci/release/<name>` adds the release-only gates. Delete the branch afterwards. That is a full round
+  of jobs on runners `main` is waiting for, so when one gate is the question, run that one: push the
+  branch under any other name and `gh workflow run ci.yml --ref <branch> -f only='CLI build'`
+  (`-f set=all` to reach a release-only gate).
 - **A red `main` publishes nothing.** `nightly.yml` and `pages.yml` run only from a commit `ci` passed,
   so a site or package change is live only once its CI run is green.
 

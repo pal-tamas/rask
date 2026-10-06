@@ -75,9 +75,9 @@ internal sealed class JobsOptionsValidator : IValidateOptions<JobsOptions>
             failures.Add("Rask:Jobs:MaxRetryDelay cannot be less than BaseRetryDelay.");
         }
 
-        if (options.RetentionPeriod < TimeSpan.Zero)
+        if (options.Retention < TimeSpan.Zero)
         {
-            failures.Add("Rask:Jobs:RetentionPeriod cannot be negative.");
+            failures.Add("Rask:Jobs:Retention cannot be negative.");
         }
     }
 

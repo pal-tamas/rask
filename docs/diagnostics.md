@@ -1,11 +1,12 @@
-# Rask diagnostics (RASK001–RASK099, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK101, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
 
 These come from the Rask source generator and analyzers (`Rask.Generators`). The generated chain
 surface doesn't exist until a build runs, so if an ID below isn't recognised by your IDE yet,
-build once.
+build once. The islands build has a sequence of its own, logged by MSBuild rather than by an analyzer:
+[RASKISLAND001–018](#island-build-diagnostics-raskisland).
 
 Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 
@@ -124,6 +125,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK097](#rask097) | Error | A route helper's name collides with a nested `Routes` class |
 | [RASK098](#rask098) | Warning | A web API member is missing from a browser `<RaskBrowserTargets>` names |
 | [RASK099](#rask099) | Warning | A `<RaskBrowserTargets>` entry is not `<browser> >= <version>` |
+| [RASK100](#rask100) | Error | `[BlazorParameter]` names a parameter the hosted component does not declare |
+| [RASK101](#rask101) | Error | An authorization attribute on a handler or event is not one Rask reads |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2547,14 +2550,319 @@ once per build, since it would otherwise check nothing.
 
 **Fix:** write `chrome`, `edge`, `firefox` or `safari`, then `>=`, then the version: `safari >= 16`.
 
+## RASK100
+
+**`[BlazorParameter]` names a parameter the hosted component does not declare** · Error
+
+`[BlazorParameter("X")]` feeds a property of the island into the hosted component's parameter `X`. When the
+component has no public, settable `[Parameter]` called `X`, the property is still a chain step — but nothing
+writes it, so the call site sets a value the component never receives.
+
+```csharp
+public sealed partial class Chart : BlazorComponent<MudChart>
+{
+    [BlazorParameter("ChartSeris")]                     // ❌ RASK100: 'Chart.Series' is mapped to 'ChartSeris',
+    public List<ChartSeries>? Series { get; set; }      //    but 'MudChart' declares no [Parameter] of that name …
+
+    [BlazorParameter("ChartSeries")]                    // ✅ spelled as MudChart declares it
+    public List<ChartSeries>? Series { get; set; }
+}
+```
+
+Not reported when the hosted component cannot be read at all — a `.razor` in the same project, which is
+[RASK066](#rask066).
+
+**Fix:** spell the name exactly as the component declares it (it is case-sensitive, and a library upgrade may
+have renamed it), or remove the attribute if the property is not meant to reach the component.
+
+## RASK101
+
+**Authorization attribute is not read** · Error
+
+Who may send a [`Rask.Cqrs`](cqrs.md#who-may-send-it) message is read off its handler at compile time:
+`[Authorize]` and `[AllowAnonymous]` on the handler class or a base class, and on an event or subscription
+record for who may subscribe. An attribute that derives from `AuthorizeAttribute`, or implements
+`IAuthorizeData`, sets its roles and policy in code the build cannot run, and an attribute on the `Handle`
+method is never looked at. Either would leave the handler open while reading as protected, so both are
+refused.
+
+```csharp
+public sealed class AdminOnlyAttribute : AuthorizeAttribute
+{
+    public AdminOnlyAttribute() => Roles = "admin";
+}
+
+[AdminOnly]                                          // ✗ RASK101 — derives from AuthorizeAttribute
+public sealed class PurgeLogsHandler : ICommandHandler<PurgeLogs>
+{
+    [Authorize(Roles = "admin")]                     // ✗ RASK101 — on Handle, not on the class
+    public Task Handle(PurgeLogs command) => /* … */;
+}
+
+[Authorize(Roles = "admin")]                         // ✅
+public sealed class PurgeLogsHandler : ICommandHandler<PurgeLogs> { /* … */ }
+```
+
+**Fix:** write `[Authorize(Roles = …, Policy = …)]` on the handler class itself. To share one rule between
+handlers, name a policy (`[Authorize(Policy = "admin")]`) or put the `[Authorize]` on a common base class.
+
+## Island build diagnostics (RASKISLAND)
+
+These come from the [islands](islands.md) build — `Rask.External`'s MSBuild targets and tasks — rather than from
+an analyzer, so they appear in `dotnet build` output and not as squiggles, and have no quick-fix. Every message
+starts `Rask islands:` (or `Rask.External:` for the three raised by the targets file) and ends with what to do.
+A warning can be demoted per project with `MSBuildWarningsAsMessages` — not `NoWarn`, which is the compiler's
+switch and does not reach a build task:
+
+```xml
+<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);RASKISLAND004</MSBuildWarningsAsMessages>
+```
+
+| Code | Severity | Summary |
+| --- | --- | --- |
+| [`RASKISLAND001`](#raskisland001) | error | Node.js is missing or too old to build the islands |
+| [`RASKISLAND002`](#raskisland002) | error | The bundler finished but wrote no manifest |
+| [`RASKISLAND003`](#raskisland003) | error | The bundle was published but no endpoint serves it |
+| [`RASKISLAND004`](#raskisland004) | warning | A declared island's front-end file is not being bundled |
+| [`RASKISLAND005`](#raskisland005) | error | A package island declaration the build cannot act on |
+| [`RASKISLAND006`](#raskisland006) | error | No props snapshot, and this build cannot extract one |
+| [`RASKISLAND007`](#raskisland007) | error | A package component's props could not be read |
+| [`RASKISLAND008`](#raskisland008) | error | A locked build found an out-of-date props snapshot |
+| [`RASKISLAND009`](#raskisland009) | warning | A package island the build did not see before compiling |
+| [`RASKISLAND010`](#raskisland010) | warning | The props snapshot is from another package version than the lockfile pins |
+| [`RASKISLAND011`](#raskisland011) | error | Two front-end files would register under one island name |
+| [`RASKISLAND012`](#raskisland012) | error | An island names a runtime Rask has no adapter for |
+| [`RASKISLAND013`](#raskisland013) | error | `RaskExternalDevServerUrl` is not an http(s) origin |
+| [`RASKISLAND014`](#raskisland014) | error | React and Preact islands in one project |
+| [`RASKISLAND015`](#raskisland015) | error | Two runtimes that compile the same extension share a folder tree |
+| [`RASKISLAND016`](#raskisland016) | error | A package island's plugin cannot be kept off another runtime's files |
+| [`RASKISLAND017`](#raskisland017) | error | The generated prop types could not be read from the compiled assembly |
+| [`RASKISLAND018`](#raskisland018) | warning | The islands' declared runtimes could not be read from the compiled assembly |
+
+### RASKISLAND001
+
+**Node.js is missing or too old** · error
+
+A project with islands and a `package.json` bundles them with Vite, which needs Node. The build probes
+`node --version` before `npm` runs and stops here when it did not run, or reported less than
+`RaskExternalMinimumNode` (22.12.0).
+
+**Fix:** install the current LTS (`nvm install --lts`, `brew install node`, `winget install OpenJS.NodeJS.LTS`)
+and build again. `-p:RaskExternalMinimumNode=…` moves the bar if you have a reason to.
+
+### RASKISLAND002
+
+**The bundler wrote no manifest** · error
+
+Vite exited without an error but `manifest.json` is not where the build expects it. The browser resolves every
+island's chunk through that file, so none would mount.
+
+**Fix:** read the bundler's own output just above the error — it names the file that failed. If
+`RaskExternalBuildCommand` is overridden, it has to run Vite with the generated config it is handed.
+
+### RASKISLAND003
+
+**The bundle was published but nothing serves it** · error
+
+`dotnet publish` produced the chunks, but the static-web-assets endpoints manifest has no route under
+`RaskExternalPublicBase`, so every chunk request would fall through to the page and come back as HTML.
+
+**Fix:** keep `RaskExternalOutputDir` under `wwwroot`, and do not skip the `_RaskExternalStaticWebAssets` target.
+
+### RASKISLAND004
+
+**A declared island's front-end file is not being bundled** · warning
+
+The class says its markup comes from `Gauge.tsx`; the files the build will bundle do not include it. The page
+renders, the chunk does not exist, and the browser reports `'Gauge' is not in the manifest`.
+
+```
+Features/Gauge.cs        public sealed partial class Gauge : ReactComponent { }
+Features/Gauge.tsx       ← missing, misnamed, or excluded from the island globs
+```
+
+**Fix:** put the file beside the class under the same name, or declare it with
+`<RaskExternal Include="…"/>`. A fixture island with no module on purpose can demote the code — see
+[islands](islands.md#a-lit-island-and-scoped-typescript-in-one-project).
+
+### RASKISLAND005
+
+**A package island declaration the build cannot act on** · error
+
+Reported at the class's `Module` line. One of: the class also has a front-end file beside it; `Export` is not an
+identifier (or a dotted path of them, or for Lit a tag name); `Export` is overridden but `Module` names no
+package; the export is still written after a `#` in `Module`; or a Lit element is named by its class and no
+snapshot records its tag.
+
+```csharp
+protected override string Module => "react-colorful#HexColorPicker";   // ✗ RASKISLAND005
+
+protected override string Module => "react-colorful";                  // ✓
+protected override string Export => "HexColorPicker";
+```
+
+**Fix:** the message gives the exact overrides to write for the case it found.
+
+### RASKISLAND006
+
+**No props snapshot, and this build cannot extract one** · error
+
+A package island's chain steps are generated from `{Island}.props.json`. There is none, and this build was told
+not to read the package (`RaskExternalBuild=false`, `RaskExternalPropsExtract=false`) — the message says which.
+
+**Fix:** run `npm install`, build once without that switch, and commit the `{Island}.props.json` it writes.
+
+### RASKISLAND007
+
+**A package component's props could not be read** · error
+
+The props extractor ran and could not describe the component. The bracketed reason in the message is one of
+`module-not-found`, `export-not-found`, `not-a-component`, `lit-tag-unknown`, `runtime-unsupported` or
+`extractor-crashed`. Two rarer variants: the extractor wrote no result at all (its own output, just above, says
+why), or it did not report on one island.
+
+**Fix:** run `npm install` so the package is in `node_modules`, check `Module` and `Export` against what the
+package actually exports, and build again. For an island the extractor skipped, `dotnet build --no-incremental`.
+
+### RASKISLAND008
+
+**A locked build found an out-of-date snapshot** · error
+
+Under `ContinuousIntegrationBuild=true` or `-p:RaskExternalPropsLocked=true` the build reads the package but
+never rewrites a snapshot; one that no longer matches fails instead.
+
+**Fix:** build once locally without the lock (`dotnet build`), and commit the refreshed `{Island}.props.json`.
+
+### RASKISLAND009
+
+**A package island the build did not see before compiling** · warning
+
+The compiled assembly declares a package island the pre-compile source scan missed, so its props were not read
+and its snapshot was not refreshed. The scan reads source text, and only finds a constant.
+
+```csharp
+protected override string Module => Packages.Button;                // ⚠ RASKISLAND009 — not a literal here
+protected override string Module => "@mui/material/Button";         // ✓
+```
+
+**Fix:** return `Module` as a constant string from the class's own body.
+
+### RASKISLAND010
+
+**The snapshot is from another package version than the lockfile pins** · warning
+
+Reported only on a build that does not extract. `{Island}.props.json` records the version it was read from, and
+`package-lock.json` now pins a different one; the props may or may not still be right.
+
+**Fix:** run `npm install`, then `dotnet build` without `RaskExternalBuild=false` or
+`RaskExternalPropsExtract=false`, and commit the rewritten snapshot.
+
+### RASKISLAND011
+
+**Two front-end files would register under one island name** · error
+
+The island's name — the file name, unless the item says otherwise — is the key the browser resolves a chunk by.
+Two files with one name would overwrite each other in the manifest, differently depending on build order.
+
+```
+Features/Sales/Chart.tsx
+Features/Stock/Chart.tsx      ✗ RASKISLAND011 — both are 'Chart'
+```
+
+**Fix:** rename one file, and its C# class with it (`StockChart.tsx` beside `StockChart.cs`).
+
+### RASKISLAND012
+
+**An island names a runtime Rask has no adapter for** · error
+
+Only a hand-written `<RaskExternal>` item can do this; a class picks its runtime by its base class.
+
+```xml
+<RaskExternal Include="Widgets/Chart.vue" Runtime="vue3"/>   <!-- ✗ RASKISLAND012 -->
+<RaskExternal Include="Widgets/Chart.vue" Runtime="vue"/>    <!-- ✓ -->
+```
+
+**Fix:** use one of `react`, `preact`, `solid`, `vue`, `svelte`, `angular`, `lit` — the message lists them.
+
+### RASKISLAND013
+
+**`RaskExternalDevServerUrl` is not an http(s) origin** · error
+
+`rask dev` serves islands from Vite, and the config pins the port named here. A value that is not an absolute
+`http(s)` URL, or one that carries a path, cannot say which port that is.
+
+```
+-p:RaskExternalDevServerUrl=http://localhost:5174/islands   ✗
+-p:RaskExternalDevServerUrl=http://localhost:5174           ✓
+```
+
+**Fix:** stop at the port. `rask dev` sets this itself; it only needs fixing when set by hand.
+
+### RASKISLAND014
+
+**React and Preact islands in one project** · error
+
+Not a Rask rule: `@vitejs/plugin-react` resolves Babel 8 and `@preact/preset-vite` pins `@babel/core` 7, so npm
+refuses to install both. The message names the islands on each side.
+
+**Fix:** pick one runtime for the project. See
+[islands](islands.md#react-and-preact-cannot-share-a-project).
+
+### RASKISLAND015
+
+**Two runtimes that compile the same extension share a folder tree** · error
+
+React, Preact and Solid all compile `.tsx`, and each Vite plugin is scoped to the folders its own islands live
+in. Overlapping folders leave one plugin compiling the other's island with the wrong transform.
+
+```
+Features/Islands/Counter.tsx            ✗ RASKISLAND015 — React here…
+Features/Islands/Solid/Spark.tsx          …and Solid nested inside it
+
+Features/Islands/React/Counter.tsx      ✓ a folder each
+Features/Islands/Solid/Spark.tsx
+```
+
+**Fix:** give each runtime a folder of its own, and do not nest one inside the other. See
+[islands](islands.md#two-runtimes-that-share-an-extension-need-separate-folders).
+
+### RASKISLAND016
+
+**A package island's plugin cannot be kept off another runtime's files** · error
+
+A package island whose runtime has to compile the package itself — Solid, in practice — needs that runtime's
+Vite plugin, and the project also has islands of a runtime that compiles the same files (React or Preact). Plugins are kept apart by folder, and a package has no folder.
+
+**Fix:** keep that runtime's package islands and the other runtime's islands in separate projects.
+
+### RASKISLAND017
+
+**The generated prop types could not be read** · error
+
+After the compile, the build reads each island's TypeScript prop types out of the assembly to write the `.d.ts`
+files the front end is checked against. The assembly was there and could not be read; the message carries the
+underlying error. Failing is deliberate — the alternative is a front end type-checked against the last build's
+props.
+
+**Fix:** `dotnet build --no-incremental`. If it persists, report it with the bracketed error.
+
+### RASKISLAND018
+
+**The islands' declared runtimes could not be read** · warning
+
+Each island's runtime is read from the compiled assembly, because the file extension only names a family —
+`.tsx` is React, Preact or Solid. When the assembly cannot be read the build falls back to the extension, which
+is right for a project with one runtime per extension and silently wrong otherwise.
+
+**Fix:** `dotnet build --no-incremental` so the assembly is written afresh.
+
 ## Build errors from MSBuild
 
-These come from Rask's build targets rather than from an analyzer, so they have no severity to configure and
-no quick-fix. `RASKISLAND001` and `RASKISLAND003`–`010` are in the [islands guide](islands.md).
+These come from Rask's other build targets rather than from an analyzer, so they have no severity to configure
+and no quick-fix.
 
 | Code | What happened | Fix |
 | --- | --- | --- |
-| `RASKISLAND002` | The island bundler finished but wrote no manifest, so no island on the page could mount. | Read the bundler's own output just above the error; it names the file that failed. |
 | `RASKSPA006` | A host references more than one WebAssembly client. | A host serves one client — give each its own host. |
 | `RASKSPA008` | The WebAssembly client reported no target framework, so its bundle cannot be located. | Give the client project a `<TargetFramework>`. |
 | `RASKSPA009` | The WebAssembly client targets several frameworks. | Give it exactly one, such as `net10.0-browser`. |
