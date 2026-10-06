@@ -104,7 +104,7 @@ public sealed partial class UiToast : Component
             // ui-danger on this ground is the low-contrast one. The icon shape (Warning vs Check) is what
             // actually carries the outcome; the colour only reinforces it.
             Ui.Icon
-                .Name(problem ? Ui.IconName.Warning : Ui.IconName.Check)
+                .Name(problem ? Ui.IconName.ExclamationTriangle : Ui.IconName.Check)
                 .Class($"size-5 shrink-0 {(problem ? "text-warning" : "text-success")}"),
             Title is { Length: > 0 } heading
                 ? Div.Class("flex min-w-0 grow flex-col gap-0.5")[
