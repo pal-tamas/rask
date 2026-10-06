@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# By hand, never in a hook: proves Rask.Storage's S3 and Azure signing against real implementations.
+# By hand, and in CI before a release (.github/workflows/gates.yml); never in a hook. Proves Rask.Storage's
+# S3 and Azure signing against real implementations.
 #
 # The unit tests pin the exact strings SigV4 and Shared Key sign, and AWS's published vectors; they cannot prove a
 # service accepts them. This starts MinIO (S3) and Azurite (Azure Blob) in containers, runs ProviderSmokeTests —
@@ -36,7 +37,7 @@ cleanup
 
 docker run -d --name "$MINIO" -p "127.0.0.1:${S3_PORT}:9000" \
   -e MINIO_ROOT_USER=raskminio -e MINIO_ROOT_PASSWORD=raskminiosecret \
-  docker.io/minio/minio:latest server /data >/dev/null
+  docker.io/pgsty/minio:latest server /data >/dev/null   # minio/minio left Docker Hub; this is the community build
 
 # --skipApiVersionCheck: an Azurite image older than the pinned x-ms-version would refuse it outright, which
 # tests the image, not the signature.
