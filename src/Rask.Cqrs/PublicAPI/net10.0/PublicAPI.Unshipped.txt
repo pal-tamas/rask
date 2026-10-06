@@ -57,7 +57,6 @@ Rask.Cqrs.EventDispatch
 Rask.Cqrs.EventPublishStrategy
 Rask.Cqrs.EventPublishStrategy.Sequential = 0 -> Rask.Cqrs.EventPublishStrategy
 Rask.Cqrs.EventPublishStrategy.WhenAll = 1 -> Rask.Cqrs.EventPublishStrategy
-Rask.Cqrs.Notify
 Rask.Cqrs.RaskCqrsTransportAttribute
 Rask.Cqrs.RaskCqrsTransportAttribute.RaskCqrsTransportAttribute() -> void
 Rask.Cqrs.RaskValidationException
@@ -80,8 +79,8 @@ Rask.Cqrs.RemoteContract.MessageType.get -> System.Type!
 Rask.Cqrs.RemoteContract.MessageType.init -> void
 Rask.Cqrs.RemoteContract.Name.get -> string!
 Rask.Cqrs.RemoteContract.Name.init -> void
-Rask.Cqrs.RemoteContract.Policy.get -> string?
-Rask.Cqrs.RemoteContract.Policy.init -> void
+Rask.Cqrs.RemoteContract.Policies.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Cqrs.RemoteContract.Policies.init -> void
 Rask.Cqrs.RemoteContract.ReadMessage.get -> Rask.Cqrs.RemoteMessageReader!
 Rask.Cqrs.RemoteContract.ReadMessage.init -> void
 Rask.Cqrs.RemoteContract.ReadResult.get -> Rask.Cqrs.RemoteResultReader?
@@ -91,16 +90,16 @@ Rask.Cqrs.RemoteContract.ResultType.get -> System.Type!
 Rask.Cqrs.RemoteContract.ResultType.init -> void
 Rask.Cqrs.RemoteContract.ReturnsFile.get -> bool
 Rask.Cqrs.RemoteContract.ReturnsFile.init -> void
-Rask.Cqrs.RemoteContract.Roles.get -> string?
-Rask.Cqrs.RemoteContract.Roles.init -> void
+Rask.Cqrs.RemoteContract.RoleSets.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Cqrs.RemoteContract.RoleSets.init -> void
 Rask.Cqrs.RemoteContract.SubscribeAnonymously.get -> bool
 Rask.Cqrs.RemoteContract.SubscribeAnonymously.init -> void
 Rask.Cqrs.RemoteContract.SubscribeDeclared.get -> bool
 Rask.Cqrs.RemoteContract.SubscribeDeclared.init -> void
-Rask.Cqrs.RemoteContract.SubscribePolicy.get -> string?
-Rask.Cqrs.RemoteContract.SubscribePolicy.init -> void
-Rask.Cqrs.RemoteContract.SubscribeRoles.get -> string?
-Rask.Cqrs.RemoteContract.SubscribeRoles.init -> void
+Rask.Cqrs.RemoteContract.SubscribePolicies.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Cqrs.RemoteContract.SubscribePolicies.init -> void
+Rask.Cqrs.RemoteContract.SubscribeRoleSets.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Cqrs.RemoteContract.SubscribeRoleSets.init -> void
 Rask.Cqrs.RemoteContract.WriteMessage.get -> Rask.Cqrs.RemoteMessageWriter!
 Rask.Cqrs.RemoteContract.WriteMessage.init -> void
 Rask.Cqrs.RemoteContract.WriteResult.get -> Rask.Cqrs.RemoteResultWriter?
@@ -186,10 +185,6 @@ static Rask.Cqrs.CqrsServiceCollectionExtensions.AddRaskCqrs(this Microsoft.Exte
 static Rask.Cqrs.DataChanged.operator !=(Rask.Cqrs.DataChanged? left, Rask.Cqrs.DataChanged? right) -> bool
 static Rask.Cqrs.DataChanged.operator ==(Rask.Cqrs.DataChanged? left, Rask.Cqrs.DataChanged? right) -> bool
 static Rask.Cqrs.EventDispatch.PublishAll<TEvent>(System.IServiceProvider! provider, TEvent e, System.Collections.Generic.IEnumerable<Rask.Cqrs.IEventHandler<TEvent>!>! handlers, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-static Rask.Cqrs.Notify.Configure(System.IServiceProvider! services) -> void
-static Rask.Cqrs.Notify.IsConfigured.get -> bool
-static Rask.Cqrs.Notify.Send<TEvent>(TEvent e, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-static Rask.Cqrs.Notify.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
 static Rask.Cqrs.RemoteContractRegistry.All.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RemoteContract!>!
 static Rask.Cqrs.RemoteContractRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<Rask.Cqrs.RemoteContract!>! contracts) -> void
 static Rask.Cqrs.RemoteContractRegistry.TryGet(System.Type! messageType, out Rask.Cqrs.RemoteContract? contract) -> bool
@@ -225,6 +220,7 @@ Rask.Cqrs.IQueryHandler<TQuery, TResult>.Handle(TQuery query) -> System.Threadin
 Rask.Cqrs.IRemoteRequestValidator.Validate(object! request) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.Cqrs.IRequestValidator<TRequest>.Validate(TRequest request) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.Cqrs.ValidationBehavior<TRequest, TResult>.Handle(TRequest request, Rask.Cqrs.RequestHandler<TResult>! next) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Cqrs.Dispatcher.IsOn.get -> bool
 static Rask.Cqrs.Dispatcher.Publish<TEvent>(TEvent e, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Cqrs.Dispatcher.Query<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 static Rask.Cqrs.Dispatcher.Send(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -245,3 +241,18 @@ static Rask.Cqrs.CqrsRegistry.NameOf(System.Type! type) -> string!
 static Rask.Cqrs.CqrsRegistry.ReplaceDurableHandlers(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! EventType, System.Type! HandlerType, Rask.Cqrs.CqrsRegistry.EventInvoker! Invoker)>! registrations) -> void
 static Rask.Cqrs.DurableEvents.MarkStored(Rask.Cqrs.IEvent! e) -> void
 static Rask.Cqrs.CqrsRegistry.HasDurableHandlers.get -> bool
+Rask.Cqrs.ForbiddenException
+Rask.Cqrs.ForbiddenException.ForbiddenException() -> void
+Rask.Cqrs.ForbiddenException.ForbiddenException(string! message) -> void
+Rask.Cqrs.ForbiddenException.ForbiddenException(string! message, System.Exception! innerException) -> void
+Rask.Cqrs.ForbiddenException.ForbiddenException(string! message, bool isAuthenticated) -> void
+Rask.Cqrs.ForbiddenException.IsAuthenticated.get -> bool
+Rask.Cqrs.IDispatchPrincipal
+Rask.Cqrs.IDispatchPrincipal.Current.get -> System.Security.Claims.ClaimsPrincipal?
+Rask.Cqrs.IPolicyEvaluator
+Rask.Cqrs.IPolicyEvaluator.Permits(System.Security.Claims.ClaimsPrincipal! user, string! policy) -> System.Threading.Tasks.Task<bool>!
+Rask.Cqrs.RequestAuthorization
+Rask.Cqrs.RequestAuthorization.Policies.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Cqrs.RequestAuthorization.RequestAuthorization(System.Collections.Generic.IReadOnlyList<string!>! roleSets, System.Collections.Generic.IReadOnlyList<string!>! policies) -> void
+Rask.Cqrs.RequestAuthorization.RoleSets.get -> System.Collections.Generic.IReadOnlyList<string!>!
+static Rask.Cqrs.CqrsRegistry.ReplaceAuthorization(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.RequestAuthorization! Declared)>! registrations) -> void

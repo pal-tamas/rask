@@ -1160,7 +1160,15 @@ shipping an app whose components silently never mount.
 |---|---|---|
 | `RaskExternalBuild` | `true` | `false` skips node entirely. They still render their host elements. |
 | `RaskExternalOutputDir` | `wwwroot/_rask/external` | Under `wwwroot` so the SDK publishes it with no publish target of its own. |
-| `RaskExternalPublicBase` | `/_rask/external/` | The URL prefix the manifest gives each chunk. |
+| `RaskExternalPublicBase` | `/_rask/external/` | The URL prefix the manifest gives each chunk. A path on the app's own origin — see below. |
+
+**Islands load from the page's own origin, and nowhere else.** The client resolves a manifest and every
+chunk it names against the page and refuses one another origin serves, with a console error naming the
+URL; the only exception is the loopback island dev server, while `rask dev` has stamped it on the page.
+An island is code and its `manifest` attribute is markup, so without that rule an app that renders
+sanitized user HTML could be handed `<rask-external manifest="https://elsewhere.example/m.json">`. A
+bundle on a CDN host is therefore not a supported deployment, and a `RaskExternalPublicBase` that names
+another origin fails the build.
 
 A `.ts` is picked up when a `.cs` of the same name sits beside it. Declare one explicitly only when it
 lives somewhere that pairing cannot reach — the build-side counterpart of overriding `Module`:

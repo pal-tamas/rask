@@ -19,8 +19,8 @@ public static class JobsFakes
         ///     jobs.Enqueued&lt;ChaseInvoice&gt;().In(24.Hours).Once();
         ///     </code>
         ///     <para>
-        ///         Nothing runs: a recorded job is never dispatched to its handler, which is the point —
-        ///         the test asserts that the work was <em>asked for</em>, and the handler has its own test.
+        ///         Nothing runs until the test says so: <c>await jobs.Run()</c> sends every recorded job
+        ///         through its real handler. Without it the test asserts that the work was <em>asked for</em>.
         ///         Scoped to the test's own flow, so tests running in parallel never see each other's jobs.
         ///         It stands in front of <c>Jobs.Enqueue</c>; a class that takes <see cref="IJobs" /> in its
         ///         constructor is handed whatever the container holds, so register the fake there too —

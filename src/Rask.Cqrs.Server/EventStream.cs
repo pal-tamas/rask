@@ -26,7 +26,7 @@ namespace Rask.Cqrs.Server;
 ///     </para>
 ///     <para>
 ///         The first event is <c>ready</c>, written once the policy has admitted the subscription; the client reads it
-///         as "live". A comment every <see cref="RaskCqrsServerOptions.EventKeepAlive" /> stops a proxy closing a quiet
+///         as "live". A comment every <see cref="CqrsServerOptions.EventKeepAlive" /> stops a proxy closing a quiet
 ///         stream, and tells the server promptly when the client has gone.
 ///     </para>
 /// </remarks>
@@ -41,7 +41,7 @@ internal static class EventStream
 
     private static readonly byte[] FrameEnd = Encoding.UTF8.GetBytes("\n\n");
 
-    public static async Task ServeAsync(HttpContext context, RaskCqrsServerOptions options)
+    public static async Task ServeAsync(HttpContext context, CqrsServerOptions options)
     {
         if (!context.Request.Headers.ContainsKey(RemoteEndpointDefaults.RequestHeader))
         {
@@ -79,8 +79,8 @@ internal static class EventStream
                     contract.SubscribeAnonymously,
                     // A record that declared something other than [AllowAnonymous] declared [Authorize].
                     requiresAuthentication: contract.SubscribeDeclared,
-                    contract.SubscribeRoles,
-                    contract.SubscribePolicy)
+                    contract.SubscribeRoleSets,
+                    contract.SubscribePolicies)
                 .ConfigureAwait(false))
         {
             return;
@@ -158,7 +158,7 @@ internal static class EventStream
         LocalDispatcher dispatcher,
         RemoteContract contract,
         object? subscription,
-        RaskCqrsServerOptions options)
+        CqrsServerOptions options)
     {
         var aborted = context.RequestAborted;
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

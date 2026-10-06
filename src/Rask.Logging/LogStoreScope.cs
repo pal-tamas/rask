@@ -15,7 +15,7 @@ namespace Rask.Logging;
 /// exactly what an operator reads during an incident. An async-local marks the store's own flow instead: EF Core logs
 /// on the calling flow, so everything it logs while a store operation is running is skipped, and nothing else is.
 /// Drivers that log from their own threads (a connection pool's pruning) are covered by
-/// <see cref="RaskLoggingOptions"/>'s always-excluded categories.
+/// <see cref="LogsOptions"/>'s always-excluded categories.
 /// </para>
 /// </remarks>
 internal static class LogStoreScope

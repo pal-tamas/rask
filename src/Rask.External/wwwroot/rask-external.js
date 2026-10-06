@@ -84,6 +84,47 @@ function devServer() {
         && document.body.getAttribute("data-rask-islands-dev")) || null;
 }
 
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/** The dev server's origin when it is the loopback one `rask dev` runs, else null. */
+function devOrigin() {
+    const stamped = devServer();
+    if (!stamped) return null;
+
+    try {
+        const url = new URL(stamped);
+        const web = url.protocol === "http:" || url.protocol === "https:";
+        return web && LOOPBACK_HOSTS.has(url.hostname) ? url.origin : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * `url` resolved against the page, or null unless the page's own origin (or `alsoFrom`) serves it.
+ *
+ * An island is code, and its `manifest` attribute is markup. An app that renders sanitized user HTML
+ * with a sanitizer that keeps unknown elements would otherwise hand any visitor a module import in
+ * the page's origin: `<rask-external name="x" manifest="https://elsewhere.example/m.json">`.
+ */
+function trusted(url, alsoFrom) {
+    if (typeof location === "undefined") return null;
+
+    // Against the document's base, which is what fetch() itself resolves a relative URL against.
+    const base = (typeof document !== "undefined" && document.baseURI) || location.href;
+
+    let resolved;
+    try {
+        resolved = new URL(url, base);
+    } catch {
+        return null;
+    }
+
+    // "null" is every opaque origin (data:, blob:, file:), so two of them are never the same one.
+    const origin = resolved.origin;
+    return origin !== "null" && (origin === location.origin || origin === alsoFrom) ? resolved.href : null;
+}
+
 /**
  * Loads Vite's HMR client, once, when `rask dev` is running an island dev server.
  *
@@ -126,8 +167,16 @@ function resolver() {
 async function defaultResolve(name, _module, manifestUrl) {
     const url = manifestUrl || DEFAULT_MANIFEST_URL;
 
+    const address = trusted(url);
+    if (!address) {
+        throw new Error(
+            `Rask islands: refusing the manifest at ${url} for '${name}'. A manifest is loaded from ` +
+            "the page's own origin only.");
+    }
+
     if (!manifests.has(url)) {
-        manifests.set(url, fetch(url, {credentials: "same-origin"})
+        // The address that was checked, not the string it was made from: the two must be the same request.
+        manifests.set(url, fetch(address, {credentials: "same-origin"})
             .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`islands manifest: HTTP ${r.status}`)))));
     }
 
@@ -136,7 +185,7 @@ async function defaultResolve(name, _module, manifestUrl) {
     // ONE resolution path in dev and in production. The manifest is the only thing that differs: under
     // `rask dev` the build writes absolute dev-server URLs into it instead of hashed chunk paths, so
     // nothing here has to branch, and the branch that would have existed cannot rot in production.
-    const origin = devServer();
+    const origin = devOrigin();
     if (origin) {
         await ensureHmrClient(origin);
     }
@@ -151,7 +200,14 @@ async function defaultResolve(name, _module, manifestUrl) {
             "element.");
     }
 
-    return import(/* @vite-ignore */ chunk);
+    const module = trusted(chunk, origin);
+    if (!module) {
+        throw new Error(
+            `Rask islands: refusing the chunk ${chunk} for '${name}'. An island is loaded from the ` +
+            "page's own origin, or from the `rask dev` island server.");
+    }
+
+    return import(/* @vite-ignore */ module);
 }
 
 /** The dispatch channel the host runtime published. Absent until the runtime has booted. */

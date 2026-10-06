@@ -505,7 +505,8 @@ public static class QueryClient
         {
             SessionQueryClient client => client,
             null => throw new InvalidOperationException(
-                "QueryClient needs Rask.Query registered: call services.AddRaskQuery()."),
+                "QueryClient is not running in this app. A RaskApp has it on unless Program.cs says c.Cqrs.Off(); a "
+                + "hand-wired host calls builder.Services.AddRaskQuery()."),
             _ => throw new InvalidOperationException(
                 "QueryClient reaches the session's cache through the IQueryClient that AddRaskQuery() "
                 + "registers, and another implementation replaced it. Inject that IQueryClient instead."),

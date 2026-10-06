@@ -53,6 +53,12 @@ public sealed class ResolveTailwindCliTask : Task
     /// <summary>Refuse to fetch, and fail if nothing is cached.</summary>
     public bool Offline { get; set; }
 
+    /// <summary>
+    ///     The SHA-256 the downloaded binary must have, for a version Rask keeps no digest for
+    ///     (<c>RaskTailwindSha256</c>). Empty for the pinned version, whose digests are in <see cref="TailwindPins" />.
+    /// </summary>
+    public string ExpectedSha256 { get; set; } = string.Empty;
+
     /// <summary>The executable to run.</summary>
     [Output]
     public string ToolPath { get; set; } = string.Empty;
@@ -115,9 +121,24 @@ public sealed class ResolveTailwindCliTask : Task
             return false;
         }
 
+        return FetchOrFallBack(assetName, path);
+    }
+
+    private bool FetchOrFallBack(string assetName, string path)
+    {
         try
         {
             Fetch(assetName, path);
+        }
+        catch (InvalidDataException ex)
+        {
+            // NEVER a reason to try npm: the bytes arrived and are not the ones expected, which is what a
+            // replaced release asset looks like. Falling back would turn that into a quiet success.
+            Log.LogError(
+                $"Rask.Tailwind: the Tailwind {Version} CLI was downloaded but {ex.Message}. Nothing was "
+                + "installed. If the release was republished, check it before setting RaskTailwindSha256 to "
+                + "the new digest.");
+            return false;
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or WebException)
         {
@@ -170,29 +191,41 @@ public sealed class ResolveTailwindCliTask : Task
     private byte[] DownloadVerified(string assetName)
     {
         using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
-        var expected = TailwindCli.ExpectedChecksum(
-            http.GetStringAsync(TailwindCli.ChecksumUrl(Version)).GetAwaiter().GetResult(),
-            assetName);
+        var expected = RecordedChecksum(assetName) ?? PublishedChecksum(http, assetName);
 
         var bytes = http.GetByteArrayAsync(TailwindCli.DownloadUrl(Version, assetName))
             .GetAwaiter().GetResult();
 
-        // Verified rather than trusted: this file is about to be executed by the build. A missing entry
-        // in the manifest is a failure, not "nothing to check".
-        if (expected is null)
-        {
-            throw new IOException(
-                $"the release's sha256sums.txt does not list '{assetName}', so the download could not be verified");
-        }
-
+        // Verified rather than trusted: this file is about to be executed by the build.
         var actual = Sha256(bytes);
         if (!string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
         {
-            throw new IOException(
-                $"the download did not match its published checksum (expected {expected}, got {actual})");
+            // Its own type, caught before the network failures: those fall back to npm, this must not.
+            throw new InvalidDataException($"its SHA-256 is {actual}, not the expected {expected}");
         }
 
         return bytes;
+    }
+
+    // The digest this build was told to expect, or the one recorded in the repository for the pinned
+    // version. Null for a version nobody recorded one for.
+    private string? RecordedChecksum(string assetName) =>
+        string.IsNullOrWhiteSpace(ExpectedSha256) ? TailwindPins.For(Version, assetName) : ExpectedSha256.Trim();
+
+    // The release's own manifest. It comes from where the binary does, so it proves the download arrived
+    // intact and nothing about what was published — which the warning says.
+    private string PublishedChecksum(HttpClient http, string assetName)
+    {
+        Log.LogWarning(
+            $"Rask.Tailwind: Rask records no digest for Tailwind {Version} (it pins {TailwindPins.Version}), "
+            + "so the CLI is checked only against the checksum its own release publishes. Set "
+            + "RaskTailwindSha256 to the SHA-256 of the asset for this platform to pin it.");
+
+        // A missing entry in the manifest is a failure, not "nothing to check".
+        return TailwindCli.ExpectedChecksum(
+                   http.GetStringAsync(TailwindCli.ChecksumUrl(Version)).GetAwaiter().GetResult(), assetName)
+               ?? throw new IOException(
+                   $"the release's sha256sums.txt does not list '{assetName}', so the download could not be verified");
     }
 
     private static void Install(byte[] bytes, string path)

@@ -7,7 +7,7 @@ namespace Rask.Signaling.Tests;
 public class SignalingHubTests
 {
     private static SignalingHub Hub(int maxPeers = 8, int maxRooms = 1000) =>
-        new(new RaskSignalingOptions { MaxPeersPerRoom = maxPeers, MaxRooms = maxRooms });
+        new(new SignalingOptions { MaxPeersPerRoom = maxPeers, MaxRooms = maxRooms });
 
     private static WebSocket Socket() => new FakeSocket();
 

@@ -13,7 +13,7 @@ namespace Rask.Dashboard.Pages;
 [ParentRoute(typeof(DashboardLayout))]
 public sealed partial class SystemPage(
     ISystemPanelReader system,
-    RaskDashboardOptions options,
+    OpsOptions options,
     TimeProvider timeProvider) : PollingPanel
 {
     private DatabaseInfo? _database;
@@ -23,7 +23,7 @@ public sealed partial class SystemPage(
     private IReadOnlyList<BackupSnapshotInfo> _snapshots = [];
 
     /// <inheritdoc />
-    protected override RaskDashboardOptions Options => options;
+    protected override OpsOptions Options => options;
 
     /// <inheritdoc />
     protected override async Task<object?> Load(CancellationToken cancellationToken)

@@ -127,8 +127,8 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         handlers.TryGetValue(type.ToDisplayString(), out var handler);
         model.HasLocalHandler = handler is not null;
         var authorization = Authorization(handler);
-        model.Policy = authorization.Policy;
-        model.Roles = authorization.Roles;
+        model.Policies = authorization.Policies;
+        model.RoleSets = authorization.RoleSets;
         model.AllowAnonymous = authorization.AllowAnonymous;
         model.RequiresAuthentication = authorization.Authorize;
 
@@ -141,8 +141,8 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         {
             var subscribe = Authorization(type);
             model.SubscribeDeclared = true;
-            model.SubscribePolicy = subscribe.Policy;
-            model.SubscribeRoles = subscribe.Roles;
+            model.SubscribePolicies = subscribe.Policies;
+            model.SubscribeRoleSets = subscribe.RoleSets;
             model.SubscribeAnonymously = subscribe.AllowAnonymous;
         }
     }
@@ -237,20 +237,19 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     // Matched by name so this generator needs no reference to ASP.NET. Roles is read as well as Policy
     // because dropping it silently would leave an author believing [Authorize(Roles = "admin")] was
     // enforced when nothing checked it.
-    private static (string? Policy, string? Roles, bool AllowAnonymous, bool Authorize) Authorization(
+    //
+    // EVERY attribute is kept, the type's own and its base types': ASP.NET requires all of them to pass, and
+    // a page does (RouteAuthorizationGuard). Keeping only the last one checked [Authorize(Policy = "billing")]
+    // and quietly dropped the [Authorize(Policy = "members")] above it (#1178).
+    internal static (List<string> Policies, List<string> RoleSets, bool AllowAnonymous, bool Authorize) Authorization(
         INamedTypeSymbol? handler)
     {
-        if (handler is null)
-        {
-            return (null, null, false, false);
-        }
-
-        string? policy = null;
-        string? roles = null;
+        var policies = new List<string>();
+        var roleSets = new List<string>();
         var anonymous = false;
         var authorize = false;
 
-        foreach (var attribute in handler.GetAttributes())
+        foreach (var attribute in DeclaredAndInherited(handler))
         {
             switch (attribute.AttributeClass?.Name)
             {
@@ -261,20 +260,20 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                 case "AuthorizeAttribute":
                     authorize = true;
                     if (attribute.ConstructorArguments.Length == 1 &&
-                        attribute.ConstructorArguments[0].Value is string positional)
+                        attribute.ConstructorArguments[0].Value is string { Length: > 0 } positional)
                     {
-                        policy = positional;
+                        policies.Add(positional);
                     }
 
                     foreach (var named in attribute.NamedArguments)
                     {
-                        if (named.Key is "Policy" && named.Value.Value is string p)
+                        if (named.Key is "Policy" && named.Value.Value is string { Length: > 0 } p)
                         {
-                            policy = p;
+                            policies.Add(p);
                         }
-                        else if (named.Key is "Roles" && named.Value.Value is string r)
+                        else if (named.Key is "Roles" && named.Value.Value is string { Length: > 0 } r)
                         {
-                            roles = r;
+                            roleSets.Add(r);
                         }
                     }
 
@@ -282,11 +281,27 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             }
         }
 
-        return (policy, roles, anonymous, authorize);
+        return (policies, roleSets, anonymous, authorize);
+    }
+
+    private static IEnumerable<AttributeData> DeclaredAndInherited(INamedTypeSymbol? type)
+    {
+        for (var current = type; current is not null; current = current.BaseType)
+        {
+            foreach (var attribute in current.GetAttributes())
+            {
+                yield return attribute;
+            }
+        }
     }
 
     private static bool HasAuthorization(INamedTypeSymbol type) =>
-        type.GetAttributes().Any(a => a.AttributeClass?.Name is "AuthorizeAttribute" or "AllowAnonymousAttribute");
+        DeclaredAndInherited(type).Any(a => a.AttributeClass?.Name is "AuthorizeAttribute" or "AllowAnonymousAttribute");
+
+    // A policy or role name is whatever the author typed, so it is written as a literal rather than
+    // between two quotes: a name holding a quote or a backslash would otherwise end the string early.
+    private static string Literals(List<string> values) =>
+        "[" + string.Join(", ", values.Select(v => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(v, quote: true))) + "]";
 
     // The compilation itself, plus every referenced assembly that references Rask.Cqrs. Only those can
     // declare a message or a handler, so this skips the BCL and every unrelated package without walking
@@ -507,14 +522,14 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 
     private static void AppendAuthorization(StringBuilder entry, ContractModel contract)
     {
-        if (contract.Policy is { } policy)
+        if (contract.Policies.Count > 0)
         {
-            entry.AppendLine($"            Policy = \"{policy}\",");
+            entry.AppendLine($"            Policies = {Literals(contract.Policies)},");
         }
 
-        if (contract.Roles is { } roles)
+        if (contract.RoleSets.Count > 0)
         {
-            entry.AppendLine($"            Roles = \"{roles}\",");
+            entry.AppendLine($"            RoleSets = {Literals(contract.RoleSets)},");
         }
 
         if (contract.AllowAnonymous)
@@ -530,14 +545,14 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         if (contract.SubscribeDeclared)
         {
             entry.AppendLine("            SubscribeDeclared = true,");
-            if (contract.SubscribePolicy is { } subscribePolicy)
+            if (contract.SubscribePolicies.Count > 0)
             {
-                entry.AppendLine($"            SubscribePolicy = \"{subscribePolicy}\",");
+                entry.AppendLine($"            SubscribePolicies = {Literals(contract.SubscribePolicies)},");
             }
 
-            if (contract.SubscribeRoles is { } subscribeRoles)
+            if (contract.SubscribeRoleSets.Count > 0)
             {
-                entry.AppendLine($"            SubscribeRoles = \"{subscribeRoles}\",");
+                entry.AppendLine($"            SubscribeRoleSets = {Literals(contract.SubscribeRoleSets)},");
             }
 
             if (contract.SubscribeAnonymously)
@@ -681,9 +696,9 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 
         public bool ReturnsFile { get; set; }
 
-        public string? Policy { get; set; }
+        public List<string> Policies { get; set; } = new();
 
-        public string? Roles { get; set; }
+        public List<string> RoleSets { get; set; } = new();
 
         public bool AllowAnonymous { get; set; }
 
@@ -693,9 +708,9 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 
         public bool SubscribeDeclared { get; set; }
 
-        public string? SubscribePolicy { get; set; }
+        public List<string> SubscribePolicies { get; set; } = new();
 
-        public string? SubscribeRoles { get; set; }
+        public List<string> SubscribeRoleSets { get; set; } = new();
 
         public bool SubscribeAnonymously { get; set; }
 

@@ -4,7 +4,7 @@ namespace Rask.Cqrs.Server;
 ///     Configures the endpoint pair <c>MapRaskCqrs()</c> maps. Every default here is the safe one; each
 ///     property is a deliberate loosening.
 /// </summary>
-public sealed class RaskCqrsServerOptions
+public sealed class CqrsServerOptions
 {
     /// <summary>
     ///     The path the two endpoints are mapped under. The message's wire name is appended as a route
@@ -55,6 +55,20 @@ public sealed class RaskCqrsServerOptions
     /// </summary>
     public long MaxUploadChunkBytes { get; set; } = 4L * 1024 * 1024;
 
+    /// <summary>
+    ///     How many chunked uploads one caller may have open at once — begun, and not yet spent by the
+    ///     message they belong to. <see cref="MaxUploadBytes" /> bounds one upload; without this a caller
+    ///     looping over fresh upload ids fills the disk one bounded upload at a time. Past it, a chunk that
+    ///     would open another answers 429 until one is spent or lapses.
+    /// </summary>
+    public int MaxOpenUploads { get; set; } = 4;
+
+    /// <summary>
+    ///     The most bytes one caller's open uploads may hold on disk between them. At least
+    ///     <see cref="MaxUploadBytes" />, or a single upload could never reach its own limit.
+    /// </summary>
+    public long MaxOpenUploadBytes { get; set; } = 64L * 1024 * 1024;
+
     // Deliberately absent: a download-token lifetime. A download is fetched by the same authenticated
     // request that dispatched the query, so there is no token to expire. Naming a lifetime here would
     // describe a second, tokenized fetch path that does not exist.
@@ -102,6 +116,18 @@ public sealed class RaskCqrsServerOptions
         if (MaxUploadChunkBytes <= 0)
         {
             throw new InvalidOperationException($"{nameof(MaxUploadChunkBytes)} must be positive.");
+        }
+
+        if (MaxOpenUploads <= 0)
+        {
+            throw new InvalidOperationException($"{nameof(MaxOpenUploads)} must be positive.");
+        }
+
+        if (MaxOpenUploadBytes < MaxUploadBytes)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(MaxOpenUploadBytes)} ({MaxOpenUploadBytes}) must be at least {nameof(MaxUploadBytes)} "
+                + $"({MaxUploadBytes}), or one upload could never reach its own limit.");
         }
     }
 }

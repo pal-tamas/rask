@@ -26,4 +26,12 @@ public interface IAuthEmailBodies
     /// <param name="subject">The subject, repeated as the heading.</param>
     /// <param name="lifetime">How long the link is good for.</param>
     string Reset(string link, string subject, TimeSpan lifetime);
+
+    /// <summary>
+    ///     The "somebody tried to register with your address" body, sent to an account's owner in place of
+    ///     telling the person registering that the address is taken.
+    /// </summary>
+    /// <param name="link">The absolute link to the sign-in page.</param>
+    /// <param name="subject">The subject, repeated as the heading.</param>
+    string AlreadyRegistered(string link, string subject);
 }

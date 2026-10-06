@@ -67,16 +67,18 @@ public sealed class RemoteContract
     public RemoteLocalInvoker? LocalInvoker { get; init; }
 
     /// <summary>
-    ///     The authorization policy the handler declared with <c>[Authorize(Policy = …)]</c>, or null.
+    ///     Every authorization policy the handler declared with <c>[Authorize(Policy = …)]</c>, one per
+    ///     attribute. The caller has to satisfy all of them, as it would on a page.
     /// </summary>
-    public string? Policy { get; init; }
+    public IReadOnlyList<string> Policies { get; init; } = [];
 
     /// <summary>
-    ///     The roles the handler declared with <c>[Authorize(Roles = …)]</c>, comma-separated, or null.
-    ///     Read as well as <see cref="Policy" /> because ignoring it would be worse than not supporting
-    ///     it: an author who wrote <c>[Authorize(Roles = "admin")]</c> would believe it was enforced.
+    ///     The roles of each <c>[Authorize(Roles = …)]</c> the handler declared, one comma-separated set
+    ///     per attribute. The caller needs a role from every set. Read as well as <see cref="Policies" />
+    ///     because ignoring it would be worse than not supporting it: an author who wrote
+    ///     <c>[Authorize(Roles = "admin")]</c> would believe it was enforced.
     /// </summary>
-    public string? Roles { get; init; }
+    public IReadOnlyList<string> RoleSets { get; init; } = [];
 
     /// <summary>
     ///     True when the handler is marked <c>[AllowAnonymous]</c>, which is the only way past the
@@ -100,11 +102,11 @@ public sealed class RemoteContract
     /// </summary>
     public bool SubscribeDeclared { get; init; }
 
-    /// <summary>The policy the record names with <c>[Authorize(Policy = …)]</c>, for subscribers.</summary>
-    public string? SubscribePolicy { get; init; }
+    /// <summary>Every policy the record names with <c>[Authorize(Policy = …)]</c>, for subscribers: all must pass.</summary>
+    public IReadOnlyList<string> SubscribePolicies { get; init; } = [];
 
-    /// <summary>The roles the record names with <c>[Authorize(Roles = …)]</c>, for subscribers.</summary>
-    public string? SubscribeRoles { get; init; }
+    /// <summary>The roles of each <c>[Authorize(Roles = …)]</c> on the record, for subscribers: one from every set.</summary>
+    public IReadOnlyList<string> SubscribeRoleSets { get; init; } = [];
 
     /// <summary>True when the record is marked <c>[AllowAnonymous]</c>: a signed-out visitor may subscribe.</summary>
     public bool SubscribeAnonymously { get; init; }

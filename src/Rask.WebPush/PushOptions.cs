@@ -6,7 +6,7 @@ namespace Rask.WebPush;
 ///     Configures the push sender, through <c>AddRaskWebPush</c>. One VAPID pair and one contact address
 ///     serve every message the app sends.
 /// </summary>
-public sealed class WebPushOptions
+public sealed class PushOptions
 {
     /// <summary>
     ///     The application-server key pair — required. Generate it once with
@@ -26,7 +26,28 @@ public sealed class WebPushOptions
     ///     How long a push service holds a message for an offline device when the message itself sets no
     ///     TTL. Defaults to 12 hours.
     /// </summary>
-    public TimeSpan DefaultTtl { get; set; } = TimeSpan.FromHours(12);
+    public TimeSpan DefaultLifetime { get; set; } = TimeSpan.FromHours(12);
+
+    /// <summary>
+    ///     How long one send waits on a push service before it is given up on. Ten seconds by default: a
+    ///     push service answers in well under one, and a stored endpoint that accepts the connection and
+    ///     never answers would otherwise hold every broadcast for the HTTP client's hundred.
+    /// </summary>
+    public TimeSpan SendTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    ///     The most subscriptions the table holds for visitors who are not signed in. The subscribe endpoint
+    ///     is open to anyone and every new endpoint is a row in the app's own database, so past this a
+    ///     signed-out subscribe answers 429. A signed-in user's subscriptions are not counted.
+    /// </summary>
+    public int MaxAnonymousSubscribers { get; set; } = 10_000;
+
+    /// <summary>
+    ///     Whether subscribing needs a signed-in user. Off by default — a visitor can ask for notifications
+    ///     before having an account. Turn it on in an app that only ever pushes to its users: the subscribe
+    ///     endpoint then answers 401 to anyone else and no anonymous row is ever written.
+    /// </summary>
+    public bool RequireUser { get; set; }
 
     /// <summary>
     ///     Throws if these options cannot send. Called once when the sender is resolved, so a
@@ -38,18 +59,24 @@ public sealed class WebPushOptions
     {
         if (VapidKeys is null || string.IsNullOrEmpty(VapidKeys.PublicKey) || string.IsNullOrEmpty(VapidKeys.PrivateKey))
             throw new InvalidOperationException(
-                "WebPushOptions.VapidKeys must be set. Generate a pair once with VapidKeys.Generate() and store it.");
+                "PushOptions.VapidKeys must be set. Generate a pair once with VapidKeys.Generate() and store it.");
 
         if (string.IsNullOrEmpty(Subject))
             throw new InvalidOperationException(
-                "WebPushOptions.Subject must be set to a 'mailto:' address or an 'https:' URL.");
+                "PushOptions.Subject must be set to a 'mailto:' address or an 'https:' URL.");
 
         if (!Subject.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) &&
             !Subject.StartsWith("https:", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException(
-                $"WebPushOptions.Subject must start with 'mailto:' or 'https:' (was '{Subject}').");
+                $"PushOptions.Subject must start with 'mailto:' or 'https:' (was '{Subject}').");
 
-        if (DefaultTtl < TimeSpan.Zero)
-            throw new InvalidOperationException("WebPushOptions.DefaultTtl cannot be negative.");
+        if (DefaultLifetime < TimeSpan.Zero)
+            throw new InvalidOperationException("PushOptions.DefaultLifetime cannot be negative.");
+
+        if (SendTimeout <= TimeSpan.Zero)
+            throw new InvalidOperationException("PushOptions.SendTimeout must be positive.");
+
+        if (MaxAnonymousSubscribers < 0)
+            throw new InvalidOperationException("PushOptions.MaxAnonymousSubscribers cannot be negative.");
     }
 }

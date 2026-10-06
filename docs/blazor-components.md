@@ -208,6 +208,11 @@ Keep `base.HeadAssets` in an override: it is how the stylesheets in `RaskBlazorO
 the page, and leaving it out drops them. A route parameter that feeds a value-typed `[Parameter]` is
 declared nullable (`int? Id`), like any other optional step you declare yourself.
 
+URL attributes in that markup get the treatment a Rask element gives them: `javascript:` and `data:`
+become `about:blank`, and an inline `data:image/…` survives only where it can do nothing but draw —
+`src` on `img`, `audio`, `video`, `source`, `track` and `input`, a `video`'s `poster`, an SVG `image`'s
+`href`. An `<iframe src="@Url">` fed a `data:` URL renders blank.
+
 ## Parameters cross as C#, not JSON
 
 Unlike a `.tsx` island, whose props are serialized, parameters here are passed as **live CLR

@@ -123,7 +123,7 @@ public sealed class RaskConfigurationTests
             ["Rask:Push:Subject"] = "mailto:ops@example.test",
         });
 
-        var options = built.Services.GetRequiredService<WebPushOptions>();
+        var options = built.Services.GetRequiredService<PushOptions>();
 
         Assert.Equal(keys.PublicKey, options.VapidKeys!.PublicKey);
         Assert.Equal("mailto:ops@example.test", options.Subject);
@@ -140,7 +140,7 @@ public sealed class RaskConfigurationTests
             ["Rask:Push:VapidKeys:PrivateKey"] = keys.PrivateKey,
         });
 
-        var error = Assert.Throws<OptionsValidationException>(() => built.Services.GetRequiredService<WebPushOptions>());
+        var error = Assert.Throws<OptionsValidationException>(() => built.Services.GetRequiredService<PushOptions>());
 
         Assert.Contains("Subject", error.Message, StringComparison.Ordinal);
     }
@@ -155,7 +155,7 @@ public sealed class RaskConfigurationTests
             ["WebPush:PrivateKey"] = keys.PrivateKey,
         });
 
-        Assert.Null(built.Services.GetRequiredService<WebPushOptions>().VapidKeys);
+        Assert.Null(built.Services.GetRequiredService<PushOptions>().VapidKeys);
     }
 
     [Fact]

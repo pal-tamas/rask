@@ -29,4 +29,10 @@ jobs:
   gates:
     uses: ./.github/workflows/gates.yml
     with:
-      set: ${{ startsWith(github.ref, 'refs/heads/ci/release/') && 'all' || 'push' }}
+      # A Dependabot pull request gets the short set. Each of its runs is a full round of jobs on the same
+      # runners main is waiting for, several of them arrive at once, and the browser suites run on main
+      # the moment it is merged.
+      set: >-
+        ${{ startsWith(github.ref, 'refs/heads/ci/release/') && 'all'
+            || (github.event_name == 'pull_request' && github.actor == 'dependabot[bot]') && 'deps'
+            || 'push' }}

@@ -4,7 +4,7 @@ using Rask.SQLite;
 namespace Rask.Logging;
 
 /// <summary>Options for the durable log store.</summary>
-public sealed class RaskLoggingOptions
+public sealed class LogsOptions
 {
     /// <summary>
     /// The categories never captured, whatever else is configured. The store's own plumbing must not be
@@ -62,14 +62,14 @@ public sealed class RaskLoggingOptions
     public int QueueCapacity { get; set; } = 10_000;
 
     /// <summary>How often retention is enforced. Default 1 hour.</summary>
-    public TimeSpan PurgeInterval { get; set; } = TimeSpan.FromHours(1);
+    public TimeSpan SweepInterval { get; set; } = TimeSpan.FromHours(1);
 
     /// <summary>
     /// How long the writer spends draining the buffer on shutdown before giving up. Default 5s. The last
     /// lines before a crash are the ones most worth keeping, so this is not zero — but it also cannot
     /// stall a host that is trying to stop.
     /// </summary>
-    public TimeSpan ShutdownDrainTimeout { get; set; } = TimeSpan.FromSeconds(5);
+    public TimeSpan ShutdownGracePeriod { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
     /// Whether the ambient <c>ILogger.BeginScope</c> state — a request id, a user id, a correlation id — is

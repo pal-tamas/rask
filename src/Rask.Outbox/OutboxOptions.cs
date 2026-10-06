@@ -32,7 +32,7 @@ public sealed class OutboxOptions
     /// look at, whatever value you set here.
     /// </para>
     /// </summary>
-    public TimeSpan RetentionPeriod { get; set; } = TimeSpan.FromDays(7);
+    public TimeSpan Retention { get; set; } = TimeSpan.FromDays(7);
 
     /// <summary>The ceiling on <see cref="BatchSize"/> — see <see cref="OutboxOptionsValidator"/> for why there is one.</summary>
     internal const int MaxBatchSize = 1000;

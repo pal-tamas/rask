@@ -20,4 +20,8 @@ internal sealed class ComponentAuthEmailBodies : IAuthEmailBodies
     /// <inheritdoc />
     public string Reset(string link, string subject, TimeSpan lifetime) =>
         AuthEmails.Reset(link, subject, lifetime).ToHtml();
+
+    /// <inheritdoc />
+    public string AlreadyRegistered(string link, string subject) =>
+        AuthEmails.AlreadyRegistered(link, subject).ToHtml();
 }

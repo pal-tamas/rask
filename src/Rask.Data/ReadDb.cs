@@ -25,7 +25,7 @@ public static class ReadDb
     private static Func<DbContext>? _factory;
 
     /// <summary>Whether the read side has been pointed at a database.</summary>
-    public static bool IsConfigured => _factory is not null;
+    public static bool IsOn => _factory is not null;
 
     /// <summary>Points the read faces at the read context the host registered.</summary>
     /// <remarks>

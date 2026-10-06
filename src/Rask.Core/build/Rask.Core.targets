@@ -343,6 +343,7 @@
                                Version="$(RaskTsgoVersion)"
                                CacheRoot="$(RaskTypeScriptCacheRoot)"
                                Registry="$(RaskTypeScriptRegistry)"
+                               ExpectedIntegrity="$(RaskTsgoIntegrity)"
                                Offline="$(RaskTypeScriptOffline)"
                                CachedOnly="$(_RaskScopedTsCachedOnly)">
       <Output TaskParameter="ToolPath" PropertyName="_RaskTsgoPath"/>

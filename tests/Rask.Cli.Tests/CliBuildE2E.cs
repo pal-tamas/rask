@@ -105,6 +105,9 @@ internal static class CliBuildE2E
         var feed = Path.Combine(Path.GetTempPath(), "rask-cli-e2e-feed", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(feed);
 
+        // One `dotnet pack` per package, in order. Packing them all from a single MSBuild invocation is
+        // several minutes faster and WRONG: a package then names a project it references at version
+        // 1.0.0 instead of the MinVer version it was packed at, and no scaffold can restore.
         foreach (var package in FeedPackages)
         {
             var csproj = ProjectFor(repoRoot, package);

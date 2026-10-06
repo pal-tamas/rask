@@ -22,7 +22,7 @@ namespace Rask.Cqrs.Client;
 /// </remarks>
 internal sealed class RemoteDispatch(
     HttpClient http,
-    RaskCqrsClientOptions options,
+    CqrsClientOptions options,
     IRemoteRequestValidator? validator = null) : IRemoteDispatch, IRemoteSubscriptions
 {
     // Asks the browser's fetch to hand the body over as it arrives. Without it a WebAssembly HttpClient buffers the

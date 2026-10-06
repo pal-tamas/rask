@@ -29,7 +29,7 @@ namespace Rask.Signaling;
 ///         <b>It is a relay between untrusted peers</b>, so: peer ids are minted by the server and never
 ///         taken from the client; a message is only delivered to a peer in the sender's own room; nothing is
 ///         ever echoed back to its sender; payloads and message rates are capped; and joining requires
-///         authentication by default, with <see cref="RaskSignalingOptions.AuthorizeRoom" /> as the hook for
+///         authentication by default, with <see cref="SignalingOptions.AuthorizeRoom" /> as the hook for
 ///         "may this user join <em>this</em> room".
 ///     </para>
 /// </remarks>
@@ -37,12 +37,12 @@ public static class RaskSignalingExtensions
 {
     /// <summary>Registers the signaling relay. Pair with <see cref="MapRaskSignaling" />.</summary>
     /// <remarks>
-    ///     <see cref="RaskSignalingOptions" /> reads the <c>Rask:Signaling</c> configuration section first, then
-    ///     <paramref name="configure" />, so code wins. <see cref="RaskSignalingOptions.AuthorizeRoom" /> is a
+    ///     <see cref="SignalingOptions" /> reads the <c>Rask:Signaling</c> configuration section first, then
+    ///     <paramref name="configure" />, so code wins. <see cref="SignalingOptions.AuthorizeRoom" /> is a
     ///     delegate and can only be set in code. Idempotent: the first call's options win.
     /// </remarks>
     public static IServiceCollection AddRaskSignaling(
-        this IServiceCollection services, Action<RaskSignalingOptions>? configure = null)
+        this IServiceCollection services, Action<SignalingOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -54,14 +54,14 @@ public static class RaskSignalingExtensions
     }
 
     /// <summary>
-    ///     Maps the signaling WebSocket endpoint at <see cref="RaskSignalingOptions.Path" />. Requires
+    ///     Maps the signaling WebSocket endpoint at <see cref="SignalingOptions.Path" />. Requires
     ///     <see cref="AddRaskSignaling" />.
     /// </summary>
     public static IEndpointRouteBuilder MapRaskSignaling(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
-        var options = endpoints.ServiceProvider.GetService<RaskSignalingOptions>()
+        var options = endpoints.ServiceProvider.GetService<SignalingOptions>()
                       ?? throw new InvalidOperationException(
                           "MapRaskSignaling() needs AddRaskSignaling() — the relay's options and room "
                           + "registry are resolved from DI.");
@@ -84,7 +84,7 @@ public static class RaskSignalingExtensions
 
     // Every failure names the setting ("MaxPeersPerRoom (1) must be at least 2.") — the key someone has to go
     // and fix; the options registration prefixes the section.
-    private static void Validate(RaskSignalingOptions o)
+    private static void Validate(SignalingOptions o)
     {
         if (!o.Path.StartsWith('/'))
         {
@@ -103,7 +103,25 @@ public static class RaskSignalingExtensions
         AtLeast(nameof(o.MaxRooms), o.MaxRooms, 1);
         AtLeast(nameof(o.MaxRoomIdLength), o.MaxRoomIdLength, 1);
         AtLeast(nameof(o.MaxMessagesPerSecond), o.MaxMessagesPerSecond, 0);
+
+        foreach (var origin in o.AllowedOrigins)
+        {
+            // An origin is scheme, host and port — what a browser puts in the header. A trailing path would
+            // never match one, so it is refused here rather than silently admitting nobody.
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                || !string.Equals(uri.GetLeftPart(UriPartial.Authority), origin, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"AllowedOrigins holds '{origin}', which is not an origin. Write scheme and host, "
+                    + "with a port if it is not the default and no path: https://app.example.com.");
+            }
+        }
     }
+
+    // A browser always names the page behind a WebSocket upgrade, and sends the visitor's cookie with it.
+    private static bool FromAnAllowedPage(HttpRequest request, SignalingOptions options) =>
+        SameOrigin.Allows(request)
+        || options.AllowedOrigins.Contains(request.Headers.Origin.ToString(), StringComparer.OrdinalIgnoreCase);
 
     private static void AtLeast(string setting, int value, int minimum)
     {
@@ -134,7 +152,16 @@ public static class RaskSignalingExtensions
             return;
         }
 
-        var options = ctx.RequestServices.GetRequiredService<RaskSignalingOptions>();
+        var options = ctx.RequestServices.GetRequiredService<SignalingOptions>();
+
+        // Cross-Site WebSocket Hijacking: refused before the upgrade, so another site's page never holds
+        // a socket that AuthorizeRoom would then be asked about as the signed-in visitor.
+        if (!FromAnAllowedPage(ctx.Request, options))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
         var hub = ctx.RequestServices.GetRequiredService<SignalingHub>();
 
         using var socket = await ctx.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false);
@@ -164,7 +191,7 @@ public static class RaskSignalingExtensions
     // Returns the joined peer (or null if the socket closed before joining) so the caller can clean up
     // exactly once, whichever way the loop ended.
     private static async Task<Peer?> PumpAsync(
-        HttpContext ctx, WebSocket socket, SignalingHub hub, RaskSignalingOptions options)
+        HttpContext ctx, WebSocket socket, SignalingHub hub, SignalingOptions options)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(options.MaxMessageBytes);
         Peer? peer = null;
@@ -255,7 +282,7 @@ public static class RaskSignalingExtensions
     }
 
     private static async Task<Peer?> HandleAsync(
-        HttpContext ctx, WebSocket socket, SignalingHub hub, RaskSignalingOptions options,
+        HttpContext ctx, WebSocket socket, SignalingHub hub, SignalingOptions options,
         ReadOnlyMemory<byte> message, Peer? peer)
     {
         JsonDocument document;
@@ -296,7 +323,7 @@ public static class RaskSignalingExtensions
     }
 
     private static async Task<Peer?> Join(
-        HttpContext ctx, WebSocket socket, SignalingHub hub, RaskSignalingOptions options,
+        HttpContext ctx, WebSocket socket, SignalingHub hub, SignalingOptions options,
         JsonElement root, Peer? peer)
     {
         if (peer is not null)
@@ -352,7 +379,7 @@ public static class RaskSignalingExtensions
     }
 
     private static async Task<Peer?> SignalAsync(
-        HttpContext ctx, WebSocket socket, SignalingHub hub, RaskSignalingOptions options,
+        HttpContext ctx, WebSocket socket, SignalingHub hub, SignalingOptions options,
         JsonElement root, Peer? peer)
     {
         if (peer is null)

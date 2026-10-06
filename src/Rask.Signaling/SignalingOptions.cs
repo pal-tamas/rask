@@ -4,7 +4,7 @@ namespace Rask.Signaling;
 ///     How the WebRTC signaling endpoint behaves. Every limit here exists because the endpoint is a
 ///     <b>relay between untrusted peers</b>: whatever one client sends, another client receives.
 /// </summary>
-public sealed class RaskSignalingOptions
+public sealed class SignalingOptions
 {
     /// <summary>
     ///     The path the signaling socket is served from. Separate from the live render socket on purpose —
@@ -18,6 +18,15 @@ public sealed class RaskSignalingOptions
     ///     accident rather than the decision. Set <c>false</c> only for a genuinely open room.
     /// </summary>
     public bool RequireAuthorization { get; set; } = true;
+
+    /// <summary>
+    ///     Other origins whose pages may open the socket: <c>https://app.example.com</c>. Empty by default,
+    ///     which admits the host's own pages and nothing else — a browser sends the visitor's cookie with a
+    ///     WebSocket upgrade from any site it considers the same, so an unchecked relay lets that site join
+    ///     a room as them. Name the app's origin here when the relay is mapped on a different host. A
+    ///     client that sends no <c>Origin</c> (anything that is not a browser) is not affected.
+    /// </summary>
+    public IList<string> AllowedOrigins { get; } = [];
 
     /// <summary>
     ///     Decides whether this caller may join this room. Return <c>false</c> to refuse. Runs after

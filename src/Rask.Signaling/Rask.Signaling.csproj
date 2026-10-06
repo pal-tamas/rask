@@ -26,7 +26,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
-  <!-- RaskSignalingOptions binds Rask:Signaling. The configuration binding source generator writes that bind
+  <!-- SignalingOptions binds Rask:Signaling. The configuration binding source generator writes that bind
        at compile time, so no reflection binder runs; the SDK leaves it off unless a project asks. -->
   <PropertyGroup>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\SameOrigin.cs" Link="Shared\SameOrigin.cs"/>
   </ItemGroup>
 
   <ItemGroup>

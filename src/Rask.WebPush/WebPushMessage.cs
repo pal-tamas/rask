@@ -54,7 +54,7 @@ public sealed record WebPushMessage
     ///     what stops it arriving hours late and confusing the user.
     /// </summary>
     // How long the push service should retain the message if the device is offline. Zero (the
-    // default) falls back to WebPushOptions.DefaultTtl. Sent as the required "TTL" header.
+    // default) falls back to PushOptions.DefaultLifetime. Sent as the required "TTL" header.
     public TimeSpan Ttl { get; init; }
 
     /// <summary>How urgent this is. See <see cref="PushUrgency" />; defaults to

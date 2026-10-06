@@ -112,7 +112,8 @@
     <ResolveTailwindCliTask Version="$(RaskTailwindVersion)"
                             CacheRoot="$(RaskTailwindCacheRoot)"
                             Engine="$(RaskTailwindEngine)"
-                            Offline="$(RaskTailwindOffline)">
+                            Offline="$(RaskTailwindOffline)"
+                            ExpectedSha256="$(RaskTailwindSha256)">
       <Output TaskParameter="ToolPath" PropertyName="_RaskTailwindTool"/>
       <Output TaskParameter="UseNpm" PropertyName="_RaskTailwindUseNpm"/>
     </ResolveTailwindCliTask>

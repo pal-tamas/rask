@@ -496,6 +496,14 @@ recomputed from the machine each time and comes back empty, so the password belo
 rather than to starting an app. The certificate authority is trusted **once, ever**: every other project
 you run afterwards gets its own `.test` name with no prompt at all.
 
+**The authority can sign for `.test` and loopback, and nothing else.** A root in the system trust store is
+believed by every browser on the machine, and its key sits under `~/.rask`. So the certificate carries a
+critical name constraint — `.test`, `localhost`, `127.0.0.1`, `::1` — and cannot mint a subordinate
+authority: a copied key yields certificates for your own dev names and for no real site. An authority
+created before this was added is replaced the next time `rask dev` runs: one more prompt, naming the
+replacement, after which the old root is taken back out of the keychain (macOS) or certificate store
+(Windows); on Linux trusting the new one overwrites it.
+
 `.test` is not a stylistic choice. [RFC 6761 §6.2](https://www.rfc-editor.org/rfc/rfc6761#section-6.2)
 reserves it for exactly this and guarantees it is never delegated in the real DNS root, so a dev name
 can never collide with a site you actually need to reach. The two obvious alternatives are traps:

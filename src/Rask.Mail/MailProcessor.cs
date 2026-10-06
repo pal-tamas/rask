@@ -10,7 +10,7 @@ namespace Rask.Mailing;
 /// Polls the <see cref="QueuedMail"/> table on a schedule and delivers each due message through the registered
 /// <see cref="IMailSender"/>. At-least-once: a message is sent at least once and, on failure, is retried with
 /// exponential backoff up to <see cref="MailOptions.MaxAttempts"/> (after which it is left as a dead letter).
-/// Also purges sent messages past <see cref="MailOptions.RetentionPeriod"/>. A failing send — or a transient
+/// Also purges sent messages past <see cref="MailOptions.Retention"/>. A failing send — or a transient
 /// database error — never crashes the app. Each processor <b>leases</b> the batch it claims, so several
 /// instances is safe; see <c>docs/scaling.md</c> for what a lease does and does not guarantee.
 /// </summary>
@@ -176,6 +176,13 @@ public sealed partial class MailProcessor<TContext>(
                 return;
             }
 
+            if (IsMissingColumn(ex, nameof(QueuedMail.UserId)))
+            {
+                // Checked second, so a database missing both is sent to the older migration first.
+                UserColumnMissing(logger, ex);
+                return;
+            }
+
             CycleFailed(logger, ex);
         }
     }
@@ -282,9 +289,17 @@ public sealed partial class MailProcessor<TContext>(
         await using var messageScope = scope.ConfigureAwait(false);
         var sender = scope.ServiceProvider.GetRequiredService<IMailSender>();
 
+        // A custom sender is work in progress like a request: the static facades and the model's reads
+        // reach the app through this scope, with nothing injected.
+        using var work = Db.UseScope(scope.ServiceProvider);
+
         // Send AS the tenant this mail was queued for: a custom IMailSender that reads a
         // tenant-scoped table would otherwise throw, since background work carries no principal.
         using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
+
+        // And AS the user, unconditionally: mail queued by nobody is sent for nobody, rather than for
+        // whatever user happened to be ambient on the processor's own flow.
+        using var user = Current.UseUser(message.UserId);
 
         await sender.Send(outgoing, graceToken).ConfigureAwait(false);
     }
@@ -340,13 +355,16 @@ public sealed partial class MailProcessor<TContext>(
     /// error code for "no such column". A false positive costs a wrong-but-adjacent log line; a false
     /// negative is just the generic message, so erring toward matching is safe here.
     /// </remarks>
-    private static bool IsMissingLeaseColumn(Exception exception)
+    private static bool IsMissingLeaseColumn(Exception exception) =>
+        IsMissingColumn(exception, nameof(QueuedMail.ClaimToken))
+        || IsMissingColumn(exception, nameof(QueuedMail.ClaimedUntil));
+
+    private static bool IsMissingColumn(Exception exception, string column)
     {
         for (var e = exception; e is not null; e = e.InnerException)
         {
             if (e is System.Data.Common.DbException
-                && (e.Message.Contains(nameof(QueuedMail.ClaimToken), StringComparison.OrdinalIgnoreCase)
-                    || e.Message.Contains(nameof(QueuedMail.ClaimedUntil), StringComparison.OrdinalIgnoreCase)))
+                && e.Message.Contains(column, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -357,7 +375,7 @@ public sealed partial class MailProcessor<TContext>(
 
     private async Task PurgeAsync(CancellationToken cancellationToken)
     {
-        if (options.RetentionPeriod <= TimeSpan.Zero)
+        if (options.Retention <= TimeSpan.Zero)
         {
             return;
         }
@@ -369,7 +387,7 @@ public sealed partial class MailProcessor<TContext>(
         }
 
         _lastPurge = now;
-        var cutoff = now - options.RetentionPeriod;
+        var cutoff = now - options.Retention;
         const int page = 1000;
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
@@ -433,6 +451,12 @@ public sealed partial class MailProcessor<TContext>(
         Message = "Rask.Mail added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
             + "Run: rask db add AddMailLeases && rask db update. See docs/{Doc}.")]
     private static partial void LeaseColumnsMissing(ILogger logger, Exception exception, string doc);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Mail added a UserId column (the user an email is sent for) that this database does not "
+            + "have. Run: rask db add AddMailUser && rask db update.")]
+    private static partial void UserColumnMissing(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Mail processing cycle failed; retrying on the next poll.")]
     private static partial void CycleFailed(ILogger logger, Exception exception);

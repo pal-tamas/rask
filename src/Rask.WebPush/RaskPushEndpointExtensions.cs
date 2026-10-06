@@ -42,20 +42,7 @@ public static class RaskPushEndpointExtensions
         group.MapGet("key", static (IPush push) =>
             Results.Json(new PushKey(push.PublicKey ?? ""), PushJson.Default.PushKey));
 
-        group.MapPost("subscribe", static async (HttpContext context, IPush push) =>
-        {
-            var posted = await context.Request
-                .ReadFromJsonAsync(PushJson.Default.PostedSubscription, context.RequestAborted)
-                .ConfigureAwait(false);
-
-            if (posted?.Subscription is not { } subscription || WebPushSender.Problem(subscription) is not null)
-            {
-                return Results.BadRequest();
-            }
-
-            await push.Subscribe(subscription, context.RequestAborted).ConfigureAwait(false);
-            return Results.NoContent();
-        });
+        group.MapPost("subscribe", SubscribeAsync);
 
         group.MapPost("unsubscribe", static async (HttpContext context, IPush push) =>
         {
@@ -75,5 +62,41 @@ public static class RaskPushEndpointExtensions
         group.AllowAnonymous();
         group.ExcludeFromDescription();
         return group;
+    }
+
+    // Open to anyone, and every new endpoint is a row in the app's own database: so who may ask, how often, and
+    // how many rows that can come to are all bounded before anything is read or stored.
+    private static async Task<IResult> SubscribeAsync(
+        HttpContext context, IPush push, PushOptions options, SubscribeThrottle throttle)
+    {
+        if (options.RequireUser && context.User.Identity?.IsAuthenticated != true)
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!throttle.Admits(context.Connection.RemoteIpAddress))
+        {
+            return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+        }
+
+        var posted = await context.Request
+            .ReadFromJsonAsync(PushJson.Default.PostedSubscription, context.RequestAborted)
+            .ConfigureAwait(false);
+
+        if (posted?.Subscription is not { } subscription || WebPushSender.Problem(subscription) is not null)
+        {
+            return Results.BadRequest();
+        }
+
+        try
+        {
+            await push.Subscribe(subscription, context.RequestAborted).ConfigureAwait(false);
+        }
+        catch (PushSubscriberLimitException)
+        {
+            return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+        }
+
+        return Results.NoContent();
     }
 }

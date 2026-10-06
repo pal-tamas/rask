@@ -122,6 +122,34 @@ public sealed class EndpointSecurityTests
         Assert.Equal(HttpStatusCode.NoContent, allowed.StatusCode);
     }
 
+    [Fact]
+    public async Task Every_Authorize_on_a_handler_has_to_pass_not_only_the_last()
+    {
+        // #1178: the manifest kept one policy per handler, so [Authorize(Policy = "staff")] above
+        // [Authorize(Policy = "members")] was never checked. A page with the same two requires both.
+        const string Message = "Rask.Cqrs.Server.Tests.StaffMembersOnly";
+
+        var memberOnly = await Send(HttpMethod.Post, Message, "{}", authenticated: true, claim: "member");
+        var staffOnly = await Send(HttpMethod.Post, Message, "{}", authenticated: true, role: "staff");
+        var both = await Send(HttpMethod.Post, Message, "{}", authenticated: true, role: "staff", claim: "member");
+
+        Assert.Equal(HttpStatusCode.Forbidden, memberOnly.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, staffOnly.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, both.StatusCode);
+    }
+
+    [Fact]
+    public async Task An_Authorize_on_a_handlers_base_class_is_enforced()
+    {
+        const string Message = "Rask.Cqrs.Server.Tests.InheritsItsGuard";
+
+        var forbidden = await Send(HttpMethod.Post, Message, "{}", authenticated: true);
+        var allowed = await Send(HttpMethod.Post, Message, "{}", authenticated: true, role: "admin");
+
+        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, allowed.StatusCode);
+    }
+
     // A bare [Authorize] names no role and no policy, so with the endpoint's own default switched off there
     // was nothing left to check and the handler answered anyone.
     [Fact]
@@ -286,7 +314,7 @@ public sealed class EndpointSecurityTests
         return await client.SendAsync(request);
     }
 
-    private static TestServer Host(Action<RaskCqrsServerOptions>? configure = null)
+    private static TestServer Host(Action<CqrsServerOptions>? configure = null)
     {
         var builder = new HostBuilder().ConfigureWebHost(web =>
         {
@@ -297,8 +325,11 @@ public sealed class EndpointSecurityTests
                 services.AddRouting();
                 services.AddAuthentication("Test")
                     .AddScheme<AuthenticationSchemeOptions, HeaderAuthHandler>("Test", static _ => { });
-                services.AddAuthorization(o => o.AddPolicy(
-                    "members", p => p.RequireClaim("membership", "member")));
+                services.AddAuthorization(o =>
+                {
+                    o.AddPolicy("members", p => p.RequireClaim("membership", "member"));
+                    o.AddPolicy("staff", p => p.RequireRole("staff"));
+                });
                 services.AddRaskCqrsServer(configure);
             });
             web.Configure(app =>

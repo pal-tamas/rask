@@ -180,6 +180,22 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
         }
     }
 
+    // In a scope of its own, whatever work the save ran in: nobody awaits this publish, so it must not ride a
+    // request's scope, which is disposed the moment the response is written.
+    private static Task Announced(Cqrs.DataChanged changed)
+    {
+        // Only the call itself needs to see no work in progress: that is when the dispatcher picks its scope.
+        var alone = Ambient.Enter((IServiceProvider?)null);
+        try
+        {
+            return Cqrs.Dispatcher.Publish(changed);
+        }
+        finally
+        {
+            alone.Dispose();
+        }
+    }
+
     /// <summary>
     ///     Publishes a <c>DataChanged</c> for each written entity that declared <c>Broadcast = Broadcasts.OnCommit</c>,
     ///     which is what a query's <c>Live()</c> listens for.
@@ -187,11 +203,11 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",
-        Justification = "Same reason as Notify: the save has committed, and a feed that refused the announcement "
+        Justification = "Same reason as Notify above: the save has committed, and a feed that refused the announcement "
                         + "must not surface as a failed save.")]
     private static void Announce(HashSet<Type> types)
     {
-        if (!Cqrs.Notify.IsConfigured)
+        if (!Cqrs.Dispatcher.IsOn)
         {
             return;
         }
@@ -207,8 +223,7 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
             {
                 // Not awaited: the save is done and its caller is not waiting on anyone's screen. Subscribers are
                 // told inside the publish itself, before any handler runs, so nothing is lost by letting go here.
-                _ = Cqrs.Notify
-                    .Send(new Cqrs.DataChanged(type.FullName ?? type.Name, DateTimeOffset.UtcNow))
+                _ = Announced(new Cqrs.DataChanged(type.FullName ?? type.Name, DateTimeOffset.UtcNow))
                     .ContinueWith(
                         static completed => _ = completed.Exception,
                         CancellationToken.None,

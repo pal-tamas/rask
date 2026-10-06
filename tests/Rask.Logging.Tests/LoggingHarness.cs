@@ -50,7 +50,7 @@ public sealed class LoggingHarness : IAsyncDisposable
     private readonly ServiceProvider _provider;
 
     public LoggingHarness(
-        Action<RaskLoggingOptions>? configure = null,
+        Action<LogsOptions>? configure = null,
         DateTimeOffset? start = null,
         LogStoreKind kind = LogStoreKind.File)
     {
@@ -59,7 +59,7 @@ public sealed class LoggingHarness : IAsyncDisposable
         DbPath = Path.Combine(Path.GetTempPath(), $"rask-logs-test-{Guid.NewGuid():N}.db");
         Clock = new FakeTimeProvider(start ?? new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
-        void Options(RaskLoggingOptions o)
+        void Options(LogsOptions o)
         {
             o.FlushInterval = TimeSpan.FromMilliseconds(20);
             configure?.Invoke(o);

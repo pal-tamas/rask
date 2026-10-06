@@ -28,7 +28,7 @@
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
   </ItemGroup>
 
-  <!-- RaskCqrsServerOptions binds Rask:Cqrs:Server. The configuration binding source generator writes that bind at
+  <!-- CqrsServerOptions binds Rask:Cqrs:Server. The configuration binding source generator writes that bind at
        compile time, so no reflection binder runs; the SDK leaves it off unless a project asks. -->
   <PropertyGroup>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
@@ -36,6 +36,7 @@
 
   <ItemGroup>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\ClientNetwork.cs" Link="Shared\ClientNetwork.cs"/>
   </ItemGroup>
 
   <!-- The dispatch/codec generator, as an analyzer only: consumers get the code generation without a

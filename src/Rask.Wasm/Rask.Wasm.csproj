@@ -161,9 +161,9 @@
   <ItemGroup>
     <_RaskWasmSharedTs Include="..\Rask.Core\Resources\**\*.ts"
                        Exclude="..\Rask.Core\Resources\rask-sw-shared.ts;..\Rask.Core\Resources\**\*.d.ts"/>
-    <_RaskWasmClientTs Include="Resources\rask.wasm.ts;Resources\rask-wasm-api.ts;@(_RaskWasmSharedTs)"/>
+    <_RaskWasmClientTs Include="Resources\rask.wasm.ts;Resources\rask-wasm-api.ts;Resources\rask-offline-cache.ts;@(_RaskWasmSharedTs)"/>
     <_RaskWasmMainTs Include="Browser\main.ts"/>
-    <_RaskWasmSwTs Include="Resources\rask-sw.ts;..\Rask.Core\Resources\rask-sw-shared.ts"/>
+    <_RaskWasmSwTs Include="Resources\rask-sw.ts;Resources\rask-offline-cache.ts;..\Rask.Core\Resources\rask-sw-shared.ts"/>
   </ItemGroup>
 
   <PropertyGroup>

@@ -106,8 +106,12 @@ Tailwind v4's compiler is a native binary, and Rask fetches it rather than askin
 
 | | |
 |---|---|
-| **Standalone binary** (preferred) | Downloaded once from Tailwind's GitHub releases, verified against the release's published checksum, and cached **per user** at `~/.rask/tailwind` (`%LOCALAPPDATA%\rask\tailwind` on Windows) — shared by every project, deliberately outside the repository. |
+| **Standalone binary** (preferred) | Downloaded once from Tailwind's GitHub releases, verified against a SHA-256 **recorded in Rask itself** for the pinned version — a download that does not match fails the build, it never falls back to npm — and cached **per user** at `~/.rask/tailwind` (`%LOCALAPPDATA%\rask\tailwind` on Windows) — shared by every project, deliberately outside the repository. |
 | **npm** (fallback) | A project-local `npm install` of `tailwindcss`, used where no standalone binary is published. |
+
+The release's own `sha256sums.txt` comes from the same place as the binary, so it can only show that a
+download arrived intact. That is still what an app that overrides `RaskTailwindVersion` gets, with a
+build warning saying so; set `RaskTailwindSha256` to the asset's SHA-256 to pin that version too.
 
 The standalone binary is first because "the SDK is all you need" is most of why anyone picks a C#
 host, and it keeps that true on macOS (x64/arm64), Linux (x64/arm64, glibc **and** musl) and Windows
