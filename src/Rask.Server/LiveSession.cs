@@ -125,6 +125,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // owns every path, as before (#1094).
     internal Func<string, bool>? OwnsPath { get; set; }
 
+    // The route the session's path last resolved to, which the guard asks for twice per event.
+    internal SessionRouteMemo Routes { get; } = new();
+
     // The principal the auth handoff's reconnect is expected to carry: the signed-in user for a sign-in,
     // an unauthenticated principal for a sign-out, null when no handoff is in flight. The hello admission
     // check lets exactly that principal attach besides the owner, because the reconnect deliberately

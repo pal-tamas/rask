@@ -1960,7 +1960,7 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>Whether a frame left the connection usable.</summary>
-    private enum FrameStatus
+    internal enum FrameStatus
     {
         /// <summary>Handled (or ignored). Keep reading.</summary>
         Handled,
@@ -1970,7 +1970,7 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>The outcome of one inbound frame.</summary>
-    private readonly record struct FrameOutcome(FrameStatus Status, string? Reason);
+    internal readonly record struct FrameOutcome(FrameStatus Status, string? Reason);
 
     /// <summary>
     ///     Handles one inbound frame for an attached session: a navigation, a JS round-trip reply, a .NET
@@ -1982,7 +1982,7 @@ public static partial class RaskEndpointExtensions
     ///     Server-Sent Events stream by completing its response, and a POST by answering — which of those to
     ///     do is the caller's business, not this method's.
     /// </remarks>
-    private static async ValueTask<FrameOutcome> ProcessFrameAsync(
+    internal static async ValueTask<FrameOutcome> ProcessFrameAsync(
         LiveSession session,
         JsonElement root,
         bool hasType,
@@ -2988,7 +2988,7 @@ public static partial class RaskEndpointExtensions
     private static async Task<bool> IsCurrentRouteAuthorizedAsync(LiveSession session)
     {
         var routeState = session.Services.GetRequiredService<RouteState>();
-        if (!RouteResolver.TryResolve(routeState.CurrentTable, routeState.Path, out var chain, out _))
+        if (!session.Routes.TryResolve(routeState.CurrentTable, routeState.Path, out var chain))
         {
             return true;
         }
@@ -3048,7 +3048,7 @@ public static partial class RaskEndpointExtensions
         LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
     {
         var routeState = session.Services.GetRequiredService<RouteState>();
-        if (!RouteResolver.TryResolve(routeState.CurrentTable, path, out var chain, out _))
+        if (!session.Routes.TryResolve(routeState.CurrentTable, path, out var chain))
         {
             return null;
         }
