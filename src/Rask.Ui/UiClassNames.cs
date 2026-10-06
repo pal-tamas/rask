@@ -370,19 +370,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string ProgressTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "progress-neutral",
-        Ui.Tone.Primary => "progress-primary",
-        Ui.Tone.Secondary => "progress-secondary",
-        Ui.Tone.Accent => "progress-accent",
-        Ui.Tone.Info => "progress-info",
-        Ui.Tone.Success => "progress-success",
-        Ui.Tone.Warning => "progress-warning",
-        Ui.Tone.Error => "progress-error",
-        _ => "",
-    };
-
     internal static string LoadingSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "loading-xs",

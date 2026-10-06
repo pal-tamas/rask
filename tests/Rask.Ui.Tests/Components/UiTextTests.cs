@@ -65,10 +65,13 @@ public partial class UiTextTests : global::Rask.Core.RaskMarkup
         Assert.Contains("data-ui-text data-color=\"blue\"", html, StringComparison.Ordinal);
     }
 
+    // Flux's text takes the chromatic hues; Ui.Color lists them first, the five neutrals after.
+    private static readonly Ui.Color[] Neutrals = [Ui.Color.Slate, Ui.Color.Gray, Ui.Color.Zinc, Ui.Color.Neutral, Ui.Color.Stone];
+
     [Fact]
-    public void Every_hue_has_an_ink_the_shipped_sheet_defines()
+    public void Every_chromatic_hue_has_an_ink_the_shipped_sheet_defines()
     {
-        var hues = Enum.GetValues<Ui.Color>();
+        var hues = Enum.GetValues<Ui.Color>().Except(Neutrals).ToList();
 
         var missing = hues
             .Select(hue => Enum.GetName(hue)!.ToLowerInvariant())
@@ -78,7 +81,17 @@ public partial class UiTextTests : global::Rask.Core.RaskMarkup
                 || !UiStylesheet.Css.Contains($"text-{hue}-400", StringComparison.Ordinal))
             .ToList();
 
-        Assert.Equal(17, hues.Length);
+        Assert.Equal(17, hues.Count);
         Assert.Empty(missing);
+    }
+
+    [Fact]
+    public void A_neutral_colour_is_the_default_ink_as_it_is_in_Flux()
+    {
+        var plain = Ui.Text["x"].ToHtml();
+
+        var neutral = Neutrals.Select(hue => Ui.Text.Color(hue)["x"].ToHtml()).ToList();
+
+        Assert.All(neutral, html => Assert.Equal(plain, html));
     }
 }

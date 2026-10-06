@@ -1308,17 +1308,23 @@
 }
 
 /*
-  A placeholder that holds its place without the shimmer (UiSkeleton.Animate(false)).
+  The light that crosses a shimmering skeleton ([data-ui-skeleton], [data-ui-skeleton-line]).
 
-  The kit already stops every skeleton's animation under `prefers-reduced-motion`. This is the other case: a
-  placeholder that will be on screen long enough for the shimmer to stop reading as "loading" and start
-  reading as a distraction.
+  Their ::before is as wide as the skeleton and parked one width to its left (UiSkeletonScope); this carries
+  it two widths right, so it enters at one edge and has left by the other. Two seconds, forever, on the
+  default `ease` — and not stopped under `prefers-reduced-motion`, because Flux UI's is not.
 
-  In `rask-ui-corrections` because daisyUI's `.skeleton` animation lives in `utilities`.
+  A keyframe is the one part no utility can say. In `rask` because it styles nothing by itself.
 */
-@layer rask-ui-corrections {
-  .ui-skeleton-still {
-    animation: none;
+@layer rask {
+  @keyframes ui-shimmer {
+    from {
+      transform: translate(0);
+    }
+
+    to {
+      transform: translate(200%);
+    }
   }
 }
 

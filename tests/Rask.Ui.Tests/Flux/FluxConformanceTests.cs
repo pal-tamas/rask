@@ -35,6 +35,10 @@ public sealed class FluxConformanceTests
         ["flux:text"] = typeof(UiText),
         ["flux:icon.*"] = typeof(UiIcon),
         ["flux:separator"] = typeof(UiSeparator),
+        ["flux:progress"] = typeof(UiProgress),
+        ["flux:skeleton"] = typeof(UiSkeleton),
+        ["flux:skeleton.line"] = typeof(UiSkeletonLine),
+        ["flux:skeleton.group"] = typeof(UiSkeletonGroup),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>

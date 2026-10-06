@@ -1,7 +1,7 @@
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The smaller Flux UI affordances: a resizable textarea, a shaped placeholder, a popover
+///     The smaller Flux UI affordances: a resizable textarea, a popover
 ///     that is not a menu.
 /// </summary>
 /// <remarks>
@@ -30,28 +30,6 @@ public partial class UiPolishTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("ui-textarea-auto", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-on-input", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_placeholder_of_lines_ends_short_the_way_a_paragraph_does()
-    {
-        // A stack of equal bars reads as a table. The eye notices that before the content lands.
-        var html = Ui.Skeleton.Lines(3).ToHtml();
-
-        Assert.Equal(3, Occurrences(html, "skeleton"));
-        Assert.Contains("w-3/5", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void One_line_is_not_shortened() =>
-        Assert.DoesNotContain("w-3/5", Ui.Skeleton.Lines(1).ToHtml(), StringComparison.Ordinal);
-
-    [Fact]
-    public void A_placeholder_says_nothing_to_a_screen_reader()
-    {
-        // A row of empty boxes read aloud is worse than silence.
-        Assert.Contains("aria-hidden=\"true\"", Ui.Skeleton.Lines(2).ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("aria-hidden=\"true\"", Ui.Skeleton.Circle(true).ToHtml(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -99,17 +77,5 @@ public partial class UiPolishTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains($"class=\"{UiStyles.Card}\"", html, StringComparison.Ordinal);
         Assert.Equal(html, Ui.Card.Size(Ui.Size.Md)["x"].ToHtml());
-    }
-
-    private static int Occurrences(string haystack, string needle)
-    {
-        var n = 0;
-        for (var i = haystack.IndexOf(needle, StringComparison.Ordinal); i >= 0;
-             i = haystack.IndexOf(needle, i + needle.Length, StringComparison.Ordinal))
-        {
-            n++;
-        }
-
-        return n;
     }
 }

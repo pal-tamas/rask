@@ -23,6 +23,7 @@ public sealed class FluxParityPages
         + "button,input,select,textarea{font:inherit;letter-spacing:inherit;color:inherit;background:transparent;border-radius:0}"
         + "a{color:inherit;text-decoration:inherit}svg,img{display:block;vertical-align:middle}"
         + "h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}ol,ul,menu{list-style:none}"
+        + "table{text-indent:0;border-color:inherit;border-collapse:collapse}"
         + "[data-preview-wrapper]{padding:64px 24px}"
         // FluxParity.SpaceY: Tailwind's space-y-*, which the examples on Flux's pages are stacked with.
         + "[data-space-y='2']>:not(:last-child){margin-bottom:8px}[data-space-y='3']>:not(:last-child){margin-bottom:12px}"

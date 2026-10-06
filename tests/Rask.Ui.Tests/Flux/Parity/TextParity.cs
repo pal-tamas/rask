@@ -44,7 +44,7 @@ public sealed partial class TextParity : FluxParity
         ]);
 
         // Outside a text, so it takes the docs page's own prose size; `wire:click` is OnClick.
-        yield return ("link-as-button", Div.Style("width:320px;font-size:16px;line-height:26px")[
+        yield return ("link-as-button", Div.Style("width:320px")[
             Ui.Link.As(Ui.LinkAs.Button)["Create new account →"]
         ]);
     }

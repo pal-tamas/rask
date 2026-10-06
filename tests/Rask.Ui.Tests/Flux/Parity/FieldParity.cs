@@ -13,8 +13,8 @@ namespace Rask.UiTests.Flux.Parity;
 /// </remarks>
 public sealed partial class FieldParity : FluxParity
 {
-    // The column Flux's docs page sets an example in, and the line height its prose gives the example.
-    private const string Column = "max-width:384px;margin:0 auto;line-height:26px";
+    // The column Flux's docs page sets an example in.
+    private const string Column = "max-width:384px;margin:0 auto";
 
     public override string Page => "field";
 
@@ -40,12 +40,12 @@ public sealed partial class FieldParity : FluxParity
                 Ui.Field[Ui.Label.Badge("Optional")["Phone number"], Control("phone"), Ui.Error.Name("phone")])
         ]);
 
-        yield return ("split-layout", Div.Style("width:480px;margin:0 auto;line-height:26px;" + Grid("16px"))[
+        yield return ("split-layout", Div.Style("width:480px;margin:0 auto;" + Grid("16px"))[
             Shorthand("First name"),
             Shorthand("Last name")
         ]);
 
-        yield return ("fieldset", Div.Style("width:542px;margin:0 auto;line-height:26px")[
+        yield return ("fieldset", Div.Style("width:542px;margin:0 auto")[
             Ui.Fieldset[
                 Ui.Legend["Shipping address"],
                 SpaceY(6,

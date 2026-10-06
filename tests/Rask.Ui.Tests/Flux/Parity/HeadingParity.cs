@@ -45,8 +45,7 @@ public sealed partial class HeadingParity : FluxParity
         yield return ("examples", Div.Style("width:240px")[
             Ui.Text["Year to date"],
             Ui.Heading.Xl.Style("margin-bottom:4px")["$7,532.16"],
-            // The docs page's own prose size, which the icon inherits there.
-            Div.Class("parity-up").Style("display:flex;align-items:center;gap:8px;font-size:16px;line-height:26px")[
+            Div.Class("parity-up").Style("display:flex;align-items:center;gap:8px")[
                 TrendingUp(),
                 Span.Style("font-size:14px;line-height:20px")["15.2%"]
             ]

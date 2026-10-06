@@ -549,7 +549,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
-| **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
+| **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
@@ -902,8 +902,43 @@ current behaviour rather than to a broken one.
 without it can reach back through `window.opener`). A generated route is one of your own pages and is never
 external, so it is ignored there.
 
-**`Ui.Skeleton` has shapes.** `Lines(3)` draws a paragraph with the last line short, because a stack of equal
-bars reads as a table; `Circle` is what an avatar leaves behind. It stays `aria-hidden` throughout.
+**`Ui.Skeleton` is Flux UI's skeleton, part for part.** `Ui.Skeleton` is a block — 16px tall and the width of
+its container until the call site sizes and rounds it — `Ui.SkeletonLine` is a line of text (`Base`, or `Lg`
+for large text: it keeps the line's full height and draws a bar the height of the letters), and
+`Ui.SkeletonGroup` is a `<div>` that draws nothing and animates every skeleton inside it, however deep:
+
+```csharp
+Ui.SkeletonGroup.Shimmer.Class("flex items-center gap-4")[
+    Ui.Skeleton.Class("size-10 rounded-full"),
+    Div.Class("flex-1")[
+        Ui.SkeletonLine,
+        Ui.SkeletonLine.Class("w-1/2")
+    ]
+]
+```
+
+`Shimmer` carries a band of light across every two seconds and `Pulse` fades to half and back; a skeleton that
+states its own (`Ui.Skeleton.Pulse`, `.Animate(Ui.SkeletonAnimate.None)`) does not take its group's. The
+shimmer's light is `--ui-shimmer-color` — white, `zinc-900` in dark — so on a surface that is neither, set it
+to that surface's colour. The roots are marked `data-ui-skeleton`, `data-ui-skeleton-line` and
+`data-ui-skeleton-group`. As in Flux, neither animation stops under `prefers-reduced-motion`, and a skeleton
+carries no ARIA of its own: say that the region is loading on the region (`aria-busy`).
+
+**`Ui.Progress` is Flux UI's progress bar.** A `<div role="progressbar">` — a 6px track the width of
+its container and the bar filling it — with `Value` (0 when unset), `Max` (100) and `Color` (a `Ui.Color`, any
+Tailwind hue; the accent when unset):
+
+```csharp
+Ui.Progress.Value(75)
+Ui.Progress.Value(3).Max(7)
+Ui.Progress.Value(42).Color(Ui.Color.Blue).Class("h-3").Aria("label", "Upload progress")
+```
+
+`aria-valuenow` and `aria-valuemax` are the value and maximum exactly as given; the bar is their ratio held
+between empty and full, and moves to a new value over 300ms. The same share is on the element as
+`--ui-progress` (a number, 0–100) and `--ui-progress-percentage`, for a label drawn from the same figure. It is
+a `UiElement`, so name it with `.Aria("label", …)` or `.Aria("labelledby", id)`. There is no radial progress:
+Flux has none, and `Ui.RadialProgress` is gone.
 
 **A text field's box can hold more than what is typed.** `Ui.Input` takes `Icon` and `IconTrailing`, a `Kbd`
 for the shortcut that focuses it, and `Clearable` for a button that empties it — Flux's input affordances.

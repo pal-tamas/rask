@@ -39,6 +39,11 @@ if (release && release !== lock.release) {
   lock.release = release;
 }
 
+// Examples whose docs markup is random on every load (`width: rand(50, 100)%`): their widths are left out
+// of the print, or the example would "move" on every run. parity.mjs lets go of the same axis, by
+// `data-parity-skip="width"` on the Rask node.
+const RANDOM_WIDTH = new Set(['skeleton/examples#0']);
+
 const browser = await chromium().launch();
 for (const page of snapshot.pages.filter(p => only.length === 0 || only.includes(p.slug))) {
   const dir = join(root, 'artifacts', 'flux-parity', 'flux', page.slug);
@@ -46,7 +51,7 @@ for (const page of snapshot.pages.filter(p => only.length === 0 || only.includes
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, 'measurements.json'), JSON.stringify(schemes));
 
-  const prints = fingerprints(schemes);
+  const prints = fingerprints(schemes, page.slug);
   const known = lock.pages[page.slug];
   if (known) {
     for (const key of new Set([...Object.keys(known), ...Object.keys(prints)])) {
@@ -65,18 +70,23 @@ console.log(moved.length ? `\nflux sync: Flux moved in ${moved.length} place(s):
 process.exit(moved.length ? 2 : 0);
 
 // One short hash per example and scheme: enough to say WHICH example moved; parity.mjs says how.
-function fingerprints(schemes) {
+function fingerprints(schemes, slug) {
   const prints = {};
   for (const [scheme, examples] of Object.entries(schemes)) {
     for (const example of examples) {
       const round = v => (typeof v === 'string' ? v.replace(/-?\d*\.\d+(e-?\d+)?/g, n => String(Math.round(Number(n) * 100) / 100)) : v);
+      const name = `${example.section || 'intro'}#${example.ordinal}`;
+      const loose = RANDOM_WIDTH.has(`${slug}/${name}`);
+      const look = style => Object.entries(style).filter(([k]) => !(loose && k === 'width')).map(([, v]) => round(v));
       const facts = example.nodes.map(n => [
         n.tag, Object.keys(n.attrs).filter(a => a.startsWith('data-flux')).sort(), n.text,
-        n.box.slice(2).map(v => Math.round(v)), Object.values(n.style).map(round),
-        n['::before'] ? Object.values(n['::before']).map(round) : 0, n['::after'] ? Object.values(n['::after']).map(round) : 0,
+        n.box.slice(loose ? 3 : 2).map(v => Math.round(v)), look(n.style),
+        n['::before'] ? look(n['::before']) : 0, n['::after'] ? look(n['::after']) : 0,
+        // Only where something animates, so an example with nothing moving keeps the print it had.
+        ...(n.animations ? [n.animations] : []),
       ]);
       const states = example.states.map(s => [s.state, Object.entries(s.changed).map(([k, v]) => [k, round(v)])]);
-      prints[`${scheme}/${example.section || 'intro'}#${example.ordinal}`] =
+      prints[`${scheme}/${name}`] =
         createHash('sha256').update(JSON.stringify([facts, states])).digest('hex').slice(0, 16);
     }
   }

@@ -18,7 +18,10 @@ public sealed partial class UiText : UiElement
     /// <summary>How much it stands out. Unset, <see cref="Ui.TextVariant.Default" />.</summary>
     public Ui.TextVariant? Variant { get; set; }
 
-    /// <summary>Paints it one of Tailwind's hues, and writes <c>data-color</c>. Unset, the variant's ink.</summary>
+    /// <summary>
+    ///     Paints it one of Tailwind's hues, and writes <c>data-color</c>. Unset — or one of the five neutrals,
+    ///     which Flux's text does not take — the variant's ink.
+    /// </summary>
     public Ui.Color? Color { get; set; }
 
     /// <summary>A <c>&lt;span&gt;</c> rather than a paragraph.</summary>
@@ -31,18 +34,18 @@ public sealed partial class UiText : UiElement
     protected override string? ResolveClass() =>
         UiClass.Compose(
             SizeClass(Size),
-            Color is { } color ? ColorClass(color) : VariantClass(Variant),
+            Color is { } color && ColorClass(color) is { Length: > 0 } hue ? hue : VariantClass(Variant),
             Class);
 
     /// <inheritdoc />
     private protected override IReadOnlyDictionary<string, string?> ResolveData()
     {
-        if (Color is not { } color)
+        if (Color is not { } color || ColorName(color) is not { Length: > 0 } name)
         {
             return UiDataMarker.Join(Marker, Data);
         }
 
-        var coloured = new Dictionary<string, string?>(Marker, StringComparer.Ordinal) { ["color"] = ColorName(color) };
+        var coloured = new Dictionary<string, string?>(Marker, StringComparer.Ordinal) { ["color"] = name };
         return UiDataMarker.Join(coloured, Data);
     }
 
@@ -61,6 +64,8 @@ public sealed partial class UiText : UiElement
         _ => "text-zinc-500 dark:text-white/70",
     };
 
+    // Flux's text takes the seventeen chromatic hues. Slate, Gray, Zinc, Neutral and Stone fall through to
+    // "" here and in ColorName: a neutral is the default styling, which is the variant's own zinc.
     private static string ColorClass(Ui.Color color) => color switch
     {
         Ui.Color.Red => "text-red-600 dark:text-red-400",

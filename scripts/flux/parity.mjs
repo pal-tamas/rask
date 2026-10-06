@@ -4,13 +4,14 @@
 // Two measurements of the same examples, taken the same way (lib.mjs): Flux's docs page, and the page
 // FluxParityPages wrote for the Rask component (artifacts/flux-parity/rask/<slug>.html). Every marked
 // node — `data-flux-*` there, `data-ui-*` here — is paired with the node of the same marker, in document
-// order, and its whole subtree is compared: tag, box, computed styles, pseudo-elements, and what hover /
-// active / focus-visible change.
+// order, and its whole subtree is compared: tag, box, computed styles, pseudo-elements, animations (timing and
+// keyframes), and what hover / active / focus-visible change.
 //
 // What is NOT the component's is taken out of the comparison in the open, each by one rule below:
 //   - the docs page's inherited text (ink, font, line height) is copied onto each Rask example first;
 //   - a component from ANOTHER page is a stand-in until it is rebuilt: marked and `data-parity-skip`
 //     (held to its place and size), or unmarked (a printed note, nothing compared);
+//   - `data-parity-skip="self|width|height"` lets go of exactly that (see compareTree);
 //   - a Flux custom element pairs with the native element that behaves that way (NATIVE).
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
@@ -76,7 +77,9 @@ await browser.close();
 const IGNORED = new Set(['width', 'height']);
 // Flux's own custom elements, which its script upgrades, and the native element Rask.Ui writes in their
 // place because it has that behaviour built in: a <label for> focuses its control with no script at all.
-const NATIVE = { 'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend' };
+const NATIVE = {
+  'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend', 'ui-progress': 'div',
+};
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
 const snapshot = JSON.parse(await readFile(join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json'), 'utf8'));
 const OWN = new Set([slug, ...(snapshot.pages.find(p => p.slug === slug)?.parts ?? [])
@@ -148,44 +151,42 @@ function tops(example, prefix) {
   return example.nodes.filter(n => marked(n) && !hasMarkedAncestor(n));
 }
 
+// The part's marker is the shortest: Flux writes `data-flux-card` beside `data-flux-card-body-variant`.
 function mark(node, prefix) {
-  return Object.keys(node.attrs).find(k => k.startsWith(prefix))?.slice(prefix.length) ?? node.tag;
+  const names = Object.keys(node.attrs).filter(k => k.startsWith(prefix)).map(k => k.slice(prefix.length));
+  return names.sort((x, y) => x.length - y.length)[0] ?? node.tag;
 }
 
-function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
-  // A stand-in for a component that is not rebuilt yet (`data-parity-skip` on the Rask side): it has to
-  // take the same room in the same place, and what it looks like inside is that component's own page.
-  const standIn = 'data-parity-skip' in b.attrs;
-  if ((NATIVE[a.tag] ?? a.tag) !== b.tag && !standIn) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
-  if (a.text !== b.text && a !== rootA && !standIn) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
+// `data-parity-skip` on a Rask node says what of it is NOT this page's to match, and nothing more is let go:
+//   (no value)  a stand-in for a component not rebuilt yet: held to its place and size, inside not compared;
+//   "self"      its own look is another component's, its children are compared as usual;
+//   "width" / "height"   that dimension is random on Flux's page (`rand()` in the docs), here and below it.
+function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') {
+  const skip = b.attrs['data-parity-skip'];
+  const standIn = skip === '';
+  const own = !standIn && skip !== 'self';
+  if (skip === 'width' || skip === 'height') free = skip;
+  if ((NATIVE[a.tag] ?? a.tag) !== b.tag && own) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
+  if (a.text !== b.text && a !== rootA && own) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
 
-  const size = (n, i) => Math.abs(a.box[i] - b.box[i]) > 0.6;
-  if (size(a, 2) || size(a, 3)) diffs.push(`${where}: size ${a.box[2]}x${a.box[3]} vs ${b.box[2]}x${b.box[3]}`);
+  const differs = (x, y) => Math.abs(x - y) > 0.6;
+  const held = [free !== 'width', free !== 'height'];
+  if ((held[0] && differs(a.box[2], b.box[2])) || (held[1] && differs(a.box[3], b.box[3]))) {
+    diffs.push(`${where}: size ${a.box[2]}x${a.box[3]} vs ${b.box[2]}x${b.box[3]}`);
+  }
+
   // A node that is not displayed has no box: its rectangle is the viewport's corner, which says how far
   // each page is scrolled and nothing about the node.
   const displayed = a.style.display !== 'none' || b.style.display !== 'none';
   if (a !== rootA && displayed) {
     const off = (n, r, i) => n.box[i] - r.box[i];
-    if (Math.abs(off(a, rootA, 0) - off(b, rootB, 0)) > 0.6 || Math.abs(off(a, rootA, 1) - off(b, rootB, 1)) > 0.6) {
+    if ([0, 1].some(i => held[i] && differs(off(a, rootA, i), off(b, rootB, i)))) {
       diffs.push(`${where}: offset ${fix(off(a, rootA, 0))},${fix(off(a, rootA, 1))} vs ${fix(off(b, rootB, 0))},${fix(off(b, rootB, 1))}`);
     }
   }
 
   if (standIn) return;
-  compareStyles(a.style, b.style, where, diffs);
-  for (const pseudo of ['::before', '::after']) {
-    if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
-    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
-  }
-
-  for (const state of ['hover', 'active', 'focus-visible']) {
-    const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
-    const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};
-    for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) {
-      if (undrawn(key, { ...a.style, ...x }, { ...b.style, ...y })) continue;
-      if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
-    }
-  }
+  if (own) compareLook(theirs, a, mine, b, where, diffs);
 
   const kids = (example, n) => example.nodes.filter(c => c.parent === n.id);
   const ca = kids(theirs, a);
@@ -195,7 +196,29 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
     return;
   }
 
-  ca.forEach((child, i) => compareTree(theirs, child, mine, cb[i], rootA, rootB, `${where} > ${child.tag}[${i}]`, diffs));
+  ca.forEach((child, i) => compareTree(theirs, child, mine, cb[i], rootA, rootB, `${where} > ${child.tag}[${i}]`, diffs, free));
+}
+
+// What one node looks like: computed styles, pseudo-elements, animations, and what each forced state changes.
+function compareLook(theirs, a, mine, b, where, diffs) {
+  compareStyles(a.style, b.style, where, diffs);
+  for (const pseudo of ['::before', '::after']) {
+    if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
+    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
+  }
+
+  // Flux's keyframes are named `flux-*` as its markers are; Rask's are `ui-*`.
+  const moves = n => JSON.stringify(n.animations ?? []).replaceAll('"name":"flux-', '"name":"ui-');
+  if (moves(a) !== moves(b)) diffs.push(`${where}: animations: ${moves(a)} vs ${moves(b)}`);
+
+  for (const state of ['hover', 'active', 'focus-visible']) {
+    const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
+    const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};
+    for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) {
+      if (undrawn(key, { ...a.style, ...x }, { ...b.style, ...y })) continue;
+      if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
+    }
+  }
 }
 
 function compareStyles(x, y, where, diffs) {

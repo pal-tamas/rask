@@ -2,58 +2,79 @@ namespace Rask;
 
 public static partial class Ui
 {
-    /// <summary>Tailwind's hues, for a component that takes a colour.</summary>
+    /// <summary>
+    /// A hue of Tailwind's palette, for a component whose <c>Color</c> names one.
+    /// </summary>
+    /// <remarks>
+    /// Tailwind's names in Tailwind's order. Which shade of the hue is drawn — and which in dark — is the
+    /// component's to say; a component that takes no colour is drawn in the accent.
+    /// </remarks>
     public enum Color
     {
-        /// <summary>Tailwind's <c>red</c>.</summary>
-        Red,
+        /// <summary><c>red</c>.</summary>
+        Red = 0,
 
-        /// <summary>Tailwind's <c>orange</c>.</summary>
+        /// <summary><c>orange</c>.</summary>
         Orange,
 
-        /// <summary>Tailwind's <c>amber</c>.</summary>
+        /// <summary><c>amber</c>.</summary>
         Amber,
 
-        /// <summary>Tailwind's <c>yellow</c>.</summary>
+        /// <summary><c>yellow</c>.</summary>
         Yellow,
 
-        /// <summary>Tailwind's <c>lime</c>.</summary>
+        /// <summary><c>lime</c>.</summary>
         Lime,
 
-        /// <summary>Tailwind's <c>green</c>.</summary>
+        /// <summary><c>green</c>.</summary>
         Green,
 
-        /// <summary>Tailwind's <c>emerald</c>.</summary>
+        /// <summary><c>emerald</c>.</summary>
         Emerald,
 
-        /// <summary>Tailwind's <c>teal</c>.</summary>
+        /// <summary><c>teal</c>.</summary>
         Teal,
 
-        /// <summary>Tailwind's <c>cyan</c>.</summary>
+        /// <summary><c>cyan</c>.</summary>
         Cyan,
 
-        /// <summary>Tailwind's <c>sky</c>.</summary>
+        /// <summary><c>sky</c>.</summary>
         Sky,
 
-        /// <summary>Tailwind's <c>blue</c>.</summary>
+        /// <summary><c>blue</c>.</summary>
         Blue,
 
-        /// <summary>Tailwind's <c>indigo</c>.</summary>
+        /// <summary><c>indigo</c>.</summary>
         Indigo,
 
-        /// <summary>Tailwind's <c>violet</c>.</summary>
+        /// <summary><c>violet</c>.</summary>
         Violet,
 
-        /// <summary>Tailwind's <c>purple</c>.</summary>
+        /// <summary><c>purple</c>.</summary>
         Purple,
 
-        /// <summary>Tailwind's <c>fuchsia</c>.</summary>
+        /// <summary><c>fuchsia</c>.</summary>
         Fuchsia,
 
-        /// <summary>Tailwind's <c>pink</c>.</summary>
+        /// <summary><c>pink</c>.</summary>
         Pink,
 
-        /// <summary>Tailwind's <c>rose</c>.</summary>
+        /// <summary><c>rose</c>.</summary>
         Rose,
+
+        /// <summary><c>slate</c>.</summary>
+        Slate,
+
+        /// <summary><c>gray</c>.</summary>
+        Gray,
+
+        /// <summary><c>zinc</c>.</summary>
+        Zinc,
+
+        /// <summary><c>neutral</c>.</summary>
+        Neutral,
+
+        /// <summary><c>stone</c>.</summary>
+        Stone,
     }
 }
