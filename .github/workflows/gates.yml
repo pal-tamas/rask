@@ -32,6 +32,9 @@ jobs:
           # The browser suite runs its 150 journeys one at a time, so it is cut four ways by class.
           # Shards 1-3 NAME their classes and shard 4 takes everything they do not, the Rask.Server
           # journeys included: a new or renamed class lands in 4 by itself and cannot fall between two.
+          #
+          # The benchmark gate is the byte and allocation budgets only — exact counts, the same on a
+          # shared runner as anywhere. No time is measured here: a runner's clock proves nothing.
           GATES: >-
             [
               {"set": "push",    "name": "unit + format",      "run": "scripts/run-unit-local.sh --lane-slots $(nproc)"},
@@ -44,6 +47,7 @@ jobs:
               {"set": "push",    "name": "data demo E2E",      "run": "scripts/run-data-demo-e2e-local.sh", "browser": true},
               {"set": "push",    "name": "CLI build",          "run": "scripts/run-cli-build-e2e.sh"},
               {"set": "push",    "name": "templates",          "run": "scripts/run-template-e2e.sh"},
+              {"set": "push",    "name": "benchmarks",         "run": "scripts/run-benchmarks-local.sh"},
               {"set": "release", "name": "watch hot reload",   "run": "scripts/run-watch-e2e.sh"},
               {"set": "release", "name": "deploy",             "run": "scripts/run-deploy-e2e-local.sh"},
               {"set": "release", "name": "storage providers",  "run": "scripts/run-storage-providers-local.sh"},

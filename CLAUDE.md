@@ -36,7 +36,8 @@ ONLY the project you touched (`dotnet test tests/Rask.X.Tests`), never the solut
 (`gh run list --workflow ci --branch main`) is fixed forward, first; a job is reproduced with the script
 it names. Risky change → push to a `ci/**` branch first (`ci/release/**` adds the release-only gates:
 watch, deploy, storage providers, installer, providers — `release.yml` runs them all before it packs).
-**Benchmarks run ONLY when you ask** — `scripts/run-benchmarks-local.sh`, in no hook and no CI;
+**The benchmark gates run in CI** — `scripts/run-benchmarks-local.sh` is the `benchmarks` job: wire bytes,
+bundle size and the allocation budget, all exact counts; times are in no gate (a runner's clock proves nothing);
 the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by `pages.yml`, gated by
 `scripts/tests/install-script.test.sh` + `scripts/run-install-e2e-local.sh`, `docs/installation.md`);
 **user-facing change → update `src/Rask.Site` + docs/README/NUGET.md/llms.txt/docs/ai-agents.md**; keep

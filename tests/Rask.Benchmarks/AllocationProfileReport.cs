@@ -22,6 +22,11 @@ internal static class AllocationProfileReport
 
     public static int Run(string[] args)
     {
+        if (args.Contains("--check", StringComparer.Ordinal))
+        {
+            return CheckLiveUpdate();
+        }
+
         if (args.Length > 1 && string.Equals(args[1], "page", StringComparison.Ordinal))
         {
             return ProfilePageRequest();
@@ -42,6 +47,40 @@ internal static class AllocationProfileReport
         SessionHarness.Remove(store, handle);
         services.DisposeAsync().AsTask().GetAwaiter().GetResult();
         return 0;
+    }
+
+    // The gate: a live update of the 20-row page may not allocate more than the committed budget allows.
+    // Bytes, not time, so a shared runner answers the same as a quiet machine.
+    private static int CheckLiveUpdate()
+    {
+        const int rows = 20;
+        const int updates = 20_000;
+        const double headroom = 1.05;
+        var budget = long.Parse(
+            File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Baselines", "allocation-budget.csv"))
+                .First(line => line.StartsWith("LiveUpdate20Rows,", StringComparison.Ordinal))
+                .Split(',')[1],
+            CultureInfo.InvariantCulture);
+
+        var services = SessionHarness.NewHost();
+        var store = services.GetRequiredService<LiveSessionStore>();
+        var handle = SessionHarness.Create(store, rows, connected: true);
+        SessionHarness.Drive(handle.Session, handle.App, 2_000);
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        SessionHarness.Drive(handle.Session, handle.App, updates);
+        var each = (GC.GetAllocatedBytesForCurrentThread() - before) / updates;
+        SessionHarness.Remove(store, handle);
+        services.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+        var ok = each <= budget * headroom;
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  LiveUpdate20Rows       {each,6} B per update (budget {budget} B, +5% allowed)  [{(ok ? "ok" : "REGRESSION")}]"));
+        if (each < budget / headroom)
+        {
+            Console.WriteLine("  An improvement: lower the budget in Baselines/allocation-budget.csv to keep it.");
+        }
+
+        return ok ? 0 : 1;
     }
 
     // The page PageRequestBenchmarks measures, through the same in-memory host.

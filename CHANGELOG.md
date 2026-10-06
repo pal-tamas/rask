@@ -84,6 +84,18 @@ them until tagged releases begin.
   payload. The URL is rebuilt when the route changes and the writer is kept per thread: another 0.3 KB off
   each update, 2.7 KB → 2.3 KB on the same 20-row page.
 
+- **The benchmark gates run in CI.** `scripts/run-benchmarks-local.sh` is a `benchmarks` job on every push
+  (`.github/workflows/gates.yml`), beside the unit and browser gates: both wire-byte baselines, the client
+  bundle size, the session smokes, and a new allocation budget — a live update of the 20-row page against
+  `Baselines/allocation-budget.csv`, +5%. All of it is exact byte counts; no time is gated, because a shared
+  runner's clock proves nothing. Nothing has to be run by hand.
+
+- **An event no longer matches the session's path against the route table twice.** Each match allocated per
+  route it tried, so the cost grew with the app — 6 KB of a 28 KB click with 22 routes. The session remembers
+  its last resolution (`SessionRouteMemo`); both authorization checks still run on every event, against the
+  current user. `EventDispatchBenchmarks` measures a click end to end: 28.00 KB → 21.75 KB on an open page,
+  31.64 KB → 25.32 KB behind `[Authorize]`.
+
 - **A chain step clears its pending bit in place.** `BuilderRuntime.Written` copied the whole entry slot back
   into the list to change one mask. About 3.5% off a re-render of 50 chain-built rows (16.08 → 15.51 µs,
   fastest-round median of six interleaved runs); allocation unchanged at 19.79 KB.

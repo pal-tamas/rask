@@ -3,8 +3,8 @@
 Reference numbers from the live-render diff codec. Each future PR touching the
 render path should compare against these and quote the delta in its description.
 
-> **`payload-bytes.csv` is enforced when you ask, on your machine.** No hook and no CI job runs
-> `scripts/run-benchmarks-local.sh`; run it for a render-path change. It checks this baseline *and* the vs-Blazor one
+> **`payload-bytes.csv` is enforced in CI, on every push.** The `benchmarks` gate runs
+> `scripts/run-benchmarks-local.sh`, which checks this baseline *and* the vs-Blazor one
 > (`dotnet run -c Release --project tests/Rask.Benchmarks -- payload-bytes --check`)
 > and **fails on a regression** — more diff bytes or more diff ops than the
 > committed baseline, for any scenario. These metrics are deterministic (no timing noise),

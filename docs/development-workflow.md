@@ -136,9 +136,9 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push** — `ci.yml` on `main`, on `ci/**` branches and on pull requests | The **push** set: unit + format (`run-unit-local.sh`), browser E2E (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`). |
+| **CI, every push** — `ci.yml` on `main`, on `ci/**` branches and on pull requests | The **push** set: unit + format (`run-unit-local.sh`), browser E2E (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), benchmarks (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
-| **Only when you ask** | Benchmarks (`run-benchmarks-local.sh`), the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
+| **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
 The list of gates lives once, in `.github/workflows/gates.yml`, which `ci.yml` and `release.yml` both
 call, so the two cannot drift. Jobs do not fail fast: one red gate says nothing about the others, and
@@ -316,8 +316,9 @@ True of the scripts wherever they run — a CI job or your terminal.
   CI job). Verifies the Linux half of [`https://<name>.test`](cli.md#httpsnametest) in a throwaway
   container where the CA anchors, NSS databases, `/etc/hosts` and the port sysctl are really
   modified, ending with a `curl` TLS handshake with no `--cacert`. **Not covered:** macOS and Windows.
-- **Benchmarks — `scripts/run-benchmarks-local.sh`** (on request). Checks both wire-byte baselines —
-  the standalone codec and the head-to-head against Blazor — byte-for-byte, and smoke-runs the three
+- **Benchmarks — `scripts/run-benchmarks-local.sh`** (CI, every push). Checks both wire-byte baselines —
+  the standalone codec and the head-to-head against Blazor — byte-for-byte, holds a live update to its
+  allocation budget (`Baselines/allocation-budget.csv`, +5%), and smoke-runs the three
   live-session capacity reports; `session-churn --smoke` asserts that 100 create→dispose cycles leave
   nothing behind. Every check runs even when an earlier one fails. A regression means one of two
   opposite things: the render/diff path got heavier (fix the code, leave the baseline), or a
