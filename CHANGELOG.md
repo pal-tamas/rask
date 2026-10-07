@@ -44,6 +44,9 @@ them until tagged releases begin.
 
 ### Added
 
+- **The React starter is plain Tailwind.** `rask new --template react` no longer installs daisyUI in the
+  client: its page and sign-in screens are drawn with Tailwind utilities alone, light and dark, so a front
+  end picks its own component library or none.
 - **`rask new Shop --template react` is back.** One project: a `Rask.Server` host
   (`RaskApp.Create(args).Serve()`, every battery the `wasm-hosted` template carries) with a React +
   TypeScript + Vite + Tailwind app in `client/` — a query and a command over the typed client, `/login` and

@@ -197,8 +197,9 @@ config file and no property that turns it off. `--bootstrap` and `--tailwind` ar
 *refused* rather than ignored, because a flag the CLI accepts and then disregards is the most expensive
 kind to discover.
 
-**Every template draws the same starter page**, in the same daisyUI class names — a navbar, a hero, a
-card and a footer — so a project looks the same whether it runs on the server or in WebAssembly.
+**Every C# template draws the same starter page**, in the same daisyUI class names — a navbar, a hero, a
+card and a footer — so a project looks the same whether it runs on the server or in WebAssembly. The
+`react` template's client is plain Tailwind utilities: a front end brings its own component library.
 The sign-in pages `rask new` writes into `Features/Auth/` are drawn with it too, and an app with a database
 links sign-in from the starter's navbar.
 

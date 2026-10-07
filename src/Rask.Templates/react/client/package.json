@@ -15,8 +15,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwindcss": "^4.3.0",
-    "@tailwindcss/vite": "^4.3.0",
-    "daisyui": "^5.7.0"
+    "@tailwindcss/vite": "^4.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

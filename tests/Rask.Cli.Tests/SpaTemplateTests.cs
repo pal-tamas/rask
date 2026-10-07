@@ -220,15 +220,13 @@ public sealed class SpaTemplateTests
 
     [Theory]
     [MemberData(nameof(Frameworks))]
-    public void Every_starter_stylesheet_compiles_daisyui_beneath_the_utilities(string key)
+    public void Every_starter_stylesheet_is_plain_Tailwind(string key)
     {
         var sheet = Stylesheet(Generate(framework: Framework(key)));
 
-        // From node_modules, by name. Without the layer statement daisyUI outranks the utilities beside it
-        // and `class="btn px-8"` ignores the px-8.
-        Assert.Contains("@plugin \"daisyui\";", sheet, StringComparison.Ordinal);
-        Assert.Contains("@layer properties, theme, base, components, daisyui, utilities;", sheet, StringComparison.Ordinal);
-        Assert.Contains("@apply bg-base-200", sheet, StringComparison.Ordinal);
+        // A front end brings its own component library or none; the starter does not pick one.
+        Assert.Contains("@import 'tailwindcss';", sheet, StringComparison.Ordinal);
+        Assert.DoesNotContain("@plugin", sheet, StringComparison.Ordinal);
     }
 
     [Theory]

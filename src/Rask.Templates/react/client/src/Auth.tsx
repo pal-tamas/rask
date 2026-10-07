@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { login, register, type AuthFailure } from './rask/browser/auth'
 
+const input =
+  'w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:border-zinc-700 dark:bg-zinc-950'
+
 /**
  * Sign in and registration, over the endpoints Rask.Auth maps at /api/auth.
  *
@@ -31,54 +34,63 @@ export default function Auth({ mode }: { mode: 'login' | 'register' }) {
   }
 
   return (
-    <main className="hero min-h-screen bg-base-200">
-      <div className="hero-content w-full max-w-sm flex-col">
+    <main className="grid min-h-screen place-items-center px-4">
+      <div className="flex w-full max-w-sm flex-col items-center gap-6">
         <h1 className="text-2xl font-bold">{registering ? 'Create an account' : 'Sign in'}</h1>
 
-        <form className="card bg-base-100 w-full shadow-sm" onSubmit={submit}>
-          <div className="card-body gap-4">
-            {failure && (
-              <div role="alert" className="alert alert-error">
-                <span>{failure.message ?? failure.error}</span>
-              </div>
-            )}
-
-            <label className="fieldset">
-              <span className="fieldset-legend">Email</span>
-              <input
-                className="input w-full"
-                type="email"
-                autoComplete="username"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </label>
-
-            <label className="fieldset">
-              <span className="fieldset-legend">Password</span>
-              <input
-                className="input w-full"
-                type="password"
-                autoComplete={registering ? 'new-password' : 'current-password'}
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </label>
-
-            <div className="card-actions">
-              <button className="btn btn-primary btn-block" type="submit" disabled={busy}>
-                {registering ? 'Create account' : 'Sign in'}
-              </button>
+        <form
+          className="flex w-full flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-900"
+          onSubmit={submit}
+        >
+          {failure && (
+            <div
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+            >
+              {failure.message ?? failure.error}
             </div>
+          )}
 
-            <p className="text-sm">
-              <a className="link link-primary" href={registering ? '/login' : '/register'}>
-                {registering ? 'Already have an account?' : 'No account yet?'}
-              </a>
-            </p>
-          </div>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Email</span>
+            <input
+              className={input}
+              type="email"
+              autoComplete="username"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Password</span>
+            <input
+              className={input}
+              type="password"
+              autoComplete={registering ? 'new-password' : 'current-password'}
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </label>
+
+          <button
+            className="w-full rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+            type="submit"
+            disabled={busy}
+          >
+            {registering ? 'Create account' : 'Sign in'}
+          </button>
+
+          <p className="text-sm">
+            <a
+              className="underline-offset-4 hover:underline"
+              href={registering ? '/login' : '/register'}
+            >
+              {registering ? 'Already have an account?' : 'No account yet?'}
+            </a>
+          </p>
         </form>
       </div>
     </main>
