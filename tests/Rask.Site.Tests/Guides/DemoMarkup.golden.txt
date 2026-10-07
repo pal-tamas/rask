@@ -2354,7 +2354,7 @@ svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-4 .relative .rounded-lg .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
+button .btn
 
 === elements-grouping ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm

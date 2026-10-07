@@ -509,6 +509,28 @@ them until tagged releases begin.
 
 ### Removed
 
+- **BREAKING: what the kit had added to Flux's components is gone.** A `Rask.Ui` component that mirrors a
+  Flux UI one carries Flux's props, values and attributes and no others, and a test now holds every built
+  component to that (`FluxConformanceTests`: a property or enum member Flux does not document fails unless
+  it is named as Rask's way of saying a Flux mechanism).
+  - `Ui.AccordionItem.OnToggle` is removed. Flux's accordion reports nothing back; `Expanded()` is the state
+    an item starts in.
+  - `Ui.Heading.Level(5)` and `Level(6)` render a `<div>`, as any level Flux does not take: Flux's heading
+    has levels 1 to 4. `Ui.CardHeading` and the kit's other titles are unchanged.
+  - `Ui.Card` writes `data-ui-card-size` only when a `Size` is set, as Flux writes `data-flux-card-size`.
+    A selector on `[data-ui-card-size="md"]` no longer matches a card that left the size unset.
+  - `Ui.Button.Loading(true)` no longer writes `aria-busy="true"`: Flux's loading button carries no ARIA.
+    It writes `data-ui-loading` (Flux's `data-flux-loading`) beside `data-loading`. The runtime still marks
+    a button waiting on its own handler with `data-loading` and `aria-busy`.
+  - `Ui.Button.NewTab` is removed. Flux's button has no such prop: forward the anchor's own attributes,
+    `.Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))`. Nothing is added to them, so a
+    `target` without the `rel` is written as given.
+  - `Ui.ButtonType.Reset` is removed: Flux's `type` is `button` or `submit`. A reset is the native tag,
+    `Button.Type(ButtonType.Reset)`.
+  - Markers mirror Flux's one for one: a button that is not ghost or subtle also writes
+    `data-ui-group-target`, a badge's leading icon writes `data-ui-badge-icon`, and
+    `data-ui-badge-icon-trailing` is now `data-ui-badge-icon:trailing`, as Flux spells it.
+
 - **BREAKING: `Notify` is gone; `Dispatcher` now works everywhere.** Two statics published an event, and which
   one worked depended on where the line stood: `Dispatcher.Publish` threw in a `BackgroundService`, and
   `Notify.Send` existed to cover that. One word now, from a page, a handler, a job or a singleton:

@@ -125,7 +125,7 @@ public sealed partial class UiKitButtonDemo : Component
                     .Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))["Navigation components"],
                 Ui.Link.Key("to-data-display").Href(PageMeta.LinkTo(Routes.UiKitDataDisplayPage()))["Data display components"],
                 Ui.Button.Ghost.Key("to-github")
-                    .Href("https://github.com/pal-tamas/rask").NewTab()["GitHub"]));
+                    .Href("https://github.com/pal-tamas/rask").Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))["GitHub"]));
 
     private static Component SquareSection() =>
         Section("Square", "As wide as it is tall. Automatic for a button that shows only an icon.",

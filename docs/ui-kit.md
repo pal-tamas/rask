@@ -320,7 +320,7 @@ Ui.ButtonGroup[Ui.Button["Oldest"], Ui.Button["Newest"], Ui.Button["Top"]]   // 
 | `Inset` | `Ui.Inset` flags — `Top`, `Bottom`, `Left`, `Right`, `All` — for a ghost or subtle button |
 | `Loading` | see [Buttons that wait](#buttons-that-wait) |
 | `Tooltip`, `TooltipPosition`, `TooltipKbd`, `Kbd` | a hint on hover and keyboard focus, and the shortcut shown in it |
-| `Href`, `NewTab` | see [Buttons and links that go somewhere](#buttons-and-links-that-go-somewhere) |
+| `Href` | see [Buttons and links that go somewhere](#buttons-and-links-that-go-somewhere) |
 | `As` | `Ui.ButtonAs.Div` for the look of a button on something that is not one |
 | `Type`, `Disabled`, `Command`, `CommandFor` | the `<button>`'s own attributes |
 
@@ -471,14 +471,8 @@ own `<details name>` group. Closed content is still in the document, so find-in-
 opens the item holding the match. A disabled heading leaves the tab order, takes no pointer and says
 `aria-disabled`.
 
-**To own an item from C#**, render it in a field and keep the field in step:
-
-```csharp
-Ui.AccordionItem.Heading("Advanced settings").Expanded(_advanced).OnToggle(open => _advanced = open)[ … ]
-```
-
-`OnToggle` runs after the browser has opened or closed the item, with the state it is now in — including when
-an exclusive accordion closes it because another item opened.
+`Expanded()` is the state an item starts in. As in Flux, the accordion reports nothing back: the browser
+owns which items are open.
 
 `Transition()` animates the height of the `<details>`' own content box (`::details-content`, with
 `interpolate-size`). A browser without those opens and closes at once, which is what an accordion without the
@@ -707,11 +701,12 @@ leaves the app wants.
 ```csharp
 Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]    // stays in the app
 Ui.Link.Href(Routes.ProductsPage())["Back to the list"]                   // stays in the app
-Ui.Button.Href("https://github.com/pal-tamas/rask").NewTab()["GitHub"]     // leaves it
+Ui.Button.Href("https://github.com/pal-tamas/rask")["GitHub"]              // leaves it
 ```
 
 A string that happens to name one of your own pages is still a string: it reloads the whole app to get
-there. Use the route. `NewTab(true)` is never intercepted, because the reader asked for another tab.
+there. Use the route. As in Flux, a new tab is the anchor's own attribute — `.Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))` —
+and the runtime never intercepts one, because the reader asked for another tab.
 
 ## Heading, text and link
 
@@ -731,7 +726,7 @@ Ui.Link.As(Ui.LinkAs.Button).OnClick(Save)["Create account →"] // a <button ty
 
 | Component | Props |
 | --- | --- |
-| `Ui.Heading` | `Size` — `Base` (14px), `Lg` (16px), `Xl` (24px), `Xxl` (36px, Flux's `2xl`); `Level` 1–6, a `<div>` without one; `Accent()` |
+| `Ui.Heading` | `Size` — `Base` (14px), `Lg` (16px), `Xl` (24px), `Xxl` (36px, Flux's `2xl`); `Level` 1–4 as in Flux, a `<div>` without one; `Accent()` |
 | `Ui.Text` | `Size` — `Sm`, `Default`, `Lg`, `Xl`; `Variant` — `Default`, `Strong`, `Subtle`; `Color` — a `Ui.Color` (Tailwind's hues), which wins over the variant; `Inline()` for a `<span>` |
 | `Ui.Link` | `Href` — a generated route navigates inside the app, a string is an ordinary link; `Variant` — `Default` (underlined), `Ghost` (underlined under the pointer), `Subtle`; `External()`; `As` — `A`, `Button`; `Accent(false)` to draw it in the page's ink |
 
@@ -886,7 +881,9 @@ Ui.Button.Loading(_exporting)["Export"]                            // work that 
 ```
 
 As in Flux, a button carries the spinner when it has something to wait on: an `OnClick`, `type="submit"`,
-or a `Loading` you set. `Loading(false)` tells the runtime to leave the button alone.
+or a `Loading` you set. `Loading(false)` tells the runtime to leave the button alone. `Loading(true)` writes
+`data-loading` and nothing else, as Flux's loading button does; `aria-busy` is the runtime's, for a wait it
+started.
 
 It is the **runtime** that marks the button, not script in the kit, because only the runtime knows when a
 dispatch starts and ends. So every `<button>` with a handler gets the same `data-loading` + `aria-busy`
@@ -990,7 +987,7 @@ Ui.Dropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
 redraw through the live diff.
 
 **The browser owns it, and tells the page.** A `Ui.AccordionItem` is a `<details>`: it opens with no handler at
-all, and `Expanded` with `OnToggle` is how a page keeps it in a field — see [Accordion](#accordion).
+all, and `Expanded` is only the state it starts in — see [Accordion](#accordion).
 
 **The markup owns it.** `Ui.Tab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
 survives a refresh and answers the back button. `Ui.Drawer` keeps its checkbox because daisyUI's rules are

@@ -201,7 +201,7 @@ internal sealed partial class DevToolsErrorsTab : Component
             Div.Class("flex flex-wrap items-center gap-2")[
                 Ui.Button.Primary.Sm
                     .Href(DevToolsBugReport.IssueUrl(draft.Title, draft.Body))
-                    .NewTab()["Open the issue on GitHub"],
+                    .Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))["Open the issue on GitHub"],
                 Ui.Button.Sm.OnClick(() => _reporting = null)["Cancel"]
             ]
         ];
