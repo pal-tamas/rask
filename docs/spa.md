@@ -14,6 +14,32 @@ wrote. A host with [remote messages](#a-typed-client-for-your-messages) also get
 
 To put a React or Vue **component** inside a Rask page instead, see [Islands](islands.md).
 
+## Scaffolding one
+
+```bash
+rask new Shop --template react
+cd Shop
+rask dev
+```
+
+That writes one project: a `Rask.Server` host — `RaskApp.Create(args).Serve()`, every battery on — and
+a React + TypeScript app in `client/`, built with Vite and styled with Tailwind. `rask dev` installs the
+client's dependencies the first time, then runs the host and Vite together; Vite forwards `/_rask` and
+`/api/auth` to the host.
+
+- **A query and a command.** `Features/Hello/` holds the starter's messages and handlers; `client/src/App.tsx`
+  dispatches them through the [typed client](#a-typed-client-for-your-messages) the build writes into
+  `client/src/rask/`.
+- **Sign-in screens.** `client/src/Auth.tsx` is `/login` and `/register`, over the host's accounts at
+  `/api/auth`. It calls `login` and `register` from `client/src/rask/browser/auth.ts`, which the build
+  copies beside the typed client. The session is an HttpOnly cookie, so the page never holds a token.
+- **Web Push.** `client/src/push.ts` exports `subscribeToPush()` and `unsubscribeFromPush()`: the browser's
+  own `PushManager`, the worker in `client/public/rask-sw.js`, and the host's `/_rask/push` endpoints.
+  `--no-push` leaves it out; `--no-pwa` leaves out the manifest and the worker too.
+
+Batteries are turned off the same way as on any template — `--no-data`, `--no-ops` — except `--no-cqrs`:
+the typed client *is* the CQRS wire. See [the CLI](cli.md#which-template-supports-which-flag).
+
 ## Where the front end lives
 
 Reference the package from the host project, and put the front end in a `client` folder inside it:

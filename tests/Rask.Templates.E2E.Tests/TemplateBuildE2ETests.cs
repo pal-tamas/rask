@@ -75,6 +75,11 @@ public sealed class TemplateBuildE2ETests
         // arrives through the theory data like every other template and this dispatch has one axis fewer.
         var batteries = BatterySelection.ToBatteries(template, []);
 
+        if (SpaFramework.TryGet(key, out var spa))
+        {
+            return ProjectGenerator.GenerateSpa(projectDirectory, name, spa, batteries, version);
+        }
+
         return key switch
         {
             "wasm" => ProjectGenerator.GenerateWasm(
