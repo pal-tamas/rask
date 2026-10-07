@@ -1520,6 +1520,108 @@ This does not fire on ordinary classes. A Rask server project is an ASP.NET proj
 genuine controllers; `[Route]` on one of those is correct and is never reported.
 
 ---
+## RASK072
+
+**Entity `Configure` method will not be called** · Warning
+
+An entity maps itself: Rask's model generator calls a static `Configure` on every `Entity<TId>` that
+declares one, for the rules that are that entity's own. The method is matched **by signature**, not by
+name alone — so one that is an instance method, is private, or takes something other than
+`EntityTypeBuilder<TSelf>` is simply not found.
+
+Without this warning the build stays green, the table is created from conventions alone, and the
+missing index or length turns up in production.
+
+```csharp
+public sealed class Product : Aggregate<Guid>
+{
+    public string Sku { get; private set; } = "";
+
+    // ✗ RASK072 — an instance method; the generator emits `Product.Configure(...)`
+    public void Configure(EntityTypeBuilder<Product> builder) =>
+        builder.HasIndex(p => p.Sku).IsUnique();
+}
+```
+
+**Fix:** declare it exactly as the generator calls it — `public static`, returning `void`, taking this
+entity's own builder:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Product> builder) =>
+    builder.HasIndex(p => p.Sku).IsUnique();
+```
+
+`internal static` works too — the generated registry is emitted into the same assembly. The type
+argument must be the entity itself: `EntityTypeBuilder<SomethingElse>` configures another table and is
+reported rather than called.
+
+An entity with no `Configure` at all is not reported. It is mapped by convention, which is the common
+case and the intended one.
+
+---
+
+## RASK073
+
+**Strongly-typed id has no usable value** · Warning
+
+A strongly-typed id — `Aggregate<ProductId>` rather than `Aggregate<Guid>` — is stored as its underlying value
+through a generated `ValueConverter`. Building one needs two things the generator can see: a single
+public property holding the value, and a public constructor taking that value back.
+
+```csharp
+// ✗ RASK073 — two public properties, so which one is the stored value is ambiguous
+public readonly record struct ProductId(Guid Value, string Label);
+```
+
+**Fix:** give the id one value and a matching constructor. A positional record struct is the shortest
+form and gives value equality for free:
+
+```csharp
+public readonly record struct ProductId(Guid Value);
+```
+
+The conversion is then registered once for the type, in `ConfigureConventions`, so **every** property
+of that type is converted — the key, a foreign key on another entity, and a nullable one — without any
+of them being named individually.
+
+This is a Warning rather than an Error because the rest of the assembly still builds, but the model
+does not: EF Core refuses a key type it cannot map, and its own message names the property rather than
+the reason. That is what this replaces.
+
+Ids that need no converter are not reported. Anything the provider already maps — `Guid`, `int`,
+`long`, `string` — is left alone.
+
+---
+
+## RASK074
+
+**More than one user type** · Warning
+
+Rask ships no user class. The user type is the one class in your project deriving from `Rask.Auth.Authenticatable`,
+found at compile time and named to the accounts by a generated `[ModuleInitializer]` — which is what lets
+`AddRaskAuth()` and `modelBuilder.AddRaskAuth()` take no type argument.
+
+That needs there to be *one*. With two, picking either would map one users table and silently strand the other,
+and the app would look wired until the first sign-in.
+
+```csharp
+public sealed class User : Authenticatable { }
+
+// ✗ RASK074 — which of these is the user?
+public sealed class LegacyUser : Authenticatable { }
+```
+
+**Fix:** keep one. A second user-shaped type does not need to derive from `Authenticatable` to be mapped — it is an
+aggregate like any other, and if it is genuinely a second account store it belongs behind its own
+`AddRaskAuth<TContext, TUser>()` call rather than the convention.
+
+Auth is left unwired when this fires, rather than half-wired against a guess.
+
+Declaring **no** user type is not reported: an app with no accounts is a legitimate app, and the auth
+battery simply does not wire.
+
+---
+
 ## RASK076
 
 **Grid column with no field token** · Warning
