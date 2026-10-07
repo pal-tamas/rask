@@ -21,7 +21,8 @@ namespace Rask.Server.E2E.Tests;
 /// </remarks>
 public sealed class RuntimeHookGestureTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
-    private const string Record = "() => { window.heard = []; document.addEventListener('input', e => window.heard.push('input:' + e.target.value)); document.addEventListener('change', e => window.heard.push('change:' + e.target.value)); }";
+    // Only what the field under test says: the measured box on the same page announces its size whenever it likes.
+    private const string Record = "id => { window.heard = []; for (const type of ['input', 'change']) document.addEventListener(type, e => { if (e.target.id === id) window.heard.push(type + ':' + e.target.value); }); }";
     private const string Area = "() => { const s = document.getElementById('area').style; return s.getPropertyValue('--rask-drag-x') + ' ' + s.getPropertyValue('--rask-drag-y'); }";
 
     [Fact]
@@ -29,7 +30,7 @@ public sealed class RuntimeHookGestureTests(PlaywrightFixture playwright) : ICla
     {
         await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
         var page = session.Page;
-        await page.EvaluateAsync(Record);
+        await page.EvaluateAsync(Record, "area-value");
 
         // The surface is 220 x 120 at (100, 100) with an inset of 10: its track is 200 x 100 from (110, 110).
         await page.Mouse.MoveAsync(160, 135);
@@ -49,7 +50,7 @@ public sealed class RuntimeHookGestureTests(PlaywrightFixture playwright) : ICla
     {
         await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
         var page = session.Page;
-        await page.EvaluateAsync(Record);
+        await page.EvaluateAsync(Record, "area-value");
 
         await page.Mouse.MoveAsync(160, 135);
         await page.Mouse.DownAsync();
@@ -114,9 +115,9 @@ public sealed class RuntimeHookGestureTests(PlaywrightFixture playwright) : ICla
     {
         await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
         var page = session.Page;
-        await page.EvaluateAsync(Record);
-
         await page.WaitForFunctionAsync("() => document.getElementById('box-size').value === '300 100'");
+        await page.EvaluateAsync(Record, "box-size");
+
         await page.EvaluateAsync("() => { document.getElementById('box').style.width = '250.5px'; }");
         await page.WaitForFunctionAsync("() => document.getElementById('box-size').value === '250.5 100'");
 
