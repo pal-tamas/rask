@@ -39,6 +39,23 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_trigger_with_a_tooltip_still_opens_the_menu_from_its_own_button()
+    {
+        var html = Ui.Dropdown[Ui.Button.Tooltip("More")["Options"], Ui.Menu[Ui.MenuItem["Edit"]]].ToHtml().AsText();
+
+        // Flux wraps such a button in its tooltip; what the dropdown adds belongs on the button inside it.
+        var wrapper = Regex.Match(html, "<div[^>]*data-ui-tooltip[ >=][^>]*>").Value;
+        var trigger = Regex.Match(html, "<button.*?>Options").Value;
+        var panel = Regex.Match(trigger, "popovertarget=\"([^\"]+)\"").Groups[1].Value;
+
+        Assert.NotEmpty(wrapper);
+        Assert.DoesNotContain("popovertarget", wrapper, StringComparison.Ordinal);
+        Assert.Contains("aria-haspopup=\"true\"", trigger, StringComparison.Ordinal);
+        Assert.Contains("aria-controls=\"" + panel + "\"", trigger, StringComparison.Ordinal);
+        Assert.Matches("<div id=\"" + Regex.Escape(panel) + "\"[^>]*data-ui-menu=\"\"", html);
+    }
+
+    [Fact]
     public void The_menu_is_a_popover_that_takes_focus_as_it_opens()
     {
         var html = Html(Ui.Menu[Ui.MenuItem["Edit"]]);
