@@ -17,11 +17,25 @@ internal sealed partial record DevTarget(
     bool ProfileLaunchesBrowser)
 {
     /// <summary>
+    ///     The client's directory, for a <see cref="DevTemplateKind.SpaHosted" /> app whose client was
+    ///     found: the one <c>RaskSpaClientDir</c> names, or the <c>client</c> folder. Null everywhere else.
+    /// </summary>
+    public string? ClientDirectory { get; init; }
+
+    /// <summary>Where the client's own dev server listens — Vite's 5173, Angular's 4200, or
+    ///     whatever the host's csproj says. Null when there is no front end.</summary>
+    public string? ClientDevServerUrl { get; init; }
+
+    /// <summary>The npm script that starts it: <c>dev</c> for Vite, <c>start</c> for the Angular CLI.</summary>
+    public string? ClientDevScript { get; init; }
+
+    /// <summary>
     ///     Whether this project has islands worth running a Vite dev server for.
     /// </summary>
     /// <remarks>
     ///     Orthogonal to <see cref="Kind" />: islands live in the HOST project, so a plain
-    ///     <see cref="DevTemplateKind.Server" /> app can have them.
+    ///     <see cref="DevTemplateKind.Server" /> app can have them and a SPA-hosted one can have both a
+    ///     client dev server and an island one.
     /// </remarks>
     public bool HasIslands { get; init; }
 
@@ -30,7 +44,8 @@ internal sealed partial record DevTarget(
     /// </summary>
     /// <remarks>
     ///     Read from the csproj so an app that moved the port keeps working, and defaulted to 5174 —
-    ///     not Vite's 5173, which an app's own Vite project may already hold.
+    ///     NOT Vite's 5173, which is the SPA client's. A solution with both would otherwise have two
+    ///     dev servers fighting for one port, and the loser fails in a way that reads as a Rask bug.
     /// </remarks>
     public string? IslandDevServerUrl { get; init; }
 
@@ -63,6 +78,15 @@ internal sealed partial record DevTarget(
         var (url, launchesBrowser) = ReadLaunchProfile(fileSystem, directory);
         var kind = Classify(fileSystem, csproj);
 
+        // The same answer the build gives (Rask.Spa.Hosting.targets): the directory RaskSpaClientDir names,
+        // else a `client` folder holding a package.json, else `Client` for a project scaffolded with the
+        // capital.
+        var client = kind == DevTemplateKind.SpaHosted
+            ? FrontEndDirectory(fileSystem, resolved, ReadClientDir(fileSystem, csproj))
+              ?? FrontEndDirectory(fileSystem, resolved, "client")
+              ?? FrontEndDirectory(fileSystem, resolved, "Client")
+            : null;
+
         // Once. It walks the project tree, and the tree it walks contains node_modules — which for a
         // project with islands is tens of thousands of files. Calling it from two initialisers walked
         // it twice on every `rask dev` startup.
@@ -70,6 +94,9 @@ internal sealed partial record DevTarget(
 
         return new DevTarget(kind, resolved, directory, url, launchesBrowser)
         {
+            ClientDirectory = client,
+            ClientDevServerUrl = client is null ? null : ReadDevServerUrl(fileSystem, csproj),
+            ClientDevScript = client is null ? null : ReadDevScript(fileSystem, client),
             HasIslands = islands,
             IslandDevServerUrl = islands ? ReadIslandDevServerUrl(fileSystem, csproj) : null,
         };
@@ -165,6 +192,84 @@ internal sealed partial record DevTarget(
                || relative.Contains("node_modules/", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    ///     Where the client's own dev server listens, read from the property the scaffold baked into the
+    ///     host's csproj.
+    /// </summary>
+    /// <remarks>
+    ///     Read rather than assumed, because it is not the same for every framework — Vite listens on 5173
+    ///     and Angular's <c>ng serve</c> on 4200 — and it is the host that already carries the answer, for
+    ///     its own "nothing built yet" page. Vite's default when the property is absent, which is what an
+    ///     older scaffold has.
+    /// </remarks>
+    private static string ReadDevServerUrl(IFileSystem fileSystem, string csproj)
+    {
+        var match = SpaDevServerUrlProperty().Match(ReadOrEmpty(fileSystem, csproj));
+
+        return match.Success ? match.Groups["value"].Value : LocalDevServers.Vite;
+    }
+
+    /// <summary>Where the host's csproj says the front end lives, or null when it relies on the convention.</summary>
+    private static string? ReadClientDir(IFileSystem fileSystem, string csproj)
+    {
+        var match = SpaClientDirProperty().Match(ReadOrEmpty(fileSystem, csproj));
+
+        return match.Success ? match.Groups["value"].Value.Replace('\\', Path.DirectorySeparatorChar) : null;
+    }
+
+    /// <summary>
+    ///     The npm script that starts the client's dev server: <c>dev</c> where there is one, otherwise
+    ///     <c>start</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Read from the client's own package.json rather than decided per framework, because that file is
+    ///     what actually settles it — create-vite writes <c>dev</c>, the Angular CLI writes <c>start</c>,
+    ///     and a project that renamed either is still answered correctly.
+    /// </remarks>
+    private static string ReadDevScript(IFileSystem fileSystem, string clientDirectory)
+    {
+        try
+        {
+            // The same answer an app gives when an editor launched it and it starts this server itself.
+            return Rask.Hosting.Shared.DevScript.FromManifest(
+                fileSystem.ReadAllText(Path.Combine(clientDirectory, "package.json")));
+        }
+        catch (IOException)
+        {
+            // Unreadable: the common default rather than refusing to run the host over a file that is only
+            // needed for the other half. A malformed manifest gets the same answer from DevScript itself.
+            return Rask.Hosting.Shared.DevScript.Default;
+        }
+    }
+
+    /// <summary>
+    ///     The front end inside a host, by the convention the build uses: a folder in the project
+    ///     directory holding a <c>package.json</c>.
+    /// </summary>
+    /// <remarks>
+    ///     The <c>package.json</c> check is what makes this safe, not decoration — and it carries more
+    ///     weight than it did when the rule looked at siblings named <c>*.Client</c>, because a folder
+    ///     called <c>client</c> is a far more ordinary thing for a project to contain than a sibling
+    ///     project was. A folder called <c>client</c> that also holds a <c>package.json</c> is not.
+    /// </remarks>
+    private static string? FrontEndDirectory(IFileSystem fileSystem, string csproj, string? appDirectory)
+    {
+        if (appDirectory is null)
+        {
+            return null;
+        }
+
+        var projectDirectory = Path.GetDirectoryName(Path.GetFullPath(csproj));
+        if (projectDirectory is null)
+        {
+            return null;
+        }
+
+        var client = Path.Combine(projectDirectory, appDirectory);
+
+        return fileSystem.FileExists(Path.Combine(client, "package.json")) ? client : null;
+    }
+
     private static string? LocateCsproj(IFileSystem fileSystem, string workingDirectory)
     {
         var directory = Path.GetFullPath(workingDirectory);
@@ -222,11 +327,23 @@ internal sealed partial record DevTarget(
 
         if (text.Contains("Microsoft.NET.Sdk.Web", StringComparison.Ordinal))
         {
-            // Two shapes of WebAssembly client: a referenced Rask WASM project, and the one-project build
-            // whose browser half lives in Client/.
+            // A WebAssembly client FIRST. Rask.Spa.Hosting serves one as well as a bundler's output, so the
+            // package check below would read a WASM host as a TypeScript SPA: it would start an npm dev
+            // server beside it and never ask for the client's build output, which is what hot reload
+            // needs. Two shapes: a referenced Rask WASM project, and the one-project build whose browser
+            // half lives in Client/.
             if (ReferencesWasmProject(fileSystem, csproj, text) || HasOneProjectClient(fileSystem, csproj, text))
             {
                 return DevTemplateKind.WasmHosted;
+            }
+
+            // Checked before the .Client name fallback, because a SPA host also has a sibling named
+            // client — one holding a package.json rather than a csproj. Keyed on the package reference
+            // rather than on that directory: the client may have been moved with RaskSpaClientDir, and the
+            // package is what actually decides how the app is served.
+            if (text.Contains("Rask.Spa.Hosting", StringComparison.Ordinal))
+            {
+                return DevTemplateKind.SpaHosted;
             }
 
             // A host naming a sibling .Client project, whose csproj the probe above could not read — a
@@ -393,6 +510,12 @@ internal sealed partial record DevTarget(
 
     [GeneratedRegex(@"<RaskExternalDevServerPort>\s*(?<value>\d+)\s*</RaskExternalDevServerPort>", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex ExternalDevServerPortProperty();
+
+    [GeneratedRegex(@"<RaskSpaDevServerUrl>\s*(?<value>[^<\s]+)\s*</RaskSpaDevServerUrl>", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex SpaDevServerUrlProperty();
+
+    [GeneratedRegex(@"<RaskSpaClientDir>\s*(?<value>[^<]+?)\s*</RaskSpaClientDir>", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex SpaClientDirProperty();
 
     [GeneratedRegex(@"<ProjectReference\s+Include\s*=\s*""(?<value>[^""]+)""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex ProjectReferenceInclude();

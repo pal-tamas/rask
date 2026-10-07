@@ -215,8 +215,13 @@ function installModal(doc: Document): void {
     // Invoker commands, for an engine without them. One with them never reaches the body of this: it has
     // already run the command, and the test is one property read.
     doc.addEventListener("click", function (e) {
-        const button = near(e.target, "button[commandfor]") as (HTMLButtonElement & { commandForElement?: Element }) | null;
-        if (!button || "commandForElement" in button || button.disabled || e.defaultPrevented) {
+        // Asked of the prototype, not of the button: the DOM typings say every button has the property, so
+        // testing the element itself tells the compiler nothing is left to handle below.
+        if ("commandForElement" in HTMLButtonElement.prototype || e.defaultPrevented) {
+            return;
+        }
+        const button = near(e.target, "button[commandfor]");
+        if (!(button instanceof HTMLButtonElement) || button.disabled) {
             return;
         }
         const target = doc.getElementById(button.getAttribute("commandfor") || "");

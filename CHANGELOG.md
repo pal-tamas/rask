@@ -44,6 +44,20 @@ them until tagged releases begin.
 
 ### Added
 
+- **An existing app can take Rask pages under a prefix, beside its own front end.**
+  `MapRask<App>(pathBase: "/new")` next to `MapControllers()` and `MapRaskSpa()` is now a tested shape:
+  each answers only its own paths (`docs/spa.md#moving-an-existing-app-onto-rask-a-page-at-a-time`).
+- **`rask dev` runs an npm front end's dev server beside its host again.** A host that references
+  `Rask.Spa.Hosting` gets `dotnet watch` plus the client's own `npm run dev` (or `start`), and the browser
+  opens on the dev server — `RaskSpaDevServerUrl`, or Vite's `http://localhost:5173`. The client is found in
+  the `client` folder or, new, wherever `RaskSpaClientDir` points.
+- **A front end that builds with npm is built and shipped by its ASP.NET host again.** `Rask.Spa.Hosting`
+  finds a `client` folder holding a `package.json` (or the one `RaskSpaClientDir` names), runs `npm ci` and
+  `npm run build` in it on `dotnet build`, and copies the bundle into `wwwroot` on `dotnet publish`, where
+  `MapRaskSpa()` serves it. `RaskSpaBuild=false` skips node; `RASKSPA001`, `002`, `003`, `005` and `007`
+  name what went wrong; `SpaHostingOptions.DevServerUrl` is back, named on the Development page shown before
+  anything is built. This returns the build half of what 2026-10-01 removed (`docs/spa.md`); the generated
+  TypeScript client and the `rask new` templates are not back yet.
 - **Runtime hooks for behaviour a render cannot write.** The client runtime gains a set of generic,
   attribute-keyed hooks (`docs/js-interop-runtime.md#behaviour-hooks-data-rask-`), each a delegated listener
   that costs nothing on a page that does not use it: `data-rask-tooltip` and `data-rask-hover` show a popover
