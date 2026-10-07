@@ -62,7 +62,9 @@ why, is to be the gate for this; it is NOT written yet — see "Open work" at th
   `data-ui-button-group`), bare, through the ONE helper: `private static readonly UiPartMarker Marker =
   new("ui-button");` and `ResolveData() => Marker.With(Data)` (`With(Data, "color", name)` for one more
   attribute; `new("slot", "text")` for a valued one). The parity tool pairs nodes by it. Write only the
-  `data-ui-*` attributes Flux writes: every one is a marker to the tool.
+  `data-ui-*` attributes Flux writes: every one is a marker to the tool. A host that carries SEVERAL markers
+  (`UiToast`: `data-ui-toast`, the dialog's, position, variant) writes them through the `Data` bag instead —
+  accepted there, not a pattern for a one-marker root.
 - **Element:** where Flux renders a custom element (`<ui-field>`, `<ui-label>`, `<ui-progress>`,
   `<ui-table-scroll-area>`, `<ui-disclosure>`), write the NATIVE element with the same semantics and no
   script (`<div>`, `<label for>`, `<div role="progressbar">`, `<details>`) and add the pair to `NATIVE` in
@@ -118,7 +120,7 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button` today).
+card accordion callout button toast` today).
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -148,6 +150,11 @@ card accordion callout button` today).
   with `flux-`≡`ui-`, duration, delay, iterations, direction, fill, keyframes with easing) is recorded per
   node and compared. Scroll-driven ones are neither paused nor recorded: the kit uses one where Flux runs
   script. After any change to `lib.mjs`, cached Flux measurements are stale — `parity.mjs <slug> --refresh`.
+- **A state the page does not load in** (a shown toast) gets its own script beside `parity.mjs` and a
+  pseudo-page: `node scripts/flux/parity-toast.mjs` raises each toast on Flux's page, measures it with
+  `lib.mjs`, compares through `parity.mjs` under the name `toast-shown` (`ToastShownParity`) and adds a
+  where-on-screen check (38 + 38). Its NATIVE pairs (`ui-toast`, `ui-toast-group`, `ui-close` → `div`) stay
+  local to it. `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
 - **Public API:** `python3 scripts/public-api/record.py src/Rask.Ui` builds and applies RS0016/RS0017 to
   both baselines (run it twice: a step exists only once its property compiles). It is the only such script.
 
@@ -191,6 +198,15 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   not looked up, the "Password" row with its button), table page (badge, avatar, the dropdown and menu
   around the row button, pager), progress page (slider, as raw `ui-slider` markup), separator page (the
   tooltip around the theme button), callout page (one badge), field page (inputs).
+
+## Runtime hooks the kit is waiting for (Flux does it in script; Rask's runtime cannot yet)
+- Toast: hovering RESTARTS the countdown in Flux — the runtime resumes the remainder. Hovering a group
+  pauses EVERY toast in it — needs a pause scope on an ancestor. The stack's 350 ms glide when a toast
+  joins or leaves needs per-child height/offset custom properties. The runtime also pauses on focus,
+  where Flux does not.
+- Toast, unexplained, for a later look: an unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a
+  `switch` among keyed call sites, was remounted on every parent render.
+- The built-in toast (the host's, when the app places no `Ui.Toast`) shows one at a time, as Flux's does.
 
 ## Open work (integration stopped here on 2026-10-07 — see the integrator's report)
 - A stale `src/Rask.Site/obj/**/rask-external` folder can fail the site build after merging main
