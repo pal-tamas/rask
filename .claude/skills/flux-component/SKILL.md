@@ -126,6 +126,9 @@ Never key on `[data-ui-card]` from another component.
    dotnet test tests/Rask.Ui.Tests --filter "FullyQualifiedName~Flux"
    node scripts/flux/parity.mjs <slug>            # until: "matches Flux"
    ```
+   A menu loads CLOSED, so `parity.mjs` never sees it. `node scripts/flux/parity-menu.mjs <dropdown|context>`
+   opens every example on both pages and compares the popup: placement against the trigger, each row at
+   rest, under a real pointer, pressed and under the cursor, a submenu's flyout, Escape and a click outside.
    Fix the COMPONENT until it passes. A difference is only accepted when it is Livewire-specific or
    comes from the docs page rather than the component; say which, in a comment on the example.
    Two false greens to know: a crashed `parity.mjs` prints no `FAIL` (read its last line), and
@@ -137,8 +140,8 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip` today, plus the open-state scripts `parity-toast.mjs` and
-`parity-tooltip.mjs`).
+card accordion callout button toast badge tooltip dropdown context` today, plus the open-state scripts
+`parity-toast.mjs`, `parity-tooltip.mjs` and `parity-menu.mjs dropdown|context`).
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -151,7 +154,8 @@ card accordion callout button toast badge tooltip` today, plus the open-state sc
   and size, inside not compared — give it the exact measured box, to 1/64px); `="self"` (its own look is
   another component's, children compared); `="width"`/`"height"` (that dimension is `rand()` on Flux's
   page, here and below). When the real component lands, the stand-in goes: Heading, Text, Field, Label,
-  Description, Icon, Separator, Table, Card, Callout, Button, Badge, Tooltip are real now — use them.
+  Description, Icon, Separator, Table, Card, Callout, Button, Badge, Tooltip, Dropdown, Menu, Context are
+  real now — use them.
 - **A real component inside a wrapper that is not rebuilt** (Flux's button sits in a `<ui-dropdown>`):
   write the wrapper as a `<div data-ui-dropdown data-parity-skip="self">` holding the real component and a
   `display:none` `data-parity-skip` box per hidden sibling (the menu). Without the marked wrapper the tool
@@ -163,7 +167,8 @@ card accordion callout button toast badge tooltip` today, plus the open-state sc
 - **Not differences:** `NATIVE` tag pairs (and `button`→`summary`); the colour of a border 0px wide on
   both sides, or of an outline with `outline-style:none` on both, at rest and in a forced state; the
   offset of a node with no box (`display:none` itself or above it, or 0×0 on both sides); `oklch(… none)`
-  ≡ `oklch(… 0)`; a forced state where only one side measured the node (60 per example).
+  ≡ `oklch(… 0)`; a forced state where only one side measured the node (60 per example), or on a node
+  displayed on neither side (the rows of a closed menu: Flux lights them by script, the kit by `:hover`).
 - **Animations:** clock-driven CSS animations are paused at their first frame and their DEFINITION (name
   with `flux-`≡`ui-`, duration, delay, iterations, direction, fill, keyframes with easing) is recorded per
   node and compared. Scroll-driven ones are neither paused nor recorded: the kit uses one where Flux runs
@@ -175,7 +180,9 @@ card accordion callout button toast badge tooltip` today, plus the open-state sc
   local to it. `node scripts/flux/parity-tooltip.mjs` does the same for the tooltip (`TooltipShownParity`,
   page `tooltip-shown`): 36 cases per scheme, then a pointer-and-keyboard walk whose known gaps it prints as
   `KNOWN`. In `parity.mjs` itself `ui-tooltip` and `ui-dropdown` (what Flux renders a TOGGLEABLE tooltip as,
-  under the tooltip's marker) pair with `div`. `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
+  under the tooltip's marker) pair with `div`, and so does the menu family (`ui-context`, `ui-menu`,
+  `ui-submenu`, `ui-menu-radio-group`, `ui-menu-checkbox-group` → `div`; `ui-menu-radio`, `ui-menu-checkbox` →
+  `button`). `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
 - **Public API:** `python3 scripts/public-api/record.py src/Rask.Ui` builds and applies RS0016/RS0017 to
   both baselines (run it twice: a step exists only once its property compiles). It is the only such script.
 
@@ -207,7 +214,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   arm of `@custom-variant dark` goes too. `AppearanceToggle` is `Ui.Button.Subtle` now; its hand-drawn
   tooltip has a `// SEAM:` to become the button's `Tooltip`/`TooltipKbd` when `Ui.Tooltip` lands.
 - Button: `UiClassNames.ButtonTone/ButtonVariant/ButtonSize` and the `.btn-*`, `.btn > svg`,
-  `.btn[data-loading]` CSS stay until Popover, Dropdown, Fab, DayGrid, Filter, MultiSelect, Profile,
+  `.btn[data-loading]` CSS stay until Popover, Fab, DayGrid, Filter, MultiSelect, Profile,
   Pagination, Sidebar and the templates stop writing raw `btn`. `UiButtonTooltip` is an internal stopgap
   (a child of the button shown by CSS). `Ui.Tooltip` is merged, but the button's `Tooltip` / `TooltipPosition`
   (still `Ui.Position`) / `TooltipKbd` / `Kbd` props are NOT on it yet: Flux wraps the button in its tooltip,
@@ -219,8 +226,24 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - The Dashboard's queue tiles lost their icon and hover (Flux's card has no link or icon props, and the
   Dashboard may not write classes): rebuilt on Flux pieces later.
 - Parity stand-ins still standing: card page (fields, switches, the heading/text lines whose variant was
-  not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
-  (slider, as raw `ui-slider` markup), field page (inputs).
+  not looked up), table page (avatar, the dropdown and menu around the row button — Flux's snippet does not
+  say what the menu holds — pager), progress page (slider, as raw `ui-slider` markup), field page (inputs),
+  dropdown page (the profile trigger and the two icon-only triggers, whose icon the snippets do not name).
+- Dropdown / Menu / Context (merged 2026-10-07). Made Flux's on merging: the trigger says
+  `aria-haspopup="true"` whatever it opens; a submenu's row has NO `aria-haspopup`/`aria-expanded`/
+  `aria-controls` and its flyout no `aria-label`/`id` (the runtime tells such a row by the `role="menu"` right
+  after it); a leading icon and a check carry `data-ui-menu-item-icon`; a separator's line carries
+  `data-ui-separator` and a group's lines `data-ui-menu-separator` beside `-top`/`-bottom`; the kit's own
+  `data-ui-menu-indent` is `data-indent`; `Ui.MenuCheckboxGroup.KeepOpen` is gone. `Open`/`OnToggle`
+  (dropdown, context) stand for `wire:model`, `Bind`/`Value`/… for a checkbox's or radio group's, `OnClick`
+  for `wire:click`, `Ui.MenuItem.Href` for `href`+`wire:navigate` — each a `Translations` row.
+  Not Flux's yet: `data-open` on the OPEN menu (Flux writes it on `ui-menu`; the kit writes it on the dropdown
+  and the trigger only); Flux's reflected element props (`position`, `gap`, `checked`, `keep-open` as plain
+  attributes) are not written; the popup is `popover="auto"` + `autofocus` + `popovertarget` where Flux's is
+  `popover="manual"` and script. `Ui.MenuGroup`, `Ui.Navmenu`, `Ui.NavmenuItem` are on Flux's page but not in
+  `flux.snapshot.json`, so the conformance gate does not see them. `Ui.Profile` is still the daisy-drawn row
+  around the new dropdown (its `Open`/`OnToggle`/`KeepOpen` forward), until the navigation branch brings
+  Flux's. `Ui.Command` draws its rows the old way through `UiCommandRows` until it is rebuilt.
 - Tooltip: daisyUI's own is kept out of the sheet by `exclude: … tooltip` on the `@plugin` line in `ui.css`
   (the bare word stands in the kit's comments; `UiTooltipTests` asserts the absence) — the way to drop a
   daisy component whose name the kit still has to say. A `Toggleable()` tooltip around something that is

@@ -83,6 +83,9 @@ const NATIVE = {
   // The tooltip's wrapper: the kit wires the trigger at render and the browser shows the [popover].
   // A toggleable tooltip is a <ui-dropdown> on Flux's page, under the tooltip's marker.
   'ui-tooltip': 'div', 'ui-dropdown': 'div',
+  // The menu family: a [popover] opens from `popovertarget` alone, and its rows are buttons.
+  'ui-context': 'div', 'ui-menu': 'div', 'ui-submenu': 'div', 'ui-menu-radio-group': 'div',
+  'ui-menu-checkbox-group': 'div', 'ui-menu-radio': 'button', 'ui-menu-checkbox': 'button',
 };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
 const sameTag = (a, b) => (NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
@@ -223,6 +226,10 @@ function compareLook(theirs, a, mine, b, where, diffs) {
   // A long example is measured for its first 60 controls only, and the two pages need not run out at the
   // same node: a state is compared where both sides measured it.
   if (!measured(theirs).has(a.id) || !measured(mine).has(b.id)) return;
+  // A node that is not displayed on either side cannot be hovered, pressed or focused, so a state forced
+  // onto it says nothing — and inside a closed menu something false: Flux lights a row from script
+  // (`data-active`) where the kit has `:hover`. parity-menu.mjs holds an OPEN menu's rows under a real pointer.
+  if (!shown(theirs, a) && !shown(mine, b)) return;
   for (const state of ['hover', 'active', 'focus-visible']) {
     const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
     const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};

@@ -133,7 +133,7 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
     private static string Drawer(bool? open) =>
         Ui.Drawer
             .Id("nav")
-            .Panel(Ui.Menu[Ui.MenuItem.Text("Home").Href("/")])
+            .Panel(Ui.NavList[Ui.NavItem.Label("Home").Href("/")])
             .Open(open)
             .CloseLabel("Close navigation")[Span["page"]]
             .ToHtml();
