@@ -89,10 +89,31 @@ why, is to be the gate for this; it is NOT written yet — see "Open work" at th
 - Follow `CLAUDE.md` and `docs/api-style.md`; XML-doc every public member in a line or two.
 
 **Form controls** take Flux's `Label` / `Description` / `DescriptionTrailing` / `Badge` and never draw a
-label themselves: implement `IUiFieldControl` (`ControlId` = `UiFieldId.Derive(Id, Bind, Label)`, `Bound` =
-`Bind`) and, in `Render`, `var field = UiWithField.For(this, Label, Description, DescriptionTrailing, Badge);`
-→ put `field.ControlId`, `data-ui-control` and `.Aria(field.Aria)` on the control's own element →
-`return field.Wrap(control);` (a checkbox, radio or switch: `field.Wrap(control, Ui.FieldVariant.Inline, controlFirst: true)`).
+label themselves. The recipe (`UiInput.cs` and `UiTextarea.cs` are the two to copy):
+1. `public sealed partial class UiX<T> : Component, IFormControl<T>, IUiFormControl` — NOT `UiFormField<T>`, which
+   stays only for the daisyUI controls and is deleted with the last of them. Declare the five binding props
+   (`Value`, `OnChange`, `Bind`, `Validate`, `AfterBind`), Flux's props, `Invalid`, `ShowValidation`, `Id`, `Class`;
+   `string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Bind, Label);`, `LambdaExpression? IUiFieldControl.Bound => Bind;`
+   (a prop Flux does not document on that part, e.g. `Badge` on the input: `string? IUiFormControl.Badge => null;`).
+2. In `Render`: `var field = UiWithField.For(this);` → build the native control → `.Id(field.ControlId)`,
+   `.Aria(field.Aria)` (`aria-invalid`, `aria-describedby`), `data-ui-control` plus `data-invalid` when
+   `field.Invalid` → `return field.Wrap(control);` (a checkbox, radio or switch:
+   `field.Wrap(control, Ui.FieldVariant.Inline, controlFirst: true)`). No label and no description ⇒ `Wrap` returns
+   the control alone, and it shows no message.
+3. Binding: a control that IS one native element forwards to Core's — `Bind is { } bind ?
+   Input.Bind(bind).Validate(Validate).AfterBind(AfterBind) : Input.Value(Value).OnChange(OnChange)` (both hand back
+   the same element; same for `Textarea`, `Select`). A control drawn from several elements reads and commits through
+   `UiFormCommit.Resolve(this)` / `UiFormCommit.CommitAsync(…)`.
+4. State a click changes (a reveal toggle) is a private field set in the handler; what CSS can decide (a clear button
+   hidden while `:placeholder-shown`) is CSS. No script, and nothing Flux does not have: a behaviour that needs page
+   script goes in `FluxConformanceTests.NotTranslated` with the hook it is waiting for.
+5. Class literals shared by a generic control live in a non-generic `internal static class UiXLook` (a static in
+   `UiX<T>` is one copy per `T`, S2743). An enum member named after a tag (`Button`, `Input`) is not reachable as a
+   step — the component inherits the markup entry of that name — so it is `.As(Ui.InputAs.Button)`.
+
+A custom element is written as the native one that behaves that way without script (`ui-label` → `<label for>`);
+`parity.mjs`'s `NATIVE` (by tag) and `NATIVE_PART` (by marker) tables name each pair, and a stand-in for a control
+not rebuilt yet carries `data-parity-skip` (held to its place and size only).
 
 **Bleed** is one contract, the card's (Flux's `--flux-bleed-*`): `Ui.Card` and `Ui.CardBody` set
 `--ui-card-radius`, `--ui-bleed-x`, `--ui-bleed`, `--ui-bleed-top|bottom` and `--ui-bleed-top|bottom-radius`;
@@ -122,7 +143,13 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge` today).
+card accordion callout button toast badge input textarea select` today).
+- **What opens** is not in a page as loaded. `scripts/flux/parity-select.mjs` is the pattern: open each
+  example on Flux's page and on the parity page, compare the popup subtree, its box against the trigger and a
+  row hovered and pressed; `--live <url>` walks the keyboard on a running site against Flux's, since a static
+  page has no runtime. A difference the runtime cannot close yet is a walk of its own marked `accepted`, and
+  an entry in `NotTranslated`.
+- A `<template>` under a Flux node is skipped: it draws nothing.
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each

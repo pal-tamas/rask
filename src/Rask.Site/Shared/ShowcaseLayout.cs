@@ -123,7 +123,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         // Ui.SidebarHeader is the kit's own word for "holds its place while the list below scrolls", which is
         // exactly what this is. It brings the shrink-0; the rest is this sidebar's own look.
         Ui.SidebarHeader.Class("side-nav-search mb-1 block border-b border-ui-line bg-ui-well pb-2")[
-            Ui.Input.Value(_filter).AccessibleLabel("Filter guides & examples…")
+            Ui.Input.Value(_filter).Label("Filter guides & examples…")
                 .OnInput(v => _filter = v ?? "")
                 .Placeholder("Filter guides & examples…").Class("side-nav-filter rounded-lg")
         ],

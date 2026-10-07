@@ -212,8 +212,10 @@ wrapper of your own:
 ```csharp
 .Toolbar([
     Ui.Tabs[ … ],
-    Ui.Select.Value(_category).Options(_categories).Label("Category").OnChange(Filter),
-    Ui.Search.Placeholder("Search").AccessibleLabel("Search entries").OnSearch(Search),
+    Ui.Select.Value(_category).Label("Category").OnChange(Filter)[
+        _categories.Select(name => Ui.SelectOption.Key(name)[name])
+    ],
+    Ui.Input.Value(_query).Icon(Ui.IconName.MagnifyingGlass).Placeholder("Search").OnChange(Search),
 ])
 ```
 

@@ -22,7 +22,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         foreach (var id in new[]
                  {
-                     "ui-text-controls", "ui-labels", "ui-choices", "ui-range", "ui-otp", "ui-filter",
+                     "ui-text-controls", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-choices", "ui-range", "ui-otp", "ui-filter",
                      "ui-calendar", "ui-dates", "ui-dropzone", "ui-bound", "ui-mask",
                  })
         {
@@ -50,11 +50,11 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await email.FillAsync("not-an-address");
         await email.BlurAsync();
 
-        // The validator only exists while the value is bad, so its appearance is the proof the value
-        // reached C#, was judged there, and came back as different markup.
-        await Expect(Page.Locator(".validator-hint")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(email).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("input-error"));
+        // The error only shows while the value is bad, so its appearance is the proof the value reached C#,
+        // was judged there, and came back as different markup.
+        var error = Page.Locator("[data-testid='ui-text-controls'] [data-ui-error]").First;
+        await Expect(error).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(email).ToHaveAttributeAsync("data-invalid", "");
 
         // aria-describedby resolves to the VISIBLE text, error first — what a screen reader reads with the field.
         await Expect(email).ToHaveAttributeAsync("aria-invalid", "true");
@@ -63,8 +63,62 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         await email.FillAsync("ada@example.com");
         await email.BlurAsync();
-        await Expect(Page.Locator(".validator-hint")).ToHaveCountAsync(0);
+        await Expect(error).ToBeHiddenAsync();
         await Expect(email).ToHaveAccessibleDescriptionAsync("For example, you@example.com.");
+    });
+
+    [Fact]
+    public Task The_clear_button_appears_with_the_first_keystroke_and_empties_the_field() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-text-controls']");
+        var search = scope.Locator("input[placeholder='Search orders']").Nth(2);
+        var clear = scope.Locator("[data-ui-clear-button]");
+        await Expect(clear).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        await clear.ClickAsync();
+
+        // Emptied in C# and patched back; hidden by CSS alone while empty, and back before any round trip.
+        await Expect(search).ToHaveValueAsync("");
+        await Expect(clear).ToBeHiddenAsync();
+        await search.PressSequentiallyAsync("a");
+        await Expect(clear).ToBeVisibleAsync();
+    });
+
+    [Fact]
+    public Task The_reveal_button_shows_the_password_and_hides_it_again() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-text-controls']");
+        var toggle = scope.GetByLabel("Toggle password visibility");
+        var field = toggle.Locator("xpath=ancestor::*[@data-ui-input][1]").Locator("input");
+        await Expect(field).ToHaveAttributeAsync("type", "password", new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+
+        await toggle.ClickAsync();
+        await Expect(field).ToHaveAttributeAsync("type", "text");
+        await toggle.ClickAsync();
+
+        await Expect(field).ToHaveAttributeAsync("type", "password");
+    });
+
+    [Fact]
+    public Task A_textarea_reports_what_was_typed_and_an_auto_one_grows() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-textarea']");
+        var notes = scope.GetByLabel("Order notes");
+        await notes.FillAsync("No onion.");
+        await notes.BlurAsync();
+        await Expect(Page.Locator("[data-testid='ui-textarea-state']")).ToContainTextAsync("No onion.");
+
+        var auto = scope.GetByPlaceholder("This textarea will adjust to fit the content...");
+        var before = (await auto.BoundingBoxAsync())!.Height;
+        await auto.FillAsync("one\ntwo\nthree\nfour");
+
+        Assert.True((await auto.BoundingBoxAsync())!.Height > before, "the auto-sizing textarea did not grow.");
     });
 
     [Fact]
@@ -173,152 +227,130 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task The_drawn_select_is_a_full_keyboard_combobox() => RunAsync(async () =>
+    public Task The_native_select_reports_its_pick() => RunAsync(async () =>
     {
         await OpenAsync();
 
-        var scope = Page.Locator("[data-testid='ui-select']");
-        var box = scope.GetByRole(AriaRole.Combobox);
-        var list = scope.Locator("[role='listbox']");
+        await Page.Locator("#ui-select-native").SelectOptionAsync("Accounting");
 
-        await Expect(box).ToHaveAttributeAsync("aria-expanded", "false");
-        await Expect(list).ToBeHiddenAsync();
+        await Expect(Page.Locator("[data-testid='ui-select-state']")).ToContainTextAsync("Chosen: Accounting.");
+    });
 
-        // Enter opens it through the button's own activation — that is the keyboard's way in, and it
-        // costs no script.
+    [Fact]
+    public Task The_listbox_opens_walks_and_picks_from_the_keyboard() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var box = Page.Locator("#ui-select-listbox");
+        var list = Page.Locator("[data-testid='ui-listbox'] [role='listbox']").First;
+
+        // An arrow opens it, as on Flux; focus stays on the button and aria-activedescendant names the row.
         await box.FocusAsync();
-        await Page.Keyboard.PressAsync("Enter");
+        await Page.Keyboard.PressAsync("ArrowDown");
         await Expect(list).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(box).ToHaveAttributeAsync("aria-expanded", "true");
-
-        // The roving cursor: focus stays on the box and aria-activedescendant names the option, which
-        // is what keeps this free of any focus-moving JS interop.
         await Page.Keyboard.PressAsync("ArrowDown");
         var active = await box.GetAttributeAsync("aria-activedescendant");
-        Assert.False(string.IsNullOrEmpty(active), "the cursor did not move");
-
         await Page.Keyboard.PressAsync("Enter");
-        await Expect(Page.Locator("[data-testid='ui-select-state']")).ToContainTextAsync("Chosen:");
-    });
 
-    [Fact]
-    public Task The_drawn_multi_select_keeps_its_list_open_across_several_picks() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-multiselect']");
-        var box = scope.GetByRole(AriaRole.Combobox);
-        var list = scope.Locator("[role='listbox']");
-        var state = Page.Locator("[data-testid='ui-multiselect-state']");
-
-        await box.ClickAsync();
-        await Expect(list).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        // The whole point of the control, and the one thing a single-select cannot do: a pick does not
-        // dismiss the list, so a second answer costs one click rather than another trip through the box.
-        await list.GetByRole(AriaRole.Option, new LocatorGetByRoleOptions { Name = "Rask.Cli" })
-            .ClickAsync();
-        await Expect(list).ToBeVisibleAsync();
-        await Expect(box).ToHaveAttributeAsync("aria-expanded", "true");
-
-        await list.GetByRole(AriaRole.Option, new LocatorGetByRoleOptions { Name = "Rask.External" })
-            .ClickAsync();
-        await Expect(list).ToBeVisibleAsync();
-        await Expect(state).ToContainTextAsync("cli");
-        await Expect(state).ToContainTextAsync("ext");
-
-        // And the browser still owns dismissal, exactly as it does for the single-select.
-        await Page.Keyboard.PressAsync("Escape");
+        Assert.False(string.IsNullOrEmpty(active), "the cursor did not move");
+        await Expect(Page.Locator("[data-testid='ui-listbox-state']")).ToContainTextAsync("Chosen: Design services.");
         await Expect(list).ToBeHiddenAsync();
-        await Expect(box).ToHaveAttributeAsync("aria-expanded", "false");
+        await Expect(box).ToBeFocusedAsync();
     });
 
     [Fact]
-    public Task A_multi_select_chip_removes_its_own_answer() => RunAsync(async () =>
+    public Task Escape_closes_the_listbox_and_CSharp_hears_it() => RunAsync(async () =>
     {
         await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-multiselect']");
-        var state = Page.Locator("[data-testid='ui-multiselect-state']");
-
-        // The demo starts with two answers, so a chip is on screen before anything is clicked.
-        await Expect(state).ToContainTextAsync("core");
-
-        // Removing from the BOX, without opening the list at all — the affordance the chips exist for.
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Remove Rask.Core" })
-            .ClickAsync();
-
-        await Expect(state).Not.ToContainTextAsync("core");
-        await Expect(state).ToContainTextAsync("ui");
-        await Expect(scope.Locator("[role='listbox']")).ToBeHiddenAsync();
-    });
-
-    [Fact]
-    public Task The_multi_select_list_says_it_takes_more_than_one_answer() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        // Not decoration: the options carry aria-selected either way, so without this a reader has no
-        // way to learn that a second one is allowed.
-        await Expect(Page.Locator("[data-testid='ui-multiselect'] [role='listbox']"))
-            .ToHaveAttributeAsync("aria-multiselectable", "true");
-    });
-
-    [Fact]
-    public Task Escape_closes_the_drawn_select_and_CSharp_hears_it() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-select']");
-        var box = scope.GetByRole(AriaRole.Combobox);
+        var box = Page.Locator("#ui-select-listbox");
 
         await box.ClickAsync();
         await Expect(box).ToHaveAttributeAsync("aria-expanded", "true");
-
-        // The assertion the whole toggle event exists for. The BROWSER closes the popover here; without
-        // hearing that, aria-expanded would go on claiming the list is open over a closed one.
         await Page.Keyboard.PressAsync("Escape");
-        await Expect(scope.Locator("[role='listbox']")).ToBeHiddenAsync();
+
         await Expect(box).ToHaveAttributeAsync("aria-expanded", "false");
+        await Expect(box).ToBeFocusedAsync();
     });
 
     [Fact]
-    public Task Arrow_keys_in_the_drawn_select_do_not_scroll_the_page() => RunAsync(async () =>
+    public Task The_open_list_hangs_under_its_button_as_wide_as_it_is() => RunAsync(async () =>
     {
         await OpenAsync();
+        var box = Page.Locator("#ui-select-listbox");
+        var list = Page.Locator("[data-testid='ui-listbox'] [data-ui-options]").First;
 
-        var box = Page.Locator("[data-testid='ui-select']").GetByRole(AriaRole.Combobox);
         await box.ClickAsync();
-        await Expect(box).ToHaveAttributeAsync("aria-expanded", "true");
-
-        var before = await Page.EvaluateAsync<int>("() => window.scrollY");
-        for (var i = 0; i < 5; i++)
-        {
-            await Page.Keyboard.PressAsync("ArrowDown");
-        }
-
-        // The client never preventDefaults on its own, so without the containment added to rask-dom.ts
-        // every ArrowDown would scroll the document behind the open list.
-        var after = await Page.EvaluateAsync<int>("() => window.scrollY");
-        Assert.Equal(before, after);
-    });
-
-    [Fact]
-    public Task The_drawn_list_escapes_an_overflow_hidden_ancestor() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-select']");
-        var box = scope.GetByRole(AriaRole.Combobox);
-        await box.ClickAsync();
-
-        var list = scope.Locator("[role='listbox']");
         await Expect(list).ToBeVisibleAsync();
+        var button = await box.BoundingBoxAsync();
+        var popup = await list.BoundingBoxAsync();
 
-        // The reason the popover is worth its cost: the box sits in a 96px overflow:hidden container, so
-        // a list positioned inside the flow would be clipped to nothing. In the top layer it is not.
-        var height = (await list.BoundingBoxAsync())!.Height;
-        Assert.True(height > 96, $"the list was clipped to {height}px by its overflow-hidden ancestor.");
+        // Flux's gap is five pixels; the list lines up with the button's start and takes its width.
+        Assert.Equal(button!.X, popup!.X, 1);
+        Assert.Equal(button.Width, popup.Width, 1);
+        Assert.Equal(button.Y + button.Height + 5, popup.Y, 1);
+    });
+
+    [Fact]
+    public Task The_searchable_listbox_takes_the_keys_and_filters_as_it_is_typed_into() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-select-search']");
+
+        await Page.Locator("#ui-select-searchable").ClickAsync();
+        await Expect(scope.Locator("[data-ui-select-search] input").First).ToBeFocusedAsync();
+        await Page.Keyboard.TypeAsync("leg");
+        await Expect(scope.Locator("[data-ui-option]:visible")).ToHaveCountAsync(1);
+        await Page.Keyboard.PressAsync("Enter");
+
+        await Expect(Page.Locator("[data-testid='ui-select-search-state']")).ToContainTextAsync("Chosen: Legal services.");
+        await Expect(Page.Locator("#ui-select-searchable")).ToBeFocusedAsync();
+    });
+
+    [Fact]
+    public Task The_multiple_listbox_stays_open_and_counts_its_answers() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-multiselect']");
+        var box = Page.Locator("#ui-select-multiple");
+
+        await box.ClickAsync();
+        await scope.Locator("[data-ui-option]", new LocatorLocatorOptions { HasTextString = "Design services" }).ClickAsync();
+        await scope.Locator("[data-ui-option]", new LocatorLocatorOptions { HasTextString = "Other" }).ClickAsync();
+
+        await Expect(scope.Locator("[role='listbox']")).ToBeVisibleAsync();
+        await Expect(scope.Locator("[role='listbox']")).ToHaveAttributeAsync("aria-multiselectable", "true");
+        await Expect(box).ToContainTextAsync("2 selected");
+        await Expect(Page.Locator("[data-testid='ui-multiselect-state']")).ToContainTextAsync("Design services, Other");
+    });
+
+    [Fact]
+    public Task The_combobox_filters_and_shows_its_answer() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var input = Page.Locator("#ui-select-combobox");
+
+        await input.ClickAsync();
+        await Page.Keyboard.TypeAsync("de");
+        await Expect(Page.Locator("[data-testid='ui-combobox'] [data-ui-option]:visible")).ToHaveCountAsync(2);
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await Page.Keyboard.PressAsync("Enter");
+
+        await Expect(input).ToHaveValueAsync("Web development");
+        await Expect(Page.Locator("[data-testid='ui-combobox-state']")).ToContainTextAsync("Industry: Web development.");
+    });
+
+    [Fact]
+    public Task The_combobox_creates_the_option_that_is_not_there() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var input = Page.Locator("#ui-select-create");
+
+        await input.ClickAsync();
+        await Page.Keyboard.TypeAsync("Onboarding");
+        await Expect(Page.Locator("[data-testid='ui-combobox'] [data-ui-option-create]:visible")).ToHaveCountAsync(1);
+        await Page.Keyboard.PressAsync("Enter");
+
+        await Expect(Page.Locator("[data-testid='ui-combobox-state']")).ToContainTextAsync("Project: Onboarding.");
     });
 
     [Fact]

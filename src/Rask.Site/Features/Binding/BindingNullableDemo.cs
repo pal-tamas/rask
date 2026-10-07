@@ -16,7 +16,7 @@ public sealed partial class BindingNullableDemo : Component
         Div.Class("mb-3")[
             Ui.Input.Bind(() => _model.OptionalAge).Label("Optional age (int?)")
                 .Id("bind-null-age")
-                .Hint("Leave it empty for null.")
+                .Description("Leave it empty for null.")
         ],
         Div.Class("mb-3")[
             Ui.Input.Bind(() => _model.StartDate).Label("Optional start date (DateOnly?)")
@@ -26,14 +26,15 @@ public sealed partial class BindingNullableDemo : Component
             // "— none —" is a real option rather than a Placeholder: choosing it clears the value back to null,
             // which is the point of this demo. A placeholder cannot be chosen.
             Ui.Select.Bind(() => _model.Favorite)
-                .Options(Colors)
                 .Label("Optional colour (Color?)")
-                .Id("bind-null-color")
+                .Id("bind-null-color")[
+                Colors.Select(color => Ui.SelectOption.Key(color.Text).Value(color.Value)[color.Text])
+            ]
         ],
         Div.Class("mb-3")[
             Ui.Input.Bind(() => _model.Nickname).Label("Nickname (string?)")
                 .Id("bind-null-nick")
-                .Hint("Clear it for null.")
+                .Description("Clear it for null.")
         ],
         Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code[

@@ -58,7 +58,7 @@ would read the call as invoking the property (CS1593) and never reach the setter
 `Callback` and `Callback<T>` are **structs**, not delegates, so lookup falls through to the step, and the
 one property takes both handler shapes — there is no `OnXxxAsync` twin anywhere on the surface. The same
 holds for a value the framework *asks* a component for rather than an event: a template or a selector
-(`Ui.DataGrid`'s `RowClass`, `Ui.Select`'s `OptionTemplate`) is an `Fn<…>`, called during the render and
+(`Ui.DataGrid`'s `RowClass`) is an `Fn<…>`, called during the render and
 never auto-wrapped. An event declared as `Action<T>` or `Func<T, Task>` is [RASK096](diagnostics.md#rask096),
 an error whose quick-fix makes it a `Callback<T>`.
 
