@@ -105,15 +105,22 @@ internal static class CliBuildE2E
         var feed = Path.Combine(Path.GetTempPath(), "rask-cli-e2e-feed", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(feed);
 
-        // One `dotnet pack` per package, in order. Packing them all from a single MSBuild invocation is
-        // several minutes faster and WRONG: a package then names a project it references at version
-        // 1.0.0 instead of the MinVer version it was packed at, and no scaffold can restore.
-        foreach (var package in FeedPackages)
-        {
-            var csproj = ProjectFor(repoRoot, package);
-            var (exit, output) = await RunDotnet($"pack \"{csproj}\" -c Release -o \"{feed}\" -m:1");
-            Assert.True(exit == 0, $"failed to pack {package} for the build gate.{Diagnostics(output)}");
-        }
+        // ONE `dotnet pack`, over a solution holding exactly these projects — the shape release.yml packs in,
+        // narrowed to the list. It was one invocation per package on one core, which is 36 walks of the same
+        // project graph: about 275 s of a 600 s gate on a four-core runner, in both gates that pack.
+        var solution = feed + ".slnx";
+        await File.WriteAllLinesAsync(
+            solution,
+            ["<Solution>", .. FeedPackages.Select(package => $"""  <Project Path="{ProjectFor(repoRoot, package)}" />"""), "</Solution>"]);
+
+        // ShouldUnsetParentConfigurationAndPlatform=false: a solution build drops Configuration from every
+        // referenced project the solution does not list, so the generators and the MSBuild task projects built
+        // as Debug and the packages that bundle them from bin/Release failed to pack.
+        var slots = Environment.GetEnvironmentVariable("RASK_BUILD_SLOTS") is { Length: > 0 } asked ? asked : "1";
+        var (exit, output) = await RunDotnet(
+            $"pack \"{solution}\" -c Release -o \"{feed}\" -m:{slots} -p:ShouldUnsetParentConfigurationAndPlatform=false");
+        File.Delete(solution);
+        Assert.True(exit == 0, $"failed to pack the feed for the build gate.{Diagnostics(output)}");
 
         // Read the packed version off a nupkg filename (MinVer stamps a prerelease off the current commit).
         // Every project packs at the same version, so any one of them answers for the set — Rask.Server is
@@ -121,11 +128,39 @@ internal static class CliBuildE2E
         var nupkg = Directory.GetFiles(feed, "Rask.Server.*.nupkg").Single();
         var version = Path.GetFileNameWithoutExtension(nupkg)["Rask.Server.".Length..];
 
+        AssertEveryPackageWasPackedAtOneVersion(feed, version);
         AssertTheCoreShipsFromItsOwnPackageOnly(feed, nupkg);
         AssertNoPackageShipsBuildIntermediates(feed);
 
         EvictFromGlobalCache(version);
         return (feed, version);
+    }
+
+    /// <summary>Every listed package is in the feed, naming its Rask dependencies at the version it was packed at.</summary>
+    /// <remarks>
+    ///     A package that names a sibling at <c>1.0.0</c> — what MinVer leaves when it has not run for that
+    ///     project — restores nowhere, and the scaffold that fails on it reads like a broken template.
+    /// </remarks>
+    private static void AssertEveryPackageWasPackedAtOneVersion(string feed, string version)
+    {
+        var strays = new List<string>();
+        foreach (var package in FeedPackages)
+        {
+            var path = Path.Combine(feed, $"{package}.{version}.nupkg");
+            Assert.True(File.Exists(path), $"the pack wrote no {Path.GetFileName(path)}.");
+
+            using var zip = System.IO.Compression.ZipFile.OpenRead(path);
+            using var nuspec = zip.Entries.Single(e => e.FullName.EndsWith(".nuspec", StringComparison.Ordinal)).Open();
+            strays.AddRange(System.Xml.Linq.XDocument.Load(nuspec).Descendants()
+                .Where(e => e.Name.LocalName == "dependency"
+                            && ((string?)e.Attribute("id") ?? "").StartsWith("Rask", StringComparison.Ordinal)
+                            && (string?)e.Attribute("version") != version)
+                .Select(e => $"{package}: {(string?)e.Attribute("id")} {(string?)e.Attribute("version")}"));
+        }
+
+        Assert.True(
+            strays.Count == 0,
+            $"These packages name a Rask dependency at a version other than {version}:\n  " + string.Join("\n  ", strays));
     }
 
     /// <summary>No package carries a file out of a project's <c>obj/</c> as content.</summary>

@@ -254,6 +254,10 @@ them until tagged releases begin.
   the whole push set each hour `main` has moved, and `nightly.yml` and `pages.yml` now publish from a
   commit that run passed, not from a push's scoped run. The CLI build and template gates run on a push
   only when the CLI, a template or a project file changed.
+- **The CLI build and template gates pack their feed once, on every core.** One `dotnet pack` over the
+  36 packages replaces one invocation per package on a single core, and the template gate's three
+  theories run side by side. On a CI runner the CLI build gate went from 597 s to 407 s and the
+  template gate from 479 s to 317 s.
 - **Upstream is followed without anyone watching.** `upstream.yml` runs daily: it moves the MDN snapshot
   to the latest stable data, records the public surface that moved with it, moves the stated Node line
   to the Active LTS, gates the result and lands it on `main`. `dependabot-merge.yml` merges a

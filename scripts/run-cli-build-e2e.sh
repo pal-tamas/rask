@@ -47,17 +47,6 @@ trap 'rm -f "$log"' EXIT
 # without it every run through a pipe reads as a pass.
 status=0
 
-echo "==> Build the CLI E2E test project (Release)"
-# MinVerSkip is deliberately NOT set: the gate packs the Rask packages and reads the packed version off
-# the nupkg filename, so MinVer must stamp a real version here.
-#
-# The project the tests below run, because they run with --no-build. It references Rask.Cli, which embeds the
-# template trees; Rask.Cli.Tests does not reference it. Building that project instead left this one's copy of
-# Rask.Cli as stale as its last build. The gate then scaffolded from old templates against freshly packed packages,
-# and failed on an API the templates had already moved past. It would pass just as readily on templates that no
-# longer exist.
-dotnet build tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj -c Release -m:"${RASK_BUILD_SLOTS:-1}" 2>&1 | tee "$log" || status=$?
-
 # A package cache of the gate's OWN, and the reason is that this gate MUTATES one.
 #
 # CliBuildE2E.EvictFromGlobalCache deletes ~/.nuget/packages/<pkg>/<version> for all 22 Rask packages it
@@ -67,17 +56,30 @@ dotnet build tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj -c Release -m:"$
 # one gate run can delete the packages another worktree's build is restoring at that moment. A test may
 # not reach outside its own sandbox to delete shared state.
 #
-# Scoped to the test invocation on purpose: the repo's own build above keeps using the normal cache
-# (it only reads), so this re-downloads what the SCAFFOLDED projects need and nothing else, once, and
-# reuses it afterwards. artifacts/ is gitignored.
+# The build below restores into it too. It used the normal cache, and then the pack inside the tests
+# restored the same projects into this one: every project.assets.json changed under the compiler, and
+# the framework this step had just built was built a second time (about 150 s of the CI job).
+# artifacts/ is gitignored.
 gate_packages="$root/artifacts/cli-gate-packages"
 mkdir -p "$gate_packages"
 
+echo "==> Build the CLI E2E test project (Release)"
+# MinVerSkip is deliberately NOT set: the gate packs the Rask packages and reads the packed version off
+# the nupkg filename, so MinVer must stamp a real version here.
+#
+# The project the tests below run, because they run with --no-build. It references Rask.Cli, which embeds the
+# template trees; Rask.Cli.Tests does not reference it. Building that project instead left this one's copy of
+# Rask.Cli as stale as its last build. The gate then scaffolded from old templates against freshly packed packages,
+# and failed on an API the templates had already moved past. It would pass just as readily on templates that no
+# longer exist.
+NUGET_PACKAGES="$gate_packages" \
+dotnet build tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj -c Release -m:"${RASK_BUILD_SLOTS:-1}" 2>&1 | tee "$log" || status=$?
+
 if [ "$status" -eq 0 ]; then
   echo "==> CLI build gates (scaffold output + tutorial walk-through must compile)"
-  # The gates share a single packed feed, built lazily on first use, one pack at a time
-  # (CliBuildE2E.PackLocalFeedAsync says why it is not one invocation). RASK_BUILD_SLOTS sizes the build
-  # above: one core on a shared machine, the runner's own in CI.
+  # The gates share a single packed feed, built lazily on first use by one `dotnet pack`
+  # (CliBuildE2E.PackLocalFeedAsync). RASK_BUILD_SLOTS sizes it and the build above: one core on a
+  # shared machine, the runner's own in CI.
   #
   # The filter matches the SUFFIX every E2E class here shares, not a list of names. It used to name
   # them, and a class whose name the list did not happen to contain was simply never run -- silently,
