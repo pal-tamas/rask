@@ -186,7 +186,7 @@ public sealed class VsCodeScaffoldTests
         var recommended = scaffolds.ToDictionary(s => s.Label, s => Recommended(Index(s.Result)), StringComparer.Ordinal);
 
         string[] everywhere = ["ms-dotnettools.csdevkit", "editorconfig.editorconfig", "usernamehw.errorlens"];
-        string[] frameworks = ["vue.volar", "svelte.svelte-vscode"];
+        string[] frameworks = ["vue.volar", "svelte.svelte-vscode", "angular.ng-template"];
         foreach (var (label, ids) in recommended)
         {
             Assert.True(ids.Take(everywhere.Length).SequenceEqual(everywhere), $"{label}: {string.Join(", ", ids)}");
@@ -203,7 +203,10 @@ public sealed class VsCodeScaffoldTests
         Assert.DoesNotContain(recommended["react"], frameworks.Contains);
         Assert.DoesNotContain("bradlc.vscode-tailwindcss", recommended["react"]);
         Assert.Contains("vue.volar", recommended["server --islands vue"]);
+        Assert.Contains("vue.volar", recommended["vue"]);
         Assert.Contains("svelte.svelte-vscode", recommended["server --islands svelte"]);
+        Assert.Contains("svelte.svelte-vscode", recommended["svelte"]);
+        Assert.Contains("angular.ng-template", recommended["angular"]);
     }
 
     private static List<string?> Recommended(Dictionary<string, string> files)

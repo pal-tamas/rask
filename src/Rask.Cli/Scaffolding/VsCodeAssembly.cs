@@ -74,7 +74,7 @@ internal static class VsCodeAssembly
 
     /// <summary>
     ///     What <c>.vscode/extensions.json</c> recommends, why, and whether this project needs it — read from the
-    ///     files the scaffold wrote, so vue islands on a server app get Volar.
+    ///     files the scaffold wrote, so vue islands on a server app get Volar as the vue template does.
     /// </summary>
     /// <remarks>
     ///     Generated rather than a fragment: a fragment replaces the whole file, and Tailwind × islands is a
@@ -103,6 +103,8 @@ internal static class VsCodeAssembly
             static (_, files) => Any(files, name => name.EndsWith(".vue", StringComparison.Ordinal))),
         ("svelte.svelte-vscode", "Svelte: .svelte components.",
             static (_, files) => Any(files, name => name.EndsWith(".svelte", StringComparison.Ordinal))),
+        ("angular.ng-template", "Angular Language Service: completion and checking inside Angular templates.",
+            static (_, files) => Any(files, name => string.Equals(name, "angular.json", StringComparison.Ordinal))),
     ];
 
     private static bool Any(IReadOnlyList<ScaffoldFile> files, Func<string, bool> name) =>
