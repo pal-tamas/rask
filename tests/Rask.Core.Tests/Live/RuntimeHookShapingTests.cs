@@ -184,6 +184,54 @@ public sealed class RuntimeHookShapingTests
     }
 
     [Fact]
+    public void The_row_nearest_the_pointer_changes_at_the_midpoint_and_a_tooltip_flips_when_it_would_leave_the_frame()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var plot = root.GetProperty("plot");
+
+        Assert.Equal([0, 0, 1, -1], plot.GetProperty("nearest").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        Assert.Equal([60, 400 - 80, 311 - 10 - 80], plot.GetProperty("beside").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        Assert.Equal("300 100", plot.GetProperty("size").GetString());
+    }
+
+    [Fact]
+    public void A_digit_no_second_could_follow_finishes_its_part_and_one_too_many_starts_the_part_again()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var segments = root.GetProperty("segments");
+        string?[] Texts(string name) => segments.GetProperty(name).EnumerateArray().Select(e => e.GetString()).ToArray();
+
+        Assert.Equal(["03.", "01", "12.", "03."], Texts("month"));
+        Assert.Equal(["01.", "00"], Texts("zeros"));
+        Assert.Equal(["02", "03.", "23.", "06."], Texts("hour"));
+        Assert.Equal(["0026", "0206", "2026."], Texts("year"));
+    }
+
+    [Fact]
+    public void A_short_year_lands_within_twenty_years_ahead_and_a_pasted_date_is_read_in_the_order_of_the_parts()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var segments = root.GetProperty("segments");
+        string?[] Texts(string name) => segments.GetProperty(name).EnumerateArray().Select(e => e.GetString()).ToArray();
+
+        Assert.Equal(["2026", "2046", "1947", "2005", "0202"], Texts("pivot"));
+        Assert.Equal([29, 28, 29, 28, 30, 31], segments.GetProperty("days").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        Assert.Equal(["2026-03-14", "2026-03-14", "2026-03-14", null, null], Texts("pasted"));
+    }
+
+    [Fact]
     public void A_hook_holds_one_attribute_of_one_element_until_it_lets_go()
     {
         if (Run() is not { } root)

@@ -87,6 +87,43 @@ public sealed class RuntimeHookGestureTests(PlaywrightFixture playwright) : ICla
     }
 
     [Fact]
+    public async Task The_row_nearest_the_pointer_is_lit_without_a_round_trip_and_the_tooltip_keeps_beside_it_inside_the_plot()
+    {
+        await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
+        var page = session.Page;
+        const string read = "() => { const p = document.getElementById('plot'); return [p.hasAttribute('data-active') ? 'on' : 'off', [...p.querySelectorAll('[data-rask-plot-row][data-active]')].map(r => r.getAttribute('data-rask-plot-row')).join(','), p.style.getPropertyValue('--rask-plot-x'), p.style.getPropertyValue('--rask-pointer-x'), p.style.getPropertyValue('--rask-pointer-y'), document.getElementById('plot-tip').style.transform].join(' | '); }";
+
+        // The plot is 400 x 200 at (500, 100); its area 300 x 150 at (50, 20) inside it; rows at 0, 0.5 and 1.
+        await page.Mouse.MoveAsync(610, 170);
+        var first = await page.EvaluateAsync<string>(read);
+        await page.Mouse.MoveAsync(628, 170);
+        var pastTheMidpoint = await page.EvaluateAsync<string>(read);
+        await page.Mouse.MoveAsync(835, 260);
+        var last = await page.EvaluateAsync<string>(read);
+        await page.Mouse.MoveAsync(520, 110);
+
+        Assert.Equal("on | 0,0 | 50px | 110px | 70px | translate(60px, 80px)", first);
+        Assert.Equal("on | 1,1 | 200px | 128px | 70px | translate(210px, 80px)", pastTheMidpoint);
+        // At the right and bottom edges the 80 x 40 tooltip goes to the other side of the row and of the pointer.
+        Assert.Equal("on | 2,2 | 350px | 335px | 160px | translate(260px, 110px)", last);
+        Assert.StartsWith("off |  | 350px", await page.EvaluateAsync<string>(read), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_measured_element_keeps_its_field_at_its_own_content_box_and_tells_the_page_when_it_changes()
+    {
+        await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
+        var page = session.Page;
+        await page.EvaluateAsync(Record);
+
+        await page.WaitForFunctionAsync("() => document.getElementById('box-size').value === '300 100'");
+        await page.EvaluateAsync("() => { document.getElementById('box').style.width = '250.5px'; }");
+        await page.WaitForFunctionAsync("() => document.getElementById('box-size').value === '250.5 100'");
+
+        Assert.Equal("input:250.5 100 | change:250.5 100", await page.EvaluateAsync<string>("() => window.heard.join(' | ')"));
+    }
+
+    [Fact]
     public async Task A_control_is_hidden_where_the_global_it_requires_is_missing_and_shown_where_it_is_there()
     {
         await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
@@ -128,7 +165,7 @@ public sealed class RuntimeHookGestureTests(PlaywrightFixture playwright) : ICla
     }
 }
 
-/// <summary>Two drag surfaces, three gated buttons and a dropzone around a file input.</summary>
+/// <summary>Two drag surfaces, a plot, a measured box, three gated buttons and a dropzone around a file input.</summary>
 public sealed partial class GestureHookPage : Component
 {
     private const string Html = """
@@ -139,6 +176,15 @@ public sealed partial class GestureHookPage : Component
         <div id="track" data-rask-drag="x"
              style="position:absolute;left:100px;top:300px;width:200px;height:20px;background:#ccc;touch-action:none">
             <input id="track-value" type="hidden" value="0.3">
+        </div>
+        <div id="plot" data-rask-plot="0 0.5 1" style="position:absolute;left:500px;top:100px;width:400px;height:200px;background:#eee">
+            <div data-rask-plot-area style="position:absolute;left:50px;top:20px;width:300px;height:150px;background:#ddd"></div>
+            <i data-rask-plot-row="0"></i><i data-rask-plot-row="1"></i><i data-rask-plot-row="2"></i>
+            <b data-rask-plot-row="0"></b><b data-rask-plot-row="1"></b><b data-rask-plot-row="2"></b>
+            <div id="plot-tip" data-rask-plot-tooltip="10" style="position:absolute;left:0;top:0;width:80px;height:40px"></div>
+        </div>
+        <div id="box" data-rask-measure style="position:absolute;left:500px;top:400px;width:300px;height:100px;padding:10px">
+            <input id="box-size" type="hidden">
         </div>
         <button id="has" type="button" hidden data-rask-requires="document">has</button>
         <button id="lacks" type="button" data-rask-requires="NoSuchGlobal">lacks</button>

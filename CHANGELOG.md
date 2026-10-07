@@ -63,6 +63,11 @@ them until tagged releases begin.
   moment files are chosen until the handler has rendered, with `--rask-progress` (`12%`) and
   `--rask-progress-as-string` (`'12%'`): the request's real progress on the Server host (the upload is sent with
   `XMLHttpRequest` for that), bytes read by the handler in a WebAssembly app.
+- **Runtime hooks for a typed date or time and for a chart.** `data-rask-segments` turns a group of small inputs
+  (`data-rask-segment="month|day|year|hour|minute|meridiem"`) into one field — auto-advance, arrows, Backspace, paste,
+  AM/PM — that reaches the page as one hidden field carrying `yyyy-mm-dd` / `HH:mm`. `data-rask-plot` lights the row
+  nearest the pointer and moves a tooltip beside it with no round trip, and `data-rask-measure` keeps a hidden field at
+  an element's own width and height so a chart can be drawn at its real size.
 
 - **The React starter is plain Tailwind.** `rask new --template react` no longer installs daisyUI in the
   client: its page and sign-in screens are drawn with Tailwind utilities alone, light and dark, so a front
