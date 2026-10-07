@@ -69,6 +69,64 @@ them until tagged releases begin.
     carries no label of its own, as Flux's does not.
   - The operator console's queue and cache pages raise their results through `Toast` and the console's
     layout places a `Ui.Toast`.
+- **BREAKING: an app's Tailwind build takes the UI kit in — one stylesheet, as a Flux app has.** An app
+  used to link two sheets: the kit's precompiled one, then its own Tailwind output. Both carry an
+  `@layer utilities`, the kit's `dark` variant is a `:where()` with no specificity of its own, and
+  between two sheets nothing is left to rank a tie but link order — so any base utility the app wrote
+  *anywhere* beat a kit variant of the same property. Measured on rask.sh in dark mode: Flux's card
+  (`bg-white dark:bg-white/4`) computed `rgb(255, 255, 255)` because the site writes `bg-white` on some
+  other element, `dark:text-zinc-300` lost to `text-zinc-500`, and a metric's `sm:flex-row` lost to
+  `flex-col` at every width — with every class in the markup correct and every gate green. Now the app
+  compiles the kit's classes into its **own** sheet, beside the ones it writes, and Tailwind's own order
+  holds: a base utility before its variants, a shorthand before its longhands.
+
+  In `Styles/app.css`, one line replaces five:
+
+  ```diff
+  - @layer properties, theme, base, components, daisyui, utilities;
+  - @import "tailwindcss";
+  - @source not "./vendor";
+  - @plugin "./vendor/daisyui.mjs";
+  + @import "./vendor/rask-ui.css";
+  ```
+
+  and in the `.csproj` both switches go — the import is the whole opt-in:
+
+  ```diff
+  - <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+  - <RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
+  ```
+
+  `rask new` writes exactly that. The build sees the import, writes the kit's Tailwind sources into
+  `Styles/vendor/` before Tailwind runs (`rask-ui.css`: the layer order, Tailwind, the kit, the class
+  list; `rask-ui.kit.css`: the `@theme` tokens, the `dark` variant, daisyUI, the rules a utility cannot
+  say; `rask-ui.classes.txt`: every class a kit component writes; `daisyui.mjs`), and records
+  `Rask.Ui.Stylesheet` in the app assembly so `RaskApp` and the WASM host link `css/app.css` **alone**.
+  A hand-wired host drops its `UiStylesheet.Href()` link; `wwwroot/css/rask-ui.css` is deleted by the
+  next build. What else changes for an app:
+  - **`RaskUiWriteStylesheet=true` beside a Tailwind stylesheet is a build error**, with the fix in the
+    message, whether or not the sheet imports the kit. The precompiled sheet (`UiStylesheet.Css`,
+    `UiStylesheet.Href()`) remains for a surface with no Tailwind build of its own.
+  - **`RaskUiWriteDaisyUiPlugin` and `RaskUiDaisyUiPluginOutput` are gone.** daisyUI's plugin arrives with
+    the import, once, under the kit's `[data-rask-ui]` scope — an app that wrote `btn` or `card` itself
+    used to compile a second copy at `:root`. New: `RaskUiTailwind` (`true`/`false` overrides the
+    detection) and `RaskUiTailwindDirectory`.
+  - **The kit's `@theme` tokens, `@custom-variant dark` and the layer order have one declaration**, in the
+    kit. An app that copied the `--color-ui-*` block into its own `@theme` deletes the copy (rask.sh
+    did, and the test holding the copy equal went with it); re-skinning still means redefining a token
+    in your own `@theme`, after the import.
+  - **`Rask.Dashboard` compiles its own sheet the same way** (`Styles/dashboard.css`: the kit without
+    Tailwind's preflight), so a utility a console page writes would be compiled — it inlined the kit's
+    precompiled sheet before, where such a class named a rule that existed nowhere.
+  - `Rask.Tailwind` gains `RaskTailwindClassList` — a component library that compiles a sheet of its own
+    can write down every class it defines for an app's `@source` — and rebuilds when a file beside the
+    stylesheet changes (an imported partial used not to count as an input). In the repo,
+    `src/Rask.Ui/Styles/vendor/daisyui.mjs` moved to `src/Rask.Ui/Styles/daisyui.mjs`, and the kit's
+    own entry is `Styles/ui.precompiled.css`; `Styles/ui.css` is still where its tokens and rules live.
+
+  rask.sh's CSS went from 497.7 KB in two sheets (68.0 KB gzipped) to 495.4 KB in one (64.8 KB): one
+  request fewer, and about the same bytes — the kit's share is nearly all of it either way.
+
 - **BREAKING: `Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
   [Flux UI's field](https://fluxui.dev/components/field).** The first family of the kit drawn without
   daisyUI: Flux's parts, props, spacing and colours in light and dark, held to its docs page by
@@ -269,6 +327,25 @@ them until tagged releases begin.
   break says `.Class("font-mono max-w-full break-all whitespace-normal!")`. The count badges of `Ui.NavItem` and `Ui.NavTab`, the label badge
   of a form field and the chips of a multi-select are drawn with it too, so the kit writes no `badge` class
   any more; an app that selected on `.badge` selects on `[data-ui-badge]`.
+- **BREAKING: `Ui.Tooltip` is Flux's tooltip, and its trigger is told about it.** One look (Flux's
+  zinc bubble, no tones, no arrow), Flux's props, and Flux's behaviour with no script: the content is a
+  `[popover]` on CSS anchor positioning that flips at the viewport's edge, opened by the browser's interest
+  invoker where the trigger is a button or a link and by `:hover`/`:focus-visible` everywhere else.
+  ```csharp
+  Ui.Tooltip.Tip("Copy").Position(Ui.Position.Right)[ … ]   // was
+  Ui.Tooltip.Content("Copy").Right[ … ]                     // now
+  ```
+  `Tip` → `Content` (optional: richer content is a `Ui.TooltipContent` child after the trigger).
+  `Position`/`Align` take the tooltip's own `Ui.TooltipPosition` (`Top` default, `Right`, `Bottom`, `Left`)
+  and `Ui.TooltipAlign` (`Center` default, `Start`, `End`) instead of the shared `Ui.Position`/`Ui.Align`.
+  `Tone` is gone — Flux's tooltip has one look. `Open` is gone — Flux has no forced-open tooltip; use
+  `Toggleable()`, which now opens on a CLICK (`popovertarget`) and closes on Escape or a click outside,
+  where it used to show on focus. New: `Gap`, `Offset`, `Disabled`, `Interactive`, and `Kbd` on
+  `Ui.TooltipContent`. The markup is new — `data-ui-tooltip` around the trigger, `data-ui-tooltip-content`
+  on the content — and `.tooltip`, `.tooltip-*` and `.ui-tooltip-toggleable` are no longer written.
+  **A screen reader now says it**: the trigger carries `aria-describedby` (or `aria-labelledby`, when it
+  has no text of its own), which the daisyUI tooltip never wrote. `docs/ui-kit.md#tooltips` lists the four
+  things Flux's script does that a script-less tooltip does not, and the runtime hook that would close them.
 
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
@@ -382,6 +459,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Rask.Wasm: a prerendered page links the one stylesheet its app compiles.** The prerender compiles the
+  app a second time, in `obj/`, and that copy's assembly did not say what the app's says: where the
+  stylesheet is served (`Rask.Stylesheet`) and that the UI kit is compiled into it (`Rask.Ui.Stylesheet`).
+  So every baked page of an app whose `Styles/app.css` imports the kit still linked `/css/rask-ui.css`,
+  which such an app does not ship — a 404 on first paint, gone once the app booted. The app's assembly
+  metadata travels to the prerender now.
 - **The daily upstream run can push what it regenerated when `main`'s workflows moved meanwhile (#1188).**
   Its branch was cut from the commit the run started on, and a branch whose workflow files differ from
   `main`'s is one the workflow's own token may not push. The regenerated commit is rebased onto `main`
@@ -440,6 +523,28 @@ them until tagged releases begin.
   Spectre switched interaction off behind it.
 
 ### Removed
+
+- **BREAKING: what the kit had added to Flux's components is gone.** A `Rask.Ui` component that mirrors a
+  Flux UI one carries Flux's props, values and attributes and no others, and a test now holds every built
+  component to that (`FluxConformanceTests`: a property or enum member Flux does not document fails unless
+  it is named as Rask's way of saying a Flux mechanism).
+  - `Ui.AccordionItem.OnToggle` is removed. Flux's accordion reports nothing back; `Expanded()` is the state
+    an item starts in.
+  - `Ui.Heading.Level(5)` and `Level(6)` render a `<div>`, as any level Flux does not take: Flux's heading
+    has levels 1 to 4. `Ui.CardHeading` and the kit's other titles are unchanged.
+  - `Ui.Card` writes `data-ui-card-size` only when a `Size` is set, as Flux writes `data-flux-card-size`.
+    A selector on `[data-ui-card-size="md"]` no longer matches a card that left the size unset.
+  - `Ui.Button.Loading(true)` no longer writes `aria-busy="true"`: Flux's loading button carries no ARIA.
+    It writes `data-ui-loading` (Flux's `data-flux-loading`) beside `data-loading`. The runtime still marks
+    a button waiting on its own handler with `data-loading` and `aria-busy`.
+  - `Ui.Button.NewTab` is removed. Flux's button has no such prop: forward the anchor's own attributes,
+    `.Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))`. Nothing is added to them, so a
+    `target` without the `rel` is written as given.
+  - `Ui.ButtonType.Reset` is removed: Flux's `type` is `button` or `submit`. A reset is the native tag,
+    `Button.Type(ButtonType.Reset)`.
+  - Markers mirror Flux's one for one: a button that is not ghost or subtle also writes
+    `data-ui-group-target`, a badge's leading icon writes `data-ui-badge-icon`, and
+    `data-ui-badge-icon-trailing` is now `data-ui-badge-icon:trailing`, as Flux spells it.
 
 - **BREAKING: `Notify` is gone; `Dispatcher` now works everywhere.** Two statics published an event, and which
   one worked depended on where the line stood: `Dispatcher.Publish` threw in a `BackgroundService`, and

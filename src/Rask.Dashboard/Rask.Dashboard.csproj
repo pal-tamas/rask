@@ -32,10 +32,20 @@
          exists on no feed and make Rask.Dashboard unrestorable. Guarded by PackageDependencyTests. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
 
-    <!-- The component kit the console is drawn with — every page, and the only stylesheet: the console writes no
-         classes of its own, so it compiles no sheet of its own. A real package dependency, not PrivateAssets:
-         the types are Rask.Ui's and an app restoring Rask.Dashboard has to be able to resolve them. -->
+    <!-- The component kit the console is drawn with — every page. A real package dependency, not
+         PrivateAssets: the types are Rask.Ui's and an app restoring Rask.Dashboard has to be able to
+         resolve them. Its styles are compiled into the console's own sheet, below. -->
     <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj"/>
+
+    <!-- Build-order edge only: it puts Rask.Tailwind.Tasks.dll in Rask.Tailwind's build/ folder before
+         the import loads it with <UsingTask>. Nothing is referenced and nothing flows. UndefineProperties
+         because this project's inner build hands TargetFramework to everything it references, and
+         Rask.Tailwind is netstandard2.0 (NETSDK1005) — as in Rask.Ui. -->
+    <ProjectReference Include="..\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"
+                      UndefineProperties="TargetFramework"/>
 
     <!-- The panels read these packages' entity types directly. Referencing all four is what lets a
          single package light up whichever batteries an app registered, with no glue from the caller. -->
@@ -52,6 +62,39 @@
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
+
+  <!--
+    THE CONSOLE'S OWN STYLESHEET, with the kit compiled in — one sheet, as an app has.
+
+    The console owns its whole document, so it takes the kit the way an app does: Styles/dashboard.css
+    imports the kit's Tailwind sources (written into Styles/vendor/ by Rask.Ui's targets) and this
+    project's Tailwind build compiles them beside whatever class a page here writes. It used to inline the
+    kit's precompiled sheet, which carries only what the KIT's sources name — so a utility written in a
+    console page would have been a correct class in the markup naming a rule that exists nowhere.
+
+    Compiled into obj/ and embedded: nothing serves a file out of this package (DashboardStylesheet).
+
+    Conditioned on an inner build, and embedded from a target rather than a static item, for the two
+    reasons Rask.Ui.csproj records beside the same lines: the TFM-less outer pass would name
+    `obj//dashboard.generated.css`, and a static item is evaluated before the sheet exists on a clean
+    clone, so the first package would ship with no stylesheet at all (#916).
+  -->
+  <PropertyGroup Condition=" '$(TargetFramework)' != '' ">
+    <RaskTailwindInput>Styles/dashboard.css</RaskTailwindInput>
+    <RaskTailwindOutput>obj/$(TargetFramework)/dashboard.generated.css</RaskTailwindOutput>
+    <RaskTailwindMinify>true</RaskTailwindMinify>
+  </PropertyGroup>
+
+  <Target Name="EmbedRaskDashboardStylesheet"
+          AfterTargets="_RaskTailwindBuild"
+          BeforeTargets="PrepareResourceNames"
+          Condition=" '$(TargetFramework)' != '' AND '$(DesignTimeBuild)' != 'true' ">
+    <Error Condition="!Exists('$(RaskTailwindOutput)')"
+           Text="Rask.Dashboard: $(RaskTailwindOutput) was not produced. The console's stylesheet is compiled by _RaskTailwindBuild from $(RaskTailwindInput) and embedded here; shipping without it renders every console page unstyled."/>
+    <ItemGroup>
+      <EmbeddedResource Include="$(RaskTailwindOutput)" LogicalName="Rask.Dashboard.dashboard.css"/>
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>

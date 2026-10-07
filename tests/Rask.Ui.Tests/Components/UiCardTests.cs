@@ -17,7 +17,7 @@ public sealed partial class UiCardTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_card_with_nothing_said_is_a_seamless_default_medium_one()
+    public void A_card_with_nothing_said_is_a_seamless_default_medium_one_and_names_no_size()
     {
         var card = Ui.Card[Span["body"]];
 
@@ -25,7 +25,7 @@ public sealed partial class UiCardTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("data-ui-card-body-variant=\"seamless\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-card-variant=\"default\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-ui-card-size=\"md\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-ui-card-size", html, StringComparison.Ordinal);
         Assert.Contains("rounded-xl", html, StringComparison.Ordinal);
         Assert.Contains("p-6", html, StringComparison.Ordinal);
         Assert.Contains("shadow-xs", html, StringComparison.Ordinal);

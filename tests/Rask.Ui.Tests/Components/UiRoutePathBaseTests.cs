@@ -33,7 +33,7 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
         // requests the URL from the host.
         Assert.Contains(
             "href=\"/shop/orders\"",
-            Ui.Button.Href(Orders).NewTab(true)["Orders"].ToHtml(),
+            Ui.Button.Href(Orders).Attributes(("target", "_blank"))["Orders"].ToHtml(),
             StringComparison.Ordinal));
 
     [Fact]

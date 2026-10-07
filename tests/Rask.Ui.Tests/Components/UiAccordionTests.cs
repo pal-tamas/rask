@@ -8,9 +8,6 @@ namespace Rask.UiTests.Components;
 /// </summary>
 public partial class UiAccordionTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"newState\":\"open\",\"oldState\":\"closed\"}";
-    private const string Closed = "{\"newState\":\"closed\",\"oldState\":\"open\"}";
-
     [Fact]
     public void An_item_is_a_details_whose_summary_is_the_heading_and_each_part_carries_its_marker()
     {
@@ -100,24 +97,6 @@ public partial class UiAccordionTests : global::Rask.Core.RaskMarkup
         var html = Ui.Accordion[Ui.AccordionItem.Heading("Shipping")["Two days."]].ToHtml();
 
         Assert.DoesNotContain("data-rask-on-", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task An_item_the_page_owns_tells_it_each_toggle_and_is_rendered_in_the_state_it_keeps()
-    {
-        var open = false;
-        var heard = new List<bool>();
-        var page = Page.Render(() => Ui.Accordion[
-            Ui.AccordionItem.Heading("Advanced").Expanded(open).OnToggle(now => { heard.Add(now); open = now; })["Optional."]
-        ]);
-
-        await page.On("details").Raise("toggle", Opened);
-        var afterOpening = page.Find("details").Attribute("open");
-        await page.On("details").Raise("toggle", Closed);
-
-        Assert.Equal([true, false], heard);
-        Assert.NotNull(afterOpening);
-        Assert.Null(page.Find("details").Attribute("open"));
     }
 
     [Fact]

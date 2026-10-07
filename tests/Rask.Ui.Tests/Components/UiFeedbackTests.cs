@@ -1,7 +1,8 @@
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The feedback components that are still daisyUI's. Most of these assertions are about what gets ANNOUNCED, because
+///     The feedback components that are still daisyUI's (the tooltip is Flux's, in UiTooltipTests). Most of these
+///     assertions are about what gets ANNOUNCED, because
 ///     that is the half of feedback a purely visual check never sees.
 /// </summary>
 public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
@@ -34,57 +35,5 @@ public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
         Assert.Contains("role=\"status\"", html);
         Assert.Contains("aria-hidden=\"true\"", html);
         Assert.Contains("Loading orders", html);
-    }
-
-    [Theory]
-    [InlineData(Ui.Position.Top, "tooltip-top")]
-    [InlineData(Ui.Position.Bottom, "tooltip-bottom")]
-    [InlineData(Ui.Position.Left, "tooltip-left")]
-    [InlineData(Ui.Position.Right, "tooltip-right")]
-    public void A_tooltip_takes_every_position(Ui.Position position, string expected) =>
-        Assert.Contains(expected, Ui.Tooltip.Tip("Copy").Position(position)[Span["c"]].ToHtml());
-
-    [Theory]
-    [InlineData(Ui.Align.Start, "tooltip-start")]
-    [InlineData(Ui.Align.Center, "tooltip-center")]
-    [InlineData(Ui.Align.End, "tooltip-end")]
-    public void A_tooltip_takes_every_alignment(Ui.Align align, string expected) =>
-        Assert.Contains(expected, Ui.Tooltip.Tip("Copy").Align(align)[Span["c"]].ToHtml());
-
-    [Fact]
-    public void A_tooltip_can_be_shown_without_a_hover()
-    {
-        // The only way a touch user ever sees one: there is no hover on a touch screen.
-        Assert.Contains("tooltip-open", Ui.Tooltip.Tip("Copy").Open(true)[Span["c"]].ToHtml());
-        Assert.DoesNotContain("tooltip-open", Ui.Tooltip.Tip("Copy")[Span["c"]].ToHtml());
-    }
-
-    [Fact]
-    public void The_tip_travels_in_the_attribute_daisyUI_reads() =>
-        Assert.Contains("data-tip=\"Copy\"", Ui.Tooltip.Tip("Copy")[Span["c"]].ToHtml());
-
-    [Fact]
-    public void A_shortcut_is_a_kbd_inside_the_tip_rather_than_text_in_an_attribute()
-    {
-        // An attribute holds text; the shortcut is an element, so the tip moves into daisyUI's content child.
-        var html = Ui.Tooltip.Tip("Save").Kbd("⌘S")[Span["s"]].ToHtml();
-
-        Assert.DoesNotContain("data-tip", html);
-        Assert.Contains("class=\"tooltip-content\" role=\"tooltip\"", html);
-        Assert.Contains("<kbd class=\"kbd kbd-xs", html);
-        Assert.True(
-            html.IndexOf("tooltip-content", StringComparison.Ordinal) < html.IndexOf("<span>s</span>", StringComparison.Ordinal),
-            "the tip content must come before the thing it points at, which daisyUI's child selector expects.");
-    }
-
-    [Fact]
-    public void A_toggleable_tip_is_reachable_by_a_tap()
-    {
-        // No hover on a touch screen: a focusable wrapper is what a tap can give focus to.
-        var html = Ui.Tooltip.Tip("Why").Toggleable(true)[Span["?"]].ToHtml();
-
-        Assert.Contains("ui-tooltip-toggleable", html);
-        Assert.Contains("tabindex=\"0\"", html);
-        Assert.DoesNotContain("tabindex", Ui.Tooltip.Tip("Why")[Span["?"]].ToHtml());
     }
 }

@@ -20,8 +20,9 @@ public partial class UiHeadingTests : global::Rask.Core.RaskMarkup
     [Theory]
     [InlineData(1, "<h1 ")]
     [InlineData(3, "<h3 ")]
-    [InlineData(6, "<h6 ")]
-    [InlineData(7, "<div ")]
+    [InlineData(4, "<h4 ")]
+    [InlineData(5, "<div ")]
+    [InlineData(6, "<div ")]
     public void A_level_is_the_element_and_leaves_the_size_alone(int level, string expected)
     {
         var heading = Ui.Heading.Level(level).Xl["Orders"];

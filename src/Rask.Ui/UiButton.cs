@@ -24,6 +24,17 @@ public sealed partial class UiButton : UiElement
 {
     private static readonly UiPartMarker Marker = new("ui-button");
 
+    // Flux marks a button twice unless it is ghost or subtle: the second is what a group reaches its buttons by.
+    private static readonly UiPartMarker Grouped = Marker.And("ui-group-target");
+
+    // `data-ui-loading` is Flux's `data-flux-loading`; `data-loading` is the runtime's, and what the spinner shows on.
+    private static readonly UiPartMarker Waiting = Marker.And("ui-loading").And("loading");
+    private static readonly UiPartMarker GroupedWaiting = Grouped.And("ui-loading").And("loading");
+
+    // The runtime reads `data-rask-loading="off"` and leaves the button alone.
+    private static readonly UiPartMarker Unmarked = Marker.And("rask-loading", "off");
+    private static readonly UiPartMarker GroupedUnmarked = Grouped.And("rask-loading", "off");
+
     private static readonly Dictionary<string, string?> IndicatorMark = new(StringComparer.Ordinal)
     {
         ["data-ui-loading-indicator"] = null,
@@ -86,8 +97,8 @@ public sealed partial class UiButton : UiElement
     ///     fades out at its own width, a spinner takes its place and a second press is dropped. It is never
     ///     <c>disabled</c>, which would throw keyboard focus off the control mid-press.
     ///     <see langword="false" /> opts out — a stepper whose presses are meant to queue.
-    ///     <see langword="true" /> shows it from C#, for work that outlives the handler. Ignored when it is
-    ///     not a <c>&lt;button&gt;</c>.
+    ///     <see langword="true" /> shows it from C#, for work that outlives the handler, by <c>data-loading</c>
+    ///     alone: Flux's loading button carries no ARIA. Ignored when it is not a <c>&lt;button&gt;</c>.
     /// </remarks>
     public bool? Loading { get; set; }
 
@@ -113,12 +124,6 @@ public sealed partial class UiButton : UiElement
     ///     cannot be <see cref="Disabled" />: a link that should not be followed should not be rendered.
     /// </remarks>
     public RouteUrl? Href { get; set; }
-
-    /// <summary>
-    ///     Opens <see cref="Href" /> in a new tab, with the <c>rel="noopener noreferrer"</c> that makes that
-    ///     safe, as <see cref="UiLink.External" /> does.
-    /// </summary>
-    public bool? NewTab { get; set; }
 
     /// <summary>Whether it is disabled — by ATTRIBUTE, so the browser refuses the press. A <c>&lt;button&gt;</c> only.</summary>
     public bool? Disabled { get; set; }
@@ -187,37 +192,30 @@ public sealed partial class UiButton : UiElement
     };
 
     /// <inheritdoc />
-    private protected override IReadOnlyDictionary<string, string?>? ResolveData() =>
-        (IsButton ? Loading : null) switch
+    private protected override IReadOnlyDictionary<string, string?>? ResolveData()
+    {
+        var grouped = Variant is not (Ui.ButtonVariant.Ghost or Ui.ButtonVariant.Subtle);
+        var marker = (IsButton ? Loading : null) switch
         {
-            true => Marker.With(Data, "loading", null),
-            // The runtime reads `data-rask-loading="off"` and leaves the button alone.
-            false => Marker.With(Data, "rask-loading", "off"),
-            _ => Marker.With(Data),
+            true => grouped ? GroupedWaiting : Waiting,
+            false => grouped ? GroupedUnmarked : Unmarked,
+            _ => grouped ? Grouped : Marker,
         };
+
+        return marker.With(Data);
+    }
 
     /// <inheritdoc />
     protected override IReadOnlyDictionary<string, string?>? ResolveAria()
     {
         // A square shows a glyph and nothing else, so its tooltip is the only words it has.
         var label = Children is null && AriaLabel is null && Aria?.ContainsKey("label") != true ? Tooltip : null;
-        var busy = Loading == true && IsButton && AriaBusy is null && Aria?.ContainsKey("busy") != true;
-        if (label is null && !busy)
+        if (label is null)
         {
             return Aria;
         }
 
-        var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
-        if (label is not null)
-        {
-            aria["label"] = label;
-        }
-
-        if (busy)
-        {
-            aria["busy"] = "true";
-        }
-
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = label };
         if (Aria is { } callerAria)
         {
             foreach (var (name, value) in callerAria)
@@ -244,33 +242,24 @@ public sealed partial class UiButton : UiElement
         }
     }
 
-    private void WriteLink(StringBuilder sb, RouteUrl href)
+    private static void WriteLink(StringBuilder sb, RouteUrl href)
     {
         // A generated route carries its page type; a string converted to a RouteUrl does not. Only the first
         // is this app's to route, so only it is intercepted and prefixed with the deploy's PathBase (#975).
         var inApp = href.PageType is not null;
         AppendUrlAttr(sb, "href", inApp ? LiveOptions.PathBase + href.ToString() : href.ToString());
 
-        if (NewTab == true)
-        {
-            AppendAttr(sb, "target", "_blank");
-            AppendAttr(sb, "rel", "noopener noreferrer");
-        }
-        else if (inApp)
+        if (inApp)
         {
             // The runtime's click interception selects on this. Without it the anchor is a full document load.
+            // It leaves a `target="_blank"` the call site wrote alone.
             AppendAttr(sb, "data-rask-nav", null);
         }
     }
 
     private void WriteButton(StringBuilder sb)
     {
-        AppendAttr(sb, "type", Type switch
-        {
-            Ui.ButtonType.Submit => "submit",
-            Ui.ButtonType.Reset => "reset",
-            _ => "button",
-        });
+        AppendAttr(sb, "type", Type == Ui.ButtonType.Submit ? "submit" : "button");
 
         if (Disabled == true)
         {

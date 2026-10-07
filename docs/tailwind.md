@@ -15,8 +15,8 @@ That is the whole setup — and there was no step you skipped. Styling is
 project, with no flag to pass, nothing to turn on, and nothing to turn off.
 
 **And a daisyUI project.** [daisyUI](ui-kit.md) is a Tailwind plugin — component classes like `btn`,
-`card` and `navbar` on top of the utilities — and it arrives the same way: already there, no npm,
-nothing to install. It is what the scaffolded starter page is written in, on every template `rask new`
+`card` and `navbar` on top of the utilities — and it arrives with [the UI kit](ui-kit.md), in the same
+import: already there, no npm, nothing to install. It is what the scaffolded starter page is written in, on every template `rask new`
 can emit, so a project looks the same whether it runs on the server or in WebAssembly.
 
 It works on every template. On `wasm` the stylesheet belongs to the **browser**
@@ -26,57 +26,109 @@ the browser downloads.
 
 ## What a new project starts with
 
-One file and two links — the whole of it, and all of it already there:
+One file and one link — the whole of it, and all of it already there:
 
 1. **`Styles/app.css`** — the stylesheet Tailwind compiles:
 
    ```css
-   @layer properties, theme, base, components, daisyui, utilities;
-
-   @import "tailwindcss";
-
-   @source not "./vendor";
-   @plugin "./vendor/daisyui.mjs";
+   @import "./vendor/rask-ui.css";
 
    /* Your own CSS goes here. Anything below participates in the same build, so @apply and
       @theme work, and the output still contains only what this project actually uses. */
    ```
 
    Still no config file, no `content` array and no `tailwind.config.js` — v4 detects its own sources.
-   The three lines around the import are [daisyUI](ui-kit.md), and each one is load-bearing:
+   That one import is Tailwind **and** [the UI kit](ui-kit.md), so the app compiles **one stylesheet**,
+   the way a [Flux](https://fluxui.dev) app does. `rask-ui.css` is four lines:
 
-   - **`@plugin`** loads daisyUI from a copy `Rask.Ui` ships and the build puts beside this file. By
-     relative path, because Tailwind resolves a plugin the way Node does — by walking up for a
-     `node_modules` — and the standalone engine below carries no package tree. **There is still no npm
-     and no `node_modules`.**
-   - **`@source not`** says the bundle is not source. Tailwind scans the directory it runs in, and that
-     file names every class daisyUI defines; scanned, it acts as a safelist for the whole library, and a
-     sheet containing too much looks exactly like a sheet containing enough.
-   - **`@layer`** declares the order before anything can imply another. daisyUI emits into a `daisyui`
-     layer that Tailwind's own import does not rank, so left alone it outranks the utilities beside it
-     and `class="btn px-8"` gives you `.btn`'s padding, not `px-8`.
+   ```css
+   @layer properties, theme, base, components, daisyui, rask, utilities;
 
-2. **Two `<link>`s**, in an order that is a contract. `RaskApp` and the WASM host write both into every
-   document — the build records where `css/app.css` is served as the app assembly's `Rask.Stylesheet`
-   metadata — so `App.cs` names neither. A hand-wired `MapRask<App>()` host writes them itself:
+   @import "tailwindcss";
+   @import "./rask-ui.kit.css";
+   @source "./rask-ui.classes.txt";
+   ```
+
+   - **`@layer`** declares the order for the document before anything can imply another: your
+     utilities above preflight, above daisyUI and above the kit's own rules. It is why the import goes
+     first in your sheet.
+   - **`rask-ui.kit.css`** is the kit as Tailwind source: its `@theme` tokens, the `dark` variant its
+     components and your `dark:` utilities share, [daisyUI](ui-kit.md) (loaded from `daisyui.mjs`
+     beside it, by relative path — the standalone engine carries no package tree, so there is still
+     **no npm and no `node_modules`**), and the few rules a utility cannot say.
+   - **`rask-ui.classes.txt`** is every class the kit's components write. They are C# string literals
+     in a compiled assembly, where no scan can find them, so the kit's build lists them and yours reads
+     the list.
+
+   The build writes those files into `Styles/vendor/` before Tailwind runs; `rask new` ignores the
+   folder. You do not edit or commit them.
+
+2. **One `<link>`.** `RaskApp` and the WASM host write it into every document — the build records
+   where `css/app.css` is served as the app assembly's `Rask.Stylesheet` metadata — so `App.cs` names
+   no stylesheet. A hand-wired `MapRask<App>()` host writes it itself:
 
    ```csharp
-   // The kit's sheet, FIRST — it declares the @layer order for the whole document.
-   Link.Rel("stylesheet").Href(UiStylesheet.Href(LiveOptions.PathBase)),
-   // Compiled from Styles/app.css by Rask.Tailwind, scanning this project's own source.
+   // Compiled from Styles/app.css by Rask.Tailwind: Tailwind, the kit, and this project's own classes.
    Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")
    ```
 
-   A browser ranks `@layer` names by first appearance across every sheet on the page, and nothing later
-   can reorder a name already placed — so linking the kit's second lets the ranking fall out of
-   whichever sheet happened to mention a name earliest. That put `base` above `utilities` for a whole
-   document once, and every `text-4xl` and `px-*` in the markup was silently beaten by preflight.
+**Nothing in the `.csproj`.** There is no Tailwind package to add — the compiler, its MSBuild targets
+and the task that fetches it ship *inside* `Rask.Server` and `Rask.Wasm`, the way scoped CSS does — and
+no switch for the kit: the import in `Styles/app.css` is the whole opt-in. The build reads it, writes
+`Styles/vendor/`, and tells the host the kit is already in the app's sheet.
 
-**Nothing else in the `.csproj` but two opt-ins.** There is still no Tailwind package to add — the
-compiler, its MSBuild targets and the task that fetches it ship *inside* `Rask.Server` and `Rask.Wasm`,
-the way scoped CSS does. What a scaffolded project adds is `<RaskUiWriteStylesheet>` and
-`<RaskUiWriteDaisyUiPlugin>`, which are what write those two files into the tree. Both are build-only:
-no runtime assembly, nothing shipped with the app.
+### One sheet, not two
+
+Until this arrangement an app linked two: the kit's precompiled sheet, then its own. Both put utilities
+in `@layer utilities`, and between two sheets the cascade has nothing left to rank them by but link
+order — so any base utility *you* wrote anywhere beat a kit **variant** of the same property. On
+rask.sh a Flux card (`bg-white dark:bg-white/4`) computed `rgb(255, 255, 255)` in dark mode because the
+site writes `bg-white` on some other element, and a kit `sm:flex-row` lost to the site's `flex-col`.
+Every class in the markup was right.
+
+In one sheet every utility exists once and Tailwind's own order holds: a base utility before its
+variants, a shorthand before its longhands. So the build **refuses** the old pairing —
+`<RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>` in a project that compiles its own Tailwind
+stylesheet is an error, with the line to write instead.
+
+**Upgrading an app scaffolded before this:**
+
+```diff
+  /* Styles/app.css */
+- @layer properties, theme, base, components, daisyui, utilities;
+-
+- @import "tailwindcss";
+-
+- @source not "./vendor";
+- @plugin "./vendor/daisyui.mjs";
++ @import "./vendor/rask-ui.css";
+```
+
+```diff
+  <!-- the .csproj -->
+- <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+- <RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
+```
+
+and, in a hand-wired host, drop the `UiStylesheet.Href()` link. `wwwroot/css/rask-ui.css` is deleted by
+the next build.
+
+### Without Tailwind's preflight, or with a layer of your own
+
+`rask-ui.css` is short so that you can write it out. A sheet that wants Tailwind's utilities without
+its reset imports the kit's own file and says the rest itself — this is what `Rask.Dashboard` does:
+
+```css
+@layer properties, theme, base, components, daisyui, rask, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "./vendor/rask-ui.kit.css";
+@source "./vendor/rask-ui.classes.txt";
+```
+
+To add a layer, name it in a statement of your own **before** the import: `@layer theme, base, brand;`
+puts `brand` above `base` and below everything the kit's statement adds after it.
 
 ## Your C# is the source it scans
 
@@ -136,14 +188,18 @@ compile, which is what lets a class library in the same solution ignore all of t
 |---|---|---|
 | `RaskTailwindVersion` | `4.3.3` | The Tailwind version. **Pinned, never floating** — a compiler is not a library, and a different version emits different CSS, so a build that quietly picked up a new one would change how your pages look with nothing in the diff. Bump it deliberately. |
 | `RaskTailwindEngine` | `auto` | `standalone` or `npm` to force one. On Windows on ARM, `npm` gets you a native engine instead of the x64 binary under emulation. |
-| `RaskTailwindInput` | `Styles/app.css` | Your stylesheet — the one with `@import "tailwindcss"`. |
+| `RaskTailwindInput` | `Styles/app.css` | Your stylesheet — the one that imports Tailwind, on its own or through `rask-ui.css`. |
 | `RaskTailwindOutput` | `wwwroot/css/app.css` | Where the compiled CSS lands. |
 | `RaskTailwindMinify` | `true` in Release | Minified for production, readable in devtools while you work. |
 | `RaskTailwindOffline` | `false` | Never reach the network. A missing binary fails the build naming the file to place and the exact path it goes at, instead of downloading it. For builds that must be hermetic. |
 | `RaskTailwindCacheRoot` | `~/.rask/tailwind` | Where fetched binaries are cached. |
+| `RaskTailwindClassList` | unset | For a component **library** that compiles a sheet of its own: a path to write every class that sheet defines, one per line, for an app's Tailwind build to read with `@source`. It is how `Rask.Ui` hands its classes over. |
+| `RaskUiTailwind` | follows the stylesheet | Whether the build writes the kit's Tailwind sources into `Styles/vendor/`: on when the stylesheet imports `rask-ui.css` (or `rask-ui.kit.css`), off otherwise. `true`/`false` decides it regardless. |
+| `RaskUiTailwindDirectory` | `vendor/` beside the stylesheet | Where those sources land. |
 
-The build is **incremental**: it re-runs only when the input sheet or a `.cs`/`.razor`/`.html` file in
-the project has changed since the output was written. Design-time builds are excluded entirely — an
+The build is **incremental**: it re-runs only when the input sheet, anything beside it (a sheet it
+imports, the kit's files in `Styles/vendor/`), or a `.cs`/`.razor`/`.html` file in the project has
+changed since the output was written. Design-time builds are excluded entirely — an
 IDE reloading a project must never download a binary or shell out to a compiler.
 
 ## When something goes wrong

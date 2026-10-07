@@ -96,6 +96,7 @@ public partial class UiBadgeTests : global::Rask.Core.RaskMarkup
         Assert.Contains("data-ui-badge><svg class=\"shrink-0 [:where(&amp;)]:size-4 me-1.5\"", html, StringComparison.Ordinal);
         Assert.Contains("viewBox=\"0 0 16 16\"", html, StringComparison.Ordinal);
         Assert.EndsWith("</svg>Users</div>", html, StringComparison.Ordinal);
+        Assert.Contains(" data-ui-icon data-slot=\"icon\" aria-hidden=\"true\" data-ui-badge-icon", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -103,7 +104,7 @@ public partial class UiBadgeTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Badge.IconTrailing(Ui.IconName.VideoCamera)["Videos"].ToHtml();
 
-        Assert.Contains("data-ui-badge>Videos<div class=\"flex items-center ps-1\" data-ui-badge-icon-trailing><svg ", html, StringComparison.Ordinal);
+        Assert.Contains("data-ui-badge>Videos<div class=\"flex items-center ps-1\" data-ui-badge-icon:trailing><svg ", html, StringComparison.Ordinal);
         Assert.EndsWith("</svg></div></div>", html, StringComparison.Ordinal);
     }
 

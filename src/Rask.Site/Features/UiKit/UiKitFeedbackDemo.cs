@@ -81,29 +81,37 @@ public sealed partial class UiKitFeedbackDemo : Component
     private static Component TooltipSection() =>
         Section(
             "Tooltip",
-            "A hint and nothing more: it is easy to miss, so nothing that matters should live only here. "
-            + "Open shows one without a hover, Kbd teaches a shortcut where the reader is already looking, "
-            + "and Toggleable shows it on a tap — a touch screen has no hover.",
+            "Flux's tooltip: a line of help beside whatever it wraps, shown on hover and on keyboard focus, and "
+            + "said by a screen reader because the trigger is wired to it. It is a hint — nothing that matters "
+            + "should live only here — and what must reach a phone is Toggleable, opened by a tap.",
             Div.Data(Testid("ui-tooltip")).Class("flex flex-wrap items-center gap-8 pt-8")[
-                Ui.Tooltip.Key("k").Tip("Save").Kbd("⌘S").Position(Ui.Position.Top)[
-                    Ui.Button.Sm["Shortcut"]
+                Ui.Tooltip.Key("settings").Content("Settings")[SettingsButton()],
+                Div.Data(Testid("ui-tooltip-info")).Class("flex items-center gap-2 text-sm font-medium")[
+                    "Tax identification number",
+                    Ui.Tooltip.Key("info").Toggleable()[
+                        Ui.Button.Sm.Ghost.Icon(Ui.IconName.InformationCircle),
+                        Ui.TooltipContent.Class("max-w-[20rem] space-y-2")[
+                            P["For US businesses, enter your 9-digit Employer Identification Number (EIN) without hyphens."],
+                            P["For European companies, enter your VAT number including the country prefix (e.g., DE123456789)."]
+                        ]
+                    ]
                 ],
-                Ui.Tooltip.Key("tap").Tip("Tapping shows this on a phone").Toggleable()[
-                    Ui.Icon.Name(Ui.IconName.InformationCircle).Class("size-5")
+                Div.Data(Testid("ui-tooltip-positions")).Class("flex gap-8")[
+                    Ui.Tooltip.Key("top").Content("Settings").Top[SettingsButton()],
+                    Ui.Tooltip.Key("right").Content("Settings").Right[SettingsButton()],
+                    Ui.Tooltip.Key("bottom").Content("Settings").Bottom[SettingsButton()],
+                    Ui.Tooltip.Key("left").Content("Settings").Left[SettingsButton()]
                 ],
-                Ui.Tooltip.Key("disabled").Tip("Available once the form is valid")[
+                Ui.Tooltip.Key("kbd").Content("Save").Kbd("⌘S")[Ui.Button.Sm["Shortcut"]],
+                Ui.Tooltip.Key("start").Content("Flush with its start edge").Bottom.Start[Ui.Button.Sm["Aligned"]],
+                Ui.Tooltip.Key("disabled").Content("Available once the form is valid")[
                     Ui.Button.Sm.Disabled()["Disabled"]
-                ],
-                Ui.Tooltip.Key("t").Tip("Above").Position(Ui.Position.Top)[
-                    Ui.Button.Sm["Top"]
-                ],
-                Ui.Tooltip.Key("r").Tip("Beside").Position(Ui.Position.Right).Info[
-                    Ui.Button.Sm["Right"]
-                ],
-                Ui.Tooltip.Key("o").Tip("Always shown").Position(Ui.Position.Top).Open()[
-                    Ui.Button.Sm["Open"]
                 ]
             ]);
+
+    // Named by its tooltip: an icon button has no text of its own, so the tooltip becomes its label.
+    private static UiButton SettingsButton() =>
+        Ui.Button.Icon(Ui.IconName.Cog6Tooth).IconVariant(Ui.IconVariant.Outline);
 
     private static Component SkeletonSection() =>
         Section(

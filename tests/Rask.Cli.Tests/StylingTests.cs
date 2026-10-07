@@ -22,7 +22,6 @@ public sealed class StylingTests
         var files = Generate();
 
         Assert.Contains("Styles/app.css", files.Keys);
-        Assert.Contains("@import \"tailwindcss\";", files["Styles/app.css"], StringComparison.Ordinal);
 
         // One import and nothing else: v4 needs no config file, no content array and no PostCSS. The
         // sources are detected from the project, which is why the C# pages are scanned with nothing
@@ -31,44 +30,37 @@ public sealed class StylingTests
     }
 
     [Fact]
-    public void The_stylesheet_compiles_daisyui_from_the_plugin_the_kit_ships()
+    public void The_stylesheet_takes_Tailwind_and_the_kit_in_with_one_import()
     {
-        var sheet = Generate()["Styles/app.css"];
+        // The app compiles ONE sheet, as a Flux app does: Tailwind, the kit's theme and `dark` variant,
+        // daisyUI, and the classes the kit's components write, beside the classes this project writes.
+        // The kit's precompiled sheet used to be linked ahead of this one, and two `@layer utilities`
+        // are ranked by link order alone — the app's `bg-white` over the kit's `dark:bg-zinc-800`.
+        var sheet = Code(Generate()["Styles/app.css"]);
 
-        // No npm and no node_modules: the bundle is copied beside this file by Rask.Ui's build, and
-        // Tailwind resolves a relative plugin against the STYLESHEET's directory.
-        Assert.Contains("@plugin \"./vendor/daisyui.mjs\";", sheet, StringComparison.Ordinal);
-
-        // 348 KB of daisyUI's own code sits in that directory, naming every class daisyUI defines.
-        // Scanned, it is a safelist for the whole library — and a sheet containing too much looks
-        // exactly like a sheet containing enough.
-        Assert.Contains("@source not \"./vendor\";", sheet, StringComparison.Ordinal);
+        Assert.StartsWith("@import \"./vendor/rask-ui.css\";", sheet.TrimStart(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_stylesheet_ranks_daisyui_below_the_apps_own_utilities()
+    public void The_stylesheet_repeats_nothing_the_import_carries()
     {
-        // daisyUI emits into a `daisyui` layer that Tailwind's own import does not rank, so its position
-        // falls out of where it first appears — which lands it ABOVE utilities. Then `class="btn px-8"`
-        // gives you .btn's padding and not px-8: correct markup, quietly ignored.
-        var sheet = Generate()["Styles/app.css"];
-        var statement = "@layer properties, theme, base, components, daisyui, utilities;";
+        // Each of these was a line of the scaffold once, and each is in rask-ui.css now. A second copy
+        // is a second Tailwind (every utility twice), a second layer order that can only be a no-op or
+        // wrong, and a second daisyUI whose theme paints :root where the kit's is scoped.
+        var sheet = Code(Generate()["Styles/app.css"]);
 
-        Assert.Contains(statement, sheet, StringComparison.Ordinal);
-
-        // And it has to be the FIRST at-rule, or a name is already placed by the time it is read.
-        Assert.True(
-            sheet.IndexOf(statement, StringComparison.Ordinal)
-            < sheet.IndexOf("@import \"tailwindcss\"", StringComparison.Ordinal),
-            "the layer order must be declared before anything that emits into a layer.");
+        Assert.DoesNotContain("@import \"tailwindcss\"", sheet, StringComparison.Ordinal);
+        Assert.DoesNotContain("@layer", sheet, StringComparison.Ordinal);
+        Assert.DoesNotContain("@plugin", sheet, StringComparison.Ordinal);
+        Assert.DoesNotContain("@source", sheet, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_App_leaves_the_kit_and_its_theme_to_the_host()
+    public void The_App_leaves_the_stylesheet_and_the_theme_to_the_host()
     {
-        // RaskApp writes the kit's sheet first (it declares the @layer order), the app's own sheet after it
-        // and the theme scope on <html> — see RaskAppDocumentTests. An App that wrote them too would be a
-        // second place for the order to go wrong, and a Shell override would take the theme scope away.
+        // RaskApp links the app's one sheet and puts the theme scope on <html> — see RaskAppDocumentTests.
+        // An App that linked the kit's precompiled sheet as well would be the double include the build
+        // refuses, from a place the build cannot see; a Shell override would take the theme scope away.
         var app = Generate()["Features/Shared/App.cs"];
 
         Assert.DoesNotContain("UiStylesheet", app, StringComparison.Ordinal);
@@ -77,27 +69,27 @@ public sealed class StylingTests
     }
 
     [Fact]
-    public void Both_kit_opt_ins_are_set_in_the_project_file()
+    public void The_project_file_carries_no_kit_stylesheet_switch()
     {
-        // They answer different questions and an app needs both: the stylesheet is what styles the Ui*
-        // components, whose class names live in a compiled assembly no Tailwind can scan; the plugin is
-        // what styles the daisyUI names this project writes in its own markup, which the kit's prebuilt
-        // sheet knows nothing about. Both default to false in Rask.Ui.
+        // The import in Styles/app.css is the whole opt-in: the build reads it, writes the kit's Tailwind
+        // sources beside the sheet and tells the host not to link a second one. RaskUiWriteStylesheet
+        // beside that import is the kit twice, and the build stops on it.
         var csproj = Generate()["App.csproj"];
 
-        Assert.Contains("<RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>", csproj, StringComparison.Ordinal);
-        Assert.Contains("<RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>", csproj, StringComparison.Ordinal);
+        Assert.DoesNotContain("RaskUiWriteStylesheet", csproj, StringComparison.Ordinal);
+        Assert.DoesNotContain("RaskUiWriteDaisyUiPlugin", csproj, StringComparison.Ordinal);
+        Assert.DoesNotContain("RaskUiTailwind", csproj, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_generated_stylesheet_and_plugin_are_not_committed()
+    public void The_generated_stylesheet_and_the_kits_sources_are_not_committed()
     {
-        // Both are written INTO the tree by the build rather than into obj/, because Tailwind resolves a
-        // relative @plugin against the stylesheet and a browser needs the sheet under wwwroot. Neither
-        // is anybody's source.
+        // Both are written INTO the tree by the build rather than into obj/, because Tailwind resolves an
+        // @import against the stylesheet and a browser needs the sheet under wwwroot. Neither is
+        // anybody's source.
         var ignore = Generate()[".gitignore"];
 
-        Assert.Contains("wwwroot/css/rask-ui.css", ignore, StringComparison.Ordinal);
+        Assert.Contains("wwwroot/css/app.css", ignore, StringComparison.Ordinal);
         Assert.Contains("Styles/vendor/", ignore, StringComparison.Ordinal);
     }
 
@@ -171,6 +163,11 @@ public sealed class StylingTests
                 $"{path} still uses a Bs* component.");
         }
     }
+
+    // The sheet without its comments, so prose about a line is not read as the line.
+    private static string Code(string css) =>
+        System.Text.RegularExpressions.Regex.Replace(
+            css, @"/\*.*?\*/", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
 
     private static Dictionary<string, string> Generate() => Generate(new ServerBatteries());
 

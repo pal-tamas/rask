@@ -51,6 +51,13 @@ public sealed partial class UiIcon : Component
         return Draw(Name, variant, Svg.Class(Classes(variant, Name == Ui.IconName.Loading), Class).Attributes(Marks));
     }
 
+    /// <summary>The icon's own marks and, beside them, the mark of the part that holds it (<c>data-ui-badge-icon</c>).</summary>
+    internal static Dictionary<string, string?> MarksWith(string part) => new(Marks, StringComparer.Ordinal) { [part] = null };
+
+    /// <summary>The icon as <see cref="Render" /> draws it, under the marks a part made with <see cref="MarksWith" />.</summary>
+    internal static Component Marked(Dictionary<string, string?> marks, Ui.IconName name, Ui.IconVariant variant, string classes) =>
+        Draw(name, variant, Svg.Class(Classes(variant, name == Ui.IconName.Loading), classes).Attributes(marks));
+
     /// <summary>
     ///     The drawing alone, classed by the part that places it: where Flux writes a Heroicon straight into a
     ///     part (a toast's variant glyph) rather than through <c>flux:icon</c>, it carries no size, no

@@ -19,7 +19,6 @@ public sealed partial class UiKitDataDisplayDemo : Component
     private const string Tracking =
         "Once your order is shipped, you will receive an email with a tracking number. Use this number to track your order on our website.";
 
-    private bool _advanced;
     private int _amount = 1;
     private readonly List<string> _roles = ["Admin", "Editor", "Billing"];
 
@@ -42,7 +41,6 @@ public sealed partial class UiKitDataDisplayDemo : Component
         BadgeSection(),
         CardSection(),
         AccordionSection(),
-        OwnedAccordionSection(),
         AuraSection(),
         TextRotateSection(),
         Hover3DSection(),
@@ -143,26 +141,6 @@ public sealed partial class UiKitDataDisplayDemo : Component
                 Example("exclusive", "Exclusive", Ui.Accordion.Exclusive()[Questions()]),
                 Example("expanded", "Expanded", Ui.Accordion[Questions(expanded: true)]),
                 Example("reverse", "Leading icon", Ui.Accordion.Reverse[Questions()])
-            ]);
-
-    private Component OwnedAccordionSection() =>
-        Section(
-            "Accordion, owned by the page",
-            "Expanded is the state an item is rendered in and OnToggle says each time the reader changes it. "
-            + "Keep the two in one field and the page owns the item: the button below opens it from C#.",
-            Div.Data(Testid("ui-accordion-owned")).Class("max-w-sm")[
-                Ui.Button.Sm.OnClick(() => { _advanced = !_advanced; })[_advanced ? "Close it from C#" : "Open it from C#"],
-                Ui.Accordion.Transition().Class("mt-4")[
-                    Ui.AccordionItem
-                        .Heading("Advanced settings")
-                        .Expanded(_advanced)
-                        .OnToggle(open => { _advanced = open; })[
-                        "Nothing in here is required."
-                    ]
-                ],
-                P.Class("mt-2 text-sm text-ui-muted").Data(Testid("ui-accordion-state"))[
-                    _advanced ? "Advanced settings are open." : "Advanced settings are closed."
-                ]
             ]);
 
     private static Component Example(string key, string title, Component accordion) =>

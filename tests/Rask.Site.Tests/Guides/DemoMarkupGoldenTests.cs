@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -149,6 +150,29 @@ public sealed class DemoMarkupGoldenTests
             "These demos' markup skeletons changed on their own after mount, so their golden entry is a "
             + "race against the wall clock. Move the moving part into text, an id or a data-* attribute — "
             + "never a tag name or a class:\n  " + string.Join("\n  ", offenders));
+    }
+
+    // What the two checks above cannot see, because it depends on which test built a demo FIRST. An entry
+    // (`Div`, `Ui.Button`) built during a render is a positional slot of the component being rendered, handed
+    // back on its next render. Kept in a static field — `static readonly Component Empty = Div;` — it is
+    // one page's slot shared by every page, and the next entry of that type to land on its position redraws
+    // it: `asset-lazy-mount`'s placeholder came back as its own button's spinner box, but only in a process
+    // where the timer check was the first to render that demo, so CI failed what every local run passed.
+    [Fact]
+    public void No_site_component_keeps_a_component_in_a_static_field()
+    {
+        const BindingFlags statics =
+            BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+
+        var offenders = typeof(DemoRegistry).Assembly.GetTypes()
+            .SelectMany(type => type.GetFields(statics))
+            .Where(field => typeof(Component).IsAssignableFrom(field.FieldType))
+            .Select(field => $"{field.DeclaringType!.FullName}.{field.Name}")
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            "These static fields hold a component. Build it where it is rendered instead — an entry is a "
+            + "slot of the render that made it, not a value to share:\n  " + string.Join("\n  ", offenders));
     }
 
     // The two demos #1046 named, held to the STRICT shape the general check above cannot adopt: mount,
