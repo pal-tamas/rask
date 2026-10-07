@@ -1306,6 +1306,35 @@ export function applyFrameInvokes(
     }
 })();
 
+// ----- Scroll on a press (data-rask-scroll-to) ---------------------------
+// A pager under a long table changes the rows and leaves the reader at the bottom of the new page. An
+// element carrying data-rask-scroll-to="<selector>" brings what that selector names into view whenever a
+// button or link inside it is pressed (UiPagination.ScrollTo; Flux's `scroll-to`). Delegated, so it works for
+// pagers rendered later, and it never stops the press: the handler or the link still runs.
+(function installRaskScrollTo() {
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function"
+        || typeof window === "undefined" || window.__raskScrollTo) {
+        return;
+    }
+    window.__raskScrollTo = true;
+    document.addEventListener("click", function (e) {
+        const t = e.target;
+        const control = t instanceof Element ? t.closest("button, a") : null;
+        const host = control ? control.closest("[data-rask-scroll-to]") : null;
+        if (!host) {
+            return;
+        }
+        try {
+            const target = document.querySelector(host.getAttribute("data-rask-scroll-to") || "body");
+            if (target) {
+                target.scrollIntoView();
+            }
+        } catch (err) {
+            // Not a selector: nothing to scroll to, and the press goes on.
+        }
+    });
+})();
+
 // ----- Keyboard shortcuts (data-rask-shortcut) ---------------------------
 // An element carrying data-rask-shortcut="mod+k" is CLICKED when that combination is pressed anywhere on the
 // page — so whatever the element does on a click (open a dialog through its invoker command, run its handler,

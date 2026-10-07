@@ -58,6 +58,7 @@ interface Window {
     __raskFocusTrap?: boolean;
     __raskPopover?: boolean;
     __raskReload?: boolean;
+    __raskScrollTo?: boolean;
     __raskToastDismiss?: boolean;
     __raskDropzone?: boolean;
     __raskContextMenu?: boolean;

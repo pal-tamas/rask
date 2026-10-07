@@ -25,6 +25,14 @@ public sealed class FluxConformanceTests
     private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
     {
         ["flux:icon.*"] = typeof(UiIcon),
+        // `paginator` is a UiPaginator: what Laravel's paginator object knows, as a value.
+        ["flux:pagination"] = typeof(UiPagination),
+        ["flux:timeline"] = typeof(UiTimeline),
+        ["flux:timeline.item"] = typeof(UiTimelineItem),
+        ["flux:timeline.indicator"] = typeof(UiTimelineIndicator),
+        ["flux:timeline.content"] = typeof(UiTimelineContent),
+        ["flux:timeline.block"] = typeof(UiTimelineBlock),
+        ["flux:timeline.subgrid"] = typeof(UiTimelineSubgrid),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>

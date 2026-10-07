@@ -162,7 +162,7 @@ function mark(node, prefix) {
 //   (no value)  a stand-in for a component not rebuilt yet: held to its place and size, inside not compared;
 //   "self"      its own look is another component's, its children are compared as usual;
 //   "width" / "height"   that dimension is random on Flux's page (`rand()` in the docs), here and below it.
-function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') {
+function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '', gone = false) {
   const skip = b.attrs['data-parity-skip'];
   const standIn = skip === '';
   const own = !standIn && skip !== 'self';
@@ -178,7 +178,8 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 
   // A node that is not displayed has no box: its rectangle is the viewport's corner, which says how far
   // each page is scrolled and nothing about the node.
-  const displayed = a.style.display !== 'none' || b.style.display !== 'none';
+  // Nor has anything inside one (`gone`): its own display says `block`, and it is drawn nowhere.
+  const displayed = !gone && (a.style.display !== 'none' || b.style.display !== 'none');
   if (a !== rootA && displayed) {
     const off = (n, r, i) => n.box[i] - r.box[i];
     if ([0, 1].some(i => held[i] && differs(off(a, rootA, i), off(b, rootB, i)))) {
@@ -197,7 +198,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
     return;
   }
 
-  ca.forEach((child, i) => compareTree(theirs, child, mine, cb[i], rootA, rootB, `${where} > ${child.tag}[${i}]`, diffs, free));
+  ca.forEach((child, i) => compareTree(theirs, child, mine, cb[i], rootA, rootB, `${where} > ${child.tag}[${i}]`, diffs, free, !displayed));
 }
 
 // What one node looks like: computed styles, pseudo-elements, animations, and what each forced state changes.

@@ -165,7 +165,8 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
         await Expect(grid.Locator("tbody tr")).ToHaveCountAsync(3);
         await Expect(grid.Locator("[aria-current='page']")).ToHaveTextAsync("1");
 
-        await grid.Locator("a.join-item").Filter(new LocatorFilterOptions { HasText = "2" }).ClickAsync();
+        // Next rather than the number: below 640px of its own the pager draws no numbers, only the two arrows.
+        await grid.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Next" }).ClickAsync();
 
         // A link, not a handler: the page is in the address now, and the grid read it back from there.
         await Expect(Page).ToHaveURLAsync(new Regex(@"ui/data-grid/\?page=2$"));

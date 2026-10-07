@@ -18,7 +18,8 @@ public sealed partial class UiKitNavigationDemo : Component
         MegamenuSection(),
         TabsSection(),
         TabGroupSection(),
-        MenuStepsAndDockSection()
+        MenuStepsAndDockSection(),
+        PaginationSection()
     ];
 
     private static Component MegamenuSection() =>
@@ -97,7 +98,7 @@ public sealed partial class UiKitNavigationDemo : Component
 
     private static Component MenuStepsAndDockSection() =>
         Section(
-            "Menu, steps, breadcrumbs, pagination and the dock",
+            "Menu, steps, breadcrumbs and the dock",
             "The rest of the category, each a real link where it navigates.",
             Div.Data(Testid("ui-nav-rest")).Class("space-y-4")[
                 Ui.Menu.Sm.Horizontal()[
@@ -112,16 +113,15 @@ public sealed partial class UiKitNavigationDemo : Component
                 ],
                 // Already data-shaped: the crumbs are a list of (text, href), and the last one has no
                 // href because the page you are on is not a link to itself.
-                Ui.Breadcrumbs.Items([("Home", "#home"), ("Orders", "#orders"), ("ord_18f", null)]),
-                // Pages as links: each is the address that page lives at, so it can be shared and answers
-                // the back button. The page you are on is not a link either — it says aria-current instead.
-                Div.Data(Testid("ui-pagination-links"))[
-                    Ui.Pagination
-                        .Pages(4)
-                        .Current(1)
-                        .Href(page => PageMeta.LinkTo(Routes.UiKitNavigationPage() with { QueryString = $"?page={page}" }))
-                ]
+                Ui.Breadcrumbs.Items([("Home", "#home"), ("Orders", "#orders"), ("ord_18f", null)])
             ]);
+
+    private static Component PaginationSection() =>
+        Section(
+            "Pagination",
+            "Flux's pager: a summary, Previous and Next, and the pages numbered where there is room. Buttons "
+            + "that report the page chosen, or links where each page has an address.",
+            UiKitPaginationDemo);
 
     private static AttrBag Testid(string value) => new("testid", value);
 

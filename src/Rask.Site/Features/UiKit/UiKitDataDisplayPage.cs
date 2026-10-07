@@ -29,7 +29,7 @@ public sealed partial class UiKitDataDisplayPage : Component
             Code[":focus-within"], "."
         ],
         CodeSample
-            .Files(["UiKitDataDisplayDemo.cs"])
+            .Files(["UiKitDataDisplayDemo.cs", "UiKitTimelineDemo.cs"])
             .Notes("The accordion's open key and the collapse's flag are plain fields. Aura, hover 3D "
                 + "and hover gallery are decoration — they carry no role and no label, because a reader "
                 + "who cannot see them loses nothing.")

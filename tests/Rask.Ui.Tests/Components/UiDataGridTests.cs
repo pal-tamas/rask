@@ -163,7 +163,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("Anvil", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Bread", html, StringComparison.Ordinal);
-        Assert.Contains("4 rows", html, StringComparison.Ordinal);
+        Assert.Contains("of 4 results", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("Anvil", html, StringComparison.Ordinal);
         Assert.Contains("Bread", html, StringComparison.Ordinal);
-        Assert.Contains("40 rows", html, StringComparison.Ordinal);
+        Assert.Contains("of 40 results", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
         Assert.Contains("Bread", html, StringComparison.Ordinal);
         Assert.Contains("Cheese", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Anvil", html, StringComparison.Ordinal);
-        Assert.Contains("4 rows", html, StringComparison.Ordinal);
+        Assert.Contains("of 4 results", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -719,7 +719,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
         Assert.Contains("href=\"/grid?page=1\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"/grid?page=2\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("href=\"/grid?page=0\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("join-item btn\" disabled", html, StringComparison.Ordinal);
+        Assert.Contains("aria-current=\"page\">1</div>", html, StringComparison.Ordinal);
     }
 
     [Fact]
