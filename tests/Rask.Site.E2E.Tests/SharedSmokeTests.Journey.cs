@@ -577,9 +577,9 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("[role=status]:has-text('Saved')")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Page.Locator("#toast-fail").ClickAsync();
-        var stuck = Page.Locator("[role=alert]:has-text(\"Couldn't reach the server\")");
+        var stuck = Page.Locator("[data-ui-toast-dialog][data-variant=danger]:has-text(\"Couldn't reach the server\")");
         await Expect(stuck).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await stuck.Locator("button").Last.ClickAsync();
+        await stuck.Locator("[data-rask-dismiss]").ClickAsync();
         await Expect(stuck).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
 
         // Virtualize: the windowed list pins its sticky header on the <th> cells (static check).

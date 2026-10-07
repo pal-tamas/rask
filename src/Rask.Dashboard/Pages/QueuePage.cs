@@ -22,7 +22,6 @@ public sealed partial class QueuePage(
     private int _total;
     private int _page;
     private long? _expanded;
-    private string? _message;
     private (string Prompt, Func<CancellationToken, Task<string>> Action)? _pending;
 
     /// <summary>Which queue, from the route.</summary>
@@ -102,7 +101,6 @@ public sealed partial class QueuePage(
             RowsGrid(),
             DashboardParked.Parked(IsParked).Resume(Resume),
             DetailSheet(),
-            ResultToast(),
         ];
     }
 
@@ -348,15 +346,17 @@ public sealed partial class QueuePage(
     private async Task ExecuteAsync(Func<CancellationToken, Task<string>> action)
     {
         _pending = null;
+        // The answer goes out of the flow, as a toast: an inline result pushed the whole table down the moment
+        // an action completed, which on a polling page moves rows under the operator's pointer.
         try
         {
-            _message = await action(CancellationToken).ConfigureAwait(false);
+            Toast.Success(await action(CancellationToken).ConfigureAwait(false));
         }
 #pragma warning disable CA1031 // A failed action must report itself, not tear the page down.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            _message = $"Failed: {ex.Message}";
+            Toast.Error($"Failed: {ex.Message}");
         }
 
         _page = 0;
@@ -376,31 +376,9 @@ public sealed partial class QueuePage(
             ])
             : null;
 
-    // The answer, out of the flow. An inline result pushed the whole table down the moment an action
-    // completed, which on a polling page moves rows under the operator's pointer; a toast reports the same
-    // thing and moves nothing.
-    private UiToast? ResultToast()
-    {
-        if (_message is not { } message)
-        {
-            return null;
-        }
-
-        return Ui.Toast
-            .Message(message)
-            .Tone(message.StartsWith("Failed:", StringComparison.Ordinal) ? Ui.Tone.Error : null)
-            .OnDismiss(Dismiss);
-    }
-
     private void Cancel()
     {
         _pending = null;
-        StateHasChanged();
-    }
-
-    private void Dismiss()
-    {
-        _message = null;
         StateHasChanged();
     }
 

@@ -231,6 +231,15 @@ backstop. Opt a control — or a container of them — out with `data-rask-loadi
 (`Ui.Button.Loading(false)`), and opt a non-button element in with `data-rask-loading`. See
 [ui-kit.md](ui-kit.md#buttons-that-wait).
 
+## Toasts
+
+`Ui.Toast` is Flux's toast, announced as Flux announces it: the host is `role="status"` and each toast is
+`aria-atomic="true"`, so a toast is read politely and whole — heading and text together — whatever its
+variant. A variant is its icon's **shape** as well as its colour. A timed toast waits while the pointer is over
+it; one that must not be missed is raised with `.UntilDismissed()`. A toast on its own closes on Escape; its
+close button and any action or link are ordinary controls in the tab order. See
+[ui-kit.md](ui-kit.md) and [Toast messages](composition-lists.md#toast-messages).
+
 ## Navigation
 
 A `NavLink` to the page being shown writes `aria-current="page"` beside its active class — what a screen reader

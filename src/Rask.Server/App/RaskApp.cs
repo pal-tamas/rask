@@ -109,15 +109,11 @@ public sealed partial class RaskApp
 
     private static void ReadToasts(IConfigurationSection section, ToastOptions toasts)
     {
-        if (Enum.TryParse<Ui.Position>(section["Position"], ignoreCase: true, out var position))
+        if (Enum.TryParse<Ui.ToastPosition>(section["Position"], ignoreCase: true, out var position))
         {
             toasts.Position = position;
         }
 
-        if (Enum.TryParse<Ui.Align>(section["Align"], ignoreCase: true, out var align))
-        {
-            toasts.Align = align;
-        }
 
         if (TimeSpan.TryParse(section["Duration"], System.Globalization.CultureInfo.InvariantCulture, out var duration) &&
             duration > TimeSpan.Zero)

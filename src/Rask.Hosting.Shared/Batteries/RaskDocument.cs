@@ -23,15 +23,20 @@ internal static class RaskDocument
                 : null,
             // Toasts are always built in: the kit's look with the kit on, Rask's own without it.
             kit
-                ? (messages, dismiss) => UiToaster.Messages(messages, dismiss, toasts)
+                ? (messages, dismiss) => UiToast.Messages(messages, dismiss, toasts)
                 : (messages, dismiss) => Rask.Core.Components.DefaultToasts.Render(
-                    messages, dismiss, toasts.Position == Ui.Position.Top, Align(toasts.Align)),
-            toasts.Duration);
+                    messages, dismiss, Top(toasts.Position), Align(toasts.Position)),
+            toasts.Duration,
+            // The kit's toast counts down in the browser, where the countdown waits for the pointer.
+            toastsTimeThemselves: kit);
 
-    private static string Align(Ui.Align align) => align switch
+    private static bool Top(Ui.ToastPosition position) =>
+        position is Ui.ToastPosition.TopEnd or Ui.ToastPosition.TopCenter or Ui.ToastPosition.TopStart;
+
+    private static string Align(Ui.ToastPosition position) => position switch
     {
-        Ui.Align.Start => "start",
-        Ui.Align.Center => "center",
+        Ui.ToastPosition.BottomStart or Ui.ToastPosition.TopStart => "start",
+        Ui.ToastPosition.BottomCenter or Ui.ToastPosition.TopCenter => "center",
         _ => "end",
     };
 }

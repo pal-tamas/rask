@@ -10,7 +10,7 @@ namespace Rask.Core.Components;
 ///     navigations): it resolves the scoped <see cref="IToaster" />, subscribes to
 ///     <see cref="IToaster.Changed" />, and <see cref="IToaster.Consume" />s the queue into its own list.
 ///     The caller owns the markup via <see cref="Template" /> — Core ships no visual (see
-///     <c>Rask.Ui</c>'s <c>Ui.Toaster</c> for a ready-made one).
+///     <c>Rask.Ui</c>'s <c>Ui.Toast</c> for a ready-made one).
 ///     <para>
 ///         Draining moves messages out of the service (consumed-once) and into this outlet, which then
 ///         owns their on-screen lifetime: the <c>dismiss</c> callback handed to <see cref="Template" />
@@ -54,6 +54,10 @@ public sealed partial class ToastOutlet : Component
     // Holds mutable, framework-unobserved state (_messages, drained out-of-band on IToaster.Changed), so
     // the render cache must not pin an earlier snapshot. Same rationale as ValidationMessage.
     protected override bool BypassRenderCache => true;
+
+    // The template writes each toast's own countdown for the browser to run (the kit's data-rask-dismiss-after, which
+    // pauses under the pointer), so the outlet starts no timer of its own beside it.
+    internal bool TemplateTimes { get; set; }
 
     // The one the host mounts for an app that mounts none (see RootErrorBoundary): it steps aside for the app's own.
     internal bool BuiltIn { get; init; }
@@ -164,6 +168,11 @@ public sealed partial class ToastOutlet : Component
 
     private void Schedule(ToastMessage message)
     {
+        if (TemplateTimes)
+        {
+            return;
+        }
+
         // The toast's own .For(…) or .UntilDismissed(), else the outlet's default.
         if ((message.Duration ?? AutoDismissAfter) is { } d && d > TimeSpan.Zero && d != Timeout.InfiniteTimeSpan)
         {

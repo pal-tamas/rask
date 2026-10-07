@@ -1,13 +1,7 @@
 namespace Rask;
 
-/// <summary>Marks the subtree inside a <see cref="UiToaster" />, so a toast knows it is one of a stack.</summary>
-/// <remarks>
-/// A toast on its own places itself in a corner of the viewport. Inside a toaster the STACK is placed and each
-/// toast fills its width, because two toasts that each pinned themselves to the same corner would sit on top
-/// of one another.
-/// </remarks>
-internal sealed record UiToastStack
-{
-    /// <summary>The one marker every toaster provides; it carries nothing, so one is enough.</summary>
-    internal static readonly UiToastStack Instance = new();
-}
+/// <summary>What a <see cref="UiToastGroup" /> tells the <see cref="UiToast" /> inside it: stack them, and how.</summary>
+/// <param name="Position">The group's corner, which wins over the toast's own.</param>
+/// <param name="Expanded">Every toast laid out, rather than a deck that opens under the pointer.</param>
+/// <param name="Class">The call site's classes for the group.</param>
+internal sealed record UiToastStack(Ui.ToastPosition? Position, bool Expanded, string? Class);

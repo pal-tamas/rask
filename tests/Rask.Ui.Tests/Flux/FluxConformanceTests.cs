@@ -63,6 +63,8 @@ public sealed class FluxConformanceTests
         ["flux:card.body"] = typeof(UiCardBody),
         ["flux:card.footer"] = typeof(UiCardFooter),
         ["flux:card.bleed"] = typeof(UiCardBleed),
+        ["flux:toast"] = typeof(UiToast),
+        ["flux:toast.group"] = typeof(UiToastGroup),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>

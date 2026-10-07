@@ -1374,6 +1374,158 @@
 }
 
 /*
+  TOAST (Ui.Toast, Ui.ToastGroup) — Flux's flux:toast and flux:toast.group: the motion, and the stack.
+
+  The look is utilities in the component. Here is what no utility says.
+
+  MOTION. A toast fades in over 200ms and settles 8px over 350ms, from below at the bottom of the viewport
+  and from above at the top. A TIMED one fades out over the 350ms after its duration: the component writes the
+  duration as --ui-toast-duration and asks the runtime to press its close button once the fade is done
+  (data-rask-dismiss-after), so the fade is this sheet's and the removal is the page's. Both wait while the
+  pointer is over the toast, as Flux's does. Keyframes rather than a transition from @starting-style, because the entrance and the rest
+  state are timed differently: at rest Flux transitions opacity, transform and height over 200ms.
+
+  THE STACK. Flux's script measures every toast and writes each one a pixel offset. This sheet has no script, so
+  it says the same thing with anchors: the front toast is the group's anchor, each older one takes the front
+  one's box — a taller toast is cut to it, as Flux cuts it — and steps back 10px and 5% narrower, and past the
+  third they are there but not shown. Under the pointer, or always for an expanded group,
+  each toast instead sits on the one in front of it (`bottom: anchor(top)`), which needs no height at all.
+  Newest first in the tree for that reason: an element can only anchor to one that comes before it.
+
+  An engine without anchor positioning keeps the deck and never opens it (@supports), rather than laying
+  every toast on top of the last.
+*/
+@layer rask {
+  @keyframes ui-toast-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes ui-toast-rise {
+    from {
+      transform: translateY(var(--ui-toast-rise));
+    }
+  }
+
+  @keyframes ui-toast-leave {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes ui-toast-lift {
+    to {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+  }
+
+  [data-ui-toast] {
+    --ui-toast-rise: 8px;
+  }
+
+  [data-ui-toast][data-position^="top"] {
+    --ui-toast-rise: -8px;
+  }
+
+  [data-ui-toast-group] {
+    --ui-toast-rise: 24px;
+    anchor-scope: all;
+  }
+
+  [data-ui-toast-group][data-position^="top"] {
+    --ui-toast-rise: -24px;
+  }
+
+  [data-ui-toast] > [data-ui-toast-dialog] {
+    transform: translateY(0);
+    transition:
+      opacity 0.2s ease allow-discrete,
+      transform 0.2s ease allow-discrete,
+      height 0.2s ease allow-discrete;
+    animation:
+      ui-toast-fade 0.2s ease,
+      ui-toast-rise 0.35s ease;
+  }
+
+  [data-ui-toast] > [data-ui-toast-dialog][data-rask-dismiss-after] {
+    animation:
+      ui-toast-fade 0.2s ease,
+      ui-toast-rise 0.35s ease,
+      ui-toast-leave 0.35s ease var(--ui-toast-duration) forwards;
+  }
+
+  [data-ui-toast-group] > [data-ui-toast-dialog] {
+    z-index: calc(5000 - var(--ui-toast-index));
+    opacity: clamp(0, 3 - var(--ui-toast-index), 1);
+    transform: scaleX(calc(1 - 0.05 * min(var(--ui-toast-index), 2))) translateY(calc(var(--ui-toast-index) * -10px));
+    transition:
+      opacity 0.35s ease allow-discrete,
+      transform 0.35s ease allow-discrete,
+      height 0.35s ease allow-discrete;
+  }
+
+  /* The gap between two toasts is inside each of them, so the pointer crossing it never leaves the stack. */
+  [data-ui-toast-group][data-position^="bottom"] > [data-ui-toast-dialog] {
+    bottom: 0;
+    padding-top: 0.75rem !important;
+  }
+
+  [data-ui-toast-group][data-position^="top"] > [data-ui-toast-dialog] {
+    top: 0;
+    padding-bottom: 0.75rem;
+  }
+
+  [data-ui-toast-group] > [data-ui-toast-dialog]:not(:first-child) {
+    top: anchor(--ui-toast-front top);
+    bottom: anchor(--ui-toast-front bottom);
+  }
+
+  [data-ui-toast-group] > [data-ui-toast-dialog] > :first-child {
+    height: 100%;
+    overflow: hidden;
+    transform: translateY(0);
+    transition:
+      opacity 0.35s ease allow-discrete,
+      transform 0.35s ease allow-discrete,
+      height 0.35s ease allow-discrete;
+    animation:
+      ui-toast-fade 0.35s ease,
+      ui-toast-rise 0.35s ease;
+  }
+
+  [data-ui-toast-group] > [data-ui-toast-dialog][data-rask-dismiss-after] > :first-child {
+    animation:
+      ui-toast-fade 0.35s ease,
+      ui-toast-rise 0.35s ease,
+      ui-toast-lift 0.35s ease var(--ui-toast-duration) forwards;
+  }
+
+  /* Important, because the `animation` shorthands above reset the play state and outweigh this selector. */
+  [data-ui-toast-dialog]:hover,
+  [data-ui-toast-dialog]:hover > :first-child {
+    animation-play-state: paused !important;
+  }
+
+  @supports (bottom: anchor(top)) {
+    [data-ui-toast-group]:is(:hover, [data-expanded]) > [data-ui-toast-dialog] {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    [data-ui-toast-group]:is(:hover, [data-expanded]) > [data-ui-toast-dialog]:not(:first-child) {
+      top: auto;
+      bottom: anchor(top);
+    }
+
+    [data-ui-toast-group]:is(:hover, [data-expanded]) > [data-ui-toast-dialog] > :first-child {
+      overflow: auto;
+    }
+  }
+}
+
+/*
   AN ACCORDION ITEM IS A <details>, AND ITS HEIGHT IS THE BROWSER'S OWN CONTENT SLOT.
 
   ::details-content is the box a <details> puts everything but its <summary> in. Closed, it is kept out of

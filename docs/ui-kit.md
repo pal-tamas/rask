@@ -371,7 +371,7 @@ Ui.Drawer.Id("nav").Panel(menu).Position(Ui.Position.Right)[ … ]
 Ui.Modal.Title("Details").Position(Ui.ModalPosition.End)[ … ]   // placed against the viewport, not a trigger
 ```
 
-Events are always `On…` — `Ui.Modal.OnClose`, `Ui.Modal.OnCancel`, `Ui.Toast.OnDismiss` — the same prefix every
+Events are always `On…` — `Ui.Modal.OnClose`, `Ui.Modal.OnCancel` — the same prefix every
 element event carries. A `<dialog>`'s own endings are element events too: `Dialog.OnCancel` for a dismissal and
 `Dialog.OnClose` for any close.
 
@@ -382,7 +382,7 @@ sits — the gap above a row of tabs, the bleed of a scrolling strip to the scre
 page that places it, because the same component sits in a card, a toolbar and a page gutter, and a margin
 right for one is wrong for the other two. Two exceptions are part of a component's shape rather than its
 placement: `Ui.NavTab`'s `-mb-px`, which joins the active tab's border to its nav's hairline, and
-`Ui.Toast`'s `mx-auto`, which centres a fixed overlay in the viewport.
+`Ui.Toast`'s 24px from the viewport's edges, which is where Flux puts a toast.
 
 ## Components that are one element
 
@@ -807,7 +807,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
-| **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |
+| **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
@@ -1058,30 +1058,40 @@ Form.Model(_order)[
 ]
 ```
 
-**Toasts: the page owns the list.** One `Ui.Toast` is one notice; `Ui.Toaster` stacks them in a corner
-(`Position` + `Align`, newest last so an arriving toast never pushes the one being read out from under the
-eye). A toast takes `Title`, an `Action` (an Undo, a link to what was made) and `Duration`.
+**Toasts are raised, not placed** — this is [Flux's toast](https://fluxui.dev/components/toast), with its
+group. `Toast.Success("Saved")` from any handler raises one ([Toast messages](composition-lists.md#toast-messages));
+`Ui.Toast` in the layout is where they appear, and an app that places none gets the host's.
 
-`Duration` is the interesting one. It does **not** hide the element — it asks the runtime to *click the
-toast's own dismiss control*, which runs your `OnDismiss`, which takes the toast off your list. Hiding it
-instead would leave the page believing a toast is up that nobody can see, and the next render would put it
-back. The countdown **pauses** while the pointer is over the toast or focus is inside it, so reaching for the
-action does not lose it, and a toast with no `OnDismiss` writes no timer at all, because there would be
-nothing to press.
+| Flux | Rask |
+|---|---|
+| `<flux:toast />` in the layout | `Ui.Toast` in the layout — or nothing: the host places one |
+| `<flux:toast position="top end" invert />` | `Ui.Toast.TopEnd.Invert()` (`Ui.ToastPosition`: `BottomEnd` `BottomCenter` `BottomStart` `TopEnd` `TopCenter` `TopStart`) |
+| `<flux:toast class="pt-24" />` | `Ui.Toast.Class("pt-24")` |
+| `<flux:toast.group>` … `</flux:toast.group>` | `Ui.ToastGroup[Ui.Toast]` |
+| `<flux:toast.group expanded position="top end">` | `Ui.ToastGroup.Expanded().TopEnd[Ui.Toast]` |
+| `Flux::toast('Saved.')` / `$flux.toast('Saved.')` | `Toast.Info("Saved.")` |
+| `Flux::toast(heading: 'Changes saved', text: '…')` | `Toast.Info("…").Heading("Changes saved")` |
+| `variant: 'success'` / `'warning'` / `'danger'` | `Toast.Success(…)` / `Toast.Warning(…)` / `Toast.Error(…)` |
+| `duration: 1000` / `duration: 0` | `.For(1.Second)` / `.UntilDismissed()` |
+| `action: ['label' => 'Undo', 'event' => 'undo-changes']` | `.Action("Undo", UndoChanges)` |
+| `action: ['label' => 'View', 'href' => …]` | `.Action("View", Routes.InvoicePage(id))` |
+| `link: ['label' => 'View invoice', 'href' => …]` | `.Link("View invoice", Routes.InvoicePage(id))` |
 
-```csharp
-Ui.Toaster.Position(Ui.Position.Bottom).Align(Ui.Align.End)[
-    _notices.Select(n => Ui.Toast.Key(n.Id).Message(n.Text)
-        .Duration(6.Seconds)
-        .OnDismiss(() => _notices.Remove(n)))
-]
-```
+On its own, `Ui.Toast` shows one toast at a time: a new one takes the place of the one showing. Inside a
+`Ui.ToastGroup` they stack — three show, the newest in front and each older one a step back and a little
+narrower — and the pointer over the stack lays them all out, as `Expanded()` does for good.
 
-The hook is the **runtime's**, not the kit's, and it is generic: any element with
-`data-rask-dismiss-after="<ms>"` is dismissed by clicking its own `[data-rask-dismiss]` — the same convention
-the focus trap presses on Escape. An `Ui.Tone.Error` toast says `role="alert"`; every other outcome is
-announced politely as `status`. `Error` and `Warning` are drawn with the warning icon, everything else
-with a check.
+A toast goes after five seconds unless it says otherwise, by its close button, or — on its own — by Escape.
+The kit ships no script, so all of that is the **runtime's** generic hooks, written as attributes: the toast is a
+native `popover` the runtime shows (`data-rask-popover-open`), so it is in the top layer, over an open dialog;
+`data-rask-dismiss-after="<ms>"` has the runtime press the toast's own `[data-rask-dismiss]` button when the
+time is up, waiting while the pointer is over the toast; and `data-rask-shortcut="escape"` is Escape. Pressing
+the button rather than hiding the element is the point: the outlet takes the toast off its list, so the next
+render agrees with the screen. An action's button shows a spinner while its handler runs — the runtime's
+`data-loading` — and then takes the toast down.
+
+Like Flux's, the host is `role="status"` and each toast `aria-atomic="true"`, so a toast is announced politely
+and whole; the variant is carried by its icon's shape as well as its colour.
 
 **`Ui.ContextMenu` is the same menu, opened by a right-click.** Its children are the rows a `Ui.Dropdown` takes,
 and it is the same control underneath (`UiMenuSurface`), so the keyboard is identical; only the opening differs:
@@ -1356,8 +1366,8 @@ rather than wrapping, so the header is exactly one row tall however many tabs th
 **Every control has a name.** A label is required, not optional, and it becomes the accessible name
 rather than a placeholder — a placeholder disappears the moment typing starts, so the one thing saying
 what a field is for vanishes exactly when a reader might check it. An icon-only button names itself with
-`AccessibleLabel`, written as `aria-label`; a spinner is `aria-hidden` with its words beside it; a failed
-toast changes its **icon** and not only its colour.
+`AccessibleLabel`, written as `aria-label`; a spinner is `aria-hidden` with its words beside it; a toast's
+variant changes its **icon** and not only its colour.
 
 ## Names
 

@@ -98,7 +98,10 @@ public sealed partial class DashboardLayout(
             Ui.Main[
                 UnsecuredWarning(),
                 Outlet
-            ]
+            ],
+            // Where a page's Toast.Success("Evicted …") shows: the console is a mounted app with its own
+            // document, so the host places none for it.
+            Ui.Toast
         ];
 
     // ── Chrome ──────────────────────────────────────────────────────────────────────────────────────

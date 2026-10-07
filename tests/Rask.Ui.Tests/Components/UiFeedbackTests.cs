@@ -87,29 +87,4 @@ public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
         Assert.Contains("tabindex=\"0\"", html);
         Assert.DoesNotContain("tabindex", Ui.Tooltip.Tip("Why")[Span["?"]].ToHtml());
     }
-
-    [Fact]
-    public void A_toast_is_announced_politely_rather_than_interrupting()
-    {
-        // role=status, not alert: this is the outcome of something the reader just did, so it should be
-        // read at the next opportunity rather than cutting across what they are hearing.
-        Assert.Contains("role=\"status\"", Ui.Toast.Message("Saved").ToHtml());
-    }
-
-    [Fact]
-    public void A_toast_only_offers_a_dismiss_when_there_is_something_to_dismiss_it_with()
-    {
-        Assert.DoesNotContain("Dismiss", Ui.Toast.Message("Saved").ToHtml());
-        Assert.Contains("Dismiss", Ui.Toast.Message("Saved").OnDismiss(() => { }).ToHtml());
-    }
-
-    [Fact]
-    public void A_failed_toast_changes_its_icon_and_not_only_its_colour()
-    {
-        // The shape is what carries the outcome; the colour only reinforces it. Colour alone would be
-        // invisible to a reader who cannot distinguish it.
-        Assert.NotEqual(
-            Ui.Toast.Message("Saved").ToHtml(),
-            Ui.Toast.Message("Saved").Tone(Ui.Tone.Error).ToHtml());
-    }
 }

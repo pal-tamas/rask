@@ -106,12 +106,13 @@ private async Task Save()
 }
 ```
 
-`Toast.Info`, `Toast.Warning` and `Toast.Error` say the rest. A toast can carry a title, a button, and its own
-time on screen:
+`Toast.Info`, `Toast.Warning` and `Toast.Error` say the rest. A toast can carry a heading, a button or a link,
+and its own time on screen:
 
 ```csharp
-Toast.Success("Your order was placed").Title("Order 42");
-Toast.Info("Order placed").Action("View order", () => Routes.OrderPage(order.Id).Go());   // pressing it dismisses the toast
+Toast.Success("Your order was placed").Heading("Order 42");
+Toast.Info("Changes saved.").Action("Undo", UndoChanges);          // runs it, then dismisses the toast
+Toast.Success("Invoice created.").Link("View invoice", Routes.InvoicePage(invoice.Id));
 Toast.Error("Payment failed").For(30.Seconds);
 Toast.Error("Couldn't reach the server").UntilDismissed();
 ```
@@ -119,18 +120,27 @@ Toast.Error("Couldn't reach the server").UntilDismissed();
 <!-- demo:toast-built-in -->
 
 A toast belongs to the session, not the page, so one raised just before navigating survives the navigation
-and shows once on the destination. The host draws them — in the [UI kit](ui-kit.md)'s look, or a small look of
-Rask's own when the kit is off — stacked in a corner, each gone after five seconds unless it says otherwise.
-Where they stack and how long they stay is the app's to set, in `Program.cs` or `appsettings.json`:
+and shows once on the destination. The host draws them — as the [UI kit](ui-kit.md)'s `Ui.Toast`, or in a small
+look of Rask's own when the kit is off — in the bottom end corner, one at a time, each gone after five seconds
+unless it says otherwise. Where they appear and how long they stay is the app's to set, in `Program.cs` or
+`appsettings.json`:
 
 ```csharp
 RaskApp.Create(args)
-    .Configure(c => c.Toasts.At(Ui.Position.Top, Ui.Align.End).For(8.Seconds))
+    .Configure(c => c.Toasts.At(Ui.ToastPosition.TopEnd).For(8.Seconds))
     .Run<App>();
 ```
 
 ```json
-{ "Rask": { "Toasts": { "Position": "Top", "Align": "End", "Duration": "00:00:08" } } }
+{ "Rask": { "Toasts": { "Position": "TopEnd", "Duration": "00:00:08" } } }
+```
+
+For anything else — a stack, the inverted look — place the kit's toast in your layout and the built-in one
+steps aside:
+
+```csharp
+Ui.ToastGroup[Ui.Toast]          // toasts stack, and the deck opens under the pointer
+Ui.Toast.TopEnd.Invert()         // one at a time, dark on a light page
 ```
 
 ### Your own look

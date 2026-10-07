@@ -125,4 +125,24 @@ public partial class ToastOutletTests : global::Rask.Core.RaskMarkup
 
         Assert.DoesNotContain("gone soon", html);
     }
+
+    [Fact]
+    public async Task An_outlet_whose_template_times_its_toasts_starts_no_timer_of_its_own()
+    {
+        IToaster toast = new Toaster();
+        toast.Info("still here");
+        var outlet = new ToastOutlet
+        {
+            Template = (msgs, _) => Div[msgs.Select(m => (Component)Span.Key(m.Id.ToString())[m.Message])],
+            AutoDismissAfter = TimeSpan.FromMilliseconds(40),
+            TemplateTimes = true,
+        };
+        var host = new StubComponent(() => outlet);
+        var sp = new ServiceCollection().AddSingleton<IToaster>(toast).BuildServiceProvider();
+        host.RenderAsLiveRoot(sp);
+
+        await Task.Delay(200, TestContext.Current.CancellationToken);
+
+        Assert.Contains("still here", host.RenderAsLiveRoot(sp));
+    }
 }
