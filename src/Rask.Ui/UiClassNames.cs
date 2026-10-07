@@ -735,27 +735,6 @@ internal static class UiClassNames
         _ => "lg:drawer-open",
     };
 
-    /// <summary>The corner a toaster's stack is pinned to.</summary>
-    /// <remarks>
-    ///     Where a toast or a stack of them is pinned. SIX complete literals rather than an edge joined to an
-    ///     alignment: <c>"top-3 " + side</c> is two names Tailwind can see and one it cannot, and the toast would
-    ///     appear in the middle of the screen with the build green.
-    ///     <para>
-    ///     Every one keeps the side inset on a phone (<c>inset-x-3</c> until <c>sm</c>), because a toast pinned to
-    ///     a corner of a 360px screen is a toast with no room to say anything.
-    ///     </para>
-    /// </remarks>
-    internal static string ToastCorner(Ui.Position? position, Ui.Align? align) =>
-        (position, align) switch
-        {
-            (Ui.Position.Top, Ui.Align.Start) => "inset-x-3 top-3 sm:inset-x-auto sm:left-3",
-            (Ui.Position.Top, Ui.Align.End) => "inset-x-3 top-3 sm:inset-x-auto sm:right-3",
-            (Ui.Position.Top, _) => "inset-x-3 top-3 sm:inset-x-0",
-            (_, Ui.Align.Start) => "inset-x-3 bottom-3 sm:inset-x-auto sm:left-3",
-            (_, Ui.Align.End) => "inset-x-3 bottom-3 sm:inset-x-auto sm:right-3",
-            _ => "inset-x-3 bottom-3 sm:inset-x-0",
-        };
-
     /// <summary>Which way a textarea can be resized.</summary>
     /// <remarks>
     ///     Tailwind's own resize utilities, one complete literal per member — <c>"resize-" + value</c> is invisible

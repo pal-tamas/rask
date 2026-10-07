@@ -10,10 +10,9 @@ namespace Rask.Site.Features.UiKit;
 /// </remarks>
 public sealed partial class UiKitFeedbackDemo : Component
 {
-    // The page owns the list, which is the whole contract: a toast leaves by the page removing it, whether
-    // the reader pressed Dismiss or the runtime pressed it for them after the Duration ran out.
-    private readonly List<Notice> _toasts = [];
-    private int _nextToast;
+    // Which of Flux's layouts the toasts below are raised into. A toast is raised from anywhere and shown by
+    // the Ui.Toast the layout places; this demo places its own, so it can show each of them.
+    private ToastLayout _layout;
     private int _progress = 62;
 
     /// <inheritdoc />
@@ -112,50 +111,78 @@ public sealed partial class UiKitFeedbackDemo : Component
     private Component ToastSection() =>
         Section(
             "Toast",
-            "Pinned to the viewport rather than pushed into the page's flow: an inline notice moves "
-            + "everything below it the moment an action completes. A Ui.Toaster stacks several in a corner, "
-            + "and the PAGE owns the list — which is why Duration dismisses by clicking the toast's own "
-            + "button rather than hiding the element: the page's handler runs, so the page takes the toast "
-            + "off its list and the next render agrees with the screen. The countdown pauses while the "
-            + "pointer is over it or focus is inside it, so reaching for Undo does not lose it. A failure "
-            + "says role=alert; everything else is announced politely.",
-            Div.Data(Testid("ui-toast"))[
+            "Flux's toast. It is RAISED, not placed: Toast.Success(\"Saved\") from any handler, with .Heading, "
+            + ".Action, .Link, .For and .UntilDismissed for what Flux::toast() takes. Ui.Toast in the layout is "
+            + "where they appear — one at a time, a new one taking the place of the one showing — and "
+            + "Ui.ToastGroup around it stacks them into a deck that opens under the pointer. A toast goes after "
+            + "five seconds, counted in the browser so it waits while the pointer is over it, or by its close "
+            + "button.",
+            Div.Data(Testid("ui-toast")).Class("space-y-3")[
                 Div.Class("flex flex-wrap gap-2")[
-                    Ui.Button.Key("ok").Primary
-                        .OnClick(() => Push("Saved.", null, Ui.Tone.Success))["Save"],
-                    Ui.Button.Key("undo").Outline
-                        .OnClick(() => Push("Moved to the bin.", "Order deleted", Ui.Tone.Success))["Delete"],
-                    Ui.Button.Key("bad").Error
-                        .OnClick(() => Push("Payment failed.", null, Ui.Tone.Error))["Fail"]
+                    Ui.Button.Key("plain").Primary.Id("toast-plain")
+                        .OnClick(() => Toast.Info("Your changes have been saved."))["Save changes"],
+                    Ui.Button.Key("heading").Id("toast-heading")
+                        .OnClick(() => Toast.Info("You can always update this in your settings.").Heading("Changes saved"))["With heading"],
+                    Ui.Button.Key("success").Id("toast-success")
+                        .OnClick(() => Toast.Success("The post has been created successfully.").Heading("Post created"))["Success"],
+                    Ui.Button.Key("warning").Id("toast-warning")
+                        .OnClick(() => Toast.Warning("Your post has unsaved changes.").Heading("Unsaved changes"))["Warning"],
+                    Ui.Button.Key("danger").Id("toast-danger")
+                        .OnClick(() => Toast.Error("Your changes have not been saved.").Heading("Something went wrong"))["Danger"]
                 ],
-                Ui.Toaster.Key("toaster").Position(Ui.Position.Bottom).Align(Ui.Align.End)[
-                    _toasts.Select(t =>
-                        Ui.Toast
-                            .Key(t.Id)
-                            .Message(t.Message)
-                            .Title(t.Heading)
-                            .Tone(t.Tone)
-                            .Duration(6.Seconds)
-                            .Action(t.Heading is null
-                                ? null
-                                : Ui.Button.Xs.Ghost
-                                    .OnClick(() => Drop(t.Id))["Undo"])
-                            .OnDismiss(() => Drop(t.Id)))
-                ]
+                Div.Class("flex flex-wrap gap-2")[
+                    Ui.Button.Key("action").Id("toast-action")
+                        .OnClick(() => Toast.Success("Your updates are now live.").Heading("Changes saved")
+                            .Action("Undo", () => Toast.Info("Changes undone.")))["With an action"],
+                    Ui.Button.Key("link").Id("toast-link")
+                        .OnClick(() => Toast.Success("Invoice created.")
+                            .Link("View invoice", PageMeta.LinkTo(Routes.UiKitDataDisplayPage())))["With a link"],
+                    Ui.Button.Key("brief").Id("toast-brief")
+                        .OnClick(() => Toast.Info("Your changes have been saved.").For(1.Second))["One second"],
+                    Ui.Button.Key("permanent").Id("toast-permanent")
+                        .OnClick(() => Toast.Info("Your changes have been saved.").UntilDismissed())["Permanent"]
+                ],
+                Div.Class("flex flex-wrap items-center gap-2")[
+                    Span.Class("text-sm text-ui-muted")["Shown in:"],
+                    Layouts.Select(Choice)
+                ],
+                Placed()
             ]);
 
-    private void Push(string message, string? heading, Ui.Tone tone)
+    private static readonly (ToastLayout Layout, string Label)[] Layouts =
+    [
+        (ToastLayout.Default, "Ui.Toast"),
+        (ToastLayout.Inverted, "Ui.Toast.Invert()"),
+        (ToastLayout.TopEnd, "Ui.Toast.TopEnd"),
+        (ToastLayout.Stack, "Ui.ToastGroup[Ui.Toast]"),
+        (ToastLayout.Expanded, "Ui.ToastGroup.Expanded()[Ui.Toast]"),
+    ];
+
+    private Component Choice((ToastLayout Layout, string Label) choice)
     {
-        _toasts.Add(new Notice(
-            "t" + _nextToast++.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            message,
-            heading,
-            tone));
+        var button = Ui.Button.Key(choice.Label).Sm.Id("toast-layout-" + choice.Layout.ToString().ToLowerInvariant())
+            .OnClick(() => _layout = choice.Layout);
+        return (choice.Layout == _layout ? button.Primary : button.Outline)[choice.Label];
     }
 
-    private void Drop(string id) => _toasts.RemoveAll(t => string.Equals(t.Id, id, StringComparison.Ordinal));
+    // What an app writes once, in its layout.
+    private Component Placed() => _layout switch
+    {
+        ToastLayout.Inverted => Ui.Toast.Invert(),
+        ToastLayout.TopEnd => Ui.Toast.TopEnd,
+        ToastLayout.Stack => Ui.ToastGroup[Ui.Toast],
+        ToastLayout.Expanded => Ui.ToastGroup.Expanded()[Ui.Toast],
+        _ => Ui.Toast,
+    };
 
-    private sealed record Notice(string Id, string Message, string? Heading, Ui.Tone Tone);
+    private enum ToastLayout
+    {
+        Default,
+        Inverted,
+        TopEnd,
+        Stack,
+        Expanded,
+    }
 
     private static AttrBag Testid(string value) => new("testid", value);
 

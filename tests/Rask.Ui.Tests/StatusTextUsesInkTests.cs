@@ -13,13 +13,9 @@ namespace Rask.UiTests;
 /// </remarks>
 public sealed partial class StatusTextUsesInkTests
 {
-    // Keyed by file as well as token, so an exemption cannot spread. The toast is the one place the raw
-    // colours are right: its ground is the near-black `ui-ink`, where the light-ground inks invert.
-    private static readonly HashSet<string> OnADarkGround = new(StringComparer.Ordinal)
-    {
-        "UiToast.cs:text-warning",
-        "UiToast.cs:text-success",
-    };
+    // Keyed by file as well as token, so an exemption cannot spread. None is left: the toast, which drew on a
+    // near-black ground where the light-ground inks invert, is Flux's now and takes Tailwind's own hues.
+    private static readonly HashSet<string> OnADarkGround = new(StringComparer.Ordinal);
 
     [Fact]
     public void No_kit_component_writes_a_status_colour_as_text()

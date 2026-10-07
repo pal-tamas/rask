@@ -16,6 +16,8 @@ internal static class DefaultToasts
         "margin-left:auto;background:none;border:1px solid rgb(255 255 255/.6);color:inherit;"
         + "border-radius:.375rem;padding:.125rem .5rem;font:inherit;cursor:pointer;";
 
+    private const string LinkStyle = "display:block;margin-top:.25rem;color:inherit;text-decoration:underline;";
+
     private const string CloseStyle =
         "background:none;border:none;color:inherit;font:inherit;cursor:pointer;opacity:.8;padding:0 .125rem;";
 
@@ -30,18 +32,23 @@ internal static class DefaultToasts
                 .Role(m.Level == ToastLevel.Error ? "alert" : "status")[
                     Div[
                         m.Title is { } title ? Strong.Style("display:block;")[title] : null,
-                        m.Message
+                        m.Message,
+                        m.Link is { } link ? A.Href(link.Href).Style(LinkStyle)[link.Label] : null
                     ],
-                    m.Action is { } action
-                        ? Button.Type(ButtonType.Button).Style(ButtonStyle).OnClick(async () =>
-                        {
-                            await action.Run.Invoke();
-                            dismiss(m.Id);
-                        })[action.Label]
-                        : null,
+                    m.Action is { } action ? ActionControl(action, () => dismiss(m.Id)) : null,
                     Button.Type(ButtonType.Button).Style(CloseStyle).Aria("label", "Dismiss").OnClick(() => dismiss(m.Id))["×"]
                 ])
         ];
+
+    // A link action stays a real link — a new tab, a copied address — and a button runs its handler, then goes.
+    private static Component ActionControl(ToastAction action, Action dismiss) =>
+        action.Href is { } href
+            ? A.Href(href).Style(ButtonStyle + "text-decoration:none;")[action.Label]
+            : Button.Type(ButtonType.Button).Style(ButtonStyle).OnClick(async () =>
+            {
+                await action.Run.Invoke();
+                dismiss();
+            })[action.Label];
 
     private static string StackStyle(bool top, string align) =>
         "position:fixed;z-index:1000;pointer-events:none;display:flex;flex-direction:column;gap:.5rem;padding:1rem;"

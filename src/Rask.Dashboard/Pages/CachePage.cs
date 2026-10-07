@@ -20,7 +20,6 @@ public sealed partial class CachePage(
     private IReadOnlyList<CacheKeyRow> _rows = [];
     private int _total;
     private int _page;
-    private string? _message;
     private bool _confirmFlush;
 
     /// <summary>Substring filter on the key, from the query string so a search is a shareable link.</summary>
@@ -89,7 +88,6 @@ public sealed partial class CachePage(
             ],
             KeyGrid(now),
             DashboardParked.Parked(IsParked).Resume(Resume),
-            ResultToast(),
         ];
     }
 
@@ -165,32 +163,23 @@ public sealed partial class CachePage(
             ]
             : null;
 
-    private UiToast? ResultToast() =>
-        _message is { } message ? Ui.Toast.Message(message).OnDismiss(Dismiss) : null;
-
     private void Confirm(bool pending)
     {
         _confirmFlush = pending;
         StateHasChanged();
     }
 
-    private void Dismiss()
-    {
-        _message = null;
-        StateHasChanged();
-    }
-
     private async Task EvictAsync(string key)
     {
         var removed = await cache.Evict(key, CancellationToken).ConfigureAwait(false);
-        _message = removed > 0 ? $"Evicted \"{key}\"." : $"\"{key}\" was already gone.";
+        Toast.Success(removed > 0 ? $"Evicted \"{key}\"." : $"\"{key}\" was already gone.");
         await RefreshAsync().ConfigureAwait(false);
     }
 
     private async Task FlushAsync()
     {
         _confirmFlush = false;
-        _message = $"Flushed {await cache.Flush(CancellationToken).ConfigureAwait(false)} entries.";
+        Toast.Success($"Flushed {await cache.Flush(CancellationToken).ConfigureAwait(false)} entries.");
         _page = 0;
         await RefreshAsync().ConfigureAwait(false);
     }

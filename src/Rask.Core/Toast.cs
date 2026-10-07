@@ -10,7 +10,7 @@ namespace Rask.Core;
 /// <remarks>
 ///     <code>
 ///     Toast.Success("Saved");
-///     Toast.Success("Your order was placed").Title("Order 42");
+///     Toast.Success("Your order was placed").Heading("Order 42");
 ///     Toast.Info("Order placed").Action("View order", () => Routes.OrderPage(order.Id).Go());
 ///     Toast.Error("Payment failed").For(30.Seconds);
 ///     Toast.Error("Couldn't reach the server").UntilDismissed();

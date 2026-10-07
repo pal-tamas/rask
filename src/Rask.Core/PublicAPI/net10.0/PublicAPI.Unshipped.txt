@@ -1,6 +1,9 @@
 #nullable enable
 override Rask.Core.Css.GetHashCode() -> int
 override Rask.Core.Css.ToString() -> string!
+override Rask.Core.Messaging.ToastLink.Equals(object? obj) -> bool
+override Rask.Core.Messaging.ToastLink.GetHashCode() -> int
+override Rask.Core.Messaging.ToastLink.ToString() -> string!
 Rask.Core.AttrBag
 Rask.Core.AttrBag.AttrBag(System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> void
 Rask.Core.AttrBag.AttrBag(string! name, string? value) -> void
@@ -4075,11 +4078,25 @@ Rask.Core.Messaging.IToaster.Error(string! message, string? title = null) -> voi
 Rask.Core.Messaging.IToaster.Info(string! message, string? title = null) -> void
 Rask.Core.Messaging.IToaster.Success(string! message, string? title = null) -> void
 Rask.Core.Messaging.IToaster.Warning(string! message, string? title = null) -> void
+Rask.Core.Messaging.ShowingToast.Action(string! label, Rask.Core.Routing.RouteUrl href) -> Rask.Core.Messaging.ShowingToast
+Rask.Core.Messaging.ShowingToast.Heading(string! heading) -> Rask.Core.Messaging.ShowingToast
+Rask.Core.Messaging.ShowingToast.Link(string! label, Rask.Core.Routing.RouteUrl href) -> Rask.Core.Messaging.ShowingToast
+Rask.Core.Messaging.ToastAction.Href.get -> Rask.Core.Routing.RouteUrl?
+Rask.Core.Messaging.ToastAction.Href.init -> void
 Rask.Core.Messaging.ToastLevel
 Rask.Core.Messaging.ToastLevel.Error = 3 -> Rask.Core.Messaging.ToastLevel
 Rask.Core.Messaging.ToastLevel.Info = 0 -> Rask.Core.Messaging.ToastLevel
 Rask.Core.Messaging.ToastLevel.Success = 1 -> Rask.Core.Messaging.ToastLevel
 Rask.Core.Messaging.ToastLevel.Warning = 2 -> Rask.Core.Messaging.ToastLevel
+Rask.Core.Messaging.ToastLink
+Rask.Core.Messaging.ToastLink.<Clone>$() -> Rask.Core.Messaging.ToastLink!
+Rask.Core.Messaging.ToastLink.Deconstruct(out string! Label, out Rask.Core.Routing.RouteUrl Href) -> void
+Rask.Core.Messaging.ToastLink.Equals(Rask.Core.Messaging.ToastLink? other) -> bool
+Rask.Core.Messaging.ToastLink.Href.get -> Rask.Core.Routing.RouteUrl
+Rask.Core.Messaging.ToastLink.Href.init -> void
+Rask.Core.Messaging.ToastLink.Label.get -> string!
+Rask.Core.Messaging.ToastLink.Label.init -> void
+Rask.Core.Messaging.ToastLink.ToastLink(string! Label, Rask.Core.Routing.RouteUrl Href) -> void
 Rask.Core.Messaging.ToastMessage
 Rask.Core.Messaging.ToastMessage.<Clone>$() -> Rask.Core.Messaging.ToastMessage!
 Rask.Core.Messaging.ToastMessage.Deconstruct(out int Id, out Rask.Core.Messaging.ToastLevel Level, out string! Message, out string? Title) -> void
@@ -4088,6 +4105,8 @@ Rask.Core.Messaging.ToastMessage.Id.get -> int
 Rask.Core.Messaging.ToastMessage.Id.init -> void
 Rask.Core.Messaging.ToastMessage.Level.get -> Rask.Core.Messaging.ToastLevel
 Rask.Core.Messaging.ToastMessage.Level.init -> void
+Rask.Core.Messaging.ToastMessage.Link.get -> Rask.Core.Messaging.ToastLink?
+Rask.Core.Messaging.ToastMessage.Link.init -> void
 Rask.Core.Messaging.ToastMessage.Message.get -> string!
 Rask.Core.Messaging.ToastMessage.Message.init -> void
 Rask.Core.Messaging.ToastMessage.Title.get -> string?
@@ -7018,6 +7037,8 @@ static Rask.Core.Live.QuiescentRenderResult.operator ==(Rask.Core.Live.Quiescent
 static Rask.Core.Live.RaskPath.Normalize(string? value) -> string!
 static Rask.Core.Live.RaskPrerender.PlanRoutes() -> Rask.Core.Live.PrerenderPlan!
 static Rask.Core.Live.RaskPrerender.RenderDocument(Rask.Core.Component! app, System.IServiceProvider! services, System.TimeSpan budget, int maxWaves = 16, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Core.Live.PrerenderResult>!
+static Rask.Core.Messaging.ToastLink.operator !=(Rask.Core.Messaging.ToastLink? left, Rask.Core.Messaging.ToastLink? right) -> bool
+static Rask.Core.Messaging.ToastLink.operator ==(Rask.Core.Messaging.ToastLink? left, Rask.Core.Messaging.ToastLink? right) -> bool
 static Rask.Core.Messaging.ToastMessage.operator !=(Rask.Core.Messaging.ToastMessage? left, Rask.Core.Messaging.ToastMessage? right) -> bool
 static Rask.Core.Messaging.ToastMessage.operator ==(Rask.Core.Messaging.ToastMessage? left, Rask.Core.Messaging.ToastMessage? right) -> bool
 static Rask.Core.RaskHostContracts.All.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
@@ -17078,7 +17099,6 @@ Rask.Core.Toast
 Rask.Core.Messaging.ShowingToast
 Rask.Core.Messaging.ShowingToast.For(System.TimeSpan duration) -> Rask.Core.Messaging.ShowingToast
 Rask.Core.Messaging.ShowingToast.ShowingToast() -> void
-Rask.Core.Messaging.ShowingToast.Title(string! title) -> Rask.Core.Messaging.ShowingToast
 Rask.Core.Messaging.ShowingToast.UntilDismissed() -> Rask.Core.Messaging.ShowingToast
 Rask.Core.Messaging.ShownToasts
 Rask.Core.Messaging.ShownToasts.As(Rask.Core.Messaging.ToastLevel level) -> void

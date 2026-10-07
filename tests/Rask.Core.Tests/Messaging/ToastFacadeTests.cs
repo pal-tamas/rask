@@ -21,10 +21,25 @@ public partial class ToastFacadeTests : global::Rask.Core.RaskMarkup
         host.RenderAsLiveRoot(services);
         using var work = Ambient.Enter(services);
 
-        Toast.Info("Product deleted").Title("Tea").Action("Undo", () => { });
+        Toast.Info("Product deleted").Heading("Tea").Action("Undo", () => { });
         var html = host.RenderAsLiveRoot(services);
 
         Assert.Contains("Tea: Product deleted (Undo)", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_link_and_a_link_action_say_where_they_go()
+    {
+        var toaster = new Toaster();
+        var services = new ServiceCollection().AddSingleton<IToaster>(toaster).BuildServiceProvider();
+        using var work = Ambient.Enter(services);
+
+        Toast.Success("Invoice created.").Link("View invoice", "/invoices/1").Action("View", "/invoices/1");
+        var toast = Assert.Single(toaster.Consume());
+
+        Assert.Equal(new ToastLink("View invoice", "/invoices/1"), toast.Link);
+        Assert.Equal("View", toast.Action!.Label);
+        Assert.Equal("/invoices/1", toast.Action.Href?.ToString());
     }
 
     [Fact]
@@ -32,7 +47,7 @@ public partial class ToastFacadeTests : global::Rask.Core.RaskMarkup
     {
         using var toasts = Toast.Fake();
 
-        Toast.Success("Saved").Title("Order 42");
+        Toast.Success("Saved").Heading("Order 42");
         Toast.Error("Payment failed").UntilDismissed();
 
         toasts.Shown("Saved").Once();

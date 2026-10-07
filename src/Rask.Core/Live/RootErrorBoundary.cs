@@ -151,6 +151,7 @@ internal sealed class RootErrorBoundary : Component
             typeof(ToastOutlet), static _ => new ToastOutlet { Template = NoToasts, BuiltIn = true });
         outlet.Template = defaults.Toasts!;
         outlet.AutoDismissAfter = defaults.ToastDuration;
+        outlet.TemplateTimes = defaults.ToastsTimeThemselves;
         return outlet;
     }
 

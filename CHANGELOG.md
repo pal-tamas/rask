@@ -20,6 +20,41 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Toast` is Flux's toast, with its group — raised through `Toast`, placed in the layout.**
+  `Ui.Toast` was one notice a page drew from a list of its own, and `Ui.Toaster` stacked them. It is now
+  what `<flux:toast />` is: the place the app's toasts appear, drawn and timed exactly as Flux's
+  ([fluxui.dev/components/toast](https://fluxui.dev/components/toast)) — a native popover in the top layer,
+  one toast at a time, five seconds, waiting under the pointer, closed by its button or Escape.
+  `Ui.ToastGroup` around it is `flux:toast.group`: a deck of three that opens under the pointer, or
+  always with `.Expanded()`. A toast is raised with the `Toast` facade, which takes what `Flux::toast()`
+  takes:
+  ```csharp
+  // was — a list the page kept, drawn by the page
+  Ui.Toaster.Position(Ui.Position.Bottom).Align(Ui.Align.End)[
+      _notices.Select(n => Ui.Toast.Key(n.Id).Message(n.Text).Title(n.Heading).Tone(Ui.Tone.Success)
+          .Duration(6.Seconds).Action(undoButton).OnDismiss(() => _notices.Remove(n)))]
+
+  // now — raised from the handler…
+  Toast.Success(text).Heading(heading).For(6.Seconds).Action("Undo", Undo);
+  // …and shown by the host's own toast, or by the one the layout places
+  Ui.Toast                          // <flux:toast />
+  Ui.Toast.TopEnd.Invert()          // <flux:toast position="top end" invert />
+  Ui.ToastGroup.Expanded()[Ui.Toast]   // <flux:toast.group expanded><flux:toast /></flux:toast.group>
+  ```
+  - `Ui.Toaster` is gone, with `Ui.Toast`'s `Message`, `Title`, `Tone`, `Action`, `Duration`, `Align` and
+    `OnDismiss`; `Ui.Toast` takes Flux's `Position` (`Ui.ToastPosition`: `BottomEnd`, `BottomCenter`,
+    `BottomStart`, `TopEnd`, `TopCenter`, `TopStart`), `Invert` and `Class`.
+  - `Toast.X(…).Title("…")` is **`.Heading("…")`**, Flux's word. New: `.Link("View invoice", url)` and a
+    link action, `.Action("View", url)`.
+  - `c.Toasts.At(Ui.Position.Top, Ui.Align.End)` is **`c.Toasts.At(Ui.ToastPosition.TopEnd)`**, and in
+    appsettings `"Position": "Top", "Align": "End"` is `"Position": "TopEnd"`.
+  - The host's built-in toasts now show **one at a time**, as `<flux:toast />` does — a new toast takes the
+    place of the one showing. Place `Ui.ToastGroup[Ui.Toast]` in the layout for a stack.
+  - Every toast is announced as `role="status"`; an error no longer says `role="alert"`. The close button
+    carries no label of its own, as Flux's does not.
+  - The operator console's queue and cache pages raise their results through `Toast` and the console's
+    layout places a `Ui.Toast`.
+
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:
@@ -643,12 +678,12 @@ them until tagged releases begin.
   with the kit off. A toast can carry more, and the app sets where they stack and how long they stay:
 
   ```csharp
-  Toast.Success("Your order was placed").Title("Order 42");
+  Toast.Success("Your order was placed").Heading("Order 42");
   Toast.Info("Order placed").Action("View order", () => Routes.OrderPage(order.Id).Go());
   Toast.Error("Payment failed").For(30.Seconds);
   Toast.Error("Couldn't reach the server").UntilDismissed();
 
-  RaskApp.Create(args).Configure(c => c.Toasts.At(Ui.Position.Top, Ui.Align.End).For(8.Seconds)).Run<App>();
+  RaskApp.Create(args).Configure(c => c.Toasts.At(Ui.ToastPosition.TopEnd).For(8.Seconds)).Run<App>();
   ```
 
   `Rask:Toasts` in appsettings says the same. An app that mounts its own `ToastOutlet` gets every toast in its own
