@@ -444,6 +444,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Rask.Wasm: a prerendered page links the one stylesheet its app compiles.** The prerender compiles the
+  app a second time, in `obj/`, and that copy's assembly did not say what the app's says: where the
+  stylesheet is served (`Rask.Stylesheet`) and that the UI kit is compiled into it (`Rask.Ui.Stylesheet`).
+  So every baked page of an app whose `Styles/app.css` imports the kit still linked `/css/rask-ui.css`,
+  which such an app does not ship — a 404 on first paint, gone once the app booted. The app's assembly
+  metadata travels to the prerender now.
 - **The daily upstream run can push what it regenerated when `main`'s workflows moved meanwhile (#1188).**
   Its branch was cut from the commit the run started on, and a branch whose workflow files differ from
   `main`'s is one the workflow's own token may not push. The regenerated commit is rebased onto `main`
