@@ -299,7 +299,7 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("Option '--template' does not accept 'cobol'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: server, wasm, wasm-hosted, react.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, svelte, lit.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -618,6 +618,7 @@ public sealed class NewCommandTests
     [Theory]
     [InlineData("wasm-hosted", "Rask.Cqrs.Client")]
     [InlineData("react", "the generated TypeScript client")]
+    [InlineData("angular", "the generated TypeScript client")]
     public async Task No_cqrs_is_refused_on_a_front_end_with_a_host(string template, string wire)
     {
         var (console, fs, runner, command) = Build();

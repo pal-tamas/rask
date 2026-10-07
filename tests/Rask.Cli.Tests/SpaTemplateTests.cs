@@ -95,14 +95,31 @@ public sealed class SpaTemplateTests
         Assert.Contains("rask.dispatch(", client, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void The_dev_server_proxies_the_wire_to_the_host()
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void The_dev_server_proxies_the_wire_to_the_host(string key)
     {
-        var config = Content(Generate(), "/client/vite.config.ts");
+        var result = Generate(framework: Framework(key));
 
-        // The browser talks to Vite and Vite forwards /_rask, so the browser only ever sees one origin.
-        Assert.Contains("'/_rask'", config, StringComparison.Ordinal);
-        Assert.Contains("target: 'http://localhost:5000'", config, StringComparison.Ordinal);
+        // Angular's proxy is a JSON file angular.json points at; every other client's is in its Vite config.
+        var config = Client(result).Single(f => Path.GetFileName(f.Path) is "vite.config.ts" or "proxy.conf.json").Content;
+
+        // The browser talks to the dev server and it forwards /_rask, so the browser only ever sees one origin.
+        Assert.Matches("['\"]/_rask['\"]", config);
+        Assert.Matches("['\"]?target['\"]?: ['\"]http://localhost:5000['\"]", config);
+    }
+
+    // A proxy file nothing points at forwards nothing, and `ng serve` says nothing about it.
+    [Fact]
+    public void Angular_serves_through_its_proxy_file_and_starts_with_npm_start()
+    {
+        var result = Generate(framework: SpaFramework.Angular);
+
+        var workspace = Content(result, "/client/angular.json");
+
+        Assert.Contains("\"proxyConfig\": \"proxy.conf.json\"", workspace, StringComparison.Ordinal);
+        Assert.Contains("\"start\": \"ng serve\"", Content(result, "/client/package.json"), StringComparison.Ordinal);
+        Assert.False(Has(result, "/client/vite.config.ts"));
     }
 
     // One decision written in two files; a mismatch is a dev session where every call 502s. Plain http only:
@@ -115,14 +132,47 @@ public sealed class SpaTemplateTests
         Assert.Contains("\"applicationUrl\": \"http://localhost:5000\"", launch, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void The_host_names_the_dev_server_rask_dev_opens()
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void The_host_names_the_dev_server_rask_dev_opens(string key)
     {
-        var csproj = Content(Generate(), "/Shop.csproj");
+        var framework = Framework(key);
 
-        Assert.Contains($"<RaskSpaDevServerUrl>{LocalDevServers.Vite}</RaskSpaDevServerUrl>", csproj, StringComparison.Ordinal);
+        var result = Generate(framework: framework);
+
+        var csproj = Content(result, "/Shop.csproj");
+        Assert.Contains($"<RaskSpaDevServerUrl>{framework.DevServerUrl}</RaskSpaDevServerUrl>", csproj, StringComparison.Ordinal);
         Assert.Contains("<PackageReference Include=\"Rask.Spa.Hosting\" Version=\"1.2.3\"/>", csproj, StringComparison.Ordinal);
-        Assert.DoesNotContain("<RaskSpaDistDir>", csproj, StringComparison.Ordinal);
+        Assert.Contains(framework.DevServerUrl, result.Notes ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Angular_listens_on_its_own_port_and_every_other_client_on_Vites()
+    {
+        var others = SpaFramework.All.Where(framework => framework != SpaFramework.Angular);
+
+        Assert.Equal(LocalDevServers.Angular, SpaFramework.Angular.DevServerUrl);
+        Assert.All(others, framework => Assert.Equal(LocalDevServers.Vite, framework.DevServerUrl));
+    }
+
+    // Angular nests its bundle under the project's npm name; a host looking anywhere else serves nothing.
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void Only_Angular_tells_the_host_where_its_bundle_lands(string key)
+    {
+        var result = Generate(framework: Framework(key));
+
+        var csproj = Content(result, "/Shop.csproj");
+
+        if (key != SpaFramework.Angular.Key)
+        {
+            Assert.DoesNotContain("<RaskSpaDistDir>", csproj, StringComparison.Ordinal);
+            return;
+        }
+
+        Assert.Contains("<RaskSpaDistDir>dist/shop-client/browser</RaskSpaDistDir>", csproj, StringComparison.Ordinal);
+        Assert.Contains("\"name\": \"shop-client\"", Content(result, "/client/package.json"), StringComparison.Ordinal);
+        Assert.Contains("\"shop-client\": {", Content(result, "/client/angular.json"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -247,10 +297,11 @@ public sealed class SpaTemplateTests
         Assert.Contains("rask-sw.js", string.Join("\n", Client(result).Where(f => f.Path.EndsWith(".html", StringComparison.Ordinal)).Select(f => f.Content)), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Push_subscribes_through_the_browsers_own_api_and_the_hosts_endpoints()
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void Push_subscribes_through_the_browsers_own_api_and_the_hosts_endpoints(string key)
     {
-        var result = Generate(new ServerBatteries { Push = true }.Normalized());
+        var result = Generate(new ServerBatteries { Push = true }.Normalized(), Framework(key));
 
         // src/push.ts, not src/rask/: which endpoints and when to ask are the developer's, so it is a committed file.
         var client = Content(result, "/client/src/push.ts");
@@ -269,31 +320,68 @@ public sealed class SpaTemplateTests
         Assert.Contains("\"Push\": {", Content(result, "/appsettings.json"), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Without_pwa_no_client_carries_a_service_worker_or_a_manifest_link()
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void Without_pwa_no_client_carries_a_service_worker_or_a_manifest_link(string key)
     {
-        var result = Generate();
+        var result = Generate(framework: Framework(key));
 
         Assert.False(Has(result, "/client/public/rask-sw.js"));
         Assert.False(Has(result, "/client/public/manifest.webmanifest"));
         Assert.False(Has(result, "/client/src/push.ts"));
-        var page = Content(result, "/client/index.html");
+        var page = Client(result).Single(f => f.Path.EndsWith("/index.html", StringComparison.Ordinal)).Content;
         Assert.DoesNotContain("manifest", page, StringComparison.Ordinal);
         Assert.DoesNotContain("serviceWorker", page, StringComparison.Ordinal);
         Assert.DoesNotContain("rask:if", page, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void The_sign_in_screen_calls_the_auth_module_the_build_writes()
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void The_sign_in_screen_calls_the_auth_module_the_build_writes(string key)
     {
-        var result = Generate(new ServerBatteries { Data = true });
+        var result = Generate(new ServerBatteries { Data = true }, Framework(key));
 
-        var screen = Content(result, "/client/src/Auth.tsx");
+        var source = string.Join("\n", Starter(result).Select(f => f.Content));
 
         // src/rask/browser/auth.ts is what Rask.Spa.Hosting copies beside the typed client on every build.
-        Assert.Contains("from './rask/browser/auth'", screen, StringComparison.Ordinal);
-        Assert.Contains("'/login'", Content(result, "/client/src/main.tsx"), StringComparison.Ordinal);
-        Assert.Contains("'/register'", Content(result, "/client/src/main.tsx"), StringComparison.Ordinal);
+        Assert.Matches("from '\\.{1,2}/rask/browser/auth'", source);
+        Assert.Contains("'/login'", source, StringComparison.Ordinal);
+        Assert.Contains("'/register'", source, StringComparison.Ordinal);
+    }
+
+    // The seven starters are one design in seven idioms; a class only one of them carries is a drift.
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void Every_starter_is_drawn_with_the_same_Tailwind_classes(string key)
+    {
+        var reference = Classes(Generate());
+
+        var drawn = Classes(Generate(framework: Framework(key)));
+
+        Assert.NotEmpty(reference);
+        Assert.Equal(reference, drawn);
+    }
+
+    /// <summary>The files a starter's two screens are written in, whatever the framework calls them.</summary>
+    private static IEnumerable<ScaffoldFile> Starter(ScaffoldResult result) =>
+        Client(result).Where(f =>
+            f.Path.Replace('\\', '/').Contains("/client/src/", StringComparison.Ordinal)
+            && Path.GetExtension(f.Path) is ".tsx" or ".ts" or ".vue" or ".svelte" or ".html");
+
+    /// <summary>Every utility a starter names, whether a class attribute or the shared input constant carries it.</summary>
+    private static SortedSet<string> Classes(ScaffoldResult result)
+    {
+        var literals = Starter(result).SelectMany(f => Regex
+            .Matches(f.Content, "(?:(?<!:)class(?:Name)?=|const input =\\s*)[\"']([^\"']+)[\"']")
+            .Select(match => match.Groups[1].Value));
+
+        var classes = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var literal in literals)
+        {
+            classes.UnionWith(literal.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        return classes;
     }
 
     // The image is built from the project directory, so every path in it is relative to that.

@@ -57,7 +57,8 @@ internal static partial class ProjectGenerator
         steps.Append("Created ").Append(name).Append(" (Rask ").Append(framework.DisplayName)
             .Append(" front end + ASP.NET host).\n\nNext steps:\n");
         steps.Append("  cd ").Append(name).Append('\n');
-        steps.Append("  rask dev            # the host, and the client's dev server, together\n");
+        steps.Append("  rask dev            # the host, and the client's dev server on ").Append(framework.DevServerUrl)
+            .Append(", together\n");
         if (batteries.Docker)
         {
             steps.Append("  docker build -t ").Append(name.ToLowerInvariant()).Append(" .   # then: docker run -p 8080:8080 …\n");

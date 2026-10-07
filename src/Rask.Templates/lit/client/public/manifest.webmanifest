@@ -1,0 +1,17 @@
+{
+  "name": "Rask App",
+  "short_name": "Rask App",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "theme_color": "#512BD4",
+  "background_color": "#faf9fe",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

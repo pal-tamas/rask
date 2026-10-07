@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+
+/* Tailwind's preflight removes the browser's default look on purpose, so the page's own
+   background and text colour are set here once. Everything else is utilities at the call
+   site. */
+@layer base {
+  body {
+    @apply bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+  }
+}
