@@ -1311,25 +1311,6 @@
 }
 
 /*
-  A textarea that grows to fit what is typed (UiTextarea.AutoSize).
-
-  `field-sizing: content` is the platform's own answer, so this needs no script and works on a prerendered
-  page — which is the whole reason it is here rather than in the runtime. Where an engine has not shipped it
-  the declaration is ignored and the box keeps its `rows` and scrolls, which is exactly what it does today:
-  the feature degrades to the current behaviour rather than to a broken one.
-
-  `rows` becomes the SMALLEST it will be, which is why min-height is left to it rather than set here.
-
-  In `rask-ui-corrections` because daisyUI's `.textarea` rules live in `utilities`, which outranks `rask`
-  however specific a selector there is.
-*/
-@layer rask-ui-corrections {
-  .ui-textarea-auto {
-    field-sizing: content;
-  }
-}
-
-/*
   The light that crosses a shimmering skeleton ([data-ui-skeleton], [data-ui-skeleton-line]).
 
   Their ::before is as wide as the skeleton and parked one width to its left (UiSkeletonScope); this carries

@@ -191,6 +191,7 @@ function baseline({ STYLES, targets }) {
   window.__fluxBase ??= {};
   for (const id of targets) {
     const el = document.querySelector(`[data-m="${id}"]`);
+    if (!el) continue;   // an editor swaps its own nodes in after it is collected: no state to compare
     window.__fluxBase[id] = Object.fromEntries(STYLES.map(k => [k, getComputedStyle(el)[k]]));
   }
 }
@@ -203,6 +204,7 @@ function diff({ STYLES, target }) {
   window.__fluxRest();   // the state's own transition, taken to the end it settles on
   const computed = getComputedStyle(el);
   const base = window.__fluxBase[target];
+  if (!base) return changed;
   for (const k of STYLES) if (computed[k] !== base[k]) changed[k] = computed[k];
   return changed;
 }

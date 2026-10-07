@@ -72,7 +72,7 @@ public partial class UiFieldTests : global::Rask.Core.RaskMarkup
         var model = new SignUp();
 
         var html = Form.Model(model)[
-            Ui.Field[Ui.Label["Nickname"], Ui.Input.Bind(() => model.Nickname).Floating(false)]
+            Ui.Field[Ui.Label["Nickname"], Ui.Input.Bind(() => model.Nickname)]
         ].ToHtml();
 
         Assert.Contains("for=\"f-nickname\"", html, StringComparison.Ordinal);
@@ -142,7 +142,7 @@ public partial class UiFieldTests : global::Rask.Core.RaskMarkup
         var html = global::Rask.Testing.Page.Render(() => Form.Model(model).Context(ctx)[
             Ui.Field[
                 Ui.Label["Nickname"],
-                Ui.Input.Bind(() => model.Nickname).Floating(false).ShowValidation(false),
+                Ui.Input.Bind(() => model.Nickname).ShowValidation(false),
                 Ui.Error
             ]
         ]).Html;

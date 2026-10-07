@@ -6,7 +6,7 @@ public sealed partial class EventsInputDemo : Component
 
     protected override Component? Render() =>
     [
-        Ui.Input.Value(_typed).AccessibleLabel("Type something")
+        Ui.Input.Value(_typed).Label("Type something")
             .Type(InputType.Text)
             .Placeholder("Type something")
             .OnInput(v => _typed = v).Class("mb-2"),

@@ -22,7 +22,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         foreach (var id in new[]
                  {
-                     "ui-text-controls", "ui-labels", "ui-choices", "ui-range", "ui-otp", "ui-filter",
+                     "ui-text-controls", "ui-input-group", "ui-textarea", "ui-choices", "ui-range", "ui-otp", "ui-filter",
                      "ui-calendar", "ui-dates", "ui-dropzone", "ui-bound", "ui-mask",
                  })
         {
@@ -50,11 +50,11 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await email.FillAsync("not-an-address");
         await email.BlurAsync();
 
-        // The validator only exists while the value is bad, so its appearance is the proof the value
-        // reached C#, was judged there, and came back as different markup.
-        await Expect(Page.Locator(".validator-hint")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(email).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("input-error"));
+        // The error only shows while the value is bad, so its appearance is the proof the value reached C#,
+        // was judged there, and came back as different markup.
+        var error = Page.Locator("[data-testid='ui-text-controls'] [data-ui-error]").First;
+        await Expect(error).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(email).ToHaveAttributeAsync("data-invalid", "");
 
         // aria-describedby resolves to the VISIBLE text, error first — what a screen reader reads with the field.
         await Expect(email).ToHaveAttributeAsync("aria-invalid", "true");
@@ -63,8 +63,62 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         await email.FillAsync("ada@example.com");
         await email.BlurAsync();
-        await Expect(Page.Locator(".validator-hint")).ToHaveCountAsync(0);
+        await Expect(error).ToBeHiddenAsync();
         await Expect(email).ToHaveAccessibleDescriptionAsync("For example, you@example.com.");
+    });
+
+    [Fact]
+    public Task The_clear_button_appears_with_the_first_keystroke_and_empties_the_field() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-text-controls']");
+        var search = scope.Locator("input[placeholder='Search orders']").Nth(2);
+        var clear = scope.Locator("[data-ui-clear-button]");
+        await Expect(clear).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        await clear.ClickAsync();
+
+        // Emptied in C# and patched back; hidden by CSS alone while empty, and back before any round trip.
+        await Expect(search).ToHaveValueAsync("");
+        await Expect(clear).ToBeHiddenAsync();
+        await search.PressSequentiallyAsync("a");
+        await Expect(clear).ToBeVisibleAsync();
+    });
+
+    [Fact]
+    public Task The_reveal_button_shows_the_password_and_hides_it_again() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-text-controls']");
+        var toggle = scope.GetByLabel("Toggle password visibility");
+        var field = toggle.Locator("xpath=ancestor::*[@data-ui-input][1]").Locator("input");
+        await Expect(field).ToHaveAttributeAsync("type", "password", new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+
+        await toggle.ClickAsync();
+        await Expect(field).ToHaveAttributeAsync("type", "text");
+        await toggle.ClickAsync();
+
+        await Expect(field).ToHaveAttributeAsync("type", "password");
+    });
+
+    [Fact]
+    public Task A_textarea_reports_what_was_typed_and_an_auto_one_grows() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-textarea']");
+        var notes = scope.GetByLabel("Order notes");
+        await notes.FillAsync("No onion.");
+        await notes.BlurAsync();
+        await Expect(Page.Locator("[data-testid='ui-textarea-state']")).ToContainTextAsync("No onion.");
+
+        var auto = scope.GetByPlaceholder("This textarea will adjust to fit the content...");
+        var before = (await auto.BoundingBoxAsync())!.Height;
+        await auto.FillAsync("one\ntwo\nthree\nfour");
+
+        Assert.True((await auto.BoundingBoxAsync())!.Height > before, "the auto-sizing textarea did not grow.");
     });
 
     [Fact]
