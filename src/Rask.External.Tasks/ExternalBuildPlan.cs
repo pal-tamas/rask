@@ -454,6 +454,11 @@ internal static class ExternalBuildPlan
     ///         the reason the config does not try to set <c>root</c> to something that would contain
     ///         both <c>obj/</c> and the author's source tree.
     ///     </para>
+    ///     <para>
+    ///         <c>$dev</c> names the dev server itself, which is how the client runtime of a WASM app finds
+    ///         it: that page is a static file, so no server is there to stamp it. An island's name is a
+    ///         C# identifier and so never starts with <c>$</c>; the built manifest has no such key.
+    ///     </para>
     /// </remarks>
     public static string DevManifest(
         IReadOnlyList<ExternalEntry> islands, string entryDirectory, string devServerUrl)
@@ -461,22 +466,24 @@ internal static class ExternalBuildPlan
         var origin = devServerUrl.TrimEnd('/');
         var json = new StringBuilder();
         json.AppendLine("{");
+        json.Append("  \"").Append(DevServerKey).Append("\": \"").Append(origin).Append('"');
 
-        var ordered = islands.OrderBy(i => i.Name, StringComparer.Ordinal).ToList();
-        for (var i = 0; i < ordered.Count; i++)
+        foreach (var name in islands.Select(i => i.Name).OrderBy(n => n, StringComparer.Ordinal))
         {
             // "/@fs/" + the path WITHOUT its leading slash, which is Vite's own form. Concatenating
             // "/@fs" with the path directly happens to work on Unix, where the path starts with "/",
             // and produces "/@fsC:/app/..." on Windows — every island 404s and nothing mounts.
-            var entry = Posix(Path.Combine(entryDirectory, ordered[i].Name + ".entry.ts")).TrimStart('/');
-            json.Append("  \"").Append(ordered[i].Name).Append("\": \"")
-                .Append(origin).Append("/@fs/").Append(entry).Append('"')
-                .AppendLine(i == ordered.Count - 1 ? string.Empty : ",");
+            var entry = Posix(Path.Combine(entryDirectory, name + ".entry.ts")).TrimStart('/');
+            json.AppendLine(",").Append("  \"").Append(name).Append("\": \"")
+                .Append(origin).Append("/@fs/").Append(entry).Append('"');
         }
 
-        json.AppendLine("}");
+        json.AppendLine().AppendLine("}");
         return json.ToString();
     }
+
+    /// <summary>The dev manifest's key for the dev server; <c>rask-external.js</c> reads the same one.</summary>
+    private const string DevServerKey = "$dev";
 
     /// <summary>
     ///     The tsconfig the Angular plugin compiles against, or null when the project has no Angular

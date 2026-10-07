@@ -1,0 +1,53 @@
+name: full
+
+# The whole push set against main, every hour that main has moved.
+#
+# A push to main runs only the gates its change can reach (ci.yml), which is what makes that verdict
+# take minutes. This is the other half of the bargain: everything, unscoped, on a schedule — so a break
+# a scoped run could not see is at most an hour old when it is found. nightly.yml and pages.yml publish
+# from a commit THIS workflow passed, never from a scoped run.
+#
+# A red run here with green pushes on top of it means exactly that: something a scoped run does not
+# cover is broken on main. Fix it forward; `gh run list --workflow full --branch main` is where to look.
+on:
+  schedule:
+    - cron: '47 * * * *'   # hourly, off the hour (the top of the hour is when Actions queues)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full
+  cancel-in-progress: false   # a run in progress gets its verdict; the next hour takes whatever main is then
+
+jobs:
+  # Has main moved since the last commit this workflow passed? If not, the run cancels itself rather
+  # than end green: a green run is what the publishing workflows wait for, and an unchanged main has
+  # nothing new to publish.
+  moved:
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write   # read the last green run, cancel this one
+      contents: read
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          green="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/full.yml/runs?branch=main&status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // empty' 2>/dev/null || true)"
+          if [ "$EVENT" = "schedule" ] && [ "$green" = "$GITHUB_SHA" ]; then
+            echo "full: main is still at $GITHUB_SHA, which already passed — nothing to run."
+            gh run cancel "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY"
+            sleep 60   # the cancellation lands while this job is still the only one
+          else
+            echo "full: main is at $GITHUB_SHA, last green ${green:-none} — running the whole set."
+          fi
+
+  gates:
+    needs: moved
+    uses: ./.github/workflows/gates.yml
+    with:
+      set: push
+      scope: full

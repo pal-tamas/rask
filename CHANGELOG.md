@@ -248,6 +248,12 @@ them until tagged releases begin.
   it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
   included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
   unchanged and still run by hand; each CI job is one of them.
+- **A push to `main` is gated by the gates its change can reach, and the whole set runs every hour.**
+  `scripts/lib/affected_gates.py` maps the change to gates from the project graph and runs everything
+  for a change it cannot narrow (the CI definition, a gate script, the package pins). `full.yml` runs
+  the whole push set each hour `main` has moved, and `nightly.yml` and `pages.yml` now publish from a
+  commit that run passed, not from a push's scoped run. The CLI build and template gates run on a push
+  only when the CLI, a template or a project file changed.
 - **Upstream is followed without anyone watching.** `upstream.yml` runs daily: it moves the MDN snapshot
   to the latest stable data, records the public surface that moved with it, moves the stated Node line
   to the Active LTS, gates the result and lands it on `main`. `dependabot-merge.yml` merges a
@@ -257,6 +263,15 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The daily upstream run can push what it regenerated when `main`'s workflows moved meanwhile (#1188).**
+  Its branch was cut from the commit the run started on, and a branch whose workflow files differ from
+  `main`'s is one the workflow's own token may not push. The regenerated commit is rebased onto `main`
+  first.
+- **Rask.Cqrs: an authorization attribute the build cannot read is an error, not a handler left open
+  (#1187).** A handler's `[Authorize]` is read by name at compile time, so an attribute deriving from
+  `AuthorizeAttribute` (`[AdminOnly]`), one implementing `IAuthorizeData`, or any of them on the `Handle`
+  method was skipped without a word — over HTTP and in local dispatch. Each is now RASK101, on handlers
+  and on event and subscription records; write `[Authorize(...)]` on the handler class.
 - **The daily upstream run no longer reports every Flux UI look as changed.** The lock was measured on
   macOS and checked on Linux, where text measures differently, so 866 of 870 looks "moved" (#1189).
   The lock now records the platform it was measured on and belongs to the CI runner: `upstream.yml`
@@ -265,7 +280,36 @@ them until tagged releases begin.
   line per page, and the run's Playwright is pinned to the E2E projects' release. A look is also
   measured with motion at rest — a transition at its end, a spinner or shimmer on its first frame, on
   Flux's page and on Rask's alike — and a difference is measured twice, so an example Flux draws at
-  random is ignored instead of reported.
+  random is ignored instead of reported. A baseline measures every page twice and locks such an example
+  (a chart, whose data the docs server makes up per request) as `unstable`, so it is never compared; an
+  `auto` margin is recorded as `auto`, since Chromium reports the space it took on one page load and
+  `0px` on the next for the same layout.
+- **Islands load in an app served under a path base.** With `PathBase = "/shop"` the island runtime, the
+  manifest and every chunk were still asked for at the root and answered 404, on both hosts. The script
+  is now written under the base, as scoped assets are, and the client reads the base back off its own
+  URL — never off `<base href>`, which markup can inject — and applies it to the manifest and the chunks:
+  ```
+  /_content/Rask.External/rask-external.js        →  /shop/_content/Rask.External/rask-external.js
+  /_rask/external/manifest.json                   →  /shop/_rask/external/manifest.json
+  ```
+  The bundle is unchanged, so one build serves any base.
+- **Islands load, and hot-reload, in a WASM app under `rask dev`.** Since islands became own-origin only,
+  the page had to name the Vite dev server before a chunk on it would load, and only Rask.Server did —
+  by stamping `<body>`. A WASM app's page is a static file, so every island there was refused under
+  `rask dev` (`refusing the chunk http://localhost:5174/…`) and `@vite/client` was never loaded. A dev
+  session's manifest now names the server itself under a reserved `$dev` key; the client accepts it on
+  the same terms as the stamp — a loopback origin only — and a built manifest never has the key.
+- **One failed manifest fetch no longer fails every island until a reload.** The rejected fetch was kept
+  for the life of the page, so a 404 in the middle of a deploy or a dropped connection left every later
+  island unmounted. The next island to mount asks again, and the error says where and what to check:
+  ```
+  islands manifest: HTTP 404                                                             (was)
+  Rask islands: the manifest at https://app.test/_rask/external/manifest.json could not
+  be loaded (HTTP 404). The build writes it and the app serves it as a static file, …    (now)
+  ```
+- **Every island build message starts `Rask islands:`.** The ones raised by the targets file
+  (RASKISLAND001–003, the origin check, the type-check skips, `bundling N island(s)`) still said
+  `Rask.External:`. RASKISLAND002 — the bundler wrote no manifest — now also says what to check.
 - **Rask.SQLite.Litestream: two projects building for the first time at once no longer break each
   other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
   with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
@@ -362,6 +406,67 @@ them until tagged releases begin.
   A heading is no longer an `<h2>` unless it is given a `Level`. `UiStyles.Card` stays, and is now the default
   card's surface in Flux's colours (`zinc`, `p-6`, `shadow-xs`) for an element that is not a card. The
   `/_rask` console's queue tiles show their status under the title, and no longer an icon or a hover.
+- **Re-rendering a keyed list no longer builds a throwaway component per row.** A keyed component is built
+  by position first and its `Key` step then swaps in the row that key already had; the one built by position
+  was discarded — an instance and its live state, about 300 B a row, on every update of the page:
+  ```csharp
+  Tbody[items.Select(item => Row.Item(item).Key(item.Id))]   // unchanged — each row cost ~300 B a render
+  ```
+  The instance set aside is now handed to the next row instead. A live update of a 20-row page allocates
+  8.7 KB → 2.7 KB (`LiveSessionSend.RenderAndSend`, −70%), and the saving grows with the list.
+  `Rask.Benchmarks -- allocation-profile [rows]` is the report that found it: it names the types an update
+  allocates, as shares of that benchmark's bytes.
+
+- **A live update no longer rebuilds its URL or its JSON writer.** Every update built the page's URL from the
+  route's path and query to see whether the resume record had moved, and created a `Utf8JsonWriter` for the
+  payload. The URL is rebuilt when the route changes and the writer is kept per thread: another 0.3 KB off
+  each update, 2.7 KB → 2.3 KB on the same 20-row page.
+
+- **The benchmark gates run in CI.** `scripts/run-benchmarks-local.sh` is a `benchmarks` job on every push
+  (`.github/workflows/gates.yml`), beside the unit and browser gates: both wire-byte baselines, the client
+  bundle size, the session smokes, and a new allocation budget — a live update of the 20-row page against
+  `Baselines/allocation-budget.csv`, +5%. All of it is exact byte counts; no time is gated, because a shared
+  runner's clock proves nothing. Nothing has to be run by hand.
+
+- **An event no longer matches the session's path against the route table twice.** Each match allocated per
+  route it tried, so the cost grew with the app — 6 KB of a 28 KB click with 22 routes. The session remembers
+  its last resolution (`SessionRouteMemo`); both authorization checks still run on every event, against the
+  current user. `EventDispatchBenchmarks` measures a click end to end: 28.00 KB → 21.75 KB on an open page,
+  31.64 KB → 25.32 KB behind `[Authorize]`.
+
+- **A chain step clears its pending bit in place.** `BuilderRuntime.Written` copied the whole entry slot back
+  into the list to change one mask. About 3.5% off a re-render of 50 chain-built rows (16.08 → 15.51 µs,
+  fastest-round median of six interleaved runs); allocation unchanged at 19.79 KB.
+
+- **A WASM app's service worker serves content-addressed files from its cache.** `rask-sw.js` went to the
+  network for every request, so a repeat visit downloaded the .NET runtime again. A fingerprinted file under
+  `_framework/` and a scoped-asset bundle (`/_rask/a/{hash}.css|js`) are now served cache-first; `index.html`,
+  `main.js` and anything unfingerprinted stay network-first, with the offline fallback as before. A
+  fingerprint with no digit in it is treated as unfingerprinted, to keep a name like `my.extensions.wasm` out.
+
+- **A first response is encoded once, from one copy of the page.** Stamping the session id onto `<body>`
+  built a second string the size of the page, and the encoder then rented three bytes per character for it.
+  Outside development the page now goes straight to UTF-8 with the id spliced in, into a buffer of the exact
+  size — one page-sized string fewer per request (~160 KB on an 80 KB page).
+
+- **The route guard reads a page's `[Authorize]` once.** It reflected over the page type's attributes on
+  every request and every event, building each attribute afresh. They are read once per type now (and again
+  after a hot reload). With the item above, a first GET allocates 68.5 KB → 63.0 KB on the benchmark page
+  (`allocation-profile page`).
+
+- **A Server app's client runtime is cached and compressed.** `/rask/rask.js` was re-encoded from a string on
+  every request and sent with no `Cache-Control`, no `ETag` and no compression — ~100 KB a visit. The page
+  now names it by content hash, and that URL is `immutable`, with an `ETag` and brotli/gzip built once:
+  ```html
+  <script src="/rask/rask.js"></script>                       <!-- was -->
+  <script src="/rask/rask.js?v=3f9c1a7be02d4c55"></script>    <!-- now -->
+  ```
+  The bare URL still answers, `no-cache`, and a request carrying the `ETag` gets a `304`.
+
+- **Docs: the session-footprint tables match the report again.** `docs/scaling.md`,
+  `docs/configuration.md` and `docs/observability.md` still quoted 1.39 MB for a connected 200-row session;
+  `session-footprint` measures 0.86 MB (~1,250 sessions per GiB). The benchmark baseline notes no longer
+  claim a pre-push hook runs the byte gates, and list all six payload scenarios.
 - **BREAKING: a handler's `[Authorize]` now holds for a request sent in-process, not only over HTTP.** A
   server page that sent an admin-only command ran it for any signed-in visitor, because the declaration
   was checked at the remote endpoint alone. A caller the handler does not admit now gets

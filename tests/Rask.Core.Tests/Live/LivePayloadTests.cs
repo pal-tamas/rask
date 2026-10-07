@@ -17,6 +17,22 @@ public class LivePayloadTests
         Assert.Equal(1, CountOccurrences(injected, "data-rask-root"));
     }
 
+    [Theory]
+    [InlineData("<html><body class=\"x\"><p>hi</p></body></html>", "abc")]
+    [InlineData("<HTML><BODY><p>hi</p></BODY></HTML>", "abc")]
+    [InlineData("<html><body><p>árvíztűrő — 日本 😀</p></body></html>", "abc")]
+    [InlineData("<html><body></body></html>", "<script>\"&")]
+    [InlineData("<p>a fragment with no body</p>", "abc")]
+    public void The_root_attribute_written_straight_to_utf8_is_the_stamped_string_encoded(string html, string sessionId)
+    {
+        var expected = Encoding.UTF8.GetBytes(LivePayload.InjectRootAttr(html, sessionId));
+
+        var buffer = LivePayload.RentUtf8WithRootAttr(html, sessionId, out var length);
+
+        Assert.Equal(expected, buffer.AsSpan(0, length).ToArray());
+        System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+    }
+
     [Fact]
     public void The_root_attribute_html_encodes_the_session_id()
     {

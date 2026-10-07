@@ -55,21 +55,21 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             .CreateSyntaxProvider(
                 static (node, _) => node is TypeDeclarationSyntax c && c.BaseList is { Types.Count: > 0 } &&
                                     !c.Modifiers.Any(m => m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.AbstractKeyword)),
-                static (ctx, _) => GetCandidate(ctx))
+                static (ctx, ct) => GetCandidate(ctx, ct))
             .Where(static c => c is not null)
             .Select(static (c, _) => c!);
 
         context.RegisterSourceOutput(candidates.Collect(), static (spc, all) => Emit(spc, all));
     }
 
-    private static Candidate? GetCandidate(GeneratorSyntaxContext ctx)
+    private static Candidate? GetCandidate(GeneratorSyntaxContext ctx, System.Threading.CancellationToken ct)
     {
         if (ctx.Node is not TypeDeclarationSyntax typeDecl)
         {
             return null;
         }
 
-        if (ctx.SemanticModel.GetDeclaredSymbol(typeDecl) is not INamedTypeSymbol symbol)
+        if (ctx.SemanticModel.GetDeclaredSymbol(typeDecl, ct) is not INamedTypeSymbol symbol)
         {
             return null;
         }
@@ -84,7 +84,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         // record structs can't be DI-constructed handlers.
         if (symbol.IsAbstract || symbol.TypeKind != TypeKind.Class)
         {
-            return subscription is null ? null : new Candidate(NoHandlers, null, subscription, NoPolicies);
+            return subscription is null ? null : new Candidate(NoHandlers, null, subscription, NoPolicies, NoIgnored);
         }
 
         var policies = new List<PolicyModel>();
@@ -119,8 +119,40 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             new EquatableArray<HandlerModel>(handlers),
             LocationInfo.From(symbol),
             subscription,
-            new EquatableArray<PolicyModel>(policies));
+            new EquatableArray<PolicyModel>(policies),
+            handlers.Count == 0 ? NoIgnored : new EquatableArray<IgnoredAuthorization>(Ignored(symbol, ct)));
     }
+
+    // RASK101: every authorization attribute on this handler that Declared() below — and the codec, for the wire —
+    // will not read. A derived one on the class or a base class, and anything at all on Handle.
+    private static IEnumerable<IgnoredAuthorization> Ignored(INamedTypeSymbol handler, System.Threading.CancellationToken ct)
+    {
+        foreach (var (attribute, on) in CqrsCodecGenerator.UnreadAuthorization(handler))
+        {
+            yield return new IgnoredAuthorization(
+                attribute.AttributeClass!.Name, on.Name, CqrsCodecGenerator.NotReadable, Written(attribute, handler, ct));
+        }
+
+        for (var current = handler; current is not null; current = current.BaseType)
+        {
+            foreach (var handle in current.GetMembers("Handle").OfType<IMethodSymbol>())
+            {
+                foreach (var attribute in handle.GetAttributes().Where(static a =>
+                             CqrsCodecGenerator.IsReadAuthorization(a.AttributeClass) ||
+                             CqrsCodecGenerator.IsUnreadAuthorization(a.AttributeClass)))
+                {
+                    yield return new IgnoredAuthorization(
+                        attribute.AttributeClass!.Name, current.Name + ".Handle", OnHandle, Written(attribute, handler, ct));
+                }
+            }
+        }
+    }
+
+    private const string OnHandle = "authorization is read from the handler class, never from its Handle method — move it there";
+
+    // Where the attribute is written; the handler itself when a base class in another assembly carries it.
+    private static LocationInfo? Written(AttributeData attribute, INamedTypeSymbol handler, System.Threading.CancellationToken ct) =>
+        LocationInfo.From(attribute.ApplicationSyntaxReference?.GetSyntax(ct).GetLocation()) ?? LocationInfo.From(handler);
 
     private static HandlerModel? Handler(INamedTypeSymbol symbol, INamedTypeSymbol iface, Compilation compilation)
     {
@@ -175,6 +207,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     private static readonly EquatableArray<HandlerModel> NoHandlers = new(Array.Empty<HandlerModel>());
 
     private static readonly EquatableArray<PolicyModel> NoPolicies = new(Array.Empty<PolicyModel>());
+
+    private static readonly EquatableArray<IgnoredAuthorization> NoIgnored = new(Array.Empty<IgnoredAuthorization>());
 
     // The record's ISubscription<T>, when it declares one. A subscription is a message like any other, so it is
     // looked for on records and structs as well as classes — and skipped when the generated file could not name it.
@@ -268,6 +302,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             }
         }
 
+        ReportIgnoredAuthorization(spc, candidates);
+
         if (models.Count == 0 && subscriptions.Count == 0 && policies.Count == 0)
         {
             return;
@@ -289,6 +325,17 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 subscriptions.Values.OrderBy(s => s.SubscriptionFqn, StringComparer.Ordinal).ToList(),
                 policies.ToList()),
             Encoding.UTF8));
+    }
+
+    // Once per application: a partial handler is a candidate per declaration, and a base class is walked from
+    // every handler that derives from it.
+    private static void ReportIgnoredAuthorization(SourceProductionContext spc, IEnumerable<Candidate> candidates)
+    {
+        foreach (var ignored in candidates.SelectMany(static c => c.IgnoredAuthorization).Distinct())
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(
+                CqrsCodecGenerator.Rask101, ignored.Location?.ToLocation(), ignored.Attribute, ignored.On, ignored.Why));
+        }
     }
 
     private static List<string> EventTypes(List<(HandlerModel Model, LocationInfo? Location)> registerable) =>
@@ -703,7 +750,10 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         EquatableArray<HandlerModel> Handlers,
         LocationInfo? Location,
         SubscriptionModel? Subscription,
-        EquatableArray<PolicyModel> Policies);
+        EquatableArray<PolicyModel> Policies,
+        EquatableArray<IgnoredAuthorization> IgnoredAuthorization);
+
+    private sealed record IgnoredAuthorization(string Attribute, string On, string Why, LocationInfo? Location);
 
     private sealed record SubscriptionModel(string SubscriptionFqn, string EventFqn);
 
@@ -719,9 +769,10 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 new Microsoft.CodeAnalysis.Text.LinePosition(StartLine, StartChar),
                 new Microsoft.CodeAnalysis.Text.LinePosition(EndLine, EndChar)));
 
-        public static LocationInfo? From(ISymbol symbol)
+        public static LocationInfo? From(ISymbol symbol) => From(symbol.Locations.FirstOrDefault(l => l.IsInSource));
+
+        public static LocationInfo? From(Location? loc)
         {
-            var loc = symbol.Locations.FirstOrDefault(l => l.IsInSource);
             if (loc?.SourceTree is null)
             {
                 return null;

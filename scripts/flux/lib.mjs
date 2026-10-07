@@ -43,9 +43,13 @@ export async function measurePage(browser, url, shots, prepare) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
     // A fixed clock: a calendar that opens on today would measure differently every morning.
     await context.clock.setFixedTime(new Date('2026-01-15T12:00:00Z'));
+    // Motion at rest (rest, below), for Flux's page and Rask's alike: a look read mid-flight measures
+    // differently every run.
+    await context.addInitScript(`window.__fluxRest = ${rest}`);
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(() => window.__fluxRest());
     if (prepare) await prepare(page, scheme);
     schemes[scheme] = await measure(page, join(shots, scheme));
     await context.close();
@@ -59,20 +63,6 @@ async function measure(page, shots) {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('DOM.enable');
   await cdp.send('CSS.enable');
-
-  // A running animation is held at its first frame, not wherever the clock caught it: a spinner's angle or a
-  // shimmer half-way across would measure differently on every run. What the animation IS — duration,
-  // easing, keyframes — is recorded per node in collect(), and that is what the two sides are compared on.
-  // A scroll-driven one runs on no clock: it is where the scroll position puts it, the same on every run.
-  await page.evaluate(() => {
-    for (const animation of document.getAnimations()) {
-      const clocked = animation.timeline instanceof DocumentTimeline;
-      if (clocked && animation instanceof CSSAnimation && animation.playState === 'running') {
-        animation.pause();
-        animation.currentTime = 0;
-      }
-    }
-  });
 
   const wrappers = await page.$$('[data-preview-wrapper]');
   const examples = [];
@@ -107,8 +97,25 @@ async function measure(page, shots) {
   return examples;
 }
 
+// Runs in the page. Everything in motion, put where it rests: what ends (a transition, an entrance) at
+// its end — the state Flux draws — and what never ends (a spinner, a shimmer) on its first frame. What
+// either IS (duration, easing, keyframes) is recorded per node in collect() and compared on that.
+// A scroll-driven animation runs on no clock: it is where the scroll position puts it, and is left there.
+function rest() {
+  for (const animation of document.getAnimations()) {
+    if (!(animation.timeline instanceof DocumentTimeline)) continue;
+    if (animation.effect?.getComputedTiming().endTime === Infinity) {
+      animation.pause();
+      animation.currentTime = 0;
+    } else {
+      animation.finish();
+    }
+  }
+}
+
 // Runs in the page. Every element of one example: where it is, what it is, how it computed.
 function collect(wrapper, { STYLES, index }) {
+  window.__fluxRest();
   // Flux's page names a section with the heading above it; a Rask parity page states it on the wrapper.
   const headings = [...document.querySelectorAll('h2[id]')];
   const section = wrapper.dataset.section
@@ -118,9 +125,13 @@ function collect(wrapper, { STYLES, index }) {
   wrapper.setAttribute('data-m-section', section);
   const origin = wrapper.getBoundingClientRect();
   const keep = name => !/^(class|style|wire:|x-|@|:|data-m$|data-m-section$|data-section$|data-preview-wrapper$)/.test(name);
+  // An auto margin is recorded as declared. Chromium answers the space it took on one page load and 0px
+  // on the next, for the same layout — and the box already states where it put the element.
+  const auto = (declared, k) => k.startsWith('margin') && String(declared.get(k.replace('margin', 'margin-').toLowerCase())) === 'auto';
   const style = (el, pseudo) => {
     const computed = getComputedStyle(el, pseudo);
-    return Object.fromEntries(STYLES.map(k => [k, computed[k]]));
+    const declared = pseudo ? undefined : el.computedStyleMap();
+    return Object.fromEntries(STYLES.map(k => [k, declared && auto(declared, k) ? 'auto' : computed[k]]));
   };
 
   // What moves, and how: each CSS animation's timing and keyframes, on the element or pseudo it runs on.
@@ -189,6 +200,7 @@ function diff({ STYLES, target }) {
   const changed = {};
   const el = document.querySelector(`[data-m="${target}"]`);
   if (!el) return changed;
+  window.__fluxRest();   // the state's own transition, taken to the end it settles on
   const computed = getComputedStyle(el);
   const base = window.__fluxBase[target];
   for (const k of STYLES) if (computed[k] !== base[k]) changed[k] = computed[k];

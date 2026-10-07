@@ -2,10 +2,15 @@ name: ci
 
 # Every gate that used to run in a git hook, run here instead, AFTER the push. Nothing in this
 # workflow blocks a commit or a push: own work lands on main directly and this says, a few minutes
-# later, whether it should have. A red main is fixed forward, and it stops at the door — nightly.yml
-# and pages.yml publish only from a commit this workflow passed.
+# later, whether it should have. A red main is fixed forward.
 #
-# A ci/** branch runs the same gates without landing anything: push there to try a risky change
+# A push to main and a pull request are SCOPED: they run the gates the change can reach, measured
+# from the last commit this workflow or full.yml passed (scripts/lib/affected_gates.py decides, and
+# refuses to narrow whatever it cannot reason about). That is what makes the verdict take minutes.
+# What it buys it with: a break a scoped run cannot see is found by the next whole run instead —
+# full.yml, on a schedule — which is why nightly.yml and pages.yml publish from THAT run, not this one.
+#
+# A ci/** branch runs the whole push set without landing anything: push there to try a risky change
 # first. A ci/release/** branch also runs the release-only gates (see gates.yml), which is how to
 # find out before tagging rather than from a failed release.
 on:
@@ -26,13 +31,16 @@ on:
         description: an ERE over gate names (e.g. 'CLI build|unit'); empty runs the whole set
         type: string
         default: ''
+      base:
+        description: a commit to measure the change from — runs the scoped set a push from there would
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
-# On main a push never cancels the run in progress, so a red run names the push that caused it and a
-# green one gets to publish. (GitHub keeps one run waiting behind it: the newest.) Anywhere else only
-# the newest push matters.
+# On main a push never cancels the run in progress, so a red run names the push that caused it.
+# (GitHub keeps one run waiting behind it: the newest.) Anywhere else only the newest push matters.
 concurrency:
   # A manual run is its own group: two of them on one ref ask different questions (`only`), and the
   # second must not cancel the first.
@@ -40,15 +48,67 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # Where a scoped run measures the change from. Empty means "run the whole set", which is what a
+  # ci/** branch, a manual run and a Dependabot pull request get.
+  base:
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read    # the last green run
+      contents: read
+    outputs:
+      scope: ${{ steps.find.outputs.scope }}
+      sha: ${{ steps.find.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # is the green commit an ancestor of this one?
+
+      - id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          ACTOR: ${{ github.actor }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          ASKED_BASE: ${{ inputs.base }}
+        run: |
+          sha=""
+          if [ "$EVENT" = "pull_request" ] && [ "$ACTOR" != "dependabot[bot]" ]; then
+            sha="$PR_BASE"
+          elif [ "$EVENT" = "workflow_dispatch" ]; then
+            sha="$ASKED_BASE"
+          elif [ "$EVENT" = "push" ] && [ "$REF" = "refs/heads/main" ]; then
+            # The newest green commit of the two workflows that can call main green. Only a PUSH run of
+            # this one counts: a manual run may have been narrowed to a single gate. A green run whose
+            # commit is not an ancestor (a rewritten main) is no base at all.
+            for query in "ci.yml/runs?branch=main&event=push" "full.yml/runs?branch=main"; do
+              green="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$query&status=success&per_page=1" \
+                --jq '.workflow_runs[0].head_sha // empty' 2>/dev/null || true)"
+              [ -n "$green" ] && git merge-base --is-ancestor "$green" HEAD 2>/dev/null || continue
+              if [ -z "$sha" ] || git merge-base --is-ancestor "$sha" "$green"; then sha="$green"; fi
+            done
+          fi
+
+          if [ -n "$sha" ]; then
+            echo "base: scoped, measured from $sha"
+            echo "scope=affected" >> "$GITHUB_OUTPUT"
+          else
+            echo "base: the whole set"
+            echo "scope=full" >> "$GITHUB_OUTPUT"
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
   gates:
+    needs: base
     uses: ./.github/workflows/gates.yml
     with:
-      # A Dependabot pull request gets the short set. Each of its runs is a full round of jobs on the same
-      # runners main is waiting for, several of them arrive at once, and the browser suites run on main
-      # the moment it is merged.
+      # A Dependabot pull request gets the short set, unscoped: it changes the package pins, which
+      # nothing can narrow, and several arrive at once on the runners main is waiting for.
       set: >-
         ${{ github.event_name == 'workflow_dispatch' && inputs.set
             || startsWith(github.ref, 'refs/heads/ci/release/') && 'all'
             || (github.event_name == 'pull_request' && github.actor == 'dependabot[bot]') && 'deps'
             || 'push' }}
       only: ${{ inputs.only }}
+      scope: ${{ needs.base.outputs.scope }}
+      base: ${{ needs.base.outputs.sha }}
