@@ -82,7 +82,10 @@ const NATIVE = {
   'ui-table-scroll-area': 'div', 'ui-disclosure-group': 'div', 'ui-disclosure': 'details',
 };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
-const sameTag = (a, b) => (NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
+const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
+// …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
+// opens the file input inside it when clicked, where Flux's <div> calls input.click().
+const NATIVE_PART = { 'input-file': 'label' };
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
 const MISMARKED = { 'ui-disclosure-group': 'accordion' };
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.

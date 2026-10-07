@@ -20,21 +20,18 @@ them until tagged releases begin.
 
 ### Changed
 
-- **BREAKING: `Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
-  [Flux UI's field](https://fluxui.dev/components/field).** The first family of the kit drawn without
-  daisyUI: Flux's parts, props, spacing and colours in light and dark, held to its docs page by
-  `scripts/flux/parity.mjs field`. A field stacks a label, a control, its message and help text —
-  `Ui.Field[Ui.Label.Badge("Required")["Email"], Ui.Input.Bind(() => m.Email).ShowValidation(false), Ui.Error, Ui.Description["…"]]`
-  — and `Ui.Field.Inline` puts the label beside a checkbox or a switch. `Ui.Label` is a real `<label for>`
-  that finds the field's control by itself, so a click focuses it with no script. `Ui.Error` is an
-  always-rendered `role="alert"` live region showing the first message of the bound member: bare inside a
-  field, `Ui.Error.For(() => m.Email)` anywhere, `Name("Email")` on the form's model, or `Message("…")`.
-  Two daisyUI components are replaced:
-  - `Ui.Fieldset.Text("Shipping").Help("…")[…]` → `Ui.Fieldset.Legend("Shipping").Description("…")[…]`
-    (`Legend` is optional now; `Ui.Legend["…"]` places it by hand).
-  - `Ui.Label.Text("€").Trailing("per month")[input]` — daisyUI's caption inside a control's frame — is
-    gone; `Ui.Label` is now the control's NAME (`Ui.Label["Email"]`, `Badge`, a `Trailing` slot). For the
-    old look write the daisyUI markup: `Label.Class("label")[Span["€"], input, Span["per month"]]`.
+- **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
+  `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
+  `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the
+  form). `Label`, `Description` and `DescriptionTrailing` (and `Badge` on a textarea) wrap the control in a
+  `Ui.Field` with its `Ui.Error`; a control with none of them is the control alone and draws no message.
+  New: `Variant` (`.Filled`), `Invalid()`, `ReadOnly()`, `Viewable()`, `Mask("(999) 999-9999")`,
+  `As(Ui.InputAs.Button)`, `InputClass`, `Type(InputType.File)` drawn as Flux's file input, an icon that is a
+  component of your own, `Ui.InputGroup` / `Ui.InputGroupPrefix` / `Ui.InputGroupSuffix`, and
+  `Rows(UiTextareaRows.Auto)`. Nothing Flux does not have stayed:
+  ```csharp
+  Ui.Search.Placeholder("Search").AccessibleLabel("Search keys").Value(q).OnSearch(Find)        // was
+  Ui.Input.Value(q).Icon(Ui.IconName.MagnifyingGlass).Placeholder("Search").OnChange(Find)      // now
 
   `Ui.Input`, `Ui.Select` and the other controls are unchanged and still draw their own label, `Hint` and
   message; each takes Flux's `Label`/`Description` field as it is rebuilt.
@@ -155,6 +152,22 @@ them until tagged releases begin.
     `Ui.CalloutVariant`. The `.alert-*` contrast corrections stay in the kit's sheet for an app's own
     `alert alert-*` markup (the scaffolded sign-in pages write it); the kit itself writes no `alert` class.
 
+  Ui.Input.Bind(() => m.Email).Label("Email").Hint("We never share it.")                         // was
+  Ui.Input.Bind(() => m.Email).Label("Email").Description("We never share it.")                  // now
+
+  Ui.Input.Value(v).Tone(Ui.Tone.Error).Error("Not an email.")                                   // was
+  Ui.Field[Ui.Input.Value(v).Invalid(), Ui.Error.Message("Not an email.")]                       // now
+
+  Ui.Input.Value(v).Size(Ui.Size.Sm).Variant(Ui.Variant.Ghost)                                   // was
+  Ui.Input.Value(v).Sm.Filled                                                                    // now
+
+  Ui.Textarea.Bind(() => m.Notes).AutoSize(true).Resize(Ui.Resize.None)                          // was
+  Ui.Textarea.Bind(() => m.Notes).Rows(UiTextareaRows.Auto).None                                 // now
+  ```
+  Removed with no replacement: floating labels (`Floating`), `AccessibleLabel`, `Badge` on an input,
+  `ShowValidating` and its "Checking…" line, the message a bound control with no label used to draw, and
+  `aria-required` from `[Required]`. `Ui.Resize` is `Ui.TextareaResize`; a textarea is four rows by default
+  (was three). Flux's `copyable` and `mask:dynamic` need script in the page and are not built.
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:
@@ -241,6 +254,24 @@ them until tagged releases begin.
     page sets `Sorted`/`Direction` and answers `OnSort`.
   - Cells no longer wrap (`whitespace-nowrap`, as Flux); write `whitespace-normal` on one that should.
 
+- **BREAKING: `Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
+  [Flux UI's field](https://fluxui.dev/components/field).** The first family of the kit drawn without
+  daisyUI: Flux's parts, props, spacing and colours in light and dark, held to its docs page by
+  `scripts/flux/parity.mjs field`. A field stacks a label, a control, its message and help text —
+  `Ui.Field[Ui.Label.Badge("Required")["Email"], Ui.Input.Bind(() => m.Email).ShowValidation(false), Ui.Error, Ui.Description["…"]]`
+  — and `Ui.Field.Inline` puts the label beside a checkbox or a switch. `Ui.Label` is a real `<label for>`
+  that finds the field's control by itself, so a click focuses it with no script. `Ui.Error` is an
+  always-rendered `role="alert"` live region showing the first message of the bound member: bare inside a
+  field, `Ui.Error.For(() => m.Email)` anywhere, `Name("Email")` on the form's model, or `Message("…")`.
+  Two daisyUI components are replaced:
+  - `Ui.Fieldset.Text("Shipping").Help("…")[…]` → `Ui.Fieldset.Legend("Shipping").Description("…")[…]`
+    (`Legend` is optional now; `Ui.Legend["…"]` places it by hand).
+  - `Ui.Label.Text("€").Trailing("per month")[input]` — daisyUI's caption inside a control's frame — is
+    gone; `Ui.Label` is now the control's NAME (`Ui.Label["Email"]`, `Badge`, a `Trailing` slot). For the
+    old look write the daisyUI markup: `Label.Class("label")[Span["€"], input, Span["per month"]]`.
+
+  `Ui.Input`, `Ui.Select` and the other controls are unchanged and still draw their own label, `Hint` and
+  message; each takes Flux's `Label`/`Description` field as it is rebuilt.
 - **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
   keeps the front-door check, `pre-push` the attribution guard. `ci.yml` runs the format check, the
   warnings-as-errors build, the unit suite, the browser E2Es, the CLI build and the templates as

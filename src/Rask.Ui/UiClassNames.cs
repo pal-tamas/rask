@@ -147,35 +147,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string TextareaTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "textarea-neutral",
-        Ui.Tone.Primary => "textarea-primary",
-        Ui.Tone.Secondary => "textarea-secondary",
-        Ui.Tone.Accent => "textarea-accent",
-        Ui.Tone.Info => "textarea-info",
-        Ui.Tone.Success => "textarea-success",
-        Ui.Tone.Warning => "textarea-warning",
-        Ui.Tone.Error => "textarea-error",
-        _ => "",
-    };
-
-    internal static string TextareaVariant(Ui.Variant value) => value switch
-    {
-        Ui.Variant.Ghost => "textarea-ghost",
-        _ => "",
-    };
-
-    internal static string TextareaSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "textarea-xs",
-        Ui.Size.Sm => "textarea-sm",
-        Ui.Size.Md => "textarea-md",
-        Ui.Size.Lg => "textarea-lg",
-        Ui.Size.Xl => "textarea-xl",
-        _ => "",
-    };
-
     // A chart's colours, one table per use. Tailwind's own colour utilities over daisyUI's theme colours, so a series
     // follows the theme; every one a complete literal for the reason this file exists.
     internal static string ChartStroke(Ui.Tone value) => value switch
@@ -679,19 +650,6 @@ internal static class UiClassNames
             (_, Ui.Align.End) => "inset-x-3 bottom-3 sm:inset-x-auto sm:right-3",
             _ => "inset-x-3 bottom-3 sm:inset-x-0",
         };
-
-    /// <summary>Which way a textarea can be resized.</summary>
-    /// <remarks>
-    ///     Tailwind's own resize utilities, one complete literal per member — <c>"resize-" + value</c> is invisible
-    ///     to the scan, and a textarea that asked for a fixed size would silently keep its handle.
-    /// </remarks>
-    internal static string Resize(Ui.Resize value) => value switch
-    {
-        Ui.Resize.Horizontal => "resize-x",
-        Ui.Resize.Both => "resize",
-        Ui.Resize.None => "resize-none",
-        _ => "resize-y",
-    };
 
     /// <summary>The classes that hide an element from a breakpoint up.</summary>
     /// <remarks>The toggle is only needed while the sidebar slides over the page, so it hides where the sidebar docks.</remarks>

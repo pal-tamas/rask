@@ -131,28 +131,23 @@ for everything else.
 
 ## Form validation
 
-A Rask UI field wires its label, hint, error and validation state to assistive tech on its own — you add
-nothing. `Ui.Input`, `Ui.Textarea` and `Ui.Select` (both modes) render:
+A Rask UI field wires its label, description, error and validation state to assistive tech on its own — you
+add nothing. `Ui.Input` and `Ui.Textarea` render:
 
 - `aria-invalid="true"` when the field is invalid — a bound field whose form holds a message for it, or a
-  controlled field given `Tone(Ui.Tone.Error)` — so the failed state is exposed programmatically, not only
-  as a red border;
-- `aria-describedby` naming what is **visible** under the control, error first: the bound field's own
-  validation message, then a controlled `Error` (only while the tone reveals it — a hidden message named
-  by `aria-describedby` would still be read aloud), then the `Hint`. Omitted when there is nothing;
-- `aria-required="true"` when the field is bound to a member carrying `[Required]`. It is the one required
-  rule a field can see; a FluentValidation rule or a `Validate` delegate is invisible to it, so nothing is
-  guessed; and
-- a `Badge` ("Required", "Optional") inside the label, `aria-hidden` so the accessible name stays the
-  label's text.
+  controlled field given `Invalid()` — so the failed state is exposed programmatically, not only as a red
+  border;
+- `aria-describedby` naming what is **visible** around the control, error first: the field's `Ui.Error` (only
+  while it holds a message — a hidden message named by `aria-describedby` would still be read aloud), then the
+  `Description`. Omitted when there is nothing; and
+- a real `<label for>` from `Label`, which is the control's accessible name.
 
 ```csharp
-Ui.Input.Bind(() => model.Email).Label("Email").Badge("Required").Hint("We never share it.")
-// valid   → <input id="f-email" aria-required="true" aria-describedby="f-email-hint" …>
-// invalid → <input id="f-email" aria-required="true" aria-invalid="true"
-//                  aria-describedby="f-email-validation f-email-hint" …>
-//           <p id="f-email-validation" class="label text-ui-danger-ink">Enter a valid email</p>
-//           <p id="f-email-hint" class="label">We never share it.</p>
+Ui.Input.Bind(() => model.Email).Label("Email").Description("We never share it.")
+// valid   → <input id="f-email" aria-describedby="f-email-description" …>
+// invalid → <input id="f-email" aria-invalid="true" data-invalid
+//                  aria-describedby="f-email-error f-email-description" …>
+//           <div id="f-email-error" role="alert" aria-live="polite">Enter a valid email</div>
 ```
 
 The hint, error and message ids derive from the field id — `Id` if you set one, otherwise the bound

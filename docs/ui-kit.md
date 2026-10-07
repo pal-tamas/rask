@@ -41,7 +41,7 @@ C# component framework that ships no script of its own:
 - **One vocabulary.** `Position` + `Align` place everything that floats, events are `On…`, `Kbd` shows a shortcut
   wherever one is shown, `Tone`/`Variant`/`Size` style everything.
 - **We style, you space.** Components bring padding, borders and colour — never an outer margin.
-- **Simple first, composable after.** `Ui.Input.Label("Email").Hint(…)` is one line; `Ui.NavList` with
+- **Simple first, composable after.** `Ui.Input.Label("Email").Description(…)` is one line; `Ui.NavList` with
   `Ui.NavGroup`s and `Ui.NavItem`s, or `Ui.Dropdown` with `Ui.MenuSub`s, is there when one line is not enough.
 
 ## Wiring it up
@@ -1090,12 +1090,6 @@ their width, and the axis labels are HTML beside it so they never stretch. Hover
 values in CSS. The figure is named by `Label`, the drawing is hidden from assistive technology, and a visually
 hidden table carries every value it draws — series as columns, rows as rows.
 
-**`Ui.Textarea` grows, or does not.** `Resize` says which way the handle drags (`None` for a box in a layout the
-extra height would break), and `AutoSize` grows the box to fit what is typed. That one is CSS —
-`field-sizing: content` — so it needs no runtime and works on a prerendered page; where an engine has not
-shipped it the box keeps its `Rows` and scrolls, which is what it does today, so the feature degrades to the
-current behaviour rather than to a broken one.
-
 **`Ui.Link.External()` opens in a new tab.** `target="_blank"` with `rel="noopener noreferrer"` (a new tab opened
 without it can reach back through `window.opener`). A generated route is one of your own pages and is never
 external, so it is ignored there.
@@ -1138,39 +1132,49 @@ between empty and full, and moves to a new value over 300ms. The same share is o
 a `UiElement`, so name it with `.Aria("label", …)` or `.Aria("labelledby", id)`. There is no radial progress:
 Flux has none, and `Ui.RadialProgress` is gone.
 
-**A text field's box can hold more than what is typed.** `Ui.Input` takes `Icon` and `IconTrailing`, a `Kbd`
-for the shortcut that focuses it, and `Clearable` for a button that empties it — Flux's input affordances.
-Any of them turns the box into a container around a bare `<input>`, which is daisyUI's own icon-input shape,
-and the label then stays **above** the field: a floating caption rises through exactly the room the icon now
-occupies. The container is a `<div>`, not a `<label>`, because a wrapping label implicitly names the input it
-holds and the field already has a label — two names on one control is the "Email Email" problem.
-
 **`Ui.Avatar` draws initials when there is no picture.** `Src` is optional; give it a `Name` and it renders the
 monogram — the first letter of each of the first two words, deliberately not first-and-last, since a name is
 not reliably two words in that order. The letters are `aria-hidden` and the frame carries the name, because
 "AL" read letter by letter tells a reader nothing. Same frame, same rounding either way, so a list does not
 change shape when somebody removes their photo.
 
-**A labelled text field floats its label.** `Ui.Input`, `Ui.Textarea` and a native `Ui.Select` draw `Label`
-as daisyUI's `floating-label`: the caption sits in the field until there is content, then rises out of the
-way. It is still the field's real `<label>`, linked to the control. `Floating(false)` puts it back above
-the field as a legend. Controls with no text to float over keep the legend: checkboxes, ranges, ratings,
-and a `Ui.Select` that draws its own list.
+**`Ui.Input` and `Ui.Textarea` are Flux UI's.** Same props, same look, same markers
+([fluxui.dev/components/input](https://fluxui.dev/components/input), [textarea](https://fluxui.dev/components/textarea)),
+over Rask's binding: `Bind` or `Value` where Flux says `wire:model`.
 
 ```csharp
-Ui.Input.Bind(() => _account.Email).Label("Email")                   // floats
-Ui.Input.Bind(() => _account.Seats).Label("Seats").Floating(false)   // legend above the field
+Ui.Input.Bind(() => m.Email).Label("Email").Description("We never share it.")     // a field: label, help, error
+Ui.Input.Bind(() => m.Query).Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K").Clearable().Placeholder("Search...")
+Ui.Input.Bind(() => m.Password).Type(InputType.Password).Viewable()                // reveal button
+Ui.Input.Value(key).ReadOnly().Filled                                              // variant="filled"
+Ui.Input.Bind(() => m.Phone).Mask("(999) 999-9999")                                // 9 digit, a letter, * either
+Ui.Input.Of<string>().Type(InputType.File).Multiple().OnFiles(Save)                // "Choose files" + the chosen name
+Ui.Input.Of<string>().As(Ui.InputAs.Button).Placeholder("Search...").OnClick(Open) // a button drawn as the input
+Ui.InputGroup[Ui.InputGroupPrefix["https://"], Ui.Input.Bind(() => m.Site)]        // fused borders
+Ui.Textarea.Bind(() => m.Notes).Label("Notes").Rows(UiTextareaRows.Auto).None      // grows by CSS; resize="none"
 ```
 
-While the label floats it is also the placeholder, and a `Placeholder` you set is ignored. A different
-placeholder would sit in the box in the label's place until someone focused the field. Put guidance about
-the value in `Hint`, under the field, where it stays visible while typing. `Placeholder` still applies to
-a field with no visible label and to one with `Floating(false)`.
-
-**A bound field says what it knows.** Under the control it shows its validation message and, while an async
-validator is still out, a small spinner with "Checking…". The words are announced; the spinner is
-decoration. Opt out of either with `ShowValidation(false)` or `ShowValidating(false)`, where the page shows
-those states some other way, such as a summary at the top of the form.
+- **Props.** `Label`, `Description`, `DescriptionTrailing` (and `Badge` on a textarea) wrap the control in a
+  [`Ui.Field`](#fields-label-description-error) with its `Ui.Error`; without them it is the control alone. `Size`
+  (`Sm`, `Xs`), `Variant` (`Filled`), `Disabled`, `ReadOnly`, `Invalid`, `Icon` / `IconTrailing` (a `Ui.IconName`, or
+  content of your own such as a button), `Kbd`, `Clearable`, `Viewable`, `Mask`, `As`, `Multiple`, and
+  `Class` for the wrapper with `InputClass` for the `<input>`. A textarea takes `Rows` (4 unless set) and `Resize`
+  (`Vertical`, `Horizontal`, `Both`, `None`).
+- **A bound control is invalid on its own** while its form holds a message for the member: `aria-invalid`,
+  `data-invalid` and the red border, with `aria-describedby` naming the field's error and description.
+  `ShowValidation(false)` leaves the message to a `Ui.Error` you place yourself. A control with no label draws no
+  field, so its message is yours to place too: `Ui.Field[Ui.Input.Bind(…), Ui.Error]`.
+- **No script.** The clear button is hidden by CSS while the input is empty and clears through a handler; the
+  reveal button is a handler; `Rows(UiTextareaRows.Auto)` is `field-sizing: content`; a file input is a `<label>`
+  around the real input. `Mask` is applied to the value drawn and the value committed, not keystroke by keystroke.
+  Flux's `copyable` and `mask:dynamic` need script in the page and are not built.
+- **In a group, label the group.** `Ui.Field[Ui.Label["Website"], Ui.InputGroup[…], Ui.Error]` — the group stands
+  for its input, so the field's label and error reach it. A neighbour that is not an input (a button, a select)
+  joins the outline by carrying `data-ui-group-target`.
+- **Gone with daisyUI's input:** floating labels (`Floating`), `Hint` (now `Description`), `Tone`, `Error("…")`
+  (now `Invalid()` beside a `Ui.Error.Message("…")`), `AccessibleLabel`, `ShowValidating`, `AutoSize` (now
+  `Rows(UiTextareaRows.Auto)`), `Ui.Resize` (now `Ui.TextareaResize`) and `Ui.Search` (now
+  `Ui.Input.Icon(Ui.IconName.MagnifyingGlass)`).
 
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two
@@ -1180,9 +1184,9 @@ of them says anything about `T`. Bound mode drives the surrounding `Form`'s vali
 `Validate`, `AfterBind`, and the `aria-invalid`/`aria-describedby` display — and controlled mode leaves
 the value with the parent. See [building form controls](building-form-controls.md).
 
-**Every value control is a field, and a field has one shape.** `Ui.Input`, `Ui.Textarea`, `Ui.Select` (single or
-multiple), `Ui.Otp`, `Ui.FileInput`, the radio and checkbox groups and the date pickers all take the same members
-from `UiFormField<T>`: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
+**The controls still on daisyUI share one field shape.** `Ui.Select` (single or multiple), `Ui.Otp`,
+`Ui.FileInput`, the radio and checkbox groups and the date pickers all take the same members from
+`UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input` and `Ui.Textarea` have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
 without one, an invisible `AccessibleLabel`; a `Hint` and a controlled `Error` under it; an `Id`, derived from the
 bound member or the label when you give none; and `aria-describedby`, `aria-invalid` and `aria-required` worked out
 from those and from the bound member's `[Required]` and messages. `Label` is never a required step, so write it
@@ -1255,7 +1259,7 @@ was clicked first. So a bound model never holds half a range. `default(UiDateRan
 
 **`Ui.DatePicker` is the field.** A field-shaped button showing the choice in the reader's short date format, with
 the grid in a popover — the browser's, so the top layer, Escape, a click outside and focus back on the button
-come with it. It is a form field like `Ui.Input` (`Label`, `Hint`, `Error`, `Badge`, validation), and it takes the
+come with it. It is a form field like `Ui.Select` (`Label`, `Hint`, `Error`, `Badge`, validation), and it takes the
 same three openings: one day closes the popover on the pick, several days keep it open while they are added, and
 a range closes on the click that gives it its end.
 
@@ -1304,7 +1308,7 @@ toast changes its **icon** and not only its colour.
 using Rask;   // every template's GlobalUsings.cs already says this
 
 Ui.Card[
-    Ui.Input.Of<string>().Label("Email").Hint("We never share it"),
+    Ui.Input.Of<string>().Label("Email").Description("We never share it"),
     Ui.Button.Primary.Sm.OnClick(Save)["Save"],
     Button["a plain <button>"]
 ]
