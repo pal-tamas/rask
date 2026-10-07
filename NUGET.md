@@ -62,8 +62,8 @@ A library of components used by either host references the core alone: `dotnet a
 
 Tailwind is not on that list because it is not a package: the compiler ships inside `Rask.Server` and
 `Rask.Wasm`, so either puts it in your build. Add a `Styles/app.css` holding
-`@import "tailwindcss";` and `dotnet build` compiles it; `RaskApp` and the WASM host link it, after the UI
-kit's sheet — no npm, no config file, nothing to switch on.
+`@import "./vendor/rask-ui.css";` — Tailwind and the UI kit in one line — and `dotnet build` compiles it into
+ONE stylesheet that `RaskApp` and the WASM host link: no npm, no config file, nothing to switch on.
 
 With `Rask.Server`, this is the whole of `Program.cs` — every battery is on, and the file says only what
 this app does *without*:

@@ -90,6 +90,35 @@ public sealed class RaskAppDocumentTests
         Assert.Null(unstyled.AppStylesheet);
     }
 
+    [Fact]
+    public void An_app_whose_stylesheet_carries_the_kit_links_no_second_kit_sheet()
+    {
+        // Rask.Ui's build writes this when Styles/app.css imports rask-ui.css: the kit's classes are in
+        // the app's own sheet. The precompiled one linked beside it is two `@layer utilities` ranked by
+        // link order — the app's `bg-white` over the kit's `dark:bg-zinc-800`.
+        var compiledIn = AppWith(
+            (RaskDocument.StylesheetMetadata, "css/app.css"), (RaskDocument.KitStylesheetMetadata, "compiled-in"));
+        var linked = AppWith((RaskDocument.StylesheetMetadata, "css/app.css"));
+
+        var one = RaskDocument.For(compiledIn, kit: true);
+        var two = RaskDocument.For(linked, kit: true);
+
+        Assert.Null(one.KitStylesheet);
+        Assert.Equal("css/app.css", one.AppStylesheet);
+        // The theme scope stays: the kit's theme is in that one sheet, still confined to data-rask-ui.
+        Assert.NotNull(one.HtmlAttributes);
+        Assert.NotNull(two.KitStylesheet);
+    }
+
+    private static AssemblyBuilder AppWith(params (string Key, string Value)[] metadata)
+    {
+        var constructor = typeof(AssemblyMetadataAttribute).GetConstructor([typeof(string), typeof(string)])!;
+        return AssemblyBuilder.DefineDynamicAssembly(
+            new AssemblyName("App" + Guid.NewGuid().ToString("N")[..8]),
+            AssemblyBuilderAccess.Run,
+            metadata.Select(m => new CustomAttributeBuilder(constructor, [m.Key, m.Value])));
+    }
+
     private static async Task<string> PageAsync(WebApplication app)
     {
         await app.StartAsync();

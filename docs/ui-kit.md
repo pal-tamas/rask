@@ -46,34 +46,40 @@ C# component framework that ships no script of its own:
 
 ## Wiring it up
 
-> **An app on `RaskApp` or the WASM host needs none of this in its code.** The host links the kit's sheet
-> first and your `css/app.css` after it, and puts the theme scope on `<html>`, so `App.cs` is a title and
-> a router; `app.Configure(c => c.Ui.Off())` leaves the kit out. `rask new` also sets the two properties.
+> **An app on `RaskApp` or the WASM host needs none of this in its code.** `rask new` writes the one
+> import below into `Styles/app.css`; the host links the compiled `css/app.css` and puts the theme scope
+> on `<html>`, so `App.cs` is a title and a router. `app.Configure(c => c.Ui.Off())` leaves the kit out.
 > This section is for a hand-wired `AddRask()`/`MapRask<App>()` host, or an App that overrides `Shell`.
 
 Two things, and forgetting either produces a page that renders structurally correct components with
-**no colour at all** — so both are worth doing before anything else.
+**no styling, or no colour at all** — so both are worth doing before anything else.
 
-**1. Link the stylesheet.** Opt into the build writing it, then link it:
+**1. Take the kit into your stylesheet.** One line in `Styles/app.css`, in place of
+`@import "tailwindcss";`:
 
-```xml
-<PropertyGroup>
-  <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
-</PropertyGroup>
+```css
+@import "./vendor/rask-ui.css";
 ```
+
+Your app then compiles **one stylesheet** — Tailwind, the kit's theme, its `dark` variant, daisyUI while
+it lasts, and the classes the kit's components write, beside the classes you write — exactly as a
+[Flux](https://fluxui.dev) app's one Tailwind build scans Flux's own views. The kit's class names are
+C# string literals inside a compiled assembly, where no scan can find them, so the package ships them
+as a list and the import reads it. Link that sheet and nothing else:
 
 ```csharp
 protected override Component? HeadAssets =>
 [
-    Link.Rel("stylesheet").Href(UiStylesheet.Href(LiveOptions.PathBase)),   // the kit's, FIRST
     Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css"),
 ];
 ```
 
-`UiStylesheet.Href()` carries a content hash, so the file can be cached hard and still change when the
-kit does. A library that renders kit components into somebody else's host wants no file in a `wwwroot`
-it does not own; that case keeps `UiStylesheet.Css` and inlines it in a `<style>`, which is what
-`Rask.Dashboard` does — and it is the only stylesheet the console carries, reset included.
+There is nothing to set in the `.csproj`. The build sees the import, writes the kit's Tailwind sources
+into `Styles/vendor/` before Tailwind runs — `rask-ui.css`, `rask-ui.kit.css`, `rask-ui.classes.txt`
+and `daisyui.mjs`; generated, not committed, no npm — and records in the assembly that the kit is
+already in the app's sheet. [The Tailwind guide](tailwind.md#what-a-new-project-starts-with) walks
+through the four lines of `rask-ui.css`, and how to write them out yourself when you want Tailwind
+without its preflight or a layer of your own.
 
 **2. Turn the theme on.** Nothing in the kit has a colour until an ancestor carries the theme scope:
 
@@ -83,65 +89,56 @@ protected override Component Shell(Component head, Component body) =>
 ```
 
 The scope exists so that *referencing* this package cannot repaint an application that only wanted a
-button. daisyUI paints `:root` by default; the kit confines it to `[data-rask-ui]` instead, and the
-same reasoning is why it ships no preflight.
+button. daisyUI paints `:root` by default; the kit confines it to `[data-rask-ui]` instead.
 
-**Order is the contract.** The kit's sheet declares the palette, so redefining a token in your own
-`@theme` re-skins every component without overriding a single rule — which only works while your copy
-is what the cascade reads last.
-
-**The kit's sheet is linked first because it declares the layer order for the whole document.** A
-browser orders `@layer` names by *first appearance*, across every sheet on the page, and nothing later
-can reorder a name that has already been placed — so whichever sheet loads first decides the ranking
-every other sheet is judged by. The kit's opens with
+**The layer order is one statement, and the import owns it.** `rask-ui.css` opens with
 
 ```css
 @layer properties, theme, base, components, daisyui, rask, utilities;
 ```
 
-which puts your utilities above your own Tailwind preflight, above daisyUI, and above the kit's own
-corrections. Link it second and that statement arrives too late: the order falls out of whatever the
-sheets happen to mention first, which is how `base` once ended up outranking `utilities` for a whole
-site — every `text-4xl` and `px-*` in the markup, present and correct, and silently beaten by
-preflight's `h1 { font-size: inherit }` and `* { padding: 0 }`. `UiLayerOrderTests` holds the order in
-the compiled sheet.
+which puts your utilities above Tailwind's preflight, above daisyUI, and above the kit's own rules — a
+browser orders `@layer` names by *first appearance* and nothing later can reorder a name already
+placed, which is why the import is the first line of your sheet. `OneStylesheetCascadeTests` holds the
+order in a compiled app sheet, and `UiLayerOrderTests` in the kit's precompiled one.
 
-> **CSS layers do not merge across `<link>` elements.** If you find a kit rule beating one of your
-> utilities, or the reverse, that is why — and it is not something either sheet's source order can
-> settle.
+### One sheet, never two
+
+The kit also compiles a sheet of its own (`UiStylesheet.Css`, or `UiStylesheet.Href()` after
+`<RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>` writes it to `wwwroot/css/rask-ui.css`). **That
+sheet is for a surface with no Tailwind build of its own** — `Rask.DevTools` inlines it into a panel
+drawn inside somebody else's page; an app that draws only with `Ui.*` components and writes no
+utilities can link it and run no Tailwind at all.
+
+It must not sit in a document beside an app's own Tailwind output, which is how every Rask app used to
+be wired. Both sheets put utilities in `@layer utilities`, CSS layers do not merge across `<link>`
+elements in any way that source order inside a sheet can settle, and the kit's `dark` variant is a
+`:where()` with no specificity of its own. So between a kit **variant** and any base utility the app
+wrote *anywhere*, layer and specificity tie and link order decides — the app's sheet, linked last:
+
+| the kit's component writes | the app writes, on some other element | computed, with two sheets |
+|---|---|---|
+| `bg-white dark:bg-white/4` (Flux's card) | `bg-white` | `rgb(255, 255, 255)` in dark mode |
+| `text-zinc-500 dark:text-zinc-300` | `text-zinc-500` | zinc-500 in dark mode |
+| `flex-col sm:flex-row` | `flex-col` | a column at every width |
+
+Measured on rask.sh, with every class in the markup correct and every gate green. In one sheet each of
+those utilities exists once and Tailwind's own order holds — a base utility before its variants, a
+shorthand before its longhands — so the build **refuses** the pairing: `RaskUiWriteStylesheet` in a
+project that compiles its own Tailwind stylesheet is an error that names the line to write instead.
 
 ## Writing daisyUI class names yourself
 
-The sheet above carries the classes **the kit's own components** write, because Tailwind emits a class
-only where it can see the name — and these names live in a compiled assembly your Tailwind cannot scan.
-So `Ui.Card` is styled by it and a `card-body` you write in your own markup is not: a correct-looking
-class naming a rule that exists nowhere.
+Nothing more to do. The import in step 1 loads daisyUI's plugin into **your** Tailwind build, so a
+`card-body` or `navbar` you write in your own markup is compiled from your own source, in the same
+sheet as the kit's components and under the same scoped theme — one copy of daisyUI, not two. (An app
+that linked the kit's precompiled sheet had to run the plugin a second time for its own markup, with
+its own layer statement and a `@source not` to keep the bundle from being scanned as a safelist. All of
+that is inside `rask-ui.kit.css` now.)
 
-To write daisyUI directly, compile it yourself. The kit ships the plugin bundle for exactly this, and a
-third opt-in copies it beside your stylesheet:
-
-```xml
-<RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
-```
-
-```css
-@layer properties, theme, base, components, daisyui, utilities;
-
-@import "tailwindcss";
-
-@source not "./vendor";
-@plugin "./vendor/daisyui.mjs";
-```
-
-By relative path because Tailwind resolves a plugin the way Node does, and the standalone engine a C#
-host compiles with carries no package tree — so there is still no npm and no `node_modules`.
-`@source not` matters as much: the bundle names every class daisyUI defines, and scanned it is a
-safelist for the whole library.
-
-**An app that does both carries two copies of daisyUI** — yours at `:root`, the kit's confined to
-`[data-rask-ui]`. They do not conflict, because the kit's is scoped and layered, but the page carries
-both. Reference the kit for its components, take the plugin for your own markup, and take both when you
-want both.
+The plugin is the copy `Rask.Ui` ships (`Styles/vendor/daisyui.mjs`), loaded by relative path because
+Tailwind resolves a plugin the way Node does and the standalone engine a C# host compiles with carries
+no package tree — so there is still no npm and no `node_modules`.
 
 ## Dark mode
 
@@ -1394,8 +1391,9 @@ why the axes above are closed enums rather than strings, and why `Ui.TextRotate`
 property — daisyUI reads its speed from a `duration-*` utility, and turning a `TimeSpan` into a class
 name at run time is exactly the failure this rule prevents.
 
-If you write your own `ui-*` classes, the same applies to you: copy the kit's `@theme` block into your
-own stylesheet, because Tailwind emits a utility only where it can see the token.
+If you write your own `ui-*` classes, there is nothing to copy: the kit's `@theme` reaches your Tailwind
+build through `@import "./vendor/rask-ui.css"`, so `bg-ui-brand/10` or `text-ui-warn-ink` in your own
+markup compiles against the same tokens the kit's components use.
 
 ## Two rules it holds itself to
 

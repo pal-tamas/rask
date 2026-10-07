@@ -88,6 +88,11 @@ Rendered attributes are not in that gate: compare them with Flux's live DOM (mar
   enum). The `zinc` scale and `fx-accent` / `fx-accent-content` / `fx-accent-foreground` tokens
   (`src/Rask.Ui/Styles/ui.css`), `dark:` for dark. **No daisyUI class, no `base-*`, no `--color-ui-*`.**
   Never build a class by concatenation — Tailwind only emits what it can read whole.
+  Write Flux's classes exactly as Flux writes them: an app compiles them into its ONE stylesheet from
+  the kit's class list (`@import "./vendor/rask-ui.css"`, `docs/tailwind.md`), so a `dark:` or `sm:`
+  variant follows its base utility by Tailwind's own order. A NEW component never adds a `[:where(&)]:`,
+  a `!` or a split-variant spelling to win against an app's utility — if one loses, the page links two
+  sheets and that is the bug. (Existing components keep the defensive spellings they have; not rewritten.)
 - **CSS only when a utility cannot say it** (a keyframe, a `:has()` chain): in `ui.css` under
   `@layer rask`, keyed on the `data-ui-*` marker.
 - Markup, ARIA and keyboard are part of "exactly": same element, same roles, same states.
@@ -222,6 +227,31 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - Toast, unexplained, for a later look: an unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a
   `switch` among keyed call sites, was remounted on every parent render.
 - The built-in toast (the host's, when the app places no `Ui.Toast`) shows one at a time, as Flux's does.
+
+## One stylesheet per app (merged 2026-10-07)
+- `Styles/ui.css` is the kit as Tailwind SOURCE (theme, `dark` variant, daisyUI, the `@layer rask` blocks):
+  no entry point, no layer order. Two entries import it: `ui.precompiled.css` (the embedded
+  `UiStylesheet.Css` — what `FluxParityPages`, DevTools and a Tailwind-less app use) and `rask-ui.css` (what
+  an app's `Styles/app.css` imports as `./vendor/rask-ui.css`; the build writes `Styles/vendor/`). A CSS rule
+  for a component still goes in `ui.css`, and reaches both.
+- An app's sheet gets the kit's utilities from `rask-ui.classes.txt`, which the kit's build lists from its
+  own COMPILED sheet. So a class the precompiled sheet lacks is missing from every app too: a class named
+  only in a doc comment for the Dashboard's sake (the badge's `font-mono …`) still has to be in a kit source.
+- The Site, the Dashboard (`Styles/dashboard.css`, inlined) and the three templates compile their own sheet;
+  building `src/Rask.Site` needs `node` on PATH (RASKISLAND001 otherwise).
+- Proof to repeat after a change to the entries or targets: in the built `src/Rask.Site/wwwroot/css/app.css`
+  a base utility (`.bg-white{`, `.rounded-lg{`) sits before its `dark:` / `in-data-ui-button-group:`
+  variant and the kit-only classes are there (`OneStylesheetCascadeTests` holds the same in the unit gate);
+  and the browser test
+  `UiKitActionsTests.Grouped_buttons_share_one_border_and_keep_their_corners_only_at_the_ends`, which is
+  the one that catches two sheets.
+
+## A component is never kept in a static field
+An entry built during a render (`Div`, `Ui.Button`) is a positional slot of the component being rendered.
+`static readonly Component Empty = Div;` shares one page's slot with every page, and `Ui.Button`'s own
+`Div` (the loading indicator, built while the button is serialized) landed on it: the demo's placeholder
+came back as a spinner box, only when one particular test ran first. `DemoMarkupGoldenTests
+.No_site_component_keeps_a_component_in_a_static_field` guards the Site; the same holds anywhere.
 
 ## Merging a component branch
 `git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped

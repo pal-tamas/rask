@@ -67,8 +67,24 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public void The_console_has_no_stylesheet_source() =>
-        Assert.False(Directory.Exists(Path.Combine(PackageSourcePath(), "Styles")));
+    public void The_consoles_only_stylesheet_source_is_the_entry_that_takes_the_kit_in()
+    {
+        // One file, and it defines nothing: the kit's Tailwind sources, compiled by this project's build so
+        // a class a page here writes is in the same sheet as the kit's. A second file, or a rule in this
+        // one, would be a vocabulary of the console's own again.
+        var styles = Path.Combine(PackageSourcePath(), "Styles");
+        var sources = Directory.EnumerateFiles(styles, "*", SearchOption.AllDirectories)
+            .Select(f => Path.GetRelativePath(styles, f).Replace('\\', '/'))
+            .Where(f => !f.StartsWith("vendor/", StringComparison.Ordinal)) // written by the build, not committed
+            .ToArray();
+
+        Assert.Equal(["dashboard.css"], sources);
+
+        var entry = Regex.Replace(File.ReadAllText(Path.Combine(styles, "dashboard.css")), @"/\*.*?\*/", string.Empty, RegexOptions.Singleline);
+        Assert.Contains("@import \"./vendor/rask-ui.kit.css\";", entry, StringComparison.Ordinal);
+        Assert.Contains("@source \"./vendor/rask-ui.classes.txt\";", entry, StringComparison.Ordinal);
+        Assert.DoesNotContain("{", entry, StringComparison.Ordinal);
+    }
 
     /// <summary>
     ///     The theme scope reaches the document, and it names a theme.
