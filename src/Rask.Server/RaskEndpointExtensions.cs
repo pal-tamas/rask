@@ -64,6 +64,10 @@ namespace Rask.Server;
 public static partial class RaskEndpointExtensions
 {
     private const string RuntimePath = "/rask/rask.js";
+
+    // The behaviour hooks, which the runtime loads from beside itself when a page first asks for one. The name
+    // is the runtime's with one word changed, because that is how the runtime finds it (rask.ts).
+    private const string HooksPath = "/rask/rask-hooks.js";
     private const string WebSocketPath = "/rask/ws";
 
     // The HTTP fallback, for a client whose WebSocket never opened: frames come down the stream, the
@@ -776,17 +780,21 @@ public static partial class RaskEndpointExtensions
         httpContext.Response.Headers.CacheControl = ShellCachePolicy.CacheControl;
         httpContext.Response.Headers.Pragma = ShellCachePolicy.Pragma;
 
+        // A page that arrives asking for a behaviour hook gets the hooks' script in the same response, so they
+        // run straight after the runtime rather than a round trip later (HookBundleTag).
+        var html = HookBundleTag.AddTo(render.Html, LiveOptions.PathBase + HooksPath + "?v=" + RuntimeHash.Value);
+
         // Outside development the session id is the only thing stamped onto the render, and that goes
         // straight to UTF-8; the development attributes are composed as a string first.
         if (!dev && devTools is null)
         {
-            await PageCompression.WriteLiveAsync(httpContext, render.Html, session.Id, limits.CompressPageHtml)
+            await PageCompression.WriteLiveAsync(httpContext, html, session.Id, limits.CompressPageHtml)
                 .ConfigureAwait(false);
             return;
         }
 
         var content = Prerender.PageDocument.Live(
-            render.Html, session.Id, dev,
+            html, session.Id, dev,
             dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
         await PageCompression.WriteAsync(httpContext, content, limits.CompressPageHtml).ConfigureAwait(false);
     }
@@ -930,6 +938,7 @@ public static partial class RaskEndpointExtensions
         MapHttpTransport(endpoints, pathBase, selector);
 
         endpoints.MapGet(pathBase + RuntimePath, (RequestDelegate)Runtime.Value.Serve);
+        endpoints.MapGet(pathBase + HooksPath, (RequestDelegate)Hooks.Value.Serve);
 
         // The in-page devtools' own endpoints, when AddRask attached them (a Debug build carrying
         // Rask.DevTools). Here, beside the runtime they extend, so they are mapped once per app too.
@@ -3441,17 +3450,26 @@ public static partial class RaskEndpointExtensions
         return false;
     }
 
-    private static readonly Lazy<RuntimeScript> Runtime = new(() => new RuntimeScript(LoadEmbeddedScript()));
+    // ONE name for the two scripts, made from both: the runtime asks for the hooks under its own `?v=`, so that
+    // has to move when either of them does, or a browser would keep last release's hooks for a year.
+    private static readonly Lazy<string> RuntimeHash = new(
+        () => RuntimeScript.HashOf(LoadEmbeddedScript("rask.js"), LoadEmbeddedScript("rask-hooks.js")));
 
-    private static string LoadEmbeddedScript()
+    private static readonly Lazy<RuntimeScript> Runtime = new(
+        () => new RuntimeScript(LoadEmbeddedScript("rask.js"), RuntimeHash.Value));
+
+    private static readonly Lazy<RuntimeScript> Hooks = new(
+        () => new RuntimeScript(LoadEmbeddedScript("rask-hooks.js"), RuntimeHash.Value));
+
+    private static string LoadEmbeddedScript(string file)
     {
         var asm = typeof(RaskEndpointExtensions).Assembly;
         var name = asm.GetManifestResourceNames()
-                       .FirstOrDefault(n => n.EndsWith("rask.js", StringComparison.Ordinal))
+                       .FirstOrDefault(n => n.EndsWith(".Resources." + file, StringComparison.Ordinal))
                    ?? throw new InvalidOperationException(
                        $"The Rask client script is missing from {asm.GetName().Name} "
                        + $"{asm.GetName().Version}. This is a packaging fault rather than anything in "
-                       + "your app: the assembly should embed rask.js. Clear obj/ and bin/ and rebuild; "
+                       + $"your app: the assembly should embed {file}. Clear obj/ and bin/ and rebuild; "
                        + "if it persists, the package is damaged — reinstall it, and please report it "
                        + "with the assembly version above.");
         using var stream = asm.GetManifestResourceStream(name)!;

@@ -15,7 +15,7 @@
 // into enter / leave (the pair that does not bubble). Nothing is attached per element, so a page with no
 // such root pays two closest() calls per pointer crossing and nothing else. A touch never hovers.
 
-import {disown, isShown, named, near, own, page, setShown} from "./rask-owned.js";
+import {disown, isShown, listen, named, near, own, page, setShown} from "./rask-owned.js";
 
 const TOOLTIP = "data-rask-tooltip";
 const HOVER = "data-rask-hover";
@@ -70,7 +70,7 @@ function hoverable(root: Element): boolean {
 }
 
 if (page) {
-    page.addEventListener("pointerover", function (e) {
+    listen("pointerover", function (e) {
         if ((e as PointerEvent).pointerType === "touch") {
             return;
         }
@@ -84,7 +84,7 @@ if (page) {
         }
     }, {capture: true, passive: true});
 
-    page.addEventListener("pointerout", function (e) {
+    listen("pointerout", function (e) {
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
         if (tooltip && crosses(tooltip, e)) {
             dismissed.delete(tooltip);
@@ -101,7 +101,7 @@ if (page) {
 
     // Keyboard focus shows it, a click's focus does not: :focus-visible is the browser's own answer to
     // "did this arrive by keyboard".
-    page.addEventListener("focusin", function (e) {
+    listen("focusin", function (e) {
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
         if (tooltip && !dismissed.has(tooltip) && focusVisibleIn(tooltip)) {
             tip(tooltip, true);
@@ -111,7 +111,7 @@ if (page) {
     // Focus that goes to NOTHING — blur(), the window losing it — leaves an interactive tooltip (the one whose
     // trigger carries aria-expanded) open: Flux UI's stays until a press outside, so that what is in it can
     // still be reached. A plain one closes, and so does either when focus moves on to another element.
-    page.addEventListener("focusout", function (e) {
+    listen("focusout", function (e) {
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
         if (tooltip && crosses(tooltip, e) && !tooltip.matches(":hover")
             && ((e as FocusEvent).relatedTarget instanceof Node || !tooltip.querySelector("[aria-expanded]"))) {
@@ -119,7 +119,7 @@ if (page) {
         }
     }, true);
 
-    page.addEventListener("pointerdown", function (e) {
+    listen("pointerdown", function (e) {
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
         // A press anywhere else closes whatever is still showing.
         for (const other of Array.from(showing)) {
@@ -134,7 +134,7 @@ if (page) {
         }
     }, {capture: true, passive: true});
 
-    page.addEventListener("keydown", function (e) {
+    listen("keydown", function (e) {
         if (e.key !== "Escape" || !showing.size) {
             return;
         }
@@ -147,7 +147,7 @@ if (page) {
     // A hover-opened panel is already open when its own button is pressed, and the button's popovertarget
     // would toggle it shut under the pointer that is still on it. So that press is not a toggle: the panel
     // stays. From the keyboard nothing has opened it, and Enter opens it the platform's way.
-    page.addEventListener("click", function (e) {
+    listen("click", function (e) {
         const invoker = near(e.target, "[popovertarget]");
         const hover = invoker ? invoker.closest("[" + HOVER + "]") : null;
         if (!invoker || !hover || !hoverable(hover)) {

@@ -20,7 +20,7 @@
 //     gone again, and the cut laid out again, before anything is painted — no transition sees it.
 //     Measured again whenever the stack gains or loses a child, and when the window is resized.
 
-import {near, own, page} from "./rask-owned.js";
+import {listen, near, own, page} from "./rask-owned.js";
 
 const SCOPE = "[data-rask-dismiss-scope]";
 const STACK = "[data-rask-stack]";
@@ -59,7 +59,7 @@ function measure(stack: Element): void {
 if (page) {
     const doc = page;
 
-    doc.addEventListener("pointerover", function (e) {
+    listen("pointerover", function (e) {
         const scope = near(e.target, SCOPE);
         const from = (e as PointerEvent).relatedTarget;
         if (scope && !(from instanceof Node && scope.contains(from))) {
@@ -67,7 +67,7 @@ if (page) {
         }
     }, {capture: true, passive: true});
 
-    doc.addEventListener("pointerout", function (e) {
+    listen("pointerout", function (e) {
         const scope = near(e.target, SCOPE);
         const to = (e as PointerEvent).relatedTarget;
         if (scope && !(to instanceof Node && scope.contains(to))) {

@@ -37,7 +37,7 @@ import {
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
-import "../../Rask.Core/Resources/rask-hooks.js";
+import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {
@@ -607,6 +607,10 @@ async function send(payload: unknown): Promise<void> {
 // and rask-host.ts's default throws rather than silently dropping events. Leaving the import
 // unreferenced would additionally let esbuild elide rask-host.ts from the bundle.
 setHost({send, inRoot});
+
+// The behaviour hooks are a script of their own beside this module, loaded when the page first asks for one
+// (rask-hook-loader.ts).
+loadHooksOnDemand(new URL("./rask-hooks.js", import.meta.url).href);
 
 // And the same two facts again, on a global, for modules that are NOT in this bundle.
 //

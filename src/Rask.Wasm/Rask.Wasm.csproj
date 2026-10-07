@@ -135,6 +135,7 @@
     <None Include="Browser\index.html" Pack="true" PackagePath="Browser\"/>
     <None Include="Browser\main.js" Pack="true" PackagePath="Browser\"/>
     <None Include="Browser\rask.wasm.js" Pack="true" PackagePath="Browser\"/>
+    <None Include="Browser\rask-hooks.js" Pack="true" PackagePath="Browser\"/>
     <None Include="Browser\rask-sw.js" Pack="true" PackagePath="Browser\"/>
     <!--
       Rask.Wasm.Tasks.dll is named explicitly and excluded from the glob: a glob is expanded at
@@ -200,6 +201,12 @@
     </ResolveTypeScriptToolTask>
 
     <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask.wasm.ts&quot; --bundle --format=esm --target=es2020 --log-level=warning --outfile=&quot;$(MSBuildProjectDirectory)/Browser/rask.wasm.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+    <!--
+      The behaviour hooks, a classic script served beside the module, which loads it when a page first
+      asks for a hook (Rask.Core/Resources/rask-hook-loader.ts). The same bytes the Server host embeds.
+    -->
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/../Rask.Core/Resources/rask-hooks.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(MSBuildProjectDirectory)/Browser/rask-hooks.js&quot; $(_RaskEsbuildMinify)"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
     <MakeDir Directories="$(IntermediateOutputPath)rask-bundles\"/>
     <Touch Files="$(IntermediateOutputPath)rask-bundles\rask.wasm.stamp" AlwaysCreate="true"/>

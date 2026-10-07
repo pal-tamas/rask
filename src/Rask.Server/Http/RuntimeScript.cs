@@ -24,12 +24,30 @@ internal sealed class RuntimeScript
     private readonly byte[] _utf8;
 
     public RuntimeScript(string source)
+        : this(source, HashOf(source))
+    {
+    }
+
+    /// <summary>A script named by a hash that is not its own alone: one of several that are released together.</summary>
+    public RuntimeScript(string source, string hash)
     {
         _utf8 = Encoding.UTF8.GetBytes(source);
-        Hash = Convert.ToHexStringLower(SHA256.HashData(_utf8))[..HashLength];
+        Hash = hash;
     }
 
     public string Hash { get; }
+
+    /// <summary>The name of <paramref name="sources" /> taken together: it moves when any of them does.</summary>
+    public static string HashOf(params ReadOnlySpan<string> sources)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        foreach (var source in sources)
+        {
+            hash.AppendData(Encoding.UTF8.GetBytes(source));
+        }
+
+        return Convert.ToHexStringLower(hash.GetHashAndReset())[..HashLength];
+    }
 
     public Task Serve(HttpContext ctx)
     {

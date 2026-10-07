@@ -16,7 +16,7 @@
 // digit goes to; it is taken out again on the way out.
 
 import {announce, bind} from "./rask-bound.js";
-import {page} from "./rask-owned.js";
+import {listen, page} from "./rask-owned.js";
 
 const GROUP = "[data-rask-segments]";
 const MAX: Record<string, number> = {month: 12, day: 31, hour: 23, minute: 59};
@@ -296,7 +296,7 @@ if (page) {
         }
     };
 
-    doc.addEventListener("keydown", function (e) {
+    listen("keydown", function (e) {
         const el = partAt(e);
         // Tab is the browser's, and so is anything with a modifier — a paste arrives through its own event.
         if (!el || e.key === "Tab" || e.ctrlKey || e.altKey || e.metaKey) {
@@ -307,7 +307,7 @@ if (page) {
     }, true);
 
     // A keyboard that sends no key (a phone's): the character, or the deletion, about to be made.
-    doc.addEventListener("beforeinput", function (e) {
+    listen("beforeinput", function (e) {
         const el = partAt(e);
         const input = e as InputEvent;
         if (!el || input.inputType.indexOf("Paste") >= 0) {
@@ -321,7 +321,7 @@ if (page) {
         }
     }, true);
 
-    doc.addEventListener("paste", function (e) {
+    listen("paste", function (e) {
         const el = partAt(e);
         const data = (e as ClipboardEvent).clipboardData;
         if (!el || !data) {
@@ -346,7 +346,7 @@ if (page) {
         part(group, "year")!.focus();
     }, true);
 
-    doc.addEventListener("focusin", function (e) {
+    listen("focusin", function (e) {
         const el = partAt(e);
         if (el) {
             typed.delete(el);
@@ -354,7 +354,7 @@ if (page) {
         }
     }, true);
 
-    doc.addEventListener("focusout", function (e) {
+    listen("focusout", function (e) {
         const el = partAt(e);
         if (el) {
             settle(el);
@@ -366,7 +366,7 @@ if (page) {
     }, true);
 
     // The press that follows the focus would put a caret where it landed and drop the selection.
-    doc.addEventListener("pointerup", function (e) {
+    listen("pointerup", function (e) {
         const el = partAt(e);
         if (el && el === doc.activeElement) {
             el.select();

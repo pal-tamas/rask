@@ -11,7 +11,7 @@
 // therefore recognised (it is one of the values still waiting) and ignored, and the field is put back to what
 // the group says. Anything else in that attribute is the page changing the value, and the group adopts it.
 
-import {page} from "./rask-owned.js";
+import {page, seam} from "./rask-owned.js";
 
 interface Kind {
     selector: string;
@@ -155,5 +155,14 @@ export function bind(selector: string, current: Kind["current"], adopt: Kind["ad
         watcher = new MutationObserver(observed);
         watcher.observe(page.documentElement, {subtree: true, childList: true, attributes: true, attributeFilter: ["value"]});
     }
-    page.querySelectorAll(selector).forEach(function (g) { refill(g, kind); });
+    // The hooks can arrive after the group did (they load on demand: rask-hook-loader.ts), and a reader may
+    // have typed into it by then. What they typed is about to be announced, from the events kept for that
+    // (`replayMissed`), so a group the page gave no value is left as the reader has it rather than emptied.
+    const late = seam.missed !== null;
+    page.querySelectorAll(selector).forEach(function (g) {
+        const bound = boundOf(g);
+        if (!late || (bound && bound.getAttribute("value"))) {
+            refill(g, kind);
+        }
+    });
 }

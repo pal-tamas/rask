@@ -17,7 +17,7 @@
 // localStorage can throw (a private window, a blocked origin); every touch of it is guarded and a failure
 // means the box behaves like any other.
 
-import {own, page} from "./rask-owned.js";
+import {listen, own, page, seam} from "./rask-owned.js";
 
 const PERSIST = "data-rask-persist";
 const UNCHECK = "[data-rask-uncheck-on-navigate]";
@@ -50,7 +50,7 @@ function scan(root: Element): void {
 if (page) {
     const doc = page;
 
-    doc.addEventListener("change", function (e) {
+    listen("change", function (e) {
         const box = e.target;
         const key = box instanceof HTMLInputElement ? box.getAttribute(PERSIST) : null;
         if (!key) {
@@ -102,6 +102,8 @@ if (page) {
     if (typeof history !== "undefined" && typeof history.pushState === "function") {
         wrap("pushState");
         wrap("replaceState");
-        window.addEventListener("popstate", navigated);
+        // Ahead of the host's own popstate listener, as it was when the hooks were part of the runtime.
+        const place = seam.reserved.popstate;
+        if (place) place.push(navigated); else window.addEventListener("popstate", navigated);
     }
 }

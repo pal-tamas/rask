@@ -17,7 +17,7 @@
 // touch scrolls instead of dragging.
 
 import {announce, bind, settle} from "./rask-bound.js";
-import {near, own, page} from "./rask-owned.js";
+import {listen, near, own, page} from "./rask-owned.js";
 
 const SURFACE = "[data-rask-drag]";
 
@@ -66,7 +66,6 @@ bind(SURFACE, shown, function (surface, rendered) {
 });
 
 if (page) {
-    const doc = page;
     let pending = "";
     let frame = 0;
 
@@ -101,7 +100,7 @@ if (page) {
         held = null;
     };
 
-    doc.addEventListener("pointerdown", function (e) {
+    listen("pointerdown", function (e) {
         const surface = near(e.target, SURFACE);
         if (!surface || e.button !== 0 || surface.closest("[disabled], [aria-disabled=true]")) {
             return;
@@ -114,7 +113,7 @@ if (page) {
         }
         move(e);
     }, true);
-    doc.addEventListener("pointermove", move, {capture: true, passive: true});
-    doc.addEventListener("pointerup", release, true);
-    doc.addEventListener("pointercancel", release, true);
+    listen("pointermove", move, {capture: true, passive: true});
+    listen("pointerup", release, true);
+    listen("pointercancel", release, true);
 }

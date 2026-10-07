@@ -23,7 +23,7 @@
 // the box is the browser's.
 
 import {announce} from "./rask-bound.js";
-import {disown, near, own, page} from "./rask-owned.js";
+import {disown, listen, near, own, page} from "./rask-owned.js";
 
 const PLOT = "[data-rask-plot]";
 const MEASURE = "[data-rask-measure]";
@@ -84,7 +84,7 @@ if (page) {
         over = null;
     };
 
-    doc.addEventListener("pointermove", function (e) {
+    listen("pointermove", function (e) {
         const root = near(e.target, PLOT) || over;
         const area = root ? root.querySelector("[data-rask-plot-area]") : null;
         if (!root || !area) {
@@ -124,7 +124,7 @@ if (page) {
     }, {capture: true, passive: true});
 
     // The pointer left the window, or its last position is gone with the element it was over.
-    doc.addEventListener("pointerout", function (e) {
+    listen("pointerout", function (e) {
         if (!(e as PointerEvent).relatedTarget) leave();
     }, {capture: true, passive: true});
 

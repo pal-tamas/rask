@@ -13,7 +13,7 @@
 //   * data-rask-press-keeps-focus: a mouse press on it (or inside it) does not move focus. Flux UI's colour
 //     area is dragged with focus left wherever it was.
 
-import {near, page} from "./rask-owned.js";
+import {listen, near, page} from "./rask-owned.js";
 
 const FOLLOWS = "[data-rask-focus-follows]";
 const TARGET = "data-rask-focus-target";
@@ -57,14 +57,14 @@ if (page) {
     // The target that has focus, while it has it. Null whenever focus is anywhere else.
     let from: Element | null = null;
 
-    doc.addEventListener("focusin", function (e) {
+    listen("focusin", function (e) {
         const t = e.target;
         from = t instanceof Element && t.hasAttribute(TARGET) && near(t, FOLLOWS) ? t : null;
     }, true);
 
     // Focus left for nowhere. If a render removed the target, the observer below has already answered by the
     // time this timer runs; if the reader pressed on nothing, it is theirs to leave.
-    doc.addEventListener("focusout", function (e) {
+    listen("focusout", function (e) {
         const was = from;
         if (was && !(e.relatedTarget instanceof Node)) {
             setTimeout(function () {
@@ -75,7 +75,7 @@ if (page) {
         }
     }, true);
 
-    doc.addEventListener("mousedown", function (e) {
+    listen("mousedown", function (e) {
         if (near(e.target, "[data-rask-press-keeps-focus]")) {
             e.preventDefault();
         }

@@ -48,7 +48,7 @@ import {
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
-import "../../Rask.Core/Resources/rask-hooks.js";
+import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {
@@ -1560,6 +1560,14 @@ import {
     // and rask-host.ts's default throws rather than silently dropping events. Leaving the import
     // unreferenced would additionally let esbuild elide rask-host.ts from the bundle.
     setHost({send, inRoot});
+
+    // The behaviour hooks are a script of their own beside this one, loaded when the page first asks for one
+    // (rask-hook-loader.ts). `currentScript` is this script only while it first runs, which is now; the
+    // sibling keeps this script's `?v=`, which names both of them, and its nonce.
+    const self = document.currentScript as HTMLScriptElement | null;
+    if (self && self.src) {
+        loadHooksOnDemand(self.src.replace(/rask\.js(?=\?|$)/, "rask-hooks.js"), self.nonce);
+    }
 
     document.addEventListener("click", (e) => {
         const url = navLinkClick(e);
