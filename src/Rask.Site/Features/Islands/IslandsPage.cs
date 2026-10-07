@@ -34,6 +34,11 @@ public sealed partial class IslandsPage : Component
             "react-colorful from npm, declared once as ", Code["Colorful.HexColorPicker"], " and ",
             Code["Colorful.HexColorInput"], ", their chain steps generated from the package's own TypeScript."
         ],
+        P.Class("text-ui-muted")[
+            "An island can also be the whole page: ",
+            NavLink.Href(PageMeta.LinkTo(Routes.ReactReport())).Class("underline")["a route React owns outright"],
+            ", with its title set from C# and a skeleton in the first response."
+        ],
         CodeSample
             .Files([
                 "IslandsDemo.cs",

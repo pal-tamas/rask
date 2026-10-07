@@ -201,7 +201,7 @@ public sealed class ModelSetTests : IDisposable
     {
         Db.Reset();
 
-        Assert.False(Db.IsConfigured);
+        Assert.False(Db.IsOn);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.Count(TestContext.Current.CancellationToken));
         Assert.Contains("Db.Configure", error.Message, StringComparison.Ordinal);

@@ -14,7 +14,7 @@ namespace Rask.Logging;
 internal sealed partial class LogWriter(
     LogChannel channel,
     ILogs store,
-    RaskLoggingOptions options,
+    LogsOptions options,
     LogMetrics metrics,
     TimeProvider timeProvider,
     ILogger<LogWriter> logger) : BackgroundService
@@ -36,17 +36,17 @@ internal sealed partial class LogWriter(
         // A final drain on its own budget rather than the host's token, which is already cancelled by the
         // time we get here. The lines written in the seconds before a shutdown are the ones most worth
         // keeping — but a store that cannot be reached must not stall a host that is trying to stop, so the
-        // drain is bounded by ShutdownDrainTimeout rather than run to completion.
-        if (options.ShutdownDrainTimeout > TimeSpan.Zero)
+        // drain is bounded by ShutdownGracePeriod rather than run to completion.
+        if (options.ShutdownGracePeriod > TimeSpan.Zero)
         {
-            using var drain = new CancellationTokenSource(options.ShutdownDrainTimeout);
+            using var drain = new CancellationTokenSource(options.ShutdownGracePeriod);
             try
             {
                 await FlushAsync(drain.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException ex)
             {
-                DrainTimedOut(logger, ex, options.ShutdownDrainTimeout);
+                DrainTimedOut(logger, ex, options.ShutdownGracePeriod);
             }
 #pragma warning disable CA1031 // Teardown must not throw: a failing store cannot be allowed to fault shutdown.
             catch (Exception ex)
@@ -182,7 +182,7 @@ internal sealed partial class LogWriter(
         }
 
         var now = timeProvider.GetUtcNow();
-        if (_lastPurge != default && now - _lastPurge < options.PurgeInterval)
+        if (_lastPurge != default && now - _lastPurge < options.SweepInterval)
         {
             return;
         }

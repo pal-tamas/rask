@@ -31,7 +31,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Building form controls](building-form-controls.md) | Author your own `IFormControl<T>`: two-way binding, per-field validation and a controlled mode, with a full example. |
 | [Elements & the DSL](elements.md) | The primitives every component is built from: tag entries, universal attributes, the children indexer, `Text`/`Raw`, SVG, and the element catalog. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Go`, `RouteState`. |
-| [Subscriptions](subscriptions.md) | Keeping a page current. `[Live(typeof(Order))]` on a query refetches it when anyone writes an order — no event, no record, no policy, and nothing in `Render`. For what is genuinely an event, `QueryClient.Subscribe<T>()` re-renders every subscribed page, narrowed by an `ISubscription<T>` record and its watch policy, over server-sent events from WebAssembly. `Notify.Send(…)` publishes with nothing injected. |
+| [Subscriptions](subscriptions.md) | Keeping a page current. `[Live(typeof(Order))]` on a query refetches it when anyone writes an order — no event, no record, no policy, and nothing in `Render`. For what is genuinely an event, `QueryClient.Subscribe<T>()` re-renders every subscribed page, narrowed by an `ISubscription<T>` record and its watch policy, over server-sent events from WebAssembly. `Dispatcher.Publish(…)` publishes with nothing injected. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), built-in toasts (`Toast.Success("Saved")`), `VirtualizeModel`, drag-and-drop. |
 | [Composition — callbacks & context](composition-callbacks-context.md) | `Callback` properties that re-render the owner, and values passed down with context instead of prop drilling. |
 | [Composition — lists & more](composition-lists.md) | `Virtualize`, keyed lists, toasts, drag-and-drop and error boundaries. |
@@ -104,7 +104,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 | Reference | What it covers |
 |-----------|----------------|
-| [Diagnostics (RASK001–099)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
+| [Diagnostics (RASK001–100, RASKISLAND001–018)](diagnostics.md) | Every analyzer/generator diagnostic and every islands build error, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
 | [Public API style](api-style.md) | How every public name is chosen, and the gate that records the surface. |
 

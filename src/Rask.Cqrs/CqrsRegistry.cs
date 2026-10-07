@@ -46,6 +46,12 @@ public static class CqrsRegistry
 
     private static volatile DurableTable _durable = DurableTable.Empty;
 
+    // What each handler's [Authorize] asks, per contributing assembly and keyed by request type.
+    private static readonly List<(object Key, (Type Type, RequestAuthorization Declared)[] Items)> _authorizationGroups = new();
+
+    private static volatile Dictionary<Type, RequestAuthorization> _authorization =
+        new Dictionary<Type, RequestAuthorization>();
+
     // The modules whose initializer has been forced, so a lookup that misses does it at most once per module.
     private static readonly ConcurrentDictionary<System.Reflection.Module, bool> _initialized = new();
 
@@ -217,6 +223,39 @@ public static class CqrsRegistry
             _subscriptions = map;
         }
     }
+
+    /// <summary>
+    ///     Installs <paramref name="registrations" /> as what the handlers owned by <paramref name="groupKey" />
+    ///     declared with <c>[Authorize]</c>, per request type — the same per-assembly swap as
+    ///     <see cref="ReplaceRequests" />. Local dispatch reads it, so the declaration holds for a request that
+    ///     never crosses the wire.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static void ReplaceAuthorization(
+        object groupKey,
+        IEnumerable<(Type Type, RequestAuthorization Declared)> registrations)
+    {
+        ArgumentNullException.ThrowIfNull(groupKey);
+        ArgumentNullException.ThrowIfNull(registrations);
+
+        var items = registrations as (Type Type, RequestAuthorization Declared)[] ?? registrations.ToArray();
+        lock (_lock)
+        {
+            ReplaceGroup(_authorizationGroups, groupKey, items);
+
+            var map = new Dictionary<Type, RequestAuthorization>();
+            foreach (var (type, declared) in _authorizationGroups.SelectMany(static g => g.Items))
+            {
+                map[type] = declared;
+            }
+
+            _authorization = map;
+        }
+    }
+
+    /// <summary>What the handler of <paramref name="requestType" /> declared with <c>[Authorize]</c>, or null.</summary>
+    internal static RequestAuthorization? FindAuthorization(Type requestType) =>
+        _authorization.TryGetValue(requestType, out var declared) ? declared : null;
 
     /// <summary>
     ///     Asks the <see cref="IWatchPolicy{TSubscription}" /> registered in <paramref name="provider" /> whether its

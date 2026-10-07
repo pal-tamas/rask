@@ -6,12 +6,12 @@ namespace Rask.Blazor;
 public sealed class RaskBlazorOptions
 {
     /// <summary>
-    ///     The base URI a hosted component's <c>NavigationManager</c> reports.
+    ///     The scheme and host a hosted component's <c>NavigationManager</c> reports.
     /// </summary>
     /// <remarks>
-    ///     Only read when the app has no better source. It exists because Blazor's
-    ///     <c>NavigationManager</c> throws if it was never initialised, so there has to be an answer
-    ///     even for a component that renders before any request is in hand.
+    ///     Only the origin is read. The path and query are the page on screen, under the app's path
+    ///     base — Rask's route carries no origin of its own, so this is where one comes from. Set it
+    ///     when a hosted component prints absolute URLs.
     /// </remarks>
     public string BaseUri { get; set; } = "http://localhost/";
 

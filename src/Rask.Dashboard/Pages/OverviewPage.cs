@@ -10,12 +10,12 @@ namespace Rask.Dashboard.Pages;
 /// </summary>
 [Route("")]
 [ParentRoute(typeof(DashboardLayout))]
-public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDashboardOptions options) : PollingPanel
+public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, OpsOptions options) : PollingPanel
 {
     private readonly List<(IQueuePanel Panel, QueueCounts Counts)> _queues = [];
 
     /// <inheritdoc />
-    protected override RaskDashboardOptions Options => options;
+    protected override OpsOptions Options => options;
 
     /// <inheritdoc />
     protected override async Task<object?> Load(CancellationToken cancellationToken)

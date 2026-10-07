@@ -57,7 +57,10 @@ public sealed class SlowGreeting : ComponentBase
     }
 }
 
-/// <summary>The island under test. <c>WriteParameters</c> is hand-written until the generator lands.</summary>
+/// <summary>
+///     The island under test, with <c>WriteParameters</c> written by hand — the generator leaves an
+///     island that declares its own alone. <see cref="EmptyIsland" /> is the generated shape.
+/// </summary>
 public sealed partial class GreetingIsland : BlazorComponent<Greeting>
 {
     public string? Heading { get; set; }

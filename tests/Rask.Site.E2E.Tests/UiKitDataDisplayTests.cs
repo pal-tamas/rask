@@ -23,7 +23,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         foreach (var id in new[]
                  {
-                     "ui-card", "ui-accordion", "ui-collapse", "ui-aura", "ui-text-rotate", "ui-hover-3d",
+                     "ui-card", "ui-accordion", "ui-accordion-owned", "ui-aura", "ui-text-rotate", "ui-hover-3d",
                      "ui-hover-gallery", "ui-console-pieces", "ui-chart", "ui-table", "ui-display-rest",
                  })
         {
@@ -38,51 +38,114 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     });
 
     [Fact]
-    public Task The_accordion_opens_one_section_at_a_time() => RunAsync(async () =>
+    public Task An_accordion_item_opens_with_a_click_and_with_the_keyboard_and_no_handler() => RunAsync(async () =>
     {
         await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-accordion-basic']");
+        var heading = Heading(scope, "What's your refund policy?");
+        var content = scope.GetByText("30-day money-back guarantee");
+        await Expect(content).ToBeHiddenAsync();
 
-        var scope = Page.Locator("[data-testid='ui-accordion']");
+        await heading.ClickAsync();
+        await Expect(content).ToBeVisibleAsync();
+        await heading.PressAsync("Enter");
+        await Expect(content).ToBeHiddenAsync();
+        await heading.PressAsync("Space");
+
+        // No handler anywhere on it: the browser did all three.
+        await Expect(content).ToBeVisibleAsync();
+        Assert.Null(await scope.Locator("details").First.GetAttributeAsync("data-rask-on-toggle"));
+        Assert.Equal("rgb(39, 39, 42)", await ShownChevron(heading).EvaluateAsync<string>(InSrgb));
+    });
+
+    [Fact]
+    public Task An_exclusive_accordion_keeps_one_item_open() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-accordion-exclusive']");
+        var refund = scope.GetByText("30-day money-back guarantee");
+        var bulk = scope.GetByText("special discounts for bulk orders");
+
+        await Heading(scope, "What's your refund policy?").ClickAsync();
+        await Expect(refund).ToBeVisibleAsync();
+        await Heading(scope, "Do you offer any discounts").ClickAsync();
+
+        await Expect(bulk).ToBeVisibleAsync();
+        await Expect(refund).ToBeHiddenAsync();
+        await Expect(scope.Locator("details[open]")).ToHaveCountAsync(1);
+    });
+
+    [Fact]
+    public Task A_disabled_item_cannot_be_opened_and_Tab_passes_over_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-accordion-disabled']");
+        var disabled = Heading(scope, "Do you offer PPP discounts?");
+
+        await disabled.ClickAsync(new LocatorClickOptions { Force = true });
+        await Heading(scope, "What's your refund policy?").FocusAsync();
+        await Page.Keyboard.PressAsync("Tab");
+
+        await Expect(scope.Locator("details[open]")).ToHaveCountAsync(0);
+        await Expect(Heading(scope, "How do I track my order?")).ToBeFocusedAsync();
+        await Expect(disabled).ToHaveAttributeAsync("aria-disabled", "true");
+        Assert.Equal("rgb(159, 159, 169)", await disabled.EvaluateAsync<string>(InSrgb));
+    });
+
+    [Fact]
+    public Task The_expanded_item_is_open_as_the_page_loads_and_a_reversed_chevron_leads_its_heading() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var expanded = Page.Locator("[data-testid='ui-accordion-expanded']");
+        var reversed = Heading(Page.Locator("[data-testid='ui-accordion-reverse']"), "What's your refund policy?");
+
+        var chevron = (await ShownChevron(reversed).BoundingBoxAsync())!;
+        var text = (await reversed.Locator("span").BoundingBoxAsync())!;
+
+        await Expect(expanded.GetByText("special discounts for bulk orders")).ToBeVisibleAsync();
+        await Expect(expanded.Locator("details[open]")).ToHaveCountAsync(1);
+        Assert.Equal(text.X, chevron.X + chevron.Width + 8, 1);
+    });
+
+    [Fact]
+    public Task A_transitioning_accordion_opens_over_a_quarter_of_a_second() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var item = Page.Locator("[data-testid='ui-accordion-transition'] details").First;
+        var closed = (await item.BoundingBoxAsync())!.Height;
+
+        var slot = await item.EvaluateAsync<string>(
+            "d => { const s = getComputedStyle(d, '::details-content'); return s.transitionProperty + ' | ' + s.transitionDuration + ' | ' + s.transitionTimingFunction; }");
+        // Clicked and timed in the page: a click sent from here would spend the 100ms on the way.
+        var midway = await item.EvaluateAsync<double>(
+            "d => new Promise(done => { d.querySelector('summary').click(); setTimeout(() => done(d.getBoundingClientRect().height), 100); })");
+        await Expect(item.GetByText("30-day money-back guarantee")).ToBeVisibleAsync();
+        await Page.WaitForTimeoutAsync(300);
+        var open = (await item.BoundingBoxAsync())!.Height;
+
+        Assert.StartsWith("height, content-visibility, overflow | 0.25s, 0.25s, 0s | cubic-bezier(0.4, 0, 0.2, 1)", slot, StringComparison.Ordinal);
+        Assert.True(midway > closed + 1 && midway < open - 1, $"100ms in, the item was {midway}px between {closed}px and {open}px");
+    });
+
+    [Fact]
+    public Task The_page_opens_and_closes_the_item_it_owns_from_CSharp() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-accordion-owned']");
         var state = Page.Locator("[data-testid='ui-accordion-state']");
-
-        await Expect(state).ToContainTextAsync("ship");
-        await Expect(scope.GetByText("Ships within two working days")).ToBeVisibleAsync();
-
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Payment" }).ClickAsync();
-
-        // The page names the open section, which is exactly what a run of <details name> could not do:
-        // the browser closed the others without telling anyone which one won.
-        await Expect(state).ToContainTextAsync("pay");
-        await Expect(scope.GetByText("Card or bank transfer")).ToBeVisibleAsync();
-        await Expect(scope.GetByText("Ships within two working days")).ToBeHiddenAsync();
-    });
-
-    [Fact]
-    public Task Pressing_the_open_section_closes_everything() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-accordion']");
-
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Shipping" }).ClickAsync();
-
-        await Expect(Page.Locator("[data-testid='ui-accordion-state']")).ToContainTextAsync("All sections closed");
-    });
-
-    [Fact]
-    public Task The_collapse_opens_and_closes_from_CSharp_state() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-collapse']");
         var body = scope.GetByText("Nothing in here is required.");
+        await Expect(state).ToContainTextAsync("closed");
 
-        await Expect(body).ToBeHiddenAsync();
-
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Advanced settings" })
-            .ClickAsync();
-
+        // From C#: a button that only flips a field.
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open it from C#" }).ClickAsync();
         await Expect(body).ToBeVisibleAsync();
+        await Expect(state).ToContainTextAsync("open");
+
+        // From the browser: the page hears the toggle and keeps the field in step.
+        await Heading(scope, "Advanced settings").ClickAsync();
+        await Expect(state).ToContainTextAsync("closed");
+        await Expect(body).ToBeHiddenAsync();
+        await Expect(scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open it from C#" })).ToBeVisibleAsync();
     });
 
     // TheRotatorShowsEveryWordInTheMarkup moved DOWN to Rask.UiTests.Components.UiTextRotateTests.
@@ -260,6 +323,15 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
             "el => el.getBoundingClientRect().top - el.closest('table').parentElement.getBoundingClientRect().top");
         Assert.InRange(head, -0.5, 0.5);
     });
+    // A computed colour in sRGB whatever colour space the sheet states it in.
+    private const string InSrgb =
+        "el => { const c = document.createElement('canvas').getContext('2d'); c.fillStyle = getComputedStyle(el).color; "
+        + "c.fillRect(0, 0, 1, 1); const [r, g, b] = c.getImageData(0, 0, 1, 1).data; return `rgb(${r}, ${g}, ${b})`; }";
+
+    private static ILocator Heading(ILocator scope, string text) =>
+        scope.Locator("summary").Filter(new LocatorFilterOptions { HasText = text });
+
+    private static ILocator ShownChevron(ILocator heading) => heading.Locator("svg:visible");
 
     private async Task OpenAsync()
     {

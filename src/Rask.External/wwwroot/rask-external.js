@@ -479,6 +479,10 @@ async function hydrate(element) {
                 return;
             }
 
+            // The `Loading` placeholder C# rendered for the first paint. It goes here and nowhere earlier, so an
+            // island still waiting on its hydration policy keeps it; nothing else is ever in an unmounted host.
+            if (element.firstChild) element.replaceChildren();
+
             entry.adapter = adapter;
             entry.handle = adapter.mount(element, tree.props, childrenArgument(tree.children));
         } catch (error) {

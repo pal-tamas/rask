@@ -8,7 +8,7 @@ namespace Rask.WebPush.Tests;
 // against the public key, and its claims must satisfy what push services require.
 public sealed class VapidJwtTests
 {
-    private static async Task<string> CaptureAuthorization(WebPushOptions options)
+    private static async Task<string> CaptureAuthorization(PushOptions options)
     {
         var handler = new RecordingHandler();
         using var client = TestCrypto.GenerateClient();

@@ -11,10 +11,23 @@ public sealed partial class RoutesGenerator
     private static void EmitRouteFactory(SourceProductionContext spc, StringBuilder sb, StringBuilder? extSb,
         Candidate c, Dictionary<string, Candidate> byFqn, string helperFqn)
     {
-        if (ReportUnbindable(spc, c))
+        if (ResolveRoute(spc.ReportDiagnostic, c, byFqn) is not { } route)
         {
             EmitStub(sb, c);
             return;
+        }
+
+        EmitFactoryBody(sb, extSb, c, route.Parts, route.PathParams, route.QueryProps, helperFqn);
+    }
+
+    // What a page's URL is built from, or null — with the reason reported — when it cannot be built. Read by
+    // the C# helper above and by the TypeScript one (RoutesGenerator.TypeScript.cs), so the two cannot disagree.
+    private static ResolvedRoute? ResolveRoute(Action<Diagnostic> report, Candidate c,
+        Dictionary<string, Candidate> byFqn)
+    {
+        if (ReportUnbindable(report, c))
+        {
+            return null;
         }
 
         // Multi-route: validate EVERY declared template (so RASK004/005/006 fire on any
@@ -27,24 +40,21 @@ public sealed partial class RoutesGenerator
 
         for (var i = 0; i < c.Templates.Count; i++)
         {
-            if (!TryResolveFullTemplate(spc, c, byFqn, i, out var fullTemplate))
+            if (!TryResolveFullTemplate(report, c, byFqn, i, out var fullTemplate))
             {
-                EmitStub(sb, c);
-                return;
+                return null;
             }
 
             if (!TryParseTemplate(fullTemplate, out var parts, out var error))
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask003, c.RouteAttrLocation.ToLocation(), fullTemplate,
+                report(Diagnostic.Create(Rask003, c.RouteAttrLocation.ToLocation(), fullTemplate,
                     c.FullyQualifiedName, error));
-                EmitStub(sb, c);
-                return;
+                return null;
             }
 
-            if (ResolvePathParams(spc, c, parts, matchedAcrossTemplates) is not { } resolved)
+            if (ResolvePathParams(report, c, parts, matchedAcrossTemplates) is not { } resolved)
             {
-                EmitStub(sb, c);
-                return;
+                return null;
             }
 
             if (i == 0)
@@ -58,23 +68,20 @@ public sealed partial class RoutesGenerator
         var orphan = c.Properties.FirstOrDefault(p => p.HasRouteParam && !matchedAcrossTemplates.Contains(p.Name));
         if (orphan.Name is not null)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(Rask008, orphan.Location.ToLocation(), c.FullyQualifiedName,
+            report(Diagnostic.Create(Rask008, orphan.Location.ToLocation(), c.FullyQualifiedName,
                 orphan.Name, orphan.RouteParamName ?? orphan.Name));
-            EmitStub(sb, c);
-            return;
+            return null;
         }
-
-        var queryProps = c.Properties.Where(p => p.HasQueryParam).ToList();
 
         // URL formatter is built from the first template only — see TryResolveFullTemplate's
         // index-0 comment for the rationale.
-        EmitFactoryBody(sb, extSb, c, firstParts!, firstResolved!, queryProps, helperFqn);
+        return new ResolvedRoute(firstParts!, firstResolved!, c.Properties.Where(p => p.HasQueryParam).ToList());
     }
 
     // Binds each path parameter of one template to its [RouteParam] property, or reports why one
     // cannot be bound (RASK004/005/006) and returns null.
     private static List<ResolvedPathParam>? ResolvePathParams(
-        SourceProductionContext spc, Candidate c, List<ITemplatePart> parts, HashSet<string> matchedAcrossTemplates)
+        Action<Diagnostic> report, Candidate c, List<ITemplatePart> parts, HashSet<string> matchedAcrossTemplates)
     {
         var resolved = new List<ResolvedPathParam>();
         foreach (var p in parts.OfType<ParamPart>())
@@ -84,21 +91,21 @@ public sealed partial class RoutesGenerator
                 string.Equals(x.RouteParamName ?? x.Name, p.Name, StringComparison.OrdinalIgnoreCase));
             if (prop.Name is null)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask004, c.RouteAttrLocation.ToLocation(), p.Name,
+                report(Diagnostic.Create(Rask004, c.RouteAttrLocation.ToLocation(), p.Name,
                     c.FullyQualifiedName));
                 return null;
             }
 
             if (prop.HasQueryParam)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask006, prop.Location.ToLocation(), c.FullyQualifiedName,
+                report(Diagnostic.Create(Rask006, prop.Location.ToLocation(), c.FullyQualifiedName,
                     prop.Name, p.Name));
                 return null;
             }
 
             if (!IsTypeCompatible(prop.UnderlyingTypeName, p.Constraint))
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask005, prop.Location.ToLocation(), c.FullyQualifiedName,
+                report(Diagnostic.Create(Rask005, prop.Location.ToLocation(), c.FullyQualifiedName,
                     prop.Name, prop.TypeFqn, p.Constraint ?? "(none)"));
                 return null;
             }

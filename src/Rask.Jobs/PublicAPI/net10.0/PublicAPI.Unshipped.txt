@@ -40,8 +40,8 @@ Rask.Background.JobsOptions.MaxRetryDelay.set -> void
 Rask.Background.JobsOptions.PollInterval.get -> System.TimeSpan
 Rask.Background.JobsOptions.PollInterval.set -> void
 Rask.Background.JobsOptions.RecurringJobs.get -> System.Collections.Generic.IReadOnlyList<Rask.Background.RecurringJob!>!
-Rask.Background.JobsOptions.RetentionPeriod.get -> System.TimeSpan
-Rask.Background.JobsOptions.RetentionPeriod.set -> void
+Rask.Background.JobsOptions.Retention.get -> System.TimeSpan
+Rask.Background.JobsOptions.Retention.set -> void
 Rask.Background.JobsOptions.ShutdownGracePeriod.get -> System.TimeSpan
 Rask.Background.JobsOptions.ShutdownGracePeriod.set -> void
 Rask.Background.JobProcessor<TContext>
@@ -314,3 +314,4 @@ static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.Rec
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.RecurringJobStateRead?>!
 static Rask.Background.RecurringJobStateReadAccess.get_All() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 Rask.Background.JobsOptions.Adopt(Rask.Background.RecurringJob! job) -> void
+Rask.Background.JobsFake.Run(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!

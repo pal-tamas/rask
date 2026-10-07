@@ -92,6 +92,35 @@ them until tagged releases begin.
   While daisyUI still draws part of the kit the script also writes `data-theme="dark"`/`"light"` on
   `<html>`; `Ui.ThemeName`, `UiTheme` and `Ui.Shell.Theme(…)` stay until daisyUI goes. Re-skin by
   re-pointing `--color-zinc-*` and the accent variables in your own `@theme` — `docs/ui-kit.md`.
+- **BREAKING: `Ui.Accordion` is Flux's accordion, and `Ui.Collapse` folds into it.** Four parts —
+  `Ui.Accordion`, `Ui.AccordionItem`, `Ui.AccordionHeading`, `Ui.AccordionContent` — with Flux's props:
+  `Exclusive()`, `Transition()` and `Reverse` on the accordion, `Heading`, `Expanded()` and `Disabled()`
+  on an item. An item is now a native `<details>` and its heading the `<summary>`, so it opens with a
+  click, Enter or Space with no handler and no script, an exclusive accordion is the browser's own
+  `<details name>` group, and find-in-page opens the item holding a match. `Ui.AccordionSection`,
+  `Ui.Collapse`, `Ui.Marker`, `UiAccordionState`, `UiAccordion.Open`/`OnOpen` and the daisyUI
+  `collapse`/`join` markup are gone:
+  ```csharp
+  // was
+  Ui.Accordion.Open(_section).OnOpen(key => _section = key)[
+      Ui.AccordionSection.Key("ship").Title("Shipping").Marker(Ui.Marker.Arrow)[P["Two days."]],
+      Ui.AccordionSection.Key("pay").Title("Payment").Marker(Ui.Marker.Arrow)[P["Card."]]
+  ]
+  // now — the browser keeps one open; no state needed
+  Ui.Accordion.Exclusive()[
+      Ui.AccordionItem.Heading("Shipping")["Two days."],
+      Ui.AccordionItem.Heading("Payment")["Card."]
+  ]
+
+  // was
+  Ui.Collapse.Title("Advanced").Marker(Ui.Marker.Plus).Open(_open).OnToggle(open => _open = open)[ … ]
+  // now — a one-item accordion; Expanded/OnToggle only when the page wants to own it
+  Ui.Accordion[Ui.AccordionItem.Heading("Advanced").Expanded(_open).OnToggle(open => _open = open)[ … ]]
+  ```
+  The chevron is always drawn (after the heading, or before it with `Reverse`); there is no plus marker.
+  `OnToggle` now runs after the browser has toggled the item, with the state it is in, rather than
+  asking for one. A page that tracked the open section by key keeps a field per item, or uses
+  `Exclusive()` and lets the browser do it.
 
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
@@ -205,6 +234,18 @@ them until tagged releases begin.
 
 ### Removed
 
+- **BREAKING: `Notify` is gone; `Dispatcher` now works everywhere.** Two statics published an event, and which
+  one worked depended on where the line stood: `Dispatcher.Publish` threw in a `BackgroundService`, and
+  `Notify.Send` existed to cover that. One word now, from a page, a handler, a job or a singleton:
+  ```csharp
+  await Notify.Send(new ReportReady(id), stoppingToken);          // was
+  await Dispatcher.Publish(new ReportReady(id), stoppingToken);   // now
+  ```
+  Outside any work in progress `Dispatcher.Publish`, `Send` and `Query` open a scope of their own and dispose it
+  when the handler finishes, so a command can be sent from a hosted service with the same line a page uses.
+  `Notify.IsConfigured` is `Dispatcher.IsOn`; `Notify.UseScope` and `Notify.Configure` have no replacement — the
+  host binds the scope.
+
 - **Docs: the "ASP.NET Identity" section of `docs/authentication-providers.md` is gone.** `Rask.Auth` has
   its own accounts, and moving an existing Identity database onto it is covered in
   `docs/authentication.md`. The retired diagnostics (RASK027/030/032/034/042/046/047/048–050/054/081) no
@@ -279,6 +320,46 @@ them until tagged releases begin.
   A heading is no longer an `<h2>` unless it is given a `Level`. `UiStyles.Card` stays, and is now the default
   card's surface in Flux's colours (`zinc`, `p-6`, `shadow-xs`) for an element that is not a card. The
   `/_rask` console's queue tiles show their status under the title, and no longer an icon or a hover.
+- **BREAKING: a handler's `[Authorize]` now holds for a request sent in-process, not only over HTTP.** A
+  server page that sent an admin-only command ran it for any signed-in visitor, because the declaration
+  was checked at the remote endpoint alone. A caller the handler does not admit now gets
+  `ForbiddenException` — `IsAuthenticated` says whether anyone was signed in — before validation runs:
+  ```csharp
+  [Authorize(Roles = "admin")]
+  public sealed class PurgeLogsHandler : ICommandHandler<PurgeLogs> { … }
+
+  await Dispatcher.Send(new PurgeLogs());   // was: ran for any visitor of the page
+                                            // now: throws ForbiddenException for a non-admin
+  ```
+  `[AllowAnonymous]` is never checked, and a job, a durable handler and a hosted service run as the system.
+
+- **BREAKING: one word per setting across the batteries.** The same knob had a different name in each
+  battery, and five options types carried a `Rask` prefix the others did not. The appsettings keys under
+  `Rask:<Area>` follow the property names, so rename them there too:
+
+  | Was | Now |
+  |---|---|
+  | `JobsOptions.RetentionPeriod`, `MailOptions.RetentionPeriod`, `OutboxOptions.RetentionPeriod` | `Retention` |
+  | `CacheOptions.PurgeInterval`, `RaskLoggingOptions.PurgeInterval` | `SweepInterval` |
+  | `RaskLoggingOptions.ShutdownDrainTimeout` | `ShutdownGracePeriod` |
+  | `WebPushOptions.DefaultTtl` | `DefaultLifetime` |
+  | `RaskLoggingOptions` | `LogsOptions` |
+  | `RaskDashboardOptions` | `OpsOptions` |
+  | `WebPushOptions` | `PushOptions` |
+  | `RaskSignalingOptions` | `SignalingOptions` |
+  | `RaskCqrsClientOptions`, `RaskCqrsServerOptions` | `CqrsClientOptions`, `CqrsServerOptions` |
+  | `Db.IsConfigured`, `ReadDb.IsConfigured` | `IsOn` |
+
+  ```jsonc
+  { "Rask": { "Jobs": { "RetentionPeriod": "7.00:00:00" } } }   // was
+  { "Rask": { "Jobs": { "Retention": "7.00:00:00" } } }         // now
+  ```
+  `RaskServerOptions.ShutdownDrainTimeout`, the live-session drain, keeps its name.
+
+- **Every battery's static call explains a missing battery the same way.** `Cache`, `Mail`, `Jobs`, `Files`,
+  `Push`, `Logs`, `Dispatcher` and `QueryClient` each worded it differently, and most told a `RaskApp` to
+  call an `AddRask…` it never calls. Now: "Jobs is not running in this app. A RaskApp has it on unless
+  Program.cs says c.Jobs.Off(); a hand-wired host calls builder.Services.AddRaskJobs<AppDbContext>()."
 
 - **Tooling: `scripts/tools/RaskRename` renames a public member across the solution in one pass.**
   `dotnet run --project scripts/tools/RaskRename -- Rask.Wasm.WasmHostBuilder.RunAsync Run [--dry-run]` is a
@@ -1331,6 +1412,83 @@ them until tagged releases begin.
 
 ### Added
 
+- **An island has something to show before it mounts: `Loading`.** A JavaScript island is rendered in
+  the browser, so its host element was empty in the first response until the chunk had loaded — a blank
+  page, when the island is the page. `Loading` is an optional step on every island that puts plain Rask
+  markup there:
+  ```csharp
+  Report.Id(Id)                                              // <rask-external …></rask-external>
+  Report.Id(Id).Loading(Ui.Skeleton.Class("h-64 w-full"))    // <rask-external …><div class="…"></div></rask-external>
+  ```
+  It is rendered once on the server and never sent in the props; the island runtime removes it right
+  before the first mount, so a `Hydration(Visible)` or `Idle` island keeps it while it waits. It is below
+  the diff boundary: first paint only, and a handler inside it does not run. An island that carries the
+  `[Route]` itself sets `Loading` in its constructor, since the router builds it and no chain is left to
+  take the step. **A package island whose package has its own `loading` prop now gets it as
+  `LoadingProp`**, the way `key` is `KeyProp`.
+
+- **rask.sh shows an island as a whole page, and the guides say how.** `/docs/islands/report` is a route
+  a React component owns outright (`ReactReport : ReactComponent` carries the `[Route]`): its title comes
+  from `HeadAssets`, a `Ui.Skeleton` stands in the first response, and its `<a data-rask-nav>` goes back
+  without a reload. `docs/islands.md` gains "An island as a whole page", and `docs/blazor-components.md`
+  says a Blazor island can be the routed page — the choice for one a crawler must read, since it is
+  rendered on the server.
+- **CLI: the scaffolded home page renders its islands.** `rask new Shop --islands react lit` wrote the
+  island files and no page that used them, so the first `rask dev` showed nothing of what was asked for.
+  The `server` and `wasm` home pages now render one of each chosen runtime, through the chain:
+  ```csharp
+  ReactCounter.Caption("React island"),
+  LitBadge.Caption("Lit island"),
+  ```
+  A project without `--islands` scaffolds the same home page as before.
+- **Front-end code in an island navigates with the C# `Routes` and `Go`, type-safe, generated at build.**
+  A `.tsx`/`.vue`/`.svelte` page had no way to send the user anywhere but a hand-written `location.href`,
+  which reloaded the app and broke silently when a route changed. `@rask/routes` is the project's `Routes`
+  class — same page names, same nesting, same parameter names — and a wrong key or type fails the island
+  type-check `dotnet build` already runs:
+  ```tsx
+  location.href = `/users/${id}`                    // was: a string, a full reload
+  import { Routes, Go } from '@rask/routes'         // now
+  Routes.UserPage({ Id: 42 }).Go()                  // C#: Routes.UserPage(Id: 42).Go()
+  Routes.LoginPage().Go().Replacing()
+  Go.With('page', '2'); Go.Without('page')
+  <a {...Routes.UserPage({ Id: 42 }).Link}>View user</a>
+  ```
+  There is no string-path navigation: `Go.To` takes only a value `Routes.*` made. URLs are formatted as the
+  C# helpers format them and carry the app's path base. See `docs/islands.md#navigating-from-an-island`.
+
+- **A Blazor island needs no `AddRaskBlazor()` call, and its `NavigationManager` is Rask's routing.**
+  Referencing `Rask.Blazor` is the whole setup — which is what `rask new --islands blazor` always
+  scaffolded, so a hosted component that injected `NavigationManager` failed there with Blazor's own
+  "no registered service" error:
+  ```csharp
+  builder.Services.AddRaskBlazor();   // was: required, and missing from every scaffold
+  RaskApp.Create(args).Run<App>();    // now: nothing to add
+  ```
+  An island supplies `NavigationManager` and `IJSRuntime` itself and steps aside for anything the app
+  registers. `NavigationManager.Uri` used to be `http://localhost/` for the life of the app and
+  `NavigateTo` moved nothing; now `Uri` is the page on screen under the path base (a hosted `NavLink`
+  highlights the right entry), `NavigateTo` from a hosted handler moves the browser like `Go.To`, and a
+  Rask navigation raises `LocationChanged`. `AddRaskBlazor(o => …)` remains for options and registers
+  nothing else; `RaskBlazorOptions.BaseUri` now supplies only the scheme and host.
+- **Test fakes can run what they recorded, so one test proves a flow across batteries.** `Jobs.Fake()`
+  recorded and ran nothing; `await jobs.Run()` now sends every recorded job through its real handler, as the
+  tenant and user who enqueued it. `Outbox.Fake()` is new: it records a durable handler's event instead of
+  writing a row, and `await outbox.Run()` runs the handler.
+  ```csharp
+  using var outbox = Outbox.Fake();
+  using var jobs = Jobs.Fake();
+  using var mail = Mail.Fake();
+
+  page.Click("Place order");
+  await outbox.Run();   // the durable handlers run
+  await jobs.Run();     // the jobs they enqueued run
+
+  mail.Sent().To("ann@example.com").Once();
+  ```
+  `Run()` also runs work a running handler enqueues, and delayed jobs; a handler that throws lets its
+  exception out.
+
 - **`rask new --dry-run --json` and `rask dev --dry-run --json`: the plan as a document.** `new` prints the
   template, the name, the directory and the files it would write; `dev` prints the command, its arguments,
   the working directory and the environment it would set. Like every other `--json`, it is the document and
@@ -1549,6 +1707,92 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Islands: every build error has a code and names its fix.** Nine failures of the islands build were logged
+  with no code, so they could not be looked up, demoted or searched for; they are `RASKISLAND011`–`018` now —
+  two files registering one island name (011), an unknown runtime (012), a `RaskExternalDevServerUrl` that is
+  not an origin (013), React beside Preact (014), two runtimes sharing a folder tree (015), a package island
+  whose plugin cannot be scoped (016), unreadable prop types (017) and unreadable declared runtimes (018, a
+  warning). `RASKISLAND007` and `RASKISLAND010` now say how to refresh a snapshot (`npm install`, `dotnet build`,
+  commit the file), every message from the build tasks starts `Rask islands:`, and `docs/diagnostics.md` has an
+  entry per code, 001–018. In the browser, an Angular island that fails to bootstrap is reported like any other
+  mount failure — `Rask islands: 'Name' failed to mount`, and to Rask DevTools — and a callback sent for an
+  output the component does not declare warns once, by name, instead of never firing.
+
+- **Blazor: `[BlazorParameter("X")]` naming a parameter the hosted component does not declare is a compile
+  error (`RASK100`).** It was accepted silently: the property stayed a chain step, and nothing passed its value
+  on.
+  ```csharp
+  [BlazorParameter("ChartSeris")]                  // was: compiles, Series is never set on MudChart
+  public List<ChartSeries>? Series { get; set; }   // now: RASK100 — 'MudChart' declares no [Parameter] of that name
+  ```
+- **Blazor islands: a hosted handler receives the event it asked for.** A hosted `@onkeydown` fired but
+  was handed an empty args object, so the key was never there to read:
+  ```razor
+  void OnKey(KeyboardEventArgs e) => _last = e.Key;   // was: "" — now: "Enter"
+  ```
+  The island now builds Blazor's args from the event Rask already receives, on both hosts and with no
+  reflection: `MouseEventArgs`, `PointerEventArgs`, `WheelEventArgs`, `DragEventArgs`,
+  `KeyboardEventArgs`, `TouchEventArgs`, `FocusEventArgs` and `ClipboardEventArgs`
+  (`ProgressEventArgs` and `ErrorEventArgs` carry `Type` only). `@bind` on a checkbox receives a `bool`
+  and on a `<select multiple>` a `string[]`, where both were handed a string the binder cannot use.
+  A handler that takes `EventArgs` or nothing still asks the browser for no payload. An event whose
+  args are a library's own type is no longer wired with empty args it would cast-fail on: it gets no
+  attribute and one logged warning. `@bind:event="oninput"` on a checkbox or multi-select still
+  receives a string. See `docs/blazor-components.md#events`.
+- **An island that is a whole page can set its title.** The script that boots the island runtime was the
+  island's own `HeadAssets`, so overriding it replaced the script: the page rendered its host element
+  and nothing ever mounted. And an island's `HeadAssets` was never collected at all, because it renders
+  down the serializer's element branch. The script is now registered on its own and the island's
+  contribution follows it:
+  ```csharp
+  [Route("/reports/{id:int}")]
+  public sealed partial class Report : ReactComponent
+  {
+      [RouteParam] public int Id { get; set; }
+
+      protected override Component? HeadAssets => Title[$"Report {Id}"];   // was: no runtime, no title
+  }
+  ```
+
+- **WASM: an island pressed before the app has booted is no longer a click that did nothing.** A
+  prerendered page mounts its islands from the served HTML, so they are interactive seconds before
+  .NET exists, and a callback fired in that window was dropped with `send: dotnetExports not set` —
+  where the Server host has always queued one fired while its socket was opening. The WASM runtime now
+  holds island callbacks (up to 32) until the first frame is applied and delivers each to the island
+  that fired it; one whose island is no longer on the rendered page is dropped with a warning that
+  names it. DOM events before boot are still dropped, as before.
+
+- **An app scaffolded with `--islands blazor` builds a second time.** The Razor class library sits in a
+  folder of the app, and the app compiled everything under itself — so once the library had been built,
+  the next `dotnet build` (or the first `dotnet test`) picked up the library's `obj/` and stopped on
+  `CS0579: Duplicate 'AssemblyCompanyAttribute'`. All three templates now keep that folder out of the
+  app's sources, as they already did for the test project, and the template gate runs the scaffold's
+  own tests after building it.
+
+- **`rask new --template wasm --islands blazor` builds.** The scaffolded Razor class library referenced
+  the ASP.NET shared framework, which a browser-WASM app does not have, so the first build stopped on
+  `NETSDK1082`. It now references the `Microsoft.AspNetCore.Components.Web` package — the same types,
+  on both hosts — and the template gate builds that combination.
+
+- **`rask new --islands lit` scaffolds an island that bundles.** The build's entry imports a Lit island's
+  default export — its registered tag name — and the scaffolded `LitBadge.ts` had none, so the first
+  build after `npm install` stopped on `"default" is not exported by LitBadge.ts`. The fragment is now
+  written the way `docs/islands.md` tells you to write one: `static properties`,
+  `customElements.define('lit-badge', …)` and `export default 'lit-badge'`, with no decorators for the
+  bundler to lower. `--islands angular` also gets `vite` in its `package.json`, which every other
+  runtime already had and the Angular fragment left to a transitive install.
+- **`Mail.Send`, `Jobs.Enqueue` and every other static call now work inside a job, a durable handler and a
+  custom mail sender.** The three processors restored the tenant but never made the app reachable, so a
+  handler written the way the tutorial writes one threw "called outside any work in progress":
+  ```csharp
+  public async Task Handle(SendOrderReceipt job) =>
+      await Mail.Send(Email.To(job.Customer).Subject("Your receipt").Body(Receipt.OrderId(job.OrderId)));
+  ```
+  Each now binds its scope around the handler, as a request and a live session already did. A durable
+  handler and a queued email also run **for the user who started them** — `Current.UserId` reads the same
+  inside the handler as on the page that saved the change, where before only a job carried it.
+  **Upgrading adds a column to each table:** `rask db add AddOutboxUser && rask db add AddMailUser && rask db
+  update`. Until then each processor logs exactly that line instead of a generic failure.
 - **The packaging gate passes in a fresh worktree.** `Every_file_a_project_packs_by_name_exists` called the
   four gitignored JavaScript files `Rask.Wasm` and `Rask.External` bundle from TypeScript "produced by
   nothing" until those projects had been built. It now reads each project's own esbuild `--outfile` and

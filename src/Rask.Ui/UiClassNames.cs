@@ -572,13 +572,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string Marker(Ui.Marker value) => value switch
-    {
-        Ui.Marker.Arrow => "collapse-arrow",
-        Ui.Marker.Plus => "collapse-plus",
-        _ => "",
-    };
-
     internal static string TabsStyle(Ui.TabStyle value) => value switch
     {
         Ui.TabStyle.Box => "tabs-box",

@@ -79,8 +79,12 @@ const IGNORED = new Set(['width', 'height']);
 // place because it has that behaviour built in: a <label for> focuses its control with no script at all.
 const NATIVE = {
   'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend', 'ui-progress': 'div',
-  'ui-table-scroll-area': 'div',
+  'ui-table-scroll-area': 'div', 'ui-disclosure-group': 'div', 'ui-disclosure': 'details',
 };
+// The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
+const sameTag = (a, b) => (NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
+// Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
+const MISMARKED = { 'ui-disclosure-group': 'accordion' };
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
 const snapshot = JSON.parse(await readFile(join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json'), 'utf8'));
 const OWN = new Set([slug, ...(snapshot.pages.find(p => p.slug === slug)?.parts ?? [])
@@ -154,6 +158,7 @@ function tops(example, prefix) {
 
 // The part's marker is the shortest: Flux writes `data-flux-card` beside `data-flux-card-body-variant`.
 function mark(node, prefix) {
+  if (MISMARKED[node.tag]) return MISMARKED[node.tag];
   const names = Object.keys(node.attrs).filter(k => k.startsWith(prefix)).map(k => k.slice(prefix.length));
   return names.sort((x, y) => x.length - y.length)[0] ?? node.tag;
 }
@@ -167,7 +172,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
   const standIn = skip === '';
   const own = !standIn && skip !== 'self';
   if (skip === 'width' || skip === 'height') free = skip;
-  if ((NATIVE[a.tag] ?? a.tag) !== b.tag && own) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
+  if (!sameTag(a, b) && own) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
   if (a.text !== b.text && a !== rootA && own) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
 
   const differs = (x, y) => Math.abs(x - y) > 0.6;
@@ -176,10 +181,10 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
     diffs.push(`${where}: size ${a.box[2]}x${a.box[3]} vs ${b.box[2]}x${b.box[3]}`);
   }
 
-  // A node that is not displayed has no box: its rectangle is the viewport's corner, which says how far
-  // each page is scrolled and nothing about the node.
-  const displayed = a.style.display !== 'none' || b.style.display !== 'none';
-  if (a !== rootA && displayed) {
+  // A node that is not displayed — itself or by an ancestor — or that is 0×0 on both sides has no box:
+  // its rectangle is the viewport's corner, which says how far each page is scrolled and nothing about it.
+  const boxed = (shown(theirs, a) || shown(mine, b)) && [a, b].some(n => n.box[2] > 0 || n.box[3] > 0);
+  if (a !== rootA && boxed) {
     const off = (n, r, i) => n.box[i] - r.box[i];
     if ([0, 1].some(i => held[i] && differs(off(a, rootA, i), off(b, rootB, i)))) {
       diffs.push(`${where}: offset ${fix(off(a, rootA, 0))},${fix(off(a, rootA, 1))} vs ${fix(off(b, rootB, 0))},${fix(off(b, rootB, 1))}`);
@@ -227,6 +232,11 @@ function compareLook(theirs, a, mine, b, where, diffs) {
 
 function measured(example) {
   return (example.measured ??= new Set(stateTargets(example.nodes)));
+}
+
+function shown(example, node) {
+  for (let n = node; n; n = example.nodes.find(p => p.id === n.parent)) if (n.style.display === 'none') return false;
+  return true;
 }
 
 function compareStyles(x, y, where, diffs) {

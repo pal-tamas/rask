@@ -73,6 +73,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Rask.TestFiles"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <!-- For NodeFixture: the client runtime is exercised as the JavaScript it ships, in node. -->
@@ -93,7 +97,7 @@
     <!-- The adapter fixtures are excluded because they need npm packages and therefore their own targets
          below; everything else here bundles with nothing installed. -->
     <_RaskNodeFixture Include="*Fixture.ts"
-                      Exclude="PreactAdapterFixture.ts;LitAdapterFixture.ts;ReactAdapterFixture.ts;VueAdapterFixture.ts;SolidAdapterFixture.ts"/>
+                      Exclude="PreactAdapterFixture.ts;LitAdapterFixture.ts;ReactAdapterFixture.ts;VueAdapterFixture.ts;SolidAdapterFixture.ts;SvelteAdapterFixture.ts;AngularAdapterFixture.ts;IslandRoutesFixture.ts"/>
   </ItemGroup>
 
   <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
@@ -136,6 +140,10 @@
     <RaskReactFixtureVersion Condition="'$(RaskReactFixtureVersion)' == ''">19.3.0</RaskReactFixtureVersion>
     <RaskVueFixtureVersion Condition="'$(RaskVueFixtureVersion)' == ''">3.5.42</RaskVueFixtureVersion>
     <RaskSolidFixtureVersion Condition="'$(RaskSolidFixtureVersion)' == ''">1.9.15</RaskSolidFixtureVersion>
+    <RaskSvelteFixtureVersion Condition="'$(RaskSvelteFixtureVersion)' == ''">5.57.1</RaskSvelteFixtureVersion>
+    <!-- One number for @angular/core, compiler, common and platform-browser: Angular refuses a mixed set. -->
+    <RaskAngularFixtureVersion Condition="'$(RaskAngularFixtureVersion)' == ''">22.2.1</RaskAngularFixtureVersion>
+    <RaskRxjsFixtureVersion Condition="'$(RaskRxjsFixtureVersion)' == ''">7.8.2</RaskRxjsFixtureVersion>
 
     <!-- The one switch that turns the whole thing off, for a build with no npm and no network. The
          tests then report SKIPPED rather than passing, so a machine that never runs them says so. -->
@@ -170,7 +178,7 @@
     <!-- Exact versions, no ranges: a fixture that quietly moved to a new minor would be reporting on a
          version nobody chose. -->
     <WriteLinesToFile File="$(_PreactFixtureRoot)/package.json" Overwrite="true" WriteOnlyWhenDifferent="true"
-                      Lines="{&quot;name&quot;:&quot;rask-preact-fixture&quot;,&quot;private&quot;:true,&quot;type&quot;:&quot;module&quot;,&quot;dependencies&quot;:{&quot;preact&quot;:&quot;$(RaskPreactFixtureVersion)&quot;,&quot;happy-dom&quot;:&quot;$(RaskHappyDomFixtureVersion)&quot;,&quot;react&quot;:&quot;$(RaskReactFixtureVersion)&quot;,&quot;react-dom&quot;:&quot;$(RaskReactFixtureVersion)&quot;,&quot;vue&quot;:&quot;$(RaskVueFixtureVersion)&quot;,&quot;solid-js&quot;:&quot;$(RaskSolidFixtureVersion)&quot;},&quot;overrides&quot;:{&quot;seroval&quot;:&quot;^1.6.8&quot;,&quot;seroval-plugins&quot;:&quot;^1.6.8&quot;}}"/>
+                      Lines="{&quot;name&quot;:&quot;rask-preact-fixture&quot;,&quot;private&quot;:true,&quot;type&quot;:&quot;module&quot;,&quot;dependencies&quot;:{&quot;preact&quot;:&quot;$(RaskPreactFixtureVersion)&quot;,&quot;happy-dom&quot;:&quot;$(RaskHappyDomFixtureVersion)&quot;,&quot;react&quot;:&quot;$(RaskReactFixtureVersion)&quot;,&quot;react-dom&quot;:&quot;$(RaskReactFixtureVersion)&quot;,&quot;vue&quot;:&quot;$(RaskVueFixtureVersion)&quot;,&quot;solid-js&quot;:&quot;$(RaskSolidFixtureVersion)&quot;,&quot;svelte&quot;:&quot;$(RaskSvelteFixtureVersion)&quot;,&quot;@angular/core&quot;:&quot;$(RaskAngularFixtureVersion)&quot;,&quot;@angular/compiler&quot;:&quot;$(RaskAngularFixtureVersion)&quot;,&quot;@angular/common&quot;:&quot;$(RaskAngularFixtureVersion)&quot;,&quot;@angular/platform-browser&quot;:&quot;$(RaskAngularFixtureVersion)&quot;,&quot;rxjs&quot;:&quot;$(RaskRxjsFixtureVersion)&quot;},&quot;overrides&quot;:{&quot;seroval&quot;:&quot;^1.6.8&quot;,&quot;seroval-plugins&quot;:&quot;^1.6.8&quot;}}"/>
 
     <Exec Command="npm install --no-audit --no-fund --loglevel=error"
           WorkingDirectory="$(_PreactFixtureRoot)"
@@ -179,9 +187,9 @@
           ContinueOnError="true"/>
 
     <Touch Files="$(_PreactFixtureStamp)" AlwaysCreate="true"
-           Condition="Exists('$(_PreactFixtureModules)/preact/package.json') AND Exists('$(_PreactFixtureModules)/happy-dom/package.json') AND Exists('$(_PreactFixtureModules)/react-dom/package.json') AND Exists('$(_PreactFixtureModules)/vue/package.json') AND Exists('$(_PreactFixtureModules)/solid-js/package.json')"/>
+           Condition="Exists('$(_PreactFixtureModules)/preact/package.json') AND Exists('$(_PreactFixtureModules)/happy-dom/package.json') AND Exists('$(_PreactFixtureModules)/react-dom/package.json') AND Exists('$(_PreactFixtureModules)/vue/package.json') AND Exists('$(_PreactFixtureModules)/solid-js/package.json') AND Exists('$(_PreactFixtureModules)/svelte/package.json') AND Exists('$(_PreactFixtureModules)/@angular/platform-browser/package.json') AND Exists('$(_PreactFixtureModules)/@angular/compiler/package.json')"/>
 
-    <Message Importance="high" Text="Rask.External.Tests: npm could not install preact@$(RaskPreactFixtureVersion), happy-dom@$(RaskHappyDomFixtureVersion), react@$(RaskReactFixtureVersion), vue@$(RaskVueFixtureVersion) and solid-js@$(RaskSolidFixtureVersion) into '$(_PreactFixtureRoot)', so the adapter tests will report SKIPPED."
+    <Message Importance="high" Text="Rask.External.Tests: npm could not install preact@$(RaskPreactFixtureVersion), happy-dom@$(RaskHappyDomFixtureVersion), react@$(RaskReactFixtureVersion), vue@$(RaskVueFixtureVersion), solid-js@$(RaskSolidFixtureVersion), svelte@$(RaskSvelteFixtureVersion) and Angular $(RaskAngularFixtureVersion) into '$(_PreactFixtureRoot)', so the adapter tests will report SKIPPED."
              Condition="!Exists('$(_PreactFixtureStamp)')"/>
   </Target>
 
@@ -304,6 +312,131 @@
 
     <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;SolidAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:solid-js=&quot;$(_PreactFixtureModules)/solid-js/dist/solid.js&quot; --alias:solid-js/web=&quot;$(_PreactFixtureModules)/solid-js/web/dist/web.js&quot; --alias:solid-js/store=&quot;$(_PreactFixtureModules)/solid-js/store/dist/store.js&quot; --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; $(_RaskFixtureRequireBanner) --outfile=&quot;$(OutDir)node-fixtures/SolidAdapterFixture.mjs&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!--
+    The Svelte adapter fixture, and the one bundle here that esbuild cannot make on its own: `.svelte` is a template
+    language and `$state` in svelte.svelte.ts is a compiler rune. So the SHIPPED adapter sources and the two fixture
+    components go through Svelte's own compiler first (SvelteFixtureCompile.mjs — what @sveltejs/vite-plugin-svelte
+    does in an app, types stripped by esbuild before the rune module is compiled, as there), and esbuild bundles the
+    JavaScript that comes out.
+
+    The compiled files land BESIDE the fixture install's node_modules, so their `svelte/internal/client` imports
+    resolve by walking up, through the package's export conditions — `browser`, or Svelte hands over its server
+    build, whose mount throws. They keep their `.svelte` names, hence the loader.
+
+    Needs node itself, which the other bundles do not (esbuild is a native binary). The install stamp does not prove
+    node is on PATH for THIS build, so it is probed, and without it the fixture is not bundled and the test reports
+    SKIPPED. With it, a compile error fails the build.
+  -->
+  <PropertyGroup>
+    <_SvelteFixtureOut>$(_PreactFixtureRoot)/svelte</_SvelteFixtureOut>
+    <_SvelteClient>../../src/Rask.External/client</_SvelteClient>
+  </PropertyGroup>
+
+  <Target Name="_RaskBundleSvelteFixture" AfterTargets="Build"
+          DependsOnTargets="ResolveProjectReferences;_RaskRestorePreactFixture"
+          Condition="'$(RaskPreactFixture)' == 'true' AND '$(DesignTimeBuild)' != 'true' AND Exists('$(_PreactFixtureStamp)')"
+          Inputs="SvelteAdapterFixture.ts;SvelteFixtureCompile.mjs;SvelteFixture/FixtureCounter.svelte;SvelteFixture/FixtureBadge.svelte;$(_PreactFixtureStamp);@(_RaskNodeFixtureDependency);$(_SvelteClient)/svelte.svelte.ts;$(_SvelteClient)/RaskHost.svelte;$(_SvelteClient)/RaskTree.svelte;$(_SvelteClient)/adapter.ts"
+          Outputs="$(OutDir)node-fixtures/SvelteAdapterFixture.mjs">
+    <Exec Command="node --version" IgnoreExitCode="true" ContinueOnError="true"
+          StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ExitCode" PropertyName="_SvelteFixtureNodeExit"/>
+    </Exec>
+
+    <Message Importance="high" Text="Rask.External.Tests: node is not on PATH, so the Svelte adapter fixture was not compiled and SvelteAdapterTests will report SKIPPED."
+             Condition="'$(_SvelteFixtureNodeExit)' != '0'"/>
+
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)"
+                               Condition="'$(_SvelteFixtureNodeExit)' == '0'">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)node-fixtures" Condition="'$(_SvelteFixtureNodeExit)' == '0'"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(_SvelteClient)/svelte.svelte.ts&quot; --format=esm --target=esnext --log-level=warning --outfile=&quot;$(_SvelteFixtureOut)/stripped/svelte.svelte.ts&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="'$(_SvelteFixtureNodeExit)' == '0'"/>
+
+    <Exec Command="node &quot;SvelteFixtureCompile.mjs&quot; &quot;$(_PreactFixtureModules)&quot; &quot;$(_SvelteFixtureOut)&quot; &quot;$(_SvelteFixtureOut)/stripped/svelte.svelte.ts&quot; &quot;$(_SvelteClient)/RaskHost.svelte&quot; &quot;$(_SvelteClient)/RaskTree.svelte&quot; &quot;SvelteFixture/FixtureCounter.svelte&quot; &quot;SvelteFixture/FixtureBadge.svelte&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="'$(_SvelteFixtureNodeExit)' == '0'"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;SvelteAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --conditions=browser --loader:.svelte=js --alias:rask-svelte-fixture=&quot;$(_SvelteFixtureOut)&quot; --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; $(_RaskFixtureRequireBanner) --outfile=&quot;$(OutDir)node-fixtures/SvelteAdapterFixture.mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="'$(_SvelteFixtureNodeExit)' == '0'"/>
+  </Target>
+
+  <!--
+    The Angular adapter fixture: the real @angular/core and @angular/platform-browser, with components compiled by
+    Angular's JIT compiler at run time, so the bundle needs no Angular build step and no decorator transform.
+
+    NODE_PATH instead of an alias per package. An alias turns `@angular/core` into a PATH, and Angular publishes
+    through `exports` alone: its entry points (`@angular/core/primitives/signals`, `@angular/common/http`, …) import
+    each other by package name, and an aliased prefix would send every one of those to a folder with no package.json
+    in it. esbuild reads NODE_PATH from its environment, which resolves them as packages, exports and all.
+  -->
+  <Target Name="_RaskBundleAngularFixture" AfterTargets="Build"
+          DependsOnTargets="ResolveProjectReferences;_RaskRestorePreactFixture"
+          Condition="'$(RaskPreactFixture)' == 'true' AND '$(DesignTimeBuild)' != 'true' AND Exists('$(_PreactFixtureStamp)')"
+          Inputs="AngularAdapterFixture.ts;$(_PreactFixtureStamp);@(_RaskNodeFixtureDependency);..\..\src\Rask.External\client\angular.ts;..\..\src\Rask.External\client\adapter.ts"
+          Outputs="$(OutDir)node-fixtures/AngularAdapterFixture.mjs">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)node-fixtures"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;AngularAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; $(_RaskFixtureRequireBanner) --outfile=&quot;$(OutDir)node-fixtures/AngularAdapterFixture.mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          EnvironmentVariables="NODE_PATH=$(_PreactFixtureModules)"/>
+  </Target>
+
+  <!--
+    IslandRoutesFixture.ts imports `@rask/routes` the way an island does. The module is the one THIS build
+    generated from this project's own [Route] pages, so it is bundled apart from the others: after the build
+    has written it, with the alias the generated Vite config gives a real island.
+  -->
+  <Target Name="_RaskBundleRoutesFixture" AfterTargets="Build"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(DesignTimeBuild)' != 'true'"
+          Inputs="IslandRoutesFixture.ts;$(_RaskExternalTypes)routes.ts"
+          Outputs="$(OutDir)node-fixtures/IslandRoutesFixture.mjs">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)node-fixtures"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;IslandRoutesFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning &quot;--alias:@rask/routes=$(_RaskExternalTypes)routes.ts&quot; --outfile=&quot;$(OutDir)node-fixtures/IslandRoutesFixture.mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!-- IslandRoutesTests type-checks front-end code against that module with the compiler the build pins.
+       The build already knows how to find it, so it leaves the path where the test can read it. -->
+  <Target Name="_RaskNameTsgoForTests" AfterTargets="Build" DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <ResolveTypeScriptToolTask Tool="tsgo"
+                               Version="$(RaskTsgoVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskTestTsgoPath"/>
+    </ResolveTypeScriptToolTask>
+    <WriteLinesToFile File="$(OutDir)node-fixtures/tsgo.path" Lines="$(_RaskTestTsgoPath)"
+                      Overwrite="true" WriteOnlyWhenDifferent="true"/>
   </Target>
 
   <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is

@@ -15,6 +15,11 @@ on:
         description: push | deps | release | all
         type: string
         required: true
+      only:
+        description: an ERE over gate names; empty runs the whole set
+        type: string
+        required: false
+        default: ''
       ref:
         description: The commit to gate. Empty gates the one the caller ran on; upstream.yml names the commit it is about to land.
         type: string
@@ -32,6 +37,7 @@ jobs:
       - id: pick
         env:
           SET: ${{ inputs.set }}
+          ONLY: ${{ inputs.only }}
           # Every core the runner has: nothing else is running on it.
           #
           # The unit gate is two jobs, not one: both build the solution, then "format" runs the
@@ -61,15 +67,15 @@ jobs:
               {"set": "release", "name": "providers",          "run": "scripts/run-providers-local.sh"}
             ]
         run: |
-          gates="$(jq -c --arg set "$SET" '[.[] | select($set == "all" or .set == $set or ($set == "deps" and .deps))]' <<<"$GATES")"
-          [ "$gates" != "[]" ] || { echo "gates: unknown set '$SET'" >&2; exit 1; }
+          gates="$(jq -c --arg set "$SET" --arg only "$ONLY" '[.[] | select($set == "all" or .set == $set or ($set == "deps" and .deps)) | select($only == "" or (.name | test($only)))]' <<<"$GATES")"
+          [ "$gates" != "[]" ] || { echo "gates: set '$SET' with only '$ONLY' selects no gate" >&2; exit 1; }
           echo "gates=$gates" >> "$GITHUB_OUTPUT"
 
   gate:
     needs: plan
     name: ${{ matrix.gate.name }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 30   # the longest gate takes about twelve; a hung one must not hold a runner
     strategy:
       fail-fast: false   # one red gate says nothing about the others; report all of them
       matrix:

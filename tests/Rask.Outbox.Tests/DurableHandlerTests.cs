@@ -57,6 +57,35 @@ public sealed class ChargeCard(ShippingLog log) : IDurableHandler<Shipped>
     }
 }
 
+public sealed record Packed(Guid Id) : IEvent;
+
+public sealed record Announced(Guid Id) : IEvent;
+
+/// <summary>Publishes through the static facade, with nothing injected.</summary>
+public sealed class AnnouncePacked : IDurableHandler<Packed>
+{
+    public Task Handle(Packed e) => Dispatcher.Publish(new Announced(e.Id));
+}
+
+/// <summary>Records who the handler ran for, as <c>Current.UserId</c> sees it.</summary>
+public sealed class WhoPacked(ShippingLog log) : IDurableHandler<Packed>
+{
+    public Task Handle(Packed e)
+    {
+        log.Add($"who:{Current.UserId?.ToString() ?? "nobody"}");
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class RecordAnnounced(ShippingLog log) : IEventHandler<Announced>
+{
+    public Task Handle(Announced e)
+    {
+        log.Add("announced");
+        return Task.CompletedTask;
+    }
+}
+
 /// <summary>A context that never mapped the outbox table.</summary>
 public sealed class NoOutboxTableContext(DbContextOptions<NoOutboxTableContext> options) : DbContext(options)
 {
@@ -114,6 +143,37 @@ public sealed class DurableHandlerTests : IDisposable
 
         Assert.Equal(["charge", "dashboard", "receipt"], _log.Ran.Order(StringComparer.Ordinal));
         Assert.All(await Rows(provider), m => Assert.NotNull(m.ProcessedAt));
+    }
+
+    [Fact]
+    public async Task A_durable_handler_can_publish_through_the_facade()
+    {
+        var provider = Build(Outbox);
+        await Save(provider, new Packed(Guid.NewGuid()));
+
+        await Processor(provider).RunCycleAsync(CancellationToken.None);
+
+        Assert.Contains("announced", _log.Ran);
+        Assert.All(await Rows(provider), m => Assert.Null(m.Error));
+    }
+
+    [Fact]
+    public async Task A_durable_handler_runs_as_the_user_who_raised_the_event()
+    {
+        var alice = Guid.NewGuid();
+        var provider = Build(Outbox);
+        using (Current.UseUser(alice))
+        {
+            await Save(provider, new Packed(Guid.NewGuid()));
+        }
+
+        // Run under somebody else, to prove the processor does not leak its own flow's user into the handler.
+        using (Current.UseUser(Guid.NewGuid()))
+        {
+            await Processor(provider).RunCycleAsync(CancellationToken.None);
+        }
+
+        Assert.Contains($"who:{alice}", _log.Ran);
     }
 
     [Fact]

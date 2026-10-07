@@ -257,7 +257,7 @@ public sealed class RemoteDispatchTests
         Assert.Contains("BaseAddress", error.Message, StringComparison.Ordinal);
     }
 
-    private static IDispatcher Dispatcher(HttpMessageHandler handler, Action<RaskCqrsClientOptions>? configure = null)
+    private static IDispatcher Dispatcher(HttpMessageHandler handler, Action<CqrsClientOptions>? configure = null)
     {
         var services = new ServiceCollection();
 

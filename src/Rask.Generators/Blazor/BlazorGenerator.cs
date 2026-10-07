@@ -74,6 +74,19 @@ public sealed class BlazorGenerator : IIncrementalGenerator
         + "compile-time checking of what you pass it.",
         DiagnosticHelp.Link("RASK066"));
 
+    private static readonly DiagnosticDescriptor Rask100 = new(
+        "RASK100",
+        "[BlazorParameter] names a parameter the hosted component does not declare",
+        "'{0}.{1}' is mapped to '{2}', but '{3}' declares no [Parameter] of that name, so the value is never "
+        + "passed on — spell it exactly as the component declares it, or remove [BlazorParameter]",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Error,
+        true,
+        "[BlazorParameter(\"X\")] feeds a property of the island into the hosted component's parameter X. "
+        + "When the component has no public settable [Parameter] called X, the property is still a chain "
+        + "step, but nothing writes it: the call site sets a value the component never receives.",
+        DiagnosticHelp.Link("RASK100"));
+
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -113,6 +126,13 @@ public sealed class BlazorGenerator : IIncrementalGenerator
             if (hosted.TypeKind == TypeKind.Error)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(Rask066, LocationOf(island), island.Name, hosted.Name));
+            }
+
+            foreach (var (property, parameter) in BlazorParameters.UnknownRenames(island, hosted))
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(
+                    Rask100, property.Locations.FirstOrDefault() ?? Location.None,
+                    island.Name, property.Name, parameter, hosted.Name));
             }
 
             // A hand-written writer wins outright. Emitting beside it would be a duplicate member,

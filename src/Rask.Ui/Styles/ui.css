@@ -1376,3 +1376,46 @@
     display: none;
   }
 }
+
+/*
+  AN ACCORDION ITEM IS A <details>, AND ITS HEIGHT IS THE BROWSER'S OWN CONTENT SLOT.
+
+  ::details-content is the box a <details> puts everything but its <summary> in. Closed, it is kept out of
+  rendering but still in the document, which is what lets find-in-page reach it and open the item. Held at
+  no height, so Ui.AccordionContent (h-full) measures nothing while closed and its own height while open.
+
+  Ui.Accordion.Transition() animates that height: a quarter of a second on Tailwind's default curve, which
+  is what Flux's accordion does. `interpolate-size` is what lets a height run to `auto`; content-visibility
+  rides along so a closing item stays drawn until it has finished closing; and the clip is lifted only once
+  an item is fully open, so a focus ring inside it is not cut off. A browser without these opens and closes
+  at once. No utility can name a pseudo-element's per-property delay, hence a rule.
+*/
+@layer rask {
+  [data-ui-accordion-item]::details-content {
+    height: 0;
+  }
+
+  [data-ui-accordion-item][open]::details-content {
+    height: auto;
+  }
+
+  [data-ui-accordion][data-transition] > [data-ui-accordion-item] {
+    interpolate-size: allow-keywords;
+  }
+
+  [data-ui-accordion][data-transition] > [data-ui-accordion-item]::details-content {
+    overflow: hidden;
+    transition:
+      height 250ms cubic-bezier(0.4, 0, 0.2, 1),
+      content-visibility 250ms allow-discrete,
+      overflow 0s allow-discrete;
+  }
+
+  [data-ui-accordion][data-transition] > [data-ui-accordion-item][open]::details-content {
+    overflow: visible;
+    transition:
+      height 250ms cubic-bezier(0.4, 0, 0.2, 1),
+      content-visibility 250ms allow-discrete,
+      overflow 0s 250ms allow-discrete;
+  }
+}

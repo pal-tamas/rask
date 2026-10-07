@@ -166,7 +166,7 @@ internal sealed partial class DevToolsErrorsTab : Component
                             ShowInTree(error)
                         ],
                     error.Detail is { } detail
-                        ? Ui.Collapse.Title("Stack")[Pre.Class("text-xs whitespace-pre-wrap break-all")[detail]]
+                        ? Ui.Accordion[Ui.AccordionItem.Heading("Stack")[Pre.Class("text-xs whitespace-pre-wrap break-all")[detail]]]
                         : null,
                     error.LikelyFrameworkBug && ReportEnvironment is { } environment
                         ? Report(error, environment)

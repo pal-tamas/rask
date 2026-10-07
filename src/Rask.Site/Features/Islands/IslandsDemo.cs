@@ -11,8 +11,8 @@ namespace Rask.Site.Features.Islands;
 ///         Nothing in <c>VueChart.vue</c>, <c>ReactCounter.tsx</c> or <c>SvelteMeter.svelte</c> knows
 ///         which host it is on. On Server a callback rides the live WebSocket; here it is a
 ///         <c>[JSExport]</c> call straight into this tab's own runtime. The island never opens a
-///         channel of its own either way, so it inherits sequence stamping and the
-///         queue-while-reconnecting for free.
+///         channel of its own either way. This page is prerendered, so an island can be clicked
+///         before .NET has booted: that callback is held and delivered after the first frame.
 ///     </para>
 ///     <para>
 ///         <see cref="LitBadge" /> is here BECAUSE this app has scoped TypeScript, not despite it. A
