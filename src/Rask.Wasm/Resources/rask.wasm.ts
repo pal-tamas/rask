@@ -37,7 +37,7 @@ import {
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
-import { handlerClick, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
+import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {
     createJSObjectReference,
     disposeJSObjectReferenceById,
@@ -57,6 +57,59 @@ let basePath: string | null = null;
 // always commits before the following payload's ops — paths in a later diff are
 // computed against the render this one produces, so they must not be applied first.
 let _renderQueue = Promise.resolve();
+
+// Island callbacks fired before the app took over. A prerendered page mounts its islands from real
+// HTML, so they are clickable seconds before .NET has booted, and a callback dropped there is a click
+// that did nothing. Held until the first frame has been applied — .NET has no session to dispatch
+// into before that either — then delivered only to the island that fired it (see flushEarlyCallbacks).
+const EARLY_CALLBACK_LIMIT = 32;
+let earlyCallbacks: { payload: unknown; island: string }[] | null = [];
+
+function isIslandCallback(payload: unknown): payload is { id: string } {
+    const frame = payload as { type?: unknown; id?: unknown } | null;
+    return !!frame && frame.type === "external" && typeof frame.id === "string";
+}
+
+/** The name of the island whose props carry this handler id, or null when none does. */
+function islandHolding(id: string): string | null {
+    // The id reaches a selector-free substring match, but only ever as h<digits>.
+    if (!/^h\d+$/.test(id)) return null;
+    for (const island of document.querySelectorAll("rask-external")) {
+        if ((island.getAttribute("props") ?? "").includes(`"$h":"${id}"`)) return island.getAttribute("name");
+    }
+    return null;
+}
+
+function holdEarlyCallback(held: { payload: unknown; island: string }[], payload: { id: string }): void {
+    const island = islandHolding(payload.id);
+    if (island === null) {
+        console.warn("[Rask] a callback fired before the app started names no island on the page; dropped.");
+        return;
+    }
+    if (held.length === EARLY_CALLBACK_LIMIT) {
+        console.warn(`[Rask] more than ${EARLY_CALLBACK_LIMIT} island callbacks fired before the app `
+            + "started; the oldest was dropped.");
+        held.shift();
+    }
+    held.push({payload, island});
+}
+
+// Handler ids are positional, and the prerendered page was rendered by another process: an id in it
+// names the same handler only while the first live render matches. So a held callback is delivered
+// only when an island of the SAME name still carries that id — anything else could fire a handler
+// the visitor never touched.
+function flushEarlyCallbacks(): void {
+    const held = earlyCallbacks;
+    earlyCallbacks = null;
+    for (const {payload, island} of held ?? []) {
+        if (islandHolding((payload as { id: string }).id) === island) {
+            void send(payload);
+        } else {
+            console.warn(`[Rask] a callback the '${island}' island fired before the app started was `
+                + "dropped: the page it was fired on is not the page the app rendered.");
+        }
+    }
+}
 
 // The "#fragment" of an intercepted nav-link click. The fragment never leaves the
 // browser (the navigate message carries only path+query, and the history url has no
@@ -391,11 +444,13 @@ function handle(reply: RaskFrameReply | null): void {
         _renderQueue = _renderQueue.then(
             () => { applyDiffReply(reply); },
             (e) => { reportQueuedRenderFailure(e); applyDiffReply(reply); });
-        return;
+    } else {
+        _renderQueue = _renderQueue.then(
+            () => { applyFullReply(reply); },
+            (e) => { reportQueuedRenderFailure(e); applyFullReply(reply); });
     }
-    _renderQueue = _renderQueue.then(
-        () => { applyFullReply(reply); },
-        (e) => { reportQueuedRenderFailure(e); applyFullReply(reply); });
+    // Behind the frame, so the ids a held callback is checked against are the live page's.
+    if (earlyCallbacks) _renderQueue = _renderQueue.then(flushEarlyCallbacks, flushEarlyCallbacks);
 }
 
 // The render queue deliberately carries on after a failed frame — one bad payload must not wedge
@@ -513,6 +568,10 @@ async function send(payload: unknown): Promise<void> {
     // Deliberately not traced. `payload` carries the event's value — everything the user types — and
     // this runs ~60×/sec via the rAF coalescing path, so a log here writes form input to the console
     // of every production build. Debug a dispatch with a breakpoint, not by shipping one.
+    if (earlyCallbacks && isIslandCallback(payload)) {
+        holdEarlyCallback(earlyCallbacks, payload);
+        return;
+    }
     if (!dotnetExports) {
         console.warn("[Rask] send: dotnetExports not set");
         return;
@@ -559,16 +618,27 @@ setHost({send, inRoot});
 // like a DOM handler's.
 globalThis.__raskHost = globalThis.__raskHost || {};
 globalThis.__raskHost.send = send;
+globalThis.__raskHost.navigate = (href: string, replace?: boolean) => {
+    const url = inAppUrl(href);
+    if (url) navigate(url, replace === true);
+    else console.error(`[Rask] navigate: "${href}" is not a URL of this app, so nothing navigated.`);
+};
 
 document.addEventListener("click", (e) => {
     const url = navLinkClick(e);
-    if (!url) return;
-    // Stash the link's "#fragment" so applyNavScroll can scroll to the anchor once
-    // the new page commits (the fragment is not sent to the server).
+    if (url) navigate(url, false);
+});
+
+// One in-app navigation, whoever asked: a click on a nav link, or front-end code through the bridge.
+function navigate(url: URL, replace: boolean): void {
+    // Stash the "#fragment" so applyNavScroll can scroll to the anchor once the new page commits
+    // (the fragment is not sent to .NET).
     _pendingScrollHash = url.hash || "";
     flushInputsNow();
-    send({type: "navigate", path: stripBase(url.pathname), query: url.search});
-});
+    send(replace
+        ? {type: "navigate", path: stripBase(url.pathname), query: url.search, replace: true}
+        : {type: "navigate", path: stripBase(url.pathname), query: url.search});
+}
 
 window.addEventListener("popstate", () => {
     flushInputsNow();

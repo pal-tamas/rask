@@ -16,7 +16,16 @@ public sealed partial class RoutesGenerator
             return null;
         }
 
-        if (ctx.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol
+        return ctx.SemanticModel.GetDeclaredSymbol(classDecl) is INamedTypeSymbol symbol
+            ? GetCandidate(symbol, ctx.SemanticModel.Compilation)
+            : null;
+    }
+
+    // From the symbol alone, so the TypeScript `Routes` (RoutesGenerator.TypeScript.cs) is built from
+    // exactly the pages this class is.
+    private static Candidate? GetCandidate(INamedTypeSymbol symbol, Compilation compilation)
+    {
+        if (symbol.TypeKind != TypeKind.Class
             || symbol.IsAbstract
             || symbol.IsGenericType
             || !InheritsFromComponent(symbol))
@@ -30,7 +39,7 @@ public sealed partial class RoutesGenerator
         var ns = symbol.ContainingNamespace.IsGlobalNamespace
             ? string.Empty
             : symbol.ContainingNamespace.ToDisplayString();
-        var properties = GetPageProperties(symbol, ctx.SemanticModel.Compilation);
+        var properties = GetPageProperties(symbol, compilation);
 
         if (hasNotFound)
         {

@@ -18,7 +18,7 @@ internal sealed partial class PushStore<TContext>(
 {
     private const int SendsAtOnce = 8;
 
-    public string? PublicKey => services.GetService<WebPushOptions>()?.VapidKeys?.PublicKey;
+    public string? PublicKey => services.GetService<PushOptions>()?.VapidKeys?.PublicKey;
 
     public async Task<PushSubscriber> Subscribe(PushSubscription subscription, CancellationToken cancellationToken = default)
     {
@@ -68,7 +68,7 @@ internal sealed partial class PushStore<TContext>(
     private async Task RefuseAnonymousOverflow(
         DbSet<PushSubscriber> subscribers, Guid? userId, CancellationToken cancellationToken)
     {
-        if (userId is not null || services.GetService<WebPushOptions>() is not { } options)
+        if (userId is not null || services.GetService<PushOptions>() is not { } options)
         {
             return;
         }

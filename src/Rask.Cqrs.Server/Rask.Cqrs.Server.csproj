@@ -28,7 +28,7 @@
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
   </ItemGroup>
 
-  <!-- RaskCqrsServerOptions binds Rask:Cqrs:Server. The configuration binding source generator writes that bind at
+  <!-- CqrsServerOptions binds Rask:Cqrs:Server. The configuration binding source generator writes that bind at
        compile time, so no reflection binder runs; the SDK leaves it off unless a project asks. -->
   <PropertyGroup>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>

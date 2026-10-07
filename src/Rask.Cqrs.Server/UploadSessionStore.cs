@@ -34,7 +34,7 @@ internal sealed class UploadSessionStore : IDisposable
     private readonly string _root;
     private readonly TimeProvider _time;
 
-    public UploadSessionStore(RaskCqrsServerOptions options, TimeProvider? time = null)
+    public UploadSessionStore(CqrsServerOptions options, TimeProvider? time = null)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -53,7 +53,7 @@ internal sealed class UploadSessionStore : IDisposable
         string name,
         string? contentType,
         Stream body,
-        RaskCqrsServerOptions options,
+        CqrsServerOptions options,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(owner);
@@ -103,7 +103,7 @@ internal sealed class UploadSessionStore : IDisposable
     }
 
     // The caller's session for this id, opened if it is new and the caller has room for another.
-    private UploadSession Open(string owner, string uploadId, RaskCqrsServerOptions options)
+    private UploadSession Open(string owner, string uploadId, CqrsServerOptions options)
     {
         var key = Key(owner, uploadId);
 
@@ -134,7 +134,7 @@ internal sealed class UploadSessionStore : IDisposable
 
     // Counts bytes BEFORE they are written, so both caps bound what reaches the disk rather than
     // reporting afterwards on something already there.
-    private void Reserve(UploadSession session, int bytes, RaskCqrsServerOptions options)
+    private void Reserve(UploadSession session, int bytes, CqrsServerOptions options)
     {
         lock (_quota)
         {
@@ -185,7 +185,7 @@ internal sealed class UploadSessionStore : IDisposable
         UploadSession session,
         UploadPart part,
         Stream body,
-        RaskCqrsServerOptions options,
+        CqrsServerOptions options,
         CancellationToken cancellationToken)
     {
         var file = new FileStream(
@@ -247,7 +247,7 @@ internal sealed class UploadSessionStore : IDisposable
     }
 
     /// <summary>Drops sessions that were opened and never spent, so an abandoned upload is not a leak.</summary>
-    private void Prune(RaskCqrsServerOptions options)
+    private void Prune(CqrsServerOptions options)
     {
         var cutoff = _time.GetUtcNow() - options.UploadSessionLifetime;
         foreach (var (key, session) in _sessions)

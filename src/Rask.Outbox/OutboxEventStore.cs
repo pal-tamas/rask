@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Cqrs;
 
 namespace Rask.Outbox;
@@ -9,11 +10,19 @@ namespace Rask.Outbox;
 /// Crash-safe and retried from that moment, just not atomic with any other change, since there is none.
 /// </summary>
 internal sealed class OutboxEventStore<TContext>(
-    IDbContextFactory<TContext> contexts, TimeProvider timeProvider, OutboxSignal signal) : IDurableEventStore
+    IDbContextFactory<TContext> contexts, TimeProvider timeProvider, OutboxSignal signal, IServiceScopeFactory scopes)
+    : IDurableEventStore
     where TContext : DbContext
 {
     public async Task Store(IEvent e, IReadOnlyList<string> handlers, CancellationToken cancellationToken)
     {
+        // A test's fake takes the event in place of the rows.
+        if (Cqrs.Outbox.Faked.Value is { } fake)
+        {
+            fake.Record(e, handlers, scopes);
+            return;
+        }
+
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {

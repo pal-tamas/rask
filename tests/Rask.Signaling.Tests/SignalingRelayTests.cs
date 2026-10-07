@@ -254,7 +254,7 @@ public class SignalingRelayTests : IDisposable
         Assert.Contains("AddRaskSignaling", ex.Message, StringComparison.Ordinal);
     }
 
-    private static SignalingTestHost Host(Action<RaskSignalingOptions>? configure = null)
+    private static SignalingTestHost Host(Action<SignalingOptions>? configure = null)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();

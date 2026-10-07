@@ -28,7 +28,7 @@ public interface ISignaling
     /// </summary>
     /// <param name="room">The room id. Opaque to the framework; the server decides who may join one.</param>
     /// <param name="handlers">The callbacks the relay pushes into.</param>
-    /// <param name="path">The relay's path. Must match the server's <c>RaskSignalingOptions.Path</c>.</param>
+    /// <param name="path">The relay's path. Must match the server's <c>SignalingOptions.Path</c>.</param>
     ValueTask<ISignalingConnection> Join(
         string room, SignalingHandlers handlers, string path = "/rask/signaling");
 }

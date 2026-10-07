@@ -55,7 +55,7 @@ public static class RaskCacheServiceCollectionExtensions
     /// </para>
     /// <para>
     /// Of <see cref="CacheOptions"/> only <see cref="CacheOptions.Json"/> applies here. The other two —
-    /// <see cref="CacheOptions.PurgeInterval"/> and <see cref="CacheOptions.DefaultSlidingExpiration"/> — are
+    /// <see cref="CacheOptions.SweepInterval"/> and <see cref="CacheOptions.DefaultSlidingExpiration"/> — are
     /// implemented by <see cref="RaskDistributedCache{TContext}"/>, which this overload does not register.
     /// Expiry is the store's own business: Redis evicts on its own schedule, and a default expiration belongs in
     /// its configuration or in the per-call <c>.For(…)</c>/<c>.Sliding(…)</c>.
@@ -87,16 +87,16 @@ public static class RaskCacheServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<CacheOptions>, CacheOptionsValidator>());
         services.AddRaskOptions<CacheOptions>("Rask:Cache", static (section, o) =>
         {
-            var bound = new FromConfiguration { PurgeInterval = o.PurgeInterval, DefaultSlidingExpiration = o.DefaultSlidingExpiration };
+            var bound = new FromConfiguration { SweepInterval = o.SweepInterval, DefaultSlidingExpiration = o.DefaultSlidingExpiration };
             section.Bind(bound);
-            o.PurgeInterval = bound.PurgeInterval;
+            o.SweepInterval = bound.SweepInterval;
             o.DefaultSlidingExpiration = bound.DefaultSlidingExpiration;
         }, configure, validate: null);
     }
 
     internal sealed class FromConfiguration
     {
-        public TimeSpan PurgeInterval { get; set; }
+        public TimeSpan SweepInterval { get; set; }
 
         public TimeSpan? DefaultSlidingExpiration { get; set; }
     }

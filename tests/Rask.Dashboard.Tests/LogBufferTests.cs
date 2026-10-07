@@ -114,6 +114,6 @@ public sealed class LogBufferTests
     private static DashboardLogBuffer Buffer(
         int size = 100, LogLevel minimum = LogLevel.Information, bool capture = true) =>
         new(
-            new RaskDashboardOptions { LogBufferSize = size, LogMinimumLevel = minimum, CaptureLogs = capture },
+            new OpsOptions { LogBufferSize = size, LogMinimumLevel = minimum, CaptureLogs = capture },
             TimeProvider.System);
 }

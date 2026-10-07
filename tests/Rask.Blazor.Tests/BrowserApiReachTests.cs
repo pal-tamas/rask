@@ -13,9 +13,9 @@ namespace Rask.Blazor.Tests;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The docs used to list <c>IJSRuntime</c> as flatly unavailable, and <c>AddRaskBlazor</c> does
-///         register a runtime that throws — but with <c>TryAdd</c>, and both hosts register their own
-///         first, so the throwing shim never wins in a real app. What actually blocked every service
+///         The docs used to list <c>IJSRuntime</c> as flatly unavailable, and an island does carry a
+///         runtime that throws — but only for an app that registered none, and both hosts register
+///         their own, so the throwing shim never wins in a real app. What actually blocked every service
 ///         was #956: the component was built with <c>new()</c>, which skips Blazor's injection path.
 ///     </para>
 ///     <para>
@@ -29,23 +29,31 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
     {
         var services = new ServiceCollection();
 
-        // Exactly the order a real host uses: the host's own runtime first, AddRaskBlazor's
-        // TryAdd fallback second.
+        // What a real host registers: its own runtime. Nothing of Rask.Blazor's is added.
         services.AddSingleton<IJSRuntime>(js);
         services.AddCoreBrowserApis(ServiceLifetime.Singleton);
-        services.AddRaskBlazor();
 
         return services.BuildServiceProvider();
     }
 
     [Fact]
-    public void The_hosts_own_JSRuntime_wins_over_AddRaskBlazors_throwing_shim()
+    public void The_hosts_own_JSRuntime_wins_over_the_islands_throwing_shim()
     {
         var js = new RecordingJSRuntime();
 
-        var resolved = Services(js).GetRequiredService<IJSRuntime>();
+        var resolved = new BlazorIslandServices(Services(js)).GetService(typeof(IJSRuntime));
 
         Assert.Same(js, resolved);
+    }
+
+    [Fact]
+    public void An_island_with_no_host_runtime_hands_its_component_the_throwing_shim()
+    {
+        using var services = new BlazorIslandServices(BlazorIslandServices.None);
+
+        var resolved = services.GetService(typeof(IJSRuntime));
+
+        Assert.IsType<RaskBlazorJSRuntime>(resolved);
     }
 
     [Fact]

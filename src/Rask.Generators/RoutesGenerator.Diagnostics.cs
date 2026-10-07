@@ -194,7 +194,7 @@ public sealed partial class RoutesGenerator
         }
     }
 
-    private static List<Candidate> DropAmbiguous(SourceProductionContext spc, ImmutableArray<Candidate> candidates)
+    private static List<Candidate> DropAmbiguous(Action<Diagnostic> report, ImmutableArray<Candidate> candidates)
     {
         // RASK013: a class with both [NotFound] and [Route] is ambiguous — drop those
         // candidates from registry emission so neither catch-all nor typed route gets
@@ -204,7 +204,7 @@ public sealed partial class RoutesGenerator
         {
             if (c.IsNotFound && c.HasRouteAttr)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask013, c.RouteAttrLocation.ToLocation(),
+                report(Diagnostic.Create(Rask013, c.RouteAttrLocation.ToLocation(),
                     c.FullyQualifiedName));
                 continue;
             }
@@ -215,7 +215,7 @@ public sealed partial class RoutesGenerator
         return filtered;
     }
 
-    private static List<Candidate> DropDuplicateNotFound(SourceProductionContext spc, List<Candidate> filtered)
+    private static List<Candidate> DropDuplicateNotFound(Action<Diagnostic> report, List<Candidate> filtered)
     {
         // RASK012: only one [NotFound] per assembly. Report on every duplicate after the
         // first (sorted by FQN for stable diagnostics).
@@ -226,7 +226,7 @@ public sealed partial class RoutesGenerator
         {
             foreach (var dup in notFoundCandidates.Skip(1))
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask012, dup.RouteAttrLocation.ToLocation(),
+                report(Diagnostic.Create(Rask012, dup.RouteAttrLocation.ToLocation(),
                     dup.FullyQualifiedName));
             }
 
@@ -299,7 +299,7 @@ public sealed partial class RoutesGenerator
     // A nested class can share neither a name with a helper beside it (CS0102) nor with the class that
     // holds it (CS0542). Either is reported once, and the page that cannot be emitted is dropped, so the
     // author reads what to rename instead of a compile error inside generated code.
-    private static void RejectCollisions(SourceProductionContext spc, RoutesNode node, string fqn)
+    private static void RejectCollisions(Action<Diagnostic> report, RoutesNode node, string fqn)
     {
         foreach (var page in node.Pages.ToList())
         {
@@ -316,7 +316,7 @@ public sealed partial class RoutesGenerator
 
             if (reason is not null)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask097, page.RouteAttrLocation.ToLocation(),
+                report(Diagnostic.Create(Rask097, page.RouteAttrLocation.ToLocation(),
                     page.FullyQualifiedName, $"{fqn.Replace("global::", string.Empty)}.{page.TypeName}()", reason));
                 node.Pages.Remove(page);
             }
@@ -328,7 +328,7 @@ public sealed partial class RoutesGenerator
             {
                 foreach (var page in child.AllPages())
                 {
-                    spc.ReportDiagnostic(Diagnostic.Create(Rask097, page.RouteAttrLocation.ToLocation(),
+                    report(Diagnostic.Create(Rask097, page.RouteAttrLocation.ToLocation(),
                         page.FullyQualifiedName, $"{fqn.Replace("global::", string.Empty)}.{child.Name}",
                         "a nested class cannot share the name of the class that holds it"));
                 }
@@ -337,17 +337,17 @@ public sealed partial class RoutesGenerator
                 continue;
             }
 
-            RejectCollisions(spc, child, $"{fqn}.{child.Name}");
+            RejectCollisions(report, child, $"{fqn}.{child.Name}");
         }
     }
 
     // RASK011 for every [RouteParam] / [QueryParam] whose type cannot be parsed from a URL.
-    private static bool ReportUnbindable(SourceProductionContext spc, Candidate c)
+    private static bool ReportUnbindable(Action<Diagnostic> report, Candidate c)
     {
         var unbindable = false;
         foreach (var prop in c.Properties.Where(static p => (p.HasRouteParam || p.HasQueryParam) && !p.IsParsable))
         {
-            spc.ReportDiagnostic(Diagnostic.Create(Rask011, prop.Location.ToLocation(), c.FullyQualifiedName,
+            report(Diagnostic.Create(Rask011, prop.Location.ToLocation(), c.FullyQualifiedName,
                 prop.Name, prop.TypeFqn));
             unbindable = true;
         }

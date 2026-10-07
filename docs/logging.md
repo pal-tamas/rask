@@ -216,8 +216,8 @@ and it words the same sentences.
 | A log call | `ILogger` → the registered provider → a **bounded in-memory channel**. Never blocks, never throws. |
 | The buffer fills | The entry is **dropped** and counted on `rask.logs.dropped`. |
 | Every `FlushInterval` | A background writer drains the channel and inserts up to `BatchSize` rows per transaction. |
-| Shutdown | The writer drains what's buffered, bounded by `ShutdownDrainTimeout` (5s). |
-| Every `PurgeInterval` | Entries older than `Retention` go, then the store is trimmed to the newest `MaxRows` — deleted in pages of 1,000 so the write lock is never held for a whole sweep. |
+| Shutdown | The writer drains what's buffered, bounded by `ShutdownGracePeriod` (5s). |
+| Every `SweepInterval` | Entries older than `Retention` go, then the store is trimmed to the newest `MaxRows` — deleted in pages of 1,000 so the write lock is never held for a whole sweep. |
 
 **Dropping is the design, not a bug.** A log call happens on whatever thread is serving a request, and the one
 thing it must never do is wait for a disk write. Unbounded buffering would trade a visible drop count for an

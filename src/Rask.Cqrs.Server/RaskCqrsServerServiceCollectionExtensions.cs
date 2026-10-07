@@ -28,22 +28,25 @@ public static class RaskCqrsServerServiceCollectionExtensions
     /// </remarks>
     public static IServiceCollection AddRaskCqrsServer(
         this IServiceCollection services,
-        Action<RaskCqrsServerOptions>? configure = null,
+        Action<CqrsServerOptions>? configure = null,
         Action<CqrsOptions>? configureCqrs = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddRaskOptions<RaskCqrsServerOptions>(
+        services.AddRaskOptions<CqrsServerOptions>(
             "Rask:Cqrs:Server", static (section, o) => section.Bind(o), configure, static o => o.Validate());
 
         // The one line: a server project references Rask.Cqrs.Server and calls this, nothing else.
         services.AddRaskCqrs(configureCqrs);
 
+        // What decides a handler's [Authorize(Policy = …)], for the endpoint and for a local dispatch.
+        services.TryAddTransient<IPolicyEvaluator, AuthorizationPolicyEvaluator>();
+
         // The half of a chunked upload that outlives a single request: parts land here until the message
         // that carries them arrives. Singleton because a session spans requests by definition, and
         // disposable because its parts are files on disk.
         services.TryAddSingleton(sp => new UploadSessionStore(
-            sp.GetRequiredService<RaskCqrsServerOptions>(),
+            sp.GetRequiredService<CqrsServerOptions>(),
             sp.GetService<TimeProvider>()));
 
         return services;

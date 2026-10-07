@@ -71,13 +71,14 @@ internal static class BlazorFrameWriter
     /// <param name="renderer">The island's renderer, used to reach nested components' frames.</param>
     /// <param name="componentId">The root to write.</param>
     /// <param name="registerEvent">
-    ///     Turns a Blazor handler id into the Rask handler id to write. Returning null omits the
-    ///     attribute, which is what happens when there is no live session to dispatch through.
+    ///     Turns a Blazor handler id — with its event, and what a change on its element reports — into
+    ///     the Rask handler id to write. Returning null omits the attribute, which is what happens when
+    ///     there is no live session to dispatch through or the handler's args cannot be built.
     /// </param>
     public static string Write(
         BlazorIslandRenderer renderer,
         int componentId,
-        Func<ulong, string, string?> registerEvent)
+        Func<ulong, string, BlazorValueKind, string?> registerEvent)
     {
         var sb = new StringBuilder();
         WriteComponent(renderer, componentId, sb, registerEvent);
@@ -88,7 +89,7 @@ internal static class BlazorFrameWriter
         BlazorIslandRenderer renderer,
         int componentId,
         StringBuilder sb,
-        Func<ulong, string, string?> registerEvent)
+        Func<ulong, string, BlazorValueKind, string?> registerEvent)
     {
         var frames = renderer.FramesFor(componentId);
         WriteRange(renderer, frames, 0, frames.Count, sb, registerEvent);
@@ -100,7 +101,7 @@ internal static class BlazorFrameWriter
         int start,
         int end,
         StringBuilder sb,
-        Func<ulong, string, string?> registerEvent)
+        Func<ulong, string, BlazorValueKind, string?> registerEvent)
     {
         var i = start;
         while (i < end)
@@ -152,7 +153,7 @@ internal static class BlazorFrameWriter
         ArrayRange<RenderTreeFrame> frames,
         int i,
         StringBuilder sb,
-        Func<ulong, string, string?> registerEvent)
+        Func<ulong, string, BlazorValueKind, string?> registerEvent)
     {
         ref var frame = ref frames.Array[i];
         var name = frame.ElementName;
@@ -164,7 +165,7 @@ internal static class BlazorFrameWriter
         var child = i + 1;
         while (child < subtreeEnd && frames.Array[child].FrameType == RenderTreeFrameType.Attribute)
         {
-            WriteAttribute(name, ref frames.Array[child], sb, registerEvent);
+            WriteAttribute(name, ref frames.Array[child], sb, registerEvent, frames, i);
             child++;
         }
 
@@ -186,7 +187,9 @@ internal static class BlazorFrameWriter
         string element,
         ref RenderTreeFrame frame,
         StringBuilder sb,
-        Func<ulong, string, string?> registerEvent)
+        Func<ulong, string, BlazorValueKind, string?> registerEvent,
+        ArrayRange<RenderTreeFrame> frames,
+        int elementFrame)
     {
         var name = frame.AttributeName;
 
@@ -218,7 +221,7 @@ internal static class BlazorFrameWriter
 
         if (frame.AttributeEventHandlerId != 0)
         {
-            WriteEventHandler(ref frame, name, sb, registerEvent);
+            WriteEventHandler(ref frame, name, sb, registerEvent, frames, elementFrame);
             return;
         }
 
@@ -229,7 +232,9 @@ internal static class BlazorFrameWriter
         ref RenderTreeFrame frame,
         string name,
         StringBuilder sb,
-        Func<ulong, string, string?> registerEvent)
+        Func<ulong, string, BlazorValueKind, string?> registerEvent,
+        ArrayRange<RenderTreeFrame> frames,
+        int element)
     {
         // "onclick" -> "click", so it lands on Rask's own data-rask-on-{event} convention and the
         // delegated listener already in the page picks it up with no new client code.
@@ -244,7 +249,9 @@ internal static class BlazorFrameWriter
             return;
         }
 
-        if (registerEvent(frame.AttributeEventHandlerId, eventName) is not { } raskId)
+        // Only `change` reports a checkbox's state or a whole selection; `input` sends the value as text.
+        var valueKind = eventName is "change" ? ValueKindOf(frames, element) : BlazorValueKind.Text;
+        if (registerEvent(frame.AttributeEventHandlerId, eventName, valueKind) is not { } raskId)
         {
             return;
         }
@@ -258,6 +265,39 @@ internal static class BlazorFrameWriter
         // so writing the same id to both fires the handler twice per edit — harmless for @bind,
         // wrong for a hosted @onchange that appends to a list or increments a counter.
         sb.Append(" data-rask-on-").Append(eventName).Append("=\"").Append(raskId).Append('"');
+    }
+
+    // What a change on the element at frames[element] reports, read off its own attributes — wherever
+    // they sit relative to the handler: `<input @bind="On" type="checkbox">` declares the type last.
+    private static BlazorValueKind ValueKindOf(ArrayRange<RenderTreeFrame> frames, int element)
+    {
+        var tag = frames.Array[element].ElementName;
+        var input = string.Equals(tag, "input", StringComparison.OrdinalIgnoreCase);
+        if (!input && !string.Equals(tag, "select", StringComparison.OrdinalIgnoreCase))
+        {
+            return BlazorValueKind.Text;
+        }
+
+        var deciding = input ? "type" : "multiple";
+        for (var i = element + 1; i < frames.Count && frames.Array[i].FrameType == RenderTreeFrameType.Attribute; i++)
+        {
+            ref var attribute = ref frames.Array[i];
+            if (!string.Equals(attribute.AttributeName, deciding, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (input)
+            {
+                return string.Equals(attribute.AttributeValue as string, "checkbox", StringComparison.OrdinalIgnoreCase)
+                    ? BlazorValueKind.Checked
+                    : BlazorValueKind.Text;
+            }
+
+            return attribute.AttributeValue is null or false ? BlazorValueKind.Text : BlazorValueKind.Values;
+        }
+
+        return BlazorValueKind.Text;
     }
 
     private static bool IsInlineMedia(string element, string attribute) =>
