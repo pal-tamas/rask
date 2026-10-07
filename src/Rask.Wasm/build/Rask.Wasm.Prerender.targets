@@ -44,7 +44,13 @@
     <RaskPrerenderCompanionOutput Condition=" '$(RaskPrerenderCompanionOutput)' == '' ">$(BaseIntermediateOutputPath)rask-prerender-bin\</RaskPrerenderCompanionOutput>
   </PropertyGroup>
 
-  <Target Name="RaskGeneratePrerenderCompanion" Condition=" '$(RaskPrerender)' == 'true' ">
+  <!--
+    After GetAssemblyAttributes, because the app's assembly metadata is carried below and the targets that
+    write it (Rask.Tailwind's, Rask.Ui's) hook that one. A publish has already run it; this is for the
+    target asked for by name.
+  -->
+  <Target Name="RaskGeneratePrerenderCompanion" Condition=" '$(RaskPrerender)' == 'true' "
+          DependsOnTargets="GetAssemblyAttributes">
 
     <!--
       No framework version to sniff and no source-tree escape hatch: the companion carries the app's OWN
@@ -267,6 +273,17 @@
       -->
       <_RaskPrerenderLine Include="@(_RaskAppResourceNamed->'    &lt;EmbeddedResource Include=&quot;%(FullPath)&quot; LogicalName=&quot;%(LogicalName)&quot; /&gt;')"/>
       <_RaskPrerenderLine Include="@(_RaskAppResourceLinked->'    &lt;EmbeddedResource Include=&quot;%(FullPath)&quot; Link=&quot;%(Link)&quot; /&gt;')"/>
+
+      <!--
+        THE APP'S OWN ASSEMBLY METADATA — what the host reads off the App's assembly to write the document:
+        where the app's stylesheet is served (Rask.Stylesheet) and that the UI kit is compiled into it
+        (Rask.Ui.Stylesheet). Both are written by targets that look at the APP's Styles/app.css, which the
+        companion, inside obj\, does not have. So the baked page was the one path that still linked the
+        kit's precompiled sheet: every prerendered page of an app that compiles the kit in asked for
+        /css/rask-ui.css, which such an app does not ship, and the browser got a 404 on first paint while
+        the booted app, built from the real project, linked the one sheet correctly.
+      -->
+      <_RaskPrerenderLine Include="@(AssemblyMetadata->'    &lt;AssemblyMetadata Include=&quot;%(Identity)&quot; Value=&quot;%(Value)&quot; /&gt;')"/>
       <_RaskPrerenderLine Include="  &lt;/ItemGroup&gt;"/>
       <_RaskPrerenderLine Include="&lt;/Project&gt;"/>
     </ItemGroup>
