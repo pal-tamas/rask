@@ -14,7 +14,6 @@ public sealed partial class UiKitActionsDemo : Component
     private bool _menuOpen;
     private bool _confirming;
     private bool _muted;
-    private Ui.ThemeName _theme = Ui.ThemeName.Light;
     private string _lastAction = "nothing yet";
     private int _saves;
     private string _sort = "name";
@@ -36,7 +35,6 @@ public sealed partial class UiKitActionsDemo : Component
         FlyoutModalSection(),
         StateDrivenModalSection(),
         SwapSection(),
-        ThemeControllerSection(),
         FloatingActionButtonSection(),
 
         P.Class("mt-6 text-sm text-ui-muted")
@@ -185,7 +183,7 @@ public sealed partial class UiKitActionsDemo : Component
             Div.Data(Testid("ui-popover"))[
                 Ui.Popover.Trigger("Filters").Icon(Ui.IconName.Cog6Tooth).Align(Ui.Align.Start)
                     .PanelClass("w-72")[
-                    Ui.Heading.Key("h").Level(3).Sm.Class("mb-2")["Narrow the list"],
+                    Ui.Heading.Key("h").Level(3).Class("mb-2")["Narrow the list"],
                     Ui.CheckboxGroup.Values(_filters).Key("f")
                         .Options([("open", "Open"), ("mine", "Assigned to me"), ("old", "Older than a week")])
                         .Label("Show")
@@ -277,33 +275,6 @@ public sealed partial class UiKitActionsDemo : Component
                 Span.Class("text-sm text-ui-muted")[_muted ? "Muted" : "Playing"]
             ]);
 
-    private Component ThemeControllerSection() =>
-        Section(
-            "Theme controller",
-            "It reports a choice; the page applies it. The control cannot write data-theme itself, "
-            + "because the scope that carries it is an ancestor — so this page holds the value and puts "
-            + "it on the box below, which re-themes just that subtree.",
-            Div.Data(Testid("ui-theme-controller"))[
-                Div.Class("flex flex-wrap items-center gap-2")[
-                    ThemeButton("light", "Light", Ui.ThemeName.Light),
-                    ThemeButton("dark", "Dark", Ui.ThemeName.Dark),
-                    ThemeButton("retro", "Retro", Ui.ThemeName.Retro)
-                ],
-                // The applying half, and the reason the control has no way to do this itself: daisyUI
-                // matches [data-theme=x] on any ANCESTOR, so whoever owns the value writes it above the
-                // things it should repaint.
-                Div
-                    .Attributes(("data-theme", UiTheme.Value(_theme)))
-                    .Data(Testid("ui-theme-scope"))
-                    .Class("mt-3 rounded-xl border border-base-300 bg-base-100 p-4 text-base-content")[
-                    P.Class("text-sm")[$"This box is painted by the {UiTheme.Value(_theme)} theme."],
-                    Div.Class("mt-2 flex gap-2")[
-                        Ui.Button.Key("p").Primary.Sm["Primary"],
-                        Ui.Button.Key("a").Accent.Sm["Accent"]
-                    ]
-                ]
-            ]);
-
     private static Component FloatingActionButtonSection() =>
         Section(
             "Floating action button",
@@ -325,15 +296,6 @@ public sealed partial class UiKitActionsDemo : Component
             ]);
 
     private static AttrBag Testid(string value) => new("testid", value);
-
-    private UiThemeController ThemeButton(string key, string label, Ui.ThemeName theme) =>
-        Ui.ThemeController
-            .Key(key)
-            .Label(label)
-            .Theme(theme)
-            .Sm
-            .Active(_theme == theme)
-            .OnChange(chosen => { _theme = chosen; });
 
     private UiMenuItem MenuAction(string key, string label, string? kbd, Ui.Tone? tone = null) =>
         Ui.MenuItem.Key(key).Text(label).Kbd(kbd).Tone(tone).OnClick(() =>

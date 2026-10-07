@@ -5,11 +5,12 @@ name: nightly
 # prerelease on nuget.org. Stable releases (no -prerelease suffix) still come only from tagging
 # via release.yml.
 #
-# Runs AFTER ci.yml, and only from a commit it passed: own work lands on main ungated, so this is the
+# Runs AFTER full.yml — the whole push set, hourly — and only from a commit it passed. Own work lands on
+# main ungated and a push is gated by a SCOPED run (ci.yml), so the whole run is the
 # door a red commit stops at. workflow_dispatch publishes whatever main holds, verdict or not.
 on:
   workflow_run:
-    workflows: [ci]
+    workflows: [full]
     types: [completed]
     branches: [main]
   workflow_dispatch:

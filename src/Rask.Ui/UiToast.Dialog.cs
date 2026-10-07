@@ -53,24 +53,24 @@ public sealed partial class UiToast
     {
         var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
-            ["data-ui-toast-dialog"] = null,
-            ["data-variant"] = Variant(message.Level),
+            ["ui-toast-dialog"] = null,
+            ["variant"] = Variant(message.Level),
         };
         if (look.Invert)
         {
-            marks["data-invert"] = null;
+            marks["invert"] = null;
         }
 
         var style = look.Stack is null ? null : Place(message.Id, ahead, behind);
         if (Shows(message, look.Duration) is { } milliseconds)
         {
-            marks["data-rask-dismiss-after"] = (milliseconds + LeaveMilliseconds).ToString(CultureInfo.InvariantCulture);
+            marks["rask-dismiss-after"] = (milliseconds + LeaveMilliseconds).ToString(CultureInfo.InvariantCulture);
             style += string.Create(CultureInfo.InvariantCulture, $"--ui-toast-duration:{milliseconds}ms");
         }
 
         return Div.Key(message.Id)
             .Class("group/toast max-w-sm", look.Stack is null ? null : "absolute w-xs sm:w-sm", look.Class)
-            .Style(style).Aria("atomic", "true").Attributes(marks)[
+            .Style(style).Data(marks).Aria("atomic", "true")[
                 Div.Class(Card)[
                     Div.Class(message.Action is null ? "flex flex-1 items-start gap-4 overflow-hidden" : "flex flex-1 items-start gap-2 overflow-hidden")[
                         Div.Class("flex flex-1 gap-2 py-1.5 ps-2.5")[

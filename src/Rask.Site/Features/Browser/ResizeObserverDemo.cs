@@ -35,7 +35,7 @@ public sealed partial class ResizeObserverDemo : Component
     }
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("text-sm text-ui-muted mb-2")[
                     "Observed size: ",
                     Code.Id("resize-value")[

@@ -22,7 +22,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         foreach (var id in new[]
                  {
-                     "ui-drawer", "ui-layout-rest", "ui-layout-mask", "ui-mockups",
+                     "ui-drawer", "ui-separator", "ui-layout-rest", "ui-typography", "ui-layout-mask", "ui-mockups",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -54,9 +54,28 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Sign in" }).BoundingBoxAsync();
         Assert.True(row!.X + row.Width - (signIn!.X + signIn.Width) < 16, "the spacer did not push the last button to the end.");
 
-        // The separator has no margin of its own — daisyUI's 1rem is zeroed.
-        var margin = await scope.Locator(".divider").Last.EvaluateAsync<string>("d => getComputedStyle(d).marginTop");
+        // The separator has no margin of its own: the page spaces it.
+        var margin = await scope.Locator("[data-ui-separator]").Last.EvaluateAsync<string>("d => getComputedStyle(d).marginTop");
         Assert.Equal("0px", margin);
+    });
+
+    [Fact]
+    public Task Headings_text_and_links_are_drawn_as_Flux_draws_them() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-typography']");
+        await Expect(scope).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        await Expect(scope.Locator("h3[data-ui-heading]")).ToHaveTextAsync("User profile");
+        await Expect(scope.GetByText("Extra extra large")).ToHaveCSSAsync("font-size", "36px");
+        await Expect(scope.GetByText("Smaller text")).ToHaveCSSAsync("font-size", "12px");
+        await Expect(scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Default link" }))
+            .ToHaveCSSAsync("text-underline-offset", "6px");
+        await Expect(scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "documentation" }))
+            .ToHaveAttributeAsync("rel", "noopener noreferrer");
+        await Expect(scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Create new account →" }))
+            .ToHaveAttributeAsync("type", "button");
     });
 
     [Fact]

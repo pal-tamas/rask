@@ -18,7 +18,7 @@ public sealed partial class OriginPrivateFileSystemDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex flex-wrap gap-2 mb-2")[
                     Ui.Button.Primary.Outline
                         .Id("opfs-write")

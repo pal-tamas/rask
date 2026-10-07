@@ -12,7 +12,7 @@
 //         node scripts/flux/icons.mjs --check    # exit 1 when the committed files are stale
 //
 // To take a new Heroicons release: change VERSION and INTEGRITY (`npm view heroicons@<v> dist.integrity`),
-// run this, then record the new enum members in src/Rask.Ui/PublicAPI (scripts/tools/apply-public-api.py).
+// run this, then record the new enum members in src/Rask.Ui/PublicAPI (scripts/public-api/record.py src/Rask.Ui).
 
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';

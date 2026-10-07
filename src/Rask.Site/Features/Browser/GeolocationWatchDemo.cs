@@ -13,7 +13,7 @@ public sealed partial class GeolocationWatchDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     _watchId is null
                         ? Ui.Button.Primary.Id("geowatch-start").OnClick(Start)["Start watching"]

@@ -164,6 +164,8 @@ fi
 #   tests          a build without analyzers, then the tests
 #   tests-K/N      the same build, then shard K of N of the test projects (dealt round-robin from a
 #                  sorted list, so a new project joins a shard by existing)
+#   format         a build without analyzers, then the formatter (over the changed .cs files when
+#                  RASK_FORMAT_SCOPE=range, which is how a scoped CI run calls it)
 #   format-src     a build without analyzers, then the formatter over src/
 #   format-tests   a build without analyzers, then the formatter over tests/
 #
@@ -177,7 +179,7 @@ unit_part="${RASK_UNIT_PART:-}"
 format_include=""
 test_shard=""
 case "$unit_part" in
-  ""|build|tests) ;;
+  ""|build|tests|format) ;;
   tests-[0-9]*/[0-9]*)
     test_shard="${unit_part#tests-}"
     unit_part="tests"
@@ -185,8 +187,21 @@ case "$unit_part" in
   format-src) format_include="src/" ;;
   format-tests) format_include="tests/" ;;
   *)
-    echo "run-unit-local: RASK_UNIT_PART must be build, tests, tests-K/N, format-src or format-tests, not '$unit_part'." >&2
+    echo "run-unit-local: RASK_UNIT_PART must be build, tests, tests-K/N, format, format-src or format-tests, not '$unit_part'." >&2
     exit 1
+    ;;
+esac
+
+# With RASK_TEST_SCOPE=affected as well (a scoped CI run), the scope narrows what a part RUNS and what
+# `build` compiles. A tests or format part still builds the whole solution, for the reason above, so
+# its scope is set aside here and applied after the build.
+tests_scope=""
+skip_tests=0
+case "$unit_part" in
+  ""|build) ;;
+  *)
+    tests_scope="$scope_projects"
+    scope_projects=""
     ;;
 esac
 
@@ -325,16 +340,24 @@ dotnet build Rask.slnx -c Release -m:"$lane_slots" \
 fi
 rask_phase "build (Release)"
 
-# A test shard: the build above was the whole solution; from here on only this shard's projects run.
-if [ -n "$test_shard" ]; then
-  scope_changed=""
-  scope_projects="$(ls tests/*/*.csproj | grep -E '\.Tests/[^/]+\.csproj$' | grep -v '\.E2E\.Tests/' | LC_ALL=C sort \
-    | awk -v k="${test_shard%/*}" -v n="${test_shard#*/}" 'NR % n == k % n')"
-  if [ -z "$scope_projects" ]; then
-    echo "run-unit-local: test shard $test_shard names no test project." >&2
-    exit 1
+# A tests part: the build above was the whole solution; from here on only this shard's projects run,
+# and of those only the ones the scope reaches.
+if [ "$unit_part" = "tests" ] && { [ -n "$test_shard" ] || [ -n "$tests_scope" ]; }; then
+  part_tests="$(ls tests/*/*.csproj | grep -E '\.Tests/[^/]+\.csproj$' | grep -v '\.E2E\.Tests/' | LC_ALL=C sort)"
+  if [ -n "$test_shard" ]; then
+    part_tests="$(printf '%s\n' "$part_tests" | awk -v k="${test_shard%/*}" -v n="${test_shard#*/}" 'NR % n == k % n')"
   fi
-  echo "==> Test shard $test_shard: $(printf '%s\n' "$scope_projects" | grep -c .) test project(s)"
+  if [ -n "$tests_scope" ]; then
+    part_tests="$(printf '%s\n' "$part_tests" | grep -xF "$tests_scope" || true)"
+  fi
+  if [ -z "$part_tests" ]; then
+    skip_tests=1
+    echo "==> Tests: the change reaches no test project in this part."
+  else
+    scope_projects="$part_tests"
+    scope_changed="${scope_changed:-}"
+    echo "==> Tests in this part: $(printf '%s\n' "$scope_projects" | grep -c .) project(s)"
+  fi
 fi
 
 # Built ONLY on the paths that go on to run `dotnet format`, which is the only consumer: the formatter
@@ -524,6 +547,8 @@ test_slots="$lane_slots"
 
 if [ -n "$unit_part" ] && [ "$unit_part" != "tests" ]; then
   echo "==> Tests: not in the '$unit_part' part — the 'tests' part runs them."
+  unit_status=0
+elif [ "$skip_tests" -eq 1 ]; then
   unit_status=0
 elif [ -n "$scope_projects" ]; then
   # The affected TEST projects, handed to the same traversal shape as the build. VSTest is invoked

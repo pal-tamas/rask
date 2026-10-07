@@ -9,7 +9,7 @@ public sealed partial class GoQueryDemo(RouteState route) : Component
 {
     protected override Component? Render() =>
         Div[
-            Ui.Card.Class("shadow-sm mb-3")[
+            Ui.Card.Class("mb-3")[
                     Div.Class("grid grid-cols-12 gap-4")[
                         Div.Class("col-span-12 md:col-span-6")[
                             Span.Class("text-ui-muted text-sm uppercase")["Path"],

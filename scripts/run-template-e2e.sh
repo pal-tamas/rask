@@ -49,7 +49,7 @@ else
 fi
 
 args=(test tests/Rask.Templates.E2E.Tests/Rask.Templates.E2E.Tests.csproj -c Release
-      -p:MinVerSkip=true --logger "console;verbosity=minimal")
+      -p:MinVerSkip=true --logger "console;verbosity=normal")   # normal: each case's time is in the log
 
 if [ -n "$filter" ]; then
   args+=(--filter "$filter")

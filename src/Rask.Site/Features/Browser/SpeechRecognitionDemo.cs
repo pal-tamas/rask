@@ -19,7 +19,7 @@ public sealed partial class SpeechRecognitionDemo : Component
     private bool Listening => _recognition is not null;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Ui.Button.Primary
                         .Id("speech-recognize-start")

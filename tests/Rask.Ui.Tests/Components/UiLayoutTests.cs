@@ -44,13 +44,6 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_divider_can_carry_words_or_not()
-    {
-        Assert.Contains("or", Ui.Divider.Text("or").ToHtml());
-        Assert.Contains("divider", Ui.Divider.ToHtml());
-    }
-
-    [Fact]
     public void An_indicator_puts_its_badge_over_its_child()
     {
         var html = Ui.Indicator.Badge(Ui.Badge["9"])[Ui.Button["Inbox"]].ToHtml();

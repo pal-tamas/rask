@@ -814,7 +814,7 @@ public abstract partial class SharedSmokeTests
         await AssertGuideDemosAsync(1, "localization");
 
         var rows = Page.Locator(".guide-demo tbody tr[data-culture]");
-        var warning = Page.Locator(".guide-demo [role='alert']");
+        var warning = Page.Locator(".guide-demo [data-ui-callout]");
 
         // Wait for the demo to settle into one of its two shapes before deciding which to assert.
         await Expect(rows.First.Or(warning.First)).ToBeVisibleAsync(

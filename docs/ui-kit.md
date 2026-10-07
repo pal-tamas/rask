@@ -143,70 +143,90 @@ safelist for the whole library.
 both. Reference the kit for its components, take the plugin for your own markup, and take both when you
 want both.
 
-## Themes
+## Dark mode
 
-daisyUI's 35 themes all ship, as the `Ui.ThemeName` enum. Light is the default and dark follows the
-operating system — a scope with **no** `data-theme` matches `[data-rask-ui]:not([data-theme])`, which
-daisyUI compiles under `prefers-color-scheme: dark`. To pin one, put `data-theme` on the element
-carrying the theme scope — or on any container, to re-theme just that subtree.
+Dark mode is [Flux UI's](https://fluxui.dev/docs/dark-mode): a `dark` class on `<html>`, and `dark:`
+utilities that follow it. There is no theme list and no theme picker.
 
-`Ui.Shell` carries the scope itself, so it names its own theme:
+Put `Ui.AppearanceScript` in your root component's head assets, **before the stylesheets**:
 
 ```csharp
-Ui.Shell.Theme(Ui.ThemeName.Light)[ /* … */ ]
+protected override Component? HeadAssets => [Title["…"], Ui.AppearanceScript, /* stylesheets */];
 ```
 
-Leave it off and that subtree follows the OS. Writing `data-theme` on an ancestor does **not** settle
-it, because the rule that follows the OS is `[data-rask-ui]:not([data-theme])` and it matches the
-shell's own element — which is how a surface with its own fixed palette can render its chrome dark and
-its content light on the same screen. `Rask.Dashboard` pins `Light` on both its `<html>` and its shell for
-exactly that reason; see [the dashboard](dashboard.md).
+It runs before the first paint, so a dark page starts dark. The reader's **appearance** is `light`,
+`dark` or `system` — `system` is the default, follows `prefers-color-scheme` while the page is open, and
+is stored as no key at all; the other two are kept in `localStorage` under `rask.appearance`
+(`.StorageKey("…")` to change it). Only those exact words are a choice: anything else in storage means
+system. The class is put back after every morph, and another tab's change is followed.
+
+A control needs two properties, the ones Flux documents as `Flux.appearance` and `Flux.dark`:
+
+```js
+Rask.appearance = 'light' | 'dark' | 'system'   // get or set the reader's preference
+Rask.dark = true | false                        // get or set whether the page is dark right now
+```
+
+So a toggle is one line and **no C# handler** — it works before the app has booted, and costs no
+handler id (ids are positional, and one handler in every page's chrome moves every id after it):
 
 ```csharp
-Ui.ThemeController.Label("Dark").Theme(Ui.ThemeName.Dark).Active(_theme is Ui.ThemeName.Dark)
-                 .OnChange(theme => _theme = theme)
+Button.Type(ButtonType.Button).AriaLabel("Toggle dark mode")
+    .Attributes(("onclick", "Rask.dark = !Rask.dark"))[Ui.Icon.Name(Ui.IconName.Moon).Mini]
 ```
 
-The control **reports** a choice and cannot apply it: the palette is set by an ancestor, and no
-component can write an attribute onto something above it. The page holds the value and writes
-`UiTheme.Value(theme)` there — which is also what lets it be persisted, something daisyUI's CSS-only
-`theme-controller` could not offer, since nothing in C# knew which theme was showing.
+That is the moon in rask.sh's own top bar. A Light / Dark / System menu sets `Rask.appearance` the same
+way.
 
-`Ui.ThemePicker` and `Ui.ThemeDropdown` are ready-made pickers over the whole set, and both offer
-**System** as their first entry — `Ui.ThemeName.System`, whose value is `UiTheme.SystemValue`. It is not
-a palette: it means the absence of a choice, so selecting it **removes** `data-theme` and lets
-`prefers-color-scheme` decide again. Turn it off with `.ShowSystem(false)`, rename it with
-`.SystemLabel("Automatic")`.
+In your own Tailwind sheet, point `dark:` at the class, as Flux does:
 
-`Ui.ThemeDropdown` puts the picker in a `Ui.Popover`, so it closes on Escape, on a click outside and on its
-trigger. It stays open while a theme is picked — the page restyles on each pick, so the arrow keys preview the
-palettes one after another.
-
-Never stamp `data-theme="system"`. daisyUI compiles no block for it, so it matches nothing and leaves
-every `--color-base-*` undefined on the element your document inherits from — a fully laid-out page
-with no colour in it, and nothing reports why.
-
-### Remembering the choice
-
-`Ui.ThemeScript` is the other half of the picker. Put it in your root component's head assets, before
-the stylesheets:
-
-```csharp
-protected override Component? HeadAssets => [Title["…"], Ui.ThemeScript, /* stylesheets */];
+```css
+@custom-variant dark (&:where(.dark, .dark *));
 ```
 
-It applies the stored palette **before the first paint** (so a saved dark theme never flashes light),
-re-applies it after every morph (a full-document morph strips attributes off `<html>`), ticks the
-reader's radio back on, and exposes `window.raskSetTheme(value)` / `window.raskTheme()`.
+### Re-skinning
 
-With nothing stored it writes **no `data-theme` at all**, which is what makes the page follow the
-operating system — in CSS, with nothing running, and repainting if the reader flips their OS while the
-page is open. A stored value is checked against the themes that exist (built from `UiTheme.All`), so a
-hand-edited `localStorage` entry means "no choice" rather than an uncoloured page.
+Two colours, per [Flux's theming](https://fluxui.dev/docs/theming). The **base** is Tailwind's `zinc`
+scale, written directly in the components, so an app changes every gray by re-pointing it in its own
+`@theme`:
 
-It carries **no C# event handlers**, deliberately. Handler ids are positional, so one handler in the
-chrome of every page shifts every id after it — and an island captures its callback id from the
-prerendered markup, so moving the ids breaks its clicks silently on a page that still looks alive.
+```css
+@theme {
+  --color-zinc-50: var(--color-slate-50);
+  /* … 100 through 900 … */
+  --color-zinc-950: var(--color-slate-950);
+}
+```
+
+The **accent** is three variables — the fill of a primary action, the same hue as readable text, and
+the text on the fill — with a second set under `.dark`:
+
+```css
+@theme {
+  --color-fx-accent: var(--color-red-500);
+  --color-fx-accent-content: var(--color-red-600);
+  --color-fx-accent-foreground: var(--color-white);
+}
+
+@layer theme {
+  .dark {
+    --color-fx-accent: var(--color-red-500);
+    --color-fx-accent-content: var(--color-red-400);
+    --color-fx-accent-foreground: var(--color-white);
+  }
+}
+```
+
+(Flux's names are `--color-accent*`; the kit's carry `fx-` until daisyUI, which defines `--color-accent`
+with another meaning, is gone.)
+
+### While daisyUI still draws part of the kit
+
+The components not yet rebuilt on Flux's model are daisyUI's, and daisyUI reads `data-theme`. Until the
+last of them is replaced, `Ui.AppearanceScript` also writes `data-theme="dark"` or `"light"` on
+`<html>` to match the class — daisyUI's other 33 themes are no longer reachable from it. `Ui.Shell`
+still takes `.Theme(Ui.ThemeName.Light)` to pin a subtree (`Rask.Dashboard` pins its console light; see
+[the dashboard](dashboard.md)); `Ui.ThemeName` and `UiTheme` leave with daisyUI.
 
 ### Reading the palette
 
@@ -235,7 +255,7 @@ colours are generated for 3:1, not 4.5.
 
 ### The kit's own components are corrected the same way
 
-`Ui.Button`, `Ui.Badge`, `Ui.Alert`, `Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
+`Ui.Button`, `Ui.Badge`, `Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
 daisyUI labels each tone with its own `-content` colour — generated for 3:1, so small text on them fails
 AA on between two and ten palettes per tone (`secondary` is 3.05:1 on daisyUI's own `dark`, `error`
 under AA on ten). The kit corrects them to the `-ink` fill with the ground as the label, in
@@ -278,7 +298,7 @@ Not every component honours every member — daisyUI defines no `input-outline`,
 the markup looking as though it styled something.
 
 Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.ModalPosition`, `Ui.MaskShape`,
-`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`, `Ui.TabStyle`, `Ui.Marker`, `Ui.OpenOn`.
+`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`, `Ui.TabStyle`, `Ui.OpenOn`.
 
 ### One vocabulary for placing things
 
@@ -310,8 +330,8 @@ placement: `Ui.NavTab`'s `-mb-px`, which joins the active tab's border to its na
 
 ## Components that are one element
 
-A button is a `<button>`, and a table is a `<table>`. `Ui.Button`, `Ui.Badge`, `Ui.Alert`, `Ui.Table` and
-`Ui.List` do not wrap a raw element; they are the element. They derive from **`UiElement`**, which derives
+A button is a `<button>`, and a table cell is a `<td>`. `Ui.Button`, `Ui.Badge`, `Ui.List` and
+the parts of a `Ui.Table` do not wrap a raw element; they are the element. They derive from **`UiElement`**, which derives
 from `Element`, so every step an element takes works on them unchanged, the events included. What they
 show is their **children**, the same as a raw element's:
 
@@ -320,16 +340,54 @@ Ui.Button.Id("save").Primary.OnClick(Save)[Ui.Icon.Name(Ui.IconName.Check), "Sav
 
 Ui.Badge.Success["Live"]
 
-Ui.Alert.Error[Ui.Icon.Name(Ui.IconName.ExclamationTriangle), Span["Payment failed: "], Code[error]]
-
-Ui.Table.Id("orders").Data("testid", "orders").Aria(("label", "Orders"))[
-    Thead[Tr[Th["Order"], Th["Total"]]],
-    Tbody[rows]
-]
+Ui.TableCell.Id("total").Class("py-0")[Ui.Badge.Success["Paid"]]
 ```
 
 A bare `Ui.Icon.Name(…)` is the right size in all of these. The kit's stylesheet sizes an icon nobody sized
 from the button, badge or alert it sits in, and leaves alone an icon that has a size class of its own.
+
+## Accordion
+
+`Ui.Accordion` is [Flux's accordion](https://fluxui.dev/components/accordion): a stack of items, each a heading
+that opens the content under it.
+
+```csharp
+Ui.Accordion[
+    Ui.AccordionItem[
+        Ui.AccordionHeading["What's your refund policy?"],
+        Ui.AccordionContent["Thirty days, no reason needed."]
+    ],
+    Ui.AccordionItem.Heading("How do I track my order?")["We email a tracking number."]   // the shorthand
+]
+
+Ui.Accordion.Exclusive()[ … ]        // opening one item closes the others
+Ui.Accordion.Transition()[ … ]       // open and close over 250 ms
+Ui.Accordion.Reverse[ … ]            // the chevron before the heading
+Ui.AccordionItem.Heading("…").Expanded()[ … ]    // open to begin with
+Ui.AccordionItem.Heading("…").Disabled()[ … ]    // cannot be opened or closed
+```
+
+**No handler, and no script.** An item is a native `<details>` and its heading the `<summary>`, so a click,
+Enter or Space opens it in the browser, Tab moves from heading to heading, and `Exclusive()` is the platform's
+own `<details name>` group. Closed content is still in the document, so find-in-page reaches it and the browser
+opens the item holding the match. A disabled heading leaves the tab order, takes no pointer and says
+`aria-disabled`.
+
+**To own an item from C#**, render it in a field and keep the field in step:
+
+```csharp
+Ui.AccordionItem.Heading("Advanced settings").Expanded(_advanced).OnToggle(open => _advanced = open)[ … ]
+```
+
+`OnToggle` runs after the browser has opened or closed the item, with the state it is now in — including when
+an exclusive accordion closes it because another item opened.
+
+`Transition()` animates the height of the `<details>`' own content box (`::details-content`, with
+`interpolate-size`). A browser without those opens and closes at once, which is what an accordion without the
+step does everywhere.
+
+A single collapsible section is an accordion of one item; `Ui.Collapse`, `Ui.AccordionSection` and `Ui.Marker`
+are gone.
 
 ## Icons
 
@@ -372,20 +430,118 @@ through `ResolveAria()`, which writes into Core's `aria-*` slot so the attribute
 **One tag, and that has a consequence.** An element's children are written straight from the indexer, so
 an element-derived component cannot draw anything around them. The two places this shows:
 
-- **`Ui.Table.Scroll()`** puts the table in a bordered box that scrolls sideways. While it does,
-  `Ui.Table` renders as the box with the `<table>` inside. The id, classes, data, ARIA and handlers stay on
-  the `<table>`, so `#orders tbody tr` finds the same rows either way.
+- **`Ui.Table`** sits in a box that scrolls, and a heading wraps its label. Each renders its own tag
+  with what it adds inside or around it. The id, classes, data, ARIA and handlers you set stay on the
+  `<table>` and the `<th>`, so `#orders tbody tr` finds the rows.
 - **`Ui.List.Ordered()`** is an `<ol>`, numbered. Use it when the order means something, such as a log
   or a set of steps. A row is a plain `Li`.
 
-The kit pads cells and rows with a stylesheet rule on its `ui-table` / `ui-list` marker, in the layer
-below your utilities. A `px-0` on a cell therefore gets flush content. A `[&_td]:px-3` variant would have
+The kit pads a list's rows with a stylesheet rule on its `ui-list` marker, in the layer below your
+utilities. A `px-0` on a row therefore gets flush content. A `[&>li]:px-4` variant would have
 out-specified it.
+
+## Tables
+
+`Ui.Table` is [Flux's table](https://fluxui.dev/components/table), part for part: `Ui.TableColumns` holds a
+`Ui.TableColumn` per heading, and `Ui.TableRows` holds a `Ui.TableRow` of `Ui.TableCell`s per record.
+
+```csharp
+Ui.Table.Paginate(Ui.Pagination.Pages(pages).Current(page).OnPage(Go))[
+    Ui.TableColumns[
+        Ui.TableColumn["Customer"],
+        Ui.TableColumn.Sortable().Sorted(sortBy == "date").Direction(direction).OnSort(() => Sort("date"))["Date"],
+        Ui.TableColumn["Status"],
+        Ui.TableColumn.End["Amount"]
+    ],
+    Ui.TableRows[
+        orders.Select(order => Ui.TableRow.Key(order.Id)[
+            Ui.TableCell[order.Customer],
+            Ui.TableCell[order.Date],
+            Ui.TableCell.Class("py-0")[Ui.Badge.Success["Paid"]],
+            Ui.TableCell.Variant(Ui.TableCellVariant.Strong).End[order.Amount]
+        ])
+    ]
+]
+```
+
+| Part | Props |
+| --- | --- |
+| `Ui.Table` | `Bleed()` runs the dividers through the padding of the box it sits in; `Paginate(…)` is the pager under the rows; `ContainerClass("max-h-80")` styles the box around the table. |
+| `Ui.TableColumns` | `Sticky()` keeps the headings in view while the rows scroll. |
+| `Ui.TableColumn` | `Align` (`.Start` `.Center` `.End`), `Sortable()`, `Sorted(…)`, `Direction(Ui.TableColumnDirection.Asc \| Desc)`, `Sticky()`, and `OnSort`. |
+| `Ui.TableRows` | The rows. |
+| `Ui.TableRow` | `Key(…)`, `Sticky()`. |
+| `Ui.TableCell` | `Align`, `Variant(Ui.TableCellVariant.Strong)`, `Sticky()`. |
+
+**The table sorts nothing and pages nothing.** The page keeps the sorted column, its direction and the
+page number. A `Sortable()` heading draws its label as a button with a chevron, and `OnSort` fires when
+the heading is clicked or its button is activated from the keyboard. `Sorted` and `Direction` are what
+you set in answer.
+
+**Sticky parts need a background.** `Ui.TableColumns.Sticky()` holds the headings at the top of the box,
+and a sticky `Ui.TableColumn` with sticky `Ui.TableCell`s under it holds a column at the left. Give each
+`.Class("bg-white dark:bg-zinc-900")`, or the rows show through. A sticky column casts a shadow once the
+others have scrolled under it; that is a CSS scroll timeline, so a browser without one shows no shadow.
+
+**`Bleed()` needs to know the gutter.** It reads `--ui-bleed`, 1.5rem unless the box says otherwise:
+`Div.Class("p-4 [--ui-bleed:1rem]")[Ui.Table.Bleed()[…]]`.
+
+A cell pads itself 12px at zero specificity, so `py-0` or `px-6` on a cell wins. A cell does not wrap;
+write `whitespace-normal` on one that should. `colspan` and `scope` go through `.Attributes(("colspan", "3"))`.
+
+`Strong` and `Desc` are also HTML tags, and a tag's entry hides a step of the same name: those two
+values are passed as `Variant(Ui.TableCellVariant.Strong)` and `Direction(Ui.TableColumnDirection.Desc)`.
+
+## Callouts
+
+`Ui.Callout` is [Flux's callout](https://fluxui.dev/components/callout), measured from that page and drawn the
+same in light and dark: something the page needs its reader to notice, in place. It replaces `Ui.Alert`.
+
+```csharp
+Ui.Callout.Danger.Icon(Ui.IconName.XCircle).Heading("Payment failed").Text("Your card was declined.")
+
+Ui.Callout.Icon(Ui.IconName.Clock).Actions([Ui.Button["Renew now"], Ui.Button.Ghost["View plans"]])[
+    Ui.CalloutHeading["Subscription expiring soon"],
+    Ui.CalloutText[
+        "Your current plan will expire in 3 days. ",
+        Ui.CalloutLink.Href(Routes.Billing())["Learn more"]
+    ]
+]
+
+Ui.Callout.Color(Ui.Color.Purple).Icon(Ui.IconName.Sparkles).Inline()      // actions beside the text
+    .Heading("Have a question?")
+    .Actions(Ui.Button["Ask"])
+    .Controls(Ui.Button.Ghost.Square().AccessibleLabel("Dismiss").OnClick(Hide)[Ui.Icon.Name(Ui.IconName.XMark).Mini])
+```
+
+| Flux | Rask |
+| --- | --- |
+| `variant` | `Variant`, or its members as steps: `.Secondary` `.Success` `.Warning` `.Danger`. With none it is the secondary callout on a white surface, which is what Flux draws for one too |
+| `color` | `Color(Ui.Color.Blue)` — any of Tailwind's seventeen hues, each with the border, icon, heading and text shades Flux gives it. It wins over `Variant`; Flux draws one grey, so every grey is zinc |
+| `icon`, `icon:variant` | `Icon(Ui.IconName.Clock)`, and `.Outline` `.Solid` `.Mini` `.Micro` (mini, 20px, when unset). On `Ui.CalloutHeading` instead, the icon sits in the heading's own line |
+| the `icon` slot | `CustomIcon(component)` |
+| `heading`, `text` | `Heading("…")`, `Text("…")` — shorthand for a `Ui.CalloutHeading` and a `Ui.CalloutText` ahead of the children |
+| `inline` | `Inline()` — actions beside the text once the CALLOUT is 28rem wide (a container query, so it holds in a narrow column on a wide screen) |
+| the `actions` and `controls` slots | `Actions(component)` and `Controls(component)`; several is a collection, `Actions([a, b])` |
+| `flux:callout.link` `href`, `external` | `Ui.CalloutLink.Href(route or "https://…")`, `.External()` |
+
+**A callout announces nothing by itself**, exactly as Flux's does not — `Ui.Alert` wrote `role="alert"` or
+`role="status"` from its tone. One that is on the page when it loads is content, and a live region there is
+read out over the page's own heading. One that APPEARS because something happened says so where it is written:
+
+```csharp
+save.IsError ? Ui.Callout.Danger.Role("alert").Heading("Something went wrong.") : null     // interrupts
+saved ? Ui.Callout.Success.Role("status").Heading("Saved.") : null                            // waits its turn
+```
+
+Dismissing is yours too: `Controls` places the button, and what pressing it does — a field, a row in a table —
+is the page's. `Id`, `Class` and `Role` land on the callout itself; `Ui.CalloutText` and `Ui.CalloutLink` are
+their elements and take every element step.
 
 ## Buttons and links that go somewhere
 
 Every kit component that goes somewhere takes a `RouteUrl`: `Ui.Button.Href`, `Ui.Link.Href`,
-`Ui.Card.Href`, `Ui.Stat.Href`, `Ui.NavTab.Href` and `Ui.Brand.Href`. All of them follow one rule. Hand one a
+`Ui.Stat.Href`, `Ui.NavTab.Href` and `Ui.Brand.Href`. All of them follow one rule. Hand one a
 **generated route** and it navigates inside the app, the way `NavLink` does. The anchor carries
 `data-rask-nav`, which the runtime intercepts and routes without reloading the page. It also carries the
 deploy's path base, so a new tab or a copied link reaches the same page. Hand one a **string** and it
@@ -400,6 +556,35 @@ Ui.Button.Href("https://github.com/pal-tamas/rask").NewTab()["GitHub"]     // le
 
 A string that happens to name one of your own pages is still a string: it reloads the whole app to get
 there. Use the route. `NewTab(true)` is never intercepted, because the reader asked for another tab.
+
+## Heading, text and link
+
+Flux UI's [heading](https://fluxui.dev/components/heading) and [text](https://fluxui.dev/components/text), with
+Flux's names, props and look — measured against its docs in light and dark by `scripts/flux/parity.mjs`.
+
+```csharp
+Ui.Heading["User profile"]                                    // <div>, 14px, medium
+Ui.Heading.Level(3).Lg["Orders"]                              // <h3>, 16px
+Ui.Text.Class("mt-2")["This information will be displayed publicly."]
+
+Ui.Text.Variant(Ui.TextVariant.Strong)["Total"]               // or .Subtle, or .Color(Ui.Color.Blue)
+Ui.Text["Visit our ", Ui.Link.Href(Routes.ProductsPage())["documentation"], " for more information."]
+Ui.Link.Href("https://example.com").External()["The spec"]    // new tab, rel="noopener noreferrer"
+Ui.Link.As(Ui.LinkAs.Button).OnClick(Save)["Create account →"] // a <button type="button"> drawn as a link
+```
+
+| Component | Props |
+| --- | --- |
+| `Ui.Heading` | `Size` — `Base` (14px), `Lg` (16px), `Xl` (24px), `Xxl` (36px, Flux's `2xl`); `Level` 1–6, a `<div>` without one; `Accent()` |
+| `Ui.Text` | `Size` — `Sm`, `Default`, `Lg`, `Xl`; `Variant` — `Default`, `Strong`, `Subtle`; `Color` — a `Ui.Color` (Tailwind's hues), which wins over the variant; `Inline()` for a `<span>` |
+| `Ui.Link` | `Href` — a generated route navigates inside the app, a string is an ordinary link; `Variant` — `Default` (underlined), `Ghost` (underlined under the pointer), `Subtle`; `External()`; `As` — `A`, `Button`; `Accent(false)` to draw it in the page's ink |
+
+Each value is also a step — `Ui.Heading.Xl`, `Ui.Text.Subtle`, `Ui.Link.Ghost` — except the three that are also HTML
+tags: write `Variant(Ui.TextVariant.Strong)` and `As(Ui.LinkAs.Button)`, because `.Strong`, `.Button` and `.A` on a
+component are the inherited tag entries. Each is one HTML element, so
+`Id`, `Class`, `Style`, `Data`, `Aria` and the events are the element's own. There is no subheading: the line under
+a heading is a `Ui.Text`, as on Flux's page. A heading is zinc-800 (white in dark), text zinc-500 (white at 70%),
+and a link takes the accent with an underline at a fifth of it that fills in under the pointer.
 
 ## Application layout
 
@@ -480,14 +665,53 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
   The first paint is the open sidebar and a remembered rail follows a frame later; a page that must not flicker
   keeps the choice in a cookie instead and reads it on the server.
 - **`Ui.Spacer`** is `flex: 1`: it pushes what follows it to the far end of a row or a column.
-- **`Ui.Divider`** is Flux's separator: `Vertical`, `Subtle`, and `Align(Ui.Align.Start|End)` for its words, a
-  `separator` to assistive tech when it has none, and **no outer margin** — daisyUI's 1rem is zeroed, so the page
-  spaces it.
-- **`Ui.Heading`** separates how big a heading looks (`Size`) from where it sits in the outline (`Level` 1–6, a
-  `<div>` without one); **`Ui.Subheading`** and **`Ui.Text`** (`Strong`, `Subtle`, `Tone`, `Inline`) are the rest of the
-  type scale. `Ui.Header` and `Ui.Card` take a `TitleLevel` instead of a fixed `<h1>`/`<h2>`.
-- **`Ui.Card`**'s `Size` is its padding: `Ui.Card.Sm[…]` for a dense panel, `Lg`/`Xl` for a roomy one, and `Md`
-  is what a card has with no size.
+- **`Ui.Separator`** is Flux's separator, prop for prop: `Vertical()` (or `Orientation(Ui.SeparatorOrientation.Vertical)`),
+  `Text("or")` for a word in the middle of the line, and `.Subtle` (`Variant(Ui.SeparatorVariant.Subtle)`) for a
+  line that blends into the background. It is decoration to assistive tech (`role="none"`) and carries **no
+  margin** — the page spaces it; a vertical one is as tall as its row, and `.Class("my-2")` shortens it.
+- **`Ui.Heading`**, **`Ui.Text`** and **`Ui.Link`** are Flux's own — see [Heading, text and link](#heading-text-and-link).
+  `Ui.Header` takes a `TitleLevel` instead of a fixed `<h1>`.
+
+### Card
+
+`Ui.Card` is [Flux UI's card](https://fluxui.dev/components/card), part for part: `Ui.CardHeader`
+(`Ui.CardHeading`, `Ui.CardSubheading`, `Ui.CardActions`), `Ui.CardBody`, `Ui.CardFooter` and `Ui.CardBleed`.
+The card handles the spacing, dividers and corners between them.
+
+```csharp
+Ui.Card.Inset.Soft.Lg[
+    Ui.CardHeader[
+        Ui.CardHeading.Level(2)["Profile"],
+        Ui.CardSubheading["This is how others will see you"],
+        Ui.CardActions[Ui.Button["Edit"]]            // centres on the heading, tucks into the corner
+    ],
+    Ui.CardBody[form],
+    Ui.CardFooter[Ui.Text["Last saved 2 minutes ago"], Ui.CardActions[Ui.Button["Save"]]]
+]
+
+Ui.Card[Ui.CardHeading.Lg["Are you sure?"], P["This cannot be undone."]]   // parts are optional
+```
+
+| Step | Values | What it decides |
+|---|---|---|
+| `Body` | `Seamless` (default) · `Inset` · `Flush` · `Divided` · `Separated` | how header, body and footer are set apart: by space, a panel in from the edges, a panel out to them, lines, or tinted bands |
+| `Variant` | `Default` · `Muted` · `Soft` · `Outline` · `Filled` | the surface — raised, two tints, an edge only, a tint with no edge |
+| `Size` | `Xs` · `Sm` · `Md` (default) · `Lg` | padding, corners and the space between parts |
+| `Divider` | `Ui.CardDivider.Inset` | with `Divided`, stops the lines at the content's edges |
+| `Highlight` | `false` | turns off the faint highlight inside the top edge (light mode) |
+
+Each value is a chain step (`Ui.Card.Divided.Sm`); `Inset` is the body treatment, so the divider is
+`.Divider(Ui.CardDivider.Inset)`. `Ui.CardHeading` takes `Size` (`Base`, `Lg`, `Xl`) and `Level`; without a
+level it is a `<div>`, outside the document outline.
+
+- **A header or footer outside a card** is a section heading above one — give it the `Size` of the card it sits
+  beside. **Inside a `Ui.CardBody`** it titles a sub-section and takes none of the card's treatment.
+- **`Ui.CardBleed`** runs media out to the card's edges: always to the sides, to the top or bottom when it is
+  the first or last thing, rounding only the corners it reaches. The distances are the `--ui-bleed-x`,
+  `--ui-bleed-top`, `--ui-bleed-bottom`, `--ui-bleed-top-radius` and `--ui-bleed-bottom-radius` variables the
+  card and its body set, so your own content can bleed the same way.
+- **A link card** is a link around a small card, as in Flux — there is no `Href` on the card:
+  `A.Href(url)[Ui.Card.Xs.Class("hover:bg-zinc-50 dark:hover:bg-zinc-700")[…]]`. Nothing inside it may be a button.
 
 ## Buttons that wait
 
@@ -517,15 +741,15 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
+| **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
-| **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Fieldset` `Ui.Validator` `Ui.Label` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
-| **Layout** | `Ui.Divider` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
+| **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Layout** | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
-| **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `UiTheme` / `Ui.ThemeName`, `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
+| **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
 
 ## Who owns the state
 
@@ -601,8 +825,11 @@ daisyUI's CSS dropdown, which a pointer can open and a popover cannot — withou
 Ui.Dropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
 ```
 
-**The page owns it, in C#.** `Ui.Collapse`, `Ui.Accordion`, `Ui.Swap`, `Ui.Tabs` and `Ui.Modal`'s `Open` path hold
-their state in a field and redraw through the live diff.
+**The page owns it, in C#.** `Ui.Swap`, `Ui.Tabs` and `Ui.Modal`'s `Open` path hold their state in a field and
+redraw through the live diff.
+
+**The browser owns it, and tells the page.** A `Ui.AccordionItem` is a `<details>`: it opens with no handler at
+all, and `Expanded` with `OnToggle` is how a page keeps it in a field — see [Accordion](#accordion).
 
 **The markup owns it.** `Ui.Tab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
 survives a refresh and answers the back button. `Ui.Drawer` keeps its checkbox because daisyUI's rules are
@@ -711,6 +938,49 @@ template is [RASK075](diagnostics.md#rask075).
 The browser still owns dismissal there — Escape and click-outside — and C# hears it through
 `OnToggle`, which is what keeps `aria-expanded` truthful rather than drifting the moment the list is
 dismissed.
+
+## Fields: label, description, error
+
+`Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
+[Flux UI's field](https://fluxui.dev/components/field), part for part. A field stacks a label, a control,
+its validation message and help text, and tells the parts which control they belong to:
+
+```csharp
+Form.Model(_signUp)[
+    Ui.Field[
+        Ui.Label.Badge("Required")["Email"],
+        Ui.Input.Bind(() => _signUp.Email).ShowValidation(false),
+        Ui.Error,                                          // the first message of the bound control
+        Ui.Description["We only write about your order."]  // after the control: under it
+    ]
+]
+```
+
+| Part | What it takes |
+| --- | --- |
+| `Ui.Field` | `Variant` — `Ui.Field.Inline` puts the label beside the control (a checkbox, a switch); `Block` is the default. |
+| `Ui.Label` | `Badge("Required")`, a `Trailing(…)` slot at the far end, and `For(id)` when it sits outside a field. |
+| `Ui.Description` | Help text. Before the control it sits under the label; after it, under the control. |
+| `Ui.Error` | `For(() => model.Email)`, `Name(nameof(model.Email))` or `Message("…")`; `Icon(Ui.IconName.InformationCircle)`, `Icon(false)`. |
+| `Ui.Fieldset` | `Legend("Shipping address")`, `Description("…")` — or place a `Ui.Legend` yourself. |
+
+**The label is a real `<label for>`.** Inside a field it points at the field's control — a kit control by
+the id it derives, a plain element by its `Id` — so a click on the label focuses the control with no script.
+Flux draws the same parts as custom elements wired by its JavaScript; the kit ships none, so each is the
+native element that already behaves that way: `<label>`, `<fieldset>`, `<legend>`.
+
+**`Ui.Error` reads the form.** Where Flux's `name` looks a key up in Laravel's error bag, a Rask field is a
+member of a model, so the error shows the first message the form holds for that member: bare inside a field
+(the control's own `Bind`), `For(() => model.Email)` anywhere, or `Name("Email")` for a member of the form's
+model. `Message` shows your own text whatever the form says. It is always in the page — hidden while there
+is nothing to say — because it is a `role="alert"` live region, and a screen reader only announces a
+message that arrives in one it already knows. Flux's `bag` and `deep` have no counterpart: a form has one
+edit context, and a nested member is named by its expression rather than by a dotted path.
+
+Markers mirror Flux's: `data-ui-field`, `data-ui-label`, `data-ui-description`, `data-ui-error`,
+`data-ui-fieldset`, `data-ui-legend`. The controls not yet rebuilt on Flux keep drawing their own label,
+`Hint` and message from `Label(…)`; as each is rebuilt its `Label` and `Description` draw this field around
+it instead.
 
 ## Form controls
 
@@ -836,13 +1106,47 @@ extra height would break), and `AutoSize` grows the box to fit what is typed. Th
 shipped it the box keeps its `Rows` and scrolls, which is what it does today, so the feature degrades to the
 current behaviour rather than to a broken one.
 
-**`Ui.Link.External` opens away and says so.** `target="_blank"`, `rel="noopener noreferrer"` (a new tab opened
-without it can reach back through `window.opener`), a small mark and a screen-reader-only "opens in a new
-tab" — all three, because any one alone is worse than none. A generated route is one of your own pages and is
-never external, so it is ignored there.
+**`Ui.Link.External()` opens in a new tab.** `target="_blank"` with `rel="noopener noreferrer"` (a new tab opened
+without it can reach back through `window.opener`). A generated route is one of your own pages and is never
+external, so it is ignored there.
 
-**`Ui.Skeleton` has shapes.** `Lines(3)` draws a paragraph with the last line short, because a stack of equal
-bars reads as a table; `Circle` is what an avatar leaves behind. It stays `aria-hidden` throughout.
+**`Ui.Skeleton` is Flux UI's skeleton, part for part.** `Ui.Skeleton` is a block — 16px tall and the width of
+its container until the call site sizes and rounds it — `Ui.SkeletonLine` is a line of text (`Base`, or `Lg`
+for large text: it keeps the line's full height and draws a bar the height of the letters), and
+`Ui.SkeletonGroup` is a `<div>` that draws nothing and animates every skeleton inside it, however deep:
+
+```csharp
+Ui.SkeletonGroup.Shimmer.Class("flex items-center gap-4")[
+    Ui.Skeleton.Class("size-10 rounded-full"),
+    Div.Class("flex-1")[
+        Ui.SkeletonLine,
+        Ui.SkeletonLine.Class("w-1/2")
+    ]
+]
+```
+
+`Shimmer` carries a band of light across every two seconds and `Pulse` fades to half and back; a skeleton that
+states its own (`Ui.Skeleton.Pulse`, `.Animate(Ui.SkeletonAnimate.None)`) does not take its group's. The
+shimmer's light is `--ui-shimmer-color` — white, `zinc-900` in dark — so on a surface that is neither, set it
+to that surface's colour. The roots are marked `data-ui-skeleton`, `data-ui-skeleton-line` and
+`data-ui-skeleton-group`. As in Flux, neither animation stops under `prefers-reduced-motion`, and a skeleton
+carries no ARIA of its own: say that the region is loading on the region (`aria-busy`).
+
+**`Ui.Progress` is Flux UI's progress bar.** A `<div role="progressbar">` — a 6px track the width of
+its container and the bar filling it — with `Value` (0 when unset), `Max` (100) and `Color` (a `Ui.Color`, any
+Tailwind hue; the accent when unset):
+
+```csharp
+Ui.Progress.Value(75)
+Ui.Progress.Value(3).Max(7)
+Ui.Progress.Value(42).Color(Ui.Color.Blue).Class("h-3").Aria("label", "Upload progress")
+```
+
+`aria-valuenow` and `aria-valuemax` are the value and maximum exactly as given; the bar is their ratio held
+between empty and full, and moves to a new value over 300ms. The same share is on the element as
+`--ui-progress` (a number, 0–100) and `--ui-progress-percentage`, for a label drawn from the same figure. It is
+a `UiElement`, so name it with `.Aria("label", …)` or `.Aria("labelledby", id)`. There is no radial progress:
+Flux has none, and `Ui.RadialProgress` is gone.
 
 **A text field's box can hold more than what is typed.** `Ui.Input` takes `Icon` and `IconTrailing`, a `Kbd`
 for the shortcut that focuses it, and `Clearable` for a button that empties it — Flux's input affordances.

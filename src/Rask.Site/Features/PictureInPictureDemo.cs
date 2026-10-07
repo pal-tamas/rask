@@ -27,7 +27,7 @@ public sealed partial class PictureInPictureDemo : Component
     }
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Video
                     .Ref(_video)
                     .Width(320)

@@ -13,6 +13,8 @@
 // A look is measured in pixels and text measures differently on every OS, so the lock belongs to ONE
 // platform: `measuredOn`, the CI runner's. Anywhere else the looks are measured but neither compared
 // nor locked. `--baseline` takes the lock over: every look is locked as measured here, none reported.
+// It measures each page twice, and an example Flux draws differently each time (a chart's data is made
+// up per request) is locked as `unstable`: never compared, never reported.
 //
 // Usage:  node scripts/flux/sync.mjs              # everything
 //         node scripts/flux/sync.mjs button card  # these pages only (the lock keeps the others)
@@ -29,6 +31,7 @@ import { chromium, measurePage, root } from './lib.mjs';
 const flux = join(root, 'tests', 'Rask.Ui.Tests', 'Flux');
 const snapshotFile = join(flux, 'flux.snapshot.json');
 const lockFile = join(flux, 'flux.lock.json');
+const UNSTABLE = 'unstable';
 const baseline = process.argv.includes('--baseline');
 const only = process.argv.slice(2).filter(arg => arg !== '--baseline');
 if (baseline && only.length) {
@@ -56,9 +59,10 @@ if (baseline) lock.pages = {};
 const browser = await chromium().launch();
 for (const page of snapshot.pages.filter(p => only.length === 0 || only.includes(p.slug))) {
   const known = compare && lock.pages[page.slug];
-  let prints = await measure(page);
+  let prints = await measure(page, known);
   // Moved means REPRODUCIBLY moved: Flux draws some examples at random, so a difference is measured twice.
-  if (known && !alike(known, prints)) prints = twice(page.slug, known, prints, await measure(page));
+  if (baseline) prints = twice(page.slug, prints, await measure(page), () => UNSTABLE);
+  else if (known && !alike(known, prints)) prints = twice(page.slug, prints, await measure(page, known), key => known[key]);
   if (known) moved.push(...lookChanges(page.slug, known, prints));
   if (compare || baseline) lock.pages[page.slug] = prints;
   console.log(`flux sync: measured ${page.slug} (${Object.keys(prints).length / 2} examples)`);
@@ -76,13 +80,18 @@ console.log(moved.length
   : `\nflux sync: ${compare ? 'Flux is where Rask.Ui last matched it' : 'the catalogue and the release are where Rask.Ui last matched them'}.`);
 process.exit(moved.length ? 2 : 0);
 
-// Measures a page, leaves what parity.mjs reads, and hands back its fingerprints.
-async function measure(page) {
+// Measures a page, leaves what parity.mjs reads, and hands back its fingerprints — an example the
+// lock knows as unstable keeps that name, so it compares equal whatever it measured this time.
+async function measure(page, known) {
   const dir = join(root, 'artifacts', 'flux-parity', 'flux', page.slug);
-  const schemes = await measurePage(browser, `https://fluxui.dev/${page.kind}/${page.slug}`, dir);
+  const url = `https://fluxui.dev/${page.kind}/${page.slug}`;
+  // One more try: a docs page that never went idle once is the network, not Flux.
+  const schemes = await measurePage(browser, url, dir).catch(() => measurePage(browser, url, dir));
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, 'measurements.json'), JSON.stringify(schemes));
-  return fingerprints(schemes);
+  const prints = fingerprints(schemes);
+  for (const key of Object.keys(prints)) if (known?.[key] === UNSTABLE) prints[key] = UNSTABLE;
+  return prints;
 }
 
 function alike(a, b) {
@@ -90,13 +99,15 @@ function alike(a, b) {
 }
 
 // Two fresh measurements of one page: where they agree, that is the look; where they do not, the
-// example is unstable — it keeps what the lock holds and is never reported.
-function twice(slug, known, first, second) {
+// example is unstable and is never reported — a compare keeps what the lock holds (`otherwise`), a
+// baseline locks it as unstable.
+function twice(slug, first, second, otherwise) {
   const prints = {};
-  const unstable = new Set();
-  for (const key of Object.keys({ ...first, ...second })) {
-    if (first[key] !== second[key]) unstable.add(key.slice(key.indexOf('/') + 1));
-    const print = first[key] === second[key] ? first[key] : known[key];
+  const keys = Object.keys({ ...first, ...second });
+  const example = key => key.slice(key.indexOf('/') + 1);   // light and dark are one example
+  const unstable = new Set(keys.filter(key => first[key] !== second[key]).map(example));
+  for (const key of keys) {
+    const print = unstable.has(example(key)) ? otherwise(key) : first[key];
     if (print) prints[key] = print;
   }
 
@@ -128,6 +139,8 @@ function fingerprints(schemes) {
         n.tag, Object.keys(n.attrs).filter(a => a.startsWith('data-flux')).sort(), n.text,
         n.box.slice(2).map(v => Math.round(v)), Object.values(n.style).map(round),
         n['::before'] ? Object.values(n['::before']).map(round) : 0, n['::after'] ? Object.values(n['::after']).map(round) : 0,
+        // What moves and how, only where something does: an example with nothing moving keeps its print.
+        ...(n.animations ? [n.animations] : []),
       ]);
       const states = example.states.map(s => [s.state, Object.entries(s.changed).map(([k, v]) => [k, round(v)])]);
       prints[`${scheme}/${example.section || 'intro'}#${example.ordinal}`] =

@@ -268,17 +268,12 @@
 }
 
 /*
-  `dark:` is Flux's — a `dark` class on an ancestor — and, while both libraries draw the kit, also
-  whatever daisyUI currently calls dark: one of its dark themes by name, or no theme named at all on a
-  machine that prefers dark. Without the last two a Flux-drawn button would stay light on a page whose
-  daisyUI-drawn card had gone dark. They are deleted with the theme list; `.dark` is what remains.
+  `dark:` is Flux's — a `dark` class on an ancestor, which Ui.AppearanceScript sets — and, on a kit surface
+  that runs no such script and pins no theme (DevTools), the operating system's preference. A surface pinned
+  with `data-theme` (the Dashboard, light) matches neither arm. The second arm goes with daisyUI.
 */
 @custom-variant dark {
   &:where(.dark, .dark *) {
-    @slot;
-  }
-
-  &:where(:is([data-theme="dark"], [data-theme="synthwave"], [data-theme="halloween"], [data-theme="forest"], [data-theme="aqua"], [data-theme="black"], [data-theme="luxury"], [data-theme="dracula"], [data-theme="business"], [data-theme="night"], [data-theme="coffee"], [data-theme="dim"], [data-theme="sunset"], [data-theme="abyss"]), :is([data-theme="dark"], [data-theme="synthwave"], [data-theme="halloween"], [data-theme="forest"], [data-theme="aqua"], [data-theme="black"], [data-theme="luxury"], [data-theme="dracula"], [data-theme="business"], [data-theme="night"], [data-theme="coffee"], [data-theme="dim"], [data-theme="sunset"], [data-theme="abyss"]) *) {
     @slot;
   }
 
@@ -446,7 +441,11 @@
     --badge-fg: var(--color-ui-bg);
   }
 
-  /* Alerts: daisyUI puts the text colour on the element and the fill in --alert-color. */
+  /*
+    Alerts: daisyUI puts the text colour on the element and the fill in --alert-color. The kit writes no
+    `alert` any more (Ui.Callout is Flux's); these stay for an app's own `alert alert-*` markup, which the
+    scaffolded sign-in and register pages still write.
+  */
   .alert-info {
     color: var(--color-ui-bg);
     --alert-color: var(--color-ui-info-ink);
@@ -729,26 +728,52 @@
 }
 
 /*
-  THE PADDING OF A TABLE CELL AND A LIST ROW — the kit's default, and only a default.
+  THE PADDING OF A LIST ROW — the kit's default, and only a default.
 
-  UiTable and UiList render the element itself and pass the call site's rows and cells straight through, so
-  their padding has to reach elements the kit never builds. A Tailwind descendant variant on the container
-  (`[&_td]:px-3`) does that and is wrong in a way nothing reports: `.x td` outranks the `.px-0` a cell writes
-  on itself, so the cell asks for flush content and silently does not get it.
+  UiList renders the element itself and passes the call site's rows straight through, so its padding has to
+  reach elements the kit never builds. A Tailwind descendant variant on the container (`[&>li]:px-4`) does
+  that and is wrong in a way nothing reports: `.x > li` outranks the `.px-0` a row writes on itself, so the
+  row asks for flush content and silently does not get it.
 
   In `rask`, which the order statement at the top of this file puts BEFORE `utilities`: any utility the app
-  writes on a cell or a row wins, whatever its specificity. Keyed to the kit's own markers, so hand-written
-  daisyUI `list` and `table` markup is left exactly as daisyUI draws it. `list-row` keeps daisyUI's own grid
-  padding.
+  writes on a row wins, whatever its specificity. Keyed to the kit's own marker, so hand-written daisyUI
+  `list` markup is left exactly as daisyUI draws it. `list-row` keeps daisyUI's own grid padding.
 */
 @layer rask {
-  .ui-table th,
-  .ui-table td {
-    padding: 0.5rem 0.75rem;
-  }
-
   .ui-list > li:not(.list-row) {
     padding: 0.5rem 1rem;
+  }
+}
+
+/*
+  A STICKY TABLE COLUMN CASTS A SHADOW ONCE SOMETHING HAS SCROLLED UNDER IT, and not before.
+
+  Flux marks its scroll area from script (`data-scrolled-right`) and styles on that. The kit ships no
+  script, and does not need one for this: a keyframe on the cell's ::after, driven by how far the nearest
+  scroller — the table's scroll area — has moved sideways, switches the shadow on. `step-end` over the
+  first pixel makes it a switch rather than a fade, which is what Flux's is.
+
+  The keyframe sets a custom property rather than the shadow itself. An animated box-shadow computes to a
+  transparent shadow at rest, not to `none`; an unregistered property has nothing to interpolate, so at
+  rest it is simply unset.
+
+  Behind @supports because a browser without scroll timelines would run it as an ordinary animation of no
+  length, land on the last frame, and draw the shadow on a table that has not moved.
+*/
+@layer rask {
+  @keyframes ui-table-scrolled {
+    to {
+      --ui-table-scrolled: inset 8px 0 8px -8px rgb(0 0 0 / 0.05);
+    }
+  }
+
+  @supports (animation-timeline: scroll()) {
+    :is([data-ui-column], [data-ui-cell]).sticky::after {
+      box-shadow: var(--ui-table-scrolled, none);
+      animation: ui-table-scrolled step-end both;
+      animation-timeline: scroll(nearest inline);
+      animation-range: 0 1px;
+    }
   }
 }
 
@@ -970,12 +995,12 @@
 }
 
 /*
-  AN ICON IN A DAISY BUTTON, BADGE OR ALERT IS SIZED BY WHAT IT SITS IN — unless the call site sized it.
+  AN ICON IN A DAISY BUTTON OR BADGE IS SIZED BY WHAT IT SITS IN — unless the call site sized it.
 
   Ui.Icon is Flux's icon now and 24px when nobody names a size, which is right in Flux's components and too
-  big for these three: a button's line takes 16px, a badge 1em, an alert the 20px the icon used to default
-  to. The icon is their child, which the kit does not build and cannot give a class to, so it is sized here
-  from what it sits in. THIS RULE GOES WITH THE DAISY COMPONENTS IT NAMES: Flux's button sizes its own icon.
+  big for these two: a button's line takes 16px, a badge 1em. The icon is their child, which the kit does
+  not build and cannot give a class to, so it is sized here from what it sits in. THIS RULE GOES WITH THE
+  DAISY COMPONENTS IT NAMES: Flux's button sizes its own icon, and Ui.Callout already does.
 
   "Nobody named a size" is read off the class attribute. UiIcon writes its own classes first, so a
   `size-*`, `w-*` or `h-*` from the call site always follows a space — and UiIcon's own default, which is
@@ -994,11 +1019,6 @@
   .badge > svg.size-5[class*=" shrink-0"] {
     width: 1em;
     height: 1em;
-  }
-
-  .alert > svg[data-ui-icon]:not([class*=" size-"], [class*=" w-"], [class*=" h-"]) {
-    width: 1.25rem;
-    height: 1.25rem;
   }
 }
 
@@ -1020,22 +1040,6 @@
   .floating-label:has(.validator:user-invalid, .validator[aria-invalid]:not([aria-invalid="false"])) ~ .validator-hint {
     visibility: visible;
     color: var(--color-ui-danger-ink);
-  }
-}
-
-/*
-  UiDivider carries no outer margin — "we style, you space". daisyUI builds its margin from --divider-m (1rem across,
-  0 1rem down) inside `@layer utilities`, so the correction is the variable, here. Subtle is Flux's faint separator:
-  half the ink daisyUI mixes into the line.
-*/
-@layer rask-ui-corrections {
-  .divider,
-  .divider.divider-horizontal {
-    --divider-m: 0;
-  }
-
-  .divider.ui-divider-subtle {
-    --divider-color: color-mix(in oklab, var(--color-base-content) 5%, transparent);
   }
 }
 
@@ -1324,17 +1328,23 @@
 }
 
 /*
-  A placeholder that holds its place without the shimmer (UiSkeleton.Animate(false)).
+  The light that crosses a shimmering skeleton ([data-ui-skeleton], [data-ui-skeleton-line]).
 
-  The kit already stops every skeleton's animation under `prefers-reduced-motion`. This is the other case: a
-  placeholder that will be on screen long enough for the shimmer to stop reading as "loading" and start
-  reading as a distraction.
+  Their ::before is as wide as the skeleton and parked one width to its left (UiSkeletonScope); this carries
+  it two widths right, so it enters at one edge and has left by the other. Two seconds, forever, on the
+  default `ease` — and not stopped under `prefers-reduced-motion`, because Flux UI's is not.
 
-  In `rask-ui-corrections` because daisyUI's `.skeleton` animation lives in `utilities`.
+  A keyframe is the one part no utility can say. In `rask` because it styles nothing by itself.
 */
-@layer rask-ui-corrections {
-  .ui-skeleton-still {
-    animation: none;
+@layer rask {
+  @keyframes ui-shimmer {
+    from {
+      transform: translate(0);
+    }
+
+    to {
+      transform: translate(200%);
+    }
   }
 }
 
@@ -1510,5 +1520,48 @@
     [data-ui-toast-group]:is(:hover, [data-expanded]) > [data-ui-toast-dialog] > :first-child {
       overflow: auto;
     }
+  }
+}
+
+/*
+  AN ACCORDION ITEM IS A <details>, AND ITS HEIGHT IS THE BROWSER'S OWN CONTENT SLOT.
+
+  ::details-content is the box a <details> puts everything but its <summary> in. Closed, it is kept out of
+  rendering but still in the document, which is what lets find-in-page reach it and open the item. Held at
+  no height, so Ui.AccordionContent (h-full) measures nothing while closed and its own height while open.
+
+  Ui.Accordion.Transition() animates that height: a quarter of a second on Tailwind's default curve, which
+  is what Flux's accordion does. `interpolate-size` is what lets a height run to `auto`; content-visibility
+  rides along so a closing item stays drawn until it has finished closing; and the clip is lifted only once
+  an item is fully open, so a focus ring inside it is not cut off. A browser without these opens and closes
+  at once. No utility can name a pseudo-element's per-property delay, hence a rule.
+*/
+@layer rask {
+  [data-ui-accordion-item]::details-content {
+    height: 0;
+  }
+
+  [data-ui-accordion-item][open]::details-content {
+    height: auto;
+  }
+
+  [data-ui-accordion][data-transition] > [data-ui-accordion-item] {
+    interpolate-size: allow-keywords;
+  }
+
+  [data-ui-accordion][data-transition] > [data-ui-accordion-item]::details-content {
+    overflow: hidden;
+    transition:
+      height 250ms cubic-bezier(0.4, 0, 0.2, 1),
+      content-visibility 250ms allow-discrete,
+      overflow 0s allow-discrete;
+  }
+
+  [data-ui-accordion][data-transition] > [data-ui-accordion-item][open]::details-content {
+    overflow: visible;
+    transition:
+      height 250ms cubic-bezier(0.4, 0, 0.2, 1),
+      content-visibility 250ms allow-discrete,
+      overflow 0s 250ms allow-discrete;
   }
 }

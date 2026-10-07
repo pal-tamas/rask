@@ -54,6 +54,140 @@ them until tagged releases begin.
     carries no label of its own, as Flux's does not.
   - The operator console's queue and cache pages raise their results through `Toast` and the console's
     layout places a `Ui.Toast`.
+- **BREAKING: `Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
+  [Flux UI's field](https://fluxui.dev/components/field).** The first family of the kit drawn without
+  daisyUI: Flux's parts, props, spacing and colours in light and dark, held to its docs page by
+  `scripts/flux/parity.mjs field`. A field stacks a label, a control, its message and help text —
+  `Ui.Field[Ui.Label.Badge("Required")["Email"], Ui.Input.Bind(() => m.Email).ShowValidation(false), Ui.Error, Ui.Description["…"]]`
+  — and `Ui.Field.Inline` puts the label beside a checkbox or a switch. `Ui.Label` is a real `<label for>`
+  that finds the field's control by itself, so a click focuses it with no script. `Ui.Error` is an
+  always-rendered `role="alert"` live region showing the first message of the bound member: bare inside a
+  field, `Ui.Error.For(() => m.Email)` anywhere, `Name("Email")` on the form's model, or `Message("…")`.
+  Two daisyUI components are replaced:
+  - `Ui.Fieldset.Text("Shipping").Help("…")[…]` → `Ui.Fieldset.Legend("Shipping").Description("…")[…]`
+    (`Legend` is optional now; `Ui.Legend["…"]` places it by hand).
+  - `Ui.Label.Text("€").Trailing("per month")[input]` — daisyUI's caption inside a control's frame — is
+    gone; `Ui.Label` is now the control's NAME (`Ui.Label["Email"]`, `Badge`, a `Trailing` slot). For the
+    old look write the daisyUI markup: `Label.Class("label")[Span["€"], input, Span["per month"]]`.
+
+  `Ui.Input`, `Ui.Select` and the other controls are unchanged and still draw their own label, `Hint` and
+  message; each takes Flux's `Label`/`Description` field as it is rebuilt.
+- **BREAKING: UI kit — `Ui.Heading`, `Ui.Text` and `Ui.Link` are Flux UI's, and `Ui.Subheading` is gone.**
+  Same names, props and look as [fluxui.dev](https://fluxui.dev/components/heading)'s `flux:heading`,
+  `flux:text` and `flux:link`, measured against its docs in light and dark; none of the three is drawn
+  with daisyUI any more. Each is now one HTML element (`Id`, `Style`, `Data`, `Aria`, events) and carries
+  `data-ui-heading` / `data-ui-text` / `data-ui-link`. Each has its own option enums, and `Ui.Color` is
+  new: Tailwind's seventeen hues.
+  ```csharp
+  Ui.Heading.Size(Ui.Size.Xl)            // was — Ui.Size, Xs…Xl, semibold from Default up
+  Ui.Heading.Xl                          // now — Ui.HeadingSize: Base 14px, Lg 16px, Xl 24px, Xxl 36px, all medium
+  Ui.Subheading["Placed this month."]    // was
+  Ui.Text["Placed this month."]          // now — there is no subheading; Flux puts a text under a heading
+  Ui.Text.Strong()  Ui.Text.Subtle()     // was — two flags, and Strong was medium weight
+  Ui.Text.Variant(Ui.TextVariant.Strong)  Ui.Text.Subtle   // now — an ink only, the weight stays regular
+  Ui.Text.Tone(Ui.Tone.Error)            // was
+  Ui.Text.Color(Ui.Color.Red)            // now — a Tailwind hue (600, 400 in dark), not a theme tone
+  Ui.Text.Size(Ui.Size.Xs)               // was
+  Ui.Text.Sm                             // now — Ui.TextSize: Sm 12px, Default 14px, Lg 16px, Xl 18px
+  Ui.Link.Href(url).Tone(Ui.Tone.Primary)   // was
+  Ui.Link.Href(url)                         // now — the accent by default; .Accent(false) for the page's ink
+  Ui.Link.Href(url).Underline(false)        // was — underlined on hover unless told not to
+  Ui.Link.Href(url).Subtle                  // now — Ui.LinkVariant: Default underlined, Ghost on hover, Subtle never
+  ```
+  `Ui.Link.External()` no longer adds an icon or the screen-reader "(opens in a new tab)": it is
+  `target="_blank"` with `rel="noopener noreferrer"`, as Flux's is. `Ui.Link.Href` is optional, for
+  `Ui.Link.As(Ui.LinkAs.Button)` — a `<button type="button">` drawn as a link, taking `OnClick`.
+- **BREAKING: dark mode the way Flux UI does it — themes are gone.** The kit no longer offers daisyUI's
+  35 themes. A page is light or dark: `Ui.AppearanceScript` (was `Ui.ThemeScript`) puts a `dark` class
+  on `<html>` before the first paint from the reader's stored appearance — `light`, `dark` or `system`
+  (the default, following `prefers-color-scheme` while the page is open) — and a control flips it with
+  no C# handler through `Rask.dark` / `Rask.appearance`, the pair Flux documents as `Flux.dark` /
+  `Flux.appearance`. `Ui.ThemeController`, `Ui.ThemePicker` and `Ui.ThemeDropdown` are removed, with
+  `window.raskTheme()` / `window.raskSetTheme()` and `UiThemeScript.Themes`. The `localStorage` key
+  moved from `rask-theme` to `rask.appearance`, so a stored theme is not carried over. rask.sh's top
+  bar wears a moon where the theme list was (and <kbd>D</kbd> toggles it), as fluxui.dev's does.
+
+  ```csharp
+  // before
+  protected override Component? HeadAssets => [Title["…"], Ui.ThemeScript];
+  Ui.ThemeDropdown.Align(Ui.Align.End)
+
+  // after
+  protected override Component? HeadAssets => [Title["…"], Ui.AppearanceScript];
+  Button.Type(ButtonType.Button).AriaLabel("Toggle dark mode")
+      .Attributes(("onclick", "Rask.dark = !Rask.dark"))[Ui.Icon.Name(Ui.IconName.Moon).Mini]
+  ```
+
+  ```js
+  window.raskSetTheme('dracula')   // before
+  Rask.appearance = 'dark'         // after: 'light' | 'dark' | 'system'
+  ```
+
+  While daisyUI still draws part of the kit the script also writes `data-theme="dark"`/`"light"` on
+  `<html>`; `Ui.ThemeName`, `UiTheme` and `Ui.Shell.Theme(…)` stay until daisyUI goes. Re-skin by
+  re-pointing `--color-zinc-*` and the accent variables in your own `@theme` — `docs/ui-kit.md`.
+- **BREAKING: `Ui.Accordion` is Flux's accordion, and `Ui.Collapse` folds into it.** Four parts —
+  `Ui.Accordion`, `Ui.AccordionItem`, `Ui.AccordionHeading`, `Ui.AccordionContent` — with Flux's props:
+  `Exclusive()`, `Transition()` and `Reverse` on the accordion, `Heading`, `Expanded()` and `Disabled()`
+  on an item. An item is now a native `<details>` and its heading the `<summary>`, so it opens with a
+  click, Enter or Space with no handler and no script, an exclusive accordion is the browser's own
+  `<details name>` group, and find-in-page opens the item holding a match. `Ui.AccordionSection`,
+  `Ui.Collapse`, `Ui.Marker`, `UiAccordionState`, `UiAccordion.Open`/`OnOpen` and the daisyUI
+  `collapse`/`join` markup are gone:
+  ```csharp
+  // was
+  Ui.Accordion.Open(_section).OnOpen(key => _section = key)[
+      Ui.AccordionSection.Key("ship").Title("Shipping").Marker(Ui.Marker.Arrow)[P["Two days."]],
+      Ui.AccordionSection.Key("pay").Title("Payment").Marker(Ui.Marker.Arrow)[P["Card."]]
+  ]
+  // now — the browser keeps one open; no state needed
+  Ui.Accordion.Exclusive()[
+      Ui.AccordionItem.Heading("Shipping")["Two days."],
+      Ui.AccordionItem.Heading("Payment")["Card."]
+  ]
+
+  // was
+  Ui.Collapse.Title("Advanced").Marker(Ui.Marker.Plus).Open(_open).OnToggle(open => _open = open)[ … ]
+  // now — a one-item accordion; Expanded/OnToggle only when the page wants to own it
+  Ui.Accordion[Ui.AccordionItem.Heading("Advanced").Expanded(_open).OnToggle(open => _open = open)[ … ]]
+  ```
+  The chevron is always drawn (after the heading, or before it with `Reverse`); there is no plus marker.
+  `OnToggle` now runs after the browser has toggled the item, with the state it is in, rather than
+  asking for one. A page that tracked the open section by key keeps a field per item, or uses
+  `Exclusive()` and lets the browser do it.
+- **BREAKING: `Ui.Callout` replaces `Ui.Alert`, drawn as Flux UI draws its callout.** The kit is being
+  rebuilt to mirror [Flux UI](https://fluxui.dev) component by component; this is the callout, measured from
+  Flux's page for every variant and every hue in light and dark and held to it by `scripts/flux/parity.mjs`.
+  `Ui.Alert`, its `Tone` and its `Variant` (`Soft`/`Outline`/`Dash`) are gone.
+
+  ```csharp
+  // before
+  Ui.Alert.Error[Ui.Icon.Name(Ui.IconName.XCircle), Span["Payment failed: "], Code[error]]
+  Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0")["Saved."]
+  Ui.Alert.Warning[Span["Drop the cache?"], Div[confirm, cancel]]
+
+  // after
+  Ui.Callout.Danger.Icon(Ui.IconName.XCircle).Role("alert").Heading("Payment failed")[Ui.CalloutText[Code[error]]]
+  Ui.Callout.Success.Class("mt-3").Role("status").Heading("Saved.")
+  Ui.Callout.Warning.Inline().Role("alert").Heading("Drop the cache?").Actions([confirm, cancel])
+  ```
+
+  - **Tones are Flux's variants:** `Error` → `.Danger`, `Warning` → `.Warning`, `Success` → `.Success`,
+    `Info` and no tone → `.Secondary` (or no variant at all, which is the same callout on a white surface).
+    `Color(Ui.Color.Blue)` takes any of Tailwind's seventeen hues instead. There is one fill, Flux's.
+  - **It announces nothing by itself.** `Ui.Alert` wrote `role="alert"` for an error or a warning and
+    `role="status"` for the rest. Flux's callout writes neither, and neither does this one: a callout that
+    is on the page when it loads is content. Add `.Role("alert")` to one that reports a failure and
+    `.Role("status")` to one that reports an outcome, or a screen reader is no longer told.
+  - **It is no longer one element.** An icon is the `Icon` prop rather than a first child, the lead-in is
+    `Heading(…)` or a `Ui.CalloutHeading`, the body `Text(…)` or a `Ui.CalloutText` (with `Ui.CalloutLink`
+    for a link in it), and buttons go in the `Actions` slot — under the text, or beside it with `Inline()`
+    once the callout itself is 28rem wide. `Controls` is the slot at the top right, for a dismiss button.
+    So only `Id`, `Class` and `Role` reach the callout from the call site; `Data`, `Aria` and the events
+    an alert took as an element do not.
+  - New alongside it: `Ui.Color` (Tailwind's hues, shared by every component that takes a colour) and
+    `Ui.CalloutVariant`. The `.alert-*` contrast corrections stay in the kit's sheet for an app's own
+    `alert alert-*` markup (the scaffolded sign-in pages write it); the kit itself writes no `alert` class.
 
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
@@ -82,6 +216,64 @@ them until tagged releases begin.
   `data-ui-icon`, `data-slot="icon"`, `aria-hidden`, and no `focusable` attribute. `Rask.Ui.dll` grows by
   490 KB (107 KB compressed) for the path data. `scripts/flux/icons.mjs` regenerates the set from the
   pinned npm package.
+- **BREAKING: `Ui.Skeleton` and `Ui.Progress` are Flux UI's, and `Ui.RadialProgress` is gone.** The first
+  two components of the Flux rebuild, drawn from Flux's live docs and held to them by `scripts/flux/parity.mjs`
+  in light and dark. A skeleton is three parts — `Ui.Skeleton` (a block the call site sizes),
+  `Ui.SkeletonLine` (a line of text, `Base` or `Lg`) and `Ui.SkeletonGroup`, whose `Shimmer` or `Pulse`
+  reaches every skeleton inside it. `Lines`, `Circle` and the boolean `Animate` are gone, and a skeleton is
+  still until told to move:
+  ```csharp
+  Ui.Skeleton.Lines(3)                          // was
+  Ui.SkeletonGroup.Shimmer[Ui.SkeletonLine, Ui.SkeletonLine, Ui.SkeletonLine.Class("w-3/5")]   // now
+
+  Ui.Skeleton.Circle().Class("size-10")         // was
+  Ui.Skeleton.Class("size-10 rounded-full")     // now
+
+  Ui.Skeleton.Animate(false)                    // was
+  Ui.Skeleton                                   // now — still by default; .Shimmer or .Pulse to animate
+  ```
+  A progress bar is a `<div role="progressbar">` rather than a `<progress>`: `Value` and `Max` are
+  optional (0 and 100), `Label` is `.Aria("label", …)`, and `Tone` is `Color`, a hue of the new `Ui.Color`:
+  ```csharp
+  Ui.Progress.Label("Upload").Value(62).Max(100).Primary              // was
+  Ui.Progress.Value(62).Aria("label", "Upload")                       // now
+  Ui.Progress.Value(62).Color(Ui.Color.Blue)                          // now, coloured
+
+  Ui.RadialProgress.Label("Disk used").Percent(78)                    // was
+  Ui.Progress.Value(78).Aria("label", "Disk used")                    // now
+  ```
+  Neither skeleton animation stops under `prefers-reduced-motion`, as Flux's do not. The parity tool now
+  measures a running animation at its first frame and compares each animation's timing and keyframes, and
+  the parity page carries the docs page's inherited text colour, line height and default border colour.
+- **BREAKING — `Ui.Table` is Flux's table, with its columns, rows and cells.** The kit is moving from
+  daisyUI to [Flux UI](https://fluxui.dev/components/table)'s catalogue, look and behaviour, and the
+  table is the first data-display component across. It has parts now, one per Flux part, and each
+  writes the marker Flux writes (`data-ui-table`, `data-ui-columns`, `data-ui-column`, `data-ui-rows`,
+  `data-ui-row`, `data-ui-cell`):
+
+  ```csharp
+  // before
+  Ui.Table.Scroll()[
+      Thead[Tr[Th["Order"], Th["Total"]]],
+      Tbody[Tr[Td["#428"], Td["$49.00"]]]
+  ]
+
+  // after
+  Ui.Table[
+      Ui.TableColumns[Ui.TableColumn["Order"], Ui.TableColumn["Total"]],
+      Ui.TableRows[Ui.TableRow[Ui.TableCell["#428"], Ui.TableCell["$49.00"]]]
+  ]
+  ```
+
+  - `Scroll` is gone: the table always sits in a scroll area, and the bordered box around it went with
+    daisyUI. `ContainerClass` styles the box (`max-h-80`); `Class` still lands on the `<table>`.
+  - A raw `Th`/`Td` inside `Ui.Table` is no longer padded — the `ui-table` stylesheet rule is removed.
+    Use the parts, or the raw `Table` element with your own classes.
+  - New: `Bleed()`, `Paginate(…)`, `Ui.TableColumns.Sticky()`, a column's `Align`, `Sortable()`,
+    `Sorted(…)`, `Direction(…)`, `Sticky()` and `OnSort`, a row's `Sticky()`, a cell's `Align`,
+    `Variant(Ui.TableCellVariant.Strong)` and `Sticky()`. The table sorts and pages nothing itself; the
+    page sets `Sorted`/`Direction` and answers `OnSort`.
+  - Cells no longer wrap (`whitespace-nowrap`, as Flux); write `whitespace-normal` on one that should.
 
 - **The gates run in CI now, not in the git hooks.** A commit and a push take seconds: `pre-commit`
   keeps the front-door check, `pre-push` the attribution guard. `ci.yml` runs the format check, the
@@ -90,6 +282,16 @@ them until tagged releases begin.
   it passed. `release.yml` runs every gate — deploy, installer, providers, storage providers and watch
   included — before it packs. A `ci/**` branch runs the gates without landing anything. The scripts are
   unchanged and still run by hand; each CI job is one of them.
+- **A push to `main` is gated by the gates its change can reach, and the whole set runs every hour.**
+  `scripts/lib/affected_gates.py` maps the change to gates from the project graph and runs everything
+  for a change it cannot narrow (the CI definition, a gate script, the package pins). `full.yml` runs
+  the whole push set each hour `main` has moved, and `nightly.yml` and `pages.yml` now publish from a
+  commit that run passed, not from a push's scoped run. The CLI build and template gates run on a push
+  only when the CLI, a template or a project file changed.
+- **The CLI build and template gates pack their feed once, on every core.** One `dotnet pack` over the
+  36 packages replaces one invocation per package on a single core, and the template gate's three
+  theories run side by side. On a CI runner the CLI build gate went from 597 s to 407 s and the
+  template gate from 479 s to 317 s.
 - **Upstream is followed without anyone watching.** `upstream.yml` runs daily: it moves the MDN snapshot
   to the latest stable data, records the public surface that moved with it, moves the stated Node line
   to the Active LTS, gates the result and lands it on `main`. `dependabot-merge.yml` merges a
@@ -116,7 +318,36 @@ them until tagged releases begin.
   line per page, and the run's Playwright is pinned to the E2E projects' release. A look is also
   measured with motion at rest — a transition at its end, a spinner or shimmer on its first frame, on
   Flux's page and on Rask's alike — and a difference is measured twice, so an example Flux draws at
-  random is ignored instead of reported.
+  random is ignored instead of reported. A baseline measures every page twice and locks such an example
+  (a chart, whose data the docs server makes up per request) as `unstable`, so it is never compared; an
+  `auto` margin is recorded as `auto`, since Chromium reports the space it took on one page load and
+  `0px` on the next for the same layout.
+- **Islands load in an app served under a path base.** With `PathBase = "/shop"` the island runtime, the
+  manifest and every chunk were still asked for at the root and answered 404, on both hosts. The script
+  is now written under the base, as scoped assets are, and the client reads the base back off its own
+  URL — never off `<base href>`, which markup can inject — and applies it to the manifest and the chunks:
+  ```
+  /_content/Rask.External/rask-external.js        →  /shop/_content/Rask.External/rask-external.js
+  /_rask/external/manifest.json                   →  /shop/_rask/external/manifest.json
+  ```
+  The bundle is unchanged, so one build serves any base.
+- **Islands load, and hot-reload, in a WASM app under `rask dev`.** Since islands became own-origin only,
+  the page had to name the Vite dev server before a chunk on it would load, and only Rask.Server did —
+  by stamping `<body>`. A WASM app's page is a static file, so every island there was refused under
+  `rask dev` (`refusing the chunk http://localhost:5174/…`) and `@vite/client` was never loaded. A dev
+  session's manifest now names the server itself under a reserved `$dev` key; the client accepts it on
+  the same terms as the stamp — a loopback origin only — and a built manifest never has the key.
+- **One failed manifest fetch no longer fails every island until a reload.** The rejected fetch was kept
+  for the life of the page, so a 404 in the middle of a deploy or a dropped connection left every later
+  island unmounted. The next island to mount asks again, and the error says where and what to check:
+  ```
+  islands manifest: HTTP 404                                                             (was)
+  Rask islands: the manifest at https://app.test/_rask/external/manifest.json could not
+  be loaded (HTTP 404). The build writes it and the app serves it as a static file, …    (now)
+  ```
+- **Every island build message starts `Rask islands:`.** The ones raised by the targets file
+  (RASKISLAND001–003, the origin check, the type-check skips, `bundling N island(s)`) still said
+  `Rask.External:`. RASKISLAND002 — the bundler wrote no manifest — now also says what to check.
 - **Rask.SQLite.Litestream: two projects building for the first time at once no longer break each
   other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
   with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,
@@ -181,6 +412,38 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Divider` is gone; `Ui.Separator` replaces it, drawn as Flux UI draws its separator.** Flux's
+  props and nothing else — `Vertical`, `Variant` (`Ui.SeparatorVariant.Subtle`), `Text`, `Orientation` — a 1px
+  zinc line in light and dark with no daisyUI class behind it, `role="none"` and `data-ui-separator` on the
+  root. `Tone` and `Align` have no Flux counterpart and went with the divider: the word sits in the middle.
+  ```csharp
+  Ui.Divider.Text("or")                          // before
+  Ui.Divider.Vertical().Subtle().Class("my-1")
+  Ui.Separator.Text("or")                        // now
+  Ui.Separator.Vertical().Subtle.Class("my-1")
+  ```
+- **BREAKING: `Ui.Card` is Flux UI's card, with its header, body, footer and bleed.** The daisyUI-drawn
+  panel is replaced by [Flux's](https://fluxui.dev/components/card), part for part — `Ui.CardHeader`,
+  `Ui.CardHeading`, `Ui.CardSubheading`, `Ui.CardActions`, `Ui.CardBody`, `Ui.CardFooter`, `Ui.CardBleed` —
+  measured against Flux's live docs in light and dark. `Title`, `TitleLevel`, `Action`, `Icon` and `Href` are
+  gone; `Size` is `Ui.CardSize` (`Xs`/`Sm`/`Md`/`Lg`, no `Xl`), and `Body` (`Seamless`/`Inset`/`Flush`/`Divided`/
+  `Separated`), `Variant` (`Default`/`Muted`/`Soft`/`Outline`/`Filled`), `Divider` and `Highlight` are new.
+  ```csharp
+  // before
+  Ui.Card.Title("Database").Action(Ui.Button["Vacuum"])[details]
+  Ui.Card.Title("Total").TitleLevel(3)[figures]
+  Ui.Card.Size(Ui.Size.Sm).Class("shadow-sm")[body]
+  Ui.Card.Href(Routes.QueuePage(slug)).Icon(Ui.IconName.Gear).Title("Jobs")[figures]
+  // now
+  Ui.Card[Ui.CardHeader[Ui.CardHeading.Level(2)["Database"], Ui.CardActions[Ui.Button["Vacuum"]]], Ui.CardBody[details]]
+  Ui.Card[Ui.CardHeader[Ui.CardHeading.Level(3)["Total"]], Ui.CardBody[figures]]
+  Ui.Card.Sm[body]                                   // the default surface carries Flux's own shadow
+  NavLink.Href(Routes.QueuePage(slug))[              // a link card is a link AROUND a card
+      Ui.Card.Class("hover:bg-zinc-50 dark:hover:bg-zinc-700")[Ui.CardHeader[Ui.CardHeading.Level(2)["Jobs"]], Ui.CardBody[figures]]]
+  ```
+  A heading is no longer an `<h2>` unless it is given a `Level`. `UiStyles.Card` stays, and is now the default
+  card's surface in Flux's colours (`zinc`, `p-6`, `shadow-xs`) for an element that is not a card. The
+  `/_rask` console's queue tiles show their status under the title, and no longer an icon or a hover.
 - **Re-rendering a keyed list no longer builds a throwaway component per row.** A keyed component is built
   by position first and its `Key` step then swaps in the row that key already had; the one built by position
   was discarded — an instance and its live state, about 300 B a row, on every update of the page:

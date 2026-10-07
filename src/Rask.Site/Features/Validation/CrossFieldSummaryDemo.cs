@@ -10,13 +10,13 @@ public sealed partial class CrossFieldSummaryDemo : Component
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
         entries.Count == 0
             ? null
-            : Ui.Alert.Error.Soft.Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[
+            : Ui.Callout.Danger.Role("alert")[Ui.CalloutText[Ul.Class("mb-0 ps-3")[
                     entries.Select((e, i) => Li.Key(i)[
                         e.Field.Length == 0
                             ? e.Message
                             : [Strong[e.Field], ": ", e.Message]
                     ])
-                ]];
+                ]]];
 
     protected override Component? Render() =>
     [
@@ -40,6 +40,6 @@ public sealed partial class CrossFieldSummaryDemo : Component
         ],
         _submission is null
             ? null
-            : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
+            : Ui.Callout.Success.Icon(Ui.IconName.CheckCircle).Class("mt-3").Role("status").Text(_submission)
     ];
 }

@@ -73,7 +73,7 @@ internal sealed partial class DevToolsPerfTab : Component
                 Ui.Button.Size(Ui.Size.Sm).Title("Forget the interactions timed so far").OnClick(Feed.ClearInteractions)["Clear"]
             ],
             interactions.Length == 0
-                ? Ui.Alert["No interactions yet. Use the page, and each event's handler, render, diff and patch are timed here."]
+                ? Ui.Callout.Secondary.Heading("No interactions yet.").Text("Use the page, and each event's handler, render, diff and patch are timed here.")
                 : Div.Class("flex flex-col gap-3")[
                     Ui.MetricRow[
                         Ui.Metric.Label("Interactions").Value(Count(interactions.Length)),
@@ -101,17 +101,17 @@ internal sealed partial class DevToolsPerfTab : Component
         for (var i = 0; i < shown; i++)
         {
             var item = interactions[interactions.Length - 1 - i];
-            rows[i] = Tr.Key(item.Sequence)[
-                Td.Class("tabular-nums opacity-60")[item.Sequence.ToString(CultureInfo.InvariantCulture)],
-                Td[Trigger(item)],
-                Td.Class("tabular-nums whitespace-nowrap")[item.HandlerTicks is { } handler ? Milliseconds(handler) : ""],
-                Td.Class("tabular-nums whitespace-nowrap")[item.RenderTicks > 0 ? Milliseconds(item.RenderTicks) : ""],
-                Td.Class("tabular-nums whitespace-nowrap")[item.DiffTicks > 0 ? Milliseconds(item.DiffTicks) : ""],
-                Td.Class("tabular-nums whitespace-nowrap")[item.Frames == 0 ? "nothing sent" : Size(item.Bytes)],
-                Td.Class("tabular-nums whitespace-nowrap")[
+            rows[i] = Ui.TableRow.Key(item.Sequence)[
+                Ui.TableCell.Class("tabular-nums opacity-60")[item.Sequence.ToString(CultureInfo.InvariantCulture)],
+                Ui.TableCell[Trigger(item)],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap")[item.HandlerTicks is { } handler ? Milliseconds(handler) : ""],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap")[item.RenderTicks > 0 ? Milliseconds(item.RenderTicks) : ""],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap")[item.DiffTicks > 0 ? Milliseconds(item.DiffTicks) : ""],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap")[item.Frames == 0 ? "nothing sent" : Size(item.Bytes)],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap")[
                     Patch(item)
                 ],
-                Td.Class("tabular-nums whitespace-nowrap font-semibold")[
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap font-semibold")[
                     Milliseconds(Stopwatch.GetElapsedTime(0, item.ServerTicks).TotalMilliseconds + (item.PatchMilliseconds ?? 0))
                 ]
             ];
@@ -123,9 +123,9 @@ internal sealed partial class DevToolsPerfTab : Component
                     ? "Newest first."
                     : $"The newest {Count(shown)} of {Count(interactions.Length)} interactions."
             ],
-            Ui.Table.Scroll(true)[
-                Thead[Tr[Th["#"], Th["Trigger"], Th["Handler"], Th["Render"], Th["Diff"], Th["Size"], Th["Patch"], Th["Total"]]],
-                Tbody[rows]
+            Ui.Table[
+                Ui.TableColumns[Ui.TableColumn["#"], Ui.TableColumn["Trigger"], Ui.TableColumn["Handler"], Ui.TableColumn["Render"], Ui.TableColumn["Diff"], Ui.TableColumn["Size"], Ui.TableColumn["Patch"], Ui.TableColumn["Total"]],
+                Ui.TableRows[rows]
             ]
         ];
     }
@@ -187,24 +187,24 @@ internal sealed partial class DevToolsPerfTab : Component
         for (var i = 0; i < shown; i++)
         {
             var item = slowest[i];
-            rows[i] = Tr.Key(item.Id)[
-                Td[
+            rows[i] = Ui.TableRow.Key(item.Id)[
+                Ui.TableCell[
                     item.Key is null
                         ? Span.Class("font-mono")[item.Type]
                         : Span.Class("whitespace-nowrap")[
                             Span.Class("font-mono")[item.Type], " ", Ui.Badge.Size(Ui.Size.Sm).Mono(true)[item.Key]
                         ]
                 ],
-                Td.Class("tabular-nums")[Count(item.Renders)],
-                Td.Class("tabular-nums whitespace-nowrap font-semibold")[Milliseconds(item.Ticks)],
-                Td.Class("tabular-nums whitespace-nowrap")[Milliseconds(item.Ticks / item.Renders)],
-                Td.Class("tabular-nums whitespace-nowrap")[Milliseconds(item.MaxTicks)]
+                Ui.TableCell.Class("tabular-nums")[Count(item.Renders)],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap font-semibold")[Milliseconds(item.Ticks)],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap")[Milliseconds(item.Ticks / item.Renders)],
+                Ui.TableCell.Class("tabular-nums whitespace-nowrap")[Milliseconds(item.MaxTicks)]
             ];
         }
 
-        return Ui.Table.Scroll(true)[
-            Thead[Tr[Th["Component"], Th["Renders"], Th["Total"], Th["Average"], Th["Slowest"]]],
-            Tbody[rows]
+        return Ui.Table[
+            Ui.TableColumns[Ui.TableColumn["Component"], Ui.TableColumn["Renders"], Ui.TableColumn["Total"], Ui.TableColumn["Average"], Ui.TableColumn["Slowest"]],
+            Ui.TableRows[rows]
         ];
     }
 

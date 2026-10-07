@@ -84,19 +84,20 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
 
         return Main.Class("notes")[
             Div[
-                Ui.Heading.Level(1).Size(Ui.Size.Lg)["Notes"],
+                Ui.Heading.Level(1).Lg["Notes"],
                 P.Class("notes-lede")[
                     "A SQLite database inside this browser tab, written through EF Core and Rask.Data. "
                     + "Add a note, search for it, reload the page — it is still here."
                 ]
             ],
             _owner == false
-                ? Ui.Alert.Id("not-owner").Tone(Ui.Tone.Warning)[
-                    "This demo is open in another tab, which owns its database. Close that tab and reload this one "
-                    + "to see your notes."]
+                ? Ui.Callout.Warning.Icon(Ui.IconName.ExclamationCircle).Id("not-owner").Role("alert")
+                    .Heading("This demo is open in another tab, which owns its database.")
+                    .Text("Close that tab and reload this one to see your notes.")
                 : null,
             notes.Error is { } failed
-                ? Ui.Alert.Id("status").Tone(Ui.Tone.Error)["The database did not open: " + failed.Message]
+                ? Ui.Callout.Danger.Icon(Ui.IconName.XCircle).Id("status").Role("alert")
+                    .Heading("The database did not open: ").Text(failed.Message)
                 : null,
 
             Form.Model(_draft).Key(_form).OnSubmit(AddAsync).Class("notes-form")[f => [
@@ -104,7 +105,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
                 Ui.Textarea.Bind(() => _draft.Body).Id("note-body").Label("Note").Rows(3),
                 Ui.Button.Id("add-note").Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary)
                     .Disabled(f.Submitting).Loading(f.Submitting)["Add note"],
-                _saveError is null ? null : Ui.Alert.Tone(Ui.Tone.Error)[_saveError]
+                _saveError is null ? null : Ui.Callout.Danger.Role("alert").Text(_saveError)
             ]],
 
             Ui.Input.Value(_search).Id("search").Label("Search notes").Icon(Ui.IconName.MagnifyingGlass)

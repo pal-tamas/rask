@@ -13,9 +13,9 @@ public sealed partial class UserGateDemo : Component
 
     protected override async Task OnUnmount() => _auth.Changed -= StateHasChanged;
 
-    private Component? AdminPanel() =>
+    private UiCallout? AdminPanel() =>
         _auth.Current.IsInRole("admin")
-            ? Ui.Alert.Warning.Soft.Class("py-2")["🔑 Admin-only panel"]
+            ? Ui.Callout.Warning.Heading("🔑 Admin-only panel")
             : null;
 
     protected override Component? Render() =>

@@ -14,7 +14,7 @@ public sealed partial class MediaDevicesDemo : Component
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Video
                     .Ref(_video)
                     .Width(320)

@@ -40,7 +40,6 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         foreach (var id in new[]
                  {
                      "ui-button", "ui-dropdown", "ui-context-menu", "ui-command", "ui-modal", "ui-modal-popover", "ui-swap",
-                     "ui-theme-controller",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -520,33 +519,6 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         await scope.Locator("[tabindex='0']").First.FocusAsync();
         await Expect(photo).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-    });
-
-    [Fact]
-    public Task The_theme_control_chooses_a_theme_and_the_page_applies_it() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-theme-controller']");
-        var box = Page.Locator("[data-testid='ui-theme-scope']");
-
-        await Expect(box).ToHaveAttributeAsync("data-theme", "light");
-
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Retro" }).ClickAsync();
-
-        // The control reports; the PAGE writes data-theme onto an ancestor of the things to repaint.
-        // That split is not an inconvenience of the design, it is the only shape available: no component
-        // can write an attribute onto something above it.
-        await Expect(box).ToHaveAttributeAsync("data-theme", "retro");
-        await Expect(box).ToContainTextAsync("retro theme");
-
-        // And it really repaints: a theme that changed the attribute and no pixels would be a scope
-        // that daisyUI never matched.
-        var painted = await box.EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Dark" }).ClickAsync();
-        await Expect(box).ToHaveAttributeAsync("data-theme", "dark");
-        var repainted = await box.EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
-        Assert.NotEqual(painted, repainted);
     });
 
     [Fact]

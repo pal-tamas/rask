@@ -45,7 +45,7 @@ public sealed partial class UiToast
         // Keyed by the toast: a new one is a new popover, so it is shown again and comes up over whatever
         // opened since, and its entrance plays.
         return Div.Key(newest.Id).Popover(Rask.Core.Popover.Manual).Class(Host, "max-w-sm", Corner(look.Position))
-            .Role("status").Attributes(Marks("data-ui-toast", look.Position, expanded: false))[
+            .Data(Marks("ui-toast", look.Position, expanded: false)).Role("status")[
                 Dialog(newest, Close, look, ahead: null, behind: 0)
             ];
     }
@@ -64,20 +64,21 @@ public sealed partial class UiToast
         }
 
         return Div.Popover(Rask.Core.Popover.Manual).Class(Host, "flex w-sm", Corner(look.Position), Justify(look.Position), stack.Class)
-            .Role("status").Attributes(Marks("data-ui-toast-group", look.Position, stack.Expanded))[dialogs];
+            .Data(Marks("ui-toast-group", look.Position, stack.Expanded)).Role("status")[dialogs];
     }
 
+    // The part's marker, then what Flux's custom element carries as attributes, as data-*.
     private static Dictionary<string, string?> Marks(string marker, Ui.ToastPosition position, bool expanded)
     {
         var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             [marker] = null,
-            ["data-position"] = Name(position),
-            ["data-rask-popover-open"] = "true",
+            ["position"] = Name(position),
+            ["rask-popover-open"] = "true",
         };
         if (expanded)
         {
-            marks["data-expanded"] = null;
+            marks["expanded"] = null;
         }
 
         return marks;

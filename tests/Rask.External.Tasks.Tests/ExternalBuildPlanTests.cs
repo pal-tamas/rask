@@ -724,6 +724,42 @@ public class ExternalBuildPlanTests
     }
 
     [Fact]
+    public void The_dev_manifest_names_its_dev_server()
+    {
+        // A WASM app's page is a static file no server stamps, so the manifest is where its client
+        // runtime learns which origin to hot-reload from.
+        var islands = new[] { new ExternalEntry { Name = "Chart", Source = "/app/Chart.tsx", Runtime = "react" } };
+
+        var manifest = ExternalBuildPlan.DevManifest(islands, "/app/obj/rask-external/entries", "http://localhost:5174/");
+
+        using var json = System.Text.Json.JsonDocument.Parse(manifest);
+        Assert.Equal("http://localhost:5174", json.RootElement.GetProperty("$dev").GetString());
+        Assert.Equal(["$dev", "Chart"], json.RootElement.EnumerateObject().Select(p => p.Name));
+    }
+
+    [Fact]
+    public void A_dev_manifest_with_no_islands_is_still_json()
+    {
+        var manifest = ExternalBuildPlan.DevManifest([], "/app/obj/rask-external/entries", "http://localhost:5174");
+
+        using var json = System.Text.Json.JsonDocument.Parse(manifest);
+
+        Assert.Equal("$dev", Assert.Single(json.RootElement.EnumerateObject()).Name);
+    }
+
+    [Fact]
+    public void A_built_manifest_names_no_dev_server()
+    {
+        var islands = new[] { new ExternalEntry { Name = "Chart", Source = "/app/Chart.tsx", Runtime = "react" } };
+
+        var config = Config(islands);
+
+        // The plugin that writes the built manifest lists the bundle's entry chunks and nothing else.
+        Assert.Contains("map[chunk.name] =", config, StringComparison.Ordinal);
+        Assert.DoesNotContain("$dev", config, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_windows_entry_path_still_produces_a_usable_at_fs_url()
     {
         // "/@fs" + the path happens to work on Unix, where the path starts with "/", and produces

@@ -92,7 +92,7 @@ internal sealed partial class DevToolsErrorsTab : Component
                 Ui.Button.Size(Ui.Size.Sm).Title("Forget the errors listed").OnClick(Clear)["Clear"]
             ],
             errors.Count == 0
-                ? Ui.Alert.Tone(Ui.Tone.Success)[NothingText]
+                ? Ui.Callout.Success.Icon(Ui.IconName.CheckCircle).Heading(NothingText)
                 : Div.Class("flex flex-col gap-2")[
                     errors.Take(RowLimit).Select(Row).ToArray()
                 ]
@@ -148,9 +148,8 @@ internal sealed partial class DevToolsErrorsTab : Component
         (error.AppWide ? "app-" : "page-") + error.Sequence.ToString(CultureInfo.InvariantCulture);
 
     private Component Row(DevToolsError error) =>
-        Ui.Card.Key(RowKey(error))
-            .Class("card-border card-sm")[
-                Div.Class("card-body gap-1")[
+        Ui.Card.Key(RowKey(error)).Sm[
+                Div.Class("flex flex-col gap-1")[
                     Div.Class("flex flex-wrap items-center gap-2")[
                         Ui.Badge.Size(Ui.Size.Sm).Tone(error.IsWarning ? Ui.Tone.Warning : Ui.Tone.Error)[KindLabel(error)],
                         Span.Class("font-mono font-semibold")[error.Title],
@@ -167,7 +166,7 @@ internal sealed partial class DevToolsErrorsTab : Component
                             ShowInTree(error)
                         ],
                     error.Detail is { } detail
-                        ? Ui.Collapse.Title("Stack")[Pre.Class("text-xs whitespace-pre-wrap break-all")[detail]]
+                        ? Ui.Accordion[Ui.AccordionItem.Heading("Stack")[Pre.Class("text-xs whitespace-pre-wrap break-all")[detail]]]
                         : null,
                     error.LikelyFrameworkBug && ReportEnvironment is { } environment
                         ? Report(error, environment)

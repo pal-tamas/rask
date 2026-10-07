@@ -21,16 +21,16 @@ public sealed partial class NestedFluentValidationDemo : Component
         foreach (var line in _model.Lines)
         {
             var captured = line;
-            rows.Add(Tr.Key(captured.Id)[
-                Td[
+            rows.Add(Ui.TableRow.Key(captured.Id)[
+                Ui.TableCell[
                     Ui.Input.Bind(() => captured.Sku).AccessibleLabel("SKU").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Sku)
                 ],
-                Td.Style("width: 6rem;")[
+                Ui.TableCell.Style("width: 6rem;")[
                     Ui.Input.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Quantity)
                 ],
-                Td.Style("width: 3rem;")[
+                Ui.TableCell.Style("width: 3rem;")[
                     Ui.Button
                         .AccessibleLabel("Remove line")
                         .Square()
@@ -61,9 +61,9 @@ public sealed partial class NestedFluentValidationDemo : Component
                         ]
                     ]
                 ],
-                Ui.Table.Class("align-middle mb-0 mt-2")[
-                    Thead[Tr[Th["SKU"], Th["Qty"], Th]],
-                    Tbody[rows]
+                Ui.Table.ContainerClass("mt-2")[
+                    Ui.TableColumns[Ui.TableColumn["SKU"], Ui.TableColumn["Qty"], Ui.TableColumn],
+                    Ui.TableRows[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
                     Ui.Button.Outline
@@ -74,7 +74,7 @@ public sealed partial class NestedFluentValidationDemo : Component
             ],
             _submission is null
                 ? null
-                : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0").Id("nf-fv-result")[_submission]
+                : Ui.Callout.Success.Class("mt-3").Id("nf-fv-result").Role("status").Text(_submission)
         ];
     }
 }

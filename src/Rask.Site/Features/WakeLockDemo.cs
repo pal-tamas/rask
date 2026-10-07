@@ -13,7 +13,7 @@ public sealed partial class WakeLockDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button
                         .Tone(_sentinel is null ? Ui.Tone.Primary : Ui.Tone.Error)

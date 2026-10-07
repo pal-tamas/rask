@@ -47,7 +47,7 @@ public sealed partial class MutationObserverDemo : Component
     }
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                     Ui.Button.Primary.Id("mo-add").OnClick(() => _items++)["Add item"],
                     Ui.Button.Primary.Outline

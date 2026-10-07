@@ -20,8 +20,9 @@ public static partial class Ui
     /// </para>
     /// <para>
     /// <see cref="Light" /> is the default and <see cref="Dark" /> follows the operating system. Naming any
-    /// other theme means saying so — with <see cref="UiThemePicker" />, or with an explicit
-    /// <c>data-theme</c> on the element carrying the theme scope.
+    /// other theme means saying so, with an explicit <c>data-theme</c> on the element carrying the theme
+    /// scope. GOES WITH daisyUI: dark mode is <see cref="UiAppearanceScript" />'s <c>dark</c> class now, and
+    /// only <c>Ui.Shell.Theme</c> still takes one of these.
     /// </para>
     /// </remarks>
     public enum ThemeName
@@ -82,8 +83,7 @@ public static partial class Ui
         /// </para>
         /// <para>
         /// It is excluded from <see cref="UiTheme.All" /> for that reason — that list is the palettes the
-        /// stylesheet carries — and <see cref="UiThemePicker" /> offers it separately, first, because a
-        /// reader who has pinned a theme otherwise has no way back to their own preference.
+        /// stylesheet carries.
         /// </para>
         /// </remarks>
         System,

@@ -33,7 +33,7 @@ public sealed partial class GamepadDemo : Component
     }
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("text-sm text-ui-muted mb-2")["Status: ", Code.Id("gamepad-status")[_status]],
                 Div.Class("text-sm text-ui-muted mb-2")[
                     "Connected pads: ", Code.Id("gamepad-count")[_pads.Count]],

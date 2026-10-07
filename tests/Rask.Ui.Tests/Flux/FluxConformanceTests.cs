@@ -24,7 +24,43 @@ public sealed class FluxConformanceTests
     /// <summary>Flux part → the Rask.Ui type that mirrors it. A component joins this when it is built.</summary>
     private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
     {
+        ["flux:field"] = typeof(UiField),
+        ["flux:label"] = typeof(UiLabel),
+        ["flux:description"] = typeof(UiDescription),
+        ["flux:error"] = typeof(UiError),
+        ["flux:fieldset"] = typeof(UiFieldset),
+        ["flux:legend"] = typeof(UiLegend),
+        ["flux:heading"] = typeof(UiHeading),
+        ["flux:link"] = typeof(UiLink),
+        ["flux:text"] = typeof(UiText),
+        ["flux:accordion"] = typeof(UiAccordion),
+        ["flux:accordion.item"] = typeof(UiAccordionItem),
+        ["flux:accordion.heading"] = typeof(UiAccordionHeading),
+        ["flux:accordion.content"] = typeof(UiAccordionContent),
+        ["flux:callout"] = typeof(UiCallout),
+        ["flux:callout.heading"] = typeof(UiCalloutHeading),
+        ["flux:callout.link"] = typeof(UiCalloutLink),
+        ["flux:callout.text"] = typeof(UiCalloutText),
         ["flux:icon.*"] = typeof(UiIcon),
+        ["flux:separator"] = typeof(UiSeparator),
+        ["flux:progress"] = typeof(UiProgress),
+        ["flux:skeleton"] = typeof(UiSkeleton),
+        ["flux:skeleton.line"] = typeof(UiSkeletonLine),
+        ["flux:skeleton.group"] = typeof(UiSkeletonGroup),
+        ["flux:table"] = typeof(UiTable),
+        ["flux:table.columns"] = typeof(UiTableColumns),
+        ["flux:table.column"] = typeof(UiTableColumn),
+        ["flux:table.rows"] = typeof(UiTableRows),
+        ["flux:table.row"] = typeof(UiTableRow),
+        ["flux:table.cell"] = typeof(UiTableCell),
+        ["flux:card"] = typeof(UiCard),
+        ["flux:card.header"] = typeof(UiCardHeader),
+        ["flux:card.heading"] = typeof(UiCardHeading),
+        ["flux:card.subheading"] = typeof(UiCardSubheading),
+        ["flux:card.actions"] = typeof(UiCardActions),
+        ["flux:card.body"] = typeof(UiCardBody),
+        ["flux:card.footer"] = typeof(UiCardFooter),
+        ["flux:card.bleed"] = typeof(UiCardBleed),
         ["flux:toast"] = typeof(UiToast),
         ["flux:toast.group"] = typeof(UiToastGroup),
     };
@@ -32,9 +68,15 @@ public sealed class FluxConformanceTests
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
     private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal)
     {
+        ["flux:error/bag"] = "Laravel's named error bags. A Rask form has one edit context, and Ui.Error reads that one.",
+        ["flux:error/deep"] = "Laravel's dotted paths (fields.*). A Rask field is the member of the object that owns it: Ui.Error.For(() => order.Lines[0].Name).",
+        ["flux:heading/size=2xl"] = "an identifier cannot start with a digit: Ui.HeadingSize.Xxl",
+        ["flux:text/color=default"] = "no colour is an unset Color; Ui.Color holds Tailwind's hues only",
+        ["flux:text/size=base"] = "the heading page's name for the text page's `default`: Ui.TextSize.Default",
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
+        ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
     };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;

@@ -120,7 +120,7 @@ public sealed partial class CreateProduct : Component
         [
             Ui.Header.Title("New product").Actions(Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]),
             Ui.Card[
-                save.IsError ? Ui.Alert.Error["Something went wrong — please try again."] : null,
+                save.IsError ? Ui.Callout.Danger.Role("alert").Heading("Something went wrong — please try again.") : null,
                 Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
                 {
                     await Product.Create(model, cancellationToken: ct);
@@ -199,8 +199,8 @@ public sealed partial class UpdateProduct : Component
 
         if (product.Data is not { } loaded)
         {
-            return Ui.Alert.Warning[
-                "Product not found. ", Ui.Link.Href(Routes.ProductsPage())["Back to the list"], "."
+            return Ui.Callout.Warning.Heading("Product not found.")[
+                Ui.CalloutText[Ui.CalloutLink.Href(Routes.ProductsPage())["Back to the list"]]
             ];
         }
 
@@ -218,10 +218,11 @@ public sealed partial class UpdateProduct : Component
                 save.Error switch
                 {
                     null => null,
-                    DbUpdateConcurrencyException => Ui.Alert.Error[
-                        "Someone else changed this product while you were editing it. Reload to see their changes."],
-                    KeyNotFoundException => Ui.Alert.Error["This product has been deleted."],
-                    _ => Ui.Alert.Error["Something went wrong — please try again."],
+                    DbUpdateConcurrencyException => Ui.Callout.Danger.Role("alert")
+                        .Heading("Someone else changed this product while you were editing it.")
+                        .Text("Reload to see their changes."),
+                    KeyNotFoundException => Ui.Callout.Danger.Role("alert").Heading("This product has been deleted."),
+                    _ => Ui.Callout.Danger.Role("alert").Heading("Something went wrong — please try again."),
                 },
                 Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
                 {

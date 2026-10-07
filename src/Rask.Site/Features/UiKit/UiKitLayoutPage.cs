@@ -17,7 +17,7 @@ public sealed partial class UiKitLayoutPage : Component
     protected override Component? HeadAssets =>
         PageMeta.For(
             "daisyUI drawer, layout and mockups in C# — Rask",
-            "daisyUI layout components in C#: a drawer whose open state C# reads and sets, divider, join, "
+            "daisyUI layout components in C#: a drawer whose open state C# reads and sets, separator, join, "
             + "indicator, avatar, mask, and code, browser and window mockups.",
             Routes.UiKitLayoutPage());
 

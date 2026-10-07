@@ -46,7 +46,7 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
         // so a panel that ever shows a different one mounts a fresh tab instead of re-pointing the old subscription.
         if (inspection.Open(session, token) is not { } feed)
         {
-            return Ui.Alert["No session to inspect. Open the panel from a page's Rask pill."];
+            return Ui.Callout.Secondary.Heading("No session to inspect.").Text("Open the panel from a page's Rask pill.");
         }
 
         Component tab = _tab switch

@@ -12,6 +12,8 @@
          root namespace, and the default one (Rask.Ui.Tests) would open a `Rask.Ui` namespace that hides the
          `Rask.Ui` kit class from every `Rask.Ui.Marker`-style reference in this project. -->
     <RootNamespace>Rask.UiTests</RootNamespace>
+    <!-- Appearance/*Fixture.ts is a Node fixture, not a component's scoped TypeScript (RASK017). -->
+    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
   </PropertyGroup>
 
   <ItemGroup>
@@ -45,6 +47,7 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
+    <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     <!-- For the read face the data grid is handed: Ui.DataGrid.Data(Gizmo.AsQueryable()). -->
@@ -56,6 +59,14 @@
     <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
     <Using Include="Rask.TestFiles"/>
   </ItemGroup>
+
+  <!-- Appearance/AppearanceScriptFixture.ts runs Ui.AppearanceScript's inline script under Node against a stub
+       document; UiAppearanceScriptTests asserts the JSON it prints. Bundled by the shared target. -->
+  <ItemGroup>
+    <_RaskNodeFixture Include="Appearance\*Fixture.ts"/>
+  </ItemGroup>
+
+  <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
 
   <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
        read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. A test

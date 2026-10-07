@@ -21,15 +21,18 @@ namespace Rask.UiTests.Flux.Parity;
 /// </remarks>
 public sealed partial class ToastShownParity : FluxParity
 {
-    // The static page has no Rask runtime to honour data-rask-popover-open, so each example shows its own.
-    private const string Show = "<script>document.currentScript.previousElementSibling.showPopover()</script>";
+    // The static page has no Rask runtime to honour data-rask-popover-open, so each example shows its own —
+    // and takes its entrance to the end, because what Flux's page is measured at is the toast at rest.
+    private const string Show =
+        "<script>{const toast=document.currentScript.previousElementSibling;toast.showPopover();"
+        + "toast.getAnimations({subtree:true}).filter(a=>a.animationName?.startsWith('ui-toast')).forEach(a=>a.finish())}</script>";
 
-    // What Flux's docs pass to their own flux:toast, written as an app's Tailwind build would emit them.
+    // What Flux's docs pass to their own flux:toast — room above it for the page's navbar, less of it on a wide
+    // screen — as an app's own utility under a name of the page's.
     private const string DocsUtilities =
-        "<style>.pt-30{padding-top:7.5rem}.pt-24{padding-top:6rem}"
-        + "@media (min-width:64rem){.lg\\:pt-16{padding-top:4rem}}</style>";
+        "<style>.parity-clear{padding-top:7.5rem}@media (min-width:64rem){.parity-clear{padding-top:4rem}}</style>";
 
-    private const string DocsClass = "pt-30 lg:pt-16";
+    private const string DocsClass = "parity-clear";
 
     private static readonly RouteUrl Docs = "/components/toast";
 

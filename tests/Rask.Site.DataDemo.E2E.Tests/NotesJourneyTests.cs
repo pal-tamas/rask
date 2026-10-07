@@ -103,16 +103,17 @@ public sealed class NotesJourneyTests(PlaywrightFixture playwright, DataDemoHost
     }
 
     [Fact]
-    public async Task It_wears_the_theme_the_reader_picked_on_the_site()
+    public async Task It_is_dark_when_the_reader_chose_dark_on_the_site()
     {
-        // Same origin as rask.sh, so the demo reads the key the site's theme picker writes.
-        var context = await playwright.Browser.NewContextAsync();
-        await context.AddInitScriptAsync("localStorage.setItem('rask-theme', 'dark')");
+        // Same origin as rask.sh, so the demo reads the key the site's moon writes.
+        var context = await playwright.Browser.NewContextAsync(new BrowserNewContextOptions { ColorScheme = ColorScheme.Light });
+        await context.AddInitScriptAsync("localStorage.setItem('rask.appearance', 'dark')");
         var page = await context.NewPageAsync();
+
         await OpenAsync(page);
 
+        await Expect(page.Locator("html")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"(^|\s)dark(\s|$)"));
         await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", "dark");
-
         await context.CloseAsync();
     }
 

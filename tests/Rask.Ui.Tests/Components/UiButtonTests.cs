@@ -146,7 +146,6 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 
         Assert.Matches(new Regex(@"\.btn>" + unsized + @"[^{]*\{width:1rem"), UiStylesheet.Css);
         Assert.Matches(new Regex(@"\.badge>" + unsized + @"[^{]*\{width:1em"), UiStylesheet.Css);
-        Assert.Matches(new Regex(@"\.alert>" + unsized + @"\{width:1\.25rem"), UiStylesheet.Css);
     }
 
     [Theory]

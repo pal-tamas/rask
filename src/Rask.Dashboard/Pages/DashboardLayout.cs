@@ -192,10 +192,10 @@ public sealed partial class DashboardLayout(
     // only while it applies: an app that defined the policy has real access control and gets no banner.
     private Component? UnsecuredWarning() =>
         security.IsUnsecured
-            ? Ui.Alert.Tone(Ui.Tone.Warning)[
-                Ui.Icon.Name(Ui.IconName.ShieldExclamation),
-                Span[
-                    "Unsecured — anyone who can reach this URL can read job payloads, stored emails and logs. Define the ",
+            ? Ui.Callout.Warning.Icon(Ui.IconName.ShieldExclamation)[
+                Ui.CalloutHeading["Unsecured — anyone who can reach this URL can read job payloads, stored emails and logs."],
+                Ui.CalloutText[
+                    "Define the ",
                     Code[RaskDashboardPolicies.Access],
                     " authorization policy; without one the dashboard denies everyone outside Development."
                 ]

@@ -23,9 +23,9 @@ public sealed partial class AuthorizeDemo : Component
             // The Authorized delegates greet the signed-in user by name straight off the principal.
             Authorize
                 .Role("admin")
-                .Authorized(user => Ui.Alert.Warning.Soft.Class("py-2 mb-0")[$"🔑 Admin-only content — welcome, {user.Identity!.Name}."])
+                .Authorized(user => Ui.Callout.Warning.Heading($"🔑 Admin-only content — welcome, {user.Identity!.Name}."))
                 .NotAuthorized(Authorize
-                    .Authorized(user => Ui.Alert.Success.Soft.Class("py-2 mb-0")[$"✅ Signed in as {user.Identity!.Name} — standard access."])
-                    .NotAuthorized(Ui.Alert.Soft.Class("py-2 mb-0")["🔒 Sign in to see member content."]))
+                    .Authorized(user => Ui.Callout.Success.Heading($"✅ Signed in as {user.Identity!.Name} — standard access."))
+                    .NotAuthorized(Ui.Callout.Secondary.Heading("🔒 Sign in to see member content.")))
         ];
 }

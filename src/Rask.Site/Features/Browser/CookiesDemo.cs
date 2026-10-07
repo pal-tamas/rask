@@ -15,7 +15,7 @@ public sealed partial class CookiesDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex items-stretch gap-2 mb-2")[
                     Ui.Input.Value(_input).AccessibleLabel("Cookie value")
                         .Id("cookie-input")
