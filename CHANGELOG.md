@@ -252,8 +252,8 @@ them until tagged releases begin.
   (`WhenLoading`), `Ui.PillboxSearch`, `Ui.PillboxTrigger` and `Ui.PillboxInput`. Both ship no script: a
   native `popover` placed by CSS anchor positioning, and the cursor, the filter and the picking in C#. The
   pillbox is drawn by the control that draws `Ui.Select`'s list. `Copyable()` is the input's, and the page
-  behind an open list is locked (`data-rask-lock`). Not there yet: containing Space and the arrows on the
-  pillbox's closed trigger, which also scroll the page — the runtime's hook is a closed `<button>`'s.
+  behind an open list is locked (`data-rask-lock`). The pillbox's trigger keeps Enter, Space and the vertical
+  arrows as Flux's does (`data-rask-contain-keys`), so opening it from the keyboard does not scroll the page.
 - **BREAKING: `Ui.Select` is Flux UI's select — native, listbox and combobox — and its options are children.**
   [fluxui.dev](https://fluxui.dev/components/select)'s `flux:select`, part for part, over Rask's binding
   (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the form); the daisyUI-drawn `UiSelect<T>` and
@@ -308,7 +308,8 @@ them until tagged releases begin.
   button picks the next option starting with it. A named drawn select posts through hidden inputs. The
   closed listbox button ignores Enter, as Flux's does (`data-rask-listbox-button`), and the page behind an open
   list is locked (`data-rask-lock`). ARIA is Flux's, read from its live page: every list says
-  `aria-multiselectable="true"`, one answer or several, and the "no results" and create rows carry no role.
+  `aria-multiselectable="true"`, one answer or several, the "no results" and create rows carry no role, and a
+  search field says no `aria-expanded` (it keeps the list's keys through `data-rask-contain-keys`).
   `scripts/flux/parity-select.mjs` holds the open list to
   fluxui.dev — the popup's look and placement on the parity page, and `--live <url>` walks the keyboard on a
   running site. RASK075 (an option template on a native select) is retired with its analyzer: there is no

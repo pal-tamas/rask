@@ -76,6 +76,33 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_trigger_keeps_the_keys_Flux_keeps_so_the_page_behind_it_does_not_move()
+    {
+        var (plain, searched) = (Page.Render(Pillbox), Page.Render(Searchable));
+
+        var combobox = plain.Find("[data-ui-pillbox-trigger]").Attribute("data-rask-contain-keys");
+        var button = searched.Find("[data-ui-pillbox-trigger]").Attribute("data-rask-contain-keys");
+
+        Assert.Equal("Enter Space ArrowUp ArrowDown", combobox);
+        Assert.Equal("Space ArrowUp ArrowDown", button);
+    }
+
+    [Fact]
+    public async Task The_input_among_the_pills_says_no_expanded_state_and_keeps_the_lists_keys_only_while_it_is_open()
+    {
+        var page = Page.Render(Combobox);
+        var closed = page.Find("[data-ui-pillbox-input]").Attribute("data-rask-contain-keys");
+
+        await Key(page, "ArrowDown", "[data-ui-pillbox-input]");
+        var input = page.Find("[data-ui-pillbox-input]");
+
+        Assert.Null(closed);
+        Assert.True(IsOpen(page));
+        Assert.Equal("Enter ArrowUp ArrowDown Home End PageUp PageDown", input.Attribute("data-rask-contain-keys"));
+        Assert.Null(input.Attribute("aria-expanded"));
+    }
+
+    [Fact]
     public void The_list_takes_several_answers()
     {
         var page = Page.Render(Pillbox);

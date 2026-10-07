@@ -143,7 +143,6 @@ public sealed class FluxConformanceTests
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
         ["flux:input/mask:dynamic"] = "An Alpine expression evaluated in the browser on every keystroke. The runtime shapes an amount (`data-rask-mask-money`, Flux's `$money($input)`) and nothing else; what a C# prop for it takes is not decided, so Mask takes the static pattern only.",
         ["flux:autocomplete/mask:dynamic"] = "The input's: see flux:input/mask:dynamic.",
-        ["flux:pillbox/keys-on-closed"] = "Flux's trigger takes Space and the arrows without the page behind it moving. Ui.Pillbox's is a <div tabindex=0 role=combobox> — it holds the pills' own buttons, so it cannot be one — which opens on them in C# while the browser scrolls the page as well. The runtime's `data-rask-listbox-button` contains keys on a closed <button> only.",
         ["flux:select.option/avatar:*"] = "Props forwarded to Flux's avatar. Ui.Avatar is not Flux's yet; an option draws the extra-small round avatar Flux draws there.",
         ["flux:select.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
         ["flux:pillbox.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",

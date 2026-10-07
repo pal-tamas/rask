@@ -79,6 +79,12 @@ internal static class UiListboxLook
     internal const string GroupSeparator = "-mx-[.3125rem] my-[.3125rem] h-px border-0 bg-zinc-800/5 dark:bg-white/10";
 
     /// <summary>The "no results" row.</summary>
+    /// <summary>
+    ///     The keys an open list answers, for <c>data-rask-contain-keys</c> on the text field they are typed into:
+    ///     the browser does nothing of its own with them there.
+    /// </summary>
+    internal const string ListKeys = "Enter ArrowUp ArrowDown Home End PageUp PageDown";
+
     internal const string Empty =
         "data-hidden:hidden block items-center px-2 py-1.5 w-full rounded-md text-start text-sm font-medium select-none cursor-default "
         + "text-zinc-500 dark:text-zinc-300";

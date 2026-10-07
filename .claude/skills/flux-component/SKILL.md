@@ -312,12 +312,11 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - Input, select, autocomplete, pillbox — the hooks are wired (2026-10-07): `Clearable` is `data-rask-clear`,
   `Copyable` `data-rask-copy` (tick on `in-data-copied:`), `Mask` `data-rask-mask` (and still applied in C# to the
   value drawn and committed), the select's listbox button `data-rask-listbox-button`, every list popover
-  `data-rask-lock`. Still open: `mask:dynamic` (the runtime has `data-rask-mask-money`; what a C# prop for an
-  Alpine expression takes is the owner's call), and the pillbox's closed trigger, a `<div>` holding the pills'
-  buttons, which the button-only hook does not reach — Space and the arrows still scroll the page there.
-  NOT Flux's and kept on purpose: `aria-expanded` on the select's search field and on the pillbox's inline input —
-  `rask-dom.ts` contains Enter and the arrows only in a `[role=combobox][aria-expanded=true]`, and without it Enter
-  submits the form around the control. It goes when the runtime contains keys by another mark.
+  `data-rask-lock`, the pillbox's trigger `data-rask-contain-keys` (`Enter Space ArrowUp ArrowDown` as a combobox,
+  `Space ArrowUp ArrowDown` as the button over a search field). The select's search field and the pillbox's inline
+  input say NO `aria-expanded`, as Flux's: they keep the list's keys by `data-rask-contain-keys` on the field
+  itself (`UiListboxLook.ListKeys`; the pill input only while its list is open). Still open: `mask:dynamic` (the
+  runtime has `data-rask-mask-money`; what a C# prop for an Alpine expression takes is the owner's call).
   `Ui.Input.Attributes(…)` forwards attributes to the `<input>` (how an unlabelled input gets `aria-label`); the
   typed `Min` / `Max` / `Step` / `MaxLength` / `Autofocus` / `Name` it also keeps are `Translations` rows — whether
   they should all go through `Attributes` instead is undecided.

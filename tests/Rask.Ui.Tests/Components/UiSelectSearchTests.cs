@@ -109,6 +109,19 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task The_search_field_carries_Flux_ARIA_and_keeps_the_lists_keys_through_the_runtime()
+    {
+        var page = await OpenAsync(Searchable);
+
+        var field = page.Find("[data-ui-select-search] input");
+
+        Assert.Equal("combobox", field.Attribute("role"));
+        Assert.Null(field.Attribute("aria-expanded"));
+        Assert.Null(field.Attribute("aria-controls"));
+        Assert.Equal("Enter ArrowUp ArrowDown Home End PageUp PageDown", field.Attribute("data-rask-contain-keys"));
+    }
+
+    [Fact]
     public async Task A_search_that_matches_nothing_shows_the_empty_row()
     {
         var page = await OpenAsync(Searchable);

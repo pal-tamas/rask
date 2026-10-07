@@ -449,6 +449,25 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
+    public Task The_pillbox_opens_from_the_keyboard_without_the_page_moving_behind_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var trigger = Page.Locator("#ui-pillbox-tags");
+
+        // The trigger is no button: Space and the arrows open it in C#, and the runtime keeps them from the page.
+        await trigger.FocusAsync();
+        var before = (await trigger.BoundingBoxAsync())!.Y;
+        await Page.Keyboard.PressAsync("Space");
+        await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "true");
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "false");
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "true");
+
+        Assert.Equal(before, (await trigger.BoundingBoxAsync())!.Y);
+    });
+
+    [Fact]
     public Task The_searchable_pillbox_filters_from_its_search_field() => RunAsync(async () =>
     {
         await OpenAsync();

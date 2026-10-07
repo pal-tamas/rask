@@ -1354,9 +1354,9 @@ Two things Flux does in script are the runtime's here, by attribute: the closed 
 and its arrows do not scroll the page (`data-rask-listbox-button`), and while a list is open the page behind
 it neither scrolls nor takes the pointer (`data-rask-lock` on the popover). Every list says
 `aria-multiselectable="true"`, one answer or several, as Flux's does; the "no results" row and the create row
-carry no role, as Flux's do not. One attribute is NOT Flux's: the listbox's search field says `aria-expanded`,
-which is what the runtime reads to keep Enter from submitting a form around it and the arrows from moving the
-caret.
+carry no role, as Flux's do not. The listbox's search field is Flux's `role="combobox"` and nothing more; it
+keeps the list's keys through `data-rask-contain-keys`, so Enter picks instead of submitting a form around the
+select and the arrows walk the rows instead of the caret.
 
 **Gone with daisyUI's select:** `Options(list)` (options are children), `Native()` / `Native(false)` (now
 the variant: `.Listbox`), `OptionGroup` (now `Ui.SelectGroup`), `OptionDisabled` (now
@@ -1457,10 +1457,10 @@ type into, and `role="button"` over a search field or an input, which is then th
 `data-ui-pillbox-placeholder`, `data-ui-pillbox-input`, `data-ui-pillbox-search`, `data-ui-listbox-options`,
 `data-ui-listbox-option`, `data-ui-option-create`.
 
-The page behind an open list is locked (`data-rask-lock`), as on Flux. **One known gap:** Space and the arrows
-on the **closed** trigger also scroll the page behind it — the trigger holds the pills' buttons, so it is no
-`<button>`, and the runtime's `data-rask-listbox-button` contains keys on a closed button only. The input among
-the pills says `aria-expanded`, which Flux's does not, for the reason the select's search field does.
+The page behind an open list is locked (`data-rask-lock`), as on Flux, and the trigger keeps the keys Flux's
+keeps (`data-rask-contain-keys`): Enter, Space and the vertical arrows as a combobox, Space and the arrows as the
+button over a search field, so opening it from the keyboard does not scroll the page. The input among the pills
+keeps the list's keys the same way while the list is open.
 `Ui.PillboxOptionCreate` has no `modal`: its `OnClick` is the page's to answer.
 
 ## Form controls

@@ -38,7 +38,7 @@ public abstract partial class UiSelectControl<T>
             .Role(plain ? "combobox" : "button")
             .Class(UiClass.Compose(UiPillboxLook.Trigger, UiPillboxLook.TriggerSize(IsSmall(slot)), PillsCombobox ? UiPillboxLook.TriggerWithInput : "cursor-default", slot?.Class))
             .Aria(PillTriggerAria(view, plain))
-            .Attributes(PillTriggerMarks(view, view.Field.Invalid || slot?.Invalid == true || view.Parts.Input?.Invalid == true, off));
+            .Attributes(PillTriggerMarks(view, view.Field.Invalid || slot?.Invalid == true || view.Parts.Input?.Invalid == true, off, plain));
         if (!PillsCombobox)
         {
             trigger = trigger.Id(view.Field.ControlId);
@@ -111,19 +111,23 @@ public abstract partial class UiSelectControl<T>
         {
             ["autocomplete"] = "list",
             ["controls"] = ListId,
-            // NOT Flux's, whose input says no `aria-expanded`. Kept for the reason the select's search field
-            // keeps it: it is what the runtime's key containment reads.
-            ["expanded"] = _open ? "true" : "false",
         };
         if (_open && view.Cursor >= 0)
         {
             aria["activedescendant"] = UiSelectNav.OptId(Prefixed, view.Cursor);
         }
 
-        return Input
+        var input = Input
             .Value(view.Search)
             .Id(view.Field.ControlId)
-            .Type(InputType.Text)
+            .Type(InputType.Text);
+        if (_open)
+        {
+            // While the list is open its keys are the input's: Enter picks, the arrows walk the rows.
+            input = input.Data("rask-contain-keys", UiListboxLook.ListKeys);
+        }
+
+        return input
             // The placeholder is the pillbox's while it holds nothing; Flux keeps it beside the pills as data.
             .Placeholder(pills == 0 ? placeholder : string.Empty)
             .Role("combobox")
@@ -158,10 +162,13 @@ public abstract partial class UiSelectControl<T>
         return aria;
     }
 
-    private Dictionary<string, string?> PillTriggerMarks(View view, bool invalid, bool off)
+    private Dictionary<string, string?> PillTriggerMarks(View view, bool invalid, bool off, bool plain)
     {
         var marks = TriggerMarks(view, "data-ui-pillbox-trigger", invalid, anchors: false);
         marks["style"] = "anchor-name:--" + Prefixed;
+        // Flux's trigger opens on these and the page behind it does not move; as a button over a search field it
+        // lets Enter through.
+        marks["data-rask-contain-keys"] = plain ? "Enter Space ArrowUp ArrowDown" : "Space ArrowUp ArrowDown";
         if (off)
         {
             marks["data-disabled"] = null;

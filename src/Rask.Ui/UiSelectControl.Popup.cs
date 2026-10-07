@@ -175,13 +175,7 @@ public abstract partial class UiSelectControl<T>
     private Component SearchField(View view)
     {
         var slot = view.Parts.Search;
-        var aria = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            // NOT Flux's, whose search field says no `aria-expanded`. Kept: the runtime contains Enter (a form's
-            // implicit submit) and the arrows (the caret) only in a combobox that says it is expanded, and the
-            // one hook for this, `data-rask-listbox-button`, is a closed <button>'s.
-            ["expanded"] = _open ? "true" : "false",
-        };
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
         if (Pills is not null)
         {
             // The pillbox's search field names its list; the select's does not.
@@ -206,6 +200,9 @@ public abstract partial class UiSelectControl<T>
                 .Autofocus()
                 .Ref(_searchInput)
                 .Attributes(SearchInputMarks())
+                // The list's keys are the field's while it is typed into: Enter picks instead of submitting a
+                // form around the select, and the arrows walk the rows instead of the caret.
+                .Data("rask-contain-keys", UiListboxLook.ListKeys)
                 .Class(UiSelectLook.SearchInput)
                 .Aria(aria)
                 .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: false))
