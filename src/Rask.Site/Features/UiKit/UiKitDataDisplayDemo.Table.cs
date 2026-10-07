@@ -136,12 +136,12 @@ public sealed partial class UiKitDataDisplayDemo
         ];
 
     private static Component StatusBadge(Order order) =>
-        Ui.Badge.Sm.Tone(order.Status switch
+        Ui.Badge.Sm.Color(order.Status switch
         {
-            "Paid" => Ui.Tone.Success,
-            "Failed" => Ui.Tone.Error,
-            _ => Ui.Tone.Neutral,
-        }).Soft[order.Status];
+            "Paid" => Ui.Color.Green,
+            "Failed" => Ui.Color.Red,
+            _ => null,
+        })[order.Status];
 
     private static string Date(Order order) => order.Placed.ToString("MMM d", CultureInfo.InvariantCulture);
 

@@ -16,7 +16,7 @@ namespace Rask.UiTests.Flux;
 public sealed partial class CardParity : FluxParity
 {
     // `my-4` and `my-6` on the separators there: an app's own utilities.
-    private const string Spacing = "<style>.parity-my-4{margin-block:16px}.parity-my-6{margin-block:24px}</style>";
+    private const string Spacing = "<style>.parity-mt-1{margin-top:4px}.parity-my-4{margin-block:16px}.parity-my-6{margin-block:24px}</style>";
 
     public override string Page => "card";
 
@@ -154,10 +154,17 @@ public sealed partial class CardParity : FluxParity
             Ui.CardActions[Ui.Button.Sm["Activity log"]]
         ],
         Ui.Card[
-            StandIn("height:44px", "Password"),
+            Setting("Password", "Last changed 3 months ago", Ui.Button.Sm["Change"]),
             Ui.Separator.Subtle.Class("parity-my-4"),
-            StandIn("height:44px", "Two-factor authentication")
+            Setting("Two-factor authentication", "A code from your authenticator app", Ui.Badge.Sm.Color(Ui.Color.Green)["On"])
         ]);
+
+    // One row of the settings card: a heading over a line of text, and what acts on it at the end.
+    private static Component Setting(string name, string detail, Component end) =>
+        Div.Style("display:flex;align-items:center;justify-content:space-between;gap:16px")[
+            Div[Ui.Heading[name], Ui.Text.Class("parity-mt-1")[detail]],
+            end
+        ];
 
     private static Component InsideABody() => Narrow(
         Ui.Card.Inset.Soft[

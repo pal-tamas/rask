@@ -16,7 +16,7 @@ namespace Rask;
 ///     <code>
 ///     Ui.Card[
 ///         Ui.Button.Primary.OnClick(Save)["Save"],
-///         Ui.Badge.Variant(Ui.Variant.Soft)["new"]
+///         Ui.Badge.Color(Ui.Color.Lime)["New"]
 ///     ]
 ///     </code>
 ///     <para>

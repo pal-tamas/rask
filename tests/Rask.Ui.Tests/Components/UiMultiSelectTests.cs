@@ -59,7 +59,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
         var html = Custom(["core", "ui"]);
 
         Assert.Equal(1, Occurrences(html, "role=\"combobox\""));
-        Assert.DoesNotContain("aria-hidden=\"true\"><span class=\"badge", html);
+        Assert.DoesNotContain("aria-hidden=\"true\"><div class=\"inline-flex", html);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
 
         // "2 more", not "+2 more": the leading plus arrives HTML-encoded, because the count is a Text
         // node and Text encodes. Asserting the bare number keeps the test about the arithmetic.
-        Assert.Equal(3, Occurrences(html, "badge-sm"));
+        Assert.Equal(3, Occurrences(html, "data-ui-badge-close"));
         Assert.Contains("2 more", html);
     }
 
@@ -294,7 +294,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("aria-describedby=\"f-packages-hint\"", html);
         Assert.Contains(">Pick any</p>", html);
-        Assert.Contains(">New</span>", html);
+        Assert.Contains("data-ui-badge aria-hidden=\"true\">New</div>", html);
     }
 
     [Fact]

@@ -3,32 +3,21 @@ using System.Text.RegularExpressions;
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     <see cref="UiBadge" /> IS its element, and what it says is its children. (The alert this file also
-///     covered is <see cref="UiCallout" /> now: see <c>UiCalloutTests</c>.)
+///     The stylesheet rule that sizes an icon nobody sized inside a hand-written daisy button, and what that
+///     rule reads off the icon's class attribute.
 /// </summary>
-public partial class UiBadgeAndAlertTests : global::Rask.Core.RaskMarkup
+public partial class UiDaisyIconSizeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void A_badge_is_one_span_showing_its_children() =>
-        Assert.Equal("<span class=\"badge badge-success\">Live</span>", Ui.Badge.Tone(Ui.Tone.Success)["Live"].ToHtml());
-
-    [Fact]
-    public void Element_steps_reach_the_badge() =>
-        Assert.Equal(
-            "<span id=\"count\" class=\"badge ms-2\" data-testid=\"count\">9</span>",
-            Ui.Badge.Id("count").Class("ms-2").Data("testid", "count")["9"].ToHtml());
-
-    [Fact]
-    public void The_kit_stylesheet_sizes_an_icon_nobody_sized_by_the_daisy_component_it_sits_in()
+    public void The_kit_stylesheet_sizes_an_icon_nobody_sized_by_the_daisy_button_it_sits_in()
     {
-        // In a daisy-drawn component the icon is a child the kit does not build, so the compiled sheet sizes
+        // In a daisy-drawn button the icon is a child the kit does not build, so the compiled sheet sizes
         // it — keyed to an icon whose call site wrote no size after Ui.Icon's own classes, so one sized on
         // purpose is left alone. `.btn` is what the kit's remaining hand-written daisy buttons carry; Flux's
-        // Ui.Button sizes its own icon.
+        // Ui.Button and Ui.Badge size their own icon.
         const string unsized = @"svg\[data-ui-icon\]:not\(\[class\*=\\ size-\],\[class\*=\\ w-\],\[class\*=\\ h-\]\)";
 
         Assert.Matches(new Regex(@"\.btn>" + unsized + @"[^{]*\{width:1rem"), UiStylesheet.Css);
-        Assert.Matches(new Regex(@"\.badge>" + unsized + @"[^{]*\{width:1em"), UiStylesheet.Css);
     }
 
     [Theory]

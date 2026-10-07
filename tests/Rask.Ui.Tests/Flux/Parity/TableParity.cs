@@ -227,10 +227,15 @@ public sealed partial class TableParity : FluxParity
     private static Component Avatar() =>
         Div.Style("width:24px;height:24px;flex-shrink:0;border-radius:4px;background:#e4e4e7").Attributes(("data-parity-skip", ""));
 
-    // flux:badge size="sm": a stand-in, set as Flux sets one so that its word gives it the measured width.
+    // flux:badge size="sm", in the colour Flux's page gives each status.
     private static Component Badge(string status) =>
-        Div.Style("display:inline-flex;align-items:center;padding:4px 8px;border-radius:6px;font-size:12px;line-height:16px;font-weight:500;background:rgb(74 222 128/.2)")
-            .Attributes(("data-parity-skip", ""))[status];
+        Ui.Badge.Sm.Color(status switch
+        {
+            "Paid" => Ui.Color.Green,
+            "Failed" => Ui.Color.Red,
+            "Incomplete" => Ui.Color.Amber,
+            _ => null,
+        })[status];
 
     // flux:dropdown around a ghost button. The dropdown and its closed menu are stand-ins — neither is
     // rebuilt yet — and the button between them is compared. The sticky tables' examples set theirs 6px in

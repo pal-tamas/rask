@@ -26,6 +26,9 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
 {
     private static readonly Regex ClassString = new(@"\.(Class|Style)\(|\bUiStyles\.", RegexOptions.Compiled);
 
+    // The owner has decided the console may use Tailwind (it gets its own compiled sheet later); until then exactly this call, whose utilities the kit's sheet carries.
+    private const string Allowed = "Ui.Badge.Key(s.Key).Class(\"font-mono max-w-full break-all whitespace-normal!\")";
+
     [Fact]
     public void The_console_writes_no_class_strings()
     {
@@ -39,7 +42,9 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
                 var line = lines[i].TrimStart();
 
                 // Comments may name the thing they explain; only code writes a class.
-                if (line.StartsWith("//", StringComparison.Ordinal) || !ClassString.IsMatch(line))
+                if (line.StartsWith("//", StringComparison.Ordinal)
+                    || line.StartsWith(Allowed, StringComparison.Ordinal)
+                    || !ClassString.IsMatch(line))
                 {
                     continue;
                 }

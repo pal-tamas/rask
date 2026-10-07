@@ -77,13 +77,16 @@ public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("border", Ui.Empty.Title("Nothing stored").ToHtml(), StringComparison.Ordinal);
 
     [Fact]
-    public void A_mono_badge_wraps_a_long_token_instead_of_widening_its_row()
+    public void The_kit_sheet_carries_what_wraps_a_long_token_in_a_badge()
     {
-        var html = Ui.Badge.Mono(true)["requestId=0HN8Q2V3R1T0K:00000001"].ToHtml();
+        // Flux's badge has no such prop, so the console hands the utilities to Class — from packages whose
+        // sources the kit's Tailwind build never reads. UiBadge's remarks name them, which is what emits them.
+        var css = UiStylesheet.Css;
 
-        Assert.Contains("font-mono", html, StringComparison.Ordinal);
-        Assert.Contains("break-all", html, StringComparison.Ordinal);
-        Assert.Contains("h-auto", html, StringComparison.Ordinal);
+        Assert.Contains(".font-mono{", css, StringComparison.Ordinal);
+        Assert.Contains(".max-w-full{", css, StringComparison.Ordinal);
+        Assert.Contains(".break-all{", css, StringComparison.Ordinal);
+        Assert.Contains(".whitespace-normal\\!{", css, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -94,6 +97,6 @@ public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
             StringComparison.Ordinal);
 
     [Fact]
-    public void A_plain_badge_keeps_its_fixed_height() =>
+    public void A_plain_badge_keeps_its_words_on_one_line() =>
         Assert.DoesNotContain("break-all", Ui.Badge["Live"].ToHtml(), StringComparison.Ordinal);
 }

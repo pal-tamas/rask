@@ -74,7 +74,7 @@ public sealed partial class MasterDetailDemo : Component
                 ],
                 Ui.TableCell.Class("font-semibold")[order.Customer],
                 Ui.TableCell.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
-                Ui.TableCell[Ui.Badge.Tone(StatusTone(order.Status)).Soft[order.Status]],
+                Ui.TableCell[Ui.Badge.Color(StatusColor(order.Status))[order.Status]],
                 Ui.TableCell.Class("text-ui-muted")[order.Items.Count],
                 Ui.TableCell.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                     "$" + order.Total.ToString("N2", CultureInfo.InvariantCulture)
@@ -209,15 +209,14 @@ public sealed partial class MasterDetailDemo : Component
             .Direction(sort.Asc ? Ui.TableColumnDirection.Asc : Ui.TableColumnDirection.Desc)
             .OnSort(() => toggle(columnId))[header];
 
-    // A TONE, not a class. The call site says what the status MEANS and Ui.Badge decides how a tone looks,
-    // which is the whole point of the kit owning the vocabulary.
-    private static Ui.Tone StatusTone(string status) => status switch
+    // A COLOUR, not a class: the call site names the hue and Ui.Badge decides the tint, the text and dark mode.
+    private static Ui.Color? StatusColor(string status) => status switch
     {
-        "Shipped" => Ui.Tone.Success,
-        "Processing" => Ui.Tone.Primary,
-        "Pending" => Ui.Tone.Warning,
-        "Cancelled" => Ui.Tone.Error,
-        _ => Ui.Tone.Neutral
+        "Shipped" => Ui.Color.Green,
+        "Processing" => Ui.Color.Blue,
+        "Pending" => Ui.Color.Yellow,
+        "Cancelled" => Ui.Color.Red,
+        _ => null
     };
 
     private static Order[] BuildOrders()

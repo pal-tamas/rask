@@ -1,4 +1,3 @@
-using System.Globalization;
 using Rask.Core;
 
 namespace Rask.UiTests.Flux.Parity;
@@ -8,11 +7,8 @@ namespace Rask.UiTests.Flux.Parity;
 /// </summary>
 /// <remarks>
 ///     <para>
-///     The buttons in the <c>actions</c> and <c>controls</c> slots are <c>Ui.Button</c>. The badge beside
-///     one heading is Flux's badge, which is not rebuilt yet: a stand-in, a box of the size Flux's measures,
-///     marked <c>data-parity-skip</c> so the tool holds it to its place and its size and leaves its inside to
-///     that component's own page. Everything else — the callout, its icon, heading, text and link, the
-///     buttons, and where the slots sit — is compared whole.
+///     The buttons in the <c>actions</c> and <c>controls</c> slots are <c>Ui.Button</c> and the badge beside
+///     one heading is <c>Ui.Badge</c>: everything on the page is compared whole.
 ///     </para>
 ///     <para>
 ///     Two things on that page are the page's rather than the component's, and are written here as an app
@@ -165,8 +161,7 @@ public sealed partial class CalloutParity : FluxParity
                 .Actions([Ui.Button["Invite member"], Ui.Button.Ghost["Manage team"]])[
                 Div.Style(HeadingRow)[
                     Ui.CalloutHeading["Team collaboration"],
-                    // Flux's badge, inset top and bottom: 24px tall in a 20px line.
-                    StandIn("Available with Pro", 117.73, "height:24px;margin:-4px 0;border-radius:6px;font-size:12px")
+                    Ui.Badge.Sm.Color(Ui.Color.Purple).Inset(Ui.Inset.Top | Ui.Inset.Bottom)["Available with Pro"]
                 ],
                 Ui.CalloutText[P["Share projects, manage permissions, and collaborate in real time with your team. Upgrade now to access these features."]]
             ]));
@@ -179,13 +174,4 @@ public sealed partial class CalloutParity : FluxParity
     // The 606px an example has on Flux's page, with what holds the callout centred in it.
     private static Component Frame(string holder, params Component[] items) =>
         Div.Style("width:606px;display:flex;justify-content:center")[Div.Style(holder)[items]];
-
-    // A component from another page that is not rebuilt yet: the room Flux's takes, and nothing else.
-    private static Component StandIn(string label, double width, string shape = "height:40px;border-radius:8px;font-size:14px") =>
-        Div.Data("parity-skip", "")
-            .Style(string.Create(
-                CultureInfo.InvariantCulture,
-                $"width:{width}px;flex:none;display:flex;align-items:center;justify-content:center;border:1px solid #d4d4d8;font-weight:500;white-space:nowrap;{shape}"))[
-            label
-        ];
 }

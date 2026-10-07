@@ -177,8 +177,8 @@ internal sealed partial class DevToolsTreeTab : Component
         return Div.Class("flex flex-col gap-2").Data("rask-devtools-details", "")[
             Div.Class("flex flex-wrap items-center gap-2")[
                 Span.Class("font-mono font-semibold")[node.Type],
-                node.Badge is { } badge ? Ui.Badge.Size(Ui.Size.Sm).Tone(Ui.Tone.Info).Variant(Ui.Variant.Soft)[badge] : null,
-                node.Key is { Length: > 0 } key ? Ui.Badge.Size(Ui.Size.Sm).Variant(Ui.Variant.Soft)["key " + key] : null
+                node.Badge is { } badge ? Ui.Badge.Sm.Color(Ui.Color.Blue)[badge] : null,
+                node.Key is { Length: > 0 } key ? Ui.Badge.Sm["key " + key] : null
             ],
             node.Badge is "Blazor" or null
                 ? null
@@ -491,10 +491,10 @@ internal sealed partial class DevToolsTreeTab : Component
         Span.Class("flex items-center gap-2 truncate").Data(Place(node))[
             Span.Class("truncate")[node.Type],
             node.Badge is { } badge
-                ? Ui.Badge.Size(Ui.Size.Xs).Tone(Ui.Tone.Info).Variant(Ui.Variant.Soft)[badge]
+                ? Ui.Badge.Sm.Color(Ui.Color.Blue)[badge]
                 : Span,
             node.Key is { Length: > 0 } key
-                ? Ui.Badge.Size(Ui.Size.Xs).Variant(Ui.Variant.Soft)[key]
+                ? Ui.Badge.Sm[key]
                 : Span,
             // What the component was given, on the row itself: a tree whose rows say only their type names makes a
             // developer click every one of them to find the value they came for.

@@ -149,10 +149,10 @@ internal sealed partial class DevToolsErrorsTab : Component
         Ui.Card.Key(RowKey(error)).Sm[
                 Div.Class("flex flex-col gap-1")[
                     Div.Class("flex flex-wrap items-center gap-2")[
-                        Ui.Badge.Size(Ui.Size.Sm).Tone(error.IsWarning ? Ui.Tone.Warning : Ui.Tone.Error)[KindLabel(error)],
+                        Ui.Badge.Sm.Color(error.IsWarning ? Ui.Color.Yellow : Ui.Color.Red)[KindLabel(error)],
                         Span.Class("font-mono font-semibold")[error.Title],
-                        error.Count > 1 ? Ui.Badge.Size(Ui.Size.Sm)["×" + error.Count.ToString(CultureInfo.InvariantCulture)] : null,
-                        error.AppWide ? Ui.Badge.Size(Ui.Size.Sm)["app-wide"] : null,
+                        error.Count > 1 ? Ui.Badge.Sm["×" + error.Count.ToString(CultureInfo.InvariantCulture)] : null,
+                        error.AppWide ? Ui.Badge.Sm["app-wide"] : null,
                         CaughtLabel(error) is { } caught ? Span.Class("text-xs opacity-60")[caught] : null,
                         Span.Class("text-xs opacity-60 tabular-nums")[error.At.ToString("HH:mm:ss", CultureInfo.InvariantCulture)]
                     ],

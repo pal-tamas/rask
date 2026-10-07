@@ -360,18 +360,19 @@ public sealed partial class LogsPage(
             : Div[
                 scopes.SelectMany(s => new Component[]
                 {
-                    Ui.Badge.Key(s.Key).Mono()[$"{s.Key}={s.Value}"],
+                    // The one class string the console writes (DashboardIsKitOnlyTests): the kit's sheet carries it.
+                    Ui.Badge.Key(s.Key).Class("font-mono max-w-full break-all whitespace-normal!")[$"{s.Key}={s.Value}"],
                     " ",
                 })
             ];
 
     private static Component LevelBadge(LogLevel level) => Ui.Badge
-        .Tone(level switch
+        .Color(level switch
         {
-            LogLevel.Critical or LogLevel.Error => Ui.Tone.Error,
-            LogLevel.Warning => Ui.Tone.Warning,
-            LogLevel.Information => Ui.Tone.Info,
-            _ => null,
+            LogLevel.Critical or LogLevel.Error => Ui.Color.Red,
+            LogLevel.Warning => Ui.Color.Yellow,
+            LogLevel.Information => Ui.Color.Blue,
+            _ => (Ui.Color?)null,
         })[level.ToString()];
 
     private void OnLogged(object? sender, EventArgs e)

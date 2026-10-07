@@ -61,7 +61,7 @@ public sealed partial class KeyedListsReorderDemo : Component
 
     private static List<Component> Row(Fruit f, int index) =>
     [
-        Ui.Badge.Neutral.Soft[(index + 1).ToString(CultureInfo.InvariantCulture)],
+        Ui.Badge[(index + 1).ToString(CultureInfo.InvariantCulture)],
         Span.Class("font-semibold").Style("min-width: 7rem;")[f.Name],
         Ui.Input.Of<string>().AccessibleLabel("type here, then reorder…")
             .Type(InputType.Text)

@@ -197,12 +197,12 @@ public sealed partial class QueuePage(
     };
 
     private static Component StatusBadge(QueueRow row, bool isDead, DateTime now) =>
-        Ui.Badge.Tone(row switch
+        Ui.Badge.Color(row switch
         {
-            { ProcessedAt: not null } => Ui.Tone.Success,
-            _ when isDead => Ui.Tone.Error,
-            _ when row.RunAt > now => (Ui.Tone?)null,
-            _ => Ui.Tone.Info,
+            { ProcessedAt: not null } => Ui.Color.Green,
+            _ when isDead => Ui.Color.Red,
+            _ when row.RunAt > now => (Ui.Color?)null,
+            _ => Ui.Color.Blue,
         })[StatusText(row, isDead, now)];
 
     /// <summary>
