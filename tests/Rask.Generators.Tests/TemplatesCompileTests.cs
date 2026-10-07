@@ -88,6 +88,26 @@ public class TemplatesCompileTests
         Assert.True(errors.Count == 0, Describe(errors));
     }
 
+    [Fact]
+    public void The_host_of_a_bare_TypeScript_front_end_compiles()
+    {
+        var files = ProjectGenerator.GenerateSpa("/app", "Shop", SpaFramework.React, new ServerBatteries(), "9.9.9").Files;
+
+        var errors = Errors(files, ServerUsings);
+
+        Assert.True(errors.Count == 0, Describe(errors));
+    }
+
+    [Fact]
+    public void The_host_of_a_TypeScript_front_end_with_every_battery_compiles()
+    {
+        var files = ProjectGenerator.GenerateSpa("/app", "Shop", SpaFramework.React, Everything, "9.9.9").Files;
+
+        var errors = Errors(files, ServerUsings);
+
+        Assert.True(errors.Count == 0, Describe(errors));
+    }
+
     [Theory]
     [InlineData("react")]
     [InlineData("vue")]

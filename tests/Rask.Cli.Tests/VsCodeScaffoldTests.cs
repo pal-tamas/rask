@@ -35,6 +35,11 @@ public sealed class VsCodeScaffoldTests
         yield return ("server", ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version));
         yield return ("wasm-hosted", ProjectGenerator.GenerateWasmHosted(Root, "App", new ServerBatteries(), Version));
         yield return ("server --islands react", ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version, ["react"]));
+
+        foreach (var framework in SpaFramework.All)
+        {
+            yield return (framework.Key, ProjectGenerator.GenerateSpa(Root, "App", framework, new ServerBatteries(), Version));
+        }
     }
 
     [Fact]
@@ -193,6 +198,10 @@ public sealed class VsCodeScaffoldTests
         Assert.Contains("dbaeumer.vscode-eslint", recommended["server --islands react"]);
         Assert.Contains("esbenp.prettier-vscode", recommended["server --islands react"]);
         Assert.DoesNotContain(recommended["server --islands react"], frameworks.Contains);
+        Assert.Contains("dbaeumer.vscode-eslint", recommended["react"]);
+        Assert.Contains("esbenp.prettier-vscode", recommended["react"]);
+        Assert.DoesNotContain(recommended["react"], frameworks.Contains);
+        Assert.DoesNotContain("bradlc.vscode-tailwindcss", recommended["react"]);
         Assert.Contains("vue.volar", recommended["server --islands vue"]);
         Assert.Contains("svelte.svelte-vscode", recommended["server --islands svelte"]);
     }

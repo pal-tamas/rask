@@ -255,24 +255,26 @@ internal sealed class DoctorCommand(
         }
     }
 
-    /// <summary>The Node row, measured against the floor island builds enforce.</summary>
+    /// <summary>The Node row, measured against the floor island and front-end builds enforce.</summary>
     private static DoctorCheck NodeCheck(string? node)
     {
         if (node is null)
         {
             return new DoctorCheck(
                 "node", DoctorStatus.Warn, "not found",
-                "Only islands (`rask new --islands …`) need it. " + NodeRequirement.InstallHint);
+                "Only islands (`rask new --islands …`) and a front-end template (`--template react`) need it. "
+                + NodeRequirement.InstallHint);
         }
 
-        // Warn, never fail: an app without islands builds on any Node, or none.
+        // Warn, never fail: an app with neither builds on any Node, or none.
         var version = NodeRequirement.Parse(node);
         if (version is not null && version < NodeRequirement.BuildFloor)
         {
             return new DoctorCheck(
                 "node", DoctorStatus.Warn,
                 $"{node} (below {NodeRequirement.BuildFloor})",
-                "An app with islands fails to build with RASKISLAND001. " + NodeRequirement.InstallHint);
+                "An app with islands fails to build with RASKISLAND001, a front-end template with RASKSPA005. "
+                + NodeRequirement.InstallHint);
         }
 
         return new DoctorCheck("node", DoctorStatus.Ok, node, null);
