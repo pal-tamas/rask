@@ -41,6 +41,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
     [
         BadgeSection(),
         CardSection(),
+        KanbanSection(),
         AccordionSection(),
         OwnedAccordionSection(),
         AuraSection(),

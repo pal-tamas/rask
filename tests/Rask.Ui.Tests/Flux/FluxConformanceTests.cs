@@ -65,6 +65,12 @@ public sealed class FluxConformanceTests
         ["flux:card.body"] = typeof(UiCardBody),
         ["flux:card.footer"] = typeof(UiCardFooter),
         ["flux:card.bleed"] = typeof(UiCardBleed),
+        ["flux:kanban"] = typeof(UiKanban),
+        ["flux:kanban.column"] = typeof(UiKanbanColumn),
+        ["flux:kanban.column.header"] = typeof(UiKanbanColumnHeader),
+        ["flux:kanban.column.cards"] = typeof(UiKanbanColumnCards),
+        ["flux:kanban.column.footer"] = typeof(UiKanbanColumnFooter),
+        ["flux:kanban.card"] = typeof(UiKanbanCard),
         ["flux:toast"] = typeof(UiToast),
         ["flux:toast.group"] = typeof(UiToastGroup),
     };
@@ -83,6 +89,7 @@ public sealed class FluxConformanceTests
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
+        ["flux:kanban.column.header/badge"] = "No example on Flux's page draws it, so where it sits and how it looks cannot be measured; a badge of your own goes in as a child, beside the heading you write there.",
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
     };
 

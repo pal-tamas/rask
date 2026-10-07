@@ -127,7 +127,7 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge` today).
+card accordion callout button toast badge kanban` today).
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -149,7 +149,8 @@ card accordion callout button toast badge` today).
 - **A colour the docs page hands a component by class** and that must lose to the component's own hover
   (`text-zinc-300` on the header's subtle button): `.parity-x:not(:hover){…}` on the page, and
   `not-hover:text-zinc-300` in an app.
-- **Not differences:** `NATIVE` tag pairs (and `button`→`summary`); the colour of a border 0px wide on
+- **Not differences:** `NATIVE` tag pairs (and `button`→`summary`; `ui-button`, Flux's pressable that is not a
+  `<button>`, pairs with one); the colour of a border 0px wide on
   both sides, or of an outline with `outline-style:none` on both, at rest and in a forced state; the
   offset of a node with no box (`display:none` itself or above it, or 0×0 on both sides); `oklch(… none)`
   ≡ `oklch(… 0)`; a forced state where only one side measured the node (60 per example).
@@ -205,6 +206,13 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
   (slider, as raw `ui-slider` markup), separator page (the tooltip around the theme button), field page
   (inputs).
+- Kanban: Flux's page shows NO drag, drop or keyboard reordering (no `draggable`, no sort attribute, nothing
+  moves under a pointer drag), so the kit has none and needs no hook. `flux:kanban.column.header`'s `badge`
+  prop is `NotTranslated`: no example draws it. Unmeasured for the same reason, and built on the plain
+  reading of the Reference: where a header's or card's children go, and a `Count` of 0 (drawn). Flux marks its
+  div card `flux-kanban-card` (no `data-`) and its button card `data-flux-kanban-card`; the kit copies both
+  (`ui-kanban-card`, `data-ui-kanban-card`). Parity stand-ins: the dropdown and menu in a column's actions, the
+  avatars in a card's footer. The site's demo has two plain buttons where Flux has that dropdown.
 - Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
   `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
   removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —
