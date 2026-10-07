@@ -67,7 +67,7 @@ public static class UiChartBinding
     /// <summary>The hue of each slice, where a row chooses its own.</summary>
     public static UiChartPie ColorField<TRow>(this UiChartPie pie, Func<TRow, Ui.Color> field) => pie.ColorField(Selector(field));
 
-    private static UiChartField Selector<TRow, TValue>(Func<TRow, TValue> field)
+    private static UiChartSelector<TRow, TValue> Selector<TRow, TValue>(Func<TRow, TValue> field)
     {
         ArgumentNullException.ThrowIfNull(field);
         return new UiChartSelector<TRow, TValue>(field);

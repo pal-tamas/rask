@@ -93,6 +93,9 @@ Rask.Ui.Inset.Left = 4 -> Rask.Ui.Inset
 Rask.Ui.Inset.None = 0 -> Rask.Ui.Inset
 Rask.Ui.Inset.Right = 8 -> Rask.Ui.Inset
 Rask.Ui.Inset.Top = 1 -> Rask.Ui.Inset
+Rask.Ui.KanbanCardAs
+Rask.Ui.KanbanCardAs.Button = 1 -> Rask.Ui.KanbanCardAs
+Rask.Ui.KanbanCardAs.Div = 0 -> Rask.Ui.KanbanCardAs
 Rask.Ui.ToastPosition
 Rask.Ui.ToastPosition.BottomCenter = 1 -> Rask.Ui.ToastPosition
 Rask.Ui.ToastPosition.BottomEnd = 0 -> Rask.Ui.ToastPosition
@@ -1150,6 +1153,34 @@ Rask.Ui.TextVariant.Default = 0 -> Rask.Ui.TextVariant
 Rask.Ui.TextVariant.Strong = 1 -> Rask.Ui.TextVariant
 Rask.Ui.TextVariant.Subtle = 2 -> Rask.Ui.TextVariant
 Rask.UiHeading.Size.get -> Rask.Ui.HeadingSize?
+Rask.UiKanban
+Rask.UiKanban.UiKanban() -> void
+Rask.UiKanbanCard
+Rask.UiKanbanCard.As.get -> Rask.Ui.KanbanCardAs?
+Rask.UiKanbanCard.As.set -> void
+Rask.UiKanbanCard.Footer.get -> Rask.Core.Component?
+Rask.UiKanbanCard.Footer.set -> void
+Rask.UiKanbanCard.Header.get -> Rask.Core.Component?
+Rask.UiKanbanCard.Header.set -> void
+Rask.UiKanbanCard.Heading.get -> string?
+Rask.UiKanbanCard.Heading.set -> void
+Rask.UiKanbanCard.UiKanbanCard() -> void
+Rask.UiKanbanColumn
+Rask.UiKanbanColumn.UiKanbanColumn() -> void
+Rask.UiKanbanColumnCards
+Rask.UiKanbanColumnCards.UiKanbanColumnCards() -> void
+Rask.UiKanbanColumnFooter
+Rask.UiKanbanColumnFooter.UiKanbanColumnFooter() -> void
+Rask.UiKanbanColumnHeader
+Rask.UiKanbanColumnHeader.Actions.get -> Rask.Core.Component?
+Rask.UiKanbanColumnHeader.Actions.set -> void
+Rask.UiKanbanColumnHeader.Count.get -> int?
+Rask.UiKanbanColumnHeader.Count.set -> void
+Rask.UiKanbanColumnHeader.Heading.get -> string?
+Rask.UiKanbanColumnHeader.Heading.set -> void
+Rask.UiKanbanColumnHeader.Subheading.get -> string?
+Rask.UiKanbanColumnHeader.Subheading.set -> void
+Rask.UiKanbanColumnHeader.UiKanbanColumnHeader() -> void
 Rask.UiLink.Accent.get -> bool?
 Rask.UiLink.Accent.set -> void
 Rask.UiLink.As.get -> Rask.Ui.LinkAs?
@@ -1260,6 +1291,9 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiChartLine!).None.get -> Rask.UiChartL
 RaskBuilderSettersRask_Ui.extension(Rask.UiChartLine!).Smooth.get -> Rask.UiChartLine!
 RaskBuilderSettersRask_Ui.extension(Rask.UiHeading!).Base.get -> Rask.UiHeading!
 RaskBuilderSettersRask_Ui.extension(Rask.UiHeading!).Xxl.get -> Rask.UiHeading!
+RaskBuilderSettersRask_Ui.extension(Rask.UiKanbanCard!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiKanbanCard!).Button.get -> Rask.UiKanbanCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiKanbanCard!).Div.get -> Rask.UiKanbanCard!
 RaskBuilderSettersRask_Ui.extension(Rask.UiLink!).A.get -> Rask.UiLink!
 RaskBuilderSettersRask_Ui.extension(Rask.UiLink!).Button.get -> Rask.UiLink!
 RaskBuilderSettersRask_Ui.extension(Rask.UiLink!).Default.get -> Rask.UiLink!
@@ -1349,6 +1383,12 @@ static Rask.Ui.ChartTooltipIndicator.get -> Rask.UiChartTooltipIndicator!
 static Rask.Ui.ChartTooltipValue.get -> Rask.UiChartTooltipValue!
 static Rask.Ui.ChartViewport.get -> Rask.UiChartViewport!
 static Rask.Ui.ChartZeroLine.get -> Rask.UiChartZeroLine!
+static Rask.Ui.Kanban.get -> Rask.UiKanban!
+static Rask.Ui.KanbanCard.get -> Rask.UiKanbanCard!
+static Rask.Ui.KanbanColumn.get -> Rask.UiKanbanColumn!
+static Rask.Ui.KanbanColumnCards.get -> Rask.UiKanbanColumnCards!
+static Rask.Ui.KanbanColumnFooter.get -> Rask.UiKanbanColumnFooter!
+static Rask.Ui.KanbanColumnHeader.get -> Rask.UiKanbanColumnHeader!
 static Rask.Ui.Link.get -> Rask.UiLink!
 static Rask.Ui.Toast.get -> Rask.UiToast!
 static Rask.Ui.ToastGroup.get -> Rask.UiToastGroup!
@@ -1396,7 +1436,6 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiChartTooltipValue(Rask
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiChartViewport(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiChartZeroLine(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiToastGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTooltipContent(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiChart(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiChartArea(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiChartAxis(Rask.Core.Component! __c0) -> void
@@ -1422,8 +1461,9 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiChartTooltipIndicator(R
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiChartTooltipValue(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiChartViewport(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiChartZeroLine(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiKanbanCard(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiKanbanColumnHeader(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiToastGroup(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTooltipContent(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiChart(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiChartArea(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiChartAxis(Rask.Core.Component! __c0, ulong __p) -> void
@@ -1449,10 +1489,16 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiChartTooltipIndicator
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiChartTooltipValue(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiChartViewport(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiChartZeroLine(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiKanbanCard(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiKanbanColumnHeader(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTooltipContent(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTooltipContent(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiToastGroup(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTooltipContent(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b, bool? value) -> Rask.UiLink!
+static RaskBuilderSettersRask_Ui.Actions(this Rask.UiKanbanColumnHeader! __b, Rask.Core.Component? value) -> Rask.UiKanbanColumnHeader!
+static RaskBuilderSettersRask_Ui.As(this Rask.UiKanbanCard! __b, Rask.Ui.KanbanCardAs? value) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.Align(this Rask.UiTooltip! __b, Rask.Ui.TooltipAlign? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.As(this Rask.UiLink! __b, Rask.Ui.LinkAs? value) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Axis(this Rask.UiChartAxis! __b, Rask.Ui.ChartAxisAxis? value) -> Rask.UiChartAxis!
@@ -1508,11 +1554,9 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiTooltipContent! __b, params S
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiTooltipContent! __b, string? value) -> Rask.UiTooltipContent!
 static RaskBuilderSettersRask_Ui.Color(this Rask.UiText! __b, Rask.Ui.Color? value) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.ColorField(this Rask.UiChartPie! __b, Rask.UiChartField? value) -> Rask.UiChartPie!
-static RaskBuilderSettersRask_Ui.Content(this Rask.UiTooltip! __b, string? value) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.Count(this Rask.UiKanbanColumnHeader! __b, int? value) -> Rask.UiKanbanColumnHeader!
 static RaskBuilderSettersRask_Ui.Curve(this Rask.UiChartArea! __b, Rask.Ui.ChartCurve? value) -> Rask.UiChartArea!
 static RaskBuilderSettersRask_Ui.Curve(this Rask.UiChartLine! __b, Rask.Ui.ChartCurve? value) -> Rask.UiChartLine!
-static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiTooltip! __b) -> Rask.UiTooltip!
-static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiTooltip! __b, bool? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Fallback(this Rask.UiChartSummaryValue! __b, string? value) -> Rask.UiChartSummaryValue!
 static RaskBuilderSettersRask_Ui.Field(this Rask.UiChartArea! __b, Rask.UiChartField? value) -> Rask.UiChartArea!
 static RaskBuilderSettersRask_Ui.Field(this Rask.UiChartAxis! __b, Rask.UiChartField? value) -> Rask.UiChartAxis!
@@ -1525,6 +1569,10 @@ static RaskBuilderSettersRask_Ui.Field(this Rask.UiChartSummaryValue! __b, Rask.
 static RaskBuilderSettersRask_Ui.Field(this Rask.UiChartTooltip! __b, Rask.UiChartField? value) -> Rask.UiChartTooltip!
 static RaskBuilderSettersRask_Ui.Field(this Rask.UiChartTooltipHeading! __b, Rask.UiChartField? value) -> Rask.UiChartTooltipHeading!
 static RaskBuilderSettersRask_Ui.Field(this Rask.UiChartTooltipValue! __b, Rask.UiChartField? value) -> Rask.UiChartTooltipValue!
+static RaskBuilderSettersRask_Ui.Footer(this Rask.UiKanbanCard! __b, Rask.Core.Component? value) -> Rask.UiKanbanCard!
+static RaskBuilderSettersRask_Ui.Content(this Rask.UiTooltip! __b, string? value) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiTooltip! __b) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiTooltip! __b, bool? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Format(this Rask.UiChartAxis! __b, Rask.UiChartFormat? value) -> Rask.UiChartAxis!
 static RaskBuilderSettersRask_Ui.Format(this Rask.UiChartAxisTick! __b, Rask.UiChartFormat? value) -> Rask.UiChartAxisTick!
 static RaskBuilderSettersRask_Ui.Format(this Rask.UiChartLegend! __b, Rask.UiChartFormat? value) -> Rask.UiChartLegend!
@@ -1544,12 +1592,14 @@ static RaskBuilderSettersRask_Ui.get_Blue(Rask.UiProgress! __b) -> Rask.UiProgre
 static RaskBuilderSettersRask_Ui.get_Blue(Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_Bottom(Rask.UiChartAxis! __b) -> Rask.UiChartAxis!
 static RaskBuilderSettersRask_Ui.get_Bottom(Rask.UiChartAxisMark! __b) -> Rask.UiChartAxisMark!
+static RaskBuilderSettersRask_Ui.get_Button(Rask.UiKanbanCard! __b) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiChartAxis! __b) -> Rask.UiChartAxis!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiChartAxisMark! __b) -> Rask.UiChartAxisMark!
+static RaskBuilderSettersRask_Ui.get_Div(Rask.UiKanbanCard! __b) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.get_Emerald(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Emerald(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Emerald(Rask.UiProgress! __b) -> Rask.UiProgress!
@@ -1653,6 +1703,9 @@ static RaskBuilderSettersRask_Ui.get_TopEnd(Rask.UiToastGroup! __b) -> Rask.UiTo
 static RaskBuilderSettersRask_Ui.get_TopStart(Rask.UiToast! __b) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.get_TopStart(Rask.UiToastGroup! __b) -> Rask.UiToastGroup!
 static RaskBuilderSettersRask_Ui.Gutter(this Rask.UiChartSvg! __b, string? value) -> Rask.UiChartSvg!
+static RaskBuilderSettersRask_Ui.Header(this Rask.UiKanbanCard! __b, Rask.Core.Component? value) -> Rask.UiKanbanCard!
+static RaskBuilderSettersRask_Ui.Heading(this Rask.UiKanbanCard! __b, string? value) -> Rask.UiKanbanCard!
+static RaskBuilderSettersRask_Ui.Heading(this Rask.UiKanbanColumnHeader! __b, string? value) -> Rask.UiKanbanColumnHeader!
 static RaskBuilderSettersRask_Ui.Height(this Rask.UiChartSvg! __b, double? value) -> Rask.UiChartSvg!
 static RaskBuilderSettersRask_Ui.Horizontal(this Rask.UiChart! __b) -> Rask.UiChart!
 static RaskBuilderSettersRask_Ui.Horizontal(this Rask.UiChart! __b, bool? value) -> Rask.UiChart!
@@ -1689,6 +1742,7 @@ static RaskBuilderSettersRask_Ui.StrokeWidth(this Rask.UiChartAxisMark! __b, dou
 static RaskBuilderSettersRask_Ui.StrokeWidth(this Rask.UiChartCursor! __b, double? value) -> Rask.UiChartCursor!
 static RaskBuilderSettersRask_Ui.StrokeWidth(this Rask.UiChartPoint! __b, double? value) -> Rask.UiChartPoint!
 static RaskBuilderSettersRask_Ui.StrokeWidth(this Rask.UiChartZeroLine! __b, double? value) -> Rask.UiChartZeroLine!
+static RaskBuilderSettersRask_Ui.Subheading(this Rask.UiKanbanColumnHeader! __b, string? value) -> Rask.UiKanbanColumnHeader!
 static RaskBuilderSettersRask_Ui.Suffix(this Rask.UiChartTooltipValue! __b, string? value) -> Rask.UiChartTooltipValue!
 static RaskBuilderSettersRask_Ui.TickCount(this Rask.UiChartAxis! __b, int? value) -> Rask.UiChartAxis!
 static RaskBuilderSettersRask_Ui.TickEnd(this Rask.UiChartAxis! __b, double? value) -> Rask.UiChartAxis!
