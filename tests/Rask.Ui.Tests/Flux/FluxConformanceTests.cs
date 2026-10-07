@@ -1,10 +1,11 @@
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 
 namespace Rask.UiTests.Flux;
 
 /// <summary>
-///     Every Rask.Ui component that mirrors a Flux UI component takes what Flux documents for it.
+///     Every Rask.Ui component that mirrors a Flux UI component takes what Flux documents for it, and nothing else.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -17,6 +18,11 @@ namespace Rask.UiTests.Flux;
 ///     What Flux says with a Livewire or Alpine attribute (<c>wire:model</c>, <c>x-on:click</c>) is said in
 ///     Rask with <c>Bind</c>/<c>Value</c> and a <c>Callback</c>, and is skipped by rule. Anything else that
 ///     does not translate is named in <see cref="NotTranslated" /> with the reason, one line each.
+///     </para>
+///     <para>
+///     And the other way round: a property a built component declares, or a member of a prop's enum, that
+///     Flux does not document fails too, unless <see cref="Translations" /> names what of Flux's it stands
+///     for. A new component adds rows to <see cref="Built" /> and, where it must, to that table; no code.
 ///     </para>
 /// </remarks>
 public sealed class FluxConformanceTests
@@ -73,6 +79,8 @@ public sealed class FluxConformanceTests
         ["flux:kanban.card"] = typeof(UiKanbanCard),
         ["flux:toast"] = typeof(UiToast),
         ["flux:toast.group"] = typeof(UiToastGroup),
+        ["flux:tooltip"] = typeof(UiTooltip),
+        ["flux:tooltip.content"] = typeof(UiTooltipContent),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -92,6 +100,42 @@ public sealed class FluxConformanceTests
         ["flux:kanban.column.header/badge"] = "No example on Flux's page draws it, so where it sits and how it looks cannot be measured; a badge of your own goes in as a child, beside the heading you write there.",
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
     };
+
+    /// <summary>
+    ///     <c>part/Member</c> or <c>part/Member=EnumMember</c> → what of Flux's that member is Rask's way of saying.
+    ///     The ONLY things a built component may carry that Flux's reference does not list. Not a place for a
+    ///     convenience: a row names something Flux HAS — a directive, a slot, an event, an attribute it forwards —
+    ///     or it is not a row.
+    /// </summary>
+    private static readonly Dictionary<string, string> Translations = new(StringComparer.Ordinal)
+    {
+        ["flux:label/For"] = "the `for` of the <label> that stands in for <ui-label>, which finds its control by script",
+        ["flux:error/For"] = "`name`, as the expression a Rask form binds by: Ui.Error.For(() => order.Email)",
+        ["flux:heading/Size=Xxl"] = "`2xl`: an identifier cannot start with a digit",
+        ["flux:link/Accent"] = "`:accent=\"false\"`, which Flux documents on its theming page and not in the link's reference",
+        ["flux:text/Color=Amber"] = "Ui.Color is one enum for every `color` prop; Flux's text reference lists the other sixteen hues",
+        ["flux:text/Color=Slate"] = "Ui.Color is one enum for every `color` prop; the text draws a neutral as Flux's `default`",
+        ["flux:text/Color=Gray"] = "as Slate",
+        ["flux:text/Color=Zinc"] = "as Slate",
+        ["flux:text/Color=Neutral"] = "as Slate",
+        ["flux:text/Color=Stone"] = "as Slate",
+        ["flux:icon.*/Name"] = "the `*` of `flux:icon.*`: which icon",
+        ["flux:callout/CustomIcon"] = "the `icon` slot; `Icon` is the prop of that name",
+        ["flux:callout.heading/CustomIcon"] = "the `icon` slot; `Icon` is the prop of that name",
+        ["flux:callout/Role"] = "an attribute Flux forwards to the root; the callout is not a UiElement, so it declares the one it takes",
+        ["flux:skeleton/Style"] = "an attribute Flux forwards to the root; the skeleton is not a UiElement, so it declares the one it takes",
+        ["flux:skeleton.line/Style"] = "as flux:skeleton",
+        ["flux:skeleton.group/Style"] = "as flux:skeleton",
+        ["flux:button/Inset=All"] = "the bare `inset` of Flux's own example: every side",
+        ["flux:badge/Inset=All"] = "Ui.Inset is the button's too, where it is the bare `inset`",
+        ["flux:button/Disabled"] = "the <button>'s own `disabled`, which Flux forwards",
+        ["flux:button/Command"] = "the <button>'s own `command`, which Flux forwards",
+        ["flux:button/CommandFor"] = "the <button>'s own `commandfor`, which Flux forwards",
+        ["flux:table.column/OnSort"] = "`wire:click=\"sort('…')\"` on a sortable column",
+    };
+
+    /// <summary>What every component takes, Flux's included: its classes, its identity, what is inside it.</summary>
+    private static readonly HashSet<string> Everywhere = new(StringComparer.Ordinal) { "Class", "Key", "Id", "Children" };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;
 
@@ -136,6 +180,35 @@ public sealed class FluxConformanceTests
         Assert.True(missing.Count == 0, "Flux documents these and Rask.Ui does not take them:\n  " + string.Join("\n  ", missing));
     }
 
+    [Fact]
+    public void A_built_component_carries_nothing_Flux_does_not_document()
+    {
+        var carried = new List<string>();
+
+        foreach (var (part, component) in Built)
+        {
+            // A part two pages document (flux:text, on the heading page too) takes what either says.
+            var props = Parts().Where(documented => documented.Name == part).SelectMany(documented => documented.Props).ToList();
+            foreach (var property in OwnProps(component))
+            {
+                var options = props.Where(prop => Same(prop.Name, property.Name)).Select(prop => prop.Options).ToList();
+                carried.AddRange(options.Count == 0 && !Slots(part).Any(slot => Same(slot, property.Name))
+                    ? [$"{part}/{property.Name}"]
+                    : OwnValues(property, [.. options.SelectMany(values => values)]).Select(value => $"{part}/{property.Name}={value}"));
+            }
+        }
+
+        var added = carried.Except(Translations.Keys, StringComparer.Ordinal).ToList();
+        var stale = Translations.Keys.Except(carried, StringComparer.Ordinal).ToList();
+        Assert.True(added.Count == 0,
+            "Rask.Ui carries these and Flux does not document them. Delete the member and convert its call sites. Only if it is "
+            + "how Rask says something Flux HAS (a directive, a slot, an event, an attribute it forwards), add a `Translations` "
+            + "row `part/Member` or `part/Member=EnumMember` that names it:\n  " + string.Join("\n  ", added));
+        Assert.True(stale.Count == 0,
+            "`Translations` explains these, and the component no longer carries them (or Flux documents them now). "
+            + "Delete the row:\n  " + string.Join("\n  ", stale));
+    }
+
     private static JsonDocument Snapshot { get; } = JsonDocument.Parse(File.ReadAllText(
         Path.Combine(RepoRoot.FullPath, "tests", "Rask.Ui.Tests", "Flux", "flux.snapshot.json")));
 
@@ -151,6 +224,37 @@ public sealed class FluxConformanceTests
                         ? options.EnumerateArray().Select(option => option.GetString()!).ToArray()
                         : [])).ToList()
                 : []);
+
+    // `<x-slot name="actions">`: a named slot is a property of that name, holding a component.
+    private static IEnumerable<string> Slots(string name) =>
+        from page in Snapshot.RootElement.GetProperty("pages").EnumerateArray()
+        from part in page.GetProperty("parts").EnumerateArray()
+        where part.GetProperty("name").GetString() == name && part.TryGetProperty("slots", out _)
+        from slot in part.GetProperty("slots").EnumerateArray()
+        select slot.GetProperty("name").GetString()!;
+
+    // What a call site can set and the component itself declares. What UiElement, Element and Component hand
+    // down is every component's: Flux forwards any HTML attribute to its root.
+    private static IEnumerable<PropertyInfo> OwnProps(Type component) =>
+        component.GetProperties(Public)
+            .Where(property => property.SetMethod is { IsPublic: true })
+            .Where(property => property.DeclaringType != typeof(UiElement) && property.DeclaringType!.Assembly != typeof(Rask.Core.Component).Assembly)
+            .Where(property => !Everywhere.Contains(property.Name));
+
+    // The members of a prop's enum that are not values Flux lists for it. The zero member is the unset prop,
+    // which an enum has to name and Flux often does not. A prop Flux lists no values for (`color`, `icon`) is
+    // not checked.
+    private static IEnumerable<string> OwnValues(PropertyInfo property, string[] options)
+    {
+        var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+        return type.IsEnum && options.Length > 0
+            ? Enum.GetNames(type).Where(member => !IsZero(type, member) && !options.Any(option => Same(option, member)))
+            : [];
+    }
+
+    private static bool IsZero(Type type, string member) => Convert.ToInt64(Enum.Parse(type, member), CultureInfo.InvariantCulture) == 0;
+
+    private static bool Same(string flux, string member) => string.Equals(Pascal(flux), member, StringComparison.OrdinalIgnoreCase);
 
     // wire:model, x-model, :accent — a framework directive rather than a prop of the component.
     private static bool IsDirective(string prop) =>

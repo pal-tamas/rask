@@ -321,6 +321,25 @@ them until tagged releases begin.
   break says `.Class("font-mono max-w-full break-all whitespace-normal!")`. The count badges of `Ui.NavItem` and `Ui.NavTab`, the label badge
   of a form field and the chips of a multi-select are drawn with it too, so the kit writes no `badge` class
   any more; an app that selected on `.badge` selects on `[data-ui-badge]`.
+- **BREAKING: `Ui.Tooltip` is Flux's tooltip, and its trigger is told about it.** One look (Flux's
+  zinc bubble, no tones, no arrow), Flux's props, and Flux's behaviour with no script: the content is a
+  `[popover]` on CSS anchor positioning that flips at the viewport's edge, opened by the browser's interest
+  invoker where the trigger is a button or a link and by `:hover`/`:focus-visible` everywhere else.
+  ```csharp
+  Ui.Tooltip.Tip("Copy").Position(Ui.Position.Right)[ … ]   // was
+  Ui.Tooltip.Content("Copy").Right[ … ]                     // now
+  ```
+  `Tip` → `Content` (optional: richer content is a `Ui.TooltipContent` child after the trigger).
+  `Position`/`Align` take the tooltip's own `Ui.TooltipPosition` (`Top` default, `Right`, `Bottom`, `Left`)
+  and `Ui.TooltipAlign` (`Center` default, `Start`, `End`) instead of the shared `Ui.Position`/`Ui.Align`.
+  `Tone` is gone — Flux's tooltip has one look. `Open` is gone — Flux has no forced-open tooltip; use
+  `Toggleable()`, which now opens on a CLICK (`popovertarget`) and closes on Escape or a click outside,
+  where it used to show on focus. New: `Gap`, `Offset`, `Disabled`, `Interactive`, and `Kbd` on
+  `Ui.TooltipContent`. The markup is new — `data-ui-tooltip` around the trigger, `data-ui-tooltip-content`
+  on the content — and `.tooltip`, `.tooltip-*` and `.ui-tooltip-toggleable` are no longer written.
+  **A screen reader now says it**: the trigger carries `aria-describedby` (or `aria-labelledby`, when it
+  has no text of its own), which the daisyUI tooltip never wrote. `docs/ui-kit.md#tooltips` lists the four
+  things Flux's script does that a script-less tooltip does not, and the runtime hook that would close them.
 
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
@@ -434,6 +453,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Rask.Wasm: a prerendered page links the one stylesheet its app compiles.** The prerender compiles the
+  app a second time, in `obj/`, and that copy's assembly did not say what the app's says: where the
+  stylesheet is served (`Rask.Stylesheet`) and that the UI kit is compiled into it (`Rask.Ui.Stylesheet`).
+  So every baked page of an app whose `Styles/app.css` imports the kit still linked `/css/rask-ui.css`,
+  which such an app does not ship — a 404 on first paint, gone once the app booted. The app's assembly
+  metadata travels to the prerender now.
 - **The daily upstream run can push what it regenerated when `main`'s workflows moved meanwhile (#1188).**
   Its branch was cut from the commit the run started on, and a branch whose workflow files differ from
   `main`'s is one the workflow's own token may not push. The regenerated commit is rebased onto `main`
@@ -492,6 +517,28 @@ them until tagged releases begin.
   Spectre switched interaction off behind it.
 
 ### Removed
+
+- **BREAKING: what the kit had added to Flux's components is gone.** A `Rask.Ui` component that mirrors a
+  Flux UI one carries Flux's props, values and attributes and no others, and a test now holds every built
+  component to that (`FluxConformanceTests`: a property or enum member Flux does not document fails unless
+  it is named as Rask's way of saying a Flux mechanism).
+  - `Ui.AccordionItem.OnToggle` is removed. Flux's accordion reports nothing back; `Expanded()` is the state
+    an item starts in.
+  - `Ui.Heading.Level(5)` and `Level(6)` render a `<div>`, as any level Flux does not take: Flux's heading
+    has levels 1 to 4. `Ui.CardHeading` and the kit's other titles are unchanged.
+  - `Ui.Card` writes `data-ui-card-size` only when a `Size` is set, as Flux writes `data-flux-card-size`.
+    A selector on `[data-ui-card-size="md"]` no longer matches a card that left the size unset.
+  - `Ui.Button.Loading(true)` no longer writes `aria-busy="true"`: Flux's loading button carries no ARIA.
+    It writes `data-ui-loading` (Flux's `data-flux-loading`) beside `data-loading`. The runtime still marks
+    a button waiting on its own handler with `data-loading` and `aria-busy`.
+  - `Ui.Button.NewTab` is removed. Flux's button has no such prop: forward the anchor's own attributes,
+    `.Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))`. Nothing is added to them, so a
+    `target` without the `rel` is written as given.
+  - `Ui.ButtonType.Reset` is removed: Flux's `type` is `button` or `submit`. A reset is the native tag,
+    `Button.Type(ButtonType.Reset)`.
+  - Markers mirror Flux's one for one: a button that is not ghost or subtle also writes
+    `data-ui-group-target`, a badge's leading icon writes `data-ui-badge-icon`, and
+    `data-ui-badge-icon-trailing` is now `data-ui-badge-icon:trailing`, as Flux spells it.
 
 - **BREAKING: `Notify` is gone; `Dispatcher` now works everywhere.** Two statics published an event, and which
   one worked depended on where the line stood: `Dispatcher.Publish` threw in a `BackgroundService`, and

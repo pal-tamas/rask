@@ -252,7 +252,7 @@ colours are generated for 3:1, not 4.5.
 
 ### The kit's own components are corrected the same way
 
-`Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
+The `link-*` tones render daisyUI classes, and
 daisyUI labels each tone with its own `-content` colour — generated for 3:1, so small text on them fails
 AA on between two and ten palettes per tone (`secondary` is 3.05:1 on daisyUI's own `dark`, `error`
 under AA on ten). The kit corrects them to the `-ink` fill with the ground as the label, in
@@ -260,8 +260,8 @@ under AA on ten). The kit corrects them to the `-ink` fill with the ground as th
 
 Two consequences worth knowing:
 
-- **It is all custom properties** (`--btn-color`, `--tt-bg`) except where daisyUI declares
-  `color` outright — alert, link, tooltip content. Those three therefore also outrank your own `text-*`
+- **It is all custom properties** (`--btn-color`) except where daisyUI declares
+  `color` outright — alert and link. Those two therefore also outrank your own `text-*`
   utility on those elements, because the corrections layer is appended after `utilities`.
 - **`checkbox-*`, `radio-*`, `toggle-*`, `range-*` and `progress-*` are deliberately untouched** — they
   carry no text, so WCAG asks 3:1 of them as non-text UI, and recolouring them would be a redesign.
@@ -320,7 +320,7 @@ Ui.ButtonGroup[Ui.Button["Oldest"], Ui.Button["Newest"], Ui.Button["Top"]]   // 
 | `Inset` | `Ui.Inset` flags — `Top`, `Bottom`, `Left`, `Right`, `All` — for a ghost or subtle button |
 | `Loading` | see [Buttons that wait](#buttons-that-wait) |
 | `Tooltip`, `TooltipPosition`, `TooltipKbd`, `Kbd` | a hint on hover and keyboard focus, and the shortcut shown in it |
-| `Href`, `NewTab` | see [Buttons and links that go somewhere](#buttons-and-links-that-go-somewhere) |
+| `Href` | see [Buttons and links that go somewhere](#buttons-and-links-that-go-somewhere) |
 | `As` | `Ui.ButtonAs.Div` for the look of a button on something that is not one |
 | `Type`, `Disabled`, `Command`, `CommandFor` | the `<button>`'s own attributes |
 
@@ -346,8 +346,7 @@ These are daisyUI's own words, deliberately. Translating them into a private voc
 thing this kit did and the first thing it stopped doing: daisyUI's documentation is the documentation
 for everything the components render, and a second set of words made every example a translation.
 
-Not every component honours every member — daisyUI defines no `input-outline`, and no `tooltip-neutral`
-— and **a member a component has no class for writes nothing**, rather than a class that would sit in
+Not every component honours every member — daisyUI defines no `input-outline` — and **a member a component has no class for writes nothing**, rather than a class that would sit in
 the markup looking as though it styled something.
 
 Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.ModalPosition`, `Ui.MaskShape`,
@@ -362,7 +361,7 @@ daisyUI composes them — a menu above its trigger, flush with the trigger's end
 
 ```csharp
 Ui.Dropdown.Trigger("Actions").Position(Ui.Position.Top).Align(Ui.Align.End)[ … ]
-Ui.Tooltip.Tip("Copy").Position(Ui.Position.Right)[ … ]
+Ui.Tooltip.Content("Copy").Right[ … ]   // Flux's own Ui.TooltipPosition / Ui.TooltipAlign — see Tooltips
 Ui.Tabs.Position(Ui.Position.Bottom)[ … ]
 Ui.Drawer.Id("nav").Panel(menu).Position(Ui.Position.Right)[ … ]
 Ui.Modal.Title("Details").Position(Ui.ModalPosition.End)[ … ]   // placed against the viewport, not a trigger
@@ -472,14 +471,8 @@ own `<details name>` group. Closed content is still in the document, so find-in-
 opens the item holding the match. A disabled heading leaves the tab order, takes no pointer and says
 `aria-disabled`.
 
-**To own an item from C#**, render it in a field and keep the field in step:
-
-```csharp
-Ui.AccordionItem.Heading("Advanced settings").Expanded(_advanced).OnToggle(open => _advanced = open)[ … ]
-```
-
-`OnToggle` runs after the browser has opened or closed the item, with the state it is now in — including when
-an exclusive accordion closes it because another item opened.
+`Expanded()` is the state an item starts in. As in Flux, the accordion reports nothing back: the browser
+owns which items are open.
 
 `Transition()` animates the height of the `<details>`' own content box (`::details-content`, with
 `interpolate-size`). A browser without those opens and closes at once, which is what an accordion without the
@@ -638,6 +631,63 @@ Dismissing is yours too: `Controls` places the button, and what pressing it does
 is the page's. `Id`, `Class` and `Role` land on the callout itself; `Ui.CalloutText` and `Ui.CalloutLink` are
 their elements and take every element step.
 
+## Tooltips
+
+`Ui.Tooltip` is [Flux's tooltip](https://fluxui.dev/components/tooltip): a line of help beside whatever it
+wraps, shown while that is hovered or has keyboard focus. Its first child is the trigger.
+
+```csharp
+Ui.Tooltip.Content("Settings")[Ui.Button.Icon(Ui.IconName.Cog6Tooth)]   // above, centred, 5px away
+
+Ui.Tooltip.Content("Settings").Right[ … ]            // .Top (default) .Right .Bottom .Left — Ui.TooltipPosition
+Ui.Tooltip.Content("Settings").Bottom.Start[ … ]     // .Center (default) .Start .End        — Ui.TooltipAlign
+Ui.Tooltip.Content("Save").Kbd("⌘S")[ … ]            // a shortcut after the text
+Ui.Tooltip.Content("Settings").Gap(12).Offset(20)[ … ]   // pixels: away from the trigger, and along its side
+Ui.Tooltip.Content("Settings").Disabled(!ready)[ … ]     // never shows
+
+// More than a line of text, and reachable on a phone: Toggleable opens it on a click.
+Ui.Tooltip.Toggleable()[
+    Ui.Button.Sm.Ghost.Icon(Ui.IconName.InformationCircle),
+    Ui.TooltipContent.Class("max-w-[20rem] space-y-2")[
+        P["For US businesses, enter your 9-digit Employer Identification Number (EIN) without hyphens."],
+        P["For European companies, enter your VAT number including the country prefix (e.g., DE123456789)."]
+    ]
+]
+```
+
+It looks and behaves as Flux's does — measured on fluxui.dev, in light and dark, by
+`scripts/flux/parity-tooltip.mjs`: zinc-800 with white 12px text (zinc-700 inside a hairline in dark), 5px
+from its trigger, no arrow, no shadow, no transition and **no delay**; it flips to the other side at the
+viewport's edge and slides along it to stay 5px inside; the pointer cannot rest on it; pressing the trigger
+hides it. One look — the daisyUI tones are gone.
+
+**It is announced.** The kit wires the trigger to the tooltip the way Flux's script does, at render: a trigger
+with text of its own gets `aria-describedby`, and one without — an icon button — gets `aria-labelledby`, so
+the tooltip is its name and it needs no `AccessibleLabel`. `Interactive()` says the content is more than a
+description: the trigger gets `aria-controls` instead and the content stays in the reading order. A
+`Toggleable()` tooltip is Flux's dropdown to a screen reader: its button gets `aria-controls` and
+`aria-haspopup`, and the content is no `role="tooltip"`. This needs the trigger to be ONE element — an HTML
+element (`Button[…]`, `A[…]`, `Span[…]`) or a kit component that is one, like `Ui.Button`. Around anything
+else nothing is wired, as Flux wires nothing but the trigger: use an element.
+
+**No script.** The content is a `[popover]` placed by CSS anchor positioning. What opens it depends on the
+trigger:
+
+| Trigger | Opened by | Top layer | Escape |
+| --- | --- | --- | --- |
+| a `<button>` or `<a>`, in an engine with interest invokers (Chromium, today) | the browser — `interestfor` | yes | dismisses it |
+| anything else: a `Span`, a disabled button, any engine without interest invokers | `:hover` and `:focus-visible` | no — an ancestor that clips or transforms can cut it off | does nothing |
+| `Toggleable()` around a `<button>` | the browser — `popovertarget`, a click | yes | closes it; so does a click outside |
+| `Toggleable()` around anything else | focus on the wrapper, which a tap gives it | no | does nothing |
+
+Four things Flux's script does are therefore not reproduced, and `parity-tooltip.mjs` lists them on every run
+rather than hiding them: Escape does not dismiss a tooltip shown by `:hover`/`:focus-visible`; a tooltip
+hidden by a press comes back when the press is released, where Flux keeps it away until the pointer returns;
+an interest-invoked tooltip goes when the pointer leaves even if the trigger still has focus; and
+`aria-expanded` is not written on an `Interactive()` or `Toggleable()` trigger (the browser reports it for
+`popovertarget` itself). All four close with one runtime hook the kit does not have yet — a `[data-ui-tooltip]` listener in
+`rask-dom.ts` that calls `showPopover()`/`hidePopover()` on pointer, focus, Escape and press for every trigger.
+
 ## Buttons and links that go somewhere
 
 Every kit component that goes somewhere takes a `RouteUrl`: `Ui.Button.Href`, `Ui.Link.Href`,
@@ -651,11 +701,12 @@ leaves the app wants.
 ```csharp
 Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]    // stays in the app
 Ui.Link.Href(Routes.ProductsPage())["Back to the list"]                   // stays in the app
-Ui.Button.Href("https://github.com/pal-tamas/rask").NewTab()["GitHub"]     // leaves it
+Ui.Button.Href("https://github.com/pal-tamas/rask")["GitHub"]              // leaves it
 ```
 
 A string that happens to name one of your own pages is still a string: it reloads the whole app to get
-there. Use the route. `NewTab(true)` is never intercepted, because the reader asked for another tab.
+there. Use the route. As in Flux, a new tab is the anchor's own attribute — `.Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))` —
+and the runtime never intercepts one, because the reader asked for another tab.
 
 ## Heading, text and link
 
@@ -675,7 +726,7 @@ Ui.Link.As(Ui.LinkAs.Button).OnClick(Save)["Create account →"] // a <button ty
 
 | Component | Props |
 | --- | --- |
-| `Ui.Heading` | `Size` — `Base` (14px), `Lg` (16px), `Xl` (24px), `Xxl` (36px, Flux's `2xl`); `Level` 1–6, a `<div>` without one; `Accent()` |
+| `Ui.Heading` | `Size` — `Base` (14px), `Lg` (16px), `Xl` (24px), `Xxl` (36px, Flux's `2xl`); `Level` 1–4 as in Flux, a `<div>` without one; `Accent()` |
 | `Ui.Text` | `Size` — `Sm`, `Default`, `Lg`, `Xl`; `Variant` — `Default`, `Strong`, `Subtle`; `Color` — a `Ui.Color` (Tailwind's hues), which wins over the variant; `Inline()` for a `<span>` |
 | `Ui.Link` | `Href` — a generated route navigates inside the app, a string is an ordinary link; `Variant` — `Default` (underlined), `Ghost` (underlined under the pointer), `Subtle`; `External()`; `As` — `A`, `Button`; `Accent(false)` to draw it in the page's ink |
 
@@ -876,7 +927,9 @@ Ui.Button.Loading(_exporting)["Export"]                            // work that 
 ```
 
 As in Flux, a button carries the spinner when it has something to wait on: an `OnClick`, `type="submit"`,
-or a `Loading` you set. `Loading(false)` tells the runtime to leave the button alone.
+or a `Loading` you set. `Loading(false)` tells the runtime to leave the button alone. `Loading(true)` writes
+`data-loading` and nothing else, as Flux's loading button does; `aria-busy` is the runtime's, for a wait it
+started.
 
 It is the **runtime** that marks the button, not script in the kit, because only the runtime knows when a
 dispatch starts and ends. So every `<button>` with a handler gets the same `data-loading` + `aria-busy`
@@ -895,7 +948,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
-| **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` |
+| **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
@@ -932,8 +985,8 @@ any kit dialog is open the page behind it does not scroll. The state-driven `Ope
 top layer, but it is not left without containment: it carries the runtime's `data-rask-focus-trap`, so focus
 moves in, Tab cycles inside, Escape runs `OnCancel` then `OnClose`, and focus returns when it closes.
 
-`Ui.Tooltip` takes `Kbd("⌘S")` to teach a shortcut where the reader is already looking, and `Toggleable(true)`
-to show on a tap — a touch screen has no hover, so an ordinary tooltip is never seen there.
+`Ui.Tooltip` is Flux's, and is the same idea one step further: the browser opens it too. See
+[Tooltips](#tooltips).
 
 **The browser owns the open state, C# owns the cursor.** `Ui.Dropdown` is a menu button over a `[popover]`
 menu: the browser opens and closes it — top layer, Escape, a click outside, focus back on the trigger — and
@@ -980,7 +1033,7 @@ Ui.Dropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
 redraw through the live diff.
 
 **The browser owns it, and tells the page.** A `Ui.AccordionItem` is a `<details>`: it opens with no handler at
-all, and `Expanded` with `OnToggle` is how a page keeps it in a field — see [Accordion](#accordion).
+all, and `Expanded` is only the state it starts in — see [Accordion](#accordion).
 
 **The markup owns it.** `Ui.Tab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
 survives a refresh and answers the back button. `Ui.Drawer` keeps its checkbox because daisyUI's rules are

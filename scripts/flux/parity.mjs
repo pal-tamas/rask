@@ -82,6 +82,9 @@ const NATIVE = {
   'ui-table-scroll-area': 'div', 'ui-disclosure-group': 'div', 'ui-disclosure': 'details',
   // Flux's pressable that is not a <button> (a kanban card): focusable, pressed with Enter and Space.
   'ui-button': 'button',
+  // The tooltip's wrapper: the kit wires the trigger at render and the browser shows the [popover].
+  // A toggleable tooltip is a <ui-dropdown> on Flux's page, under the tooltip's marker.
+  'ui-tooltip': 'div', 'ui-dropdown': 'div',
 };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
 const sameTag = (a, b) => (NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');

@@ -205,58 +205,102 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task An_open_tooltip_is_visible_without_a_hover() => RunAsync(async () =>
+    public Task A_tooltip_shows_beside_its_trigger_on_hover_and_names_an_icon_button() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenTooltipsAsync();
 
-        // The only way a touch user ever sees one. Asserted through the element daisyUI draws the
-        // bubble with, since the tip lives in an attribute rather than in text.
-        var open = Page.Locator("[data-testid='ui-tooltip'] .tooltip-open");
+        var tooltip = Page.Locator("[data-testid='ui-tooltip'] > [data-ui-tooltip]").First;
+        var trigger = tooltip.Locator("button");
+        var content = tooltip.Locator("[data-ui-tooltip-content]");
+        await Expect(content).ToBeHiddenAsync();
+        await trigger.HoverAsync();
 
-        await Expect(open).ToHaveCountAsync(1);
-        await Expect(open).ToHaveAttributeAsync("data-tip", "Always shown");
+        // Shown at once, above the trigger and centred on it, Flux's 5px away.
+        await Expect(content).ToBeVisibleAsync();
+        await Expect(content).ToHaveTextAsync("Settings");
+        var gap = await tooltip.EvaluateAsync<double[]>(
+            @"el => { const t = el.firstElementChild.getBoundingClientRect(), c = el.lastElementChild.getBoundingClientRect();
+                      return [t.top - c.bottom, (c.left + c.right) / 2 - (t.left + t.right) / 2]; }");
+        Assert.Equal(5, gap[0], 1);
+        Assert.Equal(0, gap[1], 1);
+
+        // The association is what a screen reader hears: with no text of its own, the button is named by it.
+        await Expect(trigger).ToHaveAttributeAsync("aria-labelledby", await content.GetAttributeAsync("id") ?? "");
+        await Expect(trigger).ToHaveAccessibleNameAsync("Settings");
+        await Expect(content).ToHaveAttributeAsync("role", "tooltip");
+
+        await Page.Mouse.MoveAsync(2, 2);
+        await Expect(content).ToBeHiddenAsync();
     });
 
     [Fact]
-    public Task A_tooltip_shows_on_a_tap_on_a_disabled_button_and_carries_its_shortcut() => RunAsync(async () =>
+    public Task A_tooltip_shows_on_keyboard_focus_and_Escape_dismisses_it() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenTooltipsAsync();
+
+        var tooltip = Page.Locator("[data-testid='ui-tooltip'] > [data-ui-tooltip]").First;
+        var content = tooltip.Locator("[data-ui-tooltip-content]");
+        // A key first, so the focus that follows is the keyboard's (:focus-visible).
+        await Page.Keyboard.PressAsync("Shift");
+        await tooltip.Locator("button").FocusAsync();
+
+        await Expect(content).ToBeVisibleAsync();
+
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(content).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task A_tooltip_opens_on_each_side_it_is_asked_for() => RunAsync(async () =>
+    {
+        await OpenTooltipsAsync();
+
+        var tooltips = Page.Locator("[data-testid='ui-tooltip-positions'] [data-ui-tooltip]");
+        const string Offset =
+            @"el => { const t = el.firstElementChild.getBoundingClientRect(), c = el.lastElementChild.getBoundingClientRect();
+                      return [Math.round(c.left - t.right), Math.round(c.top - t.bottom), Math.round(t.left - c.right), Math.round(t.top - c.bottom)]; }";
+
+        // right · below · left · above: the one that reads 5 is the side it opened on.
+        foreach (var (index, side) in new[] { (0, 3), (1, 0), (2, 1), (3, 2) })
+        {
+            await tooltips.Nth(index).Locator("button").HoverAsync();
+            await Expect(tooltips.Nth(index).Locator("[data-ui-tooltip-content]")).ToBeVisibleAsync();
+            Assert.Equal(5, (await tooltips.Nth(index).EvaluateAsync<int[]>(Offset))[side]);
+        }
+    });
+
+    [Fact]
+    public Task A_toggleable_tooltip_opens_on_a_click_a_disabled_button_still_explains_itself_and_a_shortcut_is_shown() => RunAsync(async () =>
+    {
+        await OpenTooltipsAsync();
 
         var scope = Page.Locator("[data-testid='ui-tooltip']");
 
-        // Toggleable: focus — which a tap gives the wrapper — is what shows it, measured on the pseudo-element
-        // daisyUI draws the bubble with.
-        var tap = scope.Locator(".ui-tooltip-toggleable");
-        const string BubbleOpacity = "el => getComputedStyle(el, '::before').opacity";
-        Assert.Equal("0", await tap.EvaluateAsync<string>(BubbleOpacity));
-        await tap.FocusAsync();
-        await OpacityReachesOneAsync(tap, BubbleOpacity);
+        // Toggleable: a tap is a click, and a hover is nothing — the only tooltip a phone ever shows.
+        var info = scope.Locator("[data-testid='ui-tooltip-info'] [data-ui-tooltip]");
+        var panel = info.Locator("[data-ui-tooltip-content]");
+        await info.Locator("button").HoverAsync();
+        await Expect(panel).ToBeHiddenAsync();
+        await info.Locator("button").ClickAsync();
+        await Expect(panel).ToBeVisibleAsync();
+        await Expect(panel.Locator("p")).ToHaveCountAsync(2);
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(panel).ToBeHiddenAsync();
 
-        // A disabled .btn takes no pointer events, so the hover lands on the wrapper and the tip still shows.
-        var disabled = scope.Locator(".tooltip", new LocatorLocatorOptions { Has = Page.Locator("button[disabled]") });
+        // A disabled button takes no pointer events, so the hover lands on the wrapper and the tip still shows.
+        var disabled = scope.Locator("[data-ui-tooltip]", new LocatorLocatorOptions { Has = Page.Locator("button[disabled]") });
         await disabled.HoverAsync();
-        await OpacityReachesOneAsync(disabled, BubbleOpacity);
+        await Expect(disabled.Locator("[data-ui-tooltip-content]")).ToBeVisibleAsync();
 
-        // The shortcut is a real <kbd> inside the tip.
-        await Expect(scope.Locator(".tooltip-content[role='tooltip'] kbd")).ToHaveTextAsync("⌘S");
+        // The shortcut follows the text, in the tooltip.
+        await Expect(scope.Locator("[data-ui-tooltip-content] span")).ToHaveTextAsync("⌘S");
     });
 
-    // The bubble fades in over daisyUI's 200 ms transition, so the computed opacity is polled rather than read once.
-    private static async Task OpacityReachesOneAsync(ILocator tooltip, string read)
+    // Mid-viewport, so a tooltip has room on the side it was asked for and does not flip.
+    private async Task OpenTooltipsAsync()
     {
-        var last = "";
-        for (var i = 0; i < 50; i++)
-        {
-            last = await tooltip.EvaluateAsync<string>(read);
-            if (last == "1")
-            {
-                return;
-            }
-
-            await Task.Delay(100);
-        }
-
-        Assert.Fail($"the tooltip bubble never became visible (opacity {last}).");
+        await OpenAsync();
+        await Page.Locator("[data-testid='ui-tooltip']").EvaluateAsync("el => el.scrollIntoView({ block: 'center' })");
     }
 
     private async Task OpenAsync()

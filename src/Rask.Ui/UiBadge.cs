@@ -26,6 +26,9 @@ public sealed partial class UiBadge : UiElement
 {
     private static readonly UiPartMarker Marker = new("ui-badge");
 
+    // Flux's `data-flux-badge-icon`, beside the icon's own marks.
+    private static readonly Dictionary<string, string?> LeadingIcon = UiIcon.MarksWith("data-ui-badge-icon");
+
     /// <summary>Its colour. Unset, zinc.</summary>
     public Ui.Color? Color { get; set; }
 
@@ -96,7 +99,7 @@ public sealed partial class UiBadge : UiElement
         var variant = IconVariant ?? Ui.IconVariant.Micro;
         if (Icon is { } icon)
         {
-            yield return Ui.Icon.Name(icon).Variant(variant).Class(Size == Ui.BadgeSize.Lg ? "me-2" : "me-1.5");
+            yield return UiIcon.Marked(LeadingIcon, icon, variant, Size == Ui.BadgeSize.Lg ? "me-2" : "me-1.5");
         }
 
         foreach (var child in content ?? [])
@@ -106,7 +109,7 @@ public sealed partial class UiBadge : UiElement
 
         if (IconTrailing is { } trailing)
         {
-            yield return Div.Class("flex items-center ps-1").Data("ui-badge-icon-trailing", null)[Ui.Icon.Name(trailing).Variant(variant)];
+            yield return Div.Class("flex items-center ps-1").Data("ui-badge-icon:trailing", null)[Ui.Icon.Name(trailing).Variant(variant)];
         }
     }
 

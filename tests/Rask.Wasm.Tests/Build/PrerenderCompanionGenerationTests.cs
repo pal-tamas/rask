@@ -61,6 +61,12 @@ public class PrerenderCompanionGenerationTests : IDisposable
                 <AdditionalFiles Include="Features/Demo.css"/>
                 <AdditionalFiles Include="Features/Other.json"/>
               </ItemGroup>
+              <Target Name="AnnounceTheStylesheet" BeforeTargets="GetAssemblyAttributes">
+                <ItemGroup>
+                  <AssemblyMetadata Include="Rask.Stylesheet" Value="css/app.css"/>
+                  <AssemblyMetadata Include="Rask.Ui.Stylesheet" Value="compiled-in"/>
+                </ItemGroup>
+              </Target>
               <Import Project="{Path.Combine(SrcDir, "Rask.Wasm", "build", "Rask.Wasm.Prerender.targets")}"/>
             </Project>
             """);
@@ -247,6 +253,21 @@ public class PrerenderCompanionGenerationTests : IDisposable
             StringComparison.Ordinal));
 
         Assert.DoesNotContain("<_RaskScopedTs Include=", await Generate(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_apps_assembly_metadata_reaches_the_companion()
+    {
+        // The host decides what the document links from the App's ASSEMBLY: Rask.Tailwind announces where
+        // the app's sheet is served, and Rask.Ui that the kit is compiled into it — both from targets that
+        // look at the app's Styles/app.css and hook GetAssemblyAttributes, as the fixture's does. The
+        // companion has no such file, so its assembly said neither, and every baked page of an app with
+        // ONE stylesheet still linked the kit's precompiled /css/rask-ui.css, which that app does not
+        // ship: a 404 on first paint, in the published site, with the booted app linking correctly.
+        var project = await Generate();
+
+        Assert.Equal(1, Occurrences(project, "<AssemblyMetadata Include=\"Rask.Ui.Stylesheet\" Value=\"compiled-in\" />"));
+        Assert.Equal(1, Occurrences(project, "<AssemblyMetadata Include=\"Rask.Stylesheet\" Value=\"css/app.css\" />"));
     }
 
     [Fact]

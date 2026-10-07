@@ -23,7 +23,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         foreach (var id in new[]
                  {
-                     "ui-badge", "ui-card", "ui-kanban", "ui-accordion", "ui-accordion-owned", "ui-aura", "ui-text-rotate", "ui-hover-3d",
+                     "ui-badge", "ui-card", "ui-kanban", "ui-accordion", "ui-aura", "ui-text-rotate", "ui-hover-3d",
                      "ui-hover-gallery", "ui-console-pieces", "ui-chart", "ui-table", "ui-display-rest",
                  })
         {
@@ -178,27 +178,6 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         Assert.StartsWith("height, content-visibility, overflow | 0.25s, 0.25s, 0s | cubic-bezier(0.4, 0, 0.2, 1)", slot, StringComparison.Ordinal);
         Assert.True(midway > closed + 1 && midway < open - 1, $"100ms in, the item was {midway}px between {closed}px and {open}px");
-    });
-
-    [Fact]
-    public Task The_page_opens_and_closes_the_item_it_owns_from_CSharp() => RunAsync(async () =>
-    {
-        await OpenAsync();
-        var scope = Page.Locator("[data-testid='ui-accordion-owned']");
-        var state = Page.Locator("[data-testid='ui-accordion-state']");
-        var body = scope.GetByText("Nothing in here is required.");
-        await Expect(state).ToContainTextAsync("closed");
-
-        // From C#: a button that only flips a field.
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open it from C#" }).ClickAsync();
-        await Expect(body).ToBeVisibleAsync();
-        await Expect(state).ToContainTextAsync("open");
-
-        // From the browser: the page hears the toggle and keeps the field in step.
-        await Heading(scope, "Advanced settings").ClickAsync();
-        await Expect(state).ToContainTextAsync("closed");
-        await Expect(body).ToBeHiddenAsync();
-        await Expect(scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open it from C#" })).ToBeVisibleAsync();
     });
 
     // TheRotatorShowsEveryWordInTheMarkup moved DOWN to Rask.UiTests.Components.UiTextRotateTests.
