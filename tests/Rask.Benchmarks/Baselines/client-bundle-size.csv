@@ -1,5 +1,10 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify).
 #
+# Refreshed 2026-10-07 with Flux's menus (the menu block of rask-dom.ts: roving focus that follows
+# `data-active`, Enter / Space on the focused row, focus handed back after a press outside, the context menu
+# fitted by where it landed and its position kept in a constructable sheet): rask.js 113,805 -> 115,251 and
+# rask.wasm.js 102,721 -> 104,167, +1,446 bytes each.
+#
 # Refreshed 2026-10-07 with the behaviour hooks (rask-hooks.ts and its ten modules: tooltip and hover popovers,
 # overlay focus and modal dialogs, the page lock, menus, fields, otp cells, toast groups, persisted checkboxes,
 # the carousel): rask.js 90,270 -> 113,805 and rask.wasm.js 79,250 -> 102,721, +23.5 kB each (gzip -9:
@@ -53,5 +58,5 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,113805
-rask.wasm.js,102721
+rask.js,115251
+rask.wasm.js,104167
