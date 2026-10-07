@@ -19,6 +19,7 @@
 // Usage:  node scripts/flux/sync.mjs              # everything
 //         node scripts/flux/sync.mjs button card  # these pages only (the lock keeps the others)
 //         node scripts/flux/sync.mjs --baseline   # lock every look as this platform measures it
+//         node scripts/flux/sync.mjs --comparable # exit 0 when the lock was taken here, by this code
 // Exit:   0 nothing moved · 2 something did · 1 it could not tell
 
 import { createHash } from 'node:crypto';
@@ -32,12 +33,24 @@ const flux = join(root, 'tests', 'Rask.Ui.Tests', 'Flux');
 const snapshotFile = join(flux, 'flux.snapshot.json');
 const lockFile = join(flux, 'flux.lock.json');
 const UNSTABLE = 'unstable';
+// A print is only as good as the code that took it: a change to how a page is measured moves every
+// look it touches, and that is not Flux moving. The lock names the code, and is retaken when it changes.
+const measuredWith = createHash('sha256')
+  .update(await readFile(join(root, 'scripts', 'flux', 'lib.mjs')))
+  .update(await readFile(join(root, 'scripts', 'flux', 'sync.mjs')))
+  .digest('hex').slice(0, 16);
 const baseline = process.argv.includes('--baseline');
-const only = process.argv.slice(2).filter(arg => arg !== '--baseline');
+const only = process.argv.slice(2).filter(arg => !arg.startsWith('--'));
 if (baseline && only.length) {
   console.error('flux sync: --baseline locks every page on this platform, so it takes no page filter.');
   process.exit(1);
 }
+
+const lock = existsSync(lockFile) ? JSON.parse(await readFile(lockFile, 'utf8')) : { release: '', pages: {} };
+const lockedOn = lock.measuredOn ?? 'another platform';
+const comparable = lock.measuredOn === process.platform && lock.measuredWith === measuredWith;
+if (process.argv.includes('--comparable')) process.exit(comparable ? 0 : 1);
+const compare = !baseline && comparable;
 
 const before = existsSync(snapshotFile) ? await readFile(snapshotFile, 'utf8') : '';
 execFileSync(process.execPath, [join(root, 'scripts', 'flux', 'refresh.mjs')], { stdio: 'inherit' });
@@ -46,9 +59,6 @@ const moved = [];   // the report: a line per catalogue or release move, and ONE
 const detail = [];  // every example behind those pages — printed above the report, for the log
 if (before && before !== JSON.stringify(snapshot, null, 2) + '\n') moved.push(...catalogueChanges(JSON.parse(before), snapshot));
 
-const lock = existsSync(lockFile) ? JSON.parse(await readFile(lockFile, 'utf8')) : { release: '', pages: {} };
-const lockedOn = lock.measuredOn ?? 'another platform';
-const compare = !baseline && lock.measuredOn === process.platform;
 const release = await latestRelease();
 if (release && release !== lock.release) {
   if (lock.release) moved.push(`release: ${lock.release} -> ${release}`);
@@ -69,12 +79,12 @@ for (const page of snapshot.pages.filter(p => only.length === 0 || only.includes
 }
 
 await browser.close();
-if (baseline) lock.measuredOn = process.platform;
-await writeFile(lockFile, JSON.stringify({ release: lock.release, measuredOn: lock.measuredOn, pages: lock.pages }, null, 1) + '\n');
+if (baseline) Object.assign(lock, { measuredOn: process.platform, measuredWith });
+await writeFile(lockFile, JSON.stringify({ release: lock.release, measuredOn: lock.measuredOn, measuredWith: lock.measuredWith, pages: lock.pages }, null, 1) + '\n');
 
 if (detail.length) console.log(`\nflux sync: every example that moved:\n  ${detail.join('\n  ')}`);
 if (baseline) console.log(`\nflux sync: looks baselined on ${process.platform} (were locked on ${lockedOn}).`);
-else if (!compare) console.log(`\nflux sync: looks are locked on ${lockedOn}; this is ${process.platform}, so they were measured but not compared.`);
+else if (!compare) console.log(`\nflux sync: looks are locked on ${lockedOn}${lock.measuredOn === process.platform ? ' by other measuring code' : `; this is ${process.platform}`}, so they were measured but not compared.`);
 console.log(moved.length
   ? `\nflux sync: Flux moved in ${moved.length} place(s):\n  ${moved.join('\n  ')}`
   : `\nflux sync: ${compare ? 'Flux is where Rask.Ui last matched it' : 'the catalogue and the release are where Rask.Ui last matched them'}.`);
