@@ -46,6 +46,7 @@ export function reviveScript(node: Node): Node {
 
 import {ignoresFormattingText, isElement, isFormattingText} from "./rask-dom-path.js";
 import {runtimeOwnsAttr} from "./rask-loading.js";
+import {ownsAttr, ownsChecked} from "./rask-owned.js";
 
 // An attribute the BROWSER wrote, and a render never will, so a render that does not carry it says nothing
 // about it. `open` on a dialog shown with showModal() — an invoker command, Ui.Modal's popover path — is the
@@ -536,12 +537,15 @@ export function morph(fromNode: Node, toNode: Node): void {
         const name = fa[i].name;
         // A loading mark the runtime stamped while a dispatch is in flight is not in any render, so the
         // render that dispatch itself caused would otherwise strip the spinner mid-wait (rask-loading.ts).
-        if (!to.hasAttribute(name) && !runtimeOwnsAttr(from, name) && !browserOwnsAttr(from, name)) {
+        if (!to.hasAttribute(name) && !runtimeOwnsAttr(from, name) && !browserOwnsAttr(from, name)
+            && !ownsAttr(from, name)) {
             from.removeAttribute(name);
         }
     }
+    // An attribute a behaviour hook holds (rask-owned.ts) is not rewritten either: a rendered
+    // aria-expanded="false" must not land on the trigger of a tooltip that is still showing.
     for (const a of ta) {
-        if (from.getAttribute(a.name) !== a.value) from.setAttribute(a.name, a.value);
+        if (from.getAttribute(a.name) !== a.value && !ownsAttr(from, a.name)) from.setAttribute(a.name, a.value);
     }
     const tag = from.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") {
@@ -577,7 +581,10 @@ export function morph(fromNode: Node, toNode: Node): void {
             // state to reconcile, which is what the tag test below states.
             if (tag === "INPUT") {
                 const fromInput = fromField as HTMLInputElement;
-                if (!raskShouldSuppressChecked(from, checked) && fromInput.checked !== checked) {
+                // A checkbox whose state is the reader's, kept in storage (data-rask-persist), is not the
+                // render's to reset: the server never knew which way it was left.
+                if (!raskShouldSuppressChecked(from, checked) && fromInput.checked !== checked
+                    && !ownsChecked(from)) {
                     fromInput.checked = checked;
                 }
             }

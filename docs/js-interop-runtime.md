@@ -298,3 +298,86 @@ explicit, mark it yourself — the reconciler never touches a head child carryin
 // node out explicitly (e.g. one present before the app's first render).
 styleEl.setAttribute("data-rask-managed", "");
 ```
+
+---
+
+## Behaviour hooks (`data-rask-*`)
+
+Some behaviour can be written neither as a render (which only writes attributes) nor as a handler (which runs a
+round trip later, after the gesture is gone): showing a popover under the pointer, writing the clipboard,
+keeping a caret in place. For those the runtime carries small generic hooks. An element asks for one by carrying
+an attribute; every hook is a delegated listener on the document, so a page that uses none of them pays for none.
+[Rask UI](ui-kit.md) is built on them, and they are just as usable from your own markup:
+`Div.Data("rask-tooltip", "tip-1")[…]`.
+
+They live in `src/Rask.Core/Resources/rask-hooks.ts` (one module per concern) beside the older ones in
+`rask-dom.ts` — `data-rask-dismiss`, `data-rask-dismiss-after`, `data-rask-focus-trap`, `data-rask-popover-open`,
+`data-rask-dropzone`, `data-rask-shortcut`, `data-rask-contextmenu`.
+
+### Pointer-opened popovers
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| `data-rask-tooltip="<popover id>"` | the element wrapping a trigger and its `popover="manual"` bubble | Shows the bubble in the pointer's own task when it enters the wrapper and hides it when it leaves; shows it on keyboard focus (`:focus-visible`) and keeps it while that focus lasts; Escape hides it; a press on the trigger hides it until the pointer has left and come back. The element inside carrying `aria-expanded` has it kept true or false. Any element can be the trigger — the bubble reaches the top layer. A touch never hovers. |
+| `data-rask-hover="<popover id>"` | the element wrapping a trigger and its panel | Opens the panel while the pointer is over the wrapper (trigger or panel) and closes it over neither — the pixels between them included. A press on the trigger's own `popovertarget` button leaves it open; Enter opens it the platform's way; focus alone does not. |
+| `data-rask-hover-if="<selector>"` | the same element | The hover opens only while the element matches the selector — a rail item that opens its menu only while the sidebar is collapsed: `"input:checked ~ *"`. |
+
+### Popovers, dialogs and the page behind them
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| *(none)* | any `popover` / `popover="auto"` | When focus leaves an open one for anything but its own `popovertarget` button it closes; when a press outside closed it and focus is on `<body>`, focus goes to that button. A `popover="manual"` is left alone. |
+| `data-rask-modal-open="true"` \| `"false"` | a `<dialog>` | `showModal()` / `close()` to match, when the attribute changes or the dialog arrives — a real modal with a `::backdrop`, where a rendered `open` is not. Removing the attribute closes it too. The dialog's own `close` and `cancel` events fire as usual. |
+| `data-rask-modal="any"` \| `"press"` \| `"escape"` \| `"none"` | a `<dialog>` | How a reader dismisses it: Escape and a press outside, a press outside only, Escape only, neither. A press outside fires a cancelable `cancel`, then closes. With no value the dialog is the platform's. |
+| `data-open` *(written)* | a dialog carrying either attribute above | Present while the dialog is shown, however it was opened or closed. |
+| `command` / `commandfor` | a `<button>` | Where the engine has no invoker commands: `show-modal`, `close`, `request-close`, and the popover three. |
+| `data-rask-lock` \| `data-rask-lock="scroll"` | a popover or dialog | While it is open `<html>` does not scroll, keeps its scrollbar gutter and — unless `"scroll"` — takes no pointer; the overlay itself stays usable. Counted, so two open overlays, one removed by a render, and a navigation all end unlocked. |
+
+### Menus
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| `data-rask-menu-pointer` | a `[role=menu]` | The row under the pointer gets `data-active` at once and every other row of that menu loses it; none has it once the pointer leaves the menu. Move your own cursor from the row's `OnPointerEnter` and the render agrees with what is already on screen. |
+| `data-rask-safe-area="<flyout id>"` | a row that opens a submenu | While the flyout is showing, the triangle between the pointer and the flyout's near edge belongs to the row, so the diagonal towards the flyout does not touch the rows it crosses. |
+
+### Fields
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| `data-rask-copy="<id>"` | a button | Copies that element's value (or text) in the click itself, then carries `data-copied` for 2 s. |
+| `data-rask-clear="<id>"` | a button | Empties that field, fires `input` and `change` on it, and focuses it. |
+| `data-rask-focus="<id>"` | any element | Focuses that element after a click. |
+| `data-rask-mask="(999) 999-9999"` | an `<input>` | Shapes what is typed: `9` a digit, `a` a letter, `*` either, anything else itself. The handler receives the shaped value; the caret stays where the reader was typing. |
+| `data-rask-mask-money` \| `=".,2"` | an `<input>` | Groups an amount: decimal mark, thousands mark, decimals. |
+| `role="switch"` | an `<input type="checkbox">` | Enter toggles it, as Space does. |
+| `data-rask-big-step="<n>"` | an `<input type="range">` | Shift+Arrow and PageUp / PageDown move by `n`, firing `input` then `change`. |
+| `data-rask-listbox-button` | a `button[role=combobox]` | While `aria-expanded` is not `true`, Enter does not press it and ArrowUp / ArrowDown do not scroll the page. |
+| `data-rask-otp` \| `="alpha"` \| `="alphanumeric"` | the group around one-character inputs | The cells behave as one field: a character moves on, Backspace walks back, deleting closes up to the left, the arrows stop at the first empty cell, a paste fills from the first. Render the cells with no `value` and no handler, and bind ONE `<input type="hidden">` inside the group: the runtime keeps it equal to the code and fires `input` and `change` on it, and refills the cells when you change its value. |
+
+### Toasts
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| `data-rask-dismiss-hold="pointer"` | an element with `data-rask-dismiss-after` | Only the pointer holds its countdown; focus inside it does not. |
+| `data-rask-dismiss-scope` | an ancestor of several | The pointer anywhere over it holds every countdown inside, and they run on from where they stopped. |
+| `data-rask-stack` | the element whose children are stacked | Each child gets `--rask-stack-index` (0 at the front, the last child), `--rask-stack-height` and `--rask-stack-offset` (the heights in front of it) in its style, measured again when a child joins or leaves — what a transition needs to glide a stack open. |
+
+### State the reader owns
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| `data-rask-persist="<key>"` | a checkbox | Checked as the reader last left it, from `localStorage[key]` (`"true"` / `"false"`), and stored on every change; a render no longer resets it. The runtime restores it when it loads — in a WebAssembly app that is after boot, so a page that must not flash restores the same key from a script of its own in `<head>`. |
+| `data-rask-uncheck-on-navigate` | a checkbox | Unchecked (with a `change` event) when the app navigates to another path. |
+
+### Carousels
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| `data-rask-carousel` | the root | On a scroll of its `[data-rask-carousel-track]` and on a resize: `data-at-start` / `data-at-end` on the root and on every `[data-direction]` wrapper, `disabled` on each wrapper's button, `data-selected` on the slide nearest the start and on its button in `[data-rask-carousel-indicators]` (with `aria-current="true"`). A press on a `[data-direction="next" \| "previous"]` button scrolls a slide; on an indicator, to that slide. |
+| `data-advance="page"`, `data-wrap="rewind"`, `data-scroll="instant"` | the root | Move by the slides in view; go back to the first from the end; do not animate. |
+| `data-autoplay="<ms>"` | the root | Advances on that interval and rewinds at the end; stops under the pointer and never starts under `prefers-reduced-motion`. |
+| `data-rask-carousel-controls` + `data-name` | an element outside the root | Its wrappers and indicators drive the root with the same `data-name`. |
+
+**A hook that writes an attribute holds it against the morph** (`rask-owned.ts`): `data-open`, `data-copied`, a tooltip's
+`aria-expanded` and a carousel's `disabled` are not what the page rendered, and a re-render neither strips them
+nor puts the rendered value back over them.

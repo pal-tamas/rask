@@ -212,10 +212,11 @@ internal sealed partial class DevCommand(
             ? environment
             : Overlay(environment, [new(DevStatusEnvironmentVariable, status.Url)]);
 
-        // The islands' Vite dev server, beside the host. Its own token, so the host exiting takes it with
-        // it — a Vite left listening after `rask dev` returns is picked up by the NEXT session, which then
-        // serves stale islands against a new server and looks like a Rask bug.
+        // The bundler's dev server, beside the host. Its own token, so the host exiting takes it with it —
+        // a Vite left listening on 5173 after `rask dev` returns is picked up by the NEXT session, which
+        // then serves a stale client against a new server and looks like a Rask bug.
         using var clientTokens = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var client = StartClientDevServer(target, clientTokens.Token);
         var islands = once ? Task.CompletedTask : StartIslandDevServer(target, clientTokens.Token);
 
         var exit = status is null
@@ -228,10 +229,17 @@ internal sealed partial class DevCommand(
                 .ConfigureAwait(false);
 
         await clientTokens.CancelAsync().ConfigureAwait(false);
+        await client.ConfigureAwait(false);
         await islands.ConfigureAwait(false);
         await opening.ConfigureAwait(false);
         return exit;
     }
+
+    /// <summary>
+    ///     Where Vite listens by default, for a scaffold too old to have baked the real answer into its
+    ///     csproj. Not probed from the running bundler, which is not up yet when this is decided.
+    /// </summary>
+    internal const string ViteDevServerUrl = LocalDevServers.Vite;
 
     private void WriteBanner(
         DevTarget target,
@@ -281,6 +289,7 @@ internal sealed partial class DevCommand(
     {
         DevTemplateKind.Server => "server",
         DevTemplateKind.WasmHosted => "wasm-hosted",
+        DevTemplateKind.SpaHosted => "spa",
         DevTemplateKind.WasmStandalone => "wasm",
         _ => "app"
     };

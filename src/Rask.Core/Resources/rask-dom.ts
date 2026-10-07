@@ -1195,11 +1195,27 @@ export function applyFrameInvokes(
             state.left = Math.max(0, state.left - (Date.now() - state.since));
         };
 
+        // Runs on only when nothing is holding it any more: the pointer may still be over the toast when focus
+        // leaves it, or over the [data-rask-dismiss-scope] around it (rask-toast.ts), which holds every toast
+        // inside and says so with rask-hold / rask-release.
+        const resume = function () {
+            if (!el.matches(":hover") && !el.closest("[data-rask-dismiss-scope]:hover")) {
+                start();
+            }
+        };
         el.addEventListener("pointerenter", pause);
-        el.addEventListener("pointerleave", start);
-        el.addEventListener("focusin", pause);
-        el.addEventListener("focusout", start);
-        start();
+        el.addEventListener("pointerleave", resume);
+        // data-rask-dismiss-hold="pointer": only the pointer holds the countdown, focus inside does not —
+        // Flux UI's toast runs out with its close button focused.
+        el.addEventListener("focusin", function () {
+            if (el.getAttribute("data-rask-dismiss-hold") !== "pointer") {
+                pause();
+            }
+        });
+        el.addEventListener("focusout", resume);
+        el.addEventListener("rask-hold", pause);
+        el.addEventListener("rask-release", resume);
+        resume();
     }
 
     function scan(root: Node): void {

@@ -140,7 +140,7 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip dropdown context` today, plus the open-state scripts
+card accordion callout button toast badge tooltip kanban dropdown context` today, plus the open-state scripts
 `parity-toast.mjs`, `parity-tooltip.mjs` and `parity-menu.mjs dropdown|context`).
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
@@ -164,7 +164,8 @@ card accordion callout button toast badge tooltip dropdown context` today, plus 
 - **A colour the docs page hands a component by class** and that must lose to the component's own hover
   (`text-zinc-300` on the header's subtle button): `.parity-x:not(:hover){…}` on the page, and
   `not-hover:text-zinc-300` in an app.
-- **Not differences:** `NATIVE` tag pairs (and `button`→`summary`); the colour of a border 0px wide on
+- **Not differences:** `NATIVE` tag pairs (and `button`→`summary`; `ui-button`, Flux's pressable that is not a
+  `<button>`, pairs with one); the colour of a border 0px wide on
   both sides, or of an outline with `outline-style:none` on both, at rest and in a forced state; the
   offset of a node with no box (`display:none` itself or above it, or 0×0 on both sides); `oklch(… none)`
   ≡ `oklch(… 0)`; a forced state where only one side measured the node (60 per example), or on a node
@@ -244,6 +245,14 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `flux.snapshot.json`, so the conformance gate does not see them. `Ui.Profile` is still the daisy-drawn row
   around the new dropdown (its `Open`/`OnToggle`/`KeepOpen` forward), until the navigation branch brings
   Flux's. `Ui.Command` draws its rows the old way through `UiCommandRows` until it is rebuilt.
+  The generic hooks in the table above EXIST and the menu components do NOT write them yet: no
+  `data-rask-menu-pointer` (a row is lit by `:hover` AND `data-active`, so two can be lit at once), no
+  `data-rask-safe-area` (the safe triangle is the CSS wedge in `ui.css`), no `data-rask-hover` (so
+  `flux:dropdown/hover` stays in `NotTranslated`), no `data-rask-lock` (the page lock is the `:root:has(…)`
+  rule in `ui.css`). The menu block in `rask-dom.ts` stays beside them: its focusout / toggle handlers are
+  idempotent with the hooks'. Wiring them is the next step, and then that CSS and the block's overlap go.
+  The context hook keeps the pointer's position in a constructable stylesheet (`:root{--rask-context-x/-y}`),
+  not in `<html>`'s style attribute, which the WASM host's takeover morph of a prerendered page strips.
 - Tooltip: daisyUI's own is kept out of the sheet by `exclude: … tooltip` on the `@plugin` line in `ui.css`
   (the bare word stands in the kit's comments; `UiTooltipTests` asserts the absence) — the way to drop a
   daisy component whose name the kit still has to say. A `Toggleable()` tooltip around something that is
@@ -252,6 +261,13 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   wrapper's `role="group"` + `aria-describedby` around a trigger that is not one element (Flux wires only
   the trigger; nothing is wired there now). Added because Flux writes them: `aria-haspopup="true"` on a
   toggleable trigger, and `role="tooltip"` on an `Interactive()` tooltip's content.
+- Kanban: Flux's page shows NO drag, drop or keyboard reordering (no `draggable`, no sort attribute, nothing
+  moves under a pointer drag), so the kit has none and needs no hook. `flux:kanban.column.header`'s `badge`
+  prop is `NotTranslated`: no example draws it. Unmeasured for the same reason, and built on the plain
+  reading of the Reference: where a header's or card's children go, and a `Count` of 0 (drawn). Flux marks its
+  div card `flux-kanban-card` (no `data-`) and its button card `data-flux-kanban-card`; the kit copies both
+  (`ui-kanban-card`, `data-ui-kanban-card`). Parity stand-ins: the dropdown and menu in a column's actions, the
+  avatars in a card's footer. The site's demo has two plain buttons where Flux has that dropdown.
 - Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
   `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
   removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —
@@ -261,23 +277,52 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   word stands in some sixty kit comments and identifiers (the last rule of section 4 was not applied) — reword them, then
   assert its absence in `UiStylesheetTests`.
 
-## Runtime hooks the kit is waiting for (Flux does it in script; Rask's runtime cannot yet)
-- Toast: hovering RESTARTS the countdown in Flux — the runtime resumes the remainder. Hovering a group
-  pauses EVERY toast in it — needs a pause scope on an ancestor. The stack's 350 ms glide when a toast
-  joins or leaves needs per-child height/offset custom properties. The runtime also pauses on focus,
-  where Flux does not.
-- Toast, unexplained, for a later look: an unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a
-  `switch` among keyed call sites, was remounted on every parent render.
-- The built-in toast (the host's, when the app places no `Ui.Toast`) shows one at a time, as Flux's does.
-- Tooltip, all four printed as `KNOWN` by `parity-tooltip.mjs` and closed by ONE hook — a `[data-ui-tooltip]`
-  listener in `rask-dom.ts` calling `showPopover()`/`hidePopover()` on pointer, focus, Escape and press for
-  every trigger: Escape does not dismiss a tooltip shown by `:hover`/`:focus-visible` (a trigger that is no
-  button or link, a disabled button, an engine without interest invokers); a tooltip hidden by a press
-  comes back on release, where Flux keeps it away until the pointer returns; an interest-invoked tooltip
-  goes when the pointer leaves though the trigger still has focus; and `aria-expanded` (Flux: `"false"` at
-  rest on an `Interactive()` or `Toggleable()` trigger) is not written, since nothing could keep it true.
-  The same hook lets a toggleable tooltip open from a trigger that is not a button, and removes the
-  wrapper's `tabindex`.
+## Runtime hooks that exist (Flux does it in script; the component writes the attribute)
+The kit ships no script. Rask's RUNTIME carries generic hooks keyed on attributes
+(`src/Rask.Core/Resources/rask-hooks.ts`, one module per concern; `docs/js-interop-runtime.md#behaviour-hooks-data-rask-`
+is the reference; `tests/Rask.Server.E2E.Tests/RuntimeHook*Tests.cs` pin each one to what Flux did). A
+component reaches Flux's behaviour by writing exactly these — never by a handler that round-trips:
+
+| Component | Writes | Gets |
+|---|---|---|
+| Tooltip (and Button's `Tooltip`) | root `data-rask-tooltip="<bubble id>"`; bubble `popover="manual"`; `interactive`: `aria-expanded="false"` + `aria-controls` on the trigger | shown at 0 ms on pointer and keyboard focus, hidden on leave / blur / Escape / press, top layer for any trigger, `aria-expanded` mirrored |
+| Dropdown / Popover `hover` | root `data-rask-hover="<panel id>"` (trigger keeps `popovertarget`) | opens over trigger or panel, closes over neither, a press keeps it, Enter opens, no lock |
+| Sidebar rail item | the same + `data-rask-hover-if="<selector true while collapsed>"` | the menu opens on hover only while the rail is collapsed |
+| Dropdown, Popover, Select, Context | panel `data-rask-lock` | `<html>`: `overflow:hidden; pointer-events:none; scrollbar-gutter:stable` while open |
+| any `popover="auto"` panel | nothing | Tab out closes it; a press outside hands focus to its `popovertarget` button |
+| Menu | `[role=menu]` `data-rask-menu-pointer`; each row `OnPointerEnter` → move the C# cursor; no `:hover` highlight, only `[data-active]` | one lit row, the arrows continue from the hovered one, none lit when the pointer leaves |
+| Menu submenu | its row `data-rask-safe-area="<flyout id>"`; close a submenu only when ANOTHER row is entered, never on the menu's pointerleave | Flux's safe area and a flyout that stays when the pointer leaves the menu |
+| Modal (state-driven) | `<dialog data-rask-modal-open="true|false">` instead of `open` | `showModal()`, `::backdrop`, closes when the state says so; `OnClose` / `OnCancel` still fire |
+| Modal | `data-rask-modal="any|press|escape|none"` from `dismissible` × `escapable` (both → `any`, outside only → `press`, Escape only → `escape`, neither → `none`); `data-rask-lock="scroll"`; keep `command`/`commandfor` | the four dismissals, `cancel` for a press outside, `data-open` while shown, a fallback where invoker commands are missing, Flux's modal lock |
+| Input `copyable` | button `data-rask-copy="<input id>"`; style the tick on `[data-copied]` | clipboard in the click, 2 s copied state |
+| Input `clearable` | button `data-rask-clear="<input id>"` (no `OnClick`) | emptied, `input` fired, focus in the field |
+| Input `mask` / `mask:dynamic="$money($input)"` | `data-rask-mask="<pattern>"` / `data-rask-mask-money` (`=".,2"`) | Flux's (Alpine's) shaping; any other `mask:dynamic` expression is NOT supported |
+| Switch | `<input type="checkbox" role="switch">` | Enter toggles |
+| Slider | `data-rask-big-step="<BigStep ?? Step>"` on the `<input type="range">` | Shift+Arrow, PageUp / PageDown |
+| Select (listbox button) | `data-rask-listbox-button` on the closed `button[role=combobox]` | Enter does nothing, the arrows do not scroll (open the list from the C# key handler: Flux opens on ArrowUp / ArrowDown / Space) |
+| OTP | group `data-rask-otp` (`="alpha"`, `="alphanumeric"`); cells rendered with NO `value`, NO handler, NO re-keying; ONE `Input.Type(Hidden)` inside, bound to the string | every key of Flux's otp input, fast typing included |
+| Toast | `data-rask-dismiss-hold="pointer"` beside `data-rask-dismiss-after` | focus no longer holds the countdown |
+| ToastGroup | `data-rask-dismiss-scope` on the group; `data-rask-stack` on the parent of the stacked toasts, and CSS from `--rask-stack-index` / `-height` / `-offset` | one pointer holds them all; the 350 ms glide |
+| Sidebar | collapse checkbox `data-rask-persist="flux-sidebar-collapsed-desktop"` (plus a head script for a WASM cold load); mobile checkbox `data-rask-uncheck-on-navigate` | state kept across visits; drawer closed on navigation |
+| Carousel | `data-rask-carousel`, `data-rask-carousel-track`, `data-rask-carousel-indicators`, `data-rask-carousel-controls` beside the `data-ui-*` markers; `data-direction`, `data-name`, `data-advance`, `data-wrap`, `data-scroll`, `data-autoplay` as today | position flags, arrows, indicators, autoplay |
+
+Measured, and NOT built because Flux does not do it: a toast's countdown does not RESTART under the pointer — it
+resumes the remainder (shown 1000 ms, hovered 3000 ms, gone 4359 ms after the pointer left; 5390 would be a
+restart). The earlier note here said otherwise.
+
+Known and open: two toasts whose countdowns end in the same frame press two dismiss buttons at once, and the
+second press can carry a handler id the first render retired — give stacked toasts distinct durations or key
+the handler. An unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a `switch` among keyed call
+sites, was remounted on every parent render (unexplained). The built-in toast shows one at a time, as Flux's.
+
+Tooltip, not wired yet: `Ui.Tooltip` still shows itself by CSS and interest invokers, and `parity-tooltip.mjs`
+prints four `KNOWN` gaps — Escape does not dismiss it, a press brings it back on release, it goes when the
+pointer leaves a focused trigger, and `aria-expanded` is not written. The hook that closes all four EXISTS:
+write `data-rask-tooltip="<bubble id>"` on the `[data-ui-tooltip]` root, make the bubble `popover="manual"`,
+put `aria-expanded="false"` + `aria-controls` on an `Interactive()` trigger, and drop the CSS/interest-invoker
+path and the wrapper's `tabindex`. Any trigger then reaches the top layer. A `Toggleable()` tooltip (click to
+toggle) is NOT covered by the hook — it was not measured; around a `<button>` it stays the browser's
+`popovertarget`.
 
 ## One stylesheet per app (merged 2026-10-07)
 - `Styles/ui.css` is the kit as Tailwind SOURCE (theme, `dark` variant, daisyUI, the `@layer rask` blocks):

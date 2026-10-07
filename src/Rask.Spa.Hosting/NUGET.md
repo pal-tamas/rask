@@ -1,15 +1,16 @@
 # Rask.Spa.Hosting
 
-**ASP.NET Core host for a Rask WebAssembly app** — the browser app written in C#, served by the same
-server that answers its API. Part of [Rask](https://rask.sh/), a full-stack .NET web framework for teams
-of any size.
+**ASP.NET Core host for a built single-page app** — a front end from any bundler (React, Preact,
+Vue, Solid, Svelte, Lit, Angular) or a Rask WebAssembly app written in C#. Part of
+[Rask](https://rask.sh/), a full-stack .NET web framework for teams of any size.
 
-- **One call serves the published bundle** with correct MIME types for the .NET runtime files, cache
-  headers that follow what the publish guarantees (content-hashed assets cached hard, `index.html` never
-  cached), precompressed siblings, and a fallback to `index.html` that still answers 404 for a missing asset.
-- **Reference the client project and the host's build publishes it** into `wwwroot`, where `MapRaskSpa`
-  finds it with no arguments.
-- **Pairs with Rask.Cqrs.Server**, which answers the messages the browser app dispatches.
+- **One call serves the build output** with correct MIME types, cache headers that follow what the build
+  guarantees (content-hashed assets cached hard, `index.html` never cached), precompressed siblings, and a SPA
+  fallback that still answers 404 for a missing asset.
+- **A Rask WebAssembly app is a SPA too.** Reference the client project and the host's build publishes it;
+  `MapRaskSpa` recognises the bundle and serves the runtime files with the right types and compression.
+- **The build runs the front end's own toolchain.** `dotnet build` runs `npm ci` and `npm run build` in the
+  `client` folder; `dotnet publish` copies the bundle into `wwwroot`.
 - Depends on nothing else in Rask.
 
 ## Install
@@ -17,8 +18,6 @@ of any size.
 ```bash
 dotnet add package Rask.Spa.Hosting
 ```
-
-Or scaffold a host with its client: `rask new Shop --template wasm-hosted`.
 
 ## Use
 
@@ -34,4 +33,4 @@ app.MapRaskSpa();
 app.Run();
 ```
 
-Guide: [Serving a WebAssembly app](https://rask.sh/docs/guides/deployment#serving-a-webassembly-app)
+Guide: [Single-page app front ends](https://rask.sh/docs/guides/spa)

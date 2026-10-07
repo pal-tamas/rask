@@ -94,6 +94,9 @@ Rask.Ui.Inset.Left = 4 -> Rask.Ui.Inset
 Rask.Ui.Inset.None = 0 -> Rask.Ui.Inset
 Rask.Ui.Inset.Right = 8 -> Rask.Ui.Inset
 Rask.Ui.Inset.Top = 1 -> Rask.Ui.Inset
+Rask.Ui.KanbanCardAs
+Rask.Ui.KanbanCardAs.Button = 1 -> Rask.Ui.KanbanCardAs
+Rask.Ui.KanbanCardAs.Div = 0 -> Rask.Ui.KanbanCardAs
 Rask.Ui.MenuItemVariant
 Rask.Ui.MenuItemVariant.Danger = 1 -> Rask.Ui.MenuItemVariant
 Rask.Ui.MenuItemVariant.Default = 0 -> Rask.Ui.MenuItemVariant
@@ -969,6 +972,34 @@ Rask.Ui.TextVariant.Default = 0 -> Rask.Ui.TextVariant
 Rask.Ui.TextVariant.Strong = 1 -> Rask.Ui.TextVariant
 Rask.Ui.TextVariant.Subtle = 2 -> Rask.Ui.TextVariant
 Rask.UiHeading.Size.get -> Rask.Ui.HeadingSize?
+Rask.UiKanban
+Rask.UiKanban.UiKanban() -> void
+Rask.UiKanbanCard
+Rask.UiKanbanCard.As.get -> Rask.Ui.KanbanCardAs?
+Rask.UiKanbanCard.As.set -> void
+Rask.UiKanbanCard.Footer.get -> Rask.Core.Component?
+Rask.UiKanbanCard.Footer.set -> void
+Rask.UiKanbanCard.Header.get -> Rask.Core.Component?
+Rask.UiKanbanCard.Header.set -> void
+Rask.UiKanbanCard.Heading.get -> string?
+Rask.UiKanbanCard.Heading.set -> void
+Rask.UiKanbanCard.UiKanbanCard() -> void
+Rask.UiKanbanColumn
+Rask.UiKanbanColumn.UiKanbanColumn() -> void
+Rask.UiKanbanColumnCards
+Rask.UiKanbanColumnCards.UiKanbanColumnCards() -> void
+Rask.UiKanbanColumnFooter
+Rask.UiKanbanColumnFooter.UiKanbanColumnFooter() -> void
+Rask.UiKanbanColumnHeader
+Rask.UiKanbanColumnHeader.Actions.get -> Rask.Core.Component?
+Rask.UiKanbanColumnHeader.Actions.set -> void
+Rask.UiKanbanColumnHeader.Count.get -> int?
+Rask.UiKanbanColumnHeader.Count.set -> void
+Rask.UiKanbanColumnHeader.Heading.get -> string?
+Rask.UiKanbanColumnHeader.Heading.set -> void
+Rask.UiKanbanColumnHeader.Subheading.get -> string?
+Rask.UiKanbanColumnHeader.Subheading.set -> void
+Rask.UiKanbanColumnHeader.UiKanbanColumnHeader() -> void
 Rask.UiLink.Accent.get -> bool?
 Rask.UiLink.Accent.set -> void
 Rask.UiLink.As.get -> Rask.Ui.LinkAs?
@@ -1140,6 +1171,9 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiContext!).TopEnd.get -> Rask.UiContex
 RaskBuilderSettersRask_Ui.extension(Rask.UiContext!).TopStart.get -> Rask.UiContext!
 RaskBuilderSettersRask_Ui.extension(Rask.UiHeading!).Base.get -> Rask.UiHeading!
 RaskBuilderSettersRask_Ui.extension(Rask.UiHeading!).Xxl.get -> Rask.UiHeading!
+RaskBuilderSettersRask_Ui.extension(Rask.UiKanbanCard!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiKanbanCard!).Button.get -> Rask.UiKanbanCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiKanbanCard!).Div.get -> Rask.UiKanbanCard!
 RaskBuilderSettersRask_Ui.extension(Rask.UiLink!).A.get -> Rask.UiLink!
 RaskBuilderSettersRask_Ui.extension(Rask.UiLink!).Button.get -> Rask.UiLink!
 RaskBuilderSettersRask_Ui.extension(Rask.UiLink!).Default.get -> Rask.UiLink!
@@ -1225,6 +1259,12 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).TopEnd.get -> Rask.UiToa
 RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).TopStart.get -> Rask.UiToastGroup!
 static Rask.Ui.Context.get -> Rask.UiContext!
 static Rask.Ui.Dropdown.get -> Rask.UiDropdown!
+static Rask.Ui.Kanban.get -> Rask.UiKanban!
+static Rask.Ui.KanbanCard.get -> Rask.UiKanbanCard!
+static Rask.Ui.KanbanColumn.get -> Rask.UiKanbanColumn!
+static Rask.Ui.KanbanColumnCards.get -> Rask.UiKanbanColumnCards!
+static Rask.Ui.KanbanColumnFooter.get -> Rask.UiKanbanColumnFooter!
+static Rask.Ui.KanbanColumnHeader.get -> Rask.UiKanbanColumnHeader!
 static Rask.Ui.Link.get -> Rask.UiLink!
 static Rask.Ui.MenuCheckboxGroup.get -> Rask.UiMenuCheckboxGroup!
 static Rask.Ui.MenuItem.get -> Rask.UiMenuItem!
@@ -1246,6 +1286,8 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiNavmenuItem(Rask.Core.
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiToastGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTooltipContent(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiContext(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiKanbanCard(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiKanbanColumnHeader(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMenuCheckboxGroup(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMenuRadio(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMenuSubmenu(Rask.Core.Component! __c0) -> void
@@ -1254,6 +1296,8 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiNavmenuItem(Rask.Core.C
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiToastGroup(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTooltipContent(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiContext(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiKanbanCard(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiKanbanColumnHeader(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMenuCheckboxGroup(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMenuRadio(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMenuSubmenu(Rask.Core.Component! __c0, ulong __p) -> void
@@ -1263,9 +1307,11 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiToastGroup(Rask.Core.
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTooltipContent(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b, bool? value) -> Rask.UiLink!
+static RaskBuilderSettersRask_Ui.Actions(this Rask.UiKanbanColumnHeader! __b, Rask.Core.Component? value) -> Rask.UiKanbanColumnHeader!
 static RaskBuilderSettersRask_Ui.Align(this Rask.UiDropdown! __b, Rask.Ui.DropdownAlign? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.Align(this Rask.UiProfile! __b, Rask.Ui.DropdownAlign? value) -> Rask.UiProfile!
 static RaskBuilderSettersRask_Ui.Align(this Rask.UiTooltip! __b, Rask.Ui.TooltipAlign? value) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.As(this Rask.UiKanbanCard! __b, Rask.Ui.KanbanCardAs? value) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.As(this Rask.UiLink! __b, Rask.Ui.LinkAs? value) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Checked(this Rask.UiMenuRadio! __b) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.Checked(this Rask.UiMenuRadio! __b, bool? value) -> Rask.UiMenuRadio!
@@ -1287,6 +1333,7 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiTooltipContent! __b, params S
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiTooltipContent! __b, string? value) -> Rask.UiTooltipContent!
 static RaskBuilderSettersRask_Ui.Color(this Rask.UiText! __b, Rask.Ui.Color? value) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.Content(this Rask.UiTooltip! __b, string? value) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.Count(this Rask.UiKanbanColumnHeader! __b, int? value) -> Rask.UiKanbanColumnHeader!
 static RaskBuilderSettersRask_Ui.Detail(this Rask.UiContext! __b, string? value) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiContext! __b) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiContext! __b, bool? value) -> Rask.UiContext!
@@ -1294,6 +1341,7 @@ static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiMenuRadio! __b) -> Rask.Ui
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiMenuRadio! __b, bool? value) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiTooltip! __b) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiTooltip! __b, bool? value) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.Footer(this Rask.UiKanbanCard! __b, Rask.Core.Component? value) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.Gap(this Rask.UiContext! __b, int? value) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.Gap(this Rask.UiTooltip! __b, int? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.get_Amber(Rask.UiBadge! __b) -> Rask.UiBadge!
@@ -1307,6 +1355,7 @@ static RaskBuilderSettersRask_Ui.get_Blue(Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_BottomCenter(Rask.UiContext! __b) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.get_BottomEnd(Rask.UiContext! __b) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.get_BottomStart(Rask.UiContext! __b) -> Rask.UiContext!
+static RaskBuilderSettersRask_Ui.get_Button(Rask.UiKanbanCard! __b) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiProgress! __b) -> Rask.UiProgress!
@@ -1315,6 +1364,7 @@ static RaskBuilderSettersRask_Ui.get_Danger(Rask.UiMenuItem! __b) -> Rask.UiMenu
 static RaskBuilderSettersRask_Ui.get_Danger(Rask.UiNavmenuItem! __b) -> Rask.UiNavmenuItem!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiMenuItem! __b) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiNavmenuItem! __b) -> Rask.UiNavmenuItem!
+static RaskBuilderSettersRask_Ui.get_Div(Rask.UiKanbanCard! __b) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.get_Emerald(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Emerald(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Emerald(Rask.UiProgress! __b) -> Rask.UiProgress!
@@ -1419,6 +1469,9 @@ static RaskBuilderSettersRask_Ui.get_TopEnd(Rask.UiToast! __b) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.get_TopEnd(Rask.UiToastGroup! __b) -> Rask.UiToastGroup!
 static RaskBuilderSettersRask_Ui.get_TopStart(Rask.UiToast! __b) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.get_TopStart(Rask.UiToastGroup! __b) -> Rask.UiToastGroup!
+static RaskBuilderSettersRask_Ui.Header(this Rask.UiKanbanCard! __b, Rask.Core.Component? value) -> Rask.UiKanbanCard!
+static RaskBuilderSettersRask_Ui.Heading(this Rask.UiKanbanCard! __b, string? value) -> Rask.UiKanbanCard!
+static RaskBuilderSettersRask_Ui.Heading(this Rask.UiKanbanColumnHeader! __b, string? value) -> Rask.UiKanbanColumnHeader!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiMenuGroup! __b, string? value) -> Rask.UiMenuGroup!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiMenuSubmenu! __b, string! value) -> Rask.UiMenuSubmenu!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiLink! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiLink!
@@ -1466,6 +1519,7 @@ static RaskBuilderSettersRask_Ui.Position(this Rask.UiToastGroup! __b, Rask.Ui.T
 static RaskBuilderSettersRask_Ui.Position(this Rask.UiTooltip! __b, Rask.Ui.TooltipPosition? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiHeading! __b, Rask.Ui.HeadingSize? value) -> Rask.UiHeading!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiText! __b, Rask.Ui.TextSize? value) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.Subheading(this Rask.UiKanbanColumnHeader! __b, string? value) -> Rask.UiKanbanColumnHeader!
 static RaskBuilderSettersRask_Ui.Suffix(this Rask.UiMenuItem! __b, string? value) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.Target(this Rask.UiContext! __b, string? value) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.Value(this Rask.UiMenuRadio! __b, object? value) -> Rask.UiMenuRadio!
