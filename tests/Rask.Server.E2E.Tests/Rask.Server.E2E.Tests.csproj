@@ -16,7 +16,18 @@
     <IsPackable>false</IsPackable>
     <RootNamespace>Rask.Server.E2E.Tests</RootNamespace>
     <NoWarn>$(NoWarn);RASK014</NoWarn>
+    <!-- EditorOnServerTests draws a Ui.Editor: the app's own opt-in, which writes the engine to wwwroot/js. -->
+    <RaskUiEditor>true</RaskUiEditor>
   </PropertyGroup>
+
+  <!--
+    A web project serves its wwwroot from the project folder; this is a test project whose host runs from
+    bin/, so what the opt-in wrote travels there. Named, not globbed: the files appear during the build.
+  -->
+  <ItemGroup>
+    <None Include="wwwroot\js\rask-ui-editor.js" CopyToOutputDirectory="PreserveNewest"/>
+    <None Include="wwwroot\js\rask-ui-editor.LICENSES.txt" CopyToOutputDirectory="PreserveNewest"/>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Playwright"/>

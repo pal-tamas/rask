@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Linq.Expressions;
+using Microsoft.JSInterop;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 
@@ -129,6 +130,11 @@ public sealed partial class UiEditor : Component, IUiFieldControl
         {
             // No browser behind this render — a prerender, a static first response. The page keeps the first
             // paint, and the editor mounts when a live session renders it.
+        }
+        catch (JSException)
+        {
+            // The engine did not load: the project has not set RaskUiEditor, or the file is not served. The
+            // script has said so in the browser's console; the page keeps the value as plain markup, and stays live.
         }
     }
 
