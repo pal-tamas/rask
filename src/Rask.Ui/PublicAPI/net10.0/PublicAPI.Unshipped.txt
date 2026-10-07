@@ -1,10 +1,4 @@
 #nullable enable
-Rask.IUiChartField
-Rask.IUiChartField.Field.get -> Rask.UiChartField?
-Rask.IUiChartField.Field.set -> void
-Rask.IUiChartLabelField
-Rask.IUiChartLabelField.LabelField.get -> Rask.UiChartField?
-Rask.IUiChartLabelField.LabelField.set -> void
 Rask.ToastOptions.At(Rask.Ui.ToastPosition position) -> Rask.ToastOptions!
 Rask.ToastOptions.Position.get -> Rask.Ui.ToastPosition
 Rask.Ui.AccordionVariant
@@ -1361,8 +1355,19 @@ static Rask.Ui.ToastGroup.get -> Rask.UiToastGroup!
 static Rask.Ui.Tooltip.get -> Rask.UiTooltip!
 static Rask.Ui.TooltipContent.get -> Rask.UiTooltipContent!
 static Rask.UiChartBinding.ColorField<TRow>(this Rask.UiChartPie! pie, System.Func<TRow, Rask.Ui.Color>! field) -> Rask.UiChartPie!
-static Rask.UiChartBinding.Field<TPart, TRow, TValue>(this TPart part, System.Func<TRow, TValue>! field) -> TPart
-static Rask.UiChartBinding.LabelField<TPart, TRow, TValue>(this TPart part, System.Func<TRow, TValue>! field) -> TPart
+static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartArea! part, System.Func<TRow, TValue>! field) -> Rask.UiChartArea!
+static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartAxis! part, System.Func<TRow, TValue>! field) -> Rask.UiChartAxis!
+static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartBar! part, System.Func<TRow, TValue>! field) -> Rask.UiChartBar!
+static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartLegend! part, System.Func<TRow, TValue>! field) -> Rask.UiChartLegend!
+static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartLine! part, System.Func<TRow, TValue>! field) -> Rask.UiChartLine!
+static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartPie! part, System.Func<TRow, TValue>! field) -> Rask.UiChartPie!
+static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartPoint! part, System.Func<TRow, TValue>! field) -> Rask.UiChartPoint!
+static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartSummaryValue! part, System.Func<TRow, TValue>! field) -> Rask.UiChartSummaryValue!
+static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartTooltip! part, System.Func<TRow, TValue>! field) -> Rask.UiChartTooltip!
+static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartTooltipHeading! part, System.Func<TRow, TValue>! field) -> Rask.UiChartTooltipHeading!
+static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartTooltipValue! part, System.Func<TRow, TValue>! field) -> Rask.UiChartTooltipValue!
+static Rask.UiChartBinding.LabelField<TRow, TValue>(this Rask.UiChartPie! part, System.Func<TRow, TValue>! field) -> Rask.UiChartPie!
+static Rask.UiChartBinding.LabelField<TRow, TValue>(this Rask.UiChartTooltipValue! part, System.Func<TRow, TValue>! field) -> Rask.UiChartTooltipValue!
 static Rask.UiChartBinding.Value<TRow>(this Rask.UiChart! chart, System.Collections.Generic.IEnumerable<TRow>! rows) -> Rask.UiChart!
 static Rask.UiToast.Messages(System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>! messages, System.Action<int>! dismiss, Rask.ToastOptions! options) -> Rask.Core.Component!
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiChart(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
