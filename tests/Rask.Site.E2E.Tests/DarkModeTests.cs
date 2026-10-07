@@ -188,6 +188,44 @@ public sealed partial class DarkModeTests
         }
     }
 
+    [Fact]
+    public async Task In_dark_mode_a_kit_card_is_painted_by_its_dark_variant_not_by_the_sites_own_utility()
+    {
+        // The bug one stylesheet ends. The kit's card writes `bg-white dark:bg-white/10`; the site writes
+        // `bg-white` on elements of its own. With the kit's precompiled sheet linked ahead of the site's,
+        // both rules sat in an `@layer utilities` of their own with equal specificity, link order decided,
+        // and every card on this page computed rgb(255, 255, 255) in dark mode.
+        var context = await NewContextAsync(ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+
+        // Reached the way a reader reaches it: the guides index, then the sidebar.
+        await page.GotoAsync("/docs/");
+        await Expect(page.Locator("body[data-rask-root='wasm']"))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
+        await page.Locator(".side-nav .side-nav-filter").First.FillAsync("Data display");
+        await page.Locator(".side-nav a.side-nav-link[href*='/docs/ui/data-display']").First.ClickAsync();
+
+        try
+        {
+            await Expect(page.Locator("main h1")).ToContainTextAsync("Data display");
+            Assert.True(await IsDarkAsync(page));
+
+            // ONE sheet carries Tailwind, the kit and the site's classes.
+            await Expect(page.Locator("head link[rel='stylesheet'][href*='/css/app.css']")).ToHaveCountAsync(1);
+            await Expect(page.Locator("head link[rel='stylesheet'][href*='rask-ui.css']")).ToHaveCountAsync(0);
+
+            var card = page.Locator("[data-ui-card][class~='bg-white'][class~='dark:bg-white/10']").First;
+            await Expect(card).ToBeVisibleAsync();
+            var painted = await card.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor");
+            Assert.NotEqual("rgb(255, 255, 255)", painted);
+            Assert.Contains("0.1", painted, StringComparison.Ordinal);
+        }
+        finally
+        {
+            await context.CloseAsync();
+        }
+    }
+
     private Task<IBrowserContext> NewContextAsync(ColorScheme scheme) =>
         _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl, ColorScheme = scheme });
 

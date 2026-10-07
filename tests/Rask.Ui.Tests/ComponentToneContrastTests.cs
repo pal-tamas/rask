@@ -8,8 +8,7 @@ namespace Rask.UiTests;
 /// <remarks>
 ///     <para>
 ///     daisyUI pairs each tone with its own <c>-content</c> colour — <c>.btn-primary</c> sets
-///     <c>--btn-fg: var(--color-primary-content)</c>, <c>.badge-success</c> its <c>--badge-fg</c>,
-///     <c>.alert-warning</c> a plain <c>color</c>. Those are generated to clear 3:1, which is the bar for
+///     <c>--btn-fg: var(--color-primary-content)</c>, <c>.alert-warning</c> a plain <c>color</c>. Those are generated to clear 3:1, which is the bar for
 ///     a LARGE label, and these components render small text. Measured across all thirty-six palettes the
 ///     kit ships, they fail WCAG AA on between two and ten palettes per tone: <c>secondary</c> is 3.05:1
 ///     on daisyUI's own <c>dark</c>, <c>warning</c> 3.06:1 on <c>pastel</c>, <c>error</c> under AA on ten.
@@ -52,7 +51,6 @@ public sealed partial class ComponentToneContrastTests
     private static readonly (string Family, string Fill, string Label)[] Filled =
     [
         ("btn", "--btn-color", "--btn-fg"),
-        ("badge", "--badge-color", "--badge-fg"),
     ];
 
     [Fact]

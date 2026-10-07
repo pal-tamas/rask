@@ -9,9 +9,7 @@ namespace Rask;
 ///     are a <see cref="UiAccordionHeading" /> and a <see cref="UiAccordionContent" />.
 ///     </para>
 ///     <para>
-///     The browser opens and closes it. <see cref="Expanded" /> is the state it is rendered in, and
-///     <see cref="OnToggle" /> tells the page each time that changes, so a page that keeps the two together
-///     owns which items are open.
+///     The browser opens and closes it. <see cref="Expanded" /> is the state it starts in.
 ///     </para>
 /// </remarks>
 public sealed partial class UiAccordionItem : Component
@@ -28,9 +26,6 @@ public sealed partial class UiAccordionItem : Component
     /// <summary>The item cannot be opened or closed.</summary>
     public bool? Disabled { get; set; }
 
-    /// <summary>Runs when the item opens or closes, with the state it is now in.</summary>
-    public Callback<bool> OnToggle { get; set; }
-
     /// <summary>Classes for the call site, added to the item's own.</summary>
     public string? Class { get; set; }
 
@@ -39,12 +34,6 @@ public sealed partial class UiAccordionItem : Component
     {
         var scope = Context.Get<UiAccordionScope>() ?? UiAccordionScope.None;
         var item = Details.Class(Classes, Class).Data("ui-accordion-item", "").Name(scope.Group).Open(Expanded == true);
-
-        if (OnToggle.HasValue)
-        {
-            item = item.OnToggle(e => OnToggle.Invoke(string.Equals(e.NewState, "open", StringComparison.Ordinal)).AsTask());
-        }
-
         var inside = Context.Provide(scope with { Disabled = Disabled == true });
         return item[
             Heading is null

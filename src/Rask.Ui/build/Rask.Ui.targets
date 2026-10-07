@@ -1,19 +1,20 @@
 <Project>
 
   <!--
-    Writes the kit's stylesheet into the consuming app's wwwroot, so a browser can cache it.
+    How the kit's styles reach a project that draws with it. Two ways, and never both in one document:
 
-    The kit used to be inlined into every document with `Style[Raw.Value(UiStylesheet.Css)]`, and the
-    reasoning for that is recorded in UiStylesheet: a <style> is smaller than the machinery a static
-    web asset needs (the Razor SDK, a _content/ path a host has to map), and it let this package ship
-    as a plain assembly with no assets at all.
+    1. THROUGH THE PROJECT'S OWN TAILWIND BUILD (RaskUiWriteTailwindSources). An app whose stylesheet
+       says `@import "./vendor/rask-ui.css";` is handed the kit's Tailwind sources and compiles ONE
+       sheet. This is what `rask new` writes and what rask.sh does.
 
-    What changed is the number. The sheet is 36.8 KB gzipped, and it was being paid on EVERY document
-    of a site read page to page — see #1018. A file the browser caches costs that once. The machinery
-    is avoided anyway: this copies a plain file, so there is still no Razor SDK and no _content/ path.
+    2. AS A PRECOMPILED FILE (RaskUiWriteStylesheet), copied into wwwroot for a project with no Tailwind
+       build of its own, linked with UiStylesheet.Href(). The sheet is also embedded in the assembly
+       (UiStylesheet.Css) for a surface that inlines it — Rask.DevTools, drawn inside somebody else's
+       page. It was once inlined into every document of every app; a file the browser caches costs its
+       36.8 KB gzipped once (#1018), and copying a plain file needs no Razor SDK and no _content/ path.
 
-    UiStylesheet.Css stays. Rask.Dashboard still inlines, deliberately — it is mounted into somebody
-    else's host, which references the dashboard rather than the kit and so never imports this file.
+    RaskUiCheckStylesheets refuses the two together: a precompiled kit sheet beside an app's own Tailwind
+    output is two `@layer utilities` ranked by link order alone.
   -->
 
   <PropertyGroup>
@@ -33,23 +34,39 @@
     <RaskUiWriteStylesheet Condition="'$(RaskUiWriteStylesheet)' == ''">false</RaskUiWriteStylesheet>
 
     <!--
-      Where the daisyUI plugin bundle lands. Beside the app's own Tailwind input by default, because
-      Tailwind resolves a relative `@plugin` against the STYLESHEET's directory, not the project's —
-      so an app writes `@plugin "./vendor/daisyui.mjs"` from Styles/app.css and this is the path that
-      makes that true.
+      THE KIT THROUGH THIS PROJECT'S OWN TAILWIND BUILD — one stylesheet, as a Flux app has.
+
+      An app that runs Tailwind takes the kit in with one line in its stylesheet,
+
+          @import "./vendor/rask-ui.css";
+
+      and its build compiles Tailwind, the kit's theme and `dark` variant, and the classes the kit's
+      components write, beside the classes the app writes. Every utility then exists ONCE, so
+      Tailwind's own ordering holds between the two: a base utility before its variants, a shorthand
+      before its longhands. The alternative — the app's sheet linked after the kit's precompiled one —
+      is two `@layer utilities` in link order, where an app's `bg-white` beats the kit's
+      `dark:bg-zinc-800` and its `m-0` beats the kit's `mt-auto`.
+
+      Unset, this follows the stylesheet: on when $(RaskTailwindInput) imports rask-ui.css (or
+      rask-ui.kit.css, for a sheet that composes the entry itself), off otherwise. Say true or false to
+      decide it regardless.
     -->
-    <RaskUiDaisyUiPluginOutput Condition="'$(RaskUiDaisyUiPluginOutput)' == ''">Styles/vendor/daisyui.mjs</RaskUiDaisyUiPluginOutput>
+    <RaskUiTailwind Condition="'$(RaskUiTailwind)' == ''">auto</RaskUiTailwind>
 
     <!--
-      OPT IN, like the stylesheet above and for the same reason: referencing the kit is not the same
-      as wanting to compile daisyUI yourself.
-
-      An app that draws with Ui* components alone needs nothing here — those classes are already in
-      the sheet this package ships. This is for an app writing daisyUI class names in its OWN markup,
-      which Tailwind can only emit if it runs the plugin over sources it can see. `rask new` turns it
-      on, because a scaffolded app writes `card`/`btn`/`navbar` directly.
+      Where the kit's Tailwind sources land: beside the app's stylesheet, in vendor/, because Tailwind
+      resolves `@import`, `@plugin` and `@source` against the FILE that names them. Unset, it is the
+      stylesheet's own folder plus vendor/ — Styles/vendor/ for Styles/app.css.
     -->
-    <RaskUiWriteDaisyUiPlugin Condition="'$(RaskUiWriteDaisyUiPlugin)' == ''">false</RaskUiWriteDaisyUiPlugin>
+    <RaskUiTailwindDirectory Condition="'$(RaskUiTailwindDirectory)' == '' AND '$(RaskTailwindInput)' != ''">$([System.IO.Path]::Combine('$([System.IO.Path]::GetDirectoryName('$(RaskTailwindInput)'))', 'vendor'))</RaskUiTailwindDirectory>
+
+    <!--
+      Whether the stylesheet imports the kit — read out of the file, at evaluation, because that line is
+      the one thing an app author writes and a second switch in the csproj would be a second place to
+      forget. A line that STARTS with the import, so prose mentioning it in a comment does not count.
+    -->
+    <_RaskUiSheetImportsKit>false</_RaskUiSheetImportsKit>
+    <_RaskUiSheetImportsKit Condition="'$(RaskTailwindInput)' != '' AND Exists('$(MSBuildProjectDirectory)/$(RaskTailwindInput)')">$([System.Text.RegularExpressions.Regex]::IsMatch($([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/$(RaskTailwindInput)')), `^[ \t]*@import\s+["'][^"']*rask-ui[.\w]*\.css["']`, System.Text.RegularExpressions.RegexOptions.Multiline))</_RaskUiSheetImportsKit>
   </PropertyGroup>
 
   <!--
@@ -70,6 +87,18 @@
                          AND '$(RaskUiStylesheetOutput)' != ''
                          AND !Exists('$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)') ">
     <Content Include="$(RaskUiStylesheetOutput)" Pack="false"/>
+  </ItemGroup>
+
+  <!--
+    The precompiled sheet an EARLIER build wrote into wwwroot, when this project still linked it, is not
+    content of a project that now compiles the kit in. The SDK's wwwroot glob has already picked it up by
+    the time anything here runs, so it is taken back out — otherwise it is published and precached, and
+    deleting it mid-build (RaskUiWriteTailwindSources does) fails static-web-asset discovery on a file
+    the evaluation promised.
+  -->
+  <ItemGroup Condition=" '$(_RaskUiSheetImportsKit)' == 'true' AND '$(RaskUiTailwind)' != 'false'
+                         AND '$(RaskUiWriteStylesheet)' != 'true' AND '$(RaskUiStylesheetOutput)' != '' ">
+    <Content Remove="$(RaskUiStylesheetOutput)"/>
   </ItemGroup>
 
   <Target Name="_RaskUiResolveStylesheet">
@@ -176,66 +205,178 @@
   </Target>
 
   <!--
-    Puts the daisyUI plugin bundle where the app's own Tailwind can load it.
-
-    DependsOn the resolver above only to reuse its _RaskUiReferenced check — that target resolves
-    items and nothing else, and the hard error for a missing sheet lives in RaskUiWriteStylesheet,
-    which is separate. Running it here costs a few item evaluations and keeps one definition of
-    "does this project actually draw with the kit".
+    Does this project compile the kit into its own stylesheet? It has to draw with the kit, have a
+    stylesheet for Tailwind to compile, and — unless RaskUiTailwind says otherwise — import the kit there.
   -->
-  <Target Name="_RaskUiResolveDaisyUiPlugin" DependsOnTargets="_RaskUiResolveStylesheet">
+  <Target Name="_RaskUiResolveTailwind" DependsOnTargets="_RaskUiResolveStylesheet">
+    <PropertyGroup>
+      <_RaskUiTailwindSheet Condition="'$(RaskTailwindInput)' != ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskTailwindInput)'))</_RaskUiTailwindSheet>
 
-    <ItemGroup Condition="'$(_RaskUiReferenced)' == 'true'">
-      <!-- From the package: packed beside these targets. -->
-      <_RaskUiDaisyUiSource Include="$(MSBuildThisFileDirectory)daisyui.mjs"
-                            Condition="Exists('$(MSBuildThisFileDirectory)daisyui.mjs')"/>
+      <_RaskUiHasTailwind>false</_RaskUiHasTailwind>
+      <_RaskUiHasTailwind Condition="'$(_RaskUiReferenced)' == 'true' AND '$(_RaskUiTailwindSheet)' != '' AND Exists('$(_RaskUiTailwindSheet)')">true</_RaskUiHasTailwind>
+
+      <_RaskUiImported>false</_RaskUiImported>
+      <_RaskUiImported Condition="'$(_RaskUiHasTailwind)' == 'true'">$(_RaskUiSheetImportsKit)</_RaskUiImported>
+
+      <_RaskUiTailwind>false</_RaskUiTailwind>
+      <_RaskUiTailwind Condition="'$(_RaskUiHasTailwind)' == 'true' AND '$(RaskUiTailwind)' == 'true'">true</_RaskUiTailwind>
+      <_RaskUiTailwind Condition="'$(_RaskUiHasTailwind)' == 'true' AND '$(RaskUiTailwind)' == 'auto' AND '$(_RaskUiImported)' == 'true'">true</_RaskUiTailwind>
+    </PropertyGroup>
+  </Target>
+
+  <!--
+    THE TWO SHEETS THAT MUST NOT MEET, refused at build rather than found in a browser.
+
+    Both pairings below put the kit's precompiled sheet in a document beside the app's own Tailwind output.
+    Each has an `@layer utilities`, and between two sheets the cascade has nothing left to go on but link
+    order — so whichever is linked last wins every tie, base utility over variant included. It rendered a
+    Flux modal white in dark mode (`.bg-white` from the app over `dark:bg-zinc-800` from the kit) with
+    every class correct in the markup and every gate green.
+
+    Errors, not warnings: RaskUiWriteStylesheet is an explicit request, and what it asks for here is the
+    broken arrangement.
+  -->
+  <Target Name="RaskUiCheckStylesheets"
+          DependsOnTargets="_RaskUiResolveTailwind"
+          BeforeTargets="_RaskTailwindBuild;BeforeBuild">
+
+    <Error Condition="'$(_RaskUiTailwind)' == 'true' AND '$(RaskUiWriteStylesheet)' == 'true'"
+           Text="Rask.Ui: $(RaskTailwindInput) compiles the kit into this project's own stylesheet (it imports rask-ui.css), and RaskUiWriteStylesheet=true asks for the kit's precompiled sheet as well. That is the kit twice, in two sheets whose utilities are ranked by link order alone, so one of this app's utilities can outrank a kit variant (bg-white over dark:bg-zinc-800). Remove &lt;RaskUiWriteStylesheet&gt; from the project and any link to UiStylesheet.Href() from the app."/>
+
+    <Error Condition="'$(_RaskUiHasTailwind)' == 'true' AND '$(_RaskUiTailwind)' != 'true' AND '$(RaskUiWriteStylesheet)' == 'true'"
+           Text="Rask.Ui: this project compiles its own Tailwind stylesheet ($(RaskTailwindInput)) and RaskUiWriteStylesheet=true links the kit's precompiled sheet beside it. Two sheets each carry an `@layer utilities`, ranked by link order alone, so one of this app's utilities can outrank a kit variant (bg-white over dark:bg-zinc-800). Compile ONE sheet instead: in $(RaskTailwindInput) replace `@import &quot;tailwindcss&quot;;` (and any layer statement or daisyUI `@plugin` line) with `@import &quot;./vendor/rask-ui.css&quot;;`, and remove &lt;RaskUiWriteStylesheet&gt; from the project. See docs/ui-kit.md."/>
+
+    <Error Condition="'$(_RaskUiHasTailwind)' == 'true' AND '$(_RaskUiImported)' == 'true' AND '$(RaskUiTailwind)' == 'false'"
+           Text="Rask.Ui: $(RaskTailwindInput) imports the kit's Tailwind sources (rask-ui.css) but RaskUiTailwind=false tells the build not to write them, so the import cannot resolve. Remove one of the two."/>
+  </Target>
+
+  <Target Name="_RaskUiResolveTailwindSources" DependsOnTargets="_RaskUiResolveTailwind">
+
+    <!-- From the package: packed beside these targets, under the names an app's sheet imports. -->
+    <ItemGroup Condition="'$(_RaskUiTailwind)' == 'true' AND Exists('$(MSBuildThisFileDirectory)rask-ui.kit.css')">
+      <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)rask-ui.css" Name="rask-ui.css"/>
+      <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)rask-ui.kit.css" Name="rask-ui.kit.css"/>
+      <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)rask-ui.classes.txt" Name="rask-ui.classes.txt"/>
+      <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)daisyui.mjs" Name="daisyui.mjs"/>
     </ItemGroup>
 
     <!--
-      In-repo there is no package, so the file above is absent and the bundle is still in the kit's
-      own Styles/vendor. NO TARGET FRAMEWORK IN THIS PATH, and unlike the stylesheet above that is
-      not a hazard to be worked around: the bundle is a SOURCE file that no build produces, so it is
-      there in a clean checkout whether or not any face of the kit has ever been compiled. The
-      stylesheet's two-step fallback exists because build output is per-TFM; this has no such
-      problem.
+      In-repo there is no package: the three sources are in the kit's own Styles/ (ui.css is what ships as
+      rask-ui.kit.css), and the class list is build output in its obj/ — per TFM, so the consumer's own
+      face first and any face the kit has built as the fallback, exactly as for the precompiled sheet
+      above and for the reason recorded there. The kit has been built by now: this runs as a hook on
+      _RaskTailwindBuild, whose own dependencies resolve the project references first.
     -->
-    <ItemGroup Condition="'$(_RaskUiReferenced)' == 'true' AND '@(_RaskUiDaisyUiSource)' == ''">
-      <_RaskUiDaisyUiSource
-          Include="$(MSBuildThisFileDirectory)../Styles/vendor/daisyui.mjs"
-          Condition="Exists('$(MSBuildThisFileDirectory)../Styles/vendor/daisyui.mjs')"/>
+    <ItemGroup Condition="'$(_RaskUiTailwind)' == 'true' AND '@(_RaskUiTailwindSource)' == ''">
+      <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)../Styles/rask-ui.css" Name="rask-ui.css"/>
+      <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)../Styles/ui.css" Name="rask-ui.kit.css"/>
+      <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)../Styles/daisyui.mjs" Name="daisyui.mjs"/>
+      <_RaskUiClassList Include="$(MSBuildThisFileDirectory)../obj/$(TargetFramework)/rask-ui.classes.txt"
+                        Condition="Exists('$(MSBuildThisFileDirectory)../obj/$(TargetFramework)/rask-ui.classes.txt')"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(_RaskUiTailwind)' == 'true' AND '@(_RaskUiTailwindSource->Count())' == '3' AND '@(_RaskUiClassList)' == ''">
+      <_RaskUiClassListCandidate Include="$(MSBuildThisFileDirectory)../obj/*/rask-ui.classes.txt"/>
+    </ItemGroup>
+
+    <!-- Batches to ONE value: the list does not vary by framework, and Copy takes one source per name. -->
+    <PropertyGroup Condition="'@(_RaskUiClassListCandidate)' != ''">
+      <_RaskUiClassListFallback>%(_RaskUiClassListCandidate.FullPath)</_RaskUiClassListFallback>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_RaskUiClassList Include="$(_RaskUiClassListFallback)" Condition="'$(_RaskUiClassListFallback)' != ''"/>
+      <_RaskUiTailwindSource Include="@(_RaskUiClassList)" Name="rask-ui.classes.txt"/>
+      <_RaskUiTailwindMissing Include="@(_RaskUiTailwindSource)" Condition="!Exists('%(FullPath)')"/>
     </ItemGroup>
   </Target>
 
   <!--
-    _RaskTailwindBuild EXPLICITLY, and not BeforeBuild alone.
+    Puts the kit's Tailwind sources where the app's stylesheet imports them from.
 
-    Rask.Tailwind also hooks BeforeBuild, and the order between two targets that share one
-    BeforeTargets is import order — which is not something this file gets to decide. Naming the
-    compile directly is what guarantees the plugin is on disk before anything tries to load it.
-    BeforeBuild stays as the fallback for a project that has no Tailwind compile at all.
+    _RaskTailwindBuild EXPLICITLY, and not BeforeBuild alone. Rask.Tailwind also hooks BeforeBuild, and the
+    order between two targets that share one BeforeTargets is import order — which is not something this
+    file gets to decide. Naming the compile directly is what guarantees the files are on disk before
+    Tailwind follows the import. BeforeBuild stays as the fallback.
   -->
-  <Target Name="RaskUiWriteDaisyUiPlugin"
-          Condition="'$(RaskUiWriteDaisyUiPlugin)' == 'true'"
-          DependsOnTargets="_RaskUiResolveDaisyUiPlugin"
-          BeforeTargets="_RaskTailwindBuild;BeforeBuild">
+  <Target Name="RaskUiWriteTailwindSources"
+          DependsOnTargets="RaskUiCheckStylesheets;_RaskUiResolveTailwindSources"
+          BeforeTargets="_RaskTailwindBuild;BeforeBuild"
+          Condition="'$(DesignTimeBuild)' != 'true'">
 
     <!--
-      FAILS rather than warns, for the reason the stylesheet target above records: the project asked
-      for this file by name, and without it `@plugin "./vendor/daisyui.mjs"` cannot resolve. Tailwind
-      reports that as an error of its own, but a long way from the property that caused it — and the
-      app that gets there has a stylesheet with no daisyUI in it, which renders every `btn` and `card`
-      in its markup as unstyled text on a green build.
+      FAILS rather than warns. Without the class list the import still resolves and the sheet still
+      compiles — with none of the kit's classes in it, so every component renders unstyled on a green
+      build. That is the failure this whole file keeps recording.
     -->
-    <Error Condition="'$(_RaskUiReferenced)' == 'true' AND '@(_RaskUiDaisyUiSource)' == ''"
-           Text="Rask.Ui: this project set RaskUiWriteDaisyUiPlugin=true but the daisyUI plugin bundle could not be found, so $(RaskUiDaisyUiPluginOutput) cannot be written and every daisyUI class in this project's markup would render unstyled. In this repository it lives at src/Rask.Ui/Styles/vendor/daisyui.mjs; from the package it ships beside these targets as build/daisyui.mjs."/>
+    <Error Condition="'$(_RaskUiTailwind)' == 'true' AND ('@(_RaskUiTailwindSource->Count())' != '4' OR '@(_RaskUiTailwindMissing)' != '')"
+           Text="Rask.Ui: $(RaskTailwindInput) compiles the kit in, but the kit's Tailwind sources could not all be found (found @(_RaskUiTailwindSource->Count()) of 4; missing on disk: @(_RaskUiTailwindMissing)), so $(RaskUiTailwindDirectory) cannot be written and the kit's components would render unstyled. In this repository, build src/Rask.Ui first (it writes obj/&lt;tfm&gt;/rask-ui.classes.txt); from the package they ship beside these targets as build/rask-ui.css, rask-ui.kit.css, rask-ui.classes.txt and daisyui.mjs."/>
 
-    <MakeDir Condition="'@(_RaskUiDaisyUiSource)' != ''"
-             Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)/$(RaskUiDaisyUiPluginOutput)'))"/>
+    <PropertyGroup Condition="'$(_RaskUiTailwind)' == 'true'">
+      <_RaskUiTailwindDirectory>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskUiTailwindDirectory)'))</_RaskUiTailwindDirectory>
+      <_RaskUiTailwindStamp>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask-ui.tailwind.stamp'))</_RaskUiTailwindStamp>
+    </PropertyGroup>
 
-    <Copy Condition="'@(_RaskUiDaisyUiSource)' != ''"
-          SourceFiles="@(_RaskUiDaisyUiSource)"
-          DestinationFiles="$(MSBuildProjectDirectory)/$(RaskUiDaisyUiPluginOutput)"
-          SkipUnchangedFiles="true"/>
+    <Copy Condition="'$(_RaskUiTailwind)' == 'true'"
+          SourceFiles="@(_RaskUiTailwindSource)"
+          DestinationFiles="@(_RaskUiTailwindSource->'$(_RaskUiTailwindDirectory)/%(Name)')"
+          SkipUnchangedFiles="true">
+      <Output TaskParameter="WroteAtLeastOneFile" PropertyName="_RaskUiTailwindWrote"/>
+    </Copy>
+
+    <!--
+      A copy keeps its source's timestamp, and a package's files are dated when the package was built —
+      which can be before this app's last compile. So "the kit changed" is recorded in a stamp of its own
+      and handed to the Tailwind compile as an input, or an upgraded kit would leave the sheet a version
+      behind with everything up to date.
+    -->
+    <MakeDir Condition="'$(_RaskUiTailwind)' == 'true'"
+             Directories="$([System.IO.Path]::GetDirectoryName('$(_RaskUiTailwindStamp)'))"/>
+
+    <Touch Condition="'$(_RaskUiTailwind)' == 'true' AND ('$(_RaskUiTailwindWrote)' == 'true' OR !Exists('$(_RaskUiTailwindStamp)'))"
+           Files="$(_RaskUiTailwindStamp)"
+           AlwaysCreate="true"/>
+
+    <ItemGroup Condition="'$(_RaskUiTailwind)' == 'true'">
+      <_RaskTailwindSource Include="$(_RaskUiTailwindStamp)"/>
+    </ItemGroup>
+
+    <!--
+      The precompiled sheet an earlier build wrote, when this project still linked it. Left in wwwroot it
+      is published, precached and — by anything that still links it — loaded, which is the double include
+      again from a file no property asks for any more.
+    -->
+    <Delete Condition="'$(_RaskUiTailwind)' == 'true' AND '$(RaskUiStylesheetOutput)' != '' AND Exists('$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)')"
+            Files="$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)"/>
+  </Target>
+
+  <!--
+    The kit's sheets in Styles/vendor/ are not scoped CSS. Rask auto-includes every **/*.css as a
+    component's own stylesheet and expects a class of the same name beside it (RASK015) — true of nothing
+    in that folder. Taken back out here, by folder, for the reason Rask.Tailwind takes its input out the
+    same way: turning the convention off would un-scope every other .css in the project. On the first
+    build the folder is empty at evaluation and nothing was included; this is for the second.
+  -->
+  <Target Name="_RaskUiExcludeTailwindSourcesFromScopedCss"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="_RaskUiResolveTailwind"
+          Condition="'$(RaskUiTailwindDirectory)' != ''">
+    <ItemGroup Condition="'$(_RaskUiTailwind)' == 'true'">
+      <AdditionalFiles Remove="$(RaskUiTailwindDirectory)/**/*.css"/>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Tells the host the kit is already in the app's stylesheet, so RaskApp and the WASM host link that one
+    sheet and not the precompiled kit beside it. Read at runtime as the app assembly's Rask.Ui.Stylesheet
+    metadata (RaskDocument), the same way Rask.Tailwind announces where the app's sheet is served.
+  -->
+  <Target Name="_RaskUiStylesheetMetadata"
+          DependsOnTargets="_RaskUiResolveTailwind"
+          BeforeTargets="GetAssemblyAttributes">
+    <ItemGroup Condition="'$(_RaskUiTailwind)' == 'true'">
+      <AssemblyMetadata Include="Rask.Ui.Stylesheet" Value="compiled-in"/>
+    </ItemGroup>
   </Target>
 
 </Project>

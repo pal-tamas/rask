@@ -314,7 +314,11 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>, IUiFi
     private protected Component? BadgeFor() =>
         Badge is null
             ? null
-            : Span.Class("badge badge-ghost badge-xs ms-1 align-middle").Aria("hidden", "true")[Badge];
+            : Ui.Badge
+                .Size(Ui.BadgeSize.Sm)
+                .Inset(Ui.Inset.Top | Ui.Inset.Bottom)
+                .Class("ms-1 align-middle")
+                .Aria("hidden", "true")[Badge];
 
     /// <summary>
     ///     The field's own validation message, or null when there is nothing to show one for.

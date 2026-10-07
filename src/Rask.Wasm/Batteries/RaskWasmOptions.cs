@@ -38,7 +38,7 @@ public sealed class RaskWasmOptions
     public Battery Ui { get; } = new();
 
     /// <summary>
-    /// Where <c>Toast.Success(…)</c> appears and how long it stays: <c>c.Toasts.At(Ui.Position.Top, Ui.Align.End).For(8.Seconds)</c>.
+    /// Where <c>Toast.Success(…)</c> appears and how long it stays: <c>c.Toasts.At(Ui.ToastPosition.TopEnd).For(8.Seconds)</c>.
     /// </summary>
     public ToastOptions Toasts { get; } = new();
 

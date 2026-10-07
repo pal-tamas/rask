@@ -8,7 +8,8 @@ name: upstream
 #   land     that commit onto main. Publishing follows, as it does for any commit ci passed.
 #   flux     scripts/flux/sync.mjs — has Flux UI's catalogue, look or release moved? A look is pixels,
 #            so the lock is measured HERE, on the runner: `-f relock=true` (or a lock from another
-#            platform) re-measures every look and lands the lock instead of reporting them.
+#            platform, or taken by measuring code that has changed since) re-measures every look and
+#            lands the lock instead of reporting them.
 #   report   an issue, only when a person is needed: the gates refused what upstream shipped, or Flux
 #            moved (a look is matched by rewriting a component, which no script does).
 #
@@ -166,7 +167,7 @@ jobs:
         run: |
           set -u
           mode=()
-          if [ "$RELOCK" = "true" ] || [ "$(jq -r '.measuredOn // ""' "$LOCK")" != "linux" ]; then
+          if [ "$RELOCK" = "true" ] || ! node scripts/flux/sync.mjs --comparable; then
             mode=(--baseline)
             echo "baselined=true" >> "$GITHUB_OUTPUT"
           fi

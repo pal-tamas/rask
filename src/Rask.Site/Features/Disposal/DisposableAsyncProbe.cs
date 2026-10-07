@@ -18,7 +18,7 @@ public sealed partial class DisposableAsyncProbe : Component, IAsyncDisposable
 
     protected override Component? Render() =>
         Div.Class("flex gap-2 items-center flex-wrap items-center")[
-            Ui.Badge.Info.Soft.Class("dispose-async-pill")[$"#{InstanceId} alive"],
+            Ui.Badge.Color(Ui.Color.Blue).Class("dispose-async-pill")[$"#{InstanceId} alive"],
             Span.Class("text-ui-muted text-sm")[
                 $"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire DisposeAsync()."]
         ];

@@ -4,8 +4,9 @@ namespace Rask.Site.Features.UiKit;
 ///     daisyUI's Data display category, drawn with the kit.
 /// </summary>
 /// <remarks>
-///     Most of this category is static — a badge is a badge. The accordions open and close in the browser
-///     with no state at all; the one the page owns keeps whether it is open in a plain field.
+///     Most of this category is static. The accordions open and close in the browser with no state at all;
+///     what holds state holds it here, in plain fields: whether the owned accordion is open, and what the
+///     badges that are pressed or removed have been asked to do.
 /// </remarks>
 public sealed partial class UiKitDataDisplayDemo : Component
 {
@@ -18,14 +19,22 @@ public sealed partial class UiKitDataDisplayDemo : Component
     private const string Tracking =
         "Once your order is shipped, you will receive an email with a tracking number. Use this number to track your order on our website.";
 
-    private bool _advanced;
+    private int _amount = 1;
+    private readonly List<string> _roles = ["Admin", "Editor", "Billing"];
+
+    private static readonly Ui.Color?[] BadgeColors =
+    [
+        null, Ui.Color.Red, Ui.Color.Orange, Ui.Color.Amber, Ui.Color.Yellow, Ui.Color.Lime, Ui.Color.Green,
+        Ui.Color.Emerald, Ui.Color.Teal, Ui.Color.Cyan, Ui.Color.Sky, Ui.Color.Blue, Ui.Color.Indigo,
+        Ui.Color.Violet, Ui.Color.Purple, Ui.Color.Fuchsia, Ui.Color.Pink, Ui.Color.Rose,
+    ];
 
     /// <inheritdoc />
     protected override Component? Render() =>
     [
+        BadgeSection(),
         CardSection(),
         AccordionSection(),
-        OwnedAccordionSection(),
         AuraSection(),
         TextRotateSection(),
         Hover3DSection(),
@@ -35,6 +44,58 @@ public sealed partial class UiKitDataDisplayDemo : Component
         TableSection(),
         RestOfCategorySection()
     ];
+
+    private Component BadgeSection() =>
+        Section(
+            "Badge",
+            "Flux UI's badge, example for example: a status, a category or a count in any Tailwind colour. "
+            + "It is a <div> until it is told to be a button, and a close button inside it makes it removable.",
+            Div.Data(Testid("ui-badge")).Class("flex flex-col gap-5")[
+                BadgeRow("intro", "Default", Ui.Badge.Color(Ui.Color.Lime)["New"]),
+                BadgeRow("sizes", "Sizes",
+                    Ui.Badge.Sm["Small"],
+                    Ui.Badge["Default"],
+                    Ui.Badge.Lg["Large"]),
+                BadgeRow("icons", "Icons",
+                    Ui.Badge.Icon(Ui.IconName.UserCircle)["Users"],
+                    Ui.Badge.Icon(Ui.IconName.DocumentText)["Files"],
+                    Ui.Badge.IconTrailing(Ui.IconName.VideoCamera)["Videos"]),
+                BadgeRow("rounded", "Rounded", Ui.Badge.Rounded().Icon(Ui.IconName.User)["Users"]),
+                BadgeRow("button", "As button",
+                    Ui.Badge
+                        .As(Ui.BadgeAs.Button)
+                        .Rounded()
+                        .Icon(Ui.IconName.Plus)
+                        .Lg
+                        .Data(Testid("ui-badge-amount"))
+                        .OnClick(() => { _amount++; })[$"Amount {_amount}"]),
+                BadgeRow("close", "With close button", [.. _roles.Select(RemovableBadge)]),
+                BadgeRow("colors", "Colors", [.. BadgeColors.Select(color =>
+                    Ui.Badge.Key(BadgeColorName(color)).Color(color)[BadgeColorName(color)])]),
+                BadgeRow("solid", "Solid variant", [.. BadgeColors.Select(color =>
+                    Ui.Badge.Key(BadgeColorName(color)).Solid.Color(color)[BadgeColorName(color)])]),
+                Div.Key("inset").Data(Testid("ui-badge-inset"))[
+                    Div.Class("text-base font-medium")[
+                        "Page builder ",
+                        Ui.Badge.Color(Ui.Color.Lime).Inset(Ui.Inset.Top | Ui.Inset.Bottom)["New"]
+                    ],
+                    P.Class("mt-2 text-sm text-ui-muted")["Easily author new pages without leaving your browser."]
+                ]
+            ]);
+
+    private Component RemovableBadge(string role) =>
+        Ui.Badge.Key(role)[
+            role,
+            Ui.BadgeClose.Aria("label", "Remove " + role).OnClick(() => { _roles.Remove(role); })
+        ];
+
+    private static string BadgeColorName(Ui.Color? color) => color?.ToString() ?? "Zinc";
+
+    private static Component BadgeRow(string key, string caption, params Component[] badges) =>
+        Div.Key(key)[
+            P.Class("mb-2 text-xs text-ui-muted")[caption],
+            Div.Class("flex flex-wrap items-end gap-2")[badges]
+        ];
 
     private static Component AccordionSection() =>
         Section(
@@ -74,26 +135,6 @@ public sealed partial class UiKitDataDisplayDemo : Component
                 Example("exclusive", "Exclusive", Ui.Accordion.Exclusive()[Questions()]),
                 Example("expanded", "Expanded", Ui.Accordion[Questions(expanded: true)]),
                 Example("reverse", "Leading icon", Ui.Accordion.Reverse[Questions()])
-            ]);
-
-    private Component OwnedAccordionSection() =>
-        Section(
-            "Accordion, owned by the page",
-            "Expanded is the state an item is rendered in and OnToggle says each time the reader changes it. "
-            + "Keep the two in one field and the page owns the item: the button below opens it from C#.",
-            Div.Data(Testid("ui-accordion-owned")).Class("max-w-sm")[
-                Ui.Button.Sm.OnClick(() => { _advanced = !_advanced; })[_advanced ? "Close it from C#" : "Open it from C#"],
-                Ui.Accordion.Transition().Class("mt-4")[
-                    Ui.AccordionItem
-                        .Heading("Advanced settings")
-                        .Expanded(_advanced)
-                        .OnToggle(open => { _advanced = open; })[
-                        "Nothing in here is required."
-                    ]
-                ],
-                P.Class("mt-2 text-sm text-ui-muted").Data(Testid("ui-accordion-state"))[
-                    _advanced ? "Advanced settings are open." : "Advanced settings are closed."
-                ]
             ]);
 
     private static Component Example(string key, string title, Component accordion) =>
@@ -179,7 +220,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
                         ]
                     ],
                     Ui.Card
-                        .Key("detail")[Ui.CardHeader[Ui.CardHeading.Level(2)["A failed job"], Ui.CardActions[Ui.Badge.Mono()["requestId=0HN8Q2V3R1T0K:00000001"]]], Ui.CardBody[
+                        .Key("detail")[Ui.CardHeader[Ui.CardHeading.Level(2)["A failed job"], Ui.CardActions[Ui.Badge.Class("font-mono max-w-full break-all whitespace-normal!")["requestId=0HN8Q2V3R1T0K:00000001"]]], Ui.CardBody[
                         Ui.Code.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
                             .Label("Last error")
                             .Error
@@ -196,7 +237,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
             "The rest of the category",
             "Static, and covered by unit tests for their class composition.",
             Div.Data(Testid("ui-display-rest")).Class("flex flex-wrap items-center gap-3")[
-                Ui.Badge.Key("badge").Info["Beta"],
+                Ui.Badge.Key("badge").Color(Ui.Color.Blue)["Beta"],
                 Ui.Kbd.Key("kbd").Text("⌘K").Sm,
                 // What FullText.Snippet returns for a search of "sqlite fast": matches between U+E000 and U+E001.
                 Span.Key("highlight").Data(Testid("ui-highlight"))[

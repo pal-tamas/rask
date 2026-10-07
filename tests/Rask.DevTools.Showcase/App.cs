@@ -62,7 +62,7 @@ public sealed partial class TaskRow : Component
         var release = Context.Get<Release>();
         return Ui.ListRow
             .Grow(Span[Label ?? string.Empty])
-            .Trailing(Ui.Badge.Tone(Done ? Ui.Tone.Success : Ui.Tone.Info).Variant(Ui.Variant.Soft)
+            .Trailing(Ui.Badge.Color(Done ? Ui.Color.Green : Ui.Color.Blue)
                 .Title(release is null ? null : "Part of " + release.Name)[Done ? "done" : Assignee ?? "open"]);
     }
 }

@@ -8,12 +8,6 @@
     <!-- The litestream binary ships in the Docker image, not fetched at build time. -->
     <RaskLitestreamDownload>false</RaskLitestreamDownload>
     <!-- rask:end -->
-    <!-- The UI kit's compiled sheet as a cached file in wwwroot, rather than inlined in every
-         document. Rask links it first in every page: it declares the @layer order. -->
-    <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
-    <!-- daisyUI's plugin, copied beside Styles/app.css so this project compiles daisyUI itself.
-         No npm and no node_modules: `dotnet build` is still the whole toolchain. -->
-    <RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
   </PropertyGroup>
 
   <ItemGroup>

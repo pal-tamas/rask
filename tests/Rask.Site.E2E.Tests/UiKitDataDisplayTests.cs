@@ -23,7 +23,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         foreach (var id in new[]
                  {
-                     "ui-card", "ui-accordion", "ui-accordion-owned", "ui-aura", "ui-text-rotate", "ui-hover-3d",
+                     "ui-badge", "ui-card", "ui-accordion", "ui-aura", "ui-text-rotate", "ui-hover-3d",
                      "ui-hover-gallery", "ui-console-pieces", "ui-chart", "ui-table", "ui-display-rest",
                  })
         {
@@ -35,6 +35,59 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
             Assert.NotNull(box);
             Assert.True(box!.Height > 0, $"{id} rendered with zero height, which is what an unstyled kit component looks like.");
         }
+    });
+
+    [Fact]
+    public Task A_badge_is_drawn_as_Flux_draws_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-badge']");
+        var lime = scope.Locator("[data-ui-badge]").First;
+
+        // Every example on Flux's page: 1 + 3 sizes + 3 icons + 1 rounded + 1 button + 3 removable
+        // + 18 colours + 18 solid + 1 inset.
+        await Expect(scope.Locator("[data-ui-badge]")).ToHaveCountAsync(49);
+        await Expect(lime).ToHaveTextAsync("New");
+        var drawn = await lime.EvaluateAsync<string[]>(
+            "el => { const s = getComputedStyle(el); return [s.borderTopLeftRadius, s.paddingLeft, s.paddingTop, s.fontSize, s.fontWeight, s.height]; }");
+        Assert.Equal(["6px", "8px", "4px", "14px", "500", "28px"], drawn);
+        var fill = await lime.EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
+        Assert.Contains("0.25", fill, StringComparison.Ordinal);
+    });
+
+    [Fact]
+    public Task A_badge_as_a_button_is_pressed_and_a_removable_one_is_removed() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-badge']");
+        var amount = scope.Locator("button[data-testid='ui-badge-amount']");
+
+        await Expect(amount).ToHaveTextAsync("Amount 1");
+        await amount.ClickAsync();
+        await Expect(amount).ToHaveTextAsync("Amount 2");
+
+        await Expect(scope.Locator("[data-ui-badge-close]")).ToHaveCountAsync(3);
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Remove Editor" }).ClickAsync();
+        await Expect(scope.Locator("[data-ui-badge-close]")).ToHaveCountAsync(2);
+        await Expect(scope.GetByText("Editor")).ToHaveCountAsync(0);
+    });
+
+    [Fact]
+    public Task A_badge_set_into_a_heading_does_not_make_its_line_taller() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var heading = Page.Locator("[data-testid='ui-badge-inset'] > div");
+        var badge = heading.Locator("[data-ui-badge]");
+
+        // 28px of badge in a 24px line: the inset gives the padding back as a negative margin.
+        var heights = await heading.EvaluateAsync<double[]>(
+            "el => [el.getBoundingClientRect().height, el.querySelector('[data-ui-badge]').getBoundingClientRect().height]");
+        await Expect(badge).ToHaveTextAsync("New");
+        Assert.Equal(24, heights[0]);
+        Assert.Equal(28, heights[1]);
     });
 
     [Fact]
@@ -127,27 +180,6 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         Assert.True(midway > closed + 1 && midway < open - 1, $"100ms in, the item was {midway}px between {closed}px and {open}px");
     });
 
-    [Fact]
-    public Task The_page_opens_and_closes_the_item_it_owns_from_CSharp() => RunAsync(async () =>
-    {
-        await OpenAsync();
-        var scope = Page.Locator("[data-testid='ui-accordion-owned']");
-        var state = Page.Locator("[data-testid='ui-accordion-state']");
-        var body = scope.GetByText("Nothing in here is required.");
-        await Expect(state).ToContainTextAsync("closed");
-
-        // From C#: a button that only flips a field.
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open it from C#" }).ClickAsync();
-        await Expect(body).ToBeVisibleAsync();
-        await Expect(state).ToContainTextAsync("open");
-
-        // From the browser: the page hears the toggle and keeps the field in step.
-        await Heading(scope, "Advanced settings").ClickAsync();
-        await Expect(state).ToContainTextAsync("closed");
-        await Expect(body).ToBeHiddenAsync();
-        await Expect(scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open it from C#" })).ToBeVisibleAsync();
-    });
-
     // TheRotatorShowsEveryWordInTheMarkup moved DOWN to Rask.UiTests.Components.UiTextRotateTests.
     // Its own comment gave the reason: the words are in the DOM "whatever the browser is doing with
     // them", which makes it a claim about rendered markup, and it was paying a published bundle and a
@@ -209,7 +241,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         {
             await Page.SetViewportSizeAsync(390, 844);
 
-            var badge = Page.Locator("[data-testid='ui-console-pieces'] .badge.font-mono");
+            var badge = Page.Locator("[data-testid='ui-console-pieces'] [data-ui-badge].font-mono");
             await Expect(badge).ToBeVisibleAsync();
 
             // A badge is a fixed-height pill that never breaks; a 40-character request id in one used to

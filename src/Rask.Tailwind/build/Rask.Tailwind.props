@@ -53,6 +53,13 @@
     <RaskTailwindMinify Condition="'$(RaskTailwindMinify)' == ''">false</RaskTailwindMinify>
 
     <!--
+      RaskTailwindClassList — unset by default. For a component LIBRARY that compiles a sheet of its own:
+      a path to write every class that sheet defines, one per line. An app's Tailwind cannot scan an
+      assembly for the class names inside it, so the library publishes the list and the app's stylesheet
+      reads it with `@source`, compiling the library's classes into the app's ONE sheet. Rask.Ui does.
+    -->
+
+    <!--
       Where fetched binaries are cached: per user, shared by every project. Deliberately outside the
       repository — an 80 MB file in obj/ is re-downloaded by every clean and committed by somebody
       eventually.

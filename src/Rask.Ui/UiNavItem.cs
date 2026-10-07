@@ -50,7 +50,6 @@ public sealed partial class UiNavItem : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var badgeTone = BadgeTone is { } tone ? UiClassNames.BadgeTone(tone) : "badge-ghost";
         Component[] content =
         [
             Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null!,
@@ -60,9 +59,7 @@ public sealed partial class UiNavItem : Component
             // gone (#1119).
             Span.Class("ui-rail-hide grow")[Label],
             Badge is { } badge
-                ? Span.Class(UiClass.Compose(
-                    "ui-rail-hide badge badge-sm",
-                    badgeTone))[badge]
+                ? Ui.Badge.Size(Ui.BadgeSize.Sm).Color(UiBadge.ToneColor(BadgeTone)).Class("ui-rail-hide")[badge]
                 : null!
         ];
 

@@ -171,6 +171,9 @@ src/Rask.Wasm/Browser/rask-sw.js
 # Rask.Ui writes its compiled stylesheet into the consuming app's wwwroot at build, for the same
 # reason: the file in the tree is build output, not source.
 **/wwwroot/css/rask-ui.css
+# And the kit's Tailwind sources beside an app's own stylesheet, for an app that compiles the kit into
+# its one sheet (`@import "./vendor/rask-ui.css";`): written at build, never source.
+**/Styles/vendor/
 
 # Island bundles. Vite writes them into wwwroot so the SDK publishes them with no publish target
 # of its own — but they are build output, regenerated on every build, and the chunk names are hashed.

@@ -70,6 +70,9 @@
     <InternalsVisibleTo Include="Rask.Query.Tests"/>
     <InternalsVisibleTo Include="Rask.Providers.E2E.Tests"/>
     <InternalsVisibleTo Include="Rask.Auth"/>
+    <!-- For ToastOutlet.TemplateTimes: Ui.Toast hands each toast's countdown to the browser, where it pauses under
+         the pointer, so the outlet it mounts must start no timer of its own. -->
+    <InternalsVisibleTo Include="Rask.Ui"/>
     <InternalsVisibleTo Include="Rask.Auth.Tests"/>
     <!-- For OfflineCache.Clear: BrowserAuth empties the service worker's cache on sign-out, as WasmAuthSignIn does. -->
     <InternalsVisibleTo Include="Rask.Auth.Client"/>

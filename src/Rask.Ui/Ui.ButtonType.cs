@@ -15,7 +15,7 @@ public static partial class Ui
     /// </para>
     /// <para>
     /// <see cref="UiButton" /> had no way to say it, and the showcase's submit buttons reached past the kit to
-    /// a raw <c>Button.Type("submit")</c> — twenty-one of them, plus one reset.
+    /// a raw <c>Button.Type("submit")</c> — twenty-one of them. Flux's two values; a reset is the native tag's.
     /// </para>
     /// </remarks>
     public enum ButtonType
@@ -25,8 +25,5 @@ public static partial class Ui
 
         /// <summary>Submits the form it is in.</summary>
         Submit,
-
-        /// <summary>Returns the form it is in to its initial values.</summary>
-        Reset,
     }
 }

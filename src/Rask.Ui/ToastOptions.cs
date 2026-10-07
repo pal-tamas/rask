@@ -1,27 +1,22 @@
 namespace Rask;
 
 /// <summary>
-///     Where the app's toasts appear and how long they stay, unless a toast says otherwise:
-///     <c>c.Toasts.At(Ui.Position.Top, Ui.Align.End).For(8.Seconds)</c>, or <c>Rask:Toasts</c> in appsettings.
+///     Where the app's toasts appear and how long they stay, unless the app places a <c>Ui.Toast</c> of its
+///     own: <c>c.Toasts.At(Ui.ToastPosition.TopEnd).For(8.Seconds)</c>, or <c>Rask:Toasts</c> in appsettings.
 /// </summary>
 public sealed class ToastOptions
 {
-    /// <summary>The edge they stack against. Bottom when unset.</summary>
-    public Ui.Position Position { get; set; } = Ui.Position.Bottom;
-
-    /// <summary>Where along that edge. The end when unset.</summary>
-    public Ui.Align Align { get; set; } = Ui.Align.End;
+    /// <summary>The corner they appear in. The bottom end when unset.</summary>
+    public Ui.ToastPosition Position { get; set; } = Ui.ToastPosition.BottomEnd;
 
     /// <summary>How long a toast shows before it goes by itself. Five seconds when unset.</summary>
-    public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(5);
+    public TimeSpan Duration { get; set; } = UiToast.DefaultDuration;
 
-    /// <summary>Stacks toasts against <paramref name="position" />, at <paramref name="align" /> along it.</summary>
-    /// <param name="position">The edge — top or bottom.</param>
-    /// <param name="align">Where along it — start, center or end.</param>
-    public ToastOptions At(Ui.Position position, Ui.Align align)
+    /// <summary>Shows toasts in <paramref name="position" />: <c>.At(Ui.ToastPosition.TopEnd)</c>.</summary>
+    /// <param name="position">The corner.</param>
+    public ToastOptions At(Ui.ToastPosition position)
     {
         Position = position;
-        Align = align;
         return this;
     }
 

@@ -109,7 +109,7 @@ asynchronous handler at the call site:
 
 ```csharp
 Button.OnClick(Save)["Save"]
-Ui.Toast.Message("Saved").OnDismiss(() => _open = false)
+Ui.Modal.Title("Details").OnClose(() => _open = false)
 ```
 
 On a component you write, an event is a `Callback` (or `Callback<T>` when it carries an argument), and a

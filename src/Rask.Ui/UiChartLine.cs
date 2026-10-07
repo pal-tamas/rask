@@ -11,9 +11,6 @@ public sealed partial class UiChartLine : Component, IUiChartField
     /// <summary>How the points are joined. Smooth unless this says otherwise.</summary>
     public Ui.ChartCurve? Curve { get; set; }
 
-    /// <summary>The <c>stroke-width</c> of the SVG element it draws.</summary>
-    public double? StrokeWidth { get; set; }
-
     /// <summary>The <c>stroke-dasharray</c> of the SVG element it draws: <c>"4 4"</c>.</summary>
     public string? StrokeDasharray { get; set; }
 

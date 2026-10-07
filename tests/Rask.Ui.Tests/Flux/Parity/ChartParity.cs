@@ -273,10 +273,10 @@ public sealed partial class ChartParity : FluxParity
         yield return ("sparkline", Ui.Table[
             Ui.TableColumns[Ui.TableColumn["Stock"], Ui.TableColumn["Price"], Ui.TableColumn["Change"], Ui.TableColumn["Trend"]],
             Ui.TableRows[
-                Stock("AAPL", "$193.45", "+2.4%", 54.48, 0, "c-green"),
-                Stock("MSFT", "$338.12", "+1.8%", 52.02, 1, "c-green"),
-                Stock("TSLA", "$242.68", "-3.2%", 51.66, 2, "c-red"),
-                Stock("GOOGL", "$129.87", "+0.9%", 54.2, 3, "c-green")
+                Stock("AAPL", "$193.45", "+2.4%", 0, "c-green"),
+                Stock("MSFT", "$338.12", "+1.8%", 1, "c-green"),
+                Stock("TSLA", "$242.68", "-3.2%", 2, "c-red"),
+                Stock("GOOGL", "$129.87", "+0.9%", 3, "c-green")
             ]
         ]);
 
@@ -338,14 +338,12 @@ public sealed partial class ChartParity : FluxParity
             ]
         ];
 
-    // flux:badge is not rebuilt yet: a stand-in, held to the room Flux's takes.
-    private static Component Stock(string symbol, string price, string change, double badge, int chart, string colour) =>
+    private static Component Stock(string symbol, string price, string change, int chart, string colour) =>
         Ui.TableRow.Key(symbol)[
             Ui.TableCell[symbol],
             Ui.TableCell.Variant(Ui.TableCellVariant.Strong)[price],
             Ui.TableCell[
-                Div.Style(string.Create(CultureInfo.InvariantCulture, $"display:inline-flex;align-items:center;margin:-4px 0;padding:4px 8px;font-size:12px;line-height:16px;font-weight:500;width:{badge}px;height:24px;white-space:nowrap"))
-                    .Attributes(("data-ui-badge", ""), ("data-parity-skip", ""))[change]
+                Ui.Badge.Sm.Inset(Ui.Inset.Top | Ui.Inset.Bottom).Color(change[0] == '-' ? Ui.Color.Rose : Ui.Color.Green)[change]
             ],
             Ui.TableCell.Class("x-trend")[
                 Ui.Chart.Value(Numbers(15, chart)).Class("x-spark")[

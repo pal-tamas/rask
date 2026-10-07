@@ -16,4 +16,7 @@ public sealed record ToastMessage(int Id, ToastLevel Level, string Message, stri
 
     /// <summary>A button on the toast — <c>Toast.Info("Deleted").Action("Undo", …)</c> — or <c>null</c>.</summary>
     public ToastAction? Action { get; init; }
+
+    /// <summary>A link under the message — <c>Toast.Success("Invoice created.").Link("View invoice", url)</c> — or <c>null</c>.</summary>
+    public ToastLink? Link { get; init; }
 }

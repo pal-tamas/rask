@@ -51,13 +51,12 @@ public sealed partial class DashboardLayout(
         // An operator surface has no business in a search index, even behind a policy.
         Meta.Name("robots").Content("noindex, nofollow"),
         // Raw, because CSS is not HTML: encoding it would break every selector containing > or &.
-        // ONE sheet, the kit's. The console used to compile a second one for the utilities its pages wrote,
-        // because Tailwind scans the project it runs in and neither build could see the other's markup; the
-        // pages write no classes now, and the frame's reset travels in the kit's sheet keyed to Ui.Shell.
+        // ONE sheet: the console's own, with the kit compiled into it (Styles/dashboard.css) — so a
+        // utility a page here writes and a class a kit component writes are ranked by Tailwind, in one
+        // build. The frame's reset travels with the kit, keyed to Ui.Shell.
         // INLINED here, unlike the apps, and deliberately. The console is mounted into somebody else's host at
-        // /_rask: that host references Rask.Dashboard, not Rask.Ui, so it never gets the build target that
-        // writes the sheet into wwwroot, and a <link> would point at a file nothing produced.
-        Style[Raw.Value(UiStylesheet.Css)],
+        // /_rask, and a <link> would point at a file nothing in that host's wwwroot produced.
+        Style[Raw.Value(DashboardStylesheet.Css)],
     ];
 
     /// <summary>Only the batteries the app actually registered, so the chrome is an honest inventory.</summary>
@@ -98,7 +97,10 @@ public sealed partial class DashboardLayout(
             Ui.Main[
                 UnsecuredWarning(),
                 Outlet
-            ]
+            ],
+            // Where a page's Toast.Success("Evicted …") shows: the console is a mounted app with its own
+            // document, so the host places none for it.
+            Ui.Toast
         ];
 
     // ── Chrome ──────────────────────────────────────────────────────────────────────────────────────

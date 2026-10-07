@@ -4,26 +4,26 @@ using System.Text;
 namespace Rask;
 
 /// <summary>
-/// The kit's compiled stylesheet, for a surface to inline.
+/// The kit's precompiled stylesheet, for a surface that has no Tailwind build of its own.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Tailwind is a compiler: it scans the project it runs in for the class names actually written, and this
-/// kit ships as a compiled assembly. A consuming app's own Tailwind build cannot see these class names and
-/// emits none of them — so the kit compiles its own sheet at its own build and hands it over here. Without
-/// this the components render as unstyled HTML, and nothing reports it.
+/// <b>An app that runs Tailwind does not use this.</b> It takes the kit in with one line in its own
+/// stylesheet — <c>@import "./vendor/rask-ui.css";</c> — and compiles ONE sheet: Tailwind, the kit's
+/// theme and <c>dark</c> variant, and the classes the kit's components write beside its own. Linking
+/// this sheet next to an app's own Tailwind output puts two <c>@layer utilities</c> in one document,
+/// ranked by link order alone, where a base utility the app wrote beats a <c>dark:</c> variant of the kit's;
+/// the build refuses <c>RaskUiWriteStylesheet</c> in such a project.
 /// </para>
 /// <para>
-/// <b>Inline this BEFORE the app's own stylesheet.</b> The sheet defines the <c>--color-ui-*</c> tokens as
-/// its palette, and redefining them in the app's own <c>@theme</c> is how a surface re-skins the kit
-/// without overriding a single rule — which only works while the app's copy is the one the cascade reads
-/// last. It carries no preflight and no <c>html</c>/<c>body</c> rules for the same reason: the app owns
-/// its document, and a reset arriving from a library restyles pages that never asked for it.
+/// What is here is the kit compiled over its own sources at its own build: every class a kit component
+/// can write, and nothing an app writes itself. It is for a panel drawn inside somebody else's page
+/// (<c>Rask.DevTools</c> inlines <see cref="Css" />), or an app that draws only with <c>Ui.*</c>
+/// components and links <see cref="Href" />.
 /// </para>
 /// <para>
-/// Inlined rather than served: the alternative is a static web asset, which needs the Razor SDK and a
-/// <c>_content/</c> path a host has to map. For a stylesheet this size a <c>&lt;style&gt;</c> is smaller
-/// than the machinery, and it is what lets this package ship as a plain assembly with no assets at all.
+/// It carries no preflight and no <c>html</c>/<c>body</c> rules: it lands in documents it does not own,
+/// and a reset arriving from a library restyles pages that never asked for it.
 /// </para>
 /// </remarks>
 public static class UiStylesheet

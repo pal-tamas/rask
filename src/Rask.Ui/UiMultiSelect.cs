@@ -294,19 +294,15 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
         for (var i = 0; i < chosen.Count && i < limit; i++)
         {
             var value = chosen[i];
-            yield return Span
+            yield return Ui.Badge
                 .Key("c-" + OptionText(value))
-                .Class("badge badge-sm badge-neutral gap-1")[
+                .Size(Ui.BadgeSize.Sm)[
                 ChipTemplate is { } template && template.Invoke(value) is { } chip ? chip : TextOf(value),
                 disabled
                     ? null
-                    : Button
-                        .Type(ButtonType.Button)
-                        .Class("cursor-pointer opacity-70 hover:opacity-100")
+                    : Ui.BadgeClose
                         .Aria("label", "Remove " + TextOf(value))
-                        .OnClick(() => CommitAsync(acc, ctx, chosen, Without(chosen.Shown, value)))[
-                        Ui.Icon.Name(Ui.IconName.XMark).Class("size-3")
-                    ]
+                        .OnClick(() => CommitAsync(acc, ctx, chosen, Without(chosen.Shown, value)))
             ];
         }
 

@@ -1,75 +1,18 @@
 /*
-  The kit's own stylesheet, compiled by Rask.Tailwind at THIS project's build.
+  THE KIT, as Tailwind source: its theme tokens, its `dark` variant, daisyUI while it lasts, and the few
+  rules a utility cannot say. It names no Tailwind entry point and declares no layer order — whoever
+  imports it does both, and two do:
 
-  Tailwind is a compiler: it scans the project it runs in for the class names actually written and emits
-  only those utilities. That is why this lives here rather than being left to the consuming app — the kit
-  ships as a compiled assembly, so an app's own Tailwind build cannot see these class names and would emit
-  none of them, leaving every component rendered as unstyled HTML with nothing reporting it.
+    ui.precompiled.css   the kit's own sheet, compiled at THIS project's build from this project's
+                         sources and embedded (UiStylesheet.Css). For a surface with no Tailwind build
+                         of its own — Rask.DevTools, an app that links the sheet and writes no utilities.
+    rask-ui.css          what an app's stylesheet imports, so the app's ONE Tailwind build compiles the
+                         kit in. The build hands it over as Styles/vendor/rask-ui.css with this file
+                         beside it as rask-ui.kit.css (build/Rask.Ui.targets).
 
-  The output is embedded and inlined by the consuming surface (UiStylesheet.Css), so there is no
-  stylesheet to serve, no static web assets, and nothing for a host to map.
-
-  NO PREFLIGHT FOR AN APPLICATION, and no html/body rule an application could match. An app consuming this
-  kit owns its document, and usually runs its own Tailwind besides. A second reset arriving from a library
-  restyles pages that never asked for it — the console learned that the hard way, when a reset landed on the
-  host application's own pages for as long as an operator had it open — and re-creates the multi-sheet stack
-  where cascade ORDER decides the outcome that #914 removed. Utilities only: the app keeps its own reset and
-  its own base layer.
-
-  The one exception is keyed to the console frame: the reset further down applies only under `.rask-ops`, the
-  class UiShell writes, so a page that does not frame itself with UiShell matches none of it — and one that
-  does has asked for a whole document of its own. Rask.Dashboard is a mounted application that owns its whole
-  document (RaskMountedApp) and draws it with nothing but this kit, so that reset is the only one its page gets.
-
-  THE PALETTE IS INLINE BELOW, and it has to be. Moving it to a sibling ui.tokens.css and pulling it back
-  with `@import` compiled without error and emitted a sheet of the right size — with ZERO ui-* utilities
-  in it. A `@theme` reached through an import after the Tailwind entry points is not interpreted as
-  theme; the tokens simply are not there when utilities are generated, and every component silently
-  loses its colour while the build stays green. Keep it here.
-
-  An app that writes its own ui-* classes needs these tokens in ITS @theme for the same reason — Tailwind
-  emits a utility only where it can see the token. Copy the block into your own stylesheet; see
-  docs/ui-kit.md. The showcase does exactly that, and UiPaletteTests asserts its copy matches this one.
+  So everything here is written to be true in both places. Paths are relative to this file and name only
+  what travels with it (daisyui.mjs); nothing below scans a source or resets a document.
 */
-/*
-  LAYERED, and this is not cosmetic — it decides whether a consuming app keeps its own cascade.
-
-  Unlayered CSS beats layered CSS in every browser, whatever the source order. Tailwind puts an app's
-  utilities in `@layer utilities`, so a sheet from a library that imports these WITHOUT layer() lands
-  unlayered and silently outranks every utility the app wrote. It broke the showcase exactly that way:
-  the kit's `.hidden` beat the app's `.md\:flex`, and the sidebar stayed display:none at every width
-  while the page around it looked perfectly normal.
-
-  daisyUI's own rules are already layered (`@layer daisyui...`), so only these two needed saying.
-*/
-/*
-  THE LAYER ORDER FOR THE WHOLE DOCUMENT, declared before anything can imply a different one.
-
-  CSS orders layers by FIRST APPEARANCE, across every sheet, in link order — and nothing later can
-  reorder them. This sheet is linked first, so whatever order it happens to mention layers in becomes
-  the order every other sheet is ranked by, including the app's own Tailwind output.
-
-  Without this statement that order was decided by accident. The blocks land here as
-  properties, theme, utilities, daisyui, rask, base — daisyUI emits its `base` rules last — which puts
-  `base` ABOVE `utilities` for the entire page. The consuming app then links its own Tailwind, whose
-  `@layer theme, base, components, utilities;` is a no-op because those names are already ordered, and
-  its preflight outranks every utility it emitted: `h1.text-4xl.font-semibold` computed to 16px/400
-  against `h1,h2,h3,h4,h5,h6 { font-size: inherit; font-weight: inherit }`, and `px-5` computed to
-  `padding: 0` against preflight's `*{padding:0}`. The whole showcase rendered as near-unstyled HTML
-  with every class name present and correct in the markup, on a green build.
-
-  Stated explicitly, the order is the intended one: an app's utilities beat its own preflight, and they
-  beat both daisyUI and this kit's corrections — which is the "an app keeps its own cascade" promise the
-  layer() imports below are already making. `rask` after `daisyui` because the corrections at the foot
-  of this file exist precisely to outrank the library.
-
-  UiLayerOrderTests asserts this statement is the first at-rule in the compiled sheet.
-*/
-@layer properties, theme, base, components, daisyui, rask, utilities;
-
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
-
 /*
   daisyUI supplies the component vocabulary; this kit supplies the typed C# API over it.
 
@@ -81,9 +24,10 @@
       Error: Can't resolve 'daisyui' in .../src/Rask.Ui/Styles
 
   A relative path sidesteps the resolution entirely, so this project keeps the standalone engine and
-  needs no npm install, no node_modules and no package.json of its own. vendor/daisyui.mjs is
+  needs no npm install, no node_modules and no package.json of its own. daisyui.mjs is
   daisyUI 5.7.27 verbatim (MIT), taken from its pinned GitHub release, which is byte-identical to the
-  `latest` download at that version. It is build-time input only and ships in nothing.
+  `latest` download at that version. It is build-time input only: the package hands it to an app's
+  build beside this file and it reaches no browser.
 
   THE VERSION IN THAT SENTENCE IS CHECKED. It is the pin's second statement — the first is
   `var version = "…"` inside the bundle — and a bump that replaces the file and forgets the prose
@@ -112,24 +56,18 @@
 /*
   The plugin bundle is NOT a source file, and saying so is load-bearing.
 
-  Tailwind scans the project it runs in, and vendor/daisyui.mjs is inside it: 348 KB of daisyUI's own
-  code, naming every class daisyUI defines. Scanned, it acts as a safelist for the whole library, so the
-  compiled sheet carried every component whether or not anything here used one. It reads as correct,
-  because a sheet containing too much looks exactly like a sheet containing enough.
+  It sits beside this file wherever this file is — in this project's Styles/, and in an app's
+  Styles/vendor/ — which is inside the tree Tailwind scans: 348 KB of daisyUI's own code, naming every
+  class daisyUI defines. Scanned, it acts as a safelist for the whole library, so the compiled sheet
+  carried every component whether or not anything used one. It reads as correct, because a sheet
+  containing too much looks exactly like a sheet containing enough.
 
   It also quietly weakened UiClassNamesTests, which checks that every name the kit can write exists in
   the sheet. With the bundle scanned, every daisyUI name was in there for reasons unrelated to the kit.
 */
-@source not "./vendor";
+@source not "./daisyui.mjs";
 
-/*
-  Nor are the icon tables: half a megabyte of SVG path data, in which `h-4.5` and `m-3.75` are relative
-  line and move commands and, to Tailwind, a height and a margin. Scanned, every such run became a utility
-  in the sheet that nothing uses.
-*/
-@source not "../UiIconPaths.g.cs";
-
-@plugin "./vendor/daisyui.mjs" {
+@plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
   exclude: rootscrollgutter;
@@ -224,7 +162,7 @@
 
   /*
     The three daisyUI tones the kit's own palette never named, given the same treatment for the same
-    reason: the components below write .btn-secondary, .badge-accent and .step-neutral, and those are
+    reason: the components below write .btn-secondary, .alert-info and .step-neutral, and those are
     fills whose label has to be readable too. Weights solved like the others — the largest that clears
     4.6:1 against both grounds on every palette — and lower than the semantic tones because these three
     run to pale mid-tones (`accent` needs 14%, and no palette needs a correction on top).
@@ -235,8 +173,7 @@
 }
 
 /*
-  AFTER the kit's own @theme block, deliberately: UiPaletteTests reads the FIRST one as the palette the
-  showcase has to copy.
+  AFTER the kit's own @theme block, deliberately: ThemeContrastTests reads the FIRST one as the palette.
 */
 /*
   FLUX UI's theme model, which the kit is moving to component by component (daisyUI goes when the last
@@ -317,16 +254,15 @@
   browser's. `ThemeContrastTests` recomputes the whole matrix out of this sheet, so a weight edited by
   hand here fails a test rather than a reader.
 
-  In the `rask` layer, which the order statement at the top of this file puts after `theme` — these have
+  In the `rask` layer, which the order statement of the importing sheet puts after `theme` — these have
   the same specificity as the :root declarations they correct (0,1,0 either way), so nothing but the
-  layer decides which one wins, and an app's own copy of the palette is a separate sheet whose `theme`
-  layer is ranked by that same global order.
+  layer decides which one wins.
 */
 /*
   THE COMPONENTS' OWN COLOURS, CORRECTED — the same defect as the -ink tiers above, one layer down.
 
   daisyUI pairs every filled component with its tone's `-content` colour: `.btn-primary` sets
-  `--btn-fg: var(--color-primary-content)`, `.badge-success` its `--badge-fg`, `.alert-warning` a plain
+  `--btn-fg: var(--color-primary-content)`, `.alert-warning` a plain
   `color`. Those pairs are generated to clear 3:1 — enough for a large label, not for the small text
   these components actually render — and measured across all thirty-six palettes they fail WCAG AA on
   between two and ten of them per tone: `secondary` is 3.05:1 on daisyUI's own `dark`, `warning` 3.06:1
@@ -342,7 +278,7 @@
   `--badge-fg`, `--tt-bg` and friends, so nothing here overrides a structural rule, and a daisyUI upgrade
   that changes padding or radius carries straight through.
 
-  In `@layer rask`, which the order statement at the top of this file puts after `daisyui` — that is the
+  In `@layer rask`, which the order statement of the importing sheet puts after `daisyui` — that is the
   whole reason these land, since several of them are lower specificity than the rules they correct.
 
   WHAT IS NOT HERE, and why. The `checkbox-*`, `radio-*`, `toggle-*`, `range-*` and `progress-*` tones
@@ -355,7 +291,7 @@
   IN `rask-ui-corrections`, NOT `rask`, and that is the whole reason these land at all.
 
   daisyUI emits its component rules INSIDE `@layer utilities` — `.btn-primary` is in there, not in the
-  `daisyui` layer its name implies — and the order statement at the top of this file deliberately puts
+  `daisyui` layer its name implies — and the order statement of the importing sheet deliberately puts
   `rask` BEFORE `utilities` so that an app's own utilities beat the kit. Written in `rask`, every override
   below lost to the exact rule it was correcting: measured in a browser, `.btn-primary` still computed
   `oklch(1 0 0)` on the raw primary — 3.29:1 on `corporate`, 3.15:1 on `retro` — while the compiled sheet
@@ -405,40 +341,6 @@
   .btn-error {
     --btn-color: var(--color-ui-danger-ink);
     --btn-fg: var(--color-ui-bg);
-  }
-
-  /* Filled badges. */
-  .badge-primary {
-    --badge-color: var(--color-ui-brand-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-secondary {
-    --badge-color: var(--color-ui-secondary-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-accent {
-    --badge-color: var(--color-ui-accent-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-neutral {
-    --badge-color: var(--color-ui-neutral-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-info {
-    --badge-color: var(--color-ui-info-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-success {
-    --badge-color: var(--color-ui-ok-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-warning {
-    --badge-color: var(--color-ui-warn-ink);
-    --badge-fg: var(--color-ui-bg);
-  }
-  .badge-error {
-    --badge-color: var(--color-ui-danger-ink);
-    --badge-fg: var(--color-ui-bg);
   }
 
   /*
@@ -585,7 +487,7 @@
 
   - `:where()` around every selector, so each rule has ZERO specificity: daisyUI's components, the corrections
     below and every utility still win, just as they do over a real preflight.
-  - In `base`, which the order statement at the top of this file ranks below everything else.
+  - In `base`, which the order statement of the importing sheet ranks below everything else.
   - `body:has(.rask-ops)` for the one thing a reset inside the frame cannot reach — the body's own 8px margin,
     a white border round the console otherwise. `:has()` is what keeps even that rule off every other document.
 
@@ -735,7 +637,7 @@
   that and is wrong in a way nothing reports: `.x > li` outranks the `.px-0` a row writes on itself, so the
   row asks for flush content and silently does not get it.
 
-  In `rask`, which the order statement at the top of this file puts BEFORE `utilities`: any utility the app
+  In `rask`, which the order statement of the importing sheet puts BEFORE `utilities`: any utility the app
   writes on a row wins, whatever its specificity. Keyed to the kit's own marker, so hand-written daisyUI
   `list` markup is left exactly as daisyUI draws it. `list-row` keeps daisyUI's own grid padding.
 */
@@ -849,7 +751,7 @@
     overflow-wrap: anywhere;
   }
 
-  .ui-grid-cell :where(.badge:not(.font-mono), .btn, .tab, .status, .loading) {
+  .ui-grid-cell :where([data-ui-badge]:not(.font-mono), .btn, .tab, .status, .loading) {
     overflow-wrap: normal;
     white-space: nowrap;
   }
@@ -995,12 +897,12 @@
 }
 
 /*
-  AN ICON IN A DAISY BUTTON OR BADGE IS SIZED BY WHAT IT SITS IN — unless the call site sized it.
+  AN ICON IN A DAISY BUTTON IS SIZED BY WHAT IT SITS IN — unless the call site sized it.
 
   Ui.Icon is Flux's icon now and 24px when nobody names a size, which is right in Flux's components and too
-  big for these two: a button's line takes 16px, a badge 1em. The icon is their child, which the kit does
-  not build and cannot give a class to, so it is sized here from what it sits in. THIS RULE GOES WITH THE
-  DAISY COMPONENTS IT NAMES: Flux's button sizes its own icon, and Ui.Callout already does.
+  big here: a daisy button's line takes 16px. The icon is its child, which the kit does not build and cannot
+  give a class to, so it is sized here from what it sits in. THIS RULE GOES WITH THE DAISY BUTTON: Flux's
+  button, Ui.Callout and the label Flux draws size their own icon.
 
   "Nobody named a size" is read off the class attribute. UiIcon writes its own classes first, so a
   `size-*`, `w-*` or `h-*` from the call site always follows a space — and UiIcon's own default, which is
@@ -1013,12 +915,6 @@
   .btn > svg.size-5[class*=" shrink-0"] {
     width: 1rem;
     height: 1rem;
-  }
-
-  .badge > svg[data-ui-icon]:not([class*=" size-"], [class*=" w-"], [class*=" h-"]),
-  .badge > svg.size-5[class*=" shrink-0"] {
-    width: 1em;
-    height: 1em;
   }
 }
 
@@ -1370,6 +1266,158 @@
 
   .ui-command-list:has([role="option"]) > .ui-command-empty {
     display: none;
+  }
+}
+
+/*
+  TOAST (Ui.Toast, Ui.ToastGroup) — Flux's flux:toast and flux:toast.group: the motion, and the stack.
+
+  The look is utilities in the component. Here is what no utility says.
+
+  MOTION. A toast fades in over 200ms and settles 8px over 350ms, from below at the bottom of the viewport
+  and from above at the top. A TIMED one fades out over the 350ms after its duration: the component writes the
+  duration as --ui-toast-duration and asks the runtime to press its close button once the fade is done
+  (data-rask-dismiss-after), so the fade is this sheet's and the removal is the page's. Both wait while the
+  pointer is over the toast, as Flux's does. Keyframes rather than a transition from @starting-style, because the entrance and the rest
+  state are timed differently: at rest Flux transitions opacity, transform and height over 200ms.
+
+  THE STACK. Flux's script measures every toast and writes each one a pixel offset. This sheet has no script, so
+  it says the same thing with anchors: the front toast is the group's anchor, each older one takes the front
+  one's box — a taller toast is cut to it, as Flux cuts it — and steps back 10px and 5% narrower, and past the
+  third they are there but not shown. Under the pointer, or always for an expanded group,
+  each toast instead sits on the one in front of it (`bottom: anchor(top)`), which needs no height at all.
+  Newest first in the tree for that reason: an element can only anchor to one that comes before it.
+
+  An engine without anchor positioning keeps the deck and never opens it (@supports), rather than laying
+  every toast on top of the last.
+*/
+@layer rask {
+  @keyframes ui-toast-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes ui-toast-rise {
+    from {
+      transform: translateY(var(--ui-toast-rise));
+    }
+  }
+
+  @keyframes ui-toast-leave {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes ui-toast-lift {
+    to {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+  }
+
+  [data-ui-toast] {
+    --ui-toast-rise: 8px;
+  }
+
+  [data-ui-toast][data-position^="top"] {
+    --ui-toast-rise: -8px;
+  }
+
+  [data-ui-toast-group] {
+    --ui-toast-rise: 24px;
+    anchor-scope: all;
+  }
+
+  [data-ui-toast-group][data-position^="top"] {
+    --ui-toast-rise: -24px;
+  }
+
+  [data-ui-toast] > [data-ui-toast-dialog] {
+    transform: translateY(0);
+    transition:
+      opacity 0.2s ease allow-discrete,
+      transform 0.2s ease allow-discrete,
+      height 0.2s ease allow-discrete;
+    animation:
+      ui-toast-fade 0.2s ease,
+      ui-toast-rise 0.35s ease;
+  }
+
+  [data-ui-toast] > [data-ui-toast-dialog][data-rask-dismiss-after] {
+    animation:
+      ui-toast-fade 0.2s ease,
+      ui-toast-rise 0.35s ease,
+      ui-toast-leave 0.35s ease var(--ui-toast-duration) forwards;
+  }
+
+  [data-ui-toast-group] > [data-ui-toast-dialog] {
+    z-index: calc(5000 - var(--ui-toast-index));
+    opacity: clamp(0, 3 - var(--ui-toast-index), 1);
+    transform: scaleX(calc(1 - 0.05 * min(var(--ui-toast-index), 2))) translateY(calc(var(--ui-toast-index) * -10px));
+    transition:
+      opacity 0.35s ease allow-discrete,
+      transform 0.35s ease allow-discrete,
+      height 0.35s ease allow-discrete;
+  }
+
+  /* The gap between two toasts is inside each of them, so the pointer crossing it never leaves the stack. */
+  [data-ui-toast-group][data-position^="bottom"] > [data-ui-toast-dialog] {
+    bottom: 0;
+    padding-top: 0.75rem !important;
+  }
+
+  [data-ui-toast-group][data-position^="top"] > [data-ui-toast-dialog] {
+    top: 0;
+    padding-bottom: 0.75rem;
+  }
+
+  [data-ui-toast-group] > [data-ui-toast-dialog]:not(:first-child) {
+    top: anchor(--ui-toast-front top);
+    bottom: anchor(--ui-toast-front bottom);
+  }
+
+  [data-ui-toast-group] > [data-ui-toast-dialog] > :first-child {
+    height: 100%;
+    overflow: hidden;
+    transform: translateY(0);
+    transition:
+      opacity 0.35s ease allow-discrete,
+      transform 0.35s ease allow-discrete,
+      height 0.35s ease allow-discrete;
+    animation:
+      ui-toast-fade 0.35s ease,
+      ui-toast-rise 0.35s ease;
+  }
+
+  [data-ui-toast-group] > [data-ui-toast-dialog][data-rask-dismiss-after] > :first-child {
+    animation:
+      ui-toast-fade 0.35s ease,
+      ui-toast-rise 0.35s ease,
+      ui-toast-lift 0.35s ease var(--ui-toast-duration) forwards;
+  }
+
+  /* Important, because the `animation` shorthands above reset the play state and outweigh this selector. */
+  [data-ui-toast-dialog]:hover,
+  [data-ui-toast-dialog]:hover > :first-child {
+    animation-play-state: paused !important;
+  }
+
+  @supports (bottom: anchor(top)) {
+    [data-ui-toast-group]:is(:hover, [data-expanded]) > [data-ui-toast-dialog] {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    [data-ui-toast-group]:is(:hover, [data-expanded]) > [data-ui-toast-dialog]:not(:first-child) {
+      top: auto;
+      bottom: anchor(top);
+    }
+
+    [data-ui-toast-group]:is(:hover, [data-expanded]) > [data-ui-toast-dialog] > :first-child {
+      overflow: auto;
+    }
   }
 }
 

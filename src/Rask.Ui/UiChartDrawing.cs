@@ -40,13 +40,13 @@ internal sealed class UiChartDrawing(UiChartPlot plot, UiChartParts parts, UiCha
         Grid(y, vertical: false);
         if (x?.Line is { } floor)
         {
-            Line(plot.Left, plot.Right, plot.Bottom, plot.Bottom, AxisLine, floor.Class, floor.StrokeWidth, floor.StrokeDasharray, "fill=\"none\" ");
+            Line(plot.Left, plot.Right, plot.Bottom, plot.Bottom, AxisLine, floor.Class, floor.StrokeWidth, null, "fill=\"none\" ");
         }
 
         if (y?.Line is { } wall)
         {
             var at = y.Position == Ui.Position.Right ? plot.Right : plot.Left;
-            Line(at, at, plot.Top, plot.Bottom, AxisLine, wall.Class, wall.StrokeWidth, wall.StrokeDasharray, "fill=\"none\" ");
+            Line(at, at, plot.Top, plot.Bottom, AxisLine, wall.Class, wall.StrokeWidth, null, "fill=\"none\" ");
         }
 
         Marks(x, vertical: true);
@@ -161,13 +161,13 @@ internal sealed class UiChartDrawing(UiChartPlot plot, UiChartParts parts, UiCha
             if (vertical)
             {
                 var from = mark.Position == Ui.Position.Top ? plot.Top : plot.Bottom;
-                Line(at, at, from, mark.Position == Ui.Position.Top ? from - Length : from + Length, AxisLine, mark.Class, mark.StrokeWidth, mark.StrokeDasharray);
+                Line(at, at, from, mark.Position == Ui.Position.Top ? from - Length : from + Length, AxisLine, mark.Class, mark.StrokeWidth, null);
             }
             else
             {
                 var right = mark.Position == Ui.Position.Right || axis.Position == Ui.Position.Right;
                 var from = right ? plot.Right : plot.Left;
-                Line(from, right ? from + Length : from - Length, at, at, AxisLine, mark.Class, mark.StrokeWidth, mark.StrokeDasharray);
+                Line(from, right ? from + Length : from - Length, at, at, AxisLine, mark.Class, mark.StrokeWidth, null);
             }
         }
 
@@ -206,11 +206,11 @@ internal sealed class UiChartDrawing(UiChartPlot plot, UiChartParts parts, UiCha
         var at = plot.Value(0);
         if (plot.Horizontal)
         {
-            Line(at, at, plot.Top, plot.Bottom, AxisLine, zero.Class, zero.StrokeWidth, zero.StrokeDasharray);
+            Line(at, at, plot.Top, plot.Bottom, AxisLine, zero.Class, zero.StrokeWidth, null);
         }
         else
         {
-            Line(plot.Left, plot.Right, at, at, AxisLine, zero.Class, zero.StrokeWidth, zero.StrokeDasharray);
+            Line(plot.Left, plot.Right, at, at, AxisLine, zero.Class, zero.StrokeWidth, null);
         }
     }
 
@@ -241,7 +241,7 @@ internal sealed class UiChartDrawing(UiChartPlot plot, UiChartParts parts, UiCha
         switch (part)
         {
             case UiChartLine line:
-                _svg.Append("<path stroke=\"currentColor\" stroke-width=\"").Number(line.StrokeWidth ?? 2)
+                _svg.Append("<path stroke=\"currentColor\" stroke-width=\"").Append('2')
                     .Append("\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"");
                 Dashes(line.StrokeDasharray);
                 Class(null, line.Class);

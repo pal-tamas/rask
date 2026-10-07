@@ -55,6 +55,98 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Toast` is Flux's toast, with its group — raised through `Toast`, placed in the layout.**
+  `Ui.Toast` was one notice a page drew from a list of its own, and `Ui.Toaster` stacked them. It is now
+  what `<flux:toast />` is: the place the app's toasts appear, drawn and timed exactly as Flux's
+  ([fluxui.dev/components/toast](https://fluxui.dev/components/toast)) — a native popover in the top layer,
+  one toast at a time, five seconds, waiting under the pointer, closed by its button or Escape.
+  `Ui.ToastGroup` around it is `flux:toast.group`: a deck of three that opens under the pointer, or
+  always with `.Expanded()`. A toast is raised with the `Toast` facade, which takes what `Flux::toast()`
+  takes:
+  ```csharp
+  // was — a list the page kept, drawn by the page
+  Ui.Toaster.Position(Ui.Position.Bottom).Align(Ui.Align.End)[
+      _notices.Select(n => Ui.Toast.Key(n.Id).Message(n.Text).Title(n.Heading).Tone(Ui.Tone.Success)
+          .Duration(6.Seconds).Action(undoButton).OnDismiss(() => _notices.Remove(n)))]
+
+  // now — raised from the handler…
+  Toast.Success(text).Heading(heading).For(6.Seconds).Action("Undo", Undo);
+  // …and shown by the host's own toast, or by the one the layout places
+  Ui.Toast                          // <flux:toast />
+  Ui.Toast.TopEnd.Invert()          // <flux:toast position="top end" invert />
+  Ui.ToastGroup.Expanded()[Ui.Toast]   // <flux:toast.group expanded><flux:toast /></flux:toast.group>
+  ```
+  - `Ui.Toaster` is gone, with `Ui.Toast`'s `Message`, `Title`, `Tone`, `Action`, `Duration`, `Align` and
+    `OnDismiss`; `Ui.Toast` takes Flux's `Position` (`Ui.ToastPosition`: `BottomEnd`, `BottomCenter`,
+    `BottomStart`, `TopEnd`, `TopCenter`, `TopStart`), `Invert` and `Class`.
+  - `Toast.X(…).Title("…")` is **`.Heading("…")`**, Flux's word. New: `.Link("View invoice", url)` and a
+    link action, `.Action("View", url)`.
+  - `c.Toasts.At(Ui.Position.Top, Ui.Align.End)` is **`c.Toasts.At(Ui.ToastPosition.TopEnd)`**, and in
+    appsettings `"Position": "Top", "Align": "End"` is `"Position": "TopEnd"`.
+  - The host's built-in toasts now show **one at a time**, as `<flux:toast />` does — a new toast takes the
+    place of the one showing. Place `Ui.ToastGroup[Ui.Toast]` in the layout for a stack.
+  - Every toast is announced as `role="status"`; an error no longer says `role="alert"`. The close button
+    carries no label of its own, as Flux's does not.
+  - The operator console's queue and cache pages raise their results through `Toast` and the console's
+    layout places a `Ui.Toast`.
+- **BREAKING: an app's Tailwind build takes the UI kit in — one stylesheet, as a Flux app has.** An app
+  used to link two sheets: the kit's precompiled one, then its own Tailwind output. Both carry an
+  `@layer utilities`, the kit's `dark` variant is a `:where()` with no specificity of its own, and
+  between two sheets nothing is left to rank a tie but link order — so any base utility the app wrote
+  *anywhere* beat a kit variant of the same property. Measured on rask.sh in dark mode: Flux's card
+  (`bg-white dark:bg-white/4`) computed `rgb(255, 255, 255)` because the site writes `bg-white` on some
+  other element, `dark:text-zinc-300` lost to `text-zinc-500`, and a metric's `sm:flex-row` lost to
+  `flex-col` at every width — with every class in the markup correct and every gate green. Now the app
+  compiles the kit's classes into its **own** sheet, beside the ones it writes, and Tailwind's own order
+  holds: a base utility before its variants, a shorthand before its longhands.
+
+  In `Styles/app.css`, one line replaces five:
+
+  ```diff
+  - @layer properties, theme, base, components, daisyui, utilities;
+  - @import "tailwindcss";
+  - @source not "./vendor";
+  - @plugin "./vendor/daisyui.mjs";
+  + @import "./vendor/rask-ui.css";
+  ```
+
+  and in the `.csproj` both switches go — the import is the whole opt-in:
+
+  ```diff
+  - <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+  - <RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
+  ```
+
+  `rask new` writes exactly that. The build sees the import, writes the kit's Tailwind sources into
+  `Styles/vendor/` before Tailwind runs (`rask-ui.css`: the layer order, Tailwind, the kit, the class
+  list; `rask-ui.kit.css`: the `@theme` tokens, the `dark` variant, daisyUI, the rules a utility cannot
+  say; `rask-ui.classes.txt`: every class a kit component writes; `daisyui.mjs`), and records
+  `Rask.Ui.Stylesheet` in the app assembly so `RaskApp` and the WASM host link `css/app.css` **alone**.
+  A hand-wired host drops its `UiStylesheet.Href()` link; `wwwroot/css/rask-ui.css` is deleted by the
+  next build. What else changes for an app:
+  - **`RaskUiWriteStylesheet=true` beside a Tailwind stylesheet is a build error**, with the fix in the
+    message, whether or not the sheet imports the kit. The precompiled sheet (`UiStylesheet.Css`,
+    `UiStylesheet.Href()`) remains for a surface with no Tailwind build of its own.
+  - **`RaskUiWriteDaisyUiPlugin` and `RaskUiDaisyUiPluginOutput` are gone.** daisyUI's plugin arrives with
+    the import, once, under the kit's `[data-rask-ui]` scope — an app that wrote `btn` or `card` itself
+    used to compile a second copy at `:root`. New: `RaskUiTailwind` (`true`/`false` overrides the
+    detection) and `RaskUiTailwindDirectory`.
+  - **The kit's `@theme` tokens, `@custom-variant dark` and the layer order have one declaration**, in the
+    kit. An app that copied the `--color-ui-*` block into its own `@theme` deletes the copy (rask.sh
+    did, and the test holding the copy equal went with it); re-skinning still means redefining a token
+    in your own `@theme`, after the import.
+  - **`Rask.Dashboard` compiles its own sheet the same way** (`Styles/dashboard.css`: the kit without
+    Tailwind's preflight), so a utility a console page writes would be compiled — it inlined the kit's
+    precompiled sheet before, where such a class named a rule that existed nowhere.
+  - `Rask.Tailwind` gains `RaskTailwindClassList` — a component library that compiles a sheet of its own
+    can write down every class it defines for an app's `@source` — and rebuilds when a file beside the
+    stylesheet changes (an imported partial used not to count as an input). In the repo,
+    `src/Rask.Ui/Styles/vendor/daisyui.mjs` moved to `src/Rask.Ui/Styles/daisyui.mjs`, and the kit's
+    own entry is `Styles/ui.precompiled.css`; `Styles/ui.css` is still where its tokens and rules live.
+
+  rask.sh's CSS went from 497.7 KB in two sheets (68.0 KB gzipped) to 495.4 KB in one (64.8 KB): one
+  request fewer, and about the same bytes — the kit's share is nearly all of it either way.
+
 - **BREAKING: `Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
   [Flux UI's field](https://fluxui.dev/components/field).** The first family of the kit drawn without
   daisyUI: Flux's parts, props, spacing and colours in light and dark, held to its docs page by
@@ -230,6 +322,32 @@ them until tagged releases begin.
 - **An enum of up to 24 members gives a component a step per member** (it was 8), so `Ui.Color`'s hues are
   steps: `Ui.Button.Primary.Blue`. The same rule now gives `Input`'s `Type` its steps —
   `Input.Bind(() => model.Email).Email` — and `Ui.Mask` its shapes, `Ui.Mask.Heart`.
+- **BREAKING: `Ui.Badge` is Flux's badge — its props, its look in every Tailwind colour, and
+  `Ui.BadgeClose`.** The daisyUI `badge` is gone, and with it `Tone` and the daisyUI `Variant`/`Size`. A badge names its colour (`Ui.Color`: Tailwind's seventeen hues, then `Slate`, `Gray`, `Zinc`,
+  `Neutral`, `Stone`; unset is zinc), and is a `<div>` where it was a `<span>`:
+  ```csharp
+  Ui.Badge.Success["Live"]                      // was
+  Ui.Badge.Color(Ui.Color.Green)["Live"]        // now
+
+  Ui.Badge.Tone(Ui.Tone.Error).Size(Ui.Size.Xs)["3"]      // was
+  Ui.Badge.Sm.Solid.Color(Ui.Color.Red)["3"]              // now
+
+  Ui.Badge.Neutral.Soft[count]                  // was
+  Ui.Badge[count]                               // now
+  ```
+  `Error` → `Red`, `Success` → `Green`, `Warning` → `Yellow`, `Info` → `Blue`; `Neutral`, `Primary`,
+  `Secondary` and `Accent` → no colour. The tinted look is the default (`Ui.BadgeVariant.Soft`), so `.Soft`
+  goes and a filled badge says `.Solid`; `Outline`, `Dash` and `Ghost` have no Flux counterpart. Sizes are
+  `Ui.BadgeSize.Base`, `Sm` and `Lg`: `Xs` → `.Sm`, `Md` → nothing, `Xl` → `.Lg`. New from Flux:
+  `.Rounded()`, `Icon` / `IconTrailing` / `IconVariant`, `.As(Ui.BadgeAs.Button)` for a badge that is
+  pressed (`OnClick` is the element's), `Inset(Ui.Inset.Top | Ui.Inset.Bottom)` for a badge in a
+  line of text, and `Ui.BadgeClose` — the close button of a removable badge:
+  `Ui.Badge["Admin", Ui.BadgeClose.AriaLabel("Remove Admin").OnClick(Remove)]` (like Flux's it has no
+  accessible name of its own). `Mono()` is gone with everything that is not Flux's: a long token that must
+  break says `.Class("font-mono max-w-full break-all whitespace-normal!")`. The count badges of `Ui.NavItem` and `Ui.NavTab`, the label badge
+  of a form field and the chips of a multi-select are drawn with it too, so the kit writes no `badge` class
+  any more; an app that selected on `.badge` selects on `[data-ui-badge]`.
+
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:
@@ -252,7 +370,7 @@ them until tagged releases begin.
 
   A new `Variant` (`Ui.IconVariant`: `Outline`, `Solid`, `Mini`, `Micro`) picks the drawing —
   `Ui.Icon.Name(Ui.IconName.Bolt).Solid`. **An icon with no size class is now 24px (20px for `Mini`, 16px
-  for `Micro`), where it was 20px**; inside a `Ui.Button`, `Ui.Badge` or `Ui.Alert` it is sized as before.
+  for `Micro`), where it was 20px**; inside a `Ui.Button` or `Ui.Alert` it is sized as before.
   A `size-*` class overrides the default wherever it sits in the class list. The markup is Flux's:
   `data-ui-icon`, `data-slot="icon"`, `aria-hidden`, and no `focusable` attribute. `Rask.Ui.dll` grows by
   490 KB (107 KB compressed) for the path data. `scripts/flux/icons.mjs` regenerates the set from the
@@ -342,6 +460,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Rask.Wasm: a prerendered page links the one stylesheet its app compiles.** The prerender compiles the
+  app a second time, in `obj/`, and that copy's assembly did not say what the app's says: where the
+  stylesheet is served (`Rask.Stylesheet`) and that the UI kit is compiled into it (`Rask.Ui.Stylesheet`).
+  So every baked page of an app whose `Styles/app.css` imports the kit still linked `/css/rask-ui.css`,
+  which such an app does not ship — a 404 on first paint, gone once the app booted. The app's assembly
+  metadata travels to the prerender now.
 - **The daily upstream run can push what it regenerated when `main`'s workflows moved meanwhile (#1188).**
   Its branch was cut from the commit the run started on, and a branch whose workflow files differ from
   `main`'s is one the workflow's own token may not push. The regenerated commit is rebased onto `main`
@@ -362,7 +486,9 @@ them until tagged releases begin.
   random is ignored instead of reported. A baseline measures every page twice and locks such an example
   (a chart, whose data the docs server makes up per request) as `unstable`, so it is never compared; an
   `auto` margin is recorded as `auto`, since Chromium reports the space it took on one page load and
-  `0px` on the next for the same layout.
+  `0px` on the next for the same layout. The lock also names the measuring
+  code that took it, and the run retakes it when `scripts/flux/lib.mjs` or `sync.mjs` changes — a
+  change to how a page is measured is not Flux moving.
 - **Islands load in an app served under a path base.** With `PathBase = "/shop"` the island runtime, the
   manifest and every chunk were still asked for at the root and answered 404, on both hosts. The script
   is now written under the base, as scoped assets are, and the client reads the base back off its own
@@ -398,6 +524,28 @@ them until tagged releases begin.
   Spectre switched interaction off behind it.
 
 ### Removed
+
+- **BREAKING: what the kit had added to Flux's components is gone.** A `Rask.Ui` component that mirrors a
+  Flux UI one carries Flux's props, values and attributes and no others, and a test now holds every built
+  component to that (`FluxConformanceTests`: a property or enum member Flux does not document fails unless
+  it is named as Rask's way of saying a Flux mechanism).
+  - `Ui.AccordionItem.OnToggle` is removed. Flux's accordion reports nothing back; `Expanded()` is the state
+    an item starts in.
+  - `Ui.Heading.Level(5)` and `Level(6)` render a `<div>`, as any level Flux does not take: Flux's heading
+    has levels 1 to 4. `Ui.CardHeading` and the kit's other titles are unchanged.
+  - `Ui.Card` writes `data-ui-card-size` only when a `Size` is set, as Flux writes `data-flux-card-size`.
+    A selector on `[data-ui-card-size="md"]` no longer matches a card that left the size unset.
+  - `Ui.Button.Loading(true)` no longer writes `aria-busy="true"`: Flux's loading button carries no ARIA.
+    It writes `data-ui-loading` (Flux's `data-flux-loading`) beside `data-loading`. The runtime still marks
+    a button waiting on its own handler with `data-loading` and `aria-busy`.
+  - `Ui.Button.NewTab` is removed. Flux's button has no such prop: forward the anchor's own attributes,
+    `.Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))`. Nothing is added to them, so a
+    `target` without the `rel` is written as given.
+  - `Ui.ButtonType.Reset` is removed: Flux's `type` is `button` or `submit`. A reset is the native tag,
+    `Button.Type(ButtonType.Reset)`.
+  - Markers mirror Flux's one for one: a button that is not ghost or subtle also writes
+    `data-ui-group-target`, a badge's leading icon writes `data-ui-badge-icon`, and
+    `data-ui-badge-icon-trailing` is now `data-ui-badge-icon:trailing`, as Flux spells it.
 
 - **BREAKING: `Notify` is gone; `Dispatcher` now works everywhere.** Two statics published an event, and which
   one worked depended on where the line stood: `Dispatcher.Publish` threw in a `BackgroundService`, and
@@ -982,12 +1130,12 @@ them until tagged releases begin.
   with the kit off. A toast can carry more, and the app sets where they stack and how long they stay:
 
   ```csharp
-  Toast.Success("Your order was placed").Title("Order 42");
+  Toast.Success("Your order was placed").Heading("Order 42");
   Toast.Info("Order placed").Action("View order", () => Routes.OrderPage(order.Id).Go());
   Toast.Error("Payment failed").For(30.Seconds);
   Toast.Error("Couldn't reach the server").UntilDismissed();
 
-  RaskApp.Create(args).Configure(c => c.Toasts.At(Ui.Position.Top, Ui.Align.End).For(8.Seconds)).Run<App>();
+  RaskApp.Create(args).Configure(c => c.Toasts.At(Ui.ToastPosition.TopEnd).For(8.Seconds)).Run<App>();
   ```
 
   `Rask:Toasts` in appsettings says the same. An app that mounts its own `ToastOutlet` gets every toast in its own

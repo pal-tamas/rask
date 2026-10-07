@@ -46,34 +46,40 @@ C# component framework that ships no script of its own:
 
 ## Wiring it up
 
-> **An app on `RaskApp` or the WASM host needs none of this in its code.** The host links the kit's sheet
-> first and your `css/app.css` after it, and puts the theme scope on `<html>`, so `App.cs` is a title and
-> a router; `app.Configure(c => c.Ui.Off())` leaves the kit out. `rask new` also sets the two properties.
+> **An app on `RaskApp` or the WASM host needs none of this in its code.** `rask new` writes the one
+> import below into `Styles/app.css`; the host links the compiled `css/app.css` and puts the theme scope
+> on `<html>`, so `App.cs` is a title and a router. `app.Configure(c => c.Ui.Off())` leaves the kit out.
 > This section is for a hand-wired `AddRask()`/`MapRask<App>()` host, or an App that overrides `Shell`.
 
 Two things, and forgetting either produces a page that renders structurally correct components with
-**no colour at all** — so both are worth doing before anything else.
+**no styling, or no colour at all** — so both are worth doing before anything else.
 
-**1. Link the stylesheet.** Opt into the build writing it, then link it:
+**1. Take the kit into your stylesheet.** One line in `Styles/app.css`, in place of
+`@import "tailwindcss";`:
 
-```xml
-<PropertyGroup>
-  <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
-</PropertyGroup>
+```css
+@import "./vendor/rask-ui.css";
 ```
+
+Your app then compiles **one stylesheet** — Tailwind, the kit's theme, its `dark` variant, daisyUI while
+it lasts, and the classes the kit's components write, beside the classes you write — exactly as a
+[Flux](https://fluxui.dev) app's one Tailwind build scans Flux's own views. The kit's class names are
+C# string literals inside a compiled assembly, where no scan can find them, so the package ships them
+as a list and the import reads it. Link that sheet and nothing else:
 
 ```csharp
 protected override Component? HeadAssets =>
 [
-    Link.Rel("stylesheet").Href(UiStylesheet.Href(LiveOptions.PathBase)),   // the kit's, FIRST
     Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css"),
 ];
 ```
 
-`UiStylesheet.Href()` carries a content hash, so the file can be cached hard and still change when the
-kit does. A library that renders kit components into somebody else's host wants no file in a `wwwroot`
-it does not own; that case keeps `UiStylesheet.Css` and inlines it in a `<style>`, which is what
-`Rask.Dashboard` does — and it is the only stylesheet the console carries, reset included.
+There is nothing to set in the `.csproj`. The build sees the import, writes the kit's Tailwind sources
+into `Styles/vendor/` before Tailwind runs — `rask-ui.css`, `rask-ui.kit.css`, `rask-ui.classes.txt`
+and `daisyui.mjs`; generated, not committed, no npm — and records in the assembly that the kit is
+already in the app's sheet. [The Tailwind guide](tailwind.md#what-a-new-project-starts-with) walks
+through the four lines of `rask-ui.css`, and how to write them out yourself when you want Tailwind
+without its preflight or a layer of your own.
 
 **2. Turn the theme on.** Nothing in the kit has a colour until an ancestor carries the theme scope:
 
@@ -83,65 +89,56 @@ protected override Component Shell(Component head, Component body) =>
 ```
 
 The scope exists so that *referencing* this package cannot repaint an application that only wanted a
-button. daisyUI paints `:root` by default; the kit confines it to `[data-rask-ui]` instead, and the
-same reasoning is why it ships no preflight.
+button. daisyUI paints `:root` by default; the kit confines it to `[data-rask-ui]` instead.
 
-**Order is the contract.** The kit's sheet declares the palette, so redefining a token in your own
-`@theme` re-skins every component without overriding a single rule — which only works while your copy
-is what the cascade reads last.
-
-**The kit's sheet is linked first because it declares the layer order for the whole document.** A
-browser orders `@layer` names by *first appearance*, across every sheet on the page, and nothing later
-can reorder a name that has already been placed — so whichever sheet loads first decides the ranking
-every other sheet is judged by. The kit's opens with
+**The layer order is one statement, and the import owns it.** `rask-ui.css` opens with
 
 ```css
 @layer properties, theme, base, components, daisyui, rask, utilities;
 ```
 
-which puts your utilities above your own Tailwind preflight, above daisyUI, and above the kit's own
-corrections. Link it second and that statement arrives too late: the order falls out of whatever the
-sheets happen to mention first, which is how `base` once ended up outranking `utilities` for a whole
-site — every `text-4xl` and `px-*` in the markup, present and correct, and silently beaten by
-preflight's `h1 { font-size: inherit }` and `* { padding: 0 }`. `UiLayerOrderTests` holds the order in
-the compiled sheet.
+which puts your utilities above Tailwind's preflight, above daisyUI, and above the kit's own rules — a
+browser orders `@layer` names by *first appearance* and nothing later can reorder a name already
+placed, which is why the import is the first line of your sheet. `OneStylesheetCascadeTests` holds the
+order in a compiled app sheet, and `UiLayerOrderTests` in the kit's precompiled one.
 
-> **CSS layers do not merge across `<link>` elements.** If you find a kit rule beating one of your
-> utilities, or the reverse, that is why — and it is not something either sheet's source order can
-> settle.
+### One sheet, never two
+
+The kit also compiles a sheet of its own (`UiStylesheet.Css`, or `UiStylesheet.Href()` after
+`<RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>` writes it to `wwwroot/css/rask-ui.css`). **That
+sheet is for a surface with no Tailwind build of its own** — `Rask.DevTools` inlines it into a panel
+drawn inside somebody else's page; an app that draws only with `Ui.*` components and writes no
+utilities can link it and run no Tailwind at all.
+
+It must not sit in a document beside an app's own Tailwind output, which is how every Rask app used to
+be wired. Both sheets put utilities in `@layer utilities`, CSS layers do not merge across `<link>`
+elements in any way that source order inside a sheet can settle, and the kit's `dark` variant is a
+`:where()` with no specificity of its own. So between a kit **variant** and any base utility the app
+wrote *anywhere*, layer and specificity tie and link order decides — the app's sheet, linked last:
+
+| the kit's component writes | the app writes, on some other element | computed, with two sheets |
+|---|---|---|
+| `bg-white dark:bg-white/4` (Flux's card) | `bg-white` | `rgb(255, 255, 255)` in dark mode |
+| `text-zinc-500 dark:text-zinc-300` | `text-zinc-500` | zinc-500 in dark mode |
+| `flex-col sm:flex-row` | `flex-col` | a column at every width |
+
+Measured on rask.sh, with every class in the markup correct and every gate green. In one sheet each of
+those utilities exists once and Tailwind's own order holds — a base utility before its variants, a
+shorthand before its longhands — so the build **refuses** the pairing: `RaskUiWriteStylesheet` in a
+project that compiles its own Tailwind stylesheet is an error that names the line to write instead.
 
 ## Writing daisyUI class names yourself
 
-The sheet above carries the classes **the kit's own components** write, because Tailwind emits a class
-only where it can see the name — and these names live in a compiled assembly your Tailwind cannot scan.
-So `Ui.Card` is styled by it and a `card-body` you write in your own markup is not: a correct-looking
-class naming a rule that exists nowhere.
+Nothing more to do. The import in step 1 loads daisyUI's plugin into **your** Tailwind build, so a
+`card-body` or `navbar` you write in your own markup is compiled from your own source, in the same
+sheet as the kit's components and under the same scoped theme — one copy of daisyUI, not two. (An app
+that linked the kit's precompiled sheet had to run the plugin a second time for its own markup, with
+its own layer statement and a `@source not` to keep the bundle from being scanned as a safelist. All of
+that is inside `rask-ui.kit.css` now.)
 
-To write daisyUI directly, compile it yourself. The kit ships the plugin bundle for exactly this, and a
-third opt-in copies it beside your stylesheet:
-
-```xml
-<RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
-```
-
-```css
-@layer properties, theme, base, components, daisyui, utilities;
-
-@import "tailwindcss";
-
-@source not "./vendor";
-@plugin "./vendor/daisyui.mjs";
-```
-
-By relative path because Tailwind resolves a plugin the way Node does, and the standalone engine a C#
-host compiles with carries no package tree — so there is still no npm and no `node_modules`.
-`@source not` matters as much: the bundle names every class daisyUI defines, and scanned it is a
-safelist for the whole library.
-
-**An app that does both carries two copies of daisyUI** — yours at `:root`, the kit's confined to
-`[data-rask-ui]`. They do not conflict, because the kit's is scoped and layered, but the page carries
-both. Reference the kit for its components, take the plugin for your own markup, and take both when you
-want both.
+The plugin is the copy `Rask.Ui` ships (`Styles/vendor/daisyui.mjs`), loaded by relative path because
+Tailwind resolves a plugin the way Node does and the standalone engine a C# host compiles with carries
+no package tree — so there is still no npm and no `node_modules`.
 
 ## Dark mode
 
@@ -255,7 +252,7 @@ colours are generated for 3:1, not 4.5.
 
 ### The kit's own components are corrected the same way
 
-`Ui.Badge`, `Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
+`Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
 daisyUI labels each tone with its own `-content` colour — generated for 3:1, so small text on them fails
 AA on between two and ten palettes per tone (`secondary` is 3.05:1 on daisyUI's own `dark`, `error`
 under AA on ten). The kit corrects them to the `-ink` fill with the ground as the label, in
@@ -263,7 +260,7 @@ under AA on ten). The kit corrects them to the `-ink` fill with the ground as th
 
 Two consequences worth knowing:
 
-- **It is all custom properties** (`--btn-color`, `--badge-fg`, `--tt-bg`) except where daisyUI declares
+- **It is all custom properties** (`--btn-color`, `--tt-bg`) except where daisyUI declares
   `color` outright — alert, link, tooltip content. Those three therefore also outrank your own `text-*`
   utility on those elements, because the corrections layer is appended after `utilities`.
 - **`checkbox-*`, `radio-*`, `toggle-*`, `range-*` and `progress-*` are deliberately untouched** — they
@@ -323,7 +320,7 @@ Ui.ButtonGroup[Ui.Button["Oldest"], Ui.Button["Newest"], Ui.Button["Top"]]   // 
 | `Inset` | `Ui.Inset` flags — `Top`, `Bottom`, `Left`, `Right`, `All` — for a ghost or subtle button |
 | `Loading` | see [Buttons that wait](#buttons-that-wait) |
 | `Tooltip`, `TooltipPosition`, `TooltipKbd`, `Kbd` | a hint on hover and keyboard focus, and the shortcut shown in it |
-| `Href`, `NewTab` | see [Buttons and links that go somewhere](#buttons-and-links-that-go-somewhere) |
+| `Href` | see [Buttons and links that go somewhere](#buttons-and-links-that-go-somewhere) |
 | `As` | `Ui.ButtonAs.Div` for the look of a button on something that is not one |
 | `Type`, `Disabled`, `Command`, `CommandFor` | the `<button>`'s own attributes |
 
@@ -332,11 +329,11 @@ A selected toggle is `.AriaPressed(AriaPressed.True)` on the variant that reads 
 
 ## The three axes
 
-On the components daisyUI still draws, colour, fill and size are independent and compose, so an outlined
-error badge needs no member of its own:
+On the components daisyUI still draws, colour, fill and size are independent and compose, so a small
+error-toned toggle needs no member of its own:
 
 ```csharp
-Ui.Badge.Error.Outline["Failed"]
+Ui.Toggle.Bind(() => settings.Alerts).Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
 ```
 
 | Enum | Members |
@@ -371,7 +368,7 @@ Ui.Drawer.Id("nav").Panel(menu).Position(Ui.Position.Right)[ … ]
 Ui.Modal.Title("Details").Position(Ui.ModalPosition.End)[ … ]   // placed against the viewport, not a trigger
 ```
 
-Events are always `On…` — `Ui.Modal.OnClose`, `Ui.Modal.OnCancel`, `Ui.Toast.OnDismiss` — the same prefix every
+Events are always `On…` — `Ui.Modal.OnClose`, `Ui.Modal.OnCancel` — the same prefix every
 element event carries. A `<dialog>`'s own endings are element events too: `Dialog.OnCancel` for a dismissal and
 `Dialog.OnClose` for any close.
 
@@ -382,11 +379,11 @@ sits — the gap above a row of tabs, the bleed of a scrolling strip to the scre
 page that places it, because the same component sits in a card, a toolbar and a page gutter, and a margin
 right for one is wrong for the other two. Two exceptions are part of a component's shape rather than its
 placement: `Ui.NavTab`'s `-mb-px`, which joins the active tab's border to its nav's hairline, and
-`Ui.Toast`'s `mx-auto`, which centres a fixed overlay in the viewport.
+`Ui.Toast`'s 24px from the viewport's edges, which is where Flux puts a toast.
 
 ## Components that are one element
 
-A button is a `<button>`, and a table cell is a `<td>`. `Ui.Button`, `Ui.Badge`, `Ui.List` and
+A button is a `<button>`, and a table cell is a `<td>`. `Ui.Button`, `Ui.Badge`, `Ui.BadgeClose`, `Ui.List` and
 the parts of a `Ui.Table` do not wrap a raw element; they are the element. They derive from **`UiElement`**, which derives
 from `Element`, so every step an element takes works on them unchanged, the events included. What they
 show is their **children**, the same as a raw element's:
@@ -394,14 +391,59 @@ show is their **children**, the same as a raw element's:
 ```csharp
 Ui.Button.Primary.Icon(Ui.IconName.Check).Id("save").OnClick(Save)["Save"]
 
-Ui.Badge.Success["Live"]
+Ui.Badge.Color(Ui.Color.Green)["Live"]
 
-Ui.TableCell.Id("total").Class("py-0")[Ui.Badge.Success["Paid"]]
+Ui.TableCell.Id("total").Class("py-0")[Ui.Badge.Sm.Green["Paid"]]
 ```
 
-A button takes its icons as props and sizes them itself. In a badge or an alert a bare `Ui.Icon.Name(…)`
-is the right size: the kit's stylesheet sizes an icon nobody sized from what it sits in, and leaves alone
-one that has a size class of its own.
+A button and a badge take their icons as props and size them themselves. Inside a hand-written daisy `btn` a
+bare `Ui.Icon.Name(…)` is the right size too: the kit's stylesheet sizes an icon nobody sized from the button
+it sits in, and leaves alone one that has a size class of its own.
+
+## Badges
+
+`Ui.Badge` is [Flux's badge](https://fluxui.dev/components/badge), prop for prop and pixel for pixel: a
+status, a category or a count. It is a `<div>` whose children are what it says.
+
+```csharp
+Ui.Badge["Draft"]                                   // zinc, 14px type in a 28px badge
+Ui.Badge.Color(Ui.Color.Lime)["New"]                // any Tailwind colour
+Ui.Badge.Solid.Color(Ui.Color.Red)["3"]             // the colour itself under white text
+Ui.Badge.Sm["Small"]   Ui.Badge.Lg["Large"]         // Ui.BadgeSize: Base, Sm, Lg
+Ui.Badge.Rounded().Icon(Ui.IconName.User)["Users"]  // round ends; an icon before the words
+Ui.Badge.IconTrailing(Ui.IconName.VideoCamera)["Videos"]
+
+// The whole badge pressed: a <button type="button">, and OnClick is the element's own.
+Ui.Badge.As(Ui.BadgeAs.Button).Rounded().Icon(Ui.IconName.Plus).Lg.OnClick(Add)["Amount"]
+
+// Removable: a close button among its children.
+Ui.Badge[role, Ui.BadgeClose.Aria("label", "Remove " + role).OnClick(() => Remove(role))]
+
+// In a line of text, the padding is given back so the line is no taller.
+Ui.Heading["Page builder ", Ui.Badge.Color(Ui.Color.Lime).Inset(Ui.Inset.Top | Ui.Inset.Bottom)["New"]]
+```
+
+| Prop | Values | Unset |
+| --- | --- | --- |
+| `Color` | `Ui.Color` — Tailwind's seventeen hues `Red` … `Rose`, then `Slate` `Gray` `Zinc` `Neutral` `Stone` | zinc |
+| `Size` | `Ui.BadgeSize.Base` · `Sm` · `Lg` (steps `.Sm`, `.Lg`) | `Base` |
+| `Variant` | `Ui.BadgeVariant.Soft` · `Solid` (steps `.Soft`, `.Solid`) | `Soft` |
+| `Rounded` | `.Rounded()` | square-ish, 6px |
+| `Icon`, `IconTrailing` | `Ui.IconName` | none |
+| `IconVariant` | `Ui.IconVariant` | `Micro` (16px) |
+| `As` | `Ui.BadgeAs.Div` · `Button` | `Div` |
+| `Inset` | `Ui.Inset.Top` · `Bottom` · `Left` · `Right`, combined with `\|` | none |
+
+`Ui.BadgeClose` takes `Icon` (unset, `XMark`) and `IconVariant`. Like Flux's it writes no accessible name
+of its own: name it at the call site, `.AriaLabel("Remove " + role)`. A badge holds its words on one line; for
+a long token that has to break instead — a request id in a table cell — hand it the utilities,
+`.Class("font-mono max-w-full break-all whitespace-normal!")`.
+
+`.Button` and `.Div` are not steps on a badge (they are the HTML entries a component inherits): write
+`.As(Ui.BadgeAs.Button)`. `.Outline`, `.Mini` and `.Micro` on a badge set its ICON's variant.
+
+There is no tone: a status names its colour. `Green` for success, `Red` for an error, `Yellow` for a warning
+(the hue Flux's own warning callout uses) and `Blue` for information are what the kit's own surfaces use.
 
 ## Accordion
 
@@ -430,14 +472,8 @@ own `<details name>` group. Closed content is still in the document, so find-in-
 opens the item holding the match. A disabled heading leaves the tab order, takes no pointer and says
 `aria-disabled`.
 
-**To own an item from C#**, render it in a field and keep the field in step:
-
-```csharp
-Ui.AccordionItem.Heading("Advanced settings").Expanded(_advanced).OnToggle(open => _advanced = open)[ … ]
-```
-
-`OnToggle` runs after the browser has opened or closed the item, with the state it is now in — including when
-an exclusive accordion closes it because another item opened.
+`Expanded()` is the state an item starts in. As in Flux, the accordion reports nothing back: the browser
+owns which items are open.
 
 `Transition()` animates the height of the `<details>`' own content box (`::details-content`, with
 `interpolate-size`). A browser without those opens and closes at once, which is what an accordion without the
@@ -515,7 +551,7 @@ Ui.Table.Paginate(Ui.Pagination.Pages(pages).Current(page).OnPage(Go))[
         orders.Select(order => Ui.TableRow.Key(order.Id)[
             Ui.TableCell[order.Customer],
             Ui.TableCell[order.Date],
-            Ui.TableCell.Class("py-0")[Ui.Badge.Success["Paid"]],
+            Ui.TableCell.Class("py-0")[Ui.Badge.Sm.Green["Paid"]],
             Ui.TableCell.Variant(Ui.TableCellVariant.Strong).End[order.Amount]
         ])
     ]
@@ -609,11 +645,12 @@ leaves the app wants.
 ```csharp
 Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]    // stays in the app
 Ui.Link.Href(Routes.ProductsPage())["Back to the list"]                   // stays in the app
-Ui.Button.Href("https://github.com/pal-tamas/rask").NewTab()["GitHub"]     // leaves it
+Ui.Button.Href("https://github.com/pal-tamas/rask")["GitHub"]              // leaves it
 ```
 
 A string that happens to name one of your own pages is still a string: it reloads the whole app to get
-there. Use the route. `NewTab(true)` is never intercepted, because the reader asked for another tab.
+there. Use the route. As in Flux, a new tab is the anchor's own attribute — `.Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))` —
+and the runtime never intercepts one, because the reader asked for another tab.
 
 ## Heading, text and link
 
@@ -633,7 +670,7 @@ Ui.Link.As(Ui.LinkAs.Button).OnClick(Save)["Create account →"] // a <button ty
 
 | Component | Props |
 | --- | --- |
-| `Ui.Heading` | `Size` — `Base` (14px), `Lg` (16px), `Xl` (24px), `Xxl` (36px, Flux's `2xl`); `Level` 1–6, a `<div>` without one; `Accent()` |
+| `Ui.Heading` | `Size` — `Base` (14px), `Lg` (16px), `Xl` (24px), `Xxl` (36px, Flux's `2xl`); `Level` 1–4 as in Flux, a `<div>` without one; `Accent()` |
 | `Ui.Text` | `Size` — `Sm`, `Default`, `Lg`, `Xl`; `Variant` — `Default`, `Strong`, `Subtle`; `Color` — a `Ui.Color` (Tailwind's hues), which wins over the variant; `Inline()` for a `<span>` |
 | `Ui.Link` | `Href` — a generated route navigates inside the app, a string is an ordinary link; `Variant` — `Default` (underlined), `Ghost` (underlined under the pointer), `Subtle`; `External()`; `As` — `A`, `Button`; `Accent(false)` to draw it in the page's ink |
 
@@ -788,7 +825,9 @@ Ui.Button.Loading(_exporting)["Export"]                            // work that 
 ```
 
 As in Flux, a button carries the spinner when it has something to wait on: an `OnClick`, `type="submit"`,
-or a `Loading` you set. `Loading(false)` tells the runtime to leave the button alone.
+or a `Loading` you set. `Loading(false)` tells the runtime to leave the button alone. `Loading(true)` writes
+`data-loading` and nothing else, as Flux's loading button does; `aria-busy` is the runtime's, for a wait it
+started.
 
 It is the **runtime** that marks the button, not script in the kit, because only the runtime knows when a
 dispatch starts and ends. So every `<button>` with a handler gets the same `data-loading` + `aria-busy`
@@ -805,9 +844,9 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
-| **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |
+| **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
@@ -892,7 +931,7 @@ Ui.Dropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
 redraw through the live diff.
 
 **The browser owns it, and tells the page.** A `Ui.AccordionItem` is a `<details>`: it opens with no handler at
-all, and `Expanded` with `OnToggle` is how a page keeps it in a field — see [Accordion](#accordion).
+all, and `Expanded` is only the state it starts in — see [Accordion](#accordion).
 
 **The markup owns it.** `Ui.Tab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
 survives a refresh and answers the back button. `Ui.Drawer` keeps its checkbox because daisyUI's rules are
@@ -1058,30 +1097,40 @@ Form.Model(_order)[
 ]
 ```
 
-**Toasts: the page owns the list.** One `Ui.Toast` is one notice; `Ui.Toaster` stacks them in a corner
-(`Position` + `Align`, newest last so an arriving toast never pushes the one being read out from under the
-eye). A toast takes `Title`, an `Action` (an Undo, a link to what was made) and `Duration`.
+**Toasts are raised, not placed** — this is [Flux's toast](https://fluxui.dev/components/toast), with its
+group. `Toast.Success("Saved")` from any handler raises one ([Toast messages](composition-lists.md#toast-messages));
+`Ui.Toast` in the layout is where they appear, and an app that places none gets the host's.
 
-`Duration` is the interesting one. It does **not** hide the element — it asks the runtime to *click the
-toast's own dismiss control*, which runs your `OnDismiss`, which takes the toast off your list. Hiding it
-instead would leave the page believing a toast is up that nobody can see, and the next render would put it
-back. The countdown **pauses** while the pointer is over the toast or focus is inside it, so reaching for the
-action does not lose it, and a toast with no `OnDismiss` writes no timer at all, because there would be
-nothing to press.
+| Flux | Rask |
+|---|---|
+| `<flux:toast />` in the layout | `Ui.Toast` in the layout — or nothing: the host places one |
+| `<flux:toast position="top end" invert />` | `Ui.Toast.TopEnd.Invert()` (`Ui.ToastPosition`: `BottomEnd` `BottomCenter` `BottomStart` `TopEnd` `TopCenter` `TopStart`) |
+| `<flux:toast class="pt-24" />` | `Ui.Toast.Class("pt-24")` |
+| `<flux:toast.group>` … `</flux:toast.group>` | `Ui.ToastGroup[Ui.Toast]` |
+| `<flux:toast.group expanded position="top end">` | `Ui.ToastGroup.Expanded().TopEnd[Ui.Toast]` |
+| `Flux::toast('Saved.')` / `$flux.toast('Saved.')` | `Toast.Info("Saved.")` |
+| `Flux::toast(heading: 'Changes saved', text: '…')` | `Toast.Info("…").Heading("Changes saved")` |
+| `variant: 'success'` / `'warning'` / `'danger'` | `Toast.Success(…)` / `Toast.Warning(…)` / `Toast.Error(…)` |
+| `duration: 1000` / `duration: 0` | `.For(1.Second)` / `.UntilDismissed()` |
+| `action: ['label' => 'Undo', 'event' => 'undo-changes']` | `.Action("Undo", UndoChanges)` |
+| `action: ['label' => 'View', 'href' => …]` | `.Action("View", Routes.InvoicePage(id))` |
+| `link: ['label' => 'View invoice', 'href' => …]` | `.Link("View invoice", Routes.InvoicePage(id))` |
 
-```csharp
-Ui.Toaster.Position(Ui.Position.Bottom).Align(Ui.Align.End)[
-    _notices.Select(n => Ui.Toast.Key(n.Id).Message(n.Text)
-        .Duration(6.Seconds)
-        .OnDismiss(() => _notices.Remove(n)))
-]
-```
+On its own, `Ui.Toast` shows one toast at a time: a new one takes the place of the one showing. Inside a
+`Ui.ToastGroup` they stack — three show, the newest in front and each older one a step back and a little
+narrower — and the pointer over the stack lays them all out, as `Expanded()` does for good.
 
-The hook is the **runtime's**, not the kit's, and it is generic: any element with
-`data-rask-dismiss-after="<ms>"` is dismissed by clicking its own `[data-rask-dismiss]` — the same convention
-the focus trap presses on Escape. An `Ui.Tone.Error` toast says `role="alert"`; every other outcome is
-announced politely as `status`. `Error` and `Warning` are drawn with the warning icon, everything else
-with a check.
+A toast goes after five seconds unless it says otherwise, by its close button, or — on its own — by Escape.
+The kit ships no script, so all of that is the **runtime's** generic hooks, written as attributes: the toast is a
+native `popover` the runtime shows (`data-rask-popover-open`), so it is in the top layer, over an open dialog;
+`data-rask-dismiss-after="<ms>"` has the runtime press the toast's own `[data-rask-dismiss]` button when the
+time is up, waiting while the pointer is over the toast; and `data-rask-shortcut="escape"` is Escape. Pressing
+the button rather than hiding the element is the point: the outlet takes the toast off its list, so the next
+render agrees with the screen. An action's button shows a spinner while its handler runs — the runtime's
+`data-loading` — and then takes the toast down.
+
+Like Flux's, the host is `role="status"` and each toast `aria-atomic="true"`, so a toast is announced politely
+and whole; the variant is carried by its icon's shape as well as its colour.
 
 **`Ui.ContextMenu` is the same menu, opened by a right-click.** Its children are the rows a `Ui.Dropdown` takes,
 and it is the same control underneath (`UiMenuSurface`), so the keyboard is identical; only the opening differs:
@@ -1381,8 +1430,9 @@ why the axes above are closed enums rather than strings, and why `Ui.TextRotate`
 property — daisyUI reads its speed from a `duration-*` utility, and turning a `TimeSpan` into a class
 name at run time is exactly the failure this rule prevents.
 
-If you write your own `ui-*` classes, the same applies to you: copy the kit's `@theme` block into your
-own stylesheet, because Tailwind emits a utility only where it can see the token.
+If you write your own `ui-*` classes, there is nothing to copy: the kit's `@theme` reaches your Tailwind
+build through `@import "./vendor/rask-ui.css"`, so `bg-ui-brand/10` or `text-ui-warn-ink` in your own
+markup compiles against the same tokens the kit's components use.
 
 ## Two rules it holds itself to
 
@@ -1394,8 +1444,8 @@ rather than wrapping, so the header is exactly one row tall however many tabs th
 **Every control has a name.** A label is required, not optional, and it becomes the accessible name
 rather than a placeholder — a placeholder disappears the moment typing starts, so the one thing saying
 what a field is for vanishes exactly when a reader might check it. An icon-only button names itself with
-`AccessibleLabel`, written as `aria-label`; a spinner is `aria-hidden` with its words beside it; a failed
-toast changes its **icon** and not only its colour.
+`AccessibleLabel`, written as `aria-label`; a spinner is `aria-hidden` with its words beside it; a toast's
+variant changes its **icon** and not only its colour.
 
 ## Names
 

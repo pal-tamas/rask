@@ -54,7 +54,7 @@ public sealed partial class UiKitDataGridDemo : Component
                 Ui.DataGrid.Data(Catalog).RowKey(r => r.Id).Zebra(true).Label("Packages")[c => [
                     c.Field(r => r.Name).Title("Package").Sortable(),
                     c.Field(r => r.Channel).Title("Channel")
-                        .Cell(r => Ui.Badge.Tone(r.Channel is "stable" ? Ui.Tone.Success : Ui.Tone.Info)[r.Channel]),
+                        .Cell(r => Ui.Badge.Color(r.Channel is "stable" ? Ui.Color.Green : Ui.Color.Blue)[r.Channel]),
                     c.Field(r => r.Downloads).Title("Downloads").Sortable().Class("text-right")
                         .Footer(rows => rows.Sum(x => x.Downloads)),
                 ]]
@@ -145,7 +145,7 @@ public sealed partial class UiKitDataGridDemo : Component
                     .TotalCount(Catalog.Length)
                     .PageHref(page => PageMeta.LinkTo(Routes.UiKitDataGridPage(Page: page + 1)))
                     .RowTone(r => r.Downloads > 9000 ? Ui.Tone.Success : null)
-                    .Toolbar(Ui.Badge.Info[$"{Catalog.Length} packages"])[c => [
+                    .Toolbar(Ui.Badge.Color(Ui.Color.Blue)[$"{Catalog.Length} packages"])[c => [
                         c.Field(r => r.Id).Title("#").Mono(),
                         c.Field(r => r.Name).Title("Package"),
                         c.Field(r => r.Channel).Title("Channel").ShowFrom(Ui.Breakpoint.Md),

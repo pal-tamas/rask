@@ -13,8 +13,12 @@ internal sealed class RaskDocumentDefaults(
     string? appStylesheet,
     IReadOnlyDictionary<string, string?>? htmlAttributes,
     Func<IReadOnlyList<Messaging.ToastMessage>, Action<int>, Component>? toasts = null,
-    TimeSpan? toastDuration = null)
+    TimeSpan? toastDuration = null,
+    bool toastsTimeThemselves = false)
 {
+    // The template writes each toast's countdown for the browser to run, so the outlet starts none (the kit's does).
+    public bool ToastsTimeThemselves { get; } = toastsTimeThemselves;
+
     // How the session's toasts look when the app mounts no ToastOutlet of its own — the kit's, or Rask's own with the
     // kit off. Null only for a host that draws none (a mounted app keeps its own document).
     public Func<IReadOnlyList<Messaging.ToastMessage>, Action<int>, Component>? Toasts { get; } = toasts;

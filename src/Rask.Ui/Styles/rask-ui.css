@@ -1,0 +1,29 @@
+/*
+  Rask.Ui, for YOUR Tailwind build. One line in your stylesheet takes the whole kit in:
+
+      @import "./vendor/rask-ui.css";
+
+  and your app compiles ONE sheet — Tailwind, the kit's theme, its `dark` variant, and the classes its
+  components write, beside the classes you write. Every utility exists once, so Tailwind's own ordering
+  holds between your markup and the kit's: a base utility before its variants, a shorthand before its
+  longhands. Do not also link the kit's precompiled sheet (UiStylesheet.Href()); the build stops if
+  RaskUiWriteStylesheet asks for it.
+
+  GENERATED INTO Styles/vendor/ by the build, with rask-ui.kit.css, rask-ui.classes.txt and daisyui.mjs
+  beside it. Do not edit or commit them; `rask new` ignores the folder.
+
+  The layer order for the document is declared here, first, because CSS ranks layers by first appearance
+  and nothing later can reorder them. To add a layer of your own, name it in a statement of your own
+  BEFORE the import — `@layer theme, base, brand;` puts `brand` above `base` and below everything the
+  line below adds after it.
+*/
+@layer properties, theme, base, components, daisyui, rask, utilities;
+
+@import "tailwindcss";
+@import "./rask-ui.kit.css";
+
+/*
+  The classes the kit's components write. They are C# string literals inside a compiled assembly, where
+  no scan can find them, so the kit's build lists them and yours reads the list.
+*/
+@source "./rask-ui.classes.txt";

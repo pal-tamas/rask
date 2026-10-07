@@ -30,29 +30,33 @@ site and the docs showcase all draw with these.
 dotnet add package Rask.Ui
 ```
 
-Two steps, and skipping either renders structurally correct components with **no colour at all**.
-Opt into the build writing the sheet:
+**An app that runs Tailwind compiles the kit into its own stylesheet** — one sheet, as a Flux app has.
+One line in `Styles/app.css`, in place of `@import "tailwindcss";`:
 
-```xml
-<PropertyGroup>
-  <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
-</PropertyGroup>
+```css
+@import "./vendor/rask-ui.css";
 ```
 
-On `RaskApp` (`Rask.Server`) or the WASM host (`Rask.Wasm`) that is all: the host links it before your own
-sheet and turns the theme scope on. A hand-wired host links it itself, and turns the theme scope on:
+That is Tailwind, the kit's theme and `dark` variant, and every class its components write, compiled
+beside the classes you write. The build puts the files in `Styles/vendor/` (no npm, no `node_modules`;
+do not commit them), and on `RaskApp` (`Rask.Server`) or the WASM host (`Rask.Wasm`) that is all: the
+host links your `css/app.css` and turns the theme scope on. A hand-wired host does both itself:
 
 ```csharp
 protected override Component? HeadAssets =>
 [
-    Link.Rel("stylesheet").Href(UiStylesheet.Href()),   // the kit's, first
-    Link.Rel("stylesheet").Href("/css/app.css"),
+    Link.Rel("stylesheet").Href("/css/app.css"),   // the ONE sheet: Tailwind, the kit, your classes
 ];
 
 // Nothing in the kit has a colour until an ancestor carries this.
 protected override Component Shell(Component head, Component body) =>
     Html.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, body];
 ```
+
+**A surface with no Tailwind build of its own** takes the precompiled sheet instead: set
+`<RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>` and link `UiStylesheet.Href()`, or inline
+`UiStylesheet.Css`. Never both — two sheets each carry an `@layer utilities` ranked by link order
+alone, so an app's `bg-white` beats the kit's `dark:bg-zinc-800`, and the build stops on the pairing.
 
 ```csharp
 protected override Component? Render() =>
@@ -76,18 +80,18 @@ protected override Component? Render() =>
 ];
 ```
 
-Order matters: your `@theme` only wins while it is the copy the cascade reads last. The kit's sheet
-deliberately carries **no preflight** and no `html`/`body` rules — your application owns its document,
-and a reset arriving from a library restyles pages that never asked for it.
+Re-skin by redefining a token in your own `@theme`, after the import. The kit itself carries **no
+preflight** and no `html`/`body` rules — your application owns its document; in an app's sheet the
+reset is Tailwind's own, which the import brings.
 
 ## What is in it
 
 | | |
 | --- | --- |
 | Actions | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
-| Data display | `Ui.Accordion` `Ui.AccordionItem` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` (`Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed`) `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.List` `Ui.Stat` `Ui.StatusDot` `Ui.Table` (with `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell`) `Ui.DataGrid` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` |
+| Data display | `Ui.Accordion` `Ui.AccordionItem` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` (`Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed`) `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.List` `Ui.Stat` `Ui.StatusDot` `Ui.Table` (with `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell`) `Ui.DataGrid` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` |
 | Navigation | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.Menu` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Tabs` |
-| Feedback | `Ui.Callout` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |
+| Feedback | `Ui.Callout` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` |
 | Data input | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.MultiSelect` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` |
 | Layout | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | Mockup | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |

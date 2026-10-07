@@ -12,9 +12,9 @@ public sealed partial class UiKitDataDisplayPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "Accordion, badge and card components in C# — Rask",
-            "Data display components in C#: a Flux-style accordion on native details, card, badge, kbd, status, "
-            + "countdown, chat bubble, text rotate, aura and hover effects.",
+            "Badge, accordion and card components in C# — Rask",
+            "Data display components in C#: a Flux UI badge, a Flux-style accordion on native details, card, kbd, "
+            + "status, countdown, chat bubble, aura and hover effects.",
             Routes.UiKitDataDisplayPage());
 
     /// <inheritdoc />
@@ -22,7 +22,10 @@ public sealed partial class UiKitDataDisplayPage : Component
     [
         H1.Class("text-3xl font-bold mb-1")["Data display"],
         P.Class("text-ui-muted")[
-            "Most of this category is static. The accordion is Flux's: every item is a ", Code["<details>"],
+            "The badge is Flux UI's, example for example: ", Code["Ui.Badge.Color(Ui.Color.Lime)[\"New\"]"],
+            ", pressed with ", Code[".As(Ui.BadgeAs.Button).OnClick(…)"], " and removable with a ",
+            Code["Ui.BadgeClose"], " among its children. ",
+            "The rest of this category is mostly static. The accordion is Flux's: every item is a ", Code["<details>"],
             ", so it opens and closes in the browser with no handler, and ", Code["Exclusive()"], " is the ",
             "platform's own ", Code["name"], " group. A page that wants to own an item gives it ",
             Code["Expanded"], " and listens to ", Code["OnToggle"], "."

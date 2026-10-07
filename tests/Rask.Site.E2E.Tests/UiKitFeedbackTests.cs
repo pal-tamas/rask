@@ -129,26 +129,79 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task A_toast_appears_on_demand_and_can_be_dismissed() => RunAsync(async () =>
+    public Task A_raised_toast_shows_in_the_top_layer_and_its_close_button_takes_it_down() => RunAsync(async () =>
     {
         await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-toast']");
-
-        // Scoped to the toast's own section, not the page: any other polite announcement on the page
-        // would match a page-wide locator too, and go on matching after the toast was dismissed.
-        var toast = scope.Locator("[role='status']");
+        var toast = Page.Locator("[data-ui-toast] > [data-ui-toast-dialog]");
 
         // No assertion that it starts absent, deliberately. The harness re-runs this body on a boot
         // failure (RaceAgainstBootFailureAsync), and the second attempt gets a page the first one had
-        // already clicked Save on — so "there is no toast yet" is a claim about the harness rather than
-        // about the component. What the component owes is the TRANSITION, which is what is asserted.
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Save" }).ClickAsync();
-        await Expect(toast).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // already raised a toast on. What the component owes is the TRANSITION, which is what is asserted.
+        await Page.Locator("#toast-permanent").ClickAsync();
+        await Page.Locator("#toast-success").ClickAsync();
 
-        await toast.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Dismiss" })
-            .ClickAsync();
+        // One at a time: the success toast took the permanent one's place.
+        await Expect(toast).ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(toast).ToHaveAttributeAsync("data-variant", "success");
+        await Expect(toast).ToContainTextAsync("Post created");
+        // A popover the runtime showed, so it is over an open dialog rather than under it.
+        Assert.True(await Page.Locator("[data-ui-toast]").EvaluateAsync<bool>("host => host.matches(':popover-open')"));
+
+        await toast.Locator("[data-rask-dismiss]").ClickAsync();
         await Expect(toast).ToHaveCountAsync(0);
+    });
+
+    [Fact]
+    public Task A_timed_toast_goes_by_itself_and_a_permanent_one_stays() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var toast = Page.Locator("[data-ui-toast] > [data-ui-toast-dialog]");
+
+        await Page.Locator("#toast-brief").ClickAsync();
+        await Expect(toast).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // One second, then the fade, then the runtime presses its close button.
+        await Expect(toast).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        await Page.Locator("#toast-permanent").ClickAsync();
+        await Expect(toast).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.WaitForTimeoutAsync(2_500);
+        await Expect(toast).ToHaveCountAsync(1);
+
+        // Escape takes a toast on its own down.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(toast).ToHaveCountAsync(0);
+    });
+
+    [Fact]
+    public Task Inside_a_group_toasts_stack_behind_the_newest_and_open_under_the_pointer() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        await Page.Locator("#toast-layout-stack").ClickAsync();
+        var toasts = Page.Locator("[data-ui-toast-group] > [data-ui-toast-dialog]");
+
+        await Page.Locator("#toast-permanent").ClickAsync();
+        await Page.Locator("#toast-permanent").ClickAsync();
+        await Expect(toasts).ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // A deck: the older one settles ten pixels up and five percent narrower, behind the front one.
+        await Page.WaitForFunctionAsync(
+            """
+            () => {
+                const [front, behind] = [...document.querySelectorAll('[data-ui-toast-group] > [data-ui-toast-dialog] > div')]
+                    .map(card => card.getBoundingClientRect());
+                return Math.abs(front.top - behind.top - 10) < 0.5 && Math.abs(behind.width - front.width * 0.95) < 0.5;
+            }
+            """);
+
+        // Under the pointer each sits on the one in front of it.
+        await toasts.Nth(0).HoverAsync();
+        await Page.WaitForFunctionAsync(
+            """
+            () => {
+                const cards = document.querySelectorAll('[data-ui-toast-group] > [data-ui-toast-dialog] > div');
+                return cards[1].getBoundingClientRect().bottom <= cards[0].getBoundingClientRect().top;
+            }
+            """);
     });
 
     [Fact]
