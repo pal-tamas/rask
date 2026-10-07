@@ -63,8 +63,14 @@ public sealed partial class UiToast
                 message, () => dismiss(message.Id), look, behind == 0 ? null : messages[^behind].Id, behind);
         }
 
+        // One pointer over any of the stack holds every countdown in it (data-rask-dismiss-scope), and each
+        // runs on from where it stopped: measured on Flux, two toasts hovered for five seconds both stayed,
+        // and went their own remainders after the pointer left.
+        var marks = Marks("ui-toast-group", look.Position, stack.Expanded);
+        marks["rask-dismiss-scope"] = null;
+
         return Div.Popover(Rask.Core.Popover.Manual).Class(Host, "flex w-sm", Corner(look.Position), Justify(look.Position), stack.Class)
-            .Data(Marks("ui-toast-group", look.Position, stack.Expanded)).Role("status")[dialogs];
+            .Data(marks).Role("status")[dialogs];
     }
 
     // The part's marker, then what Flux's custom element carries as attributes, as data-*.

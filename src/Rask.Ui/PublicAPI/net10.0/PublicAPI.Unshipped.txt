@@ -261,7 +261,7 @@ Rask.UiButton.Tooltip.get -> string?
 Rask.UiButton.Tooltip.set -> void
 Rask.UiButton.TooltipKbd.get -> string?
 Rask.UiButton.TooltipKbd.set -> void
-Rask.UiButton.TooltipPosition.get -> Rask.Ui.Position?
+Rask.UiButton.TooltipPosition.get -> Rask.Ui.TooltipPosition?
 Rask.UiButton.TooltipPosition.set -> void
 Rask.UiButton.Type.get -> Rask.Ui.ButtonType?
 Rask.UiButton.Type.set -> void
@@ -1750,6 +1750,7 @@ static RaskBuilderSettersRask_Ui.TickPrefix(this Rask.UiChartAxis! __b, string? 
 static RaskBuilderSettersRask_Ui.TickStart(this Rask.UiChartAxis! __b, double? value) -> Rask.UiChartAxis!
 static RaskBuilderSettersRask_Ui.TickSuffix(this Rask.UiChartAxis! __b, string? value) -> Rask.UiChartAxis!
 static RaskBuilderSettersRask_Ui.TickValues(this Rask.UiChartAxis! __b, System.Collections.Generic.IReadOnlyList<double>? value) -> Rask.UiChartAxis!
+static RaskBuilderSettersRask_Ui.TooltipPosition(this Rask.UiButton! __b, Rask.Ui.TooltipPosition? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Type(this Rask.UiChartCursor! __b, Rask.Ui.ChartCursorType? value) -> Rask.UiChartCursor!
 static RaskBuilderSettersRask_Ui.Value(this Rask.UiChart! __b, Rask.UiChartData? value) -> Rask.UiChart!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiLink! __b, Rask.Ui.LinkVariant? value) -> Rask.UiLink!
@@ -4299,7 +4300,6 @@ static RaskBuilderSettersRask_Ui.Tone<T>(this Rask.UiTextarea<T>! __b, Rask.Ui.T
 static RaskBuilderSettersRask_Ui.Toolbar<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Component? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Tooltip(this Rask.UiButton! __b, string? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.TooltipKbd(this Rask.UiButton! __b, string? value) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.TooltipPosition(this Rask.UiButton! __b, Rask.Ui.Position? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.TotalCount<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, int? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Trailing(this Rask.UiListRow! __b, Rask.Core.Component? value) -> Rask.UiListRow!
 static RaskBuilderSettersRask_Ui.Trailing(this Rask.UiTopBar! __b, Rask.Core.Component? value) -> Rask.UiTopBar!

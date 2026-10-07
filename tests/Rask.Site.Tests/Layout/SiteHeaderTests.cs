@@ -58,7 +58,8 @@ public sealed class SiteHeaderTests
         var brand = header.IndexOf("app-brand", StringComparison.Ordinal);
         Assert.True(brand >= 0, $"no .app-brand in the top bar:\n{header}");
 
-        return header[brand..];
+        // The moon's tooltip takes the next id of the process, so two renders differ in it and in nothing else.
+        return System.Text.RegularExpressions.Regex.Replace(header[brand..], "ui-tooltip-\\d+", "ui-tooltip-n");
     }
 
     [Fact]
@@ -109,7 +110,11 @@ public sealed class SiteHeaderTests
         var moon = header[start..header.IndexOf("</button>", marker, StringComparison.Ordinal)];
 
         Assert.Contains("type=\"button\"", moon, StringComparison.Ordinal);
-        Assert.Contains("aria-label=\"Toggle dark mode\"", moon, StringComparison.Ordinal);
+        // Named by its tooltip, as Flux names an icon button: by reference, not by a label of its own.
+        var tooltip = System.Text.RegularExpressions.Regex.Match(moon, "aria-labelledby=\"(ui-tooltip-\\d+)\"").Groups[1].Value;
+        Assert.Contains($"<div id=\"{tooltip}\"", header, StringComparison.Ordinal);
+        Assert.Contains(">Toggle dark mode <span class=\"ps-1 text-zinc-300\">D</span></div>", header, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-label=", moon, StringComparison.Ordinal);
         Assert.Contains("aria-keyshortcuts=\"D\"", moon, StringComparison.Ordinal);
         Assert.Contains("onclick=\"Rask.dark=!Rask.dark\"", moon, StringComparison.Ordinal);
         Assert.Contains("data-ui-icon", moon, StringComparison.Ordinal);
