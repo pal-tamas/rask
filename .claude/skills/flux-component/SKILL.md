@@ -259,7 +259,8 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   Dashboard may not write classes): rebuilt on Flux pieces later.
 - Parity stand-ins still standing: card page (fields, switches, the heading/text lines whose variant was
   not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
-  (slider, as raw `ui-slider` markup), field page (inputs).
+  (slider, as raw `ui-slider` markup). The field page's inputs and select and the input page's buttons are real
+  now; the input page's `flux:select` inside a group is still a stand-in.
 - Tooltip: daisyUI's own is kept out of the sheet by `exclude: … tooltip` on the `@plugin` line in `ui.css`
   (the bare word stands in the kit's comments; `UiTooltipTests` asserts the absence) — the way to drop a
   daisy component whose name the kit still has to say. A `Toggleable()` tooltip around something that is
@@ -275,6 +276,18 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   div card `flux-kanban-card` (no `data-`) and its button card `data-flux-kanban-card`; the kit copies both
   (`ui-kanban-card`, `data-ui-kanban-card`). Parity stand-ins: the dropdown and menu in a column's actions, the
   avatars in a card's footer. The site's demo has two plain buttons where Flux has that dropdown.
+- Input, select, autocomplete, pillbox — the hooks are wired (2026-10-07): `Clearable` is `data-rask-clear`,
+  `Copyable` `data-rask-copy` (tick on `in-data-copied:`), `Mask` `data-rask-mask` (and still applied in C# to the
+  value drawn and committed), the select's listbox button `data-rask-listbox-button`, every list popover
+  `data-rask-lock`. Still open: `mask:dynamic` (the runtime has `data-rask-mask-money`; what a C# prop for an
+  Alpine expression takes is the owner's call), and the pillbox's closed trigger, a `<div>` holding the pills'
+  buttons, which the button-only hook does not reach — Space and the arrows still scroll the page there.
+  NOT Flux's and kept on purpose: `aria-expanded` on the select's search field and on the pillbox's inline input —
+  `rask-dom.ts` contains Enter and the arrows only in a `[role=combobox][aria-expanded=true]`, and without it Enter
+  submits the form around the control. It goes when the runtime contains keys by another mark.
+  `Ui.Input.Attributes(…)` forwards attributes to the `<input>` (how an unlabelled input gets `aria-label`); the
+  typed `Min` / `Max` / `Step` / `MaxLength` / `Autofocus` / `Name` it also keeps are `Translations` rows — whether
+  they should all go through `Attributes` instead is undecided.
 - Pillbox: `Ui.PillboxTrigger.Clearable()`, a disabled pillbox and an invalid `Ui.PillboxInput` are drawn
   from the select's and the input's looks — no example on Flux's page shows them, so nothing measured them.
   A create row written before the options is DRAWN first and still comes last for the arrow keys.

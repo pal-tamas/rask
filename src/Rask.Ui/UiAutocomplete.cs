@@ -84,6 +84,9 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>
     /// <summary>True for a button that empties the input, shown while it has text.</summary>
     public bool? Clearable { get; set; }
 
+    /// <summary>True for a button that copies what the input holds, and shows a tick for two seconds.</summary>
+    public bool? Copyable { get; set; }
+
     /// <summary>For a password input: true for a button that shows what was typed.</summary>
     public bool? Viewable { get; set; }
 
@@ -134,6 +137,7 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>
             .IconTrailing(IconTrailing)
             .Kbd(Kbd)
             .Clearable(Clearable)
+            .Copyable(Copyable)
             .Viewable(Viewable)
             .As(As == Ui.AutocompleteAs.Button ? Ui.InputAs.Button : null)
             .InputClass(InputClass)
@@ -195,6 +199,8 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>
         {
             ["data-ui-autocomplete-items"] = null,
             ["data-rask-popover-open"] = _open ? "true" : "false",
+            // While the list is open the page behind it neither scrolls nor takes the pointer, as on Flux.
+            ["data-rask-lock"] = null,
             ["style"] = UiAnchor.Under(Prefixed, null, null),
         };
         if (_open)

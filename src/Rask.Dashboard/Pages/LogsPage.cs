@@ -244,6 +244,7 @@ public sealed partial class LogsPage(
             .Type(InputType.Search)
             .Icon(Ui.IconName.MagnifyingGlass)
             .Placeholder("Search message or exception")
+            .Attributes(("aria-label", "Search message or exception"))
             .OnChange(SearchAsync);
 
     private Task SearchAsync(string value)

@@ -123,6 +123,7 @@ public sealed partial class CachePage(
                 .Type(InputType.Search)
                 .Icon(Ui.IconName.MagnifyingGlass)
                 .Placeholder("Search keys")
+                .Attributes(("aria-label", "Search keys"))
                 .OnChange(SearchAsync))
             .Empty(Ui.Empty
                 .Title(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")

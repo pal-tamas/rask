@@ -75,15 +75,14 @@ public sealed partial class InputParity : FluxParity
         ]);
 
         yield return ("icon-buttons", Div.Style(Column)[
-            Ui.Input.Of<string>().Placeholder("Search orders").IconTrailing(SubtleButton()).Class("mb-6"),
-            Ui.Input.Value("password").Type(InputType.Password).IconTrailing(SubtleButton())
+            Ui.Input.Of<string>().Placeholder("Search orders").IconTrailing(SubtleButton(Ui.IconName.XMark)).Class("mb-6"),
+            Ui.Input.Value("password").Type(InputType.Password).IconTrailing(SubtleButton(Ui.IconName.Eye))
         ]);
 
         yield return ("clearable,-copyable,-and-viewable-inputs", Div.Style(Column)[
             Ui.Input.Value("Jack Skellington").Placeholder("Search orders").Clearable().Class("mb-6"),
             Ui.Input.Value("password").Type(InputType.Password).Viewable().Class("mb-6"),
-            // copyable is not built (FluxConformanceTests.NotTranslated): its button is a stand-in of its size.
-            Ui.Input.Value("FLUX-1234-5678-ABCD-EFGH").Icon(Ui.IconName.Key).ReadOnly().IconTrailing(CopyButton())
+            Ui.Input.Value("FLUX-1234-5678-ABCD-EFGH").Icon(Ui.IconName.Key).ReadOnly().Copyable()
         ]);
 
         yield return ("keyboard-hint", Div.Style(Column)[
@@ -99,7 +98,7 @@ public sealed partial class InputParity : FluxParity
         yield return ("with-buttons", Div.Style(Column)[
             Ui.InputGroup.Class("mb-6")[
                 Ui.Input.Of<string>().Placeholder("Post title"),
-                StandIn("width:116.34px")
+                Ui.Button.Icon(Ui.IconName.Plus)["New post"]
             ],
             Ui.InputGroup[
                 StandIn("width:85px"),
@@ -140,10 +139,7 @@ public sealed partial class InputParity : FluxParity
     private static Component StandIn(string width) =>
         Div.Attributes(StandInMarks).Style("height:40px;flex:none;" + width);
 
-    private static Component CopyButton() =>
-        RaskMarkup.Button.Data("parity-skip", "").Style("width:32px;height:32px;margin:0 -6px");
-
     // <flux:button size="sm" variant="subtle" icon="x-mark" class="-mr-1" /> in the input's trailing slot.
-    private static Component SubtleButton() =>
-        RaskMarkup.Button.Data("parity-skip", "").Style("width:32px;height:32px;margin-right:-4px");
+    private static Component SubtleButton(Ui.IconName icon) =>
+        Ui.Button.Subtle.Sm.Icon(icon).Style("margin-right:-4px");
 }

@@ -138,6 +138,7 @@ public sealed partial class StoragePage(
                 .Type(InputType.Search)
                 .Icon(Ui.IconName.MagnifyingGlass)
                 .Placeholder("Search file names")
+                .Attributes(("aria-label", "Search file names"))
                 .OnChange(SearchAsync))
             .Empty(Ui.Empty
                 .Title(Search is { Length: > 0 } ? $"No files matching \"{Search}\"" : "No files stored yet")

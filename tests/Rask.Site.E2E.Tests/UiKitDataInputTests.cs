@@ -79,11 +79,28 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         await clear.ClickAsync();
 
-        // Emptied in C# and patched back; hidden by CSS alone while empty, and back before any round trip.
+        // Emptied by the runtime in the click, as Flux's is, with the focus left in the field; hidden by CSS
+        // alone while empty, and back before any round trip.
         await Expect(search).ToHaveValueAsync("");
+        await Expect(search).ToBeFocusedAsync();
         await Expect(clear).ToBeHiddenAsync();
         await search.PressSequentiallyAsync("a");
         await Expect(clear).ToBeVisibleAsync();
+    });
+
+    [Fact]
+    public Task The_copy_button_copies_in_the_click_and_shows_its_tick_for_a_while() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        await Page.Context.GrantPermissionsAsync(["clipboard-read", "clipboard-write"]);
+
+        var copy = Page.Locator("[data-testid='ui-text-controls'] button[aria-label='Copy to clipboard']");
+        await copy.ClickAsync();
+
+        await Expect(copy).ToHaveAttributeAsync("data-copied", "");
+        Assert.Equal("FLUX-1234-5678-ABCD-EFGH", await Page.EvaluateAsync<string>("() => navigator.clipboard.readText()"));
+        await Expect(copy.Locator("svg").First).ToBeVisibleAsync();
+        await Expect(copy.Locator("svg").Nth(1)).ToBeHiddenAsync();
     });
 
     [Fact]
@@ -256,6 +273,28 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Expect(Page.Locator("[data-testid='ui-listbox-state']")).ToContainTextAsync("Chosen: Design services.");
         await Expect(list).ToBeHiddenAsync();
         await Expect(box).ToBeFocusedAsync();
+    });
+
+    [Fact]
+    public Task Enter_leaves_a_closed_listbox_shut_and_an_open_one_locks_the_page_behind_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var box = Page.Locator("#ui-select-listbox");
+
+        // Flux's button is not a native one: Enter does not press it. An arrow opens it without scrolling the page.
+        await box.FocusAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(box).ToHaveAttributeAsync("aria-expanded", "false");
+        var before = await Page.EvaluateAsync<double>("() => scrollY");
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await Expect(box).ToHaveAttributeAsync("aria-expanded", "true");
+
+        Assert.Equal(before, await Page.EvaluateAsync<double>("() => scrollY"));
+        Assert.Equal("hidden", await Page.EvaluateAsync<string>("() => document.documentElement.style.overflow"));
+        Assert.Equal("none", await Page.EvaluateAsync<string>("() => document.documentElement.style.pointerEvents"));
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(box).ToHaveAttributeAsync("aria-expanded", "false");
+        Assert.Equal("", await Page.EvaluateAsync<string>("() => document.documentElement.style.overflow"));
     });
 
     [Fact]

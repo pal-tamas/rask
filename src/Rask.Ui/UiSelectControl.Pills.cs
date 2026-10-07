@@ -111,7 +111,8 @@ public abstract partial class UiSelectControl<T>
         {
             ["autocomplete"] = "list",
             ["controls"] = ListId,
-            // The runtime keeps the arrow keys and Enter inside a combobox that says it is expanded.
+            // NOT Flux's, whose input says no `aria-expanded`. Kept for the reason the select's search field
+            // keeps it: it is what the runtime's key containment reads.
             ["expanded"] = _open ? "true" : "false",
         };
         if (_open && view.Cursor >= 0)

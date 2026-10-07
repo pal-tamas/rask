@@ -1348,9 +1348,13 @@ Markers follow Flux's: `data-ui-select` on a drawn select's root, `data-ui-selec
 `data-ui-select-native`, `data-ui-options`, `data-ui-option`, and on a row `data-selected` and `data-active`
 (the cursor); `data-open` while the list is.
 
-**Two known gaps**, each waiting for a runtime hook: Enter on a **closed** listbox button opens the list,
-where Flux ignores it — the button is a native popover invoker, which Enter presses — and the page behind
-an open list is not scroll-locked.
+Two things Flux does in script are the runtime's here, by attribute: the closed listbox button ignores Enter
+and its arrows do not scroll the page (`data-rask-listbox-button`), and while a list is open the page behind
+it neither scrolls nor takes the pointer (`data-rask-lock` on the popover). Every list says
+`aria-multiselectable="true"`, one answer or several, as Flux's does; the "no results" row and the create row
+carry no role, as Flux's do not. One attribute is NOT Flux's: the listbox's search field says `aria-expanded`,
+which is what the runtime reads to keep Enter from submitting a form around it and the arrows from moving the
+caret.
 
 **Gone with daisyUI's select:** `Options(list)` (options are children), `Native()` / `Native(false)` (now
 the variant: `.Listbox`), `OptionGroup` (now `Ui.SelectGroup`), `OptionDisabled` (now
@@ -1375,7 +1379,7 @@ Ui.Autocomplete.Bind(() => model.State).Label("State of residence")[
 It takes what Flux documents for it, which is the input's own list: `Type`, `Label`, `Description`,
 `Placeholder`, `Size` (`Ui.AutocompleteSize`: `.Sm`, `.Xs`), `Variant` (`Ui.AutocompleteVariant`: `.Filled`),
 `Disabled()`, `ReadOnly()`, `Invalid()`, `Multiple()`, `Mask`, `Icon`, `IconTrailing`, `Kbd`, `Clearable()`,
-`Viewable()`, `As` (`Ui.AutocompleteAs`), `InputClass`, and `ContainerClass` for the open list (a height, such
+`Copyable()`, `Viewable()`, `As` (`Ui.AutocompleteAs`), `InputClass`, and `ContainerClass` for the open list (a height, such
 as `max-h-80`). `Ui.AutocompleteItem` takes `Disabled()`. The text reaches the page — the bound member, or
 `OnChange` — when an item is picked, when Escape empties the input, and when what was typed is left.
 
@@ -1396,7 +1400,8 @@ The input is `role="combobox"` with `aria-autocomplete="list"`, `aria-haspopup="
 `aria-controls` and, while open, `aria-activedescendant`. The list is `role="listbox"` and — as Flux writes it,
 though it holds one answer — `aria-multiselectable="true"`; the item last picked stays `aria-selected="true"`
 whatever is typed afterwards. Markers: `data-ui-autocomplete`, `data-ui-autocomplete-items`,
-`data-ui-autocomplete-item`. Flux's `copyable` waits for the input's (a clipboard hook).
+`data-ui-autocomplete-item`. `Copyable()` is the input's copy button, and the page behind the open list is
+locked (`data-rask-lock`).
 
 ## Pillbox
 
@@ -1450,9 +1455,11 @@ type into, and `role="button"` over a search field or an input, which is then th
 `data-ui-pillbox-placeholder`, `data-ui-pillbox-input`, `data-ui-pillbox-search`, `data-ui-listbox-options`,
 `data-ui-listbox-option`, `data-ui-option-create`.
 
-**Known gaps**, each waiting for a runtime hook: Space and the arrows on the **closed** trigger also scroll
-the page behind it (the trigger is no button, and C# cannot prevent a key's default), and the page behind an
-open list is not scroll-locked. `Ui.PillboxOptionCreate` has no `modal`: its `OnClick` is the page's to answer.
+The page behind an open list is locked (`data-rask-lock`), as on Flux. **One known gap:** Space and the arrows
+on the **closed** trigger also scroll the page behind it — the trigger holds the pills' buttons, so it is no
+`<button>`, and the runtime's `data-rask-listbox-button` contains keys on a closed button only. The input among
+the pills says `aria-expanded`, which Flux's does not, for the reason the select's search field does.
+`Ui.PillboxOptionCreate` has no `modal`: its `OnClick` is the page's to answer.
 
 ## Form controls
 
@@ -1632,6 +1639,7 @@ Ui.Input.Bind(() => m.Query).Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K").Clear
 Ui.Input.Bind(() => m.Password).Type(InputType.Password).Viewable()                // reveal button
 Ui.Input.Value(key).ReadOnly().Filled                                              // variant="filled"
 Ui.Input.Bind(() => m.Phone).Mask("(999) 999-9999")                                // 9 digit, a letter, * either
+Ui.Input.Value(key).Icon(Ui.IconName.Key).ReadOnly().Copyable()                    // copy button, a tick for 2 s
 Ui.Input.Of<string>().Type(InputType.File).Multiple().OnFiles(Save)                // "Choose files" + the chosen name
 Ui.Input.Of<string>().As(Ui.InputAs.Button).Placeholder("Search...").OnClick(Open) // a button drawn as the input
 Ui.InputGroup[Ui.InputGroupPrefix["https://"], Ui.Input.Bind(() => m.Site)]        // fused borders
@@ -1641,17 +1649,20 @@ Ui.Textarea.Bind(() => m.Notes).Label("Notes").Rows(UiTextareaRows.Auto).None   
 - **Props.** `Label`, `Description`, `DescriptionTrailing` (and `Badge` on a textarea) wrap the control in a
   [`Ui.Field`](#fields-label-description-error) with its `Ui.Error`; without them it is the control alone. `Size`
   (`Sm`, `Xs`), `Variant` (`Filled`), `Disabled`, `ReadOnly`, `Invalid`, `Icon` / `IconTrailing` (a `Ui.IconName`, or
-  content of your own such as a button), `Kbd`, `Clearable`, `Viewable`, `Mask`, `As`, `Multiple`, and
-  `Class` for the wrapper with `InputClass` for the `<input>`. A textarea takes `Rows` (4 unless set) and `Resize`
+  content of your own such as a button), `Kbd`, `Clearable`, `Copyable`, `Viewable`, `Mask`, `As`, `Multiple`, and
+  `Class` for the wrapper with `InputClass` for the `<input>`; `Attributes(("aria-label", "Search keys"))` forwards
+  an attribute to the `<input>` as Flux does — the way to name an input that has no label. A textarea takes `Rows` (4 unless set) and `Resize`
   (`Vertical`, `Horizontal`, `Both`, `None`).
 - **A bound control is invalid on its own** while its form holds a message for the member: `aria-invalid`,
   `data-invalid` and the red border, with `aria-describedby` naming the field's error and description.
   `ShowValidation(false)` leaves the message to a `Ui.Error` you place yourself. A control with no label draws no
   field, so its message is yours to place too: `Ui.Field[Ui.Input.Bind(…), Ui.Error]`.
-- **No script.** The clear button is hidden by CSS while the input is empty and clears through a handler; the
-  reveal button is a handler; `Rows(UiTextareaRows.Auto)` is `field-sizing: content`; a file input is a `<label>`
-  around the real input. `Mask` is applied to the value drawn and the value committed, not keystroke by keystroke.
-  Flux's `copyable` and `mask:dynamic` need script in the page and are not built.
+- **No script of the kit's.** What Flux does in Alpine is the runtime's, by attribute: the clear button
+  (`data-rask-clear`, hidden by CSS while the input is empty) empties the field in the click and leaves the focus
+  in it; the copy button (`data-rask-copy`) writes the clipboard in the click and shows a tick for two seconds;
+  `Mask` holds each keystroke to its pattern (`data-rask-mask`) and is applied to the value drawn and committed
+  as well. The reveal button is a handler; `Rows(UiTextareaRows.Auto)` is `field-sizing: content`; a file input
+  is a `<label>` around the real input. Flux's `mask:dynamic` (an Alpine expression) is not built.
 - **In a group, label the group.** `Ui.Field[Ui.Label["Website"], Ui.InputGroup[…], Ui.Error]` — the group stands
   for its input, so the field's label and error reach it. A neighbour that is not an input (a button, a select)
   joins the outline by carrying `data-ui-group-target`.

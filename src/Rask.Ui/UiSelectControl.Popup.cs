@@ -28,7 +28,8 @@ public abstract partial class UiSelectControl<T>
             list = list.OnMouseLeave(() => _cursor = None);
         }
 
-        return IsMultiple ? list.Aria("multiselectable", "true") : list;
+        // On every list, one answer or several: Flux's listbox says so whatever it holds.
+        return list.Aria("multiselectable", "true");
     }
 
     // `data-rask-popover-open` is how C# opens and closes a popover: the runtime shows or hides it when the
@@ -39,6 +40,8 @@ public abstract partial class UiSelectControl<T>
         {
             [Pills is null || HasSearchField ? "data-ui-options" : "data-ui-listbox-options"] = null,
             ["data-rask-popover-open"] = _open ? "true" : "false",
+            // While the list is open the page behind it neither scrolls nor takes the pointer, as on Flux.
+            ["data-rask-lock"] = null,
             ["style"] = UiAnchor.Under(Prefixed, Position, Align),
         };
         if (_open)
@@ -141,7 +144,7 @@ public abstract partial class UiSelectControl<T>
         var slot = view.Parts.Empty;
         var marks = RowMarks("data-ui-listbox-empty", picked: false, active: false, hidden: view.AnyShown || view.CreateShown);
 
-        return Div.Class(UiClass.Compose(UiListboxLook.Empty, slot?.Class)).Role("option").Aria("disabled", "true").Attributes(marks)[
+        return Div.Class(UiClass.Compose(UiListboxLook.Empty, slot?.Class)).Attributes(marks)[
             _busy ? [slot?.WhenLoading ?? "Loading..."] : slot?.Children ?? [Empty ?? "No results found"]
         ];
     }
@@ -157,9 +160,7 @@ public abstract partial class UiSelectControl<T>
 
         return Div
             .Id(UiSelectNav.OptId(Prefixed, index))
-            .Role("option")
             .Class(UiClass.Compose(UiListboxLook.Create, create.Class))
-            .Aria("selected", "false")
             .Attributes(marks)
             .OnClick(e => ClickedAsync(e, index, view))
             .OnMouseEnter(e => Hovered(e, index))[
@@ -176,10 +177,18 @@ public abstract partial class UiSelectControl<T>
         var slot = view.Parts.Search;
         var aria = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
-            // The runtime keeps the arrow keys and Enter inside a combobox that says it is expanded.
-            ["controls"] = ListId,
+            // NOT Flux's, whose search field says no `aria-expanded`. Kept: the runtime contains Enter (a form's
+            // implicit submit) and the arrows (the caret) only in a combobox that says it is expanded, and the
+            // one hook for this, `data-rask-listbox-button`, is a closed <button>'s.
             ["expanded"] = _open ? "true" : "false",
         };
+        if (Pills is not null)
+        {
+            // The pillbox's search field names its list; the select's does not.
+            aria["autocomplete"] = "list";
+            aria["controls"] = ListId;
+        }
+
         if (_open && view.Cursor >= 0)
         {
             aria["activedescendant"] = UiSelectNav.OptId(Prefixed, view.Cursor);

@@ -1,18 +1,17 @@
-using Rask.Core.Forms;
-
 namespace Rask;
 
-// What sits at the end of the box: the shortcut, the clear and reveal buttons, the trailing icon.
+// What sits at the end of the box: the shortcut, the clear, copy and reveal buttons, the trailing icon.
 public sealed partial class UiInput<T>
 {
     private bool _viewing;
 
-    private Component? Trailing()
+    private Component? Trailing(string inputId)
     {
         Component?[] parts =
         [
             Kbd is { } kbd ? Span.Class("pe-2")[kbd] : null,
-            ShowsClear ? ClearButton() : null,
+            ShowsClear ? ClearButton(inputId) : null,
+            Copyable == true ? CopyButton(inputId) : null,
             Viewable == true ? ViewButton() : null,
             IconTrailing is { } icon ? Glyph(icon) : null,
         ];
@@ -22,16 +21,27 @@ public sealed partial class UiInput<T>
 
     // Always rendered and hidden by CSS while the input is empty, so it appears with the first keystroke
     // rather than with the next round trip. Out of the tab order, as Flux's is: Backspace clears too.
-    private Component ClearButton() =>
-        ActionButton("Clear input", "ui-clear-button", marked: true)
+    // The runtime empties the field in the click (`data-rask-clear`), tells the page with a real `input` and
+    // `change`, and leaves the focus in the field — which is what Flux's script does.
+    private static Component ClearButton(string inputId) =>
+        ActionButton("Clear input", ("ui-clear-button", string.Empty), ("rask-clear", inputId))
             .Class(UiClass.Compose(UiInputLook.Action, UiInputLook.Clear))
-            .TabIndex(-1)
-            .OnClick(Clear)[
+            .TabIndex(-1)[
             Ui.Icon.Name(Ui.IconName.XMark).Mini
         ];
 
+    // The clipboard is written in the click's own call stack by the runtime (`data-rask-copy`): a handler that
+    // ran a round trip later would no longer hold the gesture the clipboard asks for. The button then carries
+    // `data-copied` for two seconds, which is what shows the tick.
+    private static Component CopyButton(string inputId) =>
+        ActionButton("Copy to clipboard", ("rask-copy", inputId))
+            .Class(UiInputLook.Action)[
+            Ui.Icon.Name(Ui.IconName.ClipboardDocumentCheck).Mini.Class(UiInputLook.Copied),
+            Ui.Icon.Name(Ui.IconName.ClipboardDocument).Mini.Class(UiInputLook.NotCopied)
+        ];
+
     private Component ViewButton() =>
-        ActionButton("Toggle password visibility", "viewable-open", _viewing)
+        ActionButton("Toggle password visibility", _viewing ? ("viewable-open", string.Empty) : null)
             .Class(UiInputLook.Action)
             .OnClick(() => _viewing = !_viewing)[
             Ui.Icon.Name(Ui.IconName.EyeSlash).Mini.Class(_viewing ? null : "hidden"),
@@ -39,32 +49,17 @@ public sealed partial class UiInput<T>
         ];
 
     // One data bag per button: a second .Data call would replace the first.
-    private static HTMLButtonElement ActionButton(string label, string mark, bool marked)
+    private static HTMLButtonElement ActionButton(string label, params (string Name, string Value)?[] marks)
     {
         var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-button"] = string.Empty };
-        if (marked)
+        foreach (var mark in marks)
         {
-            data[mark] = string.Empty;
+            if (mark is (var name, var value))
+            {
+                data[name] = value;
+            }
         }
 
         return Button.Type(ButtonType.Button).Aria("label", label).Data(data);
-    }
-
-    private async Task Clear()
-    {
-        // An empty string rather than null where the input holds text: a non-nullable member stays one.
-        var empty = typeof(T) == typeof(string) ? (T)(object)string.Empty : default!;
-        if (Bind is not { } bind)
-        {
-            await OnChange.Invoke(empty).ConfigureAwait(false);
-            return;
-        }
-
-        var accessor = ExpressionAccessor.Parse(bind);
-        accessor.Setter(empty);
-        await BindingHelpers
-            .NotifyAndValidateField(BindingHelpers.ResolveBindingContext(accessor.Target), accessor.Field)
-            .ConfigureAwait(false);
-        await AfterBind.Invoke(empty).ConfigureAwait(false);
     }
 }

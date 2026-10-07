@@ -204,6 +204,8 @@ public abstract partial class UiSelectControl<T>
         };
         if (anchors)
         {
+            // Closed, Enter does not press it and the arrows do not scroll the page: Flux's button, not a native one.
+            marks["data-rask-listbox-button"] = null;
             marks["popovertarget"] = PanelId;
             marks["style"] = "anchor-name:--" + Prefixed;
         }

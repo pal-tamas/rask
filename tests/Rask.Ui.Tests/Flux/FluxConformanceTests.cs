@@ -120,17 +120,12 @@ public sealed class FluxConformanceTests
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
         ["flux:kanban.column.header/badge"] = "No example on Flux's page draws it, so where it sits and how it looks cannot be measured; a badge of your own goes in as a child, beside the heading you write there.",
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
-        ["flux:input/mask:dynamic"] = "An Alpine expression ($money($input)) evaluated in the browser on every keystroke. Rask.Ui ships no script; Mask takes the static pattern.",
-        ["flux:select/enter-on-closed"] = "Flux's listbox button ignores Enter while its list is shut. Ui.Select's is a native <button popovertarget>, which Enter presses: it opens. Waiting for a runtime hook that contains Enter (and the arrows' page scroll) on a closed button[role=combobox][aria-haspopup=listbox].",
-        ["flux:select/scroll-lock"] = "While a list is open Flux's script sets overflow:hidden, pointer-events:none and scrollbar-gutter:stable on <html>. A native popover does not lock the page behind it; waiting for a runtime hook that does while a [popover][data-rask-popover-open] is shown.",
+        ["flux:input/mask:dynamic"] = "An Alpine expression evaluated in the browser on every keystroke. The runtime shapes an amount (`data-rask-mask-money`, Flux's `$money($input)`) and nothing else; what a C# prop for it takes is not decided, so Mask takes the static pattern only.",
+        ["flux:autocomplete/mask:dynamic"] = "The input's: see flux:input/mask:dynamic.",
+        ["flux:pillbox/keys-on-closed"] = "Flux's trigger takes Space and the arrows without the page behind it moving. Ui.Pillbox's is a <div tabindex=0 role=combobox> — it holds the pills' own buttons, so it cannot be one — which opens on them in C# while the browser scrolls the page as well. The runtime's `data-rask-listbox-button` contains keys on a closed <button> only.",
         ["flux:select.option/avatar:*"] = "Props forwarded to Flux's avatar. Ui.Avatar is not Flux's yet; an option draws the extra-small round avatar Flux draws there.",
         ["flux:select.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
-        ["flux:autocomplete/copyable"] = "The input's own copy button, which the input does not have yet: see flux:input/copyable.",
-        ["flux:autocomplete/mask:dynamic"] = "The input's: see flux:input/mask:dynamic.",
-        ["flux:pillbox/keys-on-closed"] = "Flux's trigger takes Space and the arrows without the page behind it moving. Ui.Pillbox's is a <div tabindex=0 role=combobox>, which opens on them in C# — and the browser scrolls the page as well. Waiting for the runtime hook flux:select/enter-on-closed waits for, widened: contain Space, ArrowDown and ArrowUp on a collapsed [role=combobox][aria-haspopup=listbox] or [role=button][aria-haspopup=listbox] that is not a text input.",
-        ["flux:pillbox/scroll-lock"] = "The same as flux:select/scroll-lock: Flux takes the page's scroll and pointer away while the list is open, which is also why nothing on its trigger hovers then.",
         ["flux:pillbox.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
-        ["flux:input/copyable"] = "Copies in the click's own call stack (Alpine). Rask.Ui ships no script and the runtime has no clipboard hook yet (data-rask-copy); a handler round trip loses the user activation the clipboard asks for.",
     };
 
     /// <summary>
@@ -197,6 +192,7 @@ public sealed class FluxConformanceTests
         ["flux:pillbox/AfterBind"] = "Livewire's `updated…` hook of the `wire:model` property",
         ["flux:pillbox/ShowValidation"] = "whether the shorthand field draws its `flux:error`: false is Flux's control written inside a `flux:field` of your own",
         ["flux:input/Type"] = "the <input>'s own `type`, which Flux forwards and its examples set (`type=\"email\"`); flux:autocomplete documents it",
+        ["flux:input/Attributes"] = "the attributes Flux forwards to the <input> (`aria-label`, `required`, `autocomplete`…): the input is not a UiElement, so it declares the bag",
         ["flux:input/Min"] = "the <input>'s own `min`, which Flux forwards",
         ["flux:input/Max"] = "the <input>'s own `max`, which Flux forwards (`max=\"2999-12-31\"` in its own example)",
         ["flux:input/Step"] = "the <input>'s own `step`, which Flux forwards",

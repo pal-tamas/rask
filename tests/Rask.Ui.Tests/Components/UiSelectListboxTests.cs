@@ -66,7 +66,27 @@ public partial class UiSelectListboxTests : global::Rask.Core.RaskMarkup
         Assert.Contains("position-anchor:--uisel-", list.Attribute("style"), StringComparison.Ordinal);
         Assert.Contains("anchor-name:--uisel-", page.Find("[data-ui-select-button]").Attribute("style"), StringComparison.Ordinal);
         Assert.Equal(7, page.FindAll("[role=\"option\"][data-ui-option]").Count);
-        Assert.Null(list.Attribute("aria-multiselectable"));
+    }
+
+    [Fact]
+    public void A_list_says_multiselectable_whatever_it_holds_as_on_Flux()
+    {
+        var page = Page.Render(Listbox);
+
+        var list = page.Find("[data-ui-options]");
+
+        Assert.Equal("true", list.Attribute("aria-multiselectable"));
+    }
+
+    [Fact]
+    public void The_closed_button_and_the_open_list_carry_the_runtime_hooks_for_Flux_keys_and_page_lock()
+    {
+        var page = Page.Render(Listbox);
+
+        var (button, list) = (page.Find("[data-ui-select-button]"), page.Find("[data-ui-options]"));
+
+        Assert.NotNull(button.Attribute("data-rask-listbox-button"));
+        Assert.NotNull(list.Attribute("data-rask-lock"));
     }
 
     [Fact]

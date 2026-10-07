@@ -53,15 +53,6 @@ public sealed partial class UiKitDataInputDemo : Component
         MaskSection()
     ];
 
-    // The classes of the two neighbours Flux's examples borrow from its button, which is not rebuilt yet.
-    private const string SubtleButton =
-        "-mr-1 flex size-8 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
-        + "dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-white";
-
-    private const string OutlineButton =
-        "flex h-10 items-center gap-2 rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white ps-3 pe-4 text-sm "
-        + "font-medium text-zinc-800 shadow-xs hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white";
-
     private Component InputSection()
     {
         var badEmail = _email.Length > 0 && !_email.Contains('@');
@@ -93,10 +84,11 @@ public sealed partial class UiKitDataInputDemo : Component
                 Ui.Input.Of<string>().Key("card").IconTrailing(Ui.IconName.CreditCard).Placeholder("4444-4444-4444-4444"),
                 Ui.Input.Of<string>().Key("loading").IconTrailing(Ui.IconName.Loading).Placeholder("Search transactions"),
                 Ui.Input.Of<string>().Key("slot").Placeholder("Search orders").IconTrailing(
-                    Button.Type(ButtonType.Button).Aria("label", "Clear").Class(SubtleButton)[Ui.Icon.Name(Ui.IconName.XMark).Mini]),
+                    Ui.Button.Subtle.Sm.Icon(Ui.IconName.XMark).Class("-mr-1").Aria("label", "Clear")),
                 Ui.Input.Value(_search).Key("clearable").Placeholder("Search orders").Clearable()
                     .OnInput(v => _search = v ?? "").OnChange(v => { _search = v; }),
                 Ui.Input.Value("password").Key("viewable").Type(InputType.Password).Viewable(),
+                Ui.Input.Value("FLUX-1234-5678-ABCD-EFGH").Key("copyable").Icon(Ui.IconName.Key).ReadOnly().Copyable(),
                 Ui.Input.Of<string>().Key("kbd").Kbd("⌘K").Icon(Ui.IconName.MagnifyingGlass).Placeholder("Search..."),
                 Ui.Input.Of<string>().Key("button").As(Ui.InputAs.Button).Placeholder("Search...")
                     .Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K").OnClick(() => { _palette++; }),
@@ -114,9 +106,7 @@ public sealed partial class UiKitDataInputDemo : Component
             Div.Data(Testid("ui-input-group")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
                 Ui.InputGroup.Key("post")[
                     Ui.Input.Of<string>().Placeholder("Post title"),
-                    Button.Type(ButtonType.Button).Data("ui-group-target", "").Class(OutlineButton)[
-                        Ui.Icon.Name(Ui.IconName.Plus).Micro, "New post"
-                    ]
+                    Ui.Button.Icon(Ui.IconName.Plus)["New post"]
                 ],
                 Ui.InputGroup.Key("prefix")[
                     Ui.InputGroupPrefix["https://"],

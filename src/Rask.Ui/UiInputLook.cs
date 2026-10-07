@@ -54,6 +54,12 @@ internal static class UiInputLook
     /// <summary>The clear button: gone while the input shows its placeholder, which is while it is empty.</summary>
     internal const string Clear = "[[data-ui-input]:has(input:placeholder-shown)_&]:hidden";
 
+    /// <summary>The tick of the copy button: there for the two seconds its button says it copied.</summary>
+    internal const string Copied = "hidden in-data-copied:block";
+
+    /// <summary>The copy button's own icon, which the tick stands in for meanwhile.</summary>
+    internal const string NotCopied = "in-data-copied:hidden";
+
     /// <summary>The input drawn as a button: the same box, laid out as a row.</summary>
     internal const string AsButton =
         "relative flex w-full h-10 py-2 text-base sm:text-sm leading-[1.375rem] rounded-lg " + Outline + " " + InputShadow;
@@ -113,6 +119,24 @@ internal static class UiInputLook
 
     /// <summary>What marks the <c>&lt;input&gt;</c>: Flux's <c>data-flux-control</c> and, when invalid, <c>data-invalid</c>.</summary>
     internal static Dictionary<string, string?> Marks(bool invalid) => invalid ? InvalidInput : Input;
+
+    /// <summary>What marks the <c>&lt;input&gt;</c>, and after it the attributes the call site forwards to it.</summary>
+    internal static IReadOnlyDictionary<string, string?> Marks(bool invalid, IReadOnlyDictionary<string, string?>? forwarded)
+    {
+        var marks = Marks(invalid);
+        if (forwarded is null || forwarded.Count == 0)
+        {
+            return marks;
+        }
+
+        var all = new Dictionary<string, string?>(marks, StringComparer.Ordinal);
+        foreach (var (name, value) in forwarded)
+        {
+            all[name] = value;
+        }
+
+        return all;
+    }
 
     /// <summary>What marks the <c>&lt;textarea&gt;</c>.</summary>
     internal static Dictionary<string, string?> TextareaMarks(bool invalid) => invalid ? InvalidTextarea : Textarea;

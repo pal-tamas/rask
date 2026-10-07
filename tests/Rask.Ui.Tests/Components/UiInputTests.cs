@@ -267,25 +267,60 @@ public partial class UiInputTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Clearing_empties_the_bound_member_to_an_empty_string()
+    public void The_clear_button_names_its_input_for_the_runtime_and_has_no_handler_of_its_own()
     {
-        var model = new Account { Phone = "0612345" };
-        var page = Page.Render(() => Form.Model(model)[Ui.Input.Bind(() => model.Phone).Clearable()]);
+        var page = Page.Render(() => Ui.Input.Value("rask").Id("query").Clearable());
 
-        await page.On("button[aria-label=\"Clear input\"]").Click();
+        var button = page.Find("button[aria-label=\"Clear input\"]");
 
-        Assert.Equal("", model.Phone);
+        Assert.Equal("query", button.Attribute("data-rask-clear"));
+        Assert.Null(button.Attribute("data-rask-on-click"));
     }
 
     [Fact]
-    public async Task Clearing_a_controlled_input_reports_the_empty_value()
+    public void A_copyable_input_ends_in_a_button_the_runtime_copies_from()
     {
-        var value = "rask";
-        var page = Page.Render(() => Ui.Input.Value(value).OnChange(next => value = next).Clearable());
+        var page = Page.Render(() => Ui.Input.Value("FLUX-1234").Id("key").ReadOnly().Copyable());
 
-        await page.On("button[aria-label=\"Clear input\"]").Click();
+        var button = page.Find("button[aria-label=\"Copy to clipboard\"]");
 
-        Assert.Equal("", value);
+        Assert.Equal("key", button.Attribute("data-rask-copy"));
+        Assert.NotNull(button.Attribute("data-ui-button"));
+        Assert.Null(button.Attribute("data-rask-on-click"));
+    }
+
+    [Fact]
+    public void The_copy_button_holds_its_icon_and_the_tick_that_stands_in_while_it_says_it_copied()
+    {
+        var input = Ui.Input.Value("FLUX-1234").Copyable();
+
+        var html = input.ToHtml();
+
+        Assert.Equal(2, html.Split("data-ui-icon").Length - 1);
+        Assert.Contains("hidden in-data-copied:block", html, StringComparison.Ordinal);
+        Assert.Contains("in-data-copied:hidden", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Forwarded_attributes_reach_the_input_itself_beside_its_own_marks()
+    {
+        var page = Page.Render(() => Ui.Input.Value("").Type(InputType.Search).Attributes(("aria-label", "Search keys")));
+
+        var input = page.Find("input");
+
+        Assert.Equal("Search keys", input.Attribute("aria-label"));
+        Assert.NotNull(input.Attribute("data-ui-control"));
+        Assert.Null(page.Find("[data-ui-input]").Attribute("aria-label"));
+    }
+
+    [Fact]
+    public void A_masked_input_hands_its_pattern_to_the_runtime()
+    {
+        var input = Ui.Input.Value("").Mask("(999) 999-9999");
+
+        var html = input.ToHtml();
+
+        Assert.Contains("data-rask-mask=\"(999) 999-9999\"", html, StringComparison.Ordinal);
     }
 
     [Fact]

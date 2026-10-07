@@ -63,8 +63,8 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     ///     written: <c>"(999) 999-9999"</c>. For an input over a <c>string</c>.
     /// </summary>
     /// <remarks>
-    ///     Applied to the value drawn and to the value committed. It is not applied keystroke by keystroke:
-    ///     that takes script in the page, and the kit ships none.
+    ///     The runtime holds each keystroke to it (<c>data-rask-mask</c>), and the value drawn and the value
+    ///     committed are laid into it here, so a value that arrives unshaped is shown shaped.
     /// </remarks>
     public string? Mask { get; set; }
 
@@ -80,6 +80,9 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     /// <summary>A button at the end of the box that empties it, shown while there is something to clear.</summary>
     public bool? Clearable { get; set; }
 
+    /// <summary>A button at the end of the box that copies what it holds, and shows a tick for two seconds.</summary>
+    public bool? Copyable { get; set; }
+
     /// <summary>A button at the end of a password input that shows what was typed, and hides it again.</summary>
     public bool? Viewable { get; set; }
 
@@ -88,6 +91,12 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
 
     /// <summary>Classes for the <c>&lt;input&gt;</c> itself, where <see cref="Class" /> reaches the wrapper.</summary>
     public string? InputClass { get; set; }
+
+    /// <summary>
+    ///     Attributes for the <c>&lt;input&gt;</c> itself, written as given — what Flux forwards to it:
+    ///     <c>.Attributes(("aria-label", "Search keys"))</c>, <c>("required", "")</c>, <c>("autocomplete", "email")</c>.
+    /// </summary>
+    public IReadOnlyDictionary<string, string?>? Attributes { get; set; }
 
     /// <summary>Classes for the wrapper <c>div</c>: widths and margins.</summary>
     public string? Class { get; set; }
@@ -187,7 +196,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     private Component Box(UiWithField field)
     {
         var leading = Icon is { } icon ? Div.Class(UiInputLook.Leading)[Glyph(icon)] : null;
-        var trailing = Trailing();
+        var trailing = Trailing(field.ControlId);
 
         // What a list hangs from, when the input is the text box of a control that drops one.
         var anchor = Host is { } host ? "anchor-name:--" + host.AnchorName : null;
@@ -211,6 +220,11 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
             input = input.Role("combobox").Autocomplete("off").OnKeyDown(e => host.OnKeyDown(e)).OnClick(() => host.OnClick());
         }
 
+        if (Mask is { } mask)
+        {
+            input = input.Data("rask-mask", mask);
+        }
+
         return input
             .Id(field.ControlId)
             .Name(Name)
@@ -226,7 +240,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
             .Disabled(Disabled == true)
             .ReadOnly(ReadOnly == true)
             .Aria(Host?.AriaOver(field.Aria) ?? field.Aria)
-            .Attributes(UiInputLook.Marks(field.Invalid))
+            .Attributes(UiInputLook.Marks(field.Invalid, Attributes))
             .Class(UiClass.Compose(
                 UiInputLook.Control,
                 UiInputLook.Size(Size ?? Ui.InputSize.Base),

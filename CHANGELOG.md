@@ -141,7 +141,7 @@ them until tagged releases begin.
   open, in light and dark, and walked key by key against a running site.
   `Ui.Autocomplete.Bind(() => m.State).Label("State of residence")[states.Select(s => Ui.AutocompleteItem[s])]`
   is Flux's input over a list of suggestions: it holds the text, takes the input's props (`Type`, `Size`,
-  `Variant`, `Mask`, `Icon`, `IconTrailing`, `Kbd`, `Clearable()`, `Viewable()`, `As`, `InputClass`) and
+  `Variant`, `Mask`, `Icon`, `IconTrailing`, `Kbd`, `Clearable()`, `Copyable()`, `Viewable()`, `As`, `InputClass`) and
   `ContainerClass` for the list; typing filters, Enter writes the active item into the input, Escape closes
   and empties it. `Ui.Pillbox.Bind(() => m.Tags)[tags.Select(t => Ui.PillboxOption.Value(t.Id)[t.Name])]`
   holds a collection and shows each answer as a pill with a cross: `.Sm`, `Searchable()` /
@@ -150,9 +150,9 @@ them until tagged releases begin.
   `Filterable(false)`), `Ui.PillboxOptionCreate` (`MinLength`, `OnClick`), `Ui.PillboxOptionEmpty`
   (`WhenLoading`), `Ui.PillboxSearch`, `Ui.PillboxTrigger` and `Ui.PillboxInput`. Both ship no script: a
   native `popover` placed by CSS anchor positioning, and the cursor, the filter and the picking in C#. The
-  pillbox is drawn by the control that draws `Ui.Select`'s list. Not there yet, each waiting for a runtime
-  hook: `copyable`, the scroll lock behind an open list, and containing Space and the arrows on the pillbox's
-  closed trigger, which also scroll the page.
+  pillbox is drawn by the control that draws `Ui.Select`'s list. `Copyable()` is the input's, and the page
+  behind an open list is locked (`data-rask-lock`). Not there yet: containing Space and the arrows on the
+  pillbox's closed trigger, which also scroll the page — the runtime's hook is a closed `<button>`'s.
 - **BREAKING: `Ui.Select` is Flux UI's select — native, listbox and combobox — and its options are children.**
   [fluxui.dev](https://fluxui.dev/components/select)'s `flux:select`, part for part, over Rask's binding
   (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the form); the daisyUI-drawn `UiSelect<T>` and
@@ -204,9 +204,11 @@ them until tagged releases begin.
   recorded on fluxui.dev: Space and the arrows open on the picked option, the arrows stop at either end,
   Home / End / PageUp / PageDown do nothing, Enter picks and closes (several: switches the row and stays
   open), Escape and a click elsewhere close with focus back on the button, and a letter typed on the closed
-  button picks the next option starting with it. A named drawn select posts through hidden inputs. Two
-  known gaps wait for runtime hooks: Enter on a **closed** listbox button opens it (Flux ignores it), and the
-  page behind an open list is not scroll-locked. `scripts/flux/parity-select.mjs` holds the open list to
+  button picks the next option starting with it. A named drawn select posts through hidden inputs. The
+  closed listbox button ignores Enter, as Flux's does (`data-rask-listbox-button`), and the page behind an open
+  list is locked (`data-rask-lock`). ARIA is Flux's, read from its live page: every list says
+  `aria-multiselectable="true"`, one answer or several, and the "no results" and create rows carry no role.
+  `scripts/flux/parity-select.mjs` holds the open list to
   fluxui.dev — the popup's look and placement on the parity page, and `--live <url>` walks the keyboard on a
   running site. RASK075 (an option template on a native select) is retired with its analyzer: there is no
   `OptionTemplate` or `Native` left to contradict each other, and the id is not recycled.
@@ -238,7 +240,12 @@ them until tagged releases begin.
   Removed with no replacement: floating labels (`Floating`), `AccessibleLabel`, `Badge` on an input,
   `ShowValidating` and its "Checking…" line, the message a bound control with no label used to draw, and
   `aria-required` from `[Required]`. `Ui.Resize` is `Ui.TextareaResize`; a textarea is four rows by default
-  (was three). Flux's `copyable` and `mask:dynamic` need script in the page and are not built.
+  (was three). `Copyable()`, `Clearable()` and `Mask` are the runtime's in the page (`data-rask-copy`,
+  `data-rask-clear`, `data-rask-mask`): the clipboard is written and the field emptied in the click itself, and
+  every keystroke is held to the pattern. Flux's `mask:dynamic` (an Alpine expression) is not built.
+  An attribute Flux forwards to the `<input>` goes through `Attributes`, as it does on any element:
+  `Ui.Input.Value(q).Attributes(("aria-label", "Search keys"))` is how an input with no label is named — the
+  console's three search fields are, again.
 - **BREAKING: `Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
   [Flux UI's field](https://fluxui.dev/components/field).** The first family of the kit drawn without
   daisyUI: Flux's parts, props, spacing and colours in light and dark, held to its docs page by

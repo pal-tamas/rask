@@ -221,6 +221,8 @@ Rask.UiAutocomplete.Clearable.get -> bool?
 Rask.UiAutocomplete.Clearable.set -> void
 Rask.UiAutocomplete.ContainerClass.get -> string?
 Rask.UiAutocomplete.ContainerClass.set -> void
+Rask.UiAutocomplete.Copyable.get -> bool?
+Rask.UiAutocomplete.Copyable.set -> void
 Rask.UiAutocomplete.Description.get -> string?
 Rask.UiAutocomplete.Description.set -> void
 Rask.UiAutocomplete.Disabled.get -> bool?
@@ -1055,10 +1057,14 @@ Rask.UiInput<T>.AfterBind.get -> Rask.Core.Callback<T>
 Rask.UiInput<T>.AfterBind.set -> void
 Rask.UiInput<T>.As.get -> Rask.Ui.InputAs?
 Rask.UiInput<T>.As.set -> void
+Rask.UiInput<T>.Attributes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string?>?
+Rask.UiInput<T>.Attributes.set -> void
 Rask.UiInput<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.UiInput<T>.Bind.set -> void
 Rask.UiInput<T>.Class.get -> string?
 Rask.UiInput<T>.Class.set -> void
+Rask.UiInput<T>.Copyable.get -> bool?
+Rask.UiInput<T>.Copyable.set -> void
 Rask.UiInput<T>.Description.get -> string?
 Rask.UiInput<T>.Description.set -> void
 Rask.UiInput<T>.DescriptionTrailing.get -> string?
@@ -1831,6 +1837,10 @@ static RaskBuilderSettersRask_Ui.As(this Rask.UiKanbanCard! __b, Rask.Ui.KanbanC
 static RaskBuilderSettersRask_Ui.Align(this Rask.UiTooltip! __b, Rask.Ui.TooltipAlign? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.As(this Rask.UiLink! __b, Rask.Ui.LinkAs? value) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.As<T>(this Rask.UiInput<T>! __b, Rask.Ui.InputAs? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Attributes<T>(this Rask.UiInput<T>! __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Attributes<T>(this Rask.UiInput<T>! __b, string! name) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Attributes<T>(this Rask.UiInput<T>! __b, string! name, string? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Attributes<T>(this Rask.UiInput<T>! __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Avatar(this Rask.UiSelectOption! __b, string? value) -> Rask.UiSelectOption!
 static RaskBuilderSettersRask_Ui.Badge<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiAutocomplete! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiAutocomplete!
@@ -1891,6 +1901,10 @@ static RaskBuilderSettersRask_Ui.Clearable<T>(this Rask.UiSelectMultiple<T>! __b
 static RaskBuilderSettersRask_Ui.Clearable<T>(this Rask.UiSelectMultiple<T>! __b, bool? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Color(this Rask.UiText! __b, Rask.Ui.Color? value) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.ContainerClass(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Copyable(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Copyable(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Copyable<T>(this Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Copyable<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Count(this Rask.UiKanbanColumnHeader! __b, int? value) -> Rask.UiKanbanColumnHeader!
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiSelectOption! __b, string? value) -> Rask.UiSelectOption!
