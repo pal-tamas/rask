@@ -94,6 +94,29 @@ public class SignalingOptionsBindingTests
     }
 
     [Fact]
+    public void The_section_lists_the_other_origins_that_may_connect()
+    {
+        using var provider = Provider(new() { ["Rask:Signaling:AllowedOrigins:0"] = "https://app.example.com" });
+
+        var options = provider.GetRequiredService<RaskSignalingOptions>();
+
+        Assert.Equal(["https://app.example.com"], options.AllowedOrigins);
+    }
+
+    [Theory]
+    [InlineData("app.example.com")]
+    [InlineData("https://app.example.com/")]
+    [InlineData("https://app.example.com/rtc")]
+    public void An_allowed_origin_that_a_browser_would_never_send_is_rejected(string origin)
+    {
+        using var provider = Provider(new(), o => o.AllowedOrigins.Add(origin));
+
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskSignalingOptions>());
+
+        Assert.Contains("AllowedOrigins", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_payload_cap_above_the_message_cap_is_rejected()
     {
         using var provider = Provider(new(), o =>

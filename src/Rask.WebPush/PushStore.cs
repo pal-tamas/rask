@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -14,6 +16,8 @@ internal sealed partial class PushStore<TContext>(
     ILogger<PushStore<TContext>> logger) : IPush
     where TContext : DbContext
 {
+    private const int SendsAtOnce = 8;
+
     public string? PublicKey => services.GetService<WebPushOptions>()?.VapidKeys?.PublicKey;
 
     public async Task<PushSubscriber> Subscribe(PushSubscription subscription, CancellationToken cancellationToken = default)
@@ -45,6 +49,7 @@ internal sealed partial class PushStore<TContext>(
 
             if (existing is null)
             {
+                await RefuseAnonymousOverflow(subscribers, userId, cancellationToken).ConfigureAwait(false);
                 existing = PushSubscriber.For(subscription, userId, now);
                 subscribers.Add(existing);
             }
@@ -55,6 +60,23 @@ internal sealed partial class PushStore<TContext>(
 
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return existing;
+        }
+    }
+
+    // A signed-out visitor's row costs whoever posts it nothing, so those are the ones that are counted. Counted
+    // rather than tracked: the table is the truth, and two racing subscribes overshooting by one is not a leak.
+    private async Task RefuseAnonymousOverflow(
+        DbSet<PushSubscriber> subscribers, Guid? userId, CancellationToken cancellationToken)
+    {
+        if (userId is not null || services.GetService<WebPushOptions>() is not { } options)
+        {
+            return;
+        }
+
+        var held = await subscribers.CountAsync(s => s.UserId == null, cancellationToken).ConfigureAwait(false);
+        if (held >= options.MaxAnonymousSubscribers)
+        {
+            throw new PushSubscriberLimitException(options.MaxAnonymousSubscribers);
         }
     }
 
@@ -99,33 +121,37 @@ internal sealed partial class PushStore<TContext>(
 
             var subscribers = await query.ToListAsync(cancellationToken).ConfigureAwait(false);
             var delivered = 0;
-            var gone = new List<Guid>();
+            var gone = new ConcurrentBag<Guid>();
 
-            foreach (var subscriber in subscribers)
-            {
-                if (await TrySend(sender, subscriber, message, gone, cancellationToken).ConfigureAwait(false)
-                    is not { } result)
+            // Several at once, so one endpoint that never answers costs a broadcast its own timeout rather
+            // than everybody's: N dead rows used to hold a send for N timeouts in a row.
+            await Parallel.ForEachAsync(
+                subscribers,
+                new ParallelOptions { MaxDegreeOfParallelism = SendsAtOnce, CancellationToken = cancellationToken },
+                async (subscriber, stop) =>
                 {
-                    continue;
-                }
+                    if (await TrySend(sender, subscriber, message, gone, stop).ConfigureAwait(false) is not { } result)
+                    {
+                        return;
+                    }
 
-                if (result.IsSuccess)
-                {
-                    delivered++;
-                }
-                else if (result.ShouldDelete)
-                {
-                    // 404/410: the browser unsubscribed or the push service dropped it. Kept, it would fail on every
-                    // send from here on, so the row goes with it.
-                    gone.Add(subscriber.Id);
-                }
-                else
-                {
-                    NotDelivered(logger, subscriber.Endpoint, result.Status, result.StatusCode);
-                }
-            }
+                    if (result.IsSuccess)
+                    {
+                        Interlocked.Increment(ref delivered);
+                    }
+                    else if (result.ShouldDelete)
+                    {
+                        // 404/410: the browser unsubscribed or the push service dropped it. Kept, it would fail on
+                        // every send from here on, so the row goes with it.
+                        gone.Add(subscriber.Id);
+                    }
+                    else
+                    {
+                        NotDelivered(logger, subscriber.Endpoint, result.Status, result.StatusCode);
+                    }
+                }).ConfigureAwait(false);
 
-            if (gone.Count > 0)
+            if (!gone.IsEmpty)
             {
                 await db.Set<PushSubscriber>()
                     .Where(s => gone.Contains(s.Id))
@@ -143,15 +169,18 @@ internal sealed partial class PushStore<TContext>(
         IWebPush sender,
         PushSubscriber subscriber,
         WebPushMessage message,
-        List<Guid> gone,
+        ConcurrentBag<Guid> gone,
         CancellationToken cancellationToken)
     {
         try
         {
             return await sender.Send(subscriber.Subscription, message, cancellationToken).ConfigureAwait(false);
         }
-        catch (ArgumentException ex)
+        catch (Exception ex) when (ex is ArgumentException or CryptographicException)
         {
+            // CryptographicException: a key of the right length that is not a point on the curve, which
+            // only shows when it is used. Left to escape, that one row — anyone can post one — would
+            // fail every broadcast, and never be removed.
             MalformedRemoved(logger, ex.Message);
             gone.Add(subscriber.Id);
             return null;

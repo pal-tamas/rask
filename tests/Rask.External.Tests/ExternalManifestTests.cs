@@ -54,4 +54,41 @@ public sealed class ExternalManifestTests
         // Two library-owned islands on the page, one fetch between them.
         Assert.Equal(1, doc.Value.GetProperty("libFetches").GetInt32());
     }
+
+    [Fact]
+    public void An_island_is_loaded_from_the_pages_own_origin_only()
+    {
+        // #1183: the `manifest` attribute is markup, and what it leads to is a module import. A
+        // sanitizer that keeps unknown elements would otherwise let user HTML name any script.
+        var doc = NodeFixture.Run("ExternalManifestFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        var refusals = string.Join('\n', Strings(doc.Value, "refusals"));
+
+        Assert.DoesNotContain("https://elsewhere.example/manifest.json", Strings(doc.Value, "fetched"));
+        Assert.Equal(Strings(doc.Value, "mountedNames"), Strings(doc.Value, "mountedAfterRefusals"));
+        Assert.Contains("refusing the manifest at https://elsewhere.example/manifest.json", refusals, StringComparison.Ordinal);
+        Assert.Contains("refusing the chunk https://elsewhere.example/Leak.js", refusals, StringComparison.Ordinal);
+        Assert.Contains("refusing the chunk data:text/javascript", refusals, StringComparison.Ordinal);
+        Assert.Contains("refusing the chunk http://localhost:5174/", refusals, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_chunk_on_the_island_dev_server_loads_once_the_page_names_that_server()
+    {
+        var doc = NodeFixture.Run("ExternalManifestFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        Assert.Empty(Strings(doc.Value, "devErrors"));
+        Assert.Equal(["Live"], Strings(doc.Value, "mountedUnderDev"));
+    }
+
+    private static string?[] Strings(System.Text.Json.JsonElement doc, string property) =>
+        [.. doc.GetProperty(property).EnumerateArray().Select(e => e.GetString())];
 }

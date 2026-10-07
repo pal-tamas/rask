@@ -71,6 +71,7 @@ public sealed class RaskMdnRefresh : Task
         info.Environment["RASK_MDN_IDL"] = pins["@webref/idl"];
         info.Environment["RASK_MDN_ELEMENTS"] = pins["@webref/elements"];
         info.Environment["RASK_MDN_EVENTS"] = pins["@webref/events"];
+        info.Environment["RASK_MDN_CSS"] = pins["@webref/css"];
         info.Environment["RASK_MDN_WEBREF"] = pins["webref/dfns"];
         info.Environment["RASK_MDN_WEBIDL2"] = pins["webidl2"];
         info.Environment["RASK_MDN_UIEVENTS_KEY"] = pins["w3c/uievents-key"];

@@ -133,7 +133,7 @@ A few things to know:
 | `Rask:DataProtection:KeyPath` | — | `Rask.Server` | Where the key ring persists. See [deployment](deployment.md#your-users-stay-signed-in-across-a-deploy). |
 | `Rask:Auth` | `AuthOptions` | `Rask.Auth` | `Bearer`, `BearerSigningKey`, `BearerLifetime`, `FirstRunToken`, `CookieName`, the page paths, password and lockout rules. Keep `BearerSigningKey` in user secrets or the environment. See [authentication](authentication.md). |
 | `Rask:Api` | `ApiOptions` | `Rask.Api` | `NotFound`, `Controllers`. |
-| `Rask:Signaling` | `RaskSignalingOptions` | `Rask.Signaling` | `Path`, `RequireAuthorization` and the relay limits. `AuthorizeRoom` is code-only. |
+| `Rask:Signaling` | `RaskSignalingOptions` | `Rask.Signaling` | `Path`, `RequireAuthorization`, `AllowedOrigins` (other origins whose pages may connect; the host's own always may) and the relay limits. `AuthorizeRoom` is code-only. |
 | `Rask:Ops` | `RaskDashboardOptions` | `Rask.Dashboard` | Includes `AllowAnonymousAccess` — see [below](#guard-the-environment-like-code). See [dashboard](dashboard.md). |
 | `Rask:Spa` | `SpaHostingOptions` | `Rask.Spa.Hosting` | Read when `MapRaskSpa` maps the app. `ImmutablePathPrefixes` is appended to; `ExcludeFromFallback` and `OnPrepareResponse` are code-only. See [serving a WebAssembly app](deployment.md#serving-a-webassembly-app). |
 | `Rask:Database:Provider` | — | `Rask` | Which database the app opens at `Rask:ConnectionStrings:App`: `sqlite` (the default), `postgres` or `sqlserver`. Read by `UseRaskDatabase(sp)`, and by `RaskApp` while services are registered. See [choosing the database](data.md#choosing-the-database). |
@@ -151,9 +151,9 @@ A few things to know:
 | `Rask:Logs` | `RaskLoggingOptions` | `Rask.Logging` | `ExcludedCategories` is appended to. See [logging](logging.md). |
 | `Rask:Mail` | `MailOptions` | `Rask.Mail` | Any `Rask:Mail:Smtp` key turns SMTP delivery on; put `Rask__Mail__Smtp__Password` in the environment. See [mail](mail.md). |
 | `Rask:Outbox` | `OutboxOptions` | `Rask.Outbox` | See [outbox](outbox.md). |
-| `Rask:Push` | `WebPushOptions` | `Rask.WebPush` | `VapidKeys:PublicKey`, `VapidKeys:PrivateKey`, `Subject`, `DefaultTtl`. `rask new` writes a development pair to the gitignored `appsettings.Development.json`; deployed, the keys come from the environment. See [Web Push](webpush.md). |
+| `Rask:Push` | `WebPushOptions` | `Rask.WebPush` | `VapidKeys:PublicKey`, `VapidKeys:PrivateKey`, `Subject`, `DefaultTtl`, and the bounds on the open subscribe route: `MaxAnonymousSubscribers`, `RequireUser`, `SendTimeout`. `rask new` writes a development pair to the gitignored `appsettings.Development.json`; deployed, the keys come from the environment. See [Web Push](webpush.md). |
 | `Rask:Cqrs` | `CqrsOptions` | `Rask.Cqrs` | `HandlerLifetime`, `EventPublishStrategy`, `StopOnFirstEventException`, `ValidateRequests`, and the subscription knobs `ReplayCapacity`, `SubscriptionBuffer`, `SubscriptionReconnectDelay`, `SubscriptionReconnectCeiling`. Read at registration (above); behaviors are code-only. See [CQRS](cqrs.md). |
-| `Rask:Cqrs:Server` | `RaskCqrsServerOptions` | `Rask.Cqrs.Server` | `RequireAuthenticatedUser`, `RoutePrefix`, the request and upload limits, and `EventKeepAlive` for a [subscription](subscriptions.md#in-a-webassembly-front-end) stream. |
+| `Rask:Cqrs:Server` | `RaskCqrsServerOptions` | `Rask.Cqrs.Server` | `RequireAuthenticatedUser`, `RoutePrefix`, the request and upload limits (`MaxOpenUploads` and `MaxOpenUploadBytes` bound what one caller leaves unsent), and `EventKeepAlive` for a [subscription](subscriptions.md#in-a-webassembly-front-end) stream. |
 
 ### Guard the environment like code
 

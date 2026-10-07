@@ -1,6 +1,7 @@
 // Rask default service worker (WASM) — the one SW a Rask WASM PWA needs. It does three jobs:
 //   1. Offline app shell: a network-first runtime cache (fresh when online, cached when offline),
-//      with navigations falling back to the cached page shell so deep links work offline.
+//      with navigations falling back to the cached page shell so deep links work offline. The shell
+//      only — never a response marked no-store/private, and data only when the server says `public`.
 //   2. Web Push: shows the pushed notification and focuses/opens a window on click (MDN's PushManager subscribed) —
 //      shared with the Server SW via the imported rask-sw-shared handlers.
 //   3. Background Sync: forwards a woken-up sync/periodicsync tag to the open clients (IBackgroundSync).
@@ -15,14 +16,13 @@ declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 // Replaces the @@RASK_SW@@ splice marker — imported for its side effects, which register the push
 // and notificationclick listeners.
 import "../../Rask.Core/Resources/rask-sw-shared.js";
-
-const RASK_CACHE = "rask-cache-v1";
+import { keptOffline, RASK_CACHE } from "./rask-offline-cache.js";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
-// Network-first with cache fallback. Only same-origin GETs are cached; cross-origin and
-// non-GET requests pass straight through.
+// Network-first with cache fallback. Only same-origin GETs are considered, and of those only the app
+// shell is kept (see keptOffline); cross-origin and non-GET requests pass straight through.
 self.addEventListener("fetch", (event) => {
     const req = event.request;
     if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) {
@@ -33,7 +33,7 @@ self.addEventListener("fetch", (event) => {
         const cache = await caches.open(RASK_CACHE);
         try {
             const res = await fetch(req);
-            if (res && res.ok) {
+            if (res && keptOffline(req, res)) {
                 cache.put(req, res.clone());
             }
             return res;

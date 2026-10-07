@@ -194,6 +194,11 @@ That works because the island does its rendering in `OnUpdated`, whose task is r
 in the page's quiescence scope — Rask renders, waits for outstanding work, and renders again, sending
 the settled wave. See [lifecycle](lifecycle.md).
 
+URL attributes in that markup get the treatment a Rask element gives them: `javascript:` and `data:`
+become `about:blank`, and an inline `data:image/…` survives only where it can do nothing but draw —
+`src` on `img`, `audio`, `video`, `source`, `track` and `input`, a `video`'s `poster`, an SVG `image`'s
+`href`. An `<iframe src="@Url">` fed a `data:` URL renders blank.
+
 ## Parameters cross as C#, not JSON
 
 Unlike a `.tsx` island, whose props are serialized, parameters here are passed as **live CLR

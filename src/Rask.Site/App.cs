@@ -49,12 +49,9 @@ public partial class App : Component
         // for the site, and the front door is the page it reads it on.
         Meta.Name("description").Content(SiteIdentity.Description),
         Meta.Name("theme-color").Content("#7c3aed"),
-        // The theme, applied before the first paint and remembered — a kit component now, not a script
-        // this app maintains. It writes NO data-theme when the reader has chosen nothing, which is what
-        // makes the page follow their operating system: daisyUI paints [data-rask-ui]:not([data-theme])
-        // from prefers-color-scheme, in CSS, with nothing running. See Ui.ThemeScript for why it carries
-        // no C# event handlers (handler ids are positional, and moving them breaks the islands silently).
-        Ui.ThemeScript,
+        // Dark mode, Flux's way: `dark` on <html> before the first paint, from the reader's stored
+        // appearance or their operating system. The moon in SiteHeader flips it through Rask.dark.
+        Ui.AppearanceScript,
         // Brand favicon (the purple bolt). Served from the app's own origin; PathBase keeps
         // it correct under a reverse-proxy prefix (Server) or sub-path deploy (WASM).
         Link.Rel("icon").Type("image/svg+xml").Href(LiveOptions.PathBase + "/icon.svg"),

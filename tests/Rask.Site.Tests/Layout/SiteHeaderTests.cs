@@ -58,9 +58,7 @@ public sealed class SiteHeaderTests
         var brand = header.IndexOf("app-brand", StringComparison.Ordinal);
         Assert.True(brand >= 0, $"no .app-brand in the top bar:\n{header}");
 
-        // The theme picker is a Ui.Popover, which numbers its ids per instance so two on one page cannot
-        // collide — so two renders of the same bar differ in that number and in nothing else it is allowed to.
-        return System.Text.RegularExpressions.Regex.Replace(header[brand..], "uipop-\\d+", "uipop-N");
+        return header[brand..];
     }
 
     [Fact]
@@ -96,6 +94,54 @@ public sealed class SiteHeaderTests
             "hamburger-btn",
             Header(Render(global::Rask.Site.Routes.GuidesIndexPage())),
             StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/docs/")]
+    public void The_bar_carries_a_moon_that_flips_dark_mode_without_a_handler(string path)
+    {
+        var header = Header(Render(path));
+
+        var marker = header.IndexOf("data-appearance-toggle", StringComparison.Ordinal);
+        Assert.True(marker >= 0, $"no moon in the top bar:\n{header}");
+        var start = header.LastIndexOf("<button", marker, StringComparison.Ordinal);
+        var moon = header[start..header.IndexOf("</button>", marker, StringComparison.Ordinal)];
+
+        Assert.Contains("type=\"button\"", moon, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"Toggle dark mode\"", moon, StringComparison.Ordinal);
+        Assert.Contains("aria-keyshortcuts=\"D\"", moon, StringComparison.Ordinal);
+        Assert.Contains("onclick=\"Rask.dark=!Rask.dark\"", moon, StringComparison.Ordinal);
+        Assert.Contains("data-ui-icon", moon, StringComparison.Ordinal);
+        // Handler ids are positional: one in the chrome of every page moves every id after it.
+        Assert.DoesNotContain("data-rask-on-", moon, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("theme-controller")]
+    [InlineData("popovertarget")]
+    [InlineData(">Theme<")]
+    public void The_bar_dropped_the_theme_picker(string retired)
+    {
+        var landing = Header(Render("/"));
+        var docs = Header(Render(global::Rask.Site.Routes.GuidesIndexPage()));
+
+        Assert.DoesNotContain(retired, landing, StringComparison.Ordinal);
+        Assert.DoesNotContain(retired, docs, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_appearance_script_runs_before_any_stylesheet_and_the_shortcut_is_there_once()
+    {
+        var app = new global::Rask.Site.App();
+
+        var html = Page.RenderDocument(app, TestServices.Default(routeState: new RouteState { Path = "/" })).Html;
+        var script = html.IndexOf("Object.defineProperty(R,'appearance'", StringComparison.Ordinal);
+        var sheet = html.IndexOf("rel=\"stylesheet\"", StringComparison.Ordinal);
+
+        Assert.True(script >= 0, "the page's head carries no appearance script, so it cannot start dark.");
+        Assert.True(script < sheet, "the appearance script comes after a stylesheet: a dark page would flash light.");
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(html, "raskAppearanceKey=true"));
     }
 
     [Theory]

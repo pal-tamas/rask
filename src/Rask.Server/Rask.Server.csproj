@@ -116,6 +116,7 @@
     <Compile Include="..\Rask.Hosting.Shared\RaskShutdownDefaults.cs" Link="Shared\RaskShutdownDefaults.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\ContentEncodingNegotiation.cs" Link="Shared\ContentEncodingNegotiation.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\SameOrigin.cs" Link="Shared\SameOrigin.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\Batteries\*.cs" Link="Shared\Batteries\%(Filename)%(Extension)"/>
     <!-- The request validators the mediator runs, on both hosts: the same rules a Form applies, again at dispatch. -->
     <!-- One file, two hosts: Rask.Data's browser build registers it from AddRaskData; the server build does not

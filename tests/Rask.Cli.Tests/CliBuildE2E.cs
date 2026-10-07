@@ -105,12 +105,9 @@ internal static class CliBuildE2E
         var feed = Path.Combine(Path.GetTempPath(), "rask-cli-e2e-feed", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(feed);
 
-        foreach (var package in FeedPackages)
-        {
-            var csproj = ProjectFor(repoRoot, package);
-            var (exit, output) = await RunDotnet($"pack \"{csproj}\" -c Release -o \"{feed}\" -m:1");
-            Assert.True(exit == 0, $"failed to pack {package} for the build gate.{Diagnostics(output)}");
-        }
+        var (exit, output) = await RunDotnet(
+            $"msbuild \"{WritePackTraversal(repoRoot, feed)}\" -t:Pack -m:{BuildSlots} -nologo -v:minimal");
+        Assert.True(exit == 0, $"failed to pack the feed for the build gate.{Diagnostics(output)}");
 
         // Read the packed version off a nupkg filename (MinVer stamps a prerelease off the current commit).
         // Every project packs at the same version, so any one of them answers for the set — Rask.Server is
@@ -123,6 +120,42 @@ internal static class CliBuildE2E
 
         EvictFromGlobalCache(version);
         return (feed, version);
+    }
+
+    /// <summary>How many cores a pack or publish may take: one on a shared machine, the runner's own in CI.</summary>
+    private static string BuildSlots =>
+        Environment.GetEnvironmentVariable("RASK_BUILD_SLOTS") is { Length: > 0 } slots ? slots : "1";
+
+    /// <summary>A project that packs every one of <see cref="FeedPackages"/> into <paramref name="feed"/>.</summary>
+    /// <remarks>
+    ///     ONE MSBuild invocation, where this used to be a <c>dotnet pack</c> per package. Each of those
+    ///     re-evaluated and re-checked the projects the packages share, and thirty-six of them in a row were
+    ///     most of the gate. Inside one invocation a shared project is built once however many packages
+    ///     reference it, which is also what makes packing them side by side safe. The restore carries a
+    ///     session id of its own so the pack does not reuse the evaluation made before the NuGet imports
+    ///     existed — the same reason scripts/run-unit-local.sh gives.
+    /// </remarks>
+    private static string WritePackTraversal(string repoRoot, string feed)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "rask-cli-e2e-pack", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+
+        var projects = string.Join(
+            Environment.NewLine,
+            FeedPackages.Select(package => $"    <FeedProject Include=\"{ProjectFor(repoRoot, package)}\" />"));
+        var traversal = Path.Combine(directory, "pack.proj");
+        File.WriteAllText(traversal, $"""
+            <Project>
+              <ItemGroup>
+            {projects}
+              </ItemGroup>
+              <Target Name="Pack">
+                <MSBuild Projects="@(FeedProject)" Targets="Restore" Properties="MSBuildRestoreSessionId=$([System.Guid]::NewGuid())" />
+                <MSBuild Projects="@(FeedProject)" Targets="Pack" Properties="Configuration=Release;PackageOutputPath={feed}" BuildInParallel="true" />
+              </Target>
+            </Project>
+            """);
+        return traversal;
     }
 
     /// <summary>No package carries a file out of a project's <c>obj/</c> as content.</summary>

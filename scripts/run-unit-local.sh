@@ -160,11 +160,12 @@ fi
 # RASK_UNIT_PART cuts this gate in two so CI can run the halves on separate machines
 # (.github/workflows/gates.yml); a hand run leaves it unset and gets everything.
 #
-#   format   the gate script tests and the formatter — no Release build, no tests
-#   tests    the whole-solution warnings-as-errors build and the tests — nothing else
+#   format   the gate script tests, the solution build and the formatter — no tests
+#   tests    the solution build and the tests — nothing else
 #
-# Two, not one per test project: the formatter is the slowest single step and the build is the
-# second, so each half carries one of them and they finish together. Cutting the tests finer made
+# Both build: the formatter resolves types the build generates (the site's scoped-TypeScript types),
+# and without them it reports CS0246 for code that compiles. Two halves, not one per test project:
+# the formatter and the test run are the two long steps, so each half carries one. Cutting the tests finer made
 # every piece rebuild the shared projects, and left tests that read a build product of a project
 # they do not reference (rask.wasm.js) with nothing to read.
 unit_part="${RASK_UNIT_PART:-}"
@@ -256,9 +257,7 @@ done
 rask_phase "gate script tests"
 [ "$gate_tests_failed" -eq 0 ] || exit 1
 
-if [ "$unit_part" = "format" ]; then
-  echo "==> Build: not in the 'format' part — the 'tests' part builds the solution."
-elif [ -n "$scope_projects" ]; then
+if [ -n "$scope_projects" ]; then
   # ONE MSBuild invocation over the affected set, not a loop of `dotnet build` per project. The set
   # has edges inside it, and two concurrent builds of a project that both depend on a third race on
   # that third one's obj/ and bin/. The traversal file lives in TMPDIR precisely so it does NOT pick
@@ -299,9 +298,16 @@ echo "==> Build once (Release; no WASM bundle)"
 # RaskWasm / RaskSpaBuild off: this gate runs UNIT tests, and not one of them needs a published
 # WebAssembly bundle — the browser E2E gate publishes those. The gate's real cost is elsewhere — the test
 # run and `dotnet format --verify-no-changes` are about 90% of a warm run.
+#
+# The `tests` part builds without the analyzers: the `format` part builds this same solution with
+# them on another machine at the same moment, so running them twice buys nothing, and the tests only
+# need the assemblies. Source generators are not analyzers and still run.
+build_analyzers=""
+[ "$unit_part" = "tests" ] && build_analyzers="-p:RunAnalyzers=false"
+# shellcheck disable=SC2086  # empty unless set above
 dotnet build Rask.slnx -c Release -m:"$lane_slots" \
   -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
-  -p:RaskSpaBuild=false
+  -p:RaskSpaBuild=false $build_analyzers
 
 fi
 rask_phase "build (Release)"

@@ -52,7 +52,7 @@ project=tests/Rask.SQLite.Browser.E2E.Tests
 # Serial, because a WASM publish builds Rask.Core twice. MinVerSkip=true like every other gate.
 echo "==> Publish the full-text fixture (Release, native-linked)"
 build_status=0
-dotnet publish tests/Rask.SQLite.Browser.Fixture.Wasm/Rask.SQLite.Browser.Fixture.Wasm.csproj -c Release -m:1 \
+dotnet publish tests/Rask.SQLite.Browser.Fixture.Wasm/Rask.SQLite.Browser.Fixture.Wasm.csproj -c Release -m:"${RASK_BUILD_SLOTS:-1}" \
   -p:MinVerSkip=true --nologo 2>&1 | tee "$build_log" || build_status=$?
 
 if [ "$build_status" -eq 0 ]; then

@@ -59,6 +59,12 @@ public sealed class ResolveTypeScriptToolTask : Task
     /// <summary>The registry to fetch from. Overridable for a mirror or an internal proxy.</summary>
     public string Registry { get; set; } = TypeScriptTools.DefaultRegistry;
 
+    /// <summary>
+    ///     The npm integrity (<c>sha512-…</c>) the downloaded package must have, for a version Rask keeps
+    ///     no digest for. Empty for a pinned version, whose digests are in <see cref="TypeScriptToolPins" />.
+    /// </summary>
+    public string ExpectedIntegrity { get; set; } = string.Empty;
+
     /// <summary>Refuse to fetch, and fail if nothing is cached.</summary>
     public bool Offline { get; set; }
 
@@ -189,29 +195,65 @@ public sealed class ResolveTypeScriptToolTask : Task
     {
         using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
 
-        var metadata = http
-            .GetStringAsync(TypeScriptTools.VersionDocumentUrl(Registry, packageName, Version))
-            .GetAwaiter().GetResult();
-
-        // Verified rather than trusted: these bytes are about to be executed by the build. A metadata
-        // document that carries no SHA-512 is a failure, not "nothing to check".
-        var expected = TypeScriptTools.ExpectedIntegrity(metadata);
-        if (expected is null)
-        {
-            throw new IOException(
-                $"the registry metadata for {packageName}@{Version} publishes no sha512 integrity, so the "
-                + "download could not be verified");
-        }
+        // Verified rather than trusted: these bytes are about to be executed by the build.
+        var expected = RecordedIntegrity(packageName) ?? PublishedIntegrity(http, packageName);
 
         var bytes = http.GetByteArrayAsync(tarballUrl).GetAwaiter().GetResult();
         var actual = Sha512Integrity(bytes);
         if (!string.Equals(expected, actual, StringComparison.Ordinal))
         {
             throw new IOException(
-                $"the download did not match its published checksum (expected {expected}, got {actual})");
+                $"the download is not the package that was expected (integrity {actual}, not {expected}). "
+                + "Nothing was installed; if the package was republished, check it before pinning the new digest");
         }
 
         return bytes;
+    }
+
+    // The integrity this build was told to expect, or the one recorded in the repository for a pinned
+    // version. Null for a version nobody recorded one for.
+    private string? RecordedIntegrity(string packageName) =>
+        string.IsNullOrWhiteSpace(ExpectedIntegrity)
+            ? TypeScriptToolPins.For(packageName, Version)
+            : ExpectedIntegrity.Trim();
+
+    // The registry's own metadata. It comes from where the tarball does — and the registry is a setting —
+    // so it proves the download arrived intact and nothing about what was published, which the warning says.
+    private string PublishedIntegrity(HttpClient http, string packageName)
+    {
+        Log.LogWarning(
+            $"Rask.TypeScript: Rask records no digest for {packageName}@{Version}, so it is checked only "
+            + $"against the integrity its own registry publishes. {HowToPin()}");
+
+        var metadata = http
+            .GetStringAsync(TypeScriptTools.VersionDocumentUrl(Registry, packageName, Version))
+            .GetAwaiter().GetResult();
+
+        // A metadata document that carries no SHA-512 is a failure, not "nothing to check".
+        return TypeScriptTools.ExpectedIntegrity(metadata)
+               ?? throw new IOException(
+                   $"the registry metadata for {packageName}@{Version} publishes no sha512 integrity, so the "
+                   + "download could not be verified");
+    }
+
+    // The MSBuild property that carries ExpectedIntegrity for this tool, named so the warning can be acted on.
+    // What to do about an unpinned version, so the warning can be acted on. An app sets a property for the
+    // two tools its own build resolves; esbuild is only ever fetched by Rask's own build, where the answer
+    // is to record the digest.
+    private string HowToPin()
+    {
+        const string Record = "Record its dist.integrity in TypeScriptToolPins.cs.";
+        if (!TryParseTool(Tool, out var tool))
+        {
+            return Record;
+        }
+
+        return tool switch
+        {
+            TypeScriptTool.Tsgo => "Set RaskTsgoIntegrity to the package's sha512 integrity to pin it.",
+            TypeScriptTool.TypeScript => "Set RaskExternalTypeScriptIntegrity to the package's sha512 integrity to pin it.",
+            _ => Record,
+        };
     }
 
     private static void Unpack(byte[] bytes, string directory, string? executable)

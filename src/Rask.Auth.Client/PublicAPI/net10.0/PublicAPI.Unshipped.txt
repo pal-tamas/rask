@@ -24,4 +24,4 @@ Rask.Auth.Client.BrowserAuth.AddPasskey(string? name = null) -> System.Threading
 Rask.Auth.Client.BrowserAuth.RemovePasskey(System.Guid id) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Auth.Client.BrowserAuth.SignInWithPasskey(bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Auth.Client.HttpUserProvider.Changed -> System.EventHandler?
-Rask.Auth.Client.BrowserAuth.BrowserAuth(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! users, Rask.Core.Browser.IWebAuthn! webAuthn, Rask.Auth.Client.AuthClientOptions! options) -> void
+Rask.Auth.Client.BrowserAuth.BrowserAuth(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! users, Rask.Core.Browser.IWebAuthn! webAuthn, Rask.Auth.Client.AuthClientOptions! options, Microsoft.JSInterop.IJSRuntime! js) -> void

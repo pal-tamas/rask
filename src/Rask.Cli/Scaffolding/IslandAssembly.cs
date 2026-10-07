@@ -53,6 +53,7 @@ internal static class IslandAssembly
 
         var files = new List<ScaffoldFile>(existing.Count + runtimes.Count * 2);
         var dependencies = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        var overrides = new SortedDictionary<string, string>(StringComparer.Ordinal);
         var needsNode = false;
 
         foreach (var runtime in runtimes)
@@ -62,6 +63,7 @@ internal static class IslandAssembly
                 if (string.Equals(asset.Path, "island.json", StringComparison.Ordinal))
                 {
                     needsNode |= ReadDependencies(asset.Bytes, dependencies);
+                    ReadOverrides(asset.Bytes, overrides);
                     continue;
                 }
 
@@ -88,7 +90,7 @@ internal static class IslandAssembly
             files.Add(IsTsConfig(file) ? WithIslandPaths(file, runtimes) : file);
         }
 
-        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "package.json"), Manifest(name, dependencies, runtimes)));
+        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "package.json"), Manifest(name, dependencies, overrides, runtimes)));
         files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "eslint.config.mjs"), EsLintConfig(runtimes)));
         files.Add(new ScaffoldFile(Path.Combine(targetDirectory, ".prettierrc"), PrettierRc));
         files.Add(new ScaffoldFile(Path.Combine(targetDirectory, ".prettierignore"), PrettierIgnore));
@@ -361,12 +363,31 @@ internal static class IslandAssembly
         return any;
     }
 
+    // A fragment's npm `overrides`: the versions it forces on packages its runtime pulls in transitively,
+    // for the stretch between a dependency's advisory and the runtime release that picks up the fix.
+    private static void ReadOverrides(byte[] islandJson, SortedDictionary<string, string> into)
+    {
+        using var document = JsonDocument.Parse(islandJson);
+        if (!document.RootElement.TryGetProperty("overrides", out var overrides))
+        {
+            return;
+        }
+
+        foreach (var entry in overrides.EnumerateObject())
+        {
+            into.TryAdd(entry.Name, entry.Value.GetString() ?? "");
+        }
+    }
+
     /// <summary>
     ///     The root manifest an island project needs: the chosen runtimes' packages, plus vite and
     ///     TypeScript, which every one of them is bundled and checked by.
     /// </summary>
     private static string Manifest(
-        string name, SortedDictionary<string, string> dependencies, IReadOnlyList<string> runtimes)
+        string name,
+        SortedDictionary<string, string> dependencies,
+        SortedDictionary<string, string> overrides,
+        IReadOnlyList<string> runtimes)
     {
         foreach (var (package, version) in LintBase)
         {
@@ -398,6 +419,12 @@ internal static class IslandAssembly
             ["devDependencies"] = new JsonObject(
                 dependencies.Select(d => new KeyValuePair<string, JsonNode?>(d.Key, d.Value))),
         };
+
+        if (overrides.Count > 0)
+        {
+            manifest["overrides"] = new JsonObject(
+                overrides.Select(o => new KeyValuePair<string, JsonNode?>(o.Key, o.Value)));
+        }
 
         return manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
     }

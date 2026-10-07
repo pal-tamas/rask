@@ -126,6 +126,76 @@ public sealed class ChunkedUploadTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [Fact]
+    public async Task A_caller_cannot_hold_more_uploads_open_than_the_limit()
+    {
+        // #1177: one upload is capped, but a caller looping over fresh ids wrote that cap to disk per id.
+        using var server = Host(o => o.MaxOpenUploads = 2);
+        using var client = server.CreateClient();
+        await SendChunksAsync(client, "u1", "one"u8.ToArray(), chunk: 8);
+        await SendChunksAsync(client, "u2", "two"u8.ToArray(), chunk: 8);
+
+        var third = await SendChunkAsync(client, "u3", 0, 0, new byte[10]);
+        var someoneElse = await SendChunkAsync(client, "u3", 0, 0, new byte[10], user: "bob");
+        await SendMessageAsync(client, "u1", """{"note":"a","file":0}""");
+        var afterSpendingOne = await SendChunkAsync(client, "u3", 0, 0, new byte[10]);
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, third.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, someoneElse.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, afterSpendingOne.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_callers_open_uploads_share_one_byte_budget()
+    {
+        using var server = Host(o =>
+        {
+            o.MaxUploadBytes = 100;
+            o.MaxOpenUploadBytes = 150;
+        });
+        using var client = server.CreateClient();
+
+        var first = await SendChunkAsync(client, "u1", 0, 0, new byte[100]);
+        var second = await SendChunkAsync(client, "u2", 0, 0, new byte[100]);
+
+        Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, second.StatusCode);
+    }
+
+    [Fact]
+    public void A_shared_budget_smaller_than_one_upload_stops_the_app_at_startup()
+    {
+        var refused = Assert.ThrowsAny<Exception>(() => Host(o =>
+        {
+            o.MaxUploadBytes = 100;
+            o.MaxOpenUploadBytes = 50;
+        }));
+
+        Assert.Contains("MaxOpenUploadBytes", refused.ToString(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("203.0.113.7", "203.0.113.7", HttpStatusCode.TooManyRequests)]
+    [InlineData("203.0.113.7", "203.0.113.8", HttpStatusCode.NoContent)]
+    // One IPv6 network is one caller: a host there has 2^64 addresses to open uploads from.
+    [InlineData("2001:db8:1:2::1", "2001:db8:1:2:ffff::9", HttpStatusCode.TooManyRequests)]
+    [InlineData("2001:db8:1:2::1", "2001:db8:1:3::1", HttpStatusCode.NoContent)]
+    public async Task An_anonymous_callers_uploads_are_counted_against_where_it_connects_from(
+        string firstAddress, string secondAddress, HttpStatusCode expected)
+    {
+        using var server = Host(o =>
+        {
+            o.RequireAuthenticatedUser = false;
+            o.MaxOpenUploads = 1;
+        });
+        using var client = server.CreateClient();
+        await SendChunkAsync(client, "u1", 0, 0, new byte[10], user: null, address: firstAddress);
+
+        var second = await SendChunkAsync(client, "u2", 0, 0, new byte[10], user: null, address: secondAddress);
+
+        Assert.Equal(expected, second.StatusCode);
+    }
+
     private static async Task SendChunksAsync(
         HttpClient client, string uploadId, byte[] payload, int chunk, string user = "alice")
     {
@@ -143,7 +213,8 @@ public sealed class ChunkedUploadTests
     }
 
     private static async Task<HttpResponseMessage> SendChunkAsync(
-        HttpClient client, string uploadId, int index, long offset, byte[] body, string? user = "alice")
+        HttpClient client, string uploadId, int index, long offset, byte[] body, string? user = "alice",
+        string? address = null)
     {
         using var request = new HttpRequestMessage(
             HttpMethod.Post, $"/_rask/cqrs/request/{RemoteEndpointDefaults.UploadSegment}")
@@ -156,6 +227,11 @@ public sealed class ChunkedUploadTests
         if (user is not null)
         {
             request.Headers.TryAddWithoutValidation("X-Test-User", user);
+        }
+
+        if (address is not null)
+        {
+            request.Headers.TryAddWithoutValidation("X-Test-Address", address);
         }
 
         request.Headers.TryAddWithoutValidation(RemoteEndpointDefaults.UploadHeader, uploadId);
@@ -186,7 +262,7 @@ public sealed class ChunkedUploadTests
         return await client.SendAsync(request);
     }
 
-    private static TestServer Host()
+    private static TestServer Host(Action<RaskCqrsServerOptions>? configure = null)
     {
         var builder = new HostBuilder().ConfigureWebHost(web =>
         {
@@ -198,10 +274,20 @@ public sealed class ChunkedUploadTests
                 services.AddAuthentication("Test")
                     .AddScheme<AuthenticationSchemeOptions, ChunkAuthHandler>("Test", static _ => { });
                 services.AddAuthorization();
-                services.AddRaskCqrsServer();
+                services.AddRaskCqrsServer(configure);
             });
             web.Configure(app =>
             {
+                // TestServer has no connection, so a test names the address a caller connects from.
+                app.Use((context, next) =>
+                {
+                    if (context.Request.Headers.TryGetValue("X-Test-Address", out var address))
+                    {
+                        context.Connection.RemoteIpAddress = IPAddress.Parse(address.ToString());
+                    }
+
+                    return next(context);
+                });
                 app.UseRouting();
                 app.UseAuthentication();
                 app.UseAuthorization();

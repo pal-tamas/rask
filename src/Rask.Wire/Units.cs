@@ -2,7 +2,7 @@ namespace Rask;
 
 /// <summary>
 ///     Durations and sizes written the way they are said: <c>3.Seconds</c>, <c>1.5.Hours</c>,
-///     <c>50.Megabytes</c>, <c>3.Days.Ago</c>.
+///     <c>50.Megabytes</c>, <c>3.Days.Ago</c> — and CSS lengths: <c>12.Px</c>, <c>1.5.Rem</c>, <c>50.Percent</c>.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -84,6 +84,33 @@ public static class Units
 
         /// <summary>One gigabyte, for <c>1.Gigabyte</c>.</summary>
         public long Gigabyte => checked(value * Gibi);
+
+        /// <summary>This many CSS pixels: <c>12.Px</c>.</summary>
+        public Length Px => new(value, "px");
+
+        /// <summary>This many times the root element's font size: <c>12.Rem</c>.</summary>
+        public Length Rem => new(value, "rem");
+
+        /// <summary>This many times the element's own font size: <c>12.Em</c>.</summary>
+        public Length Em => new(value, "em");
+
+        /// <summary>This many times the width of the font's <c>0</c>: <c>12.Ch</c>.</summary>
+        public Length Ch => new(value, "ch");
+
+        /// <summary>This many hundredths of the viewport's width: <c>12.Vw</c>.</summary>
+        public Length Vw => new(value, "vw");
+
+        /// <summary>This many hundredths of the viewport's height: <c>12.Vh</c>.</summary>
+        public Length Vh => new(value, "vh");
+
+        /// <summary>This many hundredths of the viewport's width as it is now, browser chrome shown or hidden: <c>12.Dvw</c>.</summary>
+        public Length Dvw => new(value, "dvw");
+
+        /// <summary>This many hundredths of the viewport's height as it is now, browser chrome shown or hidden: <c>12.Dvh</c>.</summary>
+        public Length Dvh => new(value, "dvh");
+
+        /// <summary>This many percent: <c>12.Percent</c>.</summary>
+        public Percentage Percent => new(value);
     }
 
     extension(long value)
@@ -120,6 +147,33 @@ public static class Units
 
         /// <summary>This many weeks of seven days, for <c>1.5.Weeks</c>.</summary>
         public TimeSpan Weeks => TimeSpan.FromDays(value * 7);
+
+        /// <summary>This many CSS pixels: <c>1.5.Px</c>.</summary>
+        public Length Px => new(value, "px");
+
+        /// <summary>This many times the root element's font size: <c>1.5.Rem</c>.</summary>
+        public Length Rem => new(value, "rem");
+
+        /// <summary>This many times the element's own font size: <c>1.5.Em</c>.</summary>
+        public Length Em => new(value, "em");
+
+        /// <summary>This many times the width of the font's <c>0</c>: <c>1.5.Ch</c>.</summary>
+        public Length Ch => new(value, "ch");
+
+        /// <summary>This many hundredths of the viewport's width: <c>1.5.Vw</c>.</summary>
+        public Length Vw => new(value, "vw");
+
+        /// <summary>This many hundredths of the viewport's height: <c>1.5.Vh</c>.</summary>
+        public Length Vh => new(value, "vh");
+
+        /// <summary>This many hundredths of the viewport's width as it is now, browser chrome shown or hidden: <c>1.5.Dvw</c>.</summary>
+        public Length Dvw => new(value, "dvw");
+
+        /// <summary>This many hundredths of the viewport's height as it is now, browser chrome shown or hidden: <c>1.5.Dvh</c>.</summary>
+        public Length Dvh => new(value, "dvh");
+
+        /// <summary>This many percent: <c>1.5.Percent</c>.</summary>
+        public Percentage Percent => new(value);
     }
 
     extension(TimeSpan span)

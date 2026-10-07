@@ -116,6 +116,7 @@ origins you actually use, and consider `report-uri`/`report-to` to catch violati
 - ☑ Keep `UseAuthentication()` **before** `MapRask()`.
 - ☑ Validate redirect targets — Rask sanitizes the `returnUrl` to local same-origin paths (rejects `//`, `/\`, and backslash/control-char variants).
 - ☑ Set a **[Content-Security-Policy](#content-security-policy)** — Rask runs under a strict policy (`script-src 'self'`, plus `'wasm-unsafe-eval'` on WASM); only `style-src` needs `'unsafe-inline'` for `Style:` attributes.
+- ☑ Where **who has an account** is sensitive, turn on `Rask:Auth:RequireConfirmedEmail` — without it, registering a taken address answers "already exists" ([why](authentication.md#passwords-and-throttling)).
 - ☑ Treat the **session id as a bearer secret** — HTTPS only, never logged or placed in URLs that leak via `Referer`.
 - ☑ Behind a reverse proxy, wire **ForwardedHeaders** so the host-only same-origin checks (redeem + WS) see the public host.
 - ☑ For untrusted-traffic hosts, set `RaskLiveOptions.MaxSessions` and a reverse-proxy rate limit to bound session creation. The receive loop also bounds per-connection inbound-frame size, rate, and handler backlog automatically (see [Hardening reference](#hardening-reference)).

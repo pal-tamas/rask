@@ -109,6 +109,26 @@ for anything not named here. They render in a fixed order, ahead of any tag-spec
 
 <!-- demo:props-id-class-style -->
 
+`Style` takes text, or `Css` — the same declarations written as steps, one per CSS property browsers
+ship, generated from MDN's data:
+
+```csharp
+Div.Style(Css.Height(ctx.ItemSize.Px))                       // a length: 12.Px, 1.5.Rem, 50.Percent, 100.Vh
+Div.Style(Css.Position().Sticky.Top(0.Px).ZIndex(2))         // a keyword from the property's own set
+Div.Style(Css.Width("calc(100% - 2rem)"))                    // any text CSS allows
+Div.Style(Css.Background(hovering ? "#eef6ff" : null))       // null declares nothing
+
+static readonly Css StickyHead = Css.Position().Sticky.Top(0.Px);
+Th.Style(StickyHead.Width(110.Px).TextAlign().Right)["Balance"]
+```
+
+A property's empty call (`Css.Display()`) offers the keywords that are a whole value on their own —
+`Grid`, `InlineFlex`, `None` — so a misspelt one does not compile. A value CSS types is taken as that
+type: a `Length` or `Percentage` from the unit literals, a number (`Css.Opacity(0.5)`), a duration
+(`Css.TransitionDuration(150.Milliseconds)`). Everything else a grammar allows — a colour, `var()`,
+`calc()`, a shorthand of several values — is text. A `Css` is a value: keep one in a field and build
+on it. Inline style is still for what is only known at run time; the rest belongs in scoped CSS.
+
 `Data` — expands to `data-*` attributes; a null value renders as a bare attribute (e.g. `data-new`),
 the same way boolean attributes like `disabled` work. Name the pair directly, or pass several:
 
