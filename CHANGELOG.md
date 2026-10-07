@@ -44,6 +44,21 @@ them until tagged releases begin.
 
 ### Added
 
+- **Runtime hooks for behaviour a render cannot write.** The client runtime gains a set of generic,
+  attribute-keyed hooks (`docs/js-interop-runtime.md#behaviour-hooks-data-rask-`), each a delegated listener
+  that costs nothing on a page that does not use it: `data-rask-tooltip` and `data-rask-hover` show a popover
+  under the pointer in the top layer; an auto popover closes when focus leaves it and hands focus back after a
+  press outside; `data-rask-modal-open` opens a `<dialog>` as a real modal from state, `data-rask-modal` says
+  how it is dismissed (`any`, `press`, `escape`, `none`) and the dialog carries `data-open` while shown;
+  `data-rask-lock` holds the page still behind an open overlay; `data-rask-menu-pointer` and
+  `data-rask-safe-area` make a menu's pointer one thing with its keyboard cursor; `data-rask-copy`,
+  `data-rask-clear`, `data-rask-focus`, `data-rask-mask`, `data-rask-mask-money`, `data-rask-big-step`,
+  `data-rask-listbox-button` and `data-rask-otp` cover a form field; `data-rask-dismiss-scope`,
+  `data-rask-dismiss-hold` and `data-rask-stack` cover a group of toasts; `data-rask-persist` and
+  `data-rask-uncheck-on-navigate` keep a checkbox's state where the reader left it; `data-rask-carousel`
+  reports a scroll-snapping track's position to its arrows and indicators. Invoker commands
+  (`command="show-modal"`) work in engines without them, and Enter toggles a `role="switch"` checkbox. An
+  attribute a hook writes is held against the morph. The runtime grows by 23.5 kB (6.8 kB gzipped).
 - **Inline style as typed CSS.** `Css` has a step for every CSS property browsers ship — 455, generated
   from MDN's data (`@webref/css` for the grammars, browser-compat-data for what two engines ship) —
   and `Style` takes one wherever it takes text: `Div.Style(Css.Position().Sticky.Top(0.Px))`. A

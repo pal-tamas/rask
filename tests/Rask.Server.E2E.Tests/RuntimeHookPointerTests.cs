@@ -1,0 +1,305 @@
+using Rask.Core;
+using Rask.Server.E2E.Tests.Infrastructure;
+using Rask.Site.E2E.Tests.Infrastructure;
+
+#pragma warning disable RASK019 // a small test page; its <head> is not what is under test
+
+namespace Rask.Server.E2E.Tests;
+
+/// <summary>
+///     The hooks a pointer drives — a tooltip, a hover-opening panel, a menu's lit row and the safe area towards
+///     its submenu — in a real browser, against what Flux UI's live pages did on 2026-10-07.
+/// </summary>
+/// <remarks>
+///     Flux opens both a tooltip and a <c>flux:dropdown hover</c> in the pointerenter's own task (0–1 ms between
+///     the event and the popover's <c>beforetoggle</c>) and closes them in the pointerleave's, so every
+///     assertion here is made with no wait at all: a hook that needed a frame would fail it.
+/// </remarks>
+public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
+{
+    [Fact]
+    public async Task A_tooltip_shows_the_moment_the_pointer_arrives_and_hides_the_moment_it_leaves()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        await page.HoverAsync("#tip-trigger");
+        var shown = await session.ShownAsync("#bubble");
+        var expanded = await page.GetAttributeAsync("#tip-trigger", "aria-expanded");
+        await page.Mouse.MoveAsync(900, 600);
+
+        Assert.True(shown, "the tooltip was not open in the pointerenter's own task");
+        Assert.Equal("true", expanded);
+        Assert.False(await session.ShownAsync("#bubble"));
+        Assert.Equal("false", await page.GetAttributeAsync("#tip-trigger", "aria-expanded"));
+    }
+
+    [Fact]
+    public async Task A_tooltip_on_an_element_that_is_no_button_reaches_the_top_layer()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        await page.HoverAsync("#plain-trigger");
+
+        // The clipping card around it is 40px tall and the bubble sits below that: only the top layer shows it.
+        Assert.True(await session.ShownAsync("#plain-bubble"));
+        Assert.True(await page.Locator("#plain-bubble").IsVisibleAsync());
+    }
+
+    [Fact]
+    public async Task A_press_dismisses_a_tooltip_until_the_pointer_has_left_and_come_back()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        await page.HoverAsync("#tip-trigger");
+        await page.Mouse.DownAsync();
+        var whilePressed = await session.ShownAsync("#bubble");
+        await page.Mouse.UpAsync();
+        await page.Mouse.MoveAsync(await CenterX(page, "#tip-trigger") + 2, await CenterY(page, "#tip-trigger"));
+        var stillOver = await session.ShownAsync("#bubble");
+        await page.Mouse.MoveAsync(900, 600);
+        await page.HoverAsync("#tip-trigger");
+
+        Assert.False(whilePressed);
+        Assert.False(stillOver);
+        Assert.True(await session.ShownAsync("#bubble"));
+    }
+
+    [Fact]
+    public async Task Keyboard_focus_shows_a_tooltip_keeps_it_when_the_pointer_leaves_and_Escape_hides_it()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        await session.TabToAsync("#tip-trigger");
+        var onFocus = await session.ShownAsync("#bubble");
+        await page.HoverAsync("#tip-trigger");
+        await page.Mouse.MoveAsync(900, 600);
+        var afterPointerLeft = await session.ShownAsync("#bubble");
+        await page.Keyboard.PressAsync("Escape");
+        var afterEscape = await session.ShownAsync("#bubble");
+        await session.TabToAsync("#tip-trigger");
+        await page.Keyboard.PressAsync("Tab");
+
+        Assert.True(onFocus);
+        Assert.True(afterPointerLeft, "the pointer leaving took the tooltip from a reader who tabbed to it");
+        Assert.False(afterEscape);
+        Assert.False(await session.ShownAsync("#bubble"));
+    }
+
+    [Fact]
+    public async Task Focus_that_a_click_gave_does_not_keep_a_tooltip_when_the_pointer_leaves()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        await page.ClickAsync("#tip-trigger");
+        await page.Mouse.MoveAsync(900, 600);
+        await page.HoverAsync("#tip-trigger");
+        var returned = await session.ShownAsync("#bubble");
+        await page.Mouse.MoveAsync(900, 600);
+
+        // Flux: the trigger still had focus from the click, and the tooltip left with the pointer all the same.
+        Assert.Equal("tip-trigger", await session.FocusAsync());
+        Assert.True(returned);
+        Assert.False(await session.ShownAsync("#bubble"));
+    }
+
+    [Fact]
+    public async Task A_hover_panel_opens_at_once_over_its_trigger_stays_over_itself_and_closes_over_neither()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        await page.HoverAsync("#hover-trigger");
+        var overTrigger = await session.ShownAsync("#panel");
+        var locked = await page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).overflow");
+        var focus = await session.FocusAsync();
+        await page.HoverAsync("#panel-link");
+        var overPanel = await session.ShownAsync("#panel");
+        await page.Mouse.MoveAsync(900, 600);
+
+        Assert.True(overTrigger);
+        Assert.Equal("visible", locked);
+        Assert.Equal("BODY", focus);
+        Assert.True(overPanel);
+        Assert.False(await session.ShownAsync("#panel"));
+    }
+
+    [Fact]
+    public async Task The_gap_between_a_hover_trigger_and_its_panel_belongs_to_neither()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        await page.HoverAsync("#hover-trigger");
+        var box = await page.Locator("#hover-trigger").BoundingBoxAsync();
+        await page.Mouse.MoveAsync(box!.X + 10, box.Y + box.Height + 5);
+
+        // Flux's panel sat 10px under its trigger and closed on the first pixel of the gap.
+        Assert.False(await session.ShownAsync("#panel"));
+    }
+
+    [Fact]
+    public async Task A_press_on_a_hover_trigger_keeps_its_panel_and_Enter_opens_it_where_focus_alone_does_not()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        await page.ClickAsync("#hover-trigger");
+        var afterPress = await session.ShownAsync("#panel");
+        await page.Mouse.MoveAsync(900, 600);
+        await session.TabToAsync("#hover-trigger");
+        var onFocus = await session.ShownAsync("#panel");
+        await page.Keyboard.PressAsync("Enter");
+
+        Assert.True(afterPress, "the trigger's own popovertarget toggled the hover-opened panel shut");
+        Assert.False(onFocus);
+        Assert.True(await session.ShownAsync("#panel"));
+    }
+
+    [Fact]
+    public async Task A_hover_panel_with_a_condition_opens_only_while_its_root_matches_it()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        await page.HoverAsync("#rail-trigger");
+        var expanded = await session.ShownAsync("#rail-menu");
+        await page.Mouse.MoveAsync(900, 600);
+        await page.CheckAsync("#collapsed");
+        await page.HoverAsync("#rail-trigger");
+
+        Assert.False(expanded);
+        Assert.True(await session.ShownAsync("#rail-menu"));
+    }
+
+    [Fact]
+    public async Task The_row_under_the_pointer_is_the_only_lit_row_and_none_is_when_the_pointer_leaves_the_menu()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+        const string lit = "() => [...document.querySelectorAll('#menu > [data-active], #menu > span > [data-active]')].map(r => r.id).join(',')";
+
+        await page.HoverAsync("#row-c");
+        var overThird = await page.EvaluateAsync<string>(lit);
+        await page.HoverAsync("#row-disabled");
+        var overDisabled = await page.EvaluateAsync<string>(lit);
+        await page.Mouse.MoveAsync(900, 600);
+
+        // #row-a was rendered lit — the keyboard cursor — and gave way to the pointer.
+        Assert.Equal("row-c", overThird);
+        Assert.Equal("row-c", overDisabled);
+        Assert.Equal(string.Empty, await page.EvaluateAsync<string>(lit));
+    }
+
+    [Fact]
+    public async Task The_diagonal_towards_an_open_submenu_does_not_touch_the_rows_it_crosses()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+        var row = (await page.Locator("#row-sub").BoundingBoxAsync())!;
+        var flyout = (await page.Locator("#flyout").BoundingBoxAsync())!;
+        await page.EvaluateAsync("() => { window.__over = []; document.addEventListener('pointerover', e => { const r = e.target.closest('[role=menuitem]'); if (r) window.__over.push(r.id); }, true); }");
+
+        // From the left end of the submenu's row to the bottom of its flyout: straight across the rows below.
+        await page.Mouse.MoveAsync(row.X + 12, row.Y + row.Height / 2);
+        for (var i = 1; i <= 12; i++)
+        {
+            await page.Mouse.MoveAsync(
+                row.X + 12 + ((flyout.X + 10 - row.X - 12) * i / 12),
+                row.Y + (row.Height / 2) + ((flyout.Y + flyout.Height - 8 - row.Y - (row.Height / 2)) * i / 12));
+        }
+
+        var crossed = await page.EvaluateAsync<string[]>("() => window.__over");
+        Assert.DoesNotContain("row-c", crossed);
+        Assert.DoesNotContain("row-d", crossed);
+        Assert.Contains("fly-d", crossed);
+        Assert.Equal(0, await page.Locator("#row-sub > span[data-rask-managed]").CountAsync());
+    }
+
+    [Fact]
+    public async Task A_move_that_is_not_towards_the_submenu_reaches_the_next_row_at_once()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+        var row = (await page.Locator("#row-sub").BoundingBoxAsync())!;
+
+        await page.Mouse.MoveAsync(row.X + 12, row.Y + (row.Height / 2));
+        await page.Mouse.MoveAsync(row.X + 14, row.Y + (row.Height / 2));
+        await page.Mouse.MoveAsync(row.X + 12, row.Y + row.Height + 10);
+
+        // Flux lit the next row 26 ms after the pointer left the submenu's, with no grace period.
+        Assert.Equal("row-c", await page.EvaluateAsync<string>("() => document.querySelector('#menu [data-active]').id"));
+    }
+
+    private static async Task<float> CenterX(Microsoft.Playwright.IPage page, string selector)
+    {
+        var box = (await page.Locator(selector).BoundingBoxAsync())!;
+        return box.X + (box.Width / 2);
+    }
+
+    private static async Task<float> CenterY(Microsoft.Playwright.IPage page, string selector)
+    {
+        var box = (await page.Locator(selector).BoundingBoxAsync())!;
+        return box.Y + (box.Height / 2);
+    }
+}
+
+/// <summary>The attributes of the pointer hooks, written out by hand.</summary>
+public sealed partial class PointerHookPage : Component
+{
+    private const string Html = """
+        <style>
+          body { margin: 0; font: 14px/20px sans-serif; }
+          [popover] { margin: 0; border: 1px solid #999; padding: 4px; }
+          #menu, #flyout { position: fixed; display: block; width: 160px; padding: 0; }
+          [role=menuitem] { display: block; width: 100%; height: 30px; box-sizing: border-box; border: 0; text-align: left; }
+          [data-active] { background: #ddd; }
+        </style>
+        <span id="tip" data-rask-tooltip="bubble" style="position:fixed;left:20px;top:20px">
+          <button id="tip-trigger" type="button" aria-expanded="false" aria-controls="bubble">?</button>
+          <div id="bubble" popover="manual" role="tooltip" style="position:fixed;left:20px;top:60px">Help</div>
+        </span>
+        <div style="position:fixed;left:200px;top:20px;width:120px;height:40px;overflow:hidden">
+          <span data-rask-tooltip="plain-bubble">
+            <span id="plain-trigger" tabindex="0">hover me</span>
+            <div id="plain-bubble" popover="manual" role="tooltip" style="position:fixed;left:200px;top:80px">Outside the card</div>
+          </span>
+        </div>
+        <div id="hover" data-rask-hover="panel" style="position:fixed;left:20px;top:140px">
+          <button id="hover-trigger" type="button" popovertarget="panel" style="height:30px">Preview</button>
+          <div id="panel" popover style="position:fixed;left:20px;top:180px;width:200px;height:80px">
+            <a id="panel-link" href="#">Open</a>
+          </div>
+        </div>
+        <input id="collapsed" type="checkbox" style="position:fixed;left:400px;top:20px">
+        <div id="rail" data-rask-hover="rail-menu" data-rask-hover-if="input:checked ~ *" style="position:fixed;left:400px;top:60px">
+          <button id="rail-trigger" type="button" popovertarget="rail-menu">Rail item</button>
+          <div id="rail-menu" popover style="position:fixed;left:400px;top:100px">Menu</div>
+        </div>
+        <div id="menu" role="menu" tabindex="-1" data-rask-menu-pointer style="left:20px;top:320px">
+          <button id="row-a" type="button" role="menuitem" data-active>New</button>
+          <span>
+            <button id="row-sub" type="button" role="menuitem" aria-haspopup="menu" data-rask-safe-area="flyout">Sort by</button>
+            <div id="flyout" role="menu" style="left:180px;top:350px">
+              <button id="fly-a" type="button" role="menuitem">Name</button>
+              <button id="fly-b" type="button" role="menuitem">Date</button>
+              <button id="fly-c" type="button" role="menuitem">Size</button>
+              <button id="fly-d" type="button" role="menuitem">Kind</button>
+            </div>
+          </span>
+          <button id="row-c" type="button" role="menuitem">Filter</button>
+          <button id="row-d" type="button" role="menuitem">Delete</button>
+          <button id="row-disabled" type="button" role="menuitem" aria-disabled="true">Archive</button>
+        </div>
+        """;
+
+    protected override Component? HeadAssets => Markup.Title["pointer hooks"];
+
+    protected override string? HtmlLang => "en";
+
+    protected override Component? Render() => Div[Raw.Value(Html)];
+}
