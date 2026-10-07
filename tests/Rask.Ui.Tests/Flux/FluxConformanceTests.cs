@@ -196,7 +196,8 @@ public sealed class FluxConformanceTests
         ["flux:context/Open"] = "`wire:model`: the context menu's open state",
         ["flux:context/OnToggle"] = "`wire:model`'s other half: the reader opened or closed it",
         ["flux:menu.item/OnClick"] = "`wire:click` on a row",
-        ["flux:menu.item/Href"] = "`href` with `wire:navigate`, which a Flux menu item takes (Laravel's Livewire starter kit writes it) though its reference does not list it",
+        // Flux's public demo, https://fluxui.dev/demo/qa.md: <flux:menu.item href="/settings/profile" icon="cog">, live an <a role="menuitem">.
+        ["flux:menu.item/Href"] = "`href`, which Flux's Q&A demo sets on a menu item (drawn as an `<a role=\"menuitem\">`) and its reference omits",
         ["flux:menu.checkbox/Value"] = "`wire:model`, as every Rask form control says it (IFormControl<bool>)",
         ["flux:menu.checkbox/OnChange"] = "as Value",
         ["flux:menu.checkbox/Bind"] = "as Value",

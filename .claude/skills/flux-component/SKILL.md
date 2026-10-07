@@ -211,6 +211,10 @@ charts are redrawn once the fonts are in), writes the rows each chart drew to
 every number of every `d`, `x1…y2`, `cx/cy/r` and `translate()`, to 0.05px. Flux's rules were found by handing
 its live `<ui-chart>` a dataset (`element.value = rows`) and reading back what it drew — the way to answer any
 new question about its layout. `scripts/flux/inter-metrics.mjs` regenerates the label-width table.
+The pin itself lives under `artifacts/` (ignored), so a checkout that did not make it has only the committed
+rows and BOTH chart scripts fail on numbers alone. To prove the chart there: `--measure`, rewrite the pages,
+run both, then `git checkout -- …/ChartParity.data.json` unless the chart itself changed — committing a new pin
+breaks the replay of whoever holds the old one.
 
 ## 4. Replace what it supersedes
 One commit per component, the solution building throughout:
@@ -271,7 +275,8 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `data-ui-separator` and a group's lines `data-ui-menu-separator` beside `-top`/`-bottom`; the kit's own
   `data-ui-menu-indent` is `data-indent`; `Ui.MenuCheckboxGroup.KeepOpen` is gone. `Open`/`OnToggle`
   (dropdown, context) stand for `wire:model`, `Bind`/`Value`/… for a checkbox's or radio group's, `OnClick`
-  for `wire:click`, `Ui.MenuItem.Href` for `href`+`wire:navigate` — each a `Translations` row.
+  for `wire:click`, `Ui.MenuItem.Href` for the `href` Flux's own demo sets on a menu item (`fluxui.dev/demo/qa.md`: `<flux:menu.item
+  href="/settings/profile">`, live an `<a role="menuitem">`; the reference omits it) — each a `Translations` row.
   Not Flux's yet: `data-open` on the OPEN menu (Flux writes it on `ui-menu`; the kit writes it on the dropdown
   and the trigger only); Flux's reflected element props (`position`, `gap`, `checked`, `keep-open` as plain
   attributes) are not written; the popup is `popover="auto"` + `autofocus` + `popovertarget` where Flux's is
