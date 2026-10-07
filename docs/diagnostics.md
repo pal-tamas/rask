@@ -101,7 +101,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK072](#rask072) | Warning | Entity `Configure` method will not be called |
 | [RASK073](#rask073) | Warning | Strongly-typed id has no usable value |
 | [RASK074](#rask074) | Warning | More than one user type |
-| [RASK075](#rask075) | Warning | Option template on a native select |
 | [RASK076](#rask076) | Warning | Grid column with no field token |
 | [RASK077](#rask077) | Warning | Package island has no props snapshot |
 | [RASK078](#rask078) | Error | Props snapshot cannot be read |
@@ -131,7 +130,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
 **Retired, never recycled:** RASK027, RASK030, RASK032, RASK034, RASK042, RASK046, RASK047, RASK048,
-RASK049, RASK050, RASK054 and RASK081. Each guarded a mistake that can no longer be written; a
+RASK049, RASK050, RASK054, RASK075 and RASK081. Each guarded a mistake that can no longer be written; a
 suppression that names one is dead and can be deleted. RASK063 and RASK065 are reserved.
 
 ---
@@ -1521,151 +1520,6 @@ This does not fire on ordinary classes. A Rask server project is an ASP.NET proj
 genuine controllers; `[Route]` on one of those is correct and is never reported.
 
 ---
-## RASK075
-
-**Option template on a native select** · Warning
-
-`Ui.Select` no longer has `OptionTemplate` or `Native` — its options are children (`Ui.SelectOption`) and the
-variant (`.Listbox`, `.Combobox`) decides what draws them — so this diagnostic no longer fires for the kit's
-select, and the call sites below show the shape it was written for.
-
-An `<option>`'s content model is text. There is nowhere inside the platform's own control for a
-template's markup to go, so `UiSelect<T>`/`UiMultiSelect<T>` never call the template: the list renders
-its plain words, the build stays green, and the only way to notice is to look at the running page and
-wonder where the icons went.
-
-```csharp
-// ✗ RASK075 — Native(true) says "the platform's control", the template says "markup per row"
-Ui.Select.Bind(() => _order.Package)
-        .Options(packages)
-        .Label("Package")
-        .OptionTemplate(v => Div.Class("flex gap-2")[Ui.Icon.Name(v.Icon), Span[v.Name]])
-        .Native()
-```
-
-**Fix:** drop `Native(true)`. A template already implies the drawn list, so leaving `Native` unset is
-all that is needed — the control draws its own rows and the template renders:
-
-```csharp
-Ui.Select.Bind(() => _order.Package)
-        .Options(packages)
-        .Label("Package")
-        .OptionTemplate(v => Div.Class("flex gap-2")[Ui.Icon.Name(v.Icon), Span[v.Name]])
-```
-
-If the platform's control is what you actually want — it needs no runtime, renders complete on a
-prerendered page and gets a phone's native picker — then drop the template instead and let the `Text`
-from `Options` say it.
-
-Only an **explicit** `Native(true)` is reported. `Native(false)` agrees with the template, and
-`Native(someFlag)` is not knowable at compile time, so neither is a contradiction this can name.
-`ChipTemplate` on `UiMultiSelect<T>` is reported on the same grounds: the platform's control draws its
-own selection, so a chip template has nowhere to render either.
-
----
-
-## RASK072
-
-**Entity `Configure` method will not be called** · Warning
-
-An entity maps itself: Rask's model generator calls a static `Configure` on every `Entity<TId>` that
-declares one, for the rules that are that entity's own. The method is matched **by signature**, not by
-name alone — so one that is an instance method, is private, or takes something other than
-`EntityTypeBuilder<TSelf>` is simply not found.
-
-Without this warning the build stays green, the table is created from conventions alone, and the
-missing index or length turns up in production.
-
-```csharp
-public sealed class Product : Aggregate<Guid>
-{
-    public string Sku { get; private set; } = "";
-
-    // ✗ RASK072 — an instance method; the generator emits `Product.Configure(...)`
-    public void Configure(EntityTypeBuilder<Product> builder) =>
-        builder.HasIndex(p => p.Sku).IsUnique();
-}
-```
-
-**Fix:** declare it exactly as the generator calls it — `public static`, returning `void`, taking this
-entity's own builder:
-
-```csharp
-public static void Configure(EntityTypeBuilder<Product> builder) =>
-    builder.HasIndex(p => p.Sku).IsUnique();
-```
-
-`internal static` works too — the generated registry is emitted into the same assembly. The type
-argument must be the entity itself: `EntityTypeBuilder<SomethingElse>` configures another table and is
-reported rather than called.
-
-An entity with no `Configure` at all is not reported. It is mapped by convention, which is the common
-case and the intended one.
-
----
-
-## RASK073
-
-**Strongly-typed id has no usable value** · Warning
-
-A strongly-typed id — `Aggregate<ProductId>` rather than `Aggregate<Guid>` — is stored as its underlying value
-through a generated `ValueConverter`. Building one needs two things the generator can see: a single
-public property holding the value, and a public constructor taking that value back.
-
-```csharp
-// ✗ RASK073 — two public properties, so which one is the stored value is ambiguous
-public readonly record struct ProductId(Guid Value, string Label);
-```
-
-**Fix:** give the id one value and a matching constructor. A positional record struct is the shortest
-form and gives value equality for free:
-
-```csharp
-public readonly record struct ProductId(Guid Value);
-```
-
-The conversion is then registered once for the type, in `ConfigureConventions`, so **every** property
-of that type is converted — the key, a foreign key on another entity, and a nullable one — without any
-of them being named individually.
-
-This is a Warning rather than an Error because the rest of the assembly still builds, but the model
-does not: EF Core refuses a key type it cannot map, and its own message names the property rather than
-the reason. That is what this replaces.
-
-Ids that need no converter are not reported. Anything the provider already maps — `Guid`, `int`,
-`long`, `string` — is left alone.
-
----
-
-## RASK074
-
-**More than one user type** · Warning
-
-Rask ships no user class. The user type is the one class in your project deriving from `Rask.Auth.Authenticatable`,
-found at compile time and named to the accounts by a generated `[ModuleInitializer]` — which is what lets
-`AddRaskAuth()` and `modelBuilder.AddRaskAuth()` take no type argument.
-
-That needs there to be *one*. With two, picking either would map one users table and silently strand the other,
-and the app would look wired until the first sign-in.
-
-```csharp
-public sealed class User : Authenticatable { }
-
-// ✗ RASK074 — which of these is the user?
-public sealed class LegacyUser : Authenticatable { }
-```
-
-**Fix:** keep one. A second user-shaped type does not need to derive from `Authenticatable` to be mapped — it is an
-aggregate like any other, and if it is genuinely a second account store it belongs behind its own
-`AddRaskAuth<TContext, TUser>()` call rather than the convention.
-
-Auth is left unwired when this fires, rather than half-wired against a guess.
-
-Declaring **no** user type is not reported: an app with no accounts is a legitimate app, and the auth
-battery simply does not wire.
-
----
-
 ## RASK076
 
 **Grid column with no field token** · Warning

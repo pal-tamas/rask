@@ -208,8 +208,8 @@ them until tagged releases begin.
   known gaps wait for runtime hooks: Enter on a **closed** listbox button opens it (Flux ignores it), and the
   page behind an open list is not scroll-locked. `scripts/flux/parity-select.mjs` holds the open list to
   fluxui.dev — the popup's look and placement on the parity page, and `--live <url>` walks the keyboard on a
-  running site. [RASK075](docs/diagnostics.md#rask075) no longer fires for the kit's select: there is no
-  `OptionTemplate` or `Native` left to contradict each other.
+  running site. RASK075 (an option template on a native select) is retired with its analyzer: there is no
+  `OptionTemplate` or `Native` left to contradict each other, and the id is not recycled.
 - **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
   `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
   `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the
