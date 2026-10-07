@@ -15,8 +15,8 @@ namespace Rask.Templates.E2E.Tests;
 ///     <para>
 ///         So the selection is an environment variable, read by the theory data rather than by the
 ///         runner: <c>RASK_TEMPLATE_ONLY=react</c>, or a comma-separated list. Unset, every template
-///         runs — the gate's default is unchanged, and there is no way to leave a narrowing switched on
-///         in CI by accident, because the gate scripts never set it.
+///         runs. The one gate script that sets it is <c>run-template-e2e.sh --front-end=&lt;key&gt;</c>, which
+///         is that narrowing by name: CI runs each front end as its own job.
 ///     </para>
 /// </remarks>
 internal static class TemplateSelection

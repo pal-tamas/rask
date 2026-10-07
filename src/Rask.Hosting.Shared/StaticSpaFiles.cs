@@ -52,12 +52,12 @@ internal static class StaticSpaFiles
     /// </remarks>
     public static void MapCatchAll(IEndpointRouteBuilder endpoints, string pathBase, RequestDelegate handler)
     {
-        if (pathBase.Length == 0)
-        {
-            endpoints.MapFallback(handler);
-            return;
-        }
+        var fallback = pathBase.Length == 0
+            ? endpoints.MapFallback(handler)
+            : endpoints.MapFallback(pathBase.TrimStart('/') + "/{*path:nonfile}", handler);
 
-        endpoints.MapFallback(pathBase.TrimStart('/') + "/{*path:nonfile}", handler);
+        // A page is read, never written to. Without this the fallback matches every verb, so a POST to a
+        // route that only answers GET gets the index document and a 200 where routing owed it a 405.
+        fallback.WithMetadata(new HttpMethodMetadata([HttpMethods.Get, HttpMethods.Head]));
     }
 }

@@ -8,6 +8,8 @@
     <RaskSpaDevServerUrl>http://localhost:4200</RaskSpaDevServerUrl>
     <!-- Angular nests its output under the project name. -->
     <RaskSpaDistDir>dist/company-raskserver-client/browser</RaskSpaDistDir>
+    <!-- Angular's CLI refuses a Node below this; stated here, the build says so first (RASKSPA005). -->
+    <RaskSpaMinimumNode>22.22.3</RaskSpaMinimumNode>
     <!-- rask:if cqrs data -->
     <!-- The litestream binary ships in the Docker image, not fetched at build time. -->
     <RaskLitestreamDownload>false</RaskLitestreamDownload>

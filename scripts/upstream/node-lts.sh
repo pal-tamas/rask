@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Move the Node line the repo states to nodejs.org's Active LTS, when that has moved to a newer major.
 #
-# ScaffoldLine (src/Rask.Cli/NodeRequirement.cs) is the source of truth; the installers and
-# docs/installation.md repeat it, and NodeRequirementTests holds them to it. This rewrites every copy
+# ScaffoldLine (src/Rask.Cli/NodeRequirement.cs) is the source of truth; the installers,
+# docs/installation.md and the front-end templates' Dockerfiles repeat it, and NodeRequirementTests
+# and TemplateNodePinTests hold them to it. This rewrites every copy
 # in one pass, so the gates judge a consistent tree. The build floor (RaskExternalMinimumNode) is a
 # different number on purpose and is not touched.
 #
@@ -48,5 +49,13 @@ perl -pi -e '
   s/≥ \Q$om.$omi\E\b/≥ $nm.$nmi/g;
   s/Node $om LTS/Node $nm LTS/g;
 ' src/Rask.Cli/NodeRequirement.cs rask.sh rask.ps1 docs/installation.md
+
+# The front-end templates' images install the same line from NodeSource (setup_NN.x), and
+# TemplateNodePinTests holds them to ScaffoldLine's major.
+images="$(grep -lE 'setup_[0-9]+\.x' src/Rask.Templates/*/Dockerfile 2>/dev/null || true)"
+if [ -n "$images" ]; then
+  # shellcheck disable=SC2086  # one path per line, none with a space in it
+  NEW_MAJOR="${latest%%.*}" perl -pi -e 's/setup_\d+\.x/setup_$ENV{NEW_MAJOR}.x/g' $images
+fi
 
 echo "node lts: $stated -> $latest ($codename)"

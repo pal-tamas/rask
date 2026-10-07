@@ -51,7 +51,9 @@ gates=(
   # The rask.sh data demo in a real browser: published as pages.yml publishes it (native-linked, under /demos/data/).
   "data demo E2E|scripts/run-data-demo-e2e-local.sh|"
   "CLI build|scripts/run-cli-build-e2e.sh|RASK_CLI_BUILD_E2E=1"
-  # Every template (server, wasm, wasm-hosted) scaffolded and built.
+  # Every template's C# half scaffolded and built. The seven front ends are NOT here: each is minutes
+  # (npm ci, a bundle, a published host), so CI gives each a job and by hand it is one at a time —
+  # scripts/run-template-e2e.sh --front-end=<key>.
   "templates|scripts/run-template-e2e.sh|RASK_TEMPLATE_E2E=1"
   "watch hot reload|scripts/run-watch-e2e.sh|RASK_WATCH_E2E=1"
   "deploy|scripts/run-deploy-e2e-local.sh|RASK_DEPLOY_E2E=1"

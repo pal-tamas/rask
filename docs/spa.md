@@ -43,13 +43,16 @@ the same Tailwind utilities in each framework's own idiom. No component library 
 
 Lit's element renders into the light DOM, so the page's Tailwind sheet reaches it.
 
-**Angular is the one that is not a plain Vite project**, and its host says so in three places:
+**Angular is the one that is not a plain Vite project**, and its host says so in four places:
 
 - the dev server is `ng serve` on port 4200, started by `npm start` — the host's csproj sets
   `<RaskSpaDevServerUrl>http://localhost:4200</RaskSpaDevServerUrl>`, which is what `rask dev` opens;
 - the proxy is `client/proxy.conf.json`, which `angular.json` points at, instead of a `server.proxy` block
   in `vite.config.ts`;
-- the bundle lands in `dist/<app>-client/browser`, so the csproj sets `RaskSpaDistDir` to it.
+- the bundle lands in `dist/<app>-client/browser`, so the csproj sets `RaskSpaDistDir` to it;
+- Angular's CLI wants a newer Node than Vite does (`^22.22.3 || ^24.15.0 || >=26.0.0`), so the csproj sets
+  `<RaskSpaMinimumNode>22.22.3</RaskSpaMinimumNode>` and an older one fails with `RASKSPA005` instead of
+  inside `ng build`. One number cannot say the whole range: on Node 24.0–24.14 it is the CLI that refuses.
 
 In every template:
 
@@ -109,7 +112,8 @@ only cares about the C#.
 Use the current LTS. The build's own floor is **22.12**, and it is enforced: an older Node fails with
 `RASKSPA005` naming the version it found, rather than reaching the bundler and failing there with an
 `engines` error. Set `RaskSpaMinimumNode` to move the bar — it is a real comparison, in both
-directions, so a front end on an older toolchain can lower it.
+directions, so a front end on an older toolchain can lower it. The Angular template raises it to
+**22.22.3**, the lowest Node its CLI accepts.
 
 ## Development
 
@@ -186,7 +190,7 @@ app.MapRaskSpa(configure: options => options.ImmutablePathPrefixes.Add("/static/
 | `RaskSpaInstallCommand` | `npm ci` | Run when a lockfile exists. |
 | `RaskSpaFirstInstallCommand` | `npm install` | Run when there is no lockfile yet. |
 | `RaskSpaBuildCommand` | `npm run build` | What produces the bundle. |
-| `RaskSpaMinimumNode` | `22.12.0` | The Node floor the build enforces, as `RASKSPA005`. |
+| `RaskSpaMinimumNode` | `22.12.0` (`22.22.3` in the Angular template) | The Node floor the build enforces, as `RASKSPA005`. |
 | `RaskSpaPublishDir` | `wwwroot` | Where publish puts the bundle. |
 | `RaskSpaDevServerUrl` | none | Named on the "nothing built yet" page in Development. |
 | `RaskEmitTypeScript` | on | `false` generates nothing, whatever the host declares. |

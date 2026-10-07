@@ -101,4 +101,19 @@ public sealed class TemplateTreeContractTests
             leftovers.Length == 0,
             $"--template {key} leaves a placeholder in:\n  " + string.Join("\n  ", leftovers));
     }
+
+    // CI's front-end jobs and their scoping go by the trees (run-template-e2e.sh --list-front-ends); `rask new`
+    // goes by SpaFramework.All. A tree in only one of them is a template nothing gates, or a job with nothing to run.
+    [Fact]
+    public void The_trees_with_a_client_are_exactly_the_front_ends_rask_new_offers()
+    {
+        var offered = SpaFramework.All.Select(framework => framework.Key).Order(StringComparer.Ordinal);
+
+        var committed = Directory.EnumerateDirectories(Root)
+            .Where(tree => File.Exists(Path.Combine(tree, "client", "package.json")))
+            .Select(tree => Path.GetFileName(tree))
+            .Order(StringComparer.Ordinal);
+
+        Assert.Equal(offered, committed);
+    }
 }

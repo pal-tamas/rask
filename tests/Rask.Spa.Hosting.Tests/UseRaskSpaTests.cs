@@ -46,6 +46,28 @@ public class MapRaskSpaTests
     }
 
     [Fact]
+    public async Task A_post_to_a_route_that_only_answers_get_is_refused_rather_than_given_the_index_document()
+    {
+        using var dist = new FakeDistDirectory();
+        await using var host = await SpaTestServer.CreateAsync(dist.Path, withApi: true);
+
+        var response = await host.Http.PostAsync("/api/ping", content: null, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_post_to_a_client_side_route_is_not_answered_with_the_index_document()
+    {
+        using var dist = new FakeDistDirectory();
+        await using var host = await SpaTestServer.CreateAsync(dist.Path);
+
+        var response = await host.Http.PostAsync("/orders/42", content: null, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+    }
+
+    [Fact]
     public async Task A_missing_asset_is_a_404_rather_than_the_index_document()
     {
         using var dist = new FakeDistDirectory();

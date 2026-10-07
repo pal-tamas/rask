@@ -47,8 +47,8 @@ public sealed class TemplateBuildE2ETests
             Write(result, projectDirectory, feed);
 
             // The FRONT END is deliberately off here: this asserts the C# half compiles, and the npm
-            // half is four to six minutes per template on a cold cache. Every_front_end_template_builds
-            // is where that is paid, behind its own switch.
+            // half is minutes per template. FrontEndBuildE2ETests is where that is paid, behind its own
+            // switch and in a CI job per template.
             var (exit, output) = await CliBuildE2E.RunDotnet(
                 $"build \"{Path.Combine(projectDirectory, name + ".csproj")}\" -warnaserror -m:1 "
                 + "-p:RaskSpaBuild=false -p:RaskExternalBuild=false");
