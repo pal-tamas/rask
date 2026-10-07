@@ -144,62 +144,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    // A chart's colours, one table per use. Tailwind's own colour utilities over daisyUI's theme colours, so a series
-    // follows the theme; every one a complete literal for the reason this file exists.
-    internal static string ChartStroke(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "stroke-neutral",
-        Ui.Tone.Primary => "stroke-primary",
-        Ui.Tone.Secondary => "stroke-secondary",
-        Ui.Tone.Accent => "stroke-accent",
-        Ui.Tone.Info => "stroke-info",
-        Ui.Tone.Success => "stroke-success",
-        Ui.Tone.Warning => "stroke-warning",
-        Ui.Tone.Error => "stroke-error",
-        _ => "",
-    };
-
-    internal static string ChartFill(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "fill-neutral",
-        Ui.Tone.Primary => "fill-primary",
-        Ui.Tone.Secondary => "fill-secondary",
-        Ui.Tone.Accent => "fill-accent",
-        Ui.Tone.Info => "fill-info",
-        Ui.Tone.Success => "fill-success",
-        Ui.Tone.Warning => "fill-warning",
-        Ui.Tone.Error => "fill-error",
-        _ => "",
-    };
-
-    // The area under a line: the line's colour, faint enough that a second area and the grid show through it.
-    internal static string ChartArea(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "fill-neutral/15",
-        Ui.Tone.Primary => "fill-primary/15",
-        Ui.Tone.Secondary => "fill-secondary/15",
-        Ui.Tone.Accent => "fill-accent/15",
-        Ui.Tone.Info => "fill-info/15",
-        Ui.Tone.Success => "fill-success/15",
-        Ui.Tone.Warning => "fill-warning/15",
-        Ui.Tone.Error => "fill-error/15",
-        _ => "",
-    };
-
-    // The dot beside a series' name in the legend and a tooltip.
-    internal static string ChartSwatch(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "bg-neutral",
-        Ui.Tone.Primary => "bg-primary",
-        Ui.Tone.Secondary => "bg-secondary",
-        Ui.Tone.Accent => "bg-accent",
-        Ui.Tone.Info => "bg-info",
-        Ui.Tone.Success => "bg-success",
-        Ui.Tone.Warning => "bg-warning",
-        Ui.Tone.Error => "bg-error",
-        _ => "",
-    };
-
     internal static string FileInputTone(Ui.Tone value) => value switch
     {
         Ui.Tone.Neutral => "file-input-neutral",

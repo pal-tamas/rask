@@ -69,6 +69,35 @@
          Angular's CLI sets its own floor far above this one (`^22.22.3 || ^24.15.0 || >=26.0.0` as of
          22.1.6) and enforces it itself, which is why Rask does not try to track it here. -->
     <RaskSpaMinimumNode Condition="'$(RaskSpaMinimumNode)' == ''">22.12.0</RaskSpaMinimumNode>
+
+    <!--
+      Where the generated contracts land, relative to the client. Inside src/ on purpose: the bundler
+      only compiles and tree-shakes what its own source tree contains, and TypeScript's project
+      references would otherwise need widening to reach outside it.
+    -->
+    <RaskSpaGeneratedDir Condition="'$(RaskSpaGeneratedDir)' == ''">src/rask</RaskSpaGeneratedDir>
+
+    <!--
+      The client's TypeScript configuration, relative to the client. Its presence is what the build
+      checks (RASKSPA004) before it generates contracts into a front end: what this package supports is
+      a TypeScript single-page app, and TypeScript is the whole point rather than a preference — the
+      contracts are emitted as `.ts`, and a JavaScript client would import them, have nothing checked,
+      and find a renamed property on the wire instead of at the compiler.
+
+      Name it explicitly when the client keeps its config somewhere else — a monorepo base config, or a
+      `tsconfig.app.json` with no plain `tsconfig.json` beside it. Serving a bundle a JavaScript app
+      produced is still fine; turn RaskEmitTypeScript off and this package is a static-file host.
+    -->
+    <RaskSpaTypeScriptConfig Condition="'$(RaskSpaTypeScriptConfig)' == ''">tsconfig.json</RaskSpaTypeScriptConfig>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      What the CQRS generator reads to decide whether to carry the TypeScript out in the assembly. It
+      is off unless a front end is actually resolved (the targets set it), because the constants are
+      the whole front-end contract surface as a string and no in-process app should pay for them.
+    -->
+    <CompilerVisibleProperty Include="RaskEmitTypeScript"/>
+  </ItemGroup>
 
 </Project>

@@ -232,13 +232,15 @@ A tooltip that is only drawn is a tooltip a screen reader never says. Rask UI's 
 to its content at render: a trigger with text of its own carries `aria-describedby`, so the tooltip is read
 after its name, and a trigger without — an icon button — carries `aria-labelledby`, so the tooltip IS its name.
 The content is `role="tooltip"` and `aria-hidden`, read through that reference and not a second time in the
-reading order. It shows on keyboard focus (`:focus-visible`) as well as on hover, and Escape dismisses it where
-the trigger is a button or a link in an engine with interest invokers.
+reading order. It shows on keyboard focus (`:focus-visible`) as well as on hover, stays while that focus lasts
+even if the pointer passes over and leaves, and Escape dismisses it — for any trigger, since the runtime shows
+it (`data-rask-tooltip`). A `Ui.Button` with a `Tooltip` is wired the same way: an icon-only one is named by
+`aria-labelledby`, not by an `aria-label` copied from the tooltip.
 
 The trigger has to be one element for this — an HTML element or a kit component that is one; around a
 composite nothing is wired, as Flux wires nothing but the trigger. And a tooltip is a hint: a touch
 screen has no hover, so what matters there is `Toggleable()`, which a tap opens. See
-[ui-kit.md](ui-kit.md#tooltips) for what the script-less design leaves undone.
+[ui-kit.md](ui-kit.md#tooltips) for the little that is left undone.
 
 ## Controls that are waiting
 
@@ -256,7 +258,8 @@ backstop. Opt a control — or a container of them — out with `data-rask-loadi
 `Ui.Toast` is Flux's toast, announced as Flux announces it: the host is `role="status"` and each toast is
 `aria-atomic="true"`, so a toast is read politely and whole — heading and text together — whatever its
 variant. A variant is its icon's **shape** as well as its colour. A timed toast waits while the pointer is over
-it; one that must not be missed is raised with `.UntilDismissed()`. A toast on its own closes on Escape; its
+it — or, in a stack, over any toast of the stack — and then runs out what it had left; focus inside it holds
+nothing, as on Flux, so one that must not be missed is raised with `.UntilDismissed()`. A toast on its own closes on Escape; its
 close button and any action or link are ordinary controls in the tab order. See
 [ui-kit.md](ui-kit.md) and [Toast messages](composition-lists.md#toast-messages).
 

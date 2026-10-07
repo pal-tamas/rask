@@ -701,19 +701,50 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task A_tooltip_shows_while_its_button_is_hovered() => RunAsync(async () =>
+    public Task A_button_with_a_tooltip_is_inside_the_tooltip_which_shows_while_it_is_hovered_and_goes_on_Escape() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var add = Page.Locator("[data-testid='ui-button-icons']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Add" });
-        var tip = add.Locator("[data-ui-tooltip-content]");
+        var tip = add.Locator("xpath=..").Locator("> [data-ui-tooltip-content]");
+        await add.EvaluateAsync("el => el.scrollIntoView({ block: 'center' })");
 
+        // Flux's structure: the tooltip wraps the button, which is named by it, shortcut and all.
+        await Expect(add.Locator("xpath=..")).ToHaveAttributeAsync("data-ui-tooltip", "");
+        await Expect(add).ToHaveAttributeAsync("aria-labelledby", await tip.GetAttributeAsync("id") ?? "");
+        await Expect(add).ToHaveAccessibleNameAsync("Add N");
         await Expect(tip).ToBeHiddenAsync();
         await add.HoverAsync();
 
         await Expect(tip).ToBeVisibleAsync();
-        await Expect(tip).ToContainTextAsync("Add");
+        Assert.True(await tip.EvaluateAsync<bool>("el => el.matches(':popover-open')"), "the tooltip is not in the top layer");
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(tip).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task Buttons_inside_tooltips_inside_a_group_still_fuse_into_one_control() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var group = Page.Locator("[data-testid='ui-button-groups'] [data-ui-button-group]").Nth(1);
+        var first = group.Locator("[data-ui-button]").Nth(0);
+        var middle = group.Locator("[data-ui-button]").Nth(1);
+        var last = group.Locator("[data-ui-button]").Nth(2);
+
+        // Measured on Flux: the group reaches each button through its tooltip, by where the tooltip stands.
+        await Expect(group.Locator("> [data-ui-tooltip]")).ToHaveCountAsync(3);
+        await Expect(first).ToHaveCSSAsync("border-top-left-radius", "8px");
+        await Expect(first).ToHaveCSSAsync("border-top-right-radius", "0px");
+        await Expect(first).ToHaveCSSAsync("border-left-width", "1px");
+        await Expect(middle).ToHaveCSSAsync("border-left-width", "0px");
+        await Expect(middle).ToHaveCSSAsync("border-top-left-radius", "0px");
+        await Expect(middle).ToHaveCSSAsync("border-top-right-radius", "0px");
+        await Expect(last).ToHaveCSSAsync("border-left-width", "0px");
+        await Expect(last).ToHaveCSSAsync("border-top-left-radius", "0px");
+        await Expect(last).ToHaveCSSAsync("border-top-right-radius", "8px");
+        await Expect(middle).ToHaveAccessibleNameAsync("Justify");
     });
 
     [Fact]

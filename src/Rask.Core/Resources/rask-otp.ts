@@ -108,26 +108,43 @@ function write(bound: HTMLInputElement, value: string): void {
     if (bound.value === value) {
         return;
     }
-    const earlier = watcher ? watcher.takeRecords() : [];
+    // What the page wrote and the observer has not been handed yet is sorted out FIRST, while the attribute
+    // still says what the page wrote. A record names the attribute, not its value: read after the write
+    // below, a late echo of "1" would look like the page setting the code to what was just typed — every
+    // echo still waiting would be forgotten, and the next one to arrive would take the cells back.
+    if (watcher) {
+        observed(watcher.takeRecords());
+    }
     bound.value = value;
     if (watcher) {
         watcher.takeRecords();
-        observed(earlier);
     }
 }
 
+// ONCE per group, however many records name it. A record says the attribute changed, not what it changed to,
+// and one render writes a field twice (the attribute, then the property, which on a hidden input is the same
+// attribute): the second record would be read after the first one's answer — the cells' own value, put back
+// over the echo — and that value is waiting too, so it would pass for ITS echo, and every echo before it be
+// forgotten. The next one to arrive would then take the cells back.
 function observed(records: MutationRecord[]): void {
+    const seen = new Set<Element>();
+    const once = function (group: Element): void {
+        if (!seen.has(group)) {
+            seen.add(group);
+            refill(group);
+        }
+    };
     for (const record of records) {
         if (record.type === "attributes") {
             const t = record.target as Element;
             const group = t instanceof HTMLInputElement && t.type === "hidden" ? t.closest(GROUP) : null;
-            if (group) refill(group);
+            if (group) once(group);
             continue;
         }
         record.addedNodes.forEach(function (n) {
             if (n instanceof Element) {
-                if (n.matches(GROUP)) refill(n);
-                n.querySelectorAll(GROUP).forEach(refill);
+                if (n.matches(GROUP)) once(n);
+                n.querySelectorAll(GROUP).forEach(once);
             }
         });
     }

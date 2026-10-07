@@ -19,8 +19,8 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
 
         var id = ContentId(html);
         Assert.Equal(
-            "<div class=\"inline-flex\" data-ui-tooltip>"
-            + $"<button aria-describedby=\"{id}\" interestfor=\"{id}\">Open</button>"
+            $"<div class=\"inline-flex\" data-ui-tooltip data-rask-tooltip=\"{id}\">"
+            + $"<button aria-describedby=\"{id}\">Open</button>"
             + $"<div id=\"{id}\" class=\"{Look} inset-[5px] [position-area:top] [position-try-fallbacks:flip-block]\""
             + " popover=\"manual\" data-ui-tooltip-content role=\"tooltip\" aria-hidden=\"true\">Settings</div>"
             + "</div>",
@@ -33,7 +33,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
         var html = Ui.Tooltip.Content("Settings")[Button[Ui.Icon.Name(Ui.IconName.Cog6Tooth)]].ToHtml();
 
         var id = ContentId(html);
-        Assert.Contains($"<button aria-labelledby=\"{id}\" interestfor=\"{id}\">", html);
+        Assert.Contains($"<button aria-labelledby=\"{id}\">", html);
         Assert.DoesNotContain("aria-describedby", html);
     }
 
@@ -63,18 +63,19 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
 
         var id = ContentId(html);
         Assert.Contains($"aria-describedby=\"{id}\"", html);
-        Assert.Contains($"interestfor=\"{id}\"", html);
+        Assert.StartsWith($"<div class=\"inline-flex\" data-ui-tooltip data-rask-tooltip=\"{id}\"><button", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_link_is_an_interest_invoker_and_anything_else_is_left_to_the_stylesheet()
+    public void The_runtime_shows_it_for_any_trigger_so_no_trigger_is_an_invoker_of_its_own()
     {
         var link = Ui.Tooltip.Content("Opens the guide")[A.Href("/guide")["Guide"]].ToHtml();
         var text = Ui.Tooltip.Content("Not yet")[Span["Soon"]].ToHtml();
 
-        Assert.Contains($"interestfor=\"{ContentId(link)}\"", link);
-        Assert.DoesNotContain("interestfor", text);
-        Assert.Contains($"<span aria-describedby=\"{ContentId(text)}\">Soon</span>", text);
+        Assert.Contains($"data-rask-tooltip=\"{ContentId(link)}\"", link);
+        Assert.Contains($"data-rask-tooltip=\"{ContentId(text)}\"><span aria-describedby=\"{ContentId(text)}\">Soon</span>", text);
+        Assert.DoesNotContain("interestfor", link + text);
+        Assert.DoesNotContain("popovertarget", link + text);
     }
 
     [Fact]
@@ -82,7 +83,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Tooltip.Content("Search")[Ui.Kbd.Text("K")].ToHtml();
 
-        Assert.StartsWith("<div class=\"inline-flex\" data-ui-tooltip>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"inline-flex\" data-ui-tooltip data-rask-tooltip=\"ui-tooltip-", html, StringComparison.Ordinal);
         Assert.DoesNotContain("role=\"group\"", html);
         Assert.DoesNotContain("aria-describedby", html);
     }
@@ -119,7 +120,20 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
             ["top", "bottom", "left", "right", "block-start span-inline-end", "block-end span-inline-start", "left span-bottom", "right span-top"],
             area => Assert.Contains("position-area:" + area, css));
         Assert.Contains("anchor-scope:--ui-tooltip", css);
-        Assert.Contains("[data-ui-tooltip]>[interestfor]{interest-delay:0s}", css);
+    }
+
+    [Fact]
+    public void The_stylesheet_shows_a_hover_tooltip_itself_only_where_no_script_runs()
+    {
+        var css = UiStylesheet.Css;
+
+        var hover = css.IndexOf("[data-ui-tooltip][data-rask-tooltip]:hover>[data-ui-tooltip-content]", StringComparison.Ordinal);
+        var media = css.LastIndexOf("@media", hover, StringComparison.Ordinal);
+
+        // Anywhere else a :hover rule would keep showing a tooltip the runtime had hidden on Escape.
+        Assert.True(hover > 0, "the no-script fallback is missing");
+        Assert.StartsWith("@media (scripting:none){[data-ui-tooltip][data-rask-tooltip]:hover", css[media..], StringComparison.Ordinal);
+        Assert.DoesNotContain("interestfor", css, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -176,7 +190,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
         ].ToHtml();
 
         var id = ContentId(html);
-        Assert.Contains($"<button aria-describedby=\"{id}\" interestfor=\"{id}\">Tax id</button><div id=\"{id}\"", html);
+        Assert.Contains($"<button aria-describedby=\"{id}\">Tax id</button><div id=\"{id}\"", html);
         Assert.Contains("[position-try-fallbacks:flip-block] max-w-[20rem]\"", html);
         Assert.Contains("<p>Nine digits.</p> <span class=\"ps-1 text-zinc-300\">T</span></div>", html);
     }
@@ -190,7 +204,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
         Assert.StartsWith("<div class=\"inline-flex\" data-ui-tooltip data-toggleable>", html, StringComparison.Ordinal);
         Assert.Contains($"<button aria-controls=\"{id}\" aria-haspopup=\"true\" popovertarget=\"{id}\">Why</button>", html);
         Assert.Contains("popover=\"auto\" data-ui-tooltip-content>Nine digits</div>", html);
-        Assert.DoesNotContain("interestfor", html);
+        Assert.DoesNotContain("data-rask-tooltip", html);
         Assert.DoesNotContain("role=\"tooltip\"", html);
     }
 
@@ -221,7 +235,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
         var id = ContentId(html);
         Assert.StartsWith("<div class=\"inline-flex\" data-ui-tooltip data-disabled>", html, StringComparison.Ordinal);
         Assert.Contains($"<button aria-describedby=\"{id}\">Open</button>", html);
-        Assert.DoesNotContain("interestfor", html);
+        Assert.DoesNotContain("data-rask-tooltip", html);
     }
 
     [Fact]
@@ -237,8 +251,9 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Tooltip.Content("Settings").Interactive()[Button["Open"]].ToHtml();
 
+        // Flux writes the state closed; the runtime keeps it true while the tooltip shows.
         var id = ContentId(html);
-        Assert.Contains($"<button aria-controls=\"{id}\" interestfor=\"{id}\">Open</button>", html);
+        Assert.Contains($"<button aria-controls=\"{id}\" aria-expanded=\"false\">Open</button>", html);
         Assert.Contains("data-ui-tooltip-content role=\"tooltip\">Settings</div>", html);
         Assert.DoesNotContain("aria-hidden", html);
         Assert.DoesNotContain("aria-describedby", html);
@@ -270,7 +285,18 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Tooltip.Content("Settings").Class("ms-auto")[Button["Open"]].ToHtml();
 
-        Assert.StartsWith("<div class=\"inline-flex ms-auto\" data-ui-tooltip>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"inline-flex ms-auto\" data-ui-tooltip ", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Only_an_interactive_trigger_carries_the_expanded_state_as_on_Flux()
+    {
+        var plain = Ui.Tooltip.Content("Settings")[Button["Open"]].ToHtml();
+        var toggled = Ui.Tooltip.Content("Settings").Toggleable()[Button["Open"]].ToHtml();
+
+        // A toggleable button's state is the browser's own, from `popovertarget`: a written one would go stale.
+        Assert.DoesNotContain("aria-expanded", plain);
+        Assert.DoesNotContain("aria-expanded", toggled);
     }
 
     private static string ContentId(string html) => ContentIdPattern().Match(html).Groups[1].Value;

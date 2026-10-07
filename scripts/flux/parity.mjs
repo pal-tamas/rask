@@ -79,7 +79,7 @@ const IGNORED = new Set(['width', 'height']);
 // place because it has that behaviour built in: a <label for> focuses its control with no script at all.
 const NATIVE = {
   'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend', 'ui-progress': 'div',
-  'ui-table-scroll-area': 'div', 'ui-disclosure-group': 'div', 'ui-disclosure': 'details',
+  'ui-table-scroll-area': 'div', 'ui-disclosure-group': 'div', 'ui-disclosure': 'details', 'ui-chart': 'div',
   // Flux's pressable that is not a <button> (a kanban card): focusable, pressed with Enter and Space.
   'ui-button': 'button',
   // The tooltip's wrapper: the kit wires the trigger at render and the browser shows the [popover].
@@ -92,7 +92,11 @@ const NATIVE = {
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
 const sameTag = (a, b) => (NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
-const MISMARKED = { 'ui-disclosure-group': 'accordion' };
+// …and leaves a chart's root with no marker at all: its <ui-chart> is the chart.
+const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };
+// What the kit adds to do WITHOUT script what Flux does with it: a chart's hover strips, each carrying the
+// cursor and tooltip Flux's script would move there. Flux has no such node, so there is nothing to pair it with.
+const EXTRA = ['data-ui-chart-hover'];
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
 const snapshot = JSON.parse(await readFile(join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json'), 'utf8'));
 const OWN = new Set([slug, ...(snapshot.pages.find(p => p.slug === slug)?.parts ?? [])
@@ -156,7 +160,7 @@ function compareExample(theirs, mine, notes) {
 // Marked nodes with no marked ancestor: the components an example places.
 function tops(example, prefix) {
   const byId = new Map(example.nodes.map(n => [n.id, n]));
-  const marked = n => Object.keys(n.attrs).some(k => k.startsWith(prefix));
+  const marked = n => n.tag in MISMARKED || Object.keys(n.attrs).some(k => k.startsWith(prefix));
   const hasMarkedAncestor = n => {
     for (let p = byId.get(n.parent); p; p = byId.get(p.parent)) if (marked(p)) return true;
     return false;
@@ -202,7 +206,9 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
   if (standIn) return;
   if (own) compareLook(theirs, a, mine, b, where, diffs);
 
-  const kids = (example, n) => example.nodes.filter(c => c.parent === n.id);
+  // A <template> is never drawn — Flux keeps a prototype of every chart node in one, and inside an <svg> a
+  // template's children are ordinary DOM children — so it is no child on either side. Nor is an EXTRA node.
+  const kids = (example, n) => example.nodes.filter(c => c.parent === n.id && c.tag !== 'template' && !EXTRA.some(name => name in c.attrs));
   const ca = kids(theirs, a);
   const cb = kids(mine, b);
   if (ca.length !== cb.length) {
@@ -273,7 +279,14 @@ function same(x, y) {
   // …and a gray's hue, which means nothing at zero chroma, prints as `none` once a minifier has been at the sheet.
   const round = v => v.replace(/(okl(?:ch|ab)\([^)]*?) none\)/g, '$1 0)')
     .replace(/-?\d*\.\d+(e-?\d+)?/g, n => String(Math.round(Number(n) * 1000) / 1000));
-  return round(x) === round(y);
+  if (round(x) === round(y)) return true;
+  // …and two numbers a hair apart can still round to different thousandths (579.8294 and 579.8295, a
+  // translate() Chromium keeps in single precision): the same text around numbers no further apart than that.
+  const numbers = [];
+  const shape = v => round(v).replace(/-?\d+(\.\d+)?(e-?\d+)?/g, n => (numbers.push(Number(n)), '#'));
+  if (shape(x) !== shape(y)) return false;
+  const half = numbers.length / 2;
+  return numbers.slice(0, half).every((n, i) => Math.abs(n - numbers[half + i]) <= 0.0011);
 }
 
 function fix(v) {

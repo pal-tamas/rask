@@ -1006,14 +1006,17 @@
   because it is a relation between the caller's trigger and its sibling.
 
   The trigger is the anchor, under one name scoped to each tooltip, so no two need a name of their own. The
-  content is a [popover]: a trigger that carries `interestfor` (a button or a link, in an engine with interest
-  invokers) or `popovertarget` (Toggleable) opens it in the top layer, and the browser closes it on Escape.
-  Everything else — a trigger that is not an invoker, a disabled button, an engine without interest invokers —
-  is shown in place by :hover and :focus-visible, which is the same box at the same anchor but not in the top
-  layer, and which Escape cannot dismiss.
+  content is a [popover], and WHEN it shows is not this sheet's: Rask's runtime shows and hides it
+  (data-rask-tooltip on the wrapper — pointer, keyboard focus, Escape, a press), in the top layer whatever
+  the trigger is, and a Toggleable one is its button's `popovertarget`. This sheet says where it goes once
+  it is open.
 
-  Measured on Flux and kept: no delay either way; the pointer cannot rest on the tooltip (it is gone the
-  moment the pointer leaves the trigger, hence pointer-events), and pressing the trigger hides it.
+  Measured on Flux and kept: the pointer cannot rest on the tooltip (it is gone the moment the pointer leaves
+  the trigger, hence pointer-events).
+
+  Two things still show it in place, with no top layer and no Escape. A Toggleable tooltip around something
+  that is not a button, which has no `popovertarget`: the wrapper takes the focus a tap gives. And a page
+  whose scripts never run, where :hover and keyboard focus are all there is.
 */
 @layer rask {
   [data-ui-tooltip] {
@@ -1022,9 +1025,6 @@
   [data-ui-tooltip] > :first-child {
     anchor-name: --ui-tooltip;
   }
-  [data-ui-tooltip] > [interestfor] {
-    interest-delay: 0s;
-  }
 
   /* Closed, it computes as Flux's does. Open, it leaves the flow for the trigger's side. */
   [data-ui-tooltip-content] {
@@ -1032,9 +1032,6 @@
     overflow: visible;
   }
   [data-ui-tooltip-content]:popover-open,
-  [data-ui-tooltip]:not([data-toggleable], [data-disabled]):hover > [data-ui-tooltip-content],
-  [data-ui-tooltip]:not([data-toggleable], [data-disabled]):has(> :first-child:focus-visible, > :first-child :focus-visible)
-    > [data-ui-tooltip-content],
   [data-ui-tooltip][data-toggleable][tabindex]:not([data-disabled]):focus-within > [data-ui-tooltip-content] {
     display: block;
     position: fixed;
@@ -1043,15 +1040,14 @@
   [data-ui-tooltip]:not([data-toggleable]) > [data-ui-tooltip-content] {
     pointer-events: none;
   }
-  [data-ui-tooltip]:not([data-toggleable]):has(> :first-child:active) > [data-ui-tooltip-content] {
-    visibility: hidden;
-  }
 
-  /* Where the browser shows it on interest, :hover stands down — or Escape would close a tooltip that
-     the rule above went on showing. */
-  @supports (interest-delay: 0s) {
-    [data-ui-tooltip]:has(> [interestfor]:not(:disabled)) > [data-ui-tooltip-content]:not(:popover-open) {
-      display: none;
+  @media (scripting: none) {
+    [data-ui-tooltip][data-rask-tooltip]:hover > [data-ui-tooltip-content],
+    [data-ui-tooltip][data-rask-tooltip]:has(> :first-child:focus-visible, > :first-child :focus-visible)
+      > [data-ui-tooltip-content] {
+      display: block;
+      position: fixed;
+      overflow: auto;
     }
   }
 }
@@ -1415,9 +1411,13 @@
       ui-toast-lift 0.35s ease var(--ui-toast-duration) forwards;
   }
 
-  /* Important, because the `animation` shorthands above reset the play state and outweigh this selector. */
+  /* The fade waits with the countdown: under the pointer, and for every toast of a stack while the pointer is
+     over any of it (data-rask-dismiss-scope holds them all). Important, because the `animation` shorthands
+     above reset the play state and outweigh this selector. */
   [data-ui-toast-dialog]:hover,
-  [data-ui-toast-dialog]:hover > :first-child {
+  [data-ui-toast-dialog]:hover > :first-child,
+  [data-ui-toast-group]:hover > [data-ui-toast-dialog],
+  [data-ui-toast-group]:hover > [data-ui-toast-dialog] > :first-child {
     animation-play-state: paused !important;
   }
 

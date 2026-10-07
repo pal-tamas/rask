@@ -298,7 +298,8 @@ the other — and size the drawing: 16px beside a label, 20px alone.
 Ui.Button.Icon(Ui.IconName.ArrowDownTray)["Export"]
 Ui.Button.IconTrailing(Ui.IconName.ChevronDown)["Open"]
 Ui.Button.Icon(Ui.IconName.XMark).AriaLabel("Close")          // no children: a square. Name it.
-Ui.Button.Icon(Ui.IconName.Cog6Tooth).Tooltip("Settings")     // a tooltip names it too
+Ui.Button.Icon(Ui.IconName.Cog6Tooth).Tooltip("Settings")     // a tooltip names it too: Flux's wrapper, by aria-labelledby
+Ui.Button.Icon(Ui.IconName.Moon).Tooltip("Toggle dark mode").TooltipKbd("D").TooltipPosition(Ui.TooltipPosition.Bottom)
 ```
 
 ```csharp
@@ -319,7 +320,8 @@ Ui.ButtonGroup[Ui.Button["Oldest"], Ui.Button["Newest"], Ui.Button["Top"]]   // 
 | `Align` | `Ui.Align.Start` / `Center` / `End`, for a button wider than its content |
 | `Inset` | `Ui.Inset` flags — `Top`, `Bottom`, `Left`, `Right`, `All` — for a ghost or subtle button |
 | `Loading` | see [Buttons that wait](#buttons-that-wait) |
-| `Tooltip`, `TooltipPosition`, `TooltipKbd`, `Kbd` | a hint on hover and keyboard focus, and the shortcut shown in it |
+| `Tooltip`, `TooltipPosition`, `TooltipKbd` | Flux's shorthand: the button is wrapped in a [`Ui.Tooltip`](#tooltips) that says this, on that side (`Ui.TooltipPosition`), with that shortcut after it. It names a button that has only an icon (`aria-labelledby`), and still fuses inside a `Ui.ButtonGroup` |
+| `Kbd` | a shortcut drawn inside the button, after its label: `Ui.Button.Kbd("esc")["Cancel"]` |
 | `Href` | see [Buttons and links that go somewhere](#buttons-and-links-that-go-somewhere) |
 | `As` | `Ui.ButtonAs.Div` for the look of a button on something that is not one |
 | `Type`, `Disabled`, `Command`, `CommandFor` | the `<button>`'s own attributes |
@@ -525,7 +527,8 @@ through `ResolveAria()`, which writes into Core's `aria-*` slot so the attribute
 
 **One tag, and that has a consequence.** An element's children are written straight from the indexer, so
 an element-derived component cannot draw anything around them — `Ui.Button` adds its icons, its spinner and
-its tooltip INSIDE the tag, beside the label. The two places this shows:
+its `Kbd` INSIDE the tag, beside the label. A part that needs markup around its tag renders that markup
+with its own tag inside, as `Ui.Button` does once it has a `Tooltip`. The two other places this shows:
 
 - **`Ui.Table`** sits in a box that scrolls, and a heading wraps its label. Each renders its own tag
   with what it adds inside or around it. The id, classes, data, ARIA and handlers you set stay on the
@@ -674,26 +677,26 @@ description: the trigger gets `aria-controls` instead and the content stays in t
 element (`Button[…]`, `A[…]`, `Span[…]`) or a kit component that is one, like `Ui.Button`. Around anything
 else nothing is wired, as Flux wires nothing but the trigger: use an element.
 
-**No script.** The content is a `[popover]` placed by CSS anchor positioning. What opens it depends on the
-trigger:
+**The kit ships no script; the runtime shows it.** The content is a `popover` placed by CSS anchor
+positioning, and the wrapper carries
+[`data-rask-tooltip="<content id>"`](js-interop-runtime.md#pointer-opened-popovers), one of the runtime's
+generic hooks. So every tooltip, whatever its trigger — a button, a link, a `Span`, a disabled button — is
+in the top layer, where no card can clip it, and behaves as Flux's does, step for step (`parity-tooltip.mjs`
+walks both): shown the moment the pointer arrives or keyboard focus does, gone the moment the pointer leaves
+unless that focus is still there, dismissed by Escape, and hidden by a press on the trigger until the pointer
+has left and come back. An `Interactive()` trigger's `aria-expanded` is `false` at rest and `true` while it
+shows.
 
-| Trigger | Opened by | Top layer | Escape |
-| --- | --- | --- | --- |
-| a `<button>` or `<a>`, in an engine with interest invokers (Chromium, today) | the browser — `interestfor` | yes | dismisses it |
-| anything else: a `Span`, a disabled button, any engine without interest invokers | `:hover` and `:focus-visible` | no — an ancestor that clips or transforms can cut it off | does nothing |
-| `Toggleable()` around a `<button>` | the browser — `popovertarget`, a click | yes | closes it; so does a click outside |
-| `Toggleable()` around anything else | focus on the wrapper, which a tap gives it | no | does nothing |
+| Tooltip | Opened by | Escape |
+| --- | --- | --- |
+| any trigger | the runtime — pointer and keyboard focus | dismisses it |
+| `Toggleable()` around a `<button>` | the browser — `popovertarget`, a click; a hover does nothing | closes it; so does a click outside |
+| `Toggleable()` around anything else | focus on the wrapper, which a tap gives it — in place, not in the top layer | does nothing |
 
-Four things Flux's script does are therefore not reproduced, and `parity-tooltip.mjs` lists them on every run
-rather than hiding them: Escape does not dismiss a tooltip shown by `:hover`/`:focus-visible`; a tooltip
-hidden by a press comes back when the press is released, where Flux keeps it away until the pointer returns;
-an interest-invoked tooltip goes when the pointer leaves even if the trigger still has focus; and
-`aria-expanded` is not written on an `Interactive()` or `Toggleable()` trigger (the browser reports it for
-`popovertarget` itself). The runtime hook that closes all four exists —
-[`data-rask-tooltip="<bubble id>"`](js-interop-runtime.md#pointer-opened-popovers) on the element wrapping the
-trigger and a `popover="manual"` bubble calls `showPopover()`/`hidePopover()` on pointer, keyboard focus,
-Escape and press for every trigger and keeps `aria-expanded` true while it shows — but `Ui.Tooltip` does not
-write it yet.
+What is left: a `Toggleable()` tooltip around something that is not a `<button>` has no click to open it by
+(no runtime hook toggles a popover from an arbitrary element), and a toggleable button's expanded state is
+the browser's own rather than a written `aria-expanded`. On a page whose scripts never run
+(`@media (scripting: none)`) the stylesheet shows a tooltip in place on `:hover` and keyboard focus.
 
 ## Buttons and links that go somewhere
 
@@ -953,7 +956,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Navbar` `Ui.NavList` `Ui.NavItem` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
@@ -992,8 +995,7 @@ any kit dialog is open the page behind it does not scroll. The state-driven `Ope
 top layer, but it is not left without containment: it carries the runtime's `data-rask-focus-trap`, so focus
 moves in, Tab cycles inside, Escape runs `OnCancel` then `OnClose`, and focus returns when it closes.
 
-`Ui.Tooltip` is Flux's, and is the same idea one step further: the browser opens it too. See
-[Tooltips](#tooltips).
+`Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 
 **`Ui.Dropdown` and `Ui.Menu` are Flux UI's dropdown, exactly.** The first child is the trigger — a `Button`, a
 `Ui.Button`, any element that is a button — and the second is what it opens: a `Ui.Menu` of actions, or a
@@ -1266,7 +1268,11 @@ A toast goes after five seconds unless it says otherwise, by its close button, o
 The kit ships no script, so all of that is the **runtime's** generic hooks, written as attributes: the toast is a
 native `popover` the runtime shows (`data-rask-popover-open`), so it is in the top layer, over an open dialog;
 `data-rask-dismiss-after="<ms>"` has the runtime press the toast's own `[data-rask-dismiss]` button when the
-time is up, waiting while the pointer is over the toast; and `data-rask-shortcut="escape"` is Escape. Pressing
+time is up, waiting while the pointer is over the toast — and only the pointer
+(`data-rask-dismiss-hold="pointer"`): as on Flux, a toast with focus on its close button still goes on time. A
+`Ui.ToastGroup` is one `data-rask-dismiss-scope`, so the pointer anywhere over the stack holds every toast in
+it, and when it leaves each runs on from where it stopped rather than starting again; and
+`data-rask-shortcut="escape"` is Escape. Pressing
 the button rather than hiding the element is the point: the outlet takes the toast off its list, so the next
 render agrees with the screen. An action's button shows a spinner while its handler runs — the runtime's
 `data-loading` — and then takes the toast down.
@@ -1333,25 +1339,63 @@ keys inside it. `Ui.Popover` is the same machinery — a `[popover]` the browser
 dismisses on Escape and on a click outside, placed with the same `Position`/`Align` — with `role="dialog"` and
 ordinary Tab movement inside.
 
-**`Ui.Chart` draws lines, areas and bars as SVG on the server.** No script and no chart library. The series arrive
-through a factory whose parameter is the chart, as a data grid's columns do, which is what gives each lambda its
-row type:
+**`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No script and no chart library: the scales, the ticks
+and every path are computed during the render, to the numbers Flux's own layout arrives at
+(`scripts/flux/parity-chart.mjs` compares the two drawings' geometry).
 
 ```csharp
-Ui.Chart.Data(months).Label("Revenue and costs").Format("C0").Class("h-64")[c => [
-    c.X(m => m.Name),
-    c.Area(m => m.Revenue).Label("Revenue"),
-    c.Line(m => m.Costs).Label("Costs").Tone(Ui.Tone.Warning),
-    showOrders ? c.Bar(m => m.Orders).Label("Orders") : null
-]]
+Ui.Chart.Value(visits).Class("aspect-3/1")[
+    Ui.ChartSvg[
+        Ui.ChartLine.Field((Visit v) => v.Visitors).Class("text-pink-500 dark:text-pink-400"),
+        Ui.ChartAxis.X.Field((Visit v) => v.Date)[Ui.ChartAxisLine, Ui.ChartAxisTick],
+        Ui.ChartAxis.Y[Ui.ChartAxisGrid, Ui.ChartAxisTick],
+        Ui.ChartCursor],
+    Ui.ChartTooltip[
+        Ui.ChartTooltipHeading.Field((Visit v) => v.Date),
+        Ui.ChartTooltipValue.Field((Visit v) => v.Visitors).Label("Visitors")]]
 ```
 
-`Line`, `Area` and `Bar` read a `double`, `decimal`, `int` or `long` without a cast, and share one value axis whose
-ends are round numbers with zero on it. A series with no `Tone` takes the next colour in turn, and a legend appears
-once there is more than one. Size it with a height class: the plot stretches to the box while its strokes keep
-their width, and the axis labels are HTML beside it so they never stretch. Hovering a column shows that row's
-values in CSS. The figure is named by `Label`, the drawing is hidden from assistive technology, and a visually
-hidden table carries every value it draws — series as columns, rows as rows.
+- **Data.** Flux's chart takes an array of rows and its parts name a column with a string. `Ui.Chart.Value(rows)`
+  takes the typed list, and each part takes a selector whose lambda states the row type once —
+  `.Field((Visit v) => v.Visitors)` — because a part is built before the chart it goes into. A number of any
+  numeric type plots without a cast; a `DateTime`, `DateOnly` or `DateTimeOffset` on the index axis makes it a
+  time axis; anything else is a name. A chart of bare numbers needs no field at all:
+  `Ui.Chart.Value([15, 18, 16])[Ui.ChartSvg.Gutter("0")[Ui.ChartLine]]`.
+- **Parts.** In the drawing: `Ui.ChartLine` and `Ui.ChartArea` (`Curve`: smooth or `None`), `Ui.ChartPoint`,
+  `Ui.ChartBar` (alone, or inside `Ui.ChartGroup` / `Ui.ChartStack`), `Ui.ChartPie` (`InnerRadius("60%")` makes a
+  donut, `Radius` rounds the slices, `ColorField` lets a row choose its hue), `Ui.ChartAxis` holding
+  `Ui.ChartAxisTick`, `Ui.ChartAxisGrid`, `Ui.ChartAxisLine` and `Ui.ChartAxisMark`, `Ui.ChartZeroLine` and
+  `Ui.ChartCursor`. Beside it: `Ui.ChartViewport` (the drawing's box, when a legend or a summary shares the
+  chart), `Ui.ChartTooltip` with `Ui.ChartTooltipHeading` / `Ui.ChartTooltipValue` / `Ui.ChartTooltipIndicator`,
+  `Ui.ChartSummary` with `Ui.ChartSummaryValue`, and `Ui.ChartLegend` with `Ui.ChartLegendIndicator`.
+  `Ui.Chart.Horizontal()` lays the rows down the Y axis.
+- **Axes.** The value axis starts at zero (or the lowest value below it) and steps by a round quarter of its
+  span; `TickCount`, `TickStart`, `TickEnd`, `TickValues`, `TickPrefix`, `TickSuffix` and
+  `Position(Ui.Position.Right)` are Flux's. A time axis ticks at the pace of its rows and writes itself for its
+  reach (`9:17 AM`, `9 AM`, `Tue 9 AM`, `Mar 10`, `Mar`, `2026`). Labels that would touch give way as Flux's do:
+  dates drop every other one, names turn 45°.
+- **Size.** Flux measures its element in the browser and draws again when it changes. A chart drawn in C# is told
+  its box — `Ui.ChartSvg.Width(606).Height(202)`, 600 × 200 unless stated — and the SVG then scales as a whole.
+  State the size it is usually shown at, so its 12px labels are 12px there.
+- **Format.** Flux's `:format` is the options of `Intl.NumberFormat` / `Intl.DateTimeFormat`; `UiChartFormat`
+  carries them under Intl's names, written with .NET formatting in the reader's culture:
+  `new() { Style = Ui.ChartFormatStyle.Currency, Currency = "USD" }`,
+  `new() { Notation = Ui.ChartFormatNotation.Compact, MaximumFractionDigits = 1 }`,
+  `new() { Month = Ui.ChartFormatPart.Short, Day = Ui.ChartFormatPart.Numeric }`. Carried: `style`
+  (decimal, currency, percent, unit), `currency`, `unit`, `notation` (standard, compact, scientific),
+  `minimumFractionDigits`, `maximumFractionDigits`, `useGrouping`, `dateStyle`, `timeStyle`, `weekday`, `year`,
+  `month`, `day`, `hour`, `minute`, `second`, `hour12`. Not carried: `compactDisplay: long`, `currencyDisplay`,
+  `currencySign`, `signDisplay`, `unitDisplay`, significant-digit and integer-digit limits, `roundingMode`,
+  `timeZone`, `timeZoneName`, `era`, `fractionalSecondDigits`, `dayPeriod`, `hourCycle`, `calendar`,
+  `numberingSystem`. A date's parts are written in the order English writes them.
+- **Under the pointer.** Flux follows the pointer in script. Here every row has a strip over the drawing,
+  reaching halfway to its neighbours, that carries the row's own cursor and tooltip and shows them on `:hover`
+  — so the nearest row answers, as in Flux, with no script. A summary shows the latest row and does not follow
+  the pointer; a pie has no tooltip. Both need a pointer hook in the runtime.
+- **Labels are measured in Inter.** Flux sizes a chart's gutters by measuring its tick labels in the browser.
+  The kit carries Inter's advance widths and kerning (`UiChartInter`, generated by
+  `scripts/flux/inter-metrics.mjs`) and adds them up as Chromium does. In another face the labels still fit;
+  the gutters are those Inter would have needed.
 
 **`Ui.Textarea` grows, or does not.** `Resize` says which way the handle drags (`None` for a box in a layout the
 extra height would break), and `AutoSize` grows the box to fit what is typed. That one is CSS —
