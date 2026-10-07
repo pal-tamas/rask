@@ -44,6 +44,14 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new Shop --template react` is back.** One project: a `Rask.Server` host
+  (`RaskApp.Create(args).Serve()`, every battery the `wasm-hosted` template carries) with a React +
+  TypeScript + Vite + Tailwind app in `client/` — a query and a command over the typed client, `/login` and
+  `/register` screens over `/api/auth`, a manifest and service worker, and a Dockerfile that installs Node to
+  build it (`docs/spa.md#scaffolding-one`). New: `client/src/push.ts` subscribes through the browser's own
+  `PushManager` and posts `subscription.toJSON()` to `/_rask/push/subscribe`, with no Rask module; and
+  `rask dev` runs `npm ci` first when the client has no `node_modules`. `--no-cqrs` and `--islands` are
+  refused on it. The other six front-end templates are not back yet.
 - **A front end gets its host's remote messages as TypeScript again.** `Rask.Spa.Hosting` writes
   `contracts.ts`, `messages.ts`, the `rask.dispatch` client, `query.ts` and `browser/auth.ts` into
   `client/src/rask/` on every build (`docs/spa.md#a-typed-client-for-your-messages`). New: only a host that

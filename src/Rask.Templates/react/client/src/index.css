@@ -1,0 +1,25 @@
+/* The layer order for the whole document, declared before anything can imply another one.
+
+   daisyUI emits its rules into a `daisyui` layer, and Tailwind's own import only ranks
+   theme/base/components/utilities — so `daisyui` would otherwise be ranked by wherever it
+   first appeared in the output, which lands it ABOVE utilities. That makes
+   class="btn px-8" give you .btn's padding and not px-8: correct markup, quietly ignored. */
+@layer properties, theme, base, components, daisyui, utilities;
+
+@import 'tailwindcss';
+
+/* daisyUI, the same version the C# hosts compile, so a project scaffolded with this front end
+   looks like one scaffolded with any other. Its class names are what the starter is written
+   in; redefining a token in your own @theme re-skins every component without overriding a
+   single rule. */
+@plugin "daisyui";
+
+/* The starter's elements all carry a daisyUI class now, so this layer is down to the one rule
+   that has nowhere else to live: daisyUI paints base-100 on :root, and this is what puts the
+   page's own background behind it. Tailwind's preflight removes the browser's default look on
+   purpose, so an element left classless renders as unstyled text. */
+@layer base {
+  body {
+    @apply bg-base-200 text-base-content antialiased;
+  }
+}
