@@ -36,6 +36,7 @@ import {
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
+import "../../Rask.Core/Resources/rask-hooks.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {

@@ -685,8 +685,11 @@ rather than hiding them: Escape does not dismiss a tooltip shown by `:hover`/`:f
 hidden by a press comes back when the press is released, where Flux keeps it away until the pointer returns;
 an interest-invoked tooltip goes when the pointer leaves even if the trigger still has focus; and
 `aria-expanded` is not written on an `Interactive()` or `Toggleable()` trigger (the browser reports it for
-`popovertarget` itself). All four close with one runtime hook the kit does not have yet — a `[data-ui-tooltip]` listener in
-`rask-dom.ts` that calls `showPopover()`/`hidePopover()` on pointer, focus, Escape and press for every trigger.
+`popovertarget` itself). The runtime hook that closes all four exists —
+[`data-rask-tooltip="<bubble id>"`](js-interop-runtime.md#pointer-opened-popovers) on the element wrapping the
+trigger and a `popover="manual"` bubble calls `showPopover()`/`hidePopover()` on pointer, keyboard focus,
+Escape and press for every trigger and keeps `aria-expanded` true while it shows — but `Ui.Tooltip` does not
+write it yet.
 
 ## Buttons and links that go somewhere
 
