@@ -53,8 +53,10 @@ why, is to be the gate for this; it is NOT written yet — see "Open work" at th
   Neutral, Stone — a component whose Flux prop has no neutrals draws a neutral as its default, as `UiText`
   does), `Ui.IconName`, `Ui.IconVariant`, `Ui.Position`, `Ui.Align`, `Ui.Inset` (flags). A member named like
   an inherited HTML tag entry (`Strong`, `Desc`, `Button`, `A`, `Div`, `Text`, `Search`, `Time`) gets a step
-  that cannot be called (CS0176): write `.Variant(Ui.TextVariant.Strong)`, `.As(Ui.ButtonAs.A)` there. Known
-  generator limit, not fixed.
+  that cannot be called (CS0176): write `.Variant(Ui.TextVariant.Strong)`, `.As(Ui.ButtonAs.A)`,
+  `.As(Ui.BadgeAs.Button)` there. Known generator limit, not fixed. A component with an `IconVariant` prop
+  gets ITS members as steps too: `.Outline`, `.Mini`, `.Micro` on `Ui.Badge` set the icon's drawing, not the
+  badge's look.
 - **Rask's own idiom where Flux's is Livewire's:** `wire:model` → `Bind`/`Value` (see
   `docs/building-form-controls.md`); an event → a non-nullable `Callback`/`Callback<T>`; a link →
   `RouteUrl? Href`; a slot → children (the indexer) or a `Component?` property for a named slot.
@@ -120,7 +122,7 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast` today).
+card accordion callout button toast badge` today).
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -133,7 +135,7 @@ card accordion callout button toast` today).
   and size, inside not compared — give it the exact measured box, to 1/64px); `="self"` (its own look is
   another component's, children compared); `="width"`/`"height"` (that dimension is `rand()` on Flux's
   page, here and below). When the real component lands, the stand-in goes: Heading, Text, Field, Label,
-  Description, Icon, Separator, Table, Card, Callout, Button are real now — use them.
+  Description, Icon, Separator, Table, Card, Callout, Button, Badge are real now — use them.
 - **A real component inside a wrapper that is not rebuilt** (Flux's button sits in `<ui-tooltip>` or
   `<ui-dropdown>`): write the wrapper as a `<div data-ui-tooltip data-parity-skip="self">` holding the real
   component and a `display:none` `data-parity-skip` box per hidden sibling (the bubble, the menu). Without
@@ -195,9 +197,17 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - The Dashboard's queue tiles lost their icon and hover (Flux's card has no link or icon props, and the
   Dashboard may not write classes): rebuilt on Flux pieces later.
 - Parity stand-ins still standing: card page (fields, switches, the heading/text lines whose variant was
-  not looked up, the "Password" row with its button), table page (badge, avatar, the dropdown and menu
-  around the row button, pager), progress page (slider, as raw `ui-slider` markup), separator page (the
-  tooltip around the theme button), callout page (one badge), field page (inputs).
+  not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
+  (slider, as raw `ui-slider` markup), separator page (the tooltip around the theme button), field page
+  (inputs).
+- Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
+  `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
+  removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —
+  named in `UiBadge`'s remarks so the kit's sheet carries it for the Dashboard and DevTools, whose sources
+  Tailwind never reads (`UiConsoleChromeTests` pins it; `DashboardIsKitOnlyTests` allows exactly that call
+  until the Dashboard has a sheet of its own). daisyUI's `.badge` is STILL in the compiled sheet: the bare
+  word stands in some sixty kit comments and identifiers (the last rule of section 4 was not applied) — reword them, then
+  assert its absence in `UiStylesheetTests`.
 
 ## Runtime hooks the kit is waiting for (Flux does it in script; Rask's runtime cannot yet)
 - Toast: hovering RESTARTS the countdown in Flux — the runtime resumes the remainder. Hovering a group
@@ -207,6 +217,12 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - Toast, unexplained, for a later look: an unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a
   `switch` among keyed call sites, was remounted on every parent render.
 - The built-in toast (the host's, when the app places no `Ui.Toast`) shows one at a time, as Flux's does.
+
+## Merging a component branch
+`git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped
+the `__fluxRest` calls. After resolving, `git diff HEAD -- scripts/flux tests/Rask.Ui.Tests/Flux/FluxParity.cs
+tests/Rask.Ui.Tests/Flux/FluxParityPages.cs tests/Rask.Ui.Tests/Flux/flux.lock.json` must be empty apart from
+what the branch ADDS; `git checkout HEAD -- <file>` puts ours back.
 
 ## Open work (integration stopped here on 2026-10-07 — see the integrator's report)
 - A stale `src/Rask.Site/obj/**/rask-external` folder can fail the site build after merging main
