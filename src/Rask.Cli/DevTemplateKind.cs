@@ -11,6 +11,12 @@ internal enum DevTemplateKind
     /// <summary>A wasm-hosted solution; the project to run is the <c>.Server</c> host, not the client.</summary>
     WasmHosted,
 
+    /// <summary>
+    ///     An npm front end on an ASP.NET host. Two processes: the host, and the bundler's own dev
+    ///     server.
+    /// </summary>
+    SpaHosted,
+
     /// <summary>A standalone WebAssembly app: no ASP.NET host, and no launch profile scaffolded.</summary>
     WasmStandalone,
 

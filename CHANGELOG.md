@@ -9,6 +9,10 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask dev` runs an npm front end's dev server beside its host again.** A host that references
+  `Rask.Spa.Hosting` gets `dotnet watch` plus the client's own `npm run dev` (or `start`), and the browser
+  opens on the dev server — `RaskSpaDevServerUrl`, or Vite's `http://localhost:5173`. The client is found in
+  the `client` folder or, new, wherever `RaskSpaClientDir` points.
 - **A front end that builds with npm is built and shipped by its ASP.NET host again.** `Rask.Spa.Hosting`
   finds a `client` folder holding a `package.json` (or the one `RaskSpaClientDir` names), runs `npm ci` and
   `npm run build` in it on `dotnet build`, and copies the bundle into `wwwroot` on `dotnet publish`, where

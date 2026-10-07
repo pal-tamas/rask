@@ -61,7 +61,9 @@ directions, so a front end on an older toolchain can lower it.
 
 ## Development
 
-In development the bundler's own dev server serves the front end, with its own hot reload, and
+`rask dev` starts two processes: `dotnet watch` for the host, and the client's own dev server — the
+`dev` script in its `package.json`, or `start` where that is what it has. **The browser talks to the
+dev server**, which is what serves the front end and what its hot reload reaches, and the dev server
 forwards API calls to the host. That proxy belongs to the client — for Vite:
 
 ```ts
@@ -72,8 +74,11 @@ export default defineConfig({
 ```
 
 The browser only ever sees one origin, so there is no CORS to configure. The host, asked for a page
-before anything is built, answers 200 with a page naming the dev server rather than a 503; name the
-address with `RaskSpaDevServerUrl` (or `Rask:Spa:DevServerUrl`) and the page links to it.
+before anything is built, answers 200 with a page naming the dev server rather than a 503.
+
+`rask dev` opens `http://localhost:5173`, Vite's default. A dev server that listens elsewhere is named
+in the host's project file — `<RaskSpaDevServerUrl>http://localhost:3000</RaskSpaDevServerUrl>` — and
+both `rask dev` and that page follow it. A dev session does not build the production bundle.
 
 Under VS Code's F5 a host that calls `AddRaskSpaHost()` starts the client's dev server itself — the `dev` (or `start`) script from
 the client's `package.json` — because nothing else runs beside an app the debugger launched.
