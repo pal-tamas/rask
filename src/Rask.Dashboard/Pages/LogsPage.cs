@@ -238,12 +238,13 @@ public sealed partial class LogsPage(
         return Task.CompletedTask;
     }
 
-    private UiSearch SearchBox() =>
-        Ui.Search
+    private UiInput<string> SearchBox() =>
+        Ui.Input
+            .Value(Query ?? string.Empty)
+            .Type(InputType.Search)
+            .Icon(Ui.IconName.MagnifyingGlass)
             .Placeholder("Search message or exception")
-            .AccessibleLabel("Search stored log entries")
-            .Value(Query)
-            .OnSearch(SearchAsync);
+            .OnChange(SearchAsync);
 
     private Task SearchAsync(string value)
     {

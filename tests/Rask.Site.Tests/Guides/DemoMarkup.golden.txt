@@ -220,16 +220,18 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .mb-3
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .mb-3
-div .fieldset
-label .floating-label
-span
-input .input .validator
-p .label
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
@@ -250,7 +252,11 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-input .input .mb-2 .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .mb-2 .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 p .mb-0 .text-sm
 code
 
@@ -276,15 +282,17 @@ label .cursor-pointer .gap-2 .label
 input .checkbox
 span
 div .mb-3
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .mb-3
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .mb-3
 div .fieldset
 label .floating-label
@@ -312,16 +320,18 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .mb-3
-div .fieldset
-label .floating-label
-span
-input .input .validator
-p .label
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .mb-3
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .mb-3
 div .fieldset
 label .floating-label
@@ -332,11 +342,12 @@ option
 option
 option
 div .mb-3
-div .fieldset
-label .floating-label
-span
-input .input .validator
-p .label
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
@@ -357,8 +368,10 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .fieldset
-textarea .mb-2 .textarea .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+textarea .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .mb-2 .p-3 .placeholder:text-zinc-400 .resize-y .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
@@ -379,8 +392,11 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .fieldset
-input .input .mb-2 .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .mb-2 .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 p .mb-0 .text-sm
 strong
 
@@ -513,7 +529,11 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .gap-2 .mb-2
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
 div .text-sm .text-ui-muted
@@ -538,7 +558,11 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .gap-2 .items-stretch .mb-2
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
 button .btn .btn-error .btn-outline
@@ -570,9 +594,11 @@ div .text-sm .text-ui-muted
 code
 div .mb-2 .text-sm .text-ui-muted
 code
-label .floating-label
-span
-input .input .mb-2 .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .mb-2 .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 button .btn .btn-primary .mb-2
 div .text-break .text-sm .text-ui-muted
 code
@@ -638,11 +664,11 @@ path
 button .btn .btn-outline .btn-primary
 div .mb-2 .text-sm .text-ui-muted
 code
-div .fieldset
-label .floating-label
-span
-textarea .mb-2 .textarea .validator
-p .label
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+textarea .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .mb-2 .p-3 .placeholder:text-zinc-400 .resize-y .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .text-sm .text-ui-muted
 code
 
@@ -767,13 +793,17 @@ div .flex-1 .sample-result-body
 div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .gap-4 .grid .grid-cols-12 .mb-2
 div .col-span-12 .sm:col-span-4
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .col-span-12 .sm:col-span-8
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
@@ -1158,9 +1188,11 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
-label .floating-label
-span
-input .input .mb-2 .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .mb-2 .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
 button .btn .btn-error .btn-outline
@@ -1208,7 +1240,11 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .gap-2 .mb-2
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
 button .btn .btn-error .btn-outline
@@ -2263,7 +2299,11 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .mb-2
 div .flex .gap-2 .items-stretch
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
 path
@@ -2285,7 +2325,11 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-input .input .mb-2 .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .mb-2 .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 p .mb-0 .text-sm
 code
 
@@ -2329,18 +2373,21 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-2
-div .fieldset
-label .floating-label
-span
-input .input .validator
-div .fieldset
-label .floating-label
-span
-input .input .validator
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .fieldset
 label .floating-label
 span
@@ -2349,10 +2396,10 @@ option
 option
 option
 option
-div .fieldset
-label .floating-label
-span
-textarea .textarea .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+textarea .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .p-3 .placeholder:text-zinc-400 .resize-y .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .mt-1
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -2375,19 +2422,21 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .gap-4 .grid .grid-cols-12
 div .col-span-12 .md:col-span-6
-div .fieldset
-label .floating-label
-span
-input .input .mb-2 .validator
-p .label
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+div .block .mb-2 .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 p .mb-0 .text-sm .text-ui-muted
 strong
 div .col-span-12 .md:col-span-6
 form
-div .fieldset
-label .floating-label
-span
-input .input .mb-2 .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .mb-2 .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 p .mb-0 .text-sm .text-ui-muted
 strong
 
@@ -2445,19 +2494,19 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .gap-4 .grid .grid-cols-12
 div .col-span-12 .md:col-span-6
-div .fieldset
-label .floating-label
-span
-textarea .mb-2 .textarea .validator
-p .label
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+textarea .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .mb-2 .p-3 .placeholder:text-zinc-400 .resize-y .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 p .mb-0 .text-sm .text-ui-muted
 strong
 div .col-span-12 .md:col-span-6
 form
-div .fieldset
-label .floating-label
-span
-textarea .mb-2 .textarea .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+textarea .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .mb-2 .p-3 .placeholder:text-zinc-400 .resize-y .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 p .mb-0 .text-sm .text-ui-muted
 strong
 
@@ -2479,10 +2528,11 @@ div .flex-1 .sample-result-body
 div .gap-4 .grid .grid-cols-12
 div .col-span-12 .md:col-span-7
 form
-div .fieldset
-label .floating-label
-span
-input .input .mb-2 .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .mb-2 .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 button .btn .btn-primary
 div .col-span-12 .md:col-span-5
 p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
@@ -2506,7 +2556,11 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div
-input .input .mb-2 .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .mb-2 .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
 button .btn .btn-outline
@@ -2534,9 +2588,11 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .mb-3
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -2643,23 +2699,43 @@ ul .bg-base-100 .border .border-base-300 .divide-base-300 .divide-y .list .overf
 li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
-input .input .kl-note .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .kl-note .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
-input .input .kl-note .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .kl-note .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
-input .input .kl-note .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .kl-note .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
-input .input .kl-note .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .kl-note .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
-input .input .kl-note .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .kl-note .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 
 === lifecycle-cycle ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3031,23 +3107,23 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 fieldset .border .p-3 .rounded
 legend .font-semibold .text-base
 div .flex .flex-col .gap-2
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div .flex .flex-col .mt-2
 div .block .overflow-auto
 table .border-separate .border-spacing-0 .isolate .min-w-full .table-fixed .text-zinc-800 .whitespace-nowrap
@@ -3062,11 +3138,15 @@ div .flex
 tbody
 tr
 td .[:where(&amp;)]:px-3 .[:where(&amp;)]:py-3 .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .[[data-ui-table-bleed]_&amp;]:first:ps-[var(--ui-bleed,1.5rem)] .[[data-ui-table-bleed]_&amp;]:last:pe-[var(--ui-bleed,1.5rem)] .border-zinc-800/10 .dark:border-white/20 .dark:text-zinc-300 .first:ps-0 .last:pe-0 .text-sm .text-zinc-500
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 td .[:where(&amp;)]:px-3 .[:where(&amp;)]:py-3 .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .[[data-ui-table-bleed]_&amp;]:first:ps-[var(--ui-bleed,1.5rem)] .[[data-ui-table-bleed]_&amp;]:last:pe-[var(--ui-bleed,1.5rem)] .border-zinc-800/10 .dark:border-white/20 .dark:text-zinc-300 .first:ps-0 .last:pe-0 .text-sm .text-zinc-500
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 td .[:where(&amp;)]:px-3 .[:where(&amp;)]:py-3 .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .[[data-ui-table-bleed]_&amp;]:first:ps-[var(--ui-bleed,1.5rem)] .[[data-ui-table-bleed]_&amp;]:last:pe-[var(--ui-bleed,1.5rem)] .border-zinc-800/10 .dark:border-white/20 .dark:text-zinc-300 .first:ps-0 .last:pe-0 .text-sm .text-zinc-500
 button .btn .btn-error .btn-outline .btn-square
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -3112,11 +3192,15 @@ div .flex
 tbody
 tr
 td .[:where(&amp;)]:px-3 .[:where(&amp;)]:py-3 .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .[[data-ui-table-bleed]_&amp;]:first:ps-[var(--ui-bleed,1.5rem)] .[[data-ui-table-bleed]_&amp;]:last:pe-[var(--ui-bleed,1.5rem)] .border-zinc-800/10 .dark:border-white/20 .dark:text-zinc-300 .first:ps-0 .last:pe-0 .text-sm .text-zinc-500
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 td .[:where(&amp;)]:px-3 .[:where(&amp;)]:py-3 .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .[[data-ui-table-bleed]_&amp;]:first:ps-[var(--ui-bleed,1.5rem)] .[[data-ui-table-bleed]_&amp;]:last:pe-[var(--ui-bleed,1.5rem)] .border-zinc-800/10 .dark:border-white/20 .dark:text-zinc-300 .first:ps-0 .last:pe-0 .text-sm .text-zinc-500
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 td .[:where(&amp;)]:px-3 .[:where(&amp;)]:py-3 .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .[[data-ui-table-bleed]_&amp;]:first:ps-[var(--ui-bleed,1.5rem)] .[[data-ui-table-bleed]_&amp;]:last:pe-[var(--ui-bleed,1.5rem)] .border-zinc-800/10 .dark:border-white/20 .dark:text-zinc-300 .first:ps-0 .last:pe-0 .text-sm .text-zinc-500
 button .btn .btn-error .btn-outline .btn-square
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -3165,11 +3249,15 @@ tbody
 tr
 td .[:where(&amp;)]:px-3 .[:where(&amp;)]:py-3 .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .[[data-ui-table-bleed]_&amp;]:first:ps-[var(--ui-bleed,1.5rem)] .[[data-ui-table-bleed]_&amp;]:last:pe-[var(--ui-bleed,1.5rem)] .border-zinc-800/10 .dark:border-white/20 .dark:text-zinc-300 .first:ps-0 .last:pe-0 .text-sm .text-sm .text-ui-muted .text-zinc-500
 td .[:where(&amp;)]:px-3 .[:where(&amp;)]:py-3 .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .[[data-ui-table-bleed]_&amp;]:first:ps-[var(--ui-bleed,1.5rem)] .[[data-ui-table-bleed]_&amp;]:last:pe-[var(--ui-bleed,1.5rem)] .border-zinc-800/10 .dark:border-white/20 .dark:text-zinc-300 .first:ps-0 .last:pe-0 .text-sm .text-zinc-500
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 td .[:where(&amp;)]:px-3 .[:where(&amp;)]:py-3 .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .[[data-ui-table-bleed]_&amp;]:first:ps-[var(--ui-bleed,1.5rem)] .[[data-ui-table-bleed]_&amp;]:last:pe-[var(--ui-bleed,1.5rem)] .border-zinc-800/10 .dark:border-white/20 .dark:text-zinc-300 .first:ps-0 .last:pe-0 .text-sm .text-zinc-500
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 td .[:where(&amp;)]:px-3 .[:where(&amp;)]:py-3 .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .[[data-ui-table-bleed]_&amp;]:first:ps-[var(--ui-bleed,1.5rem)] .[[data-ui-table-bleed]_&amp;]:last:pe-[var(--ui-bleed,1.5rem)] .border-zinc-800/10 .dark:border-white/20 .dark:text-zinc-300 .first:ps-0 .last:pe-0 .text-sm .text-zinc-500
 button .btn .btn-outline .btn-square .me-1
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -3205,33 +3293,33 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 fieldset .border .mt-2 .p-3 .rounded
 legend .font-semibold .text-base
 div .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -3727,9 +3815,11 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form
 div .mb-2
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 button .btn .btn-primary
 
 === tags-media ===
@@ -3863,10 +3953,11 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -3891,15 +3982,17 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -3927,20 +4020,20 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -3965,20 +4058,20 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
 div .fieldset
 label .floating-label
@@ -4012,10 +4105,10 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -4043,15 +4136,15 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -4076,10 +4169,11 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -4106,20 +4200,22 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -4143,10 +4239,11 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -4173,43 +4270,63 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
-div .fieldset
-label .floating-label
-span
-input .input .validator
-p .label
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .border .p-3 .rounded
 div .font-semibold .mb-2 .text-sm
 div .gap-4 .grid .grid-cols-12 .items-center .mb-2
 div .col-span-6
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .col-span-3
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .col-span-3
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .gap-4 .grid .grid-cols-12 .items-center
 div .col-span-6
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .col-span-3
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .col-span-3
-div .fieldset
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
-p .label
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .bg-ui-well .p-3 .rounded .text-sm
 div .flex .flex-wrap .items-center .justify-between
 span
@@ -4248,10 +4365,11 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .flex .flex-wrap .gap-2 .items-center
 button .btn .btn-outline
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -4277,20 +4395,20 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
 div .fieldset
 label .floating-label
@@ -4324,20 +4442,20 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
-div .fieldset
-label .floating-label
-span
-input .input .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0

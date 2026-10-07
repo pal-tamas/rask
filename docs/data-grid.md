@@ -213,7 +213,7 @@ wrapper of your own:
 .Toolbar([
     Ui.Tabs[ … ],
     Ui.Select.Value(_category).Options(_categories).Label("Category").OnChange(Filter),
-    Ui.Search.Placeholder("Search").AccessibleLabel("Search entries").OnSearch(Search),
+    Ui.Input.Value(_query).Icon(Ui.IconName.MagnifyingGlass).Placeholder("Search").OnChange(Search),
 ])
 ```
 
