@@ -134,7 +134,7 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout` today).
+card accordion callout input textarea slider otp-input` today).
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -148,7 +148,10 @@ card accordion callout` today).
   another component's, children compared); `="width"`/`"height"` (that dimension is `rand()` on Flux's
   page, here and below). When the real component lands, the stand-in goes: Heading, Text, Field, Label,
   Description, Icon, Separator, Table, Card, Callout are real now — use them.
-- **Not differences:** `NATIVE` tag pairs (and `button`→`summary`); the colour of a border 0px wide on
+- **Not differences:** `NATIVE` tag pairs (and `button`→`summary`), `NATIVE_PART` (a part by its marker:
+  Flux's file-input `<div>` is a `<label>`) and `NATIVE_CONTROL` (the native control inside a part, where it
+  IS the component here: the range input in a slider thumb, which Flux hides and Rask.Ui lays over the
+  track — tag and place compared, box and look not); the colour of a border 0px wide on
   both sides, or of an outline with `outline-style:none` on both, at rest and in a forced state; the
   offset of a node with no box (`display:none` itself or above it, or 0×0 on both sides); `oklch(… none)`
   ≡ `oklch(… 0)`; a forced state where only one side measured the node (60 per example).
@@ -191,8 +194,19 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   Dashboard may not write classes): rebuilt on Flux pieces later.
 - Parity stand-ins still standing: card page (buttons, fields, switches, the heading/text lines whose
   variant was not looked up), table page (badge, avatar, row menu, pager, the card's heading row),
-  progress page (slider, as raw `ui-slider` markup), separator page (two unmarked buttons), field page
-  (inputs).
+  separator page (two unmarked buttons), field page (inputs), OTP page (the two buttons of its form), slider
+  page (the docs page's own key cap, set in a face the page has not got).
+
+## Waiting for a runtime hook (the kit ships no script; each is in `FluxConformanceTests.NotTranslated` or the docs)
+- **OTP focus** (`[data-ui-otp]`): on `input` in a cell, focus and select the next; Backspace in an empty cell
+  focuses the previous; ArrowLeft/Right walk the filled cells and the first empty one; a click past the first
+  empty cell lands on it; a cell's character is selected on focus. Until then Tab moves between cells and a
+  cell that is typed straight through holds the rest of the code (`UiOtpCode`), redrawn when focus leaves it.
+- **Slider `big-step`**: Shift+Arrow on the range input stepping by `big-step` instead of `step` — the key
+  has to be cancelled before the browser moves the thumb, and the runtime cancels no key.
+- **Slider, the room around the track**: Flux takes a press anywhere in the slider's box, the tick row
+  included, and focuses the slider itself; here the range input covers the track at the thumb's height, a
+  press on a tick is a handler, and the input takes the focus.
 
 ## Open work (integration stopped here on 2026-10-07 — see the integrator's report)
 - A stale `src/Rask.Site/obj/**/rask-external` folder can fail the site build after merging main

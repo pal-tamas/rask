@@ -80,12 +80,18 @@ const IGNORED = new Set(['width', 'height']);
 const NATIVE = {
   'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend', 'ui-progress': 'div',
   'ui-table-scroll-area': 'div', 'ui-disclosure-group': 'div', 'ui-disclosure': 'details',
+  'ui-slider': 'div', 'ui-otp': 'div',
 };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
 const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
 // …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
 // opens the file input inside it when clicked, where Flux's <div> calls input.click().
 const NATIVE_PART = { 'input-file': 'label' };
+// …and a part whose native control IS the component on the Rask side: Flux hides an <input type="range"> in
+// each slider thumb for the keyboard and moves the thumb by script; Rask.Ui lays that input, invisible,
+// over the track the thumb travels, and the browser drags it. Tag and place in the tree are compared; its
+// box and look are the platform's.
+const NATIVE_CONTROL = { 'slider-thumb': 'input' };
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
 const MISMARKED = { 'ui-disclosure-group': 'accordion' };
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
@@ -172,6 +178,7 @@ function mark(node, prefix) {
 //   "width" / "height"   that dimension is random on Flux's page (`rand()` in the docs), here and below it.
 function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') {
   const skip = b.attrs['data-parity-skip'];
+  if (isNativeControl(theirs, a) && a.tag === b.tag) return;
   const standIn = skip === '';
   const own = !standIn && skip !== 'self';
   if (skip === 'width' || skip === 'height') free = skip;
@@ -231,6 +238,11 @@ function compareLook(theirs, a, mine, b, where, diffs) {
       if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
     }
   }
+}
+
+function isNativeControl(example, node) {
+  const parent = example.nodes.find(n => n.id === node.parent);
+  return !!parent && NATIVE_CONTROL[mark(parent, 'data-flux-')] === node.tag;
 }
 
 function measured(example) {

@@ -94,11 +94,11 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_bound_range_draws_the_model()
+    public void A_bound_slider_draws_the_model()
     {
         var model = new Profile { Volume = 40 };
 
-        Assert.Contains("value=\"40\"", Ui.Range.Bind(() => model.Volume).Label("Volume").ToHtml());
+        Assert.Contains("value=\"40\"", Ui.Slider.Bind(() => model.Volume).Label("Volume").ToHtml());
     }
 
     [Fact]
@@ -129,8 +129,12 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     {
         var model = new Profile { Code = "1234" };
 
-        Assert.Contains("value=\"1234\"",
-            Ui.Otp.Bind(() => model.Code).Length(6).Label("Verification code").ToHtml());
+        var html = Ui.Otp.Bind(() => model.Code).Length(6).Label("Verification code").ToHtml();
+
+        // One character to a cell, in order, and the two cells past the end empty.
+        Assert.Equal(4, Occurrences(html, "aria-label=\"Character") - Occurrences(html, "value=\"\""));
+        Assert.Contains("value=\"1\"", html, StringComparison.Ordinal);
+        Assert.Contains("value=\"4\"", html, StringComparison.Ordinal);
     }
 
     [Fact]

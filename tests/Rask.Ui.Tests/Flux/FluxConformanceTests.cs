@@ -66,6 +66,12 @@ public sealed class FluxConformanceTests
         ["flux:input.group.prefix"] = typeof(UiInputGroupPrefix),
         ["flux:input.group.suffix"] = typeof(UiInputGroupSuffix),
         ["flux:textarea"] = typeof(UiTextarea<>),
+        ["flux:slider"] = typeof(UiSlider<>),
+        ["flux:slider.tick"] = typeof(UiSliderTick),
+        ["flux:otp"] = typeof(UiOtp),
+        ["flux:otp.input"] = typeof(UiOtpInput),
+        ["flux:otp.separator"] = typeof(UiOtpSeparator),
+        ["flux:otp.group"] = typeof(UiOtpGroup),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -82,6 +88,10 @@ public sealed class FluxConformanceTests
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
         ["flux:input/mask:dynamic"] = "An Alpine expression ($money($input)) evaluated in the browser on every keystroke. Rask.Ui ships no script; Mask takes the static pattern.",
         ["flux:input/copyable"] = "Copies in the click's own call stack (Alpine). Rask.Ui ships no script and the runtime has no clipboard hook yet (data-rask-copy); a handler round trip loses the user activation the clipboard asks for.",
+        ["flux:slider/big-step"] = "Shift+Arrow moving by a second step size: the thumb is a native range input, which has one step, and the runtime cancels no key (a handler would run AFTER the browser had already moved it by one). Waits for a runtime hook (data-rask-big-step) that steps the input itself; Page Up / Page Down are the browser's own larger step.",
+        ["flux:otp/submit"] = "submit=\"auto\" submits the enclosing <form> from script. Ui.Otp raises OnComplete with the full code instead, in a form or out of one.",
+        ["flux:otp.input/\u2014"] = "The reference's empty row: the part takes no props.",
+        ["flux:otp.separator/\u2014"] = "The reference's empty row: the part takes no props.",
     };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;

@@ -48,6 +48,9 @@ internal sealed class UiWithField
     /// <summary>The label's id, for a control a <c>&lt;label for&gt;</c> cannot name: <c>aria-labelledby</c>.</summary>
     internal string LabelId => UiFieldId.Label(ControlId);
 
+    /// <summary><see cref="LabelId" /> while there is a label to point at — the control's own, or its field's.</summary>
+    internal string? LabelledBy => _label is not null || ComposedAround() is not null ? LabelId : null;
+
     /// <summary>Whether the control was called invalid, or its bound member holds a message.</summary>
     internal bool Invalid { get; }
 

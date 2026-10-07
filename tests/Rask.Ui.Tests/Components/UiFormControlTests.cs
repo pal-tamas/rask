@@ -27,14 +27,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     public void A_radio_takes_a_tone(Ui.Tone tone, string expected) =>
         Assert.Contains(expected, Ui.Radio.Value(false).Text("Standard").Group("shipping").Tone(tone).ToHtml());
 
-    [Fact]
-    public void A_range_can_stand_on_end() =>
-        Assert.Contains("range-vertical", Ui.Range.Value(0d).Label("Volume").Vertical(true).ToHtml());
-
-    [Fact]
-    public void A_horizontal_range_writes_no_direction_class() =>
-        Assert.DoesNotContain("range-vertical", Ui.Range.Value(0d).Label("Volume").ToHtml());
-
     [Theory]
     [InlineData("checkbox")]
     [InlineData("toggle")]
