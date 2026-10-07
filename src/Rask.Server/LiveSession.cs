@@ -125,6 +125,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // owns every path, as before (#1094).
     internal Func<string, bool>? OwnsPath { get; set; }
 
+    // The route the session's path last resolved to, which the guard asks for twice per event.
+    internal SessionRouteMemo Routes { get; } = new();
+
     // The principal the auth handoff's reconnect is expected to carry: the signed-in user for a sign-in,
     // an unauthenticated principal for a sign-out, null when no handoff is in flight. The hello admission
     // check lets exactly that principal attach besides the owner, because the reconnect deliberately
@@ -151,6 +154,12 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // the render lock.
     private int _lastResumeVersion = -1;
     private string? _lastResumeUrl;
+
+    // The route's URL, rebuilt only when the route moves. RouteState swaps Path and Query for new
+    // instances rather than changing them in place, so their identity is the whole question.
+    private string? _routePath;
+    private IQueryCollection? _routeQuery;
+    private string? _routeUrl;
 
     public string Id { get; }
 
@@ -270,6 +279,18 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     protected override Task RenderInScopeCoreAsync() => RenderAndSendAsync(null, false);
 
+    private string RouteUrl(RouteState route)
+    {
+        if (_routeUrl is null || !ReferenceEquals(route.Path, _routePath) || !ReferenceEquals(route.Query, _routeQuery))
+        {
+            _routePath = route.Path;
+            _routeQuery = route.Query;
+            _routeUrl = QueryString.Build(route.Path, route.Query);
+        }
+
+        return _routeUrl;
+    }
+
     /// <summary>
     ///     Seals a resume record for this session when the page has moved since the last one.
     /// </summary>
@@ -299,7 +320,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
 
         var route = Scope.ServiceProvider.GetRequiredService<RouteState>();
-        var url = QueryString.Build(route.Path, route.Query);
+        var url = RouteUrl(route);
         if (state.Version == _lastResumeVersion && string.Equals(url, _lastResumeUrl, StringComparison.Ordinal))
         {
             return null;

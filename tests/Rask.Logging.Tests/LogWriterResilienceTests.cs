@@ -14,7 +14,7 @@ public sealed class LogWriterResilienceTests
     public async Task A_failing_store_does_not_fault_the_host()
     {
         var store = new FaultyLogStore { Fail = true };
-        using var writer = Build(store, out var channel, new RaskLoggingOptions
+        using var writer = Build(store, out var channel, new LogsOptions
         {
             FlushInterval = TimeSpan.FromMilliseconds(20),
         });
@@ -42,7 +42,7 @@ public sealed class LogWriterResilienceTests
     public async Task A_failing_shutdown_drain_does_not_throw_out_of_stop()
     {
         var store = new FaultyLogStore { Fail = true };
-        using var writer = Build(store, out var channel, new RaskLoggingOptions
+        using var writer = Build(store, out var channel, new LogsOptions
         {
             FlushInterval = TimeSpan.FromMinutes(5),
         });
@@ -61,10 +61,10 @@ public sealed class LogWriterResilienceTests
     public async Task A_hanging_store_cannot_stall_shutdown_past_the_drain_timeout()
     {
         var store = new FaultyLogStore { Hang = true };
-        using var writer = Build(store, out var channel, new RaskLoggingOptions
+        using var writer = Build(store, out var channel, new LogsOptions
         {
             FlushInterval = TimeSpan.FromMinutes(5),
-            ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200),
+            ShutdownGracePeriod = TimeSpan.FromMilliseconds(200),
         });
 
         await writer.StartAsync(CancellationToken.None);
@@ -79,7 +79,7 @@ public sealed class LogWriterResilienceTests
     }
 
     /// <summary>
-    /// <see cref="RaskLoggingOptions.ShutdownDrainTimeout"/> governs exactly one thing: whether
+    /// <see cref="LogsOptions.ShutdownGracePeriod"/> governs exactly one thing: whether
     /// <c>StopAsync</c> runs a final flush. These two cases assert that, and nothing else.
     /// </summary>
     /// <remarks>
@@ -94,10 +94,10 @@ public sealed class LogWriterResilienceTests
     public async Task No_drain_runs_when_the_timeout_is_zero()
     {
         var store = new FaultyLogStore();
-        using var writer = Build(store, out var channel, new RaskLoggingOptions
+        using var writer = Build(store, out var channel, new LogsOptions
         {
             FlushInterval = TimeSpan.FromMinutes(5),
-            ShutdownDrainTimeout = TimeSpan.Zero,
+            ShutdownGracePeriod = TimeSpan.Zero,
         });
 
         channel.Write(Entry("pending at shutdown"));
@@ -112,10 +112,10 @@ public sealed class LogWriterResilienceTests
     public async Task The_drain_runs_when_the_timeout_is_positive()
     {
         var store = new FaultyLogStore();
-        using var writer = Build(store, out var channel, new RaskLoggingOptions
+        using var writer = Build(store, out var channel, new LogsOptions
         {
             FlushInterval = TimeSpan.FromMinutes(5),
-            ShutdownDrainTimeout = TimeSpan.FromSeconds(5),
+            ShutdownGracePeriod = TimeSpan.FromSeconds(5),
         });
 
         channel.Write(Entry("pending at shutdown"));
@@ -138,7 +138,7 @@ public sealed class LogWriterResilienceTests
         using var writer = Build(
             store,
             out var channel,
-            new RaskLoggingOptions { FlushInterval = TimeSpan.FromMilliseconds(20) },
+            new LogsOptions { FlushInterval = TimeSpan.FromMilliseconds(20) },
             clock,
             logger);
 
@@ -194,7 +194,7 @@ public sealed class LogWriterResilienceTests
     private static LogWriter Build(
         ILogs store,
         out LogChannel channel,
-        RaskLoggingOptions options,
+        LogsOptions options,
         TimeProvider? clock = null,
         ILogger<LogWriter>? logger = null)
     {

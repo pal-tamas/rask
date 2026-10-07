@@ -70,13 +70,6 @@ public static class Logs
             return fake;
         }
 
-        var services = Ambient.Services
-            ?? throw new InvalidOperationException(
-                "Logs was called outside any work in progress — a handler, a render, a request or a job — so "
-                + "there is no app to reach. Inject ILogs in the constructor there instead.");
-
-        return services.GetService<ILogs>()
-            ?? throw new InvalidOperationException(
-                "Logs needs Rask.Logging registered: call builder.Services.AddRaskLogging<AppDbContext>().");
+        return Ambient.Reach<ILogs>("Logs", "Program.cs says c.Logs.Off()", "AddRaskLogging<AppDbContext>()");
     }
 }

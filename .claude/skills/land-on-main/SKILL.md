@@ -53,14 +53,23 @@ git push origin HEAD:main
   git ls-remote --heads origin main      # must equal `git rev-parse HEAD`
   ```
 - **Do not wait for CI.** It takes minutes and reports on its own; carry on with the next task. Check
-  it when you next touch the repo — `gh run list --workflow ci --branch main --limit 3` — and if your
+  it when you next touch the repo — `gh run list --workflow ci --branch main --limit 3`, then
+  `--workflow full` — and if your
   push is the red one, fixing it forward is the next thing you do (`gh run view <id> --log-failed`,
   then the script the failing job names, filtered to the failing test).
 - **Not sure it will pass?** Push to a `ci/<name>` branch first
   (`git push origin HEAD:refs/heads/ci/<name>`): same gates, nothing lands, nothing is published.
-  `ci/release/<name>` adds the release-only gates. Delete the branch afterwards.
-- **A red `main` publishes nothing.** `nightly.yml` and `pages.yml` run only from a commit `ci` passed,
-  so a site or package change is live only once its CI run is green.
+  `ci/release/<name>` adds the release-only gates. Delete the branch afterwards. That is a full round
+  of jobs on runners `main` is waiting for, so when one gate is the question, run that one: push the
+  branch under any other name and `gh workflow run ci.yml --ref <branch> -f only='CLI build'`
+  (`-f set=all` to reach a release-only gate).
+- **A push is gated by a SCOPED run.** `ci.yml` runs the gates the change reaches; a change to the CI
+  itself, a script, or the package pins runs everything. The CLI build and template gates run on a push
+  only when the CLI, a template or a project/props/targets file changed — otherwise the hourly `full.yml`
+  runs them.
+- **A red `main` publishes nothing, and neither does a scoped green.** `nightly.yml` and `pages.yml` run
+  only from a commit `full.yml` passed, so a site or package change is live within the hour, once the
+  whole run is green. `gh workflow run full.yml` starts one now.
 
 If the push is rejected as non-fast-forward, someone landed first: `git fetch origin main` and redo
 step 2 — never `--force` `main`.

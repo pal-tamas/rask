@@ -182,8 +182,7 @@ While any kit dialog is open, the kit's stylesheet also stops the page behind it
 As Flux UI's does, a `Ui.Modal` opens with focus on nothing: an empty `autofocus` placeholder inside the dialog
 takes the focus the browser would hand the first field, then leaves, so no control is ringed before the reader
 chose one and the first `Tab` lands on the first control. A modal has no title of its own — its content
-carries the heading — so give one whose content has none a name with `AccessibleLabel("…")`. Its close button
-is named "Close modal".
+carries the heading, exactly as Flux's does. Its close button is named "Close modal".
 
 
 A dialog should opt in deliberately: an open modal traps focus, is labelled (`aria-labelledby`

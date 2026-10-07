@@ -48,7 +48,7 @@ re-sending the page.
 | ConditionalRenderingToggle           |     2,040 | **2,040** |        4,588 |                   1.0× | **2.25×** Rask wins¹ |
 | Lifecycle_Insert100                  |     7,917 | **7,917** |       25,004 |                   1.0× | **3.16×** Rask wins¹ |
 | Lifecycle_Remove100                  |        37 |    **37** |        2,080 |                   1.0× | **56.2×** Rask wins¹ |
-| VirtualizationScroll                 |       821 |   **127** |          193 |                   6.5× | **1.52×** Rask wins³ |
+| VirtualizationScroll                 |       831 |   **128** |          193 |                   6.5× | **1.51×** Rask wins³ |
 | Scale_KeyedReorder_5000              |   347,817 |    **47** |          128 |                 7,400× | **2.72×** Rask wins⁵ |
 | Scale_KeyedRandomPermutation_1000    |    67,817 | **6,669** |       16,096 |                  10.2× | **2.41×** Rask wins⁵ |
 | Scale_KeyedAppendMiddle_2000         |   137,887 |   **111** |          225 |                 1,242× |  **2.03×** Rask wins |
@@ -74,8 +74,8 @@ loop and mutates one row's text; the Rask side renders ~10 visible rows through
 `Virtualize` and ships a real scroll-induced window shift. With the rows **keyed by item
 index** — the pattern the shipped `VirtualizeItemsDemo` sample already uses, and what any
 production virtualized list should do — a one-row scroll reconciles to a single
-keyed remove + insert (**52 B**) instead of an id+text rewrite of every slot in the
-window (was 440 B), so Rask now wins this row too (3.71×). Even though the Rask side does
+keyed remove + insert (**128 B**) instead of an id+text rewrite of every slot in the
+window (was 440 B), so Rask now wins this row too (1.51×). Even though the Rask side does
 strictly more work (a genuine window shift vs Blazor's single text change), it still ships
 fewer bytes. Every scenario in the suite is now a Rask win.
 
@@ -654,7 +654,7 @@ allocation, render/dispatch CPU, and now retained heap — is a Rask win.
    200-row reversal now ships **1,123 B vs Blazor's 3,360 B (2.99× Rask win)** as one
    batch op instead of 199 per-row `MoveSubtree` ops. With it, every like-for-like
    scenario in the suite wins on bytes; `VirtualizationScroll` (footnote ³) — once the
-   sole non-like-for-like loss — now also wins (3.71×) once its rows are keyed. Historical
+   sole non-like-for-like loss — now also wins (1.51×) once its rows are keyed. Historical
    context — what the reversal loss was and why:
    Rask 3.87 KB vs Blazor 3.36 KB (0.87×). Reversal is the LIS worst case (LIS
    length 1); 199 of 200 rows enter as moves, and each `MoveSubtree` re-emits its

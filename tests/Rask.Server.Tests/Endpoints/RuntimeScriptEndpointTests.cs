@@ -1,3 +1,6 @@
+using System.IO.Compression;
+using System.Net;
+using System.Text.RegularExpressions;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Endpoints;
@@ -15,6 +18,69 @@ public class RuntimeScriptEndpointTests
         Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.NotEmpty(body);
+    }
+
+    [Fact]
+    public async Task The_page_names_the_runtime_script_by_its_content_hash_and_that_url_is_immutable()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var page = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
+        var src = Regex.Match(page, "<script src=\"(/rask/rask\\.js\\?v=[0-9a-f]+)\"></script></body>").Groups[1].Value;
+
+        var response = await host.Http.GetAsync(src, TestContext.Current.CancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        Assert.Equal("public, max-age=31536000, immutable", response.Headers.CacheControl?.ToString());
+        Assert.NotNull(response.Headers.ETag);
+    }
+
+    [Theory]
+    [InlineData("/rask/rask.js")]
+    [InlineData("/rask/rask.js?v=0000000000000000")]
+    public async Task The_runtime_script_under_any_other_url_is_revalidated_every_time(string url)
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+
+        var response = await host.Http.GetAsync(url, TestContext.Current.CancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        Assert.Equal("no-cache", response.Headers.CacheControl?.ToString());
+    }
+
+    [Fact]
+    public async Task The_runtime_script_answers_304_to_a_request_carrying_its_etag()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var first = await host.Http.GetAsync("/rask/rask.js", TestContext.Current.CancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/rask/rask.js");
+        request.Headers.IfNoneMatch.Add(first.Headers.ETag!);
+
+        var second = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotModified, second.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("br")]
+    [InlineData("gzip")]
+    public async Task The_runtime_script_is_compressed_for_a_client_that_accepts_it(string encoding)
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var plain = await host.Http.GetByteArrayAsync("/rask/rask.js", TestContext.Current.CancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/rask/rask.js");
+        request.Headers.AcceptEncoding.ParseAdd(encoding);
+
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(encoding, Assert.Single(response.Content.Headers.ContentEncoding));
+        Assert.Contains("Accept-Encoding", response.Headers.Vary);
+        await using var body = await response.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        await using Stream inflated = encoding == "br"
+            ? new BrotliStream(body, CompressionMode.Decompress)
+            : new GZipStream(body, CompressionMode.Decompress);
+        using var roundTripped = new MemoryStream();
+        await inflated.CopyToAsync(roundTripped, TestContext.Current.CancellationToken);
+        Assert.Equal(plain, roundTripped.ToArray());
     }
 
     [Fact]

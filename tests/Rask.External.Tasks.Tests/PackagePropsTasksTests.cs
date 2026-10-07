@@ -297,6 +297,33 @@ public sealed class PackagePropsTasksTests : IDisposable
         Assert.Equal("/src/MuiButton.cs", error.File);
         Assert.Equal(4, error.LineNumber);
         Assert.Contains("module-not-found", error.Message, StringComparison.Ordinal);
+        Assert.Contains("npm install", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_extractor_that_wrote_no_result_is_an_error_that_says_what_to_do()
+    {
+        var (task, engine, _) = Sync(extracted: null, committed: null);
+        File.Delete(Path.Combine(_root, "out", "result.json"));
+
+        Assert.False(task.Execute());
+
+        var error = Assert.Single(engine.Errors);
+        Assert.Equal("RASKISLAND007", error.Code);
+        Assert.StartsWith("Rask islands:", error.Message, StringComparison.Ordinal);
+        Assert.Contains("npm install", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_island_the_extractor_never_reported_on_is_an_error_that_says_to_rebuild()
+    {
+        var (task, engine, _) = Sync(extracted: null, committed: null, result: "[ ]");
+
+        Assert.False(task.Execute());
+
+        var error = Assert.Single(engine.Errors);
+        Assert.Equal("RASKISLAND007", error.Code);
+        Assert.Contains("dotnet build --no-incremental", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -331,6 +358,8 @@ public sealed class PackagePropsTasksTests : IDisposable
         var warning = Assert.Single(engine.Warnings);
         Assert.Equal("RASKISLAND010", warning.Code);
         Assert.Contains("7.4.0", warning.Message, StringComparison.Ordinal);
+        Assert.Contains("npm install", warning.Message, StringComparison.Ordinal);
+        Assert.Contains("commit", warning.Message, StringComparison.Ordinal);
     }
 
     private (SyncExternalPropsSnapshotsTask Task, RecordingEngine Engine, string Snapshot) Sync(

@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json;
+using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.TestSupport;
 
 namespace Rask.External.Tests;
 
@@ -25,6 +27,22 @@ public sealed partial class ReportDetail : ReactComponent
 {
     /// <summary>Bound from the route's own path segment.</summary>
     [RouteParam] public int Id { get; set; }
+}
+
+/// <summary>A React-rendered page that names itself in the document's head.</summary>
+[Route("/reports/{id:int}/titled")]
+public sealed partial class TitledReport : ReactComponent
+{
+    /// <summary>Bound from the route's own path segment.</summary>
+    [RouteParam] public int Id { get; set; }
+
+    protected override Component? HeadAssets => Title[$"Report {Id}"];
+}
+
+/// <summary>A Rask page holding one island twice and another beside them.</summary>
+public sealed partial class ThreeReports : Component
+{
+    protected override Component? Render() => Div[Report.Id(1), Report.Id(2), TitledReport.Id(3)];
 }
 
 // Whether an external component is routable is not a design intention, it is a fact about whether
@@ -67,6 +85,53 @@ public partial class ExternalRoutingTests : global::Rask.Core.RaskMarkup
     {
         Assert.Equal("/reports/41/detail", global::Rask.External.Tests.ReportDetail.Url(41));
     }
+
+    [Fact]
+    public void A_routed_island_that_sets_a_title_still_loads_the_runtime()
+    {
+        // The runtime script used to BE the island's HeadAssets, so overriding it for a title replaced the
+        // script: the page rendered its host element and nothing ever mounted into it.
+        var page = TitledReport.Id(41);
+
+        var html = RenderPage(page);
+
+        Assert.Contains($"src=\"{ExternalDefaults.RuntimeScriptUrl}\"", Head(html), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_routed_islands_title_reaches_the_page_head()
+    {
+        // An island takes the serializer's element branch, which never reads HeadAssets, so the island hands
+        // its own over.
+        var page = TitledReport.Id(41);
+
+        var html = RenderPage(page);
+
+        Assert.Contains(">Report 41</title>", Head(html), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Several_islands_on_a_page_emit_the_runtime_script_once()
+    {
+#pragma warning disable RASK014 // the test hands the very instance it renders to the renderer
+        var page = new ThreeReports();
+#pragma warning restore RASK014
+
+        var html = RenderPage(page);
+
+        Assert.Equal(3, Count(html, "<rask-external "));
+        Assert.Equal(1, Count(html, ExternalDefaults.RuntimeScriptUrl));
+    }
+
+#pragma warning disable RASK014 // the document shell every host installs, built by hand around the page under test
+    private static string RenderPage(Component page) =>
+        new RootErrorBoundary(page).RenderAsLiveRoot(RenderHarness.EmptyServices());
+#pragma warning restore RASK014
+
+    private static string Head(string html) =>
+        html[html.IndexOf("<head>", StringComparison.Ordinal)..html.IndexOf("</head>", StringComparison.Ordinal)];
+
+    private static int Count(string html, string value) => html.Split(value).Length - 1;
 
     private static string Render(Component component)
     {

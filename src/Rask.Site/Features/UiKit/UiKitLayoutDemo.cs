@@ -31,7 +31,6 @@ public sealed partial class UiKitLayoutDemo : Component
                 Ui.Modal
                     .Flyout()
                     .Left
-                    .AccessibleLabel("Navigation")
                     .Open(_drawerOpen)
                     .OnClose(() => { _drawerOpen = false; })[
                     Ul.Class("menu w-56 p-0")[

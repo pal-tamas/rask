@@ -13,7 +13,7 @@ namespace Rask.Dashboard.Pages;
 [ParentRoute(typeof(DashboardLayout))]
 public sealed partial class QueuePage(
     IEnumerable<IQueuePanel> queues,
-    RaskDashboardOptions options,
+    OpsOptions options,
     TimeProvider timeProvider) : PollingPanel
 {
     private IQueuePanel? _panel;
@@ -34,7 +34,7 @@ public sealed partial class QueuePage(
     public string? Show { get; set; }
 
     /// <inheritdoc />
-    protected override RaskDashboardOptions Options => options;
+    protected override OpsOptions Options => options;
 
     private QueueFilter Filter =>
         Enum.TryParse<QueueFilter>(Show, ignoreCase: true, out var parsed) ? parsed : QueueFilter.Outstanding;

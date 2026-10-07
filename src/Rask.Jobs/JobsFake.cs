@@ -1,4 +1,6 @@
 using Rask.Batteries;
+using Rask.Cqrs;
+using Rask.Data;
 
 namespace Rask.Background;
 
@@ -8,6 +10,7 @@ public sealed class JobsFake : IJobs, IDisposable
     private readonly List<EnqueuedJob> _enqueued = [];
     private readonly IJobs? _previous;
     private readonly Lock _gate = new();
+    private int _ran;
 
     internal JobsFake()
     {
@@ -51,6 +54,22 @@ public sealed class JobsFake : IJobs, IDisposable
         };
     }
 
+    /// <summary>
+    ///     Runs every recorded job that has not run yet through its real handler, as the tenant and user
+    ///     who enqueued it: <c>await jobs.Run();</c>. A job enqueued by a running handler is recorded and
+    ///     runs in the same call, and a job held back with <c>.In(…)</c> or <c>.At(…)</c> runs too — the
+    ///     fake has no clock to wait on. A handler that throws lets its exception out.
+    /// </summary>
+    public async Task Run(CancellationToken cancellationToken = default)
+    {
+        while (Next() is { } next)
+        {
+            using var tenant = next.Tenant is { } owner ? Tenant.Use(owner) : null;
+            using var user = Current.UseUser(next.User);
+            await Dispatcher.Send(next.Job, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     /// <summary>How many jobs of every kind were enqueued.</summary>
     public int Count
     {
@@ -69,6 +88,7 @@ public sealed class JobsFake : IJobs, IDisposable
         lock (_gate)
         {
             _enqueued.Clear();
+            _ran = 0;
         }
     }
 
@@ -80,11 +100,19 @@ public sealed class JobsFake : IJobs, IDisposable
         ArgumentNullException.ThrowIfNull(job);
         lock (_gate)
         {
-            _enqueued.Add(new EnqueuedJob(job, after, at));
+            _enqueued.Add(new EnqueuedJob(job, after, at, Current.Tenant, Current.UserId));
         }
 
         return Task.CompletedTask;
     }
 
-    private sealed record EnqueuedJob(IJob Job, TimeSpan? Delay, DateTimeOffset? Moment);
+    private EnqueuedJob? Next()
+    {
+        lock (_gate)
+        {
+            return _ran < _enqueued.Count ? _enqueued[_ran++] : null;
+        }
+    }
+
+    private sealed record EnqueuedJob(IJob Job, TimeSpan? Delay, DateTimeOffset? Moment, Guid? Tenant, Guid? User);
 }

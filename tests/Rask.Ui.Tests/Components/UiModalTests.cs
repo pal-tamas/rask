@@ -203,14 +203,6 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void An_accessible_label_names_the_dialog()
-    {
-        var html = Ui.Modal.Name("nav").AccessibleLabel("Navigation").ToHtml();
-
-        Assert.Contains("aria-label=\"Navigation\"", Tag(html, "<dialog"));
-    }
-
-    [Fact]
     public void The_focus_placeholder_is_first_and_takes_the_focus_a_field_would_get()
     {
         var html = Ui.Modal.Name("edit")[Input.Value("Ada")].ToHtml();
@@ -268,7 +260,6 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("popover", open);
         Assert.DoesNotContain("id=", open);
         Assert.True(IsOpen(open));
-        Assert.Contains("aria-modal=\"true\"", open);
         Assert.Contains("data-rask-focus-trap", open);
         Assert.False(IsOpen(closed));
         Assert.DoesNotContain("data-rask-focus-trap", closed);

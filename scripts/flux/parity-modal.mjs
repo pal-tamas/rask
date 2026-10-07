@@ -108,11 +108,8 @@ async function observe(url, shots, like) {
       await press(page, i);
       facts[scheme] = await page.evaluate(openFacts, { i, LAYER });
       await page.screenshot({ path: join(shots, `open-${i}-${scheme}.png`) });
-      // Time held still for what measurePage does next. It forces :hover and :focus-visible on each node
-      // and reads the style at once, and a dialog transitions `all`: read in flight, a forced state is
-      // wherever the clock caught it. The durations themselves are in the facts above, and in `motion`.
-      await page.addStyleTag({ content: '*,::before,::after,::backdrop{transition-duration:0s!important}' });
     });
+
     for (const scheme of SCHEMES) open[scheme].push({ example: schemes[scheme][i], facts: facts[scheme] });
   }
 

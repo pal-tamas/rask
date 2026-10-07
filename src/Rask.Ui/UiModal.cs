@@ -97,9 +97,6 @@ public sealed partial class UiModal : Component
     /// <summary>Runs when it is dismissed — a click outside or Escape — before <see cref="OnClose" />.</summary>
     public Callback OnCancel { get; set; }
 
-    /// <summary>The dialog's accessible name, for one whose content has no heading to say what it is.</summary>
-    public string? AccessibleLabel { get; set; }
-
     /// <summary>Classes for the panel, added to its own: <c>md:w-96</c> sets the width.</summary>
     public string? Class { get; set; }
 
@@ -161,7 +158,7 @@ public sealed partial class UiModal : Component
         return
         [
             Backdrop(),
-            dialog.Aria("modal", "true")[
+            dialog[
                 body,
                 // What the runtime presses on Escape. Not the close button: Escape is a dismissal.
                 Escapable == false ? null : Outside().Class("hidden").Attributes(("data-rask-dismiss", null)).OnClick(DismissAsync)
@@ -186,7 +183,7 @@ public sealed partial class UiModal : Component
             named = named.Attributes(marks);
         }
 
-        return AccessibleLabel is { } label ? named.Aria("label", label) : named;
+        return named;
     }
 
 

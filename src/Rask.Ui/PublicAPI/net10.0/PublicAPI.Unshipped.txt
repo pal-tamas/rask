@@ -1432,8 +1432,6 @@ Rask.UiMockupWindow.Class.set -> void
 Rask.UiMockupWindow.UiMockupWindow() -> void
 Rask.UiModal
 Rask.UiModal.Class.get -> string?
-Rask.UiModal.AccessibleLabel.get -> string?
-Rask.UiModal.AccessibleLabel.set -> void
 Rask.UiModal.Class.set -> void
 Rask.UiModal.Closable.get -> bool?
 Rask.UiModal.Closable.set -> void
@@ -1469,8 +1467,7 @@ Rask.Ui.ModalPosition.Bottom = 2 -> Rask.Ui.ModalPosition
 Rask.Ui.ModalPosition.Left = 1 -> Rask.Ui.ModalPosition
 Rask.Ui.ModalPosition.Right = 0 -> Rask.Ui.ModalPosition
 Rask.Ui.ModalScroll
-Rask.Ui.ModalScroll.Body = 1 -> Rask.Ui.ModalScroll
-Rask.Ui.ModalScroll.Dialog = 0 -> Rask.Ui.ModalScroll
+Rask.Ui.ModalScroll.Body = 0 -> Rask.Ui.ModalScroll
 Rask.Ui.ModalVariant
 Rask.Ui.ModalVariant.Bare = 2 -> Rask.Ui.ModalVariant
 Rask.Ui.ModalVariant.Default = 0 -> Rask.Ui.ModalVariant
@@ -3378,7 +3375,6 @@ static RaskBuilderSettersRask_Ui.OnCancel(this Rask.UiModal! __b, Rask.Core.Call
 static RaskBuilderSettersRask_Ui.OnCancel(this Rask.UiModal! __b, System.Action? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.OnCancel(this Rask.UiModal! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.UiFileInput! __b, string? value) -> Rask.UiFileInput!
-static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.UiModal! __b, string? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.UiOtp! __b, string? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.AccessibleLabel<T>(this Rask.UiMultiSelect<T>! __b, string? value) -> Rask.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Badge(this Rask.UiFileInput! __b, string? value) -> Rask.UiFileInput!
@@ -4950,7 +4946,6 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Bottom.get -> Rask.UiModal!
 RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Bare.get -> Rask.UiModal!
 RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Body.get -> Rask.UiModal!
 RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Default.get -> Rask.UiModal!
-RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Dialog.get -> Rask.UiModal!
 RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Floating.get -> Rask.UiModal!
 RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Left.get -> Rask.UiModal!
 RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Right.get -> Rask.UiModal!
@@ -5543,7 +5538,6 @@ static RaskBuilderSettersRask_Ui.get_Default<T>(Rask.UiMultiSelect<T>! __b) -> R
 static RaskBuilderSettersRask_Ui.get_Default<T>(Rask.UiRadioGroup<T>! __b) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.get_Default<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.get_Default<T>(Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.get_Dialog(Rask.UiModal! __b) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.get_Dots(Rask.UiLoading! __b) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.get_Dual(Rask.UiAura! __b) -> Rask.UiAura!
 static RaskBuilderSettersRask_Ui.get_End(Rask.UiDivider! __b) -> Rask.UiDivider!

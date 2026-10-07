@@ -758,10 +758,6 @@ public static partial class RaskEndpointExtensions
         // The devtools host script and the panel it frames, when AddRask attached the devtools and they switched on
         // (Development).
         var devTools = httpContext.RequestServices.GetService<IRaskServerDevTools>()?.PageTag(httpContext, session.Id);
-        var content = Prerender.PageDocument.Live(
-            render.Html, session.Id, dev,
-            dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
-
         httpContext.Response.ContentType = "text/html; charset=utf-8";
         ApplyPageSecurityHeaders(httpContext.Response.Headers);
         // A page that crashed is not a 200, a page may set its own status, and the not-found page
@@ -780,6 +776,18 @@ public static partial class RaskEndpointExtensions
         httpContext.Response.Headers.CacheControl = ShellCachePolicy.CacheControl;
         httpContext.Response.Headers.Pragma = ShellCachePolicy.Pragma;
 
+        // Outside development the session id is the only thing stamped onto the render, and that goes
+        // straight to UTF-8; the development attributes are composed as a string first.
+        if (!dev && devTools is null)
+        {
+            await PageCompression.WriteLiveAsync(httpContext, render.Html, session.Id, limits.CompressPageHtml)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        var content = Prerender.PageDocument.Live(
+            render.Html, session.Id, dev,
+            dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
         await PageCompression.WriteAsync(httpContext, content, limits.CompressPageHtml).ConfigureAwait(false);
     }
 
@@ -921,9 +929,7 @@ public static partial class RaskEndpointExtensions
 
         MapHttpTransport(endpoints, pathBase, selector);
 
-        var script = LoadEmbeddedScript();
-        endpoints.MapGet(pathBase + RuntimePath, (RequestDelegate)(ctx =>
-            Results.Text(script, "text/javascript; charset=utf-8").ExecuteAsync(ctx)));
+        endpoints.MapGet(pathBase + RuntimePath, (RequestDelegate)Runtime.Value.Serve);
 
         // The in-page devtools' own endpoints, when AddRask attached them (a Debug build carrying
         // Rask.DevTools). Here, beside the runtime they extend, so they are mapped once per app too.
@@ -1954,7 +1960,7 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>Whether a frame left the connection usable.</summary>
-    private enum FrameStatus
+    internal enum FrameStatus
     {
         /// <summary>Handled (or ignored). Keep reading.</summary>
         Handled,
@@ -1964,7 +1970,7 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>The outcome of one inbound frame.</summary>
-    private readonly record struct FrameOutcome(FrameStatus Status, string? Reason);
+    internal readonly record struct FrameOutcome(FrameStatus Status, string? Reason);
 
     /// <summary>
     ///     Handles one inbound frame for an attached session: a navigation, a JS round-trip reply, a .NET
@@ -1976,7 +1982,7 @@ public static partial class RaskEndpointExtensions
     ///     Server-Sent Events stream by completing its response, and a POST by answering — which of those to
     ///     do is the caller's business, not this method's.
     /// </remarks>
-    private static async ValueTask<FrameOutcome> ProcessFrameAsync(
+    internal static async ValueTask<FrameOutcome> ProcessFrameAsync(
         LiveSession session,
         JsonElement root,
         bool hasType,
@@ -2982,7 +2988,7 @@ public static partial class RaskEndpointExtensions
     private static async Task<bool> IsCurrentRouteAuthorizedAsync(LiveSession session)
     {
         var routeState = session.Services.GetRequiredService<RouteState>();
-        if (!RouteResolver.TryResolve(routeState.CurrentTable, routeState.Path, out var chain, out _))
+        if (!session.Routes.TryResolve(routeState.CurrentTable, routeState.Path, out var chain))
         {
             return true;
         }
@@ -3042,7 +3048,7 @@ public static partial class RaskEndpointExtensions
         LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
     {
         var routeState = session.Services.GetRequiredService<RouteState>();
-        if (!RouteResolver.TryResolve(routeState.CurrentTable, path, out var chain, out _))
+        if (!session.Routes.TryResolve(routeState.CurrentTable, path, out var chain))
         {
             return null;
         }
@@ -3435,6 +3441,8 @@ public static partial class RaskEndpointExtensions
         return false;
     }
 
+    private static readonly Lazy<RuntimeScript> Runtime = new(() => new RuntimeScript(LoadEmbeddedScript()));
+
     private static string LoadEmbeddedScript()
     {
         var asm = typeof(RaskEndpointExtensions).Assembly;
@@ -3666,7 +3674,7 @@ public static partial class RaskEndpointExtensions
 
     private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
-        public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath);
+        public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash);
     }
 
     internal sealed class RaskLiveMarker
