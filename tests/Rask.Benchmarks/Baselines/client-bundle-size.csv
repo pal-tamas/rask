@@ -1,5 +1,8 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify).
 #
+# Refreshed 2026-10-07 with the one-time-code fix (rask-otp.ts keeps a late echo from the render's second
+# write): rask.js 115,251 -> 115,285 and rask.wasm.js 104,167 -> 104,201, +34 bytes each.
+#
 # Refreshed 2026-10-07 with Flux's menus (the menu block of rask-dom.ts: roving focus that follows
 # `data-active`, Enter / Space on the focused row, focus handed back after a press outside, the context menu
 # fitted by where it landed and its position kept in a constructable sheet): rask.js 113,805 -> 115,251 and
@@ -58,5 +61,5 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,115251
-rask.wasm.js,104167
+rask.js,115285
+rask.wasm.js,104201
