@@ -209,14 +209,43 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   word stands in some sixty kit comments and identifiers (the last rule of section 4 was not applied) — reword them, then
   assert its absence in `UiStylesheetTests`.
 
-## Runtime hooks the kit is waiting for (Flux does it in script; Rask's runtime cannot yet)
-- Toast: hovering RESTARTS the countdown in Flux — the runtime resumes the remainder. Hovering a group
-  pauses EVERY toast in it — needs a pause scope on an ancestor. The stack's 350 ms glide when a toast
-  joins or leaves needs per-child height/offset custom properties. The runtime also pauses on focus,
-  where Flux does not.
-- Toast, unexplained, for a later look: an unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a
-  `switch` among keyed call sites, was remounted on every parent render.
-- The built-in toast (the host's, when the app places no `Ui.Toast`) shows one at a time, as Flux's does.
+## Runtime hooks that exist (Flux does it in script; the component writes the attribute)
+The kit ships no script. Rask's RUNTIME carries generic hooks keyed on attributes
+(`src/Rask.Core/Resources/rask-hooks.ts`, one module per concern; `docs/js-interop-runtime.md#behaviour-hooks-data-rask-`
+is the reference; `tests/Rask.Server.E2E.Tests/RuntimeHook*Tests.cs` pin each one to what Flux did). A
+component reaches Flux's behaviour by writing exactly these — never by a handler that round-trips:
+
+| Component | Writes | Gets |
+|---|---|---|
+| Tooltip (and Button's `Tooltip`) | root `data-rask-tooltip="<bubble id>"`; bubble `popover="manual"`; `interactive`: `aria-expanded="false"` + `aria-controls` on the trigger | shown at 0 ms on pointer and keyboard focus, hidden on leave / blur / Escape / press, top layer for any trigger, `aria-expanded` mirrored |
+| Dropdown / Popover `hover` | root `data-rask-hover="<panel id>"` (trigger keeps `popovertarget`) | opens over trigger or panel, closes over neither, a press keeps it, Enter opens, no lock |
+| Sidebar rail item | the same + `data-rask-hover-if="<selector true while collapsed>"` | the menu opens on hover only while the rail is collapsed |
+| Dropdown, Popover, Select, Context | panel `data-rask-lock` | `<html>`: `overflow:hidden; pointer-events:none; scrollbar-gutter:stable` while open |
+| any `popover="auto"` panel | nothing | Tab out closes it; a press outside hands focus to its `popovertarget` button |
+| Menu | `[role=menu]` `data-rask-menu-pointer`; each row `OnPointerEnter` → move the C# cursor; no `:hover` highlight, only `[data-active]` | one lit row, the arrows continue from the hovered one, none lit when the pointer leaves |
+| Menu submenu | its row `data-rask-safe-area="<flyout id>"`; close a submenu only when ANOTHER row is entered, never on the menu's pointerleave | Flux's safe area and a flyout that stays when the pointer leaves the menu |
+| Modal (state-driven) | `<dialog data-rask-modal-open="true|false">` instead of `open` | `showModal()`, `::backdrop`, closes when the state says so; `OnClose` / `OnCancel` still fire |
+| Modal | `data-rask-modal="any|press|escape|none"` from `dismissible` × `escapable` (both → `any`, outside only → `press`, Escape only → `escape`, neither → `none`); `data-rask-lock="scroll"`; keep `command`/`commandfor` | the four dismissals, `cancel` for a press outside, `data-open` while shown, a fallback where invoker commands are missing, Flux's modal lock |
+| Input `copyable` | button `data-rask-copy="<input id>"`; style the tick on `[data-copied]` | clipboard in the click, 2 s copied state |
+| Input `clearable` | button `data-rask-clear="<input id>"` (no `OnClick`) | emptied, `input` fired, focus in the field |
+| Input `mask` / `mask:dynamic="$money($input)"` | `data-rask-mask="<pattern>"` / `data-rask-mask-money` (`=".,2"`) | Flux's (Alpine's) shaping; any other `mask:dynamic` expression is NOT supported |
+| Switch | `<input type="checkbox" role="switch">` | Enter toggles |
+| Slider | `data-rask-big-step="<BigStep ?? Step>"` on the `<input type="range">` | Shift+Arrow, PageUp / PageDown |
+| Select (listbox button) | `data-rask-listbox-button` on the closed `button[role=combobox]` | Enter does nothing, the arrows do not scroll (open the list from the C# key handler: Flux opens on ArrowUp / ArrowDown / Space) |
+| OTP | group `data-rask-otp` (`="alpha"`, `="alphanumeric"`); cells rendered with NO `value`, NO handler, NO re-keying; ONE `Input.Type(Hidden)` inside, bound to the string | every key of Flux's otp input, fast typing included |
+| Toast | `data-rask-dismiss-hold="pointer"` beside `data-rask-dismiss-after` | focus no longer holds the countdown |
+| ToastGroup | `data-rask-dismiss-scope` on the group; `data-rask-stack` on the parent of the stacked toasts, and CSS from `--rask-stack-index` / `-height` / `-offset` | one pointer holds them all; the 350 ms glide |
+| Sidebar | collapse checkbox `data-rask-persist="flux-sidebar-collapsed-desktop"` (plus a head script for a WASM cold load); mobile checkbox `data-rask-uncheck-on-navigate` | state kept across visits; drawer closed on navigation |
+| Carousel | `data-rask-carousel`, `data-rask-carousel-track`, `data-rask-carousel-indicators`, `data-rask-carousel-controls` beside the `data-ui-*` markers; `data-direction`, `data-name`, `data-advance`, `data-wrap`, `data-scroll`, `data-autoplay` as today | position flags, arrows, indicators, autoplay |
+
+Measured, and NOT built because Flux does not do it: a toast's countdown does not RESTART under the pointer — it
+resumes the remainder (shown 1000 ms, hovered 3000 ms, gone 4359 ms after the pointer left; 5390 would be a
+restart). The earlier note here said otherwise.
+
+Known and open: two toasts whose countdowns end in the same frame press two dismiss buttons at once, and the
+second press can carry a handler id the first render retired — give stacked toasts distinct durations or key
+the handler. An unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a `switch` among keyed call
+sites, was remounted on every parent render (unexplained). The built-in toast shows one at a time, as Flux's.
 
 ## Merging a component branch
 `git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped
