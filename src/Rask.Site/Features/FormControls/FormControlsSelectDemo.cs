@@ -18,19 +18,21 @@ public sealed partial class FormControlsSelectDemo : Component
             Div.Class("col-span-12 md:col-span-6")[
                 Ui.Select
                     .Value(_controlled)
-                    .Options(Frameworks)
                     .Label("Controlled (Value + OnChange)")
                     .OnChange(v => _controlled = v)
                     .Id("fc-select-controlled")
-                    .Class("mb-2"),
+                    .Class("mb-2")[
+                    Frameworks.Select(framework => Ui.SelectOption.Key(framework.Value).Value(framework.Value)[framework.Text])
+                ],
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-select-controlled-out")[
                     "Picked: ", Strong[_controlled]
                 ]
             ],
             Div.Class("col-span-12 md:col-span-6")[
                 Form.Model(_model)[
-                    Ui.Select.Bind(() => _model.Framework).Options(Frameworks).Label("Bound (two-way)")
-                        .Id("fc-select-bound").Class("mb-2")
+                    Ui.Select.Bind(() => _model.Framework).Label("Bound (two-way)").Id("fc-select-bound").Class("mb-2")[
+                        Frameworks.Select(framework => Ui.SelectOption.Key(framework.Value).Value(framework.Value)[framework.Text])
+                    ]
                 ],
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-select-bound-out")[
                     "Picked: ", Strong[_model.Framework]

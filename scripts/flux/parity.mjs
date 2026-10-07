@@ -88,9 +88,16 @@ const NATIVE = {
   // The menu family: a [popover] opens from `popovertarget` alone, and its rows are buttons.
   'ui-context': 'div', 'ui-menu': 'div', 'ui-submenu': 'div', 'ui-menu-radio-group': 'div',
   'ui-menu-checkbox-group': 'div', 'ui-menu-radio': 'button', 'ui-menu-checkbox': 'button',
+  // The select's, the autocomplete's and the pillbox's elements: a native popover and C# key handling in their place.
+  'ui-select': 'div', 'ui-selected': 'div', 'ui-options': 'div', 'ui-option': 'div', 'ui-option-empty': 'div',
+  'ui-option-create': 'div', 'ui-empty': 'div', 'ui-pillbox': 'div', 'ui-pillbox-trigger': 'div',
+  'ui-selected-remove': 'div',
 };
+// …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
+// opens the file input inside it when clicked, where Flux's <div> calls input.click().
+const NATIVE_PART = { 'input-file': 'label' };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
-const sameTag = (a, b) => (NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
+const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
 // …and leaves a chart's root with no marker at all: its <ui-chart> is the chart.
 const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };

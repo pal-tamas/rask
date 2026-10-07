@@ -11,7 +11,7 @@ public sealed partial class ClipboardDemo : Component
     protected override Component? Render() =>
         Ui.Card[
                 Div.Class("mb-2 flex gap-2")[
-                    Ui.Input.Value(_input).AccessibleLabel("Text to copy").Id("clipboard-input").OnInput(v => _input = v),
+                    Ui.Input.Value(_input).Label("Text to copy").Id("clipboard-input").OnInput(v => _input = v),
                     Ui.Button.Primary.Id("clipboard-copy").OnClick(Copy)["Copy"],
                     Ui.Button.Id("clipboard-paste").OnClick(Paste)["Paste"]
                 ],

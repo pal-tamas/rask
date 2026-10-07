@@ -19,6 +19,9 @@ Vue, Solid, Svelte, Lit, Angular) or a Rask WebAssembly app written in C#. Part 
 dotnet add package Rask.Spa.Hosting
 ```
 
+Or start from a scaffold that already references it — a Rask host with the framework's TypeScript client
+in `client/`: `rask new Shop --template react` (or `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`).
+
 ## Use
 
 ```csharp

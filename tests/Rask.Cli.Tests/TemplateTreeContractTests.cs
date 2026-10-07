@@ -49,7 +49,10 @@ public sealed class TemplateTreeContractTests
 
         var scripts = document.RootElement.GetProperty("scripts");
         Assert.True(scripts.TryGetProperty("build", out _), $"{key}: `npm run build` is what the host's build runs.");
-        Assert.True(scripts.TryGetProperty("dev", out _), $"{key}: `npm run dev` is what `rask dev` runs.");
+        // `rask dev` runs `dev` where there is one and `start` otherwise, which is what the Angular CLI writes.
+        Assert.True(
+            scripts.TryGetProperty("dev", out _) || scripts.TryGetProperty("start", out _),
+            $"{key}: `npm run dev` (or `start`) is what `rask dev` runs.");
     }
 
     // Lower case, and the word the build looks in: a capital Client is the WASM lane's C# project.

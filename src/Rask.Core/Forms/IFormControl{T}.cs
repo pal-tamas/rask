@@ -23,7 +23,7 @@ namespace Rask.Core.Forms;
 // shape. OnChange and AfterBind are `Callback<T>` for the same reason, and OnChange is auto-wrapped
 // (AutoCallback) so invoking it re-renders the consumer.
 //
-// The kit's controls (Rask.Ui: Ui.MultiSelect/Ui.CheckboxGroup/Ui.RadioGroup) are the worked
+// The kit's controls (Rask.Ui: Ui.Select/Ui.CheckboxGroup/Ui.RadioGroup) are the worked
 // examples. In Render, hand the rule to the EditContext through the carrier — `RegisterValidator` below
 // passes `Validate?.Rule` to `ctx.RegisterFieldValidator` together with the accessor's getter.
 public interface IFormControl<T> : IFormControl

@@ -39,11 +39,12 @@ public sealed partial class ValidationSummaryDemo : Component
             ],
             Div[
                 Ui.Select.Bind(() => _model.Plan)
-                    .Options(Plans)
                     .Placeholder("— choose —")
                     .Label("Plan")
                     .Id("v2-plan")
-                    .ShowValidation(false)
+                    .ShowValidation(false)[
+                    Plans.Select(plan => Ui.SelectOption.Key(plan.Text).Value(plan.Value)[plan.Text])
+                ]
             ],
             Div[
                 Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit["Register"]
