@@ -320,7 +320,7 @@ Ui.ButtonGroup[Ui.Button["Oldest"], Ui.Button["Newest"], Ui.Button["Top"]]   // 
 | `Inset` | `Ui.Inset` flags — `Top`, `Bottom`, `Left`, `Right`, `All` — for a ghost or subtle button |
 | `Loading` | see [Buttons that wait](#buttons-that-wait) |
 | `Tooltip`, `TooltipPosition`, `TooltipKbd`, `Kbd` | a hint on hover and keyboard focus, and the shortcut shown in it |
-| `Href`, `NewTab` | see [Buttons and links that go somewhere](#buttons-and-links-that-go-somewhere) |
+| `Href` | see [Buttons and links that go somewhere](#buttons-and-links-that-go-somewhere) |
 | `As` | `Ui.ButtonAs.Div` for the look of a button on something that is not one |
 | `Type`, `Disabled`, `Command`, `CommandFor` | the `<button>`'s own attributes |
 
@@ -645,11 +645,12 @@ leaves the app wants.
 ```csharp
 Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]    // stays in the app
 Ui.Link.Href(Routes.ProductsPage())["Back to the list"]                   // stays in the app
-Ui.Button.Href("https://github.com/pal-tamas/rask").NewTab()["GitHub"]     // leaves it
+Ui.Button.Href("https://github.com/pal-tamas/rask")["GitHub"]              // leaves it
 ```
 
 A string that happens to name one of your own pages is still a string: it reloads the whole app to get
-there. Use the route. `NewTab(true)` is never intercepted, because the reader asked for another tab.
+there. Use the route. As in Flux, a new tab is the anchor's own attribute — `.Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))` —
+and the runtime never intercepts one, because the reader asked for another tab.
 
 ## Heading, text and link
 

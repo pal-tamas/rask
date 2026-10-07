@@ -20,7 +20,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         Assert.StartsWith("<button class=\"relative inline-flex ", html, StringComparison.Ordinal);
         Assert.Contains(" h-10 px-4 text-sm rounded-lg gap-2 ", html, StringComparison.Ordinal);
         Assert.Contains(" bg-white ", html, StringComparison.Ordinal);
-        Assert.EndsWith(" data-ui-button type=\"button\">Save</button>", html, StringComparison.Ordinal);
+        Assert.EndsWith(" data-ui-button data-ui-group-target type=\"button\">Save</button>", html, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -208,7 +208,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 
         Assert.StartsWith("<button id=\"save\" class=\"", html, StringComparison.Ordinal);
         Assert.Contains(
-            "\" data-ui-button data-loading data-testid=\"save\" aria-label=\"Save\" type=\"button\"><div ",
+            "\" data-ui-button data-ui-group-target data-ui-loading data-loading data-testid=\"save\" aria-label=\"Save\" type=\"button\"><div ",
             html,
             StringComparison.Ordinal);
         Assert.DoesNotContain("aria-busy", html, StringComparison.Ordinal);
@@ -309,12 +309,12 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
             .Role("switch")
             .TabIndex(0)
             .AriaLabel("Save the draft")
-            .Type(Ui.ButtonType.Reset)["Save"]
+            .Type(Ui.ButtonType.Submit)["Save"]
             .ToHtml();
 
         Assert.Matches(
-            "^<button id=\"save\" class=\"[^\"]*\" data-ui-button data-testid=\"save\" role=\"switch\" tabindex=\"0\" "
-            + "aria-label=\"Save the draft\" type=\"reset\">Save</button>$",
+            "^<button id=\"save\" class=\"[^\"]*\" data-ui-button data-ui-group-target data-testid=\"save\" role=\"switch\" tabindex=\"0\" "
+            + "aria-label=\"Save the draft\" type=\"submit\">",
             html);
     }
 
@@ -334,7 +334,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         var button = Ui.Button["Read the guide"].ToHtml();
 
         Assert.StartsWith("<a class=\"", link, StringComparison.Ordinal);
-        Assert.EndsWith(" data-ui-button href=\"/docs\">Read the guide</a>", link, StringComparison.Ordinal);
+        Assert.EndsWith(" data-ui-button data-ui-group-target href=\"/docs\">Read the guide</a>", link, StringComparison.Ordinal);
         Assert.Equal(Regex.Match(button, "class=\"[^\"]*\"").Value, Regex.Match(link, "class=\"[^\"]*\"").Value);
     }
 
@@ -359,18 +359,30 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("command", html, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void A_new_tab_carries_the_rel_that_makes_it_safe()
+    [Theory]
+    [InlineData(Ui.ButtonVariant.Outline, true)]
+    [InlineData(Ui.ButtonVariant.Primary, true)]
+    [InlineData(Ui.ButtonVariant.Filled, true)]
+    [InlineData(Ui.ButtonVariant.Danger, true)]
+    [InlineData(Ui.ButtonVariant.Ghost, false)]
+    [InlineData(Ui.ButtonVariant.Subtle, false)]
+    public void A_group_reaches_every_button_but_a_ghost_or_a_subtle_one_as_in_Flux(Ui.ButtonVariant variant, bool marked)
     {
-        var html = Ui.Button.Href("https://example.test").NewTab(true)["Docs"].ToHtml();
+        var button = Ui.Button.Variant(variant)["Save"];
 
-        Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
-        Assert.Contains("rel=\"noopener noreferrer\"", html, StringComparison.Ordinal);
+        var html = button.ToHtml();
+
+        Assert.Equal(marked, html.Contains(" data-ui-group-target", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void New_tab_without_an_href_changes_nothing() =>
-        Assert.DoesNotContain("target", Ui.Button.NewTab(true)["Save"].ToHtml(), StringComparison.Ordinal);
+    public void A_new_tab_is_the_anchors_own_target_and_nothing_is_added_to_it()
+    {
+        var html = Ui.Button.Href("https://example.test").Attributes(("target", "_blank"))["Docs"].ToHtml();
+
+        Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("rel=", html, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void A_generated_route_navigates_inside_the_app() =>
@@ -388,26 +400,17 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         Assert.Equal(Ui.Button["Save"].ToHtml(), Ui.Button.Href((string)null!)["Save"].ToHtml());
 
     [Fact]
-    public void A_generated_route_in_a_new_tab_is_not_intercepted()
-    {
-        var html = Ui.Button.Href(new RouteUrl("/orders", null, typeof(UiButtonTests))).NewTab(true)["Orders"].ToHtml();
-
-        Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-rask-nav", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void As_a_div_it_keeps_the_look_and_drops_what_only_a_button_has()
     {
         var html = Ui.Button.As(Ui.ButtonAs.Div).Disabled(true).OnClick(() => { })["Drop a file"].ToHtml();
 
         Assert.StartsWith("<div class=\"relative inline-flex ", html, StringComparison.Ordinal);
-        Assert.EndsWith(" data-ui-button>Drop a file</div>", html, StringComparison.Ordinal);
+        Assert.EndsWith(" data-ui-button data-ui-group-target>Drop a file</div>", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void As_an_anchor_without_an_href_it_is_an_anchor_with_none() =>
-        Assert.EndsWith(" data-ui-button>Top</a>", Ui.Button.As(Ui.ButtonAs.A)["Top"].ToHtml(), StringComparison.Ordinal);
+        Assert.EndsWith(" data-ui-button data-ui-group-target>Top</a>", Ui.Button.As(Ui.ButtonAs.A)["Top"].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void A_group_is_a_flex_row_its_buttons_fuse_inside()

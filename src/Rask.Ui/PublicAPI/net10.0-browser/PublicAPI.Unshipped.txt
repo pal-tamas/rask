@@ -212,8 +212,6 @@ Rask.UiButton.Kbd.get -> string?
 Rask.UiButton.Kbd.set -> void
 Rask.UiButton.Loading.get -> bool?
 Rask.UiButton.Loading.set -> void
-Rask.UiButton.NewTab.get -> bool?
-Rask.UiButton.NewTab.set -> void
 Rask.UiButton.Size.get -> Rask.Ui.ButtonSize?
 Rask.UiButton.Size.set -> void
 Rask.UiButton.Square.get -> bool?
@@ -231,7 +229,6 @@ Rask.UiButton.Variant.get -> Rask.Ui.ButtonVariant?
 Rask.UiButton.Variant.set -> void
 Rask.Ui.ButtonType
 Rask.Ui.ButtonType.Button = 0 -> Rask.Ui.ButtonType
-Rask.Ui.ButtonType.Reset = 2 -> Rask.Ui.ButtonType
 Rask.Ui.ButtonType.Submit = 1 -> Rask.Ui.ButtonType
 Rask.UiButtonGroup
 Rask.UiButtonGroup.UiButtonGroup() -> void
@@ -3369,7 +3366,6 @@ static RaskBuilderSettersRask_Ui.Name<T>(this Rask.UiSelect<T>! __b, string? val
 static RaskBuilderSettersRask_Ui.Name<T>(this Rask.UiTextarea<T>! __b, string? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Native<T>(this Rask.UiMultiSelect<T>! __b, bool? value) -> Rask.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Native<T>(this Rask.UiSelect<T>! __b, bool? value) -> Rask.UiSelect<T>!
-static RaskBuilderSettersRask_Ui.NewTab(this Rask.UiButton! __b, bool? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.NodeKey<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<T, TKey>! value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.NodeText<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Core.Fn<T, string!>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.NodeText<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<T, string!>? value) -> Rask.UiTree<T, TKey>!
@@ -5008,7 +5004,6 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiButton!).Ghost.get -> Rask.UiButton!
 RaskBuilderSettersRask_Ui.extension(Rask.UiButton!).Neutral.get -> Rask.UiButton!
 RaskBuilderSettersRask_Ui.extension(Rask.UiButton!).Outline.get -> Rask.UiButton!
 RaskBuilderSettersRask_Ui.extension(Rask.UiButton!).Primary.get -> Rask.UiButton!
-RaskBuilderSettersRask_Ui.extension(Rask.UiButton!).Reset.get -> Rask.UiButton!
 RaskBuilderSettersRask_Ui.extension(Rask.UiButton!).Sm.get -> Rask.UiButton!
 RaskBuilderSettersRask_Ui.extension(Rask.UiButton!).Solid.get -> Rask.UiButton!
 RaskBuilderSettersRask_Ui.extension(Rask.UiButton!).Submit.get -> Rask.UiButton!
@@ -5989,7 +5984,6 @@ static RaskBuilderSettersRask_Ui.get_Primary<T>(Rask.UiRadioGroup<T>! __b) -> Ra
 static RaskBuilderSettersRask_Ui.get_Primary<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.get_Primary<T>(Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.get_Rainbow(Rask.UiAura! __b) -> Rask.UiAura!
-static RaskBuilderSettersRask_Ui.get_Reset(Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.get_Right(Rask.UiDrawer! __b) -> Rask.UiDrawer!
 static RaskBuilderSettersRask_Ui.get_Right(Rask.UiDropdown! __b) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.get_Right(Rask.UiPopover! __b) -> Rask.UiPopover!
@@ -6634,7 +6628,6 @@ static RaskBuilderSettersRask_Ui.Mono<T>(this Rask.UiColumn<T>! __b) -> Rask.UiC
 static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Native<T>(this Rask.UiMultiSelect<T>! __b) -> Rask.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Native<T>(this Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
-static RaskBuilderSettersRask_Ui.NewTab(this Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.OnCancel(this Rask.UiModal! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendar! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendar! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendar!

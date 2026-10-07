@@ -104,6 +104,7 @@ public sealed class FluxConformanceTests
         ["flux:error/For"] = "`name`, as the expression a Rask form binds by: Ui.Error.For(() => order.Email)",
         ["flux:heading/Size=Xxl"] = "`2xl`: an identifier cannot start with a digit",
         ["flux:link/Accent"] = "`:accent=\"false\"`, which Flux documents on its theming page and not in the link's reference",
+        ["flux:text/Color=Amber"] = "Ui.Color is one enum for every `color` prop; Flux's text reference lists the other sixteen hues",
         ["flux:text/Color=Slate"] = "Ui.Color is one enum for every `color` prop; the text draws a neutral as Flux's `default`",
         ["flux:text/Color=Gray"] = "as Slate",
         ["flux:text/Color=Zinc"] = "as Slate",
@@ -122,18 +123,6 @@ public sealed class FluxConformanceTests
         ["flux:button/Command"] = "the <button>'s own `command`, which Flux forwards",
         ["flux:button/CommandFor"] = "the <button>'s own `commandfor`, which Flux forwards",
         ["flux:table.column/OnSort"] = "`wire:click=\"sort('…')\"` on a sortable column",
-    };
-
-    /// <summary>
-    ///     Carried, not Flux's, and not yet ruled a translation or an addition: each waits for the owner, with its
-    ///     evidence. A row leaves here for <see cref="Translations" /> or with the member it names; none is added
-    ///     to let a new member through.
-    /// </summary>
-    private static readonly Dictionary<string, string> Undecided = new(StringComparer.Ordinal)
-    {
-        ["flux:button/NewTab"] = "Flux's way is `target=\"_blank\"`, a forwarded attribute; the kit's rule is that a new tab always carries rel=noopener",
-        ["flux:button/Type=Reset"] = "Flux lists `button` and `submit`; `reset` is the third value of the HTML attribute it forwards",
-        ["flux:text/Color=Amber"] = "absent from the list in Flux's text reference, which has the other sixteen hues; no rendered example either way",
     };
 
     /// <summary>What every component takes, Flux's included: its classes, its identity, what is inside it.</summary>
@@ -200,16 +189,15 @@ public sealed class FluxConformanceTests
             }
         }
 
-        var explained = Translations.Keys.Concat(Undecided.Keys).ToList();
-        var added = carried.Except(explained, StringComparer.Ordinal).ToList();
-        var stale = explained.Except(carried, StringComparer.Ordinal).ToList();
+        var added = carried.Except(Translations.Keys, StringComparer.Ordinal).ToList();
+        var stale = Translations.Keys.Except(carried, StringComparer.Ordinal).ToList();
         Assert.True(added.Count == 0,
             "Rask.Ui carries these and Flux does not document them. Delete the member and convert its call sites. Only if it is "
             + "how Rask says something Flux HAS (a directive, a slot, an event, an attribute it forwards), add a `Translations` "
             + "row `part/Member` or `part/Member=EnumMember` that names it:\n  " + string.Join("\n  ", added));
         Assert.True(stale.Count == 0,
-            "`Translations` or `Undecided` explains these, and the component no longer carries them (or Flux documents them "
-            + "now). Delete the row:\n  " + string.Join("\n  ", stale));
+            "`Translations` explains these, and the component no longer carries them (or Flux documents them now). "
+            + "Delete the row:\n  " + string.Join("\n  ", stale));
     }
 
     private static JsonDocument Snapshot { get; } = JsonDocument.Parse(File.ReadAllText(

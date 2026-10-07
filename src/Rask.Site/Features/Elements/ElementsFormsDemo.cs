@@ -51,7 +51,7 @@ public sealed partial class ElementsFormsDemo : Component
         ],
         Div[
             Ui.Button.Primary.Submit["Submit"], " ",
-            Ui.Button.Reset["Reset"]
+            Button.Type(ButtonType.Reset).Class("btn")["Reset"]
         ]
     ];
 
