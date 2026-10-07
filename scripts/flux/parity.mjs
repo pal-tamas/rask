@@ -88,6 +88,11 @@ const NATIVE_PART = { 'input-file': 'label' };
 const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
 const MISMARKED = { 'ui-disclosure-group': 'accordion' };
+// An OPEN popup is placed by script in Flux (`position: absolute` and an inset it computes) and by CSS anchor
+// positioning here (`position: fixed`, the gap as a margin). How each says where the popup goes is not compared;
+// where it ends up is — its offset from the root it floats beside, like every other node's.
+const PLACEMENT = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft']);
+const placed = node => ('popover' in node.attrs || node.tag === 'dialog') && 'data-open' in node.attrs;
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
 const snapshot = JSON.parse(await readFile(join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json'), 'utf8'));
 const OWN = new Set([slug, ...(snapshot.pages.find(p => p.slug === slug)?.parts ?? [])
@@ -210,7 +215,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 
 // What one node looks like: computed styles, pseudo-elements, animations, and what each forced state changes.
 function compareLook(theirs, a, mine, b, where, diffs) {
-  compareStyles(a.style, b.style, where, diffs);
+  compareStyles(a.style, b.style, where, diffs, placed(a) ? PLACEMENT : undefined);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
     else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
@@ -242,9 +247,9 @@ function shown(example, node) {
   return true;
 }
 
-function compareStyles(x, y, where, diffs) {
+function compareStyles(x, y, where, diffs, unheld = undefined) {
   for (const key of STYLES) {
-    if (IGNORED.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
+    if (IGNORED.has(key) || unheld?.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }
 }
