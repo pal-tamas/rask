@@ -8,7 +8,6 @@ namespace Rask.Site.Features;
 /// </summary>
 public sealed partial class LazyMount : Component
 {
-    private static readonly Component Empty = Div;
     private bool _shown;
 
     protected override Component? Render() =>
@@ -16,6 +15,6 @@ public sealed partial class LazyMount : Component
             Ui.Button
                 .Class("mb-3")
                 .OnClick(() => _shown = !_shown)[_shown ? "Hide LazyChild" : "Show LazyChild"],
-            _shown ? LazyChild : Empty
+            _shown ? LazyChild : Div
         ];
 }
