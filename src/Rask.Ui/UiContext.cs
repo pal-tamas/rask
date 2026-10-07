@@ -113,7 +113,7 @@ public sealed partial class UiContext : Component
         }
     }
 
-    // The runtime writes the pointer's position to --rask-context-x/-y on <html> as it opens the menu — not on
+    // The runtime sets --rask-context-x/-y on the root (in a sheet of its own) as it opens the menu — not on
     // the menu, whose style attribute a render rewrites. Which of the menu's corners lands there is a translate:
     // "end" puts the menu's end edge on the pointer, so the menu reaches back from it.
     private string PanelStyle() => PointerStyle(Position ?? Ui.ContextPosition.BottomEnd, Gap, Offset ?? (0, 0));

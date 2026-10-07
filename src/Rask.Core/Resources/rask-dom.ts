@@ -1319,7 +1319,7 @@ export function applyFrameInvokes(
 // pointer at once: a round trip before the menu shows is a lag the reader feels on every right-click, and a page
 // that has not booted yet would get the browser's menu instead.
 //
-// The position goes on <html> as --rask-context-x / --rask-context-y, which the panel's own style reads. Not on
+// The position is --rask-context-x / --rask-context-y on the root, which the panel's own style reads. Not on
 // the panel: a render rewrites the panel's style attribute, and the cursor moving is a render. Only one menu is
 // open at a time — an auto popover closes the others — so one pair is enough.
 //
@@ -1376,14 +1376,35 @@ export function applyFrameInvokes(
         open(panel, x, y);
     });
 
+    // Where the pointer was, for the panel's style to read. In a sheet of the runtime's own, not in <html>'s
+    // style attribute: a render that morphs the document root — the WASM host taking over a prerendered page on
+    // this very right-click — strips an attribute no render wrote, and the open menu would jump to the corner.
+    let sheet: CSSStyleSheet | null = null;
+
+    function place(x: number, y: number): void {
+        const doc = document as Document & { adoptedStyleSheets?: CSSStyleSheet[] };
+        if (!sheet && doc.adoptedStyleSheets && typeof CSSStyleSheet === "function") {
+            try {
+                sheet = new CSSStyleSheet();
+                doc.adoptedStyleSheets = doc.adoptedStyleSheets.concat(sheet);
+            } catch (err) {
+                sheet = null; // no constructable stylesheets here: the inline path below
+            }
+        }
+        if (sheet) {
+            sheet.replaceSync(":root{--rask-context-x:" + x + "px;--rask-context-y:" + y + "px}");
+            return;
+        }
+        document.documentElement.style.setProperty("--rask-context-x", x + "px");
+        document.documentElement.style.setProperty("--rask-context-y", y + "px");
+    }
+
     function open(panel: HTMLElement & { showPopover?: () => void; hidePopover?: () => void }, x: number, y: number): void {
-        const vars = document.documentElement.style;
         try {
             if (panel.matches(":popover-open")) {
                 panel.hidePopover!(); // open again at the new point, not where it was
             }
-            vars.setProperty("--rask-context-x", x + "px");
-            vars.setProperty("--rask-context-y", y + "px");
+            place(x, y);
             panel.showPopover!();
         } catch (err) {
             return; // not connected, or mid-transition
@@ -1398,8 +1419,7 @@ export function applyFrameInvokes(
         let fitY = y;
         if (menu.bottom > window.innerHeight - EDGE) fitY += window.innerHeight - EDGE - menu.bottom;
         else if (menu.top < EDGE) fitY += EDGE - menu.top;
-        vars.setProperty("--rask-context-x", fitX + "px");
-        vars.setProperty("--rask-context-y", fitY + "px");
+        place(fitX, fitY);
     }
 })();
 

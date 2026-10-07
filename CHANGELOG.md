@@ -438,7 +438,10 @@ them until tagged releases begin.
     `Ui.MenuSeparator` rows, written the new way.
   - Runtime: a menu row that gains `data-active` inside an open popover is focused; Enter and Space press the
     focused row; a popover that closes with focus nowhere hands it to the `[popovertarget][aria-haspopup]`
-    button that opens it; the context-menu hook fits the menu inside the viewport by where it landed.
+    button that opens it; the context-menu hook fits the menu inside the viewport by where it landed, and keeps
+    the pointer's position in a stylesheet of its own (`:root{--rask-context-x/-y}`) rather than in `<html>`'s
+    style attribute, which the WASM host strips when it takes over a prerendered page — on the first
+    right-click, the menu opened in the corner.
   - `scripts/flux/parity-menu.mjs` holds the OPEN menu to Flux's live page — placement against the trigger,
     every row at rest, under a real pointer, pressed and under the cursor, a submenu's flyout, the page lock,
     Escape and a click outside — beside `parity.mjs`, which compares the page as it loads.
