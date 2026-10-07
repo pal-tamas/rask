@@ -186,6 +186,8 @@ them until tagged releases begin.
   (Flux has three), `Wide()` → `.Class("w-64")`, `Circle()` → `.Square().Class("rounded-full")`, `Active()`
   → `.AriaPressed(AriaPressed.True)` on `.Filled`. A label and its icons are wrapped in the markup now, so
   a selector that matched `button > svg` or the button's text node needs another look.
+  `Ui.Button.NewTab()` now writes `rel="noopener noreferrer"`, as `Ui.Link.External()` does (it was
+  `noopener` alone).
 - **A button draws its waiting state as Flux does.** The label fades out where it stands and Flux's spinner
   fades in over it; the button takes no pointer events meanwhile. As in Flux, the spinner is in the markup
   of a button that has something to wait on — an `OnClick`, `type="submit"` or `Loading(true)` — where the
