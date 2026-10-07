@@ -127,10 +127,12 @@ public sealed partial class UiKitActionsDemo : Component
                 Ui.Popover.Trigger("Filters").Icon(Ui.IconName.Cog6Tooth).Align(Ui.Align.Start)
                     .PanelClass("w-72")[
                     Ui.Heading.Key("h").Level(3).Class("mb-2")["Narrow the list"],
-                    Ui.CheckboxGroup.Values(_filters).Key("f")
-                        .Options([("open", "Open"), ("mine", "Assigned to me"), ("old", "Older than a week")])
-                        .Label("Show")
-                        .OnChange(v => { _filters = [.. v]; })
+                    Ui.CheckboxGroup.Values(_filters).Key("f").Id("popover-filters").Label("Show")
+                        .OnChange(v => { _filters = [.. v]; })[
+                        Ui.Checkbox.Value("open").Label("Open"),
+                        Ui.Checkbox.Value("mine").Label("Assigned to me"),
+                        Ui.Checkbox.Value("old").Label("Older than a week")
+                    ]
                 ]
             ]);
 

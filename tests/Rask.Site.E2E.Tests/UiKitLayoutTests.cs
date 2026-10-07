@@ -133,11 +133,11 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator("main h1")).ToContainTextAsync("Data input",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
 
-        var remember = Page.Locator("[data-testid='ui-choices'] input.checkbox").First;
-        await Expect(remember).ToBeCheckedAsync();
+        var enabled = Page.Locator("[data-testid='ui-checkbox'] #cb-checked");
+        await Expect(enabled).ToBeCheckedAsync();
 
-        var alerts = Page.Locator("[data-testid='ui-choices'] input.toggle").First;
-        await Expect(alerts).Not.ToBeCheckedAsync();
+        var notify = Page.Locator("[data-testid='ui-switch'] #sw-notify");
+        await Expect(notify).Not.ToBeCheckedAsync();
     });
 
     [Fact]

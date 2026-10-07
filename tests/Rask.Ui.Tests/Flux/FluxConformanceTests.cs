@@ -123,6 +123,13 @@ public sealed class FluxConformanceTests
         // Flux's reference spells this heading "flux:chart.summaryvalue"; its examples write flux:chart.summary.value.
         ["flux:chart.summaryvalue"] = typeof(UiChartSummaryValue),
         ["flux:chart.legend"] = typeof(UiChartLegend),
+        ["flux:checkbox"] = typeof(UiCheckbox),
+        ["flux:checkbox.group"] = typeof(UiCheckboxGroup<>),
+        ["flux:checkbox.all"] = typeof(UiCheckboxAll),
+        ["flux:radio.group"] = typeof(UiRadioGroup<>),
+        ["flux:radio"] = typeof(UiRadio),
+        ["flux:radio.indicator"] = typeof(UiRadioIndicator),
+        ["flux:switch"] = typeof(UiSwitch),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -146,6 +153,8 @@ public sealed class FluxConformanceTests
         ["flux:select.option/avatar:*"] = "Props forwarded to Flux's avatar. Ui.Avatar is not Flux's yet; an option draws the extra-small round avatar Flux draws there.",
         ["flux:select.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
         ["flux:pillbox.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
+        ["flux:switch/align=right|start"] = "Two spellings of one side, as the reference lists them. Ui.SwitchAlign.Right is it; `start` is not a second value.",
+        ["flux:switch/align=left|end"] = "Two spellings of one side. Ui.SwitchAlign.Left is it; `end` is not a second value.",
     };
 
     /// <summary>
@@ -260,6 +269,38 @@ public sealed class FluxConformanceTests
         ["flux:pillbox.option.create/OnClick"] = "`wire:click`, which the reference lists as a directive",
         ["flux:pillbox.search/Value"] = "as flux:select.search",
         ["flux:pillbox.search/OnInput"] = "as Value: the write of that `wire:model.live`",
+        // The checkbox, the radio and the switch. A checkbox documents `value` and `checked` itself, so its own
+        // `wire:model` has no `Value` row; a radio binds nothing — its group does.
+        ["flux:checkbox/Bind"] = "`wire:model`, two-way",
+        ["flux:checkbox/OnChange"] = "`wire:model`'s write, handed to the parent",
+        ["flux:checkbox/Validate"] = "the Livewire component's rule for the `wire:model` property",
+        ["flux:checkbox/AfterBind"] = "Livewire's `updated…` hook of the `wire:model` property",
+        ["flux:checkbox/ShowValidation"] = "whether the shorthand field draws its `flux:error`: false is Flux's control written inside a `flux:field` of your own",
+        ["flux:checkbox.group/Bind"] = "`wire:model`, two-way",
+        ["flux:checkbox.group/Value"] = "`wire:model` read one way; OnChange is the other way",
+        ["flux:checkbox.group/OnChange"] = "`wire:model`'s write, handed to the parent",
+        ["flux:checkbox.group/Validate"] = "the Livewire component's rule for the `wire:model` property",
+        ["flux:checkbox.group/AfterBind"] = "Livewire's `updated…` hook of the `wire:model` property",
+        ["flux:checkbox.group/ShowValidation"] = "whether the shorthand field draws its `flux:error`: false is Flux's control written inside a `flux:field` of your own",
+        ["flux:radio.group/Bind"] = "`wire:model`, two-way",
+        ["flux:radio.group/Value"] = "`wire:model` read one way; OnChange is the other way",
+        ["flux:radio.group/OnChange"] = "`wire:model`'s write, handed to the parent",
+        ["flux:radio.group/Validate"] = "the Livewire component's rule for the `wire:model` property",
+        ["flux:radio.group/AfterBind"] = "Livewire's `updated…` hook of the `wire:model` property",
+        ["flux:radio.group/ShowValidation"] = "whether the shorthand field draws its `flux:error`: false is Flux's control written inside a `flux:field` of your own",
+        ["flux:switch/Bind"] = "`wire:model`, two-way",
+        ["flux:switch/Value"] = "`wire:model` read one way; OnChange is the other way",
+        ["flux:switch/OnChange"] = "`wire:model`'s write, handed to the parent",
+        ["flux:switch/Validate"] = "the Livewire component's rule for the `wire:model` property",
+        ["flux:switch/AfterBind"] = "Livewire's `updated…` hook of the `wire:model` property",
+        ["flux:switch/ShowValidation"] = "whether the shorthand field draws its `flux:error`: false is Flux's control written inside a `flux:field` of your own",
+        ["flux:checkbox/Icon"] = "`icon`, which Flux's \"Cards with icons\" and \"Buttons\" examples set and its reference omits",
+        ["flux:checkbox/Attributes"] = "the attributes Flux forwards to the control (`name`, as its radio example writes; `aria-label`, `required`): the root is a <label> around the real <input>, which is where they belong, so the control declares the bag",
+        ["flux:radio/Attributes"] = "the attributes Flux forwards to the control (`name`, as its radio example writes; `aria-label`, `required`): the root is a <label> around the real <input>, which is where they belong, so the control declares the bag",
+        ["flux:switch/Attributes"] = "the attributes Flux forwards to the control (`name`, as its radio example writes; `aria-label`, `required`): the root is a <label> around the real <input>, which is where they belong, so the control declares the bag",
+        ["flux:radio.group/Size"] = "`size=\"sm\"`, which Flux documents under \"Segmented\" and not in the reference",
+        ["flux:radio.group/Indicator"] = "`:indicator=\"false\"`, which Flux documents under \"Cards without indicators\" and not in the reference",
+        ["flux:switch/Align=Left"] = "`left|end`, which the reference lists as one option with two spellings",
     };
 
     /// <summary>What every component takes, Flux's included: its classes, its identity, what is inside it.</summary>

@@ -314,6 +314,57 @@ them until tagged releases begin.
   fluxui.dev — the popup's look and placement on the parity page, and `--live <url>` walks the keyboard on a
   running site. RASK075 (an option template on a native select) is retired with its analyzer: there is no
   `OptionTemplate` or `Native` left to contradict each other, and the id is not recycled.
+- **BREAKING: `Ui.Checkbox`, `Ui.Radio` and `Ui.Switch` are Flux's; `Ui.Toggle` is `Ui.Switch`.** Flux UI's
+  `flux:checkbox` (+ `.group`, `.all`, `.indicator`), `flux:radio.group` / `flux:radio` / `flux:radio.indicator`
+  and `flux:switch`: the same parts, props, look and `data-ui-*` markers, over Rask's binding. A checkbox or a
+  switch binds a `bool` (a checkbox a `bool?` too: `null` draws the dash); a radio group binds one value of any
+  type and a checkbox group the collection your model declares. **The choices are the group's children**, as in
+  Flux, not an `Options` list — each `Ui.Radio` / `Ui.Checkbox` carries the `Value` the group binds, with its own
+  `Label`, `Description`, `Icon` and `Disabled`. The group's variant draws them as cards, pills, buttons or (a
+  radio group) one segmented strip; `Ui.CheckboxAll` ticks or clears a group; `Ui.CheckboxIndicator` and
+  `Ui.RadioIndicator` place the box or the dot in a card laid out by hand. Every one is a `<label>` around a real
+  input that is out of sight, so the space bar, a radio group's arrow keys and the form post are the browser's:
+  ```csharp
+  Ui.Checkbox.Bind(() => m.Agreed)["I agree"]                                                    // was
+  Ui.Checkbox.Bind(() => m.Agreed).Label("I agree")                                              // now
+
+  Ui.Checkbox.Value(on).OnChange(v => on = v)["Remember me"]                                     // was
+  Ui.Checkbox.Checked(on).OnChange(v => on = v).Label("Remember me")                             // now
+
+  Ui.Toggle.Value(on).Size(Ui.Size.Sm).OnChange(v => on = v)["Email alerts"]                     // was
+  Ui.Switch.Value(on).OnChange(v => on = v).Label("Email alerts").Left                           // now
+
+  Ui.RadioGroup.Bind(() => m.Plan).Options([("free", "Free"), ("pro", "Pro")]).Label("Plan")     // was
+      .Layout(Ui.ChoiceLayout.Cards).OptionDescription(v => v == "pro" ? "Billed monthly" : null)
+  Ui.RadioGroup.Bind(() => m.Plan).Label("Plan").Cards[                                          // now
+      Ui.Radio.Value("free").Label("Free"),
+      Ui.Radio.Value("pro").Label("Pro").Description("Billed monthly")
+  ]
+
+  Ui.CheckboxGroup.Bind(() => m.Topics).Options(topics).Label("Email me about").CheckAll()       // was
+  Ui.CheckboxGroup.Bind(() => m.Topics).Label("Email me about")[                                 // now
+      Ui.CheckboxAll.Label("Everything"),
+      Ui.Checkbox.Value("news").Label("News"),
+      Ui.Checkbox.Value("jobs").Label("Jobs")
+  ]
+
+  Ui.Radio.Value(shipping is "express").Text("Express").Group("shipping").OnChange(…)            // was
+  Ui.RadioGroup.Value(shipping).OnChange(v => shipping = v)[Ui.Radio.Value("express").Label("Express"), …]   // now
+  ```
+  `Ui.ChoiceLayout` is `Ui.RadioGroupVariant` / `Ui.CheckboxGroupVariant` (`List` → `Default`), reached as the
+  steps `.Cards`, `.Pills`, `.Buttons`, `.Segmented`; `Ui.RadioGroup` gains `Size` (`.Sm`) and
+  `Indicator(false)`, a checkbox `Indeterminate()` and `Invalid()`, a switch `Align` (`.Left`). On a checkbox
+  `Value` is now the value it stands for in a group and `Checked` its state. Removed with no replacement: `Tone`
+  and `Size` on the checkbox, radio and switch, a radio bound to its own `bool`, `OptionDisabled` (say
+  `Disabled()` on the choice), `CheckAllLabel` (say `Label` on `Ui.CheckboxAll`), and the groups' `Hint`,
+  `Error`, `Badge`, `AccessibleLabel` and floating label. `Id` on a checkbox, radio or switch lands on the
+  `<input>`, which is no longer the element a pointer hits: a browser test presses the label
+  (`label:has(> #id)`). A switch's input says `role="switch"`, and the runtime flips it on Enter as Flux's
+  does. What Flux forwards to the control goes through `Attributes` on a checkbox, radio or switch
+  (`.Attributes(("name", "role"))`, `("aria-label", "Select row")`) and lands on the `<input>`; there is no
+  `Name` step, and a radio group names its radios after its own id. ARIA is Flux's, read from its live page: an
+  indeterminate checkbox is marked `data-indeterminate` and says nothing more (no `aria-checked="mixed"`).
+  A control with no id, binding or label gets an id of its own (`f-field-<n>`), as the input does.
 - **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
   `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
   `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the

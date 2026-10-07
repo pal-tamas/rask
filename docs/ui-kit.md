@@ -332,10 +332,10 @@ A selected toggle is `.AriaPressed(AriaPressed.True)` on the variant that reads 
 ## The three axes
 
 On the components daisyUI still draws, colour, fill and size are independent and compose, so a small
-error-toned toggle needs no member of its own:
+error-toned range needs no member of its own:
 
 ```csharp
-Ui.Toggle.Bind(() => settings.Alerts).Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
+Ui.Range.Bind(() => settings.Volume).Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
 ```
 
 | Enum | Members |
@@ -955,7 +955,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
@@ -1100,30 +1100,6 @@ is the same question a select asks: `.Listbox.Searchable()` puts a search field 
 
 A short list needs none of it: a letter typed on a listbox's closed button picks the next option starting
 with it, which is what a native select does.
-
-**A whole set of choices is one field too.** `UiRadioGroup<T>` binds the group's value and
-`UiCheckboxGroup<T>` binds the collection your model declares — one field, not one per option, which is what
-a bare `Ui.Radio` (bound to its own `bool`) could never give a form.
-
-```csharp
-Ui.RadioGroup.Bind(() => _account.Plan).Options(plans).Label("Plan")
-    .Layout(Ui.ChoiceLayout.Cards)
-    .OptionDescription(v => v == "pro" ? "Everything, billed monthly" : null)
-
-Ui.CheckboxGroup.Bind(() => _account.Topics).Options(topics).Label("Email me about").CheckAll()
-```
-
-`Layout` is Flux's set of looks — `List`, `Cards`, `Pills`, `Buttons`, `Segmented`. It is not called
-`Variant` because every field already has one (`Ui.Variant`: Solid, Outline, Ghost…) and two properties of
-that name meaning different things on one control is worse than one with a plainer name.
-
-**Every layout keeps a real `<input>` inside its label.** A card, a pill and a segment look like buttons, and
-a button is the one thing a choice must not be: the browser's own grouping, the arrow keys inside a radio
-group, the space bar, the form post and every assistive technology all come from the input being there. The
-look is `has-[:checked]:` rules on the label around it — CSS reading the input's own state, with nothing to
-keep in sync. Where the whole label is the affordance the box is `sr-only`, never `hidden`, which would take
-it out of the tab order too. `CheckAll` reports `aria-checked="mixed"` while only some of the list is in,
-rather than claiming "all" over a half-filled one.
 
 A row of a drawn select that needs more than words says so on the option — `Icon`, `Avatar`, `Description`,
 or children of its own. Those are the listbox's and the combobox's: a native `<option>` holds text and
@@ -1715,6 +1691,62 @@ Ui.Textarea.Bind(() => m.Notes).Label("Notes").Rows(UiTextareaRows.Auto).None   
   `Rows(UiTextareaRows.Auto)`), `Ui.Resize` (now `Ui.TextareaResize`) and `Ui.Search` (now
   `Ui.Input.Icon(Ui.IconName.MagnifyingGlass)`).
 
+### Checkbox, radio and switch
+
+**`Ui.Checkbox`, `Ui.Radio` and `Ui.Switch` are Flux UI's.** Same parts, props, look and markers
+([checkbox](https://fluxui.dev/components/checkbox), [radio](https://fluxui.dev/components/radio),
+[switch](https://fluxui.dev/components/switch)), over Rask's binding.
+
+```csharp
+Ui.Checkbox.Bind(() => m.Agreed).Label("I agree to the terms")                  // a bool, or a bool?
+Ui.Checkbox.Checked(on).OnChange(v => on = v).Label("Remember me")              // the parent owns the state
+Ui.Switch.Bind(() => m.Alerts).Label("Email alerts").Description("At most once a day.")
+Ui.Switch.Value(on).OnChange(v => on = v).Label("Compact rows").Left            // align="left"
+
+Ui.CheckboxGroup.Bind(() => m.Topics).Label("Email me about")[                  // a List<T>, a HashSet<T>, an array
+    Ui.CheckboxAll.Label("Everything"),
+    Ui.Checkbox.Value("news").Label("News").Description("Once a month."),
+    Ui.Checkbox.Value("jobs").Label("Jobs")
+]
+
+Ui.RadioGroup.Bind(() => m.Plan).Label("Plan").Cards[                           // one value, of any type
+    Ui.Radio.Value(Plan.Free).Label("Free").Description("For trying it out."),
+    Ui.Radio.Value(Plan.Pro).Label("Pro").Icon(Ui.IconName.Bolt)
+]
+Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]             // variant="segmented" size="sm"
+```
+
+- **The group is the field; the choices are its children.** A `Ui.Radio` or a `Ui.Checkbox` inside a group binds
+  nothing itself: its `Value` is what the group's member becomes (radio) or what its collection holds while the
+  box is ticked (checkbox). A checkbox group writes the collection in the order the checkboxes are written, and
+  its controlled opening is `Values`. `Ui.Radio.Checked()` chooses a radio only while the group holds no value.
+- **Variants draw the same inputs.** `Variant` on a checkbox group is `Cards`, `Pills` or `Buttons`; a radio group
+  adds `Segmented`, with `Size` (`Sm`) and, for cards, `Indicator(false)`. A choice's `Label`, `Description` and
+  `Icon` are drawn on the card, the pill, the segment or the button. A card's children replace them:
+  `Ui.Radio.Value(x)[Ui.RadioIndicator, Div[…]]` (and `Ui.CheckboxIndicator`). `Class("flex-col")` on a cards
+  group stacks it; `max-sm:flex-col` only on a phone.
+- **`Ui.CheckboxAll`** sits among a group's checkboxes, anywhere in its markup: ticked when all are, a dash
+  (`data-indeterminate`, as Flux marks it) while some are, and pressing it ticks them all unless they all are already. Disabled
+  checkboxes keep what they have. `Ui.Checkbox.Indeterminate()` draws the same dash on a checkbox of your own, and
+  a bound `bool?` that is `null` draws it too.
+- **No script, and real inputs.** Each root (`data-ui-checkbox`, `data-ui-radio`, `data-ui-switch`, and
+  `…-cards` / `-pills` / `-buttons` / `-segmented`) is a `<label>` around an `<input>` that is out of sight, never
+  `hidden`: the tick, the dot and the thumb's 150ms travel read the input's own `:checked`. So the space bar,
+  a click on the label, a radio group's arrow keys (they move AND choose, wrapping at the ends; Tab enters at the
+  chosen radio) and the form post (`name` + `value`) are the browser's. A switch is
+  `<input type="checkbox" role="switch">`, which the runtime flips on Enter as well as Space, as Flux's does.
+- **What Flux forwards to the control** goes through `Attributes`, onto the `<input>`:
+  `Ui.Radio.Value("editor").Label("Editor").Attributes(("name", "role"))`,
+  `Ui.Checkbox.Attributes(("aria-label", "Select row"))`. A radio group names its radios after its own id.
+- **Validation.** A bound checkbox, switch or group is invalid on its own while its form holds a message for
+  the member: `aria-invalid`, `data-invalid`, `aria-describedby` naming the field's `Ui.Error`, which `Label`
+  draws with it. `Invalid()` says so by hand. Flux's pages show no invalid checkbox to measure; the unticked box
+  takes the red-500 border Flux's input has.
+- **Gone with daisyUI's controls:** `Ui.Toggle` (now `Ui.Switch`), `Tone` and `Size` on all three, children as
+  the label (now `Label`), `Ui.Radio.Text` / `.Group` and a radio bound to its own `bool`, and the groups'
+  `Options`, `OptionDescription`, `OptionDisabled`, `Layout` (`Ui.ChoiceLayout`), `CheckAll` / `CheckAllLabel`,
+  `Hint`, `Error`, `Badge` and `AccessibleLabel`.
+
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two
 sources of truth for one field, and the compiler enforces it — both live on the control's entry, so
@@ -1724,8 +1756,8 @@ of them says anything about `T`. Bound mode drives the surrounding `Form`'s vali
 the value with the parent. See [building form controls](building-form-controls.md).
 
 **The controls still on daisyUI share one field shape.** `Ui.Otp`,
-`Ui.FileInput`, the radio and checkbox groups and the date pickers all take the same members from
-`UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input`, `Ui.Textarea` and `Ui.Select` have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
+`Ui.FileInput` and the date pickers all take the same members from
+`UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input`, `Ui.Textarea`, `Ui.Select`, the checkbox, the radio and the switch have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
 without one, an invisible `AccessibleLabel`; a `Hint` and a controlled `Error` under it; an `Id`, derived from the
 bound member or the label when you give none; and `aria-describedby`, `aria-invalid` and `aria-required` worked out
 from those and from the bound member's `[Required]` and messages. `Label` is never a required step, so write it
@@ -1734,8 +1766,8 @@ anywhere after the opening — `Ui.Otp.Value(code).Length(6).Label("Verification
 **Generic where the value type varies, concrete where it does not.** `UiInput<T>`, `UiTextarea<T>`,
 `UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `Ui.Input` even
 takes its `type` attribute from `T`, so a bound `int` is a number field with nothing said at the call
-site. The rest are closed over the one type they can have: `Ui.Checkbox`, `Ui.Toggle` and `Ui.Radio` over
-`bool`, `Ui.Range` over `double`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,
+site. `UiRadioGroup<T>` and `UiCheckboxGroup<T>` are generic over what a choice holds. The rest are closed over
+the one type they can have: `Ui.Checkbox` and `Ui.Switch` over `bool`, `Ui.Range` over `double`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,
 `Ui.Calendar` over `DateOnly`. A checkbox's value is a `bool` and nothing else; a type parameter there
 would have exactly one legal argument.
 
@@ -1744,8 +1776,9 @@ would have exactly one legal argument.
 | `UiInput<T>` `UiTextarea<T>` `UiSelect<T>` | what the field holds |
 | `UiSelectMultiple<T>` — `Ui.Select` opened on a collection | the ELEMENT type — it binds an `ICollection<T>` |
 | `UiFilter<T>` | the chosen option of a whole radio group |
-| `Ui.Radio` | whether **this** option is the chosen one — the group's value belongs to `UiFilter<T>` |
-| `Ui.Checkbox` `Ui.Toggle` | on or off |
+| `UiRadioGroup<T>` | the value of the chosen `Ui.Radio` |
+| `UiCheckboxGroup<T>` | the ELEMENT type — it binds an `ICollection<T>` of the ticked checkboxes' values |
+| `Ui.Checkbox` `Ui.Switch` | on or off |
 | `Ui.Range` `Ui.Rating` `Ui.Calendar` | the position, the star count, the day |
 | `Ui.Otp` | the code — `OnComplete` fires on the transition into a full one, in both modes |
 | `Ui.FileInput` | the chosen file's name, **write-only** — a browser refuses to have a file input's value set, so binding fills the model and never the box. The bytes come through `OnFiles`. |
