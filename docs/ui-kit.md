@@ -870,6 +870,52 @@ level it is a `<div>`, outside the document outline.
 - **A link card** is a link around a small card, as in Flux — there is no `Href` on the card:
   `A.Href(url)[Ui.Card.Xs.Class("hover:bg-zinc-50 dark:hover:bg-zinc-700")[…]]`. Nothing inside it may be a button.
 
+### Kanban
+
+`Ui.Kanban` is [Flux UI's kanban](https://fluxui.dev/components/kanban), part for part: cards arranged in
+columns, one column per stage of a workflow.
+
+```csharp
+Ui.Kanban[
+    columns.Select(column => Ui.KanbanColumn.Key(column.Id)[
+        Ui.KanbanColumnHeader.Heading(column.Title).Count(column.Cards.Count),
+        Ui.KanbanColumnCards[
+            column.Cards.Select(card => Ui.KanbanCard.Key(card.Id).Heading(card.Title))
+        ]
+    ])
+]
+```
+
+| Part | Takes | What it is |
+|---|---|---|
+| `Ui.Kanban` | columns | the row the columns stand in, 16px apart |
+| `Ui.KanbanColumn` | a header, the cards, optionally a footer | one stage: a 320px tinted panel as tall as what is in it |
+| `Ui.KanbanColumnHeader` | `Heading` · `Subheading` · `Count` · `Actions` | the stage's name, a second line, how many cards, and buttons at the end of the row; children replace the heading and count |
+| `Ui.KanbanColumnCards` | cards | the cards, one under the other |
+| `Ui.KanbanColumnFooter` | anything | what sits under the cards: a "New card" button, a form |
+| `Ui.KanbanCard` | `Heading` · `As` · `Header` · `Footer` | a card; `Header` goes above the heading (badges), `Footer` under it (an icon, avatars); children replace the heading |
+
+```csharp
+Ui.KanbanColumnHeader.Heading("Planned").Count(4).Actions([
+    Ui.Button.Subtle.Sm.Icon(Ui.IconName.EllipsisHorizontal).AriaLabel("Column options"),
+    Ui.Button.Subtle.Sm.Icon(Ui.IconName.Plus).AriaLabel("New card").OnClick(Add)
+])
+
+Ui.KanbanCard.As(Ui.KanbanCardAs.Button).OnClick(() => Edit(card)).Heading(card.Title)
+    .Header(Div.Class("flex gap-2")[Ui.Badge.Sm.Color(Ui.Color.Blue)["UI"], Ui.Badge.Sm.Color(Ui.Color.Red)["Bug"]])
+    .Footer(Ui.Icon.Name(Ui.IconName.Bars3BottomLeft).Variant(Ui.IconVariant.Micro).Class("text-zinc-400"))
+```
+
+- **A card is something to read** until `.As(Ui.KanbanCardAs.Button)` makes the whole card a `<button>`:
+  focused with Tab, pressed with Enter or Space, lighter under the pointer. `OnClick` is what it does.
+- **It draws a board and moves nothing**, exactly as Flux's does: no card is draggable, no key reorders one,
+  and there is no drop event. Adding or moving a card is your page changing its own lists and rendering again;
+  for dragging, [`DragDrop`](composition-lists.md) is the framework's primitive.
+- **A column does not shrink**, so a board wider than its place needs a box that scrolls:
+  `Div.Class("overflow-x-auto")[Ui.Kanban[…]]`.
+- Flux's `badge` prop on the column header is not carried: no example on Flux's page draws it, so there is
+  nothing to measure it against. A `Ui.Badge` of your own goes in as a child, beside the heading you write there.
+
 ## Buttons that wait
 
 A button whose handler is still running shows it — with nothing to set. Press "Save" on a slow link and,
@@ -906,7 +952,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
@@ -1247,25 +1293,63 @@ keys inside it. `Ui.Popover` is the same machinery — a `[popover]` the browser
 dismisses on Escape and on a click outside, placed with the same `Position`/`Align` — with `role="dialog"` and
 ordinary Tab movement inside.
 
-**`Ui.Chart` draws lines, areas and bars as SVG on the server.** No script and no chart library. The series arrive
-through a factory whose parameter is the chart, as a data grid's columns do, which is what gives each lambda its
-row type:
+**`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No script and no chart library: the scales, the ticks
+and every path are computed during the render, to the numbers Flux's own layout arrives at
+(`scripts/flux/parity-chart.mjs` compares the two drawings' geometry).
 
 ```csharp
-Ui.Chart.Data(months).Label("Revenue and costs").Format("C0").Class("h-64")[c => [
-    c.X(m => m.Name),
-    c.Area(m => m.Revenue).Label("Revenue"),
-    c.Line(m => m.Costs).Label("Costs").Tone(Ui.Tone.Warning),
-    showOrders ? c.Bar(m => m.Orders).Label("Orders") : null
-]]
+Ui.Chart.Value(visits).Class("aspect-3/1")[
+    Ui.ChartSvg[
+        Ui.ChartLine.Field((Visit v) => v.Visitors).Class("text-pink-500 dark:text-pink-400"),
+        Ui.ChartAxis.X.Field((Visit v) => v.Date)[Ui.ChartAxisLine, Ui.ChartAxisTick],
+        Ui.ChartAxis.Y[Ui.ChartAxisGrid, Ui.ChartAxisTick],
+        Ui.ChartCursor],
+    Ui.ChartTooltip[
+        Ui.ChartTooltipHeading.Field((Visit v) => v.Date),
+        Ui.ChartTooltipValue.Field((Visit v) => v.Visitors).Label("Visitors")]]
 ```
 
-`Line`, `Area` and `Bar` read a `double`, `decimal`, `int` or `long` without a cast, and share one value axis whose
-ends are round numbers with zero on it. A series with no `Tone` takes the next colour in turn, and a legend appears
-once there is more than one. Size it with a height class: the plot stretches to the box while its strokes keep
-their width, and the axis labels are HTML beside it so they never stretch. Hovering a column shows that row's
-values in CSS. The figure is named by `Label`, the drawing is hidden from assistive technology, and a visually
-hidden table carries every value it draws — series as columns, rows as rows.
+- **Data.** Flux's chart takes an array of rows and its parts name a column with a string. `Ui.Chart.Value(rows)`
+  takes the typed list, and each part takes a selector whose lambda states the row type once —
+  `.Field((Visit v) => v.Visitors)` — because a part is built before the chart it goes into. A number of any
+  numeric type plots without a cast; a `DateTime`, `DateOnly` or `DateTimeOffset` on the index axis makes it a
+  time axis; anything else is a name. A chart of bare numbers needs no field at all:
+  `Ui.Chart.Value([15, 18, 16])[Ui.ChartSvg.Gutter("0")[Ui.ChartLine]]`.
+- **Parts.** In the drawing: `Ui.ChartLine` and `Ui.ChartArea` (`Curve`: smooth or `None`), `Ui.ChartPoint`,
+  `Ui.ChartBar` (alone, or inside `Ui.ChartGroup` / `Ui.ChartStack`), `Ui.ChartPie` (`InnerRadius("60%")` makes a
+  donut, `Radius` rounds the slices, `ColorField` lets a row choose its hue), `Ui.ChartAxis` holding
+  `Ui.ChartAxisTick`, `Ui.ChartAxisGrid`, `Ui.ChartAxisLine` and `Ui.ChartAxisMark`, `Ui.ChartZeroLine` and
+  `Ui.ChartCursor`. Beside it: `Ui.ChartViewport` (the drawing's box, when a legend or a summary shares the
+  chart), `Ui.ChartTooltip` with `Ui.ChartTooltipHeading` / `Ui.ChartTooltipValue` / `Ui.ChartTooltipIndicator`,
+  `Ui.ChartSummary` with `Ui.ChartSummaryValue`, and `Ui.ChartLegend` with `Ui.ChartLegendIndicator`.
+  `Ui.Chart.Horizontal()` lays the rows down the Y axis.
+- **Axes.** The value axis starts at zero (or the lowest value below it) and steps by a round quarter of its
+  span; `TickCount`, `TickStart`, `TickEnd`, `TickValues`, `TickPrefix`, `TickSuffix` and
+  `Position(Ui.Position.Right)` are Flux's. A time axis ticks at the pace of its rows and writes itself for its
+  reach (`9:17 AM`, `9 AM`, `Tue 9 AM`, `Mar 10`, `Mar`, `2026`). Labels that would touch give way as Flux's do:
+  dates drop every other one, names turn 45°.
+- **Size.** Flux measures its element in the browser and draws again when it changes. A chart drawn in C# is told
+  its box — `Ui.ChartSvg.Width(606).Height(202)`, 600 × 200 unless stated — and the SVG then scales as a whole.
+  State the size it is usually shown at, so its 12px labels are 12px there.
+- **Format.** Flux's `:format` is the options of `Intl.NumberFormat` / `Intl.DateTimeFormat`; `UiChartFormat`
+  carries them under Intl's names, written with .NET formatting in the reader's culture:
+  `new() { Style = Ui.ChartFormatStyle.Currency, Currency = "USD" }`,
+  `new() { Notation = Ui.ChartFormatNotation.Compact, MaximumFractionDigits = 1 }`,
+  `new() { Month = Ui.ChartFormatPart.Short, Day = Ui.ChartFormatPart.Numeric }`. Carried: `style`
+  (decimal, currency, percent, unit), `currency`, `unit`, `notation` (standard, compact, scientific),
+  `minimumFractionDigits`, `maximumFractionDigits`, `useGrouping`, `dateStyle`, `timeStyle`, `weekday`, `year`,
+  `month`, `day`, `hour`, `minute`, `second`, `hour12`. Not carried: `compactDisplay: long`, `currencyDisplay`,
+  `currencySign`, `signDisplay`, `unitDisplay`, significant-digit and integer-digit limits, `roundingMode`,
+  `timeZone`, `timeZoneName`, `era`, `fractionalSecondDigits`, `dayPeriod`, `hourCycle`, `calendar`,
+  `numberingSystem`. A date's parts are written in the order English writes them.
+- **Under the pointer.** Flux follows the pointer in script. Here every row has a strip over the drawing,
+  reaching halfway to its neighbours, that carries the row's own cursor and tooltip and shows them on `:hover`
+  — so the nearest row answers, as in Flux, with no script. A summary shows the latest row and does not follow
+  the pointer; a pie has no tooltip. Both need a pointer hook in the runtime.
+- **Labels are measured in Inter.** Flux sizes a chart's gutters by measuring its tick labels in the browser.
+  The kit carries Inter's advance widths and kerning (`UiChartInter`, generated by
+  `scripts/flux/inter-metrics.mjs`) and adds them up as Chromium does. In another face the labels still fit;
+  the gutters are those Inter would have needed.
 
 **`Ui.Textarea` grows, or does not.** `Resize` says which way the handle drags (`None` for a box in a layout the
 extra height would break), and `AutoSize` grows the box to fit what is typed. That one is CSS —

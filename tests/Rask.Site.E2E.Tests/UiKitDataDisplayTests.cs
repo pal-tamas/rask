@@ -23,7 +23,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         foreach (var id in new[]
                  {
-                     "ui-badge", "ui-card", "ui-accordion", "ui-aura", "ui-text-rotate", "ui-hover-3d",
+                     "ui-badge", "ui-card", "ui-kanban", "ui-accordion", "ui-aura", "ui-text-rotate", "ui-hover-3d",
                      "ui-hover-gallery", "ui-console-pieces", "ui-chart", "ui-table", "ui-display-rest",
                  })
         {
@@ -273,39 +273,33 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     });
 
     [Fact]
-    public Task A_chart_draws_its_series_and_shows_a_months_values_on_hover() => RunAsync(async () =>
+    public Task A_chart_draws_its_line_and_shows_a_rows_values_on_hover() => RunAsync(async () =>
     {
         await OpenAsync();
 
-        var chart = Page.GetByRole(AriaRole.Figure, new PageGetByRoleOptions { Name = "Revenue and costs by month" });
+        var chart = Page.Locator("[data-testid=ui-chart] [data-ui-chart]").First;
         await chart.ScrollIntoViewIfNeededAsync();
         await Expect(chart).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
-        // The plot stretched to the box it was given, and a line was drawn with a real colour — a stroke class the
-        // sheet never compiled would leave the path there and invisible.
+        // The drawing fills the box its aspect class gave it, and the line has a real colour: a class the sheet
+        // never compiled would leave the path there and invisible.
         var plot = chart.Locator("svg");
         var box = (await plot.BoundingBoxAsync())!;
-        var boxes = await chart.EvaluateAsync<string>(
-            "f => [f, f.children[1], f.children[1].children[1], f.querySelector('svg')]"
-            + ".map(e => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); "
-            + "return e.tagName + '.' + e.getAttribute('class') + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) "
-            + "+ ' display=' + s.display + ' grow=' + s.flexGrow + ' pos=' + s.position; }).join(' | ')");
-        Assert.True(box.Height > 100 && box.Width > 200, $"the plot is {box.Width}x{box.Height}: {boxes}");
-        var stroke = await chart.Locator("path.stroke-warning").EvaluateAsync<string>("p => getComputedStyle(p).stroke");
+        Assert.True(box.Height > 80 && box.Width > 200, $"the plot is {box.Width}x{box.Height}");
+        var stroke = await plot.Locator("path[stroke-linecap=round]").EvaluateAsync<string>("p => getComputedStyle(p).stroke");
         Assert.NotEqual("none", stroke);
+        Assert.DoesNotContain("0, 0, 0", stroke, StringComparison.Ordinal);
 
-        // Hover a month: its values appear, in CSS.
-        var columns = chart.Locator(".group");
-        await Expect(columns).ToHaveCountAsync(6);
-        var april = columns.Nth(3);
+        // A strip per row lies over the drawing; the pointer in one shows that row's tooltip, in CSS.
+        var strips = chart.Locator("[data-ui-chart-hover] > div");
+        await Expect(strips).ToHaveCountAsync(16);
+        var seventh = strips.Nth(6);
+        await Expect(seventh.Locator("div").Last).ToBeHiddenAsync();
 
-        await april.HoverAsync();
+        await seventh.HoverAsync();
 
-        await Expect(april.Locator("div.group-hover\\:block").Last).ToBeVisibleAsync();
-        await Expect(april).ToContainTextAsync("Apr");
-
-        // And the numbers are there for a screen reader, one row per month.
-        await Expect(chart.Locator("table.sr-only tbody tr")).ToHaveCountAsync(6);
+        await Expect(seventh).ToContainTextAsync("Visitors");
+        await Expect(seventh).ToContainTextAsync("300");
     });
 
     [Fact]
@@ -355,6 +349,77 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
             "el => el.getBoundingClientRect().top - el.closest('table').parentElement.getBoundingClientRect().top");
         Assert.InRange(head, -0.5, 0.5);
     });
+
+    [Fact]
+    public Task A_kanban_board_is_drawn_as_Flux_draws_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var board = Page.Locator("[data-testid='ui-kanban-board']");
+        var columns = board.Locator("[data-ui-kanban-column]");
+        var card = board.Locator("[ui-kanban-card]").First;
+
+        // Flux's numbers: 320px columns 16px apart, a 44px card with 12px of padding and 8px corners.
+        await Expect(columns).ToHaveCountAsync(3);
+        await Expect(board.Locator("[ui-kanban-card]")).ToHaveCountAsync(9);
+        var lefts = await columns.EvaluateAllAsync<double[]>("els => els.map(el => el.getBoundingClientRect().left - els[0].getBoundingClientRect().left)");
+        Assert.Equal([0, 336, 672], lefts);
+        var drawn = await card.EvaluateAsync<string[]>(
+            "el => { const s = getComputedStyle(el); return [s.paddingLeft, s.borderTopLeftRadius, `${el.getBoundingClientRect().width}x${el.getBoundingClientRect().height}`]; }");
+        Assert.Equal(["12px", "8px", "304x44"], drawn);
+        var header = await board.Locator("[data-ui-kanban-column-header]").First.EvaluateAsync<double>("el => el.getBoundingClientRect().height");
+        Assert.Equal(48, header);
+        // A board draws; it moves nothing. Flux's has no draggable card either.
+        await Expect(Page.Locator("[data-testid='ui-kanban'] [draggable='true']")).ToHaveCountAsync(0);
+    });
+
+    [Fact]
+    public Task A_kanban_card_as_a_button_opens_with_the_pointer_and_with_the_keyboard() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var cards = Page.Locator("[data-testid='ui-kanban-buttons'] button[data-ui-kanban-card]");
+        var opened = Page.Locator("[data-testid='ui-kanban-opened']");
+
+        await Expect(cards).ToHaveCountAsync(3);
+        await Expect(opened).ToHaveTextAsync("No card opened yet.");
+        await cards.Nth(0).ClickAsync();
+        await Expect(opened).ToHaveTextAsync("Opened: Update privacy policy in app");
+        await cards.Nth(1).FocusAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(opened).ToHaveTextAsync("Opened: Search bar suggestions broken");
+        await cards.Nth(2).FocusAsync();
+        await Page.Keyboard.PressAsync("Space");
+        await Expect(opened).ToHaveTextAsync("Opened: Improve loading spinner visuals");
+        // The header slot's badges sit above the heading, the footer slot's icon under it.
+        var order = await cards.Nth(1).EvaluateAsync<bool>(
+            "el => el.querySelector('[data-ui-badge]').getBoundingClientRect().bottom <= el.querySelector('[data-ui-heading]').getBoundingClientRect().top");
+        Assert.True(order);
+        var under = await cards.Nth(2).EvaluateAsync<bool>(
+            "el => el.querySelector('svg').getBoundingClientRect().top >= el.querySelector('[data-ui-heading]').getBoundingClientRect().bottom");
+        Assert.True(under);
+    });
+
+    [Fact]
+    public Task A_kanban_column_footer_adds_a_card_and_its_count_follows() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var column = Page.Locator("[data-testid='ui-kanban-footer']");
+        var cards = column.Locator("[data-ui-kanban-column-cards] [ui-kanban-card]");
+        var count = column.Locator("[data-ui-kanban-column-header] [data-ui-heading] + div");
+
+        await Expect(cards).ToHaveCountAsync(2);
+        await Expect(count).ToHaveTextAsync("2");
+        await column.GetByPlaceholder("New card...").FillAsync("Write the release notes");
+        await column.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Add", Exact = true }).ClickAsync();
+        await Expect(cards).ToHaveCountAsync(3);
+        await Expect(cards.Nth(2)).ToHaveTextAsync("Write the release notes");
+        await Expect(count).ToHaveTextAsync("3");
+        // The other column over the same list has the card too: the board is the page's own state, drawn.
+        await Expect(Page.Locator("[data-testid='ui-kanban-actions'] [ui-kanban-card]")).ToHaveCountAsync(3);
+    });
+
     // A computed colour in sRGB whatever colour space the sheet states it in.
     private const string InSrgb =
         "el => { const c = document.createElement('canvas').getContext('2d'); c.fillStyle = getComputedStyle(el).color; "

@@ -462,6 +462,12 @@ saving re-renders the open page live — see [what hot-reloads](#what-hot-reload
 It finds the project for you: in a **client-plus-host** solution it picks the `.Server` host (the client is
 built into it).
 
+A host that references `Rask.Spa.Hosting` and has an **npm front end** — a `client` folder, or the one
+`RaskSpaClientDir` names — gets two processes: `dotnet watch` for the host, and the front end's own dev
+server (`npm run dev`, or `start` where that is what its `package.json` has). The browser opens on the dev
+server, since that is what serves the app and what its hot reload reaches; the production bundle is not built
+during the session. See [single-page app front ends](spa.md#development).
+
 It also sets up the environment the loop needs: `ASPNETCORE_ENVIRONMENT=Development` when you have not
 set an environment yourself, and `HotReloadAutoRestart` so an edit hot reload *can't* apply restarts the
 app instead of stopping at an interactive prompt. Pass `--no-restart` to be asked instead.

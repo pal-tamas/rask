@@ -140,7 +140,7 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip` today, plus the open-state scripts `parity-toast.mjs` and
+card accordion callout button toast badge tooltip kanban` today, plus the open-state scripts `parity-toast.mjs` and
 `parity-tooltip.mjs`).
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
@@ -163,7 +163,11 @@ card accordion callout button toast badge tooltip` today, plus the open-state sc
 - **A colour the docs page hands a component by class** and that must lose to the component's own hover
   (`text-zinc-300` on the header's subtle button): `.parity-x:not(:hover){…}` on the page, and
   `not-hover:text-zinc-300` in an app.
-- **Not differences:** `NATIVE` tag pairs (and `button`→`summary`); the colour of a border 0px wide on
+- **A root Flux leaves unmarked** (`<ui-chart>` carries no `data-flux-*`) is named in `MISMARKED` by its tag.
+  A `<template>` is no child on either side (Flux keeps a prototype of every chart node in one). A node in
+  `EXTRA` (`data-ui-chart-hover`) is what the kit adds to do WITHOUT script what Flux does with it: not paired.
+- **Not differences:** `NATIVE` tag pairs (and `button`→`summary`; `ui-button`, Flux's pressable that is not a
+  `<button>`, pairs with one); the colour of a border 0px wide on
   both sides, or of an outline with `outline-style:none` on both, at rest and in a forced state; the
   offset of a node with no box (`display:none` itself or above it, or 0×0 on both sides); `oklch(… none)`
   ≡ `oklch(… 0)`; a forced state where only one side measured the node (60 per example).
@@ -189,6 +193,17 @@ card accordion callout button toast badge tooltip` today, plus the open-state sc
   under the tooltip's marker) pair with `div`. `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
 - **Public API:** `python3 scripts/public-api/record.py src/Rask.Ui` builds and applies RS0016/RS0017 to
   both baselines (run it twice: a step exists only once its property compiles). It is the only such script.
+
+### The chart is measured its own way (`scripts/flux/parity-chart.mjs`)
+Flux's docs make chart data up on EVERY request (random values, dates counted back from now), and lay a chart
+out around tick labels measured before Inter may have loaded. So **never `parity.mjs chart --refresh`**:
+`node scripts/flux/parity-chart.mjs --measure` pins one load (the document is replayed for both schemes, the
+charts are redrawn once the fonts are in), writes the rows each chart drew to
+`tests/Rask.Ui.Tests/Flux/Parity/ChartParity.data.json` (commit it with the change) and the measurement where
+`parity.mjs chart` caches it. Then `parity.mjs chart` for boxes and styles and `parity-chart.mjs` for geometry:
+every number of every `d`, `x1…y2`, `cx/cy/r` and `translate()`, to 0.05px. Flux's rules were found by handing
+its live `<ui-chart>` a dataset (`element.value = rows`) and reading back what it drew — the way to answer any
+new question about its layout. `scripts/flux/inter-metrics.mjs` regenerates the label-width table.
 
 ## 4. Replace what it supersedes
 One commit per component, the solution building throughout:
@@ -232,7 +247,13 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - The `.alert-*` contrast corrections stay in `ui.css` for the templates' hand-written `alert alert-*`.
 - The Dashboard's queue tiles lost their icon and hover (Flux's card has no link or icon props, and the
   Dashboard may not write classes): rebuilt on Flux pieces later.
-- Parity stand-ins still standing: card page (fields, switches, the heading/text lines whose variant was
+- Chart: what needs a pointer hook in the runtime (a `pointermove` that re-renders with the hovered row) and has
+  none today — the summary following the pointer, a pie's tooltip and its `data-active` / `data-inactive`, the
+  tooltip following the pointer vertically, and re-measuring on resize (`Ui.ChartSvg.Width/Height` state the
+  box instead). A pie's default hues go in palette order; Flux hashes the slice's id, by a rule not derived.
+  Not built for want of an example to measure: `scale` on an axis, `tick-start="min"` / `tick-end="max"`, an X
+  axis on top, the look of `axis.mark` and `zero-line` (drawn, unverified), smooth curves on a horizontal chart.
+- Parity stand-ins still standing: none on the chart page; card page (fields, switches, the heading/text lines whose variant was
   not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
   (slider, as raw `ui-slider` markup), field page (inputs).
 - Tooltip: daisyUI's own is kept out of the sheet by `exclude: … tooltip` on the `@plugin` line in `ui.css`
@@ -243,6 +264,13 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   wrapper's `role="group"` + `aria-describedby` around a trigger that is not one element (Flux wires only
   the trigger; nothing is wired there now). Added because Flux writes them: `aria-haspopup="true"` on a
   toggleable trigger, and `role="tooltip"` on an `Interactive()` tooltip's content.
+- Kanban: Flux's page shows NO drag, drop or keyboard reordering (no `draggable`, no sort attribute, nothing
+  moves under a pointer drag), so the kit has none and needs no hook. `flux:kanban.column.header`'s `badge`
+  prop is `NotTranslated`: no example draws it. Unmeasured for the same reason, and built on the plain
+  reading of the Reference: where a header's or card's children go, and a `Count` of 0 (drawn). Flux marks its
+  div card `flux-kanban-card` (no `data-`) and its button card `data-flux-kanban-card`; the kit copies both
+  (`ui-kanban-card`, `data-ui-kanban-card`). Parity stand-ins: the dropdown and menu in a column's actions, the
+  avatars in a card's footer. The site's demo has two plain buttons where Flux has that dropdown.
 - Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
   `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
   removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —

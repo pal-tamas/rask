@@ -7,8 +7,57 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: `Ui.Chart` is Flux's chart, part by part.** The factory chart (`Ui.Chart.Data(rows).Label(…)[c => [c.X(…),
+  c.Line(…)]]`), `Ui.ChartSeries`, `Ui.ChartAxis`'s old role and `Ui.ChartKind` are gone, with their `Tone` palette,
+  `Min`/`Max`, `Legend`, `Grid`, the `<figure>` and the hidden data table — none of which Flux's chart has. A chart is
+  now assembled from Flux's parts and drawn in C# to the numbers Flux's own layout arrives at: `Ui.ChartSvg` holding
+  `Ui.ChartLine`, `Ui.ChartArea`, `Ui.ChartPoint`, `Ui.ChartBar` (alone, in a `Ui.ChartGroup` or a `Ui.ChartStack`),
+  `Ui.ChartPie`, `Ui.ChartAxis` with `Ui.ChartAxisTick` / `Ui.ChartAxisGrid` / `Ui.ChartAxisLine` / `Ui.ChartAxisMark`,
+  `Ui.ChartZeroLine` and `Ui.ChartCursor`; beside it `Ui.ChartViewport`, `Ui.ChartTooltip` (+ `Heading`, `Value`,
+  `Indicator`), `Ui.ChartSummary` (+ `Value`) and `Ui.ChartLegend` (+ `Indicator`). The chart takes the typed rows
+  and each part a selector whose lambda states the row type; `UiChartFormat` carries Intl's format options. See
+  `docs/ui-kit.md`.
+
+  ```csharp
+  // before
+  Ui.Chart.Data(months).Label("Revenue").Format("C0").Class("h-64")[c => [
+      c.X(m => m.Name),
+      c.Area(m => m.Revenue).Label("Revenue"),
+      c.Bar(m => m.Orders).Label("Orders")
+  ]]
+
+  // after
+  Ui.Chart.Value(months).Class("aspect-3/1")[
+      Ui.ChartSvg[
+          Ui.ChartLine.Field((Month m) => m.Revenue).Class("text-sky-500"),
+          Ui.ChartArea.Field((Month m) => m.Revenue).Class("text-sky-200/50"),
+          Ui.ChartAxis.X.Field((Month m) => m.Name)[Ui.ChartAxisTick],
+          Ui.ChartAxis.Y.Format(new() { Style = Ui.ChartFormatStyle.Currency, Currency = "USD", MaximumFractionDigits = 0 })[
+              Ui.ChartAxisGrid, Ui.ChartAxisTick],
+          Ui.ChartCursor],
+      Ui.ChartTooltip[
+          Ui.ChartTooltipHeading.Field((Month m) => m.Name),
+          Ui.ChartTooltipValue.Field((Month m) => m.Revenue).Label("Revenue")]]
+  ```
+
 ### Added
 
+- **An existing app can take Rask pages under a prefix, beside its own front end.**
+  `MapRask<App>(pathBase: "/new")` next to `MapControllers()` and `MapRaskSpa()` is now a tested shape:
+  each answers only its own paths (`docs/spa.md#moving-an-existing-app-onto-rask-a-page-at-a-time`).
+- **`rask dev` runs an npm front end's dev server beside its host again.** A host that references
+  `Rask.Spa.Hosting` gets `dotnet watch` plus the client's own `npm run dev` (or `start`), and the browser
+  opens on the dev server — `RaskSpaDevServerUrl`, or Vite's `http://localhost:5173`. The client is found in
+  the `client` folder or, new, wherever `RaskSpaClientDir` points.
+- **A front end that builds with npm is built and shipped by its ASP.NET host again.** `Rask.Spa.Hosting`
+  finds a `client` folder holding a `package.json` (or the one `RaskSpaClientDir` names), runs `npm ci` and
+  `npm run build` in it on `dotnet build`, and copies the bundle into `wwwroot` on `dotnet publish`, where
+  `MapRaskSpa()` serves it. `RaskSpaBuild=false` skips node; `RASKSPA001`, `002`, `003`, `005` and `007`
+  name what went wrong; `SpaHostingOptions.DevServerUrl` is back, named on the Development page shown before
+  anything is built. This returns the build half of what 2026-10-01 removed (`docs/spa.md`); the generated
+  TypeScript client and the `rask new` templates are not back yet.
 - **Runtime hooks for behaviour a render cannot write.** The client runtime gains a set of generic,
   attribute-keyed hooks (`docs/js-interop-runtime.md#behaviour-hooks-data-rask-`), each a delegated listener
   that costs nothing on a page that does not use it: `data-rask-tooltip` and `data-rask-hover` show a popover
@@ -32,6 +81,15 @@ them until tagged releases begin.
   CSS allows still goes through (`Css.Width("calc(100% - 2rem)")`; `null` declares nothing). The unit
   literals gain CSS lengths: `12.Px`, `1.5.Rem`, `2.Em`, `60.Ch`, `100.Vw`, `100.Vh`, `100.Dvw`,
   `100.Dvh` and `50.Percent`. The daily upstream run keeps the property list on MDN's latest release.
+- **`Ui.Kanban` — Flux's kanban board.** Six parts, as
+  [fluxui.dev/components/kanban](https://fluxui.dev/components/kanban) has them: `Ui.Kanban`,
+  `Ui.KanbanColumn`, `Ui.KanbanColumnHeader` (`Heading`, `Subheading`, `Count`, and `Actions` for the
+  buttons at the end of its row), `Ui.KanbanColumnCards`, `Ui.KanbanColumnFooter` and `Ui.KanbanCard`
+  (`Heading`, `Header` and `Footer` for what sits above and under it, and `.As(Ui.KanbanCardAs.Button)` for
+  a card that is pressed). Measured on Flux's page in light and dark and held to it by
+  `scripts/flux/parity.mjs`. It draws a board and moves nothing, as Flux's does: no card is draggable and
+  there is no drop event — moving a card is the page changing its own lists. Flux's `badge` prop on the
+  column header is not carried, because no example there draws it to measure.
 
 ### Changed
 
