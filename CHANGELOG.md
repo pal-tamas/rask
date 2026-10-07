@@ -715,6 +715,8 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`MapRaskSpa`'s fallback answers only GET and HEAD.** It matched every verb, so a POST to a route that
+  only answers GET was given the index document and a 200 where routing owed it a 405.
 - **One-time-code cells (`data-rask-otp`) no longer lose the selection, or a cell, to a late echo.** The page's
   answer to each code announced comes back late, and a render writes the bound hidden field twice (the attribute,
   then the property). The hook read the second record after it had answered the first — its own write, which was
