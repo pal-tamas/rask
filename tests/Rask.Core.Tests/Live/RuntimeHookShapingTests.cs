@@ -117,6 +117,33 @@ public sealed class RuntimeHookShapingTests
     }
 
     [Fact]
+    public void A_key_list_names_keys_as_the_browser_does_with_Space_and_Arrows_as_its_two_words()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var listed = root.GetProperty("keys").GetProperty("listed").EnumerateArray().Select(e => e.GetBoolean()).ToArray();
+
+        Assert.Equal([true, true, true, false, false], listed);
+    }
+
+    [Fact]
+    public void A_roving_group_wraps_at_both_ends_and_a_list_scrolls_by_the_least_that_shows_the_row()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var keys = root.GetProperty("keys");
+
+        Assert.Equal([0, 2, 2, -1], keys.GetProperty("rove").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        Assert.Equal([-30, 0, 20, 50], keys.GetProperty("scroll").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+    }
+
+    [Fact]
     public void A_hook_holds_one_attribute_of_one_element_until_it_lets_go()
     {
         if (Run() is not { } root)

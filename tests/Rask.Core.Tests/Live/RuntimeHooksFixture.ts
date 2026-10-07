@@ -10,6 +10,8 @@ import {maskMoney, maskPattern, COPIED_MS} from "../../../src/Rask.Core/Resource
 import {otpChars} from "../../../src/Rask.Core/Resources/rask-otp.js";
 import {safeArea} from "../../../src/Rask.Core/Resources/rask-menu.js";
 import {disown, own, ownsAttr, ownsChecked} from "../../../src/Rask.Core/Resources/rask-owned.js";
+import {listsKey, rove} from "../../../src/Rask.Core/Resources/rask-keys.js";
+import {scrollBy} from "../../../src/Rask.Core/Resources/rask-focus.js";
 
 const phone = "(999) 999-9999";
 const a = {} as Element;
@@ -53,6 +55,13 @@ console.log(JSON.stringify({
     area: {
         right: safeArea(100, 50, {left: 200, right: 400, top: 40, bottom: 140}),
         left: safeArea(300, 50, {left: 0, right: 200, top: 40, bottom: 140}),
+    },
+    keys: {
+        listed: ["ArrowLeft", " ", "Home", "Enter", "a"].map((k) => listsKey("Arrows Space Home", k)),
+        // Three radios: forward off the end, back off the start, and a group with none.
+        rove: [rove(2, 1, 3), rove(0, -1, 3), rove(1, 1, 3), rove(0, 1, 0)],
+        // A 100 px view at 200–300: a row above it, inside it, below it, and one taller than the view.
+        scroll: [scrollBy(170, 200, 200, 300), scrollBy(230, 260, 200, 300), scrollBy(290, 320, 200, 300), scrollBy(250, 400, 200, 300)],
     },
     owned: {held, otherName, otherElement, released: !ownsAttr(a, "data-open"), checked: ownsChecked(b)},
 }));

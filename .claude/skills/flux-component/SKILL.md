@@ -303,9 +303,16 @@ component reaches Flux's behaviour by writing exactly these — never by a handl
 | Switch | `<input type="checkbox" role="switch">` | Enter toggles |
 | Slider | `data-rask-big-step="<BigStep ?? Step>"` on the `<input type="range">` | Shift+Arrow, PageUp / PageDown |
 | Select (listbox button) | `data-rask-listbox-button` on the closed `button[role=combobox]` | Enter does nothing, the arrows do not scroll (open the list from the C# key handler: Flux opens on ArrowUp / ArrowDown / Space) |
+| Calendar | grid `data-rask-contain-keys="Arrows Home End PageUp PageDown"` (NOT Space — Flux lets it scroll); the calendar root `data-rask-focus-follows`, the day that is the tab stop `data-rask-focus-target` + `tabindex="0"`; key the day cells by DATE. On Home / End / PageUp / PageDown render NO `data-rask-focus-target` for that render (or let the keyed day leave) | arrows never scroll the page; focus lands on the new day after the morph, across a month change too; after Home / End / Page keys focus is on `<body>`, as Flux |
+| Color picker | area and tracks `data-rask-contain-keys="Arrows Home End PageUp PageDown"` on the `[role=slider]`; swatch `[role=listbox]` the same list plus `Space Enter`; the area `data-rask-press-keeps-focus` | keys kept; a press on the area leaves focus where it was |
+| Pillbox trigger | `[role=combobox]`: `data-rask-contain-keys="Enter Space ArrowUp ArrowDown"`; the `[role=button]` variant: `"Space ArrowUp ArrowDown"` (Flux lets Enter through there) | the trigger's keys do not scroll or press |
+| Select / Time picker list | `aria-activedescendant` on the `[role=combobox]` or `[role=listbox]` (as today) | the active option scrolls into view inside the list only |
+| Date picker presets | `[role=radiogroup]` `data-rask-roving`; each preset `[role=radio]` button with `OnClick` selecting it, `tabindex` 0 on the checked one | arrows walk and select, wrapping |
+| Tooltip `Toggleable()` | non-button trigger wrapper: `data-rask-toggle="<bubble id>"` + `aria-expanded="false"` + `tabindex="0"`, bubble `popover="manual"`; a `<button>` trigger: `popovertarget` + `aria-expanded="false"`, bubble `popover` | Flux's toggleable tooltip: click / Enter / Space toggle, Escape / outside press / Tab away close; `aria-expanded` mirrored |
+| any popover invoker | `aria-expanded="false"` beside `popovertarget` / `commandfor` / `data-rask-toggle` | mirrored from the popover's `toggle` event; never added for you |
 | OTP | group `data-rask-otp` (`="alpha"`, `="alphanumeric"`); cells rendered with NO `value`, NO handler, NO re-keying; ONE `Input.Type(Hidden)` inside, bound to the string | every key of Flux's otp input, fast typing included |
 | Toast | `data-rask-dismiss-hold="pointer"` beside `data-rask-dismiss-after` | focus no longer holds the countdown |
-| ToastGroup | `data-rask-dismiss-scope` on the group (wired). `data-rask-stack` on the parent of the stacked toasts, and CSS from `--rask-stack-index` / `-height` / `-offset` (NOT wired — see below: the hook measures the cut height) | one pointer holds them all; the 350 ms glide |
+| ToastGroup | `data-rask-dismiss-scope` on the group (wired). `data-rask-stack` on the parent of the stacked toasts, newest LAST; no rendered `--ui-toast-index` / anchor names in `style`; CSS from `--rask-stack-index` / `-height` / `-offset` / `-front`, the rule that cuts the card written under `[data-rask-stack]:not([data-rask-measuring])` (hook ready since round two, NOT wired — see below) | one pointer holds them all; the 350 ms glide |
 | Sidebar | collapse checkbox `data-rask-persist="flux-sidebar-collapsed-desktop"` (plus a head script for a WASM cold load); mobile checkbox `data-rask-uncheck-on-navigate` | state kept across visits; drawer closed on navigation |
 | Carousel | `data-rask-carousel`, `data-rask-carousel-track`, `data-rask-carousel-indicators`, `data-rask-carousel-controls` beside the `data-ui-*` markers; `data-direction`, `data-name`, `data-advance`, `data-wrap`, `data-scroll`, `data-autoplay` as today | position flags, arrows, indicators, autoplay |
 
@@ -324,7 +331,8 @@ Wired (2026-10-07): `Ui.Tooltip` writes `data-rask-tooltip` and an `Interactive(
 `data-rask-dismiss-scope`, and `ui.css` pauses the fade of every toast of a hovered group (a held toast that
 faded would stay, unseen). What is NOT wired, each with what it needs:
 
-- **`Toggleable()`** — measured on Flux's `info` example (it renders a `ui-dropdown`): a hover does nothing, a
+- **`Toggleable()`** (both hooks below exist since round two — `data-rask-toggle` and the `aria-expanded`
+  mirror; the component is still to be converted) — measured on Flux's `info` example (it renders a `ui-dropdown`): a hover does nothing, a
   click opens, it stays when the pointer leaves and on a click inside, a second click / Escape / a click
   outside close it, Enter opens. That is `popover="auto"` + `popovertarget` exactly, which is what a
   `<button>` trigger gets. Missing hooks: (a) one that toggles a popover from an element that is NOT a button
@@ -352,6 +360,9 @@ faded would stay, unseen). What is NOT wired, each with what it needs:
   `--ui-toast-index` / anchor names from `style` (the hook holds `style` against the morph), and the CSS is
   Flux's four lines. Until then the stack stays on CSS anchors, newest first: right in both states, and it
   snaps between them.
+  **Round two built both**: the hook measures with `data-rask-measuring` on the stack (write the cutting rule
+  as `[data-rask-stack]:not([data-rask-measuring]):not(:hover) > * > .card { height: var(--rask-stack-front) }`)
+  and writes `--rask-stack-front` on every child. The component is still to be converted.
 
 ## One stylesheet per app (merged 2026-10-07)
 - `Styles/ui.css` is the kit as Tailwind SOURCE (theme, `dark` variant, daisyUI, the `@layer rask` blocks):
