@@ -1,0 +1,1032 @@
+[
+ {
+  "section": "",
+  "charts": [
+   [
+    {
+     "date": "2026-10-07",
+     "visitors": 267,
+     "views": 267
+    },
+    {
+     "date": "2026-10-06",
+     "visitors": 259,
+     "views": 259
+    },
+    {
+     "date": "2026-10-05",
+     "visitors": 269,
+     "views": 269
+    },
+    {
+     "date": "2026-10-04",
+     "visitors": 184,
+     "views": 184
+    },
+    {
+     "date": "2026-10-03",
+     "visitors": 144,
+     "views": 144
+    },
+    {
+     "date": "2026-10-02",
+     "visitors": 176,
+     "views": 176
+    },
+    {
+     "date": "2026-10-01",
+     "visitors": 115,
+     "views": 115
+    },
+    {
+     "date": "2026-09-30",
+     "visitors": 162,
+     "views": 162
+    },
+    {
+     "date": "2026-09-29",
+     "visitors": 246,
+     "views": 246
+    },
+    {
+     "date": "2026-09-28",
+     "visitors": 300,
+     "views": 300
+    },
+    {
+     "date": "2026-09-27",
+     "visitors": 251,
+     "views": 251
+    },
+    {
+     "date": "2026-09-26",
+     "visitors": 249,
+     "views": 249
+    },
+    {
+     "date": "2026-09-25",
+     "visitors": 223,
+     "views": 223
+    },
+    {
+     "date": "2026-09-24",
+     "visitors": 269,
+     "views": 269
+    },
+    {
+     "date": "2026-09-23",
+     "visitors": 227,
+     "views": 227
+    },
+    {
+     "date": "2026-09-22",
+     "visitors": 171,
+     "views": 171
+    }
+   ]
+  ]
+ },
+ {
+  "section": "line-chart",
+  "charts": [
+   [
+    {
+     "date": "2026-10-07T05:35:37.804636Z",
+     "memory": 268
+    },
+    {
+     "date": "2026-10-07T05:36:37.804727Z",
+     "memory": 243
+    },
+    {
+     "date": "2026-10-07T05:37:37.804775Z",
+     "memory": 236
+    },
+    {
+     "date": "2026-10-07T05:38:37.804822Z",
+     "memory": 201
+    },
+    {
+     "date": "2026-10-07T05:39:37.804875Z",
+     "memory": 228
+    },
+    {
+     "date": "2026-10-07T05:40:37.804943Z",
+     "memory": 251
+    },
+    {
+     "date": "2026-10-07T05:41:37.805003Z",
+     "memory": 231
+    },
+    {
+     "date": "2026-10-07T05:42:37.805048Z",
+     "memory": 267
+    },
+    {
+     "date": "2026-10-07T05:43:37.805101Z",
+     "memory": 202
+    },
+    {
+     "date": "2026-10-07T05:44:37.805146Z",
+     "memory": 206
+    },
+    {
+     "date": "2026-10-07T05:45:37.805191Z",
+     "memory": 280
+    },
+    {
+     "date": "2026-10-07T05:46:37.805241Z",
+     "memory": 268
+    },
+    {
+     "date": "2026-10-07T05:47:37.805281Z",
+     "memory": 265
+    },
+    {
+     "date": "2026-10-07T05:48:37.805334Z",
+     "memory": 215
+    },
+    {
+     "date": "2026-10-07T05:49:37.805376Z",
+     "memory": 254
+    },
+    {
+     "date": "2026-10-07T05:50:37.805430Z",
+     "memory": 237
+    },
+    {
+     "date": "2026-10-07T05:51:37.805485Z",
+     "memory": 253
+    },
+    {
+     "date": "2026-10-07T05:52:37.805530Z",
+     "memory": 266
+    },
+    {
+     "date": "2026-10-07T05:53:37.805585Z",
+     "memory": 257
+    },
+    {
+     "date": "2026-10-07T05:54:37.805647Z",
+     "memory": 297
+    },
+    {
+     "date": "2026-10-07T05:55:37.805696Z",
+     "memory": 269
+    }
+   ]
+  ]
+ },
+ {
+  "section": "area-chart",
+  "charts": [
+   [
+    {
+     "date": "2026-10-06T21:56:37.805782Z",
+     "stock": 205
+    },
+    {
+     "date": "2026-10-06T22:06:37.805839Z",
+     "stock": 300
+    },
+    {
+     "date": "2026-10-06T22:16:37.805881Z",
+     "stock": 213
+    },
+    {
+     "date": "2026-10-06T22:26:37.805934Z",
+     "stock": 299
+    },
+    {
+     "date": "2026-10-06T22:36:37.805991Z",
+     "stock": 228
+    },
+    {
+     "date": "2026-10-06T22:46:37.806051Z",
+     "stock": 263
+    },
+    {
+     "date": "2026-10-06T22:56:37.806113Z",
+     "stock": 212
+    },
+    {
+     "date": "2026-10-06T23:06:37.806192Z",
+     "stock": 218
+    },
+    {
+     "date": "2026-10-06T23:16:37.806254Z",
+     "stock": 271
+    },
+    {
+     "date": "2026-10-06T23:26:37.806320Z",
+     "stock": 289
+    },
+    {
+     "date": "2026-10-06T23:36:37.806365Z",
+     "stock": 274
+    },
+    {
+     "date": "2026-10-06T23:46:37.806425Z",
+     "stock": 295
+    },
+    {
+     "date": "2026-10-06T23:56:37.806472Z",
+     "stock": 289
+    },
+    {
+     "date": "2026-10-07T00:06:37.806532Z",
+     "stock": 246
+    },
+    {
+     "date": "2026-10-07T00:16:37.806592Z",
+     "stock": 260
+    },
+    {
+     "date": "2026-10-07T00:26:37.806661Z",
+     "stock": 233
+    },
+    {
+     "date": "2026-10-07T00:36:37.806724Z",
+     "stock": 264
+    },
+    {
+     "date": "2026-10-07T00:46:37.806785Z",
+     "stock": 213
+    },
+    {
+     "date": "2026-10-07T00:56:37.806839Z",
+     "stock": 214
+    },
+    {
+     "date": "2026-10-07T01:06:37.806896Z",
+     "stock": 294
+    },
+    {
+     "date": "2026-10-07T01:16:37.806966Z",
+     "stock": 322
+    },
+    {
+     "date": "2026-10-07T01:26:37.807025Z",
+     "stock": 330
+    },
+    {
+     "date": "2026-10-07T01:36:37.807068Z",
+     "stock": 411
+    },
+    {
+     "date": "2026-10-07T01:46:37.807108Z",
+     "stock": 339
+    },
+    {
+     "date": "2026-10-07T01:56:37.807159Z",
+     "stock": 300
+    },
+    {
+     "date": "2026-10-07T02:06:37.807214Z",
+     "stock": 322
+    },
+    {
+     "date": "2026-10-07T02:16:37.807274Z",
+     "stock": 440
+    },
+    {
+     "date": "2026-10-07T02:26:37.807334Z",
+     "stock": 411
+    },
+    {
+     "date": "2026-10-07T02:36:37.807400Z",
+     "stock": 521
+    },
+    {
+     "date": "2026-10-07T02:46:37.807448Z",
+     "stock": 597
+    },
+    {
+     "date": "2026-10-07T02:56:37.807504Z",
+     "stock": 460
+    },
+    {
+     "date": "2026-10-07T03:06:37.807567Z",
+     "stock": 641
+    },
+    {
+     "date": "2026-10-07T03:16:37.807611Z",
+     "stock": 639
+    },
+    {
+     "date": "2026-10-07T03:26:37.807671Z",
+     "stock": 612
+    },
+    {
+     "date": "2026-10-07T03:36:37.807713Z",
+     "stock": 677
+    },
+    {
+     "date": "2026-10-07T03:46:37.807764Z",
+     "stock": 742
+    },
+    {
+     "date": "2026-10-07T03:56:37.807819Z",
+     "stock": 758
+    },
+    {
+     "date": "2026-10-07T04:06:37.807861Z",
+     "stock": 921
+    },
+    {
+     "date": "2026-10-07T04:16:37.807925Z",
+     "stock": 749
+    },
+    {
+     "date": "2026-10-07T04:26:37.807967Z",
+     "stock": 846
+    },
+    {
+     "date": "2026-10-07T04:36:37.808007Z",
+     "stock": 922
+    },
+    {
+     "date": "2026-10-07T04:46:37.808046Z",
+     "stock": 763
+    },
+    {
+     "date": "2026-10-07T04:56:37.808085Z",
+     "stock": 1086
+    },
+    {
+     "date": "2026-10-07T05:06:37.808140Z",
+     "stock": 1142
+    },
+    {
+     "date": "2026-10-07T05:16:37.808182Z",
+     "stock": 911
+    },
+    {
+     "date": "2026-10-07T05:26:37.808233Z",
+     "stock": 1433
+    },
+    {
+     "date": "2026-10-07T05:36:37.808276Z",
+     "stock": 1249
+    },
+    {
+     "date": "2026-10-07T05:46:37.808338Z",
+     "stock": 3149
+    }
+   ]
+  ]
+ },
+ {
+  "section": "multiple-lines",
+  "charts": [
+   [
+    {
+     "date": "2021-10-07T05:56:37.808408Z",
+     "twitter": 0.26,
+     "facebook": 0.21,
+     "instagram": 0.31
+    },
+    {
+     "date": "2022-10-07T05:56:37.808477Z",
+     "twitter": 0.19,
+     "facebook": 0.14,
+     "instagram": 0.35
+    },
+    {
+     "date": "2023-10-07T05:56:37.808532Z",
+     "twitter": 0.22,
+     "facebook": 0.09,
+     "instagram": 0.59
+    },
+    {
+     "date": "2024-10-07T05:56:37.808583Z",
+     "twitter": 0.11,
+     "facebook": 0.16,
+     "instagram": 0.43
+    },
+    {
+     "date": "2025-10-07T05:56:37.808624Z",
+     "twitter": 0.18,
+     "facebook": 0.13,
+     "instagram": 0.36
+    }
+   ]
+  ]
+ },
+ {
+  "section": "bar-chart",
+  "charts": [
+   [
+    {
+     "date": "2026-08-01",
+     "revenue": 1064
+    },
+    {
+     "date": "2026-08-02",
+     "revenue": 2519
+    },
+    {
+     "date": "2026-08-03",
+     "revenue": 2052
+    },
+    {
+     "date": "2026-08-04",
+     "revenue": 1556
+    },
+    {
+     "date": "2026-08-05",
+     "revenue": 2875
+    },
+    {
+     "date": "2026-08-06",
+     "revenue": 2321
+    },
+    {
+     "date": "2026-08-07",
+     "revenue": 1314
+    },
+    {
+     "date": "2026-08-08",
+     "revenue": 888
+    },
+    {
+     "date": "2026-08-09",
+     "revenue": 2647
+    },
+    {
+     "date": "2026-08-10",
+     "revenue": 2140
+    },
+    {
+     "date": "2026-08-11",
+     "revenue": 1169
+    },
+    {
+     "date": "2026-08-12",
+     "revenue": 1794
+    },
+    {
+     "date": "2026-08-13",
+     "revenue": 2783
+    },
+    {
+     "date": "2026-08-14",
+     "revenue": 1137
+    },
+    {
+     "date": "2026-08-15",
+     "revenue": 1001
+    },
+    {
+     "date": "2026-08-16",
+     "revenue": 777
+    },
+    {
+     "date": "2026-08-17",
+     "revenue": 2517
+    },
+    {
+     "date": "2026-08-18",
+     "revenue": 702
+    },
+    {
+     "date": "2026-08-19",
+     "revenue": 2317
+    },
+    {
+     "date": "2026-08-20",
+     "revenue": 2613
+    },
+    {
+     "date": "2026-08-21",
+     "revenue": 1885
+    },
+    {
+     "date": "2026-08-22",
+     "revenue": 2727
+    },
+    {
+     "date": "2026-08-23",
+     "revenue": 618
+    },
+    {
+     "date": "2026-08-24",
+     "revenue": 1400
+    },
+    {
+     "date": "2026-08-25",
+     "revenue": 1231
+    },
+    {
+     "date": "2026-08-26",
+     "revenue": 1318
+    },
+    {
+     "date": "2026-08-27",
+     "revenue": 574
+    },
+    {
+     "date": "2026-08-28",
+     "revenue": 889
+    },
+    {
+     "date": "2026-08-29",
+     "revenue": 2251
+    },
+    {
+     "date": "2026-08-30",
+     "revenue": 887
+    },
+    {
+     "date": "2026-08-31",
+     "revenue": 1953
+    }
+   ]
+  ]
+ },
+ {
+  "section": "bar-chart",
+  "charts": [
+   [
+    {
+     "month": "Jan",
+     "tickets": 39
+    },
+    {
+     "month": "Feb",
+     "tickets": 63
+    },
+    {
+     "month": "Mar",
+     "tickets": 18
+    },
+    {
+     "month": "Apr",
+     "tickets": 63
+    },
+    {
+     "month": "May",
+     "tickets": 82
+    },
+    {
+     "month": "Jun",
+     "tickets": 24
+    },
+    {
+     "month": "Jul",
+     "tickets": 47
+    },
+    {
+     "month": "Aug",
+     "tickets": 86
+    },
+    {
+     "month": "Sep",
+     "tickets": 33
+    },
+    {
+     "month": "Oct",
+     "tickets": 42
+    },
+    {
+     "month": "Nov",
+     "tickets": 35
+    },
+    {
+     "month": "Dec",
+     "tickets": 32
+    }
+   ]
+  ]
+ },
+ {
+  "section": "horizontal-charts",
+  "charts": [
+   [
+    {
+     "category": "Beauty",
+     "online": 342,
+     "retail": 215,
+     "wholesale": 108
+    },
+    {
+     "category": "Books",
+     "online": 356,
+     "retail": 256,
+     "wholesale": 215
+    },
+    {
+     "category": "Clothes",
+     "online": 431,
+     "retail": 447,
+     "wholesale": 103
+    },
+    {
+     "category": "Garden",
+     "online": 487,
+     "retail": 398,
+     "wholesale": 135
+    },
+    {
+     "category": "Pets",
+     "online": 511,
+     "retail": 215,
+     "wholesale": 102
+    },
+    {
+     "category": "Sports",
+     "online": 545,
+     "retail": 224,
+     "wholesale": 158
+    },
+    {
+     "category": "Toys",
+     "online": 639,
+     "retail": 418,
+     "wholesale": 250
+    }
+   ]
+  ]
+ },
+ {
+  "section": "grouped-bar-chart",
+  "charts": [
+   [
+    {
+     "year": 2020,
+     "chrome": 42,
+     "firefox": 50,
+     "safari": 32
+    },
+    {
+     "year": 2021,
+     "chrome": 53,
+     "firefox": 39,
+     "safari": 21
+    },
+    {
+     "year": 2022,
+     "chrome": 47,
+     "firefox": 38,
+     "safari": 23
+    },
+    {
+     "year": 2023,
+     "chrome": 50,
+     "firefox": 40,
+     "safari": 27
+    },
+    {
+     "year": 2024,
+     "chrome": 35,
+     "firefox": 45,
+     "safari": 35
+    },
+    {
+     "year": 2025,
+     "chrome": 36,
+     "firefox": 48,
+     "safari": 28
+    }
+   ]
+  ]
+ },
+ {
+  "section": "stacked-bar-chart",
+  "charts": [
+   [
+    {
+     "category": "Beauty",
+     "online": 342,
+     "retail": 215,
+     "wholesale": 108
+    },
+    {
+     "category": "Books",
+     "online": 356,
+     "retail": 256,
+     "wholesale": 215
+    },
+    {
+     "category": "Clothes",
+     "online": 431,
+     "retail": 447,
+     "wholesale": 103
+    },
+    {
+     "category": "Garden",
+     "online": 487,
+     "retail": 398,
+     "wholesale": 135
+    },
+    {
+     "category": "Pets",
+     "online": 511,
+     "retail": 215,
+     "wholesale": 102
+    },
+    {
+     "category": "Sports",
+     "online": 545,
+     "retail": 224,
+     "wholesale": 158
+    },
+    {
+     "category": "Toys",
+     "online": 639,
+     "retail": 418,
+     "wholesale": 250
+    }
+   ]
+  ]
+ },
+ {
+  "section": "pie-chart",
+  "charts": [
+   [
+    {
+     "id": "subscriptions",
+     "label": "Subscriptions",
+     "value": 52
+    },
+    {
+     "id": "services",
+     "label": "Services",
+     "value": 28
+    },
+    {
+     "id": "training",
+     "label": "Training",
+     "value": 20
+    }
+   ]
+  ]
+ },
+ {
+  "section": "donut-chart",
+  "charts": [
+   [
+    {
+     "id": "subscriptions",
+     "label": "Subscriptions",
+     "value": 52
+    },
+    {
+     "id": "services",
+     "label": "Services",
+     "value": 28
+    },
+    {
+     "id": "training",
+     "label": "Training",
+     "value": 20
+    }
+   ]
+  ]
+ },
+ {
+  "section": "donut-chart",
+  "charts": [
+   [
+    {
+     "id": "subscriptions",
+     "label": "Subscriptions",
+     "value": 52
+    },
+    {
+     "id": "services",
+     "label": "Services",
+     "value": 28
+    },
+    {
+     "id": "training",
+     "label": "Training",
+     "value": 20
+    }
+   ]
+  ]
+ },
+ {
+  "section": "slice-colors",
+  "charts": [
+   [
+    {
+     "id": "subscriptions",
+     "label": "Subscriptions",
+     "value": 52,
+     "color": "blue"
+    },
+    {
+     "id": "services",
+     "label": "Services",
+     "value": 28,
+     "color": "emerald"
+    },
+    {
+     "id": "training",
+     "label": "Training",
+     "value": 20,
+     "color": "amber"
+    }
+   ]
+  ]
+ },
+ {
+  "section": "hover-styles",
+  "charts": [
+   [
+    {
+     "id": "subscriptions",
+     "label": "Subscriptions",
+     "value": 52
+    },
+    {
+     "id": "services",
+     "label": "Services",
+     "value": 28
+    },
+    {
+     "id": "training",
+     "label": "Training",
+     "value": 20
+    }
+   ],
+   [
+    {
+     "id": "subscriptions",
+     "label": "Subscriptions",
+     "value": 52
+    },
+    {
+     "id": "services",
+     "label": "Services",
+     "value": 28
+    },
+    {
+     "id": "training",
+     "label": "Training",
+     "value": 20
+    }
+   ],
+   [
+    {
+     "id": "subscriptions",
+     "label": "Subscriptions",
+     "value": 52
+    },
+    {
+     "id": "services",
+     "label": "Services",
+     "value": 28
+    },
+    {
+     "id": "training",
+     "label": "Training",
+     "value": 20
+    }
+   ]
+  ]
+ },
+ {
+  "section": "live-summary",
+  "charts": [
+   [
+    {
+     "date": "2026-10-06T19:00:00.000000Z",
+     "sales": 299,
+     "yesterday": 99
+    },
+    {
+     "date": "2026-10-06T20:00:00.000000Z",
+     "sales": 598,
+     "yesterday": 748
+    },
+    {
+     "date": "2026-10-06T21:00:00.000000Z",
+     "sales": 897,
+     "yesterday": 847
+    },
+    {
+     "date": "2026-10-06T22:00:00.000000Z",
+     "sales": 996,
+     "yesterday": 1146
+    },
+    {
+     "date": "2026-10-06T23:00:00.000000Z",
+     "sales": 1295,
+     "yesterday": 1445
+    },
+    {
+     "date": "2026-10-07T00:00:00.000000Z",
+     "sales": 1394,
+     "yesterday": 1544
+    },
+    {
+     "date": "2026-10-07T01:00:00.000000Z",
+     "sales": 1693,
+     "yesterday": 1843
+    },
+    {
+     "date": "2026-10-07T02:00:00.000000Z",
+     "sales": 2342,
+     "yesterday": 2492
+    },
+    {
+     "date": "2026-10-07T03:00:00.000000Z",
+     "sales": 2641,
+     "yesterday": 2591
+    },
+    {
+     "date": "2026-10-07T04:00:00.000000Z",
+     "sales": 2940,
+     "yesterday": 3240
+    },
+    {
+     "date": "2026-10-07T05:00:00.000000Z",
+     "sales": 3239,
+     "yesterday": 3889
+    }
+   ]
+  ]
+ },
+ {
+  "section": "sparkline",
+  "charts": [
+   [
+    15,
+    18,
+    16,
+    19,
+    22,
+    25,
+    28,
+    25,
+    29,
+    28,
+    32,
+    35
+   ],
+   [
+    20,
+    22,
+    25,
+    23,
+    28,
+    30,
+    32,
+    35,
+    33,
+    38,
+    36,
+    40
+   ],
+   [
+    25,
+    22,
+    20,
+    18,
+    15,
+    17,
+    14,
+    16,
+    13,
+    15,
+    12,
+    10
+   ],
+   [
+    10,
+    12,
+    11,
+    13,
+    15,
+    14,
+    16,
+    18,
+    17,
+    19,
+    21,
+    20
+   ]
+  ]
+ },
+ {
+  "section": "dashboard-stat",
+  "charts": [
+   [
+    10,
+    12,
+    11,
+    13,
+    15,
+    14,
+    16,
+    18,
+    17,
+    19,
+    21,
+    20
+   ]
+  ]
+ }
+]

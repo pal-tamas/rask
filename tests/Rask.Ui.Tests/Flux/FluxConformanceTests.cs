@@ -63,6 +63,27 @@ public sealed class FluxConformanceTests
         ["flux:card.body"] = typeof(UiCardBody),
         ["flux:card.footer"] = typeof(UiCardFooter),
         ["flux:card.bleed"] = typeof(UiCardBleed),
+        ["flux:chart"] = typeof(UiChart),
+        ["flux:chart.svg"] = typeof(UiChartSvg),
+        ["flux:chart.line"] = typeof(UiChartLine),
+        ["flux:chart.area"] = typeof(UiChartArea),
+        ["flux:chart.point"] = typeof(UiChartPoint),
+        ["flux:chart.pie"] = typeof(UiChartPie),
+        ["flux:chart.axis"] = typeof(UiChartAxis),
+        ["flux:chart.axis.mark"] = typeof(UiChartAxisMark),
+        ["flux:chart.axis.line"] = typeof(UiChartAxisLine),
+        ["flux:chart.axis.grid"] = typeof(UiChartAxisGrid),
+        ["flux:chart.axis.tick"] = typeof(UiChartAxisTick),
+        ["flux:chart.zero-line"] = typeof(UiChartZeroLine),
+        ["flux:chart.tooltip"] = typeof(UiChartTooltip),
+        ["flux:chart.tooltip.heading"] = typeof(UiChartTooltipHeading),
+        ["flux:chart.tooltip.value"] = typeof(UiChartTooltipValue),
+        ["flux:chart.tooltip.indicator"] = typeof(UiChartTooltipIndicator),
+        ["flux:chart.cursor"] = typeof(UiChartCursor),
+        ["flux:chart.summary"] = typeof(UiChartSummary),
+        // Flux's reference spells this heading "flux:chart.summaryvalue"; its examples write flux:chart.summary.value.
+        ["flux:chart.summaryvalue"] = typeof(UiChartSummaryValue),
+        ["flux:chart.legend"] = typeof(UiChartLegend),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -77,6 +98,7 @@ public sealed class FluxConformanceTests
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
+        ["flux:chart.axis.mark/position=top"] = "the kit's shared Ui.Position, whose members are Top, Right, Bottom and Left",
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
     };
 

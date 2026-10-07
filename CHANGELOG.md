@@ -7,6 +7,41 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: `Ui.Chart` is Flux's chart, part by part.** The factory chart (`Ui.Chart.Data(rows).Label(…)[c => [c.X(…),
+  c.Line(…)]]`), `Ui.ChartSeries`, `Ui.ChartAxis`'s old role and `Ui.ChartKind` are gone, with their `Tone` palette,
+  `Min`/`Max`, `Legend`, `Grid`, the `<figure>` and the hidden data table — none of which Flux's chart has. A chart is
+  now assembled from Flux's parts and drawn in C# to the numbers Flux's own layout arrives at: `Ui.ChartSvg` holding
+  `Ui.ChartLine`, `Ui.ChartArea`, `Ui.ChartPoint`, `Ui.ChartBar` (alone, in a `Ui.ChartGroup` or a `Ui.ChartStack`),
+  `Ui.ChartPie`, `Ui.ChartAxis` with `Ui.ChartAxisTick` / `Ui.ChartAxisGrid` / `Ui.ChartAxisLine` / `Ui.ChartAxisMark`,
+  `Ui.ChartZeroLine` and `Ui.ChartCursor`; beside it `Ui.ChartViewport`, `Ui.ChartTooltip` (+ `Heading`, `Value`,
+  `Indicator`), `Ui.ChartSummary` (+ `Value`) and `Ui.ChartLegend` (+ `Indicator`). The chart takes the typed rows
+  and each part a selector whose lambda states the row type; `UiChartFormat` carries Intl's format options. See
+  `docs/ui-kit.md`.
+
+  ```csharp
+  // before
+  Ui.Chart.Data(months).Label("Revenue").Format("C0").Class("h-64")[c => [
+      c.X(m => m.Name),
+      c.Area(m => m.Revenue).Label("Revenue"),
+      c.Bar(m => m.Orders).Label("Orders")
+  ]]
+
+  // after
+  Ui.Chart.Value(months).Class("aspect-3/1")[
+      Ui.ChartSvg[
+          Ui.ChartLine.Field((Month m) => m.Revenue).Class("text-sky-500"),
+          Ui.ChartArea.Field((Month m) => m.Revenue).Class("text-sky-200/50"),
+          Ui.ChartAxis.X.Field((Month m) => m.Name)[Ui.ChartAxisTick],
+          Ui.ChartAxis.Y.Format(new() { Style = Ui.ChartFormatStyle.Currency, Currency = "USD", MaximumFractionDigits = 0 })[
+              Ui.ChartAxisGrid, Ui.ChartAxisTick],
+          Ui.ChartCursor],
+      Ui.ChartTooltip[
+          Ui.ChartTooltipHeading.Field((Month m) => m.Name),
+          Ui.ChartTooltipValue.Field((Month m) => m.Revenue).Label("Revenue")]]
+  ```
+
 ### Added
 
 - **Inline style as typed CSS.** `Css` has a step for every CSS property browsers ship — 455, generated

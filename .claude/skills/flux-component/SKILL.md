@@ -140,6 +140,9 @@ card accordion callout button` today).
 - **A colour the docs page hands a component by class** and that must lose to the component's own hover
   (`text-zinc-300` on the header's subtle button): `.parity-x:not(:hover){…}` on the page, and
   `not-hover:text-zinc-300` in an app.
+- **A root Flux leaves unmarked** (`<ui-chart>` carries no `data-flux-*`) is named in `MISMARKED` by its tag.
+  A `<template>` is no child on either side (Flux keeps a prototype of every chart node in one). A node in
+  `EXTRA` (`data-ui-chart-hover`) is what the kit adds to do WITHOUT script what Flux does with it: not paired.
 - **Not differences:** `NATIVE` tag pairs (and `button`→`summary`); the colour of a border 0px wide on
   both sides, or of an outline with `outline-style:none` on both, at rest and in a forced state; the
   offset of a node with no box (`display:none` itself or above it, or 0×0 on both sides); `oklch(… none)`
@@ -150,6 +153,17 @@ card accordion callout button` today).
   script. After any change to `lib.mjs`, cached Flux measurements are stale — `parity.mjs <slug> --refresh`.
 - **Public API:** `python3 scripts/public-api/record.py src/Rask.Ui` builds and applies RS0016/RS0017 to
   both baselines (run it twice: a step exists only once its property compiles). It is the only such script.
+
+### The chart is measured its own way (`scripts/flux/parity-chart.mjs`)
+Flux's docs make chart data up on EVERY request (random values, dates counted back from now), and lay a chart
+out around tick labels measured before Inter may have loaded. So **never `parity.mjs chart --refresh`**:
+`node scripts/flux/parity-chart.mjs --measure` pins one load (the document is replayed for both schemes, the
+charts are redrawn once the fonts are in), writes the rows each chart drew to
+`tests/Rask.Ui.Tests/Flux/Parity/ChartParity.data.json` (commit it with the change) and the measurement where
+`parity.mjs chart` caches it. Then `parity.mjs chart` for boxes and styles and `parity-chart.mjs` for geometry:
+every number of every `d`, `x1…y2`, `cx/cy/r` and `translate()`, to 0.05px. Flux's rules were found by handing
+its live `<ui-chart>` a dataset (`element.value = rows`) and reading back what it drew — the way to answer any
+new question about its layout. `scripts/flux/inter-metrics.mjs` regenerates the label-width table.
 
 ## 4. Replace what it supersedes
 One commit per component, the solution building throughout:
@@ -187,7 +201,13 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - The `.alert-*` contrast corrections stay in `ui.css` for the templates' hand-written `alert alert-*`.
 - The Dashboard's queue tiles lost their icon and hover (Flux's card has no link or icon props, and the
   Dashboard may not write classes): rebuilt on Flux pieces later.
-- Parity stand-ins still standing: card page (fields, switches, the heading/text lines whose variant was
+- Chart: what needs a pointer hook in the runtime (a `pointermove` that re-renders with the hovered row) and has
+  none today — the summary following the pointer, a pie's tooltip and its `data-active` / `data-inactive`, the
+  tooltip following the pointer vertically, and re-measuring on resize (`Ui.ChartSvg.Width/Height` state the
+  box instead). A pie's default hues go in palette order; Flux hashes the slice's id, by a rule not derived.
+  Not built for want of an example to measure: `scale` on an axis, `tick-start="min"` / `tick-end="max"`, an X
+  axis on top, the look of `axis.mark` and `zero-line` (drawn, unverified), smooth curves on a horizontal chart.
+- Parity stand-ins still standing: chart page (the badges in the sparkline table), card page (fields, switches, the heading/text lines whose variant was
   not looked up, the "Password" row with its button), table page (badge, avatar, the dropdown and menu
   around the row button, pager), progress page (slider, as raw `ui-slider` markup), separator page (the
   tooltip around the theme button), callout page (one badge), field page (inputs).
