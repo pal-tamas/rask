@@ -49,6 +49,10 @@ Behaviour is measured too: open the page, use the component with keyboard and po
   enum). The `zinc` scale and `fx-accent` / `fx-accent-content` / `fx-accent-foreground` tokens
   (`src/Rask.Ui/Styles/ui.css`), `dark:` for dark. **No daisyUI class, no `base-*`, no `--color-ui-*`.**
   Never build a class by concatenation — Tailwind only emits what it can read whole.
+  Write Flux's classes exactly as Flux writes them: an app compiles them into its ONE stylesheet from
+  the kit's class list (`@import "./vendor/rask-ui.css"`, `docs/tailwind.md`), so a `dark:` or `sm:`
+  variant follows its base utility by Tailwind's own order. Never add a `[:where(&)]:` or `!` to win
+  against an app's utility — if one loses, the page links two sheets and that is the bug.
 - **CSS only when a utility cannot say it** (a keyframe, a `:has()` chain): in `ui.css` under
   `@layer rask`, keyed on the `data-ui-*` marker.
 - Markup, ARIA and keyboard are part of "exactly": same element, same roles, same states.

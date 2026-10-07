@@ -1,0 +1,29 @@
+/*
+  The console's ONE stylesheet: the kit, compiled by this project's own Tailwind build over this project's
+  sources, embedded and inlined by DashboardLayout.
+
+  The console owns its whole document (RaskMountedApp), so it is in an app's position, not a library's:
+  one Tailwind build, the kit taken in as Tailwind source, and a utility a page here writes compiled
+  beside the kit's own — ranked by Tailwind, as in any app that says `@import "./vendor/rask-ui.css"`.
+
+  These are that file's lines written out, for one difference: no preflight. Only Tailwind's theme and
+  utilities are imported, because the reset this document gets is the kit's own, keyed to Ui.Shell's
+  `.rask-ops` — the same rules the console has always been drawn against.
+
+  Styles/vendor/ is written by the build (src/Rask.Ui/build/Rask.Ui.targets) and is not committed.
+*/
+@layer properties, theme, base, components, daisyui, rask, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "./vendor/rask-ui.kit.css";
+
+/* The classes the kit's components write: string literals in a compiled assembly, listed by its build. */
+@source "./vendor/rask-ui.classes.txt";
+
+/*
+  Prose is not a source. Tailwind reads every text file in the project, and a sentence in the csproj or
+  the package README that mentions a class would put its rule in the sheet.
+*/
+@source not "../*.csproj";
+@source not "../*.md";

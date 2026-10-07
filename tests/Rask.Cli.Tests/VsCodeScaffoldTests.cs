@@ -143,7 +143,7 @@ public sealed class VsCodeScaffoldTests
             Assert.Contains("ms-dotnettools.csdevkit", recommended);
 
             var entry = files.GetValueOrDefault(VsCodeAssembly.TailwindEntry);
-            if (entry is null || !entry.Contains("@import \"tailwindcss\"", StringComparison.Ordinal))
+            if (entry is null || !VsCodeAssembly.ImportsTailwind(entry))
             {
                 // A SPA or meta host's C# side has no Tailwind: nothing to complete, nothing to install.
                 Assert.DoesNotContain("tailwindCSS", files[".vscode/settings.json"], StringComparison.Ordinal);

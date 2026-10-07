@@ -263,17 +263,18 @@ a dashboard left open on a wall display is a real cost, not a free convenience.
 ## How it looks, and why you cannot change it
 
 The console is drawn with [the UI kit](ui-kit.md) and nothing else. Every page is `Rask.Ui` components,
-and the only stylesheet in its document is the kit's, inlined by the layout. It writes no class strings
-at all, for a reason that applies to any library: Tailwind emits a utility only where it can see the class
-name in the source it scans, and the kit's sheet is compiled from the kit's source — so a `.Class("mt-4")`
-written in `Rask.Dashboard` would render as nothing. `DashboardIsKitOnlyTests` fails on any `.Class(…)`,
-`.Style(…)` or `UiStyles.` in the package. Where a page needs something the kit cannot draw, the kit grows
-a typed step instead: that is where `Ui.DataGrid`'s `ShowFrom`, `RowTone` and `PageHref`
-and `Ui.Empty` came from.
+and the only stylesheet in its document is the console's own — the kit, compiled by the console's own
+Tailwind build the way [an app's is](tailwind.md#what-a-new-project-starts-with) (`Styles/dashboard.css`),
+embedded and inlined by the layout. It still writes no class strings: `DashboardIsKitOnlyTests` fails on
+any `.Class(…)`, `.Style(…)` or `UiStyles.` in the package. Where a page needs something the kit cannot
+draw, the kit grows a typed step instead: that is where `Ui.DataGrid`'s `ShowFrom`, `RowTone` and
+`PageHref` and `Ui.Empty` came from. (That is a rule of the house now rather than a limit of the build —
+a utility written in a console page would be compiled into that sheet. Before the console had a build of
+its own it inlined the kit's precompiled sheet, where such a class named a rule that existed nowhere.)
 
 The console owns its whole document, so it needs a page reset the way any application does. That travels
-in the kit's sheet as well, keyed to the class `Ui.Shell` writes (`.rask-ops`), so an application that links
-the kit is untouched by it.
+with the kit, keyed to the class `Ui.Shell` writes (`.rask-ops`), so an application that draws with the
+kit is untouched by it; the console's sheet imports Tailwind's theme and utilities and not its preflight.
 
 **It is pinned to daisyUI's `light` theme, and that is not configurable.** The theme scope goes on
 `<html>` with an explicit `data-theme`, and `Ui.Shell` names the same theme, so the console ignores both the

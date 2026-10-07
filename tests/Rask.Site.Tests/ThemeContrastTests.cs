@@ -19,8 +19,8 @@ namespace Rask.Site.Tests;
 ///     </para>
 ///     <para>
 ///     So this computes. It reads the theme palettes out of the COMPILED stylesheet the browser gets
-///     (<see cref="UiStylesheet.Css" />), reads the showcase's token formulas out of its own
-///     <c>Styles/app.css</c>, applies the kit's per-theme corrections from <c>Styles/ui.css</c>, resolves
+///     (<see cref="UiStylesheet.Css" />), reads the token formulas the showcase compiles out of
+///     the kit's <c>Styles/ui.css</c>, applies its per-theme corrections from the same file, resolves
 ///     <c>var()</c> and <c>color-mix()</c> the way a browser would, and measures the ratio. A weight
 ///     edited by hand in either sheet fails here rather than on a page.
 ///     </para>
@@ -170,8 +170,8 @@ public sealed partial class ThemeContrastTests
             failures.Count == 0,
             $"{failures.Count} pair(s) fail WCAG AA ({AA}:1) in a palette the theme picker offers. A reader "
             + "who picks one of these gets text they cannot read, on a page whose class names are all "
-            + "correct. Fix the token in src/Rask.Ui/Styles/ui.css (and the showcase's copy of the @theme "
-            + "in src/Rask.Site/Styles/app.css), or add a per-theme correction beside the others:"
+            + "correct. Fix the token in src/Rask.Ui/Styles/ui.css — the one place it is declared — "
+            + "or add a per-theme correction beside the others:"
             + Environment.NewLine + string.Join(Environment.NewLine, failures.Take(40)));
     }
 
@@ -313,11 +313,14 @@ public sealed partial class ThemeContrastTests
         return result;
     }
 
-    /// <summary>The showcase's own <c>@theme</c> block — the <c>--color-ui-*</c> formulas.</summary>
+    /// <summary>
+    ///     The <c>--color-ui-*</c> formulas the showcase compiles: the kit's own <c>@theme</c> block, which
+    ///     its stylesheet takes in with <c>@import "./vendor/rask-ui.css"</c> rather than copying.
+    /// </summary>
     private static Dictionary<string, string> ShowcaseTokens() =>
         Stylesheets
             .Declarations(Stylesheets.ThemeBlock(
-                Path.Combine(RepoRoot(), "src", "Rask.Site", "Styles", "app.css")))
+                Path.Combine(RepoRoot(), "src", "Rask.Ui", "Styles", "ui.css")))
             .Where(kv => kv.Key.StartsWith("--color-ui-", StringComparison.Ordinal))
             .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
 

@@ -20,6 +20,64 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: an app's Tailwind build takes the UI kit in — one stylesheet, as a Flux app has.** An app
+  used to link two sheets: the kit's precompiled one, then its own Tailwind output. Both carry an
+  `@layer utilities`, the kit's `dark` variant is a `:where()` with no specificity of its own, and
+  between two sheets nothing is left to rank a tie but link order — so any base utility the app wrote
+  *anywhere* beat a kit variant of the same property. Measured on rask.sh in dark mode: Flux's card
+  (`bg-white dark:bg-white/4`) computed `rgb(255, 255, 255)` because the site writes `bg-white` on some
+  other element, `dark:text-zinc-300` lost to `text-zinc-500`, and a metric's `sm:flex-row` lost to
+  `flex-col` at every width — with every class in the markup correct and every gate green. Now the app
+  compiles the kit's classes into its **own** sheet, beside the ones it writes, and Tailwind's own order
+  holds: a base utility before its variants, a shorthand before its longhands.
+
+  In `Styles/app.css`, one line replaces five:
+
+  ```diff
+  - @layer properties, theme, base, components, daisyui, utilities;
+  - @import "tailwindcss";
+  - @source not "./vendor";
+  - @plugin "./vendor/daisyui.mjs";
+  + @import "./vendor/rask-ui.css";
+  ```
+
+  and in the `.csproj` both switches go — the import is the whole opt-in:
+
+  ```diff
+  - <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+  - <RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
+  ```
+
+  `rask new` writes exactly that. The build sees the import, writes the kit's Tailwind sources into
+  `Styles/vendor/` before Tailwind runs (`rask-ui.css`: the layer order, Tailwind, the kit, the class
+  list; `rask-ui.kit.css`: the `@theme` tokens, the `dark` variant, daisyUI, the rules a utility cannot
+  say; `rask-ui.classes.txt`: every class a kit component writes; `daisyui.mjs`), and records
+  `Rask.Ui.Stylesheet` in the app assembly so `RaskApp` and the WASM host link `css/app.css` **alone**.
+  A hand-wired host drops its `UiStylesheet.Href()` link; `wwwroot/css/rask-ui.css` is deleted by the
+  next build. What else changes for an app:
+  - **`RaskUiWriteStylesheet=true` beside a Tailwind stylesheet is a build error**, with the fix in the
+    message, whether or not the sheet imports the kit. The precompiled sheet (`UiStylesheet.Css`,
+    `UiStylesheet.Href()`) remains for a surface with no Tailwind build of its own.
+  - **`RaskUiWriteDaisyUiPlugin` and `RaskUiDaisyUiPluginOutput` are gone.** daisyUI's plugin arrives with
+    the import, once, under the kit's `[data-rask-ui]` scope — an app that wrote `btn` or `card` itself
+    used to compile a second copy at `:root`. New: `RaskUiTailwind` (`true`/`false` overrides the
+    detection) and `RaskUiTailwindDirectory`.
+  - **The kit's `@theme` tokens, `@custom-variant dark` and the layer order have one declaration**, in the
+    kit. An app that copied the `--color-ui-*` block into its own `@theme` deletes the copy (rask.sh
+    did, and the test holding the copy equal went with it); re-skinning still means redefining a token
+    in your own `@theme`, after the import.
+  - **`Rask.Dashboard` compiles its own sheet the same way** (`Styles/dashboard.css`: the kit without
+    Tailwind's preflight), so a utility a console page writes would be compiled — it inlined the kit's
+    precompiled sheet before, where such a class named a rule that existed nowhere.
+  - `Rask.Tailwind` gains `RaskTailwindClassList` — a component library that compiles a sheet of its own
+    can write down every class it defines for an app's `@source` — and rebuilds when a file beside the
+    stylesheet changes (an imported partial used not to count as an input). In the repo,
+    `src/Rask.Ui/Styles/vendor/daisyui.mjs` moved to `src/Rask.Ui/Styles/daisyui.mjs`, and the kit's
+    own entry is `Styles/ui.precompiled.css`; `Styles/ui.css` is still where its tokens and rules live.
+
+  rask.sh's CSS went from 497.7 KB in two sheets (68.0 KB gzipped) to 495.4 KB in one (64.8 KB): one
+  request fewer, and about the same bytes — the kit's share is nearly all of it either way.
+
 - **BREAKING: `Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
   [Flux UI's field](https://fluxui.dev/components/field).** The first family of the kit drawn without
   daisyUI: Flux's parts, props, spacing and colours in light and dark, held to its docs page by

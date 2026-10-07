@@ -30,29 +30,33 @@ site and the docs showcase all draw with these.
 dotnet add package Rask.Ui
 ```
 
-Two steps, and skipping either renders structurally correct components with **no colour at all**.
-Opt into the build writing the sheet:
+**An app that runs Tailwind compiles the kit into its own stylesheet** — one sheet, as a Flux app has.
+One line in `Styles/app.css`, in place of `@import "tailwindcss";`:
 
-```xml
-<PropertyGroup>
-  <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
-</PropertyGroup>
+```css
+@import "./vendor/rask-ui.css";
 ```
 
-On `RaskApp` (`Rask.Server`) or the WASM host (`Rask.Wasm`) that is all: the host links it before your own
-sheet and turns the theme scope on. A hand-wired host links it itself, and turns the theme scope on:
+That is Tailwind, the kit's theme and `dark` variant, and every class its components write, compiled
+beside the classes you write. The build puts the files in `Styles/vendor/` (no npm, no `node_modules`;
+do not commit them), and on `RaskApp` (`Rask.Server`) or the WASM host (`Rask.Wasm`) that is all: the
+host links your `css/app.css` and turns the theme scope on. A hand-wired host does both itself:
 
 ```csharp
 protected override Component? HeadAssets =>
 [
-    Link.Rel("stylesheet").Href(UiStylesheet.Href()),   // the kit's, first
-    Link.Rel("stylesheet").Href("/css/app.css"),
+    Link.Rel("stylesheet").Href("/css/app.css"),   // the ONE sheet: Tailwind, the kit, your classes
 ];
 
 // Nothing in the kit has a colour until an ancestor carries this.
 protected override Component Shell(Component head, Component body) =>
     Html.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, body];
 ```
+
+**A surface with no Tailwind build of its own** takes the precompiled sheet instead: set
+`<RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>` and link `UiStylesheet.Href()`, or inline
+`UiStylesheet.Css`. Never both — two sheets each carry an `@layer utilities` ranked by link order
+alone, so an app's `bg-white` beats the kit's `dark:bg-zinc-800`, and the build stops on the pairing.
 
 ```csharp
 protected override Component? Render() =>
@@ -76,9 +80,9 @@ protected override Component? Render() =>
 ];
 ```
 
-Order matters: your `@theme` only wins while it is the copy the cascade reads last. The kit's sheet
-deliberately carries **no preflight** and no `html`/`body` rules — your application owns its document,
-and a reset arriving from a library restyles pages that never asked for it.
+Re-skin by redefining a token in your own `@theme`, after the import. The kit itself carries **no
+preflight** and no `html`/`body` rules — your application owns its document; in an app's sheet the
+reset is Tailwind's own, which the import brings.
 
 ## What is in it
 
