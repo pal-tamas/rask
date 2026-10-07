@@ -5,7 +5,8 @@ name: gates
 # runs by hand, which keeps a red job reproducible with one command.
 #
 #   push     what a push to main is held to
-#   deps     the part of push a version bump can break before it lands: build, unit, format, CLI build, templates
+#   deps     the part of push a version bump can break before it lands: build, unit, format, CLI build, templates,
+#            and the front end of each template whose client the pull request changes
 #   release  what needs containers or a real host; run before a release, and on a ci/release/** branch
 #   all      push and release
 #
@@ -59,6 +60,7 @@ jobs:
           ONLY: ${{ inputs.only }}
           SCOPE: ${{ inputs.scope }}
           BASE: ${{ inputs.base }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
           # "mode" says which kind of run a gate belongs to: the whole set cuts the unit tests and the
           # formatter in two, a scoped run has little enough of either for one job each.
           # "when" is the key from scripts/lib/affected_gates.py that selects the gate in a scoped run.
@@ -71,6 +73,14 @@ jobs:
           # Shards 1-3 NAME their classes and shard 4 takes everything they do not: a new or renamed
           # class lands in 4 by itself and cannot fall between two. The Rask.Server journeys need no
           # site publish and are a job of their own.
+          #
+          # "each": "front end" is one gate per front-end template, expanded below from the script's own
+          # list (a tree with a committed npm client), so a new template is a new job with no edit here:
+          # "front end react", run with that key appended, selected by "frontend-react". Each packs the
+          # feed and publishes a scaffold, which is minutes — seven in one job would not fit the timeout.
+          # "deps": "touched" puts one in the deps set only when the pull request changes that
+          # template's client, which is what a lockfile bump is: dependabot-merge.yml then merges a
+          # template bump on the verdict of the template it changed, and a NuGet bump pays for none.
           #
           # The benchmark gate is the byte and allocation budgets only — exact counts, the same on a
           # shared runner as anywhere. No time is measured here: a runner's clock proves nothing.
@@ -94,6 +104,7 @@ jobs:
               {"set": "push", "when": "bench",     "name": "benchmarks",         "run": "scripts/run-benchmarks-local.sh"},
               {"set": "push", "deps": true, "when": "packaging", "name": "CLI build", "run": "scripts/run-cli-build-e2e.sh"},
               {"set": "push", "deps": true, "when": "packaging", "name": "templates", "run": "scripts/run-template-e2e.sh"},
+              {"set": "push", "deps": "touched", "each": "front end", "name": "front end", "run": "scripts/run-template-e2e.sh --front-end="},
               {"set": "release", "name": "watch hot reload",   "run": "scripts/run-watch-e2e.sh"},
               {"set": "release", "name": "deploy",             "run": "scripts/run-deploy-e2e-local.sh"},
               {"set": "release", "name": "storage providers",  "run": "scripts/run-storage-providers-local.sh"},
@@ -122,15 +133,32 @@ jobs:
             echo "gates: the whole set — no usable base commit ('$BASE') to measure the change from"
           fi
 
-          gates="$(jq -c --arg set "$SET" --arg only "$ONLY" --arg mode "$mode" --arg keys "$keys" '
+          # What a pull request changes, for the gates a deps run takes only when touched. Unknown
+          # (null) takes them all: a gate too many costs minutes, a gate too few merges unchecked.
+          changed=null
+          if [ -n "$PR_BASE" ] && git cat-file -e "$PR_BASE^{commit}" 2>/dev/null; then
+            changed="$(git diff --name-only "$PR_BASE" HEAD | jq -Rnc '[inputs]')"
+          fi
+          front_ends="$(scripts/run-template-e2e.sh --list-front-ends | jq -Rnc '[inputs]')"
+
+          gates="$(jq -c --arg set "$SET" --arg only "$ONLY" --arg mode "$mode" --arg keys "$keys" \
+                      --argjson changed "$changed" --argjson front_ends "$front_ends" '
             ($keys | split(" ")) as $reached
             | [ .[]
-                | select($set == "all" or .set == $set or ($set == "deps" and .deps))
+                | if .each == "front end"
+                  then . as $gate | $front_ends[]
+                       | $gate + {name: "\($gate.name) \(.)", run: "\($gate.run)\(.)", when: "frontend-\(.)",
+                                  touched: "^src/Rask\\.Templates/\(.)/client/"}
+                  else . end
+                | select($set == "all" or .set == $set
+                         or ($set == "deps" and (.deps == true or (.deps == "touched" and (.touched as $paths
+                             | $changed == null or any($changed[]; test($paths)))))))
                 | select($only == "" or (.name | test($only)))
                 | select(if $mode == "full"
                          then (.mode // "") != "scoped"
                          else (.mode // "") != "full" and ((.when // "") as $when | $reached | index($when)) != null
-                         end) ]' <<<"$GATES")"
+                         end)
+                | del(.each, .touched) ]' <<<"$GATES")"
           [ "$gates" != "[]" ] || { echo "gates: set '$SET' with only '$ONLY' selects no gate" >&2; exit 1; }
 
           echo "gates: $(jq -r '[.[].name] | join(", ")' <<<"$gates")"

@@ -23,6 +23,8 @@ gates, for the gates whose subject is not a test project's references:
     bench      what the byte and allocation budgets measure
     packaging  the CLI, the templates, or how a project is built and packed (by FILE, see below)
                                                  -> the CLI build and the templates
+    frontend-<key>  that front-end template, or what builds and serves every one (by FILE, see below)
+                                                 -> its "front end <key>" job
 
 The contract is the same lopsided one: a gate too many costs minutes on a runner, a gate too few
 lets a break through until the next full run. A push to main is scoped; the full set runs on a
@@ -62,6 +64,44 @@ PACKAGING_FILES = re.compile(
     r"|src/.*\.(csproj|props|targets)$)"
 )
 
+# The front-end gates — one job per template with a committed npm client — are selected by FILE for the
+# same reason: each packs the feed and publishes a scaffold. A template's own tree reaches its own job
+# and no other; the paths below reach all of them, being what every front end is installed, generated,
+# bundled and served by: the SPA host and its build task, the TypeScript emitter, the sign-in client it
+# copies into the client, the scaffolder, and the gate's own test. A tree with no client (server, wasm,
+# the _islands and _vscode fragments) reaches none. Anything else that breaks a front end — the CQRS
+# endpoint the starter query travels to, say — is found by the next whole run.
+FRONT_END_FILES = re.compile(
+    r"^(src/Rask\.Spa\.Hosting/|src/Rask\.Spa\.Tasks/"
+    r"|src/Rask\.Batteries\.Generators/(TypeScript[A-Za-z]*|CqrsCodecGenerator)\.cs$"
+    r"|src/Rask\.Core/Resources/browser/auth\.ts$"
+    r"|src/Rask\.Cli/(Scaffolding|Templates)/"
+    r"|tests/Rask\.Templates\.E2E\.Tests/"
+    r"|tests/Rask\.Cli\.Tests/(CliBuildE2E|RepoPins|TestDoubles)\.cs$)"
+)
+TEMPLATE_TREE = re.compile(r"^src/Rask\.Templates/([^/]+)/")
+
+
+def front_ends(root: Path) -> list[str]:
+    """The templates with a committed npm client: scripts/run-template-e2e.sh --list-front-ends."""
+    return sorted(manifest.parent.parent.name for manifest in (root / "src/Rask.Templates").glob("*/client/package.json"))
+
+
+def reached_front_ends(root: Path, changed: list[str]) -> list[str]:
+    known = front_ends(root)
+    reached: set[str] = set()
+    for path in changed:
+        if FRONT_END_FILES.match(path):
+            return known
+        tree = TEMPLATE_TREE.match(path)
+        if tree is None:
+            continue
+        if tree.group(1) in known:
+            reached.add(tree.group(1))
+        elif not (root / "src/Rask.Templates" / tree.group(1)).is_dir():
+            return known  # a tree that is gone: a removed or renamed template, which the scaffolder lists
+    return [key for key in known if key in reached]
+
 
 def reached_projects(root: Path, changed: list[str]) -> tuple[str | None, list[str]]:
     """(reason, []) when the scoper answers FULL, otherwise (None, projects)."""
@@ -77,7 +117,7 @@ def reached_projects(root: Path, changed: list[str]) -> tuple[str | None, list[s
     return None, lines
 
 
-def gates_for(changed: list[str], projects: list[str]) -> list[str]:
+def gates_for(root: Path, changed: list[str], projects: list[str]) -> list[str]:
     keys = ["code"]
     if any(path.endswith(".cs") for path in changed):
         keys.append("cs")
@@ -86,6 +126,7 @@ def gates_for(changed: list[str], projects: list[str]) -> list[str]:
             keys.append(key)
     if any(PACKAGING_FILES.match(path) for path in changed):
         keys.append("packaging")
+    keys.extend(f"frontend-{key}" for key in reached_front_ends(root, changed))
     return keys
 
 
@@ -109,7 +150,7 @@ def main() -> None:
         sys.stdout.write(f"FULL\t{reason}\n")
         return
 
-    sys.stdout.write(" ".join(gates_for(changed, projects)) + "\n")
+    sys.stdout.write(" ".join(gates_for(root, changed, projects)) + "\n")
 
 
 if __name__ == "__main__":
