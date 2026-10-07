@@ -268,17 +268,12 @@
 }
 
 /*
-  `dark:` is Flux's — a `dark` class on an ancestor — and, while both libraries draw the kit, also
-  whatever daisyUI currently calls dark: one of its dark themes by name, or no theme named at all on a
-  machine that prefers dark. Without the last two a Flux-drawn button would stay light on a page whose
-  daisyUI-drawn card had gone dark. They are deleted with the theme list; `.dark` is what remains.
+  `dark:` is Flux's — a `dark` class on an ancestor, which Ui.AppearanceScript sets — and, on a kit surface
+  that runs no such script and pins no theme (DevTools), the operating system's preference. A surface pinned
+  with `data-theme` (the Dashboard, light) matches neither arm. The second arm goes with daisyUI.
 */
 @custom-variant dark {
   &:where(.dark, .dark *) {
-    @slot;
-  }
-
-  &:where(:is([data-theme="dark"], [data-theme="synthwave"], [data-theme="halloween"], [data-theme="forest"], [data-theme="aqua"], [data-theme="black"], [data-theme="luxury"], [data-theme="dracula"], [data-theme="business"], [data-theme="night"], [data-theme="coffee"], [data-theme="dim"], [data-theme="sunset"], [data-theme="abyss"]), :is([data-theme="dark"], [data-theme="synthwave"], [data-theme="halloween"], [data-theme="forest"], [data-theme="aqua"], [data-theme="black"], [data-theme="luxury"], [data-theme="dracula"], [data-theme="business"], [data-theme="night"], [data-theme="coffee"], [data-theme="dim"], [data-theme="sunset"], [data-theme="abyss"]) *) {
     @slot;
   }
 
