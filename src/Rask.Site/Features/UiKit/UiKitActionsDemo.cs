@@ -53,17 +53,17 @@ public sealed partial class UiKitActionsDemo : Component
             + "closes the menu unless the menu, or the row, says KeepOpen. The page behind does not scroll, and a "
             + "click outside only closes it.",
             Div.Data(Testid("ui-dropdown")).Class("flex flex-wrap items-center gap-2")[
-                Ui.Dropdown.Key("options")[Trigger("Options"), PostMenu("the list")],
+                Ui.Dropdown.Key("options")[Trigger("Options"), PostMenu("list", "the list")],
                 Ui.Dropdown.Key("account").Bottom.End[Trigger("Olivia Martin"), AccountLinks()],
-                Ui.Dropdown.Key("above").Top.Start[Trigger("Above"), Places()],
-                Ui.Dropdown.Key("nudged").Offset(-15).Gap(2)[Trigger("Offset and gap"), Places()],
+                Ui.Dropdown.Key("above").Top.Start[Trigger("Above"), Places("above")],
+                Ui.Dropdown.Key("nudged").Offset(-15).Gap(2)[Trigger("Offset and gap"), Places("nudged")],
                 Ui.Dropdown.Key("shortcuts")[Trigger("Shortcuts"), ShortcutMenu()],
                 Ui.Dropdown.Key("permissions")[Trigger("Permissions"), PermissionMenu()],
                 Ui.Dropdown.Key("activity")[Trigger("Sort by"), ActivityMenu()],
                 Ui.Dropdown.Key("groups")[Trigger("Groups"), GroupedMenu()],
                 Ui.Dropdown.Key("headings")[Trigger("Headings"), HeadedMenu()],
                 // KeepOpen on the menu, then on the rows alone: there "Clear" still closes it.
-                Ui.Dropdown.Key("keeps")[Trigger("Keep open"), Ui.Menu.KeepOpen()[FilterRows(keepOpen: false)]],
+                Ui.Dropdown.Key("keeps")[Trigger("Keep open"), Ui.Menu.KeepOpen()[FilterRows("keeps", keepOpen: false)]],
                 Ui.Dropdown.Key("keeps-rows")[Trigger("Filters"), ClearableFilterMenu()],
                 // Open is nullable: unset leaves it to the reader, true and false hand it to this page.
                 Ui.Dropdown.Key("controlled").Open(_menuOpen).OnToggle(open => { _menuOpen = open; })[
@@ -76,36 +76,38 @@ public sealed partial class UiKitActionsDemo : Component
             ]);
 
     // The lead example of Flux's page, and the menu its context page opens: an item, two submenus, a danger item.
-    private Component PostMenu(string what) =>
+    // It is written twice on this page, so every key carries the id of the menu it is in: a key names ONE
+    // component among all those this page writes, and two rows sharing one would share their props.
+    private Component PostMenu(string id, string what) =>
         Ui.Menu[
-            Ui.MenuItem.Key("new").Icon(Ui.IconName.Plus).OnClick(() => Did("new post in " + what))["New post"],
-            Ui.MenuSeparator.Key("s1"),
-            Ui.MenuSubmenu.Key("sort").Heading("Sort by")[
+            Ui.MenuItem.Key(id + "-new").Icon(Ui.IconName.Plus).OnClick(() => Did("new post in " + what))["New post"],
+            Ui.MenuSeparator.Key(id + "-s1"),
+            Ui.MenuSubmenu.Key(id + "-sort").Heading("Sort by")[
                 Ui.MenuRadioGroup.Value(_sort).OnChange(sort => { _sort = sort; Did("sorted by " + sort); })[
-                    Ui.MenuRadio.Key("name").Value("name")["Name"],
-                    Ui.MenuRadio.Key("date").Value("date")["Date"],
-                    Ui.MenuRadio.Key("popularity").Value("popularity")["Popularity"]
+                    Ui.MenuRadio.Key(id + "-name").Value("name")["Name"],
+                    Ui.MenuRadio.Key(id + "-date").Value("date")["Date"],
+                    Ui.MenuRadio.Key(id + "-popularity").Value("popularity")["Popularity"]
                 ]
             ],
-            Ui.MenuSubmenu.Key("filter").Heading("Filter")[FilterRows(keepOpen: false)],
-            Ui.MenuSeparator.Key("s2"),
-            Ui.MenuItem.Key("delete").Danger.Icon(Ui.IconName.Trash).OnClick(() => Did("deleted from " + what))["Delete"]
+            Ui.MenuSubmenu.Key(id + "-filter").Heading("Filter")[FilterRows(id, keepOpen: false)],
+            Ui.MenuSeparator.Key(id + "-s2"),
+            Ui.MenuItem.Key(id + "-delete").Danger.Icon(Ui.IconName.Trash).OnClick(() => Did("deleted from " + what))["Delete"]
         ];
 
-    private Component[] FilterRows(bool keepOpen) =>
+    private Component[] FilterRows(string id, bool keepOpen) =>
     [
-        Ui.MenuCheckbox.Value(_draft).Key("draft").KeepOpen(keepOpen).OnChange(on => { _draft = on; })["Draft"],
-        Ui.MenuCheckbox.Value(_published).Key("published").KeepOpen(keepOpen).OnChange(on => { _published = on; })["Published"],
-        Ui.MenuCheckbox.Value(_archived).Key("archived").KeepOpen(keepOpen).OnChange(on => { _archived = on; })["Archived"]
+        Ui.MenuCheckbox.Value(_draft).Key(id + "-draft").KeepOpen(keepOpen).OnChange(on => { _draft = on; })["Draft"],
+        Ui.MenuCheckbox.Value(_published).Key(id + "-published").KeepOpen(keepOpen).OnChange(on => { _published = on; })["Published"],
+        Ui.MenuCheckbox.Value(_archived).Key(id + "-archived").KeepOpen(keepOpen).OnChange(on => { _archived = on; })["Archived"]
     ];
 
     private Component ClearableFilterMenu()
     {
         Component[] rows =
         [
-            .. FilterRows(keepOpen: true),
-            Ui.MenuSeparator.Key("s1"),
-            Ui.MenuItem.Key("clear").Danger.OnClick(() =>
+            .. FilterRows("rows", keepOpen: true),
+            Ui.MenuSeparator.Key("rows-s1"),
+            Ui.MenuItem.Key("rows-clear").Danger.OnClick(() =>
             {
                 _draft = _published = _archived = false;
                 Did("cleared the filters");
@@ -118,69 +120,69 @@ public sealed partial class UiKitActionsDemo : Component
     // A navigation menu: links, with no menu roles and no cursor.
     private static Component AccountLinks() =>
         Ui.Navmenu[
-            Ui.NavmenuItem.Key("account").Href("#account").Icon(Ui.IconName.User)["Account"],
-            Ui.NavmenuItem.Key("profile").Href("#profile").Icon(Ui.IconName.BuildingStorefront)["Profile"],
-            Ui.NavmenuItem.Key("billing").Href("#billing").Icon(Ui.IconName.CreditCard)["Billing"],
-            Ui.NavmenuItem.Key("logout").Href("#logout").Icon(Ui.IconName.ArrowRightStartOnRectangle)["Logout"],
-            Ui.NavmenuItem.Key("delete").Href("#delete").Icon(Ui.IconName.Trash).Danger["Delete"]
+            Ui.NavmenuItem.Key("link-account").Href("#account").Icon(Ui.IconName.User)["Account"],
+            Ui.NavmenuItem.Key("link-profile").Href("#profile").Icon(Ui.IconName.BuildingStorefront)["Profile"],
+            Ui.NavmenuItem.Key("link-billing").Href("#billing").Icon(Ui.IconName.CreditCard)["Billing"],
+            Ui.NavmenuItem.Key("link-logout").Href("#logout").Icon(Ui.IconName.ArrowRightStartOnRectangle)["Logout"],
+            Ui.NavmenuItem.Key("link-delete").Href("#delete").Icon(Ui.IconName.Trash).Danger["Delete"]
         ];
 
     // The navigation menu Flux's two placement examples open.
-    private static Component Places() =>
+    private static Component Places(string id) =>
         Ui.Navmenu[
-            Ui.NavmenuItem.Key("account").Href("#account")["Account"],
-            Ui.NavmenuItem.Key("profile").Href("#profile")["Profile"],
-            Ui.NavmenuItem.Key("billing").Href("#billing")["Billing"],
-            Ui.NavmenuItem.Key("logout").Href("#logout")["Logout"]
+            Ui.NavmenuItem.Key(id + "-account").Href("#account")["Account"],
+            Ui.NavmenuItem.Key(id + "-profile").Href("#profile")["Profile"],
+            Ui.NavmenuItem.Key(id + "-billing").Href("#billing")["Billing"],
+            Ui.NavmenuItem.Key(id + "-logout").Href("#logout")["Logout"]
         ];
 
     private Component ShortcutMenu() =>
         Ui.Menu[
-            Ui.MenuItem.Key("save").Icon(Ui.IconName.PencilSquare).Kbd("⌘S").OnClick(() => Did("save"))["Save"],
-            Ui.MenuItem.Key("duplicate").Icon(Ui.IconName.DocumentDuplicate).Kbd("⌘D").OnClick(() => Did("duplicate"))["Duplicate"],
-            Ui.MenuItem.Key("export").Icon(Ui.IconName.ArrowDownTray).Suffix("PDF").Disabled()["Export"],
-            Ui.MenuItem.Key("delete").Icon(Ui.IconName.Trash).Danger.Kbd("⌘⌫").OnClick(() => Did("delete"))["Delete"]
+            Ui.MenuItem.Key("shortcut-save").Icon(Ui.IconName.PencilSquare).Kbd("⌘S").OnClick(() => Did("save"))["Save"],
+            Ui.MenuItem.Key("shortcut-duplicate").Icon(Ui.IconName.DocumentDuplicate).Kbd("⌘D").OnClick(() => Did("duplicate"))["Duplicate"],
+            Ui.MenuItem.Key("shortcut-export").Icon(Ui.IconName.ArrowDownTray).Suffix("PDF").Disabled()["Export"],
+            Ui.MenuItem.Key("shortcut-delete").Icon(Ui.IconName.Trash).Danger.Kbd("⌘⌫").OnClick(() => Did("delete"))["Delete"]
         ];
 
     private Component PermissionMenu() =>
         Ui.Menu[
-            Ui.MenuCheckbox.Value(_read).Key("read").OnChange(on => { _read = on; Did(on ? "may read" : "may not read"); })["Read"],
-            Ui.MenuCheckbox.Value(_write).Key("write").OnChange(on => { _write = on; })["Write"],
-            Ui.MenuCheckbox.Value(_delete).Key("delete").OnChange(on => { _delete = on; Did(on ? "may delete" : "may not delete"); })["Delete"]
+            Ui.MenuCheckbox.Value(_read).Key("may-read").OnChange(on => { _read = on; Did(on ? "may read" : "may not read"); })["Read"],
+            Ui.MenuCheckbox.Value(_write).Key("may-write").OnChange(on => { _write = on; })["Write"],
+            Ui.MenuCheckbox.Value(_delete).Key("may-delete").OnChange(on => { _delete = on; Did(on ? "may delete" : "may not delete"); })["Delete"]
         ];
 
     private Component ActivityMenu() =>
         Ui.Menu[
             Ui.MenuRadioGroup.Value(_activity).OnChange(by => { _activity = by; Did("ordered by " + by); })[
-                Ui.MenuRadio.Key("latest").Value("latest")["Latest activity"],
-                Ui.MenuRadio.Key("created").Value("created")["Date created"],
-                Ui.MenuRadio.Key("popular").Value("popular")["Most popular"]
+                Ui.MenuRadio.Key("by-latest").Value("latest")["Latest activity"],
+                Ui.MenuRadio.Key("by-created").Value("created")["Date created"],
+                Ui.MenuRadio.Key("by-popular").Value("popular")["Most popular"]
             ]
         ];
 
     private Component GroupedMenu() =>
         Ui.Menu[
-            Ui.MenuItem.Key("view").OnClick(() => Did("view"))["View"],
-            Ui.MenuItem.Key("transfer").OnClick(() => Did("transfer"))["Transfer"],
-            Ui.MenuSeparator.Key("s1"),
-            Ui.MenuItem.Key("publish").OnClick(() => Did("publish"))["Publish"],
-            Ui.MenuItem.Key("share").OnClick(() => Did("share"))["Share"],
-            Ui.MenuSeparator.Key("s2"),
-            Ui.MenuItem.Key("delete").Danger.OnClick(() => Did("delete"))["Delete"]
+            Ui.MenuItem.Key("grouped-view").OnClick(() => Did("view"))["View"],
+            Ui.MenuItem.Key("grouped-transfer").OnClick(() => Did("transfer"))["Transfer"],
+            Ui.MenuSeparator.Key("grouped-s1"),
+            Ui.MenuItem.Key("grouped-publish").OnClick(() => Did("publish"))["Publish"],
+            Ui.MenuItem.Key("grouped-share").OnClick(() => Did("share"))["Share"],
+            Ui.MenuSeparator.Key("grouped-s2"),
+            Ui.MenuItem.Key("grouped-delete").Danger.OnClick(() => Did("delete"))["Delete"]
         ];
 
     private static Component HeadedMenu() =>
         Ui.Menu[
-            Ui.MenuGroup.Key("account").Heading("Account")[
-                Ui.MenuItem.Key("profile")["Profile"],
-                Ui.MenuItem.Key("permissions")["Permissions"]
+            Ui.MenuGroup.Key("headed-account").Heading("Account")[
+                Ui.MenuItem.Key("headed-profile")["Profile"],
+                Ui.MenuItem.Key("headed-permissions")["Permissions"]
             ],
-            Ui.MenuGroup.Key("billing").Heading("Billing")[
-                Ui.MenuItem.Key("transactions")["Transactions"],
-                Ui.MenuItem.Key("payouts")["Payouts"],
-                Ui.MenuItem.Key("refunds")["Refunds"]
+            Ui.MenuGroup.Key("headed-billing").Heading("Billing")[
+                Ui.MenuItem.Key("headed-transactions")["Transactions"],
+                Ui.MenuItem.Key("headed-payouts")["Payouts"],
+                Ui.MenuItem.Key("headed-refunds")["Refunds"]
             ],
-            Ui.MenuItem.Key("logout")["Logout"]
+            Ui.MenuItem.Key("headed-logout")["Logout"]
         ];
 
     // Any button is a trigger: the dropdown adds what makes it one.
@@ -209,7 +211,7 @@ public sealed partial class UiKitActionsDemo : Component
                         .Class("inline-block rounded-box border-2 border-dashed border-base-300 px-16 py-6 text-sm text-ui-muted")[
                         "Right click"
                     ],
-                    PostMenu("the card")
+                    PostMenu("card", "the card")
                 ]
             ]);
 

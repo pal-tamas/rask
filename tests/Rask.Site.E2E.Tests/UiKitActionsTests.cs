@@ -199,7 +199,10 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         await Expect(flyout).ToBeVisibleAsync();
 
-        await target.ClickAsync();
+        // Pressed where the pointer already is. The radio group is an inline box around block rows, as Flux's
+        // <ui-menu-radio-group> is, and at a row's centre Chromium's elementsFromPoint — what Playwright checks a
+        // click against — lists that box above the row, though elementFromPoint and a real press reach the row.
+        await target.ClickAsync(new LocatorClickOptions { Position = new Position { X = 12, Y = to.Height / 2 } });
         await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("sorted by popularity");
     });
 
