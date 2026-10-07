@@ -692,6 +692,10 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **daisyUI's `.glass` is out of the kit's sheet and of every app's.** A doc comment on the new search fields said
+  "a magnifying glass"; Tailwind scans comments, daisyUI emits a component wherever its name is seen, and the rule
+  rode the kit's class list into each app's stylesheet. `Rask.Ui.Tests` now fails on a daisyUI component that is in
+  the class list with no string literal in the kit writing it.
 - **`MapRaskSpa`'s fallback answers only GET and HEAD.** It matched every verb, so a POST to a route that
   only answers GET was given the index document and a 200 where routing owed it a 405.
 - **One-time-code cells (`data-rask-otp`) no longer lose the selection, or a cell, to a late echo.** The page's
