@@ -7,8 +7,64 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: `Ui.Chart` is Flux's chart, part by part.** The factory chart (`Ui.Chart.Data(rows).Label(…)[c => [c.X(…),
+  c.Line(…)]]`), `Ui.ChartSeries`, `Ui.ChartAxis`'s old role and `Ui.ChartKind` are gone, with their `Tone` palette,
+  `Min`/`Max`, `Legend`, `Grid`, the `<figure>` and the hidden data table — none of which Flux's chart has. A chart is
+  now assembled from Flux's parts and drawn in C# to the numbers Flux's own layout arrives at: `Ui.ChartSvg` holding
+  `Ui.ChartLine`, `Ui.ChartArea`, `Ui.ChartPoint`, `Ui.ChartBar` (alone, in a `Ui.ChartGroup` or a `Ui.ChartStack`),
+  `Ui.ChartPie`, `Ui.ChartAxis` with `Ui.ChartAxisTick` / `Ui.ChartAxisGrid` / `Ui.ChartAxisLine` / `Ui.ChartAxisMark`,
+  `Ui.ChartZeroLine` and `Ui.ChartCursor`; beside it `Ui.ChartViewport`, `Ui.ChartTooltip` (+ `Heading`, `Value`,
+  `Indicator`), `Ui.ChartSummary` (+ `Value`) and `Ui.ChartLegend` (+ `Indicator`). The chart takes the typed rows
+  and each part a selector whose lambda states the row type; `UiChartFormat` carries Intl's format options. See
+  `docs/ui-kit.md`.
+
+  ```csharp
+  // before
+  Ui.Chart.Data(months).Label("Revenue").Format("C0").Class("h-64")[c => [
+      c.X(m => m.Name),
+      c.Area(m => m.Revenue).Label("Revenue"),
+      c.Bar(m => m.Orders).Label("Orders")
+  ]]
+
+  // after
+  Ui.Chart.Value(months).Class("aspect-3/1")[
+      Ui.ChartSvg[
+          Ui.ChartLine.Field((Month m) => m.Revenue).Class("text-sky-500"),
+          Ui.ChartArea.Field((Month m) => m.Revenue).Class("text-sky-200/50"),
+          Ui.ChartAxis.X.Field((Month m) => m.Name)[Ui.ChartAxisTick],
+          Ui.ChartAxis.Y.Format(new() { Style = Ui.ChartFormatStyle.Currency, Currency = "USD", MaximumFractionDigits = 0 })[
+              Ui.ChartAxisGrid, Ui.ChartAxisTick],
+          Ui.ChartCursor],
+      Ui.ChartTooltip[
+          Ui.ChartTooltipHeading.Field((Month m) => m.Name),
+          Ui.ChartTooltipValue.Field((Month m) => m.Revenue).Label("Revenue")]]
+  ```
+
 ### Added
 
+- **A front end gets its host's remote messages as TypeScript again.** `Rask.Spa.Hosting` writes
+  `contracts.ts`, `messages.ts`, the `rask.dispatch` client, `query.ts` and `browser/auth.ts` into
+  `client/src/rask/` on every build (`docs/spa.md#a-typed-client-for-your-messages`). New: only a host that
+  declares a remote message gets anything written, and only then must the front end be TypeScript
+  (`RASKSPA004`) — a host with none serves any front end and its sources are left alone. Events are
+  `'event'` on the wire type, matching `Rask.Cqrs`. The rest of the old browser layer is not shipped: a
+  front end calls the browser's own APIs.
+- **An existing app can take Rask pages under a prefix, beside its own front end.**
+  `MapRask<App>(pathBase: "/new")` next to `MapControllers()` and `MapRaskSpa()` is now a tested shape:
+  each answers only its own paths (`docs/spa.md#moving-an-existing-app-onto-rask-a-page-at-a-time`).
+- **`rask dev` runs an npm front end's dev server beside its host again.** A host that references
+  `Rask.Spa.Hosting` gets `dotnet watch` plus the client's own `npm run dev` (or `start`), and the browser
+  opens on the dev server — `RaskSpaDevServerUrl`, or Vite's `http://localhost:5173`. The client is found in
+  the `client` folder or, new, wherever `RaskSpaClientDir` points.
+- **A front end that builds with npm is built and shipped by its ASP.NET host again.** `Rask.Spa.Hosting`
+  finds a `client` folder holding a `package.json` (or the one `RaskSpaClientDir` names), runs `npm ci` and
+  `npm run build` in it on `dotnet build`, and copies the bundle into `wwwroot` on `dotnet publish`, where
+  `MapRaskSpa()` serves it. `RaskSpaBuild=false` skips node; `RASKSPA001`, `002`, `003`, `005` and `007`
+  name what went wrong; `SpaHostingOptions.DevServerUrl` is back, named on the Development page shown before
+  anything is built. This returns the build half of what 2026-10-01 removed (`docs/spa.md`); the generated
+  TypeScript client and the `rask new` templates are not back yet.
 - **Runtime hooks for behaviour a render cannot write.** The client runtime gains a set of generic,
   attribute-keyed hooks (`docs/js-interop-runtime.md#behaviour-hooks-data-rask-`), each a delegated listener
   that costs nothing on a page that does not use it: `data-rask-tooltip` and `data-rask-hover` show a popover
@@ -44,6 +100,20 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Tooltip`, `Ui.Toast` and `Ui.Button`'s tooltip behave as Flux's do, through the runtime's hooks.**
+  A tooltip's wrapper now carries `data-rask-tooltip`: every tooltip, whatever its trigger, is shown in the
+  top layer the moment the pointer or keyboard focus arrives, stays while that focus lasts, is dismissed by
+  Escape, and is hidden by a press until the pointer has left and come back; an `Interactive()` trigger
+  carries `aria-expanded`. The `interestfor` invoker and the stylesheet's `:hover` path are gone (a `:hover`
+  fallback remains under `@media (scripting: none)`). A timed toast is held by the pointer only
+  (`data-rask-dismiss-hold="pointer"`), and a `Ui.ToastGroup` is one `data-rask-dismiss-scope`: the pointer
+  over any of the stack holds every toast in it, and each then runs out what it had left.
+  A `Ui.Button` with a `Tooltip` is rendered as Flux renders it — the `<button>` inside a
+  `Ui.Tooltip` wrapper (`<div data-ui-tooltip>`), named by `aria-labelledby` when it has only an icon,
+  where it used to carry an `aria-label` and a bubble inside itself; it still fuses inside a
+  `Ui.ButtonGroup`. `TooltipPosition` takes `Ui.TooltipPosition` instead of `Ui.Position`
+  (`.TooltipPosition(Ui.TooltipPosition.Bottom)`). `Kbd` is no longer a tooltip of its own: as in Flux it is
+  drawn inside the button after the label, and `TooltipKbd` shows only with a `Tooltip`.
 - **BREAKING: `Ui.Toast` is Flux's toast, with its group — raised through `Toast`, placed in the layout.**
   `Ui.Toast` was one notice a page drew from a list of its own, and `Ui.Toaster` stacked them. It is now
   what `<flux:toast />` is: the place the app's toasts appear, drawn and timed exactly as Flux's
@@ -574,6 +644,16 @@ them until tagged releases begin.
   gone.
 
 ### Fixed
+
+- **One-time-code cells (`data-rask-otp`) no longer lose the selection, or a cell, to a late echo.** The page's
+  answer to each code announced comes back late, and a render writes the bound hidden field twice (the attribute,
+  then the property). The hook read the second record after it had answered the first — its own write, which was
+  waiting as an echo too — so every echo before it was forgotten, and the ones that then arrived emptied the later
+  cells and filled them again: the same six characters, with the last cell no longer selected, so the next key
+  was appended instead of replacing it. An echo that reached the field in the same task as the next key was
+  misread the same way. Each group is now sorted out once per batch of changes, and what the page wrote is read
+  before the hook writes over it. On a slow machine this was every fast entry — it is what turned the server E2E
+  job red.
 
 - **Rask.Wasm: a prerendered page links the one stylesheet its app compiles.** The prerender compiles the
   app a second time, in `obj/`, and that copy's assembly did not say what the app's says: where the

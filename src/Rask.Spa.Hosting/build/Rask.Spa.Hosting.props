@@ -1,24 +1,103 @@
 <Project>
 
   <!--
-    Consumer-facing knobs for Rask.Spa.Hosting's build. Override in your host project, or with -p:.
-    Knobs only, so this file is harmless to import into a project that serves no WebAssembly client.
+    Consumer-facing knobs for the front-end build Rask.Spa.Hosting runs. Override any of these in your
+    host project, or with -p:.
+
+    Point the host at its client one of two ways:
+
+        <RaskSpaClientDir>..\web</RaskSpaClientDir>
+
+    or rely on the convention — a `client` folder inside the host project holding a package.json. One
+    project owns both halves; a front end is not a second .NET project.
+
+    The convention does nothing at all when there is no such package.json, which is why this file is
+    harmless to import into a project with no front end.
   -->
   <PropertyGroup>
     <!--
-      Whether a referenced Rask WebAssembly client is published before this project builds. False skips the
-      publish, and the host serves the client's build output instead — which is the only way hot reload can
-      reach the browser, since a published bundle is trimmed.
+      Master switch. False skips the install, the build and the node probe entirely — the app still
+      compiles and its API still works, and MapRaskSpa reports that there is nothing to serve.
 
-      RaskDevSession is that dev session: ONE switch, passed by `rask dev` and by the scaffolded VS Code build
-      task alike, that each Rask package expands into what it needs. An explicit RaskSpaBuild still wins.
+      A dev session turns it off, because the bundler's dev server owns the build then and paying for a
+      production bundle on every save would make watch unusable. The repo's own unit gate passes false
+      too, so a machine with no node can still build a solution that contains a front end.
+
+      For a Rask WebAssembly client the same switch skips the client's publish, and the host serves the
+      client's build output instead — which is the only way hot reload can reach the browser.
+
+      RaskDevSession is that dev session: ONE switch, passed by `rask dev` and by the scaffolded VS Code
+      build task alike, that each Rask package expands into what it needs. An explicit RaskSpaBuild
+      still wins.
     -->
     <RaskSpaBuild Condition="'$(RaskSpaBuild)' == '' AND '$(RaskDevSession)' == 'true'">false</RaskSpaBuild>
     <RaskSpaBuild Condition="'$(RaskSpaBuild)' == ''">true</RaskSpaBuild>
 
-    <!-- Where the published client is copied inside the publish output, and the first place MapRaskSpa
-         looks at runtime. Change it only if the host already owns a wwwroot of its own. -->
+    <!-- Where the built app is copied inside the publish output, and the first place MapRaskSpa looks
+         at runtime. Change it only if the host already owns a wwwroot of its own. -->
     <RaskSpaPublishDir Condition="'$(RaskSpaPublishDir)' == ''">wwwroot</RaskSpaPublishDir>
+
+    <!--
+      `npm ci` rather than `npm install` wherever it can run: it is reproducible, it is faster, and it
+      fails loudly when package-lock.json has drifted from package.json instead of quietly rewriting
+      it. It requires the lockfile, which a freshly scaffolded client does not have yet — so the
+      targets pick between these two by looking for it.
+
+      Chosen up front rather than as a `npm ci || npm install` shell fallback, which does work but
+      prints a wall of "npm error" to stderr on every first build and reads exactly like a failure.
+    -->
+    <RaskSpaInstallCommand Condition="'$(RaskSpaInstallCommand)' == ''">npm ci</RaskSpaInstallCommand>
+    <RaskSpaFirstInstallCommand Condition="'$(RaskSpaFirstInstallCommand)' == ''">npm install</RaskSpaFirstInstallCommand>
+    <RaskSpaBuildCommand Condition="'$(RaskSpaBuildCommand)' == ''">npm run build</RaskSpaBuildCommand>
+
+    <!-- Where the bundler writes, relative to the client. Vite and Vue use dist; Angular nests its
+         output under the app name (dist/<app>/browser). -->
+    <RaskSpaDistDir Condition="'$(RaskSpaDistDir)' == ''">dist</RaskSpaDistDir>
+
+    <!-- Named in the "nothing built yet" page the host serves in Development. Purely informational. -->
+    <RaskSpaDevServerUrl Condition="'$(RaskSpaDevServerUrl)' == ''"></RaskSpaDevServerUrl>
+
+    <!-- The floor the probe enforces (RASKSPA005), rather than letting vite fail with an engines error
+         nobody reads.
+
+         Vite asks for `^20.19.0 || >=22.12.0`, which is a range with a HOLE in it: 21.x and 22.0-22.11
+         satisfy neither arm. 22.12.0 is the lowest version that satisfies it with no hole — and the
+         lowest that is not on a line Node has stopped patching, since 20 "Iron" reached end of life on
+         2026-03-24. A floor is a minimum, not a recommendation: what Rask RECOMMENDS is the current
+         Active LTS (24 "Krypton"), which is what the scaffolded Dockerfile installs.
+
+         Angular's CLI sets its own floor far above this one (`^22.22.3 || ^24.15.0 || >=26.0.0` as of
+         22.1.6) and enforces it itself, which is why Rask does not try to track it here. -->
+    <RaskSpaMinimumNode Condition="'$(RaskSpaMinimumNode)' == ''">22.12.0</RaskSpaMinimumNode>
+
+    <!--
+      Where the generated contracts land, relative to the client. Inside src/ on purpose: the bundler
+      only compiles and tree-shakes what its own source tree contains, and TypeScript's project
+      references would otherwise need widening to reach outside it.
+    -->
+    <RaskSpaGeneratedDir Condition="'$(RaskSpaGeneratedDir)' == ''">src/rask</RaskSpaGeneratedDir>
+
+    <!--
+      The client's TypeScript configuration, relative to the client. Its presence is what the build
+      checks (RASKSPA004) before it generates contracts into a front end: what this package supports is
+      a TypeScript single-page app, and TypeScript is the whole point rather than a preference — the
+      contracts are emitted as `.ts`, and a JavaScript client would import them, have nothing checked,
+      and find a renamed property on the wire instead of at the compiler.
+
+      Name it explicitly when the client keeps its config somewhere else — a monorepo base config, or a
+      `tsconfig.app.json` with no plain `tsconfig.json` beside it. Serving a bundle a JavaScript app
+      produced is still fine; turn RaskEmitTypeScript off and this package is a static-file host.
+    -->
+    <RaskSpaTypeScriptConfig Condition="'$(RaskSpaTypeScriptConfig)' == ''">tsconfig.json</RaskSpaTypeScriptConfig>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      What the CQRS generator reads to decide whether to carry the TypeScript out in the assembly. It
+      is off unless a front end is actually resolved (the targets set it), because the constants are
+      the whole front-end contract surface as a string and no in-process app should pay for them.
+    -->
+    <CompilerVisibleProperty Include="RaskEmitTypeScript"/>
+  </ItemGroup>
 
 </Project>

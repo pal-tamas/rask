@@ -3,9 +3,9 @@ using Rask.TestFiles;
 namespace Rask.Server.Tests.Build;
 
 /// <summary>
-///     Whether <c>Rask.Server.targets</c> turns the CQRS wire codec on by what the project serves: a WebAssembly
-///     client in <c>Client/</c> dispatches over the wire, a server-rendered app never does. Evaluation only, so no
-///     build.
+///     Whether <c>Rask.Server.targets</c> turns the CQRS wire codec on — and with it the TypeScript contracts — by
+///     what the project serves: a front end in <c>client/</c> dispatches over the wire, a server-rendered app never
+///     does. Evaluation only, so no build and no node.
 /// </summary>
 public sealed class CqrsCodecDefaultTests : IDisposable
 {
@@ -28,6 +28,16 @@ public sealed class CqrsCodecDefaultTests : IDisposable
     }
 
     [Fact]
+    public async Task A_typescript_front_end_in_client_turns_the_codec_on()
+    {
+        Write("client/package.json", "{}");
+
+        var codec = await Evaluate();
+
+        Assert.Equal("true", codec);
+    }
+
+    [Fact]
     public async Task A_server_rendered_app_keeps_the_codec_off()
     {
         Write("Program.cs", "// no front end of its own");
@@ -38,13 +48,13 @@ public sealed class CqrsCodecDefaultTests : IDisposable
     }
 
     [Fact]
-    public async Task A_package_json_in_client_does_not_turn_the_codec_on()
+    public async Task A_front_end_the_project_names_turns_the_codec_on()
     {
-        Write("client/package.json", "{}");
+        Write("web/package.json", "{}");
 
-        var codec = await Evaluate();
+        var codec = await Evaluate("<RaskSpaClientDir>web</RaskSpaClientDir>");
 
-        Assert.Equal("false", codec);
+        Assert.Equal("true", codec);
     }
 
     [Fact]

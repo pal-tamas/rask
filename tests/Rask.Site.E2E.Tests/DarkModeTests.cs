@@ -173,7 +173,8 @@ public sealed partial class DarkModeTests
             // wait for a WASM runtime before they can say so.
             var moon = page.Locator(Moon);
             await Expect(moon).ToHaveCountAsync(1);
-            await Expect(moon).ToHaveAccessibleNameAsync("Toggle dark mode");
+            // Its tooltip is its name, shortcut and all, as on Flux's own header.
+            await Expect(moon).ToHaveAccessibleNameAsync("Toggle dark mode D");
             Assert.Null(await moon.GetAttributeAsync("data-rask-on-click"));
             var box = await moon.BoundingBoxAsync();
             Assert.Equal((40, 40), ((int)box!.Width, (int)box.Height));

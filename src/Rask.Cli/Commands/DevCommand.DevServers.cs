@@ -6,6 +6,62 @@ namespace Rask.Cli.Commands;
 internal sealed partial class DevCommand
 {
     /// <summary>
+    ///     Starts the front end's own dev server for a SPA-hosted app, or does nothing for anything else.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Two processes rather than one because the browser talks to the bundler, not to ASP.NET: that
+    ///         is what makes HMR native and instant, and it is why the scaffolded <c>vite.config.ts</c>
+    ///         proxies <c>/_rask</c> back to the host. In production neither of those exists — the host
+    ///         serves the built bundle and answers the wire itself.
+    ///     </para>
+    ///     <para>
+    ///         A failure here is reported and then let go. The host is the process this command is really
+    ///         running, and killing it because a bundler would not start would take away the API too — and
+    ///         with it any chance of reading the error against a working server.
+    ///     </para>
+    /// </remarks>
+    private async Task StartClientDevServer(DevTarget target, CancellationToken cancellationToken)
+    {
+        if (target.Kind != DevTemplateKind.SpaHosted)
+        {
+            return;
+        }
+
+        if (target.ClientDirectory is not { } directory)
+        {
+            Console.WriteLine(
+                "No client directory found beside this host, so no dev server was started. Run the "
+                + "bundler yourself, or point RaskSpaClientDir at it.",
+                ConsoleStyle.Dim);
+            return;
+        }
+
+        Console.WriteLine(
+            $"Starting the client dev server in {Path.GetFileName(directory)} "
+            + $"(npm run {target.ClientDevScript ?? "dev"})…",
+            ConsoleStyle.Dim);
+
+        try
+        {
+            await _process
+                .RunAsync("npm", ["run", target.ClientDevScript ?? "dev"], directory, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // The host exited and took this with it. Expected, every time.
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            Console.WriteErrorLine(
+                "npm is not available, so the client dev server did not start. The API is still running. "
+                + "Install Node.js from https://nodejs.org.",
+                ConsoleStyle.Error);
+        }
+    }
+
+    /// <summary>
     ///     Serves this project's islands from a Vite dev server, so editing a <c>.tsx</c> or a
     ///     <c>.svelte</c> hot-replaces instead of rebuilding.
     /// </summary>

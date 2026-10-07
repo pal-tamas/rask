@@ -38,6 +38,17 @@ internal sealed partial class DevCommand
             return null;
         }
 
+        // With an npm front end the browser belongs on the DEV SERVER, not on ASP.NET: it is what
+        // serves the app and what HMR reaches, and it proxies the wire back to the host. Opening the
+        // host's own port instead lands on "nothing built yet" and looks like a broken scaffold.
+        //
+        // --urls is still honoured: it names where the HOST listens, and someone who set it deliberately is
+        // saying that is the address they mean.
+        if (target.Kind == DevTemplateKind.SpaHosted && urls is not { Length: > 0 })
+        {
+            return target.ClientDevServerUrl ?? ViteDevServerUrl;
+        }
+
         var url = devHostUrl ?? FirstUrl(urls) ?? target.LaunchUrl;
         if (url is null)
         {

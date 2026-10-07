@@ -107,9 +107,10 @@ public sealed partial class UiKitButtonDemo : Component
                     Ui.Button["Top"]
                 ],
                 Ui.ButtonGroup.Key("icons")[
-                    Ui.Button.Icon(Ui.IconName.Bars3BottomLeft).AriaLabel("Align left"),
-                    Ui.Button.Icon(Ui.IconName.Bars3).AriaLabel("Justify"),
-                    Ui.Button.Icon(Ui.IconName.Bars3BottomRight).AriaLabel("Align right")
+                    // Each is inside its own tooltip, which names it, and still fuses with its neighbours.
+                    Ui.Button.Icon(Ui.IconName.Bars3BottomLeft).Tooltip("Align left"),
+                    Ui.Button.Icon(Ui.IconName.Bars3).Tooltip("Justify"),
+                    Ui.Button.Icon(Ui.IconName.Bars3BottomRight).Tooltip("Align right")
                 ],
                 Ui.ButtonGroup.Key("attached")[
                     Ui.Button["New product"],

@@ -18,10 +18,43 @@ namespace Rask.Server.E2E.Tests;
 ///     and PageUp/PageDown and fires <c>input</c> then <c>change</c>; its closed select ignores Enter and opens
 ///     on the vertical arrows without scrolling the page; and its otp input behaves as the cell tests below say,
 ///     key for key, including six keys with no delay between them arriving as six characters.
+///     <para>
+///         The <c>&lt;n&gt;</c> after a cell in the strings below is how many of its characters are selected: 1 on
+///         the cell that has focus, so the next key replaces it. Six fast keys once ended <c>6&lt;0&gt;</c> on a slow
+///         runner: a render writes the bound field twice, the second record was read after the hook had
+///         answered the first, the echoes still waiting were forgotten, and the ones that then arrived emptied
+///         the later cells and filled them again — the same six characters, the selection gone. The two
+///         late-echo tests force that order, and the one where the echo and the next key share a task.
+///     </para>
 /// </remarks>
 public sealed class RuntimeHookFieldTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
     private const string Cells = "() => [...document.querySelectorAll('#otp input:not([type=hidden])')].map(i => (i.value || '_') + (document.activeElement === i ? '<' + (i.selectionEnd - i.selectionStart) + '>' : '')).join(' ')";
+
+    // The test is the page here. It answers "1" late, the way a render does — the attribute, then the property —
+    // and then answers "12". `sameTask` puts the first answer in the task that types "3", before the runtime's
+    // observer has been told of it.
+    private const string LateEcho = """
+        sameTask => {
+            const group = document.getElementById('otp-late');
+            const bound = group.querySelector('input[type=hidden]');
+            const cells = [...group.querySelectorAll('[aria-label]')];
+            const answer = code => { bound.setAttribute('value', code); bound.value = code; };
+            const later = () => new Promise(done => setTimeout(done, 0));
+            cells.forEach(c => c.value = '');
+            cells[0].focus();
+            document.execCommand('insertText', false, '1');
+            document.execCommand('insertText', false, '2');
+            if (sameTask) answer('1');
+            document.execCommand('insertText', false, '3');
+            return later()
+                .then(() => { if (!sameTask) answer('1'); })
+                .then(later)
+                .then(() => answer('12'))
+                .then(later)
+                .then(() => cells.map(c => c.value).join('') + '|' + bound.value);
+        }
+        """;
 
     [Fact]
     public async Task A_copy_button_writes_the_clipboard_in_the_click_and_says_so_for_two_seconds()
@@ -255,6 +288,28 @@ public sealed class RuntimeHookFieldTests(PlaywrightFixture playwright) : IClass
     }
 
     [Fact]
+    public async Task A_late_echo_written_twice_by_one_render_does_not_forget_the_echoes_still_to_come()
+    {
+        await using var session = await HookSession.OpenAsync<FieldHookPage>(playwright);
+        var page = session.Page;
+
+        var state = await page.EvaluateAsync<string>(LateEcho, false);
+
+        Assert.Equal("123|123", state);
+    }
+
+    [Fact]
+    public async Task An_echo_that_arrives_in_the_same_task_as_the_next_key_is_still_an_echo()
+    {
+        await using var session = await HookSession.OpenAsync<FieldHookPage>(playwright);
+        var page = session.Page;
+
+        var state = await page.EvaluateAsync<string>(LateEcho, true);
+
+        Assert.Equal("123|123", state);
+    }
+
+    [Fact]
     public async Task The_cells_follow_the_page_when_the_page_clears_the_code()
     {
         await using var session = await HookSession.OpenAsync<FieldHookPage>(playwright);
@@ -285,6 +340,7 @@ public sealed partial class FieldHookPage : Component
         <button id="listbox-button" type="button" role="combobox" aria-haspopup="listbox" aria-expanded="false"
                 popovertarget="listbox" data-rask-listbox-button>Choose</button>
         <div id="listbox" popover role="listbox">Options</div>
+        <div id="otp-late" data-rask-otp><input type="hidden"><input aria-label="1 of 3"><input aria-label="2 of 3"><input aria-label="3 of 3"></div>
         """;
 
     private string _name = string.Empty;
