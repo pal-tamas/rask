@@ -14,7 +14,7 @@ public sealed partial class UiKitDataInputPage : Component
         PageMeta.For(
             "daisyUI form inputs as typed C# components — Rask",
             "daisyUI data input components in C#, each with a required label: input, textarea, select, "
-            + "checkbox, toggle, radio, range, rating, one-time code and calendar.",
+            + "checkbox, radio, switch, range, rating, one-time code and calendar.",
             Routes.UiKitDataInputPage());
 
     /// <inheritdoc />
@@ -29,7 +29,7 @@ public sealed partial class UiKitDataInputPage : Component
             "size, and ", Code["ghost"], " on the three controls daisyUI defines it for."
         ],
         CodeSample
-            .Files(["UiKitDataInputDemo.cs"])
+            .Files(["UiKitDataInputDemo.cs", "UiKitDataInputDemo.Choices.cs"])
             .Notes("The one-time code is a single input drawn as several — per-digit boxes need script "
                 + "to move focus, defeat SMS autofill and drop a pasted code into the first box. The "
                 + "calendar is a C# month grid, because the element daisyUI styles for it is a "

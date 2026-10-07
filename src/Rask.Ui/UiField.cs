@@ -16,7 +16,7 @@ public sealed partial class UiField : Component
 
     // Two columns, the narrow one for the control: first when the control comes first, last when the label does.
     private const string Inline =
-        "grid gap-x-3 gap-y-1.5 "
+        "grid gap-x-3 gap-y-1.5 min-w-0 "
         + "has-[>[data-ui-control]~[data-ui-label]]:grid-cols-[auto_1fr] "
         + "has-[>[data-ui-label]~[data-ui-control]]:grid-cols-[1fr_auto] "
         + "[&>[data-ui-control]~[data-ui-description]]:col-start-2 [&>[data-ui-control]~[data-ui-error]]:col-start-2 "

@@ -93,42 +93,47 @@ A nested graph with **async** validators and live totals rolling up from the row
 
 ## Radio & checkbox groups
 
-`Ui.RadioGroup` binds one value from a set of options; `Ui.CheckboxGroup` binds an `ICollection<T>`.
-Both come from [the UI kit](ui-kit.md), and both are ordinary `IFormControl<T>` controls — the binding
+`Ui.RadioGroup` binds one value; `Ui.CheckboxGroup` binds an `ICollection<T>`. Both are
+[Flux UI's](ui-kit.md#checkbox-radio-and-switch), and both are ordinary `IFormControl<T>` controls — the binding
 API of §9 — so they work **bound** or **controlled**, exactly like `Input`, and you can build a group of
-your own the same way ([building-form-controls.md](building-form-controls.md)):
+your own the same way ([building-form-controls.md](building-form-controls.md)). The choices are the group's
+**children**: a `Ui.Radio` or a `Ui.Checkbox` whose `Value` is what the group binds.
 
 ```csharp
 // Bound — two-way binds the model, with an optional per-field Validate rule.
 Form.Model(_prefs)[
-    Ui.RadioGroup.Bind(() => _prefs.Plan)               // single value
-        .Options([(Plan.Free, "Free"), (Plan.Pro, "Pro"), (Plan.Team, "Team")])
-        .Label("Plan"),
+    Ui.RadioGroup.Bind(() => _prefs.Plan).Label("Plan")[                     // single value
+        Ui.Radio.Value(Plan.Free).Label("Free"),
+        Ui.Radio.Value(Plan.Pro).Label("Pro"),
+        Ui.Radio.Value(Plan.Team).Label("Team")
+    ],
 
-    Ui.CheckboxGroup.Bind(() => _prefs.Interests)       // a collection
-        .Options([("web", "Web"), ("mobile", "Mobile"), ("ai", "AI")])
-        .Label("Interests")
-        .Validate(tags => tags.Count >= 1 ? [] : ["Pick at least one."])
+    Ui.CheckboxGroup.Bind(() => _prefs.Interests).Label("Interests")         // a collection
+        .Validate(tags => tags.Count >= 1 ? [] : ["Pick at least one."])[
+        Ui.Checkbox.Value("web").Label("Web"),
+        Ui.Checkbox.Value("mobile").Label("Mobile"),
+        Ui.Checkbox.Value("ai").Label("AI")
+    ]
 ]
 
 // Controlled — the parent owns the value; OnChange (auto-wrapped) re-renders it.
-Ui.RadioGroup.Value(_plan).Options(plans).Label("Plan").OnChange(v => _plan = v)
-Ui.CheckboxGroup.Value(_interests).Options(interests).Label("Interests").OnChange(next => _interests = next)
+Ui.RadioGroup.Value(_plan).Label("Plan").OnChange(v => _plan = v)[ … ]
+Ui.CheckboxGroup.Values(_interests).Label("Interests").OnChange(next => _interests = next)[ … ]
 ```
 
 - Bound mode opens with `Bind`; `Validate` takes a synchronous or an asynchronous rule, like `Input`
-  (§9). `Ui.RadioGroup` renders the option equal to the current value `checked` and sets the bound
-  property on select; `Ui.CheckboxGroup` mutates the bound collection (membership by
-  `EqualityComparer<T>.Default`). Each change calls `NotifyFieldChanged` + `NotifyFieldTouched` +
-  `ValidateField`, so DataAnnotations / FluentValidation rules apply.
-- `Options` is a list of `(Value, Text)` pairs — the value bound and the words shown.
-  `OptionDescription` adds a line under an option, `OptionDisabled` greys one out, and `Layout` picks the
-  look (a list, cards, pills, buttons or one segmented strip) while keeping a real
-  `<input type="radio">`/`<input type="checkbox">` inside each label.
-- Give the group a `Label`: it names the group's container for a screen reader (`aria-labelledby`), and
-  `AccessibleLabel` does the same with no visible label. Without a `Name`, the radios share the field's
-  own page-unique id as their `name`, so two groups on one page are never merged into a single browser
-  radio group.
+  (§9). `Ui.RadioGroup` renders the radio whose `Value` equals the current value `checked` and sets the
+  bound property on select; `Ui.CheckboxGroup` writes the bound collection, in the order the checkboxes
+  are written (membership by `EqualityComparer<T>.Default`). Each change calls `NotifyFieldChanged` +
+  `NotifyFieldTouched` + `ValidateField`, so DataAnnotations / FluentValidation rules apply.
+- A choice takes `Label`, `Description`, `Disabled` and (in a card, a segment or a button) `Icon`. The
+  group's variant picks the look — `.Cards`, `.Pills`, `.Buttons`, and `.Segmented` on a radio group —
+  while keeping a real `<input type="radio">`/`<input type="checkbox">` inside each label, so the arrow
+  keys, the space bar and the form post are the browser's. `Ui.CheckboxAll` among the checkboxes ticks
+  or clears them all, and shows a dash while only some are ticked.
+- Give the group a `Label`: it names the group's container for a screen reader (`aria-labelledby`).
+  Without a `Name`, the radios share the group's own id as their `name`, so two groups on one page are
+  never merged into a single browser radio group.
 - They are **Components** (their own re-render boundary), so a toggle re-renders the control itself; for
   host-side derived UI (a live summary) use **controlled** mode — the auto-wrapped `OnChange` re-renders
   the host. (In bound mode, feedback lives inside the control via the embedded `Validation.Message`.)

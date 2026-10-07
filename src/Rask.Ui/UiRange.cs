@@ -42,7 +42,7 @@ public sealed partial class UiRange : Component, IFormControl<double>
 
     /// <inheritdoc />
     /// <remarks>
-    ///     Where the handle sits. Not nullable — see <see cref="UiCheckbox.Value" /> — so a controlled
+    ///     Where the handle sits. Not nullable — see <see cref="UiSwitch.Value" /> — so a controlled
     ///     slider states its position, which it has to: a handle has to be somewhere.
     /// </remarks>
     public double Value { get; set; }

@@ -80,7 +80,11 @@ const IGNORED = new Set(['width', 'height']);
 const NATIVE = {
   'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend', 'ui-progress': 'div',
   'ui-table-scroll-area': 'div', 'ui-disclosure-group': 'div', 'ui-disclosure': 'details',
+  'ui-checkbox-group': 'div', 'ui-radio-group': 'div', 'ui-checkbox': 'label', 'ui-radio': 'label', 'ui-switch': 'label',
 };
+// Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
+// holds the native <input> that is: one child Flux has no node for, and nothing drawn.
+const HOLDS_INPUT = new Set(['ui-checkbox', 'ui-radio', 'ui-switch']);
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
 const sameTag = (a, b) => (NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
@@ -196,7 +200,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 
   const kids = (example, n) => example.nodes.filter(c => c.parent === n.id);
   const ca = kids(theirs, a);
-  const cb = kids(mine, b);
+  const cb = kids(mine, b).filter(c => !(HOLDS_INPUT.has(a.tag) && c.tag === 'input'));
   if (ca.length !== cb.length) {
     diffs.push(`${where}: children <${ca.map(c => c.tag).join(' ')}> vs <${cb.map(c => c.tag).join(' ')}>`);
     return;

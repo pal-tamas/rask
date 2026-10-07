@@ -66,7 +66,7 @@ public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
 
     /// <inheritdoc />
     /// <remarks>
-    ///     The chosen day. Not nullable — see <see cref="UiCheckbox.Value" /> — so "nothing chosen" is
+    ///     The chosen day. Not nullable — see <see cref="UiSwitch.Value" /> — so "nothing chosen" is
     ///     <c>default(DateOnly)</c>, which is 1 January year 1 and lands in no month a reader will ever
     ///     page to. Bind a <c>DateOnly?</c> where the difference between unset and a real date matters.
     /// </remarks>

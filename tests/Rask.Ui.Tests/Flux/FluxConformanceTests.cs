@@ -36,6 +36,13 @@ public sealed class FluxConformanceTests
         ["flux:input.group.prefix"] = typeof(UiInputGroupPrefix),
         ["flux:input.group.suffix"] = typeof(UiInputGroupSuffix),
         ["flux:textarea"] = typeof(UiTextarea<>),
+        ["flux:checkbox"] = typeof(UiCheckbox),
+        ["flux:checkbox.group"] = typeof(UiCheckboxGroup<>),
+        ["flux:checkbox.all"] = typeof(UiCheckboxAll),
+        ["flux:radio.group"] = typeof(UiRadioGroup<>),
+        ["flux:radio"] = typeof(UiRadio),
+        ["flux:radio.indicator"] = typeof(UiRadioIndicator),
+        ["flux:switch"] = typeof(UiSwitch),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -47,6 +54,10 @@ public sealed class FluxConformanceTests
         ["flux:input/mask:dynamic"] = "An Alpine expression ($money($input)) evaluated in the browser on every keystroke. Rask.Ui ships no script; Mask takes the static pattern.",
         ["flux:input/copyable"] = "Copies in the click's own call stack (Alpine). Rask.Ui ships no script and the runtime has no clipboard hook yet (data-rask-copy); a handler round trip loses the user activation the clipboard asks for.",
         ["flux:error/bag"] = "Laravel's named error bags. A Rask form has one edit context, and Ui.Error reads that one.",
+        ["flux:switch/align=right|start"] = "Two spellings of one side, as the docs list them. Ui.SwitchAlign.Right is it; `start` is not a second value.",
+        ["flux:switch/align=left|end"] = "Two spellings of one side. Ui.SwitchAlign.Left is it; `end` is not a second value.",
+        // A behaviour rather than a prop, recorded here so the omission is a decision.
+        ["flux:switch/enter-key"] = "Flux's ui-switch flips on Enter as well as Space. A native checkbox flips on Space alone; Enter needs a key-to-click hook in the runtime (a filtered keydown that calls click() in the page), which does not exist yet.",
         ["flux:error/deep"] = "Laravel's dotted paths (fields.*). A Rask field is the member of the object that owns it: Ui.Error.For(() => order.Lines[0].Name).",
     };
 

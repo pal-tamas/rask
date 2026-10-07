@@ -38,7 +38,7 @@ public sealed partial class UiRating : Component, IFormControl<int>
     /// <inheritdoc />
     /// <remarks>
     ///     How many stars are lit; <c>0</c> is no rating. Not nullable — see
-    ///     <see cref="UiCheckbox.Value" /> — which suits a rating: unrated and zero stars are the same
+    ///     <see cref="UiSwitch.Value" /> — which suits a rating: unrated and zero stars are the same
     ///     state here, and the hidden first radio is how a reader gets back to it.
     /// </remarks>
     public int Value { get; set; }

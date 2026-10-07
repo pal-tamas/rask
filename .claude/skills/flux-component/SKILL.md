@@ -76,6 +76,15 @@ label themselves. The recipe (`UiInput.cs` and `UiTextarea.cs` are the two to co
 5. Class literals shared by a generic control live in a non-generic `internal static class UiXLook` (a static in
    `UiX<T>` is one copy per `T`, S2743). An enum member named after a tag (`Button`, `Input`) is not reachable as a
    step — the component inherits the markup entry of that name — so it is `.As(Ui.InputAs.Button)`.
+6. A control Flux writes as a custom element WITH PARTS INSIDE (`ui-checkbox`, `ui-radio`, `ui-switch`) cannot be the
+   `<input>` itself, which holds nothing: the root is a `<label>` around the real input (`sr-only`, never `hidden`),
+   and every part reads the input's own state — `has-checked:` on the root, `group-has-checked/option:` inside it
+   (`UiOptionLook.cs`). Where two states meet, write the rule for the pair with both variants stacked: two rules of
+   equal weight leave the winner to the order Tailwind prints them in. `parity.mjs`'s `HOLDS_INPUT` names the tags
+   whose label holds that one node Flux has none for.
+7. A GROUP whose choices are children (`UiRadioGroup<T>`, `UiCheckboxGroup<T>`) is the `IFormControl<T>`; it hands
+   the choices a scope through `Context.Provide` (current value, commit, variant) and they bind nothing themselves.
+   A prop that is Flux's `value` on a choice stays `Value` there, so the choice's own state is `Checked`.
 
 A custom element is written as the native one that behaves that way without script (`ui-label` → `<label for>`);
 `parity.mjs`'s `NATIVE` (by tag) and `NATIVE_PART` (by marker) tables name each pair, and a stand-in for a control
