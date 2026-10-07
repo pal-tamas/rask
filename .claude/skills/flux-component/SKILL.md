@@ -37,8 +37,13 @@ wider range, however reasonable. The only non-Flux surface is the Rask TRANSLATI
 PHP mechanism — `Bind`/`Value` for `wire:model`, a `Callback` for an event or `wire:click`, `RouteUrl? Href`
 with client-side navigation for a link, a `Toast`-style facade for a `Flux::…()` call — plus `Class`, which
 every Flux component takes. Same spirit, 2026-10-06: Flux stops no animation under reduced motion, and
-neither does the kit. (A `Translations` table in `FluxConformanceTests`, naming each non-Flux property and
-why, is to be the gate for this; it is NOT written yet — see "Open work" at the end.)
+neither does the kit. `FluxConformanceTests` is the gate: a property a built component declares, or a member
+of a prop's enum, that `flux.snapshot.json` does not list fails unless a `Translations` row (`part/Member` or
+`part/Member=EnumMember`) names what of Flux's it stands for. Free by rule: `Class`, `Key`, `Id`, `Children`,
+what `UiElement`/`Element`/`Component` hand down, a named slot's property, and an enum's zero member (the
+unset prop). `Undecided` holds what waits for the owner; never add a row there to let a member through.
+Rendered attributes are not in that gate: compare them with Flux's live DOM (marker and ARIA names per
+`[data-flux-*]` node) when a component changes.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
@@ -227,7 +232,9 @@ what the branch ADDS; `git checkout HEAD -- <file>` puts ours back.
 ## Open work (integration stopped here on 2026-10-07 — see the integrator's report)
 - A stale `src/Rask.Site/obj/**/rask-external` folder can fail the site build after merging main
   (`@rask/routes` not found): delete that folder.
-- The `Translations` gate in `FluxConformanceTests`, and the removals the owner's rule asks for.
+- Markers the kit does not write yet and Flux does: `data-flux-group-target` on every button that is not
+  ghost or subtle, `data-flux-badge-icon` on a badge's leading icon, and `data-flux-badge-icon:trailing`
+  (the kit spells it `data-ui-badge-icon-trailing`). `Undecided` in `FluxConformanceTests` lists the props.
 - `sync.mjs` and `lib.mjs` on main changed (#1189): the lock is CI's, animations rest through
   `window.__fluxRest()`. Merge main's with this harness; keep the recording of animation definitions.
 - The comparison in `parity.mjs` is not importable; open-state scripts copy it. Move it to a module.
