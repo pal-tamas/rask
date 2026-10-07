@@ -300,6 +300,11 @@ public static class GuideCatalog
             SearchTitle = "Calling JavaScript from C# with IJSRuntime",
             Description = "Call JavaScript from C# with an injected IJSRuntime, use typed browser APIs and element refs, and wrap a third-party JavaScript library with TypeScript types.",
         },
+        new("spa", "Single-page app front ends", "An npm-built front end built, published and served by its ASP.NET host.", "Frontend")
+        {
+            SearchTitle = "Host a React or Vue SPA on ASP.NET Core",
+            Description = "Serve a React, Vue, Svelte or Angular single-page app from an ASP.NET Core host: dotnet build runs the npm build, publish ships the bundle, one call serves it.",
+        },
         new("islands", "Islands",
             "A .tsx or Lit file as an ordinary Rask component, with props owned by C#.", "Frontend")
         {

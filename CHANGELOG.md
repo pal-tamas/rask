@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Added
 
+- **A front end that builds with npm is built and shipped by its ASP.NET host again.** `Rask.Spa.Hosting`
+  finds a `client` folder holding a `package.json` (or the one `RaskSpaClientDir` names), runs `npm ci` and
+  `npm run build` in it on `dotnet build`, and copies the bundle into `wwwroot` on `dotnet publish`, where
+  `MapRaskSpa()` serves it. `RaskSpaBuild=false` skips node; `RASKSPA001`, `002`, `003`, `005` and `007`
+  name what went wrong; `SpaHostingOptions.DevServerUrl` is back, named on the Development page shown before
+  anything is built. This returns the build half of what 2026-10-01 removed (`docs/spa.md`); the generated
+  TypeScript client and the `rask new` templates are not back yet.
 - **Runtime hooks for behaviour a render cannot write.** The client runtime gains a set of generic,
   attribute-keyed hooks (`docs/js-interop-runtime.md#behaviour-hooks-data-rask-`), each a delegated listener
   that costs nothing on a page that does not use it: `data-rask-tooltip` and `data-rask-hover` show a popover

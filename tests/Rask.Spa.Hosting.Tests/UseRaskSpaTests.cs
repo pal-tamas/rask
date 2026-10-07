@@ -187,16 +187,18 @@ public class MapRaskSpaTests
     [Fact]
     public async Task Development_without_a_build_says_where_the_app_actually_is()
     {
-        await using var host = await SpaTestServer.CreateAsync(distPath: null, environment: "Development");
+        await using var host = await SpaTestServer.CreateAsync(
+            distPath: null,
+            environment: "Development",
+            configure: o => o.DevServerUrl = "http://localhost:5173");
 
         var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
-        // 200, not 503. In development a missing build is the normal state before the first build, so a
-        // server error would send people hunting a bug that is not there.
+        // 200, not 503. In development a missing dist/ is the normal state — the bundler is serving
+        // the app — so a server error would send people hunting a bug that is not there.
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        Assert.Contains("Nothing built yet", body, StringComparison.Ordinal);
-        Assert.Contains("rask dev", body, StringComparison.Ordinal);
+        Assert.Contains("http://localhost:5173", body, StringComparison.Ordinal);
     }
 
     [Fact]
