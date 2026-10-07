@@ -9,8 +9,8 @@ namespace Rask.Server.E2E.Tests.Infrastructure;
 /// </summary>
 /// <remarks>
 ///     What the runtime-hook suites share. The hooks are keyed on attributes, so the page under test is the
-///     attributes written out by hand: going through a kit component would prove the kit, and this project
-///     does not reference it.
+///     attributes written out by hand: going through a kit component would prove the kit as well, which only
+///     <c>UiModalHookTests</c> sets out to do.
 /// </remarks>
 internal sealed class HookSession : IAsyncDisposable
 {

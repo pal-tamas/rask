@@ -90,13 +90,6 @@ public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_modal_spaces_the_sections_it_holds() =>
-        Assert.Contains(
-            "space-y-4",
-            Ui.Modal.Title("Job #12").Open(true)[Span["details"], Span["payload"]].ToHtml(),
-            StringComparison.Ordinal);
-
-    [Fact]
     public void A_plain_badge_keeps_its_words_on_one_line() =>
         Assert.DoesNotContain("break-all", Ui.Badge["Live"].ToHtml(), StringComparison.Ordinal);
 }

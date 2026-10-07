@@ -114,11 +114,19 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         await scope.GetByText("Open the drawer").ClickAsync();
 
-        // Both halves. The panel slides because the checkbox is checked — that is daisyUI's CSS, not
-        // the kit's — and the PAGE knows, which is what the checkbox alone could never report.
+        // Both halves: Ui.Modal's flyout is against the left edge, and the PAGE knows it is open.
+        var flyout = scope.Locator("dialog");
         await Expect(state).ToContainTextAsync("open");
         await Expect(scope.GetByText("Queues")).ToBeVisibleAsync();
+        await Page.WaitForTimeoutAsync(300);
+        Assert.True((await flyout.BoundingBoxAsync())!.X <= 2, "the flyout is not against the left edge.");
+
+        // And it hears the reader close it, which is how the page stops rendering it open.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(state).ToContainTextAsync("closed");
+        await Expect(flyout).ToBeHiddenAsync();
     });
+
 
     [Fact]
     public Task A_checked_control_is_actually_checked_in_the_DOM() => RunAsync(async () =>

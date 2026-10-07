@@ -68,7 +68,7 @@ public sealed partial class FieldParity : FluxParity
         Div.Id(id).Data("parity-skip", "").Style("height:40px;border:1px solid #d4d4d8;border-radius:8px;" + style);
 
     // What a kit control does with its Label prop: the same field, drawn by the control around itself.
-    private static Component Shorthand(string label, string? style = null)
+    internal static Component Shorthand(string label, string? style = null)
     {
         var field = UiWithField.For(new StandIn(UiFieldId.Derive(null, null, label)), label);
 

@@ -21,31 +21,24 @@ public sealed partial class UiKitLayoutDemo : Component
 
     private Component DrawerSection() =>
         Section(
-            "Drawer",
-            "The one interactive component whose state stays in a checkbox — daisyUI's rules are "
-            + "written against it, so removing the input removes the component. C# sets it and hears "
-            + "it change, which is what the checkbox alone could not offer.",
-            Div.Data(Testid("ui-drawer")).Class("h-56 overflow-hidden rounded-xl border border-base-300")[
-                // Id and Panel are both REQUIRED, so the chain owes them before any optional step:
-                // .Id(x).Open(y) does not compile until Panel has been supplied.
-                Ui.Drawer
-                    .Id("demo-drawer")
-                    .Panel(
-                        Ul.Class("menu min-h-full w-56 bg-base-200 p-4")[
-                            Li.Key("a")[A.Href("#")["Overview"]],
-                            Li.Key("b")[A.Href("#")["Queues"]],
-                            Li.Key("c")[A.Href("#")["Logs"]]
-                        ])
+            "Flyout navigation",
+            "What a drawer was: Ui.Modal as a flyout from the left, with the page owning whether it is open. "
+            + "C# opens it, and OnClose tells the page the reader closed it — the corner button, Escape or a "
+            + "click outside.",
+            Div.Data(Testid("ui-drawer")).Class("flex flex-col items-start gap-2")[
+                Ui.Button.Sm.OnClick(() => { _drawerOpen = true; })["Open the drawer"],
+                P.Class("text-sm text-ui-muted").Data(Testid("ui-drawer-state"))[
+                    _drawerOpen ? "The page knows it is open." : "The page knows it is closed."
+                ],
+                Ui.Modal
+                    .Flyout()
+                    .Left
                     .Open(_drawerOpen)
-                    .OnToggle(open => { _drawerOpen = open; })
-                    .CloseLabel("Close navigation")[
-                    Div.Class("flex h-full flex-col items-start gap-2 p-4")[
-                        Label
-                            .For("demo-drawer")
-                            .Class("btn btn-sm drawer-button")["Open the drawer"],
-                        P.Class("text-sm text-ui-muted").Data(Testid("ui-drawer-state"))[
-                            _drawerOpen ? "The page knows it is open." : "The page knows it is closed."
-                        ]
+                    .OnClose(() => { _drawerOpen = false; })[
+                    Ul.Class("menu w-56 p-0")[
+                        Li.Key("a")[A.Href("#")["Overview"]],
+                        Li.Key("b")[A.Href("#")["Queues"]],
+                        Li.Key("c")[A.Href("#")["Logs"]]
                     ]
                 ]
             ]);

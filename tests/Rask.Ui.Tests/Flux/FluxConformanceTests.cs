@@ -102,6 +102,9 @@ public sealed class FluxConformanceTests
         // Flux's reference spells this heading "flux:chart.summaryvalue"; its examples write flux:chart.summary.value.
         ["flux:chart.summaryvalue"] = typeof(UiChartSummaryValue),
         ["flux:chart.legend"] = typeof(UiChartLegend),
+        ["flux:modal"] = typeof(UiModal),
+        ["flux:modal.trigger"] = typeof(UiModalTrigger),
+        ["flux:modal.close"] = typeof(UiModalClose),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -120,6 +123,10 @@ public sealed class FluxConformanceTests
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
         ["flux:kanban.column.header/badge"] = "No example on Flux's page draws it, so where it sits and how it looks cannot be measured; a badge of your own goes in as a child, beside the heading you write there.",
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
+        // Flux's imperative API. A page opens a modal by rendering it open, and the browser by a trigger's command.
+        ["Flux::modal()"] = "Flux::modal('confirm')->show()/close() from PHP: Rask's page owns the state — Ui.Modal.Open(_confirming) — or holds no state at all behind a Ui.ModalTrigger.",
+        ["Flux::modals()"] = "Closes every modal on the page from PHP. Each Rask modal's open state is its own page's field; there is no registry to sweep.",
+        ["$flux.modal()"] = "Alpine's magic: the kit ships no script. A button that opens or closes a named modal is Ui.ModalTrigger / Ui.ModalClose, which write the browser's own invoker commands.",
     };
 
     /// <summary>
@@ -168,6 +175,9 @@ public sealed class FluxConformanceTests
         ["flux:chart.axis/TickSuffix"] = "`tick-suffix`, as TickPrefix",
         ["flux:chart.axis.mark/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.axis.line/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
+        ["flux:modal/Open"] = "`wire:model`: the page's own bool, which the runtime shows and closes the dialog by (data-rask-modal-open)",
+        ["flux:modal/OnClose"] = "the `close` event (`@close`)",
+        ["flux:modal/OnCancel"] = "the `cancel` event (`@cancel`)",
         ["flux:chart.axis.grid/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.axis.grid/StrokeDasharray"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.zero-line/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",

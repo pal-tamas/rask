@@ -16,8 +16,8 @@ public sealed partial class UiKitLayoutPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "daisyUI drawer, layout and mockups in C# — Rask",
-            "daisyUI layout components in C#: a drawer whose open state C# reads and sets, separator, join, "
+            "Flyout navigation, layout and mockups in C# — Rask",
+            "Layout components in C#: a flyout panel whose open state the page owns, separator, join, "
             + "indicator, avatar, mask, and code, browser and window mockups.",
             Routes.UiKitLayoutPage());
 
@@ -26,11 +26,11 @@ public sealed partial class UiKitLayoutPage : Component
     [
         H1.Class("text-3xl font-bold mb-1")["Layout & mockups"],
         P.Class("text-ui-muted")[
-            "The drawer is the one interactive component in the kit whose state stays in a checkbox. ",
-            "That is not a leftover: daisyUI's rules are written against ", Code[".drawer-toggle:checked"],
-            ", so the input is the component rather than an implementation detail. What C# gets is the ",
-            "same state in both directions — ", Code["Open"], " sets it, ", Code["OnToggle"],
-            " reports it — which is what lets a page close the drawer when a navigation completes."
+            "A panel that slides in from an edge is a flyout: ", Code["Ui.Modal.Flyout().Left"],
+            ", Flux UI's modal anchored to a side of the viewport. The page owns whether it is open — ",
+            Code["Open"], " sets it and ", Code["OnClose"], " reports the reader closing it, by the corner ",
+            "button, Escape or a click outside — which is what lets a page close it when a navigation completes."
+
         ],
         CodeSample
             .Files(["UiKitLayoutDemo.cs"])
