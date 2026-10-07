@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Added
 
+- **A front end gets its host's remote messages as TypeScript again.** `Rask.Spa.Hosting` writes
+  `contracts.ts`, `messages.ts`, the `rask.dispatch` client, `query.ts` and `browser/auth.ts` into
+  `client/src/rask/` on every build (`docs/spa.md#a-typed-client-for-your-messages`). New: only a host that
+  declares a remote message gets anything written, and only then must the front end be TypeScript
+  (`RASKSPA004`) — a host with none serves any front end and its sources are left alone. Events are
+  `'event'` on the wire type, matching `Rask.Cqrs`. The rest of the old browser layer is not shipped: a
+  front end calls the browser's own APIs.
 - **An existing app can take Rask pages under a prefix, beside its own front end.**
   `MapRask<App>(pathBase: "/new")` next to `MapControllers()` and `MapRaskSpa()` is now a tested shape:
   each answers only its own paths (`docs/spa.md#moving-an-existing-app-onto-rask-a-page-at-a-time`).

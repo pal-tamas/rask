@@ -10,13 +10,17 @@
           Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Server.Client.targets') "/>
 
   <!--
-    The CQRS wire codec (and RASK053) only where messages cross a wire: a project with a WebAssembly client in
-    Client/. Rask.Server carries the server transport for Serve(), and a server-rendered app's messages never
-    leave the process. Here, in the package's own entry point, rather than in Rask.Server.Client.targets: that
-    file is also imported into every project of this repository, where it would switch the codec off for the
-    client's own tests.
+    The CQRS wire codec (and RASK053) only where messages cross a wire: a project with a browser client — a
+    WebAssembly one in Client/, or a TypeScript front end found the way Rask.Spa.Hosting finds it (RaskSpaClientDir,
+    else a client/ or Client/ folder holding a package.json). The codec also carries
+    the TypeScript contracts, so a front end without it would compile against none. Rask.Server carries the server
+    transport for Serve(), and a server-rendered app's messages never leave the process. Resolved here rather than
+    read from Rask.Spa.Hosting's properties: the order NuGet imports two packages' targets in is not ours to rely on.
+    Here, in the package's own entry point, rather than in Rask.Server.Client.targets: that file is also imported
+    into every project of this repository, where it would switch the codec off for the client's own tests.
   -->
   <PropertyGroup>
+    <RaskCqrsCodec Condition=" '$(RaskCqrsCodec)' == '' AND ('$(RaskSpaClientDir)' != '' OR Exists('$(MSBuildProjectDirectory)/client/package.json') OR Exists('$(MSBuildProjectDirectory)/Client/package.json')) ">true</RaskCqrsCodec>
     <RaskCqrsCodec Condition=" '$(RaskCqrsCodec)' == '' ">$(RaskClient)</RaskCqrsCodec>
   </PropertyGroup>
   <ItemGroup>

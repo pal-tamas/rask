@@ -91,7 +91,21 @@
     <_RaskSpaDoBuild
       Condition="'$(_RaskSpaDir)' != '' AND '$(RaskSpaBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true'"
     >true</_RaskSpaDoBuild>
+
+    <!--
+      The generated contracts, on the other hand, are written whenever a client is resolved — including
+      under RaskSpaBuild=false. `rask dev` runs the bundler itself, and its dev server still has to
+      compile against contracts that match the server it is talking to.
+    -->
+    <RaskEmitTypeScript Condition="'$(RaskEmitTypeScript)' == '' AND '$(_RaskSpaDir)' != ''">true</RaskEmitTypeScript>
+
+    <_RaskSpaGenerated Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaGeneratedDir)</_RaskSpaGenerated>
+
+    <_RaskSpaTsConfig Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaTypeScriptConfig)</_RaskSpaTsConfig>
   </PropertyGroup>
+
+  <UsingTask TaskName="Rask.Spa.Tasks.WriteGeneratedTypeScriptTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.Spa.Tasks.dll"/>
 
   <!--
     The client sources the bundler's output depends on.
@@ -176,12 +190,69 @@
   </Target>
 
   <!--
+    Lifts the contracts the CQRS generator produced out of the compiled assembly and into the client's
+    sources.
+
+    AFTER the compile, necessarily: the constants it reads do not exist until Roslyn has run. And
+    BEFORE the bundler, necessarily: the files it writes are what the front end imports. That pair is
+    the whole reason the client build below moved off BeforeBuild — a bundler run that preceded the
+    compile would type-check the previous build's contracts, pass, and then break on the wire.
+  -->
+  <Target Name="_RaskSpaEmitTypeScript"
+          AfterTargets="CoreCompile"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(RaskEmitTypeScript)' == 'true' AND '$(_RaskSpaGenerated)' != '' AND '$(DesignTimeBuild)' != 'true'">
+    <!--
+      Only a host that declares remote messages gets anything written into its front end, and only then is
+      the front end required to be TypeScript (RASKSPA004, raised by the task): the contracts are emitted
+      as .ts, and a JavaScript client would import them, have nothing checked, and find a renamed property
+      on the wire instead of at the compiler. A host with no messages is a static-file host for any front
+      end at all, and this target leaves its sources alone.
+    -->
+    <WriteGeneratedTypeScriptTask AssemblyPath="@(IntermediateAssembly)"
+                                  OutputDirectory="$(_RaskSpaGenerated)"
+                                  TypeScriptConfig="$(_RaskSpaTsConfig)">
+      <Output TaskParameter="HasContracts" PropertyName="_RaskSpaHasContracts"/>
+    </WriteGeneratedTypeScriptTask>
+
+    <!--
+      The dispatcher rides alongside, refreshed from the package on every build. That is what keeps the
+      client wire-locked to the server: the generated messages import from './client', and upgrading
+      Rask.Spa.Hosting has to upgrade both halves together or the pair drifts. SkipUnchangedFiles for
+      the same reason the generated files are written only when they differ — the bundler is watching.
+    -->
+    <ItemGroup>
+      <_RaskSpaClientSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
+    </ItemGroup>
+    <Copy SourceFiles="@(_RaskSpaClientSource)" DestinationFolder="$(_RaskSpaGenerated)" SkipUnchangedFiles="true"
+          Condition="'$(_RaskSpaHasContracts)' == 'true'"/>
+
+    <!--
+      The sign-in client, into src/rask/browser/auth.ts — the same module Rask's own Server and WASM
+      clients bundle, so the cookie header and the passkey ceremony are written once:
+
+          import { login } from "./rask/browser/auth";
+
+      Refreshed from the package on every build for the same reason client.ts is. An empty glob makes
+      the Copy a no-op, which is what happens when this target runs against the repository layout
+      rather than an installed package.
+    -->
+    <ItemGroup>
+      <_RaskSpaBrowserSource Include="$(MSBuildThisFileDirectory)../client/browser/*.ts"/>
+    </ItemGroup>
+    <Copy SourceFiles="@(_RaskSpaBrowserSource)"
+          DestinationFolder="$(_RaskSpaGenerated)/browser"
+          SkipUnchangedFiles="true"
+          Condition="'$(_RaskSpaHasContracts)' == 'true'"/>
+  </Target>
+
+  <!--
     dist/index.html is listed first among the Outputs so that deleting dist by hand forces a rebuild
     even though the stamp file survives.
   -->
   <Target Name="_RaskSpaBuildClient"
           AfterTargets="CoreCompile"
-          DependsOnTargets="_RaskSpaInstallDeps"
+          DependsOnTargets="_RaskSpaInstallDeps;_RaskSpaEmitTypeScript"
           Condition="'$(_RaskSpaDoBuild)' == 'true'"
           Inputs="@(_RaskSpaInput)"
           Outputs="$(_RaskSpaDist)/index.html;$(IntermediateOutputPath)rask-spa.build.stamp">

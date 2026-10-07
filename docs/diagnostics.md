@@ -2866,6 +2866,7 @@ and no quick-fix.
 | `RASKSPA001` | The front end needs building and `node --version` did not run. | Install Node.js, or pass `-p:RaskSpaBuild=false` to build the server without the front end. |
 | `RASKSPA002` | The front end's build finished but wrote no `index.html` where the host expects it. | Set `RaskSpaDistDir` to the bundler's real output directory. |
 | `RASKSPA003` | `RaskSpaClientDir` names a directory with no `package.json`. | Point it at the front-end project directory. |
+| `RASKSPA004` | The host declares remote messages and its front end has no TypeScript configuration to check the generated contracts with. | Use the framework's TypeScript template, name the config with `RaskSpaTypeScriptConfig`, or set `RaskEmitTypeScript=false`. |
 | `RASKSPA005` | Node is older than `RaskSpaMinimumNode`. | Install the current LTS, or set `RaskSpaMinimumNode`. |
 | `RASKSPA006` | A host references more than one WebAssembly client. | A host serves one client — give each its own host. |
 | `RASKSPA007` | A host has both a WebAssembly client and a front-end `client` folder. | `MapRaskSpa` serves one app per host — remove one, or give it its own host. |
