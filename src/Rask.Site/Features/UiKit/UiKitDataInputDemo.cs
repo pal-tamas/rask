@@ -131,7 +131,8 @@ public sealed partial class UiKitDataInputDemo : Component
             "Textarea — Flux UI's",
             "Four lines unless Rows says otherwise; Rows(UiTextareaRows.Auto) grows with what is typed, which is "
             + "CSS's field-sizing and no script. Resize says which way the reader may drag it.",
-            Div.Data(Testid("ui-textarea")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
+            // items-start: a bare textarea is a grid item, and one stretched to its row has nothing to grow into.
+            Div.Data(Testid("ui-textarea")).Class("grid max-w-3xl items-start gap-6 sm:grid-cols-2")[
                 Ui.Textarea.Value(_notes).Key("notes").Label("Order notes").Badge("Optional")
                     .Placeholder("No lettuce, tomato, or onion...")
                     .OnChange(v => { _notes = v; }),

@@ -155,6 +155,10 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     /// <summary>The name the value posts under from a plain HTML form. The bound member's name unless set.</summary>
     public string? Name { get; set; }
 
+    // The id of an input nothing names — no Id, no bound member, no label. Its own, so that a label written
+    // beside it, its clear button and its copy button reach THIS input and not the first such one on the page.
+    private string? _ownId;
+
     /// <summary>The control this input is the text box of, when it is one's: its list and its bound member.</summary>
     internal UiInputHost? Host { get; private set; }
 
@@ -170,7 +174,9 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     }
 
     /// <inheritdoc />
-    string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Host?.Bound ?? Bind, Label);
+    string IUiFieldControl.ControlId => Id is null && (Host?.Bound ?? Bind) is null && Label is null
+        ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
+        : UiFieldId.Derive(Id, Host?.Bound ?? Bind, Label);
 
     string? IUiFormControl.Badge => null;
 

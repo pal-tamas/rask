@@ -104,6 +104,20 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
+    public Task A_masked_input_is_held_to_its_pattern_key_by_key() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        // Drawn shaped by C#; what is typed is shaped by the runtime, a literal only once a character follows it.
+        var phone = Page.Locator("[data-testid='ui-text-controls']").GetByLabel("Phone, masked");
+        await Expect(phone).ToHaveValueAsync("(716) 123-4567");
+        await phone.FillAsync("");
+        await phone.PressSequentiallyAsync("5551");
+
+        await Expect(phone).ToHaveValueAsync("(555) 1");
+    });
+
+    [Fact]
     public Task The_reveal_button_shows_the_password_and_hides_it_again() => RunAsync(async () =>
     {
         await OpenAsync();
@@ -285,16 +299,16 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await box.FocusAsync();
         await Page.Keyboard.PressAsync("Enter");
         await Expect(box).ToHaveAttributeAsync("aria-expanded", "false");
-        var before = await Page.EvaluateAsync<double>("() => scrollY");
+        var before = (await box.BoundingBoxAsync())!.Y;
         await Page.Keyboard.PressAsync("ArrowDown");
         await Expect(box).ToHaveAttributeAsync("aria-expanded", "true");
 
-        Assert.Equal(before, await Page.EvaluateAsync<double>("() => scrollY"));
-        Assert.Equal("hidden", await Page.EvaluateAsync<string>("() => document.documentElement.style.overflow"));
-        Assert.Equal("none", await Page.EvaluateAsync<string>("() => document.documentElement.style.pointerEvents"));
+        Assert.Equal(before, (await box.BoundingBoxAsync())!.Y);
+        Assert.Equal("hidden", await Page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).overflowY"));
+        Assert.Equal("none", await Page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).pointerEvents"));
         await Page.Keyboard.PressAsync("Escape");
         await Expect(box).ToHaveAttributeAsync("aria-expanded", "false");
-        Assert.Equal("", await Page.EvaluateAsync<string>("() => document.documentElement.style.overflow"));
+        Assert.Equal("visible", await Page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).overflowY"));
     });
 
     [Fact]

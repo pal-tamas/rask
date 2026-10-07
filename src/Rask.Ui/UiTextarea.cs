@@ -80,7 +80,12 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>, IUiFormC
     /// <inheritdoc cref="UiInput{T}.OnInput" />
     public Callback<string> OnInput { get; set; }
 
-    string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Bind, Label);
+    // Nothing names it — no Id, no bound member, no label: an id of its own, not one every such textarea shares.
+    private string? _ownId;
+
+    string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
+        ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
+        : UiFieldId.Derive(Id, Bind, Label);
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 

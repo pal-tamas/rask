@@ -278,6 +278,18 @@ public partial class UiInputTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Inputs_nothing_names_have_ids_of_their_own_and_each_clear_button_names_its_input()
+    {
+        var page = Page.Render(() => Div[Ui.Input.Value("a").Key("a").Clearable(), Ui.Input.Value("b").Key("b").Clearable()]);
+
+        var (inputs, buttons) = (page.FindAll("input"), page.FindAll("button[aria-label=\"Clear input\"]"));
+
+        Assert.NotEqual(inputs[0].Attribute("id"), inputs[1].Attribute("id"));
+        Assert.Equal(inputs[0].Attribute("id"), buttons[0].Attribute("data-rask-clear"));
+        Assert.Equal(inputs[1].Attribute("id"), buttons[1].Attribute("data-rask-clear"));
+    }
+
+    [Fact]
     public void A_copyable_input_ends_in_a_button_the_runtime_copies_from()
     {
         var page = Page.Render(() => Ui.Input.Value("FLUX-1234").Id("key").ReadOnly().Copyable());
