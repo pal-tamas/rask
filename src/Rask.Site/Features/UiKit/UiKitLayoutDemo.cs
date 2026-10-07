@@ -85,7 +85,7 @@ public sealed partial class UiKitLayoutDemo : Component
                         Ui.Brand.Key("brand").Name("Rask").Logo(RaskLogo.Size(20).GradientId("demoBolt"))
                             .Href(PageMeta.LinkTo(Routes.UiKitLayoutPage()))
                     ],
-                    Ui.Navlist.Key("nav").AccessibleLabel("Demo")[
+                    Ui.Navlist.Key("nav")[
                         Ui.NavlistItem.Key("layout").Href(PageMeta.LinkTo(Routes.UiKitLayoutPage()))
                             .Icon(Ui.IconName.BookOpen)["Layout"],
                         Ui.NavlistItem.Key("actions").Href(PageMeta.LinkTo(Routes.UiKitActionsPage()))

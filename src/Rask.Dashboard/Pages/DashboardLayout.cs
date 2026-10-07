@@ -87,13 +87,13 @@ public sealed partial class DashboardLayout(
         // subtree dark. RaskDashboardShell pins the same theme on <html>; DashboardTheme is the one place the
         // two agree.
         Ui.Shell.Theme(DashboardTheme.Name)[
-            Ui.TopBar.Trailing(Ui.Navbar.AccessibleLabel("Help")[Ui.NavbarItem.Href("https://rask.sh/docs/")["Docs"]])[
+            Ui.TopBar.Trailing(Ui.Navbar[Ui.NavbarItem.Href("https://rask.sh/docs/")["Docs"]])[
                 // The wordmark and the destination are the console's, not the kit's — the kit is shared
                 // with the site and the docs now, and each says its own name.
                 Ui.Brand.Name("Ops").Logo(Ui.Icon.Name(Ui.IconName.Squares2x2).Mini).Href(Routes.OverviewPage()),
                 QueueCrumbs()
             ],
-            Ui.Navbar.AccessibleLabel("Sections")[NavTabs()],
+            Ui.Navbar[NavTabs()],
             Ui.Main[
                 UnsecuredWarning(),
                 Outlet
@@ -142,7 +142,7 @@ public sealed partial class DashboardLayout(
         // way to the queues beside this one.
         return Ui.Breadcrumbs[
             Ui.BreadcrumbsItem.Separator(Ui.IconName.Slash)["Queues"],
-            Ui.BreadcrumbsItem.Current()[
+            Ui.BreadcrumbsItem[
                 Ui.Dropdown.Trigger(current.Title).Icon(current.Icon).IconTrailing(Ui.IconName.ChevronUpDown)[
                     Available.Select(queue => Ui.MenuItem
                         .Key(queue.Slug)

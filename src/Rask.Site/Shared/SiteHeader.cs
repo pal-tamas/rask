@@ -76,7 +76,7 @@ internal sealed partial class SiteHeader : Component
                     Ui.Badge.Class("max-sm:hidden")[$"v{SiteIdentity.Version}"]
                 ],
                 Div.Class("flex shrink-0 items-center gap-1 sm:gap-2")[
-                    Ui.Navbar.AccessibleLabel("Site")[
+                    Ui.Navbar[
                         Ui.NavbarItem.Href(PageMeta.LinkTo(Routes.GuidesIndexPage())).Current(false).Class("max-sm:hidden")["Docs"],
                         Ui.NavbarItem.Href(SiteIdentity.Repository).IconTrailing(Ui.IconName.ArrowTopRightOnSquare)["GitHub"]
                     ],

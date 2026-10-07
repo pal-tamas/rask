@@ -8758,7 +8758,6 @@ static Rask.Web.VideoColorSpace.Create() -> System.Threading.Tasks.ValueTask<Ras
 static Rask.Web.VideoColorSpace.Create(Rask.Web.Types.VideoColorSpaceInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoColorSpace!>
 static Rask.Web.VideoDecoder.IsConfigSupported(Rask.Web.Types.VideoDecoderConfig! config) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoDecoderSupport!>
 static Rask.Web.VideoEncoder.IsConfigSupported(Rask.Web.Types.VideoEncoderConfig! config) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoEncoderSupport!>
-static Rask.Web.ViewTimeline.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ViewTimeline!>
 static Rask.Web.ViewTimeline.Create(Rask.Web.Types.ViewTimelineOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ViewTimeline!>
 static Rask.Web.WebSocket.Create(string! url) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebSocket!>
 static Rask.Web.WebSocket.Create(string! url, string! protocols) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebSocket!>

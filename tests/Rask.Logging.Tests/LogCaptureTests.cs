@@ -161,7 +161,7 @@ public sealed class LogCaptureTests
         await harness.RunUntilStoredAsync(1);
 
         var reopened = new SqliteLogStore(
-            $"Data Source={harness.DbPath}", new RaskLoggingOptions(), harness.Clock);
+            $"Data Source={harness.DbPath}", new LogsOptions(), harness.Clock);
 
         var entry = Assert.Single((await reopened.Search(new LogQuery(), TestContext.Current.CancellationToken)).Entries);
         Assert.Equal("the thing that broke", entry.Message);

@@ -408,7 +408,7 @@ Flux UI's layout pieces, drawn with daisyUI. The sidebar beside the docs on this
 ```csharp
 Ui.Sidebar.Id("app-nav").Collapsible(Ui.Breakpoint.Lg).Page(Main[Outlet])[
     Ui.Brand.Name("Shop").Logo("/logo.svg").Href(Routes.HomePage()),
-    Ui.Navlist.AccessibleLabel("Main")[
+    Ui.Navlist[
         Ui.NavlistItem.Href(Routes.OrdersPage()).Icon(Ui.IconName.BookOpen).Badge("12")["Orders"],
         Ui.NavlistGroup.Heading("Catalogue").Expandable()[
             Ui.NavlistItem.Href(Routes.ProductsPage())["Products"],
@@ -416,7 +416,7 @@ Ui.Sidebar.Id("app-nav").Collapsible(Ui.Breakpoint.Lg).Page(Main[Outlet])[
         ]
     ],
     Ui.Spacer.Key("spacer"),
-    Ui.Navlist.AccessibleLabel("Account")[Ui.NavlistItem.Href(Routes.SettingsPage())["Settings"]]
+    Ui.Navlist[Ui.NavlistItem.Href(Routes.SettingsPage())["Settings"]]
 ]
 
 // in the top bar, shown only while the sidebar is collapsed:
@@ -428,10 +428,10 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
   checkbox, so it opens on a prerendered page with no runtime; `Open`/`OnToggle` mirror it into C#, which is how a
   navigation closes it. `Ui.SidebarToggle` is a `<label>` for that checkbox with `role="button"` and a tab stop, and
   the runtime presses it on Enter and Space.
-- **`Ui.Navlist`** is Flux's `flux:navlist`: a named `<nav>` holding **`Ui.NavlistItem`**s and
+- **`Ui.Navlist`** is Flux's `flux:navlist`: a `<nav>` holding **`Ui.NavlistItem`**s and
   **`Ui.NavlistGroup`**s. An item is a `NavLink` underneath, so **`Current` is worked out from the route** and said
-  with `aria-current="page"` — unless you state it, as Flux's `current` does; `Match` + `MatchPrefix` keep an item
-  current across a section. The current row is inked in the accent (`Accent(false)` inks it as the page is). A group
+  with `aria-current="page"` — unless you state it, as Flux's `current` does — which is how an item stays current across
+  a whole section. The current row is inked in the accent (`Accent(false)` inks it as the page is). A group
   is a heading over its items, or — `Expandable()` — a `<details>` disclosure that folds with a click, Enter or
   Space and no runtime, open unless `Expanded(false)`, and controlled with `Expanded`/`OnExpandedChange`.
   `Variant(Ui.NavlistVariant.Outline)` is Flux's sidebar look: the current row a white, outlined pill.
@@ -440,8 +440,7 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
   (a `Ui.Color`) trail them, and an item with no `Href` is the `<button>` that opens a menu.
 - **`Ui.Brand`** is the product's mark and name linking home (`Href` defaults to `/`): `Logo` takes an image's
   address or anything you draw, and `LogoClass` dresses the box around a drawn one.
-- **`Ui.Breadcrumbs`** holds **`Ui.BreadcrumbsItem`**s: a link with an `Href`, greyed text without (`Current()`
-  says `aria-current="page"`), an `Icon` in place of words, and a chevron separator that turns in RTL and is not
+- **`Ui.Breadcrumbs`** holds **`Ui.BreadcrumbsItem`**s: a link with an `Href`, greyed text without, an `Icon` in place of words, and a chevron separator that turns in RTL and is not
   drawn after the last item — `Separator(Ui.IconName.Slash)` for slashes. Anything can be an item's child, which
   is how a dropdown holding the folded-away steps goes in.
 - **`Ui.SidebarHeader`** and **`Ui.SidebarFooter`** hold their place while the navigation between them scrolls —

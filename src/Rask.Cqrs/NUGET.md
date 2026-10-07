@@ -51,7 +51,7 @@ may open it.
 Publishing from a singleton — a `BackgroundService`, a timer — takes no dispatcher and no scope of its own:
 
 ```csharp
-await Notify.Send(new ReportReady(reportId), stoppingToken);
+await Dispatcher.Publish(new ReportReady(reportId), stoppingToken);
 ```
 
 ## Pipeline behaviors

@@ -37,25 +37,25 @@ public sealed partial class UiKitFluxNavigationDemo : Component
             "Flux's navbar: links in a row. The current item is inked and underlined in the accent; an icon "
             + "leads, a badge trails, and an item with nowhere to go is the button that opens a menu.",
             Div.Data(Testid("ui-flux-navbar")).Class("flex flex-col gap-2")[
-                Ui.Navbar.Key("plain").AccessibleLabel("Plain")[
+                Ui.Navbar.Key("plain")[
                     Ui.NavbarItem.Key("1").Href("#").Current(true)["Home"],
                     Ui.NavbarItem.Key("2").Href("#")["Features"],
                     Ui.NavbarItem.Key("3").Href("#")["Pricing"],
                     Ui.NavbarItem.Key("4").Href("#")["About"]
                 ],
-                Ui.Navbar.Key("icons").AccessibleLabel("With icons")[
+                Ui.Navbar.Key("icons")[
                     Ui.NavbarItem.Key("1").Href("#").Icon(Ui.IconName.Home).Current(true)["Home"],
                     Ui.NavbarItem.Key("2").Href("#").Icon(Ui.IconName.PuzzlePiece)["Features"],
                     Ui.NavbarItem.Key("3").Href("#").Icon(Ui.IconName.CurrencyDollar)["Pricing"],
                     Ui.NavbarItem.Key("4").Href("#").Icon(Ui.IconName.User)["About"]
                 ],
-                Ui.Navbar.Key("badges").AccessibleLabel("With badges")[
+                Ui.Navbar.Key("badges")[
                     Ui.NavbarItem.Key("1").Href("#").Current(true)["Home"],
                     Ui.NavbarItem.Key("2").Href("#").Badge("12")["Inbox"],
                     Ui.NavbarItem.Key("3").Href("#")["Contacts"],
                     Ui.NavbarItem.Key("4").Href("#").Badge("Pro").BadgeColor(Ui.Color.Lime)["Calendar"]
                 ],
-                Ui.Navbar.Key("dropdown").AccessibleLabel("With a menu")[
+                Ui.Navbar.Key("dropdown")[
                     Ui.NavbarItem.Key("1").Href("#").Current(true).Accent(false)["Dashboard"],
                     Ui.NavbarItem.Key("2").Href("#")["Transactions"],
                     Ui.NavbarItem.Key("3").IconTrailing(Ui.IconName.ChevronDown)["Account"]
@@ -69,20 +69,20 @@ public sealed partial class UiKitFluxNavigationDemo : Component
             + "disclosure that folds them away: a <details>, so it opens with a click, Enter or Space before any "
             + "runtime has booted.",
             Div.Data(Testid("ui-flux-navlist")).Class("grid gap-6 sm:grid-cols-2 lg:grid-cols-4")[
-                Ui.Navlist.Key("plain").AccessibleLabel("Sidebar")[
+                Ui.Navlist.Key("plain")[
                     Ui.NavlistItem.Key("1").Href("#").Icon(Ui.IconName.Home).Current(true)["Home"],
                     Ui.NavlistItem.Key("2").Href("#").Icon(Ui.IconName.PuzzlePiece)["Features"],
                     Ui.NavlistItem.Key("3").Href("#").Icon(Ui.IconName.CurrencyDollar)["Pricing"],
                     Ui.NavlistItem.Key("4").Href("#").Icon(Ui.IconName.User)["About"]
                 ],
-                Ui.Navlist.Key("group").AccessibleLabel("Grouped")[
+                Ui.Navlist.Key("group")[
                     Ui.NavlistGroup.Key("g").Heading("Account")[
                         Ui.NavlistItem.Key("1").Href("#").Current(true)["Profile"],
                         Ui.NavlistItem.Key("2").Href("#")["Settings"],
                         Ui.NavlistItem.Key("3").Href("#")["Billing"]
                     ]
                 ],
-                Ui.Navlist.Key("fold").AccessibleLabel("Collapsible")[
+                Ui.Navlist.Key("fold")[
                     Ui.NavlistItem.Key("1").Href("#").Icon(Ui.IconName.Home).Current(true)["Dashboard"],
                     Ui.NavlistItem.Key("2").Href("#").Icon(Ui.IconName.ListBullet)["Transactions"],
                     Ui.NavlistGroup.Key("g").Heading("Account").Expandable()[
@@ -94,7 +94,7 @@ public sealed partial class UiKitFluxNavigationDemo : Component
                         Ui.NavlistItem.Key("1").Href("#")["Members"]
                     ]
                 ],
-                Ui.Navlist.Key("badges").AccessibleLabel("With badges").Variant(Ui.NavlistVariant.Outline)[
+                Ui.Navlist.Key("badges").Variant(Ui.NavlistVariant.Outline)[
                     Ui.NavlistItem.Key("1").Href("#").Icon(Ui.IconName.Home).Current(true)["Home"],
                     Ui.NavlistItem.Key("2").Href("#").Icon(Ui.IconName.Envelope).Badge("12")["Inbox"],
                     Ui.NavlistItem.Key("3").Href("#").Icon(Ui.IconName.UserGroup)["Contacts"],
@@ -117,7 +117,7 @@ public sealed partial class UiKitFluxNavigationDemo : Component
                     Ui.Brand.Href("#").Name("Acme Inc.")
                         .Logo(I.Class("font-serif font-bold")["A"])
                         .LogoClass("bg-zinc-800 text-white dark:bg-white dark:text-zinc-800"),
-                    Ui.Navbar.AccessibleLabel("Header")[
+                    Ui.Navbar[
                         Ui.NavbarItem.Key("1").Href("#").Current(true)["Home"],
                         Ui.NavbarItem.Key("2").Href("#").Badge("12")["Inbox"]
                     ],
@@ -153,22 +153,22 @@ public sealed partial class UiKitFluxNavigationDemo : Component
                 Ui.Breadcrumbs.Key("plain")[
                     Ui.BreadcrumbsItem.Key("1").Href("#")["Home"],
                     Ui.BreadcrumbsItem.Key("2").Href("#")["Blog"],
-                    Ui.BreadcrumbsItem.Key("3").Current()["Post"]
+                    Ui.BreadcrumbsItem.Key("3")["Post"]
                 ],
-                Ui.Breadcrumbs.Key("slashes").AccessibleLabel("Breadcrumb, with slashes")[
+                Ui.Breadcrumbs.Key("slashes")[
                     Ui.BreadcrumbsItem.Key("1").Href("#").Separator(Ui.IconName.Slash)["Home"],
                     Ui.BreadcrumbsItem.Key("2").Href("#").Separator(Ui.IconName.Slash)["Blog"],
-                    Ui.BreadcrumbsItem.Key("3").Separator(Ui.IconName.Slash).Current()["Post"]
+                    Ui.BreadcrumbsItem.Key("3").Separator(Ui.IconName.Slash)["Post"]
                 ],
-                Ui.Breadcrumbs.Key("icon").AccessibleLabel("Breadcrumb, with an icon")[
+                Ui.Breadcrumbs.Key("icon")[
                     Ui.BreadcrumbsItem.Key("1").Href("#").Icon(Ui.IconName.Home),
                     Ui.BreadcrumbsItem.Key("2").Href("#")["Blog"],
-                    Ui.BreadcrumbsItem.Key("3").Current()["Post"]
+                    Ui.BreadcrumbsItem.Key("3")["Post"]
                 ],
-                Ui.Breadcrumbs.Key("ellipsis").AccessibleLabel("Breadcrumb, shortened")[
+                Ui.Breadcrumbs.Key("ellipsis")[
                     Ui.BreadcrumbsItem.Key("1").Href("#").Icon(Ui.IconName.Home),
                     Ui.BreadcrumbsItem.Key("2").Icon(Ui.IconName.EllipsisHorizontal),
-                    Ui.BreadcrumbsItem.Key("3").Current()["Post"]
+                    Ui.BreadcrumbsItem.Key("3")["Post"]
                 ]
             ]);
 

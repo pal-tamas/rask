@@ -104,13 +104,11 @@ public partial class UiBrandTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Breadcrumbs_are_a_named_navigation_of_items()
+    public void Breadcrumbs_are_a_marked_row_of_items()
     {
         var html = Ui.Breadcrumbs[Ui.BreadcrumbsItem.Href("/")["Home"], Ui.BreadcrumbsItem["Post"]].ToHtml();
 
-        Assert.Contains("role=\"navigation\"", html, StringComparison.Ordinal);
-        Assert.Contains("aria-label=\"Breadcrumb\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-ui-breadcrumbs", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"flex\" data-ui-breadcrumbs>", html, StringComparison.Ordinal);
         Assert.Equal(2, html.Split("data-ui-breadcrumbs-item").Length - 1);
     }
 
@@ -125,14 +123,6 @@ public partial class UiBrandTests : global::Rask.Core.RaskMarkup
         Assert.Contains("href=\"/blog\"", link, StringComparison.Ordinal);
         Assert.DoesNotContain("<a ", text, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-current", text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_item_for_the_page_being_shown_can_say_so()
-    {
-        var html = Ui.BreadcrumbsItem.Current()["Post"].ToHtml();
-
-        Assert.Contains("aria-current=\"page\"", html, StringComparison.Ordinal);
     }
 
     [Fact]

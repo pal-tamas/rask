@@ -36,7 +36,7 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
 [CI](#ci)), so what you skip here you find out there, on `main`.
 
 1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`. CI's
-   `format` job runs the same verify after the push.
+   `format src` and `format tests` jobs run the same verify after the push.
 2. **Clean build, warnings-as-errors** —
    `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true`.
    Enforced in `Directory.Build.props` (`TreatWarningsAsErrors`, `EnableNETAnalyzers`,
@@ -84,7 +84,7 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
   push — `release.yml` runs every gate, the release-only ones included, and only then packs the
   NuGets and publishes to nuget.org + a GitHub release (the `cut-release` skill). Try those gates
   ahead of the tag on a `ci/release/**` branch.
-- **Nightly:** `nightly.yml` runs when `ci` has passed on a push to `main` — it packs the MinVer
+- **Nightly:** `nightly.yml` runs when `full` (the hourly whole run) has passed on `main` — it packs the MinVer
   prerelease versions and publishes them to nuget.org (prerelease) and GitHub Packages. A commit
   `ci` did not pass publishes nothing.
 - **The released version is the only one left listed.** After publishing, `release.yml` runs
@@ -136,12 +136,13 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push** — `ci.yml` on `main`, on `ci/**` branches and on pull requests | The **push** set: unit + format (`run-unit-local.sh`), browser E2E (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`). |
+| **CI, every push to `main` and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` and `unit` always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed. `scripts/lib/affected_gates.py` decides, from the last commit `ci` or `full` passed; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, every hour `main` has moved** — `full.yml`; also `ci.yml` on a `ci/**` branch | The whole **push** set, unscoped: build, unit (two shards), format (two halves) (`run-unit-local.sh`), browser E2E in four shards and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
-| **Only when you ask** | Benchmarks (`run-benchmarks-local.sh`), the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
+| **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
-The list of gates lives once, in `.github/workflows/gates.yml`, which `ci.yml` and `release.yml` both
-call, so the two cannot drift. Jobs do not fail fast: one red gate says nothing about the others, and
+The list of gates lives once, in `.github/workflows/gates.yml`, which `ci.yml`, `full.yml`, `soak.yml`
+and `release.yml` all call, so they cannot drift. Jobs do not fail fast: one red gate says nothing about the others, and
 every one reports.
 
 Enable the hooks with `git config core.hooksPath .githooks` (the first `dotnet build` does it for
@@ -153,7 +154,7 @@ you); bypass one with `--no-verify`.
 is that command; run it in a worktree at that commit:
 
 ```bash
-scripts/run-unit-local.sh                    # the "format" and "unit" jobs (RASK_UNIT_PART=format | tests runs one half)
+scripts/run-unit-local.sh                    # the build, unit and format jobs (RASK_UNIT_PART=build | tests-1/2 | format-src … runs one piece)
 scripts/run-e2e-local.sh                     # the "browser E2E" job
 scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
 scripts/run-all-gates.sh --list              # every gate, and what it needs
@@ -175,27 +176,36 @@ git push origin --delete ci/my-change
 
 ### What a red `main` stops
 
-Publishing. `nightly.yml` and `pages.yml` trigger when `ci` completes on `main` and do nothing unless
-it concluded `success`, so neither a prerelease package nor rask.sh is built from a commit the gates
-did not pass. `release.yml`'s `publish` job needs its `gates` job (both sets). A manual
+Publishing. `nightly.yml` and `pages.yml` trigger when `full` completes on `main` and do nothing
+unless it concluded `success`, so neither a prerelease package nor rask.sh is built from a commit the
+WHOLE set did not pass — a scoped run's green publishes nothing. A change is therefore live within the
+hour; `gh workflow run full.yml` starts a whole run now.
+
+The price of a scoped push is named here once: a break the scoped run could not see is found by the
+next whole run, up to an hour later, with green pushes on top of it. `full` red and `ci` green means
+exactly that. `release.yml`'s `publish` job needs its `gates` job (both sets). A manual
 `workflow_dispatch` of `nightly` or `pages` publishes whatever `main` holds, verdict or not.
 
 ### The workflows
 
-- `ci.yml` — the gates, on every push to `main`, `ci/**` branches and pull requests.
-- `gates.yml` — the reusable list of gate jobs `ci.yml`, `release.yml` and `soak.yml` call.
+- `ci.yml` — the gates a change reaches, on every push to `main` and every pull request; the whole
+  push set on a `ci/**` branch. By hand: `gh workflow run ci.yml --ref <branch> -f only='CLI build'`.
+- `full.yml` — the whole push set against `main`, hourly when it has moved. Publishing follows it.
+- `gates.yml` — the reusable list of gate jobs the others call.
 - `soak.yml` — the release set against `main` every three hours, so an image or a download that
   disappears is found within hours and not on the day of a release.
 - `commitlint.yml` — Conventional Commits and the attribution guard on PRs: the commits and the PR
   title, which is the squash subject and passes through no local hook.
-- `nightly.yml` — prerelease publish from a commit `ci` passed.
-- `pages.yml` — rask.sh, from a commit `ci` passed.
+- `nightly.yml` — prerelease publish from a commit `full` passed.
+- `pages.yml` — rask.sh, from a commit `full` passed.
 - `release.yml` — tag-triggered: every gate, then the stable publish.
 - `upstream.yml` — daily; follows what Rask is generated from. `scripts/upstream/follow.sh` moves the
   MDN snapshot to the latest stable data, records the public surface that moved with it
   (`scripts/public-api/record.py`) and moves the stated Node line to the Active LTS; the result is
   gated and THEN landed on `main`, with nobody watching. It opens an issue only when it needs a
-  person: the gates refused what upstream shipped, or Flux UI moved.
+  person: the gates refused what upstream shipped, or Flux UI moved. The Flux lock
+  (`tests/Rask.Ui.Tests/Flux/flux.lock.json`) is measured on its runner, so it is relocked there:
+  `gh workflow run upstream.yml -f relock=true`.
 - `dependabot-merge.yml` — merges a Dependabot pull request once `ci` has passed it. What must not
   move on its own is in `.github/dependabot.yml`'s ignore lists.
 
@@ -299,7 +309,9 @@ True of the scripts wherever they run — a CI job or your terminal.
   `-warnaserror`. The script exports `RASK_CLI_BUILD_E2E=1`; without it every case reports
   **SKIPPED** rather than passing silently.
 - **Templates — `scripts/run-template-e2e.sh`** (push set). Scaffolds `server`, `wasm` and
-  `wasm-hosted` through the dispatch `rask new` uses and builds what it wrote. Exports
+  `wasm-hosted` through the dispatch `rask new` uses and builds what it wrote. It also scaffolds a server
+  app per npm island runtime and runs the real island build (`npm install` and Vite), asserting the
+  manifest lists the scaffolded island: a compile-only row cannot see a scaffold that does not bundle. Exports
   `RASK_TEMPLATE_E2E=1`, with the same SKIPPED rule.
 - **Watch hot reload — `scripts/run-watch-e2e.sh`** (release set). See [the inner loop](#the-inner-loop).
 - **Deploy — `scripts/run-deploy-e2e-local.sh`** (release set). Points the real `rask deploy` at a
@@ -321,8 +333,9 @@ True of the scripts wherever they run — a CI job or your terminal.
   CI job). Verifies the Linux half of [`https://<name>.test`](cli.md#httpsnametest) in a throwaway
   container where the CA anchors, NSS databases, `/etc/hosts` and the port sysctl are really
   modified, ending with a `curl` TLS handshake with no `--cacert`. **Not covered:** macOS and Windows.
-- **Benchmarks — `scripts/run-benchmarks-local.sh`** (on request). Checks both wire-byte baselines —
-  the standalone codec and the head-to-head against Blazor — byte-for-byte, and smoke-runs the three
+- **Benchmarks — `scripts/run-benchmarks-local.sh`** (CI, every push). Checks both wire-byte baselines —
+  the standalone codec and the head-to-head against Blazor — byte-for-byte, holds a live update to its
+  allocation budget (`Baselines/allocation-budget.csv`, +5%), and smoke-runs the three
   live-session capacity reports; `session-churn --smoke` asserts that 100 create→dispose cycles leave
   nothing behind. Every check runs even when an earlier one fails. A regression means one of two
   opposite things: the render/diff path got heavier (fix the code, leave the baseline), or a
@@ -389,7 +402,7 @@ matter most are asserted by an offline unit test rather than by a comment:
 | `EfToolProbeTests` | the `dotnet-ef` floor the CLI checks for vs. the EF Core version in `Directory.Packages.props` |
 | `ResolveTypeScriptToolTaskTests` | reads `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
 
-They need no network and run in the ordinary unit gate — CI's `unit` job, on every push and
+They need no network and run in the ordinary unit gate — CI's `unit` jobs, on every push and
 every pull request — so the gate that runs for a version bump is the one that checks it was complete.
 
 **Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node

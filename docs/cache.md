@@ -90,7 +90,7 @@ it with `builder.Services.AddSession()` and `AddRaskCache` provides the store.
   `System.Text.Json`. `Remember` runs the loader **once** on a miss, stores the result, and returns it; a
   concurrent second caller may also run the loader (the cache is not a lock), so keep loaders idempotent.
 - **`CachePurger<TContext>`** — a hosted `BackgroundService` that bulk-deletes rows past `ExpiresAt` on
-  `PurgeInterval` (default 5 minutes). Reads already evict lazily; the sweep is the backstop for entries that
+  `SweepInterval` (default 5 minutes). Reads already evict lazily; the sweep is the backstop for entries that
   are simply never read again.
 
 `CacheEntry` is a Rask.Data entity with a read face, so the table can be looked at like any other —
@@ -149,7 +149,7 @@ There is **no `Rask.Cache.Redis` package**, and there shouldn't be:
 [`Microsoft.Extensions.Caching.StackExchangeRedis`](https://www.nuget.org/packages/Microsoft.Extensions.Caching.StackExchangeRedis)
 is the standard .NET API for this and wrapping it would only add a layer to keep in step.
 
-Of `CacheOptions`, only `Json` applies to this overload. The other two — `PurgeInterval` and
+Of `CacheOptions`, only `Json` applies to this overload. The other two — `SweepInterval` and
 `DefaultSlidingExpiration` — are implemented by the database-backed store, which it does not register. Expiry
 is Redis's own business: configure it there, or say it per call with `.For(…)` and `.Sliding(…)`. Using the `<AppDbContext>` overload with a Redis store registered
 would still work, but it also registers the purge worker and so keeps needing the `CacheEntry` table and a

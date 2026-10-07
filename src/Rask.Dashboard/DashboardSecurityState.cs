@@ -19,7 +19,7 @@ public sealed class DashboardSecurityState
 
     /// <summary>
     /// <c>true</c> when that fallback lets everyone in — Development, or
-    /// <see cref="RaskDashboardOptions.AllowAnonymousAccess"/>. <c>false</c> means it denies everyone.
+    /// <see cref="OpsOptions.AllowAnonymousAccess"/>. <c>false</c> means it denies everyone.
     /// </summary>
     public bool FallbackIsOpen { get; internal set; }
 

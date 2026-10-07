@@ -34,8 +34,8 @@ Rask.Caching.CacheOptions
 Rask.Caching.CacheOptions.CacheOptions() -> void
 Rask.Caching.CacheOptions.DefaultSlidingExpiration.get -> System.TimeSpan?
 Rask.Caching.CacheOptions.DefaultSlidingExpiration.set -> void
-Rask.Caching.CacheOptions.PurgeInterval.get -> System.TimeSpan
-Rask.Caching.CacheOptions.PurgeInterval.set -> void
+Rask.Caching.CacheOptions.SweepInterval.get -> System.TimeSpan
+Rask.Caching.CacheOptions.SweepInterval.set -> void
 Rask.Caching.CachePurger<TContext>
 Rask.Caching.CachePurger<TContext>.CachePurger(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Rask.Caching.CacheOptions! options, System.TimeProvider! timeProvider, Microsoft.Extensions.Logging.ILogger<Rask.Caching.CachePurger<TContext!>!>! logger) -> void
 Rask.Caching.ICache

@@ -27,18 +27,18 @@ public partial class UiNavbarTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_navbar_is_a_nav_landmark_marked_as_Flux_marks_it()
     {
-        var html = Ui.Navbar.AccessibleLabel("Main")[Ui.NavbarItem.Href("/")["Home"]].ToHtml();
+        var html = Ui.Navbar[Ui.NavbarItem.Href("/")["Home"]].ToHtml();
 
-        Assert.StartsWith("<nav class=\"flex items-center gap-[2px] py-3\" aria-label=\"Main\" data-ui-navbar>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<nav class=\"flex items-center gap-[2px] py-3\" data-ui-navbar>", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-navbar-items", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void A_navlist_is_a_nav_landmark_too()
     {
-        var html = Ui.Navlist.AccessibleLabel("Settings")[Ui.NavlistItem.Href("/")["Home"]].ToHtml();
+        var html = Ui.Navlist[Ui.NavlistItem.Href("/")["Home"]].ToHtml();
 
-        Assert.StartsWith("<nav class=\"flex flex-col\" aria-label=\"Settings\" data-ui-navlist>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<nav class=\"flex flex-col\" data-ui-navlist>", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-navlist-item", html, StringComparison.Ordinal);
     }
 
@@ -64,16 +64,6 @@ public partial class UiNavbarTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("aria-current=\"page\"", current, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-current", other, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_section_item_stays_current_under_its_prefix()
-    {
-        using var _ = OnPage("/orders/42");
-
-        var html = Ui.NavlistItem.Href(Route("/orders")).MatchPrefix()["Orders"].ToHtml();
-
-        Assert.Contains("aria-current=\"page\"", html, StringComparison.Ordinal);
     }
 
     [Fact]

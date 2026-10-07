@@ -68,7 +68,7 @@ public sealed class PushAbuseTests
         // The battery's registration left the handler at its defaults, so the path every scaffolded app takes
         // still followed redirects while the docs said nothing did.
         var services = new ServiceCollection();
-        Action<WebPushOptions> keys = o =>
+        Action<PushOptions> keys = o =>
         {
             o.VapidKeys = VapidKeys.Generate();
             o.Subject = "mailto:ops@example.com";
@@ -182,7 +182,7 @@ public sealed class PushAbuseTests
             cancellationToken: TestContext.Current.CancellationToken);
     }
 
-    private static async Task<PushHost> HostAsync(Action<WebPushOptions>? configure = null)
+    private static async Task<PushHost> HostAsync(Action<PushOptions>? configure = null)
     {
         var database = Path.Combine(Path.GetTempPath(), $"rask-push-abuse-{Guid.NewGuid():N}.db");
         var builder = WebApplication.CreateBuilder();

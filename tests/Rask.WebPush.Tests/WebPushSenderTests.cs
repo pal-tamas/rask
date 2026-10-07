@@ -200,7 +200,7 @@ public sealed class WebPushSenderTests
     [Fact]
     public void Constructor_validates_options()
     {
-        var bad = new WebPushOptions { Subject = "mailto:x@y.com" }; // missing keys.
+        var bad = new PushOptions { Subject = "mailto:x@y.com" }; // missing keys.
 
         Assert.Throws<InvalidOperationException>(() => new WebPushSender(new HttpClient(new RecordingHandler()), bad));
     }

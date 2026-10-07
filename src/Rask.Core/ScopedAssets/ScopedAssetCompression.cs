@@ -91,7 +91,7 @@ public static class ScopedAssetCompression
     }
 
     [UnsupportedOSPlatform("browser")]
-    private static byte[] Compress(ReadOnlySpan<byte> data, string encoding)
+    internal static byte[] Compress(ReadOnlySpan<byte> data, string encoding)
     {
         using var ms = new MemoryStream();
         if (string.Equals(encoding, "br", StringComparison.Ordinal))

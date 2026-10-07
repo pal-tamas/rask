@@ -9,7 +9,7 @@ public sealed class CacheOptionsTests
 {
     [Fact]
     public void AddRaskCache_rejects_a_non_positive_purge_interval() =>
-        AssertRejected(o => o.PurgeInterval = TimeSpan.Zero, "PurgeInterval");
+        AssertRejected(o => o.SweepInterval = TimeSpan.Zero, "SweepInterval");
 
     [Fact]
     public void AddRaskCache_rejects_a_non_positive_default_sliding_expiration() =>
@@ -17,7 +17,7 @@ public sealed class CacheOptionsTests
 
     [Fact]
     public void AddRaskCache_rejects_a_purge_interval_above_the_timer_maximum() =>
-        AssertRejected(o => o.PurgeInterval = TimeSpan.FromDays(60), "PurgeInterval");
+        AssertRejected(o => o.SweepInterval = TimeSpan.FromDays(60), "SweepInterval");
 
     private static void AssertRejected(Action<CacheOptions> configure, string setting)
     {

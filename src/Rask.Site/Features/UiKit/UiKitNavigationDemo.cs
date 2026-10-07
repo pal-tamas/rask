@@ -115,7 +115,7 @@ public sealed partial class UiKitNavigationDemo : Component
                 Ui.Breadcrumbs[
                     Ui.BreadcrumbsItem.Key("home").Href("#home")["Home"],
                     Ui.BreadcrumbsItem.Key("orders").Href("#orders")["Orders"],
-                    Ui.BreadcrumbsItem.Key("order").Current()["ord_18f"]
+                    Ui.BreadcrumbsItem.Key("order")["ord_18f"]
                 ],
                 // Pages as links: each is the address that page lives at, so it can be shared and answers
                 // the back button. The page you are on is not a link either — it says aria-current instead.

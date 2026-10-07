@@ -18,7 +18,7 @@ internal static class UiNavItemMarkup
 
     /// <summary>The item itself: a link when it has somewhere to go, a button when it only opens something.</summary>
     internal static Component Element(
-        RouteUrl? href, bool? current, RouteUrl? match, bool? matchPrefix, string classes, string marker, Component?[] content)
+        RouteUrl? href, bool? current, string classes, string marker, Component?[] content)
     {
         if (href is not { } url)
         {
@@ -43,18 +43,7 @@ internal static class UiNavItemMarkup
 
         // Worked out: NavLink compares the route and writes aria-current itself. `ui-current` is a name for it
         // to add, not a style — the look hangs off the attribute.
-        var routed = Markup.NavLink.Href(url).ActiveClass("ui-current").Class(classes).Attributes((marker, null));
-        if (match is { } path)
-        {
-            routed = routed.Match(path);
-        }
-
-        if (matchPrefix == true)
-        {
-            routed = routed.ActiveMatch(NavLinkMatch.Prefix);
-        }
-
-        return routed[content];
+        return Markup.NavLink.Href(url).ActiveClass("ui-current").Class(classes).Attributes((marker, null))[content];
     }
 
     /// <summary>The count or word at an item's end, in Flux's badge colours. Zinc when no colour is named.</summary>

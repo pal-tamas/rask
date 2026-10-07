@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace Rask.Core;
 
 /// <summary>
@@ -123,7 +125,8 @@ public static partial class BuilderRuntime
 
     // Copy: replays the steps already written on Target onto the instance a Key step claims instead of it
     // (#1118) — see ClaimKey. Null for an element, which keeps positional identity and is never claimed.
-    internal readonly record struct EntrySlot(
+    // Mutable for Written, which clears a pending bit where the slot sits.
+    internal record struct EntrySlot(
         Component Parent,
         Component Target,
         Action<Component, ulong> Reset,
@@ -167,18 +170,15 @@ public static partial class BuilderRuntime
     /// </remarks>
     public static void Written(Component target, ulong bit)
     {
-        var slots = _slots;
-        if (slots is null)
+        // In place, through the span (empty when no entry has run): storing the slot back through the
+        // list's indexer copies all of it, four references and their write barriers, to change one mask.
+        var slots = CollectionsMarshal.AsSpan(_slots);
+        for (var i = slots.Length - 1; i >= 0; i--)
         {
-            return;
-        }
-
-        for (var i = slots.Count - 1; i >= 0; i--)
-        {
-            if (ReferenceEquals(slots[i].Target, target))
+            ref var slot = ref slots[i];
+            if (ReferenceEquals(slot.Target, target))
             {
-                var slot = slots[i];
-                slots[i] = slot with { PendingMask = slot.PendingMask & ~bit };
+                slot.PendingMask &= ~bit;
                 return;
             }
         }

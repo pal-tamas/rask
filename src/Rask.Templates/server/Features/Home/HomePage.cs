@@ -28,6 +28,36 @@ public sealed partial class HomePage : Component
                                     Li[Code.Class("kbd kbd-sm")["rask dev"], " — run with hot reload"],
                                     Li["Edit ", Code.Class("kbd kbd-sm")["HomePage.cs"], " — the page updates as you save"]
                                 ],
+                                // rask:if islands-any
+                                // Each one is an ordinary component: a .cs in Features/Islands/ beside the file that renders it.
+                                Div.Class("space-y-3 rounded-box bg-base-200 p-4 text-sm")[
+                                    // rask:if islands-react
+                                    ReactCounter.Caption("React island"),
+                                    // rask:end
+                                    // rask:if islands-preact
+                                    PreactCounter.Caption("Preact island"),
+                                    // rask:end
+                                    // rask:if islands-vue
+                                    VueCounter.Caption("Vue island"),
+                                    // rask:end
+                                    // rask:if islands-svelte
+                                    SvelteCounter.Caption("Svelte island"),
+                                    // rask:end
+                                    // rask:if islands-solid
+                                    SolidCounter.Caption("Solid island"),
+                                    // rask:end
+                                    // rask:if islands-lit
+                                    LitBadge.Caption("Lit island"),
+                                    // rask:end
+                                    // rask:if islands-angular
+                                    AngularCounter.Caption("Angular island"),
+                                    // rask:end
+                                    // rask:if islands-blazor
+                                    BlazorCounterIsland.Caption("Blazor island"),
+                                    // rask:end
+                                    P.Class("text-xs text-base-content/60")["Islands live in ", Code.Class("kbd kbd-xs")["Features/Islands/"]]
+                                ],
+                                // rask:end
                                 Div.Class("card-actions justify-end")[
                                     A
                                         .Class("btn btn-primary")

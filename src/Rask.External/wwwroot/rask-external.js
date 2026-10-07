@@ -17,6 +17,35 @@ const HOST_TAG = "RASK-EXTERNAL";
  */
 const DEFAULT_MANIFEST_URL = "/_rask/external/manifest.json";
 
+/** Where this file is served from, under the app's path base. */
+const RUNTIME_PATH = "/_content/Rask.External/rask-external.js";
+
+/**
+ * The app's path base ("" or "/shop"), read off the URL this module was loaded from.
+ *
+ * Chunk URLs are baked into the manifest at build, before anyone knows where the app will be deployed,
+ * so the base is applied here. From the module's own URL and never from `<base href>`: markup can
+ * inject a `<base>`, and it cannot change where a script that already loaded came from.
+ */
+function pathBaseOf(moduleUrl) {
+    let path;
+    try {
+        path = new URL(moduleUrl).pathname;
+    } catch {
+        return "";
+    }
+
+    return path.endsWith(RUNTIME_PATH) ? path.slice(0, -RUNTIME_PATH.length) : "";
+}
+
+const PATH_BASE = pathBaseOf(import.meta.url);
+
+/** A root-relative `url` under the path base. Anything else, and one already under it, is returned as is. */
+function underPathBase(url, base = PATH_BASE) {
+    if (!base || !url.startsWith("/") || url.startsWith("//")) return url;
+    return url === base || url.startsWith(base + "/") ? url : base + url;
+}
+
 /** element -> {adapter, handle, fns, name} for everything currently mounted. */
 const mounted = new WeakMap();
 
@@ -86,13 +115,20 @@ function devServer() {
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
-/** The dev server's origin when it is the loopback one `rask dev` runs, else null. */
-function devOrigin() {
-    const stamped = devServer();
-    if (!stamped) return null;
+/** The key a dev manifest names its dev server under. Reserved: an island's name is a C# identifier. */
+const DEV_KEY = "$dev";
+
+/**
+ * `named` as an origin when it is the loopback dev server `rask dev` runs, else null.
+ *
+ * The ONE check both sources of a dev server pass through: the <body> stamp of the Server host, and
+ * the `$dev` key of a dev manifest, which is how a WASM app's static page learns of it.
+ */
+function devOrigin(named) {
+    if (typeof named !== "string" || !named) return null;
 
     try {
-        const url = new URL(stamped);
+        const url = new URL(named);
         const web = url.protocol === "http:" || url.protocol === "https:";
         return web && LOOPBACK_HOSTS.has(url.hostname) ? url.origin : null;
     } catch {
@@ -164,8 +200,35 @@ function resolver() {
     return (globalThis.__raskExternal && globalThis.__raskExternal.resolve) || defaultResolve;
 }
 
+/**
+ * Fetches the manifest at `address`, once per `url` — until it fails.
+ *
+ * A failed fetch is not kept: a 404 in the middle of a deploy or a dropped connection would otherwise
+ * fail every island on the page until a reload. The next island to resolve asks again.
+ */
+function loadManifest(url, address) {
+    let loading = manifests.get(url);
+    if (loading) return loading;
+
+    const failed = (why) => new Error(
+        `Rask islands: the manifest at ${address} could not be loaded (${why}). The build writes it and ` +
+        "the app serves it as a static file, so check that the deploy published it and that the app " +
+        "serves static files. The next island to mount asks for it again.");
+
+    loading = fetch(address, {credentials: "same-origin"}).then(
+        (r) => (r.ok ? r.json() : Promise.reject(failed(`HTTP ${r.status}`))),
+        (error) => Promise.reject(failed(error?.message ?? String(error))));
+
+    manifests.set(url, loading);
+    loading.catch(() => {
+        if (manifests.get(url) === loading) manifests.delete(url);
+    });
+
+    return loading;
+}
+
 async function defaultResolve(name, _module, manifestUrl) {
-    const url = manifestUrl || DEFAULT_MANIFEST_URL;
+    const url = underPathBase(manifestUrl || DEFAULT_MANIFEST_URL);
 
     const address = trusted(url);
     if (!address) {
@@ -174,25 +237,23 @@ async function defaultResolve(name, _module, manifestUrl) {
             "the page's own origin only.");
     }
 
-    if (!manifests.has(url)) {
-        // The address that was checked, not the string it was made from: the two must be the same request.
-        manifests.set(url, fetch(address, {credentials: "same-origin"})
-            .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`islands manifest: HTTP ${r.status}`)))));
-    }
-
-    const manifest = manifests.get(url);
+    // The address that was checked, not the string it was made from: the two must be the same request.
+    const table = await loadManifest(url, address);
 
     // ONE resolution path in dev and in production. The manifest is the only thing that differs: under
     // `rask dev` the build writes absolute dev-server URLs into it instead of hashed chunk paths, so
     // nothing here has to branch, and the branch that would have existed cannot rot in production.
-    const origin = devOrigin();
+    //
+    // The dev server is named by the Server host's stamp, or by the dev manifest itself: a WASM app's
+    // page is a static file nothing stamps. The manifest came from the page's own origin either way.
+    const origin = devOrigin(devServer()) ?? devOrigin(table[DEV_KEY]);
     if (origin) {
         await ensureHmrClient(origin);
     }
 
-    const table = await manifest;
-    const chunk = table[name];
-    if (!chunk) {
+    // A `$` key is the manifest's own, never an island: no component can be named one.
+    const chunk = !name.startsWith("$") && Object.hasOwn(table, name) ? table[name] : null;
+    if (typeof chunk !== "string" || !chunk) {
         throw new Error(
             `Rask islands: '${name}' is not in the manifest at ${url}. The build writes one entry per ` +
             "island; a missing one usually means the front-end file was added without a rebuild, or " +
@@ -200,7 +261,7 @@ async function defaultResolve(name, _module, manifestUrl) {
             "element.");
     }
 
-    const module = trusted(chunk, origin);
+    const module = trusted(underPathBase(chunk), origin);
     if (!module) {
         throw new Error(
             `Rask islands: refusing the chunk ${chunk} for '${name}'. An island is loaded from the ` +
@@ -479,6 +540,10 @@ async function hydrate(element) {
                 return;
             }
 
+            // The `Loading` placeholder C# rendered for the first paint. It goes here and nowhere earlier, so an
+            // island still waiting on its hydration policy keeps it; nothing else is ever in an unmounted host.
+            if (element.firstChild) element.replaceChildren();
+
             entry.adapter = adapter;
             entry.handle = adapter.mount(element, tree.props, childrenArgument(tree.children));
         } catch (error) {
@@ -598,7 +663,9 @@ export function start(doc = document) {
 }
 
 // Exported for tests and for a host that wants to drive the runtime itself.
-export const __internals = {revive, schedule, readProps, hydrate, update, unmount, sweep, teardown, devServer};
+export const __internals = {
+    revive, schedule, readProps, hydrate, update, unmount, sweep, teardown, devServer, pathBaseOf, underPathBase,
+};
 
 if (typeof document !== "undefined" && !globalThis.__raskExternalManual) {
     start();

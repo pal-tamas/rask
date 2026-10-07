@@ -21,12 +21,12 @@ internal static class TestSender
 {
     public const string Endpoint = "https://fcm.googleapis.com/fcm/send/abc123";
 
-    public static WebPushOptions Options() => new()
+    public static PushOptions Options() => new()
     {
         VapidKeys = VapidKeys.Generate(),
         Subject = "mailto:admin@example.com"
     };
 
-    public static WebPushSender Create(RecordingHandler handler, WebPushOptions? options = null) =>
+    public static WebPushSender Create(RecordingHandler handler, PushOptions? options = null) =>
         new(new HttpClient(handler), options ?? Options());
 }

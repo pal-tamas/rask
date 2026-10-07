@@ -147,7 +147,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     {
         await OpenAsync();
 
-        var nav = Page.GetByRole(AriaRole.Navigation, new PageGetByRoleOptions { Name = "Plain", Exact = true });
+        var nav = Page.Locator("[data-testid='ui-flux-navbar'] nav").First;
         var home = nav.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Home" });
         var pricing = nav.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Pricing" });
 
@@ -165,7 +165,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     {
         await OpenAsync();
 
-        var nav = Page.GetByRole(AriaRole.Navigation, new PageGetByRoleOptions { Name = "Collapsible", Exact = true });
+        var nav = Page.Locator("[data-testid='ui-flux-navlist'] nav").Nth(2);
         var group = nav.Locator("details").First;
         var heading = group.Locator("summary");
         var profile = group.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Profile" });
@@ -206,17 +206,17 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     });
 
     [Fact]
-    public Task Breadcrumbs_name_the_trail_and_hide_the_separator_after_the_last_step() => RunAsync(async () =>
+    public Task Breadcrumbs_hide_the_separator_after_the_last_step() => RunAsync(async () =>
     {
         await OpenAsync();
 
-        var trail = Page.GetByRole(AriaRole.Navigation, new PageGetByRoleOptions { Name = "Breadcrumb", Exact = true }).First;
+        var trail = Page.Locator("[data-testid='ui-flux-breadcrumbs'] [data-ui-breadcrumbs]").First;
         var items = trail.Locator("[data-ui-breadcrumbs-item]");
 
         await Expect(items).ToHaveCountAsync(3, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
         await Expect(items.Nth(0).Locator("svg").First).ToBeVisibleAsync();
         await Expect(items.Nth(2).Locator("svg").First).ToBeHiddenAsync();
-        await Expect(items.Nth(2).Locator("[aria-current='page']")).ToHaveTextAsync("Post");
+        await Expect(items.Nth(2)).ToHaveTextAsync("Post");
     });
 
     private async Task OpenAsync()

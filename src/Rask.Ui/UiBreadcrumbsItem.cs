@@ -8,8 +8,7 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 ///     <para>
-///     With an <see cref="Href" /> it is a link; without one it is plain, greyed text — the page being shown,
-///     which carries <c>aria-current="page"</c> when <see cref="Current" /> says so. Its words are its
+///     With an <see cref="Href" /> it is a link; without one it is plain, greyed text — the page being shown. Its words are its
 ///     children, an <see cref="Icon" /> can stand in for them, and anything else — a dropdown holding the steps
 ///     that were folded away — goes in as a child too.
 ///     </para>
@@ -33,9 +32,6 @@ public sealed partial class UiBreadcrumbsItem : Component
 
     /// <summary>The icon drawn after the item. A chevron when unset.</summary>
     public Ui.IconName? Separator { get; set; }
-
-    /// <summary>Says this item is the page being shown, to assistive tech.</summary>
-    public bool? Current { get; set; }
 
     /// <summary>Classes for the call site, added to the item's own.</summary>
     public string? Class { get; set; }
@@ -67,8 +63,7 @@ public sealed partial class UiBreadcrumbsItem : Component
             "text-zinc-800 underline-offset-4 decoration-zinc-800/20 hover:underline dark:text-white dark:decoration-white/20";
         if (Href is not { } href)
         {
-            var text = Div.Class("text-gray-500 dark:text-white/80");
-            return (Current == true ? text.Aria("current", "page") : text)[content];
+            return Div.Class("text-gray-500 dark:text-white/80")[content];
         }
 
         return href.PageType is null

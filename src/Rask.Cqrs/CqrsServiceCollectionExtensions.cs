@@ -72,19 +72,23 @@ public static class CqrsServiceCollectionExtensions
 
         services.TryAddSingleton(execution);
 
-        // Notify.Send has no provider of its own. Two hooks, because neither covers everything: the hosted service
-        // runs before anything is dispatched but only in a host, and NotifyRoot covers every container — a browser
-        // app, a test — but only once something resolves a dispatcher. Both are idempotent.
-        services.TryAddSingleton<NotifyRoot>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, NotifyBinding>());
+        // Dispatcher has no provider of its own outside work in progress. Two hooks, because neither covers
+        // everything: the hosted service runs before anything is dispatched but only in a host, and DispatcherRoot
+        // covers every container — a browser app, a test — but only once something resolves a dispatcher.
+        services.TryAddSingleton<DispatcherRoot>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DispatcherStart>());
     }
 
     private static void AddBehaviors(IServiceCollection services, CqrsOptions options)
     {
-        // Validation goes on FIRST, so it is the outermost wrapper: a request that is not valid should
-        // not reach a transaction, a log line saying it was handled, or the handler. An app that has
-        // configured its own behaviors still gets them inside this one, which is the order they would
-        // have chosen anyway.
+        // Authorization goes on FIRST, so it is the outermost wrapper: a caller who may not send a request
+        // should not learn what is wrong with it.
+        services.Add(new ServiceDescriptor(
+            typeof(IPipelineBehavior<,>), typeof(AuthorizationBehavior<,>), options.HandlerLifetime));
+
+        // Then validation: a request that is not valid should not reach a transaction, a log line saying
+        // it was handled, or the handler. An app that has configured its own behaviors still gets them
+        // inside these, which is the order they would have chosen anyway.
         if (options.ValidateRequests)
         {
             services.Add(new ServiceDescriptor(

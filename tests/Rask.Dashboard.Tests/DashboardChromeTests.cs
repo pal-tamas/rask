@@ -55,7 +55,7 @@ public sealed partial class DashboardChromeTests : global::Rask.Core.RaskMarkup
         var onQueue = RenderChrome(h, "/_rask/queues/jobs");
 
         // The trail's last step is a dropdown: the queues beside this one.
-        Assert.True(onQueue.Exists("header [data-ui-breadcrumbs] [aria-current=\"page\"]"));
+        Assert.True(onQueue.Exists("header [data-ui-breadcrumbs]"));
 
         // Ordered by title, and only the batteries actually available.
         var options = onQueue.FindAll("header [data-ui-breadcrumbs] [role=\"menuitem\"]").Select(o => o.TextContent.Trim()).ToList();
@@ -85,13 +85,13 @@ public sealed partial class DashboardChromeTests : global::Rask.Core.RaskMarkup
     private static DashboardHarness Harness(Batteries batteries) =>
         new(batteries, environment: Environments.Development);
 
-    // The brand is a link in the <header>, not in the <nav>, so it is not a section.
+    // The brand is not in a <nav>, and the Docs link leaves the console (no data-rask-nav): neither is a section.
     private List<string> Sections(DashboardHarness h, string path) =>
-        RenderChrome(h, path).FindAll("nav[aria-label=\"Sections\"] a").Select(a => a.TextContent.Trim()).ToList();
+        RenderChrome(h, path).FindAll("nav a[data-rask-nav]").Select(a => a.TextContent.Trim()).ToList();
 
     private List<string> Current(DashboardHarness h, string path) =>
         RenderChrome(h, path)
-            .FindAll("nav[aria-label=\"Sections\"] a[aria-current=\"page\"]")
+            .FindAll("nav a[data-rask-nav][aria-current=\"page\"]")
             .Select(a => a.TextContent.Trim())
             .ToList();
 

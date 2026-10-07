@@ -23,16 +23,24 @@ export function navLinkClick(e: MouseEvent): URL | null {
     if (!a) return null;
     if (a.getAttribute("target") === "_blank") return null;
     const href = a.getAttribute("href");
-    if (!href) return null;
+    const url = href ? inAppUrl(href) : null;
+    if (!url) return null;
+    e.preventDefault();
+    return url;
+}
+
+/**
+ * `href` resolved against the page, or null unless it is a URL of this app's own origin — the only
+ * kind an in-app navigation can take, from a link or from front-end code (`__raskHost.navigate`).
+ */
+export function inAppUrl(href: string): URL | null {
     let url;
     try {
         url = new URL(href, location.href);
     } catch {
         return null;
     }
-    if (url.origin !== location.origin) return null;
-    e.preventDefault();
-    return url;
+    return url.origin === location.origin ? url : null;
 }
 
 /**

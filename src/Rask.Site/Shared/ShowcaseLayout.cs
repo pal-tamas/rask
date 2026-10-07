@@ -128,7 +128,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 .Placeholder("Filter guides & examples…").Class("side-nav-filter rounded-lg")
         ],
         Div.Class("side-nav-scroll flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain")[
-            Ui.Navlist.AccessibleLabel("Guides and examples")[BuildSections()]
+            Ui.Navlist[BuildSections()]
         ]
     ];
 
@@ -226,9 +226,10 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                         .Icon(i.Icon)
                         .Class("side-nav-link");
 
-                    if (i.MatchPrefix is { } mp)
+                    // A link that stands for a whole section says so itself: the route alone only knows its own page.
+                    if (i.MatchPrefix is not null)
                     {
-                        item = item.Match(InApp(mp)).MatchPrefix();
+                        item = item.Current(IsActive(i.Path, i.MatchPrefix));
                     }
 
                     // No cast: the chain ends at the children indexer, so it is already a Component

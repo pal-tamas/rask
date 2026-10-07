@@ -188,10 +188,11 @@ public class ExternalBuildPlanTests
     [Fact]
     public void A_lit_package_island_whose_tag_is_not_known_is_refused_with_the_fix()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => ExternalBuildPlan.EntryModule(
+        var ex = Assert.Throws<ExternalBuildException>(() => ExternalBuildPlan.EntryModule(
             new ExternalEntry { Name = "FxBadge", Source = "/app/FxBadge.props.json", Runtime = "lit", Package = "fixture-lit/components/badge/badge.js", Tag = "x'});alert(1)//" },
             "/obj/rask-external/rask"));
 
+        Assert.Equal("RASKISLAND005", ex.Code);
         Assert.Contains("protected override string Export => \"my-element\";", ex.Message, StringComparison.Ordinal);
     }
 
@@ -207,7 +208,7 @@ public class ExternalBuildPlanTests
     {
         // The export is written into JavaScript unquoted, so anything but an identifier could end the import
         // and start code of the Module string's choosing.
-        Assert.Throws<InvalidOperationException>(() => ExternalBuildPlan.EntryModule(
+        Assert.Throws<ExternalBuildException>(() => ExternalBuildPlan.EntryModule(
             new ExternalEntry
             {
                 Name = "MuiButton",
@@ -241,13 +242,14 @@ public class ExternalBuildPlanTests
     {
         // Solid's plugin would have to be confined to folders a package does not have: unscoped it compiles the
         // React island's .tsx, scoped it never compiles the package. Named here rather than shipped mounting nothing.
-        var ex = Assert.Throws<InvalidOperationException>(() => ExternalBuildPlan.ViteConfig(
+        var ex = Assert.Throws<ExternalBuildException>(() => ExternalBuildPlan.ViteConfig(
             [
                 new ExternalEntry { Name = "Chart", Source = "/app/React/Chart.tsx", Runtime = "react" },
                 new ExternalEntry { Name = "Picker", Source = "/app/Picker.props.json", Runtime = "solid", Package = "solid-picker" },
             ],
             "/obj/entries", "/app/wwwroot/_rask/external", "/app/wwwroot/_rask/external/manifest.json", "/_rask/external/"));
 
+        Assert.Equal("RASKISLAND016", ex.Code);
         Assert.Contains("Picker", ex.Message, StringComparison.Ordinal);
         Assert.Contains("Chart", ex.Message, StringComparison.Ordinal);
     }
@@ -358,10 +360,11 @@ public class ExternalBuildPlanTests
     {
         // It used to fall through to React, so a typo generated a React entry for a Vue component:
         // the build succeeded, the bundle shipped, the chunk loaded, and nothing mounted.
-        var ex = Assert.Throws<InvalidOperationException>(() => ExternalBuildPlan.EntryModule(
+        var ex = Assert.Throws<ExternalBuildException>(() => ExternalBuildPlan.EntryModule(
             new ExternalEntry { Name = "Chart", Source = "/app/Chart.vue", Runtime = "vue3" },
             "/obj/rask-external/rask"));
 
+        Assert.Equal("RASKISLAND012", ex.Code);
         Assert.Contains("vue3", ex.Message, StringComparison.Ordinal);
         Assert.Contains("Chart", ex.Message, StringComparison.Ordinal);
 
@@ -538,11 +541,12 @@ public class ExternalBuildPlanTests
         // Not a rule Rask chose: @vitejs/plugin-react resolves Babel 8 and @preact/preset-vite pins a
         // @babel/core@"7.x" peer, so npm refuses the install outright. Left to npm the failure is an
         // ERESOLVE tree naming four Babel packages and neither island.
-        var ex = Assert.Throws<InvalidOperationException>(() => Config([
+        var ex = Assert.Throws<ExternalBuildException>(() => Config([
             new ExternalEntry { Name = "Chart", Source = "/app/a/Chart.tsx", Runtime = "react" },
             new ExternalEntry { Name = "Gauge", Source = "/app/b/Gauge.tsx", Runtime = "preact" },
         ]));
 
+        Assert.Equal("RASKISLAND014", ex.Code);
         Assert.Contains("Chart", ex.Message, StringComparison.Ordinal);
         Assert.Contains("Gauge", ex.Message, StringComparison.Ordinal);
         Assert.Contains("preact/compat", ex.Message, StringComparison.Ordinal);
@@ -553,11 +557,12 @@ public class ExternalBuildPlanTests
     {
         // They can share a project but not a folder: the scope IS the directory, so a shared one
         // leaves both plugins claiming the same files and one island compiled by the wrong transform.
-        var ex = Assert.Throws<InvalidOperationException>(() => Config([
+        var ex = Assert.Throws<ExternalBuildException>(() => Config([
             new ExternalEntry { Name = "Chart", Source = "/app/Islands/Chart.tsx", Runtime = "solid" },
             new ExternalEntry { Name = "Gauge", Source = "/app/Islands/Gauge.tsx", Runtime = "react" },
         ]));
 
+        Assert.Equal("RASKISLAND015", ex.Code);
         Assert.Contains("/app/Islands", ex.Message, StringComparison.Ordinal);
         Assert.Contains("Chart", ex.Message, StringComparison.Ordinal);
         Assert.Contains("Gauge", ex.Message, StringComparison.Ordinal);
@@ -571,7 +576,7 @@ public class ExternalBuildPlanTests
         // The case that looks fine and is not. React's scope becomes 'Features/Islands/**', which
         // CONTAINS Features/Islands/Solid — so the two globs overlap and React's plugin claims the
         // Solid island. Equality alone would have let this through.
-        var ex = Assert.Throws<InvalidOperationException>(() => Config([
+        var ex = Assert.Throws<ExternalBuildException>(() => Config([
             new ExternalEntry { Name = "Chart", Source = "/app/Features/Islands/Chart.tsx", Runtime = "react" },
             new ExternalEntry { Name = "Gauge", Source = "/app/Features/Islands/Solid/Gauge.tsx", Runtime = "solid" },
         ]));
@@ -719,6 +724,42 @@ public class ExternalBuildPlanTests
     }
 
     [Fact]
+    public void The_dev_manifest_names_its_dev_server()
+    {
+        // A WASM app's page is a static file no server stamps, so the manifest is where its client
+        // runtime learns which origin to hot-reload from.
+        var islands = new[] { new ExternalEntry { Name = "Chart", Source = "/app/Chart.tsx", Runtime = "react" } };
+
+        var manifest = ExternalBuildPlan.DevManifest(islands, "/app/obj/rask-external/entries", "http://localhost:5174/");
+
+        using var json = System.Text.Json.JsonDocument.Parse(manifest);
+        Assert.Equal("http://localhost:5174", json.RootElement.GetProperty("$dev").GetString());
+        Assert.Equal(["$dev", "Chart"], json.RootElement.EnumerateObject().Select(p => p.Name));
+    }
+
+    [Fact]
+    public void A_dev_manifest_with_no_islands_is_still_json()
+    {
+        var manifest = ExternalBuildPlan.DevManifest([], "/app/obj/rask-external/entries", "http://localhost:5174");
+
+        using var json = System.Text.Json.JsonDocument.Parse(manifest);
+
+        Assert.Equal("$dev", Assert.Single(json.RootElement.EnumerateObject()).Name);
+    }
+
+    [Fact]
+    public void A_built_manifest_names_no_dev_server()
+    {
+        var islands = new[] { new ExternalEntry { Name = "Chart", Source = "/app/Chart.tsx", Runtime = "react" } };
+
+        var config = Config(islands);
+
+        // The plugin that writes the built manifest lists the bundle's entry chunks and nothing else.
+        Assert.Contains("map[chunk.name] =", config, StringComparison.Ordinal);
+        Assert.DoesNotContain("$dev", config, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_windows_entry_path_still_produces_a_usable_at_fs_url()
     {
         // "/@fs" + the path happens to work on Unix, where the path starts with "/", and produces
@@ -758,7 +799,7 @@ public class ExternalBuildPlanTests
         // Falling back to a default port here is the worst outcome available: the config would pin
         // strictPort to one port while `origin` and the manifest named another, so Vite would come up
         // on a port nothing imports from and the only symptom would be islands that never appear.
-        var ex = Assert.Throws<InvalidOperationException>(() => ExternalBuildPlan.ViteConfig(
+        var ex = Assert.Throws<ExternalBuildException>(() => ExternalBuildPlan.ViteConfig(
             [new ExternalEntry { Name = "Chart", Source = "/app/Chart.tsx", Runtime = "react" }],
             "/obj/entries",
             "/app/wwwroot/_rask/external",
@@ -767,6 +808,7 @@ public class ExternalBuildPlanTests
             null,
             url));
 
+        Assert.Equal("RASKISLAND013", ex.Code);
         Assert.Contains(url, ex.Message, StringComparison.Ordinal);
         Assert.Contains("RaskExternalDevServerUrl", ex.Message, StringComparison.Ordinal);
     }

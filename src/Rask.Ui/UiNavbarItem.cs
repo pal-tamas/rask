@@ -8,8 +8,7 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 ///     <para>
-///     <b><see cref="Current" /> is worked out for you.</b> Unset, a generated route compares itself — or
-///     <see cref="Match" />, for an item that stays current across a whole section — with the page being shown.
+///     <b><see cref="Current" /> is worked out for you.</b> Unset, a generated route compares itself with the page being shown.
 ///     Set it to say so yourself, as Flux's <c>current</c> does. The current item carries
 ///     <c>aria-current="page"</c>, is inked in the accent and underlined with it; <see cref="Accent" /> off draws
 ///     both in the page's ink instead.
@@ -63,12 +62,6 @@ public sealed partial class UiNavbarItem : Component
     /// </summary>
     public bool? Accent { get; set; }
 
-    /// <summary>The path compared with the page being shown, when it is not <see cref="Href" />.</summary>
-    public RouteUrl? Match { get; set; }
-
-    /// <summary>Current for every page under <see cref="Match" /> (or <see cref="Href" />), not only that exact page.</summary>
-    public bool? MatchPrefix { get; set; }
-
     /// <summary>Classes for the call site, added to the item's own.</summary>
     public string? Class { get; set; }
 
@@ -84,7 +77,7 @@ public sealed partial class UiNavbarItem : Component
         ];
 
         return UiNavItemMarkup.Element(
-            Href, Current, Match, MatchPrefix,
+            Href, Current,
             UiClass.Compose(Base, Accent == false ? PlainCurrent : AccentCurrent, Class),
             "data-ui-navbar-items", content);
     }
