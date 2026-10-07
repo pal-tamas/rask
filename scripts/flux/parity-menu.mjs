@@ -103,7 +103,12 @@ async function measureOpen(url, prefix, like) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
-    await page.evaluate(() => document.fonts.ready);
+    // Every declared face, not only those the closed page uses (as parity-tooltip.mjs): the medium a row is
+    // set in is first needed when the first menu opens, and was measured in the fallback face while it loaded.
+    await page.evaluate(async () => {
+      await Promise.all([...document.fonts].map(face => face.load().catch(() => {})));
+      await document.fonts.ready;
+    });
     if (like) {
       // The same surroundings Flux's example had, as parity.mjs gives them: only the component differs.
       await page.evaluate(({ examples, INHERITED }) => {
