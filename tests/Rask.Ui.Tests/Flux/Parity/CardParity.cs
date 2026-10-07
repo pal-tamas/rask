@@ -6,8 +6,9 @@ namespace Rask.UiTests.Flux;
 ///     Flux UI's card page, example by example: <c>https://fluxui.dev/components/card</c>.
 /// </summary>
 /// <remarks>
-///     The examples put other Flux components inside the cards — buttons, fields, switches, a table — which
-///     are built elsewhere. Each is a <see cref="StandIn" /> here: a box the measured size of that neighbour,
+///     The examples put other Flux components inside the cards. The buttons and the table are the real
+///     ones; the fields, switches and the lines of text whose variant was not looked up are built elsewhere
+///     or later, and each is a <see cref="StandIn" /> here: a box the measured size of that neighbour,
 ///     marked <c>data-parity-skip</c> so the comparison holds it to its box and skips what is inside. Everything
 ///     that is the card's own — the card, its header, heading, subheading, actions, body, footer and bleed — is
 ///     the real component and is compared whole.
@@ -39,13 +40,11 @@ public sealed partial class CardParity : FluxParity
 
     // The page's first example sits in the hero, whose line height is 24px where the prose below it has 26px.
     private static Component Intro() => Div.Style("line-height:24px")[Narrow(
-        // The primary button loses its border in dark, and is two pixels narrower for it.
-        Raw.Value("<style>.parity-save{width:66.78125px}.dark .parity-save{width:64.78125px}</style>"),
         Ui.Card.Inset.Soft.Lg[
             Ui.CardHeader[
                 Ui.CardHeading["Profile"],
                 Ui.CardSubheading["This is how others will see you"],
-                Ui.CardActions[StandIn("width:32px;height:32px")]
+                Ui.CardActions[Ui.Button.Sm.Ghost.Icon(Ui.IconName.EllipsisHorizontal).AriaLabel("More options")]
             ],
             Ui.CardBody[
                 StandIn("height:75px;margin-bottom:24px", "Name"),
@@ -54,8 +53,8 @@ public sealed partial class CardParity : FluxParity
             Ui.CardFooter[
                 StandIn("height:20px", "Last saved 2 minutes ago"),
                 Ui.CardActions[
-                    StandIn("width:78.484375px;height:40px", "Cancel"),
-                    StandIn("height:40px", "Save", "parity-save")
+                    Ui.Button.Ghost["Cancel"],
+                    Ui.Button.Primary["Save"]
                 ]
             ]
         ])];
@@ -64,7 +63,7 @@ public sealed partial class CardParity : FluxParity
         Ui.Card[
             StandIn("height:24px", "Are you sure?"),
             StandIn("height:40px;margin:8px 0 16px", "Your post will be deleted permanently."),
-            StandIn("display:inline-flex;width:74.94px;height:40px;vertical-align:top", "Delete")
+            Ui.Button.Danger["Delete"]
         ]);
 
     private static Component Variants() =>
@@ -91,7 +90,7 @@ public sealed partial class CardParity : FluxParity
         card[
             Ui.CardHeader[
                 Ui.CardHeading[name],
-                Ui.CardActions[StandIn("width:51.390625px;height:32px", "Edit")]
+                Ui.CardActions[Ui.Button.Sm["Edit"]]
             ],
             Ui.CardBody[StandIn($"height:{text}px")]
         ];
@@ -117,7 +116,7 @@ public sealed partial class CardParity : FluxParity
             Ui.CardFooter[
                 Ui.CardHeading["Morning hike"],
                 Ui.CardSubheading["Sept 12"],
-                Ui.CardActions[StandIn("width:32px;height:32px")]
+                Ui.CardActions[Ui.Button.Sm.Ghost.Icon(Ui.IconName.EllipsisHorizontal).AriaLabel("More options")]
             ]
         ]);
 
@@ -126,7 +125,7 @@ public sealed partial class CardParity : FluxParity
         Ui.Card.Muted.Flush[
             Ui.CardHeader[
                 Ui.CardHeading["Past transactions"],
-                Ui.CardActions[StandIn("width:32px;height:32px")]
+                Ui.CardActions[Ui.Button.Sm.Filled.Icon(Ui.IconName.AdjustmentsHorizontal).AriaLabel("Filter transactions")]
             ],
             Ui.CardBody[
                 Ui.Table.Bleed()[
@@ -152,7 +151,7 @@ public sealed partial class CardParity : FluxParity
     private static Component OutsideACard() => Narrow(
         Ui.CardHeader[
             Ui.CardHeading.Lg["Security"],
-            Ui.CardActions[StandIn("width:101.265625px;height:32px", "Activity log")]
+            Ui.CardActions[Ui.Button.Sm["Activity log"]]
         ],
         Ui.Card[
             StandIn("height:44px", "Password"),
@@ -170,13 +169,13 @@ public sealed partial class CardParity : FluxParity
                 Ui.CardHeader[
                     Ui.CardHeading["Pro plan"],
                     Ui.CardSubheading["$24 per month, renews Oct 12"],
-                    Ui.CardActions[StandIn("width:110.25px;height:32px", "Change plan")]
+                    Ui.CardActions[Ui.Button.Sm["Change plan"]]
                 ],
                 StandIn("height:34px", "Seats used"),
                 Ui.Separator.Subtle.Class("parity-my-6"),
                 Ui.CardHeader[
                     Ui.CardHeading["Payment method"],
-                    Ui.CardActions[StandIn("width:72.484375px;height:32px", "Update")]
+                    Ui.CardActions[Ui.Button.Sm.Ghost["Update"]]
                 ],
                 StandIn("height:24px", "Visa ending in 4242 · Expires 08/28")
             ],
@@ -204,6 +203,6 @@ public sealed partial class CardParity : FluxParity
     /// <summary>
     ///     A neighbouring Flux component that is not the card's: a box of its measured size, compared by that box alone.
     /// </summary>
-    private static Component StandIn(string box, string? text = null, string? name = null) =>
-        Div.Data("parity-skip").Class(name).Style(box + ";overflow:hidden;font-size:14px;line-height:20px;white-space:nowrap")[text ?? ""];
+    private static Component StandIn(string box, string? text = null) =>
+        Div.Data("parity-skip").Style(box + ";overflow:hidden;font-size:14px;line-height:20px;white-space:nowrap")[text ?? ""];
 }

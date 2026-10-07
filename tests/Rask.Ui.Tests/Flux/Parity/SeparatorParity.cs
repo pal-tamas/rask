@@ -20,13 +20,18 @@ public sealed partial class SeparatorParity : FluxParity
     private static Component Column(Component separator) =>
         Div.Style("width:384px;margin:0 auto")[separator];
 
-    // Flux's row is its theme button, the separator and a "Log in" button. Both buttons are other
-    // components, so they are plain stand-ins of the same height here — unmarked, and parity.mjs says they
-    // were not compared. They become Ui.Button when the button is rebuilt.
+    // Flux's row is its theme button, the separator and a "Log in" button. The theme button is a subtle
+    // square whose resting ink the docs page sets to zinc-300 with a class of its own — an APP's utility,
+    // so it is stated here under this page's name. Flux wraps it in its tooltip, which is not rebuilt yet:
+    // the wrapper and the hidden bubble are stand-ins, the button inside is compared.
     private static Component Bar(Component separator) =>
         Div.Style("display:flex;gap:24px;align-items:center;justify-content:center")[
-            Button.Type(ButtonType.Button).Style("width:40px;height:40px"),
+            Raw.Value("<style>.parity-moon:not(:hover){color:var(--color-zinc-300)}</style>"),
+            Div.Style("display:flex").Attributes(("data-ui-tooltip", ""), ("data-parity-skip", "self"))[
+                Ui.Button.Subtle.Icon(Ui.IconName.Moon).Class("parity-moon").AriaLabel("Switch to dark theme"),
+                Div.Style("display:none").Attributes(("data-ui-tooltip-content", ""), ("data-parity-skip", ""))
+            ],
             separator,
-            Button.Type(ButtonType.Button).Style("height:40px;padding:0 16px")["Log in"]
+            Ui.Button["Log in"]
         ];
 }

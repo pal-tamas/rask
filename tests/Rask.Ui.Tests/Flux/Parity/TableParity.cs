@@ -6,7 +6,8 @@ namespace Rask.UiTests.Flux.Parity;
 /// <remarks>
 ///     <para>
 ///     A table's cells hold OTHER Flux components — avatars, badges, a row menu — and its page sets it in a
-///     card and under a pager. None of those is rebuilt yet, so each is a plain box of the measured size
+///     card and under a pager. The card, its heading and text, and every button are the real ones. The avatar,
+///     the badge, the dropdown around a row's button and the pager are not rebuilt yet, so each is a plain box
 ///     marked <c>data-parity-skip</c>: the comparison holds it to the room it takes and looks no further.
 ///     Everything that is the table's own is compared whole.
 ///     </para>
@@ -21,7 +22,7 @@ public sealed partial class TableParity : FluxParity
     // The kit's sheet is compiled from the kit's sources alone, so it has no reason to carry these.
     private const string AppUtilities =
         ".flex{display:flex}.items-center{align-items:center}.gap-3{gap:12px}.py-0{padding-block:0}"
-        + ".font-medium{font-weight:500}.mt-1{margin-top:4px}.mt-4{margin-top:16px}.mt-6{margin-top:24px}.max-h-80{max-height:320px}"
+        + ".font-medium{font-weight:500}.mt-1{margin-top:4px}.mt-4{margin-top:16px}.mt-6{margin-top:24px}.max-h-80{max-height:320px}.parity-menu-gap{margin-right:6px}"
         + ".parity-surface{background-color:#fff}.dark .parity-surface{background-color:oklch(0.21 0.006 285.885)}";
 
     // `bg-white dark:bg-zinc-900` there, under a name of its own: unlayered here, a real `.bg-white` would
@@ -81,7 +82,7 @@ public sealed partial class TableParity : FluxParity
                     Ui.TableCell.Class("whitespace-nowrap")[order.Date],
                     Ui.TableCell.Class("py-0")[Badge(order.Status)],
                     Ui.TableCell.Variant(Ui.TableCellVariant.Strong)[order.Amount],
-                    Ui.TableCell.Class("py-0")[RowMenu(32)]
+                    Ui.TableCell.Class("py-0")[RowMenu()]
                 ])
             ]
         ];
@@ -110,10 +111,13 @@ public sealed partial class TableParity : FluxParity
             Ui.TableCell.Variant(Ui.TableCellVariant.Strong)[amount]
         ];
 
-    // The card is Ui.Card and states the gutter; its heading row, with a button in it, is a stand-in.
+    // The card is Ui.Card and states the gutter; its heading row is the app's own flex row.
     private static Component InACard() =>
         Ui.Card[
-            Div.Style("height:44px").Attributes(("data-parity-skip", ""))["Recent customers"],
+            Div.Style("display:flex;align-items:center;justify-content:space-between;gap:16px")[
+                Div[Ui.Heading["Recent customers"], Ui.Text.Class("mt-1")["Your latest customer activity."]],
+                Ui.Button.Sm.Icon(Ui.IconName.Plus)["Add customer"]
+            ],
             Ui.Table.Bleed().ContainerClass("mt-6")[
                 Ui.TableColumns[
                     Ui.TableColumn["Customer"],
@@ -186,7 +190,7 @@ public sealed partial class TableParity : FluxParity
                     Ui.TableCell[order.Date],
                     Ui.TableCell.Class("py-0")[Badge(order.Status)],
                     Ui.TableCell.Variant(Ui.TableCellVariant.Strong)[order.Amount],
-                    Ui.TableCell.Class("py-0")[RowMenu(38)]
+                    Ui.TableCell.Class("py-0")[RowMenu("parity-menu-gap")]
                 ])
             ]
         ];
@@ -210,7 +214,7 @@ public sealed partial class TableParity : FluxParity
                     Ui.TableCell[order.Date],
                     Ui.TableCell.Class("py-0")[Badge(order.Status)],
                     Ui.TableCell.Variant(Ui.TableCellVariant.Strong)[order.Amount],
-                    Ui.TableCell.Class("py-0")[RowMenu(38)]
+                    Ui.TableCell.Class("py-0")[RowMenu("parity-menu-gap")]
                 ])
             ]
         ];
@@ -228,10 +232,13 @@ public sealed partial class TableParity : FluxParity
         Div.Style("display:inline-flex;align-items:center;padding:4px 8px;border-radius:6px;font-size:12px;line-height:16px;font-weight:500;background:rgb(74 222 128/.2)")
             .Attributes(("data-parity-skip", ""))[status];
 
-    // flux:dropdown around a ghost button: a stand-in. A glyph of text sets it on the line as Flux's sits.
-    private static Component RowMenu(int width) =>
-        Div.Style("display:inline-flex").Attributes(("data-parity-skip", ""))[
-            Div.Style($"display:flex;align-items:center;justify-content:center;width:{width}px;height:32px;font-size:14px;line-height:20px")["…"]
+    // flux:dropdown around a ghost button. The dropdown and its closed menu are stand-ins — neither is
+    // rebuilt yet — and the button between them is compared. The sticky tables' examples set theirs 6px in
+    // from the edge, which is the docs page's doing and is stated in AppUtilities.
+    private static Component RowMenu(string? gap = null) =>
+        Div.Style("display:inline-flex").Attributes(("data-ui-dropdown", ""), ("data-parity-skip", "self"))[
+            Ui.Button.Ghost.Sm.Icon(Ui.IconName.EllipsisHorizontal).Class(gap),
+            Div.Style("display:none").Attributes(("data-ui-menu", ""), ("data-parity-skip", ""))
         ];
 
     // flux:pagination: a stand-in. The table places it; the pager draws itself.

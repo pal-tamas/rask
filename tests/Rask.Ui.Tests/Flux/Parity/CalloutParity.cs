@@ -8,11 +8,11 @@ namespace Rask.UiTests.Flux.Parity;
 /// </summary>
 /// <remarks>
 ///     <para>
-///     The buttons in the <c>actions</c> and <c>controls</c> slots and the badge beside one heading are
-///     Flux's button and badge, which are not rebuilt yet. Each is a stand-in here: a box of the size Flux's
-///     measures, marked <c>data-parity-skip</c> so the tool holds it to its place and its size and leaves
-///     its inside to that component's own page. Everything else — the callout, its icon, heading, text and
-///     link, and where the slots sit — is compared whole.
+///     The buttons in the <c>actions</c> and <c>controls</c> slots are <c>Ui.Button</c>. The badge beside
+///     one heading is Flux's badge, which is not rebuilt yet: a stand-in, a box of the size Flux's measures,
+///     marked <c>data-parity-skip</c> so the tool holds it to its place and its size and leaves its inside to
+///     that component's own page. Everything else — the callout, its icon, heading, text and link, the
+///     buttons, and where the slots sit — is compared whole.
 ///     </para>
 ///     <para>
 ///     Two things on that page are the page's rather than the component's, and are written here as an app
@@ -76,7 +76,7 @@ public sealed partial class CalloutParity : FluxParity
 
         yield return ("with-actions", Frame(
             "width:100%;max-width:512px",
-            Ui.Callout.Icon(Ui.IconName.Clock).Actions([StandIn("Renew now", 111.11), StandIn("View plans", 104.89)])[
+            Ui.Callout.Icon(Ui.IconName.Clock).Actions([Ui.Button["Renew now"], Ui.Button.Ghost.Href("/pricing")["View plans"]])[
                 Ui.CalloutHeading["Subscription expiring soon"],
                 Ui.CalloutText["Your current plan will expire in 3 days. Renew now to avoid service interruption and continue accessing premium features."]
             ]));
@@ -84,10 +84,10 @@ public sealed partial class CalloutParity : FluxParity
         yield return ("inline-actions", Frame(
             Wide,
             Ui.Callout.Icon(Ui.IconName.Cube).Secondary.Inline().Class("mb-6")
-                .Actions([StandIn("Track order ->", 128.28), StandIn("Reschedule", 110.2)])[
+                .Actions([Ui.Button["Track order ->"], Ui.Button.Ghost["Reschedule"]])[
                 Ui.CalloutHeading["Your package is delayed"]
             ],
-            Ui.Callout.Icon(Ui.IconName.ExclamationTriangle).Secondary.Inline().Actions(StandIn("Update billing", 126.08))[
+            Ui.Callout.Icon(Ui.IconName.ExclamationTriangle).Secondary.Inline().Actions(Ui.Button["Update billing"])[
                 Ui.CalloutHeading["Payment issue detected"],
                 Ui.CalloutText["Your last payment attempt failed. Update your billing details to prevent service interruption."]
             ]));
@@ -95,15 +95,15 @@ public sealed partial class CalloutParity : FluxParity
         yield return ("dismissible", Frame(
             Wide,
             Div[
-                Ui.Callout.Icon(Ui.IconName.Bell).Secondary.Inline().Controls(StandIn("×", 40))[
+                Ui.Callout.Icon(Ui.IconName.Bell).Secondary.Inline().Controls(Ui.Button.Ghost.Icon(Ui.IconName.XMark))[
                     Div.Style(HeadingRow)[Ui.CalloutHeading["Upcoming meeting"], Ui.CalloutText["10:00 AM"]]
                 ]
             ],
             // The two wrapping divs carry Alpine's collapse and fade on Flux's page; they take no room.
             Div[Div[
                 Ui.Callout.Icon(Ui.IconName.FingerPrint).Secondary.Class("mt-6")
-                    .Actions([StandIn("Change password", 155.16), StandIn("Review activity", 132.75)])
-                    .Controls(StandIn("×", 40))[
+                    .Actions([Ui.Button["Change password"], Ui.Button.Ghost["Review activity"]])
+                    .Controls(Ui.Button.Ghost.Icon(Ui.IconName.XMark))[
                     Ui.CalloutHeading["Unusual login attempt"],
                     Ui.CalloutText[
                         "We detected a login from a new device in ",
@@ -146,7 +146,7 @@ public sealed partial class CalloutParity : FluxParity
         yield return ("examples", Frame(
             Wide,
             Ui.Callout.Icon(Ui.IconName.ShieldCheck).Color(Ui.Color.Blue).Inline().Class("parity-full-height")
-                .Actions(StandIn("Upgrade to Pro ->", 152.11))[
+                .Actions(Ui.Button["Upgrade to Pro ->"])[
                 Ui.CalloutHeading["API access is restricted"],
                 Ui.CalloutText["Get access to all of our premium features and benefits."]
             ]));
@@ -154,7 +154,7 @@ public sealed partial class CalloutParity : FluxParity
         // Upgrade offer.
         yield return ("examples", Frame(
             Wide,
-            Ui.Callout.Icon(Ui.IconName.Banknotes).Color(Ui.Color.Lime).Inline().Actions(StandIn("Switch now ->", 128.39))[
+            Ui.Callout.Icon(Ui.IconName.Banknotes).Color(Ui.Color.Lime).Inline().Actions(Ui.Button["Switch now ->"])[
                 Ui.CalloutHeading["You could save $4,900/yr on annual billing."]
             ]));
 
@@ -162,7 +162,7 @@ public sealed partial class CalloutParity : FluxParity
         yield return ("examples", Frame(
             Wide,
             Ui.Callout.Secondary.Icon(Ui.IconName.UserGroup)
-                .Actions([StandIn("Invite member", 129.56), StandIn("Manage team", 123.11)])[
+                .Actions([Ui.Button["Invite member"], Ui.Button.Ghost["Manage team"]])[
                 Div.Style(HeadingRow)[
                     Ui.CalloutHeading["Team collaboration"],
                     // Flux's badge, inset top and bottom: 24px tall in a 20px line.
@@ -174,7 +174,7 @@ public sealed partial class CalloutParity : FluxParity
 
     private static Component Message(Ui.Color color) =>
         Ui.Callout.Color(color).Icon(Ui.IconName.ExclamationCircle).Inline().Heading("You've received a new message.")
-            .Actions(StandIn("View message", 131.38));
+            .Actions(Ui.Button["View message"]);
 
     // The 606px an example has on Flux's page, with what holds the callout centred in it.
     private static Component Frame(string holder, params Component[] items) =>
