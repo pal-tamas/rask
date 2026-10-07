@@ -85,9 +85,16 @@ const NATIVE = {
   // The tooltip's wrapper: the kit wires the trigger at render and the browser shows the [popover].
   // A toggleable tooltip is a <ui-dropdown> on Flux's page, under the tooltip's marker.
   'ui-tooltip': 'div', 'ui-dropdown': 'div',
+  // The select's, the autocomplete's and the pillbox's elements: a native popover and C# key handling in their place.
+  'ui-select': 'div', 'ui-selected': 'div', 'ui-options': 'div', 'ui-option': 'div', 'ui-option-empty': 'div',
+  'ui-option-create': 'div', 'ui-empty': 'div', 'ui-pillbox': 'div', 'ui-pillbox-trigger': 'div',
+  'ui-selected-remove': 'div',
 };
+// …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
+// opens the file input inside it when clicked, where Flux's <div> calls input.click().
+const NATIVE_PART = { 'input-file': 'label' };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
-const sameTag = (a, b) => (NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
+const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
 const MISMARKED = { 'ui-disclosure-group': 'accordion' };
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
@@ -199,7 +206,9 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
   if (standIn) return;
   if (own) compareLook(theirs, a, mine, b, where, diffs);
 
-  const kids = (example, n) => example.nodes.filter(c => c.parent === n.id);
+  // A <template> draws nothing: it holds what Flux's script clones from (a select's picked option), and the
+  // native element Rask.Ui writes in that element's place has no use for one.
+  const kids = (example, n) => example.nodes.filter(c => c.parent === n.id && c.tag !== 'template');
   const ca = kids(theirs, a);
   const cb = kids(mine, b);
   if (ca.length !== cb.length) {

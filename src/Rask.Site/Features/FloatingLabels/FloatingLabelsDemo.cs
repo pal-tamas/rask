@@ -20,7 +20,9 @@ public sealed partial class FloatingLabelsDemo : Component
             Ui.Input.Bind(() => _model.FullName).Label("Full name").Id("ff-FullName"),
             Ui.Input.Bind(() => _model.Email).Label("Email address").Type(InputType.Email).Id("ff-Email"),
             Ui.Input.Bind(() => _model.Age).Label("Age").Id("ff-Age"),
-            Ui.Select.Bind(() => _model.Plan).Options(Plans).Label("Plan").Placeholder("— choose —").Id("ff-Plan"),
+            Ui.Select.Bind(() => _model.Plan).Label("Plan").Placeholder("— choose —").Id("ff-Plan")[
+                Plans.Select(plan => Ui.SelectOption.Key(plan.Text).Value(plan.Value)[plan.Text])
+            ],
             Ui.Textarea.Bind(() => _model.Bio).Label("Short bio").Id("ff-Bio"),
             Div.Class("mt-1")[
                 Ui.Button.Primary.Icon(Ui.IconName.UserPlus).Submit["Create account"]

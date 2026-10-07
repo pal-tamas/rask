@@ -104,10 +104,31 @@ Rendered attributes are not in that gate: compare them with Flux's live DOM (mar
 - Follow `CLAUDE.md` and `docs/api-style.md`; XML-doc every public member in a line or two.
 
 **Form controls** take Flux's `Label` / `Description` / `DescriptionTrailing` / `Badge` and never draw a
-label themselves: implement `IUiFieldControl` (`ControlId` = `UiFieldId.Derive(Id, Bind, Label)`, `Bound` =
-`Bind`) and, in `Render`, `var field = UiWithField.For(this, Label, Description, DescriptionTrailing, Badge);`
-→ put `field.ControlId`, `data-ui-control` and `.Aria(field.Aria)` on the control's own element →
-`return field.Wrap(control);` (a checkbox, radio or switch: `field.Wrap(control, Ui.FieldVariant.Inline, controlFirst: true)`).
+label themselves. The recipe (`UiInput.cs` and `UiTextarea.cs` are the two to copy):
+1. `public sealed partial class UiX<T> : Component, IFormControl<T>, IUiFormControl` — NOT `UiFormField<T>`, which
+   stays only for the daisyUI controls and is deleted with the last of them. Declare the five binding props
+   (`Value`, `OnChange`, `Bind`, `Validate`, `AfterBind`), Flux's props, `Invalid`, `ShowValidation`, `Id`, `Class`;
+   `string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Bind, Label);`, `LambdaExpression? IUiFieldControl.Bound => Bind;`
+   (a prop Flux does not document on that part, e.g. `Badge` on the input: `string? IUiFormControl.Badge => null;`).
+2. In `Render`: `var field = UiWithField.For(this);` → build the native control → `.Id(field.ControlId)`,
+   `.Aria(field.Aria)` (`aria-invalid`, `aria-describedby`), `data-ui-control` plus `data-invalid` when
+   `field.Invalid` → `return field.Wrap(control);` (a checkbox, radio or switch:
+   `field.Wrap(control, Ui.FieldVariant.Inline, controlFirst: true)`). No label and no description ⇒ `Wrap` returns
+   the control alone, and it shows no message.
+3. Binding: a control that IS one native element forwards to Core's — `Bind is { } bind ?
+   Input.Bind(bind).Validate(Validate).AfterBind(AfterBind) : Input.Value(Value).OnChange(OnChange)` (both hand back
+   the same element; same for `Textarea`, `Select`). A control drawn from several elements reads and commits through
+   `UiFormCommit.Resolve(this)` / `UiFormCommit.CommitAsync(…)`.
+4. State a click changes (a reveal toggle) is a private field set in the handler; what CSS can decide (a clear button
+   hidden while `:placeholder-shown`) is CSS. No script, and nothing Flux does not have: a behaviour that needs page
+   script goes in `FluxConformanceTests.NotTranslated` with the hook it is waiting for.
+5. Class literals shared by a generic control live in a non-generic `internal static class UiXLook` (a static in
+   `UiX<T>` is one copy per `T`, S2743). An enum member named after a tag (`Button`, `Input`) is not reachable as a
+   step — the component inherits the markup entry of that name — so it is `.As(Ui.InputAs.Button)`.
+
+A custom element is written as the native one that behaves that way without script (`ui-label` → `<label for>`);
+`parity.mjs`'s `NATIVE` (by tag) and `NATIVE_PART` (by marker) tables name each pair, and a stand-in for a control
+not rebuilt yet carries `data-parity-skip` (held to its place and size only).
 
 **Bleed** is one contract, the card's (Flux's `--flux-bleed-*`): `Ui.Card` and `Ui.CardBody` set
 `--ui-card-radius`, `--ui-bleed-x`, `--ui-bleed`, `--ui-bleed-top|bottom` and `--ui-bleed-top|bottom-radius`;
@@ -137,8 +158,25 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip kanban` today, plus the open-state scripts `parity-toast.mjs` and
-`parity-tooltip.mjs`).
+card accordion callout button toast badge tooltip kanban input textarea select autocomplete pillbox` today, plus the
+open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs` and
+`parity-pillbox.mjs`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
+- **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
+  `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
+  pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
+  box against the trigger and a row hovered and pressed. `--record` walks Flux's page alone and prints every
+  step — write the behaviour table from that BEFORE the component; `--live <url>` walks a running site against
+  Flux's, since a static page has no runtime (`--wait 2200` on a Debug WASM site, which takes over a second
+  to draw a page of demos again). A state that needs picks first (`pick: [1, 2]`) gets a parity page of its
+  own written with them (`PillboxPickedParity`, `raskPage`). A difference the runtime cannot close yet is a
+  walk of its own marked `accepted`, and an entry in `NotTranslated`.
+- **A control built over another** hands it what is its own through an INTERNAL chain step written by hand
+  (`UiInput.HostedBy`, `UiSelectControl.AsPillbox`): no public prop, so no step Flux does not have. Such a
+  step must call `BuilderRuntime.MarkChanged(this)` as a generated one does, or the child serves its cached
+  render, and it goes BEFORE the `[children]` indexer, which hands back a plain `Component`.
+- The runtime runs the CLOSEST handler of an event and no ancestor's: a cross inside a trigger needs no
+  stop-propagation, and a click on a child with no handler is the trigger's.
+- A `<template>` under a Flux node is skipped: it draws nothing.
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -237,6 +275,9 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   div card `flux-kanban-card` (no `data-`) and its button card `data-flux-kanban-card`; the kit copies both
   (`ui-kanban-card`, `data-ui-kanban-card`). Parity stand-ins: the dropdown and menu in a column's actions, the
   avatars in a card's footer. The site's demo has two plain buttons where Flux has that dropdown.
+- Pillbox: `Ui.PillboxTrigger.Clearable()`, a disabled pillbox and an invalid `Ui.PillboxInput` are drawn
+  from the select's and the input's looks — no example on Flux's page shows them, so nothing measured them.
+  A create row written before the options is DRAWN first and still comes last for the arrow keys.
 - Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
   `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
   removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —
@@ -331,4 +372,5 @@ what the branch ADDS; `git checkout HEAD -- <file>` puts ours back.
   `<ui-tooltip>`. Goes Flux's way when `Ui.Tooltip` merges.
 - `sync.mjs` and `lib.mjs` on main changed (#1189): the lock is CI's, animations rest through
   `window.__fluxRest()`. Merge main's with this harness; keep the recording of animation definitions.
-- The comparison in `parity.mjs` is not importable; open-state scripts copy it. Move it to a module.
+- The comparison in `parity.mjs` is not importable; `open.mjs` holds the one copy the open-state scripts
+  share. Move parity.mjs's to a module and have `open.mjs` import it.

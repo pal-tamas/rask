@@ -1525,6 +1525,10 @@ genuine controllers; `[Route]` on one of those is correct and is never reported.
 
 **Option template on a native select** · Warning
 
+`Ui.Select` no longer has `OptionTemplate` or `Native` — its options are children (`Ui.SelectOption`) and the
+variant (`.Listbox`, `.Combobox`) decides what draws them — so this diagnostic no longer fires for the kit's
+select, and the call sites below show the shape it was written for.
+
 An `<option>`'s content model is text. There is nowhere inside the platform's own control for a
 template's markup to go, so `UiSelect<T>`/`UiMultiSelect<T>` never call the template: the list renders
 its plain words, the build stays green, and the only way to notice is to look at the running page and
