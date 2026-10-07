@@ -19,7 +19,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
 
         var id = ContentId(html);
         Assert.Equal(
-            "<div class=\"inline-flex\" data-ui-tooltip>"
+            "<div class=\"[:where(&amp;)]:inline-flex\" data-ui-tooltip>"
             + $"<button aria-describedby=\"{id}\" interestfor=\"{id}\">Open</button>"
             + $"<div id=\"{id}\" class=\"{Look} inset-[5px] [position-area:top] [position-try-fallbacks:flip-block]\""
             + " popover=\"manual\" data-ui-tooltip-content role=\"tooltip\" aria-hidden=\"true\">Settings</div>"
@@ -82,7 +82,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Tooltip.Content("Search")[Ui.Kbd.Text("K")].ToHtml();
 
-        Assert.StartsWith("<div class=\"inline-flex\" data-ui-tooltip>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"[:where(&amp;)]:inline-flex\" data-ui-tooltip>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("role=\"group\"", html);
         Assert.DoesNotContain("aria-describedby", html);
     }
@@ -187,7 +187,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
         var html = Ui.Tooltip.Content("Nine digits").Toggleable()[Button["Why"]].ToHtml();
 
         var id = ContentId(html);
-        Assert.StartsWith("<div class=\"inline-flex\" data-ui-tooltip data-toggleable>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"[:where(&amp;)]:inline-flex\" data-ui-tooltip data-toggleable>", html, StringComparison.Ordinal);
         Assert.Contains($"<button aria-controls=\"{id}\" aria-haspopup=\"true\" popovertarget=\"{id}\">Why</button>", html);
         Assert.Contains("popover=\"auto\" data-ui-tooltip-content>Nine digits</div>", html);
         Assert.DoesNotContain("interestfor", html);
@@ -199,7 +199,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Tooltip.Content("Nine digits").Toggleable()[Ui.Icon.Name(Ui.IconName.InformationCircle)].ToHtml();
 
-        Assert.StartsWith("<div class=\"inline-flex\" data-ui-tooltip data-toggleable tabindex=\"0\">", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"[:where(&amp;)]:inline-flex\" data-ui-tooltip data-toggleable tabindex=\"0\">", html, StringComparison.Ordinal);
         Assert.Contains("popover=\"manual\" data-ui-tooltip-content>", html);
     }
 
@@ -219,7 +219,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
         var html = Ui.Tooltip.Content("Settings").Disabled()[Button["Open"]].ToHtml();
 
         var id = ContentId(html);
-        Assert.StartsWith("<div class=\"inline-flex\" data-ui-tooltip data-disabled>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"[:where(&amp;)]:inline-flex\" data-ui-tooltip data-disabled>", html, StringComparison.Ordinal);
         Assert.Contains($"<button aria-describedby=\"{id}\">Open</button>", html);
         Assert.DoesNotContain("interestfor", html);
     }
@@ -270,7 +270,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Tooltip.Content("Settings").Class("ms-auto")[Button["Open"]].ToHtml();
 
-        Assert.StartsWith("<div class=\"inline-flex ms-auto\" data-ui-tooltip>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"[:where(&amp;)]:inline-flex ms-auto\" data-ui-tooltip>", html, StringComparison.Ordinal);
     }
 
     private static string ContentId(string html) => ContentIdPattern().Match(html).Groups[1].Value;

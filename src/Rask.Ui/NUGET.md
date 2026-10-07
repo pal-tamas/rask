@@ -11,7 +11,7 @@ site and the docs showcase all draw with these.
   class names are invisible to *your* Tailwind build and would emit nothing. This package compiles its
   own sheet — daisyUI included — and hands it to you. No npm install, no Tailwind configuration, no
   `_content/` path to map.
-- **Ships no JavaScript.** Where the platform can own the interaction it does: a dialog is a real
+- **Ships no JavaScript — but for the rich text editor,** whose engine (Tiptap) is one script a page fetches only when an editor mounts. Where the platform can own the interaction it does: a dialog is a real
   `<dialog popover>`, so the browser supplies the top layer, Escape, light-dismiss and a native
   backdrop, and it all works on a prerendered page before any runtime has booted. Where it cannot, the
   state is a field in C# and redraws through the live diff.
@@ -92,7 +92,7 @@ reset is Tailwind's own, which the import brings.
 | Data display | `Ui.Accordion` `Ui.AccordionItem` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` (`Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed`) `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.List` `Ui.Stat` `Ui.StatusDot` `Ui.Table` (with `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell`) `Ui.DataGrid` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` |
 | Navigation | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.Menu` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Tabs` |
 | Feedback | `Ui.Callout` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` (Flux's tooltip: hover, focus or `Toggleable`, wired to its trigger for screen readers) |
-| Data input | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.MultiSelect` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` |
+| Data input | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.MultiSelect` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.Editor` (`Ui.EditorToolbar` `Ui.EditorButton` `Ui.EditorContent` and a part per toolbar item — Flux's rich text editor on Tiptap; its engine is a separate script, written by `<RaskUiEditor>true</RaskUiEditor>` and loaded when an editor mounts) |
 | Layout | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | Mockup | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | Chrome | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.MetricRow` `Ui.DetailList` `Ui.Code` `Ui.Search` |

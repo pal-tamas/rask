@@ -79,7 +79,7 @@ public sealed partial class UiTooltip : Component
         var toggled = Toggleable == true;
         var clicks = toggled && trigger is not null && UiTooltipTrigger.IsButton(trigger);
         var controls = toggled || Interactive == true;
-        var root = Div.Class("inline-flex", Class).Data(Marks(toggled));
+        var root = Div.Class("[:where(&)]:inline-flex", Class).Data(Marks(toggled));
 
         if (trigger is not null && toggled == clicks)
         {

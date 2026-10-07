@@ -75,6 +75,10 @@ public sealed class FluxConformanceTests
         ["flux:toast.group"] = typeof(UiToastGroup),
         ["flux:tooltip"] = typeof(UiTooltip),
         ["flux:tooltip.content"] = typeof(UiTooltipContent),
+        ["flux:editor"] = typeof(UiEditor),
+        ["flux:editor.toolbar"] = typeof(UiEditorToolbar),
+        ["flux:editor.button"] = typeof(UiEditorButton),
+        ["flux:editor.content"] = typeof(UiEditorContent),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -91,6 +95,8 @@ public sealed class FluxConformanceTests
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
+        ["flux:editor/custom-items"] = "A Blade file under resources/views/flux/editor, named in `toolbar`. In Rask an item of the app's own is composed into Ui.EditorToolbar[…] as a Ui.EditorButton.",
+        ["flux:editor/extensions"] = "`flux:editor` is a DOM event; the kit raises it as `ui:editor` on the editor, with the same registerExtension(s) / enableExtension / disableExtension / init.",
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
     };
 
@@ -125,6 +131,10 @@ public sealed class FluxConformanceTests
         ["flux:button/Command"] = "the <button>'s own `command`, which Flux forwards",
         ["flux:button/CommandFor"] = "the <button>'s own `commandfor`, which Flux forwards",
         ["flux:table.column/OnSort"] = "`wire:click=\"sort('…')\"` on a sortable column",
+        ["flux:editor/Bind"] = "`wire:model`, as the expression a Rask form binds by: Ui.Editor.Bind(() => post.Body)",
+        ["flux:editor/OnChange"] = "the change `wire:model` listens for: the editor's HTML, each time it changes",
+        ["flux:editor.button/IconVariant=Solid"] = "Ui.IconVariant is one enum for every icon; Flux's reference lists mini, micro and outline for this button",
+        ["flux:editor.button/OnClick"] = "`wire:click` / `x-on:click`, which Flux forwards to the <button>",
     };
 
     /// <summary>What every component takes, Flux's included: its classes, its identity, what is inside it.</summary>

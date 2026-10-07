@@ -737,6 +737,92 @@ Rask.UiDropdown.OpenOn.set -> void
 Rask.UiDropdown.Trigger.get -> string!
 Rask.UiDropdown.Trigger.set -> void
 Rask.UiDropdown.UiDropdown() -> void
+Rask.UiEditor
+Rask.UiEditor.Badge.get -> string?
+Rask.UiEditor.Badge.set -> void
+Rask.UiEditor.Bind.get -> System.Linq.Expressions.Expression<System.Func<string?>!>?
+Rask.UiEditor.Bind.set -> void
+Rask.UiEditor.Class.get -> string?
+Rask.UiEditor.Class.set -> void
+Rask.UiEditor.Description.get -> string?
+Rask.UiEditor.Description.set -> void
+Rask.UiEditor.DescriptionTrailing.get -> string?
+Rask.UiEditor.DescriptionTrailing.set -> void
+Rask.UiEditor.Disabled.get -> bool?
+Rask.UiEditor.Disabled.set -> void
+Rask.UiEditor.Id.get -> string?
+Rask.UiEditor.Id.set -> void
+Rask.UiEditor.Invalid.get -> bool?
+Rask.UiEditor.Invalid.set -> void
+Rask.UiEditor.Label.get -> string?
+Rask.UiEditor.Label.set -> void
+Rask.UiEditor.OnChange.get -> Rask.Core.Callback<string!>
+Rask.UiEditor.OnChange.set -> void
+Rask.UiEditor.Placeholder.get -> string?
+Rask.UiEditor.Placeholder.set -> void
+Rask.UiEditor.Toolbar.get -> string?
+Rask.UiEditor.Toolbar.set -> void
+Rask.UiEditor.UiEditor() -> void
+Rask.UiEditor.Value.get -> string?
+Rask.UiEditor.Value.set -> void
+Rask.UiEditorAlign
+Rask.UiEditorAlign.UiEditorAlign() -> void
+Rask.UiEditorBlockquote
+Rask.UiEditorBlockquote.UiEditorBlockquote() -> void
+Rask.UiEditorBold
+Rask.UiEditorBold.UiEditorBold() -> void
+Rask.UiEditorBullet
+Rask.UiEditorBullet.UiEditorBullet() -> void
+Rask.UiEditorButton
+Rask.UiEditorButton.Class.get -> string?
+Rask.UiEditorButton.Class.set -> void
+Rask.UiEditorButton.Disabled.get -> bool?
+Rask.UiEditorButton.Disabled.set -> void
+Rask.UiEditorButton.Icon.get -> Rask.Ui.IconName?
+Rask.UiEditorButton.Icon.set -> void
+Rask.UiEditorButton.IconVariant.get -> Rask.Ui.IconVariant?
+Rask.UiEditorButton.IconVariant.set -> void
+Rask.UiEditorButton.OnClick.get -> Rask.Core.Callback
+Rask.UiEditorButton.OnClick.set -> void
+Rask.UiEditorButton.Tooltip.get -> string?
+Rask.UiEditorButton.Tooltip.set -> void
+Rask.UiEditorButton.UiEditorButton() -> void
+Rask.UiEditorCode
+Rask.UiEditorCode.UiEditorCode() -> void
+Rask.UiEditorContent
+Rask.UiEditorContent.UiEditorContent() -> void
+Rask.UiEditorHeading
+Rask.UiEditorHeading.UiEditorHeading() -> void
+Rask.UiEditorHighlight
+Rask.UiEditorHighlight.UiEditorHighlight() -> void
+Rask.UiEditorItalic
+Rask.UiEditorItalic.UiEditorItalic() -> void
+Rask.UiEditorLink
+Rask.UiEditorLink.UiEditorLink() -> void
+Rask.UiEditorOrdered
+Rask.UiEditorOrdered.UiEditorOrdered() -> void
+Rask.UiEditorRedo
+Rask.UiEditorRedo.UiEditorRedo() -> void
+Rask.UiEditorSeparator
+Rask.UiEditorSeparator.UiEditorSeparator() -> void
+Rask.UiEditorSpacer
+Rask.UiEditorSpacer.UiEditorSpacer() -> void
+Rask.UiEditorStrike
+Rask.UiEditorStrike.UiEditorStrike() -> void
+Rask.UiEditorSubscript
+Rask.UiEditorSubscript.UiEditorSubscript() -> void
+Rask.UiEditorSuperscript
+Rask.UiEditorSuperscript.UiEditorSuperscript() -> void
+Rask.UiEditorToolbar
+Rask.UiEditorToolbar.Class.get -> string?
+Rask.UiEditorToolbar.Class.set -> void
+Rask.UiEditorToolbar.Items.get -> string?
+Rask.UiEditorToolbar.Items.set -> void
+Rask.UiEditorToolbar.UiEditorToolbar() -> void
+Rask.UiEditorUnderline
+Rask.UiEditorUnderline.UiEditorUnderline() -> void
+Rask.UiEditorUndo
+Rask.UiEditorUndo.UiEditorUndo() -> void
 Rask.UiElement
 Rask.UiElement.UiElement() -> void
 Rask.UiEmpty
@@ -999,6 +1085,11 @@ Rask.UiToastGroup.Expanded.set -> void
 Rask.UiToastGroup.Position.get -> Rask.Ui.ToastPosition?
 Rask.UiToastGroup.Position.set -> void
 Rask.UiToastGroup.UiToastGroup() -> void
+RaskBuilderSettersRask_Ui.extension(Rask.UiEditorButton!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiEditorButton!).Micro.get -> Rask.UiEditorButton!
+RaskBuilderSettersRask_Ui.extension(Rask.UiEditorButton!).Mini.get -> Rask.UiEditorButton!
+RaskBuilderSettersRask_Ui.extension(Rask.UiEditorButton!).Outline.get -> Rask.UiEditorButton!
+RaskBuilderSettersRask_Ui.extension(Rask.UiEditorButton!).Solid.get -> Rask.UiEditorButton!
 RaskBuilderSettersRask_Ui.extension(Rask.UiHeading!).Base.get -> Rask.UiHeading!
 RaskBuilderSettersRask_Ui.extension(Rask.UiHeading!).Xxl.get -> Rask.UiHeading!
 RaskBuilderSettersRask_Ui.extension(Rask.UiLink!).A.get -> Rask.UiLink!
@@ -1066,28 +1157,73 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).BottomStart.get -> Rask.
 RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).TopCenter.get -> Rask.UiToastGroup!
 RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).TopEnd.get -> Rask.UiToastGroup!
 RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).TopStart.get -> Rask.UiToastGroup!
+static Rask.Ui.Editor.get -> Rask.UiEditor!
+static Rask.Ui.EditorAlign.get -> Rask.UiEditorAlign!
+static Rask.Ui.EditorBlockquote.get -> Rask.UiEditorBlockquote!
+static Rask.Ui.EditorBold.get -> Rask.UiEditorBold!
+static Rask.Ui.EditorBullet.get -> Rask.UiEditorBullet!
+static Rask.Ui.EditorButton.get -> Rask.UiEditorButton!
+static Rask.Ui.EditorCode.get -> Rask.UiEditorCode!
+static Rask.Ui.EditorContent.get -> Rask.UiEditorContent!
+static Rask.Ui.EditorHeading.get -> Rask.UiEditorHeading!
+static Rask.Ui.EditorHighlight.get -> Rask.UiEditorHighlight!
+static Rask.Ui.EditorItalic.get -> Rask.UiEditorItalic!
+static Rask.Ui.EditorLink.get -> Rask.UiEditorLink!
+static Rask.Ui.EditorOrdered.get -> Rask.UiEditorOrdered!
+static Rask.Ui.EditorRedo.get -> Rask.UiEditorRedo!
+static Rask.Ui.EditorSeparator.get -> Rask.UiEditorSeparator!
+static Rask.Ui.EditorSpacer.get -> Rask.UiEditorSpacer!
+static Rask.Ui.EditorStrike.get -> Rask.UiEditorStrike!
+static Rask.Ui.EditorSubscript.get -> Rask.UiEditorSubscript!
+static Rask.Ui.EditorSuperscript.get -> Rask.UiEditorSuperscript!
+static Rask.Ui.EditorToolbar.get -> Rask.UiEditorToolbar!
+static Rask.Ui.EditorUnderline.get -> Rask.UiEditorUnderline!
+static Rask.Ui.EditorUndo.get -> Rask.UiEditorUndo!
 static Rask.Ui.Link.get -> Rask.UiLink!
 static Rask.Ui.Toast.get -> Rask.UiToast!
 static Rask.Ui.ToastGroup.get -> Rask.UiToastGroup!
 static Rask.Ui.Tooltip.get -> Rask.UiTooltip!
 static Rask.Ui.TooltipContent.get -> Rask.UiTooltipContent!
 static Rask.UiToast.Messages(System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>! messages, System.Action<int>! dismiss, Rask.ToastOptions! options) -> Rask.Core.Component!
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiEditor(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiEditorButton(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiEditorToolbar(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiToastGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTooltipContent(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiEditor(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiEditorButton(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiEditorToolbar(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiToastGroup(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTooltipContent(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiEditor(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiEditorButton(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiEditorToolbar(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiToastGroup(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTooltipContent(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b, bool? value) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Align(this Rask.UiTooltip! __b, Rask.Ui.TooltipAlign? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.As(this Rask.UiLink! __b, Rask.Ui.LinkAs? value) -> Rask.UiLink!
+static RaskBuilderSettersRask_Ui.Badge(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.Bind(this Rask.UiEditor! __b, System.Linq.Expressions.Expression<System.Func<string?>!>? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiEditor! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiEditorButton! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiEditorButton!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiEditorButton! __b, string? value) -> Rask.UiEditorButton!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiEditorToolbar! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiEditorToolbar!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiEditorToolbar! __b, string? value) -> Rask.UiEditorToolbar!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiToastGroup! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiToastGroup!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiToastGroup! __b, string? value) -> Rask.UiToastGroup!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiTooltipContent! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiTooltipContent!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiTooltipContent! __b, string? value) -> Rask.UiTooltipContent!
 static RaskBuilderSettersRask_Ui.Color(this Rask.UiText! __b, Rask.Ui.Color? value) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.Content(this Rask.UiTooltip! __b, string? value) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.Description(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.DescriptionTrailing(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiEditor! __b) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiEditor! __b, bool? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiEditorButton! __b) -> Rask.UiEditorButton!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiEditorButton! __b, bool? value) -> Rask.UiEditorButton!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiTooltip! __b) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiTooltip! __b, bool? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Gap(this Rask.UiTooltip! __b, int? value) -> Rask.UiTooltip!
@@ -1127,6 +1263,8 @@ static RaskBuilderSettersRask_Ui.get_Lime(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Lime(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Lime(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Lime(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Micro(Rask.UiEditorButton! __b) -> Rask.UiEditorButton!
+static RaskBuilderSettersRask_Ui.get_Mini(Rask.UiEditorButton! __b) -> Rask.UiEditorButton!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiText! __b) -> Rask.UiText!
@@ -1134,6 +1272,7 @@ static RaskBuilderSettersRask_Ui.get_Orange(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Orange(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Orange(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Orange(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiEditorButton! __b) -> Rask.UiEditorButton!
 static RaskBuilderSettersRask_Ui.get_Pink(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Pink(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Pink(Rask.UiProgress! __b) -> Rask.UiProgress!
@@ -1158,6 +1297,7 @@ static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiEditorButton! __b) -> Rask.UiEditorButton!
 static RaskBuilderSettersRask_Ui.get_Stone(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Stone(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Stone(Rask.UiProgress! __b) -> Rask.UiProgress!
@@ -1193,18 +1333,40 @@ static RaskBuilderSettersRask_Ui.get_TopEnd(Rask.UiToastGroup! __b) -> Rask.UiTo
 static RaskBuilderSettersRask_Ui.get_TopStart(Rask.UiToast! __b) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.get_TopStart(Rask.UiToastGroup! __b) -> Rask.UiToastGroup!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiLink! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiLink!
+static RaskBuilderSettersRask_Ui.Icon(this Rask.UiEditorButton! __b, Rask.Ui.IconName? value) -> Rask.UiEditorButton!
+static RaskBuilderSettersRask_Ui.IconVariant(this Rask.UiEditorButton! __b, Rask.Ui.IconVariant? value) -> Rask.UiEditorButton!
+static RaskBuilderSettersRask_Ui.Id(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.Inset(this Rask.UiBadge! __b, Rask.Ui.Inset? value) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.Interactive(this Rask.UiTooltip! __b) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Interactive(this Rask.UiTooltip! __b, bool? value) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiEditor! __b) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiEditor! __b, bool? value) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.Invert(this Rask.UiToast! __b) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.Invert(this Rask.UiToast! __b, bool? value) -> Rask.UiToast!
+static RaskBuilderSettersRask_Ui.Items(this Rask.UiEditorToolbar! __b, string? value) -> Rask.UiEditorToolbar!
 static RaskBuilderSettersRask_Ui.Kbd(this Rask.UiTooltipContent! __b, string? value) -> Rask.UiTooltipContent!
+static RaskBuilderSettersRask_Ui.Label(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.Offset(this Rask.UiTooltip! __b, int? value) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiEditor! __b, Rask.Core.Callback<string!>? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiEditor! __b, System.Action<string!>? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiEditor! __b, System.Action? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiEditor! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiEditor! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiEditor! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiEditor! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiEditorButton! __b, Rask.Core.Callback? value) -> Rask.UiEditorButton!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiEditorButton! __b, System.Action? value) -> Rask.UiEditorButton!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiEditorButton! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiEditorButton!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiEditorButton! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiEditorButton!
+static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.Position(this Rask.UiToast! __b, Rask.Ui.ToastPosition? value) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.Position(this Rask.UiToastGroup! __b, Rask.Ui.ToastPosition? value) -> Rask.UiToastGroup!
 static RaskBuilderSettersRask_Ui.Position(this Rask.UiTooltip! __b, Rask.Ui.TooltipPosition? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiHeading! __b, Rask.Ui.HeadingSize? value) -> Rask.UiHeading!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiText! __b, Rask.Ui.TextSize? value) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.Toolbar(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.Tooltip(this Rask.UiEditorButton! __b, string? value) -> Rask.UiEditorButton!
+static RaskBuilderSettersRask_Ui.Value(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiLink! __b, Rask.Ui.LinkVariant? value) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiText! __b, Rask.Ui.TextVariant? value) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_A(Rask.UiLink! __b) -> Rask.UiLink!
