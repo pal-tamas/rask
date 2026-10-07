@@ -181,6 +181,42 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Only_the_pointer_holds_a_countdown_and_a_permanent_toast_has_none_to_hold()
+    {
+        var timed = One(Say("Saved"));
+
+        var permanent = One(Say("Saved") with { Duration = Timeout.InfiniteTimeSpan });
+
+        // Measured on Flux: a toast whose close button has focus still goes on time.
+        Assert.Contains("data-rask-dismiss-after=\"5350\" data-rask-dismiss-hold=\"pointer\"", timed, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-dismiss-hold", permanent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_group_is_the_scope_one_pointer_holds_every_countdown_in_and_a_lone_toast_is_none()
+    {
+        var stack = Stack(expanded: false, Say("First", id: 1), Say("Second", id: 2));
+
+        var alone = One(Say("Saved"));
+
+        Assert.Matches("<div [^>]*data-ui-toast-group data-position=\"bottom end\" data-rask-popover-open=\"true\" data-rask-dismiss-scope role=\"status\">", stack);
+        Assert.Equal(2, Regex.Matches(stack, "data-rask-dismiss-hold=\"pointer\"").Count);
+        Assert.DoesNotContain("data-rask-dismiss-scope", alone, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_fade_waits_with_the_countdown_for_every_toast_of_a_hovered_stack()
+    {
+        var css = UiStylesheet.Css;
+
+        var paused = css.IndexOf("[data-ui-toast-group]:hover>[data-ui-toast-dialog]>:first-child{animation-play-state:paused!important}", StringComparison.Ordinal);
+
+        // Without it a toast the runtime is holding would fade out on time and stay, invisible.
+        Assert.True(paused > 0, "a hovered stack does not pause the fade of the toasts the pointer is not on");
+        Assert.Contains("[data-ui-toast-group]:hover>[data-ui-toast-dialog],", css[(paused - 200)..paused], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_stack_is_not_taken_down_by_Escape_and_opens_for_good_when_expanded()
     {
         var deck = Stack(expanded: false, Say("First", id: 1));

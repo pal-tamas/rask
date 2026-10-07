@@ -82,8 +82,11 @@ Rendered attributes are not in that gate: compare them with Flux's live DOM (mar
   kills the test process). A part that puts markup of its own around its children is a `Component`, not a
   `UiElement` (Core's serializer writes an element's children straight from the indexer) — `UiCallout`,
   `UiTable` via `HostedElement`. The one exception is `UiButton`, which stays the `<button>` and composes its
-  icon, spinner and tooltip in `RenderChildren`; that takes its enclosing component off the cached-render fast
-  path, so it only does it when it has such a part (plain `Ui.Button["Save"]` stays fast).
+  icon, spinner and `Kbd` in `RenderChildren`; that takes its enclosing component off the cached-render fast
+  path, so it only does it when it has such a part (plain `Ui.Button["Save"]` stays fast). With a `Tooltip` it
+  does what Flux does and wraps itself: `TagName` is null, `Render` returns `Ui.Tooltip[HostedElement.Owner(this)]`
+  and `BypassRenderCache` is on, because the label is baked into that render (`Element` says it bakes nothing,
+  and that cannot be overridden from the kit).
 - **A new tab:** `Ui.Link.External()` is Flux's prop and writes `rel="noopener noreferrer"` with the target. A
   button has no such prop in Flux, so it has none here: the call site forwards the anchor's own attributes,
   `.Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))`, and nothing is added to them.
@@ -172,9 +175,17 @@ card accordion callout button toast badge tooltip` today, plus the open-state sc
   pseudo-page: `node scripts/flux/parity-toast.mjs` raises each toast on Flux's page, measures it with
   `lib.mjs`, compares through `parity.mjs` under the name `toast-shown` (`ToastShownParity`) and adds a
   where-on-screen check (38 + 38). Its NATIVE pairs (`ui-toast`, `ui-toast-group`, `ui-close` → `div`) stay
-  local to it. `node scripts/flux/parity-tooltip.mjs` does the same for the tooltip (`TooltipShownParity`,
-  page `tooltip-shown`): 36 cases per scheme, then a pointer-and-keyboard walk whose known gaps it prints as
-  `KNOWN`. In `parity.mjs` itself `ui-tooltip` and `ui-dropdown` (what Flux renders a TOGGLEABLE tooltip as,
+  local to it. It ends with the COUNTDOWN, timed on both pages (`ToastTimedParity`, page `toast-timed`): a
+  hovered stack holds every toast, each resumes its remainder, focus holds nothing.
+  `node scripts/flux/parity-tooltip.mjs` does the same for the tooltip (`TooltipShownParity`,
+  page `tooltip-shown`): 36 cases per scheme — box, styles and the ARIA each side writes — then a
+  pointer-and-keyboard walk in which every step must agree (one, `OPEN`, is the runtime hook's to change).
+  **A page that is walked gets the runtime**: `runtime.mjs` bundles the hook modules from
+  `src/Rask.Core/Resources` with the build's cached esbuild and adds them to the static page, because what
+  Flux does in script the kit asks the runtime for. Both scripts wait on STATE (`:popover-open`, the same box
+  for three frames, every declared font face loaded), never on a delay: the tooltip script used to fail one
+  case in a batch when the medium Inter face, first needed by the first tooltip shown, was still loading.
+  In `parity.mjs` itself `ui-tooltip` and `ui-dropdown` (what Flux renders a TOGGLEABLE tooltip as,
   under the tooltip's marker) pair with `div`. `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
 - **Public API:** `python3 scripts/public-api/record.py src/Rask.Ui` builds and applies RS0016/RS0017 to
   both baselines (run it twice: a step exists only once its property compiles). It is the only such script.
@@ -204,17 +215,20 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   and PropsIdClassStyleDemo: goes with the old chrome.
 - `Ui.ThemeName` / `UiTheme` / `Ui.Shell.Theme` remain for the Dashboard's light pin and three DevTools test
   apps, and go with daisyUI; then `.dark` must set `color-scheme: dark` in `ui.css`, and the OS-preference
-  arm of `@custom-variant dark` goes too. `AppearanceToggle` is `Ui.Button.Subtle` now; its hand-drawn
-  tooltip has a `// SEAM:` to become the button's `Tooltip`/`TooltipKbd` when `Ui.Tooltip` lands.
+  arm of `@custom-variant dark` goes too. `AppearanceToggle` is `Ui.Button.Subtle` with the button's own
+  `Tooltip` / `TooltipKbd` / `TooltipPosition`, as Flux's header is.
 - Button: `UiClassNames.ButtonTone/ButtonVariant/ButtonSize` and the `.btn-*`, `.btn > svg`,
   `.btn[data-loading]` CSS stay until Popover, Dropdown, Fab, DayGrid, Filter, MultiSelect, Profile,
-  Pagination, Sidebar and the templates stop writing raw `btn`. `UiButtonTooltip` is an internal stopgap
-  (a child of the button shown by CSS). `Ui.Tooltip` is merged, but the button's `Tooltip` / `TooltipPosition`
-  (still `Ui.Position`) / `TooltipKbd` / `Kbd` props are NOT on it yet: Flux wraps the button in its tooltip,
-  and `UiButton` IS the `<button>`, so it cannot wrap itself — that needs the button to become a `Component`
-  around its element when it has a tooltip. Until then no parity page measures it, and the Site's
-  `AppearanceToggle` keeps its hand-drawn bubble (its `// SEAM:`). `Disabled`, `Command`/`CommandFor` are the `<button>`'s own
-  attributes, kept as such, not Flux props.
+  Pagination, Sidebar and the templates stop writing raw `btn`. `Disabled`, `Command`/`CommandFor` are the
+  `<button>`'s own attributes, kept as such, not Flux props. The button's tooltip is the real `Ui.Tooltip`
+  (measured where Flux's pages use the prop: the separator page's moon, which `SeparatorParity` now writes
+  with it, and the docs header). Measured and NOT as the reference reads: `kbd` alone is no tooltip — Flux
+  draws it inside the button, 12px zinc-400 after the label (the popover page's Cancel `esc`). Unmeasured,
+  no live example: where `kbd` sits against `icon:trailing` (written before it), and `tooltip:kbd` without
+  `tooltip` (shows nothing). A grouped button reaches Flux's group THROUGH its tooltip (measured by wrapping
+  the live groups' buttons): `UiButtonClasses.GroupedInTooltip`, added only to a button that has a tooltip or
+  that a `Ui.Tooltip` flagged (`InTooltip`), so a plain button's class list does not grow. Flux leaks its
+  Blade props onto the element (`tooltip="…"`, `tooltip:kbd="D"`); the kit does not write them.
 - The `.alert-*` contrast corrections stay in `ui.css` for the templates' hand-written `alert alert-*`.
 - The Dashboard's queue tiles lost their icon and hover (Flux's card has no link or icon props, and the
   Dashboard may not write classes): rebuilt on Flux pieces later.
@@ -225,7 +239,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   (the bare word stands in the kit's comments; `UiTooltipTests` asserts the absence) — the way to drop a
   daisy component whose name the kit still has to say. A `Toggleable()` tooltip around something that is
   not a `<button>` puts `tabindex="0"` on the WRAPPER so a tap can open it by focus: not Flux's markup, it
-  stands in for Flux's script and goes with the runtime hook below. Removed as non-Flux on merging: the
+  stands in for Flux's script and goes with a runtime hook that does not exist yet (below). Removed as non-Flux on merging: the
   wrapper's `role="group"` + `aria-describedby` around a trigger that is not one element (Flux wires only
   the trigger; nothing is wired there now). Added because Flux writes them: `aria-haspopup="true"` on a
   toggleable trigger, and `role="tooltip"` on an `Interactive()` tooltip's content.
@@ -263,7 +277,7 @@ component reaches Flux's behaviour by writing exactly these — never by a handl
 | Select (listbox button) | `data-rask-listbox-button` on the closed `button[role=combobox]` | Enter does nothing, the arrows do not scroll (open the list from the C# key handler: Flux opens on ArrowUp / ArrowDown / Space) |
 | OTP | group `data-rask-otp` (`="alpha"`, `="alphanumeric"`); cells rendered with NO `value`, NO handler, NO re-keying; ONE `Input.Type(Hidden)` inside, bound to the string | every key of Flux's otp input, fast typing included |
 | Toast | `data-rask-dismiss-hold="pointer"` beside `data-rask-dismiss-after` | focus no longer holds the countdown |
-| ToastGroup | `data-rask-dismiss-scope` on the group; `data-rask-stack` on the parent of the stacked toasts, and CSS from `--rask-stack-index` / `-height` / `-offset` | one pointer holds them all; the 350 ms glide |
+| ToastGroup | `data-rask-dismiss-scope` on the group (wired). `data-rask-stack` on the parent of the stacked toasts, and CSS from `--rask-stack-index` / `-height` / `-offset` (NOT wired — see below: the hook measures the cut height) | one pointer holds them all; the 350 ms glide |
 | Sidebar | collapse checkbox `data-rask-persist="flux-sidebar-collapsed-desktop"` (plus a head script for a WASM cold load); mobile checkbox `data-rask-uncheck-on-navigate` | state kept across visits; drawer closed on navigation |
 | Carousel | `data-rask-carousel`, `data-rask-carousel-track`, `data-rask-carousel-indicators`, `data-rask-carousel-controls` beside the `data-ui-*` markers; `data-direction`, `data-name`, `data-advance`, `data-wrap`, `data-scroll`, `data-autoplay` as today | position flags, arrows, indicators, autoplay |
 
@@ -276,14 +290,40 @@ second press can carry a handler id the first render retired — give stacked to
 the handler. An unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a `switch` among keyed call
 sites, was remounted on every parent render (unexplained). The built-in toast shows one at a time, as Flux's.
 
-Tooltip, not wired yet: `Ui.Tooltip` still shows itself by CSS and interest invokers, and `parity-tooltip.mjs`
-prints four `KNOWN` gaps — Escape does not dismiss it, a press brings it back on release, it goes when the
-pointer leaves a focused trigger, and `aria-expanded` is not written. The hook that closes all four EXISTS:
-write `data-rask-tooltip="<bubble id>"` on the `[data-ui-tooltip]` root, make the bubble `popover="manual"`,
-put `aria-expanded="false"` + `aria-controls` on an `Interactive()` trigger, and drop the CSS/interest-invoker
-path and the wrapper's `tabindex`. Any trigger then reaches the top layer. A `Toggleable()` tooltip (click to
-toggle) is NOT covered by the hook — it was not measured; around a `<button>` it stays the browser's
-`popovertarget`.
+Wired (2026-10-07): `Ui.Tooltip` writes `data-rask-tooltip` and an `Interactive()` trigger's
+`aria-expanded="false"`; the interest invoker and the `:hover` CSS are gone (`:hover` survives only under
+`@media (scripting: none)`). `Ui.Toast` writes `data-rask-dismiss-hold="pointer"`, `Ui.ToastGroup`
+`data-rask-dismiss-scope`, and `ui.css` pauses the fade of every toast of a hovered group (a held toast that
+faded would stay, unseen). What is NOT wired, each with what it needs:
+
+- **`Toggleable()`** — measured on Flux's `info` example (it renders a `ui-dropdown`): a hover does nothing, a
+  click opens, it stays when the pointer leaves and on a click inside, a second click / Escape / a click
+  outside close it, Enter opens. That is `popover="auto"` + `popovertarget` exactly, which is what a
+  `<button>` trigger gets. Missing hooks: (a) one that toggles a popover from an element that is NOT a button
+  (`data-rask-toggle="<id>"` on the wrapper: click and Enter/Space on its first child) — until then the
+  wrapper's `tabindex` stand-in stays; (b) one that mirrors `aria-expanded` on a `popovertarget` button from
+  its popover's `toggle` event — Flux writes `aria-expanded` there, the kit leaves it to the browser because a
+  written one would never change.
+- **`Interactive()` and a focus dropped to nothing** — Flux keeps an interactive tooltip open when its trigger
+  loses focus with no next element (`blur()`, the window), until a press outside; `rask-hover.ts` closes on
+  any `focusout` that leaves the wrapper. Tab into the content and out of it agree. `parity-tooltip.mjs`
+  prints it as `OPEN`.
+- **`data-rask-stack` (the 350 ms glide)** — NOT wired, and cannot be from the kit. Measured on Flux: every
+  toast is `position:absolute; bottom:0`; in the deck each toast's CARD is given the FRONT toast's height
+  (50px, `overflow:hidden`, so the dialog is 62px whatever its own height) and the dialog
+  `scaleX(1 − .05·min(i,2)) translateY(−10px·i)`; laid out, the card gets its own height back and the dialog
+  `translateY(−Σ heights in front)`; opacity, transform and height all transition over 0.35s ease. The hook
+  measures each child's `offsetHeight` when the child list changes — and in the deck that IS the cut height,
+  so `--rask-stack-height` / `-offset` come out as multiples of the front toast's height and a fan-out built
+  on them is wrong as soon as two toasts differ in height (`group-deck` in `parity-toast.mjs` is that case).
+  Cutting the card instead of the dialog needs the front toast's height inside every toast, which the three
+  variables do not carry (only index 1 has it, as its offset) and anchors cannot bring (an anchor is not
+  visible from inside a transformed toast, and `anchor-size()` is for the positioned box itself). The hook has
+  to (1) measure the natural height — the toast's first child's `scrollHeight` plus the toast's own padding —
+  and (2) write `--rask-stack-front`, the front child's. Then: newest LAST in the tree, drop the rendered
+  `--ui-toast-index` / anchor names from `style` (the hook holds `style` against the morph), and the CSS is
+  Flux's four lines. Until then the stack stays on CSS anchors, newest first: right in both states, and it
+  snaps between them.
 
 ## One stylesheet per app (merged 2026-10-07)
 - `Styles/ui.css` is the kit as Tailwind SOURCE (theme, `dark` variant, daisyUI, the `@layer rask` blocks):
@@ -319,8 +359,6 @@ what the branch ADDS; `git checkout HEAD -- <file>` puts ours back.
 ## Open work (integration stopped here on 2026-10-07 — see the integrator's report)
 - A stale `src/Rask.Site/obj/**/rask-external` folder can fail the site build after merging main
   (`@rask/routes` not found): delete that folder.
-- An icon-only button is named by `aria-label` from its `Tooltip`; Flux names it by `aria-labelledby` through
-  `<ui-tooltip>`. Goes Flux's way when `Ui.Tooltip` merges.
 - `sync.mjs` and `lib.mjs` on main changed (#1189): the lock is CI's, animations rest through
   `window.__fluxRest()`. Merge main's with this harness; keep the recording of animation definitions.
 - The comparison in `parity.mjs` is not importable; open-state scripts copy it. Move it to a module.

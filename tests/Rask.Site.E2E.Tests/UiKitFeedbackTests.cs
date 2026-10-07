@@ -251,6 +251,93 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
+    public Task Escape_dismisses_a_hovered_tooltip_and_a_press_keeps_it_away_until_the_pointer_returns() => RunAsync(async () =>
+    {
+        await OpenTooltipsAsync();
+
+        // The one around a button with text: not an icon button, and under the pointer rather than focused.
+        var tooltip = Page.Locator("[data-testid='ui-tooltip'] > [data-ui-tooltip]", new PageLocatorOptions { HasTextString = "Shortcut" });
+        var trigger = tooltip.Locator("button");
+        var content = tooltip.Locator("[data-ui-tooltip-content]");
+        await trigger.HoverAsync();
+        await Expect(content).ToBeVisibleAsync();
+
+        // Flux's four: Escape under the pointer, back on the next visit, gone on a press and still gone once
+        // the press is released — until the pointer has left and come back.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(content).ToBeHiddenAsync();
+        await Page.Mouse.MoveAsync(2, 2);
+        await trigger.HoverAsync();
+        await Expect(content).ToBeVisibleAsync();
+        await Page.Mouse.DownAsync();
+        await Expect(content).ToBeHiddenAsync();
+        await Page.Mouse.UpAsync();
+        await Page.Mouse.MoveAsync((await trigger.BoundingBoxAsync())!.X + 4, (await trigger.BoundingBoxAsync())!.Y + 4);
+        await Expect(content).ToBeHiddenAsync();
+        await Page.Mouse.MoveAsync(2, 2);
+        await trigger.HoverAsync();
+        await Expect(content).ToBeVisibleAsync();
+    });
+
+    [Fact]
+    public Task A_tooltip_shown_by_keyboard_focus_stays_when_the_pointer_passes_over_and_leaves() => RunAsync(async () =>
+    {
+        await OpenTooltipsAsync();
+
+        var tooltip = Page.Locator("[data-testid='ui-tooltip'] > [data-ui-tooltip]").First;
+        var content = tooltip.Locator("[data-ui-tooltip-content]");
+        await Page.Keyboard.PressAsync("Shift");
+        await tooltip.Locator("button").FocusAsync();
+        await Expect(content).ToBeVisibleAsync();
+
+        await tooltip.Locator("button").HoverAsync();
+        await Page.Mouse.MoveAsync(2, 2);
+
+        // A reader who tabbed here and nudged the mouse still needs the label; blur is what takes it away.
+        await Expect(content).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Tab");
+        await Expect(content).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task The_pointer_over_a_stack_holds_every_toast_in_it_and_each_goes_once_it_has_left() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        await Page.Locator("#toast-layout-stack").ClickAsync();
+        var toasts = Page.Locator("[data-ui-toast-group] > [data-ui-toast-dialog]");
+
+        // Two one-second toasts, and the pointer on the front one before either has run out.
+        await Page.Locator("#toast-brief").ClickAsync();
+        await Page.Locator("#toast-brief").ClickAsync();
+        await Expect(toasts).ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await toasts.Nth(0).Locator("> div").HoverAsync();
+        await Page.WaitForTimeoutAsync(3000);
+
+        // Three seconds on, both are there and neither has faded: the one the pointer is not on is held too.
+        await Expect(toasts).ToHaveCountAsync(2);
+        Assert.Equal(
+            ["1", "1"],
+            await toasts.EvaluateAllAsync<string[]>("all => all.map(toast => getComputedStyle(toast.firstElementChild).opacity)"));
+        await Page.Mouse.MoveAsync(2, 2);
+        await Expect(toasts).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task A_toast_with_focus_inside_it_still_goes_on_time() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var toast = Page.Locator("[data-ui-toast] > [data-ui-toast-dialog]");
+        await Page.Locator("#toast-brief").ClickAsync();
+        await Expect(toast).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Measured on Flux: focus holds nothing. The pointer is parked where it is over no toast.
+        await Page.Mouse.MoveAsync(2, 2);
+        await toast.Locator("[data-rask-dismiss]").FocusAsync();
+
+        await Expect(toast).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
     public Task A_tooltip_opens_on_each_side_it_is_asked_for() => RunAsync(async () =>
     {
         await OpenTooltipsAsync();

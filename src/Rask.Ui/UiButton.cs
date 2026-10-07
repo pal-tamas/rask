@@ -20,7 +20,7 @@ namespace Rask;
 ///     a glyph, so name it: <c>.Aria("label", "Close")</c>, or a <see cref="Tooltip" />, which names it too.
 ///     </para>
 /// </remarks>
-public sealed partial class UiButton : UiElement
+public sealed partial class UiButton : UiElement, IUiHost
 {
     private static readonly UiPartMarker Marker = new("ui-button");
 
@@ -102,17 +102,26 @@ public sealed partial class UiButton : UiElement
     /// </remarks>
     public bool? Loading { get; set; }
 
-    /// <summary>A hint shown while the button is hovered or focused. It names a button that has no label.</summary>
+    /// <summary>
+    ///     A hint shown while the button is hovered or focused: the button is wrapped in a
+    ///     <see cref="UiTooltip" />, as Flux wraps it. It names a button that has no label.
+    /// </summary>
     public string? Tooltip { get; set; }
 
     /// <summary>Which side of the button the tooltip opens on. Above when unset.</summary>
-    public Ui.Position? TooltipPosition { get; set; }
+    public Ui.TooltipPosition? TooltipPosition { get; set; }
 
-    /// <summary>A keyboard shortcut shown at the end of the tooltip: <c>"⌘S"</c>.</summary>
+    /// <summary>A keyboard shortcut shown at the end of the <see cref="Tooltip" />: <c>"⌘S"</c>.</summary>
     public string? TooltipKbd { get; set; }
 
-    /// <summary>A keyboard shortcut shown as a tooltip of its own. <see cref="TooltipKbd" /> wins when both are set.</summary>
+    /// <summary>A keyboard shortcut shown inside the button, after its label: <c>"esc"</c>.</summary>
     public string? Kbd { get; set; }
+
+    /// <summary>
+    ///     Set by a <see cref="UiTooltip" /> around this button: inside a group the button is then not the
+    ///     group's own child, and fuses by where its tooltip stands.
+    /// </summary>
+    internal bool InTooltip { get; set; }
 
     /// <summary>
     ///     Where it goes. Set this and it renders an <c>&lt;a&gt;</c>.
@@ -138,7 +147,14 @@ public sealed partial class UiButton : UiElement
     public string? CommandFor { get; set; }
 
     /// <inheritdoc />
-    protected override string TagName => (Link, As) switch
+    /// <remarks>None when it has a <see cref="Tooltip" />: it then renders as the tooltip, with its element inside.</remarks>
+    protected override string? TagName => Tooltip is null ? ElementTag : null;
+
+    /// <inheritdoc />
+    /// <remarks>The label is part of what a button with a tooltip renders, so that render is never reused.</remarks>
+    protected override bool BypassRenderCache => Tooltip is not null;
+
+    private string ElementTag => (Link, As) switch
     {
         (not null, _) or (_, Ui.ButtonAs.A) => "a",
         (_, Ui.ButtonAs.Div) => "div",
@@ -158,9 +174,7 @@ public sealed partial class UiButton : UiElement
     // caller set, either way: a flag that flips between renders must not change what the button is made of.
     private bool Loads => IsButton && (Loading is not null || OnClick.HasValue || Type == Ui.ButtonType.Submit);
 
-    private string? Hint => TooltipKbd ?? Kbd;
-
-    private bool HasParts => Icon is not null || IconTrailing is not null || Loads || Tooltip is not null || Hint is not null;
+    private bool HasParts => Icon is not null || IconTrailing is not null || Loads || Kbd is not null;
 
     /// <inheritdoc />
     protected override string? ResolveClass()
@@ -178,6 +192,9 @@ public sealed partial class UiButton : UiElement
             hued ? UiButtonClasses.Hue(Color!.Value) : null,
             variant == Ui.ButtonVariant.Primary && Color is { } accent ? UiButtonClasses.Accent(accent) : null,
             variant is Ui.ButtonVariant.Ghost or Ui.ButtonVariant.Subtle ? null : UiButtonClasses.Grouped(Sized),
+            variant is Ui.ButtonVariant.Ghost or Ui.ButtonVariant.Subtle || !(InTooltip || Tooltip is not null)
+                ? null
+                : UiButtonClasses.GroupedInTooltip(Sized),
             Inset is { } inset ? UiButtonClasses.Inset(inset, Sized) : null,
             Class);
     }
@@ -203,28 +220,6 @@ public sealed partial class UiButton : UiElement
         };
 
         return marker.With(Data);
-    }
-
-    /// <inheritdoc />
-    protected override IReadOnlyDictionary<string, string?>? ResolveAria()
-    {
-        // A square shows a glyph and nothing else, so its tooltip is the only words it has.
-        var label = Children is null && AriaLabel is null && Aria?.ContainsKey("label") != true ? Tooltip : null;
-        if (label is null)
-        {
-            return Aria;
-        }
-
-        var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = label };
-        if (Aria is { } callerAria)
-        {
-            foreach (var (name, value) in callerAria)
-            {
-                aria[name] = value;
-            }
-        }
-
-        return aria;
     }
 
     /// <inheritdoc />
@@ -280,7 +275,7 @@ public sealed partial class UiButton : UiElement
     /// <inheritdoc />
     /// <remarks>
     ///     The serializer walks an indexer's array as it stands and never asks <see cref="RenderChildren" />.
-    ///     A button with parts of its own — an icon, the spinner, a tooltip — hands it something that is not
+    ///     A button with parts of its own — an icon, the spinner, a shortcut — hands it something that is not
     ///     an array, so it does ask. A plain <c>Ui.Button["Save"]</c> is left on the fast path.
     /// </remarks>
     protected override IDisposable? EnterChildrenScope()
@@ -294,21 +289,34 @@ public sealed partial class UiButton : UiElement
     }
 
     /// <inheritdoc />
-    protected override IEnumerable<Component?> RenderChildren()
-    {
-        if (!HasParts)
-        {
-            return base.RenderChildren();
-        }
+    protected override IEnumerable<Component?> RenderChildren() => HasParts ? Parts() : base.RenderChildren();
 
+    /// <inheritdoc />
+    /// <remarks>
+    ///     Reached only with a <see cref="Tooltip" />. Flux wraps such a button in its tooltip, so this renders
+    ///     the tooltip around the button's element, which writes this component's own attributes: the id, the
+    ///     classes and the handlers stay on the <c>&lt;button&gt;</c>, and the tooltip names or describes it.
+    /// </remarks>
+    protected override Component? Render() =>
+        Ui.Tooltip.Content(Tooltip).Kbd(TooltipKbd).Position(TooltipPosition)[
+            HostedElement.Tag(ElementTag).Owner(this)[HasParts ? Parts() : Words ?? []]
+        ];
+
+    void IUiHost.WriteHostAttributes(StringBuilder sb) => WriteAttributes(sb);
+
+    // What the call site put in the indexer, whichever way EnterChildrenScope left it.
+    private IEnumerable<Component?>? Words => Children is ArraySegment<Component?> segment ? segment.Array : Children;
+
+    private Component?[] Parts()
+    {
         var loads = Loads;
         return
         [
             loads ? Indicator() : null,
             Icon is { } icon ? Glyph(icon, loads) : null,
             Label(loads),
+            Kbd is { } kbd ? Div.Class("text-xs text-zinc-400")[kbd] : null,
             IconTrailing is { } trailing ? Glyph(trailing, loads) : null,
-            Tooltip is not null || Hint is not null ? UiButtonTooltip.Render(Tooltip, Hint, TooltipPosition) : null,
         ];
     }
 
@@ -336,7 +344,7 @@ public sealed partial class UiButton : UiElement
 
     private Component? Label(bool loads)
     {
-        var label = Children is ArraySegment<Component?> segment ? segment.Array : Children;
+        var label = Words;
         if (label is null)
         {
             return null;

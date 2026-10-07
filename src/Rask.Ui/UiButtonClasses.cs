@@ -120,6 +120,22 @@ internal static class UiButtonClasses
             + "in-data-ui-button-group:last:rounded-e-md in-data-ui-button-group:not-first:border-s-0",
     };
 
+    // Measured on Flux: a button inside a tooltip inside a group fuses as the group's own child would, by
+    // where the TOOLTIP stands. The button is its tooltip's first child, so the classes above already give it
+    // a start corner and a start border; these take both away from every tooltip but the first, and give the
+    // last one its end corner.
+    internal static string GroupedInTooltip(Ui.ButtonSize size) => size switch
+    {
+        Ui.ButtonSize.Base =>
+            "[[data-ui-button-group]>[data-ui-tooltip]:not(:first-child)>&]:rounded-s-none "
+            + "[[data-ui-button-group]>[data-ui-tooltip]:not(:first-child)>&]:border-s-0 "
+            + "[[data-ui-button-group]>[data-ui-tooltip]:last-child>&]:rounded-e-lg",
+        _ =>
+            "[[data-ui-button-group]>[data-ui-tooltip]:not(:first-child)>&]:rounded-s-none "
+            + "[[data-ui-button-group]>[data-ui-tooltip]:not(:first-child)>&]:border-s-0 "
+            + "[[data-ui-button-group]>[data-ui-tooltip]:last-child>&]:rounded-e-md",
+    };
+
     // Half of what the button is taller than its line: 6px at sm is on Flux's page, the other two follow it.
     internal static string Inset(Ui.Inset inset, Ui.ButtonSize size) => UiClass.Compose(
         inset.HasFlag(Ui.Inset.Top) ? Top(size) : null,

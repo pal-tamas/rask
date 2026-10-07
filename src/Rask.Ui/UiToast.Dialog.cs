@@ -64,7 +64,10 @@ public sealed partial class UiToast
         var style = look.Stack is null ? null : Place(message.Id, ahead, behind);
         if (Shows(message, look.Duration) is { } milliseconds)
         {
+            // Measured on Flux: only the pointer holds the countdown. With its close button focused, a toast
+            // still goes on time.
             marks["rask-dismiss-after"] = (milliseconds + LeaveMilliseconds).ToString(CultureInfo.InvariantCulture);
+            marks["rask-dismiss-hold"] = "pointer";
             style += string.Create(CultureInfo.InvariantCulture, $"--ui-toast-duration:{milliseconds}ms");
         }
 

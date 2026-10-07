@@ -250,46 +250,105 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_tooltip_is_a_hidden_hint_inside_the_button_and_names_one_that_shows_only_an_icon()
+    public void A_button_with_a_tooltip_is_wrapped_in_the_tooltip_as_Flux_wraps_it()
     {
-        var html = Ui.Button.Icon(Ui.IconName.Cog6Tooth).Tooltip("Settings").ToHtml();
+        var html = Ui.Button.Id("save").Class("w-28").Tooltip("Saves the draft")["Save"].ToHtml();
 
-        Assert.Contains(" aria-label=\"Settings\"", html, StringComparison.Ordinal);
-        Assert.Matches("<span class=\"[^\"]*bottom-full[^\"]*\" data-ui-tooltip-content role=\"tooltip\" aria-hidden=\"true\">Settings</span></button>$", html);
+        var id = TooltipId(html);
+        Assert.StartsWith($"<div class=\"inline-flex\" data-ui-tooltip data-rask-tooltip=\"{id}\"><button id=\"save\" class=\"", html, StringComparison.Ordinal);
+        Assert.Matches($" w-28\" data-ui-button data-ui-group-target aria-describedby=\"{id}\" type=\"button\">Save</button><div id=\"{id}\" ", html);
+        Assert.EndsWith(" popover=\"manual\" data-ui-tooltip-content role=\"tooltip\" aria-hidden=\"true\">Saves the draft</div></div>", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_tooltip_leaves_a_labelled_button_named_by_its_label() =>
-        Assert.DoesNotContain("aria-label", Ui.Button.Tooltip("Saves the draft")["Save"].ToHtml(), StringComparison.Ordinal);
+    public void A_tooltip_names_a_button_that_shows_only_an_icon_by_reference_not_by_a_label()
+    {
+        var html = Ui.Button.Icon(Ui.IconName.Cog6Tooth).Tooltip("Settings").ToHtml();
+
+        Assert.Contains($" aria-labelledby=\"{TooltipId(html)}\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-label=", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-describedby", html, StringComparison.Ordinal);
+    }
 
     [Fact]
-    public void A_label_the_call_site_wrote_wins_over_the_tooltip_and_is_written_once()
+    public void A_label_the_call_site_wrote_stays_beside_the_tooltips_reference()
     {
         var html = Ui.Button.Icon(Ui.IconName.XMark).Tooltip("Close").AriaLabel("Close the dialog").ToHtml();
 
         Assert.Contains("aria-label=\"Close the dialog\"", html, StringComparison.Ordinal);
         Assert.Single(Regex.Matches(html, "aria-label="));
+        Assert.Contains($"aria-labelledby=\"{TooltipId(html)}\"", html, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData(Ui.Position.Top, "bottom-full")]
-    [InlineData(Ui.Position.Bottom, "top-full")]
-    [InlineData(Ui.Position.Left, "right-full")]
-    [InlineData(Ui.Position.Right, "left-full")]
-    public void The_tooltip_opens_on_the_side_it_is_given(Ui.Position position, string expected) =>
+    [InlineData(Ui.TooltipPosition.Top, "[position-area:top]")]
+    [InlineData(Ui.TooltipPosition.Bottom, "[position-area:bottom]")]
+    [InlineData(Ui.TooltipPosition.Left, "[position-area:left]")]
+    [InlineData(Ui.TooltipPosition.Right, "[position-area:right]")]
+    public void The_tooltip_opens_on_the_side_it_is_given(Ui.TooltipPosition position, string expected) =>
         Assert.Contains(
             expected,
             Ui.Button.Tooltip("Settings").TooltipPosition(position)["Open"].ToHtml(),
             StringComparison.Ordinal);
 
     [Fact]
-    public void A_keyboard_shortcut_is_shown_at_the_end_of_the_tooltip_or_as_one_of_its_own()
+    public void A_tooltips_shortcut_ends_the_tooltip_and_a_buttons_own_shortcut_is_drawn_inside_the_button()
     {
-        var both = Ui.Button.Tooltip("Save").TooltipKbd("Esc")["Save"].ToHtml();
-        var alone = Ui.Button.Kbd("K")["Search"].ToHtml();
+        var tipped = Ui.Button.Tooltip("Save").TooltipKbd("⌘S")["Save"].ToHtml();
+        var inline = Ui.Button.Kbd("esc")["Cancel"].ToHtml();
 
-        Assert.Contains("role=\"tooltip\" aria-hidden=\"true\">Save<span class=\"text-zinc-300 not-first:ps-1\">Esc</span></span>", both, StringComparison.Ordinal);
-        Assert.Contains("role=\"tooltip\" aria-hidden=\"true\"><span class=\"text-zinc-300 not-first:ps-1\">K</span></span>", alone, StringComparison.Ordinal);
+        // Measured on Flux: `kbd` alone is no tooltip, it is 12px of zinc-400 after the label.
+        Assert.EndsWith(">Save <span class=\"ps-1 text-zinc-300\">&#x2318;S</span></div></div>", tipped, StringComparison.Ordinal);
+        Assert.EndsWith("<span>Cancel</span><div class=\"text-xs text-zinc-400\">esc</div></button>", inline, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-ui-tooltip", inline, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_buttons_parts_and_its_handler_stay_inside_the_button_when_a_tooltip_wraps_it()
+    {
+        var html = Ui.Button.Icon(Ui.IconName.Plus).Tooltip("Add").OnClick(() => { })["Add"].ToHtml();
+
+        var button = html[html.IndexOf("<button", StringComparison.Ordinal)..html.IndexOf("</button>", StringComparison.Ordinal)];
+        Assert.Contains("data-ui-loading-indicator", button, StringComparison.Ordinal);
+        Assert.Contains("<svg", button, StringComparison.Ordinal);
+        Assert.Contains(">Add</span>", button, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-ui-tooltip-content", button, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_button_with_a_tooltip_keeps_its_tooltip_and_its_handler_across_renders()
+    {
+        var count = 0;
+        var page = Rask.Testing.Page.Render(() => [Ui.Button.Icon(Ui.IconName.Plus).Tooltip("Add").OnClick(() => count++)[$"Added {count}"]]);
+        var before = page.Html;
+
+        await page.Click("Added 0");
+        await page.Click("Added 1");
+
+        // The label is baked into what the wrapped button renders, so it has to be rendered again; the tooltip
+        // it is wired to must be the same one, or the trigger would collect an id per render.
+        Assert.Equal(2, count);
+        Assert.Contains(">Added 2</span>", page.Html, StringComparison.Ordinal);
+        Assert.Equal(TooltipId(before), TooltipId(page.Html));
+        Assert.Contains($" aria-describedby=\"{TooltipId(before)}\" ", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_button_inside_a_tooltip_inside_a_group_fuses_by_where_its_tooltip_stands()
+    {
+        var own = Ui.Button.Tooltip("Bold")["B"].ToHtml();
+        var wrapped = Ui.Tooltip.Content("Bold")[Ui.Button["B"]].ToHtml();
+        var small = Ui.Button.Sm.Tooltip("Bold")["B"].ToHtml();
+
+        const string fused =
+            "[[data-ui-button-group]&gt;[data-ui-tooltip]:not(:first-child)&gt;&amp;]:rounded-s-none "
+            + "[[data-ui-button-group]&gt;[data-ui-tooltip]:not(:first-child)&gt;&amp;]:border-s-0 "
+            + "[[data-ui-button-group]&gt;[data-ui-tooltip]:last-child&gt;&amp;]:rounded-e-";
+        Assert.Contains(fused + "lg", own, StringComparison.Ordinal);
+        Assert.Contains(fused + "lg", wrapped, StringComparison.Ordinal);
+        Assert.Contains(fused + "md", small, StringComparison.Ordinal);
+        Assert.DoesNotContain("[data-ui-tooltip]", Ui.Button["B"].ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("[data-ui-button-group]", Ui.Button.Ghost.Tooltip("Bold")["B"].ToHtml(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -458,6 +517,8 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 
         Assert.All(written, name => Assert.Contains("." + CssEscaped(name), UiStylesheet.Css, StringComparison.Ordinal));
     }
+
+    private static string TooltipId(string html) => Regex.Match(html, "<div id=\"(ui-tooltip-\\d+)\"").Groups[1].Value;
 
     // A class name as a stylesheet spells it: everything but letters, digits, `-` and `_` behind a backslash.
     private static string CssEscaped(string name) =>

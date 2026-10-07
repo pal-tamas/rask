@@ -35,6 +35,20 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Tooltip`, `Ui.Toast` and `Ui.Button`'s tooltip behave as Flux's do, through the runtime's hooks.**
+  A tooltip's wrapper now carries `data-rask-tooltip`: every tooltip, whatever its trigger, is shown in the
+  top layer the moment the pointer or keyboard focus arrives, stays while that focus lasts, is dismissed by
+  Escape, and is hidden by a press until the pointer has left and come back; an `Interactive()` trigger
+  carries `aria-expanded`. The `interestfor` invoker and the stylesheet's `:hover` path are gone (a `:hover`
+  fallback remains under `@media (scripting: none)`). A timed toast is held by the pointer only
+  (`data-rask-dismiss-hold="pointer"`), and a `Ui.ToastGroup` is one `data-rask-dismiss-scope`: the pointer
+  over any of the stack holds every toast in it, and each then runs out what it had left.
+  A `Ui.Button` with a `Tooltip` is rendered as Flux renders it — the `<button>` inside a
+  `Ui.Tooltip` wrapper (`<div data-ui-tooltip>`), named by `aria-labelledby` when it has only an icon,
+  where it used to carry an `aria-label` and a bubble inside itself; it still fuses inside a
+  `Ui.ButtonGroup`. `TooltipPosition` takes `Ui.TooltipPosition` instead of `Ui.Position`
+  (`.TooltipPosition(Ui.TooltipPosition.Bottom)`). `Kbd` is no longer a tooltip of its own: as in Flux it is
+  drawn inside the button after the label, and `TooltipKbd` shows only with a `Tooltip`.
 - **BREAKING: `Ui.Toast` is Flux's toast, with its group — raised through `Toast`, placed in the layout.**
   `Ui.Toast` was one notice a page drew from a list of its own, and `Ui.Toaster` stacked them. It is now
   what `<flux:toast />` is: the place the app's toasts appear, drawn and timed exactly as Flux's

@@ -11,54 +11,53 @@ internal static class UiTooltipTrigger
 {
     /// <summary>Whether a click on it can open a popover: only a <c>&lt;button&gt;</c> is a <c>popovertarget</c>.</summary>
     internal static bool IsButton(Element trigger) =>
-        trigger is HTMLButtonElement || (trigger is UiElement kit && string.Equals(kit.Tag, "button", StringComparison.Ordinal));
+        trigger is HTMLButtonElement || string.Equals(KitTag(trigger), "button", StringComparison.Ordinal);
 
     /// <summary>Joins <paramref name="trigger" /> to the content, and makes it the invoker where it can be one.</summary>
     /// <param name="trigger">The tooltip's first child.</param>
     /// <param name="contentId">The id of the tooltip's content.</param>
-    /// <param name="controls">Whether the trigger opens content of its own, rather than being described by it.</param>
-    /// <param name="popup">Whether a click on the trigger opens the content: Flux says <c>aria-haspopup</c> there.</param>
-    /// <param name="invoker"><c>popovertarget</c> or <c>interestfor</c>, or <see langword="null" /> for a tooltip that never shows.</param>
-    internal static void Wire(Element trigger, string contentId, bool controls, bool popup, string? invoker)
+    /// <param name="relation">How the trigger stands to the content.</param>
+    /// <param name="opens">Whether a click may open it: a disabled tooltip keeps its ARIA and never shows.</param>
+    internal static void Wire(Element trigger, string contentId, UiTooltipRelation relation, bool opens)
     {
-        var aria = trigger.Aria is { } own
+        // A kit part that renders its element rather than being it carries that element's attributes itself.
+        var wired = trigger is HostedElement { Owner: Element owner } ? owner : trigger;
+        var aria = wired.Aria is { } own
             ? new Dictionary<string, string?>(own, StringComparer.Ordinal)
             : new Dictionary<string, string?>(StringComparer.Ordinal);
 
         // Measured on Flux: a trigger with text of its own is described by the tooltip, and one without —
         // an icon button — is named by it.
         var named = aria.ContainsKey("labelledby") || HasText(trigger);
-        var relation = Relation(controls, named);
-        aria[relation] = Joined(aria.GetValueOrDefault(relation), contentId);
-        if (popup)
+        var name = Name(relation, named);
+        aria[name] = Joined(aria.GetValueOrDefault(name), contentId);
+        if (relation == UiTooltipRelation.Toggles)
         {
             aria["haspopup"] = "true";
         }
 
-        trigger.Aria = aria;
-
-        // An interest invoker is a button or a link; on anything else the stylesheet's :hover shows it.
-        var takes = invoker switch
+        // Flux writes the state beside `aria-controls`; the runtime keeps it true while the tooltip shows.
+        if (relation == UiTooltipRelation.Controls)
         {
-            "popovertarget" => IsButton(trigger),
-            "interestfor" => IsButton(trigger) || IsLink(trigger),
-            _ => false,
-        };
-        if (!takes)
+            aria["expanded"] = "false";
+        }
+
+        wired.Aria = aria;
+        if (relation != UiTooltipRelation.Toggles || !opens)
         {
             return;
         }
 
-        var attributes = trigger.Attributes is { } extra
+        var attributes = wired.Attributes is { } extra
             ? new Dictionary<string, string?>(extra, StringComparer.Ordinal)
             : new Dictionary<string, string?>(StringComparer.Ordinal);
-        attributes[invoker!] = contentId;
-        trigger.Attributes = attributes;
+        attributes["popovertarget"] = contentId;
+        wired.Attributes = attributes;
     }
 
-    private static string Relation(bool controls, bool named)
+    private static string Name(UiTooltipRelation relation, bool named)
     {
-        if (controls)
+        if (relation != UiTooltipRelation.Describes)
         {
             return "controls";
         }
@@ -66,8 +65,12 @@ internal static class UiTooltipTrigger
         return named ? "describedby" : "labelledby";
     }
 
-    private static bool IsLink(Element trigger) =>
-        trigger is HTMLAnchorElement || (trigger is UiElement kit && string.Equals(kit.Tag, "a", StringComparison.Ordinal));
+    private static string? KitTag(Element trigger) => trigger switch
+    {
+        HostedElement hosted => hosted.Tag,
+        UiElement kit => kit.Tag,
+        _ => null,
+    };
 
     // A kit component is rendered once per page render and wired each time, so the id may already be there.
     private static string Joined(string? ids, string id)

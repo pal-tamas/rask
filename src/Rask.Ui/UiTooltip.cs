@@ -13,12 +13,12 @@ namespace Rask;
 ///     than a line of text.
 ///     </para>
 ///     <para>
-///     No script. The content is a <c>[popover]</c> placed by CSS anchor positioning, which also flips it to
-///     the other side at the viewport's edge. A trigger that is a button or a link shows it as an interest
-///     invoker (<c>interestfor</c>), so it rides in the top layer and Escape dismisses it; anywhere else,
-///     and in an engine without interest invokers, <c>:hover</c> and <c>:focus-visible</c> show it in place.
-///     <see cref="Toggleable" /> makes the trigger a <c>popovertarget</c>: a click opens it, and a click
-///     outside or Escape closes it — the only tooltip a touch screen ever shows.
+///     The content is a <c>popover</c> placed by CSS anchor positioning, which also flips it to the other
+///     side at the viewport's edge. Rask's runtime shows it (<c>data-rask-tooltip</c>): at once under the
+///     pointer and on keyboard focus, in the top layer whatever the trigger is, and a press on the trigger
+///     or Escape hides it until the pointer has left and come back. <see cref="Toggleable" /> makes the
+///     trigger a <c>popovertarget</c> instead: a click opens it, and a click outside or Escape closes it —
+///     the only tooltip a touch screen ever shows.
 ///     </para>
 ///     <para>
 ///     The trigger is told about it, which is what makes a screen reader say it: a trigger with text of its
@@ -83,13 +83,19 @@ public sealed partial class UiTooltip : Component
 
         if (trigger is not null && toggled == clicks)
         {
-            UiTooltipTrigger.Wire(trigger, ContentId, controls, popup: clicks, Invoker(clicks));
+            UiTooltipTrigger.Wire(trigger, ContentId, Relation(clicks, controls), opens: Disabled != true);
         }
         else if (toggled)
         {
             // Nothing a click can open a popover from: the wrapper takes the focus a tap gives, and the
             // stylesheet shows the content while it has it.
             root = root.TabIndex(0);
+        }
+
+        // Flux's group fuses a button through its tooltip; the button draws that, and has to be told.
+        if (trigger is UiButton button)
+        {
+            button.InTooltip = true;
         }
 
         var scope = new UiTooltipScope(
@@ -110,7 +116,19 @@ public sealed partial class UiTooltip : Component
         ];
     }
 
-    // The wrapper's markers: Flux's, and the two states the stylesheet reads.
+    private static UiTooltipRelation Relation(bool clicks, bool controls)
+    {
+        if (clicks)
+        {
+            return UiTooltipRelation.Toggles;
+        }
+
+        return controls ? UiTooltipRelation.Controls : UiTooltipRelation.Describes;
+    }
+
+    // The wrapper's markers: Flux's, the two states the stylesheet reads, and the runtime's hook
+    // (data-rask-tooltip), which shows the content under the pointer and on keyboard focus. A toggleable
+    // tooltip opens on a click instead, and a disabled one never.
     private Dictionary<string, string?> Marks(bool toggled)
     {
         var marks = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-tooltip"] = null };
@@ -123,18 +141,11 @@ public sealed partial class UiTooltip : Component
         {
             marks["disabled"] = null;
         }
-
-        return marks;
-    }
-
-    // What opens it from the trigger with no script, where the trigger can be one.
-    private string? Invoker(bool clicks)
-    {
-        if (Disabled == true)
+        else if (!toggled)
         {
-            return null;
+            marks["rask-tooltip"] = ContentId;
         }
 
-        return clicks ? "popovertarget" : "interestfor";
+        return marks;
     }
 }
