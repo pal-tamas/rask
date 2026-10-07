@@ -14,7 +14,7 @@ public sealed partial class UiPillboxSearch : Component
     /// <summary>Shown while the field is empty. "Search..." when unset.</summary>
     public string? Placeholder { get; set; }
 
-    /// <summary>The icon at the start of the field. <see cref="Ui.IconName.MagnifyingGlass" /> when unset.</summary>
+    /// <summary>The icon at the start of the field. A magnifier when unset.</summary>
     public Ui.IconName? Icon { get; set; }
 
     /// <summary>False to leave out the button that empties the field. It is there when unset.</summary>
