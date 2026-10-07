@@ -401,11 +401,17 @@
   <PropertyGroup>
     <RaskUiEditor Condition="'$(RaskUiEditor)' == ''">false</RaskUiEditor>
     <_RaskUiEditorOutput>wwwroot/js/rask-ui-editor.js</_RaskUiEditorOutput>
+    <!-- The notices of what the engine bundles (Tiptap, ProseMirror: MIT) and of the toolbar's Lucide icons
+         (ISC). Those licences ask that the notice travel with every copy, and the app's wwwroot is one. -->
+    <_RaskUiEditorNotices>wwwroot/js/rask-ui-editor.LICENSES.txt</_RaskUiEditorNotices>
   </PropertyGroup>
 
-  <!-- Declared before it exists, so a FIRST build serves it: see the stylesheet's own note above (#1105). -->
+  <!-- Declared before they exist, so a FIRST build serves them: see the stylesheet's own note above (#1105). -->
   <ItemGroup Condition=" '$(RaskUiEditor)' == 'true' AND !Exists('$(MSBuildProjectDirectory)/$(_RaskUiEditorOutput)') ">
     <Content Include="$(_RaskUiEditorOutput)" Pack="false"/>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(RaskUiEditor)' == 'true' AND !Exists('$(MSBuildProjectDirectory)/$(_RaskUiEditorNotices)') ">
+    <Content Include="$(_RaskUiEditorNotices)" Pack="false"/>
   </ItemGroup>
 
   <Target Name="RaskUiWriteEditor"
@@ -415,6 +421,8 @@
       <!-- From the package: beside these targets. In this repository: the committed bundle in the kit's sources. -->
       <_RaskUiEditorSource Condition="Exists('$(MSBuildThisFileDirectory)rask-ui-editor.js')">$(MSBuildThisFileDirectory)rask-ui-editor.js</_RaskUiEditorSource>
       <_RaskUiEditorSource Condition="'$(_RaskUiEditorSource)' == ''">$(MSBuildThisFileDirectory)../Resources/ui-editor.js</_RaskUiEditorSource>
+      <_RaskUiEditorNoticesSource Condition="Exists('$(MSBuildThisFileDirectory)rask-ui-editor.LICENSES.txt')">$(MSBuildThisFileDirectory)rask-ui-editor.LICENSES.txt</_RaskUiEditorNoticesSource>
+      <_RaskUiEditorNoticesSource Condition="'$(_RaskUiEditorNoticesSource)' == ''">$(MSBuildThisFileDirectory)../Resources/ui-editor.LICENSES.txt</_RaskUiEditorNoticesSource>
     </PropertyGroup>
 
     <Error Condition="!Exists('$(_RaskUiEditorSource)')"
@@ -424,6 +432,10 @@
     <Copy SourceFiles="$(_RaskUiEditorSource)"
           DestinationFiles="$(MSBuildProjectDirectory)/$(_RaskUiEditorOutput)"
           SkipUnchangedFiles="true"/>
+    <Copy SourceFiles="$(_RaskUiEditorNoticesSource)"
+          DestinationFiles="$(MSBuildProjectDirectory)/$(_RaskUiEditorNotices)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(_RaskUiEditorNoticesSource)')"/>
   </Target>
 
 </Project>

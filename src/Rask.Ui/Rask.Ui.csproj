@@ -219,12 +219,16 @@
     without Node). Packed beside the targets, which copy it into the wwwroot of a project that sets
     RaskUiEditor=true. NOT an EmbeddedResource: a browser-WASM app downloads this assembly whether or not it
     draws an editor, and 374 KB of script nobody asked for is exactly what the opt-in is there to prevent.
-    The notices of the packages it bundles (all MIT) travel with it.
+    The notices of the packages it bundles (all MIT) and of Lucide (ISC), which the toolbar's icons are
+    drawn from, travel with it: at the package's root, and beside the targets, which write them next to
+    the script.
   -->
   <ItemGroup>
     <None Include="Resources\ui-editor.js" Pack="true" PackagePath="build\rask-ui-editor.js" Visible="false"/>
     <None Include="Resources\ui-editor.js" Pack="true" PackagePath="buildTransitive\rask-ui-editor.js" Visible="false"/>
     <None Include="Resources\ui-editor.LICENSES.txt" Pack="true" PackagePath="rask-ui-editor.LICENSES.txt" Visible="false"/>
+    <None Include="Resources\ui-editor.LICENSES.txt" Pack="true" PackagePath="build\rask-ui-editor.LICENSES.txt" Visible="false"/>
+    <None Include="Resources\ui-editor.LICENSES.txt" Pack="true" PackagePath="buildTransitive\rask-ui-editor.LICENSES.txt" Visible="false"/>
   </ItemGroup>
 
 </Project>

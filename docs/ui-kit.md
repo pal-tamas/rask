@@ -729,6 +729,11 @@ mounts and by no page without one. An app that draws an editor asks its build to
 Until the script has loaded — and with scripting off — the editor shows its value as plain markup. A
 strict `Content-Security-Policy` needs nothing added: the file is same-origin script.
 
+**Third-party code.** The engine bundles Tiptap 2.11.7 and ProseMirror (47 packages, all MIT), and eleven
+of the toolbar's icons are drawn from [Lucide](https://lucide.dev) 0.300.0 path data (ISC), as Flux's are.
+Their notices are `rask-ui-editor.LICENSES.txt`: in the `Rask.Ui` package, and written beside the script
+in `wwwroot/js` by the same switch, so they travel with the copy your app serves.
+
 **The value is the user's HTML.** The editor itself only produces the tags of its schema (paragraphs,
 headings, lists, quotes, code, links, marks), but what you bind may have come from anywhere — a database
 row, an import, a request made by hand. `Ui.Editor` writes its value into the page as it is, exactly as

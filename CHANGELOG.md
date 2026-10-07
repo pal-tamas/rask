@@ -97,7 +97,10 @@ them until tagged releases begin.
   `scripts/flux/parity-editor.mjs` holds the editor in use to Flux's live one, observation for observation.
   With it, `Ui.Tooltip`'s wrapper takes its `inline-flex` from the kit's sheet instead of its class list, as
   Flux's does (a toolbar's tooltips are `contents`), so a display written in `Class` wins; a button's own
-  `Tooltip` still writes `inline-flex`.
+  `Tooltip` still writes `inline-flex`. An editor whose engine cannot be loaded keeps its value as plain
+  markup, leaves the page live on a Server app too, and names the switch in the browser's console. The
+  notices of what it draws on — Tiptap and ProseMirror (MIT), and Lucide 0.300.0 (ISC) for eleven toolbar
+  icons — are `rask-ui-editor.LICENSES.txt`, in the package and written beside the script in `wwwroot/js`.
 
 - **Inline style as typed CSS.** `Css` has a step for every CSS property browsers ship — 455, generated
   from MDN's data (`@webref/css` for the grammars, browser-compat-data for what two engines ship) —

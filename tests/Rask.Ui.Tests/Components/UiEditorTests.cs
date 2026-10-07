@@ -251,7 +251,33 @@ public partial class UiEditorTests : global::Rask.Core.RaskMarkup
         var licences = Regex.Matches(notices, "^(\\S+) (\\S+) — (.+)$", RegexOptions.Multiline);
         Assert.Contains(licences, licence => licence.Groups[1].Value == "@tiptap/core" && licence.Groups[2].Value == "2.11.7");
         Assert.Contains(licences, licence => licence.Groups[1].Value == "prosemirror-model" && licence.Groups[2].Value == "1.25.1");
-        Assert.All(licences, licence => Assert.Equal("MIT", licence.Groups[3].Value.Trim()));
+        Assert.All(licences, licence => Assert.Equal(licence.Groups[1].Value == "lucide" ? "ISC" : "MIT", licence.Groups[3].Value.Trim()));
+    }
+
+    [Fact]
+    public void The_notices_carry_a_licence_text_for_every_package_and_for_the_icons_drawn_from_Lucide()
+    {
+        var notices = File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "ui-editor.LICENSES.txt"));
+
+        var sections = Regex.Split(notices, "^={78}\n(?=\\S+ \\S+ — )", RegexOptions.Multiline).Skip(1).ToList();
+
+        Assert.All(sections, section => Assert.Matches("Copyright", section));
+        Assert.DoesNotContain("ships no licence file", notices);
+        Assert.Contains("lucide 0.300.0 — ISC", notices);
+        Assert.Contains("Lucide Contributors", notices);
+        Assert.Contains("Copyright (c) 2025, Tiptap GmbH", notices);
+    }
+
+    [Fact]
+    public void The_bundle_names_the_notices_file_the_build_writes_beside_it()
+    {
+        var banner = File.ReadLines(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "ui-editor.js")).First();
+        var targets = File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "build", "Rask.Ui.targets"));
+
+        var named = Regex.Match(banner, "see (\\S+\\.LICENSES\\.txt)").Groups[1].Value;
+
+        Assert.Equal("rask-ui-editor.LICENSES.txt", named);
+        Assert.Contains("wwwroot/js/" + named, targets);
     }
 
     // The toolbar's controls, in order, by the name the engine finds each one by.

@@ -17,7 +17,7 @@ internal static class UiEditorEngine
     public const string Path = "/js/rask-ui-editor.js";
 
     /// <summary>The first eight hex digits of the bundle's SHA-256: the URL changes when the bytes do.</summary>
-    public const string Version = "17b5e5cb";
+    public const string Version = "37164256";
 
     /// <summary>The engine's URL under <paramref name="pathBase" />, carrying its version.</summary>
     public static string Href(string? pathBase = null) => (pathBase ?? string.Empty) + Path + "?v=" + Version;
