@@ -161,7 +161,7 @@ public sealed partial class LogsPage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            Ui.Header.Title("Logs").Caption(Caption()).Actions(HasStore ? ModeTabs() : null),
+            DashboardHeading.Title("Logs").Caption(Caption()).Actions(HasStore ? ModeTabs() : null),
             DashboardError.Message(LoadError),
             IsHistory ? HistoryBody(now) : LiveBody(now),
             DashboardParked.Parked(IsParked).Resume(Resume),

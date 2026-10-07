@@ -30,12 +30,12 @@ const string Password = "Passw0rd!ops";
 string shotDir = Path.Combine(Directory.GetCurrentDirectory(), "screenshots");
 Directory.CreateDirectory(shotDir);
 
-// The console's OWN markup, not the host app's auth chrome. `.rask-ops` is UiShell's documented hook and
+// The console's OWN markup, not the host app's auth chrome. The document attribute is the console's hook and
 // the outermost thing every console page renders; the nav is the layout's tab bar. Waiting on the host's
 // sign-out control instead is what left this driver shooting nothing at all: the scaffold's home page
 // renders no such control, so the wait burned its timeout BEFORE the first screenshot and the whole run
 // produced no images — a broken tool reporting a fault in the thing it was inspecting.
-const string ConsoleShell = "div.rask-ops";
+const string ConsoleShell = "html[data-rask-ui-document]";
 const string ConsoleNav = ConsoleShell + " nav a:has-text('Overview')";
 
 // The relay that actually mints the session. A component handler runs on the WebSocket and a WebSocket

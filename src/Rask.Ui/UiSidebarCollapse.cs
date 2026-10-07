@@ -1,45 +1,59 @@
 namespace Rask;
 
-/// <summary>
-/// The control that narrows a docked <see cref="UiSidebar" /> to a rail of icons, and widens it again.
-/// </summary>
+/// <summary>Flux's <c>flux:sidebar.collapse</c>: narrows a docked <see cref="UiSidebar" /> to its rail, and closes one slid over the page.</summary>
 /// <remarks>
-/// <para>
-/// Flux UI's <c>sidebar.collapse</c>. A <c>&lt;label&gt;</c> for the sidebar's rail checkbox, so it works with
-/// no runtime at all — the same mechanism as <see cref="UiSidebarToggle" />, and given the same
-/// <c>role="button"</c> and <c>tabindex</c> so a keyboard reaches it.
-/// </para>
-/// <para>
-/// It is the opposite of the toggle in where it belongs: the toggle is for a phone, where the sidebar slides
-/// over the page, and hides once the sidebar docks; this one is only useful once it HAS docked, so it appears
-/// from the same breakpoint the toggle disappears at. Give it the sidebar's own <c>Collapsible</c> breakpoint.
-/// </para>
+/// Two labels in one control, because the two states are two checkboxes: below the sidebar's breakpoint it
+/// is for the one that slid the sidebar in, from it up for the one that narrows it.
 /// </remarks>
 public sealed partial class UiSidebarCollapse : Component
 {
-    /// <summary>The <see cref="UiSidebar.Id" /> of the sidebar it narrows.</summary>
-    public required string For { get; set; }
+    private const string Root =
+        "flex h-8 shrink-0 items-center justify-center "
+        + "sidebar-rail:absolute sidebar-rail:opacity-0 sidebar-rail:group-hover/sidebar:opacity-100";
 
-    /// <summary>The width from which the sidebar is docked, so the control appears. Shown at every width if unset.</summary>
-    public Ui.Breakpoint? Collapsible { get; set; }
+    /// <summary>Pulls the control into its container's padding on that side. Flux's <c>inset</c>.</summary>
+    public Ui.Position? Inset { get; set; }
 
-    /// <summary>What a screen reader announces. "Collapse sidebar" unless this says otherwise.</summary>
-    public string? AccessibleLabel { get; set; }
+    /// <summary>What the control is called. "Toggle sidebar" unless this says otherwise.</summary>
+    public string? Tooltip { get; set; }
 
+    /// <summary>Classes for the control.</summary>
     public string? Class { get; set; }
 
+    internal static string InsetClass(Ui.Position? inset) => inset switch
+    {
+        Ui.Position.Left => "-ms-2.5",
+        Ui.Position.Right => "-me-2.5",
+        Ui.Position.Top => "-mt-2.5",
+        Ui.Position.Bottom => "-mb-2.5",
+        _ => "",
+    };
+
     /// <inheritdoc />
-    protected override Component? Render() =>
-        RaskMarkup.Label
-            .For(For + "-rail")
-            .Class(UiClass.Compose(
-                "btn btn-ghost btn-square btn-sm",
-                Collapsible is null ? "" : "hidden",
-                Collapsible is { } shown ? UiClassNames.ShownFrom(shown) : "",
-                Class))
-            .Role("button")
-            .TabIndex(0)
-            .Aria("label", AccessibleLabel ?? "Collapse sidebar")[
-            Ui.Icon.Name(Ui.IconName.ChevronRight).Class("ui-rail-flip size-4 shrink-0")
+    protected override Component? Render()
+    {
+        var name = Tooltip ?? "Toggle sidebar";
+        return Div.Class(UiClass.Compose(Root, InsetClass(Inset), Class)).Attributes(("data-ui-sidebar-collapse", ""))[
+            // Seam: Flux wraps the button in its tooltip. Ui.Tooltip goes here when it lands; `title` until then.
+            Div.Class("flex").Attributes(("data-ui-seam", "tooltip"))[
+                Press(UiSidebarState.Open, name,
+                    "relative flex size-10 cursor-default items-center justify-center gap-2 rounded-lg text-center text-sm font-medium "
+                    + "whitespace-nowrap text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 sidebar-desktop:hidden "
+                    + "dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-white"),
+                Press(UiSidebarState.Rail, name,
+                    "relative hidden size-10 cursor-default items-center justify-center gap-2 rounded-lg text-center text-sm font-medium "
+                    + "whitespace-nowrap text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 sidebar-desktop:flex sidebar-rail:cursor-e-resize "
+                    + "dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-white")
+            ]
+        ];
+    }
+
+    private static Component Press(string checkbox, string name, string classes) =>
+        RaskMarkup.Label.For(checkbox).Class(classes).Role("button").TabIndex(0).Title(name).Aria("label", name)[Glyph()];
+
+    // A panel with its side column marked: drawn here, because Heroicons has no such glyph.
+    private static Component Glyph() =>
+        Svg.Class("size-5").Fill("none").ViewBox("0 0 20 20").Attributes(("aria-hidden", "true"))[
+            SvgPath.Stroke("currentColor").StrokeWidth("1.25").D("M4.75 3.75h10.5a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H4.75a2 2 0 0 1-2-2v-8.5a2 2 0 0 1 2-2ZM7.5 3.75v12.5")
         ];
 }

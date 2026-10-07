@@ -83,23 +83,13 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
         Assert.Contains("data-theme=\"light\"", page, StringComparison.Ordinal);
     }
 
-    /// <summary>…and so does the shell inside it, which is the second element carrying the scope.</summary>
-    /// <remarks>
-    ///     <c>[data-rask-ui]:not([data-theme])</c> matches on the ELEMENT, so a <c>UiShell</c> with no theme
-    ///     would re-declare <c>--color-base-*</c> dark for everything beneath it while the document stayed light.
-    /// </remarks>
+    /// <summary>The console's only sheet is the kit's, so its document asks the kit for a reset and a ground.</summary>
     [Fact]
-    public async Task The_shell_inside_it_pins_the_same_theme()
+    public void The_document_element_says_the_kit_is_its_only_sheet()
     {
-        await using var h = new DashboardHarness(environment: Environments.Development);
-        h.Get<RouteState>().Path = "/_rask";
+        var page = Page.RenderDocument(RaskDashboardShell).Html;
 
-        var page = Page.RenderDocument(RaskDashboardShell, h.Services);
-
-        Assert.True(
-            page.Exists(".rask-ops[data-rask-ui][data-theme=\"light\"]"),
-            "Ui.Shell renders the kit's theme scope with no theme named, so daisyUI falls back to "
-            + "prefers-color-scheme for everything inside it.");
+        Assert.Contains(UiStylesheet.DocumentAttribute, page, StringComparison.Ordinal);
     }
 
     private static IEnumerable<string> SourceFiles()

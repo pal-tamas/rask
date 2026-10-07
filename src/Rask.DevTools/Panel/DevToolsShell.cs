@@ -29,7 +29,7 @@ internal sealed partial class DevToolsShell : Component
     ///     follows the developer's light or dark setting the way their browser's own devtools do.
     /// </summary>
     protected override Component Shell(Component head, Component body) =>
-        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""), (UiStylesheet.DocumentAttribute, ""))[
             head,
             Body.Class(BodyClass)[body]
         ];

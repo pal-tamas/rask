@@ -32,10 +32,10 @@ public sealed partial class DashboardStylesheetTests : global::Rask.Core.RaskMar
     [Fact]
     public void The_kits_sheet_carries_the_console_frames_reset()
     {
-        // The console owns its document and has no other sheet to take a reset from, so the frame's reset
-        // travels in the kit's — keyed to Ui.Shell's .rask-ops, so an application linking the kit is untouched.
-        Assert.Contains(":where(.rask-ops", UiStylesheet.Css, StringComparison.Ordinal);
-        Assert.Contains("body:has(.rask-ops)", UiStylesheet.Css, StringComparison.Ordinal);
+        // The console owns its document and has no other sheet to take a reset from, so its reset travels in
+        // the kit's — keyed to the attribute a kit-only document writes, so an application linking the kit is untouched.
+        Assert.Contains(":where([" + UiStylesheet.DocumentAttribute, UiStylesheet.Css, StringComparison.Ordinal);
+        Assert.Contains(":where([" + UiStylesheet.DocumentAttribute + "]) body", UiStylesheet.Css, StringComparison.Ordinal);
     }
 
     [Fact]

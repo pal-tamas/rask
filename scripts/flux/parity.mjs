@@ -11,13 +11,17 @@
 //         node scripts/flux/parity.mjs layouts/sidebar --refresh        # re-measure Flux
 //         node scripts/flux/parity.mjs button --section variants --all  # one section, every difference
 //
+// A layout page (layouts/header, layouts/sidebar) has no examples of its own: it links to full-document
+// demos, and each is measured whole — at desktop and phone widths, with the sidebar as it loads, narrowed
+// to its rail and slid over the page — against artifacts/flux-parity/rask/<slug>/<demo>.html.
+//
 // Exit code 1 on any difference. Screenshots of both sides land beside the measurements.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, measurePage, root, STYLES } from './lib.mjs';
+import { chromium, layoutDemos, measureLayouts, measurePage, root, STYLES } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const flag = name => args.includes(`--${name}`);
@@ -31,7 +35,8 @@ if (!page) {
 const path = page.includes('/') ? page : `components/${page}`;
 const slug = path.split('/')[1];
 const out = join(root, 'artifacts', 'flux-parity');
-const raskPage = join(out, 'rask', `${slug}.html`);
+const layout = path.startsWith('layouts/');
+const raskPage = join(out, 'rask', layout ? slug : `${slug}.html`);
 if (!existsSync(raskPage)) {
   console.error(`flux parity: ${raskPage} is missing — run: dotnet test tests/Rask.Ui.Tests --filter FluxParityPages`);
   process.exit(1);
@@ -43,7 +48,9 @@ let flux;
 if (existsSync(fluxFile) && !flag('refresh')) {
   flux = JSON.parse(await readFile(fluxFile, 'utf8'));
 } else {
-  flux = await measurePage(browser, `https://fluxui.dev/${path}`, join(out, 'flux', slug));
+  flux = layout
+    ? await measureLayouts(browser, await layoutDemos(browser, `https://fluxui.dev/${path}`), demo => `https://fluxui.dev/demo/${demo.name}`, join(out, 'flux', slug))
+    : await measurePage(browser, `https://fluxui.dev/${path}`, join(out, 'flux', slug));
   await mkdir(join(out, 'flux', slug), { recursive: true });
   await writeFile(fluxFile, JSON.stringify(flux));
 }
@@ -52,7 +59,7 @@ if (existsSync(fluxFile) && !flag('refresh')) {
 // example sits in the prose. A component inherits those, so each Rask example is given what its Flux
 // twin was given before anything is measured — the same surroundings, and only the component differs.
 const INHERITED = ['color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'];
-const rask = await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', slug), (document, scheme) =>
+const inherit = (document, scheme) =>
   document.evaluate(({ examples, INHERITED }) => {
     const seen = {};
     for (const wrapper of document.querySelectorAll('[data-preview-wrapper]')) {
@@ -61,8 +68,42 @@ const rask = await measurePage(browser, pathToFileURL(raskPage).href, join(out, 
       const theirs = examples.find(example => example.section === section && example.ordinal === ordinal);
       for (const key of theirs ? INHERITED : []) wrapper.style[key] = theirs.nodes[0].style[key];
     }
-  }, { examples: flux[scheme], INHERITED }));
+  }, { examples: flux[scheme], INHERITED });
+// A demo is told apart by the section it was measured under: `<h2 id>@<width>`, or its own name for the first.
+const demos = () => [...new Map(flux.light.map(example => example.section.split('@')[0]).map(key => [key, { name: key, section: key }])).values()];
+const rask = layout
+  ? await measureLayouts(browser, demos(), demo => pathToFileURL(join(raskPage, `${demo.name}.html`)).href, join(out, 'rask', slug),
+    { prepare: inherit, only: new Set(flux.light.map(example => example.section)) })
+  : await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', slug), inherit);
 await browser.close();
+
+// ----- Layouts ---------------------------------------------------------------------------------------
+// What is not rendered is not compared — the menu of a closed dropdown, the label a rail hides — and each
+// state that shows it is measured on its own. Nor is what floats over the page (a `popover`: the tooltip
+// of the control that was just pressed), which is another component's. What Flux does in script Rask does with an element (a
+// checkbox, a label under the rail), marked `data-ui-mechanism` and left out.
+const rendered = example => {
+  const gone = new Set();
+  for (const node of example.nodes) if (node.hidden || 'popover' in node.attrs || 'data-ui-mechanism' in node.attrs || gone.has(node.parent)) gone.add(node.id);
+  return { ...example, nodes: example.nodes.filter(node => !gone.has(node.id)) };
+};
+if (layout) for (const side of [flux, rask]) for (const scheme of ['light', 'dark']) side[scheme] = side[scheme].map(rendered);
+
+// Another component placed in a layout is compared as a box: where it is and how big. Its inside is its
+// own page's business — and on the Rask side it may not be built yet.
+const FOREIGN = /^data-flux-(navbar|navlist|navmenu|brand|profile|avatar|menu|heading|text|separator)/;
+const foreign = node => layout && Object.keys(node.attrs).some(name => FOREIGN.test(name));
+
+// Flux's custom elements, and the native element Rask writes where each stands (docs/ui-kit.md).
+const NATIVE = {
+  'ui-sidebar': ['div'],
+  'ui-sidebar-toggle': ['label', 'div'],
+  'ui-tooltip': ['div'],
+  'ui-dropdown': ['div', 'label'],
+  'ui-disclosure': ['details'],
+  button: ['label', 'summary'],
+};
+const sameTag = (a, b) => a === b || (layout && (NATIVE[a] ?? []).includes(b));
 
 // Not compared: what the surrounding docs page decides rather than the component (where a top-level
 // node sits, how wide a stretched one is), and the two the box already states.
@@ -101,6 +142,15 @@ function compareExample(theirs, mine) {
   }
 
   const diffs = [];
+  // A layout's parts are placed by the layout: where each is on the page is the thing being compared.
+  if (layout) {
+    a.forEach((node, i) => {
+      if (Math.abs(node.box[0] - b[i].box[0]) > 0.6 || Math.abs(node.box[1] - b[i].box[1]) > 0.6) {
+        diffs.push(`${mark(node, 'data-flux-')}[${i}]: at ${fix(node.box[0])},${fix(node.box[1])} vs ${fix(b[i].box[0])},${fix(b[i].box[1])}`);
+      }
+    });
+  }
+
   a.forEach((node, i) => compareTree(theirs, node, mine, b[i], node, b[i], `${mark(node, 'data-flux-')}[${i}]${node.text ? ` "${node.text.slice(0, 16)}"` : ''}`, diffs));
   return diffs;
 }
@@ -121,8 +171,9 @@ function mark(node, prefix) {
 }
 
 function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
-  if (a.tag !== b.tag) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
-  if (a.text !== b.text && a !== rootA) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
+  const box = foreign(a);
+  if (!box && !sameTag(a.tag, b.tag)) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
+  if (!box && a.text !== b.text && a !== rootA) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
 
   const size = (n, i) => Math.abs(a.box[i] - b.box[i]) > 0.6;
   if (size(a, 2) || size(a, 3)) diffs.push(`${where}: size ${a.box[2]}x${a.box[3]} vs ${b.box[2]}x${b.box[3]}`);
@@ -133,6 +184,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
     }
   }
 
+  if (box) return;
   compareStyles(a.style, b.style, where, diffs);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
@@ -143,6 +195,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
     const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
     const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};
     for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) {
+      if (undrawn(key, { ...a.style, ...x }, { ...b.style, ...y })) continue;
       if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
     }
   }
@@ -161,12 +214,17 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs) {
 function compareStyles(x, y, where, diffs) {
   for (const key of STYLES) {
     if (IGNORED.has(key) || same(x[key], y[key])) continue;
-    // The colour of a border neither side draws: Flux's page gives every element a grey one, a Tailwind
-    // app leaves it the text colour, and at no width it is nothing at all.
-    const width = /^border(Top|Right|Bottom|Left)Color$/.exec(key)?.[1];
-    if (width && x[`border${width}Width`] === '0px' && y[`border${width}Width`] === '0px') continue;
+    if (undrawn(key, x, y)) continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }
+}
+
+// The colour of a line neither side draws: a border at no width, an outline with no style. Flux's page
+// gives every element a grey border, a Tailwind app leaves it the text colour, and neither is anything.
+function undrawn(key, x, y) {
+  const side = /^border(Top|Right|Bottom|Left)Color$/.exec(key)?.[1];
+  if (side) return x[`border${side}Width`] === '0px' && y[`border${side}Width`] === '0px';
+  return key === 'outlineColor' && x.outlineStyle === 'none' && y.outlineStyle === 'none';
 }
 
 // Colours and lengths print with float noise that differs between two pages computing the same value.

@@ -16,9 +16,9 @@ public sealed partial class UiKitLayoutPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "daisyUI drawer, layout and mockups in C# — Rask",
-            "daisyUI layout components in C#: a drawer whose open state C# reads and sets, divider, join, "
-            + "indicator, avatar, mask, and code, browser and window mockups.",
+            "Header and sidebar layouts, drawer and mockups in C# — Rask",
+            "Flux UI's header and sidebar layouts in C#, with a collapsible sidebar that needs no script — plus "
+            + "drawer, divider, join, avatar, mask and mockups.",
             Routes.UiKitLayoutPage());
 
     /// <inheritdoc />
@@ -26,11 +26,11 @@ public sealed partial class UiKitLayoutPage : Component
     [
         H1.Class("text-3xl font-bold mb-1")["Layout & mockups"],
         P.Class("text-ui-muted")[
-            "The drawer is the one interactive component in the kit whose state stays in a checkbox. ",
-            "That is not a leftover: daisyUI's rules are written against ", Code[".drawer-toggle:checked"],
-            ", so the input is the component rather than an implementation detail. What C# gets is the ",
-            "same state in both directions — ", Code["Open"], " sets it, ", Code["OnToggle"],
-            " reports it — which is what lets a page close the drawer when a navigation completes."
+            "The application layout is Flux UI's: ", Code["Ui.Header"], ", ", Code["Ui.Sidebar"], " and ",
+            Code["Ui.Main"], " side by side, and whatever holds them is the grid. The sidebar's two states — slid ",
+            "over the page on a phone, narrowed to a rail on a desktop — are checkboxes, so they work before ",
+            "anything has loaded; ", Code["Open"], " and ", Code["Collapsed"], " hand them to C#, which is what ",
+            "lets a page close the sidebar when a navigation completes."
         ],
         CodeSample
             .Files(["UiKitLayoutDemo.cs"])

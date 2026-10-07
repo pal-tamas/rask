@@ -25,6 +25,19 @@ public sealed class FluxConformanceTests
     private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
     {
         ["flux:icon.*"] = typeof(UiIcon),
+        ["flux:header"] = typeof(UiHeader),
+        ["flux:main"] = typeof(UiMain),
+        ["flux:sidebar"] = typeof(UiSidebar),
+        ["flux:sidebar.header"] = typeof(UiSidebarHeader),
+        ["flux:sidebar.brand"] = typeof(UiSidebarBrand),
+        ["flux:sidebar.collapse"] = typeof(UiSidebarCollapse),
+        ["flux:sidebar.search"] = typeof(UiSidebarSearch),
+        ["flux:sidebar.nav"] = typeof(UiSidebarNav),
+        ["flux:sidebar.item"] = typeof(UiSidebarItem),
+        ["flux:sidebar.group"] = typeof(UiSidebarGroup),
+        ["flux:sidebar.spacer"] = typeof(UiSidebarSpacer),
+        ["flux:sidebar.profile"] = typeof(UiSidebarProfile),
+        ["flux:sidebar.toggle"] = typeof(UiSidebarToggle),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -32,6 +45,7 @@ public sealed class FluxConformanceTests
     {
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
+        ["flux:sidebar/persist"] = "Flux's script keeps the rail in localStorage. The kit ships no script: a page that wants it remembered owns the state with Collapsed and OnCollapse.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
     };
 

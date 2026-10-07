@@ -41,8 +41,11 @@ public sealed partial class DashboardLayout(
     DashboardSecurityState security) : Component
 {
     // Enumerated once and kept: IsAvailable asks whether the battery is registered AND mapped in the EF
-    // model, and the chrome asks that question for the tab bar, the crumb and the switcher on every render.
+    // model, and the chrome asks that question for the sidebar and the switcher on every render.
     private IReadOnlyList<IQueuePanel>? _available;
+
+    // Whether the sidebar is slid over the page, on a phone. Owned here so that going somewhere closes it.
+    private bool _navOpen;
 
     /// <inheritdoc />
     protected override Component? HeadAssets =>
@@ -53,7 +56,7 @@ public sealed partial class DashboardLayout(
         // Raw, because CSS is not HTML: encoding it would break every selector containing > or &.
         // ONE sheet, the kit's. The console used to compile a second one for the utilities its pages wrote,
         // because Tailwind scans the project it runs in and neither build could see the other's markup; the
-        // pages write no classes now, and the frame's reset travels in the kit's sheet keyed to Ui.Shell.
+        // pages write no classes now, and the document's reset travels in the kit's sheet (UiStylesheet.DocumentAttribute).
         // INLINED here, unlike the apps, and deliberately. The console is mounted into somebody else's host at
         // /_rask: that host references Rask.Dashboard, not Rask.Ui, so it never gets the build target that
         // writes the sheet into wwwroot, and a <link> would point at a file nothing produced.
@@ -82,57 +85,63 @@ public sealed partial class DashboardLayout(
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        // The shell carries the kit's theme scope, so it is also where daisyUI reads data-theme. Named
-        // rather than left to default: the default is "follow prefers-color-scheme", which would repaint this
-        // subtree dark. RaskDashboardShell pins the same theme on <html>; DashboardTheme is the one place the
-        // two agree.
-        Ui.Shell.Theme(DashboardTheme.Name)[
-            Ui.TopBar.Trailing(Ui.TopLink.Label("Docs").Href("https://rask.sh/docs/"))[
-                // The wordmark and the destination are the console's, not the kit's — the kit is shared
-                // with the site and the docs now, and each says its own name.
-                Ui.Brand.Label("Ops").Href(Routes.OverviewPage()),
-                QueueSeparator(),
-                QueueSwitcher()
+    [
+        // Flux's sidebar layout: the sections down the side, a header for what belongs to the page being read,
+        // the page in what is left. The three are siblings in the body, which is what makes it the grid.
+        Ui.Sidebar.Sticky(true).Collapsible(Ui.SidebarCollapsible.Always).Open(_navOpen).OnToggle(open => _navOpen = open)[
+            Ui.SidebarHeader[
+                // The wordmark and the destination are the console's, not the kit's.
+                Ui.SidebarBrand.Name("Ops").Href(Routes.OverviewPage()),
+                Ui.SidebarCollapse
             ],
-            Ui.Nav[NavTabs()],
-            Ui.Main[
+            Ui.SidebarNav[Sections()]
+        ],
+        Ui.Header[
+            Ui.SidebarToggle.Inset(Ui.Position.Left),
+            QueueSwitcher(),
+            Ui.Spacer,
+            Ui.TopLink.Label("Docs").Href("https://rask.sh/docs/")
+        ],
+        Ui.Main[
+            // The landmark: where a screen reader jumps to, and where focus goes after a navigation.
+            Main[
                 UnsecuredWarning(),
                 Outlet
             ]
-        ];
+        ]
+    ];
 
     // ── Chrome ──────────────────────────────────────────────────────────────────────────────────────
 
-    private IEnumerable<Component> NavTabs()
+    private IEnumerable<Component> Sections()
     {
-        yield return Tab(Routes.OverviewPage(), "Overview", exact: true);
+        yield return Section(Routes.OverviewPage(), "Overview", Ui.IconName.Home, exact: true);
 
-        // One tab for every queue. It keeps you on the queue you are already reading and otherwise lands on
+        // One item for every queue. It keeps you on the queue you are already reading and otherwise lands on
         // the first — there is no memory of a previously-viewed queue, and claiming one would be a promise
-        // this makes nowhere. A deployment with no queue batteries gets no tab at all rather than a dead
+        // this makes nowhere. A deployment with no queue batteries gets no item at all rather than a dead
         // link.
         if (Available.Count > 0)
         {
             var target = CurrentQueue() ?? Available[0];
-            yield return Tab(Routes.QueuePage(target.Slug), "Queues", exact: false, prefix: QueuesPrefix);
+            yield return Section(Routes.QueuePage(target.Slug), "Queues", Ui.IconName.QueueList, exact: false, prefix: QueuesPrefix);
         }
 
-        yield return Tab(Routes.CachePage(), "Cache", exact: false);
-        yield return Tab(Routes.StoragePage(), "Storage", exact: false);
-        yield return Tab(Routes.LogsPage(), "Logs", exact: false);
-        yield return Tab(Routes.SystemPage(), "System", exact: false);
+        yield return Section(Routes.CachePage(), "Cache", Ui.IconName.CircleStack, exact: false);
+        yield return Section(Routes.StoragePage(), "Storage", Ui.IconName.ArchiveBox, exact: false);
+        yield return Section(Routes.LogsPage(), "Logs", Ui.IconName.DocumentText, exact: false);
+        yield return Section(Routes.SystemPage(), "System", Ui.IconName.ServerStack, exact: false);
     }
 
-    // Named Tab, not NavTab: a private method named after a chain entry would shadow the entry it needs to
-    // call, and the entry is a member of this markup host rather than a type it can qualify.
-    private UiNavTab Tab(RouteUrl url, string label, bool exact, string? prefix = null) =>
-        Ui.NavTab
-            .Label(label)
+    // Stated rather than left to the router: "Queues" is current on every queue's page, whichever one it links to.
+    // Pressing one closes the sidebar where it had slid over the page — on a phone it is in the way of what was asked for.
+    private Component Section(RouteUrl url, string label, Ui.IconName icon, bool exact, string? prefix = null) =>
+        Ui.SidebarItem
             .Href(url)
-            .Active(IsActive(prefix ?? url.Path, exact));
-
-    private UiCrumbSeparator? QueueSeparator() =>
-        CurrentQueue() is null ? null : Ui.CrumbSeparator;
+            .Icon(icon)
+            .Tooltip(label)
+            .Current(IsActive(prefix ?? url.Path, exact))
+            .OnClick(() => _navOpen = false)[label];
 
     private UiCrumbSwitcher? QueueSwitcher()
     {
