@@ -34,7 +34,7 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
                         .Id("signal-join")
                         .Disabled(_joining)
                         .OnClick(Join)["Join the room twice"],
-                    Ui.Button.Secondary
+                    Ui.Button.Filled
                         .Id("signal-send")
                         .Disabled(_secondId is null)
                         .OnClick(Send)["Relay a payload"]

@@ -5,220 +5,203 @@ using Rask.Core.Routing;
 namespace Rask;
 
 /// <summary>
-/// A button. It IS the <c>&lt;button&gt;</c> — or, given <see cref="Href" />, the <c>&lt;a&gt;</c>.
+///     Flux's <c>flux:button</c>. It IS the <c>&lt;button&gt;</c> — or, given <see cref="Href" />, the <c>&lt;a&gt;</c>.
 /// </summary>
 /// <remarks>
-/// <para>
-/// daisyUI's <c>btn</c>, which carries the whole of what this component used to hand-roll: the touch
-/// target, the focus ring, the disabled treatment, the hover transition and the four weights. Colour
-/// (<see cref="Tone" />), fill (<see cref="Variant" />) and <see cref="Size" /> are three independent
-/// axes and compose, so an outlined error button needs no member of its own.
-/// </para>
-/// <para>
-/// A <see cref="UiElement" />, so what it shows is its CHILDREN — <c>Ui.Button["Save"]</c>, or
-/// <c>Ui.Button[Ui.Icon.Name(Ui.IconName.Check), "Save"]</c> — and every element step (<c>Id</c>,
-/// <c>Data</c>, <c>Role</c>, <c>TabIndex</c>, <c>Aria</c>, <c>OnClick</c> and the rest of the events) is
-/// <see cref="Element" />'s, with nothing mirrored here to fall out of step. The kit sizes an icon placed
-/// in a button from its stylesheet, so a bare <c>Ui.Icon.Name(…)</c> is the right size without a class.
-/// </para>
-/// <para>
-/// A square or a circle holds one glyph, so its name cannot be visible text. Give it
-/// <see cref="AccessibleLabel" />: a button whose only content is a decorative icon is announced as
-/// "button" and nothing more.
-/// </para>
+///     <para>
+///     <c>Ui.Button["Save"]</c> is Flux's default, the outline. <see cref="Variant" />, <see cref="Size" />
+///     and <see cref="Color" /> are steps — <c>Ui.Button.Primary.Sm.Blue["Save"]</c> — and an icon is a prop,
+///     which is what lets the button pad itself around it: <c>Ui.Button.Icon(Ui.IconName.ArrowDownTray)["Export"]</c>.
+///     With an icon and no children it is a square.
+///     </para>
+///     <para>
+///     A <see cref="UiElement" />: its children are its label, and every element step (<c>Id</c>, <c>Class</c>,
+///     <c>Aria</c>, <c>OnClick</c> and the rest of the events) is <see cref="Element" />'s. A square shows only
+///     a glyph, so name it: <c>.Aria("label", "Close")</c>, or a <see cref="Tooltip" />, which names it too.
+///     </para>
 /// </remarks>
 public sealed partial class UiButton : UiElement
 {
-    /// <summary>The button's colour. Omitted, it is the theme's plain button.</summary>
-    public Ui.Tone? Tone { get; set; }
+    private static readonly UiPartMarker Marker = new("ui-button");
 
-    /// <summary>How it is filled. <see cref="Ui.Variant.Ghost" /> is the quiet action.</summary>
-    public Ui.Variant? Variant { get; set; }
+    private static readonly Dictionary<string, string?> IndicatorMark = new(StringComparer.Ordinal)
+    {
+        ["data-ui-loading-indicator"] = null,
+    };
 
-    public Ui.Size? Size { get; set; }
+    /// <summary>How it is drawn. <see cref="Ui.ButtonVariant.Outline" /> when unset.</summary>
+    public Ui.ButtonVariant? Variant { get; set; }
 
-    /// <summary>Fills the width of its container, which is what a button in a phone-width form wants.</summary>
-    public bool? Block { get; set; }
-
-    /// <summary>Wider than its content needs, without filling the container as <see cref="Block" /> does.</summary>
-    public bool? Wide { get; set; }
+    /// <summary>How large it is. <see cref="Ui.ButtonSize.Base" />, 40px tall, when unset.</summary>
+    public Ui.ButtonSize? Size { get; set; }
 
     /// <summary>
-    ///     Draws it as a square sized for one glyph. Pair it with <see cref="AccessibleLabel" />, since the
-    ///     glyph is all a sighted user sees and a screen reader needs words.
+    ///     A Tailwind hue to draw it in. The seventeen hues recolour every variant but
+    ///     <see cref="Ui.ButtonVariant.Danger" />; a gray changes only <see cref="Ui.ButtonVariant.Primary" />.
+    /// </summary>
+    public Ui.Color? Color { get; set; }
+
+    /// <summary>What it does when pressed. <see cref="Ui.ButtonType.Button" /> — nothing on its own — when unset.</summary>
+    /// <remarks>
+    ///     Set <see cref="Ui.ButtonType.Submit" /> on a form's submit button. Ignored when it is not a
+    ///     <c>&lt;button&gt;</c>.
+    /// </remarks>
+    public Ui.ButtonType? Type { get; set; }
+
+    /// <summary>The element to render. <see cref="Href" /> makes it an <c>&lt;a&gt;</c> without this.</summary>
+    public Ui.ButtonAs? As { get; set; }
+
+    /// <summary>The icon before the label — or, with no label, the whole button.</summary>
+    public Ui.IconName? Icon { get; set; }
+
+    /// <summary>
+    ///     Which drawing of the icons. Unset, it is Flux's choice: micro beside a label, mini alone in a square.
+    /// </summary>
+    public Ui.IconVariant? IconVariant { get; set; }
+
+    /// <summary>The icon after the label.</summary>
+    public Ui.IconName? IconTrailing { get; set; }
+
+    /// <summary>
+    ///     As wide as it is tall, with no padding. Automatic for a button with no children;
+    ///     <see langword="false" /> turns that off.
     /// </summary>
     public bool? Square { get; set; }
 
-    /// <summary>Draws it as a circle sized for one glyph, as <see cref="Square" />.</summary>
-    public bool? Circle { get; set; }
+    /// <summary>Where the content sits in a button wider than it. Centred when unset.</summary>
+    public Ui.Align? Align { get; set; }
 
     /// <summary>
-    ///     Draws it as though it were being pressed. For a button that toggles something, where the
-    ///     pressed look IS the state — a filter that is on, a panel that is showing.
+    ///     The sides to pull outwards by the button's invisible padding, so a ghost or subtle button lines up
+    ///     with the text around it.
     /// </summary>
-    public bool? Active { get; set; }
+    public Ui.Inset? Inset { get; set; }
 
     /// <summary>
-    ///     The name a screen reader announces, for a button whose content does not say what it does — an
-    ///     icon-only square or circle, most of all. Written as <c>aria-label</c>.
-    /// </summary>
-    /// <remarks>
-    ///     A <c>label</c> set through <c>Aria</c> wins over this one: a caller naming it explicitly knows
-    ///     better. Leave it off a button with visible text — that text is already its name, and a different
-    ///     <c>aria-label</c> would make what a sighted user reads and what a screen reader says disagree.
-    /// </remarks>
-    public string? AccessibleLabel { get; set; }
-
-    /// <summary>
-    ///     The action to invoke on the element named by <see cref="CommandFor" />, as HTML's invoker API.
+    ///     Whether it shows that it is waiting. Unset is AUTOMATIC: the runtime marks a button while its own
+    ///     <c>OnClick</c> — or its form's submit — is still running.
     /// </summary>
     /// <remarks>
-    ///     <c>command</c>/<c>commandfor</c> open and close a dialog or a popover with NO script and no
-    ///     handler on either side — the platform does it. Ignored when <see cref="Href" /> is set: only a
-    ///     button is an invoker.
+    ///     After 200 ms without an answer the runtime writes <c>data-loading</c> and <c>aria-busy</c>: the label
+    ///     fades out at its own width, a spinner takes its place and a second press is dropped. It is never
+    ///     <c>disabled</c>, which would throw keyboard focus off the control mid-press.
+    ///     <see langword="false" /> opts out — a stepper whose presses are meant to queue.
+    ///     <see langword="true" /> shows it from C#, for work that outlives the handler. Ignored when it is
+    ///     not a <c>&lt;button&gt;</c>.
     /// </remarks>
+    public bool? Loading { get; set; }
+
+    /// <summary>A hint shown while the button is hovered or focused. It names a button that has no label.</summary>
+    public string? Tooltip { get; set; }
+
+    /// <summary>Which side of the button the tooltip opens on. Above when unset.</summary>
+    public Ui.Position? TooltipPosition { get; set; }
+
+    /// <summary>A keyboard shortcut shown at the end of the tooltip: <c>"⌘S"</c>.</summary>
+    public string? TooltipKbd { get; set; }
+
+    /// <summary>A keyboard shortcut shown as a tooltip of its own. <see cref="TooltipKbd" /> wins when both are set.</summary>
+    public string? Kbd { get; set; }
+
+    /// <summary>
+    ///     Where it goes. Set this and it renders an <c>&lt;a&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A generated route — <c>Routes.Orders()</c> — navigates INSIDE the app, as a <c>NavLink</c> does: the
+    ///     anchor carries <c>data-rask-nav</c> and the deploy's path base. A plain string is a link the browser
+    ///     follows itself. Sanitised as Core's <c>A</c> sanitises its own. An anchor takes no <c>type</c> and
+    ///     cannot be <see cref="Disabled" />: a link that should not be followed should not be rendered.
+    /// </remarks>
+    public RouteUrl? Href { get; set; }
+
+    /// <summary>
+    ///     Opens <see cref="Href" /> in a new tab, with the <c>rel="noopener noreferrer"</c> that makes that
+    ///     safe, as <see cref="UiLink.External" /> does.
+    /// </summary>
+    public bool? NewTab { get; set; }
+
+    /// <summary>Whether it is disabled — by ATTRIBUTE, so the browser refuses the press. A <c>&lt;button&gt;</c> only.</summary>
+    public bool? Disabled { get; set; }
+
+    /// <summary>
+    ///     The action to invoke on the element named by <see cref="CommandFor" />, as HTML's invoker API:
+    ///     a dialog or a popover opened with no script. A <c>&lt;button&gt;</c> only.
+    /// </summary>
     public string? Command { get; set; }
 
     /// <summary>The id of the element <see cref="Command" /> acts on.</summary>
     public string? CommandFor { get; set; }
 
-    /// <summary>
-    ///     Where it goes. Set this and it renders an <c>&lt;a&gt;</c> rather than a <c>&lt;button&gt;</c>.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     A link that looks like a button is an ordinary thing to want — a call to action, a "read the
-    ///     guide", an install link — and daisyUI documents <c>btn</c> on an anchor for exactly it.
-    ///     </para>
-    ///     <para>
-    ///     Given a generated route — <c>Routes.Orders()</c> — it navigates INSIDE the app, as a
-    ///     <c>NavLink</c> does: the anchor carries <c>data-rask-nav</c>, which the runtime intercepts and
-    ///     routes without reloading the page, and the deploy's path base, so a new tab, a copied link or a
-    ///     crawler reaches the same page. A plain string is an ordinary link the browser follows itself, which
-    ///     is what a URL that leaves the app wants. With <see cref="NewTab" /> nothing is intercepted: the
-    ///     reader asked for another browsing context.
-    ///     </para>
-    ///     <para>
-    ///     It stays ONE component because the tone, fill and size axes are identical either way; a sibling
-    ///     would duplicate all of them to change one tag. What does change is what the element means: an
-    ///     anchor navigates, so it takes no <c>type</c>, and <see cref="Disabled" /> cannot apply to it —
-    ///     there is no disabled state for a link in HTML, and faking one with a class leaves it focusable and
-    ///     followable by keyboard. A disabled link is a link that should not be rendered.
-    ///     </para>
-    ///     <para>
-    ///     Sanitised exactly as Core's <c>A</c> sanitises its own, so a <c>javascript:</c> URL that reaches
-    ///     a kit button from data is refused the same way.
-    ///     </para>
-    /// </remarks>
-    public RouteUrl? Href { get; set; }
-
-    /// <summary>
-    ///     What it does when pressed. Defaults to <see cref="Ui.ButtonType.Button" /> — nothing on its own.
-    /// </summary>
-    /// <remarks>
-    ///     Set <see cref="Ui.ButtonType.Submit" /> for a form's submit button. The default matters in both
-    ///     directions and is silent in both: a <c>&lt;button&gt;</c> inside a form submits it unless told
-    ///     otherwise, so a toggle that forgot would submit the form around it — and a submit button
-    ///     rendered as <c>type="button"</c> does nothing at all when pressed, on a form that looks
-    ///     finished. Ignored when <see cref="Href" /> is set; an anchor has no type.
-    /// </remarks>
-    public Ui.ButtonType? Type { get; set; }
-
-    /// <summary>Opens <see cref="Href" /> in a new tab, with the <c>rel</c> that makes that safe.</summary>
-    /// <remarks>
-    ///     <c>rel="noopener"</c> comes with it rather than being left to the caller: a new tab opened
-    ///     without it can reach back through <c>window.opener</c>, and the one thing a caller will forget
-    ///     is the attribute that has no visible effect. Ignored when <see cref="Href" /> is not set.
-    /// </remarks>
-    public bool? NewTab { get; set; }
-
-    /// <summary>
-    ///     Whether it is disabled — by ATTRIBUTE, so the browser refuses the interaction. Only meaningful for
-    ///     a button; see the remarks on <see cref="Href" />.
-    /// </summary>
-    public bool? Disabled { get; set; }
-
-    /// <summary>
-    ///     Whether the button shows that it is waiting. Unset is AUTOMATIC: the runtime marks it while its own
-    ///     handler — or its form's submit — is still running.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Automatic is the default because the page cannot do it well by hand. A handler that takes a second
-    ///     on a slow link leaves the pressed button looking exactly as it did, so the reader presses it again
-    ///     and the handler runs twice. Flux UI answers that on every button bound to a server action, and so
-    ///     does this: after 200 ms without an answer the runtime writes <c>data-loading</c> and
-    ///     <c>aria-busy="true"</c>, the kit's stylesheet swaps the label for a spinner at the same width, and a
-    ///     second press is dropped until the first one's render has landed. It is never <c>disabled</c>, which
-    ///     would throw keyboard focus off the control mid-press.
-    ///     </para>
-    ///     <para>
-    ///     <see langword="false" /> opts out — a stepper whose presses are meant to queue. <see langword="true" />
-    ///     shows it from C#, for work that outlives the handler: a job the page is polling, an upload the
-    ///     server is still processing. Ignored when <see cref="Href" /> is set; a link waits on nothing.
-    ///     </para>
-    /// </remarks>
-    public bool? Loading { get; set; }
-
     /// <inheritdoc />
-    protected override string TagName => Link is null ? "button" : "a";
-
-    /// <inheritdoc />
-    private protected override IReadOnlyDictionary<string, string?>? ResolveData()
+    protected override string TagName => (Link, As) switch
     {
-        if (Loading is not { } loading || Link is not null)
-        {
-            return Data;
-        }
+        (not null, _) or (_, Ui.ButtonAs.A) => "a",
+        (_, Ui.ButtonAs.Div) => "div",
+        _ => "button",
+    };
 
-        // The runtime reads `data-rask-loading="off"` and leaves the button alone; `data-loading` is the same
-        // hook the runtime itself writes, so the stylesheet has one rule for both.
-        var data = new Dictionary<string, string?>(StringComparer.Ordinal);
-        if (Data is { } callerData)
-        {
-            foreach (var (name, value) in callerData)
-            {
-                data[name] = value;
-            }
-        }
-
-        if (loading)
-        {
-            data.TryAdd("loading", null);
-        }
-        else
-        {
-            data.TryAdd("rask-loading", "off");
-        }
-
-        return data;
-    }
-
-    // A null string reaching Href converts to a RouteUrl with no path rather than to no RouteUrl at all, and a
-    // button with a null string for a destination is a button, as it was when Href was a string.
-    // Href itself rather than `href : null`: that null would take the same string conversion and come out as a
-    // RouteUrl with no path, which is the case this exists to catch.
+    // A null string reaching Href converts to a RouteUrl with no path, and that is a button, not a link.
     private RouteUrl? Link => Href is { Path: not null } ? Href : null;
 
+    private bool IsButton => Link is null && As is null or Ui.ButtonAs.Button;
+
+    private Ui.ButtonSize Sized => Size ?? Ui.ButtonSize.Base;
+
+    private bool IsSquare => Square ?? Children is null;
+
+    // Flux's rule — a button bound to an action, or a form's submit — and any button whose Loading the
+    // caller set, either way: a flag that flips between renders must not change what the button is made of.
+    private bool Loads => IsButton && (Loading is not null || OnClick.HasValue || Type == Ui.ButtonType.Submit);
+
+    private string? Hint => TooltipKbd ?? Kbd;
+
+    private bool HasParts => Icon is not null || IconTrailing is not null || Loads || Tooltip is not null || Hint is not null;
+
     /// <inheritdoc />
-    protected override string? ResolveClass() =>
-        UiClass.Compose(
-            "btn",
-            Tone is { } tone ? UiClassNames.ButtonTone(tone) : "",
-            Variant is { } variant ? UiClassNames.ButtonVariant(variant) : "",
-            Size is { } size ? UiClassNames.ButtonSize(size) : "",
-            Block == true ? "btn-block" : "",
-            Wide == true ? "btn-wide" : "",
-            Square == true ? "btn-square" : "",
-            Circle == true ? "btn-circle" : "",
-            Active == true ? "btn-active" : "",
+    protected override string? ResolveClass()
+    {
+        var variant = Variant ?? Ui.ButtonVariant.Outline;
+        var chromatic = Color is { } color && UiButtonClasses.IsChromatic(color);
+        var hued = chromatic && variant is not (Ui.ButtonVariant.Primary or Ui.ButtonVariant.Danger);
+
+        return UiClass.Compose(
+            UiButtonClasses.Base,
+            UiButtonClasses.Size(Sized, Shape),
+            UiButtonClasses.Align(Align),
+            UiButtonClasses.Variant(variant, hued),
+            UiButtonClasses.Shadow(variant, Sized),
+            hued ? UiButtonClasses.Hue(Color!.Value) : null,
+            variant == Ui.ButtonVariant.Primary && Color is { } accent ? UiButtonClasses.Accent(accent) : null,
+            variant is Ui.ButtonVariant.Ghost or Ui.ButtonVariant.Subtle ? null : UiButtonClasses.Grouped(Sized),
+            Inset is { } inset ? UiButtonClasses.Inset(inset, Sized) : null,
             Class);
+    }
+
+    private UiButtonClasses.Shape Shape => (IsSquare, Icon is not null, IconTrailing is not null) switch
+    {
+        (true, _, _) => UiButtonClasses.Shape.Square,
+        (_, true, true) => UiButtonClasses.Shape.IconBoth,
+        (_, true, false) => UiButtonClasses.Shape.IconLeading,
+        (_, false, true) => UiButtonClasses.Shape.IconTrailing,
+        _ => UiButtonClasses.Shape.Text,
+    };
+
+    /// <inheritdoc />
+    private protected override IReadOnlyDictionary<string, string?>? ResolveData() =>
+        (IsButton ? Loading : null) switch
+        {
+            true => Marker.With(Data, "loading", null),
+            // The runtime reads `data-rask-loading="off"` and leaves the button alone.
+            false => Marker.With(Data, "rask-loading", "off"),
+            _ => Marker.With(Data),
+        };
 
     /// <inheritdoc />
     protected override IReadOnlyDictionary<string, string?>? ResolveAria()
     {
-        var label = AccessibleLabel is { } accessible && Aria?.ContainsKey("label") != true ? accessible : null;
-        var busy = Loading == true && Link is null && Aria?.ContainsKey("busy") != true;
+        // A square shows a glyph and nothing else, so its tooltip is the only words it has.
+        var label = Children is null && AriaLabel is null && Aria?.ContainsKey("label") != true ? Tooltip : null;
+        var busy = Loading == true && IsButton && AriaBusy is null && Aria?.ContainsKey("busy") != true;
         if (label is null && !busy)
         {
             return Aria;
@@ -253,30 +236,35 @@ public sealed partial class UiButton : UiElement
 
         if (Link is { } href)
         {
-            // A generated route carries its page type; a string converted to a RouteUrl does not. Only the
-            // first is this app's to route, so only it is intercepted, and only it is prefixed with the
-            // deploy's PathBase — a route's own path is prefix-less, exactly as NavLink's is (#975).
-            var inApp = href.PageType is not null;
-            AppendUrlAttr(sb, "href", inApp ? LiveOptions.PathBase + href.ToString() : href.ToString());
-
-            if (NewTab == true)
-            {
-                // noopener with it, always — see the remarks on NewTab.
-                AppendAttr(sb, "target", "_blank");
-                AppendAttr(sb, "rel", "noopener");
-            }
-            else if (inApp)
-            {
-                // The runtime's click interception selects on this attribute. Without it the anchor is a full
-                // document load, booting the whole app again to reach a page it already has.
-                AppendAttr(sb, "data-rask-nav", null);
-            }
-
-            // No `type`, no `disabled` and no invoker: none of them means anything on an anchor, and a
-            // disabled-looking link is still focusable and still followable.
-            return;
+            WriteLink(sb, href);
         }
+        else if (IsButton)
+        {
+            WriteButton(sb);
+        }
+    }
 
+    private void WriteLink(StringBuilder sb, RouteUrl href)
+    {
+        // A generated route carries its page type; a string converted to a RouteUrl does not. Only the first
+        // is this app's to route, so only it is intercepted and prefixed with the deploy's PathBase (#975).
+        var inApp = href.PageType is not null;
+        AppendUrlAttr(sb, "href", inApp ? LiveOptions.PathBase + href.ToString() : href.ToString());
+
+        if (NewTab == true)
+        {
+            AppendAttr(sb, "target", "_blank");
+            AppendAttr(sb, "rel", "noopener noreferrer");
+        }
+        else if (inApp)
+        {
+            // The runtime's click interception selects on this. Without it the anchor is a full document load.
+            AppendAttr(sb, "data-rask-nav", null);
+        }
+    }
+
+    private void WriteButton(StringBuilder sb)
+    {
         AppendAttr(sb, "type", Type switch
         {
             Ui.ButtonType.Submit => "submit",
@@ -298,5 +286,73 @@ public sealed partial class UiButton : UiElement
         {
             AppendAttr(sb, "commandfor", commandFor);
         }
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///     The serializer walks an indexer's array as it stands and never asks <see cref="RenderChildren" />.
+    ///     A button with parts of its own — an icon, the spinner, a tooltip — hands it something that is not
+    ///     an array, so it does ask. A plain <c>Ui.Button["Save"]</c> is left on the fast path.
+    /// </remarks>
+    protected override IDisposable? EnterChildrenScope()
+    {
+        if (HasParts && Children is Component?[] label)
+        {
+            Children = new ArraySegment<Component?>(label);
+        }
+
+        return base.EnterChildrenScope();
+    }
+
+    /// <inheritdoc />
+    protected override IEnumerable<Component?> RenderChildren()
+    {
+        if (!HasParts)
+        {
+            return base.RenderChildren();
+        }
+
+        var loads = Loads;
+        return
+        [
+            loads ? Indicator() : null,
+            Icon is { } icon ? Glyph(icon, loads) : null,
+            Label(loads),
+            IconTrailing is { } trailing ? Glyph(trailing, loads) : null,
+            Tooltip is not null || Hint is not null ? UiButtonTooltip.Render(Tooltip, Hint, TooltipPosition) : null,
+        ];
+    }
+
+    // Over the whole button and invisible until the runtime — or Loading(true) — marks it.
+    private static Component Indicator() =>
+        Div.Class("absolute inset-0 flex items-center justify-center opacity-0 transition-opacity [[data-loading]>&]:opacity-100")
+            .Attributes(IndicatorMark)[
+            Ui.Icon.Name(Ui.IconName.Loading).Micro
+        ];
+
+    // 20px alone in a square, 16px beside a label — and in the smallest button either way.
+    private UiIcon Glyph(Ui.IconName name, bool loads)
+    {
+        var large = IsSquare && Sized != Ui.ButtonSize.Xs;
+        var variant = IconVariant ?? (large ? Ui.IconVariant.Mini : Ui.IconVariant.Micro);
+
+        return Ui.Icon.Name(name).Variant(variant).Class((large, loads) switch
+        {
+            (true, true) => "size-5 transition-opacity [[data-loading]>&]:opacity-0",
+            (true, false) => "size-5",
+            (false, true) => "size-4 transition-opacity [[data-loading]>&]:opacity-0",
+            _ => "size-4",
+        });
+    }
+
+    private Component? Label(bool loads)
+    {
+        var label = Children is ArraySegment<Component?> segment ? segment.Array : Children;
+        if (label is null)
+        {
+            return null;
+        }
+
+        return loads ? Span.Class("transition-opacity [[data-loading]>&]:opacity-0")[label] : Span[label];
     }
 }

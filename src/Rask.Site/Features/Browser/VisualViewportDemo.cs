@@ -9,7 +9,7 @@ public sealed partial class VisualViewportDemo : Component
 
     protected override Component? Render() =>
         Ui.Card[
-                Ui.Button.Primary.Outline.Class("mb-2")
+                Ui.Button.Class("mb-2")
                     .Id("vv-read")
                     .OnClick(Read)["Read visual viewport"],
                 Div.Class("text-sm text-ui-muted")["Viewport: ", Code.Id("vv-value")[_value ?? "(not requested)"]],

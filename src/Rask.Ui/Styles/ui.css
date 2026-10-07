@@ -1156,7 +1156,9 @@
 }
 
 /*
-  A button waiting on its own handler (UiButton.Loading; the runtime's rask-loading.ts).
+  A HAND-WRITTEN daisy button waiting on its own handler (the runtime's rask-loading.ts). Ui.Button is
+  Flux's and draws its own spinner with utilities; this is for the `btn` the templates and the kit's
+  remaining daisy-drawn components still write, and it goes when the last of them does.
 
   The runtime writes `data-loading` + `aria-busy` once a dispatch has gone 200 ms without an answer, and a
   render can write the same `data-loading` for work that outlives the handler. The label stays in the layout

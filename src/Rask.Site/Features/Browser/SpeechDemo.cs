@@ -18,7 +18,7 @@ public sealed partial class SpeechDemo : Component
                     .OnInput(v => _text = v),
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Ui.Button.Primary.Id("speech-speak").OnClick(Speak)["Speak"],
-                    Ui.Button.Error.Outline
+                    Ui.Button.Red
                         .Id("speech-cancel")
                         .OnClick(Cancel)["Stop"]
                 ],

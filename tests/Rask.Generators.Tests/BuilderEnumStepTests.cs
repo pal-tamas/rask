@@ -14,8 +14,19 @@ public class BuilderEnumStepTests
 
                                public enum Weight { Light, Bold }
 
-                               // Nine members: one past the line, so its values are treated as names.
-                               public enum IconName { Gear, Trash, Search, Check, Close, Plus, Minus, Pencil, Star }
+                               // Twenty-four members, which is the line: Tailwind's 22 hues fit under it.
+                               public enum Hue
+                               {
+                                   Red, Orange, Amber, Yellow, Lime, Green, Emerald, Teal, Cyan, Sky, Blue, Indigo,
+                                   Violet, Purple, Fuchsia, Pink, Rose, Slate, Gray, Zinc, Stone, Mauve, Olive, Mist,
+                               }
+
+                               // Twenty-five members: one past the line, so its values are treated as names.
+                               public enum IconName
+                               {
+                                   Gear, Trash, Search, Check, Close, Plus, Minus, Pencil, Star, Bolt, Bell, Book, Bug,
+                                   Cake, Clock, Cloud, Cog, Cube, Eye, Film, Fire, Flag, Gift, Home, Key,
+                               }
 
                                [System.Flags]
                                public enum Edges { None = 0, Top = 1, Bottom = 2 }
@@ -24,6 +35,7 @@ public class BuilderEnumStepTests
                                {
                                    public Tone? Tone { get; set; }
                                    public Weight? Weight { get; set; }
+                                   public Hue? Hue { get; set; }
                                    public IconName? Icon { get; set; }
                                    public Edges? Edges { get; set; }
                                    public bool? Bold { get; set; }
@@ -66,6 +78,15 @@ public class BuilderEnumStepTests
 
         Assert.DoesNotContain("Neutral => __b.Accent(", output, StringComparison.Ordinal);
         Assert.DoesNotContain("__b.Accent(global::Demo.Tone.Neutral)", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_enum_of_twenty_four_members_still_offers_a_step_per_member()
+    {
+        var output = Setters();
+
+        Assert.Contains("Red => __b.Hue(global::Demo.Hue.Red);", output, StringComparison.Ordinal);
+        Assert.Contains("Mist => __b.Hue(global::Demo.Hue.Mist);", output, StringComparison.Ordinal);
     }
 
     [Fact]

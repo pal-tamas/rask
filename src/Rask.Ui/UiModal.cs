@@ -150,7 +150,7 @@ public sealed partial class UiModal : Component
         return
         [
             Trigger is { } trigger
-                ? Button.Type(ButtonType.Button).Class("btn").Attributes(Opens(id))[trigger]
+                ? Ui.Button.Attributes(Opens(id))[trigger]
                 : null,
             Shell(
                 dialog,
@@ -168,14 +168,8 @@ public sealed partial class UiModal : Component
         [("command", "close"), ("commandfor", id), ("popovertarget", id), ("popovertargetaction", "hide")];
 
     // Markup rather than a handler, so it closes with no runtime at all.
-    private static Component PopoverClose(string id) =>
-        Button
-            .Type(ButtonType.Button)
-            .Class("btn btn-ghost btn-sm btn-square")
-            .Attributes(Closes(id))
-            .Aria("label", "Close")[
-            Ui.Icon.Name(Ui.IconName.XMark).Class("size-4 shrink-0")
-        ];
+    private static UiButton PopoverClose(string id) =>
+        Ui.Button.Ghost.Sm.Icon(Ui.IconName.XMark).Attributes(Closes(id)).AriaLabel("Close");
 
     // A MODAL dialog has no light-dismiss of its own in most browsers — the viewport-sized `.modal` is the
     // dialog, so a click on the dimmed area is a click inside it. daisyUI's backdrop button is the part that
@@ -206,11 +200,8 @@ public sealed partial class UiModal : Component
             dialog = dialog.TabIndex(-1).Attributes(("data-rask-focus-trap", null));
         }
 
-        var close = Ui.Button
-            .AccessibleLabel("Close")
-            .Variant(Ui.Variant.Ghost)
-            .Size(Ui.Size.Sm)
-            .Square()
+        var close = Ui.Button.Ghost.Sm.Icon(Ui.IconName.XMark)
+            .AriaLabel("Close")
             .OnClick(() => OnClose.Invoke());
 
         // The trap presses the [data-rask-dismiss] control on Escape. The close button IS that control unless
@@ -243,8 +234,8 @@ public sealed partial class UiModal : Component
         }
 
         return !OnCancel.HasValue
-            ? close[Ui.Icon.Name(Ui.IconName.XMark)]
-            : [close[Ui.Icon.Name(Ui.IconName.XMark)], EscapeTarget()];
+            ? close
+            : [close, EscapeTarget()];
     }
 
     // Someone is listening for the page to stop rendering it open. Without either callback a dismissal would
@@ -292,7 +283,7 @@ public sealed partial class UiModal : Component
         // again is the redundant-ARIA that guidance tells you not to write. The NAME is not implicit,
         // though — a dialog with a heading inside is still an unnamed dialog to a screen reader, which
         // announces "dialog" and nothing else — so the title goes on as aria-label.
-        dialog.Aria("label", Title)[
+        dialog.AriaLabel(Title)[
             Div.Class(IsFlyout
                 ? "modal-box flex w-[min(28rem,100vw)] flex-col p-0"
                 // daisyUI's side modals are already full height; the centred box's height and width caps would

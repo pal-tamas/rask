@@ -18,10 +18,10 @@ public sealed partial class WebLocksDemo : Component
         Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Ui.Button.Primary.Id("locks-hold").OnClick(Hold)["Hold exclusive for 2s"],
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("locks-try")
                         .OnClick(TryHold)["Try (no wait)"],
-                    Ui.Button.Outline
+                    Ui.Button
                         .Id("locks-query")
                         .OnClick(Query)["Query held locks"]
                 ],

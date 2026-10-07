@@ -117,19 +117,16 @@ public sealed partial class UiDataGrid<T, TKey>
         ];
     }
 
-    private Component? BandToggle(string path, bool collapsed)
+    private UiButton? BandToggle(string path, bool collapsed)
     {
         if (GroupCollapsible is false)
         {
             return null;
         }
 
-        return Ui.Button
-            .AccessibleLabel(collapsed ? "Expand group" : "Collapse group")
-            .Square()
-            .Size(Ui.Size.Xs)
-            .Variant(Ui.Variant.Ghost)
-            .OnClick(() => ToggleBand(path))[Ui.Icon.Name(collapsed ? Ui.IconName.ChevronRight : Ui.IconName.ChevronDown)];
+        return Ui.Button.Ghost.Xs.Icon(collapsed ? Ui.IconName.ChevronRight : Ui.IconName.ChevronDown)
+            .AriaLabel(collapsed ? "Expand group" : "Collapse group")
+            .OnClick(() => ToggleBand(path));
     }
 
     private Component Subtotal(IReadOnlyList<UiColumn<T>> visible, List<T> band, int level) =>

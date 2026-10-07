@@ -10,7 +10,7 @@ public sealed partial class GeolocationDemo : Component
 
     protected override Component? Render() =>
         Ui.Card[
-                Ui.Button.Primary.Outline.Class("mb-2")
+                Ui.Button.Class("mb-2")
                     .Id("geo-get")
                     .OnClick(Get)["Get current position"],
                 Div.Class("text-sm text-ui-muted")["Position: ", Code.Id("geo-value")[_location ?? "(not requested)"]],

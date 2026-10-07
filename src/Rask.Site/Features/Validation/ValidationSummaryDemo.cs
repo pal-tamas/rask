@@ -46,7 +46,7 @@ public sealed partial class ValidationSummaryDemo : Component
                     .ShowValidation(false)
             ],
             Div[
-                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.CheckCircle), "Register"]
+                Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit["Register"]
             ]
         ],
         _submission is null

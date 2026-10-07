@@ -100,7 +100,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                 ],
                 Totals(subtotal, discountPct, discount, tax, total),
                 Div[
-                    Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.CreditCard), "Pay"]
+                    Ui.Button.Primary.Icon(Ui.IconName.CreditCard).Submit["Pay"]
                 ]
             ],
             _submission is null

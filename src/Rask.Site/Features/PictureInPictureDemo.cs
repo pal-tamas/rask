@@ -38,7 +38,7 @@ public sealed partial class PictureInPictureDemo : Component
                     .Class("rounded border mb-2 bg-slate-900"),
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button.Primary.Id("pip-enter").OnClick(Enter)["Open miniplayer"],
-                    Ui.Button.Error.Outline.Id("pip-exit").OnClick(Exit)["Exit"]
+                    Ui.Button.Red.Id("pip-exit").OnClick(Exit)["Exit"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pip-status")[_status]]
             ];

@@ -41,12 +41,12 @@ public sealed partial class GestureBridgeDemo : Component
             Trigger.ScreenOrientation
                 .Orientation("landscape")
                 .Template(g =>
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("orientation-btn")
                         .Data(g)["Lock landscape"]),
             Trigger.Install
                 .Template(g =>
-                    Ui.Button.Success.Outline
+                    Ui.Button.Green
                         .Id("install-btn")
                         .Data(g)["Install app"])
                 .OnOutcome(outcome =>
@@ -65,7 +65,7 @@ public sealed partial class GestureBridgeDemo : Component
         Div.Class("flex gap-2 items-center flex-wrap mb-2")[
             Trigger.EyeDropper
                 .Template(g =>
-                    Ui.Button.Outline
+                    Ui.Button
                         .Id("eyedropper-btn")
                         .Data(g)["Pick a colour"])
                 .OnColor(hex =>
@@ -92,7 +92,7 @@ public sealed partial class GestureBridgeDemo : Component
             Trigger.MediaCapture
                 .For(_preview)
                 .Template(g =>
-                    Ui.Button.Outline
+                    Ui.Button
                         .Id("camera-btn")
                         .Data(g)["Start camera"])
                 .Video()
@@ -102,14 +102,14 @@ public sealed partial class GestureBridgeDemo : Component
                 // StateHasChanged: the trigger is a Component, so its callback is auto-wrapped and
                 // this demo repaints when the handler returns (RASK026).
                 .OnStream(stream => _camera = MediaStream.From(stream)),
-            Ui.Button.Outline
+            Ui.Button
                 .Id("camera-stop-btn")
                 .Disabled(_camera is null)
                 .OnClick(StopCamera)["Stop camera"],
             Trigger.PictureInPicture
                 .For(_preview)
                 .Template(g =>
-                    Ui.Button.Outline
+                    Ui.Button
                         .Id("pip-btn")
                         .Data(g)["Pop out video"]),
             Video

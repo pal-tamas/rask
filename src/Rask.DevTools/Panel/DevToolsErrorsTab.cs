@@ -84,12 +84,12 @@ internal sealed partial class DevToolsErrorsTab : Component
 
         return Div.Class("flex flex-col gap-3")[
             Div.Class("flex flex-wrap items-center justify-between gap-2")[
-                Ui.Join[
+                Ui.ButtonGroup[
                     FilterButton(All, "All"),
                     FilterButton(Page, "This page"),
                     FilterButton(App, "App-wide")
                 ],
-                Ui.Button.Size(Ui.Size.Sm).Title("Forget the errors listed").OnClick(Clear)["Clear"]
+                Ui.Button.Sm.Title("Forget the errors listed").OnClick(Clear)["Clear"]
             ],
             errors.Count == 0
                 ? Ui.Callout.Success.Icon(Ui.IconName.CheckCircle).Heading(NothingText)
@@ -115,11 +115,9 @@ internal sealed partial class DevToolsErrorsTab : Component
     }
 
     private Component FilterButton(string id, string label) =>
-        Ui.Button
-            .Size(Ui.Size.Sm)
-            // daisyUI's own markers, written whole: a composed class name is invisible to the kit's Tailwind scan.
-            .Class(Showing(id) ? "join-item btn-active" : "join-item")
-            .Aria("pressed", Showing(id) ? "true" : "false")
+        Ui.Button.Sm
+            .Variant(Showing(id) ? Ui.ButtonVariant.Primary : Ui.ButtonVariant.Outline)
+            .AriaPressed(Showing(id) ? AriaPressed.True : AriaPressed.False)
             .OnClick(() => _filter = id)[label];
 
     /// <summary>Both logs, newest first.</summary>
@@ -141,7 +139,7 @@ internal sealed partial class DevToolsErrorsTab : Component
 
     private Component? ShowInTree(DevToolsError error) =>
         error.ComponentId is { } id && OnShowInTree.HasValue
-            ? Ui.Button.Size(Ui.Size.Xs).OnClick(() => OnShowInTree.Invoke(id).AsTask())["Show in tree"]
+            ? Ui.Button.Xs.OnClick(() => OnShowInTree.Invoke(id).AsTask())["Show in tree"]
             : null;
 
     private static string RowKey(DevToolsError error) =>
@@ -182,7 +180,7 @@ internal sealed partial class DevToolsErrorsTab : Component
         {
             return Div.Class("flex flex-wrap items-center gap-2 text-xs")[
                 Span.Class("opacity-60")["This looks like a bug in Rask itself."],
-                Ui.Button.Size(Ui.Size.Xs).OnClick(() => _reporting = key)["Report framework bug"]
+                Ui.Button.Xs.OnClick(() => _reporting = key)["Report framework bug"]
             ];
         }
 
@@ -201,11 +199,10 @@ internal sealed partial class DevToolsErrorsTab : Component
             Ui.Textarea.Value(draft.Body).Label("Issue").Rows(12).Class("font-mono text-xs")
                 .OnInput(v => _drafts[key] = (_drafts[key].Title, v)),
             Div.Class("flex flex-wrap items-center gap-2")[
-                A.Class("btn btn-primary btn-sm")
+                Ui.Button.Primary.Sm
                     .Href(DevToolsBugReport.IssueUrl(draft.Title, draft.Body))
-                    .Target("_blank")
-                    .Rel("noopener noreferrer")["Open the issue on GitHub"],
-                Ui.Button.Size(Ui.Size.Sm).OnClick(() => _reporting = null)["Cancel"]
+                    .NewTab()["Open the issue on GitHub"],
+                Ui.Button.Sm.OnClick(() => _reporting = null)["Cancel"]
             ]
         ];
     }

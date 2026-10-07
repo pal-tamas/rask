@@ -113,17 +113,12 @@ public sealed partial class TodosPage : Component
             // The Aria step is gone because the Label IS the accessible name here: a
             // square button holds one glyph, so Ui.Button writes the label as aria-label
             // rather than as visible text.
-            Ui.Button
-                .AccessibleLabel($"Edit {item.Title}")
-                .Square()
-                .Outline
-                .OnClick(() => OpenEdit(item))[Ui.Icon.Name(Ui.IconName.Pencil)],
-            Ui.Button
-                .AccessibleLabel($"Delete {item.Title}")
-                .Square()
-                .Error
-                .Outline
-                .OnClick(() => Delete(item))[Ui.Icon.Name(Ui.IconName.Trash)]
+            Ui.Button.Icon(Ui.IconName.Pencil)
+                .AriaLabel($"Edit {item.Title}")
+                .OnClick(() => OpenEdit(item)),
+            Ui.Button.Red.Icon(Ui.IconName.Trash)
+                .AriaLabel($"Delete {item.Title}")
+                .OnClick(() => Delete(item))
         ];
 
     protected override Component? Render() =>
@@ -136,7 +131,7 @@ public sealed partial class TodosPage : Component
                 Span.Class("text-ui-muted text-sm")[
                     $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
-                Ui.Button.Primary.OnClick(OpenAdd)[Ui.Icon.Name(Ui.IconName.Plus), "New todo"]
+                Ui.Button.Primary.Icon(Ui.IconName.Plus).OnClick(OpenAdd)["New todo"]
             ],
             _todos.Count == 0
                 ? Div.Class("text-ui-muted text-sm")["No todos yet — click \"New todo\" to add one."]

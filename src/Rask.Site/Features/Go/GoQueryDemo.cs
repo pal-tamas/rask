@@ -26,19 +26,19 @@ public sealed partial class GoQueryDemo(RouteState route) : Component
                     ]
                 ],
             Div.Class("flex-wrap")[
-                Ui.Button.Primary.Outline
+                Ui.Button
                     .Id("nav-set-page1")
                     .OnClick(() => Go.With("page", "1"))["Go.With page=1"],
-                Ui.Button.Primary.Outline
+                Ui.Button
                     .Id("nav-set-page2")
                     .OnClick(() => Go.With("page", "2"))["Go.With page=2"],
-                Ui.Button.Primary.Outline
+                Ui.Button
                     .Id("nav-set-sort")
                     .OnClick(() => Go.With("sort", "asc"))["Go.With sort=asc"],
-                Ui.Button.Outline
+                Ui.Button
                     .Id("nav-remove-page")
                     .OnClick(() => Go.Without("page"))["Go.Without page"],
-                Ui.Button.Error.Outline
+                Ui.Button.Red
                     .Id("nav-clear")
                     .OnClick(() => Go.Without())["Go.Without()"]
             ]

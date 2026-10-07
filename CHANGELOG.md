@@ -155,6 +155,44 @@ them until tagged releases begin.
     `Ui.CalloutVariant`. The `.alert-*` contrast corrections stay in the kit's sheet for an app's own
     `alert alert-*` markup (the scaffolded sign-in pages write it); the kit itself writes no `alert` class.
 
+- **BREAKING: `Ui.Button` is Flux's button, with its group.** It is drawn as
+  [fluxui.dev/components/button](https://fluxui.dev/components/button) draws it — measured there, in light
+  and in dark — and takes Flux's props: `Variant` (`Ui.ButtonVariant`: `Outline`, the default, `Primary`,
+  `Filled`, `Danger`, `Ghost`, `Subtle`), `Size` (`Ui.ButtonSize`: `Base`, `Sm`, `Xs`), `Color` (`Ui.Color`,
+  Tailwind's hues), `Icon`, `IconVariant`, `IconTrailing`, `Square`, `Align`, `Inset`, `Loading`, `Tooltip`,
+  `TooltipPosition`, `TooltipKbd`, `Kbd` and `As`. `Ui.ButtonGroup` fuses the buttons inside it. daisyUI's
+  `Tone`, `Block`, `Wide`, `Circle`, `Active` and the kit's `AccessibleLabel` are gone from the button:
+  ```csharp
+  Ui.Button.Primary["Save"]                                  // unchanged
+  Ui.Button.Outline["Cancel"]                                // was
+  Ui.Button["Cancel"]                                        // now — the outline is the default
+  Ui.Button.Error["Delete"]                                  // was
+  Ui.Button.Danger["Delete"]                                 // now
+  Ui.Button.Success["Approve"]                               // was
+  Ui.Button.Primary.Green["Approve"]                         // now
+  Ui.Button.Error.Outline["Remove"]                          // was
+  Ui.Button.Red["Remove"]                                    // now — a hue on the outline
+  Ui.Button.Soft["Edit"]                                     // was
+  Ui.Button.Filled["Edit"]                                   // now
+  Ui.Button[Ui.Icon.Name(Ui.IconName.Check), "Save"]         // was
+  Ui.Button.Icon(Ui.IconName.Check)["Save"]                  // now — an icon is a prop
+  Ui.Button.AccessibleLabel("Close").Square()[Ui.Icon.Name(Ui.IconName.XMark)]   // was
+  Ui.Button.Icon(Ui.IconName.XMark).AriaLabel("Close")                           // now — square on its own
+  Ui.Button.Block()["Send"]                                  // was
+  Ui.Button.Class("w-full")["Send"]                          // now
+  ```
+  The rest: `Warning` → `.Filled.Amber`, `Info` → `.Filled.Sky`, `Secondary`/`Accent`/`Neutral` →
+  `.Filled`, `Dash` → the default, `Link` → `.Subtle` (or `Ui.Link`), `Size(Ui.Size.Md|Lg|Xl)` → no size
+  (Flux has three), `Wide()` → `.Class("w-64")`, `Circle()` → `.Square().Class("rounded-full")`, `Active()`
+  → `.AriaPressed(AriaPressed.True)` on `.Filled`. A label and its icons are wrapped in the markup now, so
+  a selector that matched `button > svg` or the button's text node needs another look.
+- **A button draws its waiting state as Flux does.** The label fades out where it stands and Flux's spinner
+  fades in over it; the button takes no pointer events meanwhile. As in Flux, the spinner is in the markup
+  of a button that has something to wait on — an `OnClick`, `type="submit"` or `Loading(true)` — where the
+  old one was drawn by the stylesheet on any `.btn`. A hand-written daisyUI `btn` keeps that older spinner.
+- **An enum of up to 24 members gives a component a step per member** (it was 8), so `Ui.Color`'s hues are
+  steps: `Ui.Button.Primary.Blue`. The same rule now gives `Input`'s `Type` its steps —
+  `Input.Bind(() => model.Email).Email` — and `Ui.Mask` its shapes, `Ui.Mask.Heart`.
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:

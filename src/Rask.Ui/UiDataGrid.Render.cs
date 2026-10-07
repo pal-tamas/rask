@@ -97,7 +97,7 @@ public sealed partial class UiDataGrid<T, TKey>
         Thead.Class(StackedCards ? "max-sm:hidden" : null)[
             Tr[
                 SelectionEnabled ? Th.Class("w-0")[SelectAllBox(pageRows)] : null,
-                Expandable ? Th.Class("w-0").Aria("label", "Expand") : null,
+                Expandable ? Th.Class("w-0").AriaLabel("Expand") : null,
                 visible.Select(HeaderCell)
             ]
         ];
@@ -159,17 +159,16 @@ public sealed partial class UiDataGrid<T, TKey>
         ];
     }
 
-    private Component GroupToggle(UiColumn<T> column)
+    private UiButton GroupToggle(UiColumn<T> column)
     {
         var token = column.FieldName!;
         var on = CurrentGrouped.Contains(token, StringComparer.Ordinal);
-        return Ui.Button
-            .AccessibleLabel(on ? "Stop grouping by " + (column.Title ?? token) : "Group by " + (column.Title ?? token))
-            .Square()
-            .Size(Ui.Size.Xs)
-            .Variant(on ? Ui.Variant.Soft : Ui.Variant.Ghost)
+        return Ui.Button.Xs.Icon(Ui.IconName.RectangleStack)
+            .AriaLabel(on ? "Stop grouping by " + (column.Title ?? token) : "Group by " + (column.Title ?? token))
+            .AriaPressed(on ? AriaPressed.True : AriaPressed.False)
+            .Variant(on ? Ui.ButtonVariant.Filled : Ui.ButtonVariant.Ghost)
             .Disabled(Busy)
-            .OnClick(() => on ? UngroupAsync(token) : GroupByAsync(token))[Ui.Icon.Name(Ui.IconName.RectangleStack)];
+            .OnClick(() => on ? UngroupAsync(token) : GroupByAsync(token));
     }
 
     private HTMLInputElement<bool> SelectAllBox(IReadOnlyList<T> pageRows)
@@ -184,7 +183,7 @@ public sealed partial class UiDataGrid<T, TKey>
             .Checked(AllSelected(pageRows))
             .OnChange(on => SetPageSelectionAsync(pageRows, on))
             .Class("checkbox checkbox-sm")
-            .Aria("label", "Select all rows on this page")
+            .AriaLabel("Select all rows on this page")
             .Disabled(Busy);
     }
 
@@ -308,7 +307,7 @@ public sealed partial class UiDataGrid<T, TKey>
             .Checked(IsSelected(row))
             .OnChange(on => ToggleAsync(row, on))
             .Class("checkbox checkbox-sm")
-            .Aria("label", "Select row")
+            .AriaLabel("Select row")
             .Disabled(Busy);
     }
 
@@ -319,12 +318,9 @@ public sealed partial class UiDataGrid<T, TKey>
             return Span;
         }
 
-        return Ui.Button
-            .AccessibleLabel(open ? "Collapse row" : "Expand row")
-            .Square()
-            .Size(Ui.Size.Xs)
-            .Variant(Ui.Variant.Ghost)
-            .OnClick(() => ToggleExpand(key))[Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)];
+        return Ui.Button.Ghost.Xs.Icon(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)
+            .AriaLabel(open ? "Collapse row" : "Expand row")
+            .OnClick(() => ToggleExpand(key));
     }
 
     private Component? Foot(IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<T> all)

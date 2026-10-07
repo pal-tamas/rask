@@ -148,8 +148,8 @@ public sealed partial class UiKitCalloutDemo : Component
             .Heading("You've received a new message.")
             .Actions(Ui.Button["View message"]);
 
-    private static Component Dismiss(Action dismiss) =>
-        Ui.Button.Ghost.Square().AccessibleLabel("Dismiss").OnClick(dismiss)[Ui.Icon.Name(Ui.IconName.XMark).Mini];
+    private static UiButton Dismiss(Action dismiss) =>
+        Ui.Button.Ghost.Icon(Ui.IconName.XMark).AriaLabel("Dismiss").OnClick(dismiss);
 
     private static Component Example(string title, params Component?[] callouts) =>
         Div.Key(title).Data("example", title).Class("space-y-3")[

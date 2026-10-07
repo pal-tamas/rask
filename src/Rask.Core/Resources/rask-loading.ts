@@ -11,7 +11,7 @@
 // this module decides what to mark and how.
 //
 // What it writes, on the element that owns the handler:
-//   data-loading   — a styling hook. Rask UI's `.btn[data-loading]` draws the spinner from it.
+//   data-loading   — a styling hook. Rask UI's button fades its label out and its spinner in on it.
 //   aria-busy=true — what assistive tech reads. NOT `disabled`, which would drop keyboard focus mid-press,
 //                    and not `aria-disabled`, which daisyUI greys the button out for.
 // Both after LOADING_DELAY_MS, so a handler that finishes in a frame or two never flashes a spinner. The

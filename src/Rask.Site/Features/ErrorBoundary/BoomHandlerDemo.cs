@@ -11,13 +11,13 @@ public sealed partial class BoomHandlerDemo : Component
             .Fallback(BoundaryFallback)[
             Div.Class("p-3 border rounded bg-white").Id("boom-handler-host")[
                 P.Class("text-ui-muted text-sm mb-2")["Healthy subtree — click to throw."],
-                Ui.Button.Error.Id("boom-throw").OnClick(ThrowFromHandler)[Ui.Icon.Name(Ui.IconName.ExclamationTriangle), "Throw a handler exception"]
+                Ui.Button.Danger.Icon(Ui.IconName.ExclamationTriangle).Id("boom-throw").OnClick(ThrowFromHandler)["Throw a handler exception"]
             ]
         ];
 
     private static Component BoundaryFallback(Exception ex, Action recover) =>
         Ui.Callout.Danger.Icon(Ui.IconName.ExclamationTriangle).Id("boom-fallback").Role("alert")
-            .Actions(Ui.Button.Outline.Id("boom-recover").OnClick(recover)[Ui.Icon.Name(Ui.IconName.ArrowUturnLeft), "Recover"])[
+            .Actions(Ui.Button.Icon(Ui.IconName.ArrowUturnLeft).Id("boom-recover").OnClick(recover)["Recover"])[
             Ui.CalloutHeading["Boundary caught: ", Code[ex.GetType().Name]],
             Ui.CalloutText[ex.Message]
         ];

@@ -29,11 +29,11 @@ public sealed partial class SerialDemo : Component
                         .Type(InputType.Number)
                         .Disabled(_port is not null)
                         .OnInput(v => _baudRate = int.TryParse(v, CultureInfo.InvariantCulture, out var baud) ? baud : 0),
-                    Ui.Button.Primary
+                    Ui.Button.Primary.Icon(Ui.IconName.CubeTransparent)
                         .Id("serial-connect")
                         .Disabled(_port is not null)
-                        .OnClick(Connect)[Ui.Icon.Name(Ui.IconName.CubeTransparent), "Connect"],
-                    Ui.Button.Error.Outline
+                        .OnClick(Connect)["Connect"],
+                    Ui.Button.Red
                         .Id("serial-disconnect")
                         .Disabled(_port is null)
                         .OnClick(Disconnect)["Disconnect"]

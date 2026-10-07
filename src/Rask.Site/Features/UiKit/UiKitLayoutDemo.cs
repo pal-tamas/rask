@@ -66,7 +66,7 @@ public sealed partial class UiKitLayoutDemo : Component
 
     private static Component SeparatorRow(string key, UiSeparator separator) =>
         Div.Key(key).Class("flex items-center justify-center gap-6")[
-            Ui.Button.Key("theme").Ghost.AccessibleLabel("Switch to dark theme")[Ui.Icon.Name(Ui.IconName.Moon)],
+            Ui.Button.Ghost.Key("theme").Icon(Ui.IconName.Moon).AriaLabel("Switch to dark theme"),
             separator.Key("separator"),
             Ui.Button.Key("login")["Log in"]
         ];
@@ -135,7 +135,7 @@ public sealed partial class UiKitLayoutDemo : Component
                         Ui.Separator.Key("bar-sep").Vertical().Subtle.Class("my-1"),
                         Ui.Button.Key("docs").Ghost.Sm["Docs"],
                         Ui.Spacer.Key("spacer"),
-                        Ui.Button.Key("right").Sm["Sign in"]
+                        Ui.Button.Sm.Key("right")["Sign in"]
                     ],
                     Div[
                         Ui.Heading.Key("h").Level(3).Lg["Orders"],

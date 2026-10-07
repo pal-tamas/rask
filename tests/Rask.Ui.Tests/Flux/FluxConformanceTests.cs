@@ -41,6 +41,8 @@ public sealed class FluxConformanceTests
         ["flux:callout.heading"] = typeof(UiCalloutHeading),
         ["flux:callout.link"] = typeof(UiCalloutLink),
         ["flux:callout.text"] = typeof(UiCalloutText),
+        ["flux:button"] = typeof(UiButton),
+        ["flux:button.group"] = typeof(UiButtonGroup),
         ["flux:icon.*"] = typeof(UiIcon),
         ["flux:separator"] = typeof(UiSeparator),
         ["flux:progress"] = typeof(UiProgress),
@@ -71,6 +73,7 @@ public sealed class FluxConformanceTests
         ["flux:heading/size=2xl"] = "an identifier cannot start with a digit: Ui.HeadingSize.Xxl",
         ["flux:text/color=default"] = "no colour is an unset Color; Ui.Color holds Tailwind's hues only",
         ["flux:text/size=base"] = "the heading page's name for the text page's `default`: Ui.TextSize.Default",
+        ["flux:button/as-an-input"] = "A section of the button page that shows flux:input drawn as a button; it is the input's to mirror.",
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",

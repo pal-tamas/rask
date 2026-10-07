@@ -45,13 +45,13 @@ public sealed partial class MediaSessionDemo : Component
         Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                     Ui.Button.Primary.Id("ms-publish").OnClick(Publish)["Publish metadata"],
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("ms-playing")
                         .OnClick(() => SetState(Types.MediaSessionPlaybackState.Playing, "playing"))["Mark playing"],
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("ms-paused")
                         .OnClick(() => SetState(Types.MediaSessionPlaybackState.Paused, "paused"))["Mark paused"],
-                    Ui.Button.Error.Outline.Id("ms-clear").OnClick(Clear)["Clear"]
+                    Ui.Button.Red.Id("ms-clear").OnClick(Clear)["Clear"]
                 ],
                 P.Class("text-sm text-ui-muted mb-2")[
                     "After publishing, use your keyboard's media keys (or the OS media controls) — the action "

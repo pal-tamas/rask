@@ -93,8 +93,8 @@ public sealed partial class QueryParcelsDemo(RouteState route, ParcelStore store
     private static Component Placeholder(int index) =>
         Li.Key($"placeholder-{index}").Class("query-row flex gap-2 items-center").Data("loading", null)[
             Span["loading…"],
-            Ui.Button.Class("query-ship").Disabled()["Ship"],
-            Ui.Button.Class("query-pick").Disabled()["Details"]
+            Ui.Button.Class("query-ship").Disabled().Loading(false)["Ship"],
+            Ui.Button.Class("query-pick").Disabled().Loading(false)["Details"]
         ];
 
     private static void GoTo(int page)

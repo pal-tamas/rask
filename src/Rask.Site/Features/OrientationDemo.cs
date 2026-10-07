@@ -16,13 +16,13 @@ public sealed partial class OrientationDemo : Component
         Ui.Card[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button.Primary.Id("orientation-read").OnClick(Read)["Read current"],
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("orientation-portrait")
                         .OnClick(() => Lock(OrientationLockType.Portrait))["Lock portrait"],
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("orientation-landscape")
                         .OnClick(() => Lock(OrientationLockType.Landscape))["Lock landscape"],
-                    Ui.Button.Error.Outline.Id("orientation-unlock").OnClick(Unlock)["Unlock"]
+                    Ui.Button.Red.Id("orientation-unlock").OnClick(Unlock)["Unlock"]
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Current: ", Code.Id("orientation-current")[_current ?? "(read to see)"]],

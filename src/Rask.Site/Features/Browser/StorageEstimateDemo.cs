@@ -11,7 +11,7 @@ public sealed partial class StorageEstimateDemo : Component
 
     protected override Component? Render() =>
         Ui.Card[
-                Ui.Button.Primary.Outline.Class("mb-2")
+                Ui.Button.Class("mb-2")
                     .Id("storage-est-read")
                     .OnClick(Read)["Estimate storage"],
                 Div.Class("text-sm text-ui-muted")["Budget: ", Code.Id("storage-est-value")[_value ?? "(not requested)"]],

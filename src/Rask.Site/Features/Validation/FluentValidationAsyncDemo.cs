@@ -16,7 +16,7 @@ public sealed partial class FluentValidationAsyncDemo : Component
         Form.Model(_model).OnSubmit(m => _submission = $"Reserved: {m.Code}").Class("flex flex-col gap-3")[
             Ui.Input.Bind(() => _model.Code).Label("Ticket code").Id("v9-code"),
             Div[
-                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.Ticket), "Reserve"]
+                Ui.Button.Primary.Icon(Ui.IconName.Ticket).Submit["Reserve"]
             ]
         ],
         _submission is null

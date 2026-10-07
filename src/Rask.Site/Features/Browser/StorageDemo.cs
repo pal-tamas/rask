@@ -18,8 +18,8 @@ public sealed partial class StorageDemo : Component
                         .Placeholder("Value to persist")
                         .OnInput(v => _input = v),
                     Ui.Button.Primary.Id("storage-set").OnClick(Set)["Set"],
-                    Ui.Button.Primary.Outline.Id("storage-read").OnClick(Read)["Read"],
-                    Ui.Button.Error.Outline.Id("storage-remove").OnClick(Remove)["Remove"]
+                    Ui.Button.Id("storage-read").OnClick(Read)["Read"],
+                    Ui.Button.Red.Id("storage-remove").OnClick(Remove)["Remove"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]

@@ -16,8 +16,8 @@ public sealed partial class AuthorizeDemo : Component
         Div.Id("authorize-demo")[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                 Ui.Button.Primary.OnClick(() => _auth.SignIn("alice", "user"))["Sign in as user"],
-                Ui.Button.Warning.OnClick(() => _auth.SignIn("rootadmin", "admin"))["Sign in as admin"],
-                Ui.Button.Outline.OnClick(_auth.SignOut)["Sign out"]
+                Ui.Button.Filled.Amber.OnClick(() => _auth.SignIn("rootadmin", "admin"))["Sign in as admin"],
+                Ui.Button.OnClick(_auth.SignOut)["Sign out"]
             ],
             // admin → admin slot; any other signed-in user → inner "authorized" slot; anonymous → inner fallback.
             // The Authorized delegates greet the signed-in user by name straight off the principal.

@@ -103,7 +103,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
             Form.Model(_draft).Key(_form).OnSubmit(AddAsync).Class("notes-form")[f => [
                 Ui.Input.Bind(() => _draft.Title).Id("note-title").Label("Title").MaxLength(120),
                 Ui.Textarea.Bind(() => _draft.Body).Id("note-body").Label("Note").Rows(3),
-                Ui.Button.Id("add-note").Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary)
+                Ui.Button.Primary.Id("add-note").Type(Ui.ButtonType.Submit)
                     .Disabled(f.Submitting).Loading(f.Submitting)["Add note"],
                 _saveError is null ? null : Ui.Callout.Danger.Role("alert").Text(_saveError)
             ]],

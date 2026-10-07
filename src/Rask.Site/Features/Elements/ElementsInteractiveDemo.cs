@@ -16,9 +16,9 @@ public sealed partial class ElementsInteractiveDemo : Component
         Div[
             P.Class("text-sm mb-1 text-ui-muted")["menu (a semantic toolbar / command list)"],
             Menu.Class("list-inline mb-0")[
-                Li.Class("list-inline-item")[Ui.Button.Outline["Cut"]],
-                Li.Class("list-inline-item")[Ui.Button.Outline["Copy"]],
-                Li.Class("list-inline-item")[Ui.Button.Outline["Paste"]]
+                Li.Class("list-inline-item")[Ui.Button["Cut"]],
+                Li.Class("list-inline-item")[Ui.Button["Copy"]],
+                Li.Class("list-inline-item")[Ui.Button["Paste"]]
             ]
         ]
     ];

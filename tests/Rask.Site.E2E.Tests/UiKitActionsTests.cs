@@ -39,7 +39,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         // below, on the floating element itself.
         foreach (var id in new[]
                  {
-                     "ui-button", "ui-dropdown", "ui-context-menu", "ui-command", "ui-modal", "ui-modal-popover", "ui-swap",
+                     "ui-button", "ui-button-variants", "ui-button-groups", "ui-dropdown", "ui-context-menu", "ui-command", "ui-modal", "ui-modal-popover", "ui-swap",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -522,14 +522,84 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
+    public Task The_button_page_shows_every_Flux_example_drawn_as_Flux_draws_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var variants = Page.Locator("[data-testid='ui-button-variants'] [data-ui-button]");
+        var outline = variants.Nth(0);
+
+        // Flux's base size and its default: 40px tall, 16px either side, an 8px radius, a hairline border.
+        await Expect(variants).ToHaveCountAsync(6);
+        await Expect(outline).ToHaveCSSAsync("height", "40px");
+        await Expect(outline).ToHaveCSSAsync("padding-left", "16px");
+        await Expect(outline).ToHaveCSSAsync("border-top-left-radius", "8px");
+        await Expect(outline).ToHaveCSSAsync("border-top-width", "1px");
+        await Expect(Page.Locator("[data-testid='ui-button-outline-colors'] [data-ui-button]")).ToHaveCountAsync(17);
+        await Expect(Page.Locator("[data-testid='ui-button-colors'] [data-ui-button]")).ToHaveCountAsync(10);
+        await Expect(Page.Locator("[data-testid='ui-button-sizes'] [data-ui-button]").Nth(2)).ToHaveCSSAsync("height", "24px");
+        await Expect(Page.Locator("[data-testid='ui-button-full-width'] [data-ui-button]")).ToBeVisibleAsync();
+        await Expect(Page.Locator("[data-testid='ui-button-inset'] [data-ui-button]")).ToHaveCSSAsync("margin-top", "-6px");
+    });
+
+    [Fact]
+    public Task An_icon_pads_its_own_side_less_and_a_button_with_only_an_icon_is_a_square() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var icons = Page.Locator("[data-testid='ui-button-icons']");
+        var export = icons.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Export" });
+        var more = icons.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "More" });
+
+        await Expect(export).ToHaveCSSAsync("padding-left", "12px");
+        await Expect(export).ToHaveCSSAsync("padding-right", "16px");
+        await Expect(export.Locator("svg")).ToHaveCSSAsync("width", "16px");
+        await Expect(more).ToHaveCSSAsync("width", "40px");
+        await Expect(more.Locator("svg")).ToHaveCSSAsync("width", "20px");
+    });
+
+    [Fact]
+    public Task Grouped_buttons_share_one_border_and_keep_their_corners_only_at_the_ends() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var group = Page.Locator("[data-testid='ui-button-groups'] [data-ui-button-group]").First;
+        var first = group.Locator("[data-ui-button]").Nth(0);
+        var middle = group.Locator("[data-ui-button]").Nth(1);
+        var last = group.Locator("[data-ui-button]").Nth(2);
+
+        await Expect(first).ToHaveCSSAsync("border-top-left-radius", "8px");
+        await Expect(first).ToHaveCSSAsync("border-top-right-radius", "0px");
+        await Expect(middle).ToHaveCSSAsync("border-left-width", "0px");
+        await Expect(middle).ToHaveCSSAsync("border-top-left-radius", "0px");
+        await Expect(last).ToHaveCSSAsync("border-top-right-radius", "8px");
+    });
+
+    [Fact]
+    public Task A_tooltip_shows_while_its_button_is_hovered() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var add = Page.Locator("[data-testid='ui-button-icons']")
+            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Add" });
+        var tip = add.Locator("[data-ui-tooltip-content]");
+
+        await Expect(tip).ToBeHiddenAsync();
+        await add.HoverAsync();
+
+        await Expect(tip).ToBeVisibleAsync();
+        await Expect(tip).ToContainTextAsync("Add");
+    });
+
+    [Fact]
     public Task An_icon_only_button_still_has_a_name() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-button']");
 
-        // A circle holds one glyph, so its label cannot be visible text. Reaching it by accessible name
-        // is the proof it is still announced rather than read out as "button".
+        // A square holds one glyph, so its label cannot be visible text. Reaching it by accessible name
+        // is the proof it is still announced rather than read out as "button" — "Add" by its tooltip.
         await Expect(scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Close" }))
             .ToBeVisibleAsync();
         await Expect(scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Add" }))
@@ -541,8 +611,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         await OpenAsync();
 
-        // daisyUI's btn-disabled styles without disabling: a button carrying only that class still takes
-        // the click and still reaches its handler.
+        // By attribute, so the browser refuses the press: a class alone still takes the click.
         var disabled = Page.Locator("[data-testid='ui-button']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Disabled" });
 
@@ -565,15 +634,12 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Page.Keyboard.PressAsync("Enter");
 
         // The WASM host ends the mark when the dispatch promise resolves, so it is up for the 1.5 s the handler
-        // takes — and the stylesheet draws it: the label goes transparent, the width holds, the spinner sits on top.
+        // takes — and the button draws it as Flux does: the label fades out where it stands, so the width
+        // holds, and the spinner fades in over it.
         await Expect(save).ToHaveAttributeAsync("aria-busy", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 5_000 });
-        // daisyUI transitions a button's colour, so the label fades rather than vanishing: wait for the fade to end,
-        // whatever colour space the engine reports it in.
-        await Page.WaitForFunctionAsync(
-            "el => { const c = getComputedStyle(el).color; return /rgba\\(.*,\\s*0\\)$/.test(c) || /\\/\\s*0\\)$/.test(c) || c === 'transparent'; }",
-            await save.ElementHandleAsync(),
-            new PageWaitForFunctionOptions { Timeout = 5_000 });
-        Assert.NotEqual("none", await save.EvaluateAsync<string>("el => getComputedStyle(el, '::after').maskImage"));
+        await Expect(save.Locator("span").First).ToHaveCSSAsync("opacity", "0");
+        await Expect(save.Locator("[data-ui-loading-indicator]")).ToHaveCSSAsync("opacity", "1");
+        Assert.Equal("none", await save.EvaluateAsync<string>("el => getComputedStyle(el).pointerEvents"));
         var during = await save.BoundingBoxAsync();
         Assert.Equal(before!.Width, during!.Width, 0.5);
 

@@ -27,7 +27,7 @@ public sealed partial class UiToaster
     }
 
     private static Rask.Core.Component ActionButton(ToastAction action, Action dismiss) =>
-        Ui.Button.Variant(Ui.Variant.Ghost).OnClick(async () =>
+        Ui.Button.Ghost.OnClick(async () =>
         {
             await action.Run.Invoke();
             dismiss();

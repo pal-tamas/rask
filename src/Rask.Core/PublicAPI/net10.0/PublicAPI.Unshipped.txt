@@ -4311,6 +4311,29 @@ Rask.Core.Virtualization.VirtualizationState.VisibleIndices.get -> System.Collec
 Rask.Core.Virtualization.VirtualizationState.VisiblePlaceholders.get -> System.Collections.Generic.IReadOnlyList<bool>!
 Rask.Core.Virtualization.VirtualizationState.VisibleValues.get -> System.Collections.Generic.IReadOnlyList<object?>!
 RaskBuilderSettersRask_Core
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!)
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Button.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Checkbox.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Color.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Date.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).DatetimeLocal.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Email.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).File.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Hidden.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Image.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Month.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Number.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Password.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Radio.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Range.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Reset.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Search.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Submit.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Tel.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Text.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Time.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Url.get -> Rask.Core.HTMLInputElement<T>!
+RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Week.get -> Rask.Core.HTMLInputElement<T>!
 RaskEntriesRask_Core
 const Rask.Core.Authorization.RouteAuthorizationGuard.ChallengePath = "/login" -> string!
 const Rask.Core.Authorization.RouteAuthorizationGuard.ForbidPath = "/forbidden" -> string!
@@ -7131,6 +7154,28 @@ static RaskBuilderSettersRask_Core.For(this Rask.Core.Components.MediaCaptureTri
 static RaskBuilderSettersRask_Core.For(this Rask.Core.Components.PictureInPictureTrigger! __b, Rask.Core.ElementRef! value) -> Rask.Core.Components.PictureInPictureTrigger!
 static RaskBuilderSettersRask_Core.For(this Rask.Core.Components.ValidatingIndicator! __b, System.Linq.Expressions.LambdaExpression? value) -> Rask.Core.Components.ValidatingIndicator!
 static RaskBuilderSettersRask_Core.For(this Rask.Core.Components.ValidationMessage! __b, System.Linq.Expressions.LambdaExpression? value) -> Rask.Core.Components.ValidationMessage!
+static RaskBuilderSettersRask_Core.get_Button<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Checkbox<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Color<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Date<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_DatetimeLocal<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Email<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_File<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Hidden<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Image<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Month<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Number<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Password<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Radio<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Range<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Reset<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Search<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Submit<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Tel<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Text<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Time<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Url<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.get_Week<T>(Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Hidden<T>(this T! __b, bool? value) -> T!
 static RaskBuilderSettersRask_Core.Href(this Rask.Core.Components.NavLink! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.Core.Components.NavLink!
 static RaskBuilderSettersRask_Core.Id<T>(this T! __b, string? value) -> T!

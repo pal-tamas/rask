@@ -42,7 +42,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         var html = Ui.Modal.Title("Delete order").Id("confirm").ToHtml();
 
         Assert.Contains("popover=\"auto\"", html);
-        Assert.DoesNotContain("<button class=\"btn\" popovertarget", html);
+        Assert.DoesNotContain("command=\"show-modal\"", html);
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     {
         // The invoker command is what makes it a real modal — the page behind inert, focus contained and
         // handed back — with no script. The popover attribute beside it is for a browser without invokers.
-        var trigger = Tag(Popover(), "<button class=\"btn\"");
+        var trigger = TagWith(Popover(), "command=\"show-modal\"");
 
         Assert.Contains("command=\"show-modal\"", trigger);
         Assert.Contains("commandfor=\"confirm\"", trigger);
@@ -120,7 +120,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     {
         var html = Popover();
 
-        foreach (var control in new[] { Tag(html, "<button class=\"btn btn-ghost"), Tag(html, "<button class=\"modal-backdrop") })
+        foreach (var control in new[] { TagWith(html, "aria-label=\"Close\""), Tag(html, "<button class=\"modal-backdrop") })
         {
             Assert.Contains("command=\"close\"", control);
             Assert.Contains("commandfor=\"confirm\"", control);
@@ -153,7 +153,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Modal.Title("Terms").Id("confirm").Closable(false).ToHtml();
 
-        Assert.DoesNotContain("btn-square", html);
+        Assert.DoesNotContain("data-ui-button", html);
         // Still dismissible by a click outside unless that is turned off too.
         Assert.Contains("modal-backdrop", html);
     }
@@ -184,7 +184,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         // With no visible close button, a hidden one still takes the Escape.
         var unclosable = Ui.Modal.Title("Delete order").Open(true).OnClose(() => { }).Closable(false).ToHtml();
         Assert.Contains("data-rask-dismiss", unclosable);
-        Assert.DoesNotContain("btn-square", unclosable);
+        Assert.DoesNotContain("data-ui-button", unclosable);
     }
 
     [Fact]
@@ -240,7 +240,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
             .OnCancel(() => heard.Add("cancel"))
             .OnClose(() => heard.Add("close")));
 
-        await page.On(".btn-square").Click();
+        await page.On("[data-ui-button]").Click();
 
         Assert.Equal(["close"], heard);
     }
@@ -251,7 +251,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         // The close button cannot be what Escape presses once the two mean different things.
         var html = Ui.Modal.Title("Edit").Open(true).OnCancel(() => { }).OnClose(() => { }).ToHtml();
 
-        Assert.DoesNotContain("data-rask-dismiss", Tag(html, "<button class=\"btn btn-ghost"));
+        Assert.DoesNotContain("data-rask-dismiss", TagWith(html, "aria-label=\"Close\""));
         Assert.Single(System.Text.RegularExpressions.Regex.Matches(html, "data-rask-dismiss"));
     }
 
@@ -300,6 +300,14 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         return html[start..(html.IndexOf('>', start) + 1)];
     }
 
+    // The whole opening tag that carries `attribute`: a kit button is told apart by what it does, not by its classes.
+    private static string TagWith(string html, string attribute)
+    {
+        var at = html.IndexOf(attribute, StringComparison.Ordinal);
+        Assert.True(at >= 0, $"no tag carrying {attribute}");
+        return html[html.LastIndexOf('<', at)..(html.IndexOf('>', at) + 1)];
+    }
+
     [Fact]
     public void It_names_itself_through_its_heading() =>
         Assert.Contains("Delete order", Popover());
@@ -309,7 +317,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     {
         var html = Popover();
 
-        Assert.Contains("btn-square", html);
+        Assert.Contains("h-8 w-8", html);
         Assert.Contains("aria-label=\"Close\"", html);
     }
 

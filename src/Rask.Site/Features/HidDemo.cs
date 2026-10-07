@@ -22,12 +22,12 @@ public sealed partial class HidDemo : Component
     protected override Component? Render() =>
         Ui.Card[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Ui.Button.Primary.Id("hid-request").OnClick(RequestDevice)[Ui.Icon.Name(Ui.IconName.CubeTransparent), "Pair device"],
-                    Ui.Button.Primary.Outline
+                    Ui.Button.Primary.Icon(Ui.IconName.CubeTransparent).Id("hid-request").OnClick(RequestDevice)["Pair device"],
+                    Ui.Button
                         .Id("hid-watch")
                         .Disabled(_device is null || _watch is not null)
                         .OnClick(Watch)["Open & watch"],
-                    Ui.Button.Error.Outline
+                    Ui.Button.Red
                         .Id("hid-close")
                         .Disabled(_device is null)
                         .OnClick(Release)["Release"]

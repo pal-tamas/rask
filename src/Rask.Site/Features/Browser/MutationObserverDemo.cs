@@ -50,10 +50,10 @@ public sealed partial class MutationObserverDemo : Component
         Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                     Ui.Button.Primary.Id("mo-add").OnClick(() => _items++)["Add item"],
-                    Ui.Button.Primary.Outline
+                    Ui.Button
                         .Id("mo-remove")
                         .OnClick(() => { if (_items > 0) _items--; })["Remove item"],
-                    Ui.Button.Outline
+                    Ui.Button
                         .Id("mo-toggle")
                         .OnClick(() => _highlight = !_highlight)["Toggle attribute"]
                 ],

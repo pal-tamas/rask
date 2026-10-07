@@ -186,8 +186,8 @@ public sealed partial class QueuePage(
 
         // Opens the detail sheet. A button rather than a clickable row: a <tr> is not focusable, and the
         // console has no script to make one behave like a control.
-        yield return Ui.Button.Key("details").Size(Ui.Size.Sm)
-            .OnClick(() => Open(row.Id))[Ui.Icon.Name(Ui.IconName.ChevronRight), "Details"];
+        yield return Ui.Button.Sm.Icon(Ui.IconName.ChevronRight).Key("details")
+            .OnClick(() => Open(row.Id))["Details"];
     }
 
     private static string StatusText(QueueRow row, bool isDead, DateTime now) => row switch
@@ -278,14 +278,11 @@ public sealed partial class QueuePage(
 
         if (_counts.Failed > 0)
         {
-            yield return Ui.Button
+            yield return Ui.Button.Red.Icon(Ui.IconName.ArrowPath)
                 .Key("retry-all")
-                .Tone(Ui.Tone.Error)
-                .Variant(Ui.Variant.Outline)
                 .OnClick(() => RunAsync(
                     $"Retry all {_counts.Failed} dead letters?",
                     async ct => $"Re-queued {await _panel!.RetryAll(ct).ConfigureAwait(false)}."))[
-                Ui.Icon.Name(Ui.IconName.ArrowPath),
                 "Retry all failed"
             ];
         }
@@ -306,11 +303,8 @@ public sealed partial class QueuePage(
     {
         if (isDead && options.Actions.HasFlag(RaskDashboardActions.Safe))
         {
-            yield return Ui.Button
+            yield return Ui.Button.Red.Sm
                 .Key("retry")
-                .Tone(Ui.Tone.Error)
-                .Variant(Ui.Variant.Outline)
-                .Size(Ui.Size.Sm)
                 .OnClick(() => RunAsync(
                     null,   // retrying one dead letter is reversible enough not to need a confirmation
                     async ct => await _panel!.Retry(row.Id, ct).ConfigureAwait(false) > 0
@@ -320,11 +314,8 @@ public sealed partial class QueuePage(
 
         if (row.ProcessedAt is null && options.Actions.HasFlag(RaskDashboardActions.Destructive))
         {
-            yield return Ui.Button
+            yield return Ui.Button.Red.Sm
                 .Key("delete")
-                .Tone(Ui.Tone.Error)
-                .Variant(Ui.Variant.Outline)
-                .Size(Ui.Size.Sm)
                 .OnClick(() => RunAsync(
                     $"Delete #{row.Id}? The work is discarded and cannot be recovered.",
                     async ct => await _panel!.Delete(row.Id, ct).ConfigureAwait(false) > 0
@@ -379,9 +370,9 @@ public sealed partial class QueuePage(
     private UiCallout? ConfirmPrompt() =>
         _pending is { } pending
             ? Ui.Callout.Warning.Inline().Role("alert").Heading(pending.Prompt).Actions([
-                Ui.Button.Key("confirm").Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
+                Ui.Button.Danger.Sm.Key("confirm")
                     .OnClick(() => ExecuteAsync(pending.Action))["Confirm"],
-                Ui.Button.Key("cancel").Size(Ui.Size.Sm).OnClick(Cancel)["Cancel"]
+                Ui.Button.Sm.Key("cancel").OnClick(Cancel)["Cancel"]
             ])
             : null;
 

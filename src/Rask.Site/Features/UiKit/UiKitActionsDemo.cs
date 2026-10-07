@@ -1,7 +1,7 @@
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     daisyUI's Actions category, drawn with the kit and driven by this component's own state.
+///     The kit's actions — Flux's button first, in <see cref="UiKitButtonDemo" /> — driven by this component's own state.
 /// </summary>
 /// <remarks>
 ///     Every interactive part here holds its state in a plain field and re-renders through Rask's diff.
@@ -15,18 +15,14 @@ public sealed partial class UiKitActionsDemo : Component
     private bool _confirming;
     private bool _muted;
     private string _lastAction = "nothing yet";
-    private int _saves;
     private string _sort = "name";
     private List<string> _filters = ["open"];
     private bool _showArchived;
-    private int _steps;
 
     /// <inheritdoc />
     protected override Component? Render() =>
     [
-        ButtonSection(),
-        PendingButtonSection(),
-        ButtonLinkSection(),
+        UiKitButtonDemo,
         DropdownSection(),
         ContextMenuSection(),
         CommandPaletteSection(),
@@ -40,59 +36,6 @@ public sealed partial class UiKitActionsDemo : Component
         P.Class("mt-6 text-sm text-ui-muted")
             .Data(Testid("ui-actions-log"))[$"Last action: {_lastAction}."]
     ];
-
-    private static Component ButtonSection() =>
-        Section(
-            "Button",
-            "Colour, fill and size are three independent axes and compose, so an outlined error button "
-            + "needs no member of its own.",
-            Div.Data(Testid("ui-button")).Class("flex flex-wrap items-center gap-2")[
-                Ui.Button.Key("solid").Primary["Primary"],
-                Ui.Button.Key("outline").Error.Outline["Outline"],
-                Ui.Button.Key("soft").Success.Soft["Soft"],
-                Ui.Button.Key("dash").Warning.Dash["Dash"],
-                Ui.Button.Key("ghost").Ghost["Ghost"],
-                Ui.Button.Key("link").Variant(Ui.Variant.Link)["Link"],
-                Ui.Button.Key("wide").Wide()["Wide"],
-                Ui.Button.Key("circle").AccessibleLabel("Close").Circle()[Ui.Icon.Name(Ui.IconName.XMark)],
-                Ui.Button.Key("square").AccessibleLabel("Add").Square()[Ui.Icon.Name(Ui.IconName.Plus)],
-                Ui.Button.Key("disabled").Disabled()["Disabled"]
-            ]);
-
-    private Component PendingButtonSection() =>
-        Section(
-            "Button — waiting on its handler",
-            "No property to set. A button whose handler is still running after 200 ms shows a spinner at the "
-            + "same width, tells a screen reader it is busy, and drops a second press until the first is done. "
-            + "Loading(false) opts a stepper out, so its presses queue.",
-            Div.Data(Testid("ui-button-loading")).Class("flex flex-wrap items-center gap-3")[
-                Ui.Button.Key("slow-save").Primary.OnClick(async () =>
-                {
-                    await Task.Delay(1500);
-                    _saves++;
-                })["Save"],
-                Ui.Button.Key("stepper").Loading(false).OnClick(async () =>
-                {
-                    await Task.Delay(400);
-                    _steps++;
-                })[Ui.Icon.Name(Ui.IconName.Plus), "Step"],
-                Span.Data(Testid("ui-button-loading-count")).Class("text-sm text-ui-muted")[
-                    $"Saved {_saves} time{(_saves == 1 ? "" : "s")} · stepped {_steps}"
-                ]
-            ]);
-
-    private static Component ButtonLinkSection() =>
-        Section(
-            "Button and link — going somewhere",
-            "Given a generated route, a button or a link is an <a> the runtime routes inside the app, so the "
-            + "page changes without reloading. A plain string stays an ordinary link, for a URL that leaves.",
-            Div.Data(Testid("ui-button-route")).Class("flex flex-wrap items-center gap-3")[
-                Ui.Button.Key("to-navigation").Primary.Outline
-                    .Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))["Navigation components"],
-                Ui.Link.Key("to-data-display").Href(PageMeta.LinkTo(Routes.UiKitDataDisplayPage()))["Data display components"],
-                Ui.Button.Key("to-github").Ghost
-                    .Href("https://github.com/pal-tamas/rask").NewTab()["GitHub"]
-            ]);
 
     private Component DropdownSection() =>
         Section(
@@ -236,8 +179,7 @@ public sealed partial class UiKitActionsDemo : Component
             + "cannot express: nothing in C# can press a button. OnCancel hears a dismissal — Escape or a "
             + "click outside — apart from a close, so backing out is logged differently from Cancel.",
             Div.Data(Testid("ui-modal"))[
-                Ui.Button
-                    .Error
+                Ui.Button.Danger
                     .OnClick(() => { _confirming = true; })["Delete order"],
                 _confirming
                     ? Ui.Modal
@@ -245,9 +187,9 @@ public sealed partial class UiKitActionsDemo : Component
                         .OnCancel(() => { _lastAction = "dismissed the dialog"; })
                         .OnClose(() => { _confirming = false; })
                         .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
-                            Ui.Button.Key("cancel").Ghost
+                            Ui.Button.Ghost.Key("cancel")
                                 .OnClick(() => { _confirming = false; })["Cancel"],
-                            Ui.Button.Key("confirm").Error
+                            Ui.Button.Danger.Key("confirm")
                                 .OnClick(() =>
                                 {
                                     _confirming = false;
@@ -290,8 +232,8 @@ public sealed partial class UiKitActionsDemo : Component
                 Ui.Fab
                     .AccessibleLabel("Compose")
                     .Icon(Ui.IconName.Plus)[
-                    Ui.Button.Key("photo").Sm["Photo"],
-                    Ui.Button.Key("file").Sm["File"]
+                    Ui.Button.Sm.Key("photo")["Photo"],
+                    Ui.Button.Sm.Key("file")["File"]
                 ]
             ]);
 

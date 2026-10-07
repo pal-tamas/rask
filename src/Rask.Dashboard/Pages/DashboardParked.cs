@@ -15,7 +15,7 @@ internal sealed partial class DashboardParked : Component
         Parked
             ? Ui.Callout.Secondary.Inline().Icon(Ui.IconName.PauseCircle).Role("status")
                 .Heading("Live updates paused to keep the database free.")
-                .Actions(Ui.Button.Size(Ui.Size.Sm).OnClick(ResumeAsync)["Resume"])
+                .Actions(Ui.Button.Sm.OnClick(ResumeAsync)["Resume"])
             : null;
 
     private Task ResumeAsync() => Resume.Invoke().AsTask();

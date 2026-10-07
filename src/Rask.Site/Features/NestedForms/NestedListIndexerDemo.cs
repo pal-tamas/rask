@@ -31,19 +31,14 @@ public sealed partial class NestedListIndexerDemo : Component
                     Validation.Message.Template(FieldError).For(() => _model.Skus[i].Price)
                 ],
                 Ui.TableCell.Style("width: 5rem;")[
-                    Ui.Button
-                        .AccessibleLabel("Move up")
-                        .Square()
-                        .Outline
+                    Ui.Button.Icon(Ui.IconName.ArrowUp)
+                        .AriaLabel("Move up")
                         .Class("me-1")
                         .Disabled(i == 0)
-                        .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[Ui.Icon.Name(Ui.IconName.ArrowUp)],
-                    Ui.Button
-                        .AccessibleLabel("Remove SKU")
-                        .Square()
-                        .Error
-                        .Outline
-                        .OnClick(() => _model.Skus.RemoveAt(i))[Ui.Icon.Name(Ui.IconName.XMark)]
+                        .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1])),
+                    Ui.Button.Red.Icon(Ui.IconName.XMark)
+                        .AriaLabel("Remove SKU")
+                        .OnClick(() => _model.Skus.RemoveAt(i))
                 ]
             ]);
         }
@@ -57,10 +52,10 @@ public sealed partial class NestedListIndexerDemo : Component
                     Ui.TableRows[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    Ui.Button.Outline
+                    Ui.Button.Icon(Ui.IconName.Plus)
                         .Id("nf-idx-add")
-                        .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[Ui.Icon.Name(Ui.IconName.Plus), "Add row"],
-                    Ui.Button.Primary.Submit.Id("nf-idx-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Submit"]
+                        .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))["Add row"],
+                    Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit.Id("nf-idx-submit")["Submit"]
                 ]
             ],
             _submission is null

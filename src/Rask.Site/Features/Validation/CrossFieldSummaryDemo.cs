@@ -35,7 +35,7 @@ public sealed partial class CrossFieldSummaryDemo : Component
                 Ui.Input.Bind(() => _model.Return).Label("Return").Id("v5-return")
             ],
             Div[
-                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.PaperAirplane), "Book"]
+                Ui.Button.Primary.Icon(Ui.IconName.PaperAirplane).Submit["Book"]
             ]
         ],
         _submission is null

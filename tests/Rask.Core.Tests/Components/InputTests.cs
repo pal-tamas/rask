@@ -110,6 +110,17 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
         Assert.Equal($"<input type=\"{html}\" />", Input.Of<string>().Type(type).ToHtml());
 
     [Fact]
+    public void A_type_is_also_a_step_of_its_own_name()
+    {
+        // InputType has 22 members, under the 24 an enum may have and still give a step per member.
+        var email = Input.Of<string>().Email.ToHtml();
+        var password = Input.Of<string>().Password.ToHtml();
+
+        Assert.Equal("<input type=\"email\" />", email);
+        Assert.Equal("<input type=\"password\" />", password);
+    }
+
+    [Fact]
     public void It_honours_the_caller_s_aria_role_and_tab_index() =>
         // Global attributes come through Element in the canonical slot order (role, tabindex, aria-*) BEFORE
         // the tag-specific `type` — a caller can wire an accessible name / role onto a bare input.

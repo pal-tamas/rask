@@ -29,7 +29,7 @@ public sealed partial class NotFoundPage(RouteState route) : Component
                 .Title("Page not found")
                 .Lead($"No route is registered for {route.Path}."),
             Div.Class("flex gap-2 flex-wrap items-center mt-3")[
-                Ui.Button.Primary.OnClick(() => Go.To(Routes.GuidesIndexPage()))[Ui.Icon.Name(Ui.IconName.Home), "Back to guides"]
+                Ui.Button.Primary.Icon(Ui.IconName.Home).OnClick(() => Go.To(Routes.GuidesIndexPage()))["Back to guides"]
             ]
         ];
 }

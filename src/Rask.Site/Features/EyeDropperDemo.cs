@@ -13,7 +13,7 @@ public sealed partial class EyeDropperDemo : Component
     protected override Component? Render() =>
         Ui.Card[
                 Div.Class("flex items-center gap-3 mb-2")[
-                    Ui.Button.Primary.Id("eyedropper-pick").OnClick(Pick)[Ui.Icon.Name(Ui.IconName.EyeDropper), "Pick a color"],
+                    Ui.Button.Primary.Icon(Ui.IconName.EyeDropper).Id("eyedropper-pick").OnClick(Pick)["Pick a color"],
                     _hex is null
                         ? Span.Class("text-ui-muted text-sm")["No color picked yet"]
                         : Div.Class("flex items-center gap-2")[

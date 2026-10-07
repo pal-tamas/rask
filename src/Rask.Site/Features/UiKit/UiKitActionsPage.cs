@@ -16,9 +16,9 @@ public sealed partial class UiKitActionsPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "daisyUI buttons, modals and dropdowns in C# — Rask",
-            "daisyUI action components as typed C# components: button, dropdown, modal, swap, theme "
-            + "controller and floating action button, with open state in C# fields.",
+            "Buttons, modals and dropdowns as C# components — Rask",
+            "Flux UI's button and button group as typed C# components, with a dropdown, modal, swap, theme "
+            + "controller and floating action button driven from C# fields.",
             Routes.UiKitActionsPage());
 
     /// <inheritdoc />
@@ -26,12 +26,12 @@ public sealed partial class UiKitActionsPage : Component
     [
         H1.Class("text-3xl font-bold mb-1")["Actions"],
         P.Class("text-ui-muted")[
-            "Every daisyUI class these components can write is a complete literal in ", Code["UiClassNames"],
-            " — daisyUI emits a component's CSS only where Tailwind can see the name, so a class built by ",
-            "concatenation renders unstyled with a green build. The colour, fill and size axes compose."
+            "The button and its group are Flux UI's, example for example: ", Code["Ui.Button.Primary.Sm.Blue"],
+            " is a variant, a size and a colour, each a step. The rest of this page is still drawn with daisyUI ",
+            "and moves over component by component."
         ],
         CodeSample
-            .Files(["UiKitActionsDemo.cs"])
+            .Files(["UiKitButtonDemo.cs", "UiKitActionsDemo.cs"])
             .Notes("The dropdown's open state, the dialog's, and the swap's face are plain fields on the "
                 + "demo component, changed in a callback and redrawn by the live diff. Nothing here is a "
                 + "checkbox or a <details>.")

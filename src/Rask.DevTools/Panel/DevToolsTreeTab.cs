@@ -110,13 +110,11 @@ internal sealed partial class DevToolsTreeTab : Component
             Div.Class("flex flex-wrap items-center justify-between gap-2")[
                 P.Class("text-xs opacity-60")[$"{Count(root)} components, as of the page's last render."],
                 Div.Class("flex items-center gap-3")[
-                    Ui.Button
-                        .Size(Ui.Size.Sm)
-                        // daisyUI's own marker, written whole: a composed class name is invisible to the kit's Tailwind scan.
-                        .Class(_picking ? "btn-active" : null)
+                    Ui.Button.Sm.Icon(Ui.IconName.CursorArrowRays)
+                        .Variant(_picking ? Ui.ButtonVariant.Filled : Ui.ButtonVariant.Outline)
                         .Title(_picking ? "Click something on the page, or press Esc" : "Pick something on the page")
-                        .Aria("pressed", _picking ? "true" : "false")
-                        .OnClick(() => _picking = !_picking)[Ui.Icon.Name(Ui.IconName.CursorArrowRays), "Pick"],
+                        .AriaPressed(_picking ? AriaPressed.True : AriaPressed.False)
+                        .OnClick(() => _picking = !_picking)["Pick"],
                     Ui.Toggle.Value(_showTags).Size(Ui.Size.Sm).OnChange(v => _showTags = v)["Show HTML tags"]
                 ]
             ],
@@ -258,7 +256,7 @@ internal sealed partial class DevToolsTreeTab : Component
         }
 
         return read.ProviderId is { } provider && open is not null
-            ? Ui.Button.Size(Ui.Size.Xs).Variant(Ui.Variant.Link).Title("Select the component that provided it")
+            ? Ui.Button.Subtle.Xs.Title("Select the component that provided it")
                 .OnClick(() => open(provider))[read.ProviderType ?? "?"]
             : Span.Class("font-mono")[read.ProviderType ?? "a provider"];
     }

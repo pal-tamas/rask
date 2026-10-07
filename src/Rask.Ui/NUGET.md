@@ -57,7 +57,7 @@ protected override Component Shell(Component head, Component body) =>
 ```csharp
 protected override Component? Render() =>
 [
-    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Size(Ui.Size.Lg)["Save"],
+    Ui.Button.Primary.Icon(Ui.IconName.Check)["Save"],
 
     Ui.Modal.Title("Delete order").Id("confirm").Trigger("Delete")[
         P["This cannot be undone."]
@@ -84,7 +84,7 @@ and a reset arriving from a library restyles pages that never asked for it.
 
 | | |
 | --- | --- |
-| Actions | `Ui.Button` `Ui.Dropdown` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
+| Actions | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
 | Data display | `Ui.Accordion` `Ui.AccordionItem` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` (`Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed`) `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.List` `Ui.Stat` `Ui.StatusDot` `Ui.Table` (with `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell`) `Ui.DataGrid` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` |
 | Navigation | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.Menu` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Tabs` |
 | Feedback | `Ui.Callout` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |

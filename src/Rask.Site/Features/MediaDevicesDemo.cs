@@ -23,9 +23,9 @@ public sealed partial class MediaDevicesDemo : Component
                     .PlaysInline()
                     .Class("rounded border mb-2 bg-slate-900 block"),
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Ui.Button.Primary.Id("media-start").OnClick(StartCamera)[Ui.Icon.Name(Ui.IconName.VideoCamera), "Start camera"],
-                    Ui.Button.Primary.Outline.Id("media-screen").OnClick(ShareScreen)[Ui.Icon.Name(Ui.IconName.ComputerDesktop), "Share screen"],
-                    Ui.Button.Error.Outline
+                    Ui.Button.Primary.Icon(Ui.IconName.VideoCamera).Id("media-start").OnClick(StartCamera)["Start camera"],
+                    Ui.Button.Icon(Ui.IconName.ComputerDesktop).Id("media-screen").OnClick(ShareScreen)["Share screen"],
+                    Ui.Button.Red
                         .Id("media-stop")
                         .Disabled(_stream is null)
                         .OnClick(Stop)["Stop"]

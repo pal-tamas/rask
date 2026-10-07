@@ -109,12 +109,10 @@ internal sealed partial class DevToolsTabs : Component
         string.Equals(key, DevToolsTabIds.ShowErrorsKey, StringComparison.Ordinal) ? OnSelect.Invoke(Errors).AsTask() : Task.CompletedTask;
 
     private Component TabButton(string id, string label, int count) =>
-        Ui.Button
+        Ui.Button.Sm
             .Key(id)
-            .Size(Ui.Size.Sm)
             .Role("tab")
-            // daisyUI's own marker, written whole: a composed class name is invisible to the kit's Tailwind scan.
-            .Class(IsCurrent(id) ? "btn-active" : null)
+            .Variant(IsCurrent(id) ? Ui.ButtonVariant.Filled : Ui.ButtonVariant.Ghost)
             .Aria("selected", IsCurrent(id) ? "true" : "false")
             .OnClick(() => OnSelect.Invoke(id).AsTask())[
                 label,

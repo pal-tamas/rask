@@ -19,11 +19,11 @@ public sealed partial class WebApiDemo : Component
         Div[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                 Ui.Button.Primary.Id("web-read").OnClick(Read)["Read the browser"],
-                Ui.Button.Outline.Id("web-store").OnClick(Store)["Round-trip localStorage"],
-                Ui.Button.Outline.Id("web-keep").OnClick(Keep)["Keep a media query"],
-                Ui.Button.Outline.Id("web-watch").OnClick(Watch)["Watch the width"],
-                Ui.Button.Outline.Id("web-observe").OnClick(ObservePanel)["Observe this panel"],
-                Ui.Button.Outline.Id("web-lock").OnClick(HoldLock)["Hold a lock"]
+                Ui.Button.Id("web-store").OnClick(Store)["Round-trip localStorage"],
+                Ui.Button.Id("web-keep").OnClick(Keep)["Keep a media query"],
+                Ui.Button.Id("web-watch").OnClick(Watch)["Watch the width"],
+                Ui.Button.Id("web-observe").OnClick(ObservePanel)["Observe this panel"],
+                Ui.Button.Id("web-lock").OnClick(HoldLock)["Hold a lock"]
             ],
             P.Id("web-read-out").Class("text-sm mb-1")[_read],
             P.Id("web-store-out").Class("text-sm mb-1")[_stored],

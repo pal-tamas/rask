@@ -23,7 +23,7 @@ public sealed partial class AsyncValidationDemo : Component, IDisposable
             // records — no Validation.Indicator or Validation.Message to place beside it.
             Ui.Input.Bind(() => _model.Username).Label("Username").Id("v3-username"),
             Div[
-                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.CheckCircle), "Sign up"]
+                Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit["Sign up"]
             ]
         ],
         _submission is null

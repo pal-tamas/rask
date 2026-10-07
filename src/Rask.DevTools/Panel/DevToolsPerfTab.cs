@@ -70,7 +70,7 @@ internal sealed partial class DevToolsPerfTab : Component
                 P.Class("text-xs opacity-60")[
                     "Server is the handler, the render and the diff; patch is the page applying what arrived."
                 ],
-                Ui.Button.Size(Ui.Size.Sm).Title("Forget the interactions timed so far").OnClick(Feed.ClearInteractions)["Clear"]
+                Ui.Button.Sm.Title("Forget the interactions timed so far").OnClick(Feed.ClearInteractions)["Clear"]
             ],
             interactions.Length == 0
                 ? Ui.Callout.Secondary.Heading("No interactions yet.").Text("Use the page, and each event's handler, render, diff and patch are timed here.")

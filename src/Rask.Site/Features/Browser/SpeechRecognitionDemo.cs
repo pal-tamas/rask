@@ -25,7 +25,7 @@ public sealed partial class SpeechRecognitionDemo : Component
                         .Id("speech-recognize-start")
                         .Disabled(Listening)
                         .OnClick(Start)["Start listening"],
-                    Ui.Button.Error.Outline
+                    Ui.Button.Red
                         .Id("speech-recognize-stop")
                         .Disabled(!Listening)
                         .OnClick(Stop)["Stop"]

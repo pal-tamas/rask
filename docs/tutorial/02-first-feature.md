@@ -130,7 +130,7 @@ public sealed partial class CreateProduct : Component
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Hint("What a customer pays, before tax."),
                     Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
-                    Ui.Button.Submit.Primary.Disabled(save.IsPending)["Save"]
+                    Ui.Button.Primary.Submit.Disabled(save.IsPending)["Save"]
                 ]
             ]
         ];
@@ -233,7 +233,7 @@ public sealed partial class UpdateProduct : Component
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Hint("What a customer pays, before tax."),
                     Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
-                    Ui.Button.Submit.Primary.Disabled(save.IsPending)["Save changes"]
+                    Ui.Button.Primary.Submit.Disabled(save.IsPending)["Save changes"]
                 ]
             ]
         ];
@@ -283,7 +283,7 @@ public sealed partial class DeleteProduct : Component
         // One button per row, and each row is its own DeleteProduct, so each has its own pending state.
         var delete = QueryClient.Command();
 
-        return Ui.Button.Error.Ghost.Sm
+        return Ui.Button.Ghost.Red.Sm
             .Disabled(delete.IsPending)
             .OnClick(async () =>
             {

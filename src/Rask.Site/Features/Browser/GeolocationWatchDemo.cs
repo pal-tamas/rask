@@ -17,7 +17,7 @@ public sealed partial class GeolocationWatchDemo : Component
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     _watchId is null
                         ? Ui.Button.Primary.Id("geowatch-start").OnClick(Start)["Start watching"]
-                        : Ui.Button.Error.Outline.Id("geowatch-stop").OnClick(Stop)["Stop"]
+                        : Ui.Button.Red.Id("geowatch-stop").OnClick(Stop)["Stop"]
                 ],
                 Div.Class("text-sm text-ui-muted")[
                     "Position: ", Code.Id("geowatch-value")[_location ?? "(not watching)"],

@@ -12,5 +12,5 @@ public sealed partial class SkipFactoryCounter : Component
     protected override async Task OnMount() => _count = Initial;
 
     protected override Component? Render() =>
-        Ui.Button.Primary.Outline.Id("skipfactory-counter").OnClick(() => _count++)[Ui.Icon.Name(Ui.IconName.CursorArrowRays), $"Clicks: {_count}"];
+        Ui.Button.Icon(Ui.IconName.CursorArrowRays).Id("skipfactory-counter").OnClick(() => _count++)[$"Clicks: {_count}"];
 }
