@@ -2,7 +2,18 @@
   The showcase's stylesheet, compiled by Rask.Tailwind by scanning THIS project's own source — which
   is where every utility name in the demos lives, as C# string literals.
 */
-@import "tailwindcss";
+@import "./vendor/rask-ui.css";
+
+/*
+  That one line is Tailwind AND the kit: the layer order, the kit's theme (the ui-* tokens Tw.cs writes
+  utilities against, Flux's accent), its `dark` variant — the `dark` class Ui.AppearanceScript puts on
+  <html> — and the classes the kit's components write, compiled here beside this project's own. ONE
+  sheet, so a kit `dark:bg-white/4` and this app's `bg-white` are ranked by Tailwind, not by which
+  <link> came last.
+
+  The build writes Styles/vendor/ (src/Rask.Ui/build/Rask.Ui.targets); nothing in it is committed. The
+  palette used to be copied into this file by hand and held equal by a test — it is the kit's own now.
+*/
 
 /*
   The guides' typography (#1101): Tailwind's own typography plugin, `prose`, on the rendered docs/*.md.
@@ -11,69 +22,6 @@
   this line would need `@tailwindcss/typography` added to the generated package.json.
 */
 @plugin "@tailwindcss/typography";
-
-/*
-  `dark:` follows the `dark` class Ui.AppearanceScript puts on <html> — Flux's dark mode — rather than
-  Tailwind's default, the operating system's preference, which a reader's own choice has to override.
-*/
-@custom-variant dark (&:where(.dark, .dark *));
-
-/*
-  The kit's palette, so THIS project's Tailwind can emit the ui-* utilities this project writes.
-
-  Rask.Ui ships a compiled sheet carrying the utilities the KIT's own components use, and that is not
-  the same set: Tw.cs writes `bg-ui-brand/10`, `ring-ui-line/40`, `text-ui-warn-ink` and more, which
-  are this app's class names, compiled here, against this @theme.
-
-  COPIED rather than imported, and that is not a preference. A `@theme` reached through an `@import`
-  after the Tailwind entry points is not interpreted as theme: a literal `@theme { … }` survives into
-  the output, which a browser ignores, and the ui-* namespace is never registered — so every utility
-  naming it silently vanishes while this file still looks right and the build stays green. It emptied
-  the kit's own sheet the same way before it was put back inline there.
-
-  UiPaletteTests asserts these values are identical to src/Rask.Ui/Styles/ui.css, so the copy cannot
-  drift.
-*/
-@theme {
-  --color-ui-bg: var(--color-base-100);
-  --color-ui-panel: var(--color-base-100);
-  --color-ui-well: var(--color-base-200);
-  --color-ui-line: var(--color-base-300);
-  --color-ui-ink: var(--color-base-content);
-  /* Derived from the ink, NOT from --color-neutral: daisyUI publishes neutral as a surface, and read as
-     text it is 1.26:1 on daisyUI's own `dark` and 1.08:1 on halloween. Mixed toward the ground so one
-     declaration darkens on a light theme and lightens on a dark one. */
-  --color-ui-muted: color-mix(in oklab, var(--color-base-content) 80%, var(--color-base-100));
-  --color-ui-brand: var(--color-primary);
-  --color-ui-brand-ink: color-mix(in oklab, var(--color-primary) 30%, var(--color-base-content));
-  --color-ui-ok: var(--color-success);
-  --color-ui-warn: var(--color-warning);
-  --color-ui-danger: var(--color-error);
-  --color-ui-info: var(--color-info);
-  /* The SURFACE tier — the wash behind a badge or an alert. A solid mix with the ground, not the colour
-     at an alpha: written as bg-ui-warn/15 the surface is whatever is behind it, so the same badge has
-     one contrast ratio on a card and another on the well (4.03:1 on the tightest palettes). */
-  --color-ui-brand-surface: color-mix(in oklab, var(--color-primary) 12%, var(--color-base-100));
-  --color-ui-ok-surface: color-mix(in oklab, var(--color-success) 12%, var(--color-base-100));
-  --color-ui-warn-surface: color-mix(in oklab, var(--color-warning) 12%, var(--color-base-100));
-  --color-ui-danger-surface: color-mix(in oklab, var(--color-error) 12%, var(--color-base-100));
-  --color-ui-info-surface: color-mix(in oklab, var(--color-info) 12%, var(--color-base-100));
-  /* TEXT colours, unlike --color-ui-ok/-warn/-danger above, which are surfaces. Mixed toward
-     --color-base-content rather than toward black: darkening is only the right direction on a light
-     theme, and the old 70%-toward-black success measured 3.26:1 on `dark` and 1.46:1 on aqua. The
-     weights are solved, not picked — see the note in src/Rask.Ui/Styles/ui.css, which UiPaletteTests
-     holds this copy identical to, and the per-theme corrections it carries for six low-contrast
-     palettes. ThemeContrastTests recomputes every pair from the shipped sheets. */
-  --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 35%, var(--color-base-content));
-  --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 35%, var(--color-base-content));
-  --color-ui-danger-ink: color-mix(in oklab, var(--color-error) 35%, var(--color-base-content));
-  --color-ui-info-ink: color-mix(in oklab, var(--color-info) 35%, var(--color-base-content));
-  /* The three daisyUI tones the kit's palette never named. The kit's components write .btn-secondary,
-     .badge-accent and .tooltip-neutral, and a fill needs a readable label whatever it is called. */
-  --color-ui-secondary-ink: color-mix(in oklab, var(--color-secondary) 14%, var(--color-base-content));
-  --color-ui-accent-ink: color-mix(in oklab, var(--color-accent) 7%, var(--color-base-content));
-  --color-ui-neutral-ink: color-mix(in oklab, var(--color-neutral) 17%, var(--color-base-content));
-}
 
 /*
   The islands' front-end files.

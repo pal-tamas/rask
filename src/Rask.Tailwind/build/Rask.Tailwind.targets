@@ -15,6 +15,8 @@
 
   <UsingTask TaskName="Rask.Tailwind.Tasks.ResolveTailwindCliTask"
              AssemblyFile="$(MSBuildThisFileDirectory)Rask.Tailwind.Tasks.dll"/>
+  <UsingTask TaskName="Rask.Tailwind.Tasks.WriteTailwindClassListTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.Tailwind.Tasks.dll"/>
 
   <PropertyGroup>
     <_RaskTailwindInput Condition="'$(RaskTailwindInput)' != ''"
@@ -36,6 +38,9 @@
     <_RaskTailwindDoBuild
       Condition="'$(DesignTimeBuild)' != 'true' AND Exists('$(_RaskTailwindInput)')"
     >true</_RaskTailwindDoBuild>
+
+    <_RaskTailwindInputDir Condition="'$(_RaskTailwindInput)' != ''"
+    >$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetDirectoryName('$(_RaskTailwindInput)'))))</_RaskTailwindInputDir>
   </PropertyGroup>
 
   <!--
@@ -91,6 +96,17 @@
       which is not always the project that owns the stylesheet.
     -->
     <_RaskTailwindSource Include="@(RaskTailwindSource)"/>
+
+    <!--
+      Whatever sits beside the stylesheet: a sheet it imports, a plugin it loads, a class list it reads
+      with `@source`. Tailwind follows those out of the CSS and nothing tells MSBuild, so a kit upgrade
+      that replaces Styles/vendor/rask-ui.kit.css would otherwise leave the compiled sheet a version
+      behind. Only where the stylesheet has a folder of its own — beside a stylesheet in the project
+      root, "everything next to it" is the project.
+    -->
+    <_RaskTailwindSource Include="$(_RaskTailwindInputDir)**/*.css;$(_RaskTailwindInputDir)**/*.mjs;$(_RaskTailwindInputDir)**/*.js;$(_RaskTailwindInputDir)**/*.txt"
+                        Exclude="$(_RaskTailwindInput);$(_RaskTailwindOutput)"
+                        Condition="'$(_RaskTailwindInputDir)' != '' AND '$(_RaskTailwindInputDir)' != '$([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))'"/>
   </ItemGroup>
 
   <!--
@@ -227,6 +243,32 @@
     <Exec Command="&quot;$(_RaskTailwindTool)&quot; --input &quot;$(_RaskTailwindInput)&quot; --output &quot;$(_RaskTailwindOutput)&quot;$(_RaskTailwindMinify)"
           WorkingDirectory="$(MSBuildProjectDirectory)"
           IgnoreStandardErrorWarningFormat="true"/>
+
+    <!--
+      The CLI leaves the file alone when the CSS it would write is the CSS already there. Correct for a
+      watcher, wrong for Inputs/Outputs: after an edit that changes no class — a comment, a rename — the
+      sheet stays older than its sources and this target runs again on every build from then on.
+    -->
+    <Touch Files="$(_RaskTailwindOutput)" Condition="Exists('$(_RaskTailwindOutput)')"/>
+  </Target>
+
+  <!--
+    The class names the compiled sheet defines, for ANOTHER project's Tailwind build (RaskTailwindClassList).
+
+    A component library ships as an assembly, and an app's Tailwind cannot scan an assembly for the class
+    names inside it. So the library compiles its own sheet — which is Tailwind's verdict on its sources —
+    and writes down what that sheet defines; the app's build reads the list with `@source` and emits the
+    same rules into its one stylesheet. Rask.Ui is the library this was built for.
+
+    No Inputs/Outputs: the task rewrites the file only when the list changed, so the timestamp moves
+    exactly when a consumer has something to recompile.
+  -->
+  <Target Name="_RaskTailwindClassList"
+          AfterTargets="_RaskTailwindBuild"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(_RaskTailwindDoBuild)' == 'true' AND '$(RaskTailwindClassList)' != ''">
+    <WriteTailwindClassListTask Stylesheet="$(_RaskTailwindOutput)"
+                                Output="$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskTailwindClassList)'))"/>
   </Target>
 
   <!--

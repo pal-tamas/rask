@@ -5,10 +5,9 @@ obj/
 [Oo]ut/
 artifacts/
 
-# Written into the tree by the build, not by you: the compiled Tailwind sheet, the UI kit's
-# own sheet, and the daisyUI plugin Rask.Ui ships so this project can compile daisyUI itself.
+# Written into the tree by the build, not by you: the compiled stylesheet, and the UI kit's
+# Tailwind sources that Styles/app.css imports so this project compiles the kit into it.
 wwwroot/css/app.css
-wwwroot/css/rask-ui.css
 Styles/vendor/
 
 # IDE / editor

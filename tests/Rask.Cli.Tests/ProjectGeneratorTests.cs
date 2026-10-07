@@ -552,7 +552,8 @@ public sealed class ProjectGeneratorTests
         var files = Index(result);
 
         Assert.Equal(["Rask.Wasm", "Rask.Ui", "Rask.DevTools"], result.Packages);
-        Assert.Contains("@import \"tailwindcss\";", files["Styles/app.css"], StringComparison.Ordinal);
+        // Tailwind and the kit in one import, compiled into the app's one sheet (StylingTests).
+        Assert.Contains("@import \"./vendor/rask-ui.css\";", files["Styles/app.css"], StringComparison.Ordinal);
 
         // The csproj names Rask.Wasm and nothing else for styling: the Tailwind build ships inside it.
         Assert.DoesNotContain("Rask.Tailwind", files["App.csproj"], StringComparison.Ordinal);

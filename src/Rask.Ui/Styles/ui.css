@@ -1,75 +1,18 @@
 /*
-  The kit's own stylesheet, compiled by Rask.Tailwind at THIS project's build.
+  THE KIT, as Tailwind source: its theme tokens, its `dark` variant, daisyUI while it lasts, and the few
+  rules a utility cannot say. It names no Tailwind entry point and declares no layer order — whoever
+  imports it does both, and two do:
 
-  Tailwind is a compiler: it scans the project it runs in for the class names actually written and emits
-  only those utilities. That is why this lives here rather than being left to the consuming app — the kit
-  ships as a compiled assembly, so an app's own Tailwind build cannot see these class names and would emit
-  none of them, leaving every component rendered as unstyled HTML with nothing reporting it.
+    ui.precompiled.css   the kit's own sheet, compiled at THIS project's build from this project's
+                         sources and embedded (UiStylesheet.Css). For a surface with no Tailwind build
+                         of its own — Rask.DevTools, an app that links the sheet and writes no utilities.
+    rask-ui.css          what an app's stylesheet imports, so the app's ONE Tailwind build compiles the
+                         kit in. The build hands it over as Styles/vendor/rask-ui.css with this file
+                         beside it as rask-ui.kit.css (build/Rask.Ui.targets).
 
-  The output is embedded and inlined by the consuming surface (UiStylesheet.Css), so there is no
-  stylesheet to serve, no static web assets, and nothing for a host to map.
-
-  NO PREFLIGHT FOR AN APPLICATION, and no html/body rule an application could match. An app consuming this
-  kit owns its document, and usually runs its own Tailwind besides. A second reset arriving from a library
-  restyles pages that never asked for it — the console learned that the hard way, when a reset landed on the
-  host application's own pages for as long as an operator had it open — and re-creates the multi-sheet stack
-  where cascade ORDER decides the outcome that #914 removed. Utilities only: the app keeps its own reset and
-  its own base layer.
-
-  The one exception is keyed to the console frame: the reset further down applies only under `.rask-ops`, the
-  class UiShell writes, so a page that does not frame itself with UiShell matches none of it — and one that
-  does has asked for a whole document of its own. Rask.Dashboard is a mounted application that owns its whole
-  document (RaskMountedApp) and draws it with nothing but this kit, so that reset is the only one its page gets.
-
-  THE PALETTE IS INLINE BELOW, and it has to be. Moving it to a sibling ui.tokens.css and pulling it back
-  with `@import` compiled without error and emitted a sheet of the right size — with ZERO ui-* utilities
-  in it. A `@theme` reached through an import after the Tailwind entry points is not interpreted as
-  theme; the tokens simply are not there when utilities are generated, and every component silently
-  loses its colour while the build stays green. Keep it here.
-
-  An app that writes its own ui-* classes needs these tokens in ITS @theme for the same reason — Tailwind
-  emits a utility only where it can see the token. Copy the block into your own stylesheet; see
-  docs/ui-kit.md. The showcase does exactly that, and UiPaletteTests asserts its copy matches this one.
+  So everything here is written to be true in both places. Paths are relative to this file and name only
+  what travels with it (daisyui.mjs); nothing below scans a source or resets a document.
 */
-/*
-  LAYERED, and this is not cosmetic — it decides whether a consuming app keeps its own cascade.
-
-  Unlayered CSS beats layered CSS in every browser, whatever the source order. Tailwind puts an app's
-  utilities in `@layer utilities`, so a sheet from a library that imports these WITHOUT layer() lands
-  unlayered and silently outranks every utility the app wrote. It broke the showcase exactly that way:
-  the kit's `.hidden` beat the app's `.md\:flex`, and the sidebar stayed display:none at every width
-  while the page around it looked perfectly normal.
-
-  daisyUI's own rules are already layered (`@layer daisyui...`), so only these two needed saying.
-*/
-/*
-  THE LAYER ORDER FOR THE WHOLE DOCUMENT, declared before anything can imply a different one.
-
-  CSS orders layers by FIRST APPEARANCE, across every sheet, in link order — and nothing later can
-  reorder them. This sheet is linked first, so whatever order it happens to mention layers in becomes
-  the order every other sheet is ranked by, including the app's own Tailwind output.
-
-  Without this statement that order was decided by accident. The blocks land here as
-  properties, theme, utilities, daisyui, rask, base — daisyUI emits its `base` rules last — which puts
-  `base` ABOVE `utilities` for the entire page. The consuming app then links its own Tailwind, whose
-  `@layer theme, base, components, utilities;` is a no-op because those names are already ordered, and
-  its preflight outranks every utility it emitted: `h1.text-4xl.font-semibold` computed to 16px/400
-  against `h1,h2,h3,h4,h5,h6 { font-size: inherit; font-weight: inherit }`, and `px-5` computed to
-  `padding: 0` against preflight's `*{padding:0}`. The whole showcase rendered as near-unstyled HTML
-  with every class name present and correct in the markup, on a green build.
-
-  Stated explicitly, the order is the intended one: an app's utilities beat its own preflight, and they
-  beat both daisyUI and this kit's corrections — which is the "an app keeps its own cascade" promise the
-  layer() imports below are already making. `rask` after `daisyui` because the corrections at the foot
-  of this file exist precisely to outrank the library.
-
-  UiLayerOrderTests asserts this statement is the first at-rule in the compiled sheet.
-*/
-@layer properties, theme, base, components, daisyui, rask, utilities;
-
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
-
 /*
   daisyUI supplies the component vocabulary; this kit supplies the typed C# API over it.
 
@@ -81,9 +24,10 @@
       Error: Can't resolve 'daisyui' in .../src/Rask.Ui/Styles
 
   A relative path sidesteps the resolution entirely, so this project keeps the standalone engine and
-  needs no npm install, no node_modules and no package.json of its own. vendor/daisyui.mjs is
+  needs no npm install, no node_modules and no package.json of its own. daisyui.mjs is
   daisyUI 5.7.27 verbatim (MIT), taken from its pinned GitHub release, which is byte-identical to the
-  `latest` download at that version. It is build-time input only and ships in nothing.
+  `latest` download at that version. It is build-time input only: the package hands it to an app's
+  build beside this file and it reaches no browser.
 
   THE VERSION IN THAT SENTENCE IS CHECKED. It is the pin's second statement — the first is
   `var version = "…"` inside the bundle — and a bump that replaces the file and forgets the prose
@@ -112,24 +56,18 @@
 /*
   The plugin bundle is NOT a source file, and saying so is load-bearing.
 
-  Tailwind scans the project it runs in, and vendor/daisyui.mjs is inside it: 348 KB of daisyUI's own
-  code, naming every class daisyUI defines. Scanned, it acts as a safelist for the whole library, so the
-  compiled sheet carried every component whether or not anything here used one. It reads as correct,
-  because a sheet containing too much looks exactly like a sheet containing enough.
+  It sits beside this file wherever this file is — in this project's Styles/, and in an app's
+  Styles/vendor/ — which is inside the tree Tailwind scans: 348 KB of daisyUI's own code, naming every
+  class daisyUI defines. Scanned, it acts as a safelist for the whole library, so the compiled sheet
+  carried every component whether or not anything used one. It reads as correct, because a sheet
+  containing too much looks exactly like a sheet containing enough.
 
   It also quietly weakened UiClassNamesTests, which checks that every name the kit can write exists in
   the sheet. With the bundle scanned, every daisyUI name was in there for reasons unrelated to the kit.
 */
-@source not "./vendor";
+@source not "./daisyui.mjs";
 
-/*
-  Nor are the icon tables: half a megabyte of SVG path data, in which `h-4.5` and `m-3.75` are relative
-  line and move commands and, to Tailwind, a height and a margin. Scanned, every such run became a utility
-  in the sheet that nothing uses.
-*/
-@source not "../UiIconPaths.g.cs";
-
-@plugin "./vendor/daisyui.mjs" {
+@plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
   exclude: rootscrollgutter;
@@ -235,8 +173,7 @@
 }
 
 /*
-  AFTER the kit's own @theme block, deliberately: UiPaletteTests reads the FIRST one as the palette the
-  showcase has to copy.
+  AFTER the kit's own @theme block, deliberately: ThemeContrastTests reads the FIRST one as the palette.
 */
 /*
   FLUX UI's theme model, which the kit is moving to component by component (daisyUI goes when the last
@@ -317,10 +254,9 @@
   browser's. `ThemeContrastTests` recomputes the whole matrix out of this sheet, so a weight edited by
   hand here fails a test rather than a reader.
 
-  In the `rask` layer, which the order statement at the top of this file puts after `theme` — these have
+  In the `rask` layer, which the order statement of the importing sheet puts after `theme` — these have
   the same specificity as the :root declarations they correct (0,1,0 either way), so nothing but the
-  layer decides which one wins, and an app's own copy of the palette is a separate sheet whose `theme`
-  layer is ranked by that same global order.
+  layer decides which one wins.
 */
 /*
   THE COMPONENTS' OWN COLOURS, CORRECTED — the same defect as the -ink tiers above, one layer down.
@@ -342,7 +278,7 @@
   `--badge-fg`, `--tt-bg` and friends, so nothing here overrides a structural rule, and a daisyUI upgrade
   that changes padding or radius carries straight through.
 
-  In `@layer rask`, which the order statement at the top of this file puts after `daisyui` — that is the
+  In `@layer rask`, which the order statement of the importing sheet puts after `daisyui` — that is the
   whole reason these land, since several of them are lower specificity than the rules they correct.
 
   WHAT IS NOT HERE, and why. The `checkbox-*`, `radio-*`, `toggle-*`, `range-*` and `progress-*` tones
@@ -355,7 +291,7 @@
   IN `rask-ui-corrections`, NOT `rask`, and that is the whole reason these land at all.
 
   daisyUI emits its component rules INSIDE `@layer utilities` — `.btn-primary` is in there, not in the
-  `daisyui` layer its name implies — and the order statement at the top of this file deliberately puts
+  `daisyui` layer its name implies — and the order statement of the importing sheet deliberately puts
   `rask` BEFORE `utilities` so that an app's own utilities beat the kit. Written in `rask`, every override
   below lost to the exact rule it was correcting: measured in a browser, `.btn-primary` still computed
   `oklch(1 0 0)` on the raw primary — 3.29:1 on `corporate`, 3.15:1 on `retro` — while the compiled sheet
@@ -551,7 +487,7 @@
 
   - `:where()` around every selector, so each rule has ZERO specificity: daisyUI's components, the corrections
     below and every utility still win, just as they do over a real preflight.
-  - In `base`, which the order statement at the top of this file ranks below everything else.
+  - In `base`, which the order statement of the importing sheet ranks below everything else.
   - `body:has(.rask-ops)` for the one thing a reset inside the frame cannot reach — the body's own 8px margin,
     a white border round the console otherwise. `:has()` is what keeps even that rule off every other document.
 
@@ -701,7 +637,7 @@
   that and is wrong in a way nothing reports: `.x > li` outranks the `.px-0` a row writes on itself, so the
   row asks for flush content and silently does not get it.
 
-  In `rask`, which the order statement at the top of this file puts BEFORE `utilities`: any utility the app
+  In `rask`, which the order statement of the importing sheet puts BEFORE `utilities`: any utility the app
   writes on a row wins, whatever its specificity. Keyed to the kit's own marker, so hand-written daisyUI
   `list` markup is left exactly as daisyUI draws it. `list-row` keeps daisyUI's own grid padding.
 */

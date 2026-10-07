@@ -21,7 +21,7 @@
 
     <PackageId>Rask.Ui</PackageId>
     <Title>Rask — UI Kit</Title>
-    <Description>The Rask component kit: the chrome, controls, data display and overlays the framework's own surfaces are built from — shell, top bar, breadcrumb switcher, tab bar, buttons, search, status dots, metric rows, detail lists, code blocks, sheets and toasts. Mobile-first, Tailwind v4 only, and ships no JavaScript. The stylesheet is compiled here and embedded, so a consuming app needs no Tailwind configuration to render it.</Description>
+    <Description>The Rask component kit: the chrome, controls, data display and overlays the framework's own surfaces are built from — shell, top bar, breadcrumb switcher, tab bar, buttons, search, status dots, metric rows, detail lists, code blocks, sheets and toasts. Mobile-first, Tailwind v4 only, and ships no JavaScript. An app with a Tailwind build compiles the kit into its one stylesheet with a single import; a precompiled sheet is embedded for a surface without one.</Description>
     <PackageTags>dotnet csharp aspnetcore webassembly net10 ui-kit components daisyui tailwind design-system mobile-first</PackageTags>
   </PropertyGroup>
 
@@ -73,7 +73,7 @@
     it. Compiling here binds the stylesheet to the markup that needs it. Same arrangement as
     Rask.Dashboard, for the same reason.
 
-    Unlike the console's, this sheet carries NO preflight and no html/body rules — see Styles/ui.css.
+    Unlike the console's, this sheet carries NO preflight and no html/body rules — see Styles/ui.precompiled.css.
     The console can ship a global reset because it is a mounted application owning its own document;
     an app consuming this kit owns its own, and a second reset landing on it is how a shared stylesheet
     quietly restyles somebody else's pages.
@@ -94,8 +94,12 @@
     project is called finished.
   -->
   <PropertyGroup Condition=" '$(TargetFramework)' != '' ">
-    <RaskTailwindInput>Styles/ui.css</RaskTailwindInput>
+    <RaskTailwindInput>Styles/ui.precompiled.css</RaskTailwindInput>
     <RaskTailwindOutput>obj/$(TargetFramework)/ui.generated.css</RaskTailwindOutput>
+    <!-- Every class that sheet defines, for an app's own Tailwind build to read (see PackRaskUiStylesheet
+         and build/Rask.Ui.targets): the kit's class names are string literals in a compiled assembly,
+         where no scan finds them, and this list is how they reach an app's ONE stylesheet. -->
+    <RaskTailwindClassList>obj/$(TargetFramework)/rask-ui.classes.txt</RaskTailwindClassList>
     <RaskTailwindMinify>true</RaskTailwindMinify>
   </PropertyGroup>
 
@@ -161,9 +165,19 @@
     <Error Condition="'$(_RaskUiPackStylesheet)' == ''"
            Text="Rask.Ui: no compiled stylesheet was found to pack (obj/&lt;tfm&gt;/ui.generated.css). Packing without it ships a package whose RaskUiWriteStylesheet target cannot find the sheet, and every consumer that opts in fails to build."/>
 
+    <!-- The class list is written beside the sheet it was read out of, by the same inner build. -->
+    <PropertyGroup>
+      <_RaskUiPackClassList>$([System.IO.Path]::GetDirectoryName('$(_RaskUiPackStylesheet)'))/rask-ui.classes.txt</_RaskUiPackClassList>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(_RaskUiPackClassList)')"
+           Text="Rask.Ui: no class list was found to pack ($(_RaskUiPackClassList)). Without it an app that imports rask-ui.css compiles a sheet with none of the kit's classes in it, and every component renders unstyled."/>
+
     <ItemGroup>
       <None Include="$(_RaskUiPackStylesheet)" Pack="true" PackagePath="build/ui.css" Visible="false"/>
       <None Include="$(_RaskUiPackStylesheet)" Pack="true" PackagePath="buildTransitive/ui.css" Visible="false"/>
+      <None Include="$(_RaskUiPackClassList)" Pack="true" PackagePath="build/rask-ui.classes.txt" Visible="false"/>
+      <None Include="$(_RaskUiPackClassList)" Pack="true" PackagePath="buildTransitive/rask-ui.classes.txt" Visible="false"/>
     </ItemGroup>
   </Target>
 
@@ -173,22 +187,30 @@
     <None Include="build\**" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>
 
     <!--
-      The daisyUI plugin bundle itself, so a CONSUMER's Tailwind can compile daisyUI too.
+      THE KIT AS TAILWIND SOURCE, so a consumer's ONE Tailwind build compiles it in.
 
-      This package's own sheet is compiled here and shipped whole, which is what an app linking
-      UiStylesheet.Href() gets. But that sheet contains the classes THIS project's components write,
-      and Tailwind only emits a class it can see — so an app writing `card-body` in its own markup
-      gets nothing, because nothing in the kit names it.
+      The sheet compiled above is for a surface with no Tailwind build of its own. An app that runs
+      Tailwind must not link it beside its own output — two `@layer utilities`, ranked by link order, is
+      how an app's `bg-white` came to beat the kit's `dark:bg-zinc-800` — so it gets the kit's sources
+      instead and compiles them itself, with one line: `@import "./vendor/rask-ui.css";`.
 
-      An app therefore has to run daisyUI itself, and the standalone Tailwind engine carries no
-      package tree to resolve `@plugin "daisyui"` the Node way. Shipping the bundle is what lets an
-      app say `@plugin "./vendor/daisyui.mjs"` with no npm install, no node_modules and no
-      package.json — the same trick this project already uses on itself, for the same reason.
+      Four files, written into the app's Styles/vendor/ by build/Rask.Ui.targets:
+        rask-ui.css          the line an app imports: layer order, Tailwind, the kit, the class list.
+        rask-ui.kit.css      Styles/ui.css under the name an app sees — theme, `dark` variant, rules.
+        rask-ui.classes.txt  every class the kit's components write (PackRaskUiStylesheet, above).
+        daisyui.mjs          the daisyUI plugin the kit file loads; goes when daisyUI does.
 
-      Not an EmbeddedResource: the copy has to happen at BUILD time, before Tailwind runs.
+      Tailwind's standalone engine carries no package tree to resolve `@plugin "daisyui"` the Node way,
+      which is why the bundle travels and is named by relative path: no npm install, no node_modules.
+
+      Not EmbeddedResources: the copy has to happen at BUILD time, before Tailwind runs.
     -->
-    <None Include="Styles\vendor\daisyui.mjs" Pack="true" PackagePath="build\" Visible="false"/>
-    <None Include="Styles\vendor\daisyui.mjs" Pack="true" PackagePath="buildTransitive\daisyui.mjs" Visible="false"/>
+    <None Include="Styles\rask-ui.css" Pack="true" PackagePath="build\" Visible="false"/>
+    <None Include="Styles\rask-ui.css" Pack="true" PackagePath="buildTransitive\rask-ui.css" Visible="false"/>
+    <None Include="Styles\ui.css" Pack="true" PackagePath="build\rask-ui.kit.css" Visible="false"/>
+    <None Include="Styles\ui.css" Pack="true" PackagePath="buildTransitive\rask-ui.kit.css" Visible="false"/>
+    <None Include="Styles\daisyui.mjs" Pack="true" PackagePath="build\" Visible="false"/>
+    <None Include="Styles\daisyui.mjs" Pack="true" PackagePath="buildTransitive\daisyui.mjs" Visible="false"/>
   </ItemGroup>
 
 </Project>

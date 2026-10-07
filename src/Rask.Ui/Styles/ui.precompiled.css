@@ -1,0 +1,51 @@
+/*
+  The kit's own PRECOMPILED sheet: ui.css, compiled by Rask.Tailwind at THIS project's build over this
+  project's sources, embedded as UiStylesheet.Css and packed as build/ui.css.
+
+  IT IS FOR A SURFACE WITH NO TAILWIND BUILD OF ITS OWN — Rask.DevTools, which draws its panel inside
+  somebody else's page; an app that links the kit and writes no utilities. An app that runs Tailwind takes
+  the kit in through rask-ui.css instead and links ONE sheet, as a Flux app does. Linking this one beside
+  an app's own Tailwind output is the bug that arrangement ends: both sheets put utilities in
+  `@layer utilities`, the app's is linked last, so an app's `bg-white` beat the kit's `dark:bg-zinc-800`
+  and its `m-0` beat the kit's `mt-auto` — a modal white in dark mode, on a green build. The build refuses
+  that pairing (RaskUiWriteStylesheet together with the import; see build/Rask.Ui.targets).
+
+  NO PREFLIGHT, and no html/body rule an application could match — only Tailwind's theme and utilities are
+  imported below. This sheet lands in documents it does not own, and a reset arriving from a library
+  restyles pages that never asked for it: the console learned that the hard way, when a reset landed on
+  the host application's own pages for as long as an operator had it open. The one exception is keyed to
+  the console frame: the reset in ui.css applies only under `.rask-ops`, the class UiShell writes.
+
+  LAYERED, and this is not cosmetic. Unlayered CSS beats layered CSS in every browser, whatever the source
+  order, so the two imports say layer() — without it this sheet's `.hidden` outranks every utility of a
+  page it is linked into.
+
+  THE LAYER ORDER, declared before anything can imply a different one. CSS orders layers by FIRST
+  APPEARANCE and nothing later can reorder them. Left to accident the blocks land as properties, theme,
+  utilities, daisyui, rask, base — daisyUI emits its `base` rules last — which puts `base` ABOVE
+  `utilities` for the whole page. `rask` after `daisyui` because the kit's corrections exist to outrank
+  the library, and both below `utilities`. rask-ui.css makes the same statement for an app's sheet, and
+  UiStylesheetEntryTests holds the two to one order; UiLayerOrderTests reads it back out of the compiled
+  bytes.
+*/
+@layer properties, theme, base, components, daisyui, rask, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "./ui.css";
+
+/*
+  Not sources: the icon tables are half a megabyte of SVG path data, in which `h-4.5` and `m-3.75` are
+  relative line and move commands and, to Tailwind, a height and a margin. Scanned, every such run became
+  a utility in the sheet that nothing uses. (ui.css keeps the plugin bundle out the same way.)
+*/
+@source not "../UiIconPaths.g.cs";
+
+/*
+  Nor is prose. Tailwind reads every text file in the project, so a comment in the csproj or the build
+  targets that mentions `card-body` or `dark:bg-zinc-800` put that rule in the sheet — and in the class
+  list an app compiles from — with no component writing it.
+*/
+@source not "../*.csproj";
+@source not "../*.md";
+@source not "../build";

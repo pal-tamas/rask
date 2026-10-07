@@ -60,12 +60,17 @@ internal static class VsCodeAssembly
     }
 
     /// <summary>
-    ///     Whether <paramref name="files" /> compile Tailwind: they carry <see cref="TailwindEntry" /> importing it.
+    ///     Whether <paramref name="files" /> compile Tailwind: they carry <see cref="TailwindEntry" /> importing it —
+    ///     itself, or through the UI kit's <c>rask-ui.css</c>, which brings Tailwind and the kit in one line.
     ///     Read from what the template actually wrote, so a template that gains or drops Tailwind needs no list here.
     /// </summary>
     internal static bool CompilesTailwind(string targetDirectory, IReadOnlyList<ScaffoldFile> files) =>
         files.Any(f => string.Equals(Path.GetRelativePath(targetDirectory, f.Path).Replace('\\', '/'), TailwindEntry, StringComparison.Ordinal)
-                       && f.Content.Contains("@import \"tailwindcss\"", StringComparison.Ordinal));
+                       && ImportsTailwind(f.Content));
+
+    internal static bool ImportsTailwind(string stylesheet) =>
+        stylesheet.Contains("@import \"tailwindcss\"", StringComparison.Ordinal)
+        || stylesheet.Contains("@import \"./vendor/rask-ui.css\"", StringComparison.Ordinal);
 
     /// <summary>
     ///     What <c>.vscode/extensions.json</c> recommends, why, and whether this project needs it — read from the

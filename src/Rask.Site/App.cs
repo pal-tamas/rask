@@ -61,11 +61,10 @@ public partial class App : Component
         FontPreload("/fonts/inter-latin.woff2"),
         FontPreload("/fonts/space-grotesk-latin.woff2"),
         FontPreload("/fonts/jetbrains-mono-latin.woff2"),
-        // The KIT's sheet, FIRST — see KitStylesheet.
-        KitStylesheet(),
-        // Tailwind, compiled from Styles/app.css at this project's build. It replaced a three-sheet
-        // stack — Bootstrap, the design tokens, then global.css overriding both — where the cascade
-        // ORDER was what decided the outcome and a comment was the only thing keeping it right.
+        // Tailwind AND the kit, compiled from Styles/app.css at this project's build: ONE sheet, as a
+        // Flux app has. The kit's precompiled sheet used to be linked ahead of it, and two sheets each
+        // carry an `@layer utilities` ranked by link order alone — this app's `bg-white` beat the kit's
+        // `dark:bg-white/4` and a Flux card stayed white in dark mode. The build refuses that pairing now.
         Link
             .Rel("stylesheet")
             .Href(LiveOptions.PathBase + "/css/app.css"),
@@ -76,30 +75,6 @@ public partial class App : Component
             .Rel("stylesheet")
             .Href(LiveOptions.PathBase + "/global.css")
     ];
-
-    // The KIT's sheet, and first.
-    //
-    // Tailwind scans the project it runs in, so the classes Rask.Ui's components write are compiled
-    // into its sheet and cannot appear in this one — and since the kit took daisyUI, that sheet is
-    // also the only place --color-primary and the rest of the palette are defined. This app's own
-    // @theme expresses --color-ui-* in terms of them, so without this every colour on every page
-    // resolves to nothing: not wrong, absent. Layout and structure survive it, which is why it
-    // looked fine until a browser test compared two custom properties and found both empty.
-    //
-    // First, because the tokens below are meant to override the kit's, and an override only wins
-    // while it is the copy the cascade reads last.
-    // Linked rather than inlined: 36.8 KB gzipped on every document of a site read page to
-    // page is the cost #1018 was filed about. The build writes it into wwwroot; the href carries
-    // the sheet's content hash so it caches hard and busts only when it changes.
-    // App-root paths, not _content/{assembly}/. The showcase used to live in a separate library and
-    // its sheets were served from that library's static web assets; one project means one wwwroot,
-    // and UiStylesheet.Path's app-root default is now simply correct. Worth stating because the
-    // failure is invisible either way round: a 404 stylesheet renders the page unstyled and fails
-    // nothing.
-    private static Rask.Core.HTMLLinkElement KitStylesheet() =>
-        Link
-            .Rel("stylesheet")
-            .Href(UiStylesheet.Href(LiveOptions.PathBase));
 
     protected override string? BodyClass => "bg-ui-well";
 

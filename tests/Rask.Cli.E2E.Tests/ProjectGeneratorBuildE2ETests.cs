@@ -601,9 +601,9 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             // A class nothing in the project writes must NOT be there: the positive alone would also pass
             // against a stylesheet that shipped all of Tailwind, which is the other way to get this wrong.
-            Assert.DoesNotContain("max-w-3xl", css, StringComparison.Ordinal);
+            Assert.DoesNotContain("skew-x-12", css, StringComparison.Ordinal);
 
-            // daisyUI itself, compiled HERE from the bundle Rask.Ui ships — no npm, no node_modules.
+            // daisyUI itself, compiled HERE from the plugin Rask.Ui ships — no npm, no node_modules.
             // This is the whole claim: without it the page's card/btn/navbar are correct strings in the
             // markup naming rules that exist nowhere, and the app renders as unstyled text.
             foreach (var component in (string[])["card", "card-body", "btn", "navbar", "hero", "footer"])
@@ -614,23 +614,34 @@ public sealed class ProjectGeneratorBuildE2ETests
                     + $"renders unstyled.{CliBuildE2E.Diagnostics(output)}");
             }
 
-            // And the bundle must not have been scanned as a safelist: nothing here uses a timeline.
+            // And the plugin must not have been scanned as a safelist: nothing here, and nothing in the
+            // kit, writes `glass`.
             Assert.False(
-                Regex.IsMatch(css, @"(^|[\s,}]) *\.timeline\s*\{", RegexOptions.Multiline),
-                $"[wasm={wasm}] the sheet carries components the project never names, so vendor/ is "
+                Regex.IsMatch(css, @"(^|[\s,}]) *\.glass\s*\{", RegexOptions.Multiline),
+                $"[wasm={wasm}] the sheet carries components nothing names, so vendor/daisyui.mjs is "
                 + "being scanned and this stylesheet is the whole library.");
 
-            // The plugin is copied into the tree by the build; it is not the author's file.
+            // ONE sheet, with the kit in it: a class only a kit component writes is compiled HERE, from
+            // the list the kit ships, beside the starter page's own.
             Assert.True(
-                File.Exists(Path.Combine(projectDir, "Styles", "vendor", "daisyui.mjs")),
-                $"[wasm={wasm}] RaskUiWriteDaisyUiPlugin wrote nothing, so the @plugin above it "
-                + $"resolved to a file that is not there.{CliBuildE2E.Diagnostics(output)}");
+                Regex.IsMatch(css, @"\.dark\\:bg-white\\/10\b", RegexOptions.Multiline),
+                $"[wasm={wasm}] the kit's classes are not in the app's sheet, so every Ui* component "
+                + $"would render unstyled.{CliBuildE2E.Diagnostics(output)}");
 
-            // The kit's own sheet, for the Ui* components, cached rather than inlined per document.
-            Assert.True(
+            // The kit's Tailwind sources are copied into the tree by the build; they are not the author's.
+            foreach (var source in (string[])["rask-ui.css", "rask-ui.kit.css", "rask-ui.classes.txt", "daisyui.mjs"])
+            {
+                Assert.True(
+                    File.Exists(Path.Combine(projectDir, "Styles", "vendor", source)),
+                    $"[wasm={wasm}] Styles/vendor/{source} was not written, so the import in Styles/app.css "
+                    + $"resolved to a file that is not there.{CliBuildE2E.Diagnostics(output)}");
+            }
+
+            // And NOT the kit's precompiled sheet beside it: two sheets are two `@layer utilities` ranked
+            // by link order, where the app's `bg-white` beats the kit's `dark:bg-zinc-800`.
+            Assert.False(
                 File.Exists(Path.Combine(projectDir, "wwwroot", "css", "rask-ui.css")),
-                $"[wasm={wasm}] RaskUiWriteStylesheet wrote nothing, so every Ui* component would "
-                + $"render structurally correct and completely grey.{CliBuildE2E.Diagnostics(output)}");
+                $"[wasm={wasm}] the kit's precompiled sheet was written into wwwroot beside the app's own.");
         }
         finally
         {
