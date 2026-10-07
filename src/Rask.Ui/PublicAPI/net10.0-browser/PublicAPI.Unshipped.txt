@@ -1,4 +1,20 @@
 #nullable enable
+Rask.RaskSeed_UiAutocomplete
+Rask.RaskSeed_UiAutocomplete.Bind(System.Linq.Expressions.Expression<System.Func<string!>!>! Bind) -> Rask.UiAutocomplete!
+Rask.RaskSeed_UiAutocomplete.RaskSeed_UiAutocomplete() -> void
+Rask.RaskSeed_UiAutocomplete.Value(string? Value) -> Rask.UiAutocomplete!
+Rask.RaskSeed_UiPillbox
+Rask.RaskSeed_UiPillbox.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.HashSet<T>!>!>! Bind) -> Rask.UiPillbox<T>!
+Rask.RaskSeed_UiPillbox.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<T>!>!>! Bind) -> Rask.UiPillbox<T>!
+Rask.RaskSeed_UiPillbox.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.IList<T>!>!>! Bind) -> Rask.UiPillbox<T>!
+Rask.RaskSeed_UiPillbox.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.List<T>!>!>! Bind) -> Rask.UiPillbox<T>!
+Rask.RaskSeed_UiPillbox.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.Collection<T>!>!>! Bind) -> Rask.UiPillbox<T>!
+Rask.RaskSeed_UiPillbox.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.ObservableCollection<T>!>!>! Bind) -> Rask.UiPillbox<T>!
+Rask.RaskSeed_UiPillbox.Bind<T>(System.Linq.Expressions.Expression<System.Func<T[]!>!>! Bind) -> Rask.UiPillbox<T>!
+Rask.RaskSeed_UiPillbox.Key(object? key) -> Rask.RaskSeed_UiPillbox
+Rask.RaskSeed_UiPillbox.Of<T>() -> Rask.UiPillbox<T>!
+Rask.RaskSeed_UiPillbox.RaskSeed_UiPillbox() -> void
+Rask.RaskSeed_UiPillbox.Values<T>(System.Collections.Generic.ICollection<T>? Values) -> Rask.UiPillbox<T>!
 Rask.ToastOptions.At(Rask.Ui.ToastPosition position) -> Rask.ToastOptions!
 Rask.ToastOptions.Position.get -> Rask.Ui.ToastPosition
 override Rask.UiInputIcon.GetHashCode() -> int
@@ -18,6 +34,16 @@ Rask.RaskSeed_UiSelect.Values<T>(System.Collections.Generic.ICollection<T>? Valu
 Rask.Ui.AccordionVariant
 Rask.Ui.AccordionVariant.Default = 0 -> Rask.Ui.AccordionVariant
 Rask.Ui.AccordionVariant.Reverse = 1 -> Rask.Ui.AccordionVariant
+Rask.Ui.AutocompleteAs
+Rask.Ui.AutocompleteAs.Button = 1 -> Rask.Ui.AutocompleteAs
+Rask.Ui.AutocompleteAs.Input = 0 -> Rask.Ui.AutocompleteAs
+Rask.Ui.AutocompleteSize
+Rask.Ui.AutocompleteSize.Base = 0 -> Rask.Ui.AutocompleteSize
+Rask.Ui.AutocompleteSize.Sm = 1 -> Rask.Ui.AutocompleteSize
+Rask.Ui.AutocompleteSize.Xs = 2 -> Rask.Ui.AutocompleteSize
+Rask.Ui.AutocompleteVariant
+Rask.Ui.AutocompleteVariant.Filled = 1 -> Rask.Ui.AutocompleteVariant
+Rask.Ui.AutocompleteVariant.Outline = 0 -> Rask.Ui.AutocompleteVariant
 Rask.Ui.CalloutVariant
 Rask.Ui.CalloutVariant.Danger = 3 -> Rask.Ui.CalloutVariant
 Rask.Ui.CalloutVariant.Secondary = 0 -> Rask.Ui.CalloutVariant
@@ -78,6 +104,12 @@ Rask.Ui.Inset.Left = 4 -> Rask.Ui.Inset
 Rask.Ui.Inset.None = 0 -> Rask.Ui.Inset
 Rask.Ui.Inset.Right = 8 -> Rask.Ui.Inset
 Rask.Ui.Inset.Top = 1 -> Rask.Ui.Inset
+Rask.Ui.PillboxSize
+Rask.Ui.PillboxSize.Base = 0 -> Rask.Ui.PillboxSize
+Rask.Ui.PillboxSize.Sm = 1 -> Rask.Ui.PillboxSize
+Rask.Ui.PillboxVariant
+Rask.Ui.PillboxVariant.Combobox = 1 -> Rask.Ui.PillboxVariant
+Rask.Ui.PillboxVariant.Default = 0 -> Rask.Ui.PillboxVariant
 Rask.Ui.ToastPosition
 Rask.Ui.ToastPosition.BottomCenter = 1 -> Rask.Ui.ToastPosition
 Rask.Ui.ToastPosition.BottomEnd = 0 -> Rask.Ui.ToastPosition
@@ -166,6 +198,68 @@ Rask.Ui.AuraStyle.Gold = 5 -> Rask.Ui.AuraStyle
 Rask.Ui.AuraStyle.Holo = 3 -> Rask.Ui.AuraStyle
 Rask.Ui.AuraStyle.Rainbow = 4 -> Rask.Ui.AuraStyle
 Rask.Ui.AuraStyle.Silver = 6 -> Rask.Ui.AuraStyle
+Rask.UiAutocomplete
+Rask.UiAutocomplete.AfterBind.get -> Rask.Core.Callback<string!>
+Rask.UiAutocomplete.AfterBind.set -> void
+Rask.UiAutocomplete.As.get -> Rask.Ui.AutocompleteAs?
+Rask.UiAutocomplete.As.set -> void
+Rask.UiAutocomplete.Bind.get -> System.Linq.Expressions.Expression<System.Func<string!>!>?
+Rask.UiAutocomplete.Bind.set -> void
+Rask.UiAutocomplete.Class.get -> string?
+Rask.UiAutocomplete.Class.set -> void
+Rask.UiAutocomplete.Clearable.get -> bool?
+Rask.UiAutocomplete.Clearable.set -> void
+Rask.UiAutocomplete.ContainerClass.get -> string?
+Rask.UiAutocomplete.ContainerClass.set -> void
+Rask.UiAutocomplete.Description.get -> string?
+Rask.UiAutocomplete.Description.set -> void
+Rask.UiAutocomplete.Disabled.get -> bool?
+Rask.UiAutocomplete.Disabled.set -> void
+Rask.UiAutocomplete.Icon.get -> Rask.UiInputIcon?
+Rask.UiAutocomplete.Icon.set -> void
+Rask.UiAutocomplete.IconTrailing.get -> Rask.UiInputIcon?
+Rask.UiAutocomplete.IconTrailing.set -> void
+Rask.UiAutocomplete.Id.get -> string?
+Rask.UiAutocomplete.Id.set -> void
+Rask.UiAutocomplete.InputClass.get -> string?
+Rask.UiAutocomplete.InputClass.set -> void
+Rask.UiAutocomplete.Invalid.get -> bool?
+Rask.UiAutocomplete.Invalid.set -> void
+Rask.UiAutocomplete.Kbd.get -> string?
+Rask.UiAutocomplete.Kbd.set -> void
+Rask.UiAutocomplete.Label.get -> string?
+Rask.UiAutocomplete.Label.set -> void
+Rask.UiAutocomplete.Mask.get -> string?
+Rask.UiAutocomplete.Mask.set -> void
+Rask.UiAutocomplete.Multiple.get -> bool?
+Rask.UiAutocomplete.Multiple.set -> void
+Rask.UiAutocomplete.OnChange.get -> Rask.Core.Callback<string!>
+Rask.UiAutocomplete.OnChange.set -> void
+Rask.UiAutocomplete.Placeholder.get -> string?
+Rask.UiAutocomplete.Placeholder.set -> void
+Rask.UiAutocomplete.ReadOnly.get -> bool?
+Rask.UiAutocomplete.ReadOnly.set -> void
+Rask.UiAutocomplete.ShowValidation.get -> bool?
+Rask.UiAutocomplete.ShowValidation.set -> void
+Rask.UiAutocomplete.Size.get -> Rask.Ui.AutocompleteSize?
+Rask.UiAutocomplete.Size.set -> void
+Rask.UiAutocomplete.Type.get -> Rask.Core.InputType?
+Rask.UiAutocomplete.Type.set -> void
+Rask.UiAutocomplete.UiAutocomplete() -> void
+Rask.UiAutocomplete.Validate.get -> Rask.Core.Validator<string!>?
+Rask.UiAutocomplete.Validate.set -> void
+Rask.UiAutocomplete.Value.get -> string?
+Rask.UiAutocomplete.Value.set -> void
+Rask.UiAutocomplete.Variant.get -> Rask.Ui.AutocompleteVariant?
+Rask.UiAutocomplete.Variant.set -> void
+Rask.UiAutocomplete.Viewable.get -> bool?
+Rask.UiAutocomplete.Viewable.set -> void
+Rask.UiAutocompleteItem
+Rask.UiAutocompleteItem.Class.get -> string?
+Rask.UiAutocompleteItem.Class.set -> void
+Rask.UiAutocompleteItem.Disabled.get -> bool?
+Rask.UiAutocompleteItem.Disabled.set -> void
+Rask.UiAutocompleteItem.UiAutocompleteItem() -> void
 Rask.UiAvatar
 Rask.UiAvatar.Alt.get -> string?
 Rask.UiAvatar.Alt.set -> void
@@ -1026,6 +1120,110 @@ Rask.UiLink.As.set -> void
 Rask.UiLink.Href.get -> Rask.Core.Routing.RouteUrl?
 Rask.UiLink.Variant.get -> Rask.Ui.LinkVariant?
 Rask.UiLink.Variant.set -> void
+Rask.UiPillbox<T>
+Rask.UiPillbox<T>.AfterBind.get -> Rask.Core.Callback<System.Collections.Generic.ICollection<T>!>
+Rask.UiPillbox<T>.AfterBind.set -> void
+Rask.UiPillbox<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<T>!>!>?
+Rask.UiPillbox<T>.Bind.set -> void
+Rask.UiPillbox<T>.Class.get -> string?
+Rask.UiPillbox<T>.Class.set -> void
+Rask.UiPillbox<T>.Description.get -> string?
+Rask.UiPillbox<T>.Description.set -> void
+Rask.UiPillbox<T>.Disabled.get -> bool?
+Rask.UiPillbox<T>.Disabled.set -> void
+Rask.UiPillbox<T>.Filter.get -> bool?
+Rask.UiPillbox<T>.Filter.set -> void
+Rask.UiPillbox<T>.Id.get -> string?
+Rask.UiPillbox<T>.Id.set -> void
+Rask.UiPillbox<T>.Invalid.get -> bool?
+Rask.UiPillbox<T>.Invalid.set -> void
+Rask.UiPillbox<T>.Label.get -> string?
+Rask.UiPillbox<T>.Label.set -> void
+Rask.UiPillbox<T>.OnChange.get -> Rask.Core.Callback<System.Collections.Generic.ICollection<T>!>
+Rask.UiPillbox<T>.OnChange.set -> void
+Rask.UiPillbox<T>.Placeholder.get -> string?
+Rask.UiPillbox<T>.Placeholder.set -> void
+Rask.UiPillbox<T>.Searchable.get -> bool?
+Rask.UiPillbox<T>.Searchable.set -> void
+Rask.UiPillbox<T>.SearchPlaceholder.get -> string?
+Rask.UiPillbox<T>.SearchPlaceholder.set -> void
+Rask.UiPillbox<T>.ShowValidation.get -> bool?
+Rask.UiPillbox<T>.ShowValidation.set -> void
+Rask.UiPillbox<T>.Size.get -> Rask.Ui.PillboxSize?
+Rask.UiPillbox<T>.Size.set -> void
+Rask.UiPillbox<T>.UiPillbox() -> void
+Rask.UiPillbox<T>.Validate.get -> Rask.Core.Validator<System.Collections.Generic.ICollection<T>!>?
+Rask.UiPillbox<T>.Validate.set -> void
+Rask.UiPillbox<T>.Value.get -> System.Collections.Generic.ICollection<T>?
+Rask.UiPillbox<T>.Value.set -> void
+Rask.UiPillbox<T>.Variant.get -> Rask.Ui.PillboxVariant?
+Rask.UiPillbox<T>.Variant.set -> void
+Rask.UiPillboxInput
+Rask.UiPillboxInput.Class.get -> string?
+Rask.UiPillboxInput.Class.set -> void
+Rask.UiPillboxInput.Invalid.get -> bool?
+Rask.UiPillboxInput.Invalid.set -> void
+Rask.UiPillboxInput.OnInput.get -> Rask.Core.Callback<string!>
+Rask.UiPillboxInput.OnInput.set -> void
+Rask.UiPillboxInput.Placeholder.get -> string?
+Rask.UiPillboxInput.Placeholder.set -> void
+Rask.UiPillboxInput.UiPillboxInput() -> void
+Rask.UiPillboxInput.Value.get -> string?
+Rask.UiPillboxInput.Value.set -> void
+Rask.UiPillboxOption
+Rask.UiPillboxOption.Class.get -> string?
+Rask.UiPillboxOption.Class.set -> void
+Rask.UiPillboxOption.Disabled.get -> bool?
+Rask.UiPillboxOption.Disabled.set -> void
+Rask.UiPillboxOption.Filterable.get -> bool?
+Rask.UiPillboxOption.Filterable.set -> void
+Rask.UiPillboxOption.Label.get -> string?
+Rask.UiPillboxOption.Label.set -> void
+Rask.UiPillboxOption.SelectedLabel.get -> string?
+Rask.UiPillboxOption.SelectedLabel.set -> void
+Rask.UiPillboxOption.UiPillboxOption() -> void
+Rask.UiPillboxOption.Value.get -> object?
+Rask.UiPillboxOption.Value.set -> void
+Rask.UiPillboxOptionCreate
+Rask.UiPillboxOptionCreate.Class.get -> string?
+Rask.UiPillboxOptionCreate.Class.set -> void
+Rask.UiPillboxOptionCreate.MinLength.get -> int?
+Rask.UiPillboxOptionCreate.MinLength.set -> void
+Rask.UiPillboxOptionCreate.OnClick.get -> Rask.Core.Callback<string!>
+Rask.UiPillboxOptionCreate.OnClick.set -> void
+Rask.UiPillboxOptionCreate.UiPillboxOptionCreate() -> void
+Rask.UiPillboxOptionEmpty
+Rask.UiPillboxOptionEmpty.Class.get -> string?
+Rask.UiPillboxOptionEmpty.Class.set -> void
+Rask.UiPillboxOptionEmpty.UiPillboxOptionEmpty() -> void
+Rask.UiPillboxOptionEmpty.WhenLoading.get -> string?
+Rask.UiPillboxOptionEmpty.WhenLoading.set -> void
+Rask.UiPillboxSearch
+Rask.UiPillboxSearch.Class.get -> string?
+Rask.UiPillboxSearch.Class.set -> void
+Rask.UiPillboxSearch.Clearable.get -> bool?
+Rask.UiPillboxSearch.Clearable.set -> void
+Rask.UiPillboxSearch.Icon.get -> Rask.Ui.IconName?
+Rask.UiPillboxSearch.Icon.set -> void
+Rask.UiPillboxSearch.OnInput.get -> Rask.Core.Callback<string!>
+Rask.UiPillboxSearch.OnInput.set -> void
+Rask.UiPillboxSearch.Placeholder.get -> string?
+Rask.UiPillboxSearch.Placeholder.set -> void
+Rask.UiPillboxSearch.UiPillboxSearch() -> void
+Rask.UiPillboxSearch.Value.get -> string?
+Rask.UiPillboxSearch.Value.set -> void
+Rask.UiPillboxTrigger
+Rask.UiPillboxTrigger.Class.get -> string?
+Rask.UiPillboxTrigger.Class.set -> void
+Rask.UiPillboxTrigger.Clearable.get -> bool?
+Rask.UiPillboxTrigger.Clearable.set -> void
+Rask.UiPillboxTrigger.Invalid.get -> bool?
+Rask.UiPillboxTrigger.Invalid.set -> void
+Rask.UiPillboxTrigger.Placeholder.get -> string?
+Rask.UiPillboxTrigger.Placeholder.set -> void
+Rask.UiPillboxTrigger.Size.get -> Rask.Ui.PillboxSize?
+Rask.UiPillboxTrigger.Size.set -> void
+Rask.UiPillboxTrigger.UiPillboxTrigger() -> void
 Rask.UiSelect<T>.AfterBind.get -> Rask.Core.Callback<T>
 Rask.UiSelect<T>.AfterBind.set -> void
 Rask.UiSelect<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
@@ -1187,6 +1385,35 @@ Rask.UiText.Color.set -> void
 Rask.UiText.Size.get -> Rask.Ui.TextSize?
 Rask.UiText.Variant.get -> Rask.Ui.TextVariant?
 Rask.UiText.Variant.set -> void
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Base.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Button.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Checkbox.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Color.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Date.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).DatetimeLocal.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Email.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).File.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Filled.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Hidden.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Image.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Input.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Month.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Number.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Outline.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Password.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Radio.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Range.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Reset.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Search.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Sm.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Submit.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Tel.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Text.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Time.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Url.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Week.get -> Rask.UiAutocomplete!
+RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Xs.get -> Rask.UiAutocomplete!
 RaskBuilderSettersRask_Ui.extension(Rask.UiBadge!).Amber.get -> Rask.UiBadge!
 RaskBuilderSettersRask_Ui.extension(Rask.UiBadge!).Blue.get -> Rask.UiBadge!
 RaskBuilderSettersRask_Ui.extension(Rask.UiBadge!).Cyan.get -> Rask.UiBadge!
@@ -1295,6 +1522,9 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiLink!).Button.get -> Rask.UiLink!
 RaskBuilderSettersRask_Ui.extension(Rask.UiLink!).Default.get -> Rask.UiLink!
 RaskBuilderSettersRask_Ui.extension(Rask.UiLink!).Ghost.get -> Rask.UiLink!
 RaskBuilderSettersRask_Ui.extension(Rask.UiLink!).Subtle.get -> Rask.UiLink!
+RaskBuilderSettersRask_Ui.extension(Rask.UiPillboxTrigger!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiPillboxTrigger!).Base.get -> Rask.UiPillboxTrigger!
+RaskBuilderSettersRask_Ui.extension(Rask.UiPillboxTrigger!).Sm.get -> Rask.UiPillboxTrigger!
 RaskBuilderSettersRask_Ui.extension(Rask.UiProgress!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiProgress!).Amber.get -> Rask.UiProgress!
 RaskBuilderSettersRask_Ui.extension(Rask.UiProgress!).Blue.get -> Rask.UiProgress!
@@ -1355,12 +1585,53 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).BottomStart.get -> Rask.
 RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).TopCenter.get -> Rask.UiToastGroup!
 RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).TopEnd.get -> Rask.UiToastGroup!
 RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).TopStart.get -> Rask.UiToastGroup!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiPillbox<T>!)
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiPillbox<T>!).Base.get -> Rask.UiPillbox<T>!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiPillbox<T>!).Combobox.get -> Rask.UiPillbox<T>!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiPillbox<T>!).Default.get -> Rask.UiPillbox<T>!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiPillbox<T>!).Sm.get -> Rask.UiPillbox<T>!
+static Rask.Ui.Autocomplete.get -> Rask.RaskSeed_UiAutocomplete
+static Rask.Ui.AutocompleteItem.get -> Rask.UiAutocompleteItem!
 static Rask.Ui.Link.get -> Rask.UiLink!
+static Rask.Ui.Pillbox.get -> Rask.RaskSeed_UiPillbox
+static Rask.Ui.PillboxInput.get -> Rask.UiPillboxInput!
+static Rask.Ui.PillboxOption.get -> Rask.UiPillboxOption!
+static Rask.Ui.PillboxOptionCreate.get -> Rask.UiPillboxOptionCreate!
+static Rask.Ui.PillboxOptionEmpty.get -> Rask.UiPillboxOptionEmpty!
+static Rask.Ui.PillboxSearch.get -> Rask.UiPillboxSearch!
+static Rask.Ui.PillboxTrigger.get -> Rask.UiPillboxTrigger!
 static Rask.Ui.Toast.get -> Rask.UiToast!
 static Rask.Ui.ToastGroup.get -> Rask.UiToastGroup!
 static Rask.UiToast.Messages(System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>! messages, System.Action<int>! dismiss, Rask.ToastOptions! options) -> Rask.Core.Component!
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiAutocomplete(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiAutocompleteItem(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiPillbox_1<T>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiPillboxInput(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiPillboxOption(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiPillboxOptionCreate(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiPillboxOptionEmpty(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiPillboxSearch(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiPillboxTrigger(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiToastGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiAutocomplete(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiAutocompleteItem(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiPillbox_1<T>(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiPillboxInput(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiPillboxOption(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiPillboxOptionCreate(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiPillboxOptionEmpty(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiPillboxSearch(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiPillboxTrigger(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiToastGroup(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiAutocomplete(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiAutocompleteItem(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPillbox_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPillboxInput(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPillboxOption(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPillboxOptionCreate(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPillboxOptionEmpty(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPillboxSearch(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPillboxTrigger(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiToastGroup(Rask.Core.Component! __c0, ulong __p) -> void
 RaskBuilderSettersRask_Ui.extension(Rask.UiSelectButton!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiSelectButton!).Base.get -> Rask.UiSelectButton!
@@ -1463,6 +1734,20 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSelectOptionEmpty(Ras
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSelectSearch(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b, bool? value) -> Rask.UiLink!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiAutocomplete! __b, Rask.Core.Callback<string!>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiAutocomplete! __b, System.Action<string!>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiAutocomplete! __b, System.Action? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiAutocomplete! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiAutocomplete! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiAutocomplete! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiAutocomplete! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiPillbox<T>! __b, Rask.Core.Callback<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiPillbox<T>! __b, System.Action<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiPillbox<T>! __b, System.Action? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiPillbox<T>! __b, System.Func<System.Collections.Generic.ICollection<T>!, System.Threading.Tasks.Task!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiPillbox<T>! __b, System.Func<System.Collections.Generic.ICollection<T>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiPillbox<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiPillbox<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Core.Callback<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiSelectMultiple<T>! __b, System.Action<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiSelectMultiple<T>! __b, System.Action? value) -> Rask.UiSelectMultiple<T>!
@@ -1472,26 +1757,79 @@ static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiSelectMultiple<T>! __b
 static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiSelectMultiple<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Align<T>(this Rask.UiSelect<T>! __b, Rask.Ui.Align? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Align<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Ui.Align? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.As(this Rask.UiAutocomplete! __b, Rask.Ui.AutocompleteAs? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.As(this Rask.UiLink! __b, Rask.Ui.LinkAs? value) -> Rask.UiLink!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiAutocomplete! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiAutocompleteItem! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiAutocompleteItem!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiAutocompleteItem! __b, string? value) -> Rask.UiAutocompleteItem!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxInput! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxInput! __b, string? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxOption! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiPillboxOption!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxOption! __b, string? value) -> Rask.UiPillboxOption!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxOptionCreate! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiPillboxOptionCreate!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxOptionCreate! __b, string? value) -> Rask.UiPillboxOptionCreate!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxOptionEmpty! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiPillboxOptionEmpty!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxOptionEmpty! __b, string? value) -> Rask.UiPillboxOptionEmpty!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxSearch! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxSearch! __b, string? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxTrigger! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiPillboxTrigger!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxTrigger! __b, string? value) -> Rask.UiPillboxTrigger!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiToastGroup! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiToastGroup!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiToastGroup! __b, string? value) -> Rask.UiToastGroup!
+static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiPillbox<T>! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiPillbox<T>! __b, string? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiPillboxSearch! __b) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiPillboxSearch! __b, bool? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiPillboxTrigger! __b) -> Rask.UiPillboxTrigger!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiPillboxTrigger! __b, bool? value) -> Rask.UiPillboxTrigger!
 static RaskBuilderSettersRask_Ui.Color(this Rask.UiText! __b, Rask.Ui.Color? value) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.ContainerClass(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Description(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Description<T>(this Rask.UiPillbox<T>! __b, string? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiAutocompleteItem! __b) -> Rask.UiAutocompleteItem!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiAutocompleteItem! __b, bool? value) -> Rask.UiAutocompleteItem!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiPillboxOption! __b) -> Rask.UiPillboxOption!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiPillboxOption! __b, bool? value) -> Rask.UiPillboxOption!
+static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiPillbox<T>! __b) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiPillbox<T>! __b, bool? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Filter<T>(this Rask.UiPillbox<T>! __b) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Filter<T>(this Rask.UiPillbox<T>! __b, bool? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Filterable(this Rask.UiPillboxOption! __b) -> Rask.UiPillboxOption!
+static RaskBuilderSettersRask_Ui.Filterable(this Rask.UiPillboxOption! __b, bool? value) -> Rask.UiPillboxOption!
 static RaskBuilderSettersRask_Ui.get_Amber(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Amber(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Amber(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Amber(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Base(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Base(Rask.UiPillboxTrigger! __b) -> Rask.UiPillboxTrigger!
+static RaskBuilderSettersRask_Ui.get_Base<T>(Rask.UiPillbox<T>! __b) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.get_Blue(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Blue(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Blue(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Blue(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Button(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Checkbox(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Color(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Combobox<T>(Rask.UiPillbox<T>! __b) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Date(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_DatetimeLocal(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Default<T>(Rask.UiPillbox<T>! __b) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.get_Email(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Emerald(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Emerald(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Emerald(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Emerald(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_File(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Filled(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Fuchsia(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Fuchsia(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Fuchsia(Rask.UiProgress! __b) -> Rask.UiProgress!
@@ -1504,21 +1842,28 @@ static RaskBuilderSettersRask_Ui.get_Green(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Green(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Green(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Green(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Hidden(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Image(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Indigo(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Indigo(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Indigo(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Indigo(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Input(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Lime(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Lime(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Lime(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Lime(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Month(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Number(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Orange(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Orange(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Orange(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Orange(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Password(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Pink(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Pink(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Pink(Rask.UiProgress! __b) -> Rask.UiProgress!
@@ -1527,14 +1872,18 @@ static RaskBuilderSettersRask_Ui.get_Purple(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Purple(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Purple(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Purple(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Radio(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Range(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Red(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Red(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Red(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Red(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Reset(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Rose(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Rose(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Rose(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Rose(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Search(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Sky(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Sky(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Sky(Rask.UiProgress! __b) -> Rask.UiProgress!
@@ -1543,18 +1892,28 @@ static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiPillboxTrigger! __b) -> Rask.UiPillboxTrigger!
+static RaskBuilderSettersRask_Ui.get_Sm<T>(Rask.UiPillbox<T>! __b) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.get_Stone(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Stone(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Stone(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Stone(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Submit(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Teal(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Teal(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Teal(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Teal(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Tel(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Text(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Time(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Url(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Violet(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Violet(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Violet(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Violet(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Week(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Yellow(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Yellow(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Yellow(Rask.UiProgress! __b) -> Rask.UiProgress!
@@ -1578,9 +1937,71 @@ static RaskBuilderSettersRask_Ui.get_TopEnd(Rask.UiToastGroup! __b) -> Rask.UiTo
 static RaskBuilderSettersRask_Ui.get_TopStart(Rask.UiToast! __b) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.get_TopStart(Rask.UiToastGroup! __b) -> Rask.UiToastGroup!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiLink! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiLink!
+static RaskBuilderSettersRask_Ui.Icon(this Rask.UiAutocomplete! __b, Rask.UiInputIcon? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Icon(this Rask.UiPillboxSearch! __b, Rask.Ui.IconName? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.IconTrailing(this Rask.UiAutocomplete! __b, Rask.UiInputIcon? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Id(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Id<T>(this Rask.UiPillbox<T>! __b, string? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.InputClass(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Inset(this Rask.UiBadge! __b, Rask.Ui.Inset? value) -> Rask.UiBadge!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiPillboxInput! __b) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiPillboxInput! __b, bool? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiPillboxTrigger! __b) -> Rask.UiPillboxTrigger!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiPillboxTrigger! __b, bool? value) -> Rask.UiPillboxTrigger!
+static RaskBuilderSettersRask_Ui.Invalid<T>(this Rask.UiPillbox<T>! __b) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Invalid<T>(this Rask.UiPillbox<T>! __b, bool? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.Invert(this Rask.UiToast! __b) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.Invert(this Rask.UiToast! __b, bool? value) -> Rask.UiToast!
+static RaskBuilderSettersRask_Ui.Kbd(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Label(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Label(this Rask.UiPillboxOption! __b, string? value) -> Rask.UiPillboxOption!
+static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiPillbox<T>! __b, string? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Mask(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.MinLength(this Rask.UiPillboxOptionCreate! __b, int? value) -> Rask.UiPillboxOptionCreate!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiAutocomplete! __b, Rask.Core.Callback<string!>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiAutocomplete! __b, System.Action<string!>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiAutocomplete! __b, System.Action? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiAutocomplete! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiAutocomplete! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiAutocomplete! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiAutocomplete! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiPillbox<T>! __b, Rask.Core.Callback<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiPillbox<T>! __b, System.Action<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiPillbox<T>! __b, System.Action? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiPillbox<T>! __b, System.Func<System.Collections.Generic.ICollection<T>!, System.Threading.Tasks.Task!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiPillbox<T>! __b, System.Func<System.Collections.Generic.ICollection<T>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiPillbox<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiPillbox<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiPillboxOptionCreate! __b, Rask.Core.Callback<string!>? value) -> Rask.UiPillboxOptionCreate!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiPillboxOptionCreate! __b, System.Action<string!>? value) -> Rask.UiPillboxOptionCreate!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiPillboxOptionCreate! __b, System.Action? value) -> Rask.UiPillboxOptionCreate!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiPillboxOptionCreate! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiPillboxOptionCreate!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiPillboxOptionCreate! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPillboxOptionCreate!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiPillboxOptionCreate! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPillboxOptionCreate!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiPillboxOptionCreate! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiPillboxOptionCreate!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxInput! __b, Rask.Core.Callback<string!>? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxInput! __b, System.Action<string!>? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxInput! __b, System.Action? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxInput! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxInput! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxInput! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxInput! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxSearch! __b, Rask.Core.Callback<string!>? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxSearch! __b, System.Action<string!>? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxSearch! __b, System.Action? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxSearch! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxSearch! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxSearch! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.UiPillboxSearch! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiPillboxInput! __b, string? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiPillboxSearch! __b, string? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiPillboxTrigger! __b, string? value) -> Rask.UiPillboxTrigger!
+static RaskBuilderSettersRask_Ui.Placeholder<T>(this Rask.UiPillbox<T>! __b, string? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.Position(this Rask.UiToast! __b, Rask.Ui.ToastPosition? value) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.Position(this Rask.UiToastGroup! __b, Rask.Ui.ToastPosition? value) -> Rask.UiToastGroup!
 static RaskBuilderSettersRask_Ui.As<T>(this Rask.UiInput<T>! __b, Rask.Ui.InputAs? value) -> Rask.UiInput<T>!
@@ -1765,34 +2186,58 @@ static RaskBuilderSettersRask_Ui.Position<T>(this Rask.UiSelect<T>! __b, Rask.Ui
 static RaskBuilderSettersRask_Ui.Position<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Ui.Position? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Prefix<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Prefix<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.ReadOnly(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.ReadOnly(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.ReadOnly<T>(this Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.ReadOnly<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.ReadOnly<T>(this Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.ReadOnly<T>(this Rask.UiTextarea<T>! __b, bool? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Resize<T>(this Rask.UiTextarea<T>! __b, Rask.Ui.TextareaResize? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Rows<T>(this Rask.UiTextarea<T>! __b, Rask.UiTextareaRows? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiPillbox<T>! __b) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiPillbox<T>! __b, bool? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiSelectMultiple<T>! __b, bool? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.SearchPlaceholder<T>(this Rask.UiPillbox<T>! __b, string? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.SelectedLabel(this Rask.UiPillboxOption! __b, string? value) -> Rask.UiPillboxOption!
 static RaskBuilderSettersRask_Ui.SelectedLabel(this Rask.UiSelectOption! __b, string? value) -> Rask.UiSelectOption!
 static RaskBuilderSettersRask_Ui.SelectedSuffix<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.SelectedSuffix<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiPillbox<T>! __b) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiPillbox<T>! __b, bool? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiSelectMultiple<T>! __b, bool? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiAutocomplete! __b, Rask.Ui.AutocompleteSize? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiHeading! __b, Rask.Ui.HeadingSize? value) -> Rask.UiHeading!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiInputGroupPrefix! __b, Rask.Ui.InputSize? value) -> Rask.UiInputGroupPrefix!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiInputGroupSuffix! __b, Rask.Ui.InputSize? value) -> Rask.UiInputGroupSuffix!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiPillboxTrigger! __b, Rask.Ui.PillboxSize? value) -> Rask.UiPillboxTrigger!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiSelectButton! __b, Rask.Ui.SelectSize? value) -> Rask.UiSelectButton!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiSelectInput! __b, Rask.Ui.SelectSize? value) -> Rask.UiSelectInput!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiText! __b, Rask.Ui.TextSize? value) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.Size<T>(this Rask.UiInput<T>! __b, Rask.Ui.InputSize? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Size<T>(this Rask.UiPillbox<T>! __b, Rask.Ui.PillboxSize? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.Size<T>(this Rask.UiSelect<T>! __b, Rask.Ui.SelectSize? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Size<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Ui.SelectSize? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Type(this Rask.UiAutocomplete! __b, Rask.Core.InputType? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiAutocomplete! __b, Rask.Core.Forms.Validate<string!>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiAutocomplete! __b, Rask.Core.Validator<string!>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiAutocomplete! __b, System.Func<string!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiPillbox<T>! __b, Rask.Core.Forms.Validate<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiPillbox<T>! __b, Rask.Core.Validator<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiPillbox<T>! __b, System.Func<System.Collections.Generic.ICollection<T>!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Core.Forms.Validate<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Core.Validator<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSelectMultiple<T>! __b, System.Func<System.Collections.Generic.ICollection<T>!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Value(this Rask.UiPillboxInput! __b, string? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.Value(this Rask.UiPillboxOption! __b, object? value) -> Rask.UiPillboxOption!
+static RaskBuilderSettersRask_Ui.Value(this Rask.UiPillboxSearch! __b, string? value) -> Rask.UiPillboxSearch!
 static RaskBuilderSettersRask_Ui.Value(this Rask.UiSelectInput! __b, string? value) -> Rask.UiSelectInput!
 static RaskBuilderSettersRask_Ui.Value(this Rask.UiSelectOption! __b, object? value) -> Rask.UiSelectOption!
 static RaskBuilderSettersRask_Ui.Value(this Rask.UiSelectSearch! __b, string? value) -> Rask.UiSelectSearch!
+static RaskBuilderSettersRask_Ui.Variant(this Rask.UiAutocomplete! __b, Rask.Ui.AutocompleteVariant? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiLink! __b, Rask.Ui.LinkVariant? value) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiText! __b, Rask.Ui.TextVariant? value) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_A(Rask.UiLink! __b) -> Rask.UiLink!
@@ -4285,6 +4730,7 @@ static RaskBuilderSettersRask_Ui.Variant(this Rask.UiIcon! __b, Rask.Ui.IconVari
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiPopover! __b, Rask.Ui.Variant? value) -> Rask.UiPopover!
 static RaskBuilderSettersRask_Ui.Variant<T>(this Rask.UiCheckboxGroup<T>! __b, Rask.Ui.Variant? value) -> Rask.UiCheckboxGroup<T>!
 static RaskBuilderSettersRask_Ui.Variant<T>(this Rask.UiInput<T>! __b, Rask.Ui.InputVariant? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Variant<T>(this Rask.UiPillbox<T>! __b, Rask.Ui.PillboxVariant? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.Variant<T>(this Rask.UiRadioGroup<T>! __b, Rask.Ui.Variant? value) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Variant<T>(this Rask.UiSelect<T>! __b, Rask.Ui.SelectVariant? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Variant<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Ui.SelectVariant? value) -> Rask.UiSelectMultiple<T>!
@@ -4293,9 +4739,12 @@ static RaskBuilderSettersRask_Ui.Vertical(this Rask.UiMegamenu! __b, bool? value
 static RaskBuilderSettersRask_Ui.Vertical(this Rask.UiRange! __b, bool? value) -> Rask.UiRange!
 static RaskBuilderSettersRask_Ui.Vertical(this Rask.UiSteps! __b, bool? value) -> Rask.UiSteps!
 static RaskBuilderSettersRask_Ui.Vertical(this Rask.UiTimeline! __b, bool? value) -> Rask.UiTimeline!
+static RaskBuilderSettersRask_Ui.Viewable(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Viewable(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Viewable<T>(this Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Viewable<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.When(this Rask.UiChatBubble! __b, string? value) -> Rask.UiChatBubble!
+static RaskBuilderSettersRask_Ui.WhenLoading(this Rask.UiPillboxOptionEmpty! __b, string? value) -> Rask.UiPillboxOptionEmpty!
 static RaskBuilderSettersRask_Ui.WhenLoading(this Rask.UiSelectOptionEmpty! __b, string? value) -> Rask.UiSelectOptionEmpty!
 static RaskBuilderSettersRask_Ui.Wide(this Rask.UiMegamenu! __b, bool? value) -> Rask.UiMegamenu!
 static RaskBuilderSettersRask_Ui.Words(this Rask.UiTextRotate! __b, System.Collections.Generic.IReadOnlyList<string!>! value) -> Rask.UiTextRotate!

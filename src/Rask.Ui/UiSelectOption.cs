@@ -52,6 +52,22 @@ public sealed partial class UiSelectOption : Component
     /// <summary>Classes for the call site, added to the option's own.</summary>
     public string? Class { get; set; }
 
+    /// <summary>False for an option a search never hides: the pillbox's <c>filterable</c>.</summary>
+    internal bool? Filterable { get; private set; }
+
+    /// <summary>States whether a search may hide this option. The kit's own chain step, for <c>Ui.PillboxOption</c>.</summary>
+    /// <param name="filterable">False to keep the option whatever is typed.</param>
+    internal UiSelectOption FilteredWhen(bool? filterable)
+    {
+        if (Filterable != filterable)
+        {
+            Filterable = filterable;
+            BuilderRuntime.MarkChanged(this);
+        }
+
+        return this;
+    }
+
     /// <summary>The words this option is read, searched and typed to by.</summary>
     internal string Text => Label ?? UiSelectText.Of(Children);
 

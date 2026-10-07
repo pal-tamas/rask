@@ -22,7 +22,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         foreach (var id in new[]
                  {
-                     "ui-text-controls", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-choices", "ui-range", "ui-otp", "ui-filter",
+                     "ui-text-controls", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-choices", "ui-range", "ui-otp", "ui-filter",
                      "ui-calendar", "ui-dates", "ui-dropzone", "ui-bound", "ui-mask",
                  })
         {
@@ -337,6 +337,116 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         await Expect(input).ToHaveValueAsync("Web development");
         await Expect(Page.Locator("[data-testid='ui-combobox-state']")).ToContainTextAsync("Industry: Web development.");
+    });
+
+    [Fact]
+    public Task The_autocomplete_filters_as_it_is_typed_into_and_writes_the_pick_into_itself() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var input = Page.Locator("#ui-autocomplete-state");
+        var items = Page.Locator("[data-testid='ui-autocomplete'] [data-ui-autocomplete-item]:visible");
+
+        await input.ClickAsync();
+        await Page.Keyboard.TypeAsync("ne");
+        await Expect(items).ToHaveCountAsync(10);
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await Page.Keyboard.PressAsync("Enter");
+
+        await Expect(input).ToHaveValueAsync("Maine");
+        await Expect(input).ToHaveAttributeAsync("aria-expanded", "false");
+        await Expect(Page.Locator("[data-testid='ui-autocomplete-value']")).ToContainTextAsync("State: Maine.");
+    });
+
+    [Fact]
+    public Task Escape_empties_the_autocomplete_and_text_that_is_no_item_stays_when_it_is_left() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var input = Page.Locator("#ui-autocomplete-state");
+        var state = Page.Locator("[data-testid='ui-autocomplete-value']");
+
+        await input.ClickAsync();
+        await Page.Keyboard.TypeAsync("Tex");
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(input).ToHaveValueAsync("");
+        await Page.Keyboard.TypeAsync("Atlantis");
+        await Page.Keyboard.PressAsync("Tab");
+
+        await Expect(input).ToHaveValueAsync("Atlantis");
+        await Expect(state).ToContainTextAsync("State: Atlantis.");
+    });
+
+    [Fact]
+    public Task The_pillbox_shows_each_pick_as_a_pill_and_takes_it_off_again() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-pillbox']");
+        var trigger = Page.Locator("#ui-pillbox-tags");
+        var pills = trigger.Locator("[data-value]");
+
+        await trigger.ClickAsync();
+        await scope.Locator("[data-ui-listbox-option]:visible", new LocatorLocatorOptions { HasTextString = "Sales" }).ClickAsync();
+        await scope.Locator("[data-ui-listbox-option]:visible", new LocatorLocatorOptions { HasTextString = "Design" }).ClickAsync();
+        await Expect(pills).ToHaveTextAsync(["Sales", "Design"]);
+        await Expect(Page.Locator("[data-testid='ui-pillbox-state']")).ToContainTextAsync("Tags: Sales, Design.");
+        await Page.Keyboard.PressAsync("Escape");
+        await pills.First.Locator("> div").Last.ClickAsync();
+
+        await Expect(pills).ToHaveTextAsync(["Design"]);
+        await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "false");
+    });
+
+    [Fact]
+    public Task The_searchable_pillbox_filters_from_its_search_field() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-pillbox']");
+        var search = scope.Locator("[data-ui-pillbox-search] input");
+
+        await Page.Locator("#ui-pillbox-searchable").ClickAsync();
+        await Expect(search).ToBeFocusedAsync();
+        await Expect(search).ToHaveAttributeAsync("placeholder", "Filter skills...");
+        await Page.Keyboard.TypeAsync("p");
+        await Expect(scope.Locator("[data-ui-options] [data-ui-listbox-option]:visible")).ToHaveCountAsync(4);
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await Page.Keyboard.PressAsync("Enter");
+
+        await Expect(search).ToHaveValueAsync("");
+        await Expect(Page.Locator("[data-testid='ui-pillbox-state']")).ToContainTextAsync("Skills: TypeScript.");
+    });
+
+    [Fact]
+    public Task The_combobox_pillbox_is_typed_into_among_its_pills() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-pillbox-combobox']");
+        var input = Page.Locator("#ui-pillbox-combobox");
+        var state = Page.Locator("[data-testid='ui-pillbox-combobox-state']");
+
+        await input.ClickAsync();
+        await Page.Keyboard.TypeAsync("ru");
+        await Expect(scope.Locator("[data-ui-listbox-option]:visible")).ToHaveCountAsync(2);
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(input).ToHaveValueAsync("");
+        await Expect(state).ToContainTextAsync("Skills: Ruby.");
+        await Page.Keyboard.PressAsync("Backspace");
+
+        await Expect(state).ToContainTextAsync("Skills: none.");
+    });
+
+    [Fact]
+    public Task The_pillbox_creates_the_tag_that_is_not_there() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-pillbox-combobox']");
+        var input = Page.Locator("#ui-pillbox-create");
+
+        await input.ClickAsync();
+        await Page.Keyboard.TypeAsync("Research");
+        await Expect(scope.Locator("[data-ui-option-create]:visible")).ToContainTextAsync("Create new \"Research\"");
+        await scope.Locator("[data-ui-option-create]:visible").ClickAsync();
+
+        await Expect(input).ToHaveValueAsync("");
+        await Expect(Page.Locator("[data-testid='ui-pillbox-combobox-state']")).ToContainTextAsync("Tags: Research.");
     });
 
     [Fact]

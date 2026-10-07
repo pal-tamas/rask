@@ -125,7 +125,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         Ui.SidebarHeader.Class("side-nav-search mb-1 block border-b border-ui-line bg-ui-well pb-2")[
             Ui.Input.Value(_filter).Label("Filter guides & examples…")
                 .OnInput(v => _filter = v ?? "")
-                .Placeholder("Filter guides & examples…").Class("side-nav-filter rounded-lg")
+                .Placeholder("Filter guides & examples…").InputClass("side-nav-filter rounded-lg")
         ],
         Div.Class("side-nav-scroll flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain")[
             Ul.Class("menu menu-sm w-full flex-nowrap p-0")[BuildSections()]

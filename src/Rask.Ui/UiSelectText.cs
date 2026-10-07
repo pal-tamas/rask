@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Rask.Core;
 using Rask.Core.Components;
@@ -20,6 +21,14 @@ internal static class UiSelectText
 
         return text.ToString().Trim();
     }
+
+    /// <summary>
+    ///     Flux's own matching: whether <paramref name="search" /> is anywhere in <paramref name="words" />,
+    ///     whatever the case or the accents.
+    /// </summary>
+    internal static bool Contains(string words, string search) =>
+        CultureInfo.CurrentCulture.CompareInfo.IndexOf(
+            words, search, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
 
     /// <summary>Whether <paramref name="children" /> are text and nothing else.</summary>
     internal static bool IsTextOnly(IEnumerable<Component?> children) =>

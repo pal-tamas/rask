@@ -23,6 +23,10 @@ public abstract partial class UiSelectControl<T>
     // pointer that has not moved; Flux's cursor follows the pointer only when it does.
     private (int X, int Y)? _pointer;
 
+    // The pointer has picked in a list that stayed open. From then on a row that comes under it counts even
+    // while it rests: a pill added to the trigger moves the list, and Flux's cursor moves with it.
+    private bool _pointerActs;
+
     private readonly ElementRef<HTMLInputElement> _input = new();
 
     private readonly ElementRef<HTMLInputElement> _searchInput = new();
@@ -31,7 +35,7 @@ public abstract partial class UiSelectControl<T>
 
     private void Hovered(MouseEvent e, int index)
     {
-        if (_pointer != (e.ClientX, e.ClientY))
+        if (_pointerActs || _pointer != (e.ClientX, e.ClientY))
         {
             _pointer = (e.ClientX, e.ClientY);
             _cursor = index;
@@ -41,29 +45,9 @@ public abstract partial class UiSelectControl<T>
     private Task ClickedAsync(PointerEvent e, int index, View view)
     {
         _pointer = (e.ClientX, e.ClientY);
+        _pointerActs = IsMultiple;
 
         return PickAsync(index, view);
-    }
-
-    // The runtime leaves the text of an input that is being typed into to its reader, so a render cannot
-    // change what a focused input says. Its text is put there through the element itself.
-    private static async Task SayAsync(ElementRef<HTMLInputElement> input, string text)
-    {
-        // The whole text, however long it is: a range past the end stops at the end.
-        await ReachAsync(() => input.SetRangeText(text, 0, int.MaxValue)).ConfigureAwait(false);
-    }
-
-    private static async Task ReachAsync(Func<ValueTask> call)
-    {
-        try
-        {
-            await call().ConfigureAwait(false);
-        }
-        catch (InvalidOperationException)
-        {
-            // No browser behind this render — a prerender, a test's page — so no element to reach. What the
-            // render wrote is then all there is, and it says the same.
-        }
     }
 
     // A click in the combobox opens it; with an answer showing, the answer is selected, ready to type over.
@@ -72,12 +56,12 @@ public abstract partial class UiSelectControl<T>
         _open = true;
         if (focuses)
         {
-            await ReachAsync(() => _input.Focus()).ConfigureAwait(false);
+            await UiInputReach.ReachAsync(() => _input.Focus()).ConfigureAwait(false);
         }
 
         if (view.Picked.Count > 0 && !_typing)
         {
-            await ReachAsync(() => _input.Select()).ConfigureAwait(false);
+            await UiInputReach.ReachAsync(() => _input.Select()).ConfigureAwait(false);
         }
     }
 
@@ -85,6 +69,12 @@ public abstract partial class UiSelectControl<T>
     private void OnToggle(ToggleEvent e)
     {
         var open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
+        if (!open && _open)
+        {
+            // The browser shut it: a click elsewhere, which may be the click on the trigger that comes next.
+            _dismissed = Clock.GetTimestamp();
+        }
+
         if (open == _open)
         {
             if (!open)
@@ -97,6 +87,7 @@ public abstract partial class UiSelectControl<T>
 
         _open = open;
         _cursor = Unset;
+        _pointerActs = false;
         if (!open)
         {
             ForgetSearch();
@@ -108,6 +99,7 @@ public abstract partial class UiSelectControl<T>
     private void Close()
     {
         _open = false;
+        _pointerActs = false;
         _cursor = Unset;
         _typing = false;
         if (IsCombobox)
@@ -152,7 +144,8 @@ public abstract partial class UiSelectControl<T>
     // Closed: an arrow opens, and a letter picks the next option that starts with it — a native select's way.
     private async Task OnClosedButtonKeyAsync(KeyboardEvent e, View view)
     {
-        if (e.Key is Keys.ArrowDown or Keys.ArrowUp)
+        // A button is pressed by Space by itself; the pillbox's trigger is no button, and Flux opens it on Space.
+        if (e.Key is Keys.ArrowDown or Keys.ArrowUp || (Pills is not null && string.Equals(e.Key, " ", StringComparison.Ordinal)))
         {
             _open = true;
             _cursor = Unset;
@@ -245,7 +238,7 @@ public abstract partial class UiSelectControl<T>
             if (string.Equals(e.Key, Keys.Escape, StringComparison.Ordinal))
             {
                 Close();
-                await SayAsync(_input, PickedWords(view)).ConfigureAwait(false);
+                await UiInputReach.SayAsync(_input, PickedWords(view)).ConfigureAwait(false);
             }
             else
             {
@@ -265,7 +258,7 @@ public abstract partial class UiSelectControl<T>
                 // Flux's `clear="esc"`: the words go, the answer stays.
                 _search = string.Empty;
                 _typing = true;
-                await SayAsync(_input, string.Empty).ConfigureAwait(false);
+                await UiInputReach.SayAsync(_input, string.Empty).ConfigureAwait(false);
                 break;
             case Keys.Tab:
                 ForgetSearch();
@@ -301,7 +294,7 @@ public abstract partial class UiSelectControl<T>
 
             if (IsCombobox)
             {
-                await SayAsync(_input, view.Parts.Rows[index].Option.SelectedText).ConfigureAwait(false);
+                await UiInputReach.SayAsync(_input, view.Parts.Rows[index].Option.SelectedText).ConfigureAwait(false);
             }
 
             return;
@@ -313,11 +306,16 @@ public abstract partial class UiSelectControl<T>
             .ConfigureAwait(false);
         if ((Clear ?? Ui.SelectClear.Select) == Ui.SelectClear.Select && view.Search.Length > 0)
         {
-            await SearchedAsync(string.Empty, view.Parts.Search?.OnInput ?? default, opens: false).ConfigureAwait(false);
-            await SayAsync(_searchInput, string.Empty).ConfigureAwait(false);
-            _cursor = index;
+            await SearchedAsync(string.Empty, SearchHeard(view), opens: false).ConfigureAwait(false);
+            await UiInputReach.SayAsync(PillsCombobox ? _input : _searchInput, string.Empty).ConfigureAwait(false);
+            // The select's cursor stays on the row just switched; the pillbox's goes back to the top, as Flux's does.
+            _cursor = Pills is null ? index : First;
         }
     }
+
+    // Who hears what is typed: the search field's slot, or the pillbox's own input.
+    private Callback<string> SearchHeard(View view) =>
+        (PillsCombobox ? view.Parts.Input?.OnInput : view.Parts.Search?.OnInput) ?? default;
 
     private static string PickedWords(View view) => view.PickedRows.FirstOrDefault()?.Option.SelectedText ?? string.Empty;
 
@@ -334,6 +332,11 @@ public abstract partial class UiSelectControl<T>
         }
 
         Close();
+        if (PillsCombobox)
+        {
+            // The option is made of what was typed, so the pillbox's own input starts over.
+            await ForgetTypedAsync(view).ConfigureAwait(false);
+        }
     }
 
     private async Task ClearAsync()

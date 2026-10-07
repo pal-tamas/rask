@@ -69,6 +69,23 @@ them until tagged releases begin.
   - `Ui.Label.Text("€").Trailing("per month")[input]` — daisyUI's caption inside a control's frame — is
     gone; `Ui.Label` is now the control's NAME (`Ui.Label["Email"]`, `Badge`, a `Trailing` slot). For the
     old look write the daisyUI markup: `Label.Class("label")[Span["€"], input, Span["per month"]]`.
+- **`Ui.Autocomplete` and `Ui.Pillbox`: Flux UI's autocomplete and pillbox.** Two more of
+  [fluxui.dev](https://fluxui.dev)'s components, part for part, measured against its live pages loaded and
+  open, in light and dark, and walked key by key against a running site.
+  `Ui.Autocomplete.Bind(() => m.State).Label("State of residence")[states.Select(s => Ui.AutocompleteItem[s])]`
+  is Flux's input over a list of suggestions: it holds the text, takes the input's props (`Type`, `Size`,
+  `Variant`, `Mask`, `Icon`, `IconTrailing`, `Kbd`, `Clearable()`, `Viewable()`, `As`, `InputClass`) and
+  `ContainerClass` for the list; typing filters, Enter writes the active item into the input, Escape closes
+  and empties it. `Ui.Pillbox.Bind(() => m.Tags)[tags.Select(t => Ui.PillboxOption.Value(t.Id)[t.Name])]`
+  holds a collection and shows each answer as a pill with a cross: `.Sm`, `Searchable()` /
+  `SearchPlaceholder`, `.Combobox` (an input among the pills, where Backspace takes the last pill off),
+  `Filter(false)`, and the parts `Ui.PillboxOption` (`Value`, `Label`, `SelectedLabel`, `Disabled()`,
+  `Filterable(false)`), `Ui.PillboxOptionCreate` (`MinLength`, `OnClick`), `Ui.PillboxOptionEmpty`
+  (`WhenLoading`), `Ui.PillboxSearch`, `Ui.PillboxTrigger` and `Ui.PillboxInput`. Both ship no script: a
+  native `popover` placed by CSS anchor positioning, and the cursor, the filter and the picking in C#. The
+  pillbox is drawn by the control that draws `Ui.Select`'s list. Not there yet, each waiting for a runtime
+  hook: `copyable`, the scroll lock behind an open list, and containing Space and the arrows on the pillbox's
+  closed trigger, which also scroll the page.
 - **BREAKING: `Ui.Select` is Flux UI's select — native, listbox and combobox — and its options are children.**
   [fluxui.dev](https://fluxui.dev/components/select)'s `flux:select`, part for part, over Rask's binding
   (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the form); the daisyUI-drawn `UiSelect<T>` and

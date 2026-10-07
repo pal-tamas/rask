@@ -10,18 +10,23 @@ public abstract partial class UiSelectControl<T>
         var popup = Div
             .Id(PanelId)
             .Popover(Popover.Auto)
-            .Class(UiClass.Compose(UiListboxLook.Popup, HasSearchField ? UiListboxLook.Column : UiListboxLook.Scrolls, OptionsClass))
+            .Class(UiClass.Compose(UiListboxLook.Popup, HasSearchField ? UiListboxLook.Column : UiListboxLook.Scrolls, PillPopupLook(), OptionsClass))
             .Attributes(PopupMarks())
-            .OnToggle(OnToggle);
+            .OnToggle(OnPopupToggleAsync);
 
         return HasSearchField
-            ? popup[SearchField(view), ListRole(Div.Id(ListId).Class(UiSelectLook.SearchedList))[Rows(view)]]
+            ? popup[SearchField(view), ListRole(Div.Id(ListId).Class(UiClass.Compose(UiSelectLook.SearchedList, PillListLook())))[Rows(view)]]
             : ListRole(popup)[Rows(view)];
     }
 
     private HTMLDivElement ListRole(HTMLDivElement list)
     {
         list = list.Role("listbox").TabIndex(-1);
+        if (Pills is not null)
+        {
+            // Flux's pillbox lights no row once the pointer has left its list.
+            list = list.OnMouseLeave(() => _cursor = None);
+        }
 
         return IsMultiple ? list.Aria("multiselectable", "true") : list;
     }
@@ -32,7 +37,7 @@ public abstract partial class UiSelectControl<T>
     {
         var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
-            ["data-ui-options"] = null,
+            [Pills is null || HasSearchField ? "data-ui-options" : "data-ui-listbox-options"] = null,
             ["data-rask-popover-open"] = _open ? "true" : "false",
             ["style"] = UiAnchor.Under(Prefixed, Position, Align),
         };
@@ -46,9 +51,15 @@ public abstract partial class UiSelectControl<T>
 
     private IEnumerable<Component?> Rows(View view)
     {
-        if (IsCombobox || HasSearchField)
+        if (Searches)
         {
             yield return EmptyRow(view);
+        }
+
+        // Written before the options, drawn before them: the pillbox's "Create new" that opens a form.
+        if (view.Parts.Create is { } leading && view.Parts.CreateLeads)
+        {
+            yield return CreateRow(view, leading);
         }
 
         foreach (var block in view.Parts.Blocks)
@@ -70,7 +81,7 @@ public abstract partial class UiSelectControl<T>
             }
         }
 
-        if (view.Parts.Create is { } create)
+        if (view.Parts.Create is { } create && !view.Parts.CreateLeads)
         {
             yield return CreateRow(view, create);
         }
@@ -84,13 +95,23 @@ public abstract partial class UiSelectControl<T>
             .Key(row.Option.Key)
             .Id(UiSelectNav.OptId(Prefixed, row.Index))
             .Role("option")
-            .Class(UiClass.Compose(UiListboxLook.Option, row.Option.Description is null ? null : UiListboxLook.OptionTall, row.Option.Class))
+            .Class(UiClass.Compose(RowLook(row.Option), row.Option.Class))
             .Aria(UiOptionAria.For(off, picked))
-            .Attributes(RowMarks("data-ui-option", picked, view.Cursor == row.Index, !view.Shown[row.Index]));
+            .Attributes(RowMarks(Pills is null ? "data-ui-option" : "data-ui-listbox-option", picked, view.Cursor == row.Index, !view.Shown[row.Index]));
 
         return (off ? item : item.OnClick(e => ClickedAsync(e, row.Index, view)).OnMouseEnter(e => Hovered(e, row.Index)))[
-            UiListboxRow.Content(row.Option)
+            RowContent(row.Option)
         ];
+    }
+
+    private string RowLook(UiSelectOption option)
+    {
+        if (Pills is not null)
+        {
+            return UiPillboxLook.Option;
+        }
+
+        return UiClass.Compose(UiListboxLook.Option, option.Description is null ? null : UiListboxLook.OptionTall);
     }
 
     private static Dictionary<string, string?> RowMarks(string marker, bool picked, bool active, bool hidden)
@@ -143,7 +164,7 @@ public abstract partial class UiSelectControl<T>
             .OnClick(e => ClickedAsync(e, index, view))
             .OnMouseEnter(e => Hovered(e, index))[
             Div.Class(UiListboxLook.CreateLead)[Ui.Icon.Name(Ui.IconName.Plus).Mini],
-            Span.Class(UiListboxLook.CreateWords)[create.Children ?? []],
+            Span.Class(Pills is null ? UiListboxLook.CreateWords : null)[create.Children ?? []],
             Ui.Icon.Name(Ui.IconName.Loading).Class(UiListboxLook.CreateBusy)
         ];
     }
@@ -164,7 +185,7 @@ public abstract partial class UiSelectControl<T>
             aria["activedescendant"] = UiSelectNav.OptId(Prefixed, view.Cursor);
         }
 
-        return Div.Class(UiClass.Compose(UiSelectLook.Search, slot?.Class)).Data("ui-select-search", "")[
+        return Div.Class(UiClass.Compose(UiSelectLook.Search, slot?.Class)).Data(Pills is null ? "ui-select-search" : "ui-pillbox-search", "")[
             Div.Class(UiSelectLook.SearchIcon)[Ui.Icon.Name(slot?.Icon ?? Ui.IconName.MagnifyingGlass).Micro],
             Input
                 .Value(view.Search)
@@ -175,6 +196,7 @@ public abstract partial class UiSelectControl<T>
                 .Autocomplete("off")
                 .Autofocus()
                 .Ref(_searchInput)
+                .Attributes(SearchInputMarks())
                 .Class(UiSelectLook.SearchInput)
                 .Aria(aria)
                 .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: false))

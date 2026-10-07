@@ -22,6 +22,9 @@ public abstract partial class UiSelectControl<T>
 
         internal UiSelectOptionCreate? Create { get; private set; }
 
+        /// <summary>Whether the create row was written before every option.</summary>
+        internal bool CreateLeads { get; private set; }
+
         internal UiSelectOptionEmpty? Empty { get; private set; }
 
         internal UiSelectButton? Button { get; private set; }
@@ -81,6 +84,7 @@ public abstract partial class UiSelectControl<T>
             {
                 case UiSelectOptionCreate create:
                     Create = create;
+                    CreateLeads = _rows.Count == 0;
                     return true;
                 case UiSelectOptionEmpty empty:
                     Empty = empty;

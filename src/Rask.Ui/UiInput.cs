@@ -149,11 +149,26 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     /// <summary>The name the value posts under from a plain HTML form. The bound member's name unless set.</summary>
     public string? Name { get; set; }
 
-    string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Bind, Label);
+    /// <summary>The control this input is the text box of, when it is one's: its list and its bound member.</summary>
+    internal UiInputHost? Host { get; private set; }
+
+    /// <summary>Makes this input the text box of a control that drops a list under it. The kit's own chain step.</summary>
+    /// <param name="host">What that control adds to the input.</param>
+    internal UiInput<T> HostedBy(UiInputHost host)
+    {
+        Host = host;
+        // What a generated step does when it writes a new value: the input is drawn again with it.
+        BuilderRuntime.MarkChanged(this);
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Host?.Bound ?? Bind, Label);
 
     string? IUiFormControl.Badge => null;
 
-    LambdaExpression? IUiFieldControl.Bound => Bind;
+    LambdaExpression? IUiFieldControl.Bound => Host?.Bound ?? Bind;
 
     private bool IsFile => Type == InputType.File;
 
@@ -177,7 +192,10 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
         var leading = Icon is { } icon ? Div.Class(UiInputLook.Leading)[Glyph(icon)] : null;
         var trailing = Trailing();
 
-        return Div.Class(UiClass.Compose(UiInputLook.Root, Class)).Data("ui-input", "")[
+        // What a list hangs from, when the input is the text box of a control that drops one.
+        var anchor = Host is { } host ? "anchor-name:--" + host.AnchorName : null;
+
+        return Div.Class(UiClass.Compose(UiInputLook.Root, Class)).Data("ui-input", "").Style(anchor)[
             leading,
             Control(field, leading is not null, trailing is not null),
             trailing
@@ -190,6 +208,11 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
         var input = Bind is { } bind
             ? Input.Bind(bind).Validate(Validate).AfterBind(Committed)
             : Input.Value(Masked(Value)).OnChange(Changed);
+
+        if (Host is { } host)
+        {
+            input = input.Role("combobox").Autocomplete("off").OnKeyDown(e => host.OnKeyDown(e)).OnClick(() => host.OnClick());
+        }
 
         return input
             .Id(field.ControlId)
@@ -206,7 +229,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
             .List(List)
             .Disabled(Disabled == true)
             .ReadOnly(ReadOnly == true)
-            .Aria(field.Aria)
+            .Aria(Host?.AriaOver(field.Aria) ?? field.Aria)
             .Attributes(UiInputLook.Marks(field.Invalid))
             .Class(UiClass.Compose(
                 UiInputLook.Control,

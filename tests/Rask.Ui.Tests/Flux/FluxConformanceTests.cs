@@ -80,6 +80,14 @@ public sealed class FluxConformanceTests
         ["flux:select.button"] = typeof(UiSelectButton),
         ["flux:select.input"] = typeof(UiSelectInput),
         ["flux:select.search"] = typeof(UiSelectSearch),
+        ["flux:autocomplete"] = typeof(UiAutocomplete),
+        ["flux:autocomplete.item"] = typeof(UiAutocompleteItem),
+        ["flux:pillbox"] = typeof(UiPillbox<>),
+        ["flux:pillbox.option"] = typeof(UiPillboxOption),
+        ["flux:pillbox.option.create"] = typeof(UiPillboxOptionCreate),
+        ["flux:pillbox.option.empty"] = typeof(UiPillboxOptionEmpty),
+        ["flux:pillbox.search"] = typeof(UiPillboxSearch),
+        ["flux:pillbox.trigger"] = typeof(UiPillboxTrigger),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -102,6 +110,11 @@ public sealed class FluxConformanceTests
         ["flux:select/scroll-lock"] = "While a list is open Flux's script sets overflow:hidden, pointer-events:none and scrollbar-gutter:stable on <html>. A native popover does not lock the page behind it; waiting for a runtime hook that does while a [popover][data-rask-popover-open] is shown.",
         ["flux:select.option/avatar:*"] = "Props forwarded to Flux's avatar. Ui.Avatar is not Flux's yet; an option draws the extra-small round avatar Flux draws there.",
         ["flux:select.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
+        ["flux:autocomplete/copyable"] = "The input's own copy button, which the input does not have yet: see flux:input/copyable.",
+        ["flux:autocomplete/mask:dynamic"] = "The input's: see flux:input/mask:dynamic.",
+        ["flux:pillbox/keys-on-closed"] = "Flux's trigger takes Space and the arrows without the page behind it moving. Ui.Pillbox's is a <div tabindex=0 role=combobox>, which opens on them in C# — and the browser scrolls the page as well. Waiting for the runtime hook flux:select/enter-on-closed waits for, widened: contain Space, ArrowDown and ArrowUp on a collapsed [role=combobox][aria-haspopup=listbox] or [role=button][aria-haspopup=listbox] that is not a text input.",
+        ["flux:pillbox/scroll-lock"] = "The same as flux:select/scroll-lock: Flux takes the page's scroll and pointer away while the list is open, which is also why nothing on its trigger hovers then.",
+        ["flux:pillbox.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
         ["flux:input/copyable"] = "Copies in the click's own call stack (Alpine). Rask.Ui ships no script and the runtime has no clipboard hook yet (data-rask-copy); a handler round trip loses the user activation the clipboard asks for.",
     };
 

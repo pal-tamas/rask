@@ -127,6 +127,9 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl
 
     private bool IsCombobox => Variant == Ui.SelectVariant.Combobox;
 
+    /// <summary>Whether something is typed to narrow the list: a combobox, a search field, a pillbox's own input.</summary>
+    private bool Searches => IsCombobox || HasSearchField || PillsCombobox;
+
     /// <summary>What is picked now. Called once a render; a bound select registers its validator here.</summary>
     private protected abstract IReadOnlyList<T> Current();
 
@@ -153,7 +156,7 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl
         var field = UiWithField.For(this);
         var parts = Parts.Read(Children);
 
-        return field.Wrap((Variant ?? Ui.SelectVariant.Default) == Ui.SelectVariant.Default
+        return field.Wrap((Variant ?? Ui.SelectVariant.Default) == Ui.SelectVariant.Default && Pills is null
             ? Native(field, parts)
             : Drawn(field, parts));
     }

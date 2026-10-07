@@ -853,7 +853,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
@@ -1260,6 +1260,100 @@ the variant: `.Listbox`), `OptionGroup` (now `Ui.SelectGroup`), `OptionDisabled`
 filters), `EmptyText` / `LoadingText` (now `Empty("…")` and `Ui.SelectOptionEmpty`), `SelectAll()`,
 `Chips(n)`, floating labels (`Floating`), `Tone`, daisyUI's `Variant` and `Size(Ui.Size)`, `Hint` (now
 `Description`), `AccessibleLabel` (now `Label`) and `Ui.MultiSelect` as a name.
+
+## Autocomplete
+
+`Ui.Autocomplete` is [Flux UI's autocomplete](https://fluxui.dev/components/autocomplete): Flux's input over a
+list of suggestions. What it holds is the **text** — an item has no value of its own, and what is typed need
+not be an item. To show a name and store an id, use `Ui.Select.Combobox`.
+
+```csharp
+Ui.Autocomplete.Bind(() => model.State).Label("State of residence")[
+    states.Select(state => Ui.AutocompleteItem[state])
+]
+```
+
+It takes what Flux documents for it, which is the input's own list: `Type`, `Label`, `Description`,
+`Placeholder`, `Size` (`Ui.AutocompleteSize`: `.Sm`, `.Xs`), `Variant` (`Ui.AutocompleteVariant`: `.Filled`),
+`Disabled()`, `ReadOnly()`, `Invalid()`, `Multiple()`, `Mask`, `Icon`, `IconTrailing`, `Kbd`, `Clearable()`,
+`Viewable()`, `As` (`Ui.AutocompleteAs`), `InputClass`, and `ContainerClass` for the open list (a height, such
+as `max-h-80`). `Ui.AutocompleteItem` takes `Disabled()`. The text reaches the page — the bound member, or
+`OnChange` — when an item is picked, when Escape empties the input, and when what was typed is left.
+
+No script: the list is a native `popover` placed by CSS anchor positioning, and the cursor, the filter and the
+picking are C#. As recorded on Flux's page:
+
+| | |
+| --- | --- |
+| A click, ArrowDown, ArrowUp | Open the list; the cursor starts on the item last picked, else the first. |
+| Typing | Opens the list on the items that hold the text anywhere, whatever the case or the accents. Nothing matches: nothing is drawn. |
+| ArrowDown, ArrowUp | Move the cursor and stop at either end. Home and End are the text's own. |
+| Enter | Writes the active item into the input and closes. With no active item it does nothing. |
+| Escape | Closes the list **and empties the input**, open or not. |
+| Tab, a click elsewhere | Close, and keep whatever was typed. |
+| The pointer | Moves the cursor to the row under it; a click picks it and focus stays in the input. |
+
+The input is `role="combobox"` with `aria-autocomplete="list"`, `aria-haspopup="listbox"`, `aria-expanded`,
+`aria-controls` and, while open, `aria-activedescendant`. The list is `role="listbox"` and — as Flux writes it,
+though it holds one answer — `aria-multiselectable="true"`; the item last picked stays `aria-selected="true"`
+whatever is typed afterwards. Markers: `data-ui-autocomplete`, `data-ui-autocomplete-items`,
+`data-ui-autocomplete-item`. Flux's `copyable` waits for the input's (a clipboard hook).
+
+## Pillbox
+
+`Ui.Pillbox` is [Flux UI's pillbox](https://fluxui.dev/components/pillbox): several answers out of a list,
+each shown as a pill that can be taken off again. It holds a **collection** — `Bind` over a `List<T>`, a
+`T[]`, a `HashSet<T>`, or `Values(…)` with `OnChange` — and its options are children.
+
+```csharp
+Ui.Pillbox.Bind(() => model.Tags).Label("Tags").Placeholder("Choose tags...")[
+    tags.Select(tag => Ui.PillboxOption.Value(tag.Id)[tag.Name])
+]
+
+Ui.Pillbox.Bind(() => model.Skills).Searchable().SearchPlaceholder("Filter skills...")[…]   // a search field over the list
+Ui.Pillbox.Bind(() => model.Skills).Combobox.Placeholder("Choose skills...")[…]             // an input among the pills
+```
+
+| | |
+| --- | --- |
+| `Ui.Pillbox` | `Placeholder`, `Label`, `Description`, `Size` (`Ui.PillboxSize`: `.Sm`), `Variant` (`Ui.PillboxVariant`: `.Combobox`), `Searchable()`, `SearchPlaceholder`, `Filter(false)`, `Disabled()`, `Invalid()`. |
+| `Ui.PillboxOption` | `Value`, `Label`, `SelectedLabel` (what its pill says), `Disabled()`, `Filterable(false)` (a search never hides it), or children of your own — an icon beside the words. The pill shows the words alone. |
+| `Ui.PillboxOptionCreate` | `MinLength`, `OnClick` handed the text as typed. Offered once that text is long enough and names no option; with nothing to type into it is always there, and opens a form of the page's own. Written before the options, it is drawn before them. |
+| `Ui.PillboxOptionEmpty` | What the list says when nothing matches; `WhenLoading` while the page answers. |
+| `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` | Flux's `search`, `trigger` and `input` slots, as children: the search field's `Placeholder` / `Icon` / `Clearable(false)` / `Value` / `OnInput`; the trigger's `Placeholder` / `Invalid()` / `Size` / `Clearable()`; the input's `Placeholder` / `Value` / `OnInput` / `Invalid()`. |
+
+Creating the option that is not there, with the page holding what was typed:
+
+```csharp
+Ui.Pillbox.Bind(() => model.TagIds).Combobox[
+    Ui.PillboxInput.Value(_search).OnInput(text => _search = text).Placeholder("Choose tags..."),
+    _tags.Select(tag => Ui.PillboxOption.Key(tag.Id).Value(tag.Id)[tag.Name]),
+    Ui.PillboxOptionCreate.MinLength(2).OnClick(CreateTag)[$"Create new \"{_search}\""]
+]
+```
+
+It is the list `Ui.Select` draws, under another trigger, so it ships no script either. As recorded on Flux's
+page, where it differs from the select's listbox:
+
+| | |
+| --- | --- |
+| A click, Space, ArrowDown, ArrowUp | Open the list. Enter on the closed trigger does nothing. |
+| Enter, a click on a row | Switch the row; the list stays open. Pills stand in the order they were picked. |
+| A letter on the closed trigger | Switches the next option that starts with it, without opening. |
+| The cross on a pill | Takes that option off; the list stays as it was. |
+| The pointer leaving the list | No row is lit any more. |
+| Searchable | The search field takes focus; a pick empties it and sends the cursor back to the top. |
+| Combobox | Typing opens and narrows the list; a pick empties the input; **Backspace in the empty input takes the last pill off**; Escape and Tab close and empty it. |
+
+The trigger is `role="combobox"` (with `aria-controls`, `aria-autocomplete="none"`) while there is nothing to
+type into, and `role="button"` over a search field or an input, which is then the combobox; the list is
+`role="listbox"` with `aria-multiselectable="true"`. Markers: `data-ui-pillbox`, `data-ui-pillbox-trigger`,
+`data-ui-pillbox-placeholder`, `data-ui-pillbox-input`, `data-ui-pillbox-search`, `data-ui-listbox-options`,
+`data-ui-listbox-option`, `data-ui-option-create`.
+
+**Known gaps**, each waiting for a runtime hook: Space and the arrows on the **closed** trigger also scroll
+the page behind it (the trigger is no button, and C# cannot prevent a key's default), and the page behind an
+open list is not scroll-locked. `Ui.PillboxOptionCreate` has no `modal`: its `OnClick` is the page's to answer.
 
 ## Form controls
 

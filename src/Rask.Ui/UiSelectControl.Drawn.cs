@@ -11,8 +11,8 @@ public abstract partial class UiSelectControl<T>
 
         List<Component?> children =
         [
-            IsCombobox ? InputTrigger(view) : ButtonTrigger(view),
-            Clears(view) && !IsCombobox ? Div.Class(UiSelectLook.ClearSlot)[ClearButton()] : null,
+            Trigger(view),
+            Clears(view) && !IsCombobox && Pills is null ? Div.Class(UiSelectLook.ClearSlot)[ClearButton()] : null,
             Popup(view),
             .. PostedValues(view),
         ];
@@ -20,12 +20,22 @@ public abstract partial class UiSelectControl<T>
         return Div.Class(UiClass.Compose(UiSelectLook.Root, Clears(view) ? "relative" : null, Class)).Attributes(RootMarks())[children];
     }
 
+    private Component Trigger(View view)
+    {
+        if (Pills is not null)
+        {
+            return PillTrigger(view);
+        }
+
+        return IsCombobox ? InputTrigger(view) : ButtonTrigger(view);
+    }
+
     private Dictionary<string, string?> RootMarks()
     {
         var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             ["data-ui-control"] = null,
-            ["data-ui-select"] = null,
+            [Pills is null ? "data-ui-select" : "data-ui-pillbox"] = null,
         };
         if (_open)
         {
@@ -38,7 +48,8 @@ public abstract partial class UiSelectControl<T>
     private bool IsOff(Parts parts) => Disabled == true || parts.Button?.Disabled == true;
 
     private bool Clears(View view) =>
-        (Clearable == true || view.Parts.Button?.Clearable == true) && view.Picked.Count > 0 && !IsOff(view.Parts);
+        (Clearable == true || view.Parts.Button?.Clearable == true || Pills?.Trigger?.Clearable == true)
+        && view.Picked.Count > 0 && !IsOff(view.Parts);
 
     // ----- Listbox: the button -------------------------------------------------------------------------
 

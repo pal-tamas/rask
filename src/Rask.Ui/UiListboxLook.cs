@@ -6,15 +6,18 @@ namespace Rask;
 ///     holds.
 /// </summary>
 /// <remarks>
-///     Shared by every control that drops a list of options under itself: the select today, the pillbox and the
-///     autocomplete when they are built.
+///     Shared by every control that drops a list of options under itself: the select, the pillbox (whose rows
+///     are <see cref="UiPillboxLook" />'s) and the autocomplete (the box alone).
 /// </remarks>
 internal static class UiListboxLook
 {
-    /// <summary>The popup: a white box as wide as what it hangs from, at most twenty rem tall.</summary>
-    internal const string Popup =
-        "[:where(&)]:min-w-48 [:where(&)]:max-h-[20rem] p-[.3125rem] overscroll-y-none rounded-lg shadow-xs "
+    /// <summary>The popup's box: white, as wide as what it hangs from, at most twenty rem tall.</summary>
+    internal const string Box =
+        "[:where(&)]:max-h-[20rem] p-[.3125rem] overscroll-y-none rounded-lg shadow-xs "
         + "border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-start";
+
+    /// <summary>The popup of a select or a pillbox: the box, never narrower than twelve rem.</summary>
+    internal const string Popup = "[:where(&)]:min-w-48 " + Box;
 
     /// <summary>The popup when it is the list itself, and scrolls.</summary>
     internal const string Scrolls = "overflow-y-auto";

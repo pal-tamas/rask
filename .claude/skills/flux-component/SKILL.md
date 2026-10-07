@@ -143,12 +143,22 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge input textarea select` today).
-- **What opens** is not in a page as loaded. `scripts/flux/parity-select.mjs` is the pattern: open each
-  example on Flux's page and on the parity page, compare the popup subtree, its box against the trigger and a
-  row hovered and pressed; `--live <url>` walks the keyboard on a running site against Flux's, since a static
-  page has no runtime. A difference the runtime cannot close yet is a walk of its own marked `accepted`, and
-  an entry in `NotTranslated`.
+card accordion callout button toast badge input textarea select autocomplete pillbox` today).
+- **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
+  `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
+  pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
+  box against the trigger and a row hovered and pressed. `--record` walks Flux's page alone and prints every
+  step — write the behaviour table from that BEFORE the component; `--live <url>` walks a running site against
+  Flux's, since a static page has no runtime (`--wait 2200` on a Debug WASM site, which takes over a second
+  to draw a page of demos again). A state that needs picks first (`pick: [1, 2]`) gets a parity page of its
+  own written with them (`PillboxPickedParity`, `raskPage`). A difference the runtime cannot close yet is a
+  walk of its own marked `accepted`, and an entry in `NotTranslated`.
+- **A control built over another** hands it what is its own through an INTERNAL chain step written by hand
+  (`UiInput.HostedBy`, `UiSelectControl.AsPillbox`): no public prop, so no step Flux does not have. Such a
+  step must call `BuilderRuntime.MarkChanged(this)` as a generated one does, or the child serves its cached
+  render, and it goes BEFORE the `[children]` indexer, which hands back a plain `Component`.
+- The runtime runs the CLOSEST handler of an event and no ancestor's: a cross inside a trigger needs no
+  stop-propagation, and a click on a child with no handler is the trigger's.
 - A `<template>` under a Flux node is skipped: it draws nothing.
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
@@ -227,6 +237,9 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
   (slider, as raw `ui-slider` markup), separator page (the tooltip around the theme button), field page
   (inputs).
+- Pillbox: `Ui.PillboxTrigger.Clearable()`, a disabled pillbox and an invalid `Ui.PillboxInput` are drawn
+  from the select's and the input's looks — no example on Flux's page shows them, so nothing measured them.
+  A create row written before the options is DRAWN first and still comes last for the arrow keys.
 - Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
   `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
   removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —
@@ -244,6 +257,13 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - Toast, unexplained, for a later look: an unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a
   `switch` among keyed call sites, was remounted on every parent render.
 - The built-in toast (the host's, when the app places no `Ui.Toast`) shows one at a time, as Flux's does.
+- Select, pillbox: contain Enter, Space, ArrowDown and ArrowUp (`preventDefault`, capture phase) on a
+  COLLAPSED `[role=combobox][aria-haspopup=listbox]` or `[role=button][aria-haspopup=listbox]` that is not a
+  text input. Today the select's closed button opens on Enter (Flux ignores it) and the pillbox's closed
+  trigger scrolls the page on Space and the arrows while it opens.
+- Select, pillbox, autocomplete: lock the page behind an open list — `overflow:hidden`, `pointer-events:none`
+  and `scrollbar-gutter:stable` on `<html>` while a `[popover][data-rask-popover-open="true"]` is shown.
+- Input, autocomplete: `copyable` — a clipboard write in the click's own call stack (`data-rask-copy`).
 
 ## Merging a component branch
 `git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped
@@ -257,4 +277,5 @@ what the branch ADDS; `git checkout HEAD -- <file>` puts ours back.
 - The `Translations` gate in `FluxConformanceTests`, and the removals the owner's rule asks for.
 - `sync.mjs` and `lib.mjs` on main changed (#1189): the lock is CI's, animations rest through
   `window.__fluxRest()`. Merge main's with this harness; keep the recording of animation definitions.
-- The comparison in `parity.mjs` is not importable; open-state scripts copy it. Move it to a module.
+- The comparison in `parity.mjs` is not importable; `open.mjs` holds the one copy the open-state scripts
+  share. Move parity.mjs's to a module and have `open.mjs` import it.

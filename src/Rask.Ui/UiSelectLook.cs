@@ -95,7 +95,8 @@ internal static class UiSelectLook
     /// <summary>The search field's clear button: there while the field holds text.</summary>
     internal const string SearchClear =
         "absolute top-0 bottom-0 end-0 flex items-center justify-center pe-1 transition-opacity "
-        + "[[data-ui-select-search]:has(input:placeholder-shown)_&]:hidden";
+        + "[[data-ui-select-search]:has(input:placeholder-shown)_&]:hidden "
+        + "[[data-ui-pillbox-search]:has(input:placeholder-shown)_&]:hidden";
 
     /// <summary>The list under a search field: the part of the popup that scrolls.</summary>
     internal const string SearchedList = "block overflow-auto cursor-default -me-[.3125rem] -my-[.3125rem] pe-[.3125rem] py-[.3125rem]";

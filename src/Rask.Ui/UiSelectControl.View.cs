@@ -15,6 +15,9 @@ public abstract partial class UiSelectControl<T>
 
     private const int First = -2;
 
+    // No row at all: where the pointer leaves the pillbox's cursor when it leaves the list.
+    private const int None = -3;
+
     private sealed class View(UiWithField field, Parts parts, IReadOnlyList<T> picked, string search)
     {
         internal UiWithField Field { get; } = field;
@@ -54,7 +57,7 @@ public abstract partial class UiSelectControl<T>
         var filters = Filter != false && search.Length > 0;
         var view = new View(field, parts, Current(), search)
         {
-            Shown = [.. parts.Rows.Select(row => !filters || Matches(row.Option, search))],
+            Shown = [.. parts.Rows.Select(row => !filters || row.Option.Filterable == false || Matches(row.Option, search))],
             CreateShown = parts.Create is { } create && OffersCreate(create, parts, search),
         };
         view.Cursor = Place(view);
@@ -66,17 +69,13 @@ public abstract partial class UiSelectControl<T>
 
     // Flux's own matching: anywhere in the words or the keywords, whatever the case or the accents.
     private static bool Matches(UiSelectOption option, string search) =>
-        Contains(option.Text, search) || (option.Keywords is { } keywords && Contains(keywords, search));
-
-    private static bool Contains(string words, string search) =>
-        CultureInfo.CurrentCulture.CompareInfo.IndexOf(
-            words, search, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
+        UiSelectText.Contains(option.Text, search) || (option.Keywords is { } keywords && UiSelectText.Contains(keywords, search));
 
     // Offered once the search is long enough and names no option already there. A listbox with no search has
     // nothing typed to make an option of: its create row is always there, and opens a form of the page's own.
     private bool OffersCreate(UiSelectOptionCreate create, Parts parts, string search)
     {
-        if (!IsCombobox && !HasSearchField)
+        if (!Searches)
         {
             return true;
         }
@@ -92,6 +91,11 @@ public abstract partial class UiSelectControl<T>
         if (_cursor >= 0 && _cursor < view.Count && !view.Skips(_cursor))
         {
             return _cursor;
+        }
+
+        if (_cursor == None)
+        {
+            return Unset;
         }
 
         var picked = _cursor == First ? null : view.PickedRows.FirstOrDefault(row => !view.Skips(row.Index));
