@@ -32,6 +32,15 @@ them until tagged releases begin.
   CSS allows still goes through (`Css.Width("calc(100% - 2rem)")`; `null` declares nothing). The unit
   literals gain CSS lengths: `12.Px`, `1.5.Rem`, `2.Em`, `60.Ch`, `100.Vw`, `100.Vh`, `100.Dvw`,
   `100.Dvh` and `50.Percent`. The daily upstream run keeps the property list on MDN's latest release.
+- **`Ui.Kanban` — Flux's kanban board.** Six parts, as
+  [fluxui.dev/components/kanban](https://fluxui.dev/components/kanban) has them: `Ui.Kanban`,
+  `Ui.KanbanColumn`, `Ui.KanbanColumnHeader` (`Heading`, `Subheading`, `Count`, and `Actions` for the
+  buttons at the end of its row), `Ui.KanbanColumnCards`, `Ui.KanbanColumnFooter` and `Ui.KanbanCard`
+  (`Heading`, `Header` and `Footer` for what sits above and under it, and `.As(Ui.KanbanCardAs.Button)` for
+  a card that is pressed). Measured on Flux's page in light and dark and held to it by
+  `scripts/flux/parity.mjs`. It draws a board and moves nothing, as Flux's does: no card is draggable and
+  there is no drop event — moving a card is the page changing its own lists. Flux's `badge` prop on the
+  column header is not carried, because no example there draws it to measure.
 
 ### Changed
 
