@@ -98,8 +98,6 @@ Rask.UiAccordionItem.Expanded.get -> bool?
 Rask.UiAccordionItem.Expanded.set -> void
 Rask.UiAccordionItem.Heading.get -> string?
 Rask.UiAccordionItem.Heading.set -> void
-Rask.UiAccordionItem.OnToggle.get -> Rask.Core.Callback<bool>
-Rask.UiAccordionItem.OnToggle.set -> void
 Rask.UiAccordionItem.UiAccordionItem() -> void
 Rask.Ui.Align
 Rask.Ui.Align.Center = 2 -> Rask.Ui.Align
@@ -3174,13 +3172,6 @@ static RaskBuilderSettersRask_Ui.Grow(this Rask.UiListRow! __b, Rask.Core.Compon
 static RaskBuilderSettersRask_Ui.HandleLabel(this Rask.UiDiff! __b, string? value) -> Rask.UiDiff!
 static RaskBuilderSettersRask_Ui.StorageKey(this Rask.UiAppearanceScript! __b, string! value) -> Rask.UiAppearanceScript!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiAccordionItem! __b, string? value) -> Rask.UiAccordionItem!
-static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiAccordionItem! __b, Rask.Core.Callback<bool>? value) -> Rask.UiAccordionItem!
-static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiAccordionItem! __b, System.Action<bool>? value) -> Rask.UiAccordionItem!
-static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiAccordionItem! __b, System.Action? value) -> Rask.UiAccordionItem!
-static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiAccordionItem! __b, System.Func<bool, System.Threading.Tasks.Task!>? value) -> Rask.UiAccordionItem!
-static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiAccordionItem! __b, System.Func<bool, System.Threading.Tasks.ValueTask>? value) -> Rask.UiAccordionItem!
-static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiAccordionItem! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiAccordionItem!
-static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiAccordionItem! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiAccordionItem!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiCallout! __b, string? value) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiCalloutLink! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiCalloutLink!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiCallout! __b, Rask.Ui.IconName? value) -> Rask.UiCallout!

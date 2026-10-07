@@ -202,15 +202,16 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
             StringComparison.Ordinal);
 
     [Fact]
-    public void Loading_true_marks_it_from_the_render_in_the_documented_attribute_order()
+    public void Loading_true_marks_it_from_the_render_with_the_one_attribute_and_no_aria()
     {
         var html = Ui.Button.Id("save").Data("testid", "save").AriaLabel("Save").Loading(true)["Save"].ToHtml();
 
         Assert.StartsWith("<button id=\"save\" class=\"", html, StringComparison.Ordinal);
         Assert.Contains(
-            "\" data-ui-button data-loading data-testid=\"save\" aria-label=\"Save\" aria-busy=\"true\" type=\"button\"><div ",
+            "\" data-ui-button data-loading data-testid=\"save\" aria-label=\"Save\" type=\"button\"><div ",
             html,
             StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-busy", html, StringComparison.Ordinal);
     }
 
     [Fact]

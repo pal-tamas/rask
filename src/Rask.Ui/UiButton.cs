@@ -86,8 +86,8 @@ public sealed partial class UiButton : UiElement
     ///     fades out at its own width, a spinner takes its place and a second press is dropped. It is never
     ///     <c>disabled</c>, which would throw keyboard focus off the control mid-press.
     ///     <see langword="false" /> opts out — a stepper whose presses are meant to queue.
-    ///     <see langword="true" /> shows it from C#, for work that outlives the handler. Ignored when it is
-    ///     not a <c>&lt;button&gt;</c>.
+    ///     <see langword="true" /> shows it from C#, for work that outlives the handler, by <c>data-loading</c>
+    ///     alone: Flux's loading button carries no ARIA. Ignored when it is not a <c>&lt;button&gt;</c>.
     /// </remarks>
     public bool? Loading { get; set; }
 
@@ -201,23 +201,12 @@ public sealed partial class UiButton : UiElement
     {
         // A square shows a glyph and nothing else, so its tooltip is the only words it has.
         var label = Children is null && AriaLabel is null && Aria?.ContainsKey("label") != true ? Tooltip : null;
-        var busy = Loading == true && IsButton && AriaBusy is null && Aria?.ContainsKey("busy") != true;
-        if (label is null && !busy)
+        if (label is null)
         {
             return Aria;
         }
 
-        var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
-        if (label is not null)
-        {
-            aria["label"] = label;
-        }
-
-        if (busy)
-        {
-            aria["busy"] = "true";
-        }
-
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = label };
         if (Aria is { } callerAria)
         {
             foreach (var (name, value) in callerAria)

@@ -57,12 +57,27 @@ public sealed partial class UiCard : Component
             Bleed(scope),
             Class);
 
-        // Flux's markers, under the kit's prefix: what the card is, for a stylesheet or a test to key on.
-        var root = scope.Divider == Ui.CardDivider.Inset
-            ? Div.Data(("ui-card", null), ("ui-card-size", Name(scope.Size)), ("ui-card-body-variant", Name(scope.Body)), ("ui-card-variant", Name(scope.Variant)), ("ui-card-divider", "inset"))
-            : Div.Data(("ui-card", null), ("ui-card-size", Name(scope.Size)), ("ui-card-body-variant", Name(scope.Body)), ("ui-card-variant", Name(scope.Variant)));
+        return Div.Data(Markers(scope)).Class(classes)[Context.Provide(scope)[Children ?? []]];
+    }
 
-        return root.Class(classes)[Context.Provide(scope)[Children ?? []]];
+    // Flux's markers, under the kit's prefix, and as Flux writes them: the body and the surface always, the
+    // size and an inset line only when the call site said so.
+    private Dictionary<string, string?> Markers(UiCardScope scope)
+    {
+        var markers = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-card"] = null };
+        if (Size is { } size)
+        {
+            markers["ui-card-size"] = Name(size);
+        }
+
+        markers["ui-card-body-variant"] = Name(scope.Body);
+        markers["ui-card-variant"] = Name(scope.Variant);
+        if (scope.Divider == Ui.CardDivider.Inset)
+        {
+            markers["ui-card-divider"] = "inset";
+        }
+
+        return markers;
     }
 
     // The ring is white, so it only shows over a tint or a shadow, and it fades out towards the bottom edge.

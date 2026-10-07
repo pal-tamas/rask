@@ -22,7 +22,7 @@ public sealed partial class UiHeading : UiElement
     /// <summary>How big it looks. Unset, <see cref="Ui.HeadingSize.Base" />.</summary>
     public Ui.HeadingSize? Size { get; set; }
 
-    /// <summary>The heading level, 1 to 6. Unset, it is not part of the document outline.</summary>
+    /// <summary>The heading level, 1 to 4, as Flux's. Unset, or anything else, it is not part of the document outline.</summary>
     public int? Level { get; set; }
 
     /// <summary>Draws it in the accent colour.</summary>
@@ -35,8 +35,6 @@ public sealed partial class UiHeading : UiElement
         2 => "h2",
         3 => "h3",
         4 => "h4",
-        5 => "h5",
-        6 => "h6",
         _ => "div",
     };
 

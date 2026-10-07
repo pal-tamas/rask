@@ -426,6 +426,19 @@ them until tagged releases begin.
 
 ### Removed
 
+- **BREAKING: what the kit had added to Flux's components is gone.** A `Rask.Ui` component that mirrors a
+  Flux UI one carries Flux's props, values and attributes and no others, and a test now holds every built
+  component to that (`FluxConformanceTests`: a property or enum member Flux does not document fails unless
+  it is named as Rask's way of saying a Flux mechanism).
+  - `Ui.AccordionItem.OnToggle` is removed. Flux's accordion reports nothing back; `Expanded()` is the state
+    an item starts in.
+  - `Ui.Heading.Level(5)` and `Level(6)` render a `<div>`, as any level Flux does not take: Flux's heading
+    has levels 1 to 4. `Ui.CardHeading` and the kit's other titles are unchanged.
+  - `Ui.Card` writes `data-ui-card-size` only when a `Size` is set, as Flux writes `data-flux-card-size`.
+    A selector on `[data-ui-card-size="md"]` no longer matches a card that left the size unset.
+  - `Ui.Button.Loading(true)` no longer writes `aria-busy="true"`: Flux's loading button carries
+    `data-loading` alone. The runtime still marks a button waiting on its own handler with both.
+
 - **BREAKING: `Notify` is gone; `Dispatcher` now works everywhere.** Two statics published an event, and which
   one worked depended on where the line stood: `Dispatcher.Publish` threw in a `BackgroundService`, and
   `Notify.Send` existed to cover that. One word now, from a page, a handler, a job or a singleton:
