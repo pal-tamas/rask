@@ -538,6 +538,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **One-time-code cells (`data-rask-otp`) no longer lose the selection, or a cell, to a late echo.** The page's
+  answer to each code announced comes back late, and a render writes the bound hidden field twice (the attribute,
+  then the property). The hook read the second record after it had answered the first — its own write, which was
+  waiting as an echo too — so every echo before it was forgotten, and the ones that then arrived emptied the later
+  cells and filled them again: the same six characters, with the last cell no longer selected, so the next key
+  was appended instead of replacing it. An echo that reached the field in the same task as the next key was
+  misread the same way. Each group is now sorted out once per batch of changes, and what the page wrote is read
+  before the hook writes over it. On a slow machine this was every fast entry — it is what turned the server E2E
+  job red.
+
 - **Rask.Wasm: a prerendered page links the one stylesheet its app compiles.** The prerender compiles the
   app a second time, in `obj/`, and that copy's assembly did not say what the app's says: where the
   stylesheet is served (`Rask.Stylesheet`) and that the UI kit is compiled into it (`Rask.Ui.Stylesheet`).
