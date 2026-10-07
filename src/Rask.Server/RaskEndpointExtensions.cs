@@ -782,7 +782,7 @@ public static partial class RaskEndpointExtensions
 
         // A page that arrives asking for a behaviour hook gets the hooks' script in the same response, so they
         // run straight after the runtime rather than a round trip later (HookBundleTag).
-        var html = HookBundleTag.AddTo(render.Html, LiveOptions.PathBase + HooksPath + "?v=" + RuntimeHash.Value);
+        var html = HookBundleTag.AddTo(render.Html, LiveOptions.PathBase, HooksUrl.Value);
 
         // Outside development the session id is the only thing stamped onto the render, and that goes
         // straight to UTF-8; the development attributes are composed as a string first.
@@ -3460,6 +3460,9 @@ public static partial class RaskEndpointExtensions
 
     private static readonly Lazy<RuntimeScript> Hooks = new(
         () => new RuntimeScript(LoadEmbeddedScript("rask-hooks.js"), RuntimeHash.Value));
+
+    // Under the app's path base, which is the caller's to add: made once, because every first response asks.
+    private static readonly Lazy<string> HooksUrl = new(() => HooksPath + "?v=" + RuntimeHash.Value);
 
     private static string LoadEmbeddedScript(string file)
     {

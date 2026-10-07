@@ -56,6 +56,8 @@ public sealed class ClientPublishE2ETests
 
             Assert.True(File.Exists(Path.Combine(wwwroot, "main.js")), "the boot module is absent.");
             Assert.True(File.Exists(Path.Combine(wwwroot, "rask.wasm.js")), "Rask's runtime module is absent.");
+            // The runtime loads this from beside itself the first time a page asks for a behaviour hook.
+            Assert.True(File.Exists(Path.Combine(wwwroot, "rask-hooks.js")), "the behaviour hooks' bundle is absent.");
 
             // The companion compiled the app's own Client/ code: its assembly is named after the app.
             var framework = Path.Combine(wwwroot, "_framework");

@@ -233,7 +233,9 @@ serves them.
 A Server app's client runtime is cached the same way. The page asks for it as
 `/rask/rask.js?v={hash}`, served `immutable` with an `ETag` and brotli/gzip; the bare
 `/rask/rask.js` still answers, with `Cache-Control: no-cache`, so it is revalidated (a `304`
-when unchanged) rather than pinned.
+when unchanged) rather than pinned. The [behaviour hooks](js-interop-runtime.md#how-the-hooks-load) are a
+second script beside it, `/rask/rask-hooks.js?v={hash}`, fetched only by a page that asks for a hook and served
+the same way; one hash names the pair, so it moves when either file does.
 
 ### No navigation FOUC
 

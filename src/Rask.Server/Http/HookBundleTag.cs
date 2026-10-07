@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Frozen;
 
 namespace Rask.Server.Http;
 
@@ -44,23 +45,29 @@ internal static class HookBundleTag
         "data-rask-plot", "data-rask-measure",
         "data-rask-otp",
         "data-rask-segments",
-        "data-rask-dismiss-scope", "data-rask-dismiss-hold", "data-rask-stack",
+        "data-rask-dismiss-scope", "data-rask-stack",
         "data-rask-persist", "data-rask-uncheck-on-navigate",
         "data-rask-carousel", "data-rask-carousel-controls",
     ];
 
-    // An attribute follows a space; `role` asks for a hook only as a switch.
-    private static readonly SearchValues<string> Asked = SearchValues.Create(
-        [.. Attributes.Select(name => string.Equals(name, "role", StringComparison.Ordinal) ? " role=\"switch\"" : " " + name)],
-        StringComparison.Ordinal);
+    // An attribute follows a space. The search finds where one of the names STARTS; whether it is that name and
+    // not a longer one (data-rask-focus-trap is the runtime's own, not data-rask-focus) is settled at each hit.
+    private static readonly SearchValues<string> Candidates = SearchValues.Create(
+        [.. Attributes.Select(name => " " + name)], StringComparison.Ordinal);
+
+    private static readonly FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> Names =
+        Attributes.ToFrozenSet(StringComparer.Ordinal).GetAlternateLookup<ReadOnlySpan<char>>();
 
     /// <summary>
     ///     <paramref name="html" /> with the bundle's tag as the last thing in <c>&lt;body&gt;</c> — after the
     ///     runtime's own, which is what it leans on — when the page asks for a hook; otherwise the same string.
     /// </summary>
-    internal static string AddTo(string html, string scriptUrl)
+    /// <param name="html">The page as it was rendered.</param>
+    /// <param name="pathBase">The app's path base, or empty.</param>
+    /// <param name="scriptUrl">The bundle's URL under that base, with its version.</param>
+    internal static string AddTo(string html, string pathBase, string scriptUrl)
     {
-        if (!html.AsSpan().ContainsAny(Asked))
+        if (!AsksForAHook(html))
         {
             return html;
         }
@@ -72,7 +79,28 @@ internal static class HookBundleTag
             : string.Concat(
                 html.AsSpan(0, bodyClose),
                 "<script src=\"",
-                System.Net.WebUtility.HtmlEncode(scriptUrl),
+                System.Net.WebUtility.HtmlEncode(pathBase + scriptUrl),
                 string.Concat("\" data-rask-hooks data-rask-managed></script>", html.AsSpan(bodyClose)));
     }
+
+    private static bool AsksForAHook(ReadOnlySpan<char> html)
+    {
+        while (html.IndexOfAny(Candidates) is >= 0 and var at)
+        {
+            var rest = html[(at + 1)..];
+            var length = rest.IndexOfAnyExcept(NameCharacters);
+            var name = length < 0 ? rest : rest[..length];
+            html = rest[name.Length..];
+
+            // A role asks for a hook only when it is the switch role, which Enter toggles.
+            if (Names.Contains(name) && (!name.SequenceEqual("role") || html.StartsWith("=\"switch\"", StringComparison.Ordinal)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static readonly SearchValues<char> NameCharacters = SearchValues.Create("abcdefghijklmnopqrstuvwxyz-");
 }

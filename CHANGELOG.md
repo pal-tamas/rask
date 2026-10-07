@@ -7,6 +7,20 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Performance
+
+- **The behaviour hooks load on demand; the runtime every page downloads is a quarter smaller.** Everything an
+  element asks of the runtime by carrying an attribute (`data-rask-tooltip`, `data-rask-otp`, `data-rask-modal-open`
+  … — `docs/js-interop-runtime.md`) had grown `rask.js` from 90 kB to 130 kB and `rask.wasm.js` from 79 kB to
+  118 kB, for every app, including one that uses none of it. Those hooks are now a script of their own,
+  `rask-hooks.js` (37 kB, 12 kB gzipped), and the runtimes are `rask.js` 94 kB (30 kB gzipped, from 40 kB) and
+  `rask.wasm.js` 83 kB (26 kB gzipped, from 36 kB). A page that carries no hooked attribute never requests it. A page the
+  server rendered with one gets its `<script>` in the same response, after the runtime's, so nothing runs later
+  than it did; an attribute that arrives in a render or a navigation fetches it once, and what the reader did in
+  between (a hover, a key, a press) is handed to the hooks when they arrive. No attribute, behaviour or API
+  changed, and there is nothing to configure. A hook-free page also runs one filtered `MutationObserver` where
+  eight unfiltered ones ran. The client-bundle-size gate tracks the third file too.
+
 ### Changed
 
 - **BREAKING: `Ui.Chart` is Flux's chart, part by part.** The factory chart (`Ui.Chart.Data(rows).Label(…)[c => [c.X(…),

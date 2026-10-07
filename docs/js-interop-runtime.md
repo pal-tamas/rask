@@ -306,13 +306,38 @@ styleEl.setAttribute("data-rask-managed", "");
 Some behaviour can be written neither as a render (which only writes attributes) nor as a handler (which runs a
 round trip later, after the gesture is gone): showing a popover under the pointer, writing the clipboard,
 keeping a caret in place. For those the runtime carries small generic hooks. An element asks for one by carrying
-an attribute; every hook is a delegated listener on the document, so a page that uses none of them pays for none.
+an attribute; every hook is a delegated listener on the document.
 [Rask UI](ui-kit.md) is built on them, and they are just as usable from your own markup:
 `Div.Data("rask-tooltip", "tip-1")[…]`.
 
 They live in `src/Rask.Core/Resources/rask-hooks.ts` (one module per concern) beside the older ones in
-`rask-dom.ts` — `data-rask-dismiss`, `data-rask-dismiss-after`, `data-rask-focus-trap`, `data-rask-popover-open`,
-`data-rask-dropzone`, `data-rask-shortcut`, `data-rask-contextmenu`.
+`rask-dom.ts` — `data-rask-dismiss`, `data-rask-dismiss-after`, `data-rask-dismiss-hold`, `data-rask-focus-trap`,
+`data-rask-popover-open`, `data-rask-dropzone`, `data-rask-shortcut`, `data-rask-contextmenu` — which are part
+of the runtime itself.
+
+### How the hooks load
+
+**A page that carries none of these attributes does not download them.** The hooks in the tables below are a
+script of their own, `rask-hooks.js` (37 kB, 12 kB gzipped), beside the runtime every page loads (`rask.js` on
+the Server host, `rask.wasm.js` in a WebAssembly app). The runtime keeps only the list of attributes that ask
+for a hook, and fetches the script the first time the page carries one — at most once per document:
+
+| The attribute is… | What the network tab shows |
+| --- | --- |
+| nowhere on the page | `rask.js` only. No request for the hooks, however long the page lives. |
+| in the page the **server rendered** | `rask.js` and `/rask/rask-hooks.js?v=…` side by side: the server writes the second `<script>` after the first in that response, so the hooks run straight after the runtime, as when they were one file. A dialog rendered open is a modal, and a remembered checkbox is restored, by the time the page has been read. |
+| added later, by a render or an in-app navigation | one request for `rask-hooks.js`, when the attribute arrives. What the reader did to the page in between — a hover, a key, a press — is kept and handed to the hooks when they run: the tooltip under the pointer shows, the character typed into a one-time code moves on. Only what fires per pixel (a drag in flight, a chart's cursor) picks up at the next move. |
+| in a **WebAssembly** app | `rask-hooks.js` from beside `rask.wasm.js`, requested when the runtime starts and finds one (a prerendered page usually has) or when a render adds one. |
+
+Nothing is asked of you: there is no tag to write and nothing to register. Both scripts are served with the same
+caching (one `?v=` names the pair on the Server host and both are immutable under it; a WebAssembly app serves
+`rask-hooks.js` as it serves `rask.wasm.js`, and its service worker keeps it for offline use once fetched), from
+your own origin, with the runtime's nonce when its `<script>` has one. Under a Content-Security-Policy the
+hooks need what the runtime already needs — `script-src 'self'`, or the nonce — and no inline script.
+
+Any element counts, whoever wrote it: your own markup, a `Raw` fragment, a node a script of yours inserted.
+Besides the `data-rask-*` names, four of the platform's own ask for a hook, because a hook improves them
+unasked: `popover`, `commandfor`, `aria-activedescendant` and `role="switch"` on a checkbox.
 
 ### Pointer-opened popovers
 

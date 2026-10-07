@@ -338,6 +338,16 @@ The kit ships no script. Rask's RUNTIME carries generic hooks keyed on attribute
 is the reference; `tests/Rask.Server.E2E.Tests/RuntimeHook*Tests.cs` pin each one to what Flux did). A
 component reaches Flux's behaviour by writing exactly these — never by a handler that round-trips:
 
+**The hooks are a bundle of their own, loaded on demand** (`rask-hooks.js`; `rask-hook-loader.ts` is the part
+every page loads). A NEW hook therefore needs three things beyond its module: its import in `rask-hooks.ts`
+(never in `rask.ts` / `rask.wasm.ts` — that puts it back in every app's download), its attribute in
+`HOOK_ATTRIBUTES` (`rask-hook-loader.ts`) and in `HookBundleTag.Attributes` (`src/Rask.Server/Http`), and its
+document listeners added with `listen(...)` from `rask-owned.ts`, not `document.addEventListener` — that is what
+keeps a late-arriving hook's place ahead of the host's own click/change listener and replays what the reader did
+while the bundle was on its way. `HookBundleContractTests` (Rask.Core.Tests) fails on the first two;
+`RuntimeHookLoadingTests` (Rask.Server.E2E.Tests) proves the loading. An attribute read only on or inside an
+element that already carries a listed one (`data-rask-segment`) is declared in that test instead.
+
 | Component | Writes | Gets |
 |---|---|---|
 | Tooltip (and Button's `Tooltip`) | root `data-rask-tooltip="<bubble id>"`; bubble `popover="manual"`; `interactive`: `aria-expanded="false"` + `aria-controls` on the trigger | shown at 0 ms on pointer and keyboard focus, hidden on leave / blur / Escape / press, top layer for any trigger, `aria-expanded` mirrored |

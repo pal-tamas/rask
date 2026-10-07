@@ -80,7 +80,7 @@ echo "==> Payload-bytes gate (vs Blazor)"
 # rask.wasm.js is written into a SOURCE directory that a Debug build overwrites with an unminified
 # file three times the size. Measuring that would report a spectacular regression that does not exist.
 echo
-echo "==> Client bundle-size gate (rask.js, rask.wasm.js)"
+echo "==> Client bundle-size gate (rask.js, rask.wasm.js, rask-hooks.js)"
 
 # DELETE the WASM bundle before rebuilding it, and not out of caution. Browser/rask.wasm.js is a
 # SOURCE-directory output shared by both configurations, while the target's up-to-date stamp lives
@@ -97,6 +97,8 @@ echo "==> Client bundle-size gate (rask.js, rask.wasm.js)"
 # invisible to MSBuild and the target still skips. Deleting the bundle as well is belt and braces: it
 # turns a silently-skipped rebuild into a missing file the report refuses by name.
 rm -f src/Rask.Wasm/Browser/rask.wasm.js
+# The behaviour hooks' bundle is written beside it by the same target, under the same stamp.
+rm -f src/Rask.Wasm/Browser/rask-hooks.js
 rm -f src/Rask.Wasm/obj/Release/net10.0-browser/rask-bundles/rask.wasm.stamp
 dotnet build src/Rask.Server/Rask.Server.csproj -c Release -p:MinVerSkip=true >/dev/null
 dotnet build src/Rask.Wasm/Rask.Wasm.csproj -c Release -p:MinVerSkip=true >/dev/null
