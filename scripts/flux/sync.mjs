@@ -84,7 +84,9 @@ process.exit(moved.length ? 2 : 0);
 // lock knows as unstable keeps that name, so it compares equal whatever it measured this time.
 async function measure(page, known) {
   const dir = join(root, 'artifacts', 'flux-parity', 'flux', page.slug);
-  const schemes = await measurePage(browser, `https://fluxui.dev/${page.kind}/${page.slug}`, dir);
+  const url = `https://fluxui.dev/${page.kind}/${page.slug}`;
+  // One more try: a docs page that never went idle once is the network, not Flux.
+  const schemes = await measurePage(browser, url, dir).catch(() => measurePage(browser, url, dir));
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, 'measurements.json'), JSON.stringify(schemes));
   const prints = fingerprints(schemes);
