@@ -22,10 +22,33 @@ namespace Rask.UiTests.Flux;
 public sealed class FluxConformanceTests
 {
     /// <summary>Flux part → the Rask.Ui type that mirrors it. A component joins this when it is built.</summary>
-    private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
+    {
+        ["flux:icon.*"] = typeof(UiIcon),
+        ["flux:field"] = typeof(UiField),
+        ["flux:label"] = typeof(UiLabel),
+        ["flux:description"] = typeof(UiDescription),
+        ["flux:error"] = typeof(UiError),
+        ["flux:fieldset"] = typeof(UiFieldset),
+        ["flux:legend"] = typeof(UiLegend),
+        ["flux:input"] = typeof(UiInput<>),
+        ["flux:input.group"] = typeof(UiInputGroup),
+        ["flux:input.group.prefix"] = typeof(UiInputGroupPrefix),
+        ["flux:input.group.suffix"] = typeof(UiInputGroupSuffix),
+        ["flux:textarea"] = typeof(UiTextarea<>),
+    };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
-    private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal)
+    {
+        // Sections of the icon page rather than props, recorded here so the omission is a decision.
+        ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
+        ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
+        ["flux:input/mask:dynamic"] = "An Alpine expression ($money($input)) evaluated in the browser on every keystroke. Rask.Ui ships no script; Mask takes the static pattern.",
+        ["flux:input/copyable"] = "Copies in the click's own call stack (Alpine). Rask.Ui ships no script and the runtime has no clipboard hook yet (data-rask-copy); a handler round trip loses the user activation the clipboard asks for.",
+        ["flux:error/bag"] = "Laravel's named error bags. A Rask form has one edit context, and Ui.Error reads that one.",
+        ["flux:error/deep"] = "Laravel's dotted paths (fields.*). A Rask field is the member of the object that owns it: Ui.Error.For(() => order.Lines[0].Name).",
+    };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;
 

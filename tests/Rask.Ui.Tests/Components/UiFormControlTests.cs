@@ -1,51 +1,13 @@
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The twelve form controls, at daisyUI class parity.
+///     The daisyUI-drawn form controls, at daisyUI class parity. Ui.Input and Ui.Textarea are Flux's: UiInputTests.
 /// </summary>
 public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
 {
-    [Theory]
-    [InlineData(Ui.Tone.Primary, "input-primary")]
-    [InlineData(Ui.Tone.Error, "input-error")]
-    public void An_input_takes_a_tone(Ui.Tone tone, string expected) =>
-        Assert.Contains(expected, Ui.Input.Of<string>().Label("Email").Tone(tone).ToHtml());
-
-    [Fact]
-    public void An_input_takes_the_ghost_variant() =>
-        Assert.Contains("input-ghost", Ui.Input.Of<string>().Label("Email").Variant(Ui.Variant.Ghost).ToHtml());
-
-    [Fact]
-    public void A_textarea_takes_the_ghost_variant_too()
-    {
-        // It could not before this: the table existed in UiClassNames with nothing calling it.
-        Assert.Contains("textarea-ghost", Ui.Textarea.Of<string>().Label("Notes").Variant(Ui.Variant.Ghost).ToHtml());
-    }
-
     [Fact]
     public void A_file_input_takes_the_ghost_variant_too() =>
         Assert.Contains("file-input-ghost", Ui.FileInput.Value("").Label("Avatar").Variant(Ui.Variant.Ghost).ToHtml());
-
-    [Theory]
-    [InlineData(Ui.Variant.Outline)]
-    [InlineData(Ui.Variant.Soft)]
-    [InlineData(Ui.Variant.Dash)]
-    public void A_variant_daisyUI_has_no_text_control_class_for_writes_nothing(Ui.Variant variant)
-    {
-        // Better than inventing `input-outline`: the class would be in the markup, absent from the
-        // sheet, and do nothing — which reads exactly like a working call site.
-        var html = Ui.Input.Of<string>().Label("Email").Variant(variant).ToHtml();
-
-        Assert.DoesNotContain("input-outline", html);
-        Assert.DoesNotContain("input-soft", html);
-        Assert.DoesNotContain("input-dash", html);
-    }
-
-    [Theory]
-    [InlineData(Ui.Size.Xs, "input-xs")]
-    [InlineData(Ui.Size.Xl, "input-xl")]
-    public void An_input_takes_every_size(Ui.Size size, string expected) =>
-        Assert.Contains(expected, Ui.Input.Of<string>().Label("Email").Size(size).ToHtml());
 
     [Theory]
     [InlineData(Ui.Tone.Primary, "checkbox-primary")]
@@ -123,8 +85,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData("input")]
-    [InlineData("textarea")]
     [InlineData("select")]
     [InlineData("file")]
     public void A_text_control_carries_the_class_the_hint_reads(string kind)
@@ -137,8 +97,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData("input")]
-    [InlineData("textarea")]
     [InlineData("select")]
     [InlineData("file")]
     public void An_errored_control_says_so_to_a_screen_reader_as_well_as_in_colour(string kind)
@@ -150,7 +108,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData("input")]
     [InlineData("select")]
     public void A_control_with_no_error_does_not_claim_one(string kind) =>
         Assert.DoesNotContain("aria-invalid", Control(kind, Ui.Tone.Neutral));
@@ -183,18 +140,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     [InlineData(Ui.MaskShape.Half1, "mask-half-1")]
     public void Every_mask_shape_writes_its_own_class(Ui.MaskShape shape, string expected) =>
         Assert.Contains(expected, Ui.Mask.Shape(shape)[Span["x"]].ToHtml());
-
-    [Fact]
-    public void A_label_is_decoration_and_says_so_by_not_naming_anything()
-    {
-        // A <label> element names a control; this one styles text beside one. The control keeps its own
-        // required name, which is why nothing here is aria-anything.
-        var html = Ui.Label.Text("Price").Trailing("EUR")[Span["field"]].ToHtml();
-
-        Assert.Contains("class=\"label\"", html);
-        Assert.Contains("Price", html);
-        Assert.Contains("EUR", html);
-    }
 
     [Fact]
     public void A_filter_is_a_radio_group_with_a_reset()
@@ -245,8 +190,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
 
     private static string Control(string kind, Ui.Tone tone) => kind switch
     {
-        "input" => Ui.Input.Of<string>().Label("Email").Tone(tone).ToHtml(),
-        "textarea" => Ui.Textarea.Of<string>().Label("Notes").Tone(tone).ToHtml(),
         // Value opens it: for a form control the opening step fixes both the type argument and the
         // MODE (controlled here, bound if it opened on Bind), so Label and Options follow it.
         "select" => Ui.Select.Value<string>(null).Options([("hu", "Hungary")]).Label("Country")

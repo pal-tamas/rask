@@ -18,7 +18,7 @@ public sealed partial class DisposalSyncDemo : Component
                 Ui.Button.Outline
                     .Id("dispose-sync-unmount")
                     .Disabled(!_syncMounted)
-                    .OnClick(UnmountSync)[Ui.Icon.Name(Ui.IconName.Stop), "Unmount sync probe"]
+                    .OnClick(UnmountSync)[Ui.Icon.Name(Ui.IconName.StopCircle), "Unmount sync probe"]
             ],
             _syncMounted
                 ? DisposableTimerProbe.InstanceId(_nextSyncId).Log(AppendSyncLog)

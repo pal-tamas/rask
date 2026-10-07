@@ -58,7 +58,7 @@ namespace Rask;
 /// owns the wrapper, the label, the hint and the message; the control owns its own markup.
 /// </para>
 /// </remarks>
-public abstract partial class UiFormField<T> : Component, IFormControl<T>
+public abstract partial class UiFormField<T> : Component, IFormControl<T>, IUiFieldControl
 {
     /// <summary>The visible label. Omit it for a control that is named some other way.</summary>
     public string? Label { get; set; }
@@ -363,23 +363,12 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     ///     <see cref="Id" /> is for.
     /// </remarks>
     /// <summary>The id the label points at, for the derived control to put on its element.</summary>
-    protected string FieldId => Id ?? "f-" + Slug(BoundMemberName() ?? Label ?? AccessibleLabel ?? "field");
+    protected string FieldId => UiFieldId.Derive(Id, Bind, Label ?? AccessibleLabel);
 
-    private string? BoundMemberName() =>
-        Bind?.Body is MemberExpression member ? member.Member.Name : null;
+    // So a Ui.Field composed around this control points its label at it and its Ui.Error at what it is bound to.
+    string IUiFieldControl.ControlId => FieldId;
 
-    private static string Slug(string text)
-    {
-        var slug = new char[text.Length];
-        var n = 0;
-
-        foreach (var c in text)
-        {
-            slug[n++] = char.IsAsciiLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-';
-        }
-
-        return new string(slug, 0, n).Trim('-');
-    }
+    LambdaExpression? IUiFieldControl.Bound => Bind;
 
     /// <inheritdoc />
     protected override Component? Render()

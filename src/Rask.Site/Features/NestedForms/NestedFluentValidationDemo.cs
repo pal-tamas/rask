@@ -23,11 +23,11 @@ public sealed partial class NestedFluentValidationDemo : Component
             var captured = line;
             rows.Add(Tr.Key(captured.Id)[
                 Td[
-                    Ui.Input.Bind(() => captured.Sku).AccessibleLabel("SKU").ShowValidation(false),
+                    Ui.Input.Bind(() => captured.Sku).Label("SKU").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Sku)
                 ],
                 Td.Style("width: 6rem;")[
-                    Ui.Input.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
+                    Ui.Input.Bind(() => captured.Quantity).Label("Quantity").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
@@ -36,7 +36,7 @@ public sealed partial class NestedFluentValidationDemo : Component
                         .Square()
                         .Error
                         .Outline
-                        .OnClick(() => _model.Lines.Remove(captured))[Ui.Icon.Name(Ui.IconName.Close)]
+                        .OnClick(() => _model.Lines.Remove(captured))[Ui.Icon.Name(Ui.IconName.XMark)]
                 ]
             ]);
         }

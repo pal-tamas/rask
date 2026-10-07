@@ -16,7 +16,7 @@ public sealed partial class BindingNullableDemo : Component
         Div.Class("mb-3")[
             Ui.Input.Bind(() => _model.OptionalAge).Label("Optional age (int?)")
                 .Id("bind-null-age")
-                .Hint("Leave it empty for null.")
+                .Description("Leave it empty for null.")
         ],
         Div.Class("mb-3")[
             Ui.Input.Bind(() => _model.StartDate).Label("Optional start date (DateOnly?)")
@@ -33,7 +33,7 @@ public sealed partial class BindingNullableDemo : Component
         Div.Class("mb-3")[
             Ui.Input.Bind(() => _model.Nickname).Label("Nickname (string?)")
                 .Id("bind-null-nick")
-                .Hint("Clear it for null.")
+                .Description("Clear it for null.")
         ],
         Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code[

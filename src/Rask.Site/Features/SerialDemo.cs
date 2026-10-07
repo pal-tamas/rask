@@ -32,14 +32,14 @@ public sealed partial class SerialDemo : Component
                     Ui.Button.Primary
                         .Id("serial-connect")
                         .Disabled(_port is not null)
-                        .OnClick(Connect)[Ui.Icon.Name(Ui.IconName.Cube), "Connect"],
+                        .OnClick(Connect)[Ui.Icon.Name(Ui.IconName.CubeTransparent), "Connect"],
                     Ui.Button.Error.Outline
                         .Id("serial-disconnect")
                         .Disabled(_port is null)
                         .OnClick(Disconnect)["Disconnect"]
                 ],
                 Div.Class("flex items-stretch gap-2 mb-2")[
-                    Ui.Input.Value(_outgoing).AccessibleLabel("Line to send")
+                    Ui.Input.Value(_outgoing).Label("Line to send")
                         .Id("serial-outgoing")
                         .Placeholder("Line to send")
                         .Disabled(_port is null)

@@ -23,11 +23,11 @@ public sealed partial class NestedListIndexerDemo : Component
             rows.Add(Tr.Key(_model.Skus[i].Id)[
                 Td.Class("text-ui-muted text-sm")[$"#{i + 1}"],
                 Td[
-                    Ui.Input.Bind(() => _model.Skus[i].Code).AccessibleLabel("SKU").ShowValidation(false),
+                    Ui.Input.Bind(() => _model.Skus[i].Code).Label("SKU").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => _model.Skus[i].Code)
                 ],
                 Td.Style("width: 7rem;")[
-                    Ui.Input.Bind(() => _model.Skus[i].Price).AccessibleLabel("Price").ShowValidation(false),
+                    Ui.Input.Bind(() => _model.Skus[i].Price).Label("Price").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => _model.Skus[i].Price)
                 ],
                 Td.Style("width: 5rem;")[
@@ -43,7 +43,7 @@ public sealed partial class NestedListIndexerDemo : Component
                         .Square()
                         .Error
                         .Outline
-                        .OnClick(() => _model.Skus.RemoveAt(i))[Ui.Icon.Name(Ui.IconName.Close)]
+                        .OnClick(() => _model.Skus.RemoveAt(i))[Ui.Icon.Name(Ui.IconName.XMark)]
                 ]
             ]);
         }

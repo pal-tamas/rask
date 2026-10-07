@@ -1,13 +1,9 @@
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     daisyUI's Data input category, drawn with the kit.
+///     The kit's form controls: Flux UI's input and textarea, example by example, then the controls that are
+///     still daisyUI's until each is rebuilt.
 /// </summary>
-/// <remarks>
-///     Every control here takes a required label, and it becomes the accessible name rather than a
-///     placeholder. A placeholder disappears the moment typing starts, so the one thing saying what a
-///     field is for vanishes exactly when a reader might check it.
-/// </remarks>
 public sealed partial class UiKitDataInputDemo : Component
 {
     private string _email = "";
@@ -17,10 +13,10 @@ public sealed partial class UiKitDataInputDemo : Component
     private bool _remember = true;
     private bool _alerts;
     private string _shipping = "standard";
-    private string? _country;
     private string? _framework;
     private string? _home;
-    private string _search = "";
+    private string _search = "Jack Skellington";
+    private int _palette;
     private readonly List<string> _packages = ["core", "ui"];
     private string _plan = "pro";
     private string _density = "cosy";
@@ -46,12 +42,13 @@ public sealed partial class UiKitDataInputDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
-        TextControlsSection(),
+        InputSection(),
+        InputGroupSection(),
+        TextareaSection(),
         SelectSection(),
         SearchableSection(),
         MultiSelectSection(),
         ChoiceListsSection(),
-        LabelsSection(),
         ChoicesSection(),
         RangeRatingSection(),
         OneTimeCodeSection(),
@@ -63,50 +60,110 @@ public sealed partial class UiKitDataInputDemo : Component
         MaskSection()
     ];
 
-    private Component TextControlsSection() =>
+    // The classes of the two neighbours Flux's examples borrow from its button, which is not rebuilt yet.
+    private const string SubtleButton =
+        "-mr-1 flex size-8 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
+        + "dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-white";
+
+    private const string OutlineButton =
+        "flex h-10 items-center gap-2 rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white ps-3 pe-4 text-sm "
+        + "font-medium text-zinc-800 shadow-xs hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white";
+
+    private Component InputSection()
+    {
+        var badEmail = _email.Length > 0 && !_email.Contains('@');
+
+        return Section(
+            "Input — Flux UI's, example by example",
+            "Label and Description wrap the input in a field with its error; without them it is the input alone, for "
+            + "a Ui.Field of your own. Everything inside the box — an icon, a shortcut, the clear and reveal buttons — "
+            + "is a prop. The first field is controlled: its parent decides it is invalid and says why.",
+            Div.Data(Testid("ui-text-controls")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
+                Ui.Field.Key("email")[
+                    Ui.Label.Badge("Required")["Email"],
+                    Ui.Description["For example, you@example.com."],
+                    Ui.Input.Value(_email).Type(InputType.Email).Invalid(badEmail).OnChange(v => { _email = v; }),
+                    Ui.Error.Message(badEmail ? "That does not look like an email address." : null)
+                ],
+                Ui.Input.Of<string>().Key("username").Label("Username").Description("This will be publicly displayed."),
+                Ui.Input.Of<string>().Key("mono").Label("Class targeting").Class("max-w-xs").InputClass("font-mono"),
+                Ui.Input.Value("password").Key("password").Type(InputType.Password).Label("Password"),
+                Ui.Input.Of<string>().Key("date").Type(InputType.Date).Max("2999-12-31").Label("Date"),
+                Ui.Input.Of<string>().Key("logo").Type(InputType.File).Label("Logo"),
+                Ui.Input.Of<string>().Key("attachments").Type(InputType.File).Label("Attachments").Multiple(),
+                Ui.Input.Of<string>().Key("sm").Sm.Placeholder("Filter by..."),
+                Ui.Input.Of<string>().Key("disabled").Disabled().Label("Disabled"),
+                Ui.Input.Value("BA7K7QZ511S8Z2K").Key("readonly").ReadOnly().Filled.Label("Public API key"),
+                Ui.Input.Of<string>().Key("invalid").Invalid().Placeholder("Invalid"),
+                Ui.Input.Value("7161234567").Key("mask").Mask("(999) 999-9999").Label("Phone, masked"),
+                Ui.Input.Of<string>().Key("icon").Icon(Ui.IconName.MagnifyingGlass).Placeholder("Search orders"),
+                Ui.Input.Of<string>().Key("card").IconTrailing(Ui.IconName.CreditCard).Placeholder("4444-4444-4444-4444"),
+                Ui.Input.Of<string>().Key("loading").IconTrailing(Ui.IconName.Loading).Placeholder("Search transactions"),
+                Ui.Input.Of<string>().Key("slot").Placeholder("Search orders").IconTrailing(
+                    Button.Type(ButtonType.Button).Aria("label", "Clear").Class(SubtleButton)[Ui.Icon.Name(Ui.IconName.XMark).Mini]),
+                Ui.Input.Value(_search).Key("clearable").Placeholder("Search orders").Clearable()
+                    .OnInput(v => _search = v ?? "").OnChange(v => { _search = v; }),
+                Ui.Input.Value("password").Key("viewable").Type(InputType.Password).Viewable(),
+                Ui.Input.Of<string>().Key("kbd").Kbd("⌘K").Icon(Ui.IconName.MagnifyingGlass).Placeholder("Search..."),
+                Ui.Input.Of<string>().Key("button").As(Ui.InputAs.Button).Placeholder("Search...")
+                    .Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K").OnClick(() => { _palette++; }),
+                P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-input-state"))[
+                    $"Searching for \"{_search}\" · palette opened {_palette.ToString(System.Globalization.CultureInfo.InvariantCulture)} times."
+                ]
+            ]);
+    }
+
+    private Component InputGroupSection() =>
         Section(
-            "Text controls",
-            "Tone colours the border — which is how a field says it is in error without a second "
-            + "element — and Ghost is the borderless form. daisyUI defines no outline, soft or dash for "
-            + "a text control, so those draw the default rather than a class that does nothing.",
-            Div.Data(Testid("ui-text-controls")).Class("grid gap-3 sm:grid-cols-2")[
-                // Value opens the chain on every control in the kit now: they are all
-                // IFormControl<T>, so the opening step fixes the value type and the mode at once, and
-                // Label, Type and the rest follow it. Of<T>() is the opening for a field with no value
-                // to start from.
-                // The message is the FIELD's, not a sibling placed after it. It used to be a detached
-                // Ui.Validator at the end of this grid, which worked only because the input was a bare
-                // element: daisyUI reveals the hint with `.validator ~ .validator-hint`, so a field that
-                // grew a label and a wrapper stopped being its sibling and the message silently vanished.
-                // The badge sits inside the label and is hidden from assistive tech; the hint and, once it
-                // shows, the error are tied to the input by aria-describedby, error first.
-                Ui.Input.Value(_email).Key("email").Label("Email").Badge("Required").Type(InputType.Email)
-                    .Hint("For example, you@example.com.")
-                    .Tone(_email.Length > 0 && !_email.Contains('@') ? Ui.Tone.Error : (Ui.Tone?)null)
-                    .Error(_email.Length > 0 && !_email.Contains('@')
-                        ? "That does not look like an email address."
-                        : null)
-                    .OnChange(v => { _email = v; }),
-                // Anything inside the box — an icon, a shortcut, a clear button — makes the box a container
-                // around the input, and the label keeps its place above the field: a floating caption rises
-                // through exactly the room the icon now occupies.
-                Ui.Input.Value(_search).Key("search").Label("Search")
-                    .Icon(Ui.IconName.Search).Kbd("⌘K").Clearable()
-                    .Placeholder("Find a package")
-                    .OnInput(v => _search = v ?? ""),
-                // AutoSize is CSS — `field-sizing: content` — so the box grows as you type with no runtime at
-                // all, and where an engine has not shipped it the box keeps its Rows and scrolls.
-                Ui.Textarea.Value(_notes).Key("notes").Label("Notes").Badge("Optional").Rows(2)
-                    .AutoSize()
-                    .Resize(Ui.Resize.None)
-                    .Hint("Anything else? The box grows as you type.")
+            "Input group — one outline, shared",
+            "A prefix, a suffix or a button fused to the input: the two ends keep their corners and a border is drawn "
+            + "once between neighbours. For a label the GROUP goes in a Ui.Field, which reaches the input inside it.",
+            Div.Data(Testid("ui-input-group")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
+                Ui.InputGroup.Key("post")[
+                    Ui.Input.Of<string>().Placeholder("Post title"),
+                    Button.Type(ButtonType.Button).Data("ui-group-target", "").Class(OutlineButton)[
+                        Ui.Icon.Name(Ui.IconName.Plus).Micro, "New post"
+                    ]
+                ],
+                Ui.InputGroup.Key("prefix")[
+                    Ui.InputGroupPrefix["https://"],
+                    Ui.Input.Of<string>().Placeholder("example.com")
+                ],
+                Ui.InputGroup.Key("suffix")[
+                    Ui.Input.Of<string>().Placeholder("chunky-spaceship"),
+                    Ui.InputGroupSuffix[".brand.com"]
+                ],
+                Ui.Field.Key("website")[
+                    Ui.Label["Website"],
+                    Ui.InputGroup[
+                        Ui.InputGroupPrefix["https://"],
+                        Ui.Input.Bind(() => _signup.Website).Placeholder("example.com")
+                    ],
+                    Ui.Error
+                ]
+            ]);
+
+    private Component TextareaSection() =>
+        Section(
+            "Textarea — Flux UI's",
+            "Four lines unless Rows says otherwise; Rows(UiTextareaRows.Auto) grows with what is typed, which is "
+            + "CSS's field-sizing and no script. Resize says which way the reader may drag it.",
+            Div.Data(Testid("ui-textarea")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
+                Ui.Textarea.Value(_notes).Key("notes").Label("Order notes").Badge("Optional")
+                    .Placeholder("No lettuce, tomato, or onion...")
                     .OnChange(v => { _notes = v; }),
-                Ui.Select.Key("country").Value(_country)
-                    .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
-                    .Label("Country")
-                    .Placeholder("Choose…")
-                    .OnChange(v => { _country = v; }),
-                Ui.FileInput.Value("").Key("avatar").Label("Avatar").Sm
+                Ui.Textarea.Of<string>().Key("two").Rows(2).Label("Note"),
+                Ui.Textarea.Of<string>().Key("auto").Rows(UiTextareaRows.Auto)
+                    .Placeholder("This textarea will adjust to fit the content..."),
+                Div.Key("resize").Class("space-y-4")[
+                    Ui.Textarea.Of<string>().Rows(2).Vertical.Placeholder("Resize \"vertical\""),
+                    Ui.Textarea.Of<string>().Rows(2).None.Placeholder("Resize \"none\""),
+                    Ui.Textarea.Of<string>().Rows(2).Horizontal.Placeholder("Resize \"horizontal\""),
+                    Ui.Textarea.Of<string>().Rows(2).Both.Placeholder("Resize \"both\"")
+                ],
+                P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-textarea-state"))[
+                    _notes.Length == 0 ? "No notes yet." : $"Notes: {_notes}"
+                ]
             ]);
 
     private Component SelectSection() =>
@@ -226,21 +283,6 @@ public sealed partial class UiKitDataInputDemo : Component
                             ? $"{_plan}, {_density}, nothing subscribed."
                             : $"{_plan}, {_density}, {string.Join(", ", _topics)}."
                     ]
-                ]
-            ]);
-
-    private static Component LabelsSection() =>
-        Section(
-            "Labels",
-            "A labelled text field floats its label by default: the caption sits in the field until there "
-            + "is content, then rises out of the way, and it is the field's real label. Floating(false) puts "
-            + "it above the field instead. A caption inside the frame, for a unit or a currency, is only "
-            + "decoration, so that field is named separately.",
-            Div.Data(Testid("ui-labels")).Class("grid gap-3 sm:grid-cols-2")[
-                Ui.Input.Of<string>().Key("float").Label("Company"),
-                Ui.Input.Of<string>().Key("legend").Label("Company number").Floating(false),
-                Ui.Label.Key("price").Text("€").Trailing("per month")[
-                    Ui.Input.Of<string>().AccessibleLabel("Price per month").Placeholder("29")
                 ]
             ]);
 
@@ -391,7 +433,7 @@ public sealed partial class UiKitDataInputDemo : Component
                 Form.Model(_signup)[
                     Div.Class("grid gap-3 sm:grid-cols-2")[
                         Ui.Input.Bind(() => _signup.Email).Label("Email").Type(InputType.Email)
-                            .Hint("For example, you@example.com."),
+                            .Description("For example, you@example.com."),
                         // T is the model's, so this is a number field with nothing said here.
                         Ui.Input.Bind(() => _signup.Seats).Label("Seats")
                     ],
@@ -448,6 +490,8 @@ public sealed partial class UiKitDataInputDemo : Component
         public string Email { get; set; } = "";
 
         public int Seats { get; set; } = 1;
+
+        public string Website { get; set; } = "";
 
         public bool Agreed { get; set; }
 

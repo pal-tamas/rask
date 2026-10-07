@@ -54,6 +54,33 @@ Behaviour is measured too: open the page, use the component with keyboard and po
 - Markup, ARIA and keyboard are part of "exactly": same element, same roles, same states.
 - Follow `CLAUDE.md` and `docs/api-style.md`; XML-doc every public member in a line or two.
 
+**Form controls** take Flux's `Label` / `Description` / `DescriptionTrailing` / `Badge` and never draw a
+label themselves. The recipe (`UiInput.cs` and `UiTextarea.cs` are the two to copy):
+1. `public sealed partial class UiX<T> : Component, IFormControl<T>, IUiFormControl` — NOT `UiFormField<T>`, which
+   stays only for the daisyUI controls and is deleted with the last of them. Declare the five binding props
+   (`Value`, `OnChange`, `Bind`, `Validate`, `AfterBind`), Flux's props, `Invalid`, `ShowValidation`, `Id`, `Class`;
+   `string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Bind, Label);`, `LambdaExpression? IUiFieldControl.Bound => Bind;`
+   (a prop Flux does not document on that part, e.g. `Badge` on the input: `string? IUiFormControl.Badge => null;`).
+2. In `Render`: `var field = UiWithField.For(this);` → build the native control → `.Id(field.ControlId)`,
+   `.Aria(field.Aria)` (`aria-invalid`, `aria-describedby`), `data-ui-control` plus `data-invalid` when
+   `field.Invalid` → `return field.Wrap(control);` (a checkbox, radio or switch:
+   `field.Wrap(control, Ui.FieldVariant.Inline, controlFirst: true)`). No label and no description ⇒ `Wrap` returns
+   the control alone, and it shows no message.
+3. Binding: a control that IS one native element forwards to Core's — `Bind is { } bind ?
+   Input.Bind(bind).Validate(Validate).AfterBind(AfterBind) : Input.Value(Value).OnChange(OnChange)` (both hand back
+   the same element; same for `Textarea`, `Select`). A control drawn from several elements reads and commits through
+   `UiFormCommit.Resolve(this)` / `UiFormCommit.CommitAsync(…)`.
+4. State a click changes (a reveal toggle) is a private field set in the handler; what CSS can decide (a clear button
+   hidden while `:placeholder-shown`) is CSS. No script, and nothing Flux does not have: a behaviour that needs page
+   script goes in `FluxConformanceTests.NotTranslated` with the hook it is waiting for.
+5. Class literals shared by a generic control live in a non-generic `internal static class UiXLook` (a static in
+   `UiX<T>` is one copy per `T`, S2743). An enum member named after a tag (`Button`, `Input`) is not reachable as a
+   step — the component inherits the markup entry of that name — so it is `.As(Ui.InputAs.Button)`.
+
+A custom element is written as the native one that behaves that way without script (`ui-label` → `<label for>`);
+`parity.mjs`'s `NATIVE` (by tag) and `NATIVE_PART` (by marker) tables name each pair, and a stand-in for a control
+not rebuilt yet carries `data-parity-skip` (held to its place and size only).
+
 ## 3. Prove it
 1. `tests/Rask.Ui.Tests/Flux/Parity/<Name>Parity.cs` — derive from `FluxParity`, translate EVERY
    example on Flux's page (same order, same words; section = the `<h2>` id above it).

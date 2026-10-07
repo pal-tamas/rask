@@ -86,7 +86,7 @@ public sealed partial class InstallPromptDemo : Component
                     Ui.Button.Primary
                         .Id("install-button")
                         .Disabled(_prompt is null || _installed)
-                        .OnClick(Install)[Ui.Icon.Name(Ui.IconName.Download), "Install app"],
+                        .OnClick(Install)[Ui.Icon.Name(Ui.IconName.ArrowDownTray), "Install app"],
                     Ui.Button.Outline
                         .Id("install-refresh")
                         .OnClick(Refresh)["Re-check"]

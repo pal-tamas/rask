@@ -377,10 +377,9 @@ take the same two shapes, since they implement the same `IFormControl<T>`.
 
 <!-- demo:form-controls-select -->
 
-**Floating labels.** A labelled kit `Ui.Input`, `Ui.Textarea` or native `Ui.Select` floats its label by
-default. The caption sits in the field until there is content, then rises. It stays the field's real
-`<label>`, linked to the control, and each bound field shows its own validation message under it.
-`Floating(false)` draws the label above the field instead:
+**Labels.** `Ui.Input` and `Ui.Textarea` are Flux UI's: `Label` draws a label over the field, `Description` help
+text under the label, and each bound field shows its own validation message under the control. A native
+`Ui.Select`, not rebuilt yet, still floats its label:
 
 <!-- demo:floating-labels -->
 
@@ -389,9 +388,26 @@ default. The caption sits in the field until there is content, then rises. It st
 A control of your own (see [building form controls](building-form-controls.md)),
 and the [UI kit](ui-kit.md)'s controls) expose validation to assistive tech automatically — no extra props.
 When a bound field has messages, the control renders `aria-invalid="true"` and an `aria-describedby` that
-points at the error message's `id` (and the hint's `id` when `.Hint(…)` is set), so a screen reader reads
-the error with the field rather than detached from it. Valid fields with a `Hint` still get
-`aria-describedby` to the hint.
+points at the error message's `id` (and the description's `id` when `.Description(…)` is set), so a screen
+reader reads the error with the field rather than detached from it. Valid fields with a `Description` still get
+`aria-describedby` to it.
+
+**Composing the field yourself.** The kit's [`Ui.Field`](ui-kit.md#fields-label-description-error) is the
+same three parts as components — Flux UI's field — for when the label, the help text or the message needs
+to sit somewhere a control's own `Label` would not put it:
+
+```csharp
+Ui.Field[
+    Ui.Label.Badge("Required")["Email"],
+    Ui.Input.Bind(() => _model.Email).ShowValidation(false),
+    Ui.Error,                                   // or Ui.Error.For(() => _model.Email) outside a field
+    Ui.Description["We only write about your order."]
+]
+```
+
+`Ui.Label` is a `<label for>` pointing at the control, and `Ui.Error` is a `role="alert"` live region that
+is always in the page and shows the first message the form holds for the bound member.
+`Ui.Fieldset.Legend("Shipping address")[…]` groups several fields under one heading.
 
 A combobox control — [`Ui.Select`](ui-kit.md) with `.Native(false)`, over one answer or many — carries `role="combobox"`,
 which is not a labelable element, so its name is given directly (`aria-label`, or `aria-labelledby`

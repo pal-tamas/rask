@@ -123,7 +123,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         // Ui.SidebarHeader is the kit's own word for "holds its place while the list below scrolls", which is
         // exactly what this is. It brings the shrink-0; the rest is this sidebar's own look.
         Ui.SidebarHeader.Class("side-nav-search mb-1 block border-b border-ui-line bg-ui-well pb-2")[
-            Ui.Input.Value(_filter).AccessibleLabel("Filter guides & examples…")
+            Ui.Input.Value(_filter).Label("Filter guides & examples…")
                 .OnInput(v => _filter = v ?? "")
                 .Placeholder("Filter guides & examples…").Class("side-nav-filter rounded-lg")
         ],
@@ -146,7 +146,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
     private static IEnumerable<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> GuidesNav()
     {
-        yield return (Routes.GuidesIndexPage(), "All guides", Ui.IconName.Book, "Overview", null);
+        yield return (Routes.GuidesIndexPage(), "All guides", Ui.IconName.BookOpen, "Overview", null);
         foreach (var g in Features.GuideCatalog.All)
         {
             yield return (Routes.GuidePage(g.Slug), g.Title, g.Icon, g.Group, null);

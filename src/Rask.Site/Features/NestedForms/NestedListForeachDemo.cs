@@ -21,11 +21,11 @@ public sealed partial class NestedListForeachDemo : Component
             var captured = item; // foreach already captures per-iteration but make it loud.
             rows.Add(Tr.Key(captured.Id)[
                 Td[
-                    Ui.Input.Bind(() => captured.Description).AccessibleLabel("Description").ShowValidation(false),
+                    Ui.Input.Bind(() => captured.Description).Label("Description").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Description)
                 ],
                 Td.Style("width: 6rem;")[
-                    Ui.Input.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
+                    Ui.Input.Bind(() => captured.Quantity).Label("Quantity").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
@@ -34,7 +34,7 @@ public sealed partial class NestedListForeachDemo : Component
                         .Square()
                         .Error
                         .Outline
-                        .OnClick(() => _model.Items.Remove(captured))[Ui.Icon.Name(Ui.IconName.Close)]
+                        .OnClick(() => _model.Items.Remove(captured))[Ui.Icon.Name(Ui.IconName.XMark)]
                 ]
             ]);
         }

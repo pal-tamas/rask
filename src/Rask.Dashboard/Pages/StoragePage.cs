@@ -98,7 +98,7 @@ public sealed partial class StoragePage(
     private Component? DiskNotice() =>
         _stats.ActiveProvider == StorageProvider.Disk || _stats.ByProvider.Any(p => p.Provider == StorageProvider.Disk)
             ? Ui.Alert.Tone(Ui.Tone.Warning)[
-                Ui.Icon.Name(Ui.IconName.Warning),
+                Ui.Icon.Name(Ui.IconName.ExclamationTriangle),
                 Span[
                     "Files on disk live on this host only. rask db backup archives them beside the database, but "
                     + "Litestream and snapshots copy the database alone. Use S3 or Azure for uploads you can't afford to lose."
@@ -136,11 +136,12 @@ public sealed partial class StoragePage(
             .Page(_page)
             .TotalCount(_total)
             .OnPage(GoAsync)
-            .Toolbar(Ui.Search
+            .Toolbar(Ui.Input
+                .Value(Search ?? string.Empty)
+                .Type(InputType.Search)
+                .Icon(Ui.IconName.MagnifyingGlass)
                 .Placeholder("Search file names")
-                .AccessibleLabel("Search stored files")
-                .Value(Search)
-                .OnSearch(SearchAsync))
+                .OnChange(SearchAsync))
             .Empty(Ui.Empty
                 .Title(Search is { Length: > 0 } ? $"No files matching \"{Search}\"" : "No files stored yet")
                 .Detail("Files appear here as soon as the app saves one."))[c => [
