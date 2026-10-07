@@ -74,10 +74,55 @@ updates:
         patterns:
           - "SQLitePCLRaw.*"
 
-  # The site's own front end (src/Rask.Site/package.json + its lockfile). It is the only npm
-  # manifest in the repo: the island versions a scaffold writes live in
-  # src/Rask.Templates/_islands/*/island.json, which Dependabot cannot read — the
-  # check-dependency-updates skill bumps those by hand.
+  # The front-end dependencies every `rask new --template react|preact|vue|angular|solid|svelte|lit`
+  # app receives: each template's committed client/package.json and, as much, its package-lock.json —
+  # the scaffolded app's first build is `npm ci`, so the lockfile IS the tree a user gets.
+  #
+  # ONE pull request a week for all seven, not one per template. They share most of what moves
+  # (vite, typescript, eslint, prettier, tailwindcss), a pull request each would be seven that must
+  # land one after another — each rebased onto the last — and a list of pull requests nobody reads is
+  # how a repository ends up turning Dependabot off. Majors are a second group: a new major is the
+  # one that breaks a build, and it should not hold back a week of patches while somebody reads it.
+  #
+  # dependabot-merge.yml merges these with nobody reading them, on ci's verdict. That verdict includes
+  # the "front end <key>" job of every template the pull request changes (gates.yml, "deps":
+  # "touched"): the scaffold installed from the new lockfile, built, linted and served. A red template
+  # holds the whole pull request back.
+  - package-ecosystem: npm
+    directories:
+      - "/src/Rask.Templates/*/client"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    # The ranges in package.json are drawn by hand and TailwindVersionPinTests holds tailwindcss's
+    # to the version the C# hosts download. An update inside a range moves the lockfile only; one
+    # outside it (a major) widens the range.
+    versioning-strategy: increase-if-necessary
+    # Conventional Commits so the commitlint check passes (e.g. "build(deps): bump X").
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      # The same hold as the site's, for the same reason: vue-tsc, svelte-check and Angular's
+      # compiler all run on TypeScript's JavaScript API, which 7.x does not ship.
+      - dependency-name: "typescript"
+        versions: [">=7.0.0"]
+    groups:
+      template-front-ends:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      template-front-end-majors:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+
+  # The site's own front end (src/Rask.Site/package.json + its lockfile). The island versions a
+  # scaffold writes live in src/Rask.Templates/_islands/*/island.json, which is not a package.json
+  # and so nothing Dependabot can read — the check-dependency-updates skill bumps those by hand.
   - package-ecosystem: npm
     directory: "/src/Rask.Site"
     schedule:

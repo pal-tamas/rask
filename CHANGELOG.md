@@ -64,6 +64,19 @@ them until tagged releases begin.
   (`npm start`), `client/proxy.conf.json` for the dev proxy, and `RaskSpaDistDir` set to
   `dist/<app>-client/browser`; its `.vscode/extensions.json` recommends the Angular Language Service. See
   `docs/spa.md#scaffolding-one`.
+- **The Angular template says which Node it needs.** Its csproj sets `RaskSpaMinimumNode` to **22.22.3**, the
+  lowest Node the Angular CLI accepts (`^22.22.3 || ^24.15.0 || >=26.0.0`), so a build on an older one stops at
+  `RASKSPA005` naming the version it found instead of failing inside `ng build`. The other six keep 22.12.
+- **Every front-end template is gated end to end, a CI job each.** `front end react` … `front end vue` scaffold
+  the template, run `dotnet publish` (the committed lockfile's `npm ci`, the generated `client/src/rask/`, the
+  bundle), lint and format-check the client, then start the published app and ask it for its page and the starter's
+  query. They run when that template's tree changes, all seven when `Rask.Spa.Hosting`, the TypeScript emitter or
+  the scaffolder does, and always in the hourly whole run. By hand: `scripts/run-template-e2e.sh --front-end=vue`.
+- **Dependabot follows the seven template clients.** One weekly pull request for all of them (a second for
+  majors), lockfile-only inside a `package.json` range. `dependabot-merge.yml` lands it on a `ci` run that
+  includes the `front end` job of every template it changes. `upstream.yml`'s Node LTS move now carries the
+  templates' `setup_NN.x` Dockerfile line with it. `scripts/refresh-templates.sh` is not restored;
+  `docs/development-workflow.md#dependencies` has the by-hand re-import.
 - **The React starter is plain Tailwind.** `rask new --template react` no longer installs daisyUI in the
   client: its page and sign-in screens are drawn with Tailwind utilities alone, light and dark, so a front
   end picks its own component library or none.
@@ -730,6 +743,8 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`MapRaskSpa`'s fallback answers only GET and HEAD.** It matched every verb, so a POST to a route that
+  only answers GET was given the index document and a 200 where routing owed it a 405.
 - **One-time-code cells (`data-rask-otp`) no longer lose the selection, or a cell, to a late echo.** The page's
   answer to each code announced comes back late, and a render writes the bound hidden field twice (the attribute,
   then the property). The hook read the second record after it had answered the first — its own write, which was

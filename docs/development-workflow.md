@@ -136,8 +136,8 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` and `unit` always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed. `scripts/lib/affected_gates.py` decides, from the last commit `ci` or `full` passed; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, every hour `main` has moved** — `full.yml`; also `ci.yml` on a `ci/**` branch | The whole **push** set, unscoped: build, unit (two shards), format (two halves) (`run-unit-local.sh`), browser E2E in four shards and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, every push to `main` and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` and `unit` always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the last commit `ci` or `full` passed; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, every hour `main` has moved** — `full.yml`; also `ci.yml` on a `ci/**` branch | The whole **push** set, unscoped: build, unit (two shards), format (two halves) (`run-unit-local.sh`), browser E2E in four shards and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
@@ -156,6 +156,7 @@ is that command; run it in a worktree at that commit:
 ```bash
 scripts/run-unit-local.sh                    # the build, unit and format jobs (RASK_UNIT_PART=build | tests-1/2 | format-src … runs one piece)
 scripts/run-e2e-local.sh                     # the "browser E2E" job
+scripts/run-template-e2e.sh --front-end=vue  # the "front end vue" job
 scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
 scripts/run-all-gates.sh --list              # every gate, and what it needs
 ```
@@ -189,7 +190,8 @@ exactly that. `release.yml`'s `publish` job needs its `gates` job (both sets). A
 ### The workflows
 
 - `ci.yml` — the gates a change reaches, on every push to `main` and every pull request; the whole
-  push set on a `ci/**` branch. By hand: `gh workflow run ci.yml --ref <branch> -f only='CLI build'`.
+  push set on a `ci/**` branch. By hand: `gh workflow run ci.yml --ref <branch> -f only='CLI build'`
+  (`only` is a pattern over job names: `'front end'` is all seven front ends, `'front end vue$'` one).
 - `full.yml` — the whole push set against `main`, hourly when it has moved. Publishing follows it.
 - `gates.yml` — the reusable list of gate jobs the others call.
 - `soak.yml` — the release set against `main` every three hours, so an image or a download that
@@ -207,7 +209,8 @@ exactly that. `release.yml`'s `publish` job needs its `gates` job (both sets). A
   (`tests/Rask.Ui.Tests/Flux/flux.lock.json`) is measured on its runner, so it is relocked there:
   `gh workflow run upstream.yml -f relock=true`.
 - `dependabot-merge.yml` — merges a Dependabot pull request once `ci` has passed it. What must not
-  move on its own is in `.github/dependabot.yml`'s ignore lists.
+  move on its own is in `.github/dependabot.yml`'s ignore lists. A bump to a front-end template's
+  client is held to that template's `front end <key>` job as well as the `deps` set.
 
 ### The gate scripts
 
@@ -313,6 +316,15 @@ True of the scripts wherever they run — a CI job or your terminal.
   app per npm island runtime and runs the real island build (`npm install` and Vite), asserting the
   manifest lists the scaffolded island: a compile-only row cannot see a scaffold that does not bundle. Exports
   `RASK_TEMPLATE_E2E=1`, with the same SKIPPED rule.
+- **Front ends — `scripts/run-template-e2e.sh --front-end=<key>`** (push set, one job per template:
+  `front end react`, `front end vue`, …). Scaffolds that template with every battery on and runs the one
+  command a deploy runs, `dotnet publish`: `npm ci` from the committed lockfile, the typed client written
+  into `client/src/rask/` from the host's message records, and the bundle. Then `npm run lint` and
+  `npm run format:check`, and the **published** app is started and asked for `/` (the bundle's
+  `index.html`, and the script it loads) and for the starter's query, by the wire name the generated
+  client carries. No browser. The jobs come from the trees: a template with a `client/package.json` is a
+  front end (`--list-front-ends`), so adding one adds its job, and `TemplateTreeContractTests` holds that
+  list to the one `rask new` offers. About 2.5 minutes for one on a ten-core machine.
 - **Watch hot reload — `scripts/run-watch-e2e.sh`** (release set). See [the inner loop](#the-inner-loop).
 - **Deploy — `scripts/run-deploy-e2e-local.sh`** (release set). Points the real `rask deploy` at a
   throwaway privileged container standing in for a bare VPS and asserts on the host: an image built
@@ -377,8 +389,13 @@ The standing rule is **the latest LTS** — Node, .NET, and the front-end toolch
 recommendation every new project inherits, so a maintenance-only pin hands users a runtime that has
 stopped getting security patches.
 
-**What updates itself.** `.github/dependabot.yml` covers NuGet, GitHub Actions and the site's npm
-front end weekly. Families
+**What updates itself.** `.github/dependabot.yml` covers NuGet, GitHub Actions, the site's npm
+front end and the seven front-end templates' clients (`src/Rask.Templates/*/client`) weekly. The
+templates arrive as one pull request for all seven — and a second for majors — and
+`dependabot-merge.yml` lands one only when the `front end <key>` job of every template it changes has
+passed: that job installs the new lockfile with `npm ci`, builds, lints and serves the scaffold. An
+update inside a `package.json` range moves the lockfile alone (`versioning-strategy:
+increase-if-necessary`); the ranges are drawn by hand. Families
 that must move together are grouped (`microsoft-extensions`, `test-tooling`, `spectre-console`,
 `sqlitepclraw`); the three `Microsoft.CodeAnalysis.CSharp*` packages are ignored on purpose, because
 an analyzer referencing a newer Roslyn than the running `csc` is CS9057 and raises the compiler floor
@@ -386,18 +403,21 @@ for every downstream consumer.
 
 **What does not.** Several pins are invisible to Dependabot because they are not `PackageReference`s:
 `RaskEsbuildVersion` and `RaskTsgoVersion` (`Rask.Core.targets`), `RaskTailwindVersion`
-(`Rask.Tailwind.props`), the islands' Node floor (`RaskExternalMinimumNode`), the Node scaffold line
-(`NodeRequirement.ScaffoldLine`), and the npm ranges `rask new --islands` writes, which live in
+(`Rask.Tailwind.props`), the two Node build floors (`RaskExternalMinimumNode` for islands and
+`RaskSpaMinimumNode` for front ends — one number, in two props files), the Angular template's own higher
+`RaskSpaMinimumNode` in its csproj, the Node scaffold line (`NodeRequirement.ScaffoldLine`) with the
+NodeSource line (`setup_NN.x`) in each front-end template's `Dockerfile`, and the npm ranges `rask new --islands` writes, which live in
 `src/Rask.Templates/_islands/*/island.json` — not a `package.json`, so Dependabot cannot read them.
-Dependabot's npm entry watches only the site's own `src/Rask.Site/package.json`. The
-`check-dependency-updates` skill walks all of them.
+The `check-dependency-updates` skill walks all of them.
 
 **What keeps the copies honest.** A version stated twice is a version that can drift, so the pairs that
 matter most are asserted by an offline unit test rather than by a comment:
 
 | Test | Holds together |
 | --- | --- |
-| `NodeRequirementTests` | `ScaffoldLine` vs. `rask.sh`, `rask.ps1`, and `docs/installation.md` (both platform columns, the `≥ NN.NN` sentence, the "Node NN LTS" summary) |
+| `NodeRequirementTests` | `ScaffoldLine` vs. `rask.sh`, `rask.ps1`, and `docs/installation.md` (both platform columns, the `≥ NN.NN` sentence, the "Node NN LTS" summary); the CLI's build floor vs. `RaskExternalMinimumNode` and `RaskSpaMinimumNode` |
+| `TemplateNodePinTests` | each front-end template's `Dockerfile` vs. `ScaffoldLine`'s major; a client's `engines.node` vs. the build floor; the Angular template's `RaskSpaMinimumNode` vs. the lowest Node the `@angular/cli` in its lockfile accepts; a lockfile beside every client manifest |
+| `TailwindVersionPinTests` | the `tailwindcss` range in every template client vs. `RaskTailwindVersion` |
 | `PackagePinFamilyTests` | the Spectre and SQLitePCLRaw pairs, the one-version platform stack, and that every SQLite project can still reach the patched SQLitePCLRaw |
 | `EfToolProbeTests` | the `dotnet-ef` floor the CLI checks for vs. the EF Core version in `Directory.Packages.props` |
 | `ResolveTypeScriptToolTaskTests` | reads `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
@@ -408,9 +428,28 @@ every pull request — so the gate that runs for a version bump is the one that 
 **Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node
 line elsewhere — the `22.12` build-floor figures quoted in `docs/islands.md`, and the codename in `NodeRequirement`'s own doc comment — are
 still only prose. `scripts/upstream/node-lts.sh` rewrites the stated line and the codename when the Active
-LTS moves, and `upstream.yml` lands it; the build floor is deliberately left alone.
+LTS moves — the templates' `setup_NN.x` lines with it — and `upstream.yml` lands it; the build floor is
+deliberately left alone.
 
-**Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (format, unit, CLI build, templates — the browser suites run on `main` after the merge), but `main` has no
+**Re-importing a front-end template is done by hand.** `scripts/refresh-templates.sh` used to re-run each
+framework's creator and print the diff against the committed tree. It is not coming back: every file in a
+client now carries Rask's own layer (the Tailwind starter, the lint and format configs, the dev proxy,
+the battery markers), so that diff is the same wall on every run and a real change in the creator's
+output is one line lost in it. Versions are Dependabot's now. For the shape — a new `tsconfig` option, a
+creator that changed its linter — run the creator into a scratch directory and read it beside the tree:
+
+```bash
+cd "$(mktemp -d)"
+npx --yes create-vite@latest client --template preact-ts   # react-ts, vue-ts, solid-ts, svelte-ts, lit-ts
+npx --yes @angular/cli@latest new client --directory client --style css --ssr false --skip-git --skip-install
+diff -ru --exclude=src --exclude=public --exclude=package-lock.json <repo>/src/Rask.Templates/preact/client client
+```
+
+Take what matters into `src/Rask.Templates/<key>/client` by hand, re-lock it there
+(`npm install --package-lock-only`), and run `dotnet test tests/Rask.Cli.Tests` and
+`scripts/run-template-e2e.sh --front-end=<key>`.
+
+**Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (format, unit, CLI build, templates, and the `front end <key>` job of a template whose client it changes — the browser suites run on `main` after the merge), but `main` has no
 required checks, so a red run does not disable the merge button: read the run first. Then land it
 locally, not from the web UI — check the branch out and push it.
 

@@ -67,7 +67,9 @@
          Active LTS (24 "Krypton"), which is what the scaffolded Dockerfile installs.
 
          Angular's CLI sets its own floor far above this one (`^22.22.3 || ^24.15.0 || >=26.0.0` as of
-         22.1.6) and enforces it itself, which is why Rask does not try to track it here. -->
+         22.1.6) and enforces it itself, which is why Rask does not try to track it here: the Angular
+         template's own csproj raises this property instead, and TemplateNodePinTests holds it to the
+         CLI its lockfile installs. -->
     <RaskSpaMinimumNode Condition="'$(RaskSpaMinimumNode)' == ''">22.12.0</RaskSpaMinimumNode>
 
     <!--
