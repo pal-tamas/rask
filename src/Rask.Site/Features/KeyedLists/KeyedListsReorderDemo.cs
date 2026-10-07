@@ -63,7 +63,7 @@ public sealed partial class KeyedListsReorderDemo : Component
     [
         Ui.Badge[(index + 1).ToString(CultureInfo.InvariantCulture)],
         Span.Class("font-semibold").Style("min-width: 7rem;")[f.Name],
-        Ui.Input.Of<string>().AccessibleLabel("type here, then reorder…")
+        Ui.Input.Of<string>().Label("type here, then reorder…")
             .Type(InputType.Text)
             .Placeholder("type here, then reorder…").Class("kl-note")
     ];

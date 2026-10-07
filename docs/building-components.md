@@ -80,14 +80,16 @@ options:
 
 ```csharp
 Ui.Select.Bind(() => _m.Country)                       // T — what the model holds, and the mode
-        .Options([("hu", "Hungary"), ("gb", "UK")])   // the values and the words shown
-        .Label("Country")
+        .Label("Country")[
+    Ui.SelectOption.Value("hu")["Hungary"],            // the options are children: a value, and the words shown
+    Ui.SelectOption.Value("gb")["UK"]
+]
 ```
 
 **The opening step is the one that pins the type argument**, and for a form control it is also where the
 mode is chosen: `Bind` opens a bound control, `Value` a controlled one, and the two are mutually
 exclusive because a control with both would have two sources of truth for one field. Everything else —
-`Label`, `Options`, `Placeholder` — follows in any order, because none of them says anything about `T`.
+`Label`, `Placeholder`, `Listbox` — follows in any order, because none of them says anything about `T`.
 
 That is a language constraint rather than a house rule: a step whose type mentions `T` cannot be
 written before something has said what `T` is.

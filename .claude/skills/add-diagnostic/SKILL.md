@@ -18,7 +18,7 @@ RASK092–094 were already taken, once said RASK087 while
 RASK087–091 were already taken, once said RASK076 while RASK076 was already taken, and the form model's ids
 were first written as RASK077–081 while package islands held RASK077–080 on main, which is the staleness it
 warns about; RASK063/065 are
-RESERVED for Rask.Blazor and unimplemented, and RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and
+RESERVED for Rask.Blazor and unimplemented, and RASK027/030/032/034/042/046/047/048/049/050/054/075/081 are retired and
 never recycled — a retired id is absent from the grep below, so never take one for a gap. **FOUR** assemblies allocate in this space, and RS1019 only checks one compilation:
 
 ```bash
