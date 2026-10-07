@@ -379,4 +379,51 @@
     </ItemGroup>
   </Target>
 
+  <!--
+    THE EDITOR'S ENGINE, for a project that draws a Ui.Editor.
+
+    Ui.Editor is Tiptap and ProseMirror in the browser: 374 KB, 117 KB gzipped. That is too much to hand
+    every app that references the kit, so it is in neither Rask's runtime nor the kit's assembly (a
+    browser-WASM app downloads every assembly up front, used or not). It is one static file, written into
+    wwwroot here and fetched by the page the first time an editor mounts (UiEditor.ts, UiEditorEngine):
+
+        <RaskUiEditor>true</RaskUiEditor>
+
+    OPT IN, like RaskUiWriteStylesheet above and for the same reason: referencing the kit is not the same
+    as wanting a file in your wwwroot, and an app that draws no editor publishes nothing for one. Without
+    it a Ui.Editor still renders its value; the browser's console names this property when the script is
+    not found.
+
+    A copied plain file, as the stylesheet is: it needs no Razor SDK and no _content/ path, and it is
+    served by every host the same way — a Server app's static files, a browser-WASM app's publish folder.
+    The path is fixed (UiEditorEngine.Path) because the component is what asks for it.
+  -->
+  <PropertyGroup>
+    <RaskUiEditor Condition="'$(RaskUiEditor)' == ''">false</RaskUiEditor>
+    <_RaskUiEditorOutput>wwwroot/js/rask-ui-editor.js</_RaskUiEditorOutput>
+  </PropertyGroup>
+
+  <!-- Declared before it exists, so a FIRST build serves it: see the stylesheet's own note above (#1105). -->
+  <ItemGroup Condition=" '$(RaskUiEditor)' == 'true' AND !Exists('$(MSBuildProjectDirectory)/$(_RaskUiEditorOutput)') ">
+    <Content Include="$(_RaskUiEditorOutput)" Pack="false"/>
+  </ItemGroup>
+
+  <Target Name="RaskUiWriteEditor"
+          Condition="'$(RaskUiEditor)' == 'true'"
+          BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <!-- From the package: beside these targets. In this repository: the committed bundle in the kit's sources. -->
+      <_RaskUiEditorSource Condition="Exists('$(MSBuildThisFileDirectory)rask-ui-editor.js')">$(MSBuildThisFileDirectory)rask-ui-editor.js</_RaskUiEditorSource>
+      <_RaskUiEditorSource Condition="'$(_RaskUiEditorSource)' == ''">$(MSBuildThisFileDirectory)../Resources/ui-editor.js</_RaskUiEditorSource>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(_RaskUiEditorSource)')"
+           Text="Rask.Ui: this project set RaskUiEditor=true but the editor's engine could not be found ($(_RaskUiEditorSource)), so $(_RaskUiEditorOutput) cannot be written and every Ui.Editor would stay a block of plain markup. From the package it ships beside these targets as build/rask-ui-editor.js; in this repository it is src/Rask.Ui/Resources/ui-editor.js, built by Resources/editor/build.mjs."/>
+
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)/$(_RaskUiEditorOutput)'))"/>
+    <Copy SourceFiles="$(_RaskUiEditorSource)"
+          DestinationFiles="$(MSBuildProjectDirectory)/$(_RaskUiEditorOutput)"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
 </Project>

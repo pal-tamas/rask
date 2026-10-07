@@ -298,7 +298,7 @@ public sealed partial class UiButton : UiElement, IUiHost
     ///     classes and the handlers stay on the <c>&lt;button&gt;</c>, and the tooltip names or describes it.
     /// </remarks>
     protected override Component? Render() =>
-        Ui.Tooltip.Content(Tooltip).Kbd(TooltipKbd).Position(TooltipPosition)[
+        Ui.Tooltip.Content(Tooltip).Kbd(TooltipKbd).Position(TooltipPosition).Class("inline-flex")[
             HostedElement.Tag(ElementTag).Owner(this)[HasParts ? Parts() : Words ?? []]
         ];
 

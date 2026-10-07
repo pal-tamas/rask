@@ -85,6 +85,11 @@ const NATIVE = {
   // The tooltip's wrapper: the kit wires the trigger at render and the browser shows the [popover].
   // A toggleable tooltip is a <ui-dropdown> on Flux's page, under the tooltip's marker.
   'ui-tooltip': 'div', 'ui-dropdown': 'div',
+  // The editor and the parts of its toolbar: the kit writes the roles at render (toolbar, combobox,
+  // listbox, option) and its engine does what Flux's elements script. `ui-menu` is the stand-in of the
+  // one example that puts a dropdown menu in a toolbar.
+  'ui-editor': 'div', 'ui-editor-content': 'div', 'ui-toolbar': 'div', 'ui-select': 'div', 'ui-selected': 'div',
+  'ui-options': 'div', 'ui-option': 'div', 'ui-menu': 'div',
 };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
 const sameTag = (a, b) => (NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
@@ -205,7 +210,9 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 
   // A <template> is never drawn — Flux keeps a prototype of every chart node in one, and inside an <svg> a
   // template's children are ordinary DOM children — so it is no child on either side. Nor is an EXTRA node.
-  const kids = (example, n) => example.nodes.filter(c => c.parent === n.id && c.tag !== 'template' && !EXTRA.some(name => name in c.attrs));
+  // Nor is a <path> outside an <svg>: Flux's editor leaves one beside the link panel's check icon, and no browser draws it.
+  const stray = (c, n) => c.tag === 'template' || (c.tag === 'path' && !['svg', 'g', 'defs', 'clippath', 'mask', 'symbol'].includes(n.tag));
+  const kids = (example, n) => example.nodes.filter(c => c.parent === n.id && !stray(c, n) && !EXTRA.some(name => name in c.attrs));
   const ca = kids(theirs, a);
   const cb = kids(mine, b);
   if (ca.length !== cb.length) {

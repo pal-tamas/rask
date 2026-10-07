@@ -140,8 +140,8 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip kanban` today, plus the open-state scripts `parity-toast.mjs` and
-`parity-tooltip.mjs`).
+card accordion callout button toast badge tooltip kanban editor` today, plus the open-state scripts
+`parity-toast.mjs`, `parity-tooltip.mjs` and `parity-editor.mjs`).
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -191,6 +191,15 @@ card accordion callout button toast badge tooltip kanban` today, plus the open-s
   case in a batch when the medium Inter face, first needed by the first tooltip shown, was still loading.
   In `parity.mjs` itself `ui-tooltip` and `ui-dropdown` (what Flux renders a TOGGLEABLE tooltip as,
   under the tooltip's marker) pair with `div`. `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
+- **A component that is USED rather than shown** (the editor) is proved by a transcript: `node
+  scripts/flux/parity-editor.mjs` drives ONE scenario with real keys and a real pointer on Flux's live page and
+  on the Rask parity page (the kit's engine mounted on it), each step writing down what it observes — the
+  value, the events, a control's states, where a popover opened, what has focus, how every kind of node
+  computes — and the two transcripts must be equal line for line, in light and dark. Both pages settle a
+  frame or two after a click, so the script waits; a single differing line on one run that is gone on the
+  next is that, not the component. In `parity.mjs` the editor's custom elements (`ui-editor`, `ui-toolbar`,
+  `ui-select`, `ui-selected`, `ui-options`, `ui-option`, `ui-editor-content`) pair with `div`, and two
+  things are not nodes: a `<template>` (inert markup a script clones from) and a `<path>` outside an `<svg>`.
 - **Public API:** `python3 scripts/public-api/record.py src/Rask.Ui` builds and applies RS0016/RS0017 to
   both baselines (run it twice: a step exists only once its property compiles). It is the only such script.
 
@@ -279,9 +288,20 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   until the Dashboard has a sheet of its own). daisyUI's `.badge` is STILL in the compiled sheet: the bare
   word stands in some sixty kit comments and identifiers (the last rule of section 4 was not applied) — reword them, then
   assert its absence in `UiStylesheetTests`.
+- Editor: the one component with an ENGINE. `Resources/editor/ui-editor.ts` (Tiptap pinned in
+  `package.json`, locked) is bundled by `Resources/editor/build.mjs` into the committed
+  `Resources/ui-editor.js`; after changing either, run `npm ci && node build.mjs` there — it rewrites
+  `UiEditorEngine.Version`, which `UiEditorTests` holds to the bundle's hash. A project opts in with
+  `<RaskUiEditor>true</RaskUiEditor>` (`build/Rask.Ui.targets` copies the file to `wwwroot/js`), and
+  `UiEditor.ts` — the kit's only scoped script — imports it when an editor mounts. Tiptap is the release
+  Flux's docs name; `prosemirror-model` is held at 1.25.1 because later ones re-serialise a `style`
+  attribute with a trailing semicolon, which is not the HTML Flux answers. Stand-ins on its parity page:
+  the `flux:dropdown` and `flux:menu` of "customization". Not measurable on Flux's page, so not proved:
+  the `subscript` / `superscript` / `highlight` / `code` buttons (Lucide icons, no shortcut hint), the
+  look of `Invalid` (`aria-invalid:border-red-500` is a guess), a `Ui.EditorButton` with text, and h4–h6.
 
 ## Runtime hooks that exist (Flux does it in script; the component writes the attribute)
-The kit ships no script. Rask's RUNTIME carries generic hooks keyed on attributes
+The kit ships no script but the editor's (`UiEditor.ts`, which only loads the engine). Rask's RUNTIME carries generic hooks keyed on attributes
 (`src/Rask.Core/Resources/rask-hooks.ts`, one module per concern; `docs/js-interop-runtime.md#behaviour-hooks-data-rask-`
 is the reference; `tests/Rask.Server.E2E.Tests/RuntimeHook*Tests.cs` pin each one to what Flux did). A
 component reaches Flux's behaviour by writing exactly these — never by a handler that round-trips:
