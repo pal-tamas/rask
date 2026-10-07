@@ -277,7 +277,7 @@ Not every component honours every member — daisyUI defines no `input-outline`,
 — and **a member a component has no class for writes nothing**, rather than a class that would sit in
 the markup looking as though it styled something.
 
-Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.ModalPosition`, `Ui.MaskShape`,
+Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.MaskShape`,
 `Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`, `Ui.TabStyle`, `Ui.Marker`, `Ui.OpenOn`.
 
 ### One vocabulary for placing things
@@ -291,8 +291,7 @@ daisyUI composes them — a menu above its trigger, flush with the trigger's end
 Ui.Dropdown.Trigger("Actions").Position(Ui.Position.Top).Align(Ui.Align.End)[ … ]
 Ui.Tooltip.Tip("Copy").Position(Ui.Position.Right)[ … ]
 Ui.Tabs.Position(Ui.Position.Bottom)[ … ]
-Ui.Drawer.Id("nav").Panel(menu).Position(Ui.Position.Right)[ … ]
-Ui.Modal.Title("Details").Position(Ui.ModalPosition.End)[ … ]   // placed against the viewport, not a trigger
+Ui.Modal.Name("details").Flyout().Left[ … ]   // a flyout is placed against the viewport: Ui.ModalPosition
 ```
 
 Events are always `On…` — `Ui.Modal.OnClose`, `Ui.Modal.OnCancel`, `Ui.Toast.OnDismiss` — the same prefix every
@@ -517,12 +516,12 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
+| **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Fieldset` `Ui.Validator` `Ui.Label` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
-| **Layout** | `Ui.Divider` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
+| **Layout** | `Ui.Divider` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
 | **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `UiTheme` / `Ui.ThemeName`, `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
@@ -533,29 +532,54 @@ The kit ships no JavaScript, and that constraint decides the shape of every inte
 resolves three ways, and which one a component takes is a property of what the platform can do rather
 than of anyone's preference.
 
-**The browser owns it, declaratively.** `Ui.Modal` with an `Id` and a `Trigger` is a real **modal**
-`<dialog>`, opened by an HTML invoker command (`command="show-modal" commandfor`): the browser supplies
-the top layer, an inert page behind it so Tab cannot wander out, Escape, and focus handed back to the
-trigger on close. Every open and close control also names the dialog as a `popover`, so a browser
-without invoker commands (before Chrome 135, Firefox 144, Safari 26.2) opens it as a popover instead —
-top layer and Escape, without the inert page. `Ui.Megamenu` is built on the popover the same way. `Ui.Fab`
-opens on `:focus-within` because daisyUI defines no class to force it. All of these work on a prerendered
-page with no runtime booted, and with scripting off entirely.
+**The browser owns it, declaratively.** `Ui.Modal` is [Flux's modal](https://fluxui.dev/components/modal),
+measured against it: a real **modal** `<dialog>` with a `Name`, opened by the button inside a
+`Ui.ModalTrigger` of that name. No handler runs — the trigger makes its button an HTML invoker
+(`command="show-modal" commandfor`), so the browser supplies the top layer, an inert page behind it so Tab
+cannot wander out, Escape, a click outside, and focus handed back to the trigger on close. Every open and
+close control also names the dialog as a `popover`, so a browser without invoker commands (before Chrome 135,
+Firefox 144, Safari 26.2) opens it as a popover instead — top layer and Escape, without the inert page.
+`Ui.Megamenu` is built on the popover the same way. `Ui.Fab` opens on `:focus-within` because daisyUI defines
+no class to force it. All of these work on a prerendered page with no runtime booted, and with scripting off
+entirely.
 
 ```csharp
-Ui.Modal.Title("Shortcuts").Id("shortcuts").Trigger("Show shortcuts")[ … ]
-Ui.Modal.Title("Filters").Id("filters").Trigger("Filters").Position(Ui.ModalPosition.End)[ … ]  // a flyout
-Ui.Modal.Title("Unsaved work").Id("edit").Dismissible(false).Escapable(false)[ … ]
+Ui.ModalTrigger.Name("edit-profile")[Ui.Button["Edit profile"]],
+Ui.Modal.Name("edit-profile").Class("md:w-96")[
+    Div.Class("space-y-6")[
+        Ui.Heading.Lg["Update profile"],
+        Ui.Input.Bind(() => _profile.Name).Label("Name"),
+        Div.Class("flex gap-2")[
+            Ui.Spacer,
+            Ui.ModalClose[Ui.Button.Ghost["Cancel"]],          // closes the modal it is in
+            Ui.Button.Primary["Save changes"]
+        ]
+    ]
+]
+
+Ui.Modal.Name("filters").Flyout()[ … ]                         // against the right edge, full height
+Ui.Modal.Name("nav").Flyout().Left[ … ]                        // Ui.ModalPosition: Right, Left, Bottom
+Ui.Modal.Name("edit").Flyout().Floating.Class("md:w-lg")[ … ]  // standing off the edges, rounded
+Ui.Modal.Name("search").Bare[ … ]                              // no panel, no close button
+Ui.Modal.Name("terms").Scroll(Ui.ModalScroll.Body)[ … ]        // the whole layer scrolls, not the dialog
+Ui.Modal.Name("draft").Dismissible(false).Escapable(false)[ … ]
+Ui.ModalTrigger.Name("search").Shortcut("mod+k")[Ui.Button["Search"]]   // Flux's cmd.k
 ```
 
-Flux UI's switches are all here: `Dismissible(false)` ignores a click outside, `Escapable(false)` ignores
-Escape (`closedby="none"`; Safari has not shipped it), `Closable(false)` drops the header's close button, and
-`OnClose` hears every way it closed. `OnCancel` hears only a DISMISSAL — Escape or a click outside — and runs
-before `OnClose`, so a dialog holding a draft can throw it away when the user backs out and keep it when they
-press a button that closes it; the header's close button is not a dismissal. `Position(Ui.ModalPosition.Start|End)` makes it a full-height flyout. While
-any kit dialog is open the page behind it does not scroll. The state-driven `Open` path below cannot reach the
-top layer, but it is not left without containment: it carries the runtime's `data-rask-focus-trap`, so focus
-moves in, Tab cycles inside, Escape runs `OnCancel` then `OnClose`, and focus returns when it closes.
+A modal draws the panel and the close button in its corner; what it holds — a heading, fields, a row of
+buttons — is yours, as in Flux. Flux UI's switches are all here: `Dismissible(false)` ignores a click outside,
+`Escapable(false)` ignores Escape, `Closable(false)` drops the corner's close button, and `OnClose` hears every
+way it closed. `OnCancel` hears only a DISMISSAL — Escape or a click outside — and runs before `OnClose`, so a
+dialog holding a draft can throw it away when the user backs out and keep it when they press a button that
+closes it; the close button and a `Ui.ModalClose` are not dismissals. Both are the browser's own: `closedby`
+decides what closes the dialog and raises `cancel` before `close` (Safari has not shipped `closedby`: there
+Escape always closes and a click outside never does). While a modal is open the page behind it does not scroll.
+
+Where Flux controls a modal from PHP (`Flux::modal('confirm')->show()`), a Rask page owns the state instead:
+`Ui.Modal.Open(_confirming).OnClose(() => _confirming = false)[ … ]`, which is Rask's `wire:model`. That
+`Open` path cannot reach the top layer — nothing in markup can — so the kit draws its backdrop, and the
+runtime's `data-rask-focus-trap` holds focus: Tab cycles inside, Escape runs `OnCancel` then `OnClose`, and
+focus returns when it closes. `Ui.Drawer` is gone: a panel that slides in from an edge is a flyout.
 
 `Ui.Tooltip` takes `Kbd("⌘S")` to teach a shortcut where the reader is already looking, and `Toggleable(true)`
 to show on a tap — a touch screen has no hover, so an ordinary tooltip is never seen there.
@@ -605,8 +629,8 @@ Ui.Dropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
 their state in a field and redraw through the live diff.
 
 **The markup owns it.** `Ui.Tab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
-survives a refresh and answers the back button. `Ui.Drawer` keeps its checkbox because daisyUI's rules are
-written against `.drawer-toggle:checked`; C# sets it and hears it change, but the input is the component.
+survives a refresh and answers the back button.
+
 
 **And for a view with no URL, the same tab takes a `Name` instead.** Wrap the row in a `Ui.TabGroup` and give
 each tab a `Ui.TabPanel`:

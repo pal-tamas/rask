@@ -25,6 +25,9 @@ public sealed class FluxConformanceTests
     private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
     {
         ["flux:icon.*"] = typeof(UiIcon),
+        ["flux:modal"] = typeof(UiModal),
+        ["flux:modal.trigger"] = typeof(UiModalTrigger),
+        ["flux:modal.close"] = typeof(UiModalClose),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -33,6 +36,11 @@ public sealed class FluxConformanceTests
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
+        // Flux's imperative API. A page opens a modal by rendering it open, and the browser by a trigger's command.
+        ["Flux::modal()"] = "Flux::modal('confirm')->show()/close() from PHP: Rask's page owns the state — Ui.Modal.Open(_confirming) — or holds no state at all behind a Ui.ModalTrigger.",
+        ["Flux::modals()"] = "Closes every modal on the page from PHP. Each Rask modal's open state is its own page's field; there is no registry to sweep.",
+        ["$flux.modal()"] = "Alpine's magic: the kit ships no script. A button that opens or closes a named modal is Ui.ModalTrigger / Ui.ModalClose, which write the browser's own invoker commands.",
+
     };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;

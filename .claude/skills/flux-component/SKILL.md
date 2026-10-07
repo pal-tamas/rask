@@ -65,6 +65,13 @@ Behaviour is measured too: open the page, use the component with keyboard and po
    ```
    Fix the COMPONENT until it passes. A difference is only accepted when it is Livewire-specific or
    comes from the docs page rather than the component; say which, in a comment on the example.
+
+   `parity.mjs` measures a page AS LOADED, where a modal is a trigger and a dialog nobody is shown.
+   `node scripts/flux/parity-modal.mjs` presses each example's trigger on both pages and compares the
+   open dialog — its subtree, its box in the viewport, `::backdrop`, the scroll lock, focus — then the
+   transitions in and out, and what Escape, a click outside and each close button do. A component that
+   is only itself once opened needs the same; start from that script.
+
 4. Unit tests in `tests/Rask.Ui.Tests/Components/Ui<Name>Tests.cs`: behaviour and markup contract
    (roles, attributes, what a prop writes). Names are sentences; three blank-line-separated blocks.
 

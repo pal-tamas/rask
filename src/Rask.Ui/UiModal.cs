@@ -1,257 +1,253 @@
+using System.Globalization;
+
 namespace Rask;
 
 /// <summary>
-/// A dialog: the whole story about one thing, without leaving the page it came from.
+///     Flux's <c>flux:modal</c>: content in a layer above the page — a centred panel, or with
+///     <see cref="Flyout" /> a sheet anchored to an edge.
 /// </summary>
 /// <remarks>
-/// <para>
-/// A real <c>&lt;dialog&gt;</c>, and by default a real <b>modal</b> one. Set <see cref="Id" /> and give it a
-/// <see cref="Trigger" /> and the browser owns the whole interaction. The trigger is an invoker —
-/// <c>command="show-modal"</c> — so the dialog opens the way <c>showModal()</c> opens it, with no script:
-/// the top layer, so nothing on the page can paint over it or trap it inside an <c>overflow: hidden</c>
-/// ancestor; the page behind made inert, so Tab cannot wander out of it; Escape; and focus handed back to
-/// the trigger on close. None of that is implemented here, and all of it works on a prerendered page
-/// before any runtime has booted.
-/// </para>
-/// <para>
-/// The same buttons also name the dialog as a <c>popover</c>. A browser without invoker commands (before
-/// Chrome 135, Firefox 144, Safari 26.2) ignores <c>command</c> and opens it as a popover instead — still
-/// in the top layer, still closed by Escape — just without the inert page behind it. A page is never left
-/// with a button that does nothing.
-/// </para>
-/// <para>
-/// <b>The state-driven path is the exception, not the default.</b> Set <see cref="Open" /> and the
-/// dialog stops being a popover and becomes an ordinary <c>&lt;dialog open&gt;</c> that the page
-/// renders when its own state says so. Reach for it when something in C# decides the dialog should
-/// appear — a row was selected, an action failed — which the declarative path cannot express, because
-/// nothing in C# can press a button.
-/// </para>
-/// <para>
-/// The two are mutually exclusive in the markup and have to be: a <c>[popover]</c> element is
-/// <c>display: none</c> until the browser shows it, so a <c>modal-open</c> class on one would set a
-/// class that changes nothing. Setting <see cref="Open" /> is therefore what chooses the path.
-/// </para>
-/// <para>
-/// What the state-driven path gives up is the top layer: nothing in markup can put an element there. It
-/// keeps focus containment, through the runtime's <c>data-rask-focus-trap</c> — focus moves in when it opens,
-/// Tab cycles inside it, Escape runs <see cref="OnClose" />, and focus returns to what had it when it closes.
-/// </para>
-/// <para>
-/// A dialog locks the page's scroll while it is open, from the kit's stylesheet, so a long page does not
-/// slide underneath a sheet a reader is trying to scroll.
-/// </para>
+///     <para>
+///     A real <c>&lt;dialog&gt;</c>. Give it a <see cref="Name" /> and a <see cref="UiModalTrigger" /> naming it,
+///     and the browser owns the whole interaction: the trigger is an invoker (<c>command="show-modal"</c>),
+///     so the dialog opens the way <c>showModal()</c> opens it — the top layer, the page behind made inert,
+///     Escape, a click outside, and focus handed back to the trigger — with no handler and no runtime.
+///     A browser without invoker commands (before Chrome 135, Firefox 144, Safari 26.2) opens it as a
+///     <c>popover</c> instead.
+///     </para>
+///     <para>
+///     Set <see cref="Open" /> and the page owns the state instead, which is Rask's <c>wire:model</c>: render
+///     it open when something in C# decides it should be, and stop when <see cref="OnClose" /> says the reader
+///     closed it. Nothing in markup can put an element in the top layer, so on this path it is an ordinary
+///     <c>&lt;dialog open&gt;</c> over a backdrop the kit draws, held by the runtime's focus trap.
+///     </para>
 /// </remarks>
 public sealed partial class UiModal : Component
 {
-    /// <summary>daisyUI and MaryUI both call this <c>title</c>.</summary>
-    public required string Title { get; set; }
+    // What every variant shares: fading and settling in over 150ms, leaving in 75, and the page dimmed behind.
+    private const string Motion =
+        "opacity-0 transition-all transition-discrete duration-75 ease-[ease] open:opacity-100 open:duration-150 "
+        + "starting:open:opacity-0 open:[transform:translate(0)_scale(1)] backdrop:bg-[rgba(0,0,0,0.1)] backdrop:opacity-0 "
+        + "backdrop:transition-all backdrop:transition-discrete backdrop:duration-75 backdrop:ease-[ease] "
+        + "open:backdrop:opacity-100 open:backdrop:duration-150 starting:open:backdrop:opacity-0 "
+        + "open:backdrop:[transform:translate(0)_scale(1)]";
 
-    /// <summary>
-    ///     Names the dialog so a button can open it. Required for the popover path — it is what
-    ///     <c>popovertarget</c> refers to — and must be unique on the page: two dialogs sharing one
-    ///     would give the first two openers and the second none.
-    /// </summary>
-    public string? Id { get; set; }
+    private const string Grows = "[transform:scale(0.95)] starting:open:[transform:scale(0.95)]";
 
-    /// <summary>
-    ///     The label on the button that opens it. Needs <see cref="Id" />; with no id there is nothing
-    ///     for a button to name.
-    /// </summary>
-    public string? Trigger { get; set; }
+    // A light colour with a dark twin sits in :where(), here and below. An app's own sheet comes after the
+    // kit's and emits `bg-white` too, which on equal terms would beat `dark:bg-zinc-800` in dark mode.
+    private const string Panel =
+        "border-0 text-inherit shadow-lg ring [:where(&)]:bg-white [:where(&)]:ring-black/5 dark:bg-zinc-800 dark:ring-zinc-700";
 
-    /// <summary>
-    ///     Takes the dialog off the popover path and hands the open state to the page. Leave it unset to
-    ///     let the browser own it, which is the better default — see the remarks.
-    /// </summary>
-    public bool? Open { get; set; }
+    private const string Box = "m-auto rounded-xl p-6 [:where(&)]:min-w-xs [:where(&)]:max-w-xl";
 
-    /// <summary>
-    ///     Where it sits in the viewport. <see cref="Ui.ModalPosition.Start" /> and <see cref="Ui.ModalPosition.End" />
-    ///     make it a full-height flyout from that edge — Flux UI's flyout — rather than a centred box.
-    /// </summary>
+    // A sheet against an edge, with a line on its page side that only dark mode draws.
+    private const string Sheet =
+        "fixed overflow-y-auto p-8 text-inherit [:where(&)]:border-transparent [:where(&)]:bg-white "
+        + "dark:border-zinc-700 dark:bg-zinc-800";
+
+    private const string Floating = "fixed overflow-y-auto rounded-xl p-8";
+
+    private const string Bare = "m-auto border-0 bg-transparent p-0 text-inherit";
+
+
+    // The page owns the state, so the dialog is not in the top layer and has to place itself.
+    private const string InPage =
+        "fixed inset-0 z-50 overflow-auto [:where(&)]:max-h-[calc(100%-38px)] [:where(&)]:max-w-[calc(100%-38px)]";
+
+
+    private readonly int _instance = UiInstanceCounter.Next();
+
+    /// <summary>What a <see cref="UiModalTrigger" /> opens it by. Unique on the page: it is the dialog's id.</summary>
+    public string? Name { get; set; }
+
+    /// <summary>Anchors it to an edge of the viewport, full height, for longer forms.</summary>
+    public bool? Flyout { get; set; }
+
+    /// <summary>How it is drawn: the panel, a floating flyout, or nothing at all around the content.</summary>
+    public Ui.ModalVariant? Variant { get; set; }
+
+    /// <summary>The edge a flyout opens from. Right when unset.</summary>
     public Ui.ModalPosition? Position { get; set; }
 
     /// <summary>
-    ///     Runs when it closes. On the state-driven path that is the close button, a click outside and Escape,
-    ///     and it is how the page learns to stop rendering it open. On the modal path the browser closes it
-    ///     and this hears that it did.
+    ///     What scrolls when the content is taller than the viewport: the dialog itself, or with
+    ///     <see cref="Ui.ModalScroll.Body" /> the whole layer, so the panel runs off the bottom of the screen.
     /// </summary>
-    public Callback OnClose { get; set; }
-
-    /// <summary>
-    ///     Runs when it is DISMISSED — Escape or a click outside — before <see cref="OnClose" />, which still runs.
-    ///     The close button is not a dismissal, so it raises only <see cref="OnClose" />.
-    /// </summary>
-    /// <remarks>
-    ///     Flux UI's <c>cancel</c>: the hook to tell "backed out" from "finished", so a form in the dialog can
-    ///     throw its draft away here and keep it when only <see cref="OnClose" /> runs. It cannot keep the dialog
-    ///     open. On the modal path it is the dialog's own <c>cancel</c> event, which a browser without invoker
-    ///     commands does not raise for a popover it dismisses — there only <see cref="OnClose" /> runs.
-    /// </remarks>
-    public Callback OnCancel { get; set; }
+    public Ui.ModalScroll? Scroll { get; set; }
 
     /// <summary>Whether a click outside closes it. On unless this is <see langword="false" />.</summary>
-    /// <remarks>
-    ///     Turn it off for a dialog holding work a stray click would lose. A browser without invoker commands
-    ///     opens the modal path as a manual popover when this is off, which also means Escape no longer closes
-    ///     it there — the close button still does.
-    /// </remarks>
     public bool? Dismissible { get; set; }
 
     /// <summary>Whether Escape closes it. On unless this is <see langword="false" />.</summary>
-    /// <remarks>
-    ///     Off writes <c>closedby="none"</c> on the modal path — Safari has not shipped it yet and still closes on
-    ///     Escape — and drops the runtime's Escape handling on the state-driven path. A dialog that cannot be
-    ///     escaped needs a visible way out, so leave <see cref="Closable" /> on or put one in the footer.
-    /// </remarks>
     public bool? Escapable { get; set; }
 
-    /// <summary>Whether the header shows a close button. On unless this is <see langword="false" />.</summary>
+    /// <summary>Whether it shows the close button in its corner. On unless this is <see langword="false" />.</summary>
     public bool? Closable { get; set; }
 
-    /// <summary>The actions, trailing-aligned on a pointer and stacked on a phone.</summary>
-    public Component? Footer { get; set; }
+    /// <summary>
+    ///     Hands the open state to the page, in place of Flux's <c>wire:model</c>. Unset, a named modal is
+    ///     opened by its triggers and the browser keeps the state.
+    /// </summary>
+    public bool? Open { get; set; }
 
+    /// <summary>Runs when it closes, by any means. On the state-driven path this is where the page stops rendering it open.</summary>
+    public Callback OnClose { get; set; }
+
+    /// <summary>Runs when it is dismissed — a click outside or Escape — before <see cref="OnClose" />.</summary>
+    public Callback OnCancel { get; set; }
+
+    /// <summary>The dialog's accessible name, for one whose content has no heading to say what it is.</summary>
+    public string? AccessibleLabel { get; set; }
+
+    /// <summary>Classes for the panel, added to its own: <c>md:w-96</c> sets the width.</summary>
     public string? Class { get; set; }
 
     /// <inheritdoc />
-    protected override Component? Render() => Open is null && Id is { } id ? Popover(id) : StateDriven();
+    protected override Component? Render() =>
+        Div.Class("inline").Attributes(("data-ui-modal", null))[
+            Open is null && Name is not null ? Declarative(Name) : StateDriven()
+        ];
 
-    private Component Popover(string id)
+    private bool IsFlyout => Flyout == true || Variant == Ui.ModalVariant.Flyout;
+
+    private bool IsBare => Variant == Ui.ModalVariant.Bare;
+
+    private bool ScrollsBody => Scroll == Ui.ModalScroll.Body && !IsFlyout && !IsBare;
+
+    private Component Declarative(string name)
     {
-        var dialog = Dialog
-            .Id(id)
-            .Class(Classes())
-            // Manual where the fallback must not light-dismiss or escape: an auto popover does both.
+        var dialog = Marked(Dialog.Id(name).Class(Classes(inPage: false)), ("closedby", ClosedBy()))
+            // The fallback's light dismiss and Escape come as a pair, so it only has them when both are wanted.
             .Popover(Dismissible == false || Escapable == false ? Rask.Core.Popover.Manual : Rask.Core.Popover.Auto);
-
-        if (Escapable == false)
-        {
-            dialog = dialog.Attributes(("closedby", "none"));
-        }
 
         if (OnClose.HasValue)
         {
-            // The dialog's own toggle event: the platform reports every way it closed, the ones no handler here
-            // saw included — Escape, the backdrop, a button inside the body.
-            dialog = dialog.OnToggle(e => string.Equals(e.NewState, "open", StringComparison.Ordinal) ? ValueTask.CompletedTask : OnClose.Invoke());
+            // The toggle rather than the close event: a popover the fallback opened raises no close.
+            dialog = dialog.OnToggle(e =>
+                string.Equals(e.NewState, "open", StringComparison.Ordinal) ? ValueTask.CompletedTask : OnClose.Invoke());
         }
 
-        // Escape, and a light dismiss where the browser does one: the platform raises cancel for those and
-        // for nothing else. The backdrop is a close command, which it reports as a plain close, so the
-        // backdrop says it was a dismissal itself, below.
+        // The platform's own: Escape and a click outside raise it, a close button does not.
         if (OnCancel.HasValue)
         {
             dialog = dialog.OnCancel(OnCancel);
         }
 
-        // Two roots and no wrapper: the opener is a sibling of the dialog it names, so a caller can put
-        // the trigger where it belongs in their own layout.
-        return
-        [
-            Trigger is { } trigger
-                ? Button.Type(ButtonType.Button).Class("btn").Attributes(Opens(id))[trigger]
-                : null,
-            Shell(
-                dialog,
-                Closable == false ? null : PopoverClose(id),
-                backdrop: Dismissible == false ? null : PopoverBackdrop(id))
+        return dialog[
+            Body(
+                new UiModalScope(name, default),
+                CloseButton().Attributes(UiModalInvoker.Closes(name))[Cross()],
+                // The command closes it with no runtime; the handler only adds the word "dismissed".
+                Outside().Attributes(UiModalInvoker.Closes(name)).OnClick(OnCancel))
         ];
     }
-
-    // Both names on every control, so each browser takes the one it has: an invoker command where it is
-    // supported, which the platform acts on first, and the popover action everywhere else.
-    private static (string, string?)[] Opens(string id) =>
-        [("command", "show-modal"), ("commandfor", id), ("popovertarget", id)];
-
-    private static (string, string?)[] Closes(string id) =>
-        [("command", "close"), ("commandfor", id), ("popovertarget", id), ("popovertargetaction", "hide")];
-
-    // Markup rather than a handler, so it closes with no runtime at all.
-    private static Component PopoverClose(string id) =>
-        Button
-            .Type(ButtonType.Button)
-            .Class("btn btn-ghost btn-sm btn-square")
-            .Attributes(Closes(id))
-            .Aria("label", "Close")[
-            Ui.Icon.Name(Ui.IconName.XMark).Class("size-4 shrink-0")
-        ];
-
-    // A MODAL dialog has no light-dismiss of its own in most browsers — the viewport-sized `.modal` is the
-    // dialog, so a click on the dimmed area is a click inside it. daisyUI's backdrop button is the part that
-    // click lands on. No role and no label: the close button is the keyboard's way out.
-    private Component PopoverBackdrop(string id) =>
-        Button
-            .Type(ButtonType.Button)
-            .Class("modal-backdrop")
-            .Aria("hidden", "true")
-            .TabIndex(-1)
-            .Attributes(Closes(id))
-            // The markup still closes it with no runtime; the handler only adds the word "dismissed", and only
-            // for a caller who asked to hear it.
-            .OnClick(OnCancel)["close"];
 
     private Component StateDriven()
     {
         var open = Open != false;
+        (string, string?)[] held = open ? [("data-open", null), ("data-rask-focus-trap", null)] : [];
+        var dialog = Marked(Dialog.Class(Classes(inPage: true)), held).Open(open);
+        var body = Body(
+            new UiModalScope(null, OnClose),
+            CloseButton().OnClick(() => OnClose.Invoke())[Cross()],
+            Outside().OnClick(DismissAsync));
 
-        // `open` on a <dialog> shows it non-modally; daisyUI's `.modal[open]` rule is what makes it cover the
-        // viewport anyway. `modal-open` alongside it drives the transition.
-        var dialog = Dialog.Class(UiClass.Compose(Classes(), open ? "modal-open" : "")).Open(open);
-
-        // Containment comes from the runtime's focus trap, only while it is open — on a closed dialog that
-        // stays mounted the attribute's removal is what hands focus back.
-        if (open)
+        if (!open)
         {
-            dialog = dialog.TabIndex(-1).Attributes(("data-rask-focus-trap", null));
+            return dialog[body];
         }
 
-        var close = Ui.Button
-            .AccessibleLabel("Close")
-            .Variant(Ui.Variant.Ghost)
-            .Size(Ui.Size.Sm)
-            .Square()
-            .OnClick(() => OnClose.Invoke());
-
-        // The trap presses the [data-rask-dismiss] control on Escape. The close button IS that control unless
-        // the caller wants a dismissal told apart from a close — then Escape presses a hidden one of its own.
-        if (Escapable != false && OnClose.HasValue && !OnCancel.HasValue)
-        {
-            close = close.Attributes(("data-rask-dismiss", null));
-        }
-
-        return Shell(
-            dialog,
-            HeaderControls(close),
-            // A pointer convenience, not the only way out: the header's close button is the keyboard
-            // path, which is why this carries no role and no label of its own.
-            backdrop: !HearsDismissal || Dismissible == false
-                ? null
-                : Button
-                    .Type(ButtonType.Button)
-                    .Class("modal-backdrop")
-                    .Aria("hidden", "true")
-                    .TabIndex(-1)
-                    .OnClick(DismissAsync)["close"]);
+        return
+        [
+            Backdrop(),
+            dialog.Aria("modal", "true")[
+                body,
+                // What the runtime presses on Escape. Not the close button: Escape is a dismissal.
+                Escapable == false ? null : Outside().Class("hidden").Attributes(("data-rask-dismiss", null)).OnClick(DismissAsync)
+            ]
+        ];
     }
 
-    private Component? HeaderControls(UiButton close)
+    // The dimmed page, which the top layer draws for a dialog the browser opened and nothing draws for this one.
+    private Component Backdrop() =>
+        Dismissible == false || ScrollsBody
+            ? Div.Class("fixed inset-0 z-50 bg-black/10").Aria("hidden", "true")
+            : Outside().Class("fixed inset-0 z-50 size-full cursor-default border-0 bg-black/10").OnClick(DismissAsync);
+
+    // Flux's marks — the dialog's name, and that it is a flyout — and whatever this path adds to them.
+    private HTMLDialogElement Marked(HTMLDialogElement dialog, params (string, string?)[] attributes)
     {
-        if (Closable == false)
+        var named = dialog.Data("modal", Name ?? "ui-modal-" + _instance.ToString(CultureInfo.InvariantCulture));
+        (string, string?)[] marks = IsFlyout ? [("data-ui-flyout", null), .. attributes] : attributes;
+
+        if (marks.Length != 0)
         {
-            return EscapeTarget();
+            named = named.Attributes(marks);
         }
 
-        return !OnCancel.HasValue
-            ? close[Ui.Icon.Name(Ui.IconName.XMark)]
-            : [close[Ui.Icon.Name(Ui.IconName.XMark)], EscapeTarget()];
+        return AccessibleLabel is { } label ? named.Aria("label", label) : named;
     }
 
-    // Someone is listening for the page to stop rendering it open. Without either callback a dismissal would
-    // do nothing, so the backdrop and the Escape control are left out rather than rendered dead.
-    private bool HearsDismissal => OnClose.HasValue || OnCancel.HasValue;
 
-    // A dismissal on the state-driven path: cancel first, then close, the order the platform raises them in.
+    // Flux's order: the focus placeholder, the content, the close button in the corner.
+    private Component Body(UiModalScope scope, Component close, HTMLButtonElement outside)
+    {
+        Component content = Context.Provide(scope)[Children ?? []];
+
+        if (IsBare)
+        {
+            return [FocusPlaceholder(), content];
+        }
+
+        Component?[] parts =
+        [
+            content,
+            Closable == false
+
+                ? null
+                : Div.Class("absolute end-0 top-0 me-4 mt-4")[Div.Class("inline").Attributes(("data-ui-modal-close", null))[close]]
+        ];
+
+        if (!ScrollsBody)
+        {
+            return [FocusPlaceholder(), .. parts];
+        }
+
+        // The layer scrolls, so the panel is a box inside it and the room around it is what a click outside lands on.
+        return
+        [
+            FocusPlaceholder(),
+            Div.Class("relative flex min-h-full items-start justify-center [:where(&)]:p-4 sm:p-12")[
+                Dismissible == false ? null : outside.Class("absolute inset-0 size-full cursor-default border-0 bg-transparent"),
+                Div.Class(UiClass.Compose("relative", Panel, Box, Class))[parts]
+            ]
+        ];
+    }
+
+    // Takes the focus a dialog would otherwise give its first field, then leaves: nothing is ringed when it
+    // opens, and the first Tab lands on the first control (ui.css hides it once it has done that).
+    private static HTMLDivElement FocusPlaceholder() =>
+        Div.TabIndex(-1).Attributes(("data-ui-focus-placeholder", null), ("autofocus", null));
+
+    private static HTMLButtonElement CloseButton() =>
+        Button
+            .Type(ButtonType.Button)
+            .Class(
+                "relative inline-flex size-8 items-center justify-center gap-2 whitespace-nowrap rounded-md "
+                + "border-0 bg-transparent p-0 text-sm font-medium [:where(&)]:text-zinc-400 hover:bg-zinc-800/5 "
+                + "hover:text-zinc-800 dark:text-zinc-500 dark:hover:bg-white/15 dark:hover:text-white")
+
+            .Aria("label", "Close modal");
+
+    private static UiIcon Cross() => Ui.Icon.Name(Ui.IconName.XMark).Mini;
+
+    // What a click outside lands on where the platform cannot hear one itself. Never in the tab order or the
+    // accessibility tree: the close button and Escape are the keyboard's ways out.
+    private static HTMLButtonElement Outside() =>
+        Button.Type(ButtonType.Button).TabIndex(-1).Aria("hidden", "true");
+
+    // Cancel first, then close: the order the platform raises them in.
     private async Task DismissAsync()
     {
         await OnCancel.Invoke().ConfigureAwait(true);
@@ -259,59 +255,81 @@ public sealed partial class UiModal : Component
         await OnClose.Invoke().ConfigureAwait(true);
     }
 
-    // The control Escape presses when the header's close button cannot be it: there is none, or a dismissal
-    // must be told apart from a close. Hidden, out of the tab order and the accessibility tree.
-    private Component? EscapeTarget() =>
-        Escapable == false || !HearsDismissal
-            ? null
-            : Button
-                .Type(ButtonType.Button)
-                .Class("hidden")
-                .Aria("hidden", "true")
-                .TabIndex(-1)
-                .Attributes(("data-rask-dismiss", null))
-                .OnClick(DismissAsync)["close"];
+    // `any` is Escape and a click outside, `closerequest` Escape alone. Nothing asks for a click outside
+    // alone, so a dialog that is not escapable gives that up too.
+    private string ClosedBy()
+    {
+        if (Escapable == false)
+        {
+            return "none";
+        }
 
-    private bool IsFlyout => Position is Ui.ModalPosition.Start or Ui.ModalPosition.End;
+        return Dismissible == false || ScrollsBody ? "closerequest" : "any";
+    }
 
-    private string Classes() =>
-        UiClass.Compose(
-            "modal",
-            // The responsive default, and only where the caller has not chosen: a stated placement with
-            // `sm:modal-middle` appended would be overridden at every width above a phone.
-            Position is { } position
-                ? UiClassNames.ModalPosition(position)
-                : "modal-bottom sm:modal-middle",
-            Class);
 
-    // Takes the dialog itself. It used to take `Build<HTMLDialogElement>`, because the chain receiver was the only
-    // thing carrying the children indexer; the component carries it now. The two paths differ in how the
-    // dialog OPENS, not in what is inside it.
-    private Component Shell(HTMLDialogElement dialog, Component? closeControl, Component? backdrop) =>
-        // No `role="dialog"`: the element IS a dialog and carries that role implicitly, so stating it
-        // again is the redundant-ARIA that guidance tells you not to write. The NAME is not implicit,
-        // though — a dialog with a heading inside is still an unnamed dialog to a screen reader, which
-        // announces "dialog" and nothing else — so the title goes on as aria-label.
-        dialog.Aria("label", Title)[
-            Div.Class(IsFlyout
-                ? "modal-box flex w-[min(28rem,100vw)] flex-col p-0"
-                // daisyUI's side modals are already full height; the centred box's height and width caps would
-                // override that and turn the flyout back into a floating box.
-                : "modal-box flex max-h-[88vh] flex-col p-0 sm:max-h-[85vh] sm:max-w-2xl")[
-                Div.Class("flex items-start gap-3 border-b border-base-300 px-4 py-3 sm:px-5")[
-                    H2.Class("min-w-0 grow break-words text-base font-semibold tracking-tight")[Title],
-                    closeControl
-                ],
-                // The only scrolling region: the header and footer stay put while a stack trace moves.
-                Div.Class("min-h-0 grow space-y-4 overflow-y-auto px-4 py-4 sm:px-5")[Children ?? []],
-                Footer is null
-                    ? null
-                    : Div.Class(
-                        "flex flex-col-reverse gap-2 border-t border-base-300 px-4 py-3 sm:flex-row "
-                        + "sm:justify-end sm:px-5")[
-                        Footer
-                    ]
-            ],
-            backdrop
-        ];
+    // A class from the call site goes on whatever draws the panel, which is the dialog unless the layer scrolls.
+    private string Classes(bool inPage) =>
+        UiClass.Compose(Motion, Shape(), inPage ? InPage : null, ScrollsBody ? null : Class);
+
+    private string Shape()
+    {
+        if (ScrollsBody)
+        {
+            return "m-0 size-full max-h-none max-w-none overflow-y-auto border-0 bg-transparent p-0 text-inherit";
+        }
+
+        if (IsBare)
+        {
+            return UiClass.Compose(Bare, Grows);
+        }
+
+        if (!IsFlyout)
+        {
+            return UiClass.Compose(Panel, Box, Grows);
+        }
+
+        var position = Position ?? Ui.ModalPosition.Right;
+
+        return Variant == Ui.ModalVariant.Floating
+            ? UiClass.Compose(Panel, Floating, FloatingExtent(position), FloatingEdge(position), Slide(position))
+            : UiClass.Compose(Sheet, Extent(position), Edge(position), Slide(position));
+    }
+
+    // Each side said once, never a shorthand with one side then taken back: an app's own sheet comes after
+    // the kit's and emits `m-0` and `border-0` too, and there the shorthand would win the side back.
+    // Three margins hold it to its edge and the fourth gives way; the line is on the side that faces the page.
+    private static string Edge(Ui.ModalPosition position) => position switch
+    {
+        Ui.ModalPosition.Left => "my-0 ms-0 me-auto border-y-0 border-s-0 border-e",
+        Ui.ModalPosition.Bottom => "mx-0 mb-0 mt-auto border-x-0 border-b-0 border-t",
+        _ => "my-0 me-0 ms-auto border-y-0 border-e-0 border-s",
+    };
+
+    private static string FloatingEdge(Ui.ModalPosition position) => position switch
+    {
+        Ui.ModalPosition.Left => "my-2 ms-2 me-auto",
+        Ui.ModalPosition.Bottom => "mx-2 mb-2 mt-auto",
+        _ => "my-2 me-2 ms-auto",
+    };
+
+    // Where it comes in from, and leaves to.
+    private static string Slide(Ui.ModalPosition position) => position switch
+    {
+        Ui.ModalPosition.Left => "[transform:scale(1)_translateX(-50px)] starting:open:[transform:scale(1)_translateX(-50px)]",
+        Ui.ModalPosition.Bottom => "[transform:scale(1)_translateY(50px)] starting:open:[transform:scale(1)_translateY(50px)]",
+        _ => "[transform:scale(1)_translateX(50px)] starting:open:[transform:scale(1)_translateX(50px)]",
+    };
+
+
+    // A side flyout is the viewport's height and at least 25rem wide from md; a bottom one its width.
+    private static string Extent(Ui.ModalPosition position) =>
+        position == Ui.ModalPosition.Bottom
+            ? "max-h-dvh w-full max-w-none"
+            : "max-h-dvh min-h-dvh md:[:where(&)]:min-w-[25rem]";
+
+    private static string FloatingExtent(Ui.ModalPosition position) =>
+        position == Ui.ModalPosition.Bottom
+            ? "max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-none"
+            : "max-h-[calc(100dvh-1rem)] min-h-[calc(100dvh-1rem)] md:[:where(&)]:min-w-[25rem]";
 }

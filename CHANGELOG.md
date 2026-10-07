@@ -20,6 +20,48 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Modal` is Flux's modal, flyouts included; `Ui.Drawer` folds into it.** Measured against
+  [fluxui.dev/components/modal](https://fluxui.dev/components/modal) open as well as loaded
+  (`scripts/flux/parity-modal.mjs`): the panel, the backdrop, the close button, the 150ms in and 75ms out,
+  and what Escape, a click outside and the close button each do. The trigger is its own component now, a
+  modal has a `Name` instead of an `Id`, and it no longer draws a title bar or a footer — what it holds is
+  yours, as in Flux:
+  ```csharp
+  // was
+  Ui.Modal.Title("Delete order").Id("confirm").Trigger("Delete").Footer(Ui.Button["Cancel"])[ … ]
+  // now
+  Ui.ModalTrigger.Name("confirm")[Ui.Button["Delete"]],
+  Ui.Modal.Name("confirm")[
+      Ui.Heading.Lg["Delete order"], … ,
+      Ui.ModalClose[Ui.Button["Cancel"]]
+  ]
+  ```
+  `Ui.ModalTrigger` and `Ui.ModalClose` (Flux's `modal.trigger`, `modal.close`) make the button inside them
+  an invoker for the dialog — no handler, no runtime — and a trigger takes `Shortcut("mod+k")`.
+  `Ui.ModalPosition` is now the edge a **flyout** opens from, `Right`, `Left` or `Bottom`:
+  ```csharp
+  Ui.Modal.Title("Filters").Id("filters").Position(Ui.ModalPosition.End)[ … ]    // was
+  Ui.Modal.Name("filters").Flyout()[ … ]                                         // now (Right is the default)
+  Ui.Modal.Position(Ui.ModalPosition.Start)   →   Ui.Modal.Flyout().Left
+  Ui.Modal.Position(Ui.ModalPosition.Bottom)  →   Ui.Modal.Flyout().Bottom
+  ```
+  `Top` and `Middle` are gone: a modal that is not a flyout is centred. New: `Variant` (`Floating` for a
+  flyout that stands off the edges, `Bare` for no panel at all), `Scroll(Ui.ModalScroll.Body)` for a long
+  modal that runs past the bottom of the screen, and `AccessibleLabel` to name one whose content has no
+  heading. `Open`, `OnClose`, `OnCancel`, `Dismissible`, `Escapable` and `Closable` keep their names; on a
+  named modal a click outside is now the browser's own (`closedby`), not a button behind the box.
+  **`Ui.Drawer` is removed** — a panel that slides in from an edge is a flyout, and the page owns whether
+  it is open:
+  ```csharp
+  // was
+  Ui.Drawer.Id("nav").Panel(menu).Open(_open).OnToggle(open => _open = open)[page]
+  // now
+  page,
+  Ui.Modal.Flyout().Left.Open(_open).OnClose(() => _open = false)[menu]
+  Ui.Drawer.Position(Ui.Position.Right)   →   Ui.Modal.Flyout()        // Right is the default
+  ```
+  `Ui.Sidebar` still slides on daisyUI's drawer and is unchanged.
+
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:

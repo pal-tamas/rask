@@ -32,9 +32,13 @@ public sealed partial class UiKitActionsDemo : Component
         ContextMenuSection(),
         CommandPaletteSection(),
         PopoverSection(),
-        PopoverModalSection(),
+        ModalSection(),
+        ConfirmationModalSection(),
         FlyoutModalSection(),
+        FloatingFlyoutModalSection(),
+        ModalOptionsSection(),
         StateDrivenModalSection(),
+
         SwapSection(),
         ThemeControllerSection(),
         FloatingActionButtonSection(),
@@ -193,73 +197,173 @@ public sealed partial class UiKitActionsDemo : Component
                 ]
             ]);
 
-    private Component PopoverModalSection() =>
+    // Flux's first example: a named modal and the trigger that names it.
+    private Component ModalSection() =>
         Section(
-            "Modal — the popover path (the default)",
-            "A real modal <dialog>, opened by an invoker command. The browser gives it the top layer, an "
-            + "inert page behind, Escape and focus back on the trigger when it closes, none of it implemented here and none of it "
-            + "needing a runtime — this one works with scripting off entirely. OnClose only hears that it closed.",
-            Div.Data(Testid("ui-modal-popover"))[
+            "Modal",
+            "A real <dialog>, opened by its trigger with no handler. The button is an invoker, so the browser "
+            + "gives the dialog the top layer, an inert page behind it, Escape, a click outside and focus back "
+            + "on the trigger — on a prerendered page too. OnClose only hears that it closed.",
+            Div.Data(Testid("ui-modal"))[
+                Ui.ModalTrigger.Name("edit-profile")[Ui.Button["Edit profile"]],
                 Ui.Modal
-                    .Title("Keyboard shortcuts")
-                    .Id("demo-shortcuts")
-                    .Trigger("Show shortcuts")
-                    .OnClose(() => { _lastAction = "closed the shortcuts"; })[
-                    P["Press Escape, or click outside, and the browser closes this."],
-                    // A toggle INSIDE the dialog is the dialog's descendant's event, not the dialog's own.
-                    Details.Data(Testid("ui-modal-popover-more"))[
-                        Summary["More shortcuts"],
-                        P["⌘K opens the command palette."]
+                    .Name("edit-profile")
+                    .Class("md:w-96")
+                    .OnClose(() => { _lastAction = "closed the profile"; })[
+                    Div.Class("space-y-6")[
+                        ProfileHeading(),
+                        Ui.Input.Of<string>().Key("name").Label("Name").Placeholder("Your name"),
+                        Ui.Input.Of<string>().Key("born").Label("Date of birth").Type(InputType.Date),
+                        // A toggle INSIDE the dialog is its descendant's event, not the dialog's own.
+                        Details.Data(Testid("ui-modal-more"))[
+                            Summary["More"],
+                            P["Opening this does not close the dialog."]
+                        ],
+                        Div.Class("flex")[Ui.Spacer, Ui.Button.Primary["Save changes"]]
+                    ]
+                ]
+            ]);
+
+    private Component ConfirmationModalSection() =>
+        Section(
+            "Modal — confirmation",
+            "Ask before a dangerous action. Ui.ModalClose makes the button inside it close the modal it is in — "
+            + "a close, not a dismissal — and a handler on that button still runs.",
+            Div.Data(Testid("ui-modal-confirm"))[
+                Ui.ModalTrigger.Name("delete-profile")[Ui.Button.Error["Delete"]],
+                Ui.Modal.Name("delete-profile").Class("min-w-[22rem]")[
+                    Div.Class("space-y-6")[
+                        Div[
+                            Ui.Heading.Level(2).Lg["Delete project?"],
+                            Ui.Text.Class("mt-2")["You're about to delete this project.", Br, "This action cannot be reversed."]
+                        ],
+                        Div.Class("flex gap-2")[
+                            Ui.Spacer,
+                            Ui.ModalClose.Key("cancel")[Ui.Button.Ghost["Cancel"]],
+                            Ui.ModalClose.Key("delete")[
+                                Ui.Button.Error.OnClick(() => { _lastAction = "deleted the project"; })["Delete project"]
+                            ]
+                        ]
                     ]
                 ]
             ]);
 
     private static Component FlyoutModalSection() =>
         Section(
-            "Modal — a flyout",
-            "Position Start or End slides it in from that edge at full height — a filter panel, a detail "
-            + "sheet. Dismissible(false) keeps a stray click outside from losing what is being edited.",
+            "Modal — flyout",
+            "Flyout anchors it to an edge at full height, for longer forms: the right by default, Left or "
+            + "Bottom when asked.",
             Div.Data(Testid("ui-modal-flyout"))[
-                Ui.Modal
-                    .Title("Filters")
-                    .Id("demo-filters")
-                    .Trigger("Filters")
-                    .Position(Ui.ModalPosition.End)
-                    .Dismissible(false)
-                    .Footer(Ui.Button.Primary.Command("close").CommandFor("demo-filters")["Apply"])[
-                    P["Only the close button, Escape, or Apply closes this one."]
+                Div.Class("flex flex-wrap gap-2")[
+                    Ui.ModalTrigger.Key("right").Name("edit-profile-flyout")[Ui.Button["Edit profile"]],
+                    Ui.ModalTrigger.Key("left").Name("flyout-left")[Ui.Button["From the left"]],
+                    Ui.ModalTrigger.Key("bottom").Name("flyout-bottom")[Ui.Button["From the bottom"]]
+                ],
+                Ui.Modal.Key("m-right").Name("edit-profile-flyout").Flyout().Class("md:w-lg")[
+                    Div.Class("space-y-6")[
+                        ProfileHeading(),
+                        Ui.Input.Of<string>().Key("name").Label("Name").Placeholder("Your name"),
+                        Ui.Input.Of<string>().Key("born").Label("Date of birth").Type(InputType.Date),
+                        Div.Class("flex")[Ui.Spacer, Ui.Button.Primary["Save changes"]]
+                    ]
+                ],
+                Ui.Modal.Key("m-left").Name("flyout-left").Flyout().Left[
+                    Div.Class("space-y-6")[Ui.Heading.Level(2).Lg["Navigation"], Ui.Text["A flyout from the left edge."]]
+                ],
+                Ui.Modal.Key("m-bottom").Name("flyout-bottom").Flyout().Bottom[
+                    Div.Class("space-y-6")[Ui.Heading.Level(2).Lg["Share"], Ui.Text["A flyout from the bottom edge."]]
+                ]
+            ]);
+
+    private static Component FloatingFlyoutModalSection() =>
+        Section(
+            "Modal — floating flyout",
+            "The Floating variant stands the flyout off the edges of the viewport, rounded and shadowed like a panel.",
+            Div.Data(Testid("ui-modal-floating"))[
+                Ui.ModalTrigger.Name("edit-profile-floating")[Ui.Button["Edit profile"]],
+                Ui.Modal.Name("edit-profile-floating").Flyout().Floating.Class("md:w-lg")[
+                    Div.Class("space-y-6")[
+                        Ui.Heading.Level(2).Lg["Update profile"],
+                        Ui.Subheading["Make changes to your personal details."],
+                        Ui.Input.Of<string>().Key("name").Label("Name").Placeholder("Your name"),
+                        Ui.Input.Of<string>().Key("born").Label("Date of birth").Type(InputType.Date),
+                        Div.Class("flex items-center justify-end gap-2")[
+                            Ui.ModalClose[Ui.Button["Cancel"]],
+                            Ui.Button.Primary["Save changes"]
+                        ]
+                    ]
+                ]
+            ]);
+
+    private static Component ModalOptionsSection() =>
+        Section(
+            "Modal — what closes it, and what scrolls",
+            "Dismissible(false) keeps a stray click outside from losing what is being edited; Escapable(false) "
+            + "and Closable(false) take Escape and the corner button away. Scroll Body lets a long modal run "
+            + "past the bottom of the screen, so it is plain there is more.",
+            Div.Data(Testid("ui-modal-options"))[
+                Div.Class("flex flex-wrap gap-2")[
+                    Ui.ModalTrigger.Key("filters").Name("demo-filters")[Ui.Button["Filters"]],
+                    Ui.ModalTrigger.Key("terms").Name("demo-terms")[Ui.Button["Terms"]]
+                ],
+                Ui.Modal.Key("m-filters").Name("demo-filters").Flyout().Dismissible(false)[
+                    Div.Class("space-y-6")[
+                        Ui.Heading.Level(2).Lg["Filters"],
+                        Ui.Text["Only the close button, Escape, or Apply closes this one."],
+                        Div.Class("flex")[Ui.Spacer, Ui.ModalClose[Ui.Button.Primary["Apply"]]]
+                    ]
+                ],
+                Ui.Modal.Key("m-terms").Name("demo-terms").Scroll(Ui.ModalScroll.Body).Class("md:w-lg")[
+                    Div.Class("space-y-6")[
+                        Ui.Heading.Level(2).Lg["Terms of service"],
+                        Enumerable.Range(1, 24)
+                            .Select(n => Ui.Text.Key(n)[$"{n}. The whole layer scrolls, not a box inside it."])
+                            .ToArray(),
+
+                        Div.Class("flex")[Ui.Spacer, Ui.ModalClose[Ui.Button.Primary["Accept"]]]
+                    ]
                 ]
             ]);
 
     private Component StateDrivenModalSection() =>
         Section(
-            "Modal — the state-driven path",
-            "For when something in C# decides the dialog should appear, which the declarative path "
-            + "cannot express: nothing in C# can press a button. OnCancel hears a dismissal — Escape or a "
-            + "click outside — apart from a close, so backing out is logged differently from Cancel.",
-            Div.Data(Testid("ui-modal"))[
+            "Modal — state-driven",
+            "For when something in C# decides the dialog should appear, which a trigger cannot express: "
+            + "nothing in C# can press a button. The page owns the state — this is Rask's wire:model. OnCancel "
+            + "hears a dismissal, Escape or a click outside, apart from a close.",
+            Div.Data(Testid("ui-modal-state"))[
                 Ui.Button
                     .Error
                     .OnClick(() => { _confirming = true; })["Delete order"],
                 _confirming
                     ? Ui.Modal
-                        .Title("Delete order")
                         .OnCancel(() => { _lastAction = "dismissed the dialog"; })
-                        .OnClose(() => { _confirming = false; })
-                        .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
-                            Ui.Button.Key("cancel").Ghost
-                                .OnClick(() => { _confirming = false; })["Cancel"],
-                            Ui.Button.Key("confirm").Error
-                                .OnClick(() =>
-                                {
-                                    _confirming = false;
-                                    _lastAction = "deleted the order";
-                                })["Delete"]
-                        ])[
-                        P["This cannot be undone."]
+                        .OnClose(() => { _confirming = false; })[
+                        Div.Class("space-y-6")[
+                            Div[
+                                Ui.Heading.Level(2).Lg["Delete order"],
+                                Ui.Text.Class("mt-2")["This cannot be undone."]
+                            ],
+                            Div.Class("flex gap-2")[
+                                Ui.Spacer,
+                                Ui.ModalClose[Ui.Button.Key("cancel").Ghost["Cancel"]],
+                                Ui.Button.Key("confirm").Error
+                                    .OnClick(() =>
+                                    {
+                                        _confirming = false;
+                                        _lastAction = "deleted the order";
+                                    })["Delete"]
+                            ]
+                        ]
                     ]
                     : null
             ]);
+
+    private static Component ProfileHeading() =>
+        Div[
+            Ui.Heading.Level(2).Lg["Update profile"],
+            Ui.Text.Class("mt-2")["Make changes to your personal details."]
+        ];
 
     private Component SwapSection() =>
         Section(

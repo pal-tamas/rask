@@ -225,14 +225,17 @@ public sealed partial class QueuePage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var isDead = IsDead(row);
+        Component actions = [.. RowActionButtons(row, isDead), Ui.Button.Key("close").OnClick(Close)["Close"]];
+        Component? failure = row.Error is { } error
+            ? [Ui.Divider.Key("d-error"), Ui.Code.Key("error").Content(error).Label("Last error").Tone(Ui.Tone.Error)]
+            : null;
 
         // Rendered only while a row is selected, and Close flips that back — which is the whole of the
         // dialog's open state. Ui.Modal.Open is for a sheet kept mounted while hidden; this one has
         // nothing to preserve between openings, so not rendering it at all is cheaper and simpler.
-        return Ui.Modal
-            .Title(row.Type)
-            .OnClose(Close)
-            .Footer([.. RowActionButtons(row, isDead), Ui.Button.Key("close").OnClick(Close)["Close"]])[
+        // No corner button: the heading row carries the actions, Close among them, where the corner is.
+        return Ui.Modal.Flyout().Closable(false).OnClose(Close)[
+            Ui.Header.Title(row.Type).TitleLevel(2).Actions(actions),
             Ui.DetailList[
                 Ui.DetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(),
                 Ui.DetailRow.Key("queue").Label("Queue").Value(_panel!.Title),
@@ -248,8 +251,10 @@ public sealed partial class QueuePage(
                     : null,
                 Ui.DetailRow.Key("age").Label("Age").Value(DashboardParts.Ago(row.CreatedAt, now))
             ],
-            row.Error is { } error ? Ui.Code.Content(error).Label("Last error").Tone(Ui.Tone.Error) : null,
-            Ui.Code.Content(row.Payload).Label("Payload")
+            failure,
+
+            Ui.Divider.Key("d-payload"),
+            Ui.Code.Key("payload").Content(row.Payload).Label("Payload")
         ];
     }
 

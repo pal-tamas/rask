@@ -39,8 +39,10 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         // below, on the floating element itself.
         foreach (var id in new[]
                  {
-                     "ui-button", "ui-dropdown", "ui-context-menu", "ui-command", "ui-modal", "ui-modal-popover", "ui-swap",
+                     "ui-button", "ui-dropdown", "ui-context-menu", "ui-command", "ui-modal", "ui-modal-confirm",
+                     "ui-modal-flyout", "ui-modal-floating", "ui-modal-options", "ui-modal-state", "ui-swap",
                      "ui-theme-controller",
+
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -348,96 +350,221 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task The_modal_opens_on_demand_and_closes_from_its_footer() => RunAsync(async () =>
+    public Task The_modal_opens_from_its_trigger_as_a_real_modal_and_escape_closes_it() => RunAsync(async () =>
     {
         await OpenAsync();
 
-        var scope = Page.Locator("[data-testid='ui-modal']");
-        await Expect(scope.Locator(".modal")).ToHaveCountAsync(0);
-
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete order" })
-            .First.ClickAsync();
-
-        // The ELEMENT, not [role='dialog']: Ui.Modal renders a real <dialog>, which carries that role
-        // implicitly, so stating it again in the markup would be the redundant ARIA guidance warns
-        // against — and this selector silently matched nothing once it stopped being a div.
-        var dialog = scope.Locator("dialog");
-        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(dialog).ToContainTextAsync("This cannot be undone.");
-
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Cancel" }).ClickAsync();
-        await Expect(scope.Locator(".modal")).ToHaveCountAsync(0);
-    });
-
-    [Fact]
-    public Task The_popover_dialog_opens_and_escape_closes_it() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-modal-popover']");
-        var dialog = Page.Locator("#demo-shortcuts");
-
-        await Expect(dialog).ToBeHiddenAsync();
-
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Show shortcuts" })
-            .ClickAsync();
-        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        // A <details> toggling INSIDE the dialog is not the dialog closing: toggle does not bubble, but the
-        // runtime's capture-phase delegation used to hand it to the nearest element with a toggle handler —
-        // the dialog, whose OnClose reads a closed state from it (#1116 review).
+        var trigger = Page.Locator("[data-testid='ui-modal']")
+            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Edit profile" });
+        var dialog = Page.Locator("#edit-profile");
         var log = Page.Locator("[data-testid='ui-actions-log']");
-        await Page.Locator("[data-testid='ui-modal-popover-more'] summary").ClickAsync();
-        await Expect(Page.Locator("[data-testid='ui-modal-popover-more']")).ToHaveAttributeAsync("open", "");
-        await Expect(dialog).ToBeVisibleAsync();
-        await Expect(log).Not.ToContainTextAsync("closed the shortcuts");
-
-        // No class was written: the button names the dialog with popovertarget and the browser puts it in the
-        // top layer. Escape closing it is the same mechanism, and OnClose only hears about it.
-        await Page.Keyboard.PressAsync("Escape");
         await Expect(dialog).ToBeHiddenAsync();
-        await Expect(log).ToContainTextAsync("closed the shortcuts", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-    });
-
-    [Fact]
-    public Task The_dialog_is_a_real_modal_that_locks_the_scroll_and_hands_focus_back() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var trigger = Page.Locator("[data-testid='ui-modal-popover']")
-            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Show shortcuts" });
-        var dialog = Page.Locator("#demo-shortcuts");
 
         await trigger.FocusAsync();
         await Page.Keyboard.PressAsync("Enter");
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // The invoker command, not the popover fallback: a :modal dialog, the page behind inert.
+        // The invoker command, not the popover fallback: a :modal <dialog>, the page behind inert and locked.
+        Assert.Equal("DIALOG", await dialog.EvaluateAsync<string>("el => el.tagName"));
         Assert.True(await dialog.EvaluateAsync<bool>("d => d.matches(':modal')"), "the kit's dialog opened as a popover");
-        // The kit's stylesheet locks the page under an open kit dialog, and only then.
-        Assert.Equal("hidden", await Page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).overflow"));
+        Assert.Equal("hidden", await Page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).overflowY"));
+        // Nothing is ringed when it opens, as on Flux: the placeholder took the focus and left.
+        Assert.False(
+            await dialog.EvaluateAsync<bool>("d => d.contains(document.activeElement) && document.activeElement.matches('input, button')"),
+            "a control was focused as the modal opened.");
+
+        // A <details> toggling INSIDE the dialog is not the dialog closing: toggle does not bubble, but the
+        // runtime's capture-phase delegation used to hand it to the nearest element with a toggle handler —
+        // the dialog, whose OnClose reads a closed state from it (#1116 review).
+        await Page.Locator("[data-testid='ui-modal-more'] summary").ClickAsync();
+        await Expect(Page.Locator("[data-testid='ui-modal-more']")).ToHaveAttributeAsync("open", "");
+        await Expect(dialog).ToBeVisibleAsync();
+        await Expect(log).Not.ToContainTextAsync("closed the profile");
 
         await Page.Keyboard.PressAsync("Escape");
         await Expect(dialog).ToBeHiddenAsync();
-        Assert.NotEqual("hidden", await Page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).overflow"));
+        await Expect(log).ToContainTextAsync("closed the profile", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        Assert.NotEqual("hidden", await Page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).overflowY"));
         await Expect(trigger).ToBeFocusedAsync();
     });
 
     [Fact]
-    public Task The_state_driven_dialog_traps_focus_and_escape_runs_its_close_handler() => RunAsync(async () =>
+    public Task A_click_outside_closes_the_modal_and_a_click_on_its_own_padding_does_not() => RunAsync(async () =>
     {
         await OpenAsync();
 
-        var scope = Page.Locator("[data-testid='ui-modal']");
+        var dialog = Page.Locator("#edit-profile");
+        await Page.Locator("[data-testid='ui-modal']")
+            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Edit profile" }).ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var box = (await dialog.BoundingBoxAsync())!;
+
+        await Page.Mouse.ClickAsync(box.X + 6, box.Y + (box.Height / 2));
+        await Expect(dialog).ToBeVisibleAsync();
+
+        await Page.Mouse.ClickAsync(4, 4);
+        await Expect(dialog).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task The_modal_is_drawn_as_Flux_draws_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var dialog = Page.Locator("#edit-profile");
+        await Page.Locator("[data-testid='ui-modal']")
+            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Edit profile" }).ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // A class that reached no stylesheet still renders. These are the ones that make it a panel.
+        Assert.Equal("24px", await dialog.EvaluateAsync<string>("d => getComputedStyle(d).paddingTop"));
+        Assert.Equal("12px", await dialog.EvaluateAsync<string>("d => getComputedStyle(d).borderTopLeftRadius"));
+        Assert.Equal("384px", await dialog.EvaluateAsync<string>("d => getComputedStyle(d).width"));
+        Assert.Equal("rgba(0, 0, 0, 0.1)", await dialog.EvaluateAsync<string>("d => getComputedStyle(d, '::backdrop').backgroundColor"));
+        var close = dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Close modal" });
+        var corner = (await close.BoundingBoxAsync())!;
+        var panel = (await dialog.BoundingBoxAsync())!;
+        Assert.Equal(16, Math.Round(panel.X + panel.Width - corner.X - corner.Width));
+        Assert.Equal(16, Math.Round(corner.Y - panel.Y));
+
+        await close.ClickAsync();
+        await Expect(dialog).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task The_confirmation_closes_from_its_cancel_and_its_delete_still_runs_its_handler() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-modal-confirm']");
+        var dialog = Page.Locator("#delete-profile");
+        var open = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete", Exact = true });
+
+        await open.ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Cancel" }).ClickAsync();
+        await Expect(dialog).ToBeHiddenAsync();
+
+        // Ui.ModalClose closes it by command, and the button's own handler runs all the same.
+        await open.ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync();
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete project" }).ClickAsync();
+        await Expect(dialog).ToBeHiddenAsync();
+        await Expect(Page.Locator("[data-testid='ui-actions-log']"))
+            .ToContainTextAsync("deleted the project", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Theory]
+    [InlineData("Edit profile", "edit-profile-flyout", "right")]
+    [InlineData("From the left", "flyout-left", "left")]
+    [InlineData("From the bottom", "flyout-bottom", "bottom")]
+    public Task A_flyout_sits_against_the_edge_it_opens_from(string button, string name, string edge) => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        await Page.Locator("[data-testid='ui-modal-flyout']")
+            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = button }).ClickAsync();
+        var dialog = Page.Locator("#" + name);
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Past the 150ms it slides for.
+        await Page.WaitForTimeoutAsync(300);
+
+        var viewport = await Page.EvaluateAsync<double[]>("() => [document.documentElement.clientWidth, innerHeight]");
+        var rect = (await dialog.BoundingBoxAsync())!;
+        if (string.Equals(edge, "bottom", StringComparison.Ordinal))
+        {
+            Assert.True(rect.Width >= viewport[0] - 2, $"the bottom flyout is {rect.Width}px wide in a {viewport[0]}px viewport.");
+            Assert.True(rect.Y + rect.Height >= viewport[1] - 2, "the bottom flyout is not against the bottom edge.");
+        }
+        else
+        {
+            Assert.True(rect.Height >= viewport[1] - 2, $"the flyout is {rect.Height}px tall in a {viewport[1]}px viewport.");
+            Assert.True(
+                string.Equals(edge, "left", StringComparison.Ordinal) ? rect.X <= 2 : rect.X + rect.Width >= viewport[0] - 2,
+                $"the flyout is not against the {edge} edge.");
+        }
+
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(dialog).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task The_floating_flyout_stands_off_the_edges_of_the_viewport() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        await Page.Locator("[data-testid='ui-modal-floating']")
+            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Edit profile" }).ClickAsync();
+        var dialog = Page.Locator("#edit-profile-floating");
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.WaitForTimeoutAsync(300);
+
+        var viewport = await Page.EvaluateAsync<double[]>("() => [document.documentElement.clientWidth, innerHeight]");
+        var rect = (await dialog.BoundingBoxAsync())!;
+        Assert.Equal(8, Math.Round(rect.Y));
+        Assert.Equal(8, Math.Round(viewport[0] - rect.X - rect.Width));
+        Assert.Equal(8, Math.Round(viewport[1] - rect.Y - rect.Height));
+        Assert.Equal("12px", await dialog.EvaluateAsync<string>("d => getComputedStyle(d).borderTopLeftRadius"));
+
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Cancel" }).ClickAsync();
+        await Expect(dialog).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task A_modal_that_is_not_dismissible_ignores_a_click_outside() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        await Page.Locator("[data-testid='ui-modal-options']")
+            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Filters" }).ClickAsync();
+        var dialog = Page.Locator("#demo-filters");
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        await Page.Mouse.ClickAsync(4, 4);
+        await Page.WaitForTimeoutAsync(300);
+        await Expect(dialog).ToBeVisibleAsync();
+
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Apply" }).ClickAsync();
+        await Expect(dialog).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task A_long_modal_set_to_scroll_the_body_runs_past_the_bottom_of_the_screen() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        await Page.Locator("[data-testid='ui-modal-options']")
+            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Terms" }).ClickAsync();
+        var dialog = Page.Locator("#demo-terms");
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // The layer is the scroller: taller inside than the viewport it fills.
+        Assert.True(
+            await dialog.EvaluateAsync<bool>("d => d.scrollHeight > d.clientHeight && d.clientHeight >= innerHeight - 1"),
+            "the modal did not extend past the viewport.");
+
+        // The room around the panel is outside it, so a click there closes it.
+        await Page.Mouse.ClickAsync(4, 4);
+        await Expect(dialog).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task The_state_driven_modal_traps_focus_and_tells_a_dismissal_from_a_close() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-modal-state']");
         var opener = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete order" }).First;
+        var dialog = scope.Locator("dialog");
+        var log = Page.Locator("[data-testid='ui-actions-log']");
+        await Expect(dialog).ToHaveCountAsync(0);
 
         await opener.FocusAsync();
         await Page.Keyboard.PressAsync("Enter");
-
-        var dialog = scope.Locator("dialog");
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(dialog).ToContainTextAsync("This cannot be undone.");
 
-        // The runtime's trap moved focus in; Tab cycles inside rather than reaching the page behind.
+        // The runtime's trap holds focus; Tab cycles inside rather than reaching the page behind.
         await Expect(dialog).ToHaveAttributeAsync("data-rask-focus-trap", "");
         for (var i = 0; i < 5; i++)
         {
@@ -447,43 +574,18 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
                 "Tab escaped the state-driven dialog.");
         }
 
-        // Escape presses the dismiss control, OnClose stops rendering it, and focus goes back to the opener.
+        // Escape presses the dismiss control: OnCancel hears it, OnClose stops rendering it, focus goes back.
         await Page.Keyboard.PressAsync("Escape");
-        await Expect(scope.Locator(".modal")).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(dialog).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
         await Expect(opener).ToBeFocusedAsync();
+        await Expect(log).ToContainTextAsync("dismissed the dialog", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // ...and it was a DISMISSAL, which OnCancel heard before OnClose (#1116).
-        await Expect(Page.Locator("[data-testid='ui-actions-log']"))
-            .ToContainTextAsync("dismissed the dialog", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-    });
-
-    [Fact]
-    public Task A_flyout_runs_the_full_height_of_the_viewport() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        await Page.Locator("[data-testid='ui-modal-flyout']")
-            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Filters" }).ClickAsync();
-
-        var box = Page.Locator("#demo-filters .modal-box");
-        await Expect(box).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        var viewport = Page.ViewportSize!;
-        var rect = await box.BoundingBoxAsync();
-        Assert.True(rect!.Height >= viewport.Height - 2, $"the flyout is {rect.Height}px tall in a {viewport.Height}px viewport.");
-        Assert.True(rect.X + rect.Width >= viewport.Width - 2, "the flyout is not against the end edge.");
-    });
-
-    [Fact]
-    public Task The_popover_dialog_is_a_real_dialog_element() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        // A <dialog> rather than a div wearing role=dialog, which is what lets the popover path get a
-        // native ::backdrop instead of one the kit paints.
-        var tag = await Page.Locator("#demo-shortcuts").EvaluateAsync<string>("el => el.tagName");
-
-        Assert.Equal("DIALOG", tag);
+        // Cancel is a close, not a dismissal — and Delete, which has a handler of its own, is neither.
+        await opener.ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync();
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete", Exact = true }).ClickAsync();
+        await Expect(dialog).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(log).ToContainTextAsync("deleted the order", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
     [Fact]

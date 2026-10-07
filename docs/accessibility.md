@@ -175,9 +175,16 @@ element's click handler — no per-keystroke server round-trip. The trap follows
 element: adding or removing `data-rask-focus-trap` on an element that stays mounted engages or releases it,
 which is how Rask UI's state-driven `Ui.Modal` hands focus back when `Open(false)` closes it in place.
 
-Rask UI's declarative `Ui.Modal` needs none of this: it opens with `command="show-modal"`, so the browser's own
-modal dialog makes the page inert, closes on Escape and returns focus to the trigger. While any kit dialog is
-open, the kit's stylesheet also stops the page behind it from scrolling.
+Rask UI's declarative `Ui.Modal` needs none of this: a `Ui.ModalTrigger` opens it with `command="show-modal"`,
+so the browser's own modal dialog makes the page inert, closes on Escape and returns focus to the trigger.
+While any kit dialog is open, the kit's stylesheet also stops the page behind it from scrolling.
+
+As Flux UI's does, a `Ui.Modal` opens with focus on nothing: an empty `autofocus` placeholder inside the dialog
+takes the focus the browser would hand the first field, then leaves, so no control is ringed before the reader
+chose one and the first `Tab` lands on the first control. A modal has no title of its own — its content
+carries the heading — so give one whose content has none a name with `AccessibleLabel("…")`. Its close button
+is named "Close modal".
+
 
 A dialog should opt in deliberately: an open modal traps focus, is labelled (`aria-labelledby`
 its title, or `aria-label` from the title text), and dismisses on `Escape` (except with a static backdrop,

@@ -35,7 +35,8 @@ export const STYLES = [
   'fill', 'stroke', 'strokeWidth', 'backdropFilter',
 ];
 
-// Every `[data-preview-wrapper]` on `url`, measured in light and in dark.
+// Every `[data-preview-wrapper]` on `url`, measured in light and in dark. `prepare(page, scheme)` runs on
+// the loaded page before anything is measured.
 export async function measurePage(browser, url, shots, prepare) {
   const schemes = {};
   for (const scheme of ['light', 'dark']) {
@@ -46,13 +47,6 @@ export async function measurePage(browser, url, shots, prepare) {
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     await page.evaluate(() => document.fonts.ready);
     if (prepare) await prepare(page, scheme);
-    // A running animation measures wherever it happens to be — a spinner's angle differed on every run,
-    // and between a node and its own forced states. Held a quarter of a second in, it measures the same
-    // each time, and still says what the animation is: a spin of another speed or easing is another angle.
-    await page.evaluate(() => document.getAnimations().forEach(animation => {
-      animation.pause();
-      animation.currentTime = 250;
-    }));
     schemes[scheme] = await measure(page, join(shots, scheme));
     await context.close();
   }
@@ -65,6 +59,18 @@ async function measure(page, shots) {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('DOM.enable');
   await cdp.send('CSS.enable');
+
+  // A running animation is held at its first frame, not wherever the clock caught it: a spinner's angle or a
+  // shimmer half-way across would measure differently on every run. What the animation IS — duration,
+  // easing, keyframes — is recorded per node in collect(), and that is what the two sides are compared on.
+  await page.evaluate(() => {
+    for (const animation of document.getAnimations()) {
+      if (animation instanceof CSSAnimation && animation.playState === 'running') {
+        animation.pause();
+        animation.currentTime = 0;
+      }
+    }
+  });
 
   const wrappers = await page.$$('[data-preview-wrapper]');
   const examples = [];
@@ -114,6 +120,18 @@ function collect(wrapper, { STYLES, index }) {
     return Object.fromEntries(STYLES.map(k => [k, computed[k]]));
   };
 
+  // What moves, and how: each CSS animation's timing and keyframes, on the element or pseudo it runs on.
+  const animations = new Map();
+  for (const animation of document.getAnimations()) {
+    if (!(animation instanceof CSSAnimation)) continue;
+    const { target, pseudoElement } = animation.effect;
+    const { duration, delay, iterations, direction, fill } = animation.effect.getTiming();
+    const keyframes = animation.effect.getKeyframes().map(({ composite, computedOffset, ...frame }) => frame);
+    (animations.get(target) ?? animations.set(target, []).get(target)).push({
+      on: pseudoElement ?? '', name: animation.animationName, duration, delay, iterations: String(iterations), direction, fill, keyframes,
+    });
+  }
+
   const nodes = [];
   const interactive = [];
   const elements = [wrapper, ...wrapper.querySelectorAll('*')].slice(0, 500);
@@ -133,8 +151,9 @@ function collect(wrapper, { STYLES, index }) {
       if (content && content !== 'none' && content !== 'normal') node[pseudo] = { content, ...style(el, pseudo) };
     }
 
+    if (animations.has(el)) node.animations = animations.get(el);
     nodes.push(node);
-    // Either side's marker: a Flux node's states were measured, so its Rask twin's have to be too.
+    // A marked part is measured in every state on both sides: `data-flux-*` there, `data-ui-*` here.
     const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux') || a.name.startsWith('data-ui-'));
     if (interactive.length < 60 && (fluxed || el.matches('button, a, input, select, textarea, summary, label, [role], [tabindex]'))) {
       interactive.push(id);

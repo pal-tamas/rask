@@ -58,8 +58,11 @@ protected override Component? Render() =>
 [
     Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Size(Ui.Size.Lg)["Save"],
 
-    Ui.Modal.Title("Delete order").Id("confirm").Trigger("Delete")[
-        P["This cannot be undone."]
+    // No handler: the trigger's button opens the modal of that name, as the browser's own modal dialog.
+    Ui.ModalTrigger.Name("confirm")[Ui.Button["Delete"]],
+    Ui.Modal.Name("confirm")[
+        P["This cannot be undone."],
+        Ui.ModalClose[Ui.Button["Cancel"]]
     ],
 
     // Every data-input control is an IFormControl<T>: Value opens the controlled chain and Bind the
@@ -83,12 +86,13 @@ and a reset arriving from a library restyles pages that never asked for it.
 
 | | |
 | --- | --- |
-| Actions | `Ui.Button` `Ui.Dropdown` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
+| Actions | `Ui.Button` `Ui.Dropdown` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
 | Data display | `Ui.Accordion` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.List` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` |
 | Navigation | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.Menu` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Tabs` |
 | Feedback | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
 | Data input | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.MultiSelect` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Fieldset` `Ui.Validator` `Ui.Label` `Ui.Otp` `Ui.Filter` `Ui.Calendar` |
-| Layout | `Ui.Divider` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
+| Layout | `Ui.Divider` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
+
 | Mockup | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | Chrome | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.MetricRow` `Ui.DetailList` `Ui.Code` `Ui.Search` |
 | Support | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `UiTheme` / `Ui.ThemeName`, `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |

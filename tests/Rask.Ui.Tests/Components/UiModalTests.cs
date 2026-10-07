@@ -1,318 +1,341 @@
+using Rask.Core;
+using RenderedPage = Rask.Testing.Page;
+
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The dialog: a real <c>&lt;dialog&gt;</c>, a popover by default.
+///     <c>Ui.Modal</c>, <c>Ui.ModalTrigger</c> and <c>Ui.ModalClose</c>: Flux's modal as markup the browser runs.
 /// </summary>
+/// <remarks>
+///     What it looks like, and what it does once open, is held to Flux's live page by
+///     <c>scripts/flux/parity-modal.mjs</c>. These hold the contract that script cannot see: which attribute
+///     each prop writes, and what a callback hears.
+/// </remarks>
 public partial class UiModalTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void It_is_a_native_dialog_element_on_both_paths()
+    public void A_named_modal_is_a_dialog_the_browser_opens()
     {
-        // Not a div wearing a role. A <dialog> is the element the platform means, and it is what lets
-        // the popover path get a real ::backdrop rather than one painted by the kit.
-        Assert.Contains("<dialog", Popover());
-        Assert.Contains("<dialog", Ui.Modal.Title("Delete order").Open(true).ToHtml());
+        var html = Ui.Modal.Name("confirm")[P["Sure?"]].ToHtml();
+
+        var dialog = Tag(html, "<dialog");
+
+        Assert.StartsWith("<div class=\"inline\" data-ui-modal>", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"confirm\"", dialog);
+        Assert.Contains("data-modal=\"confirm\"", dialog);
+        Assert.Contains("popover=\"auto\"", dialog);
+        Assert.False(IsOpen(dialog));
     }
 
     [Fact]
-    public void An_id_with_no_state_makes_it_a_popover()
+    public void The_trigger_makes_its_button_an_invoker_for_the_named_dialog()
     {
-        // The default, and the better one: the browser supplies the top layer, Escape, light-dismiss
-        // and the backdrop, none of it implemented here and none of it needing a runtime.
-        var html = Popover();
+        var trigger = Ui.ModalTrigger.Name("confirm")[Button.Type(ButtonType.Button)["Delete"]];
 
-        Assert.Contains("popover=\"auto\"", html);
-        Assert.Contains("id=\"confirm\"", html);
+        var html = trigger.ToHtml();
+
+        Assert.StartsWith("<div class=\"contents\" data-ui-modal-trigger>", html, StringComparison.Ordinal);
+        Assert.Contains("command=\"show-modal\"", Tag(html, "<button"));
+        Assert.Contains("commandfor=\"confirm\"", Tag(html, "<button"));
+        // What a browser without invoker commands acts on instead.
+        Assert.Contains("popovertarget=\"confirm\"", Tag(html, "<button"));
     }
 
     [Fact]
-    public void The_trigger_names_the_dialog_rather_than_running_a_handler() =>
-        Assert.Contains("popovertarget=\"confirm\"", Popover());
-
-    [Fact]
-    public void The_close_control_on_the_popover_path_is_markup_not_a_handler()
+    public void The_trigger_wires_the_kits_own_button_and_keeps_what_it_carried()
     {
-        // popovertargetaction=hide is what closes it, so the header button works with scripting off.
-        Assert.Contains("popovertargetaction=\"hide\"", Popover());
+        var button = Ui.Button.Attributes(("data-testid", "open"))["Edit profile"];
+
+        var html = Ui.ModalTrigger.Name("edit-profile")[button].ToHtml();
+
+        Assert.Contains("data-testid=\"open\"", html);
+        Assert.Contains("command=\"show-modal\"", html);
+        Assert.Contains("commandfor=\"edit-profile\"", html);
     }
 
     [Fact]
-    public void No_trigger_still_renders_the_dialog_so_something_else_can_open_it()
+    public void The_trigger_finds_the_button_inside_whatever_wraps_it()
     {
-        var html = Ui.Modal.Title("Delete order").Id("confirm").ToHtml();
+        var wrapped = Ui.ModalTrigger.Name("confirm")[Ui.Tooltip.Tip("Opens a dialog")
+[Button.Type(ButtonType.Button)["Delete"]]];
 
-        Assert.Contains("popover=\"auto\"", html);
-        Assert.DoesNotContain("<button class=\"btn\" popovertarget", html);
+        var html = wrapped.ToHtml();
+
+        Assert.Contains("commandfor=\"confirm\"", html);
     }
 
     [Fact]
-    public void Setting_Open_takes_it_off_the_popover_path()
+    public void A_trigger_with_nothing_to_press_says_what_to_write()
     {
-        // They cannot coexist: a [popover] element is display:none until the browser shows it, so a
-        // modal-open class on one would be a class that changes nothing.
-        var html = Ui.Modal.Title("Delete order").Id("confirm").Open(true).ToHtml();
+        var empty = Ui.ModalTrigger.Name("confirm")["Delete"];
 
-        Assert.DoesNotContain("popover=", html);
-        Assert.Contains("modal-open", html);
-        Assert.Contains("open", html);
+        var failure = Assert.Throws<InvalidOperationException>(empty.ToHtml);
+
+        Assert.Contains("Ui.ModalTrigger.Name(\"confirm\")[Ui.Button[\"Open\"]]", failure.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_state_driven_path_can_be_kept_mounted_but_hidden() =>
-        Assert.DoesNotContain("modal-open", Ui.Modal.Title("Delete order").Open(false).ToHtml());
+    public void A_shortcut_goes_on_the_button_so_the_runtime_presses_it()
+    {
+        var trigger = Ui.ModalTrigger.Name("search").Shortcut("mod+k")[Button.Type(ButtonType.Button)["Search"]];
+
+        var html = trigger.ToHtml();
+
+        Assert.Contains("data-rask-shortcut=\"mod+k\"", System.Net.WebUtility.HtmlDecode(Tag(html, "<button")));
+    }
 
     [Fact]
-    public void Without_a_stated_placement_it_is_a_sheet_on_a_phone_and_centred_above_it()
+    public void The_corner_button_is_named_and_closes_the_dialog_by_command()
     {
-        // Not a stylistic default: a centred dialog on a 360px screen either overflows or shrinks its
-        // content past readable, and a stack trace is the one thing here that must stay readable.
-        var html = Popover();
+        var html = Ui.Modal.Name("confirm")[P["Sure?"]].ToHtml();
 
-        Assert.Contains("modal-bottom", html);
-        Assert.Contains("sm:modal-middle", html);
+        var close = Tag(html, "<button");
+
+        Assert.Contains("data-ui-modal-close", html);
+        Assert.Contains("aria-label=\"Close modal\"", close);
+        Assert.Contains("command=\"close\"", close);
+        Assert.Contains("commandfor=\"confirm\"", close);
+    }
+
+    [Fact]
+    public void Not_closable_leaves_the_corner_button_out()
+    {
+        var html = Ui.Modal.Name("confirm").Closable(false)[P["Sure?"]].ToHtml();
+
+        Assert.DoesNotContain("<button", html);
+        Assert.DoesNotContain("data-ui-modal-close", html);
     }
 
     [Theory]
-    [InlineData(Ui.ModalPosition.Top, "modal-top")]
-    [InlineData(Ui.ModalPosition.Middle, "modal-middle")]
-    [InlineData(Ui.ModalPosition.Bottom, "modal-bottom")]
-    [InlineData(Ui.ModalPosition.Start, "modal-start")]
-    [InlineData(Ui.ModalPosition.End, "modal-end")]
-    public void Every_position_writes_its_own_class(Ui.ModalPosition position, string expected) =>
-        Assert.Contains(expected,
-            Ui.Modal.Title("Delete order").Id("confirm").Position(position).ToHtml());
-
-    [Fact]
-    public void A_stated_position_replaces_the_responsive_default_rather_than_fighting_it()
+    [InlineData(null, null, "any", "auto")]
+    [InlineData(false, null, "closerequest", "manual")]
+    [InlineData(false, false, "none", "manual")]
+    // The platform has no "a click outside, but not Escape": a dialog that is not escapable gives both up.
+    [InlineData(null, false, "none", "manual")]
+    public void Dismissible_and_escapable_choose_what_the_browser_lets_close_it(
+        bool? dismissible, bool? escapable, string closedBy, string fallback)
     {
-        // Appending the default would leave `sm:modal-middle` overriding the caller's choice at every
-        // width above a phone — the class present, and ignored.
-        var html = Ui.Modal.Title("Delete order").Id("confirm").Position(Ui.ModalPosition.Top).ToHtml();
+        var modal = Ui.Modal.Name("confirm").Dismissible(dismissible).Escapable(escapable);
 
-        Assert.DoesNotContain("sm:modal-middle", html);
-        Assert.DoesNotContain("modal-bottom", html);
+        var dialog = Tag(modal.ToHtml(), "<dialog");
+
+        Assert.Contains($"closedby=\"{closedBy}\"", dialog);
+        Assert.Contains($"popover=\"{fallback}\"", dialog);
+    }
+
+    [Theory]
+    [InlineData(null, "ms-auto", " border-s ")]
+    [InlineData(Ui.ModalPosition.Right, "ms-auto", " border-s ")]
+    [InlineData(Ui.ModalPosition.Left, "me-auto", " border-e ")]
+    [InlineData(Ui.ModalPosition.Bottom, "mt-auto", " border-t ")]
+    public void A_flyout_sits_against_one_edge_with_its_line_on_the_page_side(
+        Ui.ModalPosition? position, string margin, string line)
+    {
+        var flyout = Ui.Modal.Name("edit").Flyout().Position(position);
+
+        var dialog = Tag(flyout.ToHtml(), "<dialog");
+
+        Assert.Contains("data-ui-flyout", dialog);
+        Assert.Contains(margin, dialog);
+        Assert.Contains(line, dialog);
+        Assert.DoesNotContain("rounded-xl", dialog);
     }
 
     [Fact]
-    public void Both_paths_close_on_a_click_outside_through_the_backdrop_button()
+    public void The_legacy_flyout_variant_is_the_flyout()
     {
-        // A MODAL dialog has no light-dismiss of its own in most browsers: the viewport-sized .modal IS the
-        // dialog, so a click on the dimmed area lands inside it. daisyUI's backdrop button is what it lands on.
-        Assert.Contains("modal-backdrop", Popover());
-        Assert.Contains("modal-backdrop",
-            Ui.Modal.Title("Delete order").Open(true).OnClose(() => { }).ToHtml());
+        var legacy = Ui.Modal.Name("edit").Variant(Ui.ModalVariant.Flyout);
+
+        var dialog = Tag(legacy.ToHtml(), "<dialog");
+
+        Assert.Equal(Tag(Ui.Modal.Name("edit").Flyout().ToHtml(), "<dialog"), dialog);
     }
 
     [Fact]
-    public void The_trigger_opens_it_modally_and_falls_back_to_the_popover()
+    public void A_floating_flyout_stands_off_the_edges_as_a_panel()
     {
-        // The invoker command is what makes it a real modal — the page behind inert, focus contained and
-        // handed back — with no script. The popover attribute beside it is for a browser without invokers.
-        var trigger = Tag(Popover(), "<button class=\"btn\"");
+        var floating = Ui.Modal.Name("edit").Flyout().Floating;
 
-        Assert.Contains("command=\"show-modal\"", trigger);
-        Assert.Contains("commandfor=\"confirm\"", trigger);
-        Assert.Contains("popovertarget=\"confirm\"", trigger);
+        var dialog = Tag(floating.ToHtml(), "<dialog");
+
+        Assert.Contains("my-2 me-2 ms-auto", dialog);
+        Assert.Contains("rounded-xl", dialog);
+        Assert.Contains("shadow-lg", dialog);
+        Assert.DoesNotContain(" border-s ", dialog);
+
     }
 
     [Fact]
-    public void The_close_button_and_the_backdrop_close_it_both_ways()
+    public void The_bare_variant_draws_no_panel_and_no_close_button()
     {
-        var html = Popover();
+        var bare = Ui.Modal.Name("search").Bare[P["palette"]];
 
-        foreach (var control in new[] { Tag(html, "<button class=\"btn btn-ghost"), Tag(html, "<button class=\"modal-backdrop") })
-        {
-            Assert.Contains("command=\"close\"", control);
-            Assert.Contains("commandfor=\"confirm\"", control);
-            Assert.Contains("popovertargetaction=\"hide\"", control);
-        }
+        var html = bare.ToHtml();
+
+        Assert.Contains("bg-transparent", Tag(html, "<dialog"));
+        Assert.DoesNotContain("shadow-lg", html);
+        Assert.DoesNotContain("<button", html);
     }
 
     [Fact]
-    public void Not_dismissible_drops_the_backdrop_and_the_fallbacks_light_dismiss()
+    public void Scrolling_the_body_puts_the_panel_inside_a_layer_that_scrolls()
     {
-        var html = Ui.Modal.Title("Unsaved work").Id("confirm").Dismissible(false).ToHtml();
+        var terms = Ui.Modal.Name("terms").Scroll(Ui.ModalScroll.Body).Class("md:w-lg")[P["Long."]];
 
-        Assert.DoesNotContain("modal-backdrop", html);
-        Assert.Contains("popover=\"manual\"", html);
-        // The close button is still there: not dismissible is not inescapable.
-        Assert.Contains("command=\"close\"", html);
+        var html = terms.ToHtml();
+
+        // The dialog is the layer, so the caller's width is the panel's, and a click outside lands on a
+        // button behind the panel, because the browser counts the whole layer as inside the dialog.
+        Assert.Contains("overflow-y-auto", Tag(html, "<dialog"));
+        Assert.DoesNotContain("md:w-lg", Tag(html, "<dialog"));
+        Assert.Contains("md:w-lg", html);
+        Assert.Contains("closedby=\"closerequest\"", html);
+        Assert.Contains("aria-hidden=\"true\" command=\"close\"", html);
     }
 
     [Fact]
-    public void Not_escapable_asks_the_browser_to_ignore_close_requests()
+    public void A_class_from_the_call_site_joins_the_dialogs_own()
     {
-        var html = Ui.Modal.Title("Unsaved work").Id("confirm").Escapable(false).ToHtml();
+        var html = Ui.Modal.Name("edit").Class("md:w-96").ToHtml();
 
-        Assert.Contains("closedby=\"none\"", html);
-        Assert.Contains("popover=\"manual\"", html);
+        Assert.Contains("md:w-96", Tag(html, "<dialog"));
+        Assert.Contains("rounded-xl", Tag(html, "<dialog"));
     }
 
     [Fact]
-    public void Not_closable_drops_the_header_close_button()
+    public void An_accessible_label_names_the_dialog()
     {
-        var html = Ui.Modal.Title("Terms").Id("confirm").Closable(false).ToHtml();
+        var html = Ui.Modal.Name("nav").AccessibleLabel("Navigation").ToHtml();
 
-        Assert.DoesNotContain("btn-square", html);
-        // Still dismissible by a click outside unless that is turned off too.
-        Assert.Contains("modal-backdrop", html);
+        Assert.Contains("aria-label=\"Navigation\"", Tag(html, "<dialog"));
     }
 
     [Fact]
-    public void The_state_driven_path_traps_focus_only_while_it_is_open()
+    public void The_focus_placeholder_is_first_and_takes_the_focus_a_field_would_get()
     {
-        // The runtime's trap gives it containment, Escape and focus handed back; on a dialog kept mounted while
-        // closed, the attribute's removal is what hands focus back.
-        var open = Ui.Modal.Title("Delete order").Open(true).OnClose(() => { }).ToHtml();
-        Assert.Contains("data-rask-focus-trap", open);
-        Assert.Contains("tabindex=\"-1\"", Tag(open, "<dialog"));
+        var html = Ui.Modal.Name("edit")[Input.Value("Ada")].ToHtml();
 
-        Assert.DoesNotContain("data-rask-focus-trap", Ui.Modal.Title("Delete order").Open(false).OnClose(() => { }).ToHtml());
+        var inside = html[(html.IndexOf('>', html.IndexOf("<dialog", StringComparison.Ordinal)) + 1)..];
+
+        Assert.StartsWith("<div tabindex=\"-1\" data-ui-focus-placeholder autofocus></div>", inside, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Escape_on_the_state_driven_path_presses_a_control_that_runs_OnClose()
+    public void A_modal_close_makes_its_button_a_close_command_for_the_modal_it_is_in()
     {
-        // The trap presses the [data-rask-dismiss] control on Escape, so there must be one — and only when there is
-        // a callback for it to run.
-        Assert.Contains("data-rask-dismiss", Ui.Modal.Title("Delete order").Open(true).OnClose(() => { }).ToHtml());
-        Assert.DoesNotContain("data-rask-dismiss", Ui.Modal.Title("Delete order").Open(true).ToHtml());
-        Assert.DoesNotContain(
-            "data-rask-dismiss",
-            Ui.Modal.Title("Delete order").Open(true).OnClose(() => { }).Escapable(false).ToHtml());
+        var modal = Ui.Modal.Name("confirm").Closable(false)[Ui.ModalClose[Button.Type(ButtonType.Button)["Cancel"]]];
 
-        // With no visible close button, a hidden one still takes the Escape.
-        var unclosable = Ui.Modal.Title("Delete order").Open(true).OnClose(() => { }).Closable(false).ToHtml();
-        Assert.Contains("data-rask-dismiss", unclosable);
-        Assert.DoesNotContain("btn-square", unclosable);
+        var html = modal.ToHtml();
+
+        Assert.Contains("<div class=\"inline\" data-ui-modal-close>", html);
+        Assert.Contains("command=\"close\"", Tag(html, "<button"));
+        Assert.Contains("commandfor=\"confirm\"", Tag(html, "<button"));
+        Assert.Contains("popovertargetaction=\"hide\"", Tag(html, "<button"));
     }
 
     [Fact]
-    public void A_side_position_is_a_full_height_flyout_rather_than_a_capped_box()
-    {
-        // daisyUI's modal-end is already full height; the centred box's max-h and max-w utilities would win
-        // over it and float the flyout back into the middle of the edge.
-        var flyout = Ui.Modal.Title("Filters").Id("filters").Position(Ui.ModalPosition.End).ToHtml();
-
-        Assert.Contains("modal-end", flyout);
-        Assert.DoesNotContain("max-h-[88vh]", flyout);
-        Assert.DoesNotContain("sm:max-w-2xl", flyout);
-        Assert.Contains("max-h-[88vh]", Popover());
-    }
-
-    [Fact]
-    public void Closing_is_reported_through_the_dialogs_own_toggle_on_the_modal_path()
+    public void Closing_a_named_modal_is_heard_through_the_dialogs_own_events()
     {
         // Handler ids are only written by a live render.
-        Assert.Contains(
-            "data-rask-on-toggle=",
-            global::Rask.Testing.Page.Render(Ui.Modal.Title("Delete order").Id("confirm").OnClose(() => { })).Html);
-        Assert.DoesNotContain(
-            "data-rask-on-toggle=",
-            global::Rask.Testing.Page.Render(Ui.Modal.Title("Delete order").Id("confirm")).Html);
+        var silent = RenderedPage.Render(Ui.Modal.Name("confirm")).Html;
+
+        var heard = RenderedPage.Render(Ui.Modal.Name("confirm").OnClose(() => { }).OnCancel(() => { })).Html;
+
+        Assert.DoesNotContain("data-rask-on-", Tag(silent, "<dialog"));
+        Assert.Contains("data-rask-on-toggle=", Tag(heard, "<dialog"));
+        Assert.Contains("data-rask-on-cancel=", Tag(heard, "<dialog"));
+    }
+
+    [Fact]
+    public async Task The_platforms_cancel_reaches_OnCancel_on_a_named_modal()
+    {
+        var cancelled = 0;
+        var page = RenderedPage.Render(Ui.Modal.Name("edit").OnCancel(() => cancelled++));
+
+        await page.On("dialog").Raise("cancel");
+
+        Assert.Equal(1, cancelled);
+    }
+
+    [Fact]
+    public void Open_hands_the_state_to_the_page()
+    {
+        var open = Tag(Ui.Modal.Name("confirm").Open(true).ToHtml(), "<dialog");
+
+        var closed = Tag(Ui.Modal.Name("confirm").Open(false).ToHtml(), "<dialog");
+
+        // Not a popover and not named for a command: nothing but the page's own render opens it.
+        Assert.DoesNotContain("popover", open);
+        Assert.DoesNotContain("id=", open);
+        Assert.True(IsOpen(open));
+        Assert.Contains("aria-modal=\"true\"", open);
+        Assert.Contains("data-rask-focus-trap", open);
+        Assert.False(IsOpen(closed));
+        Assert.DoesNotContain("data-rask-focus-trap", closed);
+    }
+
+    [Fact]
+    public void A_modal_with_no_name_is_rendered_open_by_the_page_that_renders_it()
+    {
+        var html = Ui.Modal.OnClose(() => { })[P["Details"]].ToHtml();
+
+        Assert.True(IsOpen(Tag(html, "<dialog")));
     }
 
     [Fact]
     public async Task A_dismissal_on_the_state_driven_path_raises_OnCancel_then_OnClose()
     {
-        // #1116: Escape and the backdrop are dismissals, so a caller can tell "backed out" from "finished" —
-        // cancel first, the order the platform uses on the modal path.
         var heard = new List<string>();
-        var page = global::Rask.Testing.Page.Render(Ui.Modal.Title("Edit")
+        var page = RenderedPage.Render(Ui.Modal
             .Open(true)
             .OnCancel(() => heard.Add("cancel"))
             .OnClose(() => heard.Add("close")));
 
-        await page.On(".modal-backdrop").Click();
-        Assert.Equal(["cancel", "close"], heard);
-
-        heard.Clear();
+        // The backdrop the kit draws, then the control the runtime presses on Escape.
+        await page.On("[data-ui-modal] > button").Click();
         await page.On("[data-rask-dismiss]").Click();
-        Assert.Equal(["cancel", "close"], heard);
+
+        Assert.Equal(["cancel", "close", "cancel", "close"], heard);
     }
 
     [Fact]
-    public async Task The_close_button_is_not_a_dismissal()
+    public async Task The_corner_button_and_a_modal_close_are_closes_not_dismissals()
     {
         var heard = new List<string>();
-        var page = global::Rask.Testing.Page.Render(Ui.Modal.Title("Edit")
+        var page = RenderedPage.Render(Ui.Modal
             .Open(true)
             .OnCancel(() => heard.Add("cancel"))
-            .OnClose(() => heard.Add("close")));
+            .OnClose(() => heard.Add("close"))[
+            Ui.ModalClose[Button.Type(ButtonType.Button).Id("cancel")["Cancel"]]
+        ]);
 
-        await page.On(".btn-square").Click();
+        await page.On("[aria-label='Close modal']").Click();
+        await page.On("#cancel").Click();
 
-        Assert.Equal(["close"], heard);
+        Assert.Equal(["close", "close"], heard);
     }
 
     [Fact]
-    public void With_OnCancel_Escape_presses_its_own_control_not_the_close_button()
+    public void A_state_driven_modal_that_is_not_dismissible_or_escapable_has_neither_way_out()
     {
-        // The close button cannot be what Escape presses once the two mean different things.
-        var html = Ui.Modal.Title("Edit").Open(true).OnCancel(() => { }).OnClose(() => { }).ToHtml();
+        var modal = Ui.Modal.Open(true).Dismissible(false).Escapable(false).OnClose(() => { });
 
-        Assert.DoesNotContain("data-rask-dismiss", Tag(html, "<button class=\"btn btn-ghost"));
-        Assert.Single(System.Text.RegularExpressions.Regex.Matches(html, "data-rask-dismiss"));
+        var html = RenderedPage.Render(modal).Html;
+
+        // The backdrop is still drawn; it is just not a button any more.
+        Assert.Contains("<div class=\"fixed inset-0 z-50 bg-black/10\" aria-hidden=\"true\">", html);
+        Assert.DoesNotContain("data-rask-dismiss", html);
     }
 
-    [Fact]
-    public void OnCancel_alone_still_gives_a_state_driven_dialog_its_ways_out()
-    {
-        // A page may close the dialog from OnCancel and never set OnClose; the backdrop and Escape must not
-        // vanish because only one of the two callbacks is set.
-        var html = Ui.Modal.Title("Edit").Open(true).OnCancel(() => { }).ToHtml();
+    // The `open` attribute, which a class naming the `open:` variant is not.
+    private static bool IsOpen(string dialog) =>
+        System.Text.RegularExpressions.Regex.IsMatch(dialog, @"\sopen(=""[^""]*"")?[\s>]", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1));
 
-        Assert.Contains("modal-backdrop", html);
-        Assert.Contains("data-rask-dismiss", html);
-    }
-
-    [Fact]
-    public async Task On_the_modal_path_OnCancel_is_the_dialogs_own_cancel_and_the_backdrops_click()
-    {
-        var cancelled = 0;
-        var page = global::Rask.Testing.Page.Render(Ui.Modal.Title("Edit").Id("edit").OnCancel(() => cancelled++));
-
-        Assert.Contains("data-rask-on-cancel=", Tag(page.Html, "<dialog"));
-
-        // The backdrop still closes it in markup; the handler only reports that it was a dismissal.
-        Assert.Contains("command=\"close\"", Tag(page.Html, "<button class=\"modal-backdrop"));
-        await page.On(".modal-backdrop").Click();
-        Assert.Equal(1, cancelled);
-
-        await page.On("dialog").Raise("cancel");
-        Assert.Equal(2, cancelled);
-    }
-
-    [Fact]
-    public void Without_OnCancel_the_modal_path_registers_no_handler_for_it()
-    {
-        var html = global::Rask.Testing.Page.Render(Ui.Modal.Title("Edit").Id("edit")).Html;
-
-        Assert.DoesNotContain("data-rask-on-cancel", html);
-        Assert.DoesNotContain("data-rask-on-click", html);
-    }
-
-    // The opening tag that starts with `prefix`, so an assertion about one control cannot pass on another's.
+    // The opening tag that starts with `prefix`, so an assertion about one element cannot pass on another's.
     private static string Tag(string html, string prefix)
     {
         var start = html.IndexOf(prefix, StringComparison.Ordinal);
         Assert.True(start >= 0, $"no tag starting {prefix}");
         return html[start..(html.IndexOf('>', start) + 1)];
     }
-
-    [Fact]
-    public void It_names_itself_through_its_heading() =>
-        Assert.Contains("Delete order", Popover());
-
-    [Fact]
-    public void The_close_control_in_the_header_is_an_icon_button_that_still_has_a_name()
-    {
-        var html = Popover();
-
-        Assert.Contains("btn-square", html);
-        Assert.Contains("aria-label=\"Close\"", html);
-    }
-
-    private static string Popover() =>
-        Ui.Modal.Title("Delete order").Id("confirm").Trigger("Delete").ToHtml();
 }
