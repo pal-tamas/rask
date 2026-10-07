@@ -151,18 +151,15 @@ public sealed partial class CachePage(
             ? Ui.Button.Tone(Ui.Tone.Error).OnClick(() => Confirm(true))[Ui.Icon.Name(Ui.IconName.Trash), "Flush cache"]
             : null;
 
-    private Component? ConfirmPrompt() =>
+    private UiCallout? ConfirmPrompt() =>
         _confirmFlush
-            ? Ui.Alert.Tone(Ui.Tone.Warning)[
-                Span[
-                    $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
-                ],
-                Div[
+            ? Ui.Callout.Warning.Inline().Role("alert")
+                .Heading($"Drop all {_stats.Entries} cache entries?")
+                .Text("Nothing is lost permanently, but everything is recomputed at once.")
+                .Actions([
                     Ui.Button.Key("confirm").Tone(Ui.Tone.Error).Size(Ui.Size.Sm).OnClick(FlushAsync)["Confirm"],
-                    " ",
                     Ui.Button.Key("cancel").Size(Ui.Size.Sm).OnClick(() => Confirm(false))["Cancel"]
-                ]
-            ]
+                ])
             : null;
 
     private UiToast? ResultToast() =>

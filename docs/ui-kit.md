@@ -255,7 +255,7 @@ colours are generated for 3:1, not 4.5.
 
 ### The kit's own components are corrected the same way
 
-`Ui.Button`, `Ui.Badge`, `Ui.Alert`, `Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
+`Ui.Button`, `Ui.Badge`, `Ui.Tooltip` and the `link-*` tones render daisyUI classes, and
 daisyUI labels each tone with its own `-content` colour — generated for 3:1, so small text on them fails
 AA on between two and ten palettes per tone (`secondary` is 3.05:1 on daisyUI's own `dark`, `error`
 under AA on ten). The kit corrects them to the `-ink` fill with the ground as the label, in
@@ -330,7 +330,7 @@ placement: `Ui.NavTab`'s `-mb-px`, which joins the active tab's border to its na
 
 ## Components that are one element
 
-A button is a `<button>`, and a table cell is a `<td>`. `Ui.Button`, `Ui.Badge`, `Ui.Alert`, `Ui.List` and
+A button is a `<button>`, and a table cell is a `<td>`. `Ui.Button`, `Ui.Badge`, `Ui.List` and
 the parts of a `Ui.Table` do not wrap a raw element; they are the element. They derive from **`UiElement`**, which derives
 from `Element`, so every step an element takes works on them unchanged, the events included. What they
 show is their **children**, the same as a raw element's:
@@ -339,8 +339,6 @@ show is their **children**, the same as a raw element's:
 Ui.Button.Id("save").Primary.OnClick(Save)[Ui.Icon.Name(Ui.IconName.Check), "Save"]
 
 Ui.Badge.Success["Live"]
-
-Ui.Alert.Error[Ui.Icon.Name(Ui.IconName.ExclamationTriangle), Span["Payment failed: "], Code[error]]
 
 Ui.TableCell.Id("total").Class("py-0")[Ui.Badge.Success["Paid"]]
 ```
@@ -493,6 +491,52 @@ write `whitespace-normal` on one that should. `colspan` and `scope` go through `
 
 `Strong` and `Desc` are also HTML tags, and a tag's entry hides a step of the same name: those two
 values are passed as `Variant(Ui.TableCellVariant.Strong)` and `Direction(Ui.TableColumnDirection.Desc)`.
+
+## Callouts
+
+`Ui.Callout` is [Flux's callout](https://fluxui.dev/components/callout), measured from that page and drawn the
+same in light and dark: something the page needs its reader to notice, in place. It replaces `Ui.Alert`.
+
+```csharp
+Ui.Callout.Danger.Icon(Ui.IconName.XCircle).Heading("Payment failed").Text("Your card was declined.")
+
+Ui.Callout.Icon(Ui.IconName.Clock).Actions([Ui.Button["Renew now"], Ui.Button.Ghost["View plans"]])[
+    Ui.CalloutHeading["Subscription expiring soon"],
+    Ui.CalloutText[
+        "Your current plan will expire in 3 days. ",
+        Ui.CalloutLink.Href(Routes.Billing())["Learn more"]
+    ]
+]
+
+Ui.Callout.Color(Ui.Color.Purple).Icon(Ui.IconName.Sparkles).Inline()      // actions beside the text
+    .Heading("Have a question?")
+    .Actions(Ui.Button["Ask"])
+    .Controls(Ui.Button.Ghost.Square().AccessibleLabel("Dismiss").OnClick(Hide)[Ui.Icon.Name(Ui.IconName.XMark).Mini])
+```
+
+| Flux | Rask |
+| --- | --- |
+| `variant` | `Variant`, or its members as steps: `.Secondary` `.Success` `.Warning` `.Danger`. With none it is the secondary callout on a white surface, which is what Flux draws for one too |
+| `color` | `Color(Ui.Color.Blue)` — any of Tailwind's seventeen hues, each with the border, icon, heading and text shades Flux gives it. It wins over `Variant`; Flux draws one grey, so every grey is zinc |
+| `icon`, `icon:variant` | `Icon(Ui.IconName.Clock)`, and `.Outline` `.Solid` `.Mini` `.Micro` (mini, 20px, when unset). On `Ui.CalloutHeading` instead, the icon sits in the heading's own line |
+| the `icon` slot | `CustomIcon(component)` |
+| `heading`, `text` | `Heading("…")`, `Text("…")` — shorthand for a `Ui.CalloutHeading` and a `Ui.CalloutText` ahead of the children |
+| `inline` | `Inline()` — actions beside the text once the CALLOUT is 28rem wide (a container query, so it holds in a narrow column on a wide screen) |
+| the `actions` and `controls` slots | `Actions(component)` and `Controls(component)`; several is a collection, `Actions([a, b])` |
+| `flux:callout.link` `href`, `external` | `Ui.CalloutLink.Href(route or "https://…")`, `.External()` |
+
+**A callout announces nothing by itself**, exactly as Flux's does not — `Ui.Alert` wrote `role="alert"` or
+`role="status"` from its tone. One that is on the page when it loads is content, and a live region there is
+read out over the page's own heading. One that APPEARS because something happened says so where it is written:
+
+```csharp
+save.IsError ? Ui.Callout.Danger.Role("alert").Heading("Something went wrong.") : null     // interrupts
+saved ? Ui.Callout.Success.Role("status").Heading("Saved.") : null                            // waits its turn
+```
+
+Dismissing is yours too: `Controls` places the button, and what pressing it does — a field, a row in a table —
+is the page's. `Id`, `Class` and `Role` land on the callout itself; `Ui.CalloutText` and `Ui.CalloutLink` are
+their elements and take every element step.
 
 ## Buttons and links that go somewhere
 
@@ -700,7 +744,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
-| **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |
+| **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |

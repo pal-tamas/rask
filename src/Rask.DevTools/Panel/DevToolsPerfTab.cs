@@ -73,7 +73,7 @@ internal sealed partial class DevToolsPerfTab : Component
                 Ui.Button.Size(Ui.Size.Sm).Title("Forget the interactions timed so far").OnClick(Feed.ClearInteractions)["Clear"]
             ],
             interactions.Length == 0
-                ? Ui.Alert["No interactions yet. Use the page, and each event's handler, render, diff and patch are timed here."]
+                ? Ui.Callout.Secondary.Heading("No interactions yet.").Text("Use the page, and each event's handler, render, diff and patch are timed here.")
                 : Div.Class("flex flex-col gap-3")[
                     Ui.MetricRow[
                         Ui.Metric.Label("Interactions").Value(Count(interactions.Length)),

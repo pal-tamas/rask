@@ -60,7 +60,7 @@ internal sealed partial class DevToolsWireTab : Component
         var events = Feed.WireSnapshot();
         if (events.Length == 0)
         {
-            return Ui.Alert["No traffic yet. Use the page, and every frame it exchanges with the app is listed here."];
+            return Ui.Callout.Secondary.Heading("No traffic yet.").Text("Use the page, and every frame it exchanges with the app is listed here.");
         }
 
         int sent = 0, received = 0;

@@ -95,7 +95,7 @@ internal sealed partial class DevToolsTreeTab : Component
     {
         if (Feed.TreeSnapshot() is not { } snapshot)
         {
-            return Ui.Alert["No tree yet. It arrives with the page's first render."];
+            return Ui.Callout.Secondary.Heading("No tree yet.").Text("It arrives with the page's first render.");
         }
 
         var root = View(snapshot);

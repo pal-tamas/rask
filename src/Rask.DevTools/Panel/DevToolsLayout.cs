@@ -31,7 +31,7 @@ internal sealed partial class DevToolsLayout : Component
         // panel's own shell, which alone provides the root marker, it shows nothing of the session it names.
         if (!Context.Has<DevToolsPanelRoot>())
         {
-            return Ui.Alert["The Rask DevTools panel opens only in its own frame. Open it from the page's Rask pill."];
+            return Ui.Callout.Secondary.Heading("The Rask DevTools panel opens only in its own frame.").Text("Open it from the page's Rask pill.");
         }
 
         return Ui.Shell[

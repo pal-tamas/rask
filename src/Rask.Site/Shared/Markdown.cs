@@ -167,7 +167,7 @@ public sealed partial class Markdown : Component
             yield return Div.Class("guide-demo not-prose").Key($"demo-{index}")[
                 DemoRegistry.Contains(segment.Value)
                     ? DemoRegistry.Build(segment.Value)
-                    : Ui.Alert.Warning.Soft[$"Unknown demo “{segment.Value}”."]
+                    : Ui.Callout.Warning.Icon(Ui.IconName.ExclamationCircle).Role("alert").Heading($"Unknown demo “{segment.Value}”.")
             ];
             index++;
         }

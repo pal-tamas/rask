@@ -65,7 +65,7 @@ public sealed partial class NestedListIndexerDemo : Component
             ],
             _submission is null
                 ? null
-                : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0").Id("nf-idx-result")[_submission]
+                : Ui.Callout.Success.Class("mt-3").Id("nf-idx-result").Role("status").Text(_submission)
         ];
     }
 }

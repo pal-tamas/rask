@@ -19,7 +19,7 @@ public sealed partial class UiKitFeedbackDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
-        AlertSection(),
+        CalloutSection(),
         LoadingSection(),
         ProgressSection(),
         TooltipSection(),
@@ -27,16 +27,12 @@ public sealed partial class UiKitFeedbackDemo : Component
         ToastSection()
     ];
 
-    private static Component AlertSection() =>
+    private static Component CalloutSection() =>
         Section(
-            "Alert",
-            "Tone and fill compose, as everywhere else in the kit.",
-            Div.Data(Testid("ui-alert")).Class("space-y-2")[
-                Ui.Alert.Key("i").Info["A new version is available."],
-                Ui.Alert.Key("s").Success.Soft["Saved."],
-                Ui.Alert.Key("w").Warning["Two jobs are close to their retry limit."],
-                Ui.Alert.Key("e").Error.Outline["Payment failed."]
-            ]);
+            "Callout",
+            "Flux UI's callout, example for example: an icon, a heading, text, and what to do about it. It "
+            + "announces nothing by itself — one that appears because something happened says so with Role.",
+            UiKitCalloutDemo.Key("callouts"));
 
     private static Component LoadingSection() =>
         Section(

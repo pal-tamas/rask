@@ -19,9 +19,9 @@ public sealed partial class InlineValidateDemo : Component
             return null;
         }
 
-        return Ui.Alert.Error.Soft.Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[
+        return Ui.Callout.Danger.Role("alert")[Ui.CalloutText[Ul.Class("mb-0 ps-3")[
                 formOnly.Select((e, i) => Li.Key(i)[e.Message])
-            ]];
+            ]]];
     }
 
     protected override Component? Render() =>
@@ -54,6 +54,6 @@ public sealed partial class InlineValidateDemo : Component
         ],
         _submission is null
             ? null
-            : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
+            : Ui.Callout.Success.Icon(Ui.IconName.CheckCircle).Class("mt-3").Role("status").Text(_submission)
     ];
 }

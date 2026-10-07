@@ -121,6 +121,39 @@ them until tagged releases begin.
   `OnToggle` now runs after the browser has toggled the item, with the state it is in, rather than
   asking for one. A page that tracked the open section by key keeps a field per item, or uses
   `Exclusive()` and lets the browser do it.
+- **BREAKING: `Ui.Callout` replaces `Ui.Alert`, drawn as Flux UI draws its callout.** The kit is being
+  rebuilt to mirror [Flux UI](https://fluxui.dev) component by component; this is the callout, measured from
+  Flux's page for every variant and every hue in light and dark and held to it by `scripts/flux/parity.mjs`.
+  `Ui.Alert`, its `Tone` and its `Variant` (`Soft`/`Outline`/`Dash`) are gone.
+
+  ```csharp
+  // before
+  Ui.Alert.Error[Ui.Icon.Name(Ui.IconName.XCircle), Span["Payment failed: "], Code[error]]
+  Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0")["Saved."]
+  Ui.Alert.Warning[Span["Drop the cache?"], Div[confirm, cancel]]
+
+  // after
+  Ui.Callout.Danger.Icon(Ui.IconName.XCircle).Role("alert").Heading("Payment failed")[Ui.CalloutText[Code[error]]]
+  Ui.Callout.Success.Class("mt-3").Role("status").Heading("Saved.")
+  Ui.Callout.Warning.Inline().Role("alert").Heading("Drop the cache?").Actions([confirm, cancel])
+  ```
+
+  - **Tones are Flux's variants:** `Error` → `.Danger`, `Warning` → `.Warning`, `Success` → `.Success`,
+    `Info` and no tone → `.Secondary` (or no variant at all, which is the same callout on a white surface).
+    `Color(Ui.Color.Blue)` takes any of Tailwind's seventeen hues instead. There is one fill, Flux's.
+  - **It announces nothing by itself.** `Ui.Alert` wrote `role="alert"` for an error or a warning and
+    `role="status"` for the rest. Flux's callout writes neither, and neither does this one: a callout that
+    is on the page when it loads is content. Add `.Role("alert")` to one that reports a failure and
+    `.Role("status")` to one that reports an outcome, or a screen reader is no longer told.
+  - **It is no longer one element.** An icon is the `Icon` prop rather than a first child, the lead-in is
+    `Heading(…)` or a `Ui.CalloutHeading`, the body `Text(…)` or a `Ui.CalloutText` (with `Ui.CalloutLink`
+    for a link in it), and buttons go in the `Actions` slot — under the text, or beside it with `Inline()`
+    once the callout itself is 28rem wide. `Controls` is the slot at the top right, for a dismiss button.
+    So only `Id`, `Class` and `Role` reach the callout from the call site; `Data`, `Aria` and the events
+    an alert took as an element do not.
+  - New alongside it: `Ui.Color` (Tailwind's hues, shared by every component that takes a colour) and
+    `Ui.CalloutVariant`. The `.alert-*` contrast corrections stay in the kit's sheet for an app's own
+    `alert alert-*` markup (the scaffolded sign-in pages write it); the kit itself writes no `alert` class.
 
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
@@ -224,6 +257,15 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The daily upstream run no longer reports every Flux UI look as changed.** The lock was measured on
+  macOS and checked on Linux, where text measures differently, so 866 of 870 looks "moved" (#1189).
+  The lock now records the platform it was measured on and belongs to the CI runner: `upstream.yml`
+  baselines it there and lands it, `gh workflow run upstream.yml -f relock=true` relocks once Rask.Ui
+  matches again, and a local `sync.mjs` measures for `parity.mjs` without comparing. The report is one
+  line per page, and the run's Playwright is pinned to the E2E projects' release. A look is also
+  measured with motion at rest — a transition at its end, a spinner or shimmer on its first frame, on
+  Flux's page and on Rask's alike — and a difference is measured twice, so an example Flux draws at
+  random is ignored instead of reported.
 - **Rask.SQLite.Litestream: two projects building for the first time at once no longer break each
   other's litestream download.** Both fetched into the same file in `~/.rask/litestream`, so one failed
   with MSB3923 and the other hashed a half-written archive (MSB4018). Each build now downloads,

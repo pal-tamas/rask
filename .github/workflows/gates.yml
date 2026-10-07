@@ -40,17 +40,20 @@ jobs:
           ONLY: ${{ inputs.only }}
           # Every core the runner has: nothing else is running on it.
           #
-          # The unit gate is two jobs, not one: both build the solution, then "format" runs the
-          # formatter and the gate script tests and "unit" runs the tests — its two long steps — and they
-          # finish with the browser shards. Nothing is cut finer than the slowest job needs.
+          # The unit gate is five jobs: "build" is the warnings-as-errors build with the analyzers and
+          # the gate script tests; the two "unit" and the two "format" jobs each build without analyzers
+          # and then run half the tests or half the formatter. run-unit-local.sh says why at RASK_UNIT_PART.
           #
           # The browser suite runs its 150 journeys one at a time, so it is cut four ways by class.
           # Shards 1-3 NAME their classes and shard 4 takes everything they do not, the Rask.Server
           # journeys included: a new or renamed class lands in 4 by itself and cannot fall between two.
           GATES: >-
             [
-              {"set": "push", "deps": true,    "name": "format",             "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format"},
-              {"set": "push", "deps": true,    "name": "unit",               "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests"},
+              {"set": "push", "deps": true,    "name": "build",              "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "build"},
+              {"set": "push", "deps": true,    "name": "unit 1/2",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests-1/2"},
+              {"set": "push", "deps": true,    "name": "unit 2/2",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests-2/2"},
+              {"set": "push", "deps": true,    "name": "format src",         "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-src"},
+              {"set": "push", "deps": true,    "name": "format tests",       "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-tests"},
               {"set": "push",    "name": "browser E2E 1/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "filter": "FullyQualifiedName~.WasmExampleTests"},
               {"set": "push",    "name": "browser E2E 2/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "filter": "FullyQualifiedName~.UiKitActionsTests|FullyQualifiedName~.UiKitTreeTests"},
               {"set": "push",    "name": "browser E2E 3/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "filter": "FullyQualifiedName~.UiKitDataInputTests|FullyQualifiedName~.UiKitDataGridTests|FullyQualifiedName~.UiKitDataDisplayTests"},
@@ -92,10 +95,6 @@ jobs:
           playwright: ${{ matrix.gate.browser && 'true' || 'false' }}
 
       # The gate scripts install Chromium themselves; the system libraries it links are the runner's.
-      - name: Chromium system libraries
-        if: matrix.gate.browser
-        run: npx --yes playwright install-deps chromium
-
       - name: ${{ matrix.gate.name }}
         env:
           RASK_E2E_FILTER: ${{ matrix.gate.filter }}

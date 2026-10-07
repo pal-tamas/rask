@@ -376,17 +376,13 @@ public sealed partial class QueuePage(
 
     // The question, in the flow, where it cannot be missed. The two answers share one cell of the alert, so
     // on a phone the question keeps the width and the buttons sit together beneath it.
-    private Component? ConfirmPrompt() =>
+    private UiCallout? ConfirmPrompt() =>
         _pending is { } pending
-            ? Ui.Alert.Tone(Ui.Tone.Warning)[
-                Span[pending.Prompt],
-                Div[
-                    Ui.Button.Key("confirm").Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
-                        .OnClick(() => ExecuteAsync(pending.Action))["Confirm"],
-                    " ",
-                    Ui.Button.Key("cancel").Size(Ui.Size.Sm).OnClick(Cancel)["Cancel"]
-                ]
-            ]
+            ? Ui.Callout.Warning.Inline().Role("alert").Heading(pending.Prompt).Actions([
+                Ui.Button.Key("confirm").Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
+                    .OnClick(() => ExecuteAsync(pending.Action))["Confirm"],
+                Ui.Button.Key("cancel").Size(Ui.Size.Sm).OnClick(Cancel)["Cancel"]
+            ])
             : null;
 
     // The answer, out of the flow. An inline result pushed the whole table down the moment an action

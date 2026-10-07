@@ -34,7 +34,9 @@ permissions:
 # green one gets to publish. (GitHub keeps one run waiting behind it: the newest.) Anywhere else only
 # the newest push matters.
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.ref }}
+  # A manual run is its own group: two of them on one ref ask different questions (`only`), and the
+  # second must not cancel the first.
+  group: ci-${{ github.event_name }}-${{ github.ref }}${{ github.event_name == 'workflow_dispatch' && format('-{0}', github.run_id) || '' }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:

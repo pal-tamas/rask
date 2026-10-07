@@ -23,7 +23,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
 
         foreach (var id in new[]
                  {
-                     "ui-alert", "ui-loading", "ui-progress", "ui-tooltip", "ui-skeleton", "ui-toast",
+                     "ui-callout", "ui-loading", "ui-progress", "ui-tooltip", "ui-skeleton", "ui-toast",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -34,6 +34,38 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
             Assert.NotNull(box);
             Assert.True(box!.Height > 0, $"{id} rendered with zero height.");
         }
+    });
+
+    [Fact]
+    public Task Every_Flux_callout_example_is_drawn_and_a_dismissed_one_leaves() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-callout']");
+        var callouts = scope.Locator("[data-ui-callout]");
+
+        // Flux's page, example for example: 3 basics, 3 with actions, 2 dismissible, 4 variants, 18 colours
+        // and 4 spotlights. None announces itself — they are all on the page when it loads.
+        await Expect(callouts).ToHaveCountAsync(34, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(scope.Locator("[data-ui-callout][role]")).ToHaveCountAsync(0);
+
+        // The kit's sheet reached the page: a danger callout is red-50 with a 12px corner, not an unstyled div.
+        var danger = scope.Locator("[data-example='Variants'] [data-ui-callout]").Last;
+        Assert.Equal("12px", await danger.EvaluateAsync<string>("e => getComputedStyle(e).borderTopLeftRadius"));
+        Assert.NotEqual("rgba(0, 0, 0, 0)", await danger.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"));
+
+        // Inline puts the actions beside the content: the button's top is above the heading's bottom.
+        var inline = scope.Locator("[data-example='Inline actions'] [data-ui-callout]").First;
+        var heading = await inline.Locator("[data-slot='heading']").BoundingBoxAsync();
+        var action = await inline.Locator("[data-slot='actions'] button").First.BoundingBoxAsync();
+        Assert.True(action!.Y < heading!.Y + heading.Height, "the inline actions were stacked under the heading.");
+
+        // Dismissing is the page's: the control is the callout's, the field it clears is the demo's.
+        var dismissible = scope.Locator("[data-example='Dismissible']");
+        await dismissible.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Dismiss" }).First.ClickAsync();
+        await Expect(dismissible.Locator("[data-ui-callout]")).ToHaveCountAsync(1);
+        await dismissible.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Show them again" }).ClickAsync();
+        await Expect(dismissible.Locator("[data-ui-callout]")).ToHaveCountAsync(2);
     });
 
     [Fact]
@@ -103,10 +135,8 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
 
         var scope = Page.Locator("[data-testid='ui-toast']");
 
-        // Scoped to the toast's own section, not the page. Ui.Alert renders role="status" for any tone
-        // that is not an error — which is right, an outcome should be announced politely rather than
-        // interrupting — and this page has an alert reading "Saved." as well, so a page-wide locator
-        // matched two elements and went on matching the alert after the toast was dismissed.
+        // Scoped to the toast's own section, not the page: any other polite announcement on the page
+        // would match a page-wide locator too, and go on matching after the toast was dismissed.
         var toast = scope.Locator("[role='status']");
 
         // No assertion that it starts absent, deliberately. The harness re-runs this body on a boot

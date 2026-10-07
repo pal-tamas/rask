@@ -69,13 +69,13 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, OpsOpt
         }
 
         var worst = _queues.Where(q => q.Counts.Failed > 0).OrderByDescending(q => q.Counts.Failed).ToList();
-        return Ui.Alert.Tone(Ui.Tone.Error)[
-            Ui.Icon.Name(Ui.IconName.ExclamationTriangle),
-            Span[
+        return Ui.Callout.Danger.Icon(Ui.IconName.ExclamationTriangle).Role("alert")[
+            Ui.CalloutHeading[
                 $"{failed} dead letter{(failed == 1 ? "" : "s")} — ",
                 string.Join(", ", worst.Select(q => $"{q.Counts.Failed} in {q.Panel.Title.ToLowerInvariant()}")),
-                ". These have run out of attempts and will not be retried."
-            ]
+                "."
+            ],
+            Ui.CalloutText["These have run out of attempts and will not be retried."]
         ];
     }
 

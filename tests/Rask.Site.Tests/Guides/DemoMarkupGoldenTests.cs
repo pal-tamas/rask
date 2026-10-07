@@ -116,10 +116,10 @@ public sealed class DemoMarkupGoldenTests
         // first paint (InitialTotalCount) so its rows fill in rather than appear.
         //
         // It is still NOT hoisted, and the reason is a third demo the 250 ms window was simply too short
-        // to reveal: `data-http-fetch` swaps a spinner for an alert when its fetch settles — in this
+        // to reveal: `data-http-fetch` swaps a spinner for a callout when its fetch settles — in this
         // environment there is no server, so it settles as an error. That is a real loading→loaded
-        // transition rather than an oversight, and its alert is load-bearing: five cases in
-        // HttpPageTests assert "alert-error" appears (and, on the self-heal path, that it does not).
+        // transition rather than an oversight, and its callout is load-bearing: five cases in
+        // HttpPageTests assert role="alert" appears (and, on the self-heal path, that it does not).
         // Flattening that demo's skeleton would mean rewriting the tests that prove its behaviour, which
         // is a worse trade than leaving this check at its current width.
         //

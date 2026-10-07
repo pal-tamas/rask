@@ -109,7 +109,10 @@ div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
 button .btn .btn-warning
 button .btn .btn-outline
-div .alert .alert-soft .mb-0 .py-2
+div .@container .[&amp;_[data-slot=heading]]:text-zinc-800 .[&amp;_[data-slot=text]]:text-zinc-500 .[:is(&amp;&gt;div,&amp;_[data-slot=heading])&gt;[data-slot=icon]]:text-zinc-400 .bg-zinc-50 .border .border-zinc-200 .dark:[&amp;_[data-slot=heading]]:text-zinc-200 .dark:[&amp;_[data-slot=text]]:text-zinc-300 .dark:bg-zinc-400/10 .dark:border-white/5 .flex .p-2 .rounded-xl
+div .flex-1 .ps-2
+div .@md:pe-4 .flex .flex-1 .flex-col .gap-2 .justify-center .pe-3 .py-2
+div .flex .font-medium .gap-2 .items-center .text-sm
 
 === auth-user-gate ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
