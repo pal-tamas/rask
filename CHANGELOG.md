@@ -59,7 +59,10 @@ them until tagged releases begin.
   line per page, and the run's Playwright is pinned to the E2E projects' release. A look is also
   measured with motion at rest — a transition at its end, a spinner or shimmer on its first frame, on
   Flux's page and on Rask's alike — and a difference is measured twice, so an example Flux draws at
-  random is ignored instead of reported.
+  random is ignored instead of reported. A baseline measures every page twice and locks such an example
+  (a chart, whose data the docs server makes up per request) as `unstable`, so it is never compared; an
+  `auto` margin is recorded as `auto`, since Chromium reports the space it took on one page load and
+  `0px` on the next for the same layout.
 - **Islands load in an app served under a path base.** With `PathBase = "/shop"` the island runtime, the
   manifest and every chunk were still asked for at the root and answered 404, on both hosts. The script
   is now written under the base, as scoped assets are, and the client reads the base back off its own

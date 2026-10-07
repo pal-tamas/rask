@@ -119,9 +119,13 @@ function collect(wrapper, { STYLES, index }) {
   wrapper.setAttribute('data-m-section', section);
   const origin = wrapper.getBoundingClientRect();
   const keep = name => !/^(class|style|wire:|x-|@|:|data-m$|data-m-section$|data-section$|data-preview-wrapper$)/.test(name);
+  // An auto margin is recorded as declared. Chromium answers the space it took on one page load and 0px
+  // on the next, for the same layout — and the box already states where it put the element.
+  const auto = (declared, k) => k.startsWith('margin') && String(declared.get(k.replace('margin', 'margin-').toLowerCase())) === 'auto';
   const style = (el, pseudo) => {
     const computed = getComputedStyle(el, pseudo);
-    return Object.fromEntries(STYLES.map(k => [k, computed[k]]));
+    const declared = pseudo ? undefined : el.computedStyleMap();
+    return Object.fromEntries(STYLES.map(k => [k, declared && auto(declared, k) ? 'auto' : computed[k]]));
   };
 
   const nodes = [];
