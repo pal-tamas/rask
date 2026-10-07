@@ -19,8 +19,8 @@ dotnet run -c Release --project tests/Rask.Benchmarks -- --job short --buildTime
 | `HostDocumentRender.RenderAndSendWithoutToasts` | one live update of a host document | 9.36 KB | **3.23 KB** |
 | `HostDocumentRender.RenderAndSendWithBuiltInToasts` | the same, with the toast region mounted | 9.43 KB | **3.33 KB** |
 | `PageRequest.GetPage` | a first GET, end to end | 66.83 KB | **60.14 KB** |
-| `EventDispatch.Click` (open page, 22 routes) | a click from frame bytes to its ack | 28.00 KB | **21.75 KB**¹ |
-| `EventDispatch.Click` (`[Authorize]` page) | the same, behind the route guard | 31.64 KB | **25.32 KB**¹ |
+| `EventDispatch.Click` (open page, 22 routes) | a click from frame bytes to its ack | 28.00 KB¹ | **18.24 KB** |
+| `EventDispatch.Click` (`[Authorize]` page) | the same, behind the route guard | 31.64 KB¹ | **21.55 KB** |
 | `RenderRoundTrip.RenderAndBuildPayload` | render + full payload | 35.36 KB | 35.36 KB |
 | `LiveRenderRoundTrip.RenderOnce` | first live render | 65.23 KB | 65.23 KB |
 | `LiveRenderRoundTrip.RenderTenTimes` | ten renders of one tree | 152.73 KB | 152.73 KB |
@@ -31,8 +31,9 @@ dotnet run -c Release --project tests/Rask.Benchmarks -- --job short --buildTime
 | `HandlerDispatch.SyncHandler` / `AsyncHandler` | a click reaching its handler | 248 B | 248 B |
 | `FrameDiffer.*_ReusedScratch` (100 / 1000 / 5000 rows) | the diff alone, steady state | 0 B, bar `RawGuidePage` | not re-run |
 
-¹ Measured on the branch that added the benchmark, before the keyed-row and attribute-cache changes
-were merged into it; the combined tree has not been re-measured.
+¹ The benchmark did not exist at `efb13c941`; this is the branch that added it, before its route memo.
+A render with no event on the same two pages (`RenderOnly`) is 17.17 KB and 17.37 KB, so the endpoint
+adds about 1 KB to a click on an open page and 4 KB behind the guard.
 
 `Rask.Benchmarks -- allocation-profile [rows|page]` names the types behind a number here.
 `allocation-profile --check` is the gate CI runs: a live update of the 20-row page against
