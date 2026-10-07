@@ -56,6 +56,25 @@ public sealed class TemplateNodePinTests
         Assert.True(offenders.Length == 0, string.Join("\n  ", offenders));
     }
 
+    // Angular's CLI enforces a Node range of its own, above the build's floor. The template's csproj raises
+    // RASKSPA005's bar to that range's lowest version, so a lockfile bump that moves the range must move the bar.
+    [Fact]
+    public void The_Angular_template_refuses_a_Node_below_the_one_its_own_cli_accepts()
+    {
+        using var lockfile = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "angular", "client", "package-lock.json")));
+        var csproj = File.ReadAllText(Path.Combine(Root, "angular", "Company.RaskServer.csproj"));
+
+        var range = lockfile.RootElement.GetProperty("packages").GetProperty("node_modules/@angular/cli")
+            .GetProperty("engines").GetProperty("node").GetString() ?? "";
+        var lowest = Regex.Matches(range, @"\d+\.\d+\.\d+").Select(arm => Version.Parse(arm.Value)).Min();
+        var stated = Regex.Match(csproj, "<RaskSpaMinimumNode>([0-9.]+)</RaskSpaMinimumNode>");
+
+        Assert.True(stated.Success, "the Angular template's csproj no longer sets RaskSpaMinimumNode.");
+        Assert.True(
+            lowest == Version.Parse(stated.Groups[1].Value),
+            $"@angular/cli asks for Node '{range}', and the template's RaskSpaMinimumNode is {stated.Groups[1].Value}.");
+    }
+
     // The lockfile is what lets the scaffolded app's build run `npm ci` and resolve the same tree on every machine.
     [Fact]
     public void Every_client_ships_a_lockfile()
