@@ -88,20 +88,26 @@ public class TemplatesCompileTests
         Assert.True(errors.Count == 0, Describe(errors));
     }
 
-    [Fact]
-    public void The_host_of_a_bare_TypeScript_front_end_compiles()
+    public static TheoryData<string> FrontEnds() => [.. SpaFramework.All.Select(framework => framework.Key)];
+
+    private static SpaFramework FrontEnd(string key) => SpaFramework.All.Single(framework => framework.Key == key);
+
+    [Theory]
+    [MemberData(nameof(FrontEnds))]
+    public void The_host_of_a_bare_TypeScript_front_end_compiles(string key)
     {
-        var files = ProjectGenerator.GenerateSpa("/app", "Shop", SpaFramework.React, new ServerBatteries(), "9.9.9").Files;
+        var files = ProjectGenerator.GenerateSpa("/app", "Shop", FrontEnd(key), new ServerBatteries(), "9.9.9").Files;
 
         var errors = Errors(files, ServerUsings);
 
         Assert.True(errors.Count == 0, Describe(errors));
     }
 
-    [Fact]
-    public void The_host_of_a_TypeScript_front_end_with_every_battery_compiles()
+    [Theory]
+    [MemberData(nameof(FrontEnds))]
+    public void The_host_of_a_TypeScript_front_end_with_every_battery_compiles(string key)
     {
-        var files = ProjectGenerator.GenerateSpa("/app", "Shop", SpaFramework.React, Everything, "9.9.9").Files;
+        var files = ProjectGenerator.GenerateSpa("/app", "Shop", FrontEnd(key), Everything, "9.9.9").Files;
 
         var errors = Errors(files, ServerUsings);
 
