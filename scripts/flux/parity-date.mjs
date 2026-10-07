@@ -47,7 +47,9 @@ process.exit(parity.status ?? 1);
 // trigger is an input — a press on a field only puts the caret in it.
 function mark(slug) {
   for (const picker of document.querySelectorAll(`[data-preview-wrapper] [data-flux-${slug}]`)) {
-    const beside = picker.querySelector(`[data-flux-${slug}-trigger] button, ui-${slug}-trigger button`);
+    // …a button where the trigger has one, else the chevron at the end of the typed field.
+    const beside = picker.querySelector(`[data-flux-${slug}-trigger] button, ui-${slug}-trigger button`)
+      ?? picker.querySelector(`ui-${slug}-trigger > svg:last-child`);
     (beside ?? picker).setAttribute('data-parity-open', '');
   }
 }

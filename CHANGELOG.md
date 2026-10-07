@@ -9,6 +9,12 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.TimePicker`** — Flux UI's time picker. `Ui.TimePicker.Bind(() => m.StartsAt).Label("Starts at")` binds a
+  `TimeOnly?`, a `TimeOnly`, or a collection of `TimeOnly` for several times; `Interval`, `Min`/`Max`, `Unavailable`
+  (times and `UiTimeRange` stretches), `OpenTo`, `.TwelveHour`/`.TwentyFourHour`, `Locale`, a typed trigger
+  (`.Type(Ui.TimePickerType.Input)`), `Clearable`, sizes and the field shorthand. The list is a native popover the
+  button opens.
+
 - **Inline style as typed CSS.** `Css` has a step for every CSS property browsers ship — 455, generated
   from MDN's data (`@webref/css` for the grammars, browser-compat-data for what two engines ship) —
   and `Style` takes one wherever it takes text: `Div.Style(Css.Position().Sticky.Top(0.Px))`. A
@@ -19,6 +25,34 @@ them until tagged releases begin.
   `100.Dvh` and `50.Percent`. The daily upstream run keeps the property list on MDN's latest release.
 
 ### Changed
+
+- **BREAKING: `Ui.Calendar` and `Ui.DatePicker` are Flux's calendar and date picker.** Drawn and behaving as
+  Flux UI's `flux:calendar` and `flux:date-picker` do — the grid with its outside days, today's dot, range tint and
+  hover preview, month and year selects, a today shortcut, week numbers, several months side by side, a roving
+  tab stop with arrow, page and Home/End keys; the picker's button, typed fields, presets and confirmation — on
+  the platform's own popover, with no daisyUI class. The bound type is still the mode (`DateOnly`, a collection of
+  days, `UiDateRange`). What changed:
+  - `Ui.Calendar.Value(day).Label("Delivery")` → `Ui.Calendar.Value(day)` — a calendar has no label of its own; the
+    grid is named by its month and each day by its full date.
+  - `.Month(m).OnMonth(…)` → gone: the calendar pages itself. `.OpenTo(day)` (and `.ForceOpenTo()`) say where it opens.
+  - `.FirstDay(DayOfWeek.Monday)` → `.StartDay(DayOfWeek.Monday)`; unset, the week now starts where the LOCALE
+    starts it (it was Monday).
+  - A second click on the chosen day now clears it.
+  - A range: a click BEFORE the waiting start begins the range again from there (it used to swap the ends), and a
+    range calendar shows two months.
+  - Markup: `div[role=group][aria-label]` with `aria-pressed` buttons → `[data-ui-calendar]` holding a
+    `[role=grid]` per month, `td[role=gridcell][aria-selected][data-date]`, and one day button in the Tab order.
+  - New steps: `Unavailable`, `MinRange`/`MaxRange`, `Months`, `Size` (`.Xs` … `.Xxl`), `Navigation(false)`,
+    `Static()`, `WeekNumbers()`, `FixedWeeks()`, `SelectableHeader()`, `WithToday()`, `Locale("ja-JP")`.
+  - `Ui.DatePicker.…Hint("…")` → `.Description("…")`; `.AccessibleLabel`, `.Error`, `.Tone`, `.Variant` are gone
+    (`.Invalid()` and the form's validation remain); `.Size` now takes `Ui.DatePickerSize` and sizes the calendar.
+  - `Ui.DatePicker.Values([...])` / binding a collection (`UiDatePickerMultiple`) is gone — Flux's date picker picks
+    a day or a range; several days are `Ui.Calendar.Values([...])`.
+  - The picker's placeholder is "Select a date" / "Select a date range" (was "Choose a date"), and it shows a
+    medium date ("Jan 20, 2026", was the short one). Its popup is a `<dialog popover>`.
+  - New on the picker: `Type(Ui.DatePickerType.Input)`, `WithPresets()` / `Presets([..])` (`Ui.DateRangePreset`),
+    `WithConfirmation()`, `Trigger(…)` with `Ui.DatePickerInput` / `Ui.DatePickerButton`, and the calendar's steps.
+  - `UiDateRange` gains `Count`, `Preset` and `UiDateRange.Of(preset, today, startDay, min)`.
 
 - **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
   `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and

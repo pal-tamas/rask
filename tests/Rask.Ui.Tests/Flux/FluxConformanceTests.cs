@@ -68,6 +68,11 @@ public sealed class FluxConformanceTests
         ["flux:input.group.prefix"] = typeof(UiInputGroupPrefix),
         ["flux:input.group.suffix"] = typeof(UiInputGroupSuffix),
         ["flux:textarea"] = typeof(UiTextarea<>),
+        ["flux:calendar"] = typeof(UiCalendarControl<>),
+        ["flux:date-picker"] = typeof(UiDatePickerControl<>),
+        ["flux:date-picker.input"] = typeof(UiDatePickerInput),
+        ["flux:date-picker.button"] = typeof(UiDatePickerButton),
+        ["flux:time-picker"] = typeof(UiTimePicker<>),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -83,8 +88,29 @@ public sealed class FluxConformanceTests
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
+        ["flux:calendar/mode"] = "Says what Flux's value string holds. Here the bound type does: a DateOnly is single, a collection of them multiple, a UiDateRange a range.",
+        ["flux:calendar/multiple"] = "The bound type is the mode: Ui.Calendar.Bind(() => m.Days) over a collection, or .Values([...]).",
+        ["flux:calendar/start-day=0"] = "A number in Flux; a DayOfWeek here: StartDay(DayOfWeek.Sunday).",
+        ["flux:calendar/start-day=6"] = "A number in Flux; a DayOfWeek here: StartDay(DayOfWeek.Saturday).",
+        ["flux:calendar/size=2xl"] = "an identifier cannot start with a digit: Ui.CalendarSize.Xxl",
+        ["flux:calendar/with-inputs"] = "No example on Flux's public pages draws a calendar with its inputs, so there is nothing to measure it from.",
+        ["flux:date-picker/mode"] = "Says what Flux's value string holds. Here the bound type does: a DateOnly is single, a UiDateRange a range.",
+        ["flux:date-picker/start-day=0"] = "A number in Flux; a DayOfWeek here: StartDay(DayOfWeek.Sunday).",
+        ["flux:date-picker/start-day=6"] = "A number in Flux; a DayOfWeek here: StartDay(DayOfWeek.Saturday).",
+        ["flux:date-picker/size=2xl"] = "an identifier cannot start with a digit: Ui.DatePickerSize.Xxl",
+        ["flux:date-picker/with-inputs"] = "No example on Flux's public pages draws the calendar with its inputs, so there is nothing to measure it from.",
+        ["flux:date-picker/clearable"] = "No example on Flux's public pages draws the clear button, so there is nothing to measure it from.",
+        ["flux:date-picker.input/clearable"] = "No example on Flux's public pages draws the clear button, so there is nothing to measure it from.",
+        ["flux:date-picker.button/clearable"] = "No example on Flux's public pages draws the clear button, so there is nothing to measure it from.",
+        ["flux:date-picker.input/variant"] = "The typed field is drawn one way, Flux's `custom` — its recommended and future default. `native` is on no public example to measure.",
+        ["flux:date-picker.input/placeholder"] = "The typed field's placeholders are its segments' own: mm, dd, yyyy in the locale's order.",
         ["flux:input/mask:dynamic"] = "An Alpine expression ($money($input)) evaluated in the browser on every keystroke. Rask.Ui ships no script; Mask takes the static pattern.",
         ["flux:input/copyable"] = "Copies in the click's own call stack (Alpine). Rask.Ui ships no script and the runtime has no clipboard hook yet (data-rask-copy); a handler round trip loses the user activation the clipboard asks for.",
+        ["flux:time-picker/multiple"] = "The bound type says it: a collection of TimeOnly (List<TimeOnly>, TimeOnly[], HashSet<TimeOnly>) is several times, and a form's model has to state its shape anyway. Ui.TimePicker.Of<List<TimeOnly>>() opens one with no value yet.",
+        ["flux:time-picker/time-format=12-hour"] = "an identifier cannot start with a digit: Ui.TimePickerTimeFormat.TwelveHour",
+        ["flux:time-picker/time-format=24-hour"] = "an identifier cannot start with a digit: Ui.TimePickerTimeFormat.TwentyFourHour",
+        ["flux:time-picker/min=now"] = "A shorthand the browser's clock answers. Min and Max take a TimeOnly; the page passes TimeOnly.FromDateTime(...) from the clock it trusts.",
+        ["flux:time-picker/max=now"] = "As min=now.",
     };
 
     private static readonly BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;

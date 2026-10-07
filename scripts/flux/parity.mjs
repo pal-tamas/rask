@@ -68,6 +68,10 @@ const rask = await measurePage(browser, pathToFileURL(raskPage).href, join(out, 
       const ordinal = seen[section] = (seen[section] ?? -1) + 1;
       const theirs = examples.find(example => example.section === section && example.ordinal === ordinal);
       for (const key of theirs ? INHERITED : []) wrapper.style[key] = theirs.nodes[0].style[key];
+      // The docs page's line height is a RATIO, so a node that sets its own font size and no line height
+      // (a 9px number in an icon) gets that ratio of it. Copied as pixels it would get the wrapper's 24px.
+      const { fontSize, lineHeight } = theirs?.nodes[0].style ?? {};
+      if (lineHeight?.endsWith('px')) wrapper.style.lineHeight = String(parseFloat(lineHeight) / parseFloat(fontSize));
     }
   }, { examples: flux[scheme], INHERITED }));
 await browser.close();
@@ -80,6 +84,15 @@ const IGNORED = new Set(['width', 'height']);
 const NATIVE = {
   'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend', 'ui-progress': 'div',
   'ui-table-scroll-area': 'div', 'ui-disclosure-group': 'div', 'ui-disclosure': 'details',
+  // The calendar: its month steps and its today shortcut are real buttons, and the tooltip Flux wraps every day in
+  // (shown only for a day with details) is the box it leaves behind.
+  'ui-calendar': 'div', 'ui-calendar-months': 'div', 'ui-calendar-month': 'div', 'ui-calendar-year': 'div',
+  'ui-calendar-previous': 'button', 'ui-calendar-next': 'button', 'ui-calendar-today': 'button', 'ui-tooltip': 'div',
+  // The date picker: a preset is a real button with the radio's role, and the wrappers Flux scripts its two
+  // confirmation buttons through are the inline boxes they leave behind.
+  'ui-date-picker': 'div', 'ui-date-picker-trigger': 'div', 'ui-selected-date': 'div', 'ui-calendar-presets': 'div',
+  'ui-radio-group': 'div', 'ui-radio': 'button', 'ui-close': 'span', 'ui-date-picker-select': 'span',  // The time picker: the list of times is a popover the browser opens.
+  'ui-time-picker': 'div', 'ui-time-picker-trigger': 'div', 'ui-selected-time': 'div', 'ui-time-picker-options': 'div',
 };
 // …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
 // opens the file input inside it when clicked, where Flux's <div> calls input.click().
@@ -88,11 +101,12 @@ const NATIVE_PART = { 'input-file': 'label' };
 const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
 const MISMARKED = { 'ui-disclosure-group': 'accordion' };
-// An OPEN popup is placed by script in Flux (`position: absolute` and an inset it computes) and by CSS anchor
-// positioning here (`position: fixed`, the gap as a margin). How each says where the popup goes is not compared;
-// where it ends up is — its offset from the root it floats beside, like every other node's.
+// A popup is placed by script in Flux (`position: absolute` and an inset it computes) and by CSS anchor
+// positioning here (`position: fixed`, the gap as a margin) — open, and closed too, where neither is drawn.
+// How each says where the popup goes is not compared; where it ends up is — its offset from the root it
+// floats beside, like every other node's.
 const PLACEMENT = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft']);
-const placed = node => ('popover' in node.attrs || node.tag === 'dialog') && 'data-open' in node.attrs;
+const placed = node => 'popover' in node.attrs || node.tag === 'dialog';
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
 const snapshot = JSON.parse(await readFile(join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json'), 'utf8'));
 const OWN = new Set([slug, ...(snapshot.pages.find(p => p.slug === slug)?.parts ?? [])

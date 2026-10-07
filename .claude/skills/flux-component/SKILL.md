@@ -139,7 +139,8 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button` today).
+card accordion callout button input textarea calendar date-picker time-picker` today, plus
+`node scripts/flux/parity-date.mjs date-picker|time-picker` for the two open popups).
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -161,6 +162,17 @@ card accordion callout button` today).
 - **A colour the docs page hands a component by class** and that must lose to the component's own hover
   (`text-zinc-300` on the header's subtle button): `.parity-x:not(:hover){…}` on the page, and
   `not-hover:text-zinc-300` in an app.
+- **A `<template>` is not collected**: Flux's client-side components leave theirs in the tree; a
+  server-rendered one has none.
+- **Line height is copied as a RATIO** of the font size, as the docs page states it, so a node that sets
+  its own font size and no line height (a 9px number in an icon) computes as Flux's does.
+- **An open popup**: `data-parity-open` on what a reader presses (lib.mjs presses its centre, measures, then
+  Escape). `parity-date.mjs` marks Flux's pickers and files the result as the page `<slug>-open`; the Rask page
+  of that name (`DatePickerOpenParity`, `TimePickerOpenParity`) carries the same mark. A popup's `position` and
+  margins are not compared (`placed`: Flux places by script, the kit by CSS anchor positioning) — where it lands is.
+- **Two clocks**: the measuring browser is pinned to 2026-01-15, and Flux's SERVER writes `now()` from the real
+  date. A parity example pins the first through `IUiClock` (`.On(FluxClock.Today)`) and takes the second from
+  `FluxClock.Now` / `FluxClock.Day(n)`, and states `.Locale("en-US")`, the browser's.
 - **Not differences:** `NATIVE` tag pairs (and `button`→`summary`); the colour of a border 0px wide on
   both sides, or of an outline with `outline-style:none` on both, at rest and in a forced state; the
   offset of a node with no box (`display:none` itself or above it, or 0×0 on both sides); `oklch(… none)`
@@ -212,6 +224,16 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   not looked up, the "Password" row with its button), table page (badge, avatar, the dropdown and menu
   around the row button, pager), progress page (slider, as raw `ui-slider` markup), separator page (the
   tooltip around the theme button), callout page (one badge), field page (inputs).
+
+- Calendar, date picker, time picker — waiting for a runtime hook each, none faked: containing the arrow, page
+  and Space keys inside `[role=grid]` (the page scrolls under the calendar today); scrolling an expanded
+  combobox's `aria-activedescendant` into view as the cursor moves (the time list); auto-advance, arrow
+  increments and per-keystroke normalising in the typed date and time fields; arrow keys in the date picker's
+  preset radio group; a press inside a typed segment not opening the popup. The calendar's focus move after an
+  arrow key is `ElementRef.Focus()` from `OnRendered` (`UiCalendarFocus`) and is not yet proven in a browser.
+  Not measurable on Flux's public pages, so extrapolated or `NotTranslated`: calendar sizes `Lg`/`Xxl`, every
+  date-picker size but the default, `with-inputs`, `clearable` on the date picker, the shown confirmation footer.
+  The today shortcut draws Heroicons' mini calendar where Flux draws a glyph of its own (1px taller window).
 
 ## Open work (integration stopped here on 2026-10-07 — see the integrator's report)
 - A stale `src/Rask.Site/obj/**/rask-external` folder can fail the site build after merging main

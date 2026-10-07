@@ -169,7 +169,8 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 
         Assert.False(result.TimedOut, $"did not settle ({result.Waves} waves)");
         Assert.Contains("Components are just methods", result.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("role=\"alert\"", result.Html, StringComparison.Ordinal);
+        // The error CALLOUT: a labelled Ui.Input on the page always carries its own (empty) role="alert" node.
+        Assert.DoesNotMatch("data-ui-callout[^>]*role=\"alert\"", result.Html);
     }
 
     private static IServiceProvider Services(HttpClient http, TimeProvider time) =>

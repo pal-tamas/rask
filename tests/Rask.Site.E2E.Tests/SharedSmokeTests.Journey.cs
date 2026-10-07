@@ -282,7 +282,7 @@ public abstract partial class SharedSmokeTests
 
         // The filter narrows the list to matching labels (and force-opens their groups); clearing it
         // restores the accordion. Uses durable guide labels (always present).
-        var filter = Page.Locator(".side-nav .side-nav-filter");
+        var filter = Page.Locator(".side-nav .side-nav-filter input");
         await filter.FillAsync("Getting started");
         await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Getting started\")").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
