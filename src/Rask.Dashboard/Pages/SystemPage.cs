@@ -71,7 +71,7 @@ public sealed partial class SystemPage(
         // A leader list rather than four tiles. These are four short scalars an operator reads once to
         // confirm the deployment is configured the way they think — a headline number's worth of weight
         // each was three times the space and none of the extra meaning.
-        return Ui.Card.Title("Database")[
+        return Ui.Card[Ui.CardHeader[Ui.CardHeading.Level(2)["Database"]], Ui.CardBody[
             Ui.DetailList[
                 Ui.DetailRow
                     .Key("size")
@@ -100,7 +100,7 @@ public sealed partial class SystemPage(
                     .Value(ShortProvider(db.Provider))
                     .Mono()
             ]
-        ];
+        ]];
     }
 
     // One grid of every backup fact, then the snapshots as a card of their own. A card does not space the
@@ -119,8 +119,8 @@ public sealed partial class SystemPage(
         var stats = BackupStats(now).ToList();
 
         return [
-            stats.Count == 0 ? null : Ui.Card.Key("backup").Title("Backup")[Ui.Grid[stats]],
-            Ui.Card.Key("snapshots").Title("Snapshots")[SnapshotList(now)]
+            stats.Count == 0 ? null : Ui.Card.Key("backup")[Ui.CardHeader[Ui.CardHeading.Level(2)["Backup"]], Ui.CardBody[Ui.Grid[stats]]],
+            Ui.Card.Key("snapshots")[Ui.CardHeader[Ui.CardHeading.Level(2)["Snapshots"]], Ui.CardBody[SnapshotList(now)]]
         ];
     }
 
@@ -136,7 +136,7 @@ public sealed partial class SystemPage(
                 .Caption(r.LastStartedAt is { } started
                     ? $"since {DashboardParts.Ago(started.UtcDateTime, now)}"
                     : "never started")
-                .Icon(Ui.IconName.Retry);
+                .Icon(Ui.IconName.ArrowPath);
 
             yield return Ui.Stat
                 .Key("restarts")
@@ -144,7 +144,7 @@ public sealed partial class SystemPage(
                 .Label("Restarts")
                 .Tone(r.RestartCount > 0 ? Ui.Tone.Warning : null)
                 .Caption(r.LastError ?? "no failures recorded")
-                .Icon(Ui.IconName.Warning);
+                .Icon(Ui.IconName.ExclamationTriangle);
         }
 
         // Restorability is its own fact: "the replicator is running" says nothing about whether what it
@@ -169,8 +169,8 @@ public sealed partial class SystemPage(
                     ? $"verified {DashboardParts.Ago(verified.UtcDateTime, now)}"
                     : v.LastError ?? "never verified")
                 .Icon(v.Level == BackupVerificationLevel.Broken
-                    ? Ui.IconName.ShieldWarning
-                    : Ui.IconName.ShieldOk);
+                    ? Ui.IconName.ShieldExclamation
+                    : Ui.IconName.ShieldCheck);
         }
     }
 
@@ -191,7 +191,7 @@ public sealed partial class SystemPage(
             return null;
         }
 
-        return Ui.Card.Title("Recurring jobs")[
+        return Ui.Card[Ui.CardHeader[Ui.CardHeading.Level(2)["Recurring jobs"]], Ui.CardBody[
             Ui.DataGrid.Data(_recurring).RowKey(r => r.Name).Label("Recurring jobs")[c => [
                 c.Field(r => r.Name).Title("Name").Mono(),
                 c.Field(r => r.Schedule).Title("Schedule"),
@@ -201,7 +201,7 @@ public sealed partial class SystemPage(
                         // Declared but never fired: either the app just started, or this one is stuck.
                         : Ui.Badge["never"]),
             ]]
-        ];
+        ]];
     }
 
     // "Microsoft.EntityFrameworkCore.Sqlite" reads better as "Sqlite" in a tile.

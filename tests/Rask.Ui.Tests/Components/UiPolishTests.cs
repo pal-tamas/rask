@@ -1,7 +1,7 @@
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The smaller Flux UI affordances: a resizable textarea, an outbound link, a shaped placeholder, a popover
+///     The smaller Flux UI affordances: a resizable textarea, a popover
 ///     that is not a menu.
 /// </summary>
 /// <remarks>
@@ -33,55 +33,6 @@ public partial class UiPolishTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void An_external_link_opens_away_and_cannot_reach_back()
-    {
-        // All three together: a new tab without rel=noopener can reach the opener through window.opener, and
-        // a tab that opens unannounced takes the back button away from a reader who did not ask for one.
-        var html = Ui.Link.Href("https://example.com").External(true)["The spec"].ToHtml();
-
-        Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
-        Assert.Contains("rel=\"noopener noreferrer\"", html, StringComparison.Ordinal);
-        Assert.Contains("opens in a new tab", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void An_ordinary_link_is_untouched() =>
-        Assert.DoesNotContain("target=\"_blank\"",
-            Ui.Link.Href("/docs")["Docs"].ToHtml(), StringComparison.Ordinal);
-
-    [Fact]
-    public void A_generated_route_is_never_external()
-    {
-        // It is one of your own pages by definition. Opening it in a second tab would be the app twice over.
-        var route = new global::Rask.Core.Routing.RouteUrl("/docs", null, typeof(UiPolishTests));
-        var html = Ui.Link.Href(route).External(true)["Docs"].ToHtml();
-
-        Assert.DoesNotContain("target=\"_blank\"", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_placeholder_of_lines_ends_short_the_way_a_paragraph_does()
-    {
-        // A stack of equal bars reads as a table. The eye notices that before the content lands.
-        var html = Ui.Skeleton.Lines(3).ToHtml();
-
-        Assert.Equal(3, Occurrences(html, "skeleton"));
-        Assert.Contains("w-3/5", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void One_line_is_not_shortened() =>
-        Assert.DoesNotContain("w-3/5", Ui.Skeleton.Lines(1).ToHtml(), StringComparison.Ordinal);
-
-    [Fact]
-    public void A_placeholder_says_nothing_to_a_screen_reader()
-    {
-        // A row of empty boxes read aloud is worse than silence.
-        Assert.Contains("aria-hidden=\"true\"", Ui.Skeleton.Lines(2).ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("aria-hidden=\"true\"", Ui.Skeleton.Circle(true).ToHtml(), StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void A_popover_is_a_dialog_rather_than_a_menu()
     {
         // The gap Ui.Dropdown left: a filter panel is not a list of commands, and saying menu would promise
@@ -108,24 +59,6 @@ public partial class UiPolishTests : global::Rask.Core.RaskMarkup
         // Uncontrolled: the browser owns it and the attribute is absent, so nothing fights the reader.
         Assert.DoesNotContain("data-rask-popover-open",
             Ui.Popover.Trigger("Filters")[Div["x"]].ToHtml(), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_card_can_be_made_denser()
-    {
-        var dense = Ui.Card.Size(Ui.Size.Sm)["x"].ToHtml();
-
-        Assert.Contains("p-3 sm:p-4", dense, StringComparison.Ordinal);
-        Assert.DoesNotContain("p-4 sm:p-5", dense, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_card_with_no_size_keeps_the_kit_panel()
-    {
-        var html = Ui.Card["x"].ToHtml();
-
-        Assert.Contains($"class=\"{UiStyles.Card}\"", html, StringComparison.Ordinal);
-        Assert.Equal(html, Ui.Card.Size(Ui.Size.Md)["x"].ToHtml());
     }
 
     private static int Occurrences(string haystack, string needle)

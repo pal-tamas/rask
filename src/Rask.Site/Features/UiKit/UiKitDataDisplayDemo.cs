@@ -4,12 +4,20 @@ namespace Rask.Site.Features.UiKit;
 ///     daisyUI's Data display category, drawn with the kit.
 /// </summary>
 /// <remarks>
-///     Most of this category is static — a badge is a badge. The two that hold state hold it here, in
-///     plain fields: which accordion section is open, and whether the standalone collapse is.
+///     Most of this category is static — a badge is a badge. The accordions open and close in the browser
+///     with no state at all; the one the page owns keeps whether it is open in a plain field.
 /// </remarks>
 public sealed partial class UiKitDataDisplayDemo : Component
 {
-    private string? _section = "ship";
+    private const string Refund =
+        "If you are not satisfied with your purchase, we offer a 30-day money-back guarantee. Please contact our support team for assistance.";
+
+    private const string Bulk =
+        "Yes, we offer special discounts for bulk orders. Please reach out to our sales team with your requirements.";
+
+    private const string Tracking =
+        "Once your order is shipped, you will receive an email with a tracking number. Use this number to track your order on our website.";
+
     private bool _advanced;
 
     private static readonly Month[] Months =
@@ -21,55 +29,91 @@ public sealed partial class UiKitDataDisplayDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
+        CardSection(),
         AccordionSection(),
-        CollapseSection(),
+        OwnedAccordionSection(),
         AuraSection(),
         TextRotateSection(),
         Hover3DSection(),
         HoverGallerySection(),
         CardsFiguresEmptySection(),
         ChartSection(),
+        TableSection(),
         RestOfCategorySection()
     ];
 
-    private Component AccordionSection() =>
+    private static Component AccordionSection() =>
         Section(
             "Accordion",
-            "One section at a time, and the page owns which. That is the difference from a run of "
-            + "collapses sharing a name: the browser closes the others without telling anyone which won.",
-            Div.Data(Testid("ui-accordion"))[
-                Ui.Accordion
-                    .Open(_section)
-                    .OnOpen(key => { _section = key; })[
-                    Ui.AccordionSection.Key("ship").Title("Shipping").Marker(Ui.Marker.Arrow)[
-                        P["Ships within two working days, tracked."]
-                    ],
-                    Ui.AccordionSection.Key("pay").Title("Payment").Marker(Ui.Marker.Arrow)[
-                        P["Card or bank transfer. Invoices on request."]
-                    ],
-                    Ui.AccordionSection.Key("returns").Title("Returns").Marker(Ui.Marker.Arrow)[
-                        P["Thirty days, no reason needed."]
+            "Flux's accordion, example for example. An item is a <details>, so it opens with a click, Enter "
+            + "or Space and no handler at all, and the browser's find-in-page opens the item holding a match.",
+            Div.Data(Testid("ui-accordion")).Class("grid max-w-4xl gap-x-12 gap-y-8 md:grid-cols-2")[
+                Example("basic", "Heading and content",
+                    Ui.Accordion[
+                        Ui.AccordionItem[
+                            Ui.AccordionHeading["What's your refund policy?"],
+                            Ui.AccordionContent[Refund]
+                        ],
+                        Ui.AccordionItem[
+                            Ui.AccordionHeading["Do you offer any discounts for bulk purchases?"],
+                            Ui.AccordionContent[Bulk]
+                        ],
+                        Ui.AccordionItem[
+                            Ui.AccordionHeading["How do I track my order?"],
+                            Ui.AccordionContent[Tracking]
+                        ]
+                    ]),
+                Example("shorthand", "Shorthand", Ui.Accordion[Questions()]),
+                Example("transition", "With transition", Ui.Accordion.Transition()[Questions()]),
+                Example("findable", "Findable content — search the page for “signature”",
+                    Ui.Accordion[
+                        Ui.AccordionItem.Heading("Where do you ship?")["We ship to addresses throughout the United States and Canada."],
+                        Ui.AccordionItem.Heading("Do I need to be home for delivery?")["Orders over $500 require a signature upon delivery."],
+                        Ui.AccordionItem.Heading("Can I change my order?")["Contact our support team before your order has shipped."]
+                    ]),
+                Example("disabled", "Disabled",
+                    Ui.Accordion[
+                        Ui.AccordionItem.Heading("What's your refund policy?")["It all depends how nice you are to me in your email."],
+                        Ui.AccordionItem.Heading("Do you offer PPP discounts?").Disabled()[Bulk],
+                        Ui.AccordionItem.Heading("How do I track my order?")["What do YOU think?"]
+                    ]),
+                Example("exclusive", "Exclusive", Ui.Accordion.Exclusive()[Questions()]),
+                Example("expanded", "Expanded", Ui.Accordion[Questions(expanded: true)]),
+                Example("reverse", "Leading icon", Ui.Accordion.Reverse[Questions()])
+            ]);
+
+    private Component OwnedAccordionSection() =>
+        Section(
+            "Accordion, owned by the page",
+            "Expanded is the state an item is rendered in and OnToggle says each time the reader changes it. "
+            + "Keep the two in one field and the page owns the item: the button below opens it from C#.",
+            Div.Data(Testid("ui-accordion-owned")).Class("max-w-sm")[
+                Ui.Button.Sm.OnClick(() => { _advanced = !_advanced; })[_advanced ? "Close it from C#" : "Open it from C#"],
+                Ui.Accordion.Transition().Class("mt-4")[
+                    Ui.AccordionItem
+                        .Heading("Advanced settings")
+                        .Expanded(_advanced)
+                        .OnToggle(open => { _advanced = open; })[
+                        "Nothing in here is required."
                     ]
                 ],
                 P.Class("mt-2 text-sm text-ui-muted").Data(Testid("ui-accordion-state"))[
-                    _section is null ? "All sections closed." : $"Open section: {_section}."
+                    _advanced ? "Advanced settings are open." : "Advanced settings are closed."
                 ]
             ]);
 
-    private Component CollapseSection() =>
-        Section(
-            "Collapse",
-            "The standalone section. Open is nullable here too — unset lets the browser open it on "
-            + "focus, set hands the decision to this page.",
-            Div.Data(Testid("ui-collapse"))[
-                Ui.Collapse
-                    .Title("Advanced settings")
-                    .Marker(Ui.Marker.Plus)
-                    .Open(_advanced)
-                    .OnToggle(open => { _advanced = open; })[
-                    P["Nothing in here is required."]
-                ]
-            ]);
+    private static Component Example(string key, string title, Component accordion) =>
+        Div.Key(key).Data(Testid("ui-accordion-" + key))[
+            P.Class("mb-3 text-xs font-medium uppercase tracking-wide text-ui-muted")[title],
+            accordion
+        ];
+
+    private static Component[] Questions(bool expanded = false) =>
+    [
+        Ui.AccordionItem.Heading("What's your refund policy?")[Refund],
+        Ui.AccordionItem.Heading("Do you offer any discounts for bulk purchases?").Expanded(expanded)[Bulk],
+        Ui.AccordionItem.Heading("How do I track my order?")[Tracking]
+    ];
 
     private static Component AuraSection() =>
         Section(
@@ -100,7 +144,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
             + "keyboard, so nothing may depend on the tilt.",
             Div.Data(Testid("ui-hover-3d")).Class("max-w-xs")[
                 Ui.Hover3d[
-                    Ui.Card.Title("Tilt me")[P["The content is complete without the effect."]]
+                    Ui.Card[Ui.CardHeader[Ui.CardHeading.Level(2)["Tilt me"]], Ui.CardBody[P["The content is complete without the effect."]]]
                 ]
             ]);
 
@@ -120,31 +164,32 @@ public sealed partial class UiKitDataDisplayDemo : Component
     private static Component CardsFiguresEmptySection() =>
         Section(
             "Cards, figures and empty states",
-            "What an operator screen is made of. A card given an Href is one link, figures and all — so "
+            "What an operator screen is made of. A card wrapped in a link is one link, figures and all — so "
             + "nothing inside it may be a button. A mono badge wraps a long token instead of widening its "
             + "row, a code block can say what it holds, and an empty state gives the answer before the reason.",
             Div.Data(Testid("ui-console-pieces"))[
                 Ui.Grid[
-                    Ui.Card
-                        .Key("queue")
-                        .Href(PageMeta.LinkTo(Routes.UiKitDataGridPage()))
-                        .Icon(Ui.IconName.Gear)
-                        .Title("Jobs")
-                        .Action(Ui.StatusDot.Label("2 failed").Error)[
-                        Ui.MetricRow.Columns(2)[
-                            Ui.Metric.Key("outstanding").Label("Outstanding").Value("12"),
-                            Ui.Metric.Key("failed").Label("Failed").Value("2").Error
-                                .Caption("dead after 5 attempts")
+                    NavLink.Key("queue").Href(PageMeta.LinkTo(Routes.UiKitDataGridPage()))[
+                        Ui.Card.Class("hover:bg-zinc-50 dark:hover:bg-zinc-700")[
+                            Ui.CardHeader[
+                                Ui.CardHeading.Level(2).Class("flex items-center gap-2")[Ui.Icon.Name(Ui.IconName.Cog6Tooth).Class("opacity-60"), "Jobs"],
+                                Ui.CardSubheading[Ui.StatusDot.Label("2 failed").Error]
+                            ],
+                            Ui.CardBody[
+                                Ui.MetricRow.Columns(2)[
+                                    Ui.Metric.Key("outstanding").Label("Outstanding").Value("12"),
+                                    Ui.Metric.Key("failed").Label("Failed").Value("2").Error
+                                        .Caption("dead after 5 attempts")
+                                ]
+                            ]
                         ]
                     ],
                     Ui.Card
-                        .Key("detail")
-                        .Title("A failed job")
-                        .Action(Ui.Badge.Mono()["requestId=0HN8Q2V3R1T0K:00000001"])[
+                        .Key("detail")[Ui.CardHeader[Ui.CardHeading.Level(2)["A failed job"], Ui.CardActions[Ui.Badge.Mono()["requestId=0HN8Q2V3R1T0K:00000001"]]], Ui.CardBody[
                         Ui.Code.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
                             .Label("Last error")
                             .Error
-                    ],
+                    ]],
                     Ui.Card.Key("empty")[
                         Ui.Empty.Title("Nothing stored matches")
                             .Detail("Retention drops entries by age and by count.")

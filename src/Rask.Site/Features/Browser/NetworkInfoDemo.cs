@@ -11,7 +11,7 @@ public sealed partial class NetworkInfoDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Ui.Button.Primary.Outline.Class("mb-2")
                     .Id("net-read")
                     .OnClick(Read)["Read network status"],

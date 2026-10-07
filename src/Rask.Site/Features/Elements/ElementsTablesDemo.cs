@@ -3,7 +3,7 @@ namespace Rask.Site.Features;
 // Tables: table, caption, colgroup/col, thead/tbody/tfoot, tr, th (scope), td (colspan).
 public sealed partial class ElementsTablesDemo : Component
 {
-    protected override Component? Render() => Ui.Table.Class("[&_td]:border [&_th]:border mb-0")[
+    protected override Component? Render() => Table.Class("w-full border-collapse text-left text-sm [&_td]:border [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:px-3 [&_th]:py-2")[
         Caption.Class("caption-top")["Quarterly results"],
         Colgroup[Col.Span(1).Class("bg-ui-well"), Col.Span(2)],
         Thead[

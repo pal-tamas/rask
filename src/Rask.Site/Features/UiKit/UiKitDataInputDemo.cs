@@ -91,7 +91,7 @@ public sealed partial class UiKitDataInputDemo : Component
                 // around the input, and the label keeps its place above the field: a floating caption rises
                 // through exactly the room the icon now occupies.
                 Ui.Input.Value(_search).Key("search").Label("Search")
-                    .Icon(Ui.IconName.Search).Kbd("⌘K").Clearable()
+                    .Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K").Clearable()
                     .Placeholder("Find a package")
                     .OnInput(v => _search = v ?? ""),
                 // AutoSize is CSS — `field-sizing: content` — so the box grows as you type with no runtime at
@@ -239,8 +239,10 @@ public sealed partial class UiKitDataInputDemo : Component
             Div.Data(Testid("ui-labels")).Class("grid gap-3 sm:grid-cols-2")[
                 Ui.Input.Of<string>().Key("float").Label("Company"),
                 Ui.Input.Of<string>().Key("legend").Label("Company number").Floating(false),
-                Ui.Label.Key("price").Text("€").Trailing("per month")[
-                    Ui.Input.Of<string>().AccessibleLabel("Price per month").Placeholder("29")
+                Label.Key("price").Class("label")[
+                    Span["€"],
+                    Ui.Input.Of<string>().AccessibleLabel("Price per month").Placeholder("29"),
+                    Span["per month"]
                 ]
             ]);
 

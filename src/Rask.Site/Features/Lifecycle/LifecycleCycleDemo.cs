@@ -19,7 +19,7 @@ public sealed partial class LifecycleCycleDemo : Component
                 Ui.Button.Outline
                     .Id("lifecycle-cycle-unmount")
                     .Disabled(!_cycleMounted)
-                    .OnClick(UnmountCycle)[Ui.Icon.Name(Ui.IconName.Stop), "Unmount probe"]
+                    .OnClick(UnmountCycle)[Ui.Icon.Name(Ui.IconName.StopCircle), "Unmount probe"]
             ],
             _cycleMounted
                 ? LifecycleCycleProbe.InstanceId(_nextCycleId).Log(AppendCycleLog)

@@ -393,6 +393,23 @@ points at the error message's `id` (and the hint's `id` when `.Hint(…)` is set
 the error with the field rather than detached from it. Valid fields with a `Hint` still get
 `aria-describedby` to the hint.
 
+**Composing the field yourself.** The kit's [`Ui.Field`](ui-kit.md#fields-label-description-error) is the
+same three parts as components — Flux UI's field — for when the label, the help text or the message needs
+to sit somewhere a control's own `Label` would not put it:
+
+```csharp
+Ui.Field[
+    Ui.Label.Badge("Required")["Email"],
+    Ui.Input.Bind(() => _model.Email).ShowValidation(false),
+    Ui.Error,                                   // or Ui.Error.For(() => _model.Email) outside a field
+    Ui.Description["We only write about your order."]
+]
+```
+
+`Ui.Label` is a `<label for>` pointing at the control, and `Ui.Error` is a `role="alert"` live region that
+is always in the page and shows the first message the form holds for the bound member.
+`Ui.Fieldset.Legend("Shipping address")[…]` groups several fields under one heading.
+
 A combobox control — [`Ui.Select`](ui-kit.md) with `.Native(false)`, over one answer or many — carries `role="combobox"`,
 which is not a labelable element, so its name is given directly (`aria-label`, or `aria-labelledby`
 pointing at a visible label) rather than through a `<label for>` that would bind to nothing. Alongside

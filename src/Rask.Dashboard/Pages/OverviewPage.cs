@@ -70,7 +70,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, OpsOpt
 
         var worst = _queues.Where(q => q.Counts.Failed > 0).OrderByDescending(q => q.Counts.Failed).ToList();
         return Ui.Alert.Tone(Ui.Tone.Error)[
-            Ui.Icon.Name(Ui.IconName.Warning),
+            Ui.Icon.Name(Ui.IconName.ExclamationTriangle),
             Span[
                 $"{failed} dead letter{(failed == 1 ? "" : "s")} — ",
                 string.Join(", ", worst.Select(q => $"{q.Counts.Failed} in {q.Panel.Title.ToLowerInvariant()}")),
@@ -99,21 +99,21 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, OpsOpt
     /// This was two tiles per queue, so a deployment running three of them opened on six tiles that were
     /// mostly the word "outstanding" repeated — and, at four to a row, a second row holding two. A queue is
     /// one thing, so it gets one card, and the grid divides evenly by the number of queues rather than by
-    /// twice it. The whole card is one link, which is why its corner holds a status rather than a button.
+    /// twice it. The whole card sits in one link, which is why it holds a status and never a button.
     /// </remarks>
     private static Component QueueCard(IQueuePanel panel, QueueCounts counts)
     {
         var failing = counts.Failed > 0;
 
-        return Ui.Card
-            .Key(panel.Slug)
-            .Href(Routes.QueuePage(panel.Slug))
-            .Icon(panel.Icon)
-            .Title(panel.Title)
-            .Action(Ui.StatusDot
-                .Label(failing ? $"{counts.Failed} failed" : "healthy")
-                .Tone(failing ? Ui.Tone.Error : Ui.Tone.Success))[
-            Ui.MetricRow.Columns(2)[
+        // Flux's link card: the link is around the card, not a prop of it.
+        return NavLink.Key(panel.Slug).Href(Routes.QueuePage(panel.Slug))[Ui.Card[
+            Ui.CardHeader[
+                Ui.CardHeading.Level(2)[panel.Title],
+                Ui.CardSubheading[Ui.StatusDot
+                    .Label(failing ? $"{counts.Failed} failed" : "healthy")
+                    .Tone(failing ? Ui.Tone.Error : Ui.Tone.Success)]
+            ],
+            Ui.CardBody[Ui.MetricRow.Columns(2)[
                 Ui.Metric
                     .Key("outstanding")
                     .Label("Outstanding")
@@ -125,7 +125,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, OpsOpt
                     .Value(counts.Failed.ToString(CultureInfo.CurrentCulture))
                     .Tone(failing ? Ui.Tone.Error : null)
                     .Caption($"dead after {panel.MaxAttempts} attempts")
-            ]
-        ];
+            ]]
+        ]];
     }
 }

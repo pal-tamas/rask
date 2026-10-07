@@ -9,7 +9,7 @@ public sealed partial class GeolocationDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Ui.Button.Primary.Outline.Class("mb-2")
                     .Id("geo-get")
                     .OnClick(Get)["Get current position"],

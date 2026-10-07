@@ -18,7 +18,7 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
     private async Task<IKeyValueStore> Store() => _store ??= await indexedDb.OpenStore("rask-demo");
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("grid grid-cols-12 gap-4 mb-2")[
                     Div.Class("col-span-12 sm:col-span-4")[
                         Ui.Input

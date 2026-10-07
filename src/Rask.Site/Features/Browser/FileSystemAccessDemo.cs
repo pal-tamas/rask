@@ -15,13 +15,13 @@ public sealed partial class FileSystemAccessDemo : Component
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Button.Primary.Id("fs-open").OnClick(Open)[Ui.Icon.Name(Ui.IconName.Folder), "Open file"],
+                    Ui.Button.Primary.Id("fs-open").OnClick(Open)[Ui.Icon.Name(Ui.IconName.FolderOpen), "Open file"],
                     Ui.Button.Primary.Outline
                         .Id("fs-save")
                         .Disabled(_handle is null)
-                        .OnClick(Save)[Ui.Icon.Name(Ui.IconName.Save), "Save"],
+                        .OnClick(Save)[Ui.Icon.Name(Ui.IconName.ArrowDownOnSquare), "Save"],
                     Ui.Button.Primary.Outline.Id("fs-saveas").OnClick(SaveAs)["Save as…"]
                 ],
                 Div.Class("mb-2 text-sm text-ui-muted")["File: ", Code.Id("fs-name")[_name ?? "(none)"]],

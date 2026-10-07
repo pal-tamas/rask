@@ -38,18 +38,16 @@ public sealed partial class CultureFormatsDemo : Component
             return Ui.Alert.Warning.Soft["This build runs with ", Code["InvariantGlobalization"], ", so every culture formats identically. Set ", Code["<RaskGlobalization>true</RaskGlobalization>"], " to ship ICU — see the WASM section of this guide."];
         }
 
-        return Ui.Table.Class("align-middle")[
-            Thead[
-                Tr[
-                    Th["Language"],
-                    Th["Date"],
-                    Th["Money"],
-                    Th["Percent"]
-                ]
+        return Ui.Table[
+            Ui.TableColumns[
+                Ui.TableColumn["Language"],
+                Ui.TableColumn["Date"],
+                Ui.TableColumn["Money"],
+                Ui.TableColumn["Percent"]
             ],
             // The enumerable is passed straight in: a `..` spread does not bind against the chain's
             // children indexer.
-            Tbody[Languages.Select(Row)]
+            Ui.TableRows[Languages.Select(Row)]
         ];
     }
 
@@ -59,11 +57,11 @@ public sealed partial class CultureFormatsDemo : Component
 
         // The tag goes in a data attribute, never a class: the golden records tag names and sorted
         // class tokens, so a culture in a class would bake the sample data into the snapshot.
-        return Tr.Data("culture", tag)[
-            Td[Code[tag]],
-            Td[Sample.ToString("d", culture)],
-            Td[Price.ToString("C", culture)],
-            Td[Ratio.ToString("P1", culture)]
+        return Ui.TableRow.Data("culture", tag)[
+            Ui.TableCell[Code[tag]],
+            Ui.TableCell[Sample.ToString("d", culture)],
+            Ui.TableCell[Price.ToString("C", culture)],
+            Ui.TableCell[Ratio.ToString("P1", culture)]
         ];
     }
 }

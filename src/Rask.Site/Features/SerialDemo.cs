@@ -22,7 +22,7 @@ public sealed partial class SerialDemo : Component
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Ui.Input.Value(_baudRate.ToString(CultureInfo.InvariantCulture)).Label("Baud")
                         .Id("serial-baud")
@@ -32,7 +32,7 @@ public sealed partial class SerialDemo : Component
                     Ui.Button.Primary
                         .Id("serial-connect")
                         .Disabled(_port is not null)
-                        .OnClick(Connect)[Ui.Icon.Name(Ui.IconName.Cube), "Connect"],
+                        .OnClick(Connect)[Ui.Icon.Name(Ui.IconName.CubeTransparent), "Connect"],
                     Ui.Button.Error.Outline
                         .Id("serial-disconnect")
                         .Disabled(_port is null)

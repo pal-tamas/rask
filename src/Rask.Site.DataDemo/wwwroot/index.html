@@ -13,17 +13,22 @@
     <script type="importmap"></script>
     <style id="rask-scoped"></style>
     <script>
-        // The theme the reader picked on rask.sh (same origin, same key as Ui.ThemeScript), before first paint,
-        // so the demo in a guide's iframe matches the page around it. None stored: follow the OS. Re-applied after
-        // every morph, which rewrites <html> to the attributes the app renders.
+        // Dark mode as rask.sh has it (same origin, same key as Ui.AppearanceScript), before first paint, so
+        // the demo in a guide's iframe matches the page around it — and follows it when the reader flips the
+        // moon. Nothing stored: follow the OS. Re-applied after every morph, which rewrites <html>.
         (function () {
+            var media = window.matchMedia("(prefers-color-scheme: dark)");
             function apply() {
-                try {
-                    var t = localStorage.getItem("rask-theme");
-                    if (t && /^[a-z0-9-]+$/.test(t)) document.documentElement.setAttribute("data-theme", t);
-                } catch (e) { }
+                var stored = null;
+                try { stored = localStorage.getItem("rask.appearance"); } catch (e) { }
+                var dark = stored === "dark" || (stored !== "light" && media.matches);
+                document.documentElement.classList.toggle("dark", dark);
+                // Goes with daisyUI, which still draws most of the kit and reads data-theme.
+                document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
             }
             apply();
+            media.addEventListener("change", apply);
+            window.addEventListener("storage", apply);
             var previous = window.raskAfterMorph;
             window.raskAfterMorph = function () {
                 apply();

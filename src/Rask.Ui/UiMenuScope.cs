@@ -6,7 +6,7 @@ namespace Rask;
 /// <remarks>
 /// <para>
 /// The items are written by the CALLER, inside the dropdown's children, so there is no call site at which the
-/// dropdown could hand each one its id or its highlighted state — the reason <see cref="UiAccordionState" />
+/// dropdown could hand each one its id or its highlighted state — the reason <see cref="UiAccordionScope" />
 /// exists too. Unlike an accordion, a menu also needs the reverse: the keyboard cursor moves over items the
 /// dropdown never constructed, so each item REGISTERS here as it renders, in document order, and the dropdown's
 /// key handler walks that list.

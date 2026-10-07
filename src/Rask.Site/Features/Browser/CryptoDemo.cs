@@ -12,7 +12,7 @@ public sealed partial class CryptoDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Ui.Button.Primary.Outline.Id("crypto-uuid").OnClick(Uuid)["Random UUID"],
                     Ui.Button.Primary.Outline.Id("crypto-bytes").OnClick(Bytes)["Random bytes"]

@@ -22,8 +22,8 @@ public sealed partial class VirtualizeProviderDemo : Component
                 .Style("height:360px; overflow:auto;")
                 .Data("testid", "virtualize-async-scroller")
                 .OnScroll(ctx.OnScroll)[
-                Ui.Table
-                    .Class("mb-0")
+                Table
+                    .Class("w-full text-left text-sm [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-2")
                     .Style("table-layout:fixed; width:100%; border-collapse:separate; border-spacing:0;")[
                     Thead[
                         Tr[

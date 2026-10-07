@@ -22,10 +22,7 @@ public static class UiTheme
     /// </summary>
     /// <remarks>
     /// It is NOT a <c>data-theme</c> anything should be stamped with; daisyUI compiles no block for it,
-    /// and stamping it leaves the document's colours undefined. It exists so a control can carry a value
-    /// that a reader can select and a host can recognise as "remove the attribute" — see
-    /// <see cref="UiThemePicker" />. Named here rather than spelled as a literal in each host because
-    /// the recogniser and the control have to agree on it, and they are in different projects.
+    /// and stamping it leaves the document's colours undefined.
     /// </remarks>
     public const string SystemValue = "system";
 

@@ -14,7 +14,7 @@ public sealed partial class MediaDevicesDemo : Component
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Video
                     .Ref(_video)
                     .Width(320)
@@ -24,7 +24,7 @@ public sealed partial class MediaDevicesDemo : Component
                     .Class("rounded border mb-2 bg-slate-900 block"),
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button.Primary.Id("media-start").OnClick(StartCamera)[Ui.Icon.Name(Ui.IconName.VideoCamera), "Start camera"],
-                    Ui.Button.Primary.Outline.Id("media-screen").OnClick(ShareScreen)[Ui.Icon.Name(Ui.IconName.Desktop), "Share screen"],
+                    Ui.Button.Primary.Outline.Id("media-screen").OnClick(ShareScreen)[Ui.Icon.Name(Ui.IconName.ComputerDesktop), "Share screen"],
                     Ui.Button.Error.Outline
                         .Id("media-stop")
                         .Disabled(_stream is null)

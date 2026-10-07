@@ -20,17 +20,17 @@ public sealed partial class NestedListIndexerDemo : Component
         for (var idx = 0; idx < _model.Skus.Count; idx++)
         {
             var i = idx; // Per-iteration capture — without this every lambda closes over Skus.Count.
-            rows.Add(Tr.Key(_model.Skus[i].Id)[
-                Td.Class("text-ui-muted text-sm")[$"#{i + 1}"],
-                Td[
+            rows.Add(Ui.TableRow.Key(_model.Skus[i].Id)[
+                Ui.TableCell.Class("text-ui-muted text-sm")[$"#{i + 1}"],
+                Ui.TableCell[
                     Ui.Input.Bind(() => _model.Skus[i].Code).AccessibleLabel("SKU").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => _model.Skus[i].Code)
                 ],
-                Td.Style("width: 7rem;")[
+                Ui.TableCell.Style("width: 7rem;")[
                     Ui.Input.Bind(() => _model.Skus[i].Price).AccessibleLabel("Price").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => _model.Skus[i].Price)
                 ],
-                Td.Style("width: 5rem;")[
+                Ui.TableCell.Style("width: 5rem;")[
                     Ui.Button
                         .AccessibleLabel("Move up")
                         .Square()
@@ -43,7 +43,7 @@ public sealed partial class NestedListIndexerDemo : Component
                         .Square()
                         .Error
                         .Outline
-                        .OnClick(() => _model.Skus.RemoveAt(i))[Ui.Icon.Name(Ui.IconName.Close)]
+                        .OnClick(() => _model.Skus.RemoveAt(i))[Ui.Icon.Name(Ui.IconName.XMark)]
                 ]
             ]);
         }
@@ -52,9 +52,9 @@ public sealed partial class NestedListIndexerDemo : Component
         [
             Form.Model(_model).OnSubmit(m => _submission =
                     $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price):F2}").Class("flex flex-col gap-3")[
-                Ui.Table.Class("align-middle mb-0")[
-                    Thead[Tr[Th.Style("width: 3rem;")["#"], Th["SKU"], Th["Price"], Th]],
-                    Tbody[rows]
+                Ui.Table[
+                    Ui.TableColumns[Ui.TableColumn.Style("width: 3rem;")["#"], Ui.TableColumn["SKU"], Ui.TableColumn["Price"], Ui.TableColumn],
+                    Ui.TableRows[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
                     Ui.Button.Outline

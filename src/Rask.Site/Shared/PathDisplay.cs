@@ -7,7 +7,7 @@ namespace Rask.Site;
 // without forcing the surrounding layout to also be route-aware.
 //
 // It used to sit in the docs top bar and does not any more: the docs wear the landing page's bar now,
-// which carries a wordmark, two links and the theme picker and no route readout. What it is FOR is
+// which carries a wordmark, two links and the dark-mode moon and no route readout. What it is FOR is
 // unchanged — it is the worked example behind docs/routing.md's "Reacting to navigation" section, the
 // smallest correct subscribe/unsubscribe pair in the repo, and PathDisplayTests holds it to that.
 public sealed partial class PathDisplay(RouteState route) : Component

@@ -15,7 +15,7 @@ public sealed partial class WebLocksDemo : Component
     private (Types.LockInfo Lock, string State)[] _snapshot = [];
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Ui.Button.Primary.Id("locks-hold").OnClick(Hold)["Hold exclusive for 2s"],
                     Ui.Button.Primary.Outline

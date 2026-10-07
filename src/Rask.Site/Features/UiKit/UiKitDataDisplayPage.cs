@@ -12,8 +12,8 @@ public sealed partial class UiKitDataDisplayPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "daisyUI accordion, badge and card components in C# — Rask",
-            "daisyUI data display components in C#: accordion, collapse, card, badge, kbd, status, "
+            "Accordion, badge and card components in C# — Rask",
+            "Data display components in C#: a Flux-style accordion on native details, card, badge, kbd, status, "
             + "countdown, chat bubble, text rotate, aura and hover effects.",
             Routes.UiKitDataDisplayPage());
 
@@ -22,17 +22,17 @@ public sealed partial class UiKitDataDisplayPage : Component
     [
         H1.Class("text-3xl font-bold mb-1")["Data display"],
         P.Class("text-ui-muted")[
-            "Most of this category is static. The two that hold state — the accordion and the collapse ",
-            "— hold it in C#: ", Code["Open"], " is nullable, so unset leaves the browser to open it on ",
-            "focus and a value takes ownership. Closed writes ", Code["collapse-close"], " rather than ",
-            "merely omitting ", Code["collapse-open"], ", because daisyUI also opens on ",
-            Code[":focus-within"], "."
+            "Most of this category is static. The accordion is Flux's: every item is a ", Code["<details>"],
+            ", so it opens and closes in the browser with no handler, and ", Code["Exclusive()"], " is the ",
+            "platform's own ", Code["name"], " group. A page that wants to own an item gives it ",
+            Code["Expanded"], " and listens to ", Code["OnToggle"], "."
         ],
         CodeSample
-            .Files(["UiKitDataDisplayDemo.cs"])
-            .Notes("The accordion's open key and the collapse's flag are plain fields. Aura, hover 3D "
+            .Files(["UiKitDataDisplayDemo.cs", "UiKitDataDisplayDemo.Table.cs"])
+            .Notes("Only the accordion the page owns keeps a field; the rest hold no state. Aura, hover 3D "
                 + "and hover gallery are decoration — they carry no role and no label, because a reader "
-                + "who cannot see them loses nothing.")
+                + "who cannot see them loses nothing. The table is Flux's: the page keeps the sorted column "
+                + "and the page number, and says so with Sorted, Direction and Paginate.")
             .Result(UiKitDataDisplayDemo)
     ];
 }

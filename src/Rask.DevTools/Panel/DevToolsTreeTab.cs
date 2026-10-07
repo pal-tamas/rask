@@ -116,7 +116,7 @@ internal sealed partial class DevToolsTreeTab : Component
                         .Class(_picking ? "btn-active" : null)
                         .Title(_picking ? "Click something on the page, or press Esc" : "Pick something on the page")
                         .Aria("pressed", _picking ? "true" : "false")
-                        .OnClick(() => _picking = !_picking)[Ui.Icon.Name(Ui.IconName.Cursor), "Pick"],
+                        .OnClick(() => _picking = !_picking)[Ui.Icon.Name(Ui.IconName.CursorArrowRays), "Pick"],
                     Ui.Toggle.Value(_showTags).Size(Ui.Size.Sm).OnChange(v => _showTags = v)["Show HTML tags"]
                 ]
             ],
@@ -189,9 +189,9 @@ internal sealed partial class DevToolsTreeTab : Component
                 ],
             node.Props.Count == 0
                 ? P.Class("text-xs opacity-60")["No props."]
-                : Ui.Table.Scroll(true)[
-                    Thead[Tr[Th["Prop"], Th["Type"], Th["Value"]]],
-                    Tbody[node.Props.Select(PropRow).ToArray()]
+                : Ui.Table[
+                    Ui.TableColumns[Ui.TableColumn["Prop"], Ui.TableColumn["Type"], Ui.TableColumn["Value"]],
+                    Ui.TableRows[node.Props.Select(PropRow).ToArray()]
                 ],
             ContextDetails(node, open)
         ];
@@ -216,24 +216,24 @@ internal sealed partial class DevToolsTreeTab : Component
         return Div.Class("flex flex-col gap-2").Data("rask-devtools-context", "")[
             node.Provides.Count == 0
                 ? null
-                : Ui.Table.Scroll(true).Data("rask-devtools-provides", "")[
-                    Thead[Tr[Th["Provides"], Th["Name"], Th["Value"]]],
-                    Tbody[node.Provides.Select(ProvidedRow).ToArray()]
+                : Ui.Table.Data("rask-devtools-provides", "")[
+                    Ui.TableColumns[Ui.TableColumn["Provides"], Ui.TableColumn["Name"], Ui.TableColumn["Value"]],
+                    Ui.TableRows[node.Provides.Select(ProvidedRow).ToArray()]
                 ],
             node.Reads.Count == 0
                 ? null
-                : Ui.Table.Scroll(true).Data("rask-devtools-reads", "")[
-                    Thead[Tr[Th["Reads"], Th["Name"], Th["From"]]],
-                    Tbody[node.Reads.Select(read => ReadRow(read, open)).ToArray()]
+                : Ui.Table.Data("rask-devtools-reads", "")[
+                    Ui.TableColumns[Ui.TableColumn["Reads"], Ui.TableColumn["Name"], Ui.TableColumn["From"]],
+                    Ui.TableRows[node.Reads.Select(read => ReadRow(read, open)).ToArray()]
                 ]
         ];
     }
 
     private static Component ProvidedRow(DevToolsProvidedContext provided, int index) =>
-        Tr.Key(index)[
-            Td.Class("font-mono")[provided.Type],
-            Td.Class("font-mono text-xs")[provided.Name is null ? Span.Class("opacity-60")["—"] : provided.Name],
-            Td.Class("font-mono break-all")[
+        Ui.TableRow.Key(index)[
+            Ui.TableCell.Class("font-mono")[provided.Type],
+            Ui.TableCell.Class("font-mono text-xs")[provided.Name is null ? Span.Class("opacity-60")["—"] : provided.Name],
+            Ui.TableCell.Class("font-mono break-all whitespace-normal")[
                 ValueText(
                     provided.Value, provided.IsRedacted, "Not read: its name or type says it is a secret.", PropsDescriber.Redacted)
             ]
@@ -264,19 +264,19 @@ internal sealed partial class DevToolsTreeTab : Component
     }
 
     private static Component ReadRow(DevToolsReadContext read, Action<long>? open) =>
-        Tr.Key(read.Type + "|" + read.Name)[
-            Td.Class("font-mono")[read.Type],
-            Td.Class("font-mono text-xs")[read.Name is null ? Span.Class("opacity-60")["—"] : read.Name],
-            Td[
+        Ui.TableRow.Key(read.Type + "|" + read.Name)[
+            Ui.TableCell.Class("font-mono")[read.Type],
+            Ui.TableCell.Class("font-mono text-xs")[read.Name is null ? Span.Class("opacity-60")["—"] : read.Name],
+            Ui.TableCell[
                 Provider(read, open)
             ]
         ];
 
     private static Component PropRow(DescribedProp prop) =>
-        Tr.Key(prop.Name)[
-            Td.Class("font-mono")[prop.Name],
-            Td.Class("font-mono text-xs opacity-60").Title(prop.Type)[ShortType(prop.Type)],
-            Td.Class("font-mono break-all")[
+        Ui.TableRow.Key(prop.Name)[
+            Ui.TableCell.Class("font-mono")[prop.Name],
+            Ui.TableCell.Class("font-mono text-xs opacity-60").Title(prop.Type)[ShortType(prop.Type)],
+            Ui.TableCell.Class("font-mono break-all whitespace-normal")[
                 ValueText(prop.Value, prop.IsRedacted, "Not read: the build treats this prop as sensitive.", "••••")
             ]
         ];

@@ -19,7 +19,7 @@ public sealed partial class GestureBridgeDemo : Component
     private Types.MediaStream? _camera;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 DisplayTriggers(),
                 EyeDropperRow(),
                 CameraRow(),

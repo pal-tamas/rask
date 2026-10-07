@@ -20,8 +20,9 @@ site and the docs showcase all draw with these.
   either overflows or shrinks its content past reading.
 - **Every control has a name.** A label is required rather than optional, and it becomes the
   accessible name rather than a placeholder — which disappears the moment typing starts.
-- **35 themes, re-skinned by tokens rather than overrides.** Redefine a custom property in your own
-  `@theme` and every component follows, without a single rule being overridden.
+- **Dark mode, and re-skinned by tokens rather than overrides.** `Ui.AppearanceScript` puts a `dark`
+  class on `<html>` before the first paint (light, dark or system, remembered); re-point
+  `--color-zinc-*` and the accent variables in your own `@theme` and every component follows.
 
 ## Use
 
@@ -68,9 +69,9 @@ protected override Component? Render() =>
            .Tone(_email.Contains('@') ? null : Ui.Tone.Error)
            .OnChange(value => _email = value),
 
-    Ui.Accordion.Open(_section).OnOpen(key => _section = key)[
-        Ui.AccordionSection.Key("ship").Title("Shipping")[P["Two working days."]],
-        Ui.AccordionSection.Key("pay").Title("Payment")[P["Card or transfer."]]
+    Ui.Accordion.Exclusive()[
+        Ui.AccordionItem.Heading("Shipping")["Two working days."],
+        Ui.AccordionItem.Heading("Payment")["Card or transfer."]
     ],
 ];
 ```
@@ -83,15 +84,15 @@ and a reset arriving from a library restyles pages that never asked for it.
 
 | | |
 | --- | --- |
-| Actions | `Ui.Button` `Ui.Dropdown` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
-| Data display | `Ui.Accordion` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.List` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` |
+| Actions | `Ui.Button` `Ui.Dropdown` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
+| Data display | `Ui.Accordion` `Ui.AccordionItem` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` (`Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed`) `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.List` `Ui.Stat` `Ui.StatusDot` `Ui.Table` (with `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell`) `Ui.DataGrid` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` |
 | Navigation | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.Menu` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Tabs` |
-| Feedback | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
-| Data input | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.MultiSelect` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Fieldset` `Ui.Validator` `Ui.Label` `Ui.Otp` `Ui.Filter` `Ui.Calendar` |
-| Layout | `Ui.Divider` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
+| Feedback | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |
+| Data input | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.MultiSelect` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` |
+| Layout | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | Mockup | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | Chrome | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.MetricRow` `Ui.DetailList` `Ui.Code` `Ui.Search` |
-| Support | `Ui.Icon` / `Ui.IconName`, `UiTheme` / `Ui.ThemeName`, `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
+| Support | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
 
 Requires .NET 10. Runs on both the ASP.NET host and browser-WebAssembly.
 

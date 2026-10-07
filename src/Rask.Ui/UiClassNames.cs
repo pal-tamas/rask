@@ -370,32 +370,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string ProgressTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "progress-neutral",
-        Ui.Tone.Primary => "progress-primary",
-        Ui.Tone.Secondary => "progress-secondary",
-        Ui.Tone.Accent => "progress-accent",
-        Ui.Tone.Info => "progress-info",
-        Ui.Tone.Success => "progress-success",
-        Ui.Tone.Warning => "progress-warning",
-        Ui.Tone.Error => "progress-error",
-        _ => "",
-    };
-
-    internal static string LinkTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "link-neutral",
-        Ui.Tone.Primary => "link-primary",
-        Ui.Tone.Secondary => "link-secondary",
-        Ui.Tone.Accent => "link-accent",
-        Ui.Tone.Info => "link-info",
-        Ui.Tone.Success => "link-success",
-        Ui.Tone.Warning => "link-warning",
-        Ui.Tone.Error => "link-error",
-        _ => "",
-    };
-
     internal static string LoadingSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "loading-xs",
@@ -513,19 +487,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string DividerTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "divider-neutral",
-        Ui.Tone.Primary => "divider-primary",
-        Ui.Tone.Secondary => "divider-secondary",
-        Ui.Tone.Accent => "divider-accent",
-        Ui.Tone.Info => "divider-info",
-        Ui.Tone.Success => "divider-success",
-        Ui.Tone.Warning => "divider-warning",
-        Ui.Tone.Error => "divider-error",
-        _ => "",
-    };
-
     internal static string DockSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "dock-xs",
@@ -608,13 +569,6 @@ internal static class UiClassNames
         Ui.Size.Md => "aura-md",
         Ui.Size.Lg => "aura-lg",
         Ui.Size.Xl => "aura-xl",
-        _ => "",
-    };
-
-    internal static string Marker(Ui.Marker value) => value switch
-    {
-        Ui.Marker.Arrow => "collapse-arrow",
-        Ui.Marker.Plus => "collapse-plus",
         _ => "",
     };
 
@@ -708,19 +662,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    /// <summary>Where a divider's words sit along its line.</summary>
-    /// <remarks>
-    ///     A drawer opens from the left or the right edge, and daisyUI's one class for it is <c>drawer-end</c>,
-    ///     so only <see cref="Ui.Position.Right" /> writes anything.
-    /// </remarks>
-    /// <remarks>daisyUI hides one side of a divider's line with these, so its words sit at that edge.</remarks>
-    internal static string DividerAlign(Ui.Align value) => value switch
-    {
-        Ui.Align.Start => "divider-start",
-        Ui.Align.End => "divider-end",
-        _ => "",
-    };
-
     /// <summary>The classes that keep a sidebar in the page's flow from a breakpoint up.</summary>
     /// <remarks>
     ///     The width from which a sidebar sits in the page's flow instead of sliding over it. Every member a complete
@@ -796,37 +737,6 @@ internal static class UiClassNames
         _ => "lg:inline-flex",
     };
 
-    internal static string SubheadingSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "text-xs",
-        Ui.Size.Lg => "text-base",
-        Ui.Size.Xl => "text-lg",
-        _ => "text-sm",
-    };
-
-    internal static string TextSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "text-xs",
-        Ui.Size.Sm => "text-sm",
-        Ui.Size.Lg => "text-base",
-        Ui.Size.Xl => "text-lg",
-        _ => "text-sm",
-    };
-
-    /// <summary>The ink a run of text takes for a tone.</summary>
-    /// <remarks>The ink colours, which are what keep body text readable on every theme's base.</remarks>
-    internal static string TextTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Primary => "text-ui-brand-ink",
-        Ui.Tone.Secondary => "text-ui-secondary-ink",
-        Ui.Tone.Accent => "text-ui-accent-ink",
-        Ui.Tone.Info => "text-ui-info-ink",
-        Ui.Tone.Success => "text-ui-ok-ink",
-        Ui.Tone.Warning => "text-ui-warn-ink",
-        Ui.Tone.Error => "text-ui-danger-ink",
-        _ => "",
-    };
-
     /// <summary>The ink a value takes when it reports a problem; null for a value that reports none.</summary>
     internal static string? ValueTone(Ui.Tone? value) => value switch
     {
@@ -835,6 +745,11 @@ internal static class UiClassNames
         _ => null,
     };
 
+    /// <summary>The edge a drawer opens from.</summary>
+    /// <remarks>
+    ///     A drawer opens from the left or the right edge, and daisyUI's one class for it is <c>drawer-end</c>,
+    ///     so only <see cref="Ui.Position.Right" /> writes anything.
+    /// </remarks>
     internal static string DrawerPosition(Ui.Position value) => value switch
     {
         Ui.Position.Right => "drawer-end",

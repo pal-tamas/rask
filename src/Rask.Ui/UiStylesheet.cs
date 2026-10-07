@@ -45,10 +45,8 @@ public static class UiStylesheet
     /// <c>color-scheme</c> that comes with it, apply exactly where a surface asks for them.
     /// </para>
     /// <para>
-    /// Switching themes needs no JavaScript. Inside the scope, daisyUI matches
-    /// <c>input.theme-controller[value=dark]:checked</c> and an explicit <c>data-theme</c>, so a checkbox
-    /// or a radio group changes the palette through CSS alone; with neither, the theme follows the
-    /// operating system's <c>prefers-color-scheme</c>.
+    /// Dark mode is <see cref="UiAppearanceScript" />'s: a <c>dark</c> class on <c>&lt;html&gt;</c>. A scope
+    /// with no <c>data-theme</c> and no script follows the operating system's <c>prefers-color-scheme</c>.
     /// </para>
     /// </remarks>
     public const string ThemeScopeAttribute = "data-rask-ui";

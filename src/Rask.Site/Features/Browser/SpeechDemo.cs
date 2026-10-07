@@ -9,7 +9,7 @@ public sealed partial class SpeechDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Ui.Input
                     .Value(_text)
                     .Label("Text to speak")

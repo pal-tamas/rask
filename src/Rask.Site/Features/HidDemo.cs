@@ -20,9 +20,9 @@ public sealed partial class HidDemo : Component
     private sealed record HidInfo(int VendorId, int ProductId, string ProductName);
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Ui.Button.Primary.Id("hid-request").OnClick(RequestDevice)[Ui.Icon.Name(Ui.IconName.Cube), "Pair device"],
+                    Ui.Button.Primary.Id("hid-request").OnClick(RequestDevice)[Ui.Icon.Name(Ui.IconName.CubeTransparent), "Pair device"],
                     Ui.Button.Primary.Outline
                         .Id("hid-watch")
                         .Disabled(_device is null || _watch is not null)

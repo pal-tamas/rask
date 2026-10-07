@@ -28,7 +28,7 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
     private int _sent;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 mb-2")[
                     Ui.Button.Primary
                         .Id("signal-join")

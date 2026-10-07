@@ -42,7 +42,7 @@ public sealed partial class MediaSessionDemo : Component
     }
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                     Ui.Button.Primary.Id("ms-publish").OnClick(Publish)["Publish metadata"],
                     Ui.Button.Primary.Outline

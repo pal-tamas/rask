@@ -32,7 +32,7 @@ public sealed partial class IntersectionObserverDemo : Component
     }
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 items-center flex-wrap mb-2")[
                     Ui.Badge
                         .Tone(_visible ? Ui.Tone.Success : Ui.Tone.Neutral)

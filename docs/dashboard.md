@@ -268,7 +268,7 @@ at all, for a reason that applies to any library: Tailwind emits a utility only 
 name in the source it scans, and the kit's sheet is compiled from the kit's source — so a `.Class("mt-4")`
 written in `Rask.Dashboard` would render as nothing. `DashboardIsKitOnlyTests` fails on any `.Class(…)`,
 `.Style(…)` or `UiStyles.` in the package. Where a page needs something the kit cannot draw, the kit grows
-a typed step instead: that is where `Ui.DataGrid`'s `ShowFrom`, `RowTone` and `PageHref`, `Ui.Card.Href`
+a typed step instead: that is where `Ui.DataGrid`'s `ShowFrom`, `RowTone` and `PageHref`
 and `Ui.Empty` came from.
 
 The console owns its whole document, so it needs a page reset the way any application does. That travels

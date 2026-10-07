@@ -47,7 +47,7 @@ public partial class UiNavTabCurrentTests : global::Rask.Core.RaskMarkup
     {
         // flux:navbar.item has both, and a tab bar without them cannot show a count — the thing a "Logs" or
         // "Errors" tab most wants to say.
-        var html = Ui.NavTab.Label("Errors").Href("/errors").Icon(Ui.IconName.Warning).Badge("12")
+        var html = Ui.NavTab.Label("Errors").Href("/errors").Icon(Ui.IconName.ExclamationTriangle).Badge("12")
             .BadgeTone(Ui.Tone.Error).ToHtml();
 
         Assert.Contains("<svg", html, StringComparison.Ordinal);

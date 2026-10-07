@@ -19,22 +19,22 @@ public sealed partial class NestedListForeachDemo : Component
         foreach (var item in _model.Items)
         {
             var captured = item; // foreach already captures per-iteration but make it loud.
-            rows.Add(Tr.Key(captured.Id)[
-                Td[
+            rows.Add(Ui.TableRow.Key(captured.Id)[
+                Ui.TableCell[
                     Ui.Input.Bind(() => captured.Description).AccessibleLabel("Description").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Description)
                 ],
-                Td.Style("width: 6rem;")[
+                Ui.TableCell.Style("width: 6rem;")[
                     Ui.Input.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Quantity)
                 ],
-                Td.Style("width: 3rem;")[
+                Ui.TableCell.Style("width: 3rem;")[
                     Ui.Button
                         .AccessibleLabel("Remove item")
                         .Square()
                         .Error
                         .Outline
-                        .OnClick(() => _model.Items.Remove(captured))[Ui.Icon.Name(Ui.IconName.Close)]
+                        .OnClick(() => _model.Items.Remove(captured))[Ui.Icon.Name(Ui.IconName.XMark)]
                 ]
             ]);
         }
@@ -42,9 +42,9 @@ public sealed partial class NestedListForeachDemo : Component
         return
         [
             Form.Model(_model).OnSubmit(m => _submission = $"Submitted {m.Items.Count} line item(s).").Class("flex flex-col gap-3")[
-                Ui.Table.Class("align-middle mb-0")[
-                    Thead[Tr[Th["Description"], Th["Quantity"], Th]],
-                    Tbody[rows]
+                Ui.Table[
+                    Ui.TableColumns[Ui.TableColumn["Description"], Ui.TableColumn["Quantity"], Ui.TableColumn],
+                    Ui.TableRows[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
                     Ui.Button.Outline
