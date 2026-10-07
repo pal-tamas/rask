@@ -344,8 +344,9 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - Editor: the one component with an ENGINE. `Resources/editor/ui-editor.ts` (Tiptap pinned in
   `package.json`, locked) is bundled by `Resources/editor/build.mjs` into the committed
   `Resources/ui-editor.js`; after changing either, run `npm ci && node build.mjs` there — it rewrites
-  `UiEditorEngine.Version`, which `UiEditorTests` holds to the bundle's hash. A project opts in with
-  `<RaskUiEditor>true</RaskUiEditor>` (`build/Rask.Ui.targets` copies the file to `wwwroot/js`), and
+  `UiEditorEngine.Version`, which `UiEditorTests` holds to the bundle's hash. There is NO switch, as Flux's has
+  none: `build/Rask.Ui.targets` copies the file to `wwwroot/js` of every app that references the kit (a Web
+  or WebAssembly SDK project; `RaskUiEditorEngine=false` opts one out, `=true` is for a host that is neither), and
   `UiEditor.ts` — the kit's only scoped script — imports it when an editor mounts. Tiptap is the release
   Flux's docs name; `prosemirror-model` is held at 1.25.1 because later ones re-serialise a `style`
   attribute with a trailing semicolon, which is not the HTML Flux answers. Stand-ins on its parity page:
@@ -354,8 +355,11 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   look of `Invalid` (`aria-invalid:border-red-500` is a guess), a `Ui.EditorButton` with text, and h4–h6.
   Its notices (`Resources/ui-editor.LICENSES.txt`, written by `build.mjs`; Tiptap's and Lucide's texts are
   kept in `Resources/editor/notices/`) ship in the package and are written beside the script in `wwwroot/js`.
-  On the Server host it is pinned by `tests/Rask.Server.E2E.Tests/EditorOnServerTests.cs`. Owner's to decide:
-  whether `<RaskUiEditor>` stays an opt-in, and inline `code`'s look.
+  On the Server host it is pinned by `tests/Rask.Server.E2E.Tests/EditorOnServerTests.cs`. The `code` item is INLINE code:
+  observed on Flux's live `<ui-editor>` (a control named `data-editor="code"` runs `toggleCode` and shows
+  `aria-pressed` / `data-match`; the block is a separate control name, `code-block`), with the label "Code"
+  and the `Ctrl`+`E` of its shortcut table — the reference's one line, "Code block formatting", says otherwise
+  and no example renders the item, so what name the Blade item writes is the one thing not seen.
 - Tooltip wrapper display: measured on Flux's live pages — a plain `flux:tooltip` writes NO display class and
   computes `inline-flex`, a button's own tooltip writes `inline-flex`, every toolbar tooltip of the editor
   writes `contents`. So the default is a rule (`[data-ui-tooltip]{display:inline-flex}` in `@layer rask`,

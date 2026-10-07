@@ -15,9 +15,9 @@ namespace Rask;
 ///     Ui.Editor.Value(_html).OnChange(html => _html = html).Toolbar("heading | bold italic underline | align ~ undo redo")
 ///     </code>
 ///     <para>
-///     The engine is Tiptap, loaded on first use from <c>/js/rask-ui-editor.js</c> — a file the app's build writes
-///     when its project says <c>&lt;RaskUiEditor&gt;true&lt;/RaskUiEditor&gt;</c>. Until it has loaded, the page
-///     shows the value as plain markup.
+///     The engine is Tiptap, loaded on first use from <c>/js/rask-ui-editor.js</c> — a file the app's build
+///     writes into its <c>wwwroot</c>, and which no page fetches until an editor mounts on it. Until it has
+///     loaded, the page shows the value as plain markup.
 ///     </para>
 ///     <para>
 ///     <b>The value is the user's HTML, and is written into the page as it is.</b> The editor only produces the
@@ -133,7 +133,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl
         }
         catch (JSException)
         {
-            // The engine did not load: the project has not set RaskUiEditor, or the file is not served. The
+            // The engine did not load: the host does not serve the file the build wrote into wwwroot. The
             // script has said so in the browser's console; the page keeps the value as plain markup, and stays live.
         }
     }

@@ -269,6 +269,23 @@ public partial class UiEditorTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void An_app_gets_the_engine_with_no_switch_and_a_library_gets_none()
+    {
+        var targets = File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "build", "Rask.Ui.targets"));
+        var site = File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Site", "Rask.Site.csproj"));
+
+        var byDefault = Regex.Match(targets, "<RaskUiEditorEngine Condition=\"([^\"]+)\">true</RaskUiEditorEngine>").Groups[1].Value;
+
+        // Flux's editor asks for no configuration: an app is recognised by its SDK, and nothing else turns it on.
+        Assert.Contains("'$(UsingMicrosoftNETSdkWeb)' == 'true'", byDefault);
+        Assert.Contains("'$(UsingMicrosoftNETSdkWebAssembly)' == 'true'", byDefault);
+        Assert.DoesNotMatch("<RaskUiEditor>|\\$\\(RaskUiEditor\\)", targets);
+        Assert.DoesNotContain("RaskUiEditor", site);
+        // In this repository the targets reach every project, so the copy asks whether the kit is referenced.
+        Assert.Contains("<Target Name=\"RaskUiWriteEditor\"\n          Condition=\"'@(_RaskUiEditorKit)' != ''\"", targets);
+    }
+
+    [Fact]
     public void The_bundle_names_the_notices_file_the_build_writes_beside_it()
     {
         var banner = File.ReadLines(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "ui-editor.js")).First();

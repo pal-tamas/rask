@@ -30,9 +30,6 @@
     -->
     <IsPackable>false</IsPackable>
     <RaskPublicApiTracked>false</RaskPublicApiTracked>
-
-    <!-- The showcase draws Ui.Editor: its engine is written to wwwroot/js and fetched when an editor mounts. -->
-    <RaskUiEditor>true</RaskUiEditor>
     <!--
       Prerendered. Every one of the 20 prerenderable routes is written to real HTML at publish; the
       three that are not are the two parameterised routes and the catch-all, which have no path without

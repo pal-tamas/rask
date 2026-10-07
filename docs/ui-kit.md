@@ -716,15 +716,21 @@ The value is the document as HTML — `<p>Hello <strong>world</strong></p>` — 
 empty string. `Bind` writes it to the model on every change and validates the field; `Value` with
 `OnChange` leaves it to you. A value the app changes afterwards is shown in the editor.
 
-**One switch in the project file.** The engine is 374 KB (117 KB gzipped), so it is in neither Rask's
-runtime nor the kit's assembly: it is a static file, fetched by the browser the first time an editor
-mounts and by no page without one. An app that draws an editor asks its build to write that file:
+**Nothing to configure.** The engine is 374 KB (117 KB gzipped), so it is in neither Rask's runtime nor
+the kit's assembly: it is a static file, `wwwroot/js/rask-ui-editor.js`, which the build of every app that
+references the kit writes — add it to `.gitignore` — and which the browser fetches the first time an
+editor mounts. A page without an editor never requests it, and nothing preloads or precaches it; an app
+that will never draw one can keep it out of its publish folder:
 
 ```xml
 <PropertyGroup>
-  <RaskUiEditor>true</RaskUiEditor>   <!-- writes wwwroot/js/rask-ui-editor.js; add it to .gitignore -->
+  <RaskUiEditorEngine>false</RaskUiEditorEngine>
 </PropertyGroup>
 ```
+
+The host has to serve its static files, as every Rask app does (`RaskApp`, `MapRaskSpa`, a static host for
+a browser-WASM publish). A host that is not a Web or WebAssembly SDK project sets the same property to
+`true`.
 
 Until the script has loaded — and with scripting off — the editor shows its value as plain markup. A
 strict `Content-Security-Policy` needs nothing added: the file is same-origin script.
@@ -732,7 +738,7 @@ strict `Content-Security-Policy` needs nothing added: the file is same-origin sc
 **Third-party code.** The engine bundles Tiptap 2.11.7 and ProseMirror (47 packages, all MIT), and eleven
 of the toolbar's icons are drawn from [Lucide](https://lucide.dev) 0.300.0 path data (ISC), as Flux's are.
 Their notices are `rask-ui-editor.LICENSES.txt`: in the `Rask.Ui` package, and written beside the script
-in `wwwroot/js` by the same switch, so they travel with the copy your app serves.
+in `wwwroot/js`, so they travel with the copy your app serves.
 
 **The value is the user's HTML.** The editor itself only produces the tags of its schema (paragraphs,
 headings, lists, quotes, code, links, marks), but what you bind may have come from anywhere — a database

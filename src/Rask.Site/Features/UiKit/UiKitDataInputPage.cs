@@ -39,8 +39,8 @@ public sealed partial class UiKitDataInputPage : Component
         P.Class("text-ui-muted")[
             "Flux UI's editor, example for example: a toolbar over an editable area whose value is HTML. ",
             "The engine is Tiptap, and it is the one script of the kit that is not on every page — the ",
-            "browser fetches it the first time an editor mounts, from a file the build writes when the ",
-            "project says ", Code["<RaskUiEditor>true</RaskUiEditor>"], "."
+            "browser fetches it the first time an editor mounts, from ", Code["wwwroot/js/rask-ui-editor.js"],
+            ", which the build writes with nothing asked of the project."
         ],
         CodeSample
             .Files(["UiKitEditorDemo.cs"])

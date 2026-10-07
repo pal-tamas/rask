@@ -15,8 +15,8 @@ namespace Rask.Server.E2E.Tests;
 /// </summary>
 /// <remarks>
 ///     The site proves the editor in a browser-WASM app. What only a Server app has is the socket between the
-///     editor's callback and the model, and a host that serves the engine from its own <c>wwwroot</c> — this
-///     project sets <c>RaskUiEditor</c> as an app would, and the host serves what that wrote.
+///     editor's callback and the model, and a host that serves the engine from its own <c>wwwroot</c>, where
+///     the kit's build wrote it.
 /// </remarks>
 public sealed class EditorOnServerTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
@@ -97,8 +97,8 @@ public sealed class EditorOnServerTests(PlaywrightFixture playwright) : IClassFi
 
         await Expect(page.Locator("#ticks")).ToHaveTextAsync("ticks=1", new() { Timeout = 15_000 });
         Assert.Null(await area.GetAttributeAsync("contenteditable"));
-        // The one place an app learns why: the console names the switch its project file is missing.
-        Assert.Contains(errors, error => error.Contains("RaskUiEditor", StringComparison.Ordinal));
+        // The one place an app learns why: the console names the file its host is not serving.
+        Assert.Contains(errors, error => error.Contains("wwwroot/js/rask-ui-editor.js", StringComparison.Ordinal));
     }
 }
 

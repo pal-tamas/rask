@@ -6,9 +6,9 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 ///     The engine is Tiptap and ProseMirror, some 400 KB before compression, so it is neither in Rask's runtime
-///     nor in this assembly: it is a static file the app's build copies into <c>wwwroot</c> when the project says
-///     <c>&lt;RaskUiEditor&gt;true&lt;/RaskUiEditor&gt;</c> (<c>build/Rask.Ui.targets</c>), and the browser fetches
-///     it the first time an editor mounts. <c>Resources/editor/build.mjs</c> builds it and writes
+///     nor in this assembly: it is a static file every app's build copies into <c>wwwroot</c>
+///     (<c>build/Rask.Ui.targets</c>, no setting asked for), and the browser fetches it the first time an editor
+///     mounts. <c>Resources/editor/build.mjs</c> builds it and writes
 ///     <see cref="Version" />.
 /// </remarks>
 internal static class UiEditorEngine

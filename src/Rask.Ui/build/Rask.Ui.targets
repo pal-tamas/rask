@@ -380,42 +380,57 @@
   </Target>
 
   <!--
-    THE EDITOR'S ENGINE, for a project that draws a Ui.Editor.
+    THE EDITOR'S ENGINE, for every app that references the kit.
 
     Ui.Editor is Tiptap and ProseMirror in the browser: 374 KB, 117 KB gzipped. That is too much to hand
-    every app that references the kit, so it is in neither Rask's runtime nor the kit's assembly (a
-    browser-WASM app downloads every assembly up front, used or not). It is one static file, written into
-    wwwroot here and fetched by the page the first time an editor mounts (UiEditor.ts, UiEditorEngine):
+    every PAGE, so it is in neither Rask's runtime nor the kit's assembly (a browser-WASM app downloads
+    every assembly up front, used or not). It is one static file, written into wwwroot here and fetched by
+    a page the first time an editor mounts on it (UiEditor.ts, UiEditorEngine) — and by no page before that:
+    nothing links it, nothing preloads it, and Rask's service worker caches only what a page asked for.
 
-        <RaskUiEditor>true</RaskUiEditor>
+    NO SWITCH: Flux's editor needs no configuration, so neither does this one. An APP gets the file — a
+    project built with the Web or the WebAssembly SDK — and a library that merely references the kit does
+    not, since nothing serves a library's wwwroot. The cost of an editor nobody draws is 374 KB on disk in
+    the publish folder and zero bytes on any page.
 
-    OPT IN, like RaskUiWriteStylesheet above and for the same reason: referencing the kit is not the same
-    as wanting a file in your wwwroot, and an app that draws no editor publishes nothing for one. Without
-    it a Ui.Editor still renders its value; the browser's console names this property when the script is
-    not found.
+        <RaskUiEditorEngine>false</RaskUiEditorEngine>   an app that will never draw one keeps its wwwroot clean
+        <RaskUiEditorEngine>true</RaskUiEditorEngine>    a host that is not a Web SDK project (a test host on Kestrel)
 
     A copied plain file, as the stylesheet is: it needs no Razor SDK and no _content/ path, and it is
     served by every host the same way — a Server app's static files, a browser-WASM app's publish folder.
     The path is fixed (UiEditorEngine.Path) because the component is what asks for it.
   -->
   <PropertyGroup>
-    <RaskUiEditor Condition="'$(RaskUiEditor)' == ''">false</RaskUiEditor>
+    <RaskUiEditorEngine Condition="'$(RaskUiEditorEngine)' == '' AND ('$(UsingMicrosoftNETSdkWeb)' == 'true' OR '$(UsingMicrosoftNETSdkWebAssembly)' == 'true')">true</RaskUiEditorEngine>
+    <RaskUiEditorEngine Condition="'$(RaskUiEditorEngine)' == ''">false</RaskUiEditorEngine>
     <_RaskUiEditorOutput>wwwroot/js/rask-ui-editor.js</_RaskUiEditorOutput>
     <!-- The notices of what the engine bundles (Tiptap, ProseMirror: MIT) and of the toolbar's Lucide icons
          (ISC). Those licences ask that the notice travel with every copy, and the app's wwwroot is one. -->
     <_RaskUiEditorNotices>wwwroot/js/rask-ui-editor.LICENSES.txt</_RaskUiEditorNotices>
   </PropertyGroup>
 
+  <!--
+    Does this project reference the kit? From the package these targets only exist where it does. In this
+    repository they are imported into every project (Directory.Build.targets), so the reference is looked
+    for: the kit itself, or a host that carries it.
+  -->
+  <ItemGroup Condition="'$(RaskUiEditorEngine)' == 'true'">
+    <_RaskUiEditorKit Include="package" Condition="Exists('$(MSBuildThisFileDirectory)rask-ui-editor.js')"/>
+    <_RaskUiEditorKit Include="@(ProjectReference->WithMetadataValue('Filename', 'Rask.Ui'))"/>
+    <_RaskUiEditorKit Include="@(ProjectReference->WithMetadataValue('Filename', 'Rask.Server'))"/>
+    <_RaskUiEditorKit Include="@(ProjectReference->WithMetadataValue('Filename', 'Rask.Wasm'))"/>
+  </ItemGroup>
+
   <!-- Declared before they exist, so a FIRST build serves them: see the stylesheet's own note above (#1105). -->
-  <ItemGroup Condition=" '$(RaskUiEditor)' == 'true' AND !Exists('$(MSBuildProjectDirectory)/$(_RaskUiEditorOutput)') ">
+  <ItemGroup Condition=" '@(_RaskUiEditorKit)' != '' AND !Exists('$(MSBuildProjectDirectory)/$(_RaskUiEditorOutput)') ">
     <Content Include="$(_RaskUiEditorOutput)" Pack="false"/>
   </ItemGroup>
-  <ItemGroup Condition=" '$(RaskUiEditor)' == 'true' AND !Exists('$(MSBuildProjectDirectory)/$(_RaskUiEditorNotices)') ">
+  <ItemGroup Condition=" '@(_RaskUiEditorKit)' != '' AND !Exists('$(MSBuildProjectDirectory)/$(_RaskUiEditorNotices)') ">
     <Content Include="$(_RaskUiEditorNotices)" Pack="false"/>
   </ItemGroup>
 
   <Target Name="RaskUiWriteEditor"
-          Condition="'$(RaskUiEditor)' == 'true'"
+          Condition="'@(_RaskUiEditorKit)' != ''"
           BeforeTargets="BeforeBuild">
     <PropertyGroup>
       <!-- From the package: beside these targets. In this repository: the committed bundle in the kit's sources. -->
@@ -426,7 +441,7 @@
     </PropertyGroup>
 
     <Error Condition="!Exists('$(_RaskUiEditorSource)')"
-           Text="Rask.Ui: this project set RaskUiEditor=true but the editor's engine could not be found ($(_RaskUiEditorSource)), so $(_RaskUiEditorOutput) cannot be written and every Ui.Editor would stay a block of plain markup. From the package it ships beside these targets as build/rask-ui-editor.js; in this repository it is src/Rask.Ui/Resources/ui-editor.js, built by Resources/editor/build.mjs."/>
+           Text="Rask.Ui: the editor's engine could not be found ($(_RaskUiEditorSource)), so $(_RaskUiEditorOutput) cannot be written and every Ui.Editor would stay a block of plain markup. From the package it ships beside these targets as build/rask-ui-editor.js; in this repository it is src/Rask.Ui/Resources/ui-editor.js, built by Resources/editor/build.mjs. An app that draws no editor can say &lt;RaskUiEditorEngine&gt;false&lt;/RaskUiEditorEngine&gt;."/>
 
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)/$(_RaskUiEditorOutput)'))"/>
     <Copy SourceFiles="$(_RaskUiEditorSource)"

@@ -13,8 +13,9 @@ let engine: Promise<Engine> | undefined;
 export async function mount(root: HTMLElement | null, src: string, onChange: (html: string) => void): Promise<void> {
     engine ??= (import(src) as Promise<Engine>).catch(error => {
         engine = undefined;
-        const message = `Ui.Editor: its engine could not be loaded from ${src}. Set <RaskUiEditor>true</RaskUiEditor> `
-            + `in the app's project file, so its build writes wwwroot/js/rask-ui-editor.js. (${error})`;
+        const message = `Ui.Editor: its engine could not be loaded from ${src}. The app's build writes it to `
+            + `wwwroot/js/rask-ui-editor.js: check that the host serves its static files, and that the project `
+            + `does not say RaskUiEditorEngine=false. (${error})`;
         // Said here, because this is where an app's author looks: the component keeps its first paint and goes on.
         console.error(message);
         throw new Error(message);

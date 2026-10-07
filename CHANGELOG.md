@@ -133,16 +133,17 @@ them until tagged releases begin.
   `Ui.EditorSpacer`), beside `Ui.EditorToolbar`, `Ui.EditorContent` and `Ui.EditorButton` for a button of
   the app's own, so a toolbar can be composed. Shortcuts and Markdown input rules are Tiptap's. The engine
   is Tiptap 2.11.7 on ProseMirror (MIT), bundled into one script that is **not** in Rask's runtime or the
-  kit's assembly: a project opts in with `<RaskUiEditor>true</RaskUiEditor>`, its build writes
-  `wwwroot/js/rask-ui-editor.js` (374 KB, 117 KB gzipped), and the browser fetches it the first time an
-  editor mounts — on a Server app and a browser-WASM app alike. The editable area is an opaque subtree, so
+  kit's assembly: an app's build writes `wwwroot/js/rask-ui-editor.js` (374 KB, 117 KB gzipped) with no
+  setting asked for, as Flux's editor asks for none, and the browser fetches it the first time an editor
+  mounts — on a Server app and a browser-WASM app alike — so a page without an editor never requests it
+  (`<RaskUiEditorEngine>false</RaskUiEditorEngine>` keeps the file out of an app that will never draw one). The editable area is an opaque subtree, so
   a re-render never touches what is being typed. The value is the user's HTML and is written into the
   page as given: sanitize it before storing or rendering it (`docs/ui-kit.md#rich-text-editor`).
   `scripts/flux/parity-editor.mjs` holds the editor in use to Flux's live one, observation for observation.
   With it, `Ui.Tooltip`'s wrapper takes its `inline-flex` from the kit's sheet instead of its class list, as
   Flux's does (a toolbar's tooltips are `contents`), so a display written in `Class` wins; a button's own
   `Tooltip` still writes `inline-flex`. An editor whose engine cannot be loaded keeps its value as plain
-  markup, leaves the page live on a Server app too, and names the switch in the browser's console. The
+  markup, leaves the page live on a Server app too, and names the missing file in the browser's console. The
   notices of what it draws on — Tiptap and ProseMirror (MIT), and Lucide 0.300.0 (ISC) for eleven toolbar
   icons — are `rask-ui-editor.LICENSES.txt`, in the package and written beside the script in `wwwroot/js`.
 

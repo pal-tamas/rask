@@ -216,9 +216,9 @@
   <!--
     THE EDITOR'S ENGINE: Resources/ui-editor.js, Tiptap and ProseMirror bundled with the kit's own wiring
     (Resources/editor/ui-editor.ts, built by Resources/editor/build.mjs and committed — the kit builds
-    without Node). Packed beside the targets, which copy it into the wwwroot of a project that sets
-    RaskUiEditor=true. NOT an EmbeddedResource: a browser-WASM app downloads this assembly whether or not it
-    draws an editor, and 374 KB of script nobody asked for is exactly what the opt-in is there to prevent.
+    without Node). Packed beside the targets, which copy it into the wwwroot of every app that references the
+    kit. NOT an EmbeddedResource: a browser-WASM app downloads this assembly whether or not it draws an
+    editor, and 374 KB of script on every first load is exactly what a file fetched on demand prevents.
     The notices of the packages it bundles (all MIT) and of Lucide (ISC), which the toolbar's icons are
     drawn from, travel with it: at the package's root, and beside the targets, which write them next to
     the script.

@@ -16,8 +16,11 @@
     <IsPackable>false</IsPackable>
     <RootNamespace>Rask.Server.E2E.Tests</RootNamespace>
     <NoWarn>$(NoWarn);RASK014</NoWarn>
-    <!-- EditorOnServerTests draws a Ui.Editor: the app's own opt-in, which writes the engine to wwwroot/js. -->
-    <RaskUiEditor>true</RaskUiEditor>
+    <!--
+      EditorOnServerTests draws a Ui.Editor. A Server APP gets the engine in its wwwroot with nothing said
+      (Microsoft.NET.Sdk.Web); this is a test library that hosts Kestrel itself, so it says it is such a host.
+    -->
+    <RaskUiEditorEngine>true</RaskUiEditorEngine>
   </PropertyGroup>
 
   <!--
