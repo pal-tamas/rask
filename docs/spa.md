@@ -138,6 +138,37 @@ app.MapRaskSpa(configure: options => options.ImmutablePathPrefixes.Add("/static/
 | `RaskSpaPublishDir` | `wwwroot` | Where publish puts the bundle. |
 | `RaskSpaDevServerUrl` | none | Named on the "nothing built yet" page in Development. |
 
+## Moving an existing app onto Rask, a page at a time
+
+An app that already has an API and a single-page front end does not have to move at once. Give Rask a
+prefix, and leave everything else to the front end it already has:
+
+```csharp
+builder.Services.AddRask();
+
+var app = builder.Build();
+app.UseWebSockets();
+app.MapControllers();                    // the API, unchanged
+app.MapRask<App>(pathBase: "/new");      // pages that have moved
+app.MapRaskSpa();                        // every other path: the old front end
+```
+
+Each answers only its own paths — a route the old front end owns still gets its `index.html`, a page
+under `/new` is rendered by Rask, and the Rask runtime is served under the prefix and nowhere else. The
+old front end links to a moved page with an ordinary `<a href="/new/…">`, a full page load.
+
+Two things the move runs into first:
+
+- **Sign-in.** A Rask page is rendered from the request, so it sees who is signed in only when the
+  browser sends that with a navigation — a cookie. A front end that keeps its token in `localStorage`
+  renders every Rask page signed out until sign-in also sets one. See
+  [authentication](authentication.md).
+- **Per-request services.** After the first response a Rask page works over its connection, where there
+  is no `HttpContext`. A service that reads the tenant or the user from `IHttpContextAccessor` has to
+  get it some other way — from the signed-in principal, for instance.
+
+A component of the old front end can also move as it is, as an [island](islands.md) inside a Rask page.
+
 ## See also
 
 - [Islands](islands.md) — a front-end component inside a Rask page.

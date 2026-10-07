@@ -9,6 +9,9 @@ them until tagged releases begin.
 
 ### Added
 
+- **An existing app can take Rask pages under a prefix, beside its own front end.**
+  `MapRask<App>(pathBase: "/new")` next to `MapControllers()` and `MapRaskSpa()` is now a tested shape:
+  each answers only its own paths (`docs/spa.md#moving-an-existing-app-onto-rask-a-page-at-a-time`).
 - **`rask dev` runs an npm front end's dev server beside its host again.** A host that references
   `Rask.Spa.Hosting` gets `dotnet watch` plus the client's own `npm run dev` (or `start`), and the browser
   opens on the dev server — `RaskSpaDevServerUrl`, or Vite's `http://localhost:5173`. The client is found in
