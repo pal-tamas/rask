@@ -73,6 +73,8 @@ public sealed class FluxConformanceTests
         ["flux:card.bleed"] = typeof(UiCardBleed),
         ["flux:toast"] = typeof(UiToast),
         ["flux:toast.group"] = typeof(UiToastGroup),
+        ["flux:tooltip"] = typeof(UiTooltip),
+        ["flux:tooltip.content"] = typeof(UiTooltipContent),
         ["flux:chart"] = typeof(UiChart),
         ["flux:chart.svg"] = typeof(UiChartSvg),
         ["flux:chart.line"] = typeof(UiChartLine),

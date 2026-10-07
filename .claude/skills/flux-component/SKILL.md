@@ -137,7 +137,8 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge` today).
+card accordion callout button toast badge tooltip` today, plus the open-state scripts `parity-toast.mjs` and
+`parity-tooltip.mjs`).
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -150,12 +151,12 @@ card accordion callout button toast badge` today).
   and size, inside not compared — give it the exact measured box, to 1/64px); `="self"` (its own look is
   another component's, children compared); `="width"`/`"height"` (that dimension is `rand()` on Flux's
   page, here and below). When the real component lands, the stand-in goes: Heading, Text, Field, Label,
-  Description, Icon, Separator, Table, Card, Callout, Button, Badge are real now — use them.
-- **A real component inside a wrapper that is not rebuilt** (Flux's button sits in `<ui-tooltip>` or
-  `<ui-dropdown>`): write the wrapper as a `<div data-ui-tooltip data-parity-skip="self">` holding the real
-  component and a `display:none` `data-parity-skip` box per hidden sibling (the bubble, the menu). Without
-  the marked wrapper the tool sees Flux's button under a marked ancestor and yours at the top, and the
-  counts differ. See `SeparatorParity.Bar`, `TableParity.RowMenu`.
+  Description, Icon, Separator, Table, Card, Callout, Button, Badge, Tooltip are real now — use them.
+- **A real component inside a wrapper that is not rebuilt** (Flux's button sits in a `<ui-dropdown>`):
+  write the wrapper as a `<div data-ui-dropdown data-parity-skip="self">` holding the real component and a
+  `display:none` `data-parity-skip` box per hidden sibling (the menu). Without the marked wrapper the tool
+  sees Flux's button under a marked ancestor and yours at the top, and the counts differ. See
+  `TableParity.RowMenu`. A tooltip around a button is the real `Ui.Tooltip` now (`SeparatorParity.Bar`).
 - **A colour the docs page hands a component by class** and that must lose to the component's own hover
   (`text-zinc-300` on the header's subtle button): `.parity-x:not(:hover){…}` on the page, and
   `not-hover:text-zinc-300` in an app.
@@ -174,7 +175,10 @@ card accordion callout button toast badge` today).
   pseudo-page: `node scripts/flux/parity-toast.mjs` raises each toast on Flux's page, measures it with
   `lib.mjs`, compares through `parity.mjs` under the name `toast-shown` (`ToastShownParity`) and adds a
   where-on-screen check (38 + 38). Its NATIVE pairs (`ui-toast`, `ui-toast-group`, `ui-close` → `div`) stay
-  local to it. `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
+  local to it. `node scripts/flux/parity-tooltip.mjs` does the same for the tooltip (`TooltipShownParity`,
+  page `tooltip-shown`): 36 cases per scheme, then a pointer-and-keyboard walk whose known gaps it prints as
+  `KNOWN`. In `parity.mjs` itself `ui-tooltip` and `ui-dropdown` (what Flux renders a TOGGLEABLE tooltip as,
+  under the tooltip's marker) pair with `div`. `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
 - **Public API:** `python3 scripts/public-api/record.py src/Rask.Ui` builds and applies RS0016/RS0017 to
   both baselines (run it twice: a step exists only once its property compiles). It is the only such script.
 
@@ -219,8 +223,11 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - Button: `UiClassNames.ButtonTone/ButtonVariant/ButtonSize` and the `.btn-*`, `.btn > svg`,
   `.btn[data-loading]` CSS stay until Popover, Dropdown, Fab, DayGrid, Filter, MultiSelect, Profile,
   Pagination, Sidebar and the templates stop writing raw `btn`. `UiButtonTooltip` is an internal stopgap
-  (a child of the button shown by CSS) to be replaced by `Ui.Tooltip` when that branch merges; no parity
-  page measures it. `Disabled`, `Command`/`CommandFor` are the `<button>`'s own
+  (a child of the button shown by CSS). `Ui.Tooltip` is merged, but the button's `Tooltip` / `TooltipPosition`
+  (still `Ui.Position`) / `TooltipKbd` / `Kbd` props are NOT on it yet: Flux wraps the button in its tooltip,
+  and `UiButton` IS the `<button>`, so it cannot wrap itself — that needs the button to become a `Component`
+  around its element when it has a tooltip. Until then no parity page measures it, and the Site's
+  `AppearanceToggle` keeps its hand-drawn bubble (its `// SEAM:`). `Disabled`, `Command`/`CommandFor` are the `<button>`'s own
   attributes, kept as such, not Flux props.
 - The `.alert-*` contrast corrections stay in `ui.css` for the templates' hand-written `alert alert-*`.
 - The Dashboard's queue tiles lost their icon and hover (Flux's card has no link or icon props, and the
@@ -233,8 +240,15 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   axis on top, the look of `axis.mark` and `zero-line` (drawn, unverified), smooth curves on a horizontal chart.
 - Parity stand-ins still standing: none on the chart page; card page (fields, switches, the heading/text lines whose variant was
   not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
-  (slider, as raw `ui-slider` markup), separator page (the tooltip around the theme button), field page
-  (inputs).
+  (slider, as raw `ui-slider` markup), field page (inputs).
+- Tooltip: daisyUI's own is kept out of the sheet by `exclude: … tooltip` on the `@plugin` line in `ui.css`
+  (the bare word stands in the kit's comments; `UiTooltipTests` asserts the absence) — the way to drop a
+  daisy component whose name the kit still has to say. A `Toggleable()` tooltip around something that is
+  not a `<button>` puts `tabindex="0"` on the WRAPPER so a tap can open it by focus: not Flux's markup, it
+  stands in for Flux's script and goes with the runtime hook below. Removed as non-Flux on merging: the
+  wrapper's `role="group"` + `aria-describedby` around a trigger that is not one element (Flux wires only
+  the trigger; nothing is wired there now). Added because Flux writes them: `aria-haspopup="true"` on a
+  toggleable trigger, and `role="tooltip"` on an `Interactive()` tooltip's content.
 - Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
   `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
   removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —
@@ -252,6 +266,15 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - Toast, unexplained, for a later look: an unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a
   `switch` among keyed call sites, was remounted on every parent render.
 - The built-in toast (the host's, when the app places no `Ui.Toast`) shows one at a time, as Flux's does.
+- Tooltip, all four printed as `KNOWN` by `parity-tooltip.mjs` and closed by ONE hook — a `[data-ui-tooltip]`
+  listener in `rask-dom.ts` calling `showPopover()`/`hidePopover()` on pointer, focus, Escape and press for
+  every trigger: Escape does not dismiss a tooltip shown by `:hover`/`:focus-visible` (a trigger that is no
+  button or link, a disabled button, an engine without interest invokers); a tooltip hidden by a press
+  comes back on release, where Flux keeps it away until the pointer returns; an interest-invoked tooltip
+  goes when the pointer leaves though the trigger still has focus; and `aria-expanded` (Flux: `"false"` at
+  rest on an `Interactive()` or `Toggleable()` trigger) is not written, since nothing could keep it true.
+  The same hook lets a toggleable tooltip open from a trigger that is not a button, and removes the
+  wrapper's `tabindex`.
 
 ## One stylesheet per app (merged 2026-10-07)
 - `Styles/ui.css` is the kit as Tailwind SOURCE (theme, `dark` variant, daisyUI, the `@layer rask` blocks):

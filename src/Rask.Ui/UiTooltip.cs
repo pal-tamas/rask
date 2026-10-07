@@ -1,87 +1,140 @@
+using System.Globalization;
+
 namespace Rask;
 
 /// <summary>
-/// A hint shown on hover or focus.
+///     Flux's <c>flux:tooltip</c>: a line of help shown beside its first child while that child is hovered
+///     or has keyboard focus.
 /// </summary>
 /// <remarks>
-/// CSS-only, from daisyUI's <c>data-tip</c>. It is a hint and nothing more: a tooltip is easy to miss, so
-/// nothing that matters should live only here — and what must reach a phone takes <see cref="Toggleable" />.
-/// A tip on a disabled button still shows on hover: daisyUI's <c>.btn:disabled</c> takes no pointer events,
-/// so the hover lands on this wrapper. A keyboard cannot reach a disabled button at all, so a tip that
-/// explains why it is disabled needs to be said somewhere else too.
+///     <para>
+///     <c>Ui.Tooltip.Content("Settings")[Ui.Button…]</c>. The first child is the trigger; what it shows is
+///     <see cref="Content" />, or a <see cref="UiTooltipContent" /> written after the trigger when it is more
+///     than a line of text.
+///     </para>
+///     <para>
+///     No script. The content is a <c>[popover]</c> placed by CSS anchor positioning, which also flips it to
+///     the other side at the viewport's edge. A trigger that is a button or a link shows it as an interest
+///     invoker (<c>interestfor</c>), so it rides in the top layer and Escape dismisses it; anywhere else,
+///     and in an engine without interest invokers, <c>:hover</c> and <c>:focus-visible</c> show it in place.
+///     <see cref="Toggleable" /> makes the trigger a <c>popovertarget</c>: a click opens it, and a click
+///     outside or Escape closes it — the only tooltip a touch screen ever shows.
+///     </para>
+///     <para>
+///     The trigger is told about it, which is what makes a screen reader say it: a trigger with text of its
+///     own is <c>aria-describedby</c> the tooltip, and one without — an icon button — is
+///     <c>aria-labelledby</c> it, so the tooltip is its name. That needs the trigger to be one element (an
+///     HTML element or a kit component that is one, such as <c>Ui.Button</c>): Flux wires nothing but the
+///     trigger, so around anything else nothing is said.
+///     </para>
 /// </remarks>
 public sealed partial class UiTooltip : Component
 {
-    public required string Tip { get; set; }
+    private readonly int _instance = UiInstanceCounter.Next();
 
-    /// <summary>Which side of the thing it points at.</summary>
-    public Ui.Position? Position { get; set; }
+    /// <summary>The text it shows. For anything richer, write a <see cref="UiTooltipContent" /> child instead.</summary>
+    public string? Content { get; set; }
 
-    /// <summary>Where along that side it sits.</summary>
-    public Ui.Align? Align { get; set; }
+    /// <summary>Which side of the trigger it opens on. Above, unless this says otherwise.</summary>
+    public Ui.TooltipPosition? Position { get; set; }
 
-    /// <summary>Anything but <see cref="Ui.Tone.Neutral" />, which daisyUI does not define for a tooltip.</summary>
-    public Ui.Tone? Tone { get; set; }
+    /// <summary>Where along that side it sits. Centred, unless this says otherwise.</summary>
+    public Ui.TooltipAlign? Align { get; set; }
 
-    /// <summary>
-    ///     Shows it without waiting for a hover. For walking someone through a screen — and the only way
-    ///     a touch user ever sees one, since there is no hover on a touch screen.
-    /// </summary>
-    public bool? Open { get; set; }
+    /// <summary>Stops it showing. The trigger keeps its description.</summary>
+    public bool? Disabled { get; set; }
 
-    /// <summary>
-    ///     A keyboard shortcut shown beside the tip — <c>"⌘S"</c> — the way Flux UI teaches an app's shortcuts
-    ///     where the reader is already looking.
-    /// </summary>
-    /// <remarks>
-    ///     With one, the tip is rendered as daisyUI's <c>tooltip-content</c> element rather than its
-    ///     <c>data-tip</c> attribute, because an attribute can only hold text and the shortcut is a
-    ///     <c>&lt;kbd&gt;</c>.
-    /// </remarks>
-    public string? Kbd { get; set; }
+    /// <summary>The distance between the trigger and the tooltip, in pixels. 5 when unset.</summary>
+    public int? Gap { get; set; }
+
+    /// <summary>How far it is slid along its side, in pixels, away from the edge it is aligned to.</summary>
+    public int? Offset { get; set; }
 
     /// <summary>
-    ///     Shows it on a tap as well as on a hover, for a tip whose content matters on a phone. On a touch
-    ///     screen there is no hover, so an ordinary tooltip is never seen there at all.
+    ///     Opens it on a click rather than a hover, for content that has to reach a touch screen, where
+    ///     nothing hovers.
     /// </summary>
-    /// <remarks>
-    ///     The wrapper becomes focusable and the tip shows while anything in it has focus — a tap focuses it,
-    ///     a tap elsewhere takes the focus and the tip away. No script, and it also keeps a keyboard user's tip
-    ///     up while they read it.
-    /// </remarks>
     public bool? Toggleable { get; set; }
 
+    /// <summary>
+    ///     Says the content is more than a description — it holds something to read at length or act on — so
+    ///     the trigger is wired as the control of it (<c>aria-controls</c>) rather than described by it, and
+    ///     the content stays in the reading order.
+    /// </summary>
+    public bool? Interactive { get; set; }
+
+    /// <summary>A keyboard shortcut shown after <see cref="Content" /> — <c>"⌘S"</c>.</summary>
+    public string? Kbd { get; set; }
+
+    /// <summary>Classes for the wrapper around the trigger.</summary>
     public string? Class { get; set; }
+
+    private string ContentId => "ui-tooltip-" + _instance.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var wrapper = Div
-            .Class(UiClass.Compose(
-                "tooltip",
-                Position is { } position ? UiClassNames.TooltipPosition(position) : "",
-                Align is { } align ? UiClassNames.TooltipAlign(align) : "",
-                Tone is { } tone ? UiClassNames.TooltipTone(tone) : "",
-                Open == true ? "tooltip-open" : "",
-                Toggleable == true ? "ui-tooltip-toggleable" : "",
-                Class));
+        var parts = (Children ?? []).Where(child => child is not null).ToList();
+        var trigger = parts.Find(child => child is not UiTooltipContent) as Element;
+        var toggled = Toggleable == true;
+        var clicks = toggled && trigger is not null && UiTooltipTrigger.IsButton(trigger);
+        var controls = toggled || Interactive == true;
+        var root = Div.Class("inline-flex", Class).Data(Marks(toggled));
 
-        if (Toggleable == true)
+        if (trigger is not null && toggled == clicks)
         {
-            wrapper = wrapper.TabIndex(0);
+            UiTooltipTrigger.Wire(trigger, ContentId, controls, popup: clicks, Invoker(clicks));
+        }
+        else if (toggled)
+        {
+            // Nothing a click can open a popover from: the wrapper takes the focus a tap gives, and the
+            // stylesheet shows the content while it has it.
+            root = root.TabIndex(0);
         }
 
-        if (Kbd is not { } kbd)
-        {
-            return wrapper.Attributes(("data-tip", Tip))[Children ?? []];
-        }
+        var scope = new UiTooltipScope(
+            ContentId,
+            Position ?? Ui.TooltipPosition.Top,
+            Align ?? Ui.TooltipAlign.Center,
+            Gap,
+            Offset,
+            Toggled: clicks,
+            Tooltip: !toggled,
+            Described: !controls);
 
-        return wrapper[
-            Div.Class("tooltip-content").Role("tooltip")[
-                Tip,
-                RaskMarkup.Kbd.Class("kbd kbd-xs ms-2 text-base-content")[kbd]
-            ],
-            Children
+        return root[
+            Context.Provide(scope)[
+                parts,
+                Content is { } text ? Ui.TooltipContent.Kbd(Kbd)[text] : null
+            ]
         ];
+    }
+
+    // The wrapper's markers: Flux's, and the two states the stylesheet reads.
+    private Dictionary<string, string?> Marks(bool toggled)
+    {
+        var marks = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-tooltip"] = null };
+        if (toggled)
+        {
+            marks["toggleable"] = null;
+        }
+
+        if (Disabled == true)
+        {
+            marks["disabled"] = null;
+        }
+
+        return marks;
+    }
+
+    // What opens it from the trigger with no script, where the trigger can be one.
+    private string? Invoker(bool clicks)
+    {
+        if (Disabled == true)
+        {
+            return null;
+        }
+
+        return clicks ? "popovertarget" : "interestfor";
     }
 }

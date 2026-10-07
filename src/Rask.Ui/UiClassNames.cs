@@ -311,18 +311,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string TooltipTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Primary => "tooltip-primary",
-        Ui.Tone.Secondary => "tooltip-secondary",
-        Ui.Tone.Accent => "tooltip-accent",
-        Ui.Tone.Info => "tooltip-info",
-        Ui.Tone.Success => "tooltip-success",
-        Ui.Tone.Warning => "tooltip-warning",
-        Ui.Tone.Error => "tooltip-error",
-        _ => "",
-    };
-
     internal static string TabsSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "tabs-xs",
@@ -538,23 +526,6 @@ internal static class UiClassNames
         Ui.LoadingShape.Bars => "loading-bars",
         Ui.LoadingShape.Infinity => "loading-infinity",
         _ => "loading-spinner",
-    };
-
-    internal static string TooltipPosition(Ui.Position value) => value switch
-    {
-        Ui.Position.Top => "tooltip-top",
-        Ui.Position.Bottom => "tooltip-bottom",
-        Ui.Position.Left => "tooltip-left",
-        Ui.Position.Right => "tooltip-right",
-        _ => "",
-    };
-
-    internal static string TooltipAlign(Ui.Align value) => value switch
-    {
-        Ui.Align.Start => "tooltip-start",
-        Ui.Align.Center => "tooltip-center",
-        Ui.Align.End => "tooltip-end",
-        _ => "",
     };
 
     /// <summary>The classes that keep a sidebar in the page's flow from a breakpoint up.</summary>

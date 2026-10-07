@@ -220,6 +220,20 @@ controls, the highlighted one is `aria-activedescendant` and says `aria-selected
 A `[popover]` carrying `data-rask-popover-open="true"|"false"` is shown or hidden to match whenever the attribute
 changes — how a controlled menu opens from C#, which cannot call `showPopover()`.
 
+## Tooltips
+
+A tooltip that is only drawn is a tooltip a screen reader never says. Rask UI's `Ui.Tooltip` joins its trigger
+to its content at render: a trigger with text of its own carries `aria-describedby`, so the tooltip is read
+after its name, and a trigger without — an icon button — carries `aria-labelledby`, so the tooltip IS its name.
+The content is `role="tooltip"` and `aria-hidden`, read through that reference and not a second time in the
+reading order. It shows on keyboard focus (`:focus-visible`) as well as on hover, and Escape dismisses it where
+the trigger is a button or a link in an engine with interest invokers.
+
+The trigger has to be one element for this — an HTML element or a kit component that is one; around a
+composite nothing is wired, as Flux wires nothing but the trigger. And a tooltip is a hint: a touch
+screen has no hover, so what matters there is `Toggleable()`, which a tap opens. See
+[ui-kit.md](ui-kit.md#tooltips) for what the script-less design leaves undone.
+
 ## Controls that are waiting
 
 A `<button>` (or `<input type=button|submit>`) whose own handler is still running after 200 ms is marked
