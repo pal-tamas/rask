@@ -23,6 +23,7 @@ import {
     waitForUnappliedHeadCss,
 } from "../../Rask.Core/Resources/rask-scoped.js";
 import { raskReadFileChunk, raskRegisterFiles } from "../../Rask.Core/Resources/rask-files.js";
+import { beginUpload } from "../../Rask.Core/Resources/rask-upload.js";
 import { showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
@@ -671,7 +672,9 @@ document.addEventListener("change", (e) => {
         const files = asInput.files;
         if (!files || files.length === 0) return;
         const metas = registerFiles(asInput, files);
-        send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas});
+        // Marked until the handler and its render are done; what it has read of the files is its progress.
+        const upload = beginUpload(asInput);
+        send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas}).finally(upload.end);
         return;
     }
     if (t.hasAttribute("data-rask-on-change")) {

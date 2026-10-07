@@ -90,6 +90,28 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
     }
 
     [Fact]
+    public async Task An_interactive_tooltip_stays_when_focus_drops_to_nothing_until_a_press_outside_and_a_plain_one_closes()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        await session.TabToAsync("#tip-trigger");
+        await page.EvaluateAsync("() => document.activeElement.blur()");
+        var interactive = await session.ShownAsync("#bubble");
+        await page.Mouse.ClickAsync(700, 500);
+        var afterPressOutside = await session.ShownAsync("#bubble");
+        await session.TabToAsync("#plain-trigger");
+        var plainShown = await session.ShownAsync("#plain-bubble");
+        await page.EvaluateAsync("() => document.activeElement.blur()");
+
+        // Flux UI's interactive tooltip is still open after its trigger's blur(); its plain one is not.
+        Assert.True(interactive);
+        Assert.False(afterPressOutside);
+        Assert.True(plainShown);
+        Assert.False(await session.ShownAsync("#plain-bubble"));
+    }
+
+    [Fact]
     public async Task Focus_that_a_click_gave_does_not_keep_a_tooltip_when_the_pointer_leaves()
     {
         await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);

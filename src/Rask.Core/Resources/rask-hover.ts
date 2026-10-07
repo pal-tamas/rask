@@ -108,15 +108,25 @@ if (page) {
         }
     }, true);
 
+    // Focus that goes to NOTHING — blur(), the window losing it — leaves an interactive tooltip (the one whose
+    // trigger carries aria-expanded) open: Flux UI's stays until a press outside, so that what is in it can
+    // still be reached. A plain one closes, and so does either when focus moves on to another element.
     page.addEventListener("focusout", function (e) {
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
-        if (tooltip && crosses(tooltip, e) && !tooltip.matches(":hover")) {
+        if (tooltip && crosses(tooltip, e) && !tooltip.matches(":hover")
+            && ((e as FocusEvent).relatedTarget instanceof Node || !tooltip.querySelector("[aria-expanded]"))) {
             tip(tooltip, false);
         }
     }, true);
 
     page.addEventListener("pointerdown", function (e) {
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
+        // A press anywhere else closes whatever is still showing.
+        for (const other of Array.from(showing)) {
+            if (other !== tooltip) {
+                tip(other, false);
+            }
+        }
         // A press inside the bubble itself (a link in an interactive tooltip) is using it, not dismissing it.
         if (tooltip && !near(e.target, "[popover]")) {
             dismissed.add(tooltip);
