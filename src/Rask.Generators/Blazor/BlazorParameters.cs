@@ -101,28 +101,60 @@ internal static class BlazorParameters
         var renames = ReadRenames(island);
         var taken = new HashSet<string>(StringComparer.Ordinal);
 
-        for (var t = hosted; t is not null; t = t.BaseType)
+        foreach (var prop in HostedParameters(hosted))
         {
-            foreach (var prop in t.GetMembers().OfType<IPropertySymbol>())
+            if (!taken.Add(prop.Name))
             {
-                if (prop.IsStatic
-                    || prop.SetMethod is null
-                    || prop.DeclaredAccessibility != Accessibility.Public
-                    || !HasAttribute(prop, ParameterAttrName)
-                    || !taken.Add(prop.Name))
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                var name = renames.TryGetValue(prop.Name, out var renamed) ? renamed : prop.Name;
-                if (ToParam(prop, name, declared, inherited) is { } param)
-                {
-                    result.Add(param);
-                }
+            var name = renames.TryGetValue(prop.Name, out var renamed) ? renamed : prop.Name;
+            if (ToParam(prop, name, declared, inherited) is { } param)
+            {
+                result.Add(param);
             }
         }
 
         return result;
+    }
+
+    /// <summary>
+    ///     The <c>[BlazorParameter("X")]</c> mappings on <paramref name="island" /> that name a parameter
+    ///     <paramref name="hosted" /> does not declare.
+    /// </summary>
+    /// <remarks>
+    ///     Such a property is still a chain step — the factory generator sees a real property — but nothing
+    ///     writes it, so the call site sets a value the hosted component never receives. That is RASK100.
+    ///     Empty when the hosted type cannot be resolved: nothing can be checked against it (RASK066).
+    /// </remarks>
+    public static IEnumerable<(IPropertySymbol Property, string Parameter)> UnknownRenames(
+        INamedTypeSymbol island, INamedTypeSymbol hosted)
+    {
+        if (hosted.TypeKind == TypeKind.Error)
+        {
+            return [];
+        }
+
+        var known = new HashSet<string>(HostedParameters(hosted).Select(static p => p.Name), StringComparer.Ordinal);
+        return Renames(island).Where(r => !known.Contains(r.Parameter));
+    }
+
+    /// <summary>Every public, settable <c>[Parameter]</c> the hosted component declares or inherits.</summary>
+    private static IEnumerable<IPropertySymbol> HostedParameters(INamedTypeSymbol hosted)
+    {
+        for (var t = hosted; t is not null; t = t.BaseType)
+        {
+            foreach (var prop in t.GetMembers().OfType<IPropertySymbol>())
+            {
+                if (!prop.IsStatic
+                    && prop.SetMethod is not null
+                    && prop.DeclaredAccessibility == Accessibility.Public
+                    && HasAttribute(prop, ParameterAttrName))
+                {
+                    yield return prop;
+                }
+            }
+        }
     }
 
     // A hand-written property is an explicit override and wins outright — but only an INSTANCE
@@ -267,6 +299,17 @@ internal static class BlazorParameters
     private static Dictionary<string, string> ReadRenames(INamedTypeSymbol island)
     {
         var renames = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (property, parameter) in Renames(island))
+        {
+            renames[parameter] = property.Name;
+        }
+
+        return renames;
+    }
+
+    /// <summary>Each <c>[BlazorParameter("X")]</c> on the island: the property carrying it, and the parameter it names.</summary>
+    private static IEnumerable<(IPropertySymbol Property, string Parameter)> Renames(INamedTypeSymbol island)
+    {
         foreach (var member in island.GetMembers().OfType<IPropertySymbol>())
         {
             foreach (var attr in member.GetAttributes())
@@ -275,11 +318,9 @@ internal static class BlazorParameters
                     && attr.ConstructorArguments.Length == 1
                     && attr.ConstructorArguments[0].Value is string target)
                 {
-                    renames[target] = member.Name;
+                    yield return (member, target);
                 }
             }
         }
-
-        return renames;
     }
 }

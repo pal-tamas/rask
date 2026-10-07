@@ -8,9 +8,13 @@ for teams of any size; this package lets it reuse the Blazor components a team a
   first HTTP response**.
 - Parameters cross as **live C# objects**, not serialized — and the chain steps are read from the
   component's own `[Parameter]`s, so nothing is redeclared.
-- The hosted component's own `@onclick` and `@bind` fire over Rask's existing channel, with **no Blazor
-  circuit**.
-- Works on the ASP.NET host and on WebAssembly, **trimmed publish included**.
+- The hosted component's own events (`@onclick`, `@onkeydown`, …) receive their real event args and
+  `@bind` writes back, over Rask's existing channel, with **no Blazor circuit**.
+- **Nothing to register.** Referencing the package is the whole setup: `[Inject]` resolves from the
+  app's own services, and the island supplies the `NavigationManager` a library component expects —
+  a view onto Rask's routing. `AddRaskBlazor(o => …)` exists only to set an option.
+- Works on the ASP.NET host and on WebAssembly. The hosted type is annotated so a **trimmed publish**
+  keeps its members; no test in the Rask repository publishes one trimmed, so check that yours renders.
 
 ## Install
 
@@ -19,12 +23,6 @@ dotnet add package Rask.Blazor
 ```
 
 ## Use
-
-```csharp
-// Program.cs
-builder.Services.AddRask();
-builder.Services.AddRaskBlazor();
-```
 
 ```csharp
 // The whole declaration: PriceTag is an ordinary .razor component from a class library.

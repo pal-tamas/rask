@@ -30,10 +30,26 @@ namespace Rask.Blazor;
 internal sealed class BlazorIslandRenderer : StaticHtmlRenderer
 {
     private readonly Action _onSelfRender;
+    private readonly BlazorIslandServices _services;
 
-    public BlazorIslandRenderer(IServiceProvider services, ILoggerFactory loggerFactory, Action onSelfRender)
-        : base(services, loggerFactory) =>
+    public BlazorIslandRenderer(BlazorIslandServices services, ILoggerFactory loggerFactory, Action onSelfRender)
+        : base(services, loggerFactory)
+    {
         _onSelfRender = onSelfRender;
+        _services = services;
+        _services.OnRenderer = Dispatcher.InvokeAsync;
+    }
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _services.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
 
     /// <summary>Adopts a component instance and returns the id every later call addresses it by.</summary>
     public int Attach(IComponent component) => AssignRootComponentId(component);

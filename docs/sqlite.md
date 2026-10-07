@@ -481,7 +481,7 @@ cache and the queue their own files. This measures what that is worth.
 Both arms carry **identical** background churn on their own threads — cache writes, the purge sweep,
 enqueues, and a 100-row claim batch — while app writers do the same `INSERT` as `raw-nonblocking` above.
 The only difference is whether the churn lands in the app's file or beside it. `idle` runs the batteries at
-their shipped defaults (`PollInterval` 5s, `PurgeInterval` 5min, so the sweep never fires in the window);
+their shipped defaults (`PollInterval` 5s, `SweepInterval` 5min, so the sweep never fires in the window);
 `busy` is ~500 cache writes/s and ~500 enqueues/s with the sweep compressed to 2s so it is actually
 observed. 60s per level, same machine as above.
 

@@ -75,9 +75,9 @@ mkdir -p "$gate_packages"
 
 if [ "$status" -eq 0 ]; then
   echo "==> CLI build gates (scaffold output + tutorial walk-through must compile)"
-  # The gates share a single packed feed, built lazily on first use by ONE MSBuild invocation over every
-  # package (CliBuildE2E.PackLocalFeedAsync). RASK_BUILD_SLOTS sizes it and the build above: one core on
-  # a shared machine, the runner's own in CI.
+  # The gates share a single packed feed, built lazily on first use, one pack at a time
+  # (CliBuildE2E.PackLocalFeedAsync says why it is not one invocation). RASK_BUILD_SLOTS sizes the build
+  # above: one core on a shared machine, the runner's own in CI.
   #
   # The filter matches the SUFFIX every E2E class here shares, not a list of names. It used to name
   # them, and a class whose name the list did not happen to contain was simply never run -- silently,

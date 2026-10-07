@@ -94,7 +94,7 @@ await Jobs.Enqueue(new CloseBooks()).At(monthEnd);                 // at a momen
   the app, and neither does a failing poll — a transient database error is logged and retried on the next one.
   Each job's outcome is saved on its own, so a row edited or deleted underneath the drain costs that one row
   rather than re-running everything the batch had already executed. Completed jobs are purged after
-  `RetentionPeriod` (default 7 days; `TimeSpan.Zero` keeps them).
+  `Retention` (default 7 days; `TimeSpan.Zero` keeps them).
 - **Recurring** — `o.Run<T>()` plus a cadence (`.Every(1.Hour)`, `.Daily.At(3, 0)`,
   `.Weekly.On(DayOfWeek.Monday).At(9, 0)`, `.Monthly.On(1).At(6, 0)`) enqueues a fresh job on each tick,
   tracked durably in `RecurringJobState` under the job's type name — `.Named("purge-carts")` overrides that,

@@ -35,7 +35,8 @@ export const STYLES = [
   'fill', 'stroke', 'strokeWidth', 'backdropFilter',
 ];
 
-// Every `[data-preview-wrapper]` on `url`, measured in light and in dark.
+// Every `[data-preview-wrapper]` on `url`, measured in light and in dark. `prepare(page, scheme)` runs on
+// the loaded page before anything is measured.
 export async function measurePage(browser, url, shots, prepare) {
   const schemes = {};
   for (const scheme of ['light', 'dark']) {
@@ -46,15 +47,6 @@ export async function measurePage(browser, url, shots, prepare) {
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     await page.evaluate(() => document.fonts.ready);
     if (prepare) await prepare(page, scheme);
-    // A running animation measures wherever it happens to be — a spinner's angle differed on every run,
-    // and between a node and its own forced states. Held a quarter of a second in, it measures the same
-    // each time, and still says what the animation is: a spin of another speed or easing is another angle.
-    await page.evaluate(() => document.getAnimations().forEach(animation => {
-      // A scroll-driven animation has no clock to hold: where it is IS how far its box is scrolled.
-      if (!(animation.timeline instanceof DocumentTimeline)) return;
-      animation.pause();
-      animation.currentTime = 250;
-    }));
     schemes[scheme] = await measure(page, join(shots, scheme));
     await context.close();
   }
@@ -68,10 +60,26 @@ async function measure(page, shots) {
   await cdp.send('DOM.enable');
   await cdp.send('CSS.enable');
 
+  // A running animation is held at its first frame, not wherever the clock caught it: a spinner's angle or a
+  // shimmer half-way across would measure differently on every run. What the animation IS — duration,
+  // easing, keyframes — is recorded per node in collect(), and that is what the two sides are compared on.
+  // A scroll-driven one runs on no clock: it is where the scroll position puts it, the same on every run.
+  await page.evaluate(() => {
+    for (const animation of document.getAnimations()) {
+      const clocked = animation.timeline instanceof DocumentTimeline;
+      if (clocked && animation instanceof CSSAnimation && animation.playState === 'running') {
+        animation.pause();
+        animation.currentTime = 0;
+      }
+    }
+  });
+
   const wrappers = await page.$$('[data-preview-wrapper]');
   const examples = [];
   for (const [index, wrapper] of wrappers.entries()) {
     const example = await wrapper.evaluate(collect, { STYLES, index });
+    const targets = stateTargets(example.nodes);
+    await page.evaluate(baseline, { STYLES, targets });
     await wrapper.scrollIntoViewIfNeeded();
     const name = `${String(index).padStart(2, '0')}-${example.section || 'intro'}`;
     await wrapper.screenshot({ path: join(shots, `${name}.png`) }).catch(() => {});
@@ -79,7 +87,7 @@ async function measure(page, shots) {
     // Forced pseudo-states rather than real pointer moves: a hover that opens a tooltip or a menu would
     // move the page under the next measurement, and :focus-visible cannot be reached by el.focus().
     example.states = [];
-    for (const target of example.interactive) {
+    for (const target of targets) {
       const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
       const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `[data-m="${target}"]` });
       if (!nodeId) continue;
@@ -93,7 +101,6 @@ async function measure(page, shots) {
       await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
     }
 
-    delete example.interactive;
     examples.push(example);
   }
 
@@ -116,8 +123,21 @@ function collect(wrapper, { STYLES, index }) {
     return Object.fromEntries(STYLES.map(k => [k, computed[k]]));
   };
 
+  // What moves, and how: each CSS animation's timing and keyframes, on the element or pseudo it runs on.
+  // Clock-driven ones only. A scroll-driven animation is a state, not a motion — Rask.Ui uses one where
+  // Flux runs script (a sticky column's shadow) — and what it does is in the computed styles already.
+  const animations = new Map();
+  for (const animation of document.getAnimations()) {
+    if (!(animation instanceof CSSAnimation) || !(animation.timeline instanceof DocumentTimeline)) continue;
+    const { target, pseudoElement } = animation.effect;
+    const { duration, delay, iterations, direction, fill } = animation.effect.getTiming();
+    const keyframes = animation.effect.getKeyframes().map(({ composite, computedOffset, ...frame }) => frame);
+    (animations.get(target) ?? animations.set(target, []).get(target)).push({
+      on: pseudoElement ?? '', name: animation.animationName, duration, delay, iterations: String(iterations), direction, fill, keyframes,
+    });
+  }
+
   const nodes = [];
-  const interactive = [];
   const elements = [wrapper, ...wrapper.querySelectorAll('*')].slice(0, 500);
   elements.forEach((el, i) => {
     const id = `${index}-${i}`;
@@ -135,22 +155,33 @@ function collect(wrapper, { STYLES, index }) {
       if (content && content !== 'none' && content !== 'normal') node[pseudo] = { content, ...style(el, pseudo) };
     }
 
+    if (animations.has(el)) node.animations = animations.get(el);
     nodes.push(node);
-    // A marked part is measured in every state on both sides: `data-flux-*` there, `data-ui-*` here.
-    const fluxed = [...el.attributes].some(a => a.name.startsWith('data-flux') || a.name.startsWith('data-ui-'));
-    if (interactive.length < 60 && (fluxed || el.matches('button, a, input, select, textarea, summary, label, [role], [tabindex]'))) {
-      interactive.push(id);
-    }
   });
 
-  // The baseline every forced state is compared against.
+  return { index, section, ordinal, size: [Math.round(origin.width), Math.round(origin.height)], nodes };
+}
+
+// The nodes of one example whose hover, active and focus-visible states are measured: every component
+// root and part (`data-flux-*` on Flux's page, `data-ui-*` on a Rask one) and every native control, in
+// document order, up to a limit that keeps a long example affordable. From the recorded nodes rather
+// than the live page, so parity.mjs can ask the same question of a measurement taken earlier.
+export function stateTargets(nodes) {
+  const controls = new Set(['button', 'a', 'input', 'select', 'textarea', 'summary', 'label']);
+  const marked = node => Object.keys(node.attrs).some(name => name.startsWith('data-flux') || name.startsWith('data-ui-'));
+  return nodes
+    .filter(node => marked(node) || controls.has(node.tag) || 'role' in node.attrs || 'tabindex' in node.attrs)
+    .slice(0, 60)
+    .map(node => node.id);
+}
+
+// Runs in the page. The resting styles every forced state is compared against.
+function baseline({ STYLES, targets }) {
   window.__fluxBase ??= {};
-  for (const id of interactive) {
+  for (const id of targets) {
     const el = document.querySelector(`[data-m="${id}"]`);
     window.__fluxBase[id] = Object.fromEntries(STYLES.map(k => [k, getComputedStyle(el)[k]]));
   }
-
-  return { index, section, ordinal, size: [Math.round(origin.width), Math.round(origin.height)], nodes, interactive };
 }
 
 // Runs in the page. What a forced state changed on a control, and on its descendants.

@@ -118,6 +118,34 @@ await foreach (var incremented in dispatcher.Subscribe<CounterIncremented>(ct))
 An `ISubscription<T>` record says which events one page wants, admitted by its own `IWatchPolicy<T>`.
 See [subscriptions](subscriptions.md).
 
+## Who may send it
+
+`[Authorize]` on a handler holds wherever the request comes from: over HTTP from a browser client, and
+in-process from a server page.
+
+```csharp
+[Authorize(Roles = "admin")]
+public sealed class PurgeLogsHandler : ICommandHandler<PurgeLogs> { /* … */ }
+
+try
+{
+    await Dispatcher.Send(new PurgeLogs());
+}
+catch (ForbiddenException e) when (!e.IsAuthenticated)
+{
+    Routes.LoginPage().Go();
+}
+```
+
+A caller the handler does not admit gets `ForbiddenException` before validation runs, so they do not learn
+what was wrong with a request they could not send. `[AllowAnonymous]` is never checked. Work that is nobody's —
+a job, a durable handler, a hosted service — runs as the system and is not checked either; the check that
+matters there was made when the user's own request enqueued it.
+
+The attribute is read at compile time, so it has to be `[Authorize]` itself, on the handler class or a base
+class. One that derives from `AuthorizeAttribute`, or sits on the `Handle` method, is a build error
+([RASK101](diagnostics.md#rask101)) rather than a check that silently never runs.
+
 ## Pipeline behaviors (decorators)
 
 Behaviors are the extension point for cross-cutting concerns — logging, transactions, caching. You

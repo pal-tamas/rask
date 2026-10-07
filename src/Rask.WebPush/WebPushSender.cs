@@ -31,7 +31,7 @@ public sealed partial class WebPushSender : IWebPush
 
     private readonly ConcurrentDictionary<string, (string Header, long ExpiresAtUnix)> _vapidHeaders = new(StringComparer.Ordinal);
     private readonly HttpClient _http;
-    private readonly WebPushOptions _options;
+    private readonly PushOptions _options;
     private readonly ILogger<WebPushSender> _logger;
 
     /// <summary>Creates the sender. <c>AddRaskWebPush</c> does this for you.</summary>
@@ -39,7 +39,7 @@ public sealed partial class WebPushSender : IWebPush
     /// <param name="options">Validated options carrying the VAPID keys and contact subject.</param>
     /// <param name="logger">Optional. Failures log the endpoint and status — never the payload. Endpoints
     ///     are part of a subscription, so treat those logs accordingly.</param>
-    public WebPushSender(HttpClient http, WebPushOptions options, ILogger<WebPushSender>? logger = null)
+    public WebPushSender(HttpClient http, PushOptions options, ILogger<WebPushSender>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(http);
         ArgumentNullException.ThrowIfNull(options);
@@ -118,7 +118,7 @@ public sealed partial class WebPushSender : IWebPush
             request.Content = content;
         }
 
-        var ttl = message.Ttl > TimeSpan.Zero ? message.Ttl : _options.DefaultTtl;
+        var ttl = message.Ttl > TimeSpan.Zero ? message.Ttl : _options.DefaultLifetime;
         request.Headers.TryAddWithoutValidation("TTL", ((int)ttl.TotalSeconds).ToString(CultureInfo.InvariantCulture));
         request.Headers.TryAddWithoutValidation("Urgency", UrgencyToken(message.Urgency));
         if (!string.IsNullOrEmpty(message.Topic))

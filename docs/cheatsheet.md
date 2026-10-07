@@ -168,6 +168,16 @@ Img.Src(Files.Url(saved.Id)).Alt(product.Name)
 
 // Enqueue work off the request thread — returns as soon as the row is written:
 await Jobs.Enqueue(new SendOrderReceipt(order.Id));
+
+// Send mail — queued, retried, and the same line inside a job or a durable handler:
+await Mail.Send(Email.To(order.Email).Subject("Your receipt").Body(Receipt.OrderId(order.Id)));
+
+// Say something happened — from a page, a handler, a job or a hosted service:
+await Dispatcher.Publish(new OrderShipped(order.Id));
+
+// In a test, each battery has a fake that records, and runs what it recorded when asked:
+using var jobs = Jobs.Fake();   using var mail = Mail.Fake();
+await jobs.Run();               mail.Sent().To("ann@example.com").Once();
 ```
 
 ---

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rask.Data;
 
 namespace Rask.Mailing;
 
@@ -36,6 +37,7 @@ internal static class MailSerializer
             TextBody = email.TextBody,
             Attachments = ToJsonOrNull(email.Attachments),
             RunAt = runAt,
+            UserId = Current.UserId,
         };
 
         // The tenant this mail was queued for, so the sender re-enters it — a template that reads a

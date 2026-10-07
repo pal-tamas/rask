@@ -103,8 +103,12 @@ function chunk(url, island) {
     return url;
 }
 
+// Every module the runtime asked for, in the order it asked.
+const imported = [];
+
 registerHooks({
     resolve(specifier, context, next) {
+        imported.push(specifier);
         const module = served.get(specifier);
         return module ? {url: module, shortCircuit: true} : next(specifier, context);
     },
@@ -119,6 +123,15 @@ const LIB_MANIFEST = "/_content/Acme.Ui/_rask/external/manifest.json";
 const ELSEWHERE_MANIFEST = "https://elsewhere.example/manifest.json";
 const DEV_SERVER = "http://localhost:5174";
 served.set(DEV_SERVER + "/@vite/client", "data:text/javascript,");
+served.set("https://elsewhere.example/@vite/client", "data:text/javascript,");
+
+// Answers 404 once, the way a manifest does in the middle of a deploy, and then as usual.
+const FLAKY_MANIFEST = "/_content/Flaky/manifest.json";
+
+// What `rask dev` writes: the dev server under `$dev`, beside the islands it serves. And one naming a
+// server that is not the loopback one, which a page must not take for a dev server.
+const DEV_MANIFEST = "/_content/Dev/manifest.json";
+const REMOTE_MANIFEST = "/_content/Remote/manifest.json";
 
 const tables = {
     [APP_MANIFEST]: {
@@ -129,6 +142,12 @@ const tables = {
     },
     [LIB_MANIFEST]: {Gauge: chunk("/_content/Acme.Ui/_rask/external/assets/Gauge.js", "Gauge")},
     [ELSEWHERE_MANIFEST]: {Evil: chunk("https://elsewhere.example/Evil.js", "Evil")},
+    [FLAKY_MANIFEST]: {Late: chunk("https://app.test/_content/Flaky/Late.js", "Late")},
+    [DEV_MANIFEST]: {$dev: DEV_SERVER, Hot: chunk(DEV_SERVER + "/@fs/app/Hot.entry.ts", "Hot")},
+    [REMOTE_MANIFEST]: {
+        $dev: "https://elsewhere.example",
+        Remote: chunk("https://elsewhere.example/Remote.js", "Remote"),
+    },
 };
 served.set("https://app.test/_content/Acme.Ui/_rask/external/assets/Gauge.js", served.get(tables[LIB_MANIFEST].Gauge));
 
@@ -140,7 +159,8 @@ globalThis.fetch = (address) => {
     const url = own.origin === globalThis.location.origin ? own.pathname : address;
     fetched.push(url);
     const table = tables[url];
-    if (!table) return Promise.resolve({ok: false, status: 404});
+    const firstFlaky = url === FLAKY_MANIFEST && fetched.filter((u) => u === url).length === 1;
+    if (!table || firstFlaky) return Promise.resolve({ok: false, status: 404});
     return Promise.resolve({ok: true, status: 200, json: () => Promise.resolve(table)});
 };
 
@@ -187,12 +207,42 @@ const early = body.appendChild(makeEl("rask-external", {name: "Live", props: "{}
 const refusals = await settle();
 const mountedAfterRefusals = [...globalThis.__raskMounted];
 
+// A manifest whose fetch failed is asked for again by the next island, not remembered as broken.
+const flaky = body.appendChild(makeEl("rask-external", {name: "Late", props: "{}", manifest: FLAKY_MANIFEST}));
+const manifestFailures = (await settle()).filter((e) => e.includes("'Late'"));
+flaky.remove();
+body.appendChild(makeEl("rask-external", {name: "Late", props: "{}", manifest: FLAKY_MANIFEST}));
+await settle();
+const mountedAfterRetry = globalThis.__raskMounted.slice(mountedAfterRefusals.length);
+
+// A manifest naming a server that is not loopback gets no dev server at all, so its chunk is refused.
+body.appendChild(makeEl("rask-external", {name: "Remote", props: "{}", manifest: REMOTE_MANIFEST}));
+const remoteRefusals = (await settle()).filter((e) => e.includes("'Remote'"));
+
+// A dev manifest names the dev server itself, which is all a WASM app's static page has to go on. The
+// key is not an island: asking for it by name finds nothing.
+const beforeDevManifest = globalThis.__raskMounted.length;
+body.appendChild(makeEl("rask-external", {name: "Hot", props: "{}", manifest: DEV_MANIFEST}));
+body.appendChild(makeEl("rask-external", {name: "$dev", props: "{}", manifest: DEV_MANIFEST}));
+const devManifestErrors = (await settle()).filter((e) => e.includes("'Hot'") || e.includes("'$dev'"));
+const mountedByDevManifest = globalThis.__raskMounted.slice(beforeDevManifest);
+const importedByDevManifest = [...imported];
+
 // Under `rask dev` the server stamps the island dev server on <body>, and its chunks load.
+const beforeStamp = globalThis.__raskMounted.length;
 early.remove();
 body.setAttribute("data-rask-islands-dev", DEV_SERVER);
 body.appendChild(makeEl("rask-external", {name: "Live", props: "{}"}));
 
 const devErrors = (await settle()).filter((e) => e.includes("Live"));
+const mountedUnderDev = globalThis.__raskMounted.slice(beforeStamp);
+
+// Markup can inject a <base>. It moves what a root-relative URL resolves to, so the manifest is refused
+// rather than fetched from wherever the base points.
+const beforeBase = {fetched: fetched.length, mounted: globalThis.__raskMounted.length};
+globalThis.document.baseURI = "https://elsewhere.example/app/";
+body.appendChild(makeEl("rask-external", {name: "Chart", props: "{}"}));
+const baseRefusals = (await settle()).filter((e) => e.includes("'Chart'"));
 
 process.stdout.write(JSON.stringify({
     fetched,
@@ -202,6 +252,16 @@ process.stdout.write(JSON.stringify({
     errors,
     refusals,
     mountedAfterRefusals,
-    mountedUnderDev: globalThis.__raskMounted.slice(mountedAfterRefusals.length),
+    mountedUnderDev,
     devErrors,
+    flakyFetches: fetched.filter((u) => u === FLAKY_MANIFEST).length,
+    manifestFailures,
+    mountedAfterRetry,
+    remoteRefusals,
+    devManifestErrors,
+    mountedByDevManifest,
+    importedByDevManifest,
+    baseRefusals,
+    fetchedUnderBase: fetched.slice(beforeBase.fetched),
+    mountedUnderBase: globalThis.__raskMounted.slice(beforeBase.mounted),
 }) + "\n");

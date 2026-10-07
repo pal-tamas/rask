@@ -46,6 +46,26 @@ public static class Ambient
     public static CancellationToken Or(CancellationToken token) =>
         token.CanBeCanceled ? token : CancellationToken;
 
+    /// <summary>
+    ///     The <typeparamref name="T" /> of the work in progress, for a static facade — or the one message every
+    ///     facade gives when there is no work, or when its battery is not running.
+    /// </summary>
+    /// <param name="facade">The static the app called: <c>Jobs</c>.</param>
+    /// <param name="unless">What switches the battery off in a RaskApp: <c>Program.cs says c.Jobs.Off()</c>.</param>
+    /// <param name="wiring">The registration a hand-wired host makes: <c>AddRaskJobs&lt;AppDbContext&gt;()</c>.</param>
+    /// <exception cref="InvalidOperationException">No work is in progress, or the battery is not running.</exception>
+    public static T Reach<T>(string facade, string unless, string wiring)
+        where T : class
+    {
+        var services = Services ?? throw new InvalidOperationException(
+            $"{facade} was called outside any work in progress — a handler, a render, a request or a job — so "
+            + $"there is no app to reach. Inject {typeof(T).Name} in the constructor there instead.");
+
+        return services.GetService(typeof(T)) as T ?? throw new InvalidOperationException(
+            $"{facade} is not running in this app. A RaskApp has it on unless {unless}; a hand-wired host calls "
+            + $"builder.Services.{wiring}.");
+    }
+
     /// <summary>Makes <paramref name="services" /> the work in progress's until the scope is disposed.</summary>
     public static ServicesScope Enter(IServiceProvider? services)
     {

@@ -36,7 +36,7 @@ public sealed class CacheHarness : IAsyncDisposable
         services.AddSingleton<TimeProvider>(Clock); // registered first so AddRaskCache' TryAddSingleton keeps it
         services.AddRaskCache<CacheDbContext>(o =>
         {
-            o.PurgeInterval = TimeSpan.FromMilliseconds(20);
+            o.SweepInterval = TimeSpan.FromMilliseconds(20);
             configure?.Invoke(o);
         });
         services.AddDbContextFactory<CacheDbContext>(o => o.UseSqlite($"Data Source={DbPath}"));

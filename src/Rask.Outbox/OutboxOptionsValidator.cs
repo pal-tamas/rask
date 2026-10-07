@@ -57,9 +57,9 @@ internal sealed class OutboxOptionsValidator : IValidateOptions<OutboxOptions>
             failures.Add("Rask:Outbox:MaxAttempts must be at least 1.");
         }
 
-        if (options.RetentionPeriod < TimeSpan.Zero)
+        if (options.Retention < TimeSpan.Zero)
         {
-            failures.Add("Rask:Outbox:RetentionPeriod cannot be negative.");
+            failures.Add("Rask:Outbox:Retention cannot be negative.");
         }
     }
 

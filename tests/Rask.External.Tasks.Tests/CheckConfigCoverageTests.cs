@@ -144,7 +144,7 @@ public sealed class CheckConfigCoverageTests : IDisposable
         });
 
         var warning = Assert.Single(engine.Warnings);
-        Assert.Equal(WriteExternalPropTypesTask.UnbuiltIslandCode, warning.Code);
+        Assert.Equal(ExternalDiagnosticCodes.UnbuiltIsland, warning.Code);
         Assert.Contains("Gauge", warning.Message, StringComparison.Ordinal);
     }
 
@@ -231,7 +231,7 @@ public sealed class CheckConfigCoverageTests : IDisposable
             RepoRoot(), "tests", "Rask.External.Tests", "Rask.External.Tests.csproj"));
 
         Assert.Contains(
-            $"<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);{WriteExternalPropTypesTask.UnbuiltIslandCode}</MSBuildWarningsAsMessages>",
+            $"<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);{ExternalDiagnosticCodes.UnbuiltIsland}</MSBuildWarningsAsMessages>",
             csproj,
             StringComparison.Ordinal);
     }

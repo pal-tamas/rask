@@ -4,7 +4,7 @@ namespace Rask.Caching;
 public sealed class CacheOptions
 {
     /// <summary>How often the background purge sweeps expired entries out of the table. Default 5 minutes.</summary>
-    public TimeSpan PurgeInterval { get; set; } = TimeSpan.FromMinutes(5);
+    public TimeSpan SweepInterval { get; set; } = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// A default sliding expiration applied to entries written without any explicit expiration. <c>null</c> keeps

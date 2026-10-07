@@ -89,6 +89,109 @@ public sealed class ExternalManifestTests
         Assert.Equal(["Live"], Strings(doc.Value, "mountedUnderDev"));
     }
 
+    [Fact]
+    public void A_failed_manifest_fetch_is_retried_by_the_next_island()
+    {
+        // The fetch promise is cached per URL. Kept after it rejected, one 404 in the middle of a deploy
+        // failed every island on the page until a reload.
+        var doc = NodeFixture.Run("ExternalManifestFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        var mounted = Strings(doc.Value, "mountedAfterRetry");
+
+        Assert.Equal(["Late"], mounted);
+        Assert.Equal(2, doc.Value.GetProperty("flakyFetches").GetInt32());
+    }
+
+    [Fact]
+    public void A_failed_manifest_fetch_names_its_url()
+    {
+        var doc = NodeFixture.Run("ExternalManifestFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        var failure = Assert.Single(Strings(doc.Value, "manifestFailures"));
+
+        Assert.Contains("the manifest at https://app.test/_content/Flaky/manifest.json", failure, StringComparison.Ordinal);
+        Assert.Contains("HTTP 404", failure, StringComparison.Ordinal);
+        Assert.Contains("check that the deploy published it", failure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_dev_manifest_loads_the_hmr_client_before_the_chunk()
+    {
+        // A WASM app's page is a static file, so nothing stamps the dev server on <body>: the dev
+        // manifest names it under `$dev` instead, which is not an island and cannot be asked for as one.
+        var doc = NodeFixture.Run("ExternalManifestFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        var imported = Strings(doc.Value, "importedByDevManifest");
+        var client = Array.IndexOf(imported, "http://localhost:5174/@vite/client");
+        var chunk = Array.IndexOf(imported, "http://localhost:5174/@fs/app/Hot.entry.ts");
+
+        Assert.True(client >= 0 && client < chunk, "imported: " + string.Join(", ", imported));
+        Assert.Equal(["Hot"], Strings(doc.Value, "mountedByDevManifest"));
+        var error = Assert.Single(Strings(doc.Value, "devManifestErrors"));
+        Assert.Contains("'$dev' is not in the manifest", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_dev_manifest_naming_a_non_loopback_server_is_ignored()
+    {
+        var doc = NodeFixture.Run("ExternalManifestFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        var refusal = Assert.Single(Strings(doc.Value, "remoteRefusals"));
+
+        Assert.Contains("refusing the chunk https://elsewhere.example/Remote.js", refusal, StringComparison.Ordinal);
+        Assert.DoesNotContain("https://elsewhere.example/@vite/client", Strings(doc.Value, "importedByDevManifest"));
+        Assert.DoesNotContain("https://elsewhere.example/Remote.js", Strings(doc.Value, "importedByDevManifest"));
+    }
+
+    [Fact]
+    public void A_dev_server_chunk_is_refused_without_a_dev_manifest_or_stamp()
+    {
+        // `Live` is in the app's own manifest, which names no dev server, and the page is not stamped yet.
+        var doc = NodeFixture.Run("ExternalManifestFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        var refusals = string.Join('\n', Strings(doc.Value, "refusals"));
+
+        Assert.Contains("refusing the chunk http://localhost:5174/@fs/app/Live.entry.ts for 'Live'", refusals, StringComparison.Ordinal);
+        Assert.DoesNotContain("Live", Strings(doc.Value, "mountedAfterRefusals"));
+    }
+
+    [Fact]
+    public void An_injected_base_element_cannot_move_the_default_manifest()
+    {
+        // A root-relative URL ignores a <base>'s path but takes its origin, and that origin is not the page's.
+        var doc = NodeFixture.Run("ExternalManifestFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        var refusal = Assert.Single(Strings(doc.Value, "baseRefusals"));
+
+        Assert.Contains("refusing the manifest at /_rask/external/manifest.json", refusal, StringComparison.Ordinal);
+        Assert.Empty(Strings(doc.Value, "fetchedUnderBase"));
+        Assert.Empty(Strings(doc.Value, "mountedUnderBase"));
+    }
+
     private static string?[] Strings(System.Text.Json.JsonElement doc, string property) =>
         [.. doc.GetProperty(property).EnumerateArray().Select(e => e.GetString())];
 }
