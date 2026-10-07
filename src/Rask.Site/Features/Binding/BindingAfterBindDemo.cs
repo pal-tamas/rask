@@ -19,20 +19,22 @@ public sealed partial class BindingAfterBindDemo : Component
     [
         Div.Class("mb-3")[
             Ui.Select.Bind(() => _model.Country)
-                .Options(Countries)
                 .Label("Country")
                 .AfterBind(c =>
                 {
                     _cities = Cities[c];
                     _model.City = _cities[0];
                 })
-                .Id("bind-after-country")
+                .Id("bind-after-country")[
+                Countries.Select(country => Ui.SelectOption.Key(country.Value).Value(country.Value)[country.Text])
+            ]
         ],
         Div.Class("mb-3")[
             Ui.Select.Bind(() => _model.City)
-                .Options([.. _cities.Select(c => (c, c))])
                 .Label("City")
-                .Id("bind-after-city")
+                .Id("bind-after-city")[
+                _cities.Select(city => Ui.SelectOption.Key(city)[city])
+            ]
         ],
         Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code.Id("bind-after-echo")[

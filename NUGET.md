@@ -43,7 +43,7 @@ public sealed partial class Counter : Component
 
 ```bash
 curl -sSL https://rask.sh/rask.sh | sh   # the rask CLI — scaffold, migrate, run, deploy
-rask new MyApp                            # batteries included; or: -t wasm, or -t wasm-hosted
+rask new MyApp                            # batteries included; or: -t wasm, -t wasm-hosted, -t react (or vue, angular, …)
 rask dev                                  # run with hot reload — the first migration is already applied
 rask deploy --host you@box --domain app.example.com       # build + run on one box, over SSH
 ```

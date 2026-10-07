@@ -37,13 +37,28 @@ internal sealed partial class DevCommand
             return;
         }
 
-        Console.WriteLine(
-            $"Starting the client dev server in {Path.GetFileName(directory)} "
-            + $"(npm run {target.ClientDevScript ?? "dev"})…",
-            ConsoleStyle.Dim);
-
         try
         {
+            // A dev session skips the build that would have installed them, so a fresh scaffold or clone
+            // arrives here with no node_modules and `npm run dev` would not find its bundler.
+            if (!_fileSystem.DirectoryExists(Path.Combine(directory, "node_modules")))
+            {
+                var install = _fileSystem.FileExists(Path.Combine(directory, "package-lock.json")) ? "ci" : "install";
+                Console.WriteLine($"Installing the client's dependencies (npm {install})…", ConsoleStyle.Dim);
+                if (await _process.RunAsync("npm", [install], directory, cancellationToken).ConfigureAwait(false) != 0)
+                {
+                    Console.WriteErrorLine(
+                        $"npm {install} failed, so the client dev server did not start. The API is still running.",
+                        ConsoleStyle.Error);
+                    return;
+                }
+            }
+
+            Console.WriteLine(
+                $"Starting the client dev server in {Path.GetFileName(directory)} "
+                + $"(npm run {target.ClientDevScript ?? "dev"})…",
+                ConsoleStyle.Dim);
+
             await _process
                 .RunAsync("npm", ["run", target.ClientDevScript ?? "dev"], directory, cancellationToken)
                 .ConfigureAwait(false);

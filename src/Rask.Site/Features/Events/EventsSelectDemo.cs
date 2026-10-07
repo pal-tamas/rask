@@ -10,10 +10,11 @@ public sealed partial class EventsSelectDemo : Component
     protected override Component? Render() =>
     [
         Ui.Select.Value(_pick)
-            .Options(Frameworks)
-            .AccessibleLabel("Framework")
+            .Label("Framework")
             .OnChange(v => _pick = v)
-            .Class("mb-2"),
+            .Class("mb-2")[
+            Frameworks.Select(framework => Ui.SelectOption.Key(framework.Value).Value(framework.Value)[framework.Text])
+        ],
         P.Class("text-sm mb-0")["Picked: ", Strong[_pick]]
     ];
 }
