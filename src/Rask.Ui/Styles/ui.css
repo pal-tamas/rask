@@ -70,7 +70,7 @@
 @plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
-  exclude: rootscrollgutter;
+  exclude: rootscrollgutter, tooltip;
 }
 
 @theme {
@@ -304,7 +304,7 @@
   the app's own `@theme` copy of the palette, which is in the `theme` layer, and `rask` already beats that.
 
   The cost of being last: the families that set `color` directly rather than through a custom property —
-  alert, link, and tooltip's content — now also outrank an app's own `text-*` utility on those elements.
+  alert and link — now also outrank an app's own `text-*` utility on those elements.
   daisyUI's own rules already competed with app utilities by source order, so this narrows the problem
   rather than introducing it, but it is a real consequence and worth knowing before adding to this block.
 */
@@ -367,57 +367,6 @@
     color: var(--color-ui-bg);
     --alert-color: var(--color-ui-danger-ink);
     --alert-border-color: var(--color-ui-danger-ink);
-  }
-
-  /* Tooltips: a filled bubble, with the text declared on the content and the ::before. */
-  .tooltip-primary {
-    --tt-bg: var(--color-ui-brand-ink);
-  }
-  .tooltip-primary > .tooltip-content,
-  .tooltip-primary[data-tip]::before {
-    color: var(--color-ui-bg);
-  }
-  .tooltip-secondary {
-    --tt-bg: var(--color-ui-secondary-ink);
-  }
-  .tooltip-secondary > .tooltip-content,
-  .tooltip-secondary[data-tip]::before {
-    color: var(--color-ui-bg);
-  }
-  .tooltip-accent {
-    --tt-bg: var(--color-ui-accent-ink);
-  }
-  .tooltip-accent > .tooltip-content,
-  .tooltip-accent[data-tip]::before {
-    color: var(--color-ui-bg);
-  }
-  .tooltip-info {
-    --tt-bg: var(--color-ui-info-ink);
-  }
-  .tooltip-info > .tooltip-content,
-  .tooltip-info[data-tip]::before {
-    color: var(--color-ui-bg);
-  }
-  .tooltip-success {
-    --tt-bg: var(--color-ui-ok-ink);
-  }
-  .tooltip-success > .tooltip-content,
-  .tooltip-success[data-tip]::before {
-    color: var(--color-ui-bg);
-  }
-  .tooltip-warning {
-    --tt-bg: var(--color-ui-warn-ink);
-  }
-  .tooltip-warning > .tooltip-content,
-  .tooltip-warning[data-tip]::before {
-    color: var(--color-ui-bg);
-  }
-  .tooltip-error {
-    --tt-bg: var(--color-ui-danger-ink);
-  }
-  .tooltip-error > .tooltip-content,
-  .tooltip-error[data-tip]::before {
-    color: var(--color-ui-bg);
   }
 
   /* Links, which are text on the page ground rather than a fill — so the ink tier IS the colour,
@@ -1026,16 +975,57 @@
 }
 
 /*
-  UiTooltip.Toggleable: the tip shows while anything in its wrapper has focus, which a tap gives it and a tap
-  elsewhere takes away — the touch screen's only way to see a tooltip, with no script. Mirrors the open state
-  daisyUI gives `.tooltip-open`, for both of its shapes (the `data-tip` pseudo-element and `.tooltip-content`).
+  Ui.Tooltip — what shows it. The look is utilities on the content; this is the part no utility can say,
+  because it is a relation between the caller's trigger and its sibling.
+
+  The trigger is the anchor, under one name scoped to each tooltip, so no two need a name of their own. The
+  content is a [popover]: a trigger that carries `interestfor` (a button or a link, in an engine with interest
+  invokers) or `popovertarget` (Toggleable) opens it in the top layer, and the browser closes it on Escape.
+  Everything else — a trigger that is not an invoker, a disabled button, an engine without interest invokers —
+  is shown in place by :hover and :focus-visible, which is the same box at the same anchor but not in the top
+  layer, and which Escape cannot dismiss.
+
+  Measured on Flux and kept: no delay either way; the pointer cannot rest on the tooltip (it is gone the
+  moment the pointer leaves the trigger, hence pointer-events), and pressing the trigger hides it.
 */
-@layer rask-ui-corrections {
-  .tooltip.ui-tooltip-toggleable:focus-within > .tooltip-content,
-  .tooltip.ui-tooltip-toggleable[data-tip]:focus-within::before,
-  .tooltip.ui-tooltip-toggleable:focus-within::after {
-    opacity: 1;
-    --tt-pos: 0rem;
+@layer rask {
+  [data-ui-tooltip] {
+    anchor-scope: --ui-tooltip;
+  }
+  [data-ui-tooltip] > :first-child {
+    anchor-name: --ui-tooltip;
+  }
+  [data-ui-tooltip] > [interestfor] {
+    interest-delay: 0s;
+  }
+
+  /* Closed, it computes as Flux's does. Open, it leaves the flow for the trigger's side. */
+  [data-ui-tooltip-content] {
+    position: relative;
+    overflow: visible;
+  }
+  [data-ui-tooltip-content]:popover-open,
+  [data-ui-tooltip]:not([data-toggleable], [data-disabled]):hover > [data-ui-tooltip-content],
+  [data-ui-tooltip]:not([data-toggleable], [data-disabled]):has(> :first-child:focus-visible, > :first-child :focus-visible)
+    > [data-ui-tooltip-content],
+  [data-ui-tooltip][data-toggleable][tabindex]:not([data-disabled]):focus-within > [data-ui-tooltip-content] {
+    display: block;
+    position: fixed;
+    overflow: auto;
+  }
+  [data-ui-tooltip]:not([data-toggleable]) > [data-ui-tooltip-content] {
+    pointer-events: none;
+  }
+  [data-ui-tooltip]:not([data-toggleable]):has(> :first-child:active) > [data-ui-tooltip-content] {
+    visibility: hidden;
+  }
+
+  /* Where the browser shows it on interest, :hover stands down — or Escape would close a tooltip that
+     the rule above went on showing. */
+  @supports (interest-delay: 0s) {
+    [data-ui-tooltip]:has(> [interestfor]:not(:disabled)) > [data-ui-tooltip-content]:not(:popover-open) {
+      display: none;
+    }
   }
 }
 

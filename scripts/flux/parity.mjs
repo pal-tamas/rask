@@ -80,6 +80,9 @@ const IGNORED = new Set(['width', 'height']);
 const NATIVE = {
   'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend', 'ui-progress': 'div',
   'ui-table-scroll-area': 'div', 'ui-disclosure-group': 'div', 'ui-disclosure': 'details',
+  // The tooltip's wrapper: the kit wires the trigger at render and the browser shows the [popover].
+  // A toggleable tooltip is a <ui-dropdown> on Flux's page, under the tooltip's marker.
+  'ui-tooltip': 'div', 'ui-dropdown': 'div',
 };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
 const sameTag = (a, b) => (NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');

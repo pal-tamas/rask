@@ -312,6 +312,25 @@ them until tagged releases begin.
   break says `.Class("font-mono max-w-full break-all whitespace-normal!")`. The count badges of `Ui.NavItem` and `Ui.NavTab`, the label badge
   of a form field and the chips of a multi-select are drawn with it too, so the kit writes no `badge` class
   any more; an app that selected on `.badge` selects on `[data-ui-badge]`.
+- **BREAKING: `Ui.Tooltip` is Flux's tooltip, and its trigger is told about it.** One look (Flux's
+  zinc bubble, no tones, no arrow), Flux's props, and Flux's behaviour with no script: the content is a
+  `[popover]` on CSS anchor positioning that flips at the viewport's edge, opened by the browser's interest
+  invoker where the trigger is a button or a link and by `:hover`/`:focus-visible` everywhere else.
+  ```csharp
+  Ui.Tooltip.Tip("Copy").Position(Ui.Position.Right)[ … ]   // was
+  Ui.Tooltip.Content("Copy").Right[ … ]                     // now
+  ```
+  `Tip` → `Content` (optional: richer content is a `Ui.TooltipContent` child after the trigger).
+  `Position`/`Align` take the tooltip's own `Ui.TooltipPosition` (`Top` default, `Right`, `Bottom`, `Left`)
+  and `Ui.TooltipAlign` (`Center` default, `Start`, `End`) instead of the shared `Ui.Position`/`Ui.Align`.
+  `Tone` is gone — Flux's tooltip has one look. `Open` is gone — Flux has no forced-open tooltip; use
+  `Toggleable()`, which now opens on a CLICK (`popovertarget`) and closes on Escape or a click outside,
+  where it used to show on focus. New: `Gap`, `Offset`, `Disabled`, `Interactive`, and `Kbd` on
+  `Ui.TooltipContent`. The markup is new — `data-ui-tooltip` around the trigger, `data-ui-tooltip-content`
+  on the content — and `.tooltip`, `.tooltip-*` and `.ui-tooltip-toggleable` are no longer written.
+  **A screen reader now says it**: the trigger carries `aria-describedby` (or `aria-labelledby`, when it
+  has no text of its own), which the daisyUI tooltip never wrote. `docs/ui-kit.md#tooltips` lists the four
+  things Flux's script does that a script-less tooltip does not, and the runtime hook that would close them.
 
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
