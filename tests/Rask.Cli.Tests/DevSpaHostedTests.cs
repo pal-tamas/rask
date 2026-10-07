@@ -117,4 +117,33 @@ public sealed class DevSpaHostedTests
 
         Assert.DoesNotContain($"--property:{DevCommand.DevSessionProperty}=true", args);
     }
+
+    // A dev session skips the build that would install them, so a fresh scaffold has no bundler to run yet.
+    [Fact]
+    public async Task A_client_with_no_node_modules_is_installed_before_its_dev_server_starts()
+    {
+        var fs = Solution();
+        fs.Seed("/app/Shop/client/package-lock.json", "{}");
+        var runner = new FakeProcessRunner();
+        var command = new DevCommand(new StringConsole(), runner, fs, new FakeBrowserLauncher(), "/app/Shop");
+
+        await command.ExecuteAsync([], CancellationToken.None);
+
+        var npm = runner.Invocations.Where(call => call.FileName == "npm").Select(call => string.Join(' ', call.Arguments)).ToArray();
+        Assert.Equal(["ci", "run dev"], npm);
+    }
+
+    [Fact]
+    public async Task A_client_that_is_already_installed_goes_straight_to_its_dev_server()
+    {
+        var fs = Solution();
+        fs.Seed("/app/Shop/client/node_modules/.package-lock.json", "{}");
+        var runner = new FakeProcessRunner();
+        var command = new DevCommand(new StringConsole(), runner, fs, new FakeBrowserLauncher(), "/app/Shop");
+
+        await command.ExecuteAsync([], CancellationToken.None);
+
+        var npm = runner.Invocations.Where(call => call.FileName == "npm").Select(call => string.Join(' ', call.Arguments)).ToArray();
+        Assert.Equal(["run dev"], npm);
+    }
 }

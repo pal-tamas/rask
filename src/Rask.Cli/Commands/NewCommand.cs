@@ -40,6 +40,7 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
     [
         "rask new Shop",
         "rask new Shop --template wasm-hosted",
+        "rask new Shop --template react",
         "rask new Shop --islands react angular",
         "rask new Shop --template wasm",
         "rask new Blog --no-push --no-ops",
@@ -180,6 +181,12 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
         TemplateInfo template, string dir, string name, ServerBatteries batteries, string version,
         IReadOnlyList<string> islands)
     {
+        // Asked of the same list the catalog was built from, so a key the parser accepts is one this generates.
+        if (SpaFramework.TryGet(template.Key, out var framework))
+        {
+            return ProjectGenerator.GenerateSpa(dir, name, framework, batteries, version);
+        }
+
         return template.Key switch
         {
             "wasm" => ProjectGenerator.GenerateWasm(
