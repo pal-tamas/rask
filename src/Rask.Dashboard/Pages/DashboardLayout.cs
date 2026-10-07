@@ -87,14 +87,13 @@ public sealed partial class DashboardLayout(
         // subtree dark. RaskDashboardShell pins the same theme on <html>; DashboardTheme is the one place the
         // two agree.
         Ui.Shell.Theme(DashboardTheme.Name)[
-            Ui.TopBar.Trailing(Ui.TopLink.Label("Docs").Href("https://rask.sh/docs/"))[
+            Ui.TopBar.Trailing(Ui.Navbar.AccessibleLabel("Help")[Ui.NavbarItem.Href("https://rask.sh/docs/")["Docs"]])[
                 // The wordmark and the destination are the console's, not the kit's — the kit is shared
                 // with the site and the docs now, and each says its own name.
-                Ui.Brand.Label("Ops").Href(Routes.OverviewPage()),
-                QueueSeparator(),
-                QueueSwitcher()
+                Ui.Brand.Name("Ops").Logo(Ui.Icon.Name(Ui.IconName.Squares2x2).Mini).Href(Routes.OverviewPage()),
+                QueueCrumbs()
             ],
-            Ui.Nav[NavTabs()],
+            Ui.Navbar.AccessibleLabel("Sections")[NavTabs()],
             Ui.Main[
                 UnsecuredWarning(),
                 Outlet
@@ -123,18 +122,14 @@ public sealed partial class DashboardLayout(
         yield return Tab(Routes.SystemPage(), "System", exact: false);
     }
 
-    // Named Tab, not NavTab: a private method named after a chain entry would shadow the entry it needs to
-    // call, and the entry is a member of this markup host rather than a type it can qualify.
-    private UiNavTab Tab(RouteUrl url, string label, bool exact, string? prefix = null) =>
-        Ui.NavTab
-            .Label(label)
+    // Named Tab, not NavbarItem: a private method named after a chain entry would shadow the entry it needs
+    // to call, and the entry is a member of this markup host rather than a type it can qualify.
+    private Component Tab(RouteUrl url, string label, bool exact, string? prefix = null) =>
+        Ui.NavbarItem
             .Href(url)
-            .Active(IsActive(prefix ?? url.Path, exact));
+            .Current(IsActive(prefix ?? url.Path, exact))[label];
 
-    private UiCrumbSeparator? QueueSeparator() =>
-        CurrentQueue() is null ? null : Ui.CrumbSeparator;
-
-    private UiCrumbSwitcher? QueueSwitcher()
+    private Component? QueueCrumbs()
     {
         // Only while you are looking at one. Elsewhere the crumb would be asserting a scope the page below
         // it does not actually have.
@@ -143,12 +138,20 @@ public sealed partial class DashboardLayout(
             return null;
         }
 
-        return Ui.CrumbSwitcher
-            .Label("Switch queue")
-            .Value(current.Slug)
-            .Choices([.. Available.Select(q => (q.Slug, q.Title))])
-            .Icon(current.Icon)
-            .OnSelect(GoToQueueAsync);
+        // Flux's breadcrumb with a dropdown in it: the trail says where you are, and its last step is the
+        // way to the queues beside this one.
+        return Ui.Breadcrumbs[
+            Ui.BreadcrumbsItem.Separator(Ui.IconName.Slash)["Queues"],
+            Ui.BreadcrumbsItem.Current()[
+                Ui.Dropdown.Trigger(current.Title).Icon(current.Icon).IconTrailing(Ui.IconName.ChevronUpDown)[
+                    Available.Select(queue => Ui.MenuItem
+                        .Key(queue.Slug)
+                        .Text(queue.Title)
+                        .Active(ReferenceEquals(queue, current))
+                        .OnClick(() => GoToQueueAsync(queue.Slug)))
+                ]
+            ]
+        ];
     }
 
     private Task GoToQueueAsync(string slug)

@@ -841,20 +841,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    /// <summary>The frame size of an avatar.</summary>
-    /// <remarks>
-    ///     daisyUI's avatar has no size classes of its own — its docs size the inner box with a width
-    ///     utility — so the literals live here, where Tailwind can see them.
-    /// </remarks>
-    internal static string AvatarSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "w-6",
-        Ui.Size.Sm => "w-8",
-        Ui.Size.Lg => "w-16",
-        Ui.Size.Xl => "w-24",
-        _ => "w-10",
-    };
-
     internal static string MegamenuSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "megamenu-xs",

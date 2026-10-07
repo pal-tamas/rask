@@ -110,9 +110,13 @@ public sealed partial class UiKitNavigationDemo : Component
                     Ui.Step.Key("s2").Success["Packed"],
                     Ui.Step.Key("s3")["Shipped"]
                 ],
-                // Already data-shaped: the crumbs are a list of (text, href), and the last one has no
-                // href because the page you are on is not a link to itself.
-                Ui.Breadcrumbs.Items([("Home", "#home"), ("Orders", "#orders"), ("ord_18f", null)]),
+                // The last crumb has no href, because the page you are on is not a link to itself; it says
+                // aria-current instead.
+                Ui.Breadcrumbs[
+                    Ui.BreadcrumbsItem.Key("home").Href("#home")["Home"],
+                    Ui.BreadcrumbsItem.Key("orders").Href("#orders")["Orders"],
+                    Ui.BreadcrumbsItem.Key("order").Current()["ord_18f"]
+                ],
                 // Pages as links: each is the address that page lives at, so it can be shared and answers
                 // the back button. The page you are on is not a link either — it says aria-current instead.
                 Div.Data(Testid("ui-pagination-links"))[

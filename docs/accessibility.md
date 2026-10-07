@@ -235,7 +235,7 @@ backstop. Opt a control — or a container of them — out with `data-rask-loadi
 
 A `NavLink` to the page being shown writes `aria-current="page"` beside its active class — what a screen reader
 announces as "current page", where a class says nothing. An empty `ActiveClass` opts out of both, and an
-`aria-current` the call site sets wins. Rask UI's `Ui.NavItem` is built on it.
+`aria-current` the call site sets wins. Rask UI's `Ui.NavbarItem` and `Ui.NavlistItem` are built on it.
 
 Client-side (SPA) route changes on the Server live runtime are handled accessibly without any wiring:
 

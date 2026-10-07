@@ -1,29 +1,26 @@
 namespace Rask;
 
 /// <summary>
-/// The trail of where this page sits.
+///     Flux's <c>flux:breadcrumbs</c>: the trail from the top of the app to the page being shown, as
+///     <see cref="UiBreadcrumbsItem" />s.
 /// </summary>
 /// <remarks>
-/// The last crumb is the current page and is deliberately not a link — a link to where you already are is
-/// a dead end that reads as navigation.
+///     Flux writes a plain <c>&lt;div&gt;</c>; this is that element with the landmark said on it —
+///     <c>role="navigation"</c>, named "Breadcrumb" unless <see cref="AccessibleLabel" /> names it otherwise —
+///     so a screen reader finds the trail as it does any other navigation.
 /// </remarks>
 public sealed partial class UiBreadcrumbs : Component
 {
-    /// <summary>Each step: the words, and where it goes. A null href is the page you are on.</summary>
-    public required IReadOnlyList<(string Text, string? Href)> Items { get; set; }
+    /// <summary>The landmark's name. "Breadcrumb" when unset.</summary>
+    public string? AccessibleLabel { get; set; }
 
+    /// <summary>Classes for the call site, added to the trail's own.</summary>
     public string? Class { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Nav.Class(UiClass.Compose("breadcrumbs text-sm", Class))
-            .Aria("label", "Breadcrumb")[
-            Ul[
-                // Keyed by the crumb's own text: a trail's identity is what it says, and keying by index
-                // would let the diff reuse one crumb's element for another when a level is inserted.
-                Items.Select(item => Li.Key(item.Text)[
-                    item.Href is { } href ? A.Href(href)[item.Text] : Span[item.Text]
-                ])
-            ]
-        ];
+        Div.Class("flex", Class)
+            .Role("navigation")
+            .Aria("label", AccessibleLabel ?? "Breadcrumb")
+            .Attributes(("data-ui-breadcrumbs", null))[Children ?? []];
 }

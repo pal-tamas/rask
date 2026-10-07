@@ -5,7 +5,7 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Flux UI's sidebar layout, on daisyUI's drawer. The children are the SIDEBAR — a brand, a <see cref="UiNavList" />,
+/// Flux UI's sidebar layout, on daisyUI's drawer. The children are the SIDEBAR — a brand, a <see cref="UiNavlist" />,
 /// a <see cref="UiSpacer" /> and a profile at the bottom — and <see cref="Page" /> is everything beside it, usually
 /// the router outlet. It renders an <c>&lt;aside&gt;</c> landmark, sticky and full-height while docked, so a long page
 /// scrolls under a sidebar that stays put.

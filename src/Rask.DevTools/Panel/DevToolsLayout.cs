@@ -35,7 +35,7 @@ internal sealed partial class DevToolsLayout : Component
         }
 
         return Ui.Shell[
-            Ui.TopBar[Ui.Brand.Label("Rask DevTools").Href("#")],
+            Ui.TopBar[Ui.Brand.Name("Rask DevTools").Logo(Ui.Icon.Name(Ui.IconName.Squares2x2).Mini).Href("#")],
             Ui.Main[Outlet]
         ];
     }

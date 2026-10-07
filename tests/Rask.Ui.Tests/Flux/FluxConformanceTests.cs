@@ -25,6 +25,17 @@ public sealed class FluxConformanceTests
     private static readonly Dictionary<string, Type> Built = new(StringComparer.Ordinal)
     {
         ["flux:icon.*"] = typeof(UiIcon),
+        ["flux:navbar"] = typeof(UiNavbar),
+        ["flux:navbar.item"] = typeof(UiNavbarItem),
+        ["flux:navlist"] = typeof(UiNavlist),
+        ["flux:navlist.item"] = typeof(UiNavlistItem),
+        ["flux:navlist.group"] = typeof(UiNavlistGroup),
+        ["flux:brand"] = typeof(UiBrand),
+        ["flux:profile"] = typeof(UiProfile),
+        ["flux:breadcrumbs"] = typeof(UiBreadcrumbs),
+        ["flux:breadcrumbs.item"] = typeof(UiBreadcrumbsItem),
+        ["flux:avatar"] = typeof(UiAvatar),
+        ["flux:avatar.group"] = typeof(UiAvatarGroup),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -32,6 +43,10 @@ public sealed class FluxConformanceTests
     {
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
+        ["flux:avatar/color=auto"] = "Ui.Color is the shared list of hues and has no Auto; the avatar's ColorAuto flag is Flux's color=\"auto\".",
+        ["flux:avatar/badge:color=color"] = "The snapshot's word for \"the same options as color\": BadgeColor is a Ui.Color.",
+        ["flux:navbar.item/badge:color=color"] = "The snapshot's word for \"the same options as the badge's color\": BadgeColor is a Ui.Color.",
+        ["flux:navlist.item/badge:color=color"] = "The snapshot's word for \"the same options as the badge's color\": BadgeColor is a Ui.Color.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
     };
 
