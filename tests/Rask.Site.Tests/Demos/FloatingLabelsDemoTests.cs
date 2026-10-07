@@ -76,10 +76,9 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
         Assert.Contains("<textarea ", html);
         Assert.Contains("<select ", html);
 
-        // The input and the textarea are Flux's now, with the label over the field; only the select, still
-        // daisyUI's, floats its label. Each label is linked to its control by for/id. The ff-* ids are the
-        // browser journey's selectors.
-        Assert.Equal(1, html.Split("class=\"floating-label\"").Length - 1);
+        // The input, the textarea and the select are Flux's now, with the label over the field: nothing floats
+        // any more. Each label is linked to its control by for/id. The ff-* ids are the browser journey's selectors.
+        Assert.DoesNotContain("class=\"floating-label\"", html);
         foreach (var prop in new[] { "FullName", "Email", "Age", "Plan", "Bio" })
         {
             Assert.Contains($"id=\"ff-{prop}\"", html);

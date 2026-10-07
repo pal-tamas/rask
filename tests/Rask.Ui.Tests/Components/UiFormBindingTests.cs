@@ -55,10 +55,10 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     public void A_bound_select_marks_the_models_option_as_the_chosen_one()
     {
         var model = new Profile { Country = "gb" };
-        var html = Ui.Select.Bind(() => model.Country)
-            .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
-            .Label("Country")
-            .ToHtml();
+        var html = Ui.Select.Bind(() => model.Country).Label("Country")[
+            Ui.SelectOption.Value("hu")["Hungary"],
+            Ui.SelectOption.Value("gb")["United Kingdom"]
+        ].ToHtml();
 
         Assert.Contains("selected value=\"gb\"", html, StringComparison.Ordinal);
     }

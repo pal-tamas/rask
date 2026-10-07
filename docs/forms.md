@@ -377,9 +377,8 @@ take the same two shapes, since they implement the same `IFormControl<T>`.
 
 <!-- demo:form-controls-select -->
 
-**Labels.** `Ui.Input` and `Ui.Textarea` are Flux UI's: `Label` draws a label over the field, `Description` help
-text under the label, and each bound field shows its own validation message under the control. A native
-`Ui.Select`, not rebuilt yet, still floats its label:
+**Labels.** `Ui.Input`, `Ui.Textarea` and `Ui.Select` are Flux UI's: `Label` draws a label over the field,
+`Description` help text under the label, and each bound field shows its own validation message under the control:
 
 <!-- demo:floating-labels -->
 
@@ -409,9 +408,9 @@ Ui.Field[
 is always in the page and shows the first message the form holds for the bound member.
 `Ui.Fieldset.Legend("Shipping address")[…]` groups several fields under one heading.
 
-A combobox control — [`Ui.Select`](ui-kit.md) with `.Native(false)`, over one answer or many — carries `role="combobox"`,
-which is not a labelable element, so its name is given directly (`aria-label`, or `aria-labelledby`
-pointing at a visible label) rather than through a `<label for>` that would bind to nothing. Alongside
+A combobox control — [`Ui.Select`](ui-kit.md#select) with `.Listbox` or `.Combobox`, over one answer or many —
+carries `role="combobox"` on a real `<button>` or text `<input>`. Both are labelable elements, so the
+select's `Label` names it through the field's `<label for>`, as it does the native `<select>`. Alongside
 it goes the popup contract: `aria-haspopup="listbox"`, `aria-expanded`, `aria-controls` naming the
 list, and `aria-activedescendant` naming the option the keyboard cursor is on while focus stays on the
 box. Options are `role="option"` carrying `aria-selected`, and an unavailable one carries

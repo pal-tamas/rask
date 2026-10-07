@@ -118,35 +118,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string SelectTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "select-neutral",
-        Ui.Tone.Primary => "select-primary",
-        Ui.Tone.Secondary => "select-secondary",
-        Ui.Tone.Accent => "select-accent",
-        Ui.Tone.Info => "select-info",
-        Ui.Tone.Success => "select-success",
-        Ui.Tone.Warning => "select-warning",
-        Ui.Tone.Error => "select-error",
-        _ => "",
-    };
-
-    internal static string SelectVariant(Ui.Variant value) => value switch
-    {
-        Ui.Variant.Ghost => "select-ghost",
-        _ => "",
-    };
-
-    internal static string SelectSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "select-xs",
-        Ui.Size.Sm => "select-sm",
-        Ui.Size.Md => "select-md",
-        Ui.Size.Lg => "select-lg",
-        Ui.Size.Xl => "select-xl",
-        _ => "",
-    };
-
     // A chart's colours, one table per use. Tailwind's own colour utilities over daisyUI's theme colours, so a series
     // follows the theme; every one a complete literal for the reason this file exists.
     internal static string ChartStroke(Ui.Tone value) => value switch

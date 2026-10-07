@@ -1,6 +1,6 @@
 namespace Rask;
 
-/// <summary>The ARIA an option of <c>Ui.Select</c> or <c>Ui.MultiSelect</c> carries — shared, since there are three answers.</summary>
+/// <summary>The ARIA an option of a drawn list carries — <c>Ui.Select</c>'s today — shared, since there are three answers.</summary>
 /// <remarks>
 ///     aria-disabled is OMITTED when the option is enabled, never nulled: a null renders the attribute valueless, and a
 ///     valueless aria-disabled reads as "true" — so the tidy conditional value would mark every option unavailable.

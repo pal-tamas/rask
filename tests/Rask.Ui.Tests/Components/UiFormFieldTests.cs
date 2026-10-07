@@ -12,37 +12,10 @@ namespace Rask.UiTests.Components;
 public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void A_select_gets_the_same_field_shape()
-    {
-        // The base is shared, so this is really asking whether Ui.Select reaches it — a control that
-        // declared its own Label and kept it would pass every other test in this file while rendering the
-        // old markup.
-        // Options FIRST: it is a required prop, so the chain stays "pending" — and the optional steps
-        // are not offered — until every required one is taken. Floating(false) because the sibling shape is
-        // the legend's; the floating one is UiFloatingFieldTests'.
-        var html = Ui.Select
-            .Value("hu")
-            .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
-            .Label("Country")
-            .Floating(false)
-            .Hint("Where you are billed")
-            .ToHtml();
-
-        var label = html.IndexOf("<label", StringComparison.Ordinal);
-        var close = html.IndexOf("</label>", StringComparison.Ordinal);
-        var select = html.IndexOf("<select", StringComparison.Ordinal);
-
-        Assert.True(label >= 0 && close >= 0 && select > close, "the select is inside its label.");
-        Assert.Contains("for=", html, StringComparison.Ordinal);
-        Assert.Contains("Country", html, StringComparison.Ordinal);
-        Assert.Contains("Where you are billed", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void An_unlabelled_select_is_still_the_bare_control() =>
+    public void An_unlabelled_control_is_still_the_bare_control() =>
         Assert.DoesNotContain(
             "<label",
-            Ui.Select.Value("hu").Options([("hu", "Hungary")]).ToHtml(),
+            Ui.FileInput.Value("").ToHtml(),
             StringComparison.Ordinal);
     [Fact]
     public void The_id_reaches_the_control_itself()
@@ -52,7 +25,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         // fails somewhere else entirely. Id was exactly that for one commit.
         Assert.Contains(
             "id=\"country\"",
-            Ui.Select.Value("hu").Options([("hu", "Hungary")]).Label("Country").Id("country").ToHtml(),
+            Ui.FileInput.Value("").Label("Country").Id("country").ToHtml(),
             StringComparison.Ordinal);
 
         // The two controls that are not UiFormFields and draw their own markup had no Id at all, which

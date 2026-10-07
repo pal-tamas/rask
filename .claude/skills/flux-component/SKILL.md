@@ -134,7 +134,13 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout` today).
+card accordion callout input textarea select` today).
+- **What opens** is not in a page as loaded. `scripts/flux/parity-select.mjs` is the pattern: open each
+  example on Flux's page and on the parity page, compare the popup subtree, its box against the trigger and a
+  row hovered and pressed; `--live <url>` walks the keyboard on a running site against Flux's, since a static
+  page has no runtime. A difference the runtime cannot close yet is a walk of its own marked `accepted`, and
+  an entry in `NotTranslated`.
+- A `<template>` under a Flux node is skipped: it draws nothing.
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each

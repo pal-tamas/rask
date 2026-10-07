@@ -66,6 +66,14 @@ public sealed class FluxConformanceTests
         ["flux:input.group.prefix"] = typeof(UiInputGroupPrefix),
         ["flux:input.group.suffix"] = typeof(UiInputGroupSuffix),
         ["flux:textarea"] = typeof(UiTextarea<>),
+        ["flux:select"] = typeof(UiSelect<>),
+        ["flux:select.option"] = typeof(UiSelectOption),
+        ["flux:select.group"] = typeof(UiSelectGroup),
+        ["flux:select.option.create"] = typeof(UiSelectOptionCreate),
+        ["flux:select.option.empty"] = typeof(UiSelectOptionEmpty),
+        ["flux:select.button"] = typeof(UiSelectButton),
+        ["flux:select.input"] = typeof(UiSelectInput),
+        ["flux:select.search"] = typeof(UiSelectSearch),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -81,6 +89,10 @@ public sealed class FluxConformanceTests
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
         ["flux:input/mask:dynamic"] = "An Alpine expression ($money($input)) evaluated in the browser on every keystroke. Rask.Ui ships no script; Mask takes the static pattern.",
+        ["flux:select/enter-on-closed"] = "Flux's listbox button ignores Enter while its list is shut. Ui.Select's is a native <button popovertarget>, which Enter presses: it opens. Waiting for a runtime hook that contains Enter (and the arrows' page scroll) on a closed button[role=combobox][aria-haspopup=listbox].",
+        ["flux:select/scroll-lock"] = "While a list is open Flux's script sets overflow:hidden, pointer-events:none and scrollbar-gutter:stable on <html>. A native popover does not lock the page behind it; waiting for a runtime hook that does while a [popover][data-rask-popover-open] is shown.",
+        ["flux:select.option/avatar:*"] = "Props forwarded to Flux's avatar. Ui.Avatar is not Flux's yet; an option draws the extra-small round avatar Flux draws there.",
+        ["flux:select.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
         ["flux:input/copyable"] = "Copies in the click's own call stack (Alpine). Rask.Ui ships no script and the runtime has no clipboard hook yet (data-rask-copy); a handler round trip loses the user activation the clipboard asks for.",
     };
 

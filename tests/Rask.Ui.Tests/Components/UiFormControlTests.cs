@@ -85,7 +85,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData("select")]
     [InlineData("file")]
     public void A_text_control_carries_the_class_the_hint_reads(string kind)
     {
@@ -97,7 +96,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData("select")]
     [InlineData("file")]
     public void An_errored_control_says_so_to_a_screen_reader_as_well_as_in_colour(string kind)
     {
@@ -108,7 +106,7 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData("select")]
+    [InlineData("file")]
     public void A_control_with_no_error_does_not_claim_one(string kind) =>
         Assert.DoesNotContain("aria-invalid", Control(kind, Ui.Tone.Neutral));
 
@@ -188,14 +186,10 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         return count;
     }
 
-    private static string Control(string kind, Ui.Tone tone) => kind switch
-    {
-        // Value opens it: for a form control the opening step fixes both the type argument and the
-        // MODE (controlled here, bound if it opened on Bind), so Label and Options follow it.
-        "select" => Ui.Select.Value<string>(null).Options([("hu", "Hungary")]).Label("Country")
-            .Tone(tone).ToHtml(),
-        _ => Ui.FileInput.Value("").Label("Avatar").Tone(tone).ToHtml(),
-    };
+    private static string Control(string kind, Ui.Tone tone) =>
+        string.Equals(kind, "file", StringComparison.Ordinal)
+            ? Ui.FileInput.Value("").Label("Avatar").Tone(tone).ToHtml()
+            : throw new ArgumentOutOfRangeException(nameof(kind));
 
     private static string Filter(string? selected) =>
         Ui.Filter.Value(selected).Group("tags")

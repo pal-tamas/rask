@@ -20,6 +20,63 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Select` is Flux UI's select — native, listbox and combobox — and its options are children.**
+  [fluxui.dev](https://fluxui.dev/components/select)'s `flux:select`, part for part, over Rask's binding
+  (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the form); the daisyUI-drawn `UiSelect<T>` and
+  `UiMultiSelect<T>` are deleted. Three variants (`Ui.SelectVariant`): the default is the browser's own
+  `<select>`, `.Listbox` a button over a drawn list, `.Combobox` a text input that filters one. New parts:
+  `Ui.SelectOption` (`Value`, `Label`, `SelectedLabel`, `Keywords`, `Icon`, `IconVariant`, `IconClass`,
+  `Avatar`, `Description`, `Disabled()`, or children of your own), `Ui.SelectGroup`, `Ui.SelectOptionCreate`
+  (`MinLength`, `OnClick` handed the search as typed), `Ui.SelectOptionEmpty` (`WhenLoading`), and Flux's three
+  slots as children: `Ui.SelectButton`, `Ui.SelectInput`, `Ui.SelectSearch`. New on the select: `Size`
+  (`Ui.SelectSize`: `.Sm` 32px, `.Xs` 24px), `Multiple()`, `Searchable()`, `Filter(false)`, `Clearable()`,
+  `Prefix`, `Empty`, `SelectedSuffix`, `Clear(Ui.SelectClear.Close)`, `Position` / `Align`, `OptionsClass`,
+  `Invalid()`, and `Label` / `Description` / `DescriptionTrailing` / `Badge`, which draw the `Ui.Field` around
+  it with its `Ui.Error` (`ShowValidation(false)` leaves the message to one placed elsewhere).
+  ```csharp
+  Ui.Select.Bind(() => m.Country).Options(countries).Label("Country")                 // was — a list of (Value, Text)
+  Ui.Select.Bind(() => m.Country).Label("Country")[                                   // now — options are children,
+      countries.Select(c => Ui.SelectOption.Key(c.Code).Value(c.Code)[c.Name])        //   and one made from a list takes a Key
+  ]
+  Ui.Select.Bind(() => m.Plan).Options(plans).Native(false)                           // was
+  Ui.Select.Bind(() => m.Plan).Listbox[ … ]                                           // now — the variant says it
+  Ui.Select.Bind(() => m.Plan).Options(plans).Searchable()                            // was
+  Ui.Select.Bind(() => m.Plan).Listbox.Searchable()[ … ]                              // now — or .Combobox, to type in the box itself
+  Ui.Select.Bind(() => m.Tags).Options(tags)                                          // was — a collection made it the multi-select
+  Ui.Select.Bind(() => m.Tags).Listbox.Multiple()[ … ]                                // now — List<T>, T[], HashSet<T>, or .Values(tags).OnChange(…)
+  .OptionGroup(c => c.Region)                                                         // was
+  Ui.SelectGroup.Label("Europe")[ Ui.SelectOption.Value("hu")["Hungary"] ]            // now
+  .OptionDisabled(c => c.Retired)                                                     // was
+  Ui.SelectOption.Value(c.Code).Disabled(c.Retired)[c.Name]                           // now
+  .OptionTemplate(p => Div[Ui.Icon.Name(p.Icon), Span[p.Name]])                       // was
+  Ui.SelectOption.Value(p.Id).Label(p.Name).Icon(p.Icon).Description(p.About)         // now — or .Avatar(url), or the option's own children
+  .Filter((c, text) => c.Code.StartsWith(text)).OnSearch(Find).Loading(busy)          // was
+  Ui.Select.Bind(() => m.UserId).Combobox.Filter(false)[                              // now — the page filters: it answers OnInput
+      Ui.SelectInput.OnInput(text => _users = Users.Named(text)),                     //   by rendering the options that match
+      _users.Select(u => Ui.SelectOption.Key(u.Id).Value(u.Id)[u.Name]),
+      Ui.SelectOptionEmpty.WhenLoading("Loading users...")["No users found."]
+  ]
+  .EmptyText("Nothing here")   .Hint("Where we ship to")   .AccessibleLabel("Country")   // was
+  .Empty("Nothing here")       .Description("Where we ship to")   .Label("Country")      // now
+  ```
+  Nothing Flux does not have stayed. Gone: `Options(list)`, `Native()` / `Native(false)`, `OptionGroup`,
+  `OptionDisabled`, `OptionTemplate`, `Filter((value, text) => …)`, `OnSearch`, `Loading`, `EmptyText` /
+  `LoadingText`, `SelectAll()`, `Chips(n)`, `Floating(…)`, `Tone`, daisyUI's `Variant` and `Size(Ui.Size)`,
+  `Hint`, `AccessibleLabel`, and `Ui.MultiSelect` as a name. A select over a collection is the listbox's, as
+  on Flux: its button shows the one picked label or "N selected" (`SelectedSuffix("industries selected")`),
+  and the native variant holds one answer.
+
+  The drawn list ships no script. It is a native `popover` placed by CSS anchor positioning — as wide as its
+  trigger, 5px under it, at most 20rem tall, flipping when it would not fit — and the keyboard is Flux's,
+  recorded on fluxui.dev: Space and the arrows open on the picked option, the arrows stop at either end,
+  Home / End / PageUp / PageDown do nothing, Enter picks and closes (several: switches the row and stays
+  open), Escape and a click elsewhere close with focus back on the button, and a letter typed on the closed
+  button picks the next option starting with it. A named drawn select posts through hidden inputs. Two
+  known gaps wait for runtime hooks: Enter on a **closed** listbox button opens it (Flux ignores it), and the
+  page behind an open list is not scroll-locked. `scripts/flux/parity-select.mjs` holds the open list to
+  fluxui.dev — the popup's look and placement on the parity page, and `--live <url>` walks the keyboard on a
+  running site. [RASK075](docs/diagnostics.md#rask075) no longer fires for the kit's select: there is no
+  `OptionTemplate` or `Native` left to contradict each other.
 - **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
   `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
   `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the

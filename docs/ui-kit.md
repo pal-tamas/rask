@@ -745,7 +745,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
@@ -861,51 +861,36 @@ jump to the ends, and they wrap. Only the selected tab is a tab stop, so Tab out
 panel rather than walking every remaining tab. Every panel is rendered, with the ones not shown carrying
 `hidden`, so their content is still findable by the browser's own in-page search.
 
-**And one that lets you choose.** `Ui.Select` is the platform's `<select>` by default and draws its own
-list when `Native` is `false` — a `[popover]` `role="listbox"` under a `role="combobox"` box, with the
-arrow keys, Home/End, Enter, and a roving `aria-activedescendant` cursor that skips unavailable
-options. Reach for it when the list must carry more than the platform will show, or must escape an
-`overflow: hidden` ancestor. Both modes take the same properties and mean the same thing by them; what
-differs is that the drawn list **needs the runtime**, where the native control works on a prerendered
-page and with scripting off. That is why the default is native.
+**And one that lets you choose.** `Ui.Select` is the browser's own `<select>` by default, and the browser
+owns all of it: it works on a prerendered page and with scripting off, which is why it is the default.
+`.Listbox` and `.Combobox` draw the list instead — a native `popover` under a `role="combobox"` trigger. The
+browser still opens and dismisses it (a click, Escape, a click elsewhere, focus back on the button, with no
+handler at all), while the cursor, type-ahead, the search and the picking are C#, so the drawn list **needs
+the runtime**. Reach for it when an option must carry more than words, or the list must be searched. The
+whole of it is under [Select](#select).
 
-**And one that lets you choose several — under the same name.** Bind a collection and `Ui.Select` IS the
-multi-select. There is no second component to remember and no `Multiple` flag to set: the field's own
-type is the answer, so a model that holds many answers cannot accidentally get the control that holds
-one.
+**And one that lets you choose several — under the same name.** Open `Ui.Select` on a collection and the
+same chain builds the select that holds several answers; the model's type decides which, so a model that
+holds many answers cannot get the control that holds one.
 
 ```csharp
-Ui.Select.Bind(() => _order.Country)   // string        → one answer
-Ui.Select.Bind(() => _order.Tags)      // List<string>  → several
-Ui.Select.Values(_picked)              // controlled, several
-Ui.Select.Value(_country)              // controlled, one
+Ui.Select.Bind(() => _order.Country)[ … ]                      // string        → one answer
+Ui.Select.Bind(() => _order.Tags).Listbox.Multiple()[ … ]      // List<string>  → several
+Ui.Select.Values(_picked).OnChange(Pick).Listbox.Multiple()[ … ]   // controlled, several
+Ui.Select.Value(_country).OnChange(Pick)[ … ]                  // controlled, one
 ```
 
-`List<T>`, `IList<T>`, `HashSet<T>`, `Collection<T>`, `ObservableCollection<T>`, `T[]` and
-`ICollection<T>` all open the multi-value control; the write-back refills a get-only collection in
-place and otherwise builds whatever the property declares. A field typed `IReadOnlyList<T>` is the one
-shape that cannot bind — it is not an `ICollection<T>`, so there is nothing to write back through.
-The controlled opening is spelled `Values` rather than `Value` because `["a", "b"]` and `null` are
-target-typed: they fit every collection shape equally, so one name could not tell the two controls
-apart without guessing.
+Several answers are the listbox's, as on Flux: the browser's own select holds one here, and a select over a
+collection left on the native variant throws and says so. Picking a row switches it and leaves the list OPEN,
+because choosing three answers should not mean opening it three times.
 
-Native is a real `<select multiple>`; `.Native(false)` draws the list, shows the chosen answers as
-removable chips in the box, and — unlike the single-select — leaves the list OPEN as you pick, because
-choosing three answers should not mean opening it three times. `SelectAll` adds a bulk row and `Chips`
-caps how many chips the box shows before the rest collapse into "+N more".
+**And one you type into.** There is no `UiCombobox`, because a box you type into to narrow a set of answers
+is the same question a select asks: `.Listbox.Searchable()` puts a search field over the options, and
+`.Combobox` makes the box itself the text input. Either matches case- and accent-insensitively, and
+`Filter(false)` hands the typing to the page instead, for a list that comes from a server.
 
-**And one you type into.** There is no `UiCombobox`, because a box you type into to narrow a fixed set
-of answers is the same question a select asks. `Searchable` puts a search box at the top of the drawn
-list, matching the option's words case- and accent-insensitively **in the visitor's own culture** —
-somebody typing `oster` means to find `Österreich`. `Filter` says what a match is when the words shown
-are not the whole answer (a country's code as well as its name); `OnSearch` hands the typing to the
-page instead, for a list that comes from a server, and filters nothing locally — what the page handed
-back IS the answer. `Loading` shows "Searching…" while it waits, `EmptyText` and `LoadingText` say it
-in your own words, and `Clearable` adds a button that puts the field back to nothing chosen. Each of
-these implies the drawn list, because a `<select>` has nowhere to put them.
-
-A short list needs none of it: the drawn list already has **type-ahead**, where a letter jumps to the
-next option starting with it, which is what a native select does.
+A short list needs none of it: a letter typed on a listbox's closed button picks the next option starting
+with it, which is what a native select does.
 
 **A whole set of choices is one field too.** `UiRadioGroup<T>` binds the group's value and
 `UiCheckboxGroup<T>` binds the collection your model declares — one field, not one per option, which is what
@@ -931,13 +916,12 @@ keep in sync. Where the whole label is the affordance the box is `sr-only`, neve
 it out of the tab order too. `CheckAll` reports `aria-checked="mixed"` while only some of the list is in,
 rather than claiming "all" over a half-filled one.
 
-Both selects take an `OptionTemplate` for rows that need more than words. Setting one implies the
-drawn list, because an `<option>` holds text and nothing else — writing `Native(true)` beside a
-template is [RASK075](diagnostics.md#rask075).
+A row of a drawn select that needs more than words says so on the option — `Icon`, `Avatar`, `Description`,
+or children of its own. Those are the listbox's and the combobox's: a native `<option>` holds text and
+nothing else.
 
-The browser still owns dismissal there — Escape and click-outside — and C# hears it through
-`OnToggle`, which is what keeps `aria-expanded` truthful rather than drifting the moment the list is
-dismissed.
+The browser still owns dismissal there — Escape and click-outside — and C# hears the popover's toggle,
+which is what keeps `aria-expanded` truthful rather than drifting the moment the list is dismissed.
 
 ## Fields: label, description, error
 
@@ -982,6 +966,193 @@ Markers mirror Flux's: `data-ui-field`, `data-ui-label`, `data-ui-description`, 
 `Hint` and message from `Label(…)`; as each is rebuilt its `Label` and `Description` draw this field around
 it instead.
 
+## Select
+
+`Ui.Select` is [Flux UI's select](https://fluxui.dev/components/select), part for part, over Rask's binding:
+`Bind` or `Value` where Flux says `wire:model`. **Options are children**, as in Flux, typed by the select's
+own value type; an option with no `Value` stands for its own text.
+
+```csharp
+Ui.Select.Bind(() => model.Country).Label("Country").Placeholder("Choose…")[
+    countries.Select(c => Ui.SelectOption.Key(c.Code).Value(c.Code)[c.Name])   // made from a list: give it a Key
+]
+Ui.Select.Value(_pick).OnChange(v => _pick = v)[
+    Ui.SelectOption["Photography"],
+    Ui.SelectOption["Design services"]
+]
+Ui.Select.Of<string>().Sm.Placeholder("Choose industry...")[ … ]              // no binding, no value yet
+```
+
+| Part | What it is |
+| --- | --- |
+| `Ui.Select` | The select. `Variant` (`Ui.SelectVariant`): `Default` — the browser's own `<select>` — `.Listbox`, `.Combobox`. `Size` (`Ui.SelectSize`): 40px, `.Sm` 32px, `.Xs` 24px with smaller text. |
+| `Ui.SelectOption` | One answer: `Value`, and its words as children or `Label`. `SelectedLabel`, `Keywords`, `Icon` (`IconVariant`, `IconClass`), `Avatar`, `Description`, `Disabled()`. |
+| `Ui.SelectGroup` | Options under one `Label`: an `<optgroup>` in the native variant, a headed run of rows otherwise. |
+| `Ui.SelectOptionCreate` | The row that makes a new option of what was typed: `MinLength`, and `OnClick` handed the search. |
+| `Ui.SelectOptionEmpty` | What a search that matches nothing says, and `WhenLoading` while results are on their way. |
+| `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` | Flux's `button`, `input` and `search` slots, written as children to set what the select's own props do not reach. |
+
+`Label`, `Description`, `DescriptionTrailing` and `Badge` draw the [field](#fields-label-description-error)
+around the select, with the bound member's message under it; `ShowValidation(false)` leaves that message to
+a `Ui.Error` placed elsewhere. `Invalid()` is error styling the form did not ask for, `Disabled()` a select
+that cannot be opened or changed, and `Name` what the answer is posted under.
+
+**Native, small, grouped.** The default variant is the browser's `<select>` in the input's box: it needs no
+runtime, renders complete on a prerendered page and gets a phone's own picker. `Placeholder` is shown while
+nothing is picked, and a native `<option>` holds text and nothing else.
+
+```csharp
+Ui.Select.Bind(() => m.Industry).Placeholder("Choose an industry...")[
+    Ui.SelectGroup.Label("Creative")[
+        Ui.SelectOption.Value("photography")["Photography"],
+        Ui.SelectOption.Value("design")["Design services"]
+    ],
+    Ui.SelectGroup.Label("Technology")[
+        Ui.SelectOption.Value("web-development")["Web development"]
+    ]
+]
+```
+
+**Listbox: a button over a drawn list.** For options that carry more than words — a `Prefix` that stays in
+the button, icons, descriptions, avatars, content of your own:
+
+```csharp
+Ui.Select.Bind(() => m.Range).Listbox.Prefix("Compare to")[
+    Ui.SelectOption.Value("last-month")["Last month"],
+    Ui.SelectOption.Value("last-year")["Last year"]
+]
+Ui.Select.Bind(() => m.Method).Listbox.Clearable().Placeholder("Choose method...")[
+    Ui.SelectOption.Value("card").Label("Credit card").Icon(Ui.IconName.CreditCard),
+    Ui.SelectOption.Value("bank").Label("Bank transfer").Icon(Ui.IconName.BuildingLibrary)
+        .Description("Two working days")
+]
+Ui.Select.Bind(() => m.Owner).Listbox[
+    people.Select(p => Ui.SelectOption.Key(p.Id).Value(p.Id).Label(p.Name).Avatar(p.PhotoUrl))
+]
+Ui.Select.Bind(() => m.Colour).Listbox[
+    Ui.SelectOption.Value("red")[
+        Div.Class("flex items-center gap-2")[Div.Class("size-4 rounded-full bg-red-500"), "Red"]
+    ]
+]
+```
+
+A `Description` is the list's only: the button does not repeat it once the option is picked, and
+`SelectedLabel` is what the button shows when that should not be the option's own words. An `Avatar` wins
+over an `Icon`. `Clearable()` adds a button that puts the select back to nothing chosen, shown while there is
+an answer. The list is as wide as its button; `OptionsClass` widens it, and `Position` and `Align` (the kit's
+`Ui.Position` and `Ui.Align`) say which side it opens on and which edge it lines up with:
+
+```csharp
+Ui.Select.Bind(() => m.Visibility).Listbox.Class("max-w-32").OptionsClass("min-w-72")[ … ]
+```
+
+`Ui.SelectButton` is Flux's button slot, for what the select's props do not reach — its own `Placeholder`,
+`Invalid`, `Size`, `Disabled`, `Clearable` and `Class`:
+`Ui.Select.Bind(() => m.Plan).Listbox[Ui.SelectButton.Class("rounded-full!"), …]`.
+
+**Searchable, and keywords.** `Searchable()` puts a search field at the top of the listbox's options.
+Opening focuses it; typing filters case- and accent-insensitively over each option's text and its
+`Keywords` — more words to find it by, never shown — and puts the cursor on the first match. "No results
+found" shows when nothing matches; `Empty("…")` says it in your own words.
+
+```csharp
+Ui.Select.Bind(() => m.Category).Listbox.Searchable().Placeholder("Choose category...")[
+    Ui.SelectSearch.Placeholder("Search categories..."),
+    Ui.SelectOption.Value("fruit").Keywords("apple orange pear")["Fruit"],
+    Ui.SelectOption.Value("drinks").Keywords("coffee tea juice")["Drinks"]
+]
+```
+
+`Ui.SelectSearch` is Flux's search slot: `Placeholder` ("Search..." when unset), `Icon` (a magnifying glass
+when unset), `Clearable(false)` to leave out the button that empties the field, and `Value` with `OnInput`
+for a page that holds the search itself.
+
+**Multiple.** Open the select on a collection — `Bind` over a `List<T>`, a `T[]` or a `HashSet<T>`, or
+`Values(tags)` with `OnChange` — and `.Listbox.Multiple()` picks several. Picking a row switches it and
+leaves the list open; the button names the one picked option, or counts them:
+
+```csharp
+Ui.Select.Bind(() => m.Industries).Listbox.Multiple().Searchable()
+    .SelectedSuffix("industries selected")          // "3 industries selected"; "3 selected" when unset
+    .Clear(Ui.SelectClear.Close)[                   // the search survives each pick and empties when the list closes
+    industries.Select(name => Ui.SelectOption.Key(name)[name])
+]
+```
+
+A bound list, array or set each gets its own kind back. `Multiple()` on a select that holds one answer
+throws and says to open it on a collection, and so does a select over a collection left on the native
+variant: several answers are the listbox's, as on Flux.
+
+**Combobox: a text input that filters.** A click or typing opens the list, typing filters it, Enter picks
+and the input shows the answer. `Ui.SelectInput` is Flux's input slot (`Placeholder`, `Invalid`, `Size`,
+`Value`, `OnInput`):
+
+```csharp
+Ui.Select.Bind(() => m.Industry).Combobox.Placeholder("Choose industry...")[
+    industries.Select(name => Ui.SelectOption.Key(name)[name])
+]
+```
+
+**Backend search, and a create row.** `Filter(false)` leaves every option in the list whatever is typed:
+the page filters, answering `OnInput` by rendering the options that match from wherever it keeps them.
+`Ui.SelectOptionEmpty` is what the list says when there are none, and while results are on their way.
+`Ui.SelectOptionCreate` offers to make an option of what was typed once the search is `MinLength` long and
+names none that exists; its `OnClick` is a `Callback<string>` handed the search as typed, and the page adds
+the option and selects it.
+
+```csharp
+Ui.Select.Bind(() => m.UserId).Combobox.Filter(false)[
+    Ui.SelectInput.OnInput(text => _users = Users.Named(text)),
+    _users.Select(u => Ui.SelectOption.Key(u.Id).Value(u.Id)[u.Name]),
+    Ui.SelectOptionCreate.MinLength(2).OnClick(name => Create(name))["Create new"],
+    Ui.SelectOptionEmpty.WhenLoading("Loading users...")["No users found."]
+]
+```
+
+In a listbox with no search the create row is always shown and `OnClick` is handed an empty string — the
+case where the page opens a form of its own.
+
+**No script.** The drawn list is a native `popover` placed by CSS anchor positioning: as wide as its
+trigger, 5px under it, at most 20rem tall, and it flips when it would not fit. The browser opens it on a
+click and closes it on Escape or a click elsewhere, returning focus to the button; the keyboard below is C#,
+recorded on fluxui.dev and matched.
+
+| Key | Listbox |
+| --- | --- |
+| Click, Space, ArrowDown, ArrowUp | Open, with the cursor on the picked option — the first when there is none. |
+| ArrowDown / ArrowUp | Move the cursor, skipping a disabled option. They stop at either end; there is no wrap. |
+| Home, End, PageUp, PageDown | Nothing, as on Flux. |
+| Enter | Picks the active row and closes. With `Multiple()` it switches the row and the list stays open. |
+| Escape, a click elsewhere | Close; focus returns to the button. |
+| Tab | Closes, picks nothing, and moves on. |
+| A letter | On the **closed** button it picks the next option starting with it; on the open list it moves the cursor. |
+| The pointer | Moves the cursor to the row under it. |
+
+In a combobox, Escape closes the list and a second Escape empties the text but keeps the answer; leaving
+the input with words that name nothing puts the answer's text back.
+
+**ARIA.** The trigger — the listbox's `<button>`, the combobox's `<input>` — carries `role="combobox"`,
+`aria-haspopup="listbox"`, `aria-expanded`, `aria-controls` and, while open, `aria-activedescendant` naming
+the row the cursor is on. The list is `role="listbox"`, with `aria-multiselectable` only when it takes
+several; each row is `role="option"` with `aria-selected`, and a disabled one adds `aria-disabled="true"`.
+A drawn select posts nothing by itself, so one with a `Name` carries its answer in hidden inputs.
+
+Markers follow Flux's: `data-ui-select` on a drawn select's root, `data-ui-select-button`,
+`data-ui-select-native`, `data-ui-options`, `data-ui-option`, and on a row `data-selected` and `data-active`
+(the cursor); `data-open` while the list is.
+
+**Two known gaps**, each waiting for a runtime hook: Enter on a **closed** listbox button opens the list,
+where Flux ignores it — the button is a native popover invoker, which Enter presses — and the page behind
+an open list is not scroll-locked.
+
+**Gone with daisyUI's select:** `Options(list)` (options are children), `Native()` / `Native(false)` (now
+the variant: `.Listbox`), `OptionGroup` (now `Ui.SelectGroup`), `OptionDisabled` (now
+`Ui.SelectOption.Disabled()`), `OptionTemplate` (now the option's children, `Icon`, `Avatar`,
+`Description`), `Filter((value, text) => …)`, `OnSearch` and `Loading` (now `Filter(false)` and the page
+filters), `EmptyText` / `LoadingText` (now `Empty("…")` and `Ui.SelectOptionEmpty`), `SelectAll()`,
+`Chips(n)`, floating labels (`Floating`), `Tone`, daisyUI's `Variant` and `Size(Ui.Size)`, `Hint` (now
+`Description`), `AccessibleLabel` (now `Label`) and `Ui.MultiSelect` as a name.
+
 ## Form controls
 
 **All twelve** of the kit's data-input controls implement `IFormControl<T>`, so each works in the two
@@ -989,9 +1160,11 @@ shapes every Rask input does:
 
 ```csharp
 Form.Model(_order)[
-    Ui.Select.Bind(() => _order.Country).Options(countries).Label("Country"),
-    Ui.Select.Value(_country).Options(countries).Label("Country").OnChange(v => _country = v),
-    Ui.Select.Bind(() => _order.Tags).Options(tags).Label("Tags")
+    Ui.Select.Bind(() => _order.Country).Label("Country")[
+        countries.Select(c => Ui.SelectOption.Key(c.Code).Value(c.Code)[c.Name])
+    ],
+    Ui.Select.Value(_country).Label("Country").OnChange(v => _country = v)[ … ],
+    Ui.Select.Bind(() => _order.Tags).Label("Tags").Listbox.Multiple()[ … ]
 ]
 ```
 
@@ -1179,14 +1352,14 @@ Ui.Textarea.Bind(() => m.Notes).Label("Notes").Rows(UiTextareaRows.Auto).None   
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two
 sources of truth for one field, and the compiler enforces it — both live on the control's entry, so
-taking one leaves the other unreachable. `Label`, `Options` and the rest follow in any order, since none
+taking one leaves the other unreachable. `Label`, `Placeholder` and the rest follow in any order, since none
 of them says anything about `T`. Bound mode drives the surrounding `Form`'s validation — per-field
 `Validate`, `AfterBind`, and the `aria-invalid`/`aria-describedby` display — and controlled mode leaves
 the value with the parent. See [building form controls](building-form-controls.md).
 
-**The controls still on daisyUI share one field shape.** `Ui.Select` (single or multiple), `Ui.Otp`,
+**The controls still on daisyUI share one field shape.** `Ui.Otp`,
 `Ui.FileInput`, the radio and checkbox groups and the date pickers all take the same members from
-`UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input` and `Ui.Textarea` have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
+`UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input`, `Ui.Textarea` and `Ui.Select` have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
 without one, an invisible `AccessibleLabel`; a `Hint` and a controlled `Error` under it; an `Id`, derived from the
 bound member or the label when you give none; and `aria-describedby`, `aria-invalid` and `aria-required` worked out
 from those and from the bound member's `[Required]` and messages. `Label` is never a required step, so write it
@@ -1203,7 +1376,7 @@ would have exactly one legal argument.
 | | Binds |
 |---|---|
 | `UiInput<T>` `UiTextarea<T>` `UiSelect<T>` | what the field holds |
-| `UiSelect<T>` over a collection | the ELEMENT type — it binds an `ICollection<T>` |
+| `UiSelectMultiple<T>` — `Ui.Select` opened on a collection | the ELEMENT type — it binds an `ICollection<T>` |
 | `UiFilter<T>` | the chosen option of a whole radio group |
 | `Ui.Radio` | whether **this** option is the chosen one — the group's value belongs to `UiFilter<T>` |
 | `Ui.Checkbox` `Ui.Toggle` | on or off |
@@ -1241,8 +1414,8 @@ controlled mode: the parent still owns whatever the field ends up with.
 through months changes nothing a form would submit, which is why they sit outside the binding. Leave `Month`
 unset and the calendar pages by itself.
 
-**Several days and a range are the same entry, told apart by the model** — the way `Ui.Select` becomes the
-multiple select when it binds a collection:
+**Several days and a range are the same entry, told apart by the model** — the way `Ui.Select` holds several
+answers when it is opened on a collection:
 
 ```csharp
 Ui.Calendar.Bind(() => model.Delivery).Label("Delivery")   // DateOnly: one day
@@ -1259,7 +1432,7 @@ was clicked first. So a bound model never holds half a range. `default(UiDateRan
 
 **`Ui.DatePicker` is the field.** A field-shaped button showing the choice in the reader's short date format, with
 the grid in a popover — the browser's, so the top layer, Escape, a click outside and focus back on the button
-come with it. It is a form field like `Ui.Select` (`Label`, `Hint`, `Error`, `Badge`, validation), and it takes the
+come with it. It is a form field like `Ui.Otp` (`Label`, `Hint`, `Error`, `Badge`, validation), and it takes the
 same three openings: one day closes the popover on the pick, several days keep it open while they are added, and
 a range closes on the click that gives it its end.
 

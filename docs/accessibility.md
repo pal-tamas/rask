@@ -181,7 +181,7 @@ which keeps `Escape` inert). Build your own overlay the same way — add `data-r
 
 A menu that must escape an `overflow: hidden/auto` ancestor uses the platform's own answer instead:
 a `[popover]`, which the browser lifts into the top layer, dismisses on Escape and on a click outside,
-and gives a real `::backdrop`. `Ui.Select` with `Native: false`, `Ui.Megamenu` and `Ui.Modal` are all
+and gives a real `::backdrop`. `Ui.Select`'s `.Listbox` and `.Combobox` variants, `Ui.Megamenu` and `Ui.Modal` are all
 built that way. C# hears the browser's own dismissal through `OnToggle`, which is what lets a control
 keep `aria-expanded` truthful rather than drifting the moment Escape is pressed.
 
@@ -248,7 +248,7 @@ host today; the WASM navigation path is a follow-up.)
 ## What's not covered yet
 
 This is the framework primitive layer. Higher-level affordances — skip links, ARIA `tablist`/`tab`
-keyboard widgets (the roving cursor in `Ui.Select`'s drawn listbox), and automated axe-core scans in the sample
+keyboard widgets (the `aria-activedescendant` cursor in `Ui.Select`'s drawn listbox), and automated axe-core scans in the sample
 E2E suite — are tracked as follow-up work. Today you build those from the typed `Aria*`/`Role`/`TabIndex`
 primitives above (plus the focus trap) and standard semantic HTML (`Nav`, `Main`, `Aside`, `Label.For(…)`,
 `Th.Scope(…)`, …).

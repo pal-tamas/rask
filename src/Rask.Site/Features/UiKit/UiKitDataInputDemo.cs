@@ -13,11 +13,8 @@ public sealed partial class UiKitDataInputDemo : Component
     private bool _remember = true;
     private bool _alerts;
     private string _shipping = "standard";
-    private string? _framework;
-    private string? _home;
     private string _search = "Jack Skellington";
     private int _palette;
-    private readonly List<string> _packages = ["core", "ui"];
     private string _plan = "pro";
     private string _density = "cosy";
     private List<string> _topics = ["releases"];
@@ -31,14 +28,6 @@ public sealed partial class UiKitDataInputDemo : Component
     private List<DateOnly> _daysOff = [];
     private readonly Signup _signup = new();
 
-    // Words with an accent in them, on purpose: the default match ignores case AND accents in the
-    // visitor's own culture, so "oster" finds Österreich.
-    private static readonly (string Value, string Text)[] Countries =
-    [
-        ("at", "Österreich"), ("ch", "Schweiz"), ("cz", "Česko"), ("de", "Deutschland"),
-        ("es", "España"), ("hu", "Magyarország"), ("ie", "Ireland"), ("gb", "United Kingdom")
-    ];
-
     /// <inheritdoc />
     protected override Component? Render() =>
     [
@@ -46,8 +35,9 @@ public sealed partial class UiKitDataInputDemo : Component
         InputGroupSection(),
         TextareaSection(),
         SelectSection(),
+        ListboxSection(),
         SearchableSection(),
-        MultiSelectSection(),
+        ComboboxSection(),
         ChoiceListsSection(),
         ChoicesSection(),
         RangeRatingSection(),
@@ -163,85 +153,6 @@ public sealed partial class UiKitDataInputDemo : Component
                 ],
                 P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-textarea-state"))[
                     _notes.Length == 0 ? "No notes yet." : $"Notes: {_notes}"
-                ]
-            ]);
-
-    private Component SelectSection() =>
-        Section(
-            "Select — the platform's, and the drawn one",
-            "Native is the default and the one to reach for. Turn it off when the list has to carry "
-            + "more than the platform will show — groups, unavailable options — or has to escape an "
-            + "overflow:hidden ancestor, which the box below is. The drawn list needs the runtime.",
-            Div.Data(Testid("ui-select")).Class("grid gap-3 sm:grid-cols-2")[
-                Div.Class("h-24 overflow-hidden rounded-xl border border-base-300 p-3")[
-                    Ui.Select.Key("fw").Value(_framework)
-                        .Options([
-                            ("core", "Rask.Core"), ("ui", "Rask.Ui"), ("cli", "Rask.Cli"),
-                            ("blazor", "Rask.Blazor"), ("ext", "Rask.External")
-                        ])
-                        .Label("Framework")
-                        .Placeholder("Choose a package")
-                        .Native(false)
-                        .OptionGroup(v => v is "core" or "ui" ? "Rendering" : "Tooling")
-                        .OptionDisabled(v => v is "blazor")
-                        .OnChange(v => { _framework = v; })
-                ],
-                P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-select-state"))[
-                    _framework is null ? "Nothing chosen." : $"Chosen: {_framework}."
-                ]
-            ]);
-
-    private Component SearchableSection() =>
-        Section(
-            "Searchable — the same control, typed into",
-            "There is no separate combobox: a box you type into to narrow a fixed set of answers is the "
-            + "same question a select asks. Searchable adds the search box, matching case- and "
-            + "accent-insensitively in your own culture — type \"oster\" to find Österreich. Filter says "
-            + "what a match is when the words shown are not the whole answer; this one searches the "
-            + "country CODE as well. Clearable puts the field back to nothing chosen.",
-            Div.Data(Testid("ui-select-search")).Class("grid gap-3 sm:grid-cols-2")[
-                Ui.Select.Key("home").Value(_home)
-                    .Options(Countries)
-                    .Label("Country")
-                    .Placeholder("Search countries")
-                    .Searchable()
-                    .Clearable()
-                    .Filter((v, text) =>
-                        v.Contains(text, StringComparison.OrdinalIgnoreCase)
-                        || Countries.Any(o => string.Equals(o.Value, v, StringComparison.Ordinal)
-                                              && o.Text.Contains(text, StringComparison.CurrentCultureIgnoreCase)))
-                    .OnChange(v => { _home = v; }),
-                P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-select-search-state"))[
-                    _home is null ? "Nothing chosen." : $"Chosen: {_home}."
-                ]
-            ]);
-
-    private Component MultiSelectSection() =>
-        Section(
-            "Multi-select — several answers, one field",
-            "The same name, for a field that holds a collection: bind a List, array or HashSet and "
-            + "Ui.Select is a multi-select — the model says so, not a flag. Native is a real "
-            + "multi-select: no script, and it posts on its own. The drawn one shows the answers as "
-            + "chips you can remove one at a time, keeps the list open while you pick, and adds the "
-            + "search box and select-all a long list needs.",
-            Div.Data(Testid("ui-multiselect")).Class("grid gap-3 sm:grid-cols-2")[
-                Ui.Select.Key("pkgs").Values(_packages)
-                    .Options([
-                        ("core", "Rask.Core"), ("ui", "Rask.Ui"), ("cli", "Rask.Cli"),
-                        ("blazor", "Rask.Blazor"), ("ext", "Rask.External")
-                    ])
-                    .Label("Packages")
-                    .Placeholder("Choose packages")
-                    .Native(false)
-                    .SelectAll()
-                    .Filter((v, text) => v.Contains(text, StringComparison.OrdinalIgnoreCase))
-                    .OptionGroup(v => v is "core" or "ui" ? "Rendering" : "Tooling")
-                    .OptionDisabled(v => v is "blazor")
-                    .OnChange(Choose),
-                P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-multiselect-state"))[
-                    _packages.Count == 0
-                        ? "Nothing chosen."
-                        : $"Chosen: {string.Join(", ", _packages)}."
                 ]
             ]);
 
@@ -468,14 +379,6 @@ public sealed partial class UiKitDataInputDemo : Component
 
     private static UiMask Masked(string key, Ui.MaskShape shape) =>
         Ui.Mask.Key(key).Shape(shape).Class("size-14 bg-primary");
-
-    // Controlled mode hands over a fresh collection every time — see Ui.MultiSelect's OnChange. The
-    // demo holds one list and refills it, which is what a model with a get-only collection does too.
-    private void Choose(ICollection<string> picked)
-    {
-        _packages.Clear();
-        _packages.AddRange(picked);
-    }
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[

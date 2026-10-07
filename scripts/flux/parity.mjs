@@ -80,6 +80,8 @@ const IGNORED = new Set(['width', 'height']);
 const NATIVE = {
   'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend', 'ui-progress': 'div',
   'ui-table-scroll-area': 'div', 'ui-disclosure-group': 'div', 'ui-disclosure': 'details',
+  'ui-select': 'div', 'ui-selected': 'div', 'ui-options': 'div', 'ui-option': 'div', 'ui-option-empty': 'div',
+  'ui-option-create': 'div',
 };
 // …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
 // opens the file input inside it when clicked, where Flux's <div> calls input.click().
@@ -197,7 +199,9 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
   if (standIn) return;
   if (own) compareLook(theirs, a, mine, b, where, diffs);
 
-  const kids = (example, n) => example.nodes.filter(c => c.parent === n.id);
+  // A <template> draws nothing: it holds what Flux's script clones from (a select's picked option), and the
+  // native element Rask.Ui writes in that element's place has no use for one.
+  const kids = (example, n) => example.nodes.filter(c => c.parent === n.id && c.tag !== 'template');
   const ca = kids(theirs, a);
   const cb = kids(mine, b);
   if (ca.length !== cb.length) {
