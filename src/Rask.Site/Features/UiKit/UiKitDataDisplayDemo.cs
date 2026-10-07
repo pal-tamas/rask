@@ -21,6 +21,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
+        CardSection(),
         AccordionSection(),
         CollapseSection(),
         AuraSection(),
@@ -101,7 +102,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
             + "keyboard, so nothing may depend on the tilt.",
             Div.Data(Testid("ui-hover-3d")).Class("max-w-xs")[
                 Ui.Hover3d[
-                    Ui.Card.Title("Tilt me")[P["The content is complete without the effect."]]
+                    Ui.Card[Ui.CardHeader[Ui.CardHeading.Level(2)["Tilt me"]], Ui.CardBody[P["The content is complete without the effect."]]]
                 ]
             ]);
 
@@ -121,31 +122,32 @@ public sealed partial class UiKitDataDisplayDemo : Component
     private static Component CardsFiguresEmptySection() =>
         Section(
             "Cards, figures and empty states",
-            "What an operator screen is made of. A card given an Href is one link, figures and all — so "
+            "What an operator screen is made of. A card wrapped in a link is one link, figures and all — so "
             + "nothing inside it may be a button. A mono badge wraps a long token instead of widening its "
             + "row, a code block can say what it holds, and an empty state gives the answer before the reason.",
             Div.Data(Testid("ui-console-pieces"))[
                 Ui.Grid[
-                    Ui.Card
-                        .Key("queue")
-                        .Href(PageMeta.LinkTo(Routes.UiKitDataGridPage()))
-                        .Icon(Ui.IconName.Cog6Tooth)
-                        .Title("Jobs")
-                        .Action(Ui.StatusDot.Label("2 failed").Error)[
-                        Ui.MetricRow.Columns(2)[
-                            Ui.Metric.Key("outstanding").Label("Outstanding").Value("12"),
-                            Ui.Metric.Key("failed").Label("Failed").Value("2").Error
-                                .Caption("dead after 5 attempts")
+                    NavLink.Key("queue").Href(PageMeta.LinkTo(Routes.UiKitDataGridPage()))[
+                        Ui.Card.Class("hover:bg-zinc-50 dark:hover:bg-zinc-700")[
+                            Ui.CardHeader[
+                                Ui.CardHeading.Level(2).Class("flex items-center gap-2")[Ui.Icon.Name(Ui.IconName.Cog6Tooth).Class("opacity-60"), "Jobs"],
+                                Ui.CardSubheading[Ui.StatusDot.Label("2 failed").Error]
+                            ],
+                            Ui.CardBody[
+                                Ui.MetricRow.Columns(2)[
+                                    Ui.Metric.Key("outstanding").Label("Outstanding").Value("12"),
+                                    Ui.Metric.Key("failed").Label("Failed").Value("2").Error
+                                        .Caption("dead after 5 attempts")
+                                ]
+                            ]
                         ]
                     ],
                     Ui.Card
-                        .Key("detail")
-                        .Title("A failed job")
-                        .Action(Ui.Badge.Mono()["requestId=0HN8Q2V3R1T0K:00000001"])[
+                        .Key("detail")[Ui.CardHeader[Ui.CardHeading.Level(2)["A failed job"], Ui.CardActions[Ui.Badge.Mono()["requestId=0HN8Q2V3R1T0K:00000001"]]], Ui.CardBody[
                         Ui.Code.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
                             .Label("Last error")
                             .Error
-                    ],
+                    ]],
                     Ui.Card.Key("empty")[
                         Ui.Empty.Title("Nothing stored matches")
                             .Detail("Retention drops entries by age and by count.")

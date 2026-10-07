@@ -45,6 +45,14 @@ public sealed class FluxConformanceTests
         ["flux:table.rows"] = typeof(UiTableRows),
         ["flux:table.row"] = typeof(UiTableRow),
         ["flux:table.cell"] = typeof(UiTableCell),
+        ["flux:card"] = typeof(UiCard),
+        ["flux:card.header"] = typeof(UiCardHeader),
+        ["flux:card.heading"] = typeof(UiCardHeading),
+        ["flux:card.subheading"] = typeof(UiCardSubheading),
+        ["flux:card.actions"] = typeof(UiCardActions),
+        ["flux:card.body"] = typeof(UiCardBody),
+        ["flux:card.footer"] = typeof(UiCardFooter),
+        ["flux:card.bleed"] = typeof(UiCardBleed),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>

@@ -56,7 +56,7 @@ public sealed class DevToolsErrorsTabTests
         var (page, app) = Logs();
         var tab = Tab(page, app);
 
-        var rows = tab.FindAll(".card-body").Select(r => r.TextContent).ToList();
+        var rows = tab.FindAll("[data-ui-card]").Select(r => r.TextContent).ToList();
 
         // Newest first: the handler fault, then the app-wide warning.
         Assert.Equal(2, rows.Count);

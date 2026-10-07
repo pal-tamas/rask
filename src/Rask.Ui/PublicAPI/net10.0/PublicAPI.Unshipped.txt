@@ -213,19 +213,8 @@ Rask.UiCalendarRange.Validate.set -> void
 Rask.UiCalendarRange.Value.get -> Rask.UiDateRange
 Rask.UiCalendarRange.Value.set -> void
 Rask.UiCard
-Rask.UiCard.Action.get -> Rask.Core.Component?
-Rask.UiCard.Action.set -> void
 Rask.UiCard.Class.get -> string?
 Rask.UiCard.Class.set -> void
-Rask.UiCard.Title.get -> string?
-Rask.UiCard.Title.set -> void
-Rask.UiCard.TitleLevel.get -> int?
-Rask.UiCard.TitleLevel.set -> void
-Rask.UiCard.Href.get -> Rask.Core.Routing.RouteUrl?
-Rask.UiCard.Href.set -> void
-Rask.UiCard.Icon.get -> Rask.Ui.IconName?
-Rask.UiCard.Icon.set -> void
-Rask.UiCard.Size.get -> Rask.Ui.Size?
 Rask.UiCard.Size.set -> void
 Rask.UiCard.UiCard() -> void
 Rask.UiCarousel
@@ -2290,7 +2279,6 @@ RaskBuilderSettersRask_Ui
 RaskEntriesRask_Ui
 abstract Rask.UiFormField<T>.Control() -> Rask.Core.Component!
 const Rask.UiStyles.Caption = "mt-1 text-xs opacity-60" -> string!
-const Rask.UiStyles.Card = "rounded-xl border border-base-300 bg-base-100 p-4 sm:p-5" -> string!
 const Rask.UiStyles.Heading = "text-base font-semibold tracking-tight text-base-content sm:text-lg" -> string!
 const Rask.UiStyles.Label = "text-xs font-medium tracking-wide opacity-60" -> string!
 const Rask.UiStyles.Mono = "font-mono text-xs" -> string!
@@ -2344,7 +2332,6 @@ static RaskBuilderSettersRask_Ui.AccessibleLabel<T>(this Rask.UiInput<T>! __b, s
 static RaskBuilderSettersRask_Ui.AccessibleLabel<T>(this Rask.UiRadioGroup<T>! __b, string? value) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.AccessibleLabel<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.AccessibleLabel<T>(this Rask.UiTextarea<T>! __b, string? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.Action(this Rask.UiCard! __b, Rask.Core.Component? value) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.Action(this Rask.UiToast! __b, Rask.Core.Component? value) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.Actions(this Rask.UiHeader! __b, Rask.Core.Component? value) -> Rask.UiHeader!
 static RaskBuilderSettersRask_Ui.Active(this Rask.UiButton! __b, bool? value) -> Rask.UiButton!
@@ -2680,7 +2667,6 @@ static RaskBuilderSettersRask_Ui.Groupable<T>(this Rask.UiColumn<T>! __b, bool? 
 static RaskBuilderSettersRask_Ui.Grouped<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<string!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Grow(this Rask.UiListRow! __b, Rask.Core.Component! value) -> Rask.UiListRow!
 static RaskBuilderSettersRask_Ui.HandleLabel(this Rask.UiDiff! __b, string? value) -> Rask.UiDiff!
-static RaskBuilderSettersRask_Ui.Title(this Rask.UiCard! __b, string? value) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.Title(this Rask.UiEmpty! __b, string! value) -> Rask.UiEmpty!
 static RaskBuilderSettersRask_Ui.Title(this Rask.UiFileInput! __b, string? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Title(this Rask.UiHeader! __b, string! value) -> Rask.UiHeader!
@@ -2688,7 +2674,6 @@ static RaskBuilderSettersRask_Ui.Title(this Rask.UiMenuGroup! __b, string? value
 static RaskBuilderSettersRask_Ui.Title(this Rask.UiMenuSub! __b, string! value) -> Rask.UiMenuSub!
 static RaskBuilderSettersRask_Ui.Title(this Rask.UiNavGroup! __b, string! value) -> Rask.UiNavGroup!
 static RaskBuilderSettersRask_Ui.Title(this Rask.UiToast! __b, string? value) -> Rask.UiToast!
-static RaskBuilderSettersRask_Ui.TitleLevel(this Rask.UiCard! __b, int? value) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.TitleLevel(this Rask.UiHeader! __b, int? value) -> Rask.UiHeader!
 static RaskBuilderSettersRask_Ui.Height<T, TKey>(this Rask.UiTree<T, TKey>! __b, int? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.HiddenColumns<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<string!>? value) -> Rask.UiDataGrid<T, TKey>!
@@ -2706,7 +2691,6 @@ static RaskBuilderSettersRask_Ui.Horizontal(this Rask.UiMenu! __b, bool? value) 
 static RaskBuilderSettersRask_Ui.Hover<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiBrand! __b, Rask.Core.Routing.RouteUrl value) -> Rask.UiBrand!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiButton! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.Href(this Rask.UiCard! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiMenuItem! __b, string? value) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiMetric! __b, string? value) -> Rask.UiMetric!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiNavItem! __b, Rask.Core.Routing.RouteUrl value) -> Rask.UiNavItem!
@@ -2717,7 +2701,6 @@ static RaskBuilderSettersRask_Ui.Href(this Rask.UiStat! __b, Rask.Core.Routing.R
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiTab! __b, string? value) -> Rask.UiTab!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiTopLink! __b, string! value) -> Rask.UiTopLink!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiBrand! __b, Rask.Ui.IconName? value) -> Rask.UiBrand!
-static RaskBuilderSettersRask_Ui.Icon(this Rask.UiCard! __b, Rask.Ui.IconName? value) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiCrumbSwitcher! __b, Rask.Ui.IconName? value) -> Rask.UiCrumbSwitcher!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiDropdown! __b, Rask.Ui.IconName? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiFab! __b, Rask.Ui.IconName? value) -> Rask.UiFab!
@@ -3163,7 +3146,6 @@ static RaskBuilderSettersRask_Ui.Size(this Rask.UiAura! __b, Rask.Ui.Size? value
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiAvatar! __b, Rask.Ui.Size? value) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiBadge! __b, Rask.Ui.Size? value) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiButton! __b, Rask.Ui.Size? value) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.Size(this Rask.UiCard! __b, Rask.Ui.Size? value) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiCheckbox! __b, Rask.Ui.Size? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiDatePicker! __b, Rask.Ui.Size? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiDatePickerMultiple! __b, Rask.Ui.Size? value) -> Rask.UiDatePickerMultiple!
@@ -4646,7 +4628,6 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Default.get -> Rask.UiCard!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Lg.get -> Rask.UiCard!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Md.get -> Rask.UiCard!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Sm.get -> Rask.UiCard!
-RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Xl.get -> Rask.UiCard!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Xs.get -> Rask.UiCard!
 RaskBuilderSettersRask_Ui.extension(Rask.UiChartSeries!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiChartSeries!).Accent.get -> Rask.UiChartSeries!
@@ -5925,7 +5906,6 @@ static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiAura! __b) -> Rask.UiAura!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiAvatar! __b) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiButton! __b) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiCard! __b) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiCheckbox! __b) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
@@ -6934,3 +6914,170 @@ static RaskBuilderSettersRask_Ui.get_End(Rask.UiTableColumn! __b) -> Rask.UiTabl
 static RaskBuilderSettersRask_Ui.get_Start(Rask.UiTableCell! __b) -> Rask.UiTableCell!
 static RaskBuilderSettersRask_Ui.get_Start(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
 static RaskBuilderSettersRask_Ui.get_Strong(Rask.UiTableCell! __b) -> Rask.UiTableCell!
+Rask.Ui.CardBodyVariant
+Rask.Ui.CardBodyVariant.Divided = 3 -> Rask.Ui.CardBodyVariant
+Rask.Ui.CardBodyVariant.Flush = 2 -> Rask.Ui.CardBodyVariant
+Rask.Ui.CardBodyVariant.Inset = 1 -> Rask.Ui.CardBodyVariant
+Rask.Ui.CardBodyVariant.Seamless = 0 -> Rask.Ui.CardBodyVariant
+Rask.Ui.CardBodyVariant.Separated = 4 -> Rask.Ui.CardBodyVariant
+Rask.Ui.CardDivider
+Rask.Ui.CardDivider.Full = 0 -> Rask.Ui.CardDivider
+Rask.Ui.CardDivider.Inset = 1 -> Rask.Ui.CardDivider
+Rask.Ui.CardHeadingSize
+Rask.Ui.CardHeadingSize.Base = 0 -> Rask.Ui.CardHeadingSize
+Rask.Ui.CardHeadingSize.Lg = 1 -> Rask.Ui.CardHeadingSize
+Rask.Ui.CardHeadingSize.Xl = 2 -> Rask.Ui.CardHeadingSize
+Rask.Ui.CardSize
+Rask.Ui.CardSize.Lg = 3 -> Rask.Ui.CardSize
+Rask.Ui.CardSize.Md = 0 -> Rask.Ui.CardSize
+Rask.Ui.CardSize.Sm = 2 -> Rask.Ui.CardSize
+Rask.Ui.CardSize.Xs = 1 -> Rask.Ui.CardSize
+Rask.Ui.CardVariant
+Rask.Ui.CardVariant.Default = 0 -> Rask.Ui.CardVariant
+Rask.Ui.CardVariant.Filled = 4 -> Rask.Ui.CardVariant
+Rask.Ui.CardVariant.Muted = 1 -> Rask.Ui.CardVariant
+Rask.Ui.CardVariant.Outline = 3 -> Rask.Ui.CardVariant
+Rask.Ui.CardVariant.Soft = 2 -> Rask.Ui.CardVariant
+Rask.UiCard.Body.get -> Rask.Ui.CardBodyVariant?
+Rask.UiCard.Body.set -> void
+Rask.UiCard.Divider.get -> Rask.Ui.CardDivider?
+Rask.UiCard.Divider.set -> void
+Rask.UiCard.Highlight.get -> bool?
+Rask.UiCard.Highlight.set -> void
+Rask.UiCard.Size.get -> Rask.Ui.CardSize?
+Rask.UiCard.Variant.get -> Rask.Ui.CardVariant?
+Rask.UiCard.Variant.set -> void
+Rask.UiCardActions
+Rask.UiCardActions.Class.get -> string?
+Rask.UiCardActions.Class.set -> void
+Rask.UiCardActions.UiCardActions() -> void
+Rask.UiCardBleed
+Rask.UiCardBleed.Class.get -> string?
+Rask.UiCardBleed.Class.set -> void
+Rask.UiCardBleed.UiCardBleed() -> void
+Rask.UiCardBody
+Rask.UiCardBody.Class.get -> string?
+Rask.UiCardBody.Class.set -> void
+Rask.UiCardBody.UiCardBody() -> void
+Rask.UiCardFooter
+Rask.UiCardFooter.Class.get -> string?
+Rask.UiCardFooter.Class.set -> void
+Rask.UiCardFooter.Size.get -> Rask.Ui.CardSize?
+Rask.UiCardFooter.Size.set -> void
+Rask.UiCardFooter.UiCardFooter() -> void
+Rask.UiCardHeader
+Rask.UiCardHeader.Class.get -> string?
+Rask.UiCardHeader.Class.set -> void
+Rask.UiCardHeader.Size.get -> Rask.Ui.CardSize?
+Rask.UiCardHeader.Size.set -> void
+Rask.UiCardHeader.UiCardHeader() -> void
+Rask.UiCardHeading
+Rask.UiCardHeading.Class.get -> string?
+Rask.UiCardHeading.Class.set -> void
+Rask.UiCardHeading.Level.get -> int?
+Rask.UiCardHeading.Level.set -> void
+Rask.UiCardHeading.Size.get -> Rask.Ui.CardHeadingSize?
+Rask.UiCardHeading.Size.set -> void
+Rask.UiCardHeading.UiCardHeading() -> void
+Rask.UiCardSubheading
+Rask.UiCardSubheading.Class.get -> string?
+Rask.UiCardSubheading.Class.set -> void
+Rask.UiCardSubheading.UiCardSubheading() -> void
+RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Divided.get -> Rask.UiCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Filled.get -> Rask.UiCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Flush.get -> Rask.UiCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Full.get -> Rask.UiCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Inset.get -> Rask.UiCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Muted.get -> Rask.UiCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Outline.get -> Rask.UiCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Seamless.get -> Rask.UiCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Separated.get -> Rask.UiCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Soft.get -> Rask.UiCard!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardFooter!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardFooter!).Lg.get -> Rask.UiCardFooter!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardFooter!).Md.get -> Rask.UiCardFooter!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardFooter!).Sm.get -> Rask.UiCardFooter!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardFooter!).Xs.get -> Rask.UiCardFooter!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeader!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeader!).Lg.get -> Rask.UiCardHeader!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeader!).Md.get -> Rask.UiCardHeader!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeader!).Sm.get -> Rask.UiCardHeader!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeader!).Xs.get -> Rask.UiCardHeader!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeading!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeading!).Base.get -> Rask.UiCardHeading!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeading!).Lg.get -> Rask.UiCardHeading!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeading!).Xl.get -> Rask.UiCardHeading!
+const Rask.UiStyles.Card = "rounded-xl border border-zinc-900/10 bg-white p-6 shadow-xs dark:border-white/10 dark:bg-white/10 dark:shadow-none" -> string!
+static Rask.Ui.CardActions.get -> Rask.UiCardActions!
+static Rask.Ui.CardBleed.get -> Rask.UiCardBleed!
+static Rask.Ui.CardBody.get -> Rask.UiCardBody!
+static Rask.Ui.CardFooter.get -> Rask.UiCardFooter!
+static Rask.Ui.CardHeader.get -> Rask.UiCardHeader!
+static Rask.Ui.CardHeading.get -> Rask.UiCardHeading!
+static Rask.Ui.CardSubheading.get -> Rask.UiCardSubheading!
+static RaskBuilderSettersRask_Ui.Body(this Rask.UiCard! __b, Rask.Ui.CardBodyVariant? value) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardActions! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiCardActions!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardActions! __b, string? value) -> Rask.UiCardActions!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardBleed! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiCardBleed!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardBleed! __b, string? value) -> Rask.UiCardBleed!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardBody! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiCardBody!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardBody! __b, string? value) -> Rask.UiCardBody!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardFooter! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiCardFooter!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardFooter! __b, string? value) -> Rask.UiCardFooter!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardHeader! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiCardHeader!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardHeader! __b, string? value) -> Rask.UiCardHeader!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardHeading! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiCardHeading!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardHeading! __b, string? value) -> Rask.UiCardHeading!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardSubheading! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiCardSubheading!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiCardSubheading! __b, string? value) -> Rask.UiCardSubheading!
+static RaskBuilderSettersRask_Ui.Divider(this Rask.UiCard! __b, Rask.Ui.CardDivider? value) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.Highlight(this Rask.UiCard! __b) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.Highlight(this Rask.UiCard! __b, bool? value) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.Level(this Rask.UiCardHeading! __b, int? value) -> Rask.UiCardHeading!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiCard! __b, Rask.Ui.CardSize? value) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiCardFooter! __b, Rask.Ui.CardSize? value) -> Rask.UiCardFooter!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiCardHeader! __b, Rask.Ui.CardSize? value) -> Rask.UiCardHeader!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiCardHeading! __b, Rask.Ui.CardHeadingSize? value) -> Rask.UiCardHeading!
+static RaskBuilderSettersRask_Ui.Variant(this Rask.UiCard! __b, Rask.Ui.CardVariant? value) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCardActions(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCardBleed(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCardBody(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCardFooter(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCardHeader(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCardHeading(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCardSubheading(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCardActions(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCardBleed(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCardBody(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCardFooter(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCardHeader(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCardHeading(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCardSubheading(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCardActions(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCardBleed(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCardBody(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCardFooter(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCardHeader(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCardHeading(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCardSubheading(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.get_Base(Rask.UiCardHeading! __b) -> Rask.UiCardHeading!
+static RaskBuilderSettersRask_Ui.get_Divided(Rask.UiCard! __b) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.get_Filled(Rask.UiCard! __b) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.get_Flush(Rask.UiCard! __b) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.get_Full(Rask.UiCard! __b) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.get_Inset(Rask.UiCard! __b) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiCardFooter! __b) -> Rask.UiCardFooter!
+static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiCardHeader! __b) -> Rask.UiCardHeader!
+static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiCardHeading! __b) -> Rask.UiCardHeading!
+static RaskBuilderSettersRask_Ui.get_Md(Rask.UiCardFooter! __b) -> Rask.UiCardFooter!
+static RaskBuilderSettersRask_Ui.get_Md(Rask.UiCardHeader! __b) -> Rask.UiCardHeader!
+static RaskBuilderSettersRask_Ui.get_Muted(Rask.UiCard! __b) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiCard! __b) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.get_Seamless(Rask.UiCard! __b) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.get_Separated(Rask.UiCard! __b) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiCardFooter! __b) -> Rask.UiCardFooter!
+static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiCardHeader! __b) -> Rask.UiCardHeader!
+static RaskBuilderSettersRask_Ui.get_Soft(Rask.UiCard! __b) -> Rask.UiCard!
+static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiCardHeading! __b) -> Rask.UiCardHeading!
+static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiCardFooter! __b) -> Rask.UiCardFooter!
+static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiCardHeader! __b) -> Rask.UiCardHeader!

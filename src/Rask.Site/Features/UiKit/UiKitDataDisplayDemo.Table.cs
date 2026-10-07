@@ -9,7 +9,7 @@ public sealed partial class UiKitDataDisplayDemo
     private const int PageSize = 4;
 
     // Sticky parts need a surface of their own, or the rows show through them.
-    private const string Surface = "bg-white dark:bg-zinc-900";
+    private const string TableSurface = "bg-white dark:bg-zinc-900";
 
     private static readonly Order[] OrderBook =
     [
@@ -36,7 +36,7 @@ public sealed partial class UiKitDataDisplayDemo
             + "page number, and the table draws them. A cell holding a badge drops its own vertical padding.",
             Div.Data(Testid("ui-table")).Class("grid gap-8")[
                 SortedAndPaged(),
-                Bleeding(),
+                BleedingTable(),
                 Sticky()
             ]);
 
@@ -94,7 +94,7 @@ public sealed partial class UiKitDataDisplayDemo
     }
 
     // The box states how far the table may run through its padding; a card states its own.
-    private static Component Bleeding() =>
+    private static Component BleedingTable() =>
         Div.Key("bleed").Class("max-w-md rounded-lg border border-zinc-200 p-4 [--ui-bleed:1rem] dark:border-zinc-700")[
             P.Class("text-sm font-medium")["Recent customers"],
             Ui.Table.Bleed().ContainerClass("mt-4")[
@@ -115,8 +115,8 @@ public sealed partial class UiKitDataDisplayDemo
 
     private static Component Sticky() =>
         Ui.Table.Key("sticky").ContainerClass("max-h-64 max-w-md")[
-            Ui.TableColumns.Sticky().Class(Surface)[
-                Ui.TableColumn.Sticky().Class(Surface)["ID"],
+            Ui.TableColumns.Sticky().Class(TableSurface)[
+                Ui.TableColumn.Sticky().Class(TableSurface)["ID"],
                 Ui.TableColumn["Customer"],
                 Ui.TableColumn["Email"],
                 Ui.TableColumn["Date"],
@@ -125,7 +125,7 @@ public sealed partial class UiKitDataDisplayDemo
             ],
             Ui.TableRows[
                 OrderBook.Select(order => Ui.TableRow.Key(order.Id)[
-                    Ui.TableCell.Sticky().Class(Surface)[order.Id.ToString(CultureInfo.InvariantCulture)],
+                    Ui.TableCell.Sticky().Class(TableSurface)[order.Id.ToString(CultureInfo.InvariantCulture)],
                     Ui.TableCell[order.Customer],
                     Ui.TableCell[order.Customer.Split(' ')[0].ToLowerInvariant() + "@example.com"],
                     Ui.TableCell[Date(order)],

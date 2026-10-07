@@ -28,7 +28,7 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
     }
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("mb-3")[
                     Ui.Input.Value(_input).Label("sessionStorage value")
                         .Id("demo-input")

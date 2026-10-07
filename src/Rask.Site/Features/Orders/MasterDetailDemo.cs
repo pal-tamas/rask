@@ -44,7 +44,7 @@ public sealed partial class MasterDetailDemo : Component
     {
         var orders = SortOrders(_orders, _orderSort);
 
-        return Ui.Card.Class("shadow-sm !p-0")[
+        return Ui.Card[Ui.CardBleed[
             Ui.Table.Id("md-orders").Class("[&_tbody_tr:hover]:bg-ui-well")[
                 Ui.TableColumns.Class("bg-ui-well")[
                     _orderColumns.Select(c =>
@@ -54,7 +54,7 @@ public sealed partial class MasterDetailDemo : Component
                 ],
                 Ui.TableRows[BuildOrderRows(orders)]
             ]
-        ];
+        ]];
     }
 
     private List<Component> BuildOrderRows(IReadOnlyList<Order> orders)

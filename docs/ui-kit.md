@@ -434,7 +434,7 @@ values are passed as `Variant(Ui.TableCellVariant.Strong)` and `Direction(Ui.Tab
 ## Buttons and links that go somewhere
 
 Every kit component that goes somewhere takes a `RouteUrl`: `Ui.Button.Href`, `Ui.Link.Href`,
-`Ui.Card.Href`, `Ui.Stat.Href`, `Ui.NavTab.Href` and `Ui.Brand.Href`. All of them follow one rule. Hand one a
+`Ui.Stat.Href`, `Ui.NavTab.Href` and `Ui.Brand.Href`. All of them follow one rule. Hand one a
 **generated route** and it navigates inside the app, the way `NavLink` does. The anchor carries
 `data-rask-nav`, which the runtime intercepts and routes without reloading the page. It also carries the
 deploy's path base, so a new tab or a copied link reaches the same page. Hand one a **string** and it
@@ -563,9 +563,48 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
   line that blends into the background. It is decoration to assistive tech (`role="none"`) and carries **no
   margin** — the page spaces it; a vertical one is as tall as its row, and `.Class("my-2")` shortens it.
 - **`Ui.Heading`**, **`Ui.Text`** and **`Ui.Link`** are Flux's own — see [Heading, text and link](#heading-text-and-link).
-  `Ui.Header` and `Ui.Card` take a `TitleLevel` instead of a fixed `<h1>`/`<h2>`.
-- **`Ui.Card`**'s `Size` is its padding: `Ui.Card.Sm[…]` for a dense panel, `Lg`/`Xl` for a roomy one, and `Md`
-  is what a card has with no size.
+  `Ui.Header` takes a `TitleLevel` instead of a fixed `<h1>`.
+
+### Card
+
+`Ui.Card` is [Flux UI's card](https://fluxui.dev/components/card), part for part: `Ui.CardHeader`
+(`Ui.CardHeading`, `Ui.CardSubheading`, `Ui.CardActions`), `Ui.CardBody`, `Ui.CardFooter` and `Ui.CardBleed`.
+The card handles the spacing, dividers and corners between them.
+
+```csharp
+Ui.Card.Inset.Soft.Lg[
+    Ui.CardHeader[
+        Ui.CardHeading.Level(2)["Profile"],
+        Ui.CardSubheading["This is how others will see you"],
+        Ui.CardActions[Ui.Button["Edit"]]            // centres on the heading, tucks into the corner
+    ],
+    Ui.CardBody[form],
+    Ui.CardFooter[Ui.Text["Last saved 2 minutes ago"], Ui.CardActions[Ui.Button["Save"]]]
+]
+
+Ui.Card[Ui.CardHeading.Lg["Are you sure?"], P["This cannot be undone."]]   // parts are optional
+```
+
+| Step | Values | What it decides |
+|---|---|---|
+| `Body` | `Seamless` (default) · `Inset` · `Flush` · `Divided` · `Separated` | how header, body and footer are set apart: by space, a panel in from the edges, a panel out to them, lines, or tinted bands |
+| `Variant` | `Default` · `Muted` · `Soft` · `Outline` · `Filled` | the surface — raised, two tints, an edge only, a tint with no edge |
+| `Size` | `Xs` · `Sm` · `Md` (default) · `Lg` | padding, corners and the space between parts |
+| `Divider` | `Ui.CardDivider.Inset` | with `Divided`, stops the lines at the content's edges |
+| `Highlight` | `false` | turns off the faint highlight inside the top edge (light mode) |
+
+Each value is a chain step (`Ui.Card.Divided.Sm`); `Inset` is the body treatment, so the divider is
+`.Divider(Ui.CardDivider.Inset)`. `Ui.CardHeading` takes `Size` (`Base`, `Lg`, `Xl`) and `Level`; without a
+level it is a `<div>`, outside the document outline.
+
+- **A header or footer outside a card** is a section heading above one — give it the `Size` of the card it sits
+  beside. **Inside a `Ui.CardBody`** it titles a sub-section and takes none of the card's treatment.
+- **`Ui.CardBleed`** runs media out to the card's edges: always to the sides, to the top or bottom when it is
+  the first or last thing, rounding only the corners it reaches. The distances are the `--ui-bleed-x`,
+  `--ui-bleed-top`, `--ui-bleed-bottom`, `--ui-bleed-top-radius` and `--ui-bleed-bottom-radius` variables the
+  card and its body set, so your own content can bleed the same way.
+- **A link card** is a link around a small card, as in Flux — there is no `Href` on the card:
+  `A.Href(url)[Ui.Card.Xs.Class("hover:bg-zinc-50 dark:hover:bg-zinc-700")[…]]`. Nothing inside it may be a button.
 
 ## Buttons that wait
 
@@ -596,7 +635,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionSection` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |

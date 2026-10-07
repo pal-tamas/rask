@@ -28,7 +28,7 @@ public sealed partial class DevToolsKitBoard : Component
 {
     public string? Heading { get; set; }
 
-    protected override Component? Render() => Ui.Card.Title(Heading ?? "")[Children ?? []];
+    protected override Component? Render() => Ui.Card[Ui.CardHeader[Ui.CardHeading.Level(2)[Heading ?? ""]], Ui.CardBody[Children ?? []]];
 }
 
 /// <summary>One row of the board.</summary>

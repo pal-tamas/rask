@@ -12,7 +12,7 @@ namespace Rask.Site.Features;
 public sealed partial class ShareDemo : Component
 {
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     // Headless: we render our own button; Shareable just supplies the share attribute.
                     Shareable

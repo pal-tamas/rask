@@ -148,9 +148,8 @@ internal sealed partial class DevToolsErrorsTab : Component
         (error.AppWide ? "app-" : "page-") + error.Sequence.ToString(CultureInfo.InvariantCulture);
 
     private Component Row(DevToolsError error) =>
-        Ui.Card.Key(RowKey(error))
-            .Class("card-border card-sm")[
-                Div.Class("card-body gap-1")[
+        Ui.Card.Key(RowKey(error)).Sm[
+                Div.Class("flex flex-col gap-1")[
                     Div.Class("flex flex-wrap items-center gap-2")[
                         Ui.Badge.Size(Ui.Size.Sm).Tone(error.IsWarning ? Ui.Tone.Warning : Ui.Tone.Error)[KindLabel(error)],
                         Span.Class("font-mono font-semibold")[error.Title],

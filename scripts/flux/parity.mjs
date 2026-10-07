@@ -248,7 +248,9 @@ function undrawn(key, x, y) {
 function same(x, y) {
   if (x === y) return true;
   if (x === undefined || y === undefined) return false;
-  const round = v => v.replace(/-?\d*\.\d+(e-?\d+)?/g, n => String(Math.round(Number(n) * 1000) / 1000));
+  // …and a gray's hue, which means nothing at zero chroma, prints as `none` once a minifier has been at the sheet.
+  const round = v => v.replace(/(okl(?:ch|ab)\([^)]*?) none\)/g, '$1 0)')
+    .replace(/-?\d*\.\d+(e-?\d+)?/g, n => String(Math.round(Number(n) * 1000) / 1000));
   return round(x) === round(y);
 }
 

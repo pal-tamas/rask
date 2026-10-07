@@ -10,7 +10,7 @@ public sealed partial class StorageEstimateDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Ui.Button.Primary.Outline.Class("mb-2")
                     .Id("storage-est-read")
                     .OnClick(Read)["Estimate storage"],

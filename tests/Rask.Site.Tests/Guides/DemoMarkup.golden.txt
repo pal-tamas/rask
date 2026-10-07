@@ -461,7 +461,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
 div .mb-1 .text-sm .text-ui-muted
@@ -488,7 +488,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 button .btn .btn-primary .mb-2
 div .mb-1 .text-sm .text-ui-muted
 div .italic .text-sm .text-ui-muted
@@ -508,7 +508,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .gap-2 .mb-2
 input .input .validator
 button .btn .btn-primary
@@ -533,7 +533,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .gap-2 .items-stretch .mb-2
 input .input .validator
 button .btn .btn-primary
@@ -559,7 +559,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-outline .btn-primary
 button .btn .btn-outline .btn-primary
@@ -591,7 +591,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 button .btn .btn-primary .mb-3
 div .mb-2 .text-sm .text-ui-muted
 code
@@ -624,7 +624,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -658,7 +658,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .mb-2 .text-sm .text-ui-muted
 code
 div .mb-2 .text-sm .text-ui-muted
@@ -680,7 +680,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 button .btn .btn-outline .btn-primary .mb-2
 div .text-sm .text-ui-muted
 code
@@ -702,7 +702,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
 div .text-sm .text-ui-muted
@@ -728,7 +728,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
@@ -761,7 +761,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .gap-4 .grid .grid-cols-12 .mb-2
 div .col-span-12 .sm:col-span-4
 label .floating-label
@@ -798,7 +798,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 span .badge .badge-neutral .badge-soft
 span .text-sm .text-ui-muted
@@ -821,7 +821,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 button .btn .btn-outline .btn-primary .mb-2
 div .text-sm .text-ui-muted
 code
@@ -843,7 +843,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
@@ -870,7 +870,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
@@ -899,7 +899,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 button .btn .btn-outline .btn-primary .mb-2
 div .text-sm .text-ui-muted
 code
@@ -921,7 +921,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 button .btn .btn-outline .btn-primary .mb-2
 div .text-sm .text-ui-muted
 code
@@ -943,7 +943,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-outline .btn-primary
 button .btn .btn-outline .btn-primary
@@ -967,7 +967,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .mb-2
 button .btn .btn-outline .btn-primary
 button .btn .btn-outline
@@ -994,7 +994,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 button .btn .btn-outline .btn-primary .mb-2
 div .text-sm .text-ui-muted
 code
@@ -1016,7 +1016,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 button .btn .btn-outline .btn-primary .mb-2
 div .text-sm .text-ui-muted
 code
@@ -1038,7 +1038,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-outline .btn-primary
 button .btn .btn-outline .btn-primary
@@ -1064,7 +1064,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .mb-2 .text-sm .text-ui-muted
 code
 button .btn .btn-outline .btn-primary .mb-2
@@ -1085,7 +1085,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 button .btn .btn-outline .btn-primary .mb-2
 div .text-sm .text-ui-muted
 code
@@ -1109,7 +1109,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
 div .text-sm .text-ui-muted
@@ -1130,7 +1130,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .gap-2 .mb-2
 button .btn .btn-primary
 button .btn .btn-secondary
@@ -1154,7 +1154,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 label .floating-label
 span
 input .input .mb-2 .validator
@@ -1179,7 +1179,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
 button .btn .btn-error .btn-outline
@@ -1203,7 +1203,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .gap-2 .mb-2
 input .input .validator
 button .btn .btn-primary
@@ -1229,7 +1229,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 button .btn .btn-outline .btn-primary .mb-2
 div .text-sm .text-ui-muted
 code
@@ -1251,7 +1251,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-outline .btn-primary
 button .btn .btn-outline .btn-primary
@@ -1274,7 +1274,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 button .btn .btn-outline .btn-primary .mb-2
 div .text-sm .text-ui-muted
 code
@@ -1296,7 +1296,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
@@ -1320,7 +1320,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
 svg .[:where(&amp;)]:size-6 .shrink-0
@@ -1346,7 +1346,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .italic .text-sm .text-ui-muted
 
 === callback-rating ===
@@ -1425,7 +1425,7 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .gap-4 .grid .grid-cols-12
 div .col-span-12 .md:col-span-4
-div .bg-base-100 .border .border-base-300 .h-full .p-4 .rounded-xl .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .h-full .p-6 .relative .rounded-xl .shadow-xs
 h6 .font-semibold .mb-1
 p .text-sm .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center
@@ -1433,13 +1433,13 @@ span .badge .badge-neutral .badge-soft
 span .badge .badge-neutral .badge-soft
 span .badge .badge-neutral .badge-soft
 div .col-span-12 .md:col-span-4
-div .bg-base-100 .border .border-base-300 .h-full .p-4 .rounded-xl .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .h-full .p-6 .relative .rounded-xl .shadow-xs
 h6 .font-semibold .mb-1
 p .text-sm .text-ui-muted
 p .mb-0
 strong
 div .col-span-12 .md:col-span-4
-div .bg-base-100 .border .border-base-300 .h-full .p-4 .rounded-xl .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .h-full .p-6 .relative .rounded-xl .shadow-xs
 h6 .font-semibold .mb-1
 p .text-sm .text-ui-muted
 button .btn .btn-primary
@@ -1609,7 +1609,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-article .bg-base-100 .bg-ui-well .border .border-base-300 .p-4 .rounded-xl .sm:p-5
+article .bg-ui-well .bg-white .border .border-zinc-900/10 .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .rounded-xl .shadow-xs
 div .mb-1 .text-sm .text-ui-muted .uppercase
 h3 .font-semibold .text-base
 p .mb-0 .text-sm
@@ -1631,7 +1631,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .bg-ui-well .border .border-base-300 .p-4 .rounded-xl .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-zinc-900/4 .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/7 .dark:border-white/12 .p-6 .relative .rounded-xl
 div .mb-1 .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm
 code
@@ -2529,7 +2529,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .mb-3
 label .floating-label
 span
@@ -2799,7 +2799,8 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .!p-0 .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
+div .-mx-[calc(var(--ui-bleed-x)&#x2B;1px)] .first:-mt-[calc(var(--ui-bleed-top)&#x2B;1px)] .first:rounded-t-[calc(var(--ui-bleed-top-radius)&#x2B;1px)] .last:-mb-[calc(var(--ui-bleed-bottom)&#x2B;1px)] .last:rounded-b-[calc(var(--ui-bleed-bottom-radius)&#x2B;1px)] .overflow-hidden
 div .flex .flex-col
 div .block .overflow-auto
 table .[&amp;_tbody_tr:hover]:bg-ui-well .border-separate .border-spacing-0 .isolate .min-w-full .table-fixed .text-zinc-800 .whitespace-nowrap
@@ -3431,7 +3432,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .bg-base-100 .border .border-base-300 .p-4 .ring-2 .ring-ui-brand .rounded-xl .sm:p-5
+div .bg-white .border .border-zinc-900/10 .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .ring-2 .ring-ui-brand .rounded-xl .shadow-xs
 
 === query-parcels ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3509,7 +3510,7 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div
-div .bg-base-100 .border .border-base-300 .mb-3 .p-4 .rounded-xl .shadow-sm .sm:p-5
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .mb-3 .p-6 .relative .rounded-xl .shadow-xs
 div .gap-4 .grid .grid-cols-12
 div .col-span-12 .md:col-span-6
 span .text-sm .text-ui-muted .uppercase
@@ -3593,10 +3594,10 @@ button .btn .btn-primary
 button .btn
 p .mb-0
 div .gap-3 .grid .sm:grid-cols-2
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .sm:p-5 .subscription-board
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs .subscription-board
 h3 .font-semibold .text-sm
 p .text-sm .text-ui-muted
-div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .sm:p-5 .subscription-board
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs .subscription-board
 h3 .font-semibold .text-sm
 p .text-sm .text-ui-muted
 

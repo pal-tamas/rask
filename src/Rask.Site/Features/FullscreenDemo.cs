@@ -11,7 +11,7 @@ public sealed partial class FullscreenDemo : Component
 
     protected override Component? Render() =>
         Div.Ref(_demo).Class("bg-ui-bg")[
-            Ui.Card.Class("shadow-sm")[
+            Ui.Card[
                 Div
                     .Ref(_stage)
                     .Class("border rounded bg-ui-well flex items-center justify-center mb-2")

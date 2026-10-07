@@ -12,20 +12,6 @@ public sealed class SkeletonParity : FluxParity
 {
     private const string Round = "border-radius:calc(infinity * 1px)";
 
-    // A STAND-IN for flux:card, not rebuilt yet: plain elements styled to what Flux's measure, so the example
-    // that places a skeleton inside one can be compared whole. It goes when the card lands.
-    private const string StandIns =
-        "<style>"
-        + "[data-ui-card]{position:relative;padding:24px;border-radius:12px;background:#fff;"
-        + "border:1px solid color-mix(in oklab,oklch(0.21 0.006 285.885) 10%,transparent);"
-        + "box-shadow:0 0 #0000,0 0 #0000,0 0 #0000,0 0 #0000,0 1px 2px 0 rgb(0 0 0/.05)}"
-        + "[data-ui-card]::after{content:'';position:absolute;inset:0;border-radius:11px;"
-        + "box-shadow:0 0 #0000,inset 0 0 0 1px color-mix(in oklab,#fff 25%,transparent),0 0 #0000,0 0 #0000,0 0 #0000}"
-        + ".dark [data-ui-card]{background:oklch(0.274 0.006 286.033);border-color:color-mix(in oklab,#fff 10%,transparent);"
-        + "box-shadow:0 0 #0000,0 0 #0000,0 0 #0000,0 0 #0000,0 0 #0000}"
-        + ".dark [data-ui-card]::after{display:none}"
-        + "</style>";
-
     public override string Page => "skeleton";
 
     public override IEnumerable<(string Section, Component Example)> Examples()
@@ -69,23 +55,25 @@ public sealed class SkeletonParity : FluxParity
                 ]
             ]));
 
+        // class="dark:bg-zinc-800" on the card there: an app's own utility, stated here.
         yield return ("examples", Rows(
-            Raw.Value(
-                "<div data-ui-card data-ui-card-variant=\"default\" data-ui-card-body-variant=\"seamless\">"
-                + "<div style=\"display:flex;flex-direction:column;gap:24px\">"
-                + "<div style=\"display:flex;gap:48px\">"),
-            Div[
-                Ui.Text["Today"],
-                Ui.Heading.Xl.Style("margin-top:8px;font-variant-numeric:tabular-nums")["$---"],
-                Ui.Text.Style("margin-top:8px;font-variant-numeric:tabular-nums")["-:-- PM"]
-            ],
-            Div[
-                Ui.Text["Yesterday"],
-                Ui.Heading.Lg.Style("margin-top:8px;font-variant-numeric:tabular-nums")["$---"]
-            ],
-            Raw.Value("</div>"),
-            Ui.Skeleton.Shimmer.Style("aspect-ratio:4/1;width:100%;height:100%;border-radius:8px"),
-            Raw.Value("</div></div>")));
+            Raw.Value("<style>.dark .parity-card{background-color:oklch(0.274 0.006 286.033)}</style>"),
+            Ui.Card.Class("parity-card")[
+                Div.Style("display:flex;flex-direction:column;gap:24px")[
+                    Div.Style("display:flex;gap:48px")[
+                        Div[
+                            Ui.Text["Today"],
+                            Ui.Heading.Xl.Style("margin-top:8px;font-variant-numeric:tabular-nums")["$---"],
+                            Ui.Text.Style("margin-top:8px;font-variant-numeric:tabular-nums")["-:-- PM"]
+                        ],
+                        Div[
+                            Ui.Text["Yesterday"],
+                            Ui.Heading.Lg.Style("margin-top:8px;font-variant-numeric:tabular-nums")["$---"]
+                        ]
+                    ],
+                    Ui.Skeleton.Shimmer.Style("aspect-ratio:4/1;width:100%;height:100%;border-radius:8px")
+                ]
+            ]));
     }
 
     private static Component Heading(string text) => Ui.Heading.Style("margin-bottom:8px")[text];
@@ -109,13 +97,11 @@ public sealed class SkeletonParity : FluxParity
     // The 512px flex column Flux's page lays its two larger examples out in.
     private static Component Rows(params Component[] items) =>
         Div.Style("display:flex;flex-direction:column;gap:24px;width:512px;margin:0 auto")[
-            Raw.Value(StandIns),
             items
         ];
 
     private static Component Column(int width, params Component[] items) =>
         Div.Style(string.Create(CultureInfo.InvariantCulture, $"width:{width}px;margin:0 auto"))[
-            Raw.Value(StandIns),
             items
         ];
 }

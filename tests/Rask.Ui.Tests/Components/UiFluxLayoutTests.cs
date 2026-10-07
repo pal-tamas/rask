@@ -126,11 +126,11 @@ public partial class UiFluxLayoutTests : global::Rask.Core.RaskMarkup
     // ---- type -----------------------------------------------------------------------------------
 
     [Fact]
-    public void A_page_header_and_a_card_take_a_heading_level()
+    public void A_page_header_and_a_card_heading_take_a_heading_level()
     {
         Assert.Contains("<h1", Ui.Header.Title("Orders").ToHtml());
         Assert.Contains("<h2", Ui.Header.Title("Orders").TitleLevel(2).ToHtml());
-        Assert.Contains("<h2", Ui.Card.Title("Total").ToHtml());
-        Assert.Contains("<h3", Ui.Card.Title("Total").TitleLevel(3).ToHtml());
+        Assert.Contains("<div", Ui.CardHeading["Total"].ToHtml());
+        Assert.Contains("<h3", Ui.CardHeading.Level(3)["Total"].ToHtml());
     }
 }

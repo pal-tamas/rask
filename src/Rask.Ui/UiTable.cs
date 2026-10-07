@@ -25,10 +25,13 @@ public sealed partial class UiTable : UiElement, IUiHost
 
     private const string Container = "flex flex-col";
 
-    // The card writes --ui-bleed for its own padding; inside one, a table that ends the card runs to its
-    // bottom edge as well, and takes the card's inner radius.
+    // The card's bleed contract (UiCard, UiCardBody): --ui-bleed sideways, and — where the table is the first
+    // or last thing in the box — --ui-bleed-top / -bottom to that edge, rounded by --ui-bleed-*-radius. A box
+    // that states only --ui-bleed, or nothing, bleeds sideways alone.
     private const string Bleeding =
-        "-mx-[var(--ui-bleed,1.5rem)] [[data-ui-card]>&:last-child]:-mb-[var(--ui-bleed,1.5rem)] [[data-ui-card]>&:last-child]:rounded-b-[calc(var(--radius-xl)-1px)]";
+        "-mx-[var(--ui-bleed,1.5rem)] "
+        + "first:-mt-[var(--ui-bleed-top,0px)] first:rounded-t-[var(--ui-bleed-top-radius,0px)] "
+        + "last:-mb-[var(--ui-bleed-bottom,0px)] last:rounded-b-[var(--ui-bleed-bottom-radius,0px)]";
 
     private const string ScrollArea = "block overflow-auto";
 
@@ -39,8 +42,9 @@ public sealed partial class UiTable : UiElement, IUiHost
     ///     and last columns stay in line with that box's content.
     /// </summary>
     /// <remarks>
-    ///     The distance is <c>--ui-bleed</c>, 1.5rem unless the box says otherwise: a card states its own, and a
-    ///     box of yours states it beside its padding — <c>p-4 [--ui-bleed:1rem]</c>.
+    ///     The distance is <c>--ui-bleed</c>, 1.5rem unless the box says otherwise: a box of yours states it
+    ///     beside its padding — <c>p-4 [--ui-bleed:1rem]</c>. A <see cref="UiCard" /> states it and the rest of
+    ///     its bleed variables, so a table that opens or closes a card or its body reaches that edge too.
     /// </remarks>
     public bool? Bleed { get; set; }
 

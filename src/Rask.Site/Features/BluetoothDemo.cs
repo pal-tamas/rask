@@ -16,7 +16,7 @@ public sealed partial class BluetoothDemo : Component
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button.Primary.Id("bt-request").OnClick(PairAndRead)[Ui.Icon.Name(Ui.IconName.Signal), "Pair & read battery"],
                     Ui.Button.Error.Outline

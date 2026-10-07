@@ -29,7 +29,7 @@ public sealed partial class BroadcastChannelDemo : Component
     }
 
     protected override Component? Render() =>
-        Ui.Card.Class("shadow-sm")[
+        Ui.Card[
                 Ui.Button.Primary.Class("mb-2").Id("bc-send").OnClick(Send)["Broadcast a message"],
                 Div.Class("text-sm text-ui-muted mb-1")["Received (from other connections/tabs):"],
                 _received.Count == 0

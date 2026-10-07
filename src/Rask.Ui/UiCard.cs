@@ -1,90 +1,134 @@
-using Rask.Core.Routing;
-
 namespace Rask;
 
 /// <summary>
-/// A bordered panel with an optional heading, icon and action in its corner — and, given an
-/// <see cref="Href" />, one link.
+/// A container for related content, such as a form, a list or a summary. Flux UI's card.
 /// </summary>
 /// <remarks>
-/// It does not space what it holds. Every demo result on the site sits in one of these, and a card that
-/// inserted a gap between its children would restyle all of them at once; a card that holds several sections
-/// is usually several cards.
+/// <para>
+/// Give it a <see cref="UiCardHeader" />, a <see cref="UiCardBody" /> and a <see cref="UiCardFooter" /> and it
+/// handles the spacing, dividers and corners between them; <see cref="Body" /> decides how they are set apart.
+/// The parts are optional: anything put straight inside is padded evenly, like a bordered <c>&lt;div&gt;</c>.
+/// </para>
+/// <code>
+/// Ui.Card.Inset.Soft[
+///     Ui.CardHeader[Ui.CardHeading["Profile"], Ui.CardActions[Ui.Button["Edit"]]],
+///     Ui.CardBody[form],
+///     Ui.CardFooter[Ui.CardActions[Ui.Button["Save"]]]
+/// ]
+/// </code>
 /// </remarks>
 public sealed partial class UiCard : Component
 {
-    /// <summary>The card's title, drawn as a heading.</summary>
-    /// <remarks>Hides the inherited <c>Title</c> tag entry inside this component; <c>Markup.Title</c> still reaches the tag.</remarks>
-    public new string? Title { get; set; }
+    /// <summary>How the header, body and footer are set apart. Seamless unless this says otherwise.</summary>
+    /// <remarks>Hides the inherited <c>Body</c> tag entry inside this component; <c>Markup.Body</c> still reaches the tag.</remarks>
+    public new Ui.CardBodyVariant? Body { get; set; }
 
-    /// <summary>
-    ///     The heading's level in the page's outline, 1 to 6. <c>&lt;h2&gt;</c> unless this says otherwise — a card
-    ///     usually sits under the page's own heading, and one nested under a section heading is a level deeper.
-    /// </summary>
-    public int? TitleLevel { get; set; }
+    /// <summary>The card's surface.</summary>
+    public Ui.CardVariant? Variant { get; set; }
 
-    public Component? Action { get; set; }
+    /// <summary>Scales the card's padding, corners and spacing.</summary>
+    public Ui.CardSize? Size { get; set; }
 
-    /// <summary>Shown before the heading.</summary>
-    public Ui.IconName? Icon { get; set; }
+    /// <summary>With <see cref="Ui.CardBodyVariant.Divided" />, where the lines stop.</summary>
+    public Ui.CardDivider? Divider { get; set; }
 
-    /// <summary>How tight the card's padding is. Medium is the padding a card has with no size.</summary>
-    public Ui.Size? Size { get; set; }
-
-    /// <summary>Makes the whole card one link.</summary>
-    /// <remarks>
-    /// A link rather than a click handler, so it is reachable by keyboard, opens in a new tab and says where it
-    /// goes — the same reasoning as <see cref="UiStat.Href" />. Everything inside becomes the link's content, so
-    /// nothing inside may be interactive: an <see cref="Action" /> on a linked card should be a status, never a
-    /// button.
-    /// </remarks>
-    public RouteUrl? Href { get; set; }
+    /// <summary>A faint highlight along the inside of the card's top edge, in light mode. On unless this is <c>false</c>.</summary>
+    public bool? Highlight { get; set; }
 
     public string? Class { get; set; }
-
-    internal const string Frame = "rounded-xl border border-base-300 bg-base-100";
-
-    internal const string DefaultPadding = "p-4 sm:p-5";
-
-    // Medium is the default panel, so a card with no size does not move.
-    private static string Padding(Ui.Size? size) => size switch
-    {
-        Ui.Size.Xs => "p-2 sm:p-3",
-        Ui.Size.Sm => "p-3 sm:p-4",
-        Ui.Size.Lg => "p-5 sm:p-6",
-        Ui.Size.Xl => "p-6 sm:p-8",
-        _ => DefaultPadding,
-    };
 
     /// <inheritdoc />
     protected override Component? Render()
     {
-        Component? heading = Title is null ? null : global::Rask.UiHeading.Element(TitleLevel ?? 2)(UiStyles.Heading)[Title];
-        Component? title = Icon is { } icon
-            ? Div.Class("flex min-w-0 items-center gap-2")[
-                Ui.Icon.Name(icon).Class("size-5 shrink-0 opacity-60"),
-                heading
-            ]
-            : heading;
+        var scope = new UiCardScope(
+            Size ?? Ui.CardSize.Md,
+            Body ?? Ui.CardBodyVariant.Seamless,
+            Variant ?? Ui.CardVariant.Default,
+            Divider ?? Ui.CardDivider.Full);
 
-        Component? header = title is null && Action is null
-            ? null
-            // Wraps rather than truncating: a card's action is often a button whose label is the only thing
-            // saying what it does, and on a phone the heading and the action rarely fit on one line.
-            : Div.Class("mb-4 flex flex-wrap items-center justify-between gap-3")[title, Action];
-
+        var filled = scope.Variant == Ui.CardVariant.Filled;
         var classes = UiClass.Compose(
-            Frame,
-            Padding(Size),
-            Href is null ? "" : "block no-underline transition-colors hover:bg-base-200",
+            // Filled has no edge to draw a highlight inside, so it is not a positioning context either.
+            filled ? "border" : "relative border bg-clip-padding",
+            Radius(scope.Size),
+            Padding(scope),
+            Surface(scope.Variant),
+            filled || Highlight == false ? "" : EdgeHighlight,
+            Bleed(scope),
             Class);
 
-        // A generated route navigates inside the app; a string is an ordinary link, as on Ui.Link and Ui.Button (#1070).
-        return Href switch
-        {
-            null => Div.Class(classes)[header, Children ?? []],
-            { PageType: null } url => A.Href(url.ToString()).Class(classes)[header, Children ?? []],
-            { } route => NavLink.Href(route).Class(classes)[header, Children ?? []],
-        };
+        // Flux's markers, under the kit's prefix: what the card is, for a stylesheet or a test to key on.
+        var root = scope.Divider == Ui.CardDivider.Inset
+            ? Div.Data(("ui-card", null), ("ui-card-size", Name(scope.Size)), ("ui-card-body-variant", Name(scope.Body)), ("ui-card-variant", Name(scope.Variant)), ("ui-card-divider", "inset"))
+            : Div.Data(("ui-card", null), ("ui-card-size", Name(scope.Size)), ("ui-card-body-variant", Name(scope.Body)), ("ui-card-variant", Name(scope.Variant)));
+
+        return root.Class(classes)[Context.Provide(scope)[Children ?? []]];
     }
+
+    // The ring is white, so it only shows over a tint or a shadow, and it fades out towards the bottom edge.
+    private const string EdgeHighlight =
+        "after:pointer-events-none after:absolute after:inset-0 after:rounded-[calc(var(--ui-card-radius)-1px)] "
+        + "after:inset-ring after:inset-ring-white/25 after:[mask-image:linear-gradient(black,transparent)] dark:after:hidden";
+
+    private static string Radius(Ui.CardSize size) => size switch
+    {
+        Ui.CardSize.Lg => "rounded-2xl [--ui-card-radius:var(--radius-2xl)]",
+        Ui.CardSize.Md => "rounded-xl [--ui-card-radius:var(--radius-xl)]",
+        _ => "rounded-lg [--ui-card-radius:var(--radius-lg)]",
+    };
+
+    // Seamless pads everything evenly; inset leaves a hairline of card around the panel; the rest pad per part.
+    private static string Padding(UiCardScope scope) => scope.Body switch
+    {
+        Ui.CardBodyVariant.Seamless => scope.Roomy ? "p-6" : "p-4",
+        Ui.CardBodyVariant.Inset => "p-1",
+        _ => "",
+    };
+
+    private static string Surface(Ui.CardVariant variant) => variant switch
+    {
+        Ui.CardVariant.Muted => "border-zinc-900/10 bg-zinc-900/4 dark:border-white/12 dark:bg-white/7",
+        Ui.CardVariant.Soft => "border-zinc-900/7 bg-zinc-900/2 dark:border-white/7 dark:bg-white/5",
+        Ui.CardVariant.Outline => "border-zinc-900/10 dark:border-white/15",
+        Ui.CardVariant.Filled => "border-transparent bg-zinc-900/3 dark:bg-white/6",
+        _ => "border-zinc-900/10 bg-white shadow-xs dark:border-white/10 dark:bg-white/10 dark:shadow-none",
+    };
+
+    // Flux's --flux-bleed-*: how far bleeding content (a Ui.CardBleed, a bleeding table) travels to reach the
+    // nearest visible edge, and the corner it then has to follow. A body restates them for what is inside it.
+    private static string Bleed(UiCardScope scope) => UiClass.Compose(
+        scope.Body switch
+        {
+            Ui.CardBodyVariant.Seamless => scope.Roomy ? "[--ui-bleed-x:--spacing(6)]" : "[--ui-bleed-x:--spacing(4)]",
+            Ui.CardBodyVariant.Inset => "[--ui-bleed-x:--spacing(1)]",
+            _ => "[--ui-bleed-x:0px]",
+        },
+        "[--ui-bleed:var(--ui-bleed-x)] [--ui-bleed-top:var(--ui-bleed-x)] [--ui-bleed-bottom:var(--ui-bleed-x)]",
+        "[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] [--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)]");
+
+    private static string Name(Ui.CardSize size) => size switch
+    {
+        Ui.CardSize.Xs => "xs",
+        Ui.CardSize.Sm => "sm",
+        Ui.CardSize.Lg => "lg",
+        _ => "md",
+    };
+
+    private static string Name(Ui.CardBodyVariant? body) => body switch
+    {
+        Ui.CardBodyVariant.Inset => "inset",
+        Ui.CardBodyVariant.Flush => "flush",
+        Ui.CardBodyVariant.Divided => "divided",
+        Ui.CardBodyVariant.Separated => "separated",
+        _ => "seamless",
+    };
+
+    private static string Name(Ui.CardVariant variant) => variant switch
+    {
+        Ui.CardVariant.Muted => "muted",
+        Ui.CardVariant.Soft => "soft",
+        Ui.CardVariant.Outline => "outline",
+        Ui.CardVariant.Filled => "filled",
+        _ => "default",
+    };
 }

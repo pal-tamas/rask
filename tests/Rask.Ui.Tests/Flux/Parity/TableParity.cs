@@ -22,9 +22,11 @@ public sealed partial class TableParity : FluxParity
     private const string AppUtilities =
         ".flex{display:flex}.items-center{align-items:center}.gap-3{gap:12px}.py-0{padding-block:0}"
         + ".font-medium{font-weight:500}.mt-1{margin-top:4px}.mt-4{margin-top:16px}.mt-6{margin-top:24px}.max-h-80{max-height:320px}"
-        + ".bg-white{background-color:#fff}.dark .dark\\:bg-zinc-900{background-color:oklch(0.21 0.006 285.885)}";
+        + ".parity-surface{background-color:#fff}.dark .parity-surface{background-color:oklch(0.21 0.006 285.885)}";
 
-    private const string Surface = "bg-white dark:bg-zinc-900";
+    // `bg-white dark:bg-zinc-900` there, under a name of its own: unlayered here, a real `.bg-white` would
+    // beat the layered `dark:` of every kit component on the page that also writes one (the card).
+    private const string Surface = "parity-surface";
 
     private static readonly Order[] Recent =
     [
@@ -108,10 +110,9 @@ public sealed partial class TableParity : FluxParity
             Ui.TableCell.Variant(Ui.TableCellVariant.Strong)[amount]
         ];
 
-    // flux:card, with its heading, text and button: stand-ins. The card states the gutter, as Flux's does.
+    // The card is Ui.Card and states the gutter; its heading row, with a button in it, is a stand-in.
     private static Component InACard() =>
-        Div.Style("position:relative;padding:24px;border:1px solid rgb(0 0 0/.1);border-radius:12px;--ui-bleed:1.5rem")
-            .Attributes(("data-ui-card", ""), ("data-parity-skip", "self"))[
+        Ui.Card[
             Div.Style("height:44px").Attributes(("data-parity-skip", ""))["Recent customers"],
             Ui.Table.Bleed().ContainerClass("mt-6")[
                 Ui.TableColumns[
