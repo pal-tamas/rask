@@ -12,6 +12,9 @@ import {safeArea} from "../../../src/Rask.Core/Resources/rask-menu.js";
 import {disown, own, ownsAttr, ownsChecked} from "../../../src/Rask.Core/Resources/rask-owned.js";
 import {listsKey, rove} from "../../../src/Rask.Core/Resources/rask-keys.js";
 import {scrollBy} from "../../../src/Rask.Core/Resources/rask-focus.js";
+import {dragFraction, dragText} from "../../../src/Rask.Core/Resources/rask-drag.js";
+import {provides} from "../../../src/Rask.Core/Resources/rask-requires.js";
+import {progressOf} from "../../../src/Rask.Core/Resources/rask-upload.js";
 
 const phone = "(999) 999-9999";
 const a = {} as Element;
@@ -63,5 +66,12 @@ console.log(JSON.stringify({
         // A 100 px view at 200–300: a row above it, inside it, below it, and one taller than the view.
         scroll: [scrollBy(170, 200, 200, 300), scrollBy(230, 260, 200, 300), scrollBy(290, 320, 200, 300), scrollBy(250, 400, 200, 300)],
     },
+    drag: {
+        // A 220 px surface from 100 with an inset of 10: before the track, a quarter in, past its end; and no room at all.
+        fractions: [dragFraction(90, 100, 220, 10), dragFraction(160, 100, 220, 10), dragFraction(400, 100, 220, 10), dragFraction(5, 0, 10, 5)],
+        text: [dragText(1 / 3), dragText(2), dragText(-1)],
+    },
+    requires: [provides({EyeDropper: 1}, "EyeDropper"), provides({}, "EyeDropper"), provides({"a.b": 1}, "a.b"), provides({x: 1}, null)],
+    progress: [progressOf(0, 0), progressOf(1, 8), progressOf(999, 1000), progressOf(5, 4)],
     owned: {held, otherName, otherElement, released: !ownsAttr(a, "data-open"), checked: ownsChecked(b)},
 }));

@@ -1,0 +1,162 @@
+using Rask.Core;
+using Rask.Server.E2E.Tests.Infrastructure;
+using Rask.Site.E2E.Tests.Infrastructure;
+using static Microsoft.Playwright.Assertions;
+
+#pragma warning disable RASK019 // a small test page; its <head> is not what is under test
+
+namespace Rask.Server.E2E.Tests;
+
+/// <summary>
+///     The hooks for what a round trip is too slow or too blind for — a value dragged under the pointer, a
+///     control for an API the browser may not have, and a file input that says how far its upload has got —
+///     in a real browser.
+/// </summary>
+/// <remarks>
+///     Measured on Flux UI's live colour picker and file upload pages on 2026-10-07: its eyedropper button is
+///     <c>hidden</c> where the browser has no <c>EyeDropper</c>, not disabled; its upload carries
+///     <c>--flux-file-upload-progress: 0%</c> and <c>--flux-file-upload-progress-as-string: '0%'</c> — whole
+///     percents, the second one quoted — beside <c>data-loading</c>. Its docs demo never sends a file, so
+///     WHEN the mark comes off is Rask's own: when the handler that received the files has rendered.
+/// </remarks>
+public sealed class RuntimeHookGestureTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
+{
+    private const string Record = "() => { window.heard = []; document.addEventListener('input', e => window.heard.push('input:' + e.target.value)); document.addEventListener('change', e => window.heard.push('change:' + e.target.value)); }";
+    private const string Area = "() => { const s = document.getElementById('area').style; return s.getPropertyValue('--rask-drag-x') + ' ' + s.getPropertyValue('--rask-drag-y'); }";
+
+    [Fact]
+    public async Task A_press_on_a_drag_surface_writes_where_the_pointer_is_at_once_and_tells_the_page_through_its_field()
+    {
+        await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
+        var page = session.Page;
+        await page.EvaluateAsync(Record);
+
+        // The surface is 220 x 120 at (100, 100) with an inset of 10: its track is 200 x 100 from (110, 110).
+        await page.Mouse.MoveAsync(160, 135);
+        await page.Mouse.DownAsync();
+        var pressed = await page.EvaluateAsync<string>(Area);
+        await page.WaitForFunctionAsync("() => window.heard.length === 1");
+        var whileHeld = await page.EvaluateAsync<string>("() => window.heard.join(' | ')");
+        await page.Mouse.UpAsync();
+
+        Assert.Equal("0.25 0.25", pressed);
+        Assert.Equal("input:0.25 0.25", whileHeld);
+        Assert.Equal("input:0.25 0.25 | change:0.25 0.25", await page.EvaluateAsync<string>("() => window.heard.join(' | ')"));
+    }
+
+    [Fact]
+    public async Task A_drag_follows_the_pointer_outside_the_surface_stops_at_its_ends_and_settles_once_on_release()
+    {
+        await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
+        var page = session.Page;
+        await page.EvaluateAsync(Record);
+
+        await page.Mouse.MoveAsync(160, 135);
+        await page.Mouse.DownAsync();
+        await page.Mouse.MoveAsync(260, 160, new() { Steps = 5 });
+        var inside = await page.EvaluateAsync<string>(Area);
+        await page.Mouse.MoveAsync(900, 20, new() { Steps = 5 });
+        var outside = await page.EvaluateAsync<string>(Area);
+        await page.Mouse.UpAsync();
+        await page.Mouse.MoveAsync(110, 110);
+
+        Assert.Equal("0.75 0.5", inside);
+        Assert.Equal("1 0", outside);
+        Assert.Equal("1 0", await page.EvaluateAsync<string>(Area));
+        Assert.Equal("1 0", await page.InputValueAsync("#area-value"));
+        Assert.Equal(1, await page.EvaluateAsync<int>("() => window.heard.filter(h => h.startsWith('change')).length"));
+        Assert.Equal("change:1 0", await page.EvaluateAsync<string>("() => window.heard[window.heard.length - 1]"));
+    }
+
+    [Fact]
+    public async Task A_surface_with_one_axis_carries_one_number_and_follows_the_value_the_page_writes()
+    {
+        await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
+        var page = session.Page;
+        const string track = "() => { const s = document.getElementById('track').style; return s.getPropertyValue('--rask-drag-x') + '|' + s.getPropertyValue('--rask-drag-y'); }";
+
+        var rendered = await page.EvaluateAsync<string>(track);
+        await page.Mouse.ClickAsync(150, 310);
+        var clicked = await page.InputValueAsync("#track-value");
+        await page.EvaluateAsync("() => document.getElementById('track-value').setAttribute('value', '0.9')");
+        await page.WaitForFunctionAsync("() => document.getElementById('track').style.getPropertyValue('--rask-drag-x') === '0.9'");
+
+        // Rendered with value="0.3"; no inset, 200 wide from 100.
+        Assert.Equal("0.3|", rendered);
+        Assert.Equal("0.25", clicked);
+    }
+
+    [Fact]
+    public async Task A_control_is_hidden_where_the_global_it_requires_is_missing_and_shown_where_it_is_there()
+    {
+        await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
+        var page = session.Page;
+        const string hidden = "() => ['has', 'lacks', 'unsafe'].map(id => document.getElementById(id).hidden).join(' ')";
+
+        var atArrival = await page.EvaluateAsync<string>(hidden);
+        await page.EvaluateAsync("() => document.body.insertAdjacentHTML('beforeend', '<button id=later data-rask-requires=NoSuchGlobal>later</button>')");
+        await page.WaitForFunctionAsync("() => document.getElementById('later').hidden");
+
+        // `has` was rendered hidden and names `document`; `unsafe` names an expression, which is never evaluated.
+        Assert.Equal("False True True", atArrival, ignoreCase: true);
+        Assert.False(await page.EvaluateAsync<bool>("() => window.evaluated === true"));
+    }
+
+    [Fact]
+    public async Task A_file_input_marks_the_element_around_it_and_says_how_far_the_upload_has_got_until_its_handler_has_rendered()
+    {
+        await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
+        var page = session.Page;
+        await page.EvaluateAsync("""
+            () => {
+                window.seen = [];
+                const zone = document.getElementById('zone');
+                const note = () => window.seen.push((zone.hasAttribute('data-loading') ? 'loading' : 'idle') + ' ' + zone.style.getPropertyValue('--rask-progress') + ' ' + zone.style.getPropertyValue('--rask-progress-as-string'));
+                new MutationObserver(note).observe(zone, { attributes: true });
+            }
+            """);
+
+        await page.SetInputFilesAsync("#file", new Microsoft.Playwright.FilePayload { Name = "big.bin", MimeType = "application/octet-stream", Buffer = new byte[3_000_000] });
+        await Expect(page.Locator("#received")).ToHaveTextAsync("received=3000000");
+        await page.WaitForFunctionAsync("() => !document.getElementById('zone').hasAttribute('data-loading')");
+        var seen = await page.EvaluateAsync<string[]>("() => window.seen");
+
+        Assert.Contains("loading 0% '0%'", seen);
+        Assert.Contains("loading 100% '100%'", seen);
+        Assert.All(seen.Where(s => s.StartsWith("loading", StringComparison.Ordinal)), s => Assert.Matches("^loading [0-9]+% '[0-9]+%'$", s));
+        Assert.Equal(string.Empty, await page.EvaluateAsync<string>("() => document.getElementById('zone').style.getPropertyValue('--rask-progress')"));
+    }
+}
+
+/// <summary>Two drag surfaces, three gated buttons and a dropzone around a file input.</summary>
+public sealed partial class GestureHookPage : Component
+{
+    private const string Html = """
+        <div id="area" data-rask-drag="x y" data-rask-drag-inset="10"
+             style="position:absolute;left:100px;top:100px;width:220px;height:120px;background:#ccc;touch-action:none">
+            <input id="area-value" type="hidden">
+        </div>
+        <div id="track" data-rask-drag="x"
+             style="position:absolute;left:100px;top:300px;width:200px;height:20px;background:#ccc;touch-action:none">
+            <input id="track-value" type="hidden" value="0.3">
+        </div>
+        <button id="has" type="button" hidden data-rask-requires="document">has</button>
+        <button id="lacks" type="button" data-rask-requires="NoSuchGlobal">lacks</button>
+        <button id="unsafe" type="button" data-rask-requires="(window.evaluated=true)">unsafe</button>
+        """;
+
+    private long _received;
+
+    protected override Component? HeadAssets => Markup.Title["gesture hooks"];
+
+    protected override string? HtmlLang => "en";
+
+    protected override Component? Render() =>
+    [
+        P.Id("received")[$"received={_received}"],
+        Div.Id("zone").Data("rask-loading", string.Empty).Style("position:absolute;left:100px;top:400px")[
+            Input.Value<string>(null).Id("file").Type(InputType.File).OnFiles(files => _received = files.Sum(f => f.Size))
+        ],
+        Div[Raw.Value(Html)]
+    ];
+}

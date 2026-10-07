@@ -144,6 +144,46 @@ public sealed class RuntimeHookShapingTests
     }
 
     [Fact]
+    public void A_pointer_becomes_a_fraction_of_the_track_inside_the_inset_and_never_leaves_zero_to_one()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var drag = root.GetProperty("drag");
+
+        Assert.Equal([0, 0.25, 1, 0], drag.GetProperty("fractions").EnumerateArray().Select(e => e.GetDouble()).ToArray());
+        Assert.Equal(["0.3333", "1", "0"], drag.GetProperty("text").EnumerateArray().Select(e => e.GetString()).ToArray());
+    }
+
+    [Fact]
+    public void A_required_global_is_a_plain_identifier_the_scope_has_and_nothing_else()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var provided = root.GetProperty("requires").EnumerateArray().Select(e => e.GetBoolean()).ToArray();
+
+        Assert.Equal([true, false, false, false], provided);
+    }
+
+    [Fact]
+    public void Upload_progress_is_a_whole_percent_rounded_down_and_never_over_a_hundred()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var progress = root.GetProperty("progress").EnumerateArray().Select(e => e.GetString()).ToArray();
+
+        Assert.Equal(["0%", "12%", "99%", "100%"], progress);
+    }
+
+    [Fact]
     public void A_hook_holds_one_attribute_of_one_element_until_it_lets_go()
     {
         if (Run() is not { } root)

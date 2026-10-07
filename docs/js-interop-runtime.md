@@ -321,6 +321,7 @@ They live in `src/Rask.Core/Resources/rask-hooks.ts` (one module per concern) be
 | `data-rask-tooltip="<popover id>"` | the element wrapping a trigger and its `popover="manual"` bubble | Shows the bubble in the pointer's own task when it enters the wrapper and hides it when it leaves; shows it on keyboard focus (`:focus-visible`) and keeps it while that focus lasts; Escape hides it; a press on the trigger hides it until the pointer has left and come back. The element inside carrying `aria-expanded` has it kept true or false. Any element can be the trigger — the bubble reaches the top layer. A touch never hovers. |
 | `data-rask-hover="<popover id>"` | the element wrapping a trigger and its panel | Opens the panel while the pointer is over the wrapper (trigger or panel) and closes it over neither — the pixels between them included. A press on the trigger's own `popovertarget` button leaves it open; Enter opens it the platform's way; focus alone does not. |
 | `data-rask-hover-if="<selector>"` | the same element | The hover opens only while the element matches the selector — a rail item that opens its menu only while the sidebar is collapsed: `"input:checked ~ *"`. |
+| `aria-expanded` on the trigger inside a `data-rask-tooltip` | an interactive tooltip (one whose bubble holds links or buttons) | Mirrored while the bubble shows. It also marks the tooltip as interactive: when focus drops to nothing (`blur()`, the window losing focus) the bubble stays, until a press outside it. A tooltip without it closes. |
 
 ### Popovers, dialogs and the page behind them
 
@@ -365,6 +366,15 @@ They live in `src/Rask.Core/Resources/rask-hooks.ts` (one module per concern) be
 | `data-rask-focus-follows` + `data-rask-focus-target` | a container, and the one element in it that should hold focus | When a render moves the target mark — or replaces the element that carried it — while focus is ON that element, the new target is focused. Focus anywhere else is never taken. A render that leaves no target lets focus fall where the browser drops it. |
 | `aria-activedescendant` | a `[role=combobox]` or `[role=listbox]` | When it changes, the option it names is scrolled into view inside its nearest scrolling ancestor, by the least movement; the page never scrolls. (A `[role=tree]` has its own rule, which also handles virtualized rows.) |
 | `data-rask-press-keeps-focus` | any element | A mouse press on it or inside it does not move focus. |
+
+### Gestures, capabilities and uploads
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| `data-rask-drag="x y"` \| `"x"` \| `"y"` | a surface holding ONE `<input type="hidden">` you bind | On a press the runtime captures the pointer and, on every move, writes where it is along each named axis — `0` to `1`, clamped, `0` at the left / top edge — into `--rask-drag-x` / `--rask-drag-y` on the surface, with no round trip: draw the thumb from those. The hidden field carries the same numbers (`"0.25 0.5"`, or the one axis) and fires `input` at most once per animation frame while the pointer moves and `change` once on release, so `OnInput` / `OnChange` on it are the whole C# side. Write the field's value yourself (a key handled in C#) and the properties follow, except while the surface is held. Give the surface `touch-action: none`. |
+| `data-rask-drag-inset="<px>"` | the same surface | The track is that much shorter at both ends, so a thumb centred on the value stays inside the surface. |
+| `data-rask-requires="<global>"` | a control for an API the browser may lack (`EyeDropper`) | `hidden` is set where `window` has no property of that name and removed where it has, when the control arrives. Render it `hidden`. The name must be a plain identifier; nothing is evaluated. |
+| `data-rask-loading` around an `<input type="file">` with `OnFiles` | the dropzone | From the moment files are chosen until the handler that receives them has rendered, the element carries `data-loading`, `--rask-progress` (a whole percentage, `12%`) and `--rask-progress-as-string` (`'12%'`, for `content:`). On the Server host the percentage is the upload request's own progress. In a WebAssembly app nothing is sent: it is how much of the files your handler has read through `OpenReadStream`, and stays `0%` for a handler that never opens them. `data-rask-loading="off"` opts out. |
 
 ### Toasts
 
