@@ -30,8 +30,14 @@ them until tagged releases begin.
   Flux UI's `flux:calendar` and `flux:date-picker` do — the grid with its outside days, today's dot, range tint and
   hover preview, month and year selects, a today shortcut, week numbers, several months side by side, a roving
   tab stop with arrow, page and Home/End keys; the picker's button, typed fields, presets and confirmation — on
-  the platform's own popover, with no daisyUI class. The bound type is still the mode (`DateOnly`, a collection of
-  days, `UiDateRange`). What changed:
+  the platform's own popover, with no daisyUI class. The mode is Flux's `mode`, taken as the step that opens the control, and
+  it picks the control that binds that mode's type (`DateOnly`, a collection of days, `UiDateRange`). What changed:
+  - `Ui.Calendar.Bind(() => m.DaysOff)` / `.Values(days)` → `Ui.Calendar.Multiple.Bind(() => m.DaysOff)` /
+    `Ui.Calendar.Multiple.Values(days)`; `Ui.Calendar.Bind(() => m.Stay)` / `.Value(range)` →
+    `Ui.Calendar.Range.Bind(() => m.Stay)` / `Ui.Calendar.Range.Value(range)`; `Ui.DatePicker.Bind(() => m.Stay)` →
+    `Ui.DatePicker.Range.Bind(() => m.Stay)`. No step is Flux's default, a single day, and a collection or a range
+    handed to it no longer compiles. `Ui.Calendar.Mode(Ui.CalendarMode.Range)…` takes the mode as a value, and a mode
+    that disagrees with what is bound throws when it renders. `Ui.CalendarMode`, `Ui.DatePickerMode` are new.
   - `Ui.Calendar.Value(day).Label("Delivery")` → `Ui.Calendar.Value(day)` — a calendar has no label of its own; the
     grid is named by its month and each day by its full date.
   - `.Month(m).OnMonth(…)` → gone: the calendar pages itself. `.OpenTo(day)` (and `.ForceOpenTo()`) say where it opens.
@@ -47,7 +53,7 @@ them until tagged releases begin.
   - `Ui.DatePicker.…Hint("…")` → `.Description("…")`; `.AccessibleLabel`, `.Error`, `.Tone`, `.Variant` are gone
     (`.Invalid()` and the form's validation remain); `.Size` now takes `Ui.DatePickerSize` and sizes the calendar.
   - `Ui.DatePicker.Values([...])` / binding a collection (`UiDatePickerMultiple`) is gone — Flux's date picker picks
-    a day or a range; several days are `Ui.Calendar.Values([...])`.
+    a day or a range; several days are `Ui.Calendar.Multiple.Values([...])`.
   - The picker's placeholder is "Select a date" / "Select a date range" (was "Choose a date"), and it shows a
     medium date ("Jan 20, 2026", was the short one). Its popup is a `<dialog popover>`.
   - New on the picker: `Type(Ui.DatePickerType.Input)`, `WithPresets()` / `Presets([..])` (`Ui.DateRangePreset`),

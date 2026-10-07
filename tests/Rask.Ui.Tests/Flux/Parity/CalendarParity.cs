@@ -18,10 +18,10 @@ public sealed partial class CalendarParity : FluxParity
         yield return ("", Centered(Ui.Calendar.Value(default(DateOnly)).Locale("en-US").On(FluxClock.Today)));
 
         yield return ("multiple-dates", Centered(
-            Ui.Calendar.Values([FluxClock.Day(2), FluxClock.Day(5), FluxClock.Day(15)]).Locale("en-US").On(FluxClock.Today)));
+            Ui.Calendar.Multiple.Values([FluxClock.Day(2), FluxClock.Day(5), FluxClock.Day(15)]).Locale("en-US").On(FluxClock.Today)));
 
         yield return ("date-range", Centered(
-            Ui.Calendar.Value(new UiDateRange(FluxClock.Day(2), FluxClock.Day(6))).Locale("en-US").On(FluxClock.Today)));
+            Ui.Calendar.Range.Value(new UiDateRange(FluxClock.Day(2), FluxClock.Day(6))).Locale("en-US").On(FluxClock.Today)));
 
         yield return ("size", Centered(Ui.Calendar.Value(default(DateOnly)).Xl.Locale("en-US").On(FluxClock.Today)));
 

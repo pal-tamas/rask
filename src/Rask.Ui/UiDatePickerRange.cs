@@ -6,7 +6,7 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Reached through the same entry as <see cref="UiDatePicker" />: <c>Ui.DatePicker.Bind(() =&gt; model.Stay)</c>
+/// Opened by Flux's mode step on the picker's entry: <c>Ui.DatePicker.Range.Bind(() =&gt; model.Stay)</c>
 /// over a <see cref="UiDateRange" /> (or a <c>UiDateRange?</c>). The first click is the start, the second writes
 /// the range and closes the popup.
 /// </para>
@@ -16,9 +16,10 @@ namespace Rask;
 /// name; a range picked by hand shows its two dates.
 /// </para>
 /// </remarks>
-[RaskChainEntry("UiDatePicker")]
 public sealed partial class UiDatePickerRange : UiDatePickerControl<UiDateRange>
 {
+    private protected override Ui.DatePickerMode Bound => Ui.DatePickerMode.Range;
+
     private protected override int DefaultMonths => 2;
 
     private protected override string DefaultPlaceholder => "Select a date range";

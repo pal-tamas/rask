@@ -5,8 +5,8 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Reached through the same entry as <see cref="UiCalendar" />: <c>Ui.Calendar.Bind(() =&gt; model.Stay)</c> over
-/// a <see cref="UiDateRange" /> (or a <c>UiDateRange?</c>), or <c>Ui.Calendar.Value(range).OnChange(…)</c>.
+/// Opened by Flux's mode step on the calendar's entry: <c>Ui.Calendar.Range.Bind(() =&gt; model.Stay)</c> over
+/// a <see cref="UiDateRange" /> (or a <c>UiDateRange?</c>), or <c>Ui.Calendar.Range.Value(range).OnChange(…)</c>.
 /// </para>
 /// <para>
 /// The first click is the start and is held by the calendar; the stretch to the day under the pointer or the
@@ -15,9 +15,10 @@ namespace Rask;
 /// days that would make the range too short or too long.
 /// </para>
 /// </remarks>
-[RaskChainEntry("UiCalendar")]
 public sealed partial class UiCalendarRange : UiCalendarControl<UiDateRange>
 {
+    private protected override Ui.CalendarMode Bound => Ui.CalendarMode.Range;
+
     private protected override int DefaultMonths => 2;
 
     private protected override UiCalendarPicks Picks(UiDateRange current, Func<UiDateRange, Task> commit) =>

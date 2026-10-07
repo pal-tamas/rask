@@ -22,7 +22,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
 
     private static UiDatePicker Single(DateOnly value) => Ui.DatePicker.Value(value).Locale("en-US").On(Today);
 
-    private static UiDatePickerRange Ranged(UiDateRange value) => Ui.DatePicker.Value(value).Locale("en-US").On(Today);
+    private static UiDatePickerRange Ranged(UiDateRange value) => Ui.DatePicker.Range.Value(value).Locale("en-US").On(Today);
 
     [Fact]
     public void A_picker_shows_its_placeholder_until_a_day_is_chosen()
@@ -111,7 +111,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_range_is_written_on_the_second_click_and_never_half()
     {
         var model = new Trip();
-        var page = Page.Render(() => Ui.DatePicker.Bind(() => model.Stay).Locale("en-US").On(Today));
+        var page = Page.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Locale("en-US").On(Today));
 
         await page.On(Day(4)).Click();
         var afterFirst = model.Stay;
@@ -165,7 +165,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_preset_writes_its_range_and_puts_its_name_on_the_button()
     {
         var model = new Trip();
-        var page = Page.Render(() => Ui.DatePicker.Bind(() => model.Stay).Presets([Ui.DateRangePreset.Last7Days]).Locale("en-US").On(Today));
+        var page = Page.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Presets([Ui.DateRangePreset.Last7Days]).Locale("en-US").On(Today));
 
         await page.On("[role=\"radio\"][value=\"last7Days\"]").Click();
 
@@ -301,7 +301,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task Two_typed_fields_in_the_trigger_slot_are_a_ranges_start_and_end()
     {
         var model = new Trip { Stay = new UiDateRange(Jan(4), Jan(6)) };
-        var page = Page.Render(() => Ui.DatePicker.Bind(() => model.Stay).Locale("en-US").On(Today)
+        var page = Page.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Locale("en-US").On(Today)
             .Trigger(Div[Ui.DatePickerInput.Label("Start"), Ui.DatePickerInput.Label("End")]));
 
         var days = Regex.Matches(page.Html, "data-ui-day-input[^>]*value=\"(\\d+)\"").Select(m => m.Groups[1].Value).ToArray();

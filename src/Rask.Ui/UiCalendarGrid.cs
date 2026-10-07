@@ -308,14 +308,9 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, DateOnly day, bool blocked, bool stop)
     {
         // The browser closes the picker on the same click that finishes the choice — no runtime, and the C#
-        // handler still runs. In a popup, the day Tab lands on is also where the focus goes when it opens.
+        // handler still runs.
         var closes = !blocked && picks.Finishes(day) ? options.Closes : null;
         List<(string, string?)> extra = [];
-        if (stop && options.InPopup)
-        {
-            extra.Add(("autofocus", ""));
-        }
-
         if (closes is not null)
         {
             extra.AddRange([("popovertarget", closes), ("popovertargetaction", "hide")]);

@@ -23,11 +23,11 @@ public sealed partial class UiKitDataInputDemo
                 Example("A day", "ui-calendar-state", _date == default ? "No date chosen." : $"Chosen: {Iso(_date)}",
                     Ui.Calendar.Value(_date).Key("day").OnChange(d => { _date = d; })),
                 Example("Several days", "ui-calendar-days", $"{_daysOff.Count} days off",
-                    Ui.Calendar.Values(_daysOff).Key("days").OnChange(days => { _daysOff = [.. days]; })),
+                    Ui.Calendar.Multiple.Values(_daysOff).Key("days").OnChange(days => { _daysOff = [.. days]; })),
                 Div.Key("range").Class("lg:col-span-2")[
                     Example("A range", "ui-calendar-stay",
                         _stay == default ? "No stay chosen." : $"Stay: {Iso(_stay.Start)} to {Iso(_stay.End)}",
-                        Ui.Calendar.Value(_stay).Key("stay").OnChange(r => { _stay = r; }))
+                        Ui.Calendar.Range.Value(_stay).Key("stay").OnChange(r => { _stay = r; }))
                 ],
                 Example("Size", Ui.Calendar.Value(default(DateOnly)).Key("size").Xl),
                 Example("Static", Ui.Calendar.Value(Today).Key("static").Static().Xs.Navigation(false)),
@@ -56,15 +56,15 @@ public sealed partial class UiKitDataInputDemo
                     .OnChange(d => { _arrival = d; })),
                 Example("Range picker", "ui-date-picker-range",
                     _report == default ? "No range chosen." : $"Range: {Iso(_report.Start)} to {Iso(_report.End)}",
-                    Ui.DatePicker.Value(_report).Key("range").OnChange(r => { _report = r; })),
-                Example("At least three days", Ui.DatePicker.Value(default(UiDateRange)).Key("min-range").MinRange(3)),
-                Example("At most ten days", Ui.DatePicker.Value(default(UiDateRange)).Key("max-range").MaxRange(10)),
-                Example("Range with inputs", Ui.DatePicker.Value(_report).Key("inputs").OnChange(r => { _report = r; })
+                    Ui.DatePicker.Range.Value(_report).Key("range").OnChange(r => { _report = r; })),
+                Example("At least three days", Ui.DatePicker.Range.Value(default(UiDateRange)).Key("min-range").MinRange(3)),
+                Example("At most ten days", Ui.DatePicker.Range.Value(default(UiDateRange)).Key("max-range").MaxRange(10)),
+                Example("Range with inputs", Ui.DatePicker.Range.Value(_report).Key("inputs").OnChange(r => { _report = r; })
                     .Trigger(Div.Class("flex flex-col gap-6 sm:flex-row sm:gap-4")[
                         Ui.DatePickerInput.Key("start").Label("Start"),
                         Ui.DatePickerInput.Key("end").Label("End")
                     ])),
-                Example("Presets", Ui.DatePicker.Value(_report).Key("presets").WithPresets().Min(new DateOnly(2012, 1, 1))
+                Example("Presets", Ui.DatePicker.Range.Value(_report).Key("presets").WithPresets().Min(new DateOnly(2012, 1, 1))
                     .OnChange(r => { _report = r; })),
                 Example("Unavailable dates",
                     Ui.DatePicker.Value(default(DateOnly)).Key("unavailable").Unavailable([Today.AddDays(-1), Today.AddDays(1)])),

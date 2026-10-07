@@ -11,8 +11,8 @@ namespace Rask;
 /// on the chosen day goes back to it.
 /// </para>
 /// <para>
-/// <b>The same entry picks several days or a range</b>: bind a collection of days and it is
-/// <see cref="UiCalendarMultiple" />, bind a <see cref="UiDateRange" /> and it is <see cref="UiCalendarRange" />.
+/// <b>Flux's mode is the step before it</b>: <c>Ui.Calendar.Multiple</c> opens <see cref="UiCalendarMultiple" />
+/// over a collection of days, <c>Ui.Calendar.Range</c> opens <see cref="UiCalendarRange" /> over a <see cref="UiDateRange" />.
 /// Every prop is on <see cref="UiCalendarControl{T}" />.
 /// </para>
 /// <para>
@@ -22,6 +22,8 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiCalendar : UiCalendarControl<DateOnly>
 {
+    private protected override Ui.CalendarMode Bound => Ui.CalendarMode.Single;
+
     private protected override UiCalendarPicks Picks(DateOnly current, Func<DateOnly, Task> commit) =>
         new UiCalendarSinglePick(current, commit);
 }

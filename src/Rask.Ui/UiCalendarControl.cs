@@ -11,9 +11,11 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The bound type is the mode.</b> Flux's <c>mode</c> and <c>multiple</c> say what its value string holds;
-/// here the model does: <c>Ui.Calendar.Bind(() =&gt; m.Day)</c> picks a day, a collection of days picks several
-/// (<c>.Values([...])</c> unbound), and a <see cref="UiDateRange" /> picks a range.
+/// <b>The mode is the step that opens it.</b> <c>Ui.Calendar.Bind(() =&gt; m.Day)</c> is Flux's default, one day;
+/// <c>Ui.Calendar.Multiple.Bind(() =&gt; m.Days)</c> (or <c>.Values([...])</c>) picks several over a collection, and
+/// <c>Ui.Calendar.Range.Bind(() =&gt; m.Stay)</c> a range over a <see cref="UiDateRange" />. Each step hands back the
+/// calendar that binds that mode's type, so a mismatch does not compile; <see cref="Mode" /> given as a value has
+/// to agree with it.
 /// </para>
 /// <para>
 /// The month it shows and where the keyboard is are the calendar's own state; the choice is the form's.
@@ -25,6 +27,15 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
 {
     private readonly UiCalendarState _state = new();
     private (bool Held, T? Value, T? Given) _own;
+
+    /// <summary>
+    ///     What is picked: a day, several days, or a range. The step that opens the calendar says it
+    ///     (<c>Ui.Calendar.Range.Bind(…)</c>); set again on an opened calendar it has to agree with what is bound.
+    /// </summary>
+    public Ui.CalendarMode? Mode { get; set; }
+
+    /// <summary>Flux's <c>multiple</c>: the same as <see cref="Ui.CalendarMode.Multiple" />.</summary>
+    public bool? Multiple { get; set; }
 
     /// <summary>The earliest selectable day. Days before it are disabled.</summary>
     public DateOnly? Min { get; set; }
@@ -107,12 +118,16 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
 
     private protected UiCalendarState State => _state;
 
+    /// <summary>The mode this calendar's bound type is.</summary>
+    private protected abstract Ui.CalendarMode Bound { get; }
+
     /// <summary>Two months for a range, as Flux defaults.</summary>
     private protected virtual int DefaultMonths => 1;
 
     /// <inheritdoc />
     protected override Component? Render()
     {
+        UiCalendarModes.Check(Multiple == true ? Ui.CalendarMode.Multiple : Mode, Bound);
         var (acc, ctx, bound) = UiFormCommit.Resolve<T>(this);
         var current = Bind is null && _own.Held && EqualityComparer<T?>.Default.Equals(Value, _own.Given) ? _own.Value : bound;
 

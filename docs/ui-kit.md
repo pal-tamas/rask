@@ -1304,19 +1304,25 @@ controlled mode: the parent still owns whatever the field ends up with.
 
 `Ui.Calendar` is Flux UI's calendar: a month of day buttons in a grid, with the month steps over it.
 
-**A day, several days and a range are the same entry, told apart by the model** — Flux's `mode` and `multiple`
-say what its value string holds; here the bound type does, the way `Ui.Select` becomes the multiple select when
-it binds a collection:
+**A day, several days or a range is Flux's `mode`, taken as the step that opens the calendar.** No step is
+Flux's default, one day; `.Multiple` and `.Range` hand back the calendar that binds that mode's type, so a range
+bound to a single day does not compile:
 
 ```csharp
-Ui.Calendar.Bind(() => model.Delivery)                     // DateOnly (or DateOnly?): one day
-Ui.Calendar.Bind(() => model.DaysOff)                      // List<DateOnly>, HashSet<DateOnly>, …: several
-Ui.Calendar.Bind(() => model.Stay)                         // UiDateRange (or UiDateRange?): a range, two months
+Ui.Calendar.Bind(() => model.Delivery)                     // single (Flux's default): DateOnly or DateOnly?
+Ui.Calendar.Multiple.Bind(() => model.DaysOff)             // mode="multiple": List<DateOnly>, HashSet<DateOnly>, …
+Ui.Calendar.Range.Bind(() => model.Stay)                   // mode="range": UiDateRange or UiDateRange?, two months
 Ui.Calendar.Value(day).OnChange(d => day = d)              // one day, controlled
-Ui.Calendar.Values([monday, friday])                       // several, controlled
-Ui.Calendar.Value(new UiDateRange(from, to))               // a range, controlled
+Ui.Calendar.Multiple.Values([monday, friday])              // several, controlled
+Ui.Calendar.Range.Value(new UiDateRange(from, to))         // a range, controlled
 Ui.Calendar.Value(default(DateOnly))                       // nothing chosen yet; it keeps the pick itself
+Ui.Calendar.Mode(mode).Bind(() => model.Stay)              // the mode as a value (Ui.CalendarMode)
 ```
+
+`Ui.Calendar.Single` is `Ui.Calendar`. A mode given as a value — `Ui.Calendar.Mode(Ui.CalendarMode.Range)`, or
+`.Mode(…)` / Flux's bare `.Multiple()` on an opened calendar — has to agree with what is bound; when it does not,
+rendering throws an `InvalidOperationException` that names both ("Ui.Calendar is in Range mode but what it binds
+is Single's (a DateOnly). Open it with Ui.Calendar.Range and bind a UiDateRange.").
 
 A second click on the chosen day clears it (`default(DateOnly)`, or `null` through a nullable binding).
 `UiDateRange(Start, End)` is always whole: the first click is held by the calendar and drawn as the start, the
@@ -1351,12 +1357,12 @@ with it. A day closes it on the pick, a range on its second click.
 
 ```csharp
 Ui.DatePicker.Bind(() => booking.Arrival).Label("Arrival")                         // DateOnly
-Ui.DatePicker.Bind(() => booking.Stay).Label("Stay").Min(today).MinRange(3)        // UiDateRange
+Ui.DatePicker.Range.Bind(() => booking.Stay).Label("Stay").Min(today).MinRange(3)  // mode="range": UiDateRange
 Ui.DatePicker.Bind(() => booking.Arrival).Type(Ui.DatePickerType.Input)            // month / day / year fields to type into
-Ui.DatePicker.Bind(() => report.Range).WithPresets().Min(new DateOnly(2012, 1, 1)) // Today, Yesterday, This Week, …, All Time
-Ui.DatePicker.Bind(() => report.Range)
+Ui.DatePicker.Range.Bind(() => report.Range).WithPresets().Min(new DateOnly(2012, 1, 1)) // Today, Yesterday, This Week, …, All Time
+Ui.DatePicker.Range.Bind(() => report.Range)
     .Presets([Ui.DateRangePreset.Today, Ui.DateRangePreset.Last30Days, Ui.DateRangePreset.Custom])
-Ui.DatePicker.Bind(() => booking.Stay).Trigger(
+Ui.DatePicker.Range.Bind(() => booking.Stay).Trigger(
     Div.Class("flex gap-4")[Ui.DatePickerInput.Label("Start"), Ui.DatePickerInput.Label("End")])
 ```
 

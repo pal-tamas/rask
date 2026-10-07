@@ -10,8 +10,8 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The bound type is the mode</b>, as it is for <see cref="UiCalendarControl{T}" />: bind a <c>DateOnly</c>
-/// and it picks a day, bind a <see cref="UiDateRange" /> and it picks a range.
+/// <b>The mode is the step that opens it</b>, as for <see cref="UiCalendarControl{T}" />: <c>Ui.DatePicker</c> binds a
+/// <c>DateOnly</c> and picks a day, <c>Ui.DatePicker.Range</c> binds a <see cref="UiDateRange" /> and picks a range.
 /// </para>
 /// <para>
 /// A field that shows the choice and a calendar in a popup beside it. The popup is the platform's own — a
@@ -79,6 +79,12 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
     /// <summary>Opens to <see cref="OpenTo" /> whatever is chosen.</summary>
     public bool? ForceOpenTo { get; set; }
+
+    /// <summary>
+    ///     What is picked: a day or a range. The step that opens the picker says it
+    ///     (<c>Ui.DatePicker.Range.Bind(…)</c>); set again on an opened picker it has to agree with what is bound.
+    /// </summary>
+    public Ui.DatePickerMode? Mode { get; set; }
 
     /// <summary>How many months are shown side by side: one, or two for a range, unless set.</summary>
     public int? Months { get; set; }
@@ -164,6 +170,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     /// <summary>Two months for a range, as Flux defaults.</summary>
     private protected virtual int DefaultMonths => 1;
 
+    /// <summary>The mode this picker's bound type is.</summary>
+    private protected abstract Ui.DatePickerMode Bound { get; }
+
     private protected abstract string DefaultPlaceholder { get; }
 
     /// <summary>The popup's confirming button: "Select date", or "Select dates" for a range.</summary>
@@ -175,6 +184,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     protected override Component? Render()
     {
         var field = UiWithField.For(this);
+        UiDatePickerModes.Check(Mode, Bound);
         var (acc, ctx, bound) = UiFormCommit.Resolve<T>(this);
         var committed = Bind is null && _own.Held && EqualityComparer<T?>.Default.Equals(Value, _own.Given) ? _own.Value : bound;
         var shown = _pending.Held ? _pending.Value : committed;
@@ -274,9 +284,14 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             .Class(UiDatePickerLook.Dialog)
             .Popover(Rask.Core.Popover.Auto)
             .Ref(_dialog)
-            .Attributes(("style", "position-anchor:--" + PopoverId
-                                  + ";inset:auto;top:anchor(bottom);left:anchor(left)"
-                                  + ";position-try-fallbacks:flip-block,flip-inline;margin:5px 0"))
+            // Flux focuses nothing when its picker opens. A <dialog popover> would hand the focus to its first
+            // control (a month step, or the header's select with a ring); `autofocus` on the dialog itself keeps
+            // it on the popup — no control lit, Tab enters the calendar, Escape returns to the trigger.
+            .Attributes(
+                ("autofocus", ""),
+                ("style", "position-anchor:--" + PopoverId
+                          + ";inset:auto;top:anchor(bottom);left:anchor(left)"
+                          + ";position-try-fallbacks:flip-block,flip-inline;margin:5px 0"))
             .OnToggle(e =>
             {
                 _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);

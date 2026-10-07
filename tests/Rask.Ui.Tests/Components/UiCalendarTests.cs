@@ -27,7 +27,7 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
 
     private static UiCalendar Single(DateOnly value = default) => Ui.Calendar.Value(value).Locale("en-US").On(Today);
 
-    private static UiCalendarRange Ranged(UiDateRange value = default) => Ui.Calendar.Value(value).Locale("en-US").On(Today);
+    private static UiCalendarRange Ranged(UiDateRange value = default) => Ui.Calendar.Range.Value(value).Locale("en-US").On(Today);
 
     // The day Tab lands on: the one button in the grid with tabindex 0.
     private static string[] TabStops(string html) =>
@@ -113,7 +113,7 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     public async Task A_collection_of_days_takes_each_click_and_gives_one_back_on_the_second()
     {
         var trip = new Trip();
-        var page = Page.Render(() => Ui.Calendar.Bind(() => trip.DaysOff).Locale("en-US").On(Today));
+        var page = Page.Render(() => Ui.Calendar.Multiple.Bind(() => trip.DaysOff).Locale("en-US").On(Today));
 
         await page.On(Day(Jan(20))).Click();
         await page.On(Day(Jan(5))).Click();
@@ -128,7 +128,7 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     public async Task A_range_is_written_whole_on_its_second_click()
     {
         var trip = new Trip();
-        var page = Page.Render(() => Ui.Calendar.Bind(() => trip.Stay).Locale("en-US").On(Today));
+        var page = Page.Render(() => Ui.Calendar.Range.Bind(() => trip.Stay).Locale("en-US").On(Today));
 
         await page.On(Day(Jan(10))).Click();
         var held = trip.Stay;
@@ -144,7 +144,7 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     public async Task A_click_before_a_waiting_start_begins_the_range_again_from_there()
     {
         var trip = new Trip();
-        var page = Page.Render(() => Ui.Calendar.Bind(() => trip.Stay).Locale("en-US").On(Today));
+        var page = Page.Render(() => Ui.Calendar.Range.Bind(() => trip.Stay).Locale("en-US").On(Today));
 
         await page.On(Day(Jan(20))).Click();
         await page.On(Day(Jan(12))).Click();

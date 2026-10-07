@@ -225,6 +225,12 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   around the row button, pager), progress page (slider, as raw `ui-slider` markup), separator page (the
   tooltip around the theme button), callout page (one badge), field page (inputs).
 
+- Calendar and date picker take Flux's `mode` as the step that OPENS them: `Ui.Calendar.Range` / `.Multiple` and
+  `Ui.DatePicker.Range` are C# extension properties on the generated seed (`UiCalendarModes`, `UiDatePickerModes`)
+  handing back the typed twin's own seed, so a wrong pairing does not compile; the twins are no longer joined by
+  `[RaskChainEntry]`, which leaves `Ui.CalendarMultiple`, `Ui.CalendarRange` and `Ui.DatePickerRange` reachable as
+  entries too (the generator has no way to hide one — to remove when it has). `Mode(value)` and the bare
+  `Multiple()` are checked against the bound type at render.
 - Calendar, date picker, time picker — waiting for a runtime hook each, none faked: containing the arrow, page
   and Space keys inside `[role=grid]` (the page scrolls under the calendar today); scrolling an expanded
   combobox's `aria-activedescendant` into view as the cursor moves (the time list); auto-advance, arrow

@@ -10,12 +10,14 @@ namespace Rask;
 /// medium date ("Jan 20, 2026"), and a pick closes the popup on the same click.
 /// </para>
 /// <para>
-/// Bind a <see cref="UiDateRange" /> and the same entry is <see cref="UiDatePickerRange" />. Every prop is on
+/// <c>Ui.DatePicker.Range</c> opens <see cref="UiDatePickerRange" /> over a <see cref="UiDateRange" />. Every prop is on
 /// <see cref="UiDatePickerControl{T}" />.
 /// </para>
 /// </remarks>
 public sealed partial class UiDatePicker : UiDatePickerControl<DateOnly>
 {
+    private protected override Ui.DatePickerMode Bound => Ui.DatePickerMode.Single;
+
     private protected override string DefaultPlaceholder => "Select a date";
 
     private protected override string ConfirmLabel => "Select date";

@@ -8,28 +8,34 @@ override Rask.UiDatePickerControl<T>.Render() -> Rask.Core.Component?
 override Rask.UiInputIcon.GetHashCode() -> int
 override Rask.UiTextareaRows.GetHashCode() -> int
 override Rask.UiTimeRange.GetHashCode() -> int
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! Bind) -> Rask.UiCalendarRange!
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! Bind) -> Rask.UiCalendarRange!
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.HashSet<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.IList<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.List<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.Collection<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.ObservableCollection<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
 Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>! Bind) -> Rask.UiCalendar!
 Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! Bind) -> Rask.UiCalendar!
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly[]!>!>! Bind) -> Rask.UiCalendarMultiple!
-Rask.RaskSeed_UiCalendar.Value(Rask.UiDateRange Value) -> Rask.UiCalendarRange!
 Rask.RaskSeed_UiCalendar.Value(System.DateOnly Value) -> Rask.UiCalendar!
-Rask.RaskSeed_UiCalendar.Values(System.Collections.Generic.ICollection<System.DateOnly>? Values) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.HashSet<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.IList<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.List<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.Collection<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.ObservableCollection<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly[]!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.RaskSeed_UiCalendarMultiple() -> void
+Rask.RaskSeed_UiCalendarMultiple.Values(System.Collections.Generic.ICollection<System.DateOnly>? Values) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarRange
+Rask.RaskSeed_UiCalendarRange.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! Bind) -> Rask.UiCalendarRange!
+Rask.RaskSeed_UiCalendarRange.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! Bind) -> Rask.UiCalendarRange!
+Rask.RaskSeed_UiCalendarRange.RaskSeed_UiCalendarRange() -> void
+Rask.RaskSeed_UiCalendarRange.Value(Rask.UiDateRange Value) -> Rask.UiCalendarRange!
 Rask.RaskSeed_UiDatePicker
-Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! Bind) -> Rask.UiDatePickerRange!
-Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! Bind) -> Rask.UiDatePickerRange!
 Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>! Bind) -> Rask.UiDatePicker!
 Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! Bind) -> Rask.UiDatePicker!
 Rask.RaskSeed_UiDatePicker.RaskSeed_UiDatePicker() -> void
-Rask.RaskSeed_UiDatePicker.Value(Rask.UiDateRange Value) -> Rask.UiDatePickerRange!
 Rask.RaskSeed_UiDatePicker.Value(System.DateOnly Value) -> Rask.UiDatePicker!
+Rask.RaskSeed_UiDatePickerRange
+Rask.RaskSeed_UiDatePickerRange.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! Bind) -> Rask.UiDatePickerRange!
+Rask.RaskSeed_UiDatePickerRange.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! Bind) -> Rask.UiDatePickerRange!
+Rask.RaskSeed_UiDatePickerRange.RaskSeed_UiDatePickerRange() -> void
+Rask.RaskSeed_UiDatePickerRange.Value(Rask.UiDateRange Value) -> Rask.UiDatePickerRange!
 Rask.RaskSeed_UiTimePicker
 Rask.RaskSeed_UiTimePicker.Bind<T>(System.Linq.Expressions.Expression<System.Func<T>!>! Bind) -> Rask.UiTimePicker<T>!
 Rask.RaskSeed_UiTimePicker.Key(object? key) -> Rask.RaskSeed_UiTimePicker
@@ -39,6 +45,10 @@ Rask.RaskSeed_UiTimePicker.Value<T>(T? Value) -> Rask.UiTimePicker<T>!
 Rask.Ui.AccordionVariant
 Rask.Ui.AccordionVariant.Default = 0 -> Rask.Ui.AccordionVariant
 Rask.Ui.AccordionVariant.Reverse = 1 -> Rask.Ui.AccordionVariant
+Rask.Ui.CalendarMode
+Rask.Ui.CalendarMode.Multiple = 1 -> Rask.Ui.CalendarMode
+Rask.Ui.CalendarMode.Range = 2 -> Rask.Ui.CalendarMode
+Rask.Ui.CalendarMode.Single = 0 -> Rask.Ui.CalendarMode
 Rask.Ui.CalendarSize
 Rask.Ui.CalendarSize.Base = 0 -> Rask.Ui.CalendarSize
 Rask.Ui.CalendarSize.Lg = 3 -> Rask.Ui.CalendarSize
@@ -97,6 +107,9 @@ Rask.Ui.DatePickerInputSize
 Rask.Ui.DatePickerInputSize.Base = 0 -> Rask.Ui.DatePickerInputSize
 Rask.Ui.DatePickerInputSize.Sm = 1 -> Rask.Ui.DatePickerInputSize
 Rask.Ui.DatePickerInputSize.Xs = 2 -> Rask.Ui.DatePickerInputSize
+Rask.Ui.DatePickerMode
+Rask.Ui.DatePickerMode.Range = 1 -> Rask.Ui.DatePickerMode
+Rask.Ui.DatePickerMode.Single = 0 -> Rask.Ui.DatePickerMode
 Rask.Ui.DatePickerSize
 Rask.Ui.DatePickerSize.Default = 0 -> Rask.Ui.DatePickerSize
 Rask.Ui.DatePickerSize.Lg = 2 -> Rask.Ui.DatePickerSize
@@ -343,8 +356,12 @@ Rask.UiCalendarControl<T>.Min.get -> System.DateOnly?
 Rask.UiCalendarControl<T>.Min.set -> void
 Rask.UiCalendarControl<T>.MinRange.get -> int?
 Rask.UiCalendarControl<T>.MinRange.set -> void
+Rask.UiCalendarControl<T>.Mode.get -> Rask.Ui.CalendarMode?
+Rask.UiCalendarControl<T>.Mode.set -> void
 Rask.UiCalendarControl<T>.Months.get -> int?
 Rask.UiCalendarControl<T>.Months.set -> void
+Rask.UiCalendarControl<T>.Multiple.get -> bool?
+Rask.UiCalendarControl<T>.Multiple.set -> void
 Rask.UiCalendarControl<T>.Navigation.get -> bool?
 Rask.UiCalendarControl<T>.Navigation.set -> void
 Rask.UiCalendarControl<T>.OnChange.get -> Rask.Core.Callback<T>
@@ -370,6 +387,23 @@ Rask.UiCalendarControl<T>.WeekNumbers.get -> bool?
 Rask.UiCalendarControl<T>.WeekNumbers.set -> void
 Rask.UiCalendarControl<T>.WithToday.get -> bool?
 Rask.UiCalendarControl<T>.WithToday.set -> void
+Rask.UiCalendarModeEntry
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! bind) -> Rask.UiCalendarRange!
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! bind) -> Rask.UiCalendarRange!
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<System.DateOnly>!>!>! bind) -> Rask.UiCalendarMultiple!
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.List<System.DateOnly>!>!>! bind) -> Rask.UiCalendarMultiple!
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>! bind) -> Rask.UiCalendar!
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! bind) -> Rask.UiCalendar!
+Rask.UiCalendarModeEntry.UiCalendarModeEntry() -> void
+Rask.UiCalendarModeEntry.Value(Rask.UiDateRange value) -> Rask.UiCalendarRange!
+Rask.UiCalendarModeEntry.Value(System.DateOnly value) -> Rask.UiCalendar!
+Rask.UiCalendarModeEntry.Values(System.Collections.Generic.ICollection<System.DateOnly>? values) -> Rask.UiCalendarMultiple!
+Rask.UiCalendarModes
+Rask.UiCalendarModes.extension(Rask.RaskSeed_UiCalendar)
+Rask.UiCalendarModes.extension(Rask.RaskSeed_UiCalendar).Mode(Rask.Ui.CalendarMode mode) -> Rask.UiCalendarModeEntry
+Rask.UiCalendarModes.extension(Rask.RaskSeed_UiCalendar).Multiple.get -> Rask.RaskSeed_UiCalendarMultiple
+Rask.UiCalendarModes.extension(Rask.RaskSeed_UiCalendar).Range.get -> Rask.RaskSeed_UiCalendarRange
+Rask.UiCalendarModes.extension(Rask.RaskSeed_UiCalendar).Single.get -> Rask.RaskSeed_UiCalendar
 Rask.UiCalendarMultiple
 Rask.UiCalendarMultiple.UiCalendarMultiple() -> void
 Rask.UiCalendarRange
@@ -747,6 +781,8 @@ Rask.UiDatePickerControl<T>.Min.get -> System.DateOnly?
 Rask.UiDatePickerControl<T>.Min.set -> void
 Rask.UiDatePickerControl<T>.MinRange.get -> int?
 Rask.UiDatePickerControl<T>.MinRange.set -> void
+Rask.UiDatePickerControl<T>.Mode.get -> Rask.Ui.DatePickerMode?
+Rask.UiDatePickerControl<T>.Mode.set -> void
 Rask.UiDatePickerControl<T>.Months.get -> int?
 Rask.UiDatePickerControl<T>.Months.set -> void
 Rask.UiDatePickerControl<T>.OnChange.get -> Rask.Core.Callback<T>
@@ -800,6 +836,19 @@ Rask.UiDatePickerInput.Label.set -> void
 Rask.UiDatePickerInput.Size.get -> Rask.Ui.DatePickerInputSize?
 Rask.UiDatePickerInput.Size.set -> void
 Rask.UiDatePickerInput.UiDatePickerInput() -> void
+Rask.UiDatePickerModeEntry
+Rask.UiDatePickerModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! bind) -> Rask.UiDatePickerRange!
+Rask.UiDatePickerModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! bind) -> Rask.UiDatePickerRange!
+Rask.UiDatePickerModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>! bind) -> Rask.UiDatePicker!
+Rask.UiDatePickerModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! bind) -> Rask.UiDatePicker!
+Rask.UiDatePickerModeEntry.UiDatePickerModeEntry() -> void
+Rask.UiDatePickerModeEntry.Value(Rask.UiDateRange value) -> Rask.UiDatePickerRange!
+Rask.UiDatePickerModeEntry.Value(System.DateOnly value) -> Rask.UiDatePicker!
+Rask.UiDatePickerModes
+Rask.UiDatePickerModes.extension(Rask.RaskSeed_UiDatePicker)
+Rask.UiDatePickerModes.extension(Rask.RaskSeed_UiDatePicker).Mode(Rask.Ui.DatePickerMode mode) -> Rask.UiDatePickerModeEntry
+Rask.UiDatePickerModes.extension(Rask.RaskSeed_UiDatePicker).Range.get -> Rask.RaskSeed_UiDatePickerRange
+Rask.UiDatePickerModes.extension(Rask.RaskSeed_UiDatePicker).Single.get -> Rask.RaskSeed_UiDatePicker
 Rask.UiDatePickerRange
 Rask.UiDatePickerRange.UiDatePickerRange() -> void
 Rask.UiDateRange
@@ -1232,6 +1281,8 @@ Rask.UiTimeRange.UiTimeRange(System.TimeOnly Start, System.TimeOnly End) -> void
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Base.get -> Rask.UiCalendar!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Lg.get -> Rask.UiCalendar!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Range.get -> Rask.UiCalendar!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Single.get -> Rask.UiCalendar!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Sm.get -> Rask.UiCalendar!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Xl.get -> Rask.UiCalendar!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Xs.get -> Rask.UiCalendar!
@@ -1239,6 +1290,8 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Xxl.get -> Rask.UiCalendar
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Base.get -> Rask.UiCalendarMultiple!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Lg.get -> Rask.UiCalendarMultiple!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Range.get -> Rask.UiCalendarMultiple!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Single.get -> Rask.UiCalendarMultiple!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Sm.get -> Rask.UiCalendarMultiple!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Xl.get -> Rask.UiCalendarMultiple!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Xs.get -> Rask.UiCalendarMultiple!
@@ -1246,6 +1299,8 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Xxl.get -> Rask.Ui
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Base.get -> Rask.UiCalendarRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Lg.get -> Rask.UiCalendarRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Range.get -> Rask.UiCalendarRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Single.get -> Rask.UiCalendarRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Sm.get -> Rask.UiCalendarRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Xl.get -> Rask.UiCalendarRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Xs.get -> Rask.UiCalendarRange!
@@ -1277,6 +1332,8 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Button.get -> Rask.UiDat
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Default.get -> Rask.UiDatePicker!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Input.get -> Rask.UiDatePicker!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Lg.get -> Rask.UiDatePicker!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Range.get -> Rask.UiDatePicker!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Single.get -> Rask.UiDatePicker!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Sm.get -> Rask.UiDatePicker!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Xl.get -> Rask.UiDatePicker!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Xxl.get -> Rask.UiDatePicker!
@@ -1293,6 +1350,8 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Button.get -> Rask.
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Default.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Input.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Lg.get -> Rask.UiDatePickerRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Range.get -> Rask.UiDatePickerRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Single.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Sm.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Xl.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Xxl.get -> Rask.UiDatePickerRange!
@@ -1370,14 +1429,24 @@ RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).Sm.get -> Rask.UiT
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).TwelveHour.get -> Rask.UiTimePicker<T>!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).TwentyFourHour.get -> Rask.UiTimePicker<T>!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).Xs.get -> Rask.UiTimePicker<T>!
+static Rask.Ui.CalendarMultiple.get -> Rask.RaskSeed_UiCalendarMultiple
+static Rask.Ui.CalendarRange.get -> Rask.RaskSeed_UiCalendarRange
 static Rask.Ui.DatePicker.get -> Rask.RaskSeed_UiDatePicker
 static Rask.Ui.DatePickerButton.get -> Rask.UiDatePickerButton!
 static Rask.Ui.DatePickerInput.get -> Rask.UiDatePickerInput!
+static Rask.Ui.DatePickerRange.get -> Rask.RaskSeed_UiDatePickerRange
 static Rask.Ui.InputGroup.get -> Rask.UiInputGroup!
 static Rask.Ui.InputGroupPrefix.get -> Rask.UiInputGroupPrefix!
 static Rask.Ui.InputGroupSuffix.get -> Rask.UiInputGroupSuffix!
 static Rask.Ui.Link.get -> Rask.UiLink!
 static Rask.Ui.TimePicker.get -> Rask.RaskSeed_UiTimePicker
+static Rask.UiCalendarModes.get_Multiple(Rask.RaskSeed_UiCalendar calendar) -> Rask.RaskSeed_UiCalendarMultiple
+static Rask.UiCalendarModes.get_Range(Rask.RaskSeed_UiCalendar calendar) -> Rask.RaskSeed_UiCalendarRange
+static Rask.UiCalendarModes.get_Single(Rask.RaskSeed_UiCalendar calendar) -> Rask.RaskSeed_UiCalendar
+static Rask.UiCalendarModes.Mode(this Rask.RaskSeed_UiCalendar calendar, Rask.Ui.CalendarMode mode) -> Rask.UiCalendarModeEntry
+static Rask.UiDatePickerModes.get_Range(Rask.RaskSeed_UiDatePicker picker) -> Rask.RaskSeed_UiDatePickerRange
+static Rask.UiDatePickerModes.get_Single(Rask.RaskSeed_UiDatePicker picker) -> Rask.RaskSeed_UiDatePicker
+static Rask.UiDatePickerModes.Mode(this Rask.RaskSeed_UiDatePicker picker, Rask.Ui.DatePickerMode mode) -> Rask.UiDatePickerModeEntry
 static Rask.UiDateRange.Of(Rask.Ui.DateRangePreset preset, System.DateOnly today, System.DayOfWeek startDay = System.DayOfWeek.Sunday, System.DateOnly? min = null) -> Rask.UiDateRange
 static Rask.UiInputIcon.FromComponent(Rask.Core.Component! content) -> Rask.UiInputIcon
 static Rask.UiInputIcon.FromIconName(Rask.Ui.IconName name) -> Rask.UiInputIcon
@@ -1572,12 +1641,22 @@ static RaskBuilderSettersRask_Ui.get_Pink(Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_Purple(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Purple(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Purple(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Range(Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.get_Range(Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.get_Range(Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.get_Range(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.get_Range(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Red(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Red(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Red(Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_Rose(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Rose(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Rose(Rask.UiText! __b) -> Rask.UiText!
+static RaskBuilderSettersRask_Ui.get_Single(Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.get_Single(Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.get_Single(Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.get_Single(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.get_Single(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Sky(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Sky(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Sky(Rask.UiText! __b) -> Rask.UiText!
@@ -1683,11 +1762,22 @@ static RaskBuilderSettersRask_Ui.MinRange(this Rask.UiCalendarMultiple! __b, int
 static RaskBuilderSettersRask_Ui.MinRange(this Rask.UiCalendarRange! __b, int? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.MinRange(this Rask.UiDatePicker! __b, int? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.MinRange(this Rask.UiDatePickerRange! __b, int? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Mode(this Rask.UiCalendar! __b, Rask.Ui.CalendarMode? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Mode(this Rask.UiCalendarMultiple! __b, Rask.Ui.CalendarMode? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Mode(this Rask.UiCalendarRange! __b, Rask.Ui.CalendarMode? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Mode(this Rask.UiDatePicker! __b, Rask.Ui.DatePickerMode? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Mode(this Rask.UiDatePickerRange! __b, Rask.Ui.DatePickerMode? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Months(this Rask.UiCalendar! __b, int? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.Months(this Rask.UiCalendarMultiple! __b, int? value) -> Rask.UiCalendarMultiple!
 static RaskBuilderSettersRask_Ui.Months(this Rask.UiCalendarRange! __b, int? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.Months(this Rask.UiDatePicker! __b, int? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.Months(this Rask.UiDatePickerRange! __b, int? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendar! __b, bool? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendarMultiple! __b, bool? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendarRange! __b, bool? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.Multiple<T>(this Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Multiple<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Navigation(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
