@@ -1,0 +1,44 @@
+# Formatting for this repository. `dotnet format` applies it; every major C# editor honours it.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+indent_size = 4
+
+# Compiler diagnostics that catch real bugs, raised from suggestion to warning so they show up in
+# a normal build rather than only under an IDE lightbulb.
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.IDE0005.severity = warning
+
+# Language style
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_using_directive_placement = outside_namespace:warning
+csharp_prefer_braces = true:warning
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_style_readonly_field = true:warning
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
+
+# Naming: interfaces start with I, types and members are PascalCase.
+dotnet_naming_rule.interfaces_start_with_i.symbols = interface_symbols
+dotnet_naming_rule.interfaces_start_with_i.style = prefixed_with_i
+dotnet_naming_rule.interfaces_start_with_i.severity = warning
+dotnet_naming_symbols.interface_symbols.applicable_kinds = interface
+dotnet_naming_style.prefixed_with_i.required_prefix = I
+dotnet_naming_style.prefixed_with_i.capitalization = pascal_case
+
+[*.{json,yml,yaml,xml,csproj,slnx,props,targets}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

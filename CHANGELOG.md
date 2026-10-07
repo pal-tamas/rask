@@ -44,6 +44,26 @@ them until tagged releases begin.
 
 ### Added
 
+- **Runtime hooks for a widget's keys, focus and popovers (`data-rask-*`, round two).** `data-rask-contain-keys="Arrows
+  Home End …"` cancels the browser's default for the keys a widget handles itself (the page no longer scrolls behind a
+  calendar; `data-rask-listbox-button` is now one such list); `data-rask-roving` walks a `[role=radiogroup]` of
+  non-native radios with the arrows, selecting as it goes and wrapping; `data-rask-focus-follows` /
+  `data-rask-focus-target` carry focus to a tab stop a render moved, only when focus was on it;
+  `aria-activedescendant` on a combobox or listbox scrolls the active option into view inside its list and never the
+  page; `data-rask-press-keeps-focus` stops a press from moving focus; `data-rask-toggle="<popover id>"` toggles a
+  popover from an element that is not a button (click, Enter, Space; Escape, a press outside and Tab away close a
+  manual one); and every popover invoker that carries `aria-expanded` now follows its popover. `data-rask-stack` also
+  writes `--rask-stack-front` and measures each child's natural height (the stack carries `data-rask-measuring` while
+  it does), so a deck cut to the front card's height can still fan out. See `docs/js-interop-runtime.md`.
+
+- **Six more front-end templates: `preact`, `vue`, `angular`, `solid`, `svelte` and `lit`.**
+  `rask new Shop --template vue` writes the same project `--template react` does — the same `Rask.Server`
+  host — with that framework's TypeScript client in `client/`. All seven draw one starter and
+  one sign-in screen in plain Tailwind utilities, with no component library installed, and subscribe to push
+  through the browser's own `PushManager`. Angular differs where its CLI does: `ng serve` on port 4200
+  (`npm start`), `client/proxy.conf.json` for the dev proxy, and `RaskSpaDistDir` set to
+  `dist/<app>-client/browser`; its `.vscode/extensions.json` recommends the Angular Language Service. See
+  `docs/spa.md#scaffolding-one`.
 - **The React starter is plain Tailwind.** `rask new --template react` no longer installs daisyUI in the
   client: its page and sign-in screens are drawn with Tailwind utilities alone, light and dark, so a front
   end picks its own component library or none.
@@ -54,7 +74,7 @@ them until tagged releases begin.
   build it (`docs/spa.md#scaffolding-one`). New: `client/src/push.ts` subscribes through the browser's own
   `PushManager` and posts `subscription.toJSON()` to `/_rask/push/subscribe`, with no Rask module; and
   `rask dev` runs `npm ci` first when the client has no `node_modules`. `--no-cqrs` and `--islands` are
-  refused on it. The other six front-end templates are not back yet.
+  refused on it.
 - **A front end gets its host's remote messages as TypeScript again.** `Rask.Spa.Hosting` writes
   `contracts.ts`, `messages.ts`, the `rask.dispatch` client, `query.ts` and `browser/auth.ts` into
   `client/src/rask/` on every build (`docs/spa.md#a-typed-client-for-your-messages`). New: only a host that

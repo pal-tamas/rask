@@ -1,5 +1,9 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify).
 #
+# Refreshed 2026-10-07 with round two's first hooks (rask-keys.ts, rask-focus.ts, rask-toggle.ts, the natural
+# heights of rask-toast.ts, and rask-bound.ts taken out of rask-otp.ts): rask.js 113,805 -> 118,884 and
+# rask.wasm.js 102,721 -> 107,798, +5.1 kB each.
+#
 # Refreshed 2026-10-07 with the behaviour hooks (rask-hooks.ts and its ten modules: tooltip and hover popovers,
 # overlay focus and modal dialogs, the page lock, menus, fields, otp cells, toast groups, persisted checkboxes,
 # the carousel): rask.js 90,270 -> 113,805 and rask.wasm.js 79,250 -> 102,721, +23.5 kB each (gzip -9:
@@ -53,5 +57,5 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,113805
-rask.wasm.js,102721
+rask.js,118884
+rask.wasm.js,107798

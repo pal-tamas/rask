@@ -52,11 +52,11 @@ public sealed class RuntimeHookStateTests(PlaywrightFixture playwright) : IClass
     }
 
     [Fact]
-    public async Task Each_toast_in_a_stack_knows_its_place_its_height_and_the_height_in_front_of_it()
+    public async Task Each_toast_in_a_stack_knows_its_place_its_height_the_height_in_front_of_it_and_the_front_ones()
     {
         await using var session = await HookSession.OpenAsync<StateHookPage>(playwright);
         var page = session.Page;
-        const string read = "() => [...document.querySelectorAll('[role=status]')].map(t => ['index', 'height', 'offset'].map(n => t.style.getPropertyValue('--rask-stack-' + n)).join('/')).join(' ')";
+        const string read = "() => [...document.querySelectorAll('[role=status]')].map(t => ['index', 'height', 'offset', 'front'].map(n => t.style.getPropertyValue('--rask-stack-' + n)).join('/')).join(' ')";
 
         await page.ClickAsync("#show");
         await Expect(page.Locator("[role=status]")).ToHaveCountAsync(2);
@@ -66,8 +66,26 @@ public sealed class RuntimeHookStateTests(PlaywrightFixture playwright) : IClass
         await Expect(page.Locator("[role=status]")).ToHaveCountAsync(1);
 
         // The last child is the front of the stack: index 0, nothing in front of it.
-        Assert.Equal("1/40px/60px 0/60px/0px", two);
-        Assert.Equal("0/40px/0px", await page.EvaluateAsync<string>(read));
+        Assert.Equal("1/40px/60px/60px 0/60px/0px/60px", two);
+        Assert.Equal("0/40px/0px/40px", await page.EvaluateAsync<string>(read));
+    }
+
+    [Fact]
+    public async Task Cards_cut_to_the_front_ones_height_are_still_measured_at_their_own_and_all_know_the_front_ones()
+    {
+        await using var session = await HookSession.OpenAsync<StateHookPage>(playwright);
+        var page = session.Page;
+        const string read = "() => [...document.querySelectorAll('#deck > div')].map(t => ['height', 'offset', 'front'].map(n => t.style.getPropertyValue('--rask-stack-' + n)).join('/') + '=' + t.offsetHeight).join(' ')";
+
+        var atRest = await page.EvaluateAsync<string>(read);
+        await page.EvaluateAsync("() => document.getElementById('deck').insertAdjacentHTML('beforeend', '<div><div><div style=\"height:20px\"></div></div></div>')");
+        await page.WaitForFunctionAsync("() => document.querySelectorAll('#deck > div')[2].style.getPropertyValue('--rask-stack-front') === '30px'");
+
+        // Tall (80 with its padding) behind short (50): each says its own height, and the card inside both is
+        // cut to the front one's, 50, so both are drawn 60 tall.
+        Assert.Equal("80px/50px/50px=60 50px/0px/50px=60", atRest);
+        Assert.Equal("80px/80px/30px 50px/30px/30px 30px/0px/30px", System.Text.RegularExpressions.Regex.Replace(await page.EvaluateAsync<string>(read), "=[0-9.]+", string.Empty));
+        Assert.False(await page.EvaluateAsync<bool>("() => document.getElementById('deck').hasAttribute('data-rask-measuring')"));
     }
 
     [Fact]
@@ -111,6 +129,15 @@ public sealed partial class StateHookPage : Component
     private const string Html = """
         <input id="collapsed" type="checkbox" data-rask-persist="test-sidebar-collapsed">
         <input id="drawer" type="checkbox" data-rask-uncheck-on-navigate>
+        <style>
+            #deck > div { padding: 5px 0; }
+            #deck > div > div { overflow: hidden; transition: height 0.35s ease; }
+            #deck:not([data-rask-measuring]) > div > div { height: var(--rask-stack-front, auto); }
+        </style>
+        <div id="deck" data-rask-stack style="position:absolute;top:0;right:0;width:100px">
+            <div><div><div style="height:70px"></div></div></div>
+            <div><div><div style="height:40px"></div></div></div>
+        </div>
         """;
 
     private readonly List<int> _toasts = [];

@@ -12,8 +12,7 @@
 //     run before the page's own input handler, so the page receives the shaped value, and both put the caret
 //     back where the reader was typing.
 //   * Enter toggles a checkbox that is a role="switch"; Shift+Arrow and PageUp/PageDown move a range input by
-//     its data-rask-big-step; Enter and the vertical arrows on a closed data-rask-listbox-button do nothing
-//     of their own.
+//     its data-rask-big-step. (A closed data-rask-listbox-button's keys are rask-keys.ts's.)
 //
 // Delegated to the document throughout. The shaping functions are exported for the Node fixture.
 
@@ -204,16 +203,6 @@ if (page) {
 
     page.addEventListener("keydown", function (e) {
         const t = e.target;
-        // A closed listbox button (data-rask-listbox-button): Enter is not a press — Flux UI's select stays
-        // shut on it, where a native <button popovertarget> would open — and the arrows, which open the list
-        // from the page's own handler, do not also scroll the page behind it. Home, End and the paging keys
-        // are left to the page, as they are there.
-        if (t instanceof HTMLButtonElement && t.hasAttribute("data-rask-listbox-button")
-            && t.getAttribute("aria-expanded") !== "true"
-            && (e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp")) {
-            e.preventDefault();
-            return;
-        }
         if (!(t instanceof HTMLInputElement) || e.ctrlKey || e.altKey || e.metaKey) {
             return;
         }

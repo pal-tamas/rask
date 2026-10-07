@@ -1,0 +1,9 @@
+# Generated on every build from the C# contracts — not ours to format.
+src/rask/
+
+# Build output.
+dist/
+node_modules/
+
+# Lockfiles are written by npm, and reformatting one makes every diff unreadable.
+package-lock.json

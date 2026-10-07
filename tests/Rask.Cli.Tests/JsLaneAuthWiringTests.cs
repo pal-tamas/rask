@@ -45,13 +45,15 @@ public sealed class JsLaneAuthWiringTests
     {
         var result = Generate(key, data: true);
 
+        // Angular declares its proxy in proxy.conf.json; the Vite frameworks in vite.config.ts.
         var proxies = result.Files
+            .Where(f => Path.GetFileName(f.Path) is "vite.config.ts" or "proxy.conf.json")
             .Select(f => f.Content)
-            .Where(c => c.Contains("'/_rask'", StringComparison.Ordinal))
+            .Where(c => c.Contains("/_rask", StringComparison.Ordinal))
             .ToArray();
 
         Assert.True(proxies.Length > 0, $"[{key}] no dev proxy was scaffolded at all.");
-        Assert.Contains(proxies, c => c.Contains("'/api/auth'", StringComparison.Ordinal));
+        Assert.Contains(proxies, c => c.Contains("/api/auth", StringComparison.Ordinal));
     }
 
     private static string Program(ScaffoldResult result) =>
