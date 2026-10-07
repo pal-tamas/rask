@@ -22,7 +22,7 @@ public sealed partial class ComponentFactoryGenerator
 
     // The bound half of an IFormControl<T> control: one setter per interface member, typed from the
     // interface's T rather than from the declaring class. That matters twice — the members may be
-    // inherited from a non-Element base (Ui.Input's UiInput<T> gets them from UiFormField<T>, which the
+    // inherited from a non-Element base (Ui.RadioGroup's UiRadioGroup<T> gets them from UiFormField<T>, which the
     // depth-0 rule above would skip), and it is what lets the generic entry take only `Bind`:
     //
     //     Input.Bind(() => _form.Name).Validate(ProductName.Validate).Id("name")

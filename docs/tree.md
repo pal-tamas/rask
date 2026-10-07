@@ -70,7 +70,7 @@ leaves the cursor where the reader put it.
 ## The keyboard
 
 The tree is one focusable element. A cursor moves inside it, and `aria-activedescendant` tells a
-screen reader which row the cursor is on — the shape [`Ui.Select`](ui-kit.md) uses for its listbox, and
+screen reader which row the cursor is on — the shape [`Ui.Select`](ui-kit.md#select) uses for its drawn list, and
 the reason this kit still ships no JavaScript.
 
 | Key | What it does |
