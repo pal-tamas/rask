@@ -44,6 +44,50 @@ them until tagged releases begin.
 
 ### Added
 
+- **Runtime hooks for a widget's keys, focus and popovers (`data-rask-*`, round two).** `data-rask-contain-keys="Arrows
+  Home End …"` cancels the browser's default for the keys a widget handles itself (the page no longer scrolls behind a
+  calendar; `data-rask-listbox-button` is now one such list); `data-rask-roving` walks a `[role=radiogroup]` of
+  non-native radios with the arrows, selecting as it goes and wrapping; `data-rask-focus-follows` /
+  `data-rask-focus-target` carry focus to a tab stop a render moved, only when focus was on it;
+  `aria-activedescendant` on a combobox or listbox scrolls the active option into view inside its list and never the
+  page; `data-rask-press-keeps-focus` stops a press from moving focus; `data-rask-toggle="<popover id>"` toggles a
+  popover from an element that is not a button (click, Enter, Space; Escape, a press outside and Tab away close a
+  manual one); and every popover invoker that carries `aria-expanded` now follows its popover. `data-rask-stack` also
+  writes `--rask-stack-front` and measures each child's natural height (the stack carries `data-rask-measuring` while
+  it does), so a deck cut to the front card's height can still fan out. See `docs/js-interop-runtime.md`.
+
+- **Six more front-end templates: `preact`, `vue`, `angular`, `solid`, `svelte` and `lit`.**
+  `rask new Shop --template vue` writes the same project `--template react` does — the same `Rask.Server`
+  host — with that framework's TypeScript client in `client/`. All seven draw one starter and
+  one sign-in screen in plain Tailwind utilities, with no component library installed, and subscribe to push
+  through the browser's own `PushManager`. Angular differs where its CLI does: `ng serve` on port 4200
+  (`npm start`), `client/proxy.conf.json` for the dev proxy, and `RaskSpaDistDir` set to
+  `dist/<app>-client/browser`; its `.vscode/extensions.json` recommends the Angular Language Service. See
+  `docs/spa.md#scaffolding-one`.
+- **The Angular template says which Node it needs.** Its csproj sets `RaskSpaMinimumNode` to **22.22.3**, the
+  lowest Node the Angular CLI accepts (`^22.22.3 || ^24.15.0 || >=26.0.0`), so a build on an older one stops at
+  `RASKSPA005` naming the version it found instead of failing inside `ng build`. The other six keep 22.12.
+- **Every front-end template is gated end to end, a CI job each.** `front end react` … `front end vue` scaffold
+  the template, run `dotnet publish` (the committed lockfile's `npm ci`, the generated `client/src/rask/`, the
+  bundle), lint and format-check the client, then start the published app and ask it for its page and the starter's
+  query. They run when that template's tree changes, all seven when `Rask.Spa.Hosting`, the TypeScript emitter or
+  the scaffolder does, and always in the hourly whole run. By hand: `scripts/run-template-e2e.sh --front-end=vue`.
+- **Dependabot follows the seven template clients.** One weekly pull request for all of them (a second for
+  majors), lockfile-only inside a `package.json` range. `dependabot-merge.yml` lands it on a `ci` run that
+  includes the `front end` job of every template it changes. `upstream.yml`'s Node LTS move now carries the
+  templates' `setup_NN.x` Dockerfile line with it. `scripts/refresh-templates.sh` is not restored;
+  `docs/development-workflow.md#dependencies` has the by-hand re-import.
+- **The React starter is plain Tailwind.** `rask new --template react` no longer installs daisyUI in the
+  client: its page and sign-in screens are drawn with Tailwind utilities alone, light and dark, so a front
+  end picks its own component library or none.
+- **`rask new Shop --template react` is back.** One project: a `Rask.Server` host
+  (`RaskApp.Create(args).Serve()`, every battery the `wasm-hosted` template carries) with a React +
+  TypeScript + Vite + Tailwind app in `client/` — a query and a command over the typed client, `/login` and
+  `/register` screens over `/api/auth`, a manifest and service worker, and a Dockerfile that installs Node to
+  build it (`docs/spa.md#scaffolding-one`). New: `client/src/push.ts` subscribes through the browser's own
+  `PushManager` and posts `subscription.toJSON()` to `/_rask/push/subscribe`, with no Rask module; and
+  `rask dev` runs `npm ci` first when the client has no `node_modules`. `--no-cqrs` and `--islands` are
+  refused on it.
 - **A front end gets its host's remote messages as TypeScript again.** `Rask.Spa.Hosting` writes
   `contracts.ts`, `messages.ts`, the `rask.dispatch` client, `query.ts` and `browser/auth.ts` into
   `client/src/rask/` on every build (`docs/spa.md#a-typed-client-for-your-messages`). New: only a host that
@@ -206,6 +250,119 @@ them until tagged releases begin.
   rask.sh's CSS went from 497.7 KB in two sheets (68.0 KB gzipped) to 495.4 KB in one (64.8 KB): one
   request fewer, and about the same bytes — the kit's share is nearly all of it either way.
 
+- **`Ui.Autocomplete` and `Ui.Pillbox`: Flux UI's autocomplete and pillbox.** Two more of
+  [fluxui.dev](https://fluxui.dev)'s components, part for part, measured against its live pages loaded and
+  open, in light and dark, and walked key by key against a running site.
+  `Ui.Autocomplete.Bind(() => m.State).Label("State of residence")[states.Select(s => Ui.AutocompleteItem[s])]`
+  is Flux's input over a list of suggestions: it holds the text, takes the input's props (`Type`, `Size`,
+  `Variant`, `Mask`, `Icon`, `IconTrailing`, `Kbd`, `Clearable()`, `Copyable()`, `Viewable()`, `As`, `InputClass`) and
+  `ContainerClass` for the list; typing filters, Enter writes the active item into the input, Escape closes
+  and empties it. `Ui.Pillbox.Bind(() => m.Tags)[tags.Select(t => Ui.PillboxOption.Value(t.Id)[t.Name])]`
+  holds a collection and shows each answer as a pill with a cross: `.Sm`, `Searchable()` /
+  `SearchPlaceholder`, `.Combobox` (an input among the pills, where Backspace takes the last pill off),
+  `Filter(false)`, and the parts `Ui.PillboxOption` (`Value`, `Label`, `SelectedLabel`, `Disabled()`,
+  `Filterable(false)`), `Ui.PillboxOptionCreate` (`MinLength`, `OnClick`), `Ui.PillboxOptionEmpty`
+  (`WhenLoading`), `Ui.PillboxSearch`, `Ui.PillboxTrigger` and `Ui.PillboxInput`. Both ship no script: a
+  native `popover` placed by CSS anchor positioning, and the cursor, the filter and the picking in C#. The
+  pillbox is drawn by the control that draws `Ui.Select`'s list. `Copyable()` is the input's, and the page
+  behind an open list is locked (`data-rask-lock`). The pillbox's trigger keeps Enter, Space and the vertical
+  arrows as Flux's does (`data-rask-contain-keys`), so opening it from the keyboard does not scroll the page.
+- **BREAKING: `Ui.Select` is Flux UI's select — native, listbox and combobox — and its options are children.**
+  [fluxui.dev](https://fluxui.dev/components/select)'s `flux:select`, part for part, over Rask's binding
+  (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the form); the daisyUI-drawn `UiSelect<T>` and
+  `UiMultiSelect<T>` are deleted. Three variants (`Ui.SelectVariant`): the default is the browser's own
+  `<select>`, `.Listbox` a button over a drawn list, `.Combobox` a text input that filters one. New parts:
+  `Ui.SelectOption` (`Value`, `Label`, `SelectedLabel`, `Keywords`, `Icon`, `IconVariant`, `IconClass`,
+  `Avatar`, `Description`, `Disabled()`, or children of your own), `Ui.SelectGroup`, `Ui.SelectOptionCreate`
+  (`MinLength`, `OnClick` handed the search as typed), `Ui.SelectOptionEmpty` (`WhenLoading`), and Flux's three
+  slots as children: `Ui.SelectButton`, `Ui.SelectInput`, `Ui.SelectSearch`. New on the select: `Size`
+  (`Ui.SelectSize`: `.Sm` 32px, `.Xs` 24px), `Multiple()`, `Searchable()`, `Filter(false)`, `Clearable()`,
+  `Prefix`, `Empty`, `SelectedSuffix`, `Clear(Ui.SelectClear.Close)`, `Position` / `Align`, `OptionsClass`,
+  `Invalid()`, and `Label` / `Description` / `DescriptionTrailing` / `Badge`, which draw the `Ui.Field` around
+  it with its `Ui.Error` (`ShowValidation(false)` leaves the message to one placed elsewhere).
+  ```csharp
+  Ui.Select.Bind(() => m.Country).Options(countries).Label("Country")                 // was — a list of (Value, Text)
+  Ui.Select.Bind(() => m.Country).Label("Country")[                                   // now — options are children,
+      countries.Select(c => Ui.SelectOption.Key(c.Code).Value(c.Code)[c.Name])        //   and one made from a list takes a Key
+  ]
+  Ui.Select.Bind(() => m.Plan).Options(plans).Native(false)                           // was
+  Ui.Select.Bind(() => m.Plan).Listbox[ … ]                                           // now — the variant says it
+  Ui.Select.Bind(() => m.Plan).Options(plans).Searchable()                            // was
+  Ui.Select.Bind(() => m.Plan).Listbox.Searchable()[ … ]                              // now — or .Combobox, to type in the box itself
+  Ui.Select.Bind(() => m.Tags).Options(tags)                                          // was — a collection made it the multi-select
+  Ui.Select.Bind(() => m.Tags).Listbox.Multiple()[ … ]                                // now — List<T>, T[], HashSet<T>, or .Values(tags).OnChange(…)
+  .OptionGroup(c => c.Region)                                                         // was
+  Ui.SelectGroup.Label("Europe")[ Ui.SelectOption.Value("hu")["Hungary"] ]            // now
+  .OptionDisabled(c => c.Retired)                                                     // was
+  Ui.SelectOption.Value(c.Code).Disabled(c.Retired)[c.Name]                           // now
+  .OptionTemplate(p => Div[Ui.Icon.Name(p.Icon), Span[p.Name]])                       // was
+  Ui.SelectOption.Value(p.Id).Label(p.Name).Icon(p.Icon).Description(p.About)         // now — or .Avatar(url), or the option's own children
+  .Filter((c, text) => c.Code.StartsWith(text)).OnSearch(Find).Loading(busy)          // was
+  Ui.Select.Bind(() => m.UserId).Combobox.Filter(false)[                              // now — the page filters: it answers OnInput
+      Ui.SelectInput.OnInput(text => _users = Users.Named(text)),                     //   by rendering the options that match
+      _users.Select(u => Ui.SelectOption.Key(u.Id).Value(u.Id)[u.Name]),
+      Ui.SelectOptionEmpty.WhenLoading("Loading users...")["No users found."]
+  ]
+  .EmptyText("Nothing here")   .Hint("Where we ship to")   .AccessibleLabel("Country")   // was
+  .Empty("Nothing here")       .Description("Where we ship to")   .Label("Country")      // now
+  ```
+  Nothing Flux does not have stayed. Gone: `Options(list)`, `Native()` / `Native(false)`, `OptionGroup`,
+  `OptionDisabled`, `OptionTemplate`, `Filter((value, text) => …)`, `OnSearch`, `Loading`, `EmptyText` /
+  `LoadingText`, `SelectAll()`, `Chips(n)`, `Floating(…)`, `Tone`, daisyUI's `Variant` and `Size(Ui.Size)`,
+  `Hint`, `AccessibleLabel`, and `Ui.MultiSelect` as a name. A select over a collection is the listbox's, as
+  on Flux: its button shows the one picked label or "N selected" (`SelectedSuffix("industries selected")`),
+  and the native variant holds one answer.
+
+  The drawn list ships no script. It is a native `popover` placed by CSS anchor positioning — as wide as its
+  trigger, 5px under it, at most 20rem tall, flipping when it would not fit — and the keyboard is Flux's,
+  recorded on fluxui.dev: Space and the arrows open on the picked option, the arrows stop at either end,
+  Home / End / PageUp / PageDown do nothing, Enter picks and closes (several: switches the row and stays
+  open), Escape and a click elsewhere close with focus back on the button, and a letter typed on the closed
+  button picks the next option starting with it. A named drawn select posts through hidden inputs. The
+  closed listbox button ignores Enter, as Flux's does (`data-rask-listbox-button`), and the page behind an open
+  list is locked (`data-rask-lock`). ARIA is Flux's, read from its live page: every list says
+  `aria-multiselectable="true"`, one answer or several, the "no results" and create rows carry no role, and a
+  search field says no `aria-expanded` (it keeps the list's keys through `data-rask-contain-keys`).
+  `scripts/flux/parity-select.mjs` holds the open list to
+  fluxui.dev — the popup's look and placement on the parity page, and `--live <url>` walks the keyboard on a
+  running site. RASK075 (an option template on a native select) is retired with its analyzer: there is no
+  `OptionTemplate` or `Native` left to contradict each other, and the id is not recycled.
+- **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
+  `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
+  `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the
+  form). `Label`, `Description` and `DescriptionTrailing` (and `Badge` on a textarea) wrap the control in a
+  `Ui.Field` with its `Ui.Error`; a control with none of them is the control alone and draws no message.
+  New: `Variant` (`.Filled`), `Invalid()`, `ReadOnly()`, `Viewable()`, `Mask("(999) 999-9999")`,
+  `As(Ui.InputAs.Button)`, `InputClass`, `Type(InputType.File)` drawn as Flux's file input, an icon that is a
+  component of your own, `Ui.InputGroup` / `Ui.InputGroupPrefix` / `Ui.InputGroupSuffix`, and
+  `Rows(UiTextareaRows.Auto)`. Nothing Flux does not have stayed:
+  ```csharp
+  Ui.Search.Placeholder("Search").AccessibleLabel("Search keys").Value(q).OnSearch(Find)        // was
+  Ui.Input.Value(q).Icon(Ui.IconName.MagnifyingGlass).Placeholder("Search").OnChange(Find)      // now
+
+  Ui.Input.Bind(() => m.Email).Label("Email").Hint("We never share it.")                         // was
+  Ui.Input.Bind(() => m.Email).Label("Email").Description("We never share it.")                  // now
+
+  Ui.Input.Value(v).Tone(Ui.Tone.Error).Error("Not an email.")                                   // was
+  Ui.Field[Ui.Input.Value(v).Invalid(), Ui.Error.Message("Not an email.")]                       // now
+
+  Ui.Input.Value(v).Size(Ui.Size.Sm).Variant(Ui.Variant.Ghost)                                   // was
+  Ui.Input.Value(v).Sm.Filled                                                                    // now
+
+  Ui.Textarea.Bind(() => m.Notes).AutoSize(true).Resize(Ui.Resize.None)                          // was
+  Ui.Textarea.Bind(() => m.Notes).Rows(UiTextareaRows.Auto).None                                 // now
+  ```
+  Removed with no replacement: floating labels (`Floating`), `AccessibleLabel`, `Badge` on an input,
+  `ShowValidating` and its "Checking…" line, the message a bound control with no label used to draw, and
+  `aria-required` from `[Required]`. `Ui.Resize` is `Ui.TextareaResize`; a textarea is four rows by default
+  (was three). `Copyable()`, `Clearable()` and `Mask` are the runtime's in the page (`data-rask-copy`,
+  `data-rask-clear`, `data-rask-mask`): the clipboard is written and the field emptied in the click itself, and
+  every keystroke is held to the pattern. Flux's `mask:dynamic` (an Alpine expression) is not built.
+  An attribute Flux forwards to the `<input>` goes through `Attributes`, as it does on any element:
+  `Ui.Input.Value(q).Attributes(("aria-label", "Search keys"))` is how an input with no label is named — the
+  console's three search fields are, again.
+  An input, textarea or select that nothing names (no `Id`, no bound member, no `Label`) has an id of its own
+  (`f-field-<n>`): they all shared `f-field`, so a `Ui.Label` beside the second one pointed at the first.
 - **BREAKING: `Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
   [Flux UI's field](https://fluxui.dev/components/field).** The first family of the kit drawn without
   daisyUI: Flux's parts, props, spacing and colours in light and dark, held to its docs page by
@@ -221,9 +378,6 @@ them until tagged releases begin.
   - `Ui.Label.Text("€").Trailing("per month")[input]` — daisyUI's caption inside a control's frame — is
     gone; `Ui.Label` is now the control's NAME (`Ui.Label["Email"]`, `Badge`, a `Trailing` slot). For the
     old look write the daisyUI markup: `Label.Class("label")[Span["€"], input, Span["per month"]]`.
-
-  `Ui.Input`, `Ui.Select` and the other controls are unchanged and still draw their own label, `Hint` and
-  message; each takes Flux's `Label`/`Description` field as it is rebuilt.
 - **BREAKING: UI kit — `Ui.Heading`, `Ui.Text` and `Ui.Link` are Flux UI's, and `Ui.Subheading` is gone.**
   Same names, props and look as [fluxui.dev](https://fluxui.dev/components/heading)'s `flux:heading`,
   `flux:text` and `flux:link`, measured against its docs in light and dark; none of the three is drawn
@@ -587,6 +741,16 @@ them until tagged releases begin.
   gone.
 
 ### Fixed
+
+- **One-time-code cells (`data-rask-otp`) no longer lose the selection, or a cell, to a late echo.** The page's
+  answer to each code announced comes back late, and a render writes the bound hidden field twice (the attribute,
+  then the property). The hook read the second record after it had answered the first — its own write, which was
+  waiting as an echo too — so every echo before it was forgotten, and the ones that then arrived emptied the later
+  cells and filled them again: the same six characters, with the last cell no longer selected, so the next key
+  was appended instead of replacing it. An echo that reached the field in the same task as the next key was
+  misread the same way. Each group is now sorted out once per batch of changes, and what the page wrote is read
+  before the hook writes over it. On a slow machine this was every fast entry — it is what turned the server E2E
+  job red.
 
 - **Rask.Wasm: a prerendered page links the one stylesheet its app compiles.** The prerender compiles the
   app a second time, in `obj/`, and that copy's assembly did not say what the app's says: where the

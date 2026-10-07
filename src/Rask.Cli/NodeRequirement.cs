@@ -24,7 +24,8 @@ internal static class NodeRequirement
 {
     /// <summary>
     ///     The lowest Node an app with islands builds on. Mirrors <c>RaskExternalMinimumNode</c> in
-    ///     <c>src/Rask.External/build/Rask.External.props</c>, which is the enforcing copy.
+    ///     <c>src/Rask.External/build/Rask.External.props</c>, which is the enforcing copy — and
+    ///     <c>RaskSpaMinimumNode</c> in <c>Rask.Spa.Hosting.props</c> (RASKSPA005), for a front-end template.
     /// </summary>
     public static readonly Version BuildFloor = new(22, 12, 0);
 

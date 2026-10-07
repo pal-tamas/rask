@@ -12,7 +12,7 @@ public sealed partial class ElementRefDemo : Component
 
     protected override Component? Render() =>
         Div[
-            Ui.Input.Of<string>().AccessibleLabel("Focus me from C#")
+            Ui.Input.Of<string>().Label("Focus me from C#")
                 .Type(InputType.Text)
                 .Placeholder("Focus me from C#")
                 .Ref(_input).Class("mb-2"),

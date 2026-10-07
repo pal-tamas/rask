@@ -107,10 +107,31 @@ Rendered attributes are not in that gate: compare them with Flux's live DOM (mar
 - Follow `CLAUDE.md` and `docs/api-style.md`; XML-doc every public member in a line or two.
 
 **Form controls** take Flux's `Label` / `Description` / `DescriptionTrailing` / `Badge` and never draw a
-label themselves: implement `IUiFieldControl` (`ControlId` = `UiFieldId.Derive(Id, Bind, Label)`, `Bound` =
-`Bind`) and, in `Render`, `var field = UiWithField.For(this, Label, Description, DescriptionTrailing, Badge);`
-→ put `field.ControlId`, `data-ui-control` and `.Aria(field.Aria)` on the control's own element →
-`return field.Wrap(control);` (a checkbox, radio or switch: `field.Wrap(control, Ui.FieldVariant.Inline, controlFirst: true)`).
+label themselves. The recipe (`UiInput.cs` and `UiTextarea.cs` are the two to copy):
+1. `public sealed partial class UiX<T> : Component, IFormControl<T>, IUiFormControl` — NOT `UiFormField<T>`, which
+   stays only for the daisyUI controls and is deleted with the last of them. Declare the five binding props
+   (`Value`, `OnChange`, `Bind`, `Validate`, `AfterBind`), Flux's props, `Invalid`, `ShowValidation`, `Id`, `Class`;
+   `string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Bind, Label);`, `LambdaExpression? IUiFieldControl.Bound => Bind;`
+   (a prop Flux does not document on that part, e.g. `Badge` on the input: `string? IUiFormControl.Badge => null;`).
+2. In `Render`: `var field = UiWithField.For(this);` → build the native control → `.Id(field.ControlId)`,
+   `.Aria(field.Aria)` (`aria-invalid`, `aria-describedby`), `data-ui-control` plus `data-invalid` when
+   `field.Invalid` → `return field.Wrap(control);` (a checkbox, radio or switch:
+   `field.Wrap(control, Ui.FieldVariant.Inline, controlFirst: true)`). No label and no description ⇒ `Wrap` returns
+   the control alone, and it shows no message.
+3. Binding: a control that IS one native element forwards to Core's — `Bind is { } bind ?
+   Input.Bind(bind).Validate(Validate).AfterBind(AfterBind) : Input.Value(Value).OnChange(OnChange)` (both hand back
+   the same element; same for `Textarea`, `Select`). A control drawn from several elements reads and commits through
+   `UiFormCommit.Resolve(this)` / `UiFormCommit.CommitAsync(…)`.
+4. State a click changes (a reveal toggle) is a private field set in the handler; what CSS can decide (a clear button
+   hidden while `:placeholder-shown`) is CSS. No script, and nothing Flux does not have: a behaviour that needs page
+   script goes in `FluxConformanceTests.NotTranslated` with the hook it is waiting for.
+5. Class literals shared by a generic control live in a non-generic `internal static class UiXLook` (a static in
+   `UiX<T>` is one copy per `T`, S2743). An enum member named after a tag (`Button`, `Input`) is not reachable as a
+   step — the component inherits the markup entry of that name — so it is `.As(Ui.InputAs.Button)`.
+
+A custom element is written as the native one that behaves that way without script (`ui-label` → `<label for>`);
+`parity.mjs`'s `NATIVE` (by tag) and `NATIVE_PART` (by marker) tables name each pair, and a stand-in for a control
+not rebuilt yet carries `data-parity-skip` (held to its place and size only).
 
 **Bleed** is one contract, the card's (Flux's `--flux-bleed-*`): `Ui.Card` and `Ui.CardBody` set
 `--ui-card-radius`, `--ui-bleed-x`, `--ui-bleed`, `--ui-bleed-top|bottom` and `--ui-bleed-top|bottom-radius`;
@@ -148,8 +169,24 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip kanban modal` today, plus the open-state scripts `parity-toast.mjs`,
-`parity-tooltip.mjs` and `parity-modal.mjs`).
+card accordion callout button toast badge tooltip kanban input textarea select autocomplete pillbox modal` today, plus the
+open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-modal.mjs`, `parity-select.mjs`,
+`parity-autocomplete.mjs` and `parity-pillbox.mjs`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
+- **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
+  `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
+  pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
+  box against the trigger and a row hovered and pressed. `--record` walks Flux's page alone and prints every
+  step — write the behaviour table from that BEFORE the component; `--live <url>` walks a running site against
+  Flux's, since a static page has no runtime (`--wait 2200` on a Debug WASM site, which takes over a second
+  to draw a page of demos again). A state that needs picks first (`pick: [1, 2]`) gets a parity page of its
+  own written with them (`PillboxPickedParity`, `raskPage`). A difference the runtime cannot close yet is a
+  walk of its own marked `accepted`, and an entry in `NotTranslated`.
+- **A control built over another** hands it what is its own through an INTERNAL chain step written by hand
+  (`UiInput.HostedBy`, `UiSelectControl.AsPillbox`): no public prop, so no step Flux does not have. Such a
+  step must call `BuilderRuntime.MarkChanged(this)` as a generated one does, or the child serves its cached
+  render, and it goes BEFORE the `[children]` indexer, which hands back a plain `Component`.
+- The runtime runs the CLOSEST handler of an event and no ancestor's: a cross inside a trigger needs no
+  stop-propagation, and a click on a child with no handler is the trigger's.
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -275,12 +312,13 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   is the kit's own `Ui.Button.Subtle.Sm` with Flux's lighter resting colour by `!` utilities (the one way to say
   it over the button's own). The focus placeholder stays (`autofocus` + the `ui-modal-placeholder` keyframe):
   the hook does not do it. Not written, as Flux writes none: `closedby`, `popover`, `aria-modal`, a label.
-  Parity stand-ins: the inputs (as on the field page), Flux's spacer (the kit's `Ui.Spacer` carries no
-  `data-ui-spacer`), and the subheading of the floating example. The Dashboard's queue sheet writes two layout
+  Parity stand-ins: Flux's spacer (the kit's `Ui.Spacer` carries no `data-ui-spacer`) and the subheading of
+  the floating example. The Dashboard's queue sheet writes two layout
   classes (`DashboardIsKitOnlyTests.Allowed`), compiled by its own sheet.
 - Parity stand-ins still standing: none on the chart page; card page (fields, switches, the heading/text lines whose variant was
   not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
-  (slider, as raw `ui-slider` markup), field page (inputs).
+  (slider, as raw `ui-slider` markup). The field page's inputs and select and the input page's buttons are real
+  now; the input page's `flux:select` inside a group is still a stand-in.
 - Tooltip: daisyUI's own is kept out of the sheet by `exclude: … tooltip` on the `@plugin` line in `ui.css`
   (the bare word stands in the kit's comments; `UiTooltipTests` asserts the absence) — the way to drop a
   daisy component whose name the kit still has to say. A `Toggleable()` tooltip around something that is
@@ -296,6 +334,20 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   div card `flux-kanban-card` (no `data-`) and its button card `data-flux-kanban-card`; the kit copies both
   (`ui-kanban-card`, `data-ui-kanban-card`). Parity stand-ins: the dropdown and menu in a column's actions, the
   avatars in a card's footer. The site's demo has two plain buttons where Flux has that dropdown.
+- Input, select, autocomplete, pillbox — the hooks are wired (2026-10-07): `Clearable` is `data-rask-clear`,
+  `Copyable` `data-rask-copy` (tick on `in-data-copied:`), `Mask` `data-rask-mask` (and still applied in C# to the
+  value drawn and committed), the select's listbox button `data-rask-listbox-button`, every list popover
+  `data-rask-lock`, the pillbox's trigger `data-rask-contain-keys` (`Enter Space ArrowUp ArrowDown` as a combobox,
+  `Space ArrowUp ArrowDown` as the button over a search field). The select's search field and the pillbox's inline
+  input say NO `aria-expanded`, as Flux's: they keep the list's keys by `data-rask-contain-keys` on the field
+  itself (`UiListboxLook.ListKeys`; the pill input only while its list is open). Still open: `mask:dynamic` (the
+  runtime has `data-rask-mask-money`; what a C# prop for an Alpine expression takes is the owner's call).
+  `Ui.Input.Attributes(…)` forwards attributes to the `<input>` (how an unlabelled input gets `aria-label`); the
+  typed `Min` / `Max` / `Step` / `MaxLength` / `Autofocus` / `Name` it also keeps are `Translations` rows — whether
+  they should all go through `Attributes` instead is undecided.
+- Pillbox: `Ui.PillboxTrigger.Clearable()`, a disabled pillbox and an invalid `Ui.PillboxInput` are drawn
+  from the select's and the input's looks — no example on Flux's page shows them, so nothing measured them.
+  A create row written before the options is DRAWN first and still comes last for the arrow keys.
 - Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
   `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
   removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —
@@ -328,9 +380,16 @@ component reaches Flux's behaviour by writing exactly these — never by a handl
 | Switch | `<input type="checkbox" role="switch">` | Enter toggles |
 | Slider | `data-rask-big-step="<BigStep ?? Step>"` on the `<input type="range">` | Shift+Arrow, PageUp / PageDown |
 | Select (listbox button) | `data-rask-listbox-button` on the closed `button[role=combobox]` | Enter does nothing, the arrows do not scroll (open the list from the C# key handler: Flux opens on ArrowUp / ArrowDown / Space) |
+| Calendar | grid `data-rask-contain-keys="Arrows Home End PageUp PageDown"` (NOT Space — Flux lets it scroll); the calendar root `data-rask-focus-follows`, the day that is the tab stop `data-rask-focus-target` + `tabindex="0"`; key the day cells by DATE. On Home / End / PageUp / PageDown render NO `data-rask-focus-target` for that render (or let the keyed day leave) | arrows never scroll the page; focus lands on the new day after the morph, across a month change too; after Home / End / Page keys focus is on `<body>`, as Flux |
+| Color picker | area and tracks `data-rask-contain-keys="Arrows Home End PageUp PageDown"` on the `[role=slider]`; swatch `[role=listbox]` the same list plus `Space Enter`; the area `data-rask-press-keeps-focus` | keys kept; a press on the area leaves focus where it was |
+| Pillbox trigger | `[role=combobox]`: `data-rask-contain-keys="Enter Space ArrowUp ArrowDown"`; the `[role=button]` variant: `"Space ArrowUp ArrowDown"` (Flux lets Enter through there) | the trigger's keys do not scroll or press |
+| Select / Time picker list | `aria-activedescendant` on the `[role=combobox]` or `[role=listbox]` (as today) | the active option scrolls into view inside the list only |
+| Date picker presets | `[role=radiogroup]` `data-rask-roving`; each preset `[role=radio]` button with `OnClick` selecting it, `tabindex` 0 on the checked one | arrows walk and select, wrapping |
+| Tooltip `Toggleable()` | non-button trigger wrapper: `data-rask-toggle="<bubble id>"` + `aria-expanded="false"` + `tabindex="0"`, bubble `popover="manual"`; a `<button>` trigger: `popovertarget` + `aria-expanded="false"`, bubble `popover` | Flux's toggleable tooltip: click / Enter / Space toggle, Escape / outside press / Tab away close; `aria-expanded` mirrored |
+| any popover invoker | `aria-expanded="false"` beside `popovertarget` / `commandfor` / `data-rask-toggle` | mirrored from the popover's `toggle` event; never added for you |
 | OTP | group `data-rask-otp` (`="alpha"`, `="alphanumeric"`); cells rendered with NO `value`, NO handler, NO re-keying; ONE `Input.Type(Hidden)` inside, bound to the string | every key of Flux's otp input, fast typing included |
 | Toast | `data-rask-dismiss-hold="pointer"` beside `data-rask-dismiss-after` | focus no longer holds the countdown |
-| ToastGroup | `data-rask-dismiss-scope` on the group (wired). `data-rask-stack` on the parent of the stacked toasts, and CSS from `--rask-stack-index` / `-height` / `-offset` (NOT wired — see below: the hook measures the cut height) | one pointer holds them all; the 350 ms glide |
+| ToastGroup | `data-rask-dismiss-scope` on the group (wired). `data-rask-stack` on the parent of the stacked toasts, newest LAST; no rendered `--ui-toast-index` / anchor names in `style`; CSS from `--rask-stack-index` / `-height` / `-offset` / `-front`, the rule that cuts the card written under `[data-rask-stack]:not([data-rask-measuring])` (hook ready since round two, NOT wired — see below) | one pointer holds them all; the 350 ms glide |
 | Sidebar | collapse checkbox `data-rask-persist="flux-sidebar-collapsed-desktop"` (plus a head script for a WASM cold load); mobile checkbox `data-rask-uncheck-on-navigate` | state kept across visits; drawer closed on navigation |
 | Carousel | `data-rask-carousel`, `data-rask-carousel-track`, `data-rask-carousel-indicators`, `data-rask-carousel-controls` beside the `data-ui-*` markers; `data-direction`, `data-name`, `data-advance`, `data-wrap`, `data-scroll`, `data-autoplay` as today | position flags, arrows, indicators, autoplay |
 
@@ -352,7 +411,8 @@ alone. `parity-modal.mjs` holds every step of both paths to Flux's page, and `Ui
 `data-rask-dismiss-scope`, and `ui.css` pauses the fade of every toast of a hovered group (a held toast that
 faded would stay, unseen). What is NOT wired, each with what it needs:
 
-- **`Toggleable()`** — measured on Flux's `info` example (it renders a `ui-dropdown`): a hover does nothing, a
+- **`Toggleable()`** (both hooks below exist since round two — `data-rask-toggle` and the `aria-expanded`
+  mirror; the component is still to be converted) — measured on Flux's `info` example (it renders a `ui-dropdown`): a hover does nothing, a
   click opens, it stays when the pointer leaves and on a click inside, a second click / Escape / a click
   outside close it, Enter opens. That is `popover="auto"` + `popovertarget` exactly, which is what a
   `<button>` trigger gets. Missing hooks: (a) one that toggles a popover from an element that is NOT a button
@@ -380,6 +440,9 @@ faded would stay, unseen). What is NOT wired, each with what it needs:
   `--ui-toast-index` / anchor names from `style` (the hook holds `style` against the morph), and the CSS is
   Flux's four lines. Until then the stack stays on CSS anchors, newest first: right in both states, and it
   snaps between them.
+  **Round two built both**: the hook measures with `data-rask-measuring` on the stack (write the cutting rule
+  as `[data-rask-stack]:not([data-rask-measuring]):not(:hover) > * > .card { height: var(--rask-stack-front) }`)
+  and writes `--rask-stack-front` on every child. The component is still to be converted.
 
 ## One stylesheet per app (merged 2026-10-07)
 - `Styles/ui.css` is the kit as Tailwind SOURCE (theme, `dark` variant, daisyUI, the `@layer rask` blocks):
@@ -426,4 +489,5 @@ what the branch ADDS; `git checkout HEAD -- <file>` puts ours back.
   (`@rask/routes` not found): delete that folder.
 - `sync.mjs` and `lib.mjs` on main changed (#1189): the lock is CI's, animations rest through
   `window.__fluxRest()`. Merge main's with this harness; keep the recording of animation definitions.
-- The comparison in `parity.mjs` is not importable; open-state scripts copy it. Move it to a module.
+- The comparison in `parity.mjs` is not importable; `open.mjs` holds the one copy the open-state scripts
+  share. Move parity.mjs's to a module and have `open.mjs` import it.

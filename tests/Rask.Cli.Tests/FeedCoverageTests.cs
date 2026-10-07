@@ -115,6 +115,18 @@ public sealed class FeedCoverageTests
             "the wasm-hosted template with every battery");
     }
 
+    // Each names Rask.Spa.Hosting directly, which no C# template does.
+    [Fact]
+    public void Every_package_a_front_end_template_references_can_be_restored_from_the_local_feed()
+    {
+        foreach (var framework in SpaFramework.All)
+        {
+            var result = ProjectGenerator.GenerateSpa(Root, "App", framework, new ServerBatteries(), Version);
+
+            AssertFeedCovers(result, $"the {framework.Key} template");
+        }
+    }
+
     [Fact]
     public void Browser_only_packages_are_in_the_local_feed_too()
     {

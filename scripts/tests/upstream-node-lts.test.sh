@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# gate-inputs: rask\.(sh|ps1)$|docs/installation\.md$|src/Rask\.Cli/NodeRequirement\.cs$|src/Rask\.Templates/[^/]+/Dockerfile$
 # scripts/upstream/node-lts.sh, run in a copy of the files it rewrites against a saved nodejs.org index:
 # a newer LTS major moves every stated copy at once, and the same line or a non-LTS release moves nothing.
 #
@@ -12,7 +13,8 @@ root="$(git rev-parse --show-toplevel)"
 tmp="$(mktemp -d -t rask-node-lts.XXXXXX)"
 trap 'rm -rf "$tmp"' EXIT
 
-files=(src/Rask.Cli/NodeRequirement.cs rask.sh rask.ps1 docs/installation.md scripts/upstream/node-lts.sh)
+files=(src/Rask.Cli/NodeRequirement.cs rask.sh rask.ps1 docs/installation.md scripts/upstream/node-lts.sh
+       src/Rask.Templates/react/Dockerfile src/Rask.Templates/server/Dockerfile)
 fresh() {
   rm -rf "$tmp/tree"
   for f in "${files[@]}"; do mkdir -p "$tmp/tree/$(dirname "$f")"; cp "$root/$f" "$tmp/tree/$f"; done
@@ -40,6 +42,9 @@ check "the doc comment names the new line"        1 "$(count "$next is \"Neon\""
 check "both installers ask for it"                2 "$( (grep -lF -- "$next.11.2" "$tmp/tree/rask.sh" "$tmp/tree/rask.ps1" || true) | wc -l | tr -d ' ')"
 check "the docs stop naming the old line"         0 "$(count "Node $major LTS")"
 check "the docs' shorthand floor moved too"       0 "$(count "≥ ${stated%.*}")"
+check "a front end's image installs the new line" 1 "$(count "setup_$next.x")"
+check "...and no image is left on the old one"    0 "$(count "setup_$major.x")"
+check "an image with no Node is left alone"       "" "$(cmp -s "$tmp/tree/src/Rask.Templates/server/Dockerfile" "$root/src/Rask.Templates/server/Dockerfile" || echo changed)"
 
 fresh
 printf '[{"version":"v%s.3.0","lts":false},{"version":"v%s.99.0","lts":"Same"}]' $((major + 1)) "$major" > "$tmp/same.json"

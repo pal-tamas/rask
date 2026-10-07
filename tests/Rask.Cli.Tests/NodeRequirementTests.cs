@@ -35,6 +35,18 @@ public sealed class NodeRequirementTests
         Assert.Equal(NodeRequirement.BuildFloor, Version.Parse(declared.Groups[1].Value));
     }
 
+    // A front end's build runs vite too, so it takes the same floor (RASKSPA005) — one number, two enforcing files.
+    [Fact]
+    public void The_front_end_floor_matches_the_islands_floor()
+    {
+        var props = RepoPins.Text("src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.props");
+
+        var declared = Regex.Match(props, @"<RaskSpaMinimumNode[^>]*>([0-9.]+)</RaskSpaMinimumNode>");
+
+        Assert.True(declared.Success, "RaskSpaMinimumNode is no longer declared in Rask.Spa.Hosting.props");
+        Assert.Equal(NodeRequirement.BuildFloor, Version.Parse(declared.Groups[1].Value));
+    }
+
     /// <summary>
     ///     The scaffold line is ABOVE the build floor, which is the whole point of having two numbers.
     /// </summary>

@@ -35,6 +35,11 @@ public sealed class VsCodeScaffoldTests
         yield return ("server", ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version));
         yield return ("wasm-hosted", ProjectGenerator.GenerateWasmHosted(Root, "App", new ServerBatteries(), Version));
         yield return ("server --islands react", ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version, ["react"]));
+
+        foreach (var framework in SpaFramework.All)
+        {
+            yield return (framework.Key, ProjectGenerator.GenerateSpa(Root, "App", framework, new ServerBatteries(), Version));
+        }
     }
 
     [Fact]
@@ -181,7 +186,7 @@ public sealed class VsCodeScaffoldTests
         var recommended = scaffolds.ToDictionary(s => s.Label, s => Recommended(Index(s.Result)), StringComparer.Ordinal);
 
         string[] everywhere = ["ms-dotnettools.csdevkit", "editorconfig.editorconfig", "usernamehw.errorlens"];
-        string[] frameworks = ["vue.volar", "svelte.svelte-vscode"];
+        string[] frameworks = ["vue.volar", "svelte.svelte-vscode", "angular.ng-template"];
         foreach (var (label, ids) in recommended)
         {
             Assert.True(ids.Take(everywhere.Length).SequenceEqual(everywhere), $"{label}: {string.Join(", ", ids)}");
@@ -193,8 +198,15 @@ public sealed class VsCodeScaffoldTests
         Assert.Contains("dbaeumer.vscode-eslint", recommended["server --islands react"]);
         Assert.Contains("esbenp.prettier-vscode", recommended["server --islands react"]);
         Assert.DoesNotContain(recommended["server --islands react"], frameworks.Contains);
+        Assert.Contains("dbaeumer.vscode-eslint", recommended["react"]);
+        Assert.Contains("esbenp.prettier-vscode", recommended["react"]);
+        Assert.DoesNotContain(recommended["react"], frameworks.Contains);
+        Assert.DoesNotContain("bradlc.vscode-tailwindcss", recommended["react"]);
         Assert.Contains("vue.volar", recommended["server --islands vue"]);
+        Assert.Contains("vue.volar", recommended["vue"]);
         Assert.Contains("svelte.svelte-vscode", recommended["server --islands svelte"]);
+        Assert.Contains("svelte.svelte-vscode", recommended["svelte"]);
+        Assert.Contains("angular.ng-template", recommended["angular"]);
     }
 
     private static List<string?> Recommended(Dictionary<string, string> files)

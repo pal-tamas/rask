@@ -1,7 +1,7 @@
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The smaller Flux UI affordances: a resizable textarea, a popover
+///     The smaller Flux UI affordances: a popover
 ///     that is not a menu.
 /// </summary>
 /// <remarks>
@@ -11,27 +11,6 @@ namespace Rask.UiTests.Components;
 /// </remarks>
 public partial class UiPolishTests : global::Rask.Core.RaskMarkup
 {
-    [Fact]
-    public void A_textarea_can_be_told_which_way_it_resizes()
-    {
-        Assert.Contains("resize-none",
-            Ui.Textarea.Value("").Label("Notes").Resize(Ui.Resize.None).ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("resize-y",
-            Ui.Textarea.Value("").Label("Notes").Resize(Ui.Resize.Vertical).ToHtml(), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Auto_sizing_is_CSS_rather_than_script()
-    {
-        // field-sizing: content is the platform's own answer, so it works on a prerendered page with no
-        // runtime — and where an engine has not shipped it, the box keeps its rows and scrolls, which is
-        // exactly what it does today.
-        var html = Ui.Textarea.Value("").Label("Notes").AutoSize(true).ToHtml();
-
-        Assert.Contains("ui-textarea-auto", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-rask-on-input", html, StringComparison.Ordinal);
-    }
-
     [Fact]
     public void A_popover_is_a_dialog_rather_than_a_menu()
     {

@@ -17,7 +17,7 @@ public sealed partial class CookiesDemo : Component
     protected override Component? Render() =>
         Ui.Card[
                 Div.Class("flex items-stretch gap-2 mb-2")[
-                    Ui.Input.Value(_input).AccessibleLabel("Cookie value")
+                    Ui.Input.Value(_input).Label("Cookie value")
                         .Id("cookie-input")
                         .Placeholder("Cookie value")
                         .OnInput(v => _input = v),

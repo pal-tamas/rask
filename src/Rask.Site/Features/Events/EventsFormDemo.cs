@@ -14,7 +14,7 @@ public sealed partial class EventsFormDemo : Component
         Form.Model(_fields).OnAnySubmit(OnAnySubmit).Class("mb-2")[
             Div.Class("flex items-stretch gap-2")[
                 Ui.Input.Of<string>()
-                    .AccessibleLabel("Your name")
+                    .Label("Your name")
                     .Type(InputType.Text)
                     .Name("name")
                     .Placeholder("Your name"),

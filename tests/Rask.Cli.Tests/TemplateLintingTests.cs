@@ -13,6 +13,48 @@ namespace Rask.Cli.Tests;
 /// </remarks>
 public sealed class TemplateLintingTests
 {
+    public static TheoryData<string> Clients() => [.. SpaFramework.All.Select(framework => framework.Key)];
+
+    private static Dictionary<string, string> Client(string key) =>
+        ProjectGenerator
+            .GenerateSpa("/proj/Shop", "Shop", SpaFramework.All.Single(f => f.Key == key), new ServerBatteries(), "9.9.9")
+            .Files
+            .Select(f => (Path: f.Path.Replace('\\', '/'), f.Content))
+            .Where(f => f.Path.StartsWith("/proj/Shop/client/", StringComparison.Ordinal))
+            .ToDictionary(f => f.Path["/proj/Shop/client/".Length..], f => f.Content, StringComparer.Ordinal);
+
+    [Theory]
+    [MemberData(nameof(Clients))]
+    public void Every_client_can_lint_and_format_itself(string key)
+    {
+        var client = Client(key);
+
+        using var manifest = JsonDocument.Parse(client["package.json"]);
+
+        Assert.Contains("eslint.config.mjs", client.Keys);
+        Assert.Contains(".prettierrc", client.Keys);
+        var scripts = manifest.RootElement.GetProperty("scripts");
+        Assert.All(new[] { "lint", "format", "format:check" }, script => Assert.True(scripts.TryGetProperty(script, out _), script));
+        var deps = manifest.RootElement.GetProperty("devDependencies");
+        Assert.All(
+            new[] { "eslint", "prettier", "eslint-config-prettier", "typescript-eslint" },
+            package => Assert.True(deps.TryGetProperty(package, out _), package));
+    }
+
+    // The typed client under src/rask is rewritten on every build; formatting it is a diff the next build undoes.
+    [Theory]
+    [MemberData(nameof(Clients))]
+    public void No_client_lints_or_formats_what_the_build_generates(string key)
+    {
+        var client = Client(key);
+
+        var ignored = client[".prettierignore"];
+
+        Assert.Contains("src/rask/", ignored, StringComparison.Ordinal);
+        Assert.Contains("package-lock.json", ignored, StringComparison.Ordinal);
+        Assert.Contains("'src/rask/**'", client["eslint.config.mjs"], StringComparison.Ordinal);
+    }
+
     [Fact]
     public void An_island_project_lints_the_same_way_its_framework_s_template_does()
     {

@@ -33,8 +33,8 @@ concurrently on all cores under ONE shared `-m` budget, and anything serial stat
 front doors, attribution) and nothing blocks a commit or a push. AFTER the push to `main`, `ci.yml`
 runs the gates the change can REACH, each its own job (`scripts/lib/affected_gates.py` decides, and runs
 everything for whatever it cannot narrow); `full.yml` runs the whole set — build, unit, format, every
-browser E2E, CLI build, templates — every hour `main` has moved, and `nightly.yml`/`pages.yml` publish
-only from a commit THAT run passed. Locally, build and test
+browser E2E, CLI build, templates, a job per front-end template — every hour `main` has moved, and
+`nightly.yml`/`pages.yml` publish only from a commit THAT run passed. Locally, build and test
 ONLY the project you touched (`dotnet test tests/Rask.X.Tests`), never the solution, never a gate script
 — several worktrees doing that at once is what made every gate take ten minutes. A red `main`
 (`gh run list --branch main --workflow ci`, and `--workflow full` for what a scoped run cannot see) is
@@ -161,7 +161,7 @@ dotnet run --project src/Rask.Site
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–101, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–101, RASK027/030/032/034/042/046/047/048–050/054/075/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
@@ -169,7 +169,7 @@ started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site
 - **HTML elements are GENERATED from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`, refreshed daily by the local build): MDN type names
   (`HTMLAnchorElement`), entries named after tags (`A`), IDL attribute names (`ColSpan`). Missing/behaviour → `add-html-tag` skill.
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–101 are documented in `docs/diagnostics.md`
-  (RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK102). **Grep `src/`
+  (RASK027/030/032/034/042/046/047/048/049/050/054/075/081 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK102). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space
   (`Rask.Generators`, `Rask.Batteries.Generators`, `Rask.Api.Generators`, and `Rask.Generators.Shared`'s
   source-linked `RegistryGeneratorBase`) and

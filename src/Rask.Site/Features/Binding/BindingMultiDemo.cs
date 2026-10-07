@@ -26,9 +26,10 @@ public sealed partial class BindingMultiDemo : Component
         ],
         Div.Class("mb-3")[
             Ui.Select.Bind(() => _model.Favorite)
-                .Options(Colors)
                 .Label("Favourite colour")
-                .Id("bind-favorite")
+                .Id("bind-favorite")[
+                Colors.Select(color => Ui.SelectOption.Key(color.Text).Value(color.Value)[color.Text])
+            ]
         ],
         Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code[

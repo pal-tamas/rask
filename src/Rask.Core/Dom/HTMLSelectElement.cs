@@ -55,8 +55,8 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
     ///         It exists because <c>Multiple</c> binding is only as wide as
     ///         <see cref="BindingHelpers.IsBindableSelectionType{T}" />, whose element type is
     ///         <c>string</c> for a documented AOT reason. A control that renders its own options knows how
-    ///         to turn those strings back into its own type — <c>Rask.Ui</c>'s <c>UiMultiSelect</c> maps
-    ///         them through its option list — so it takes them raw and needs none of that machinery.
+    ///         to turn those strings back into its own type — it maps them through its own option list — so
+    ///         it takes them raw and needs none of that machinery.
     ///     </para>
     ///     <para>
     ///         Controlled mode only, and it takes precedence over <see cref="OnChange" />: both write the

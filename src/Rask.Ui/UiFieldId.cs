@@ -9,6 +9,9 @@ internal static class UiFieldId
     internal static string Derive(string? id, LambdaExpression? bind, string? label) =>
         id ?? "f-" + Slug((bind?.Body as MemberExpression)?.Member.Name ?? label ?? "field");
 
+    /// <summary>The id of a control nothing names, from its instance number: unique on the page.</summary>
+    internal static string Own(int instance) => "f-field-" + instance.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
     internal static string Label(string controlId) => controlId + "-label";
 
     internal static string Description(string controlId) => controlId + "-description";

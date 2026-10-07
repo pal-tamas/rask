@@ -1,0 +1,27 @@
+{
+  "files": {
+    ".dockerignore": [
+      "docker"
+    ],
+    "Dockerfile": [
+      "docker"
+    ],
+    "Features/Shared/User.cs": [
+      "data"
+    ],
+    "client/public/icon.svg": [
+      "pwa"
+    ],
+    "client/public/manifest.webmanifest": [
+      "pwa"
+    ],
+    "client/public/rask-sw.js": [
+      "pwa"
+    ],
+    "client/src/push.ts": [
+      "push",
+      "pwa"
+    ]
+  },
+  "template": "vue"
+}

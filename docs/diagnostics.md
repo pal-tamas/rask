@@ -101,7 +101,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK072](#rask072) | Warning | Entity `Configure` method will not be called |
 | [RASK073](#rask073) | Warning | Strongly-typed id has no usable value |
 | [RASK074](#rask074) | Warning | More than one user type |
-| [RASK075](#rask075) | Warning | Option template on a native select |
 | [RASK076](#rask076) | Warning | Grid column with no field token |
 | [RASK077](#rask077) | Warning | Package island has no props snapshot |
 | [RASK078](#rask078) | Error | Props snapshot cannot be read |
@@ -131,7 +130,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
 **Retired, never recycled:** RASK027, RASK030, RASK032, RASK034, RASK042, RASK046, RASK047, RASK048,
-RASK049, RASK050, RASK054 and RASK081. Each guarded a mistake that can no longer be written; a
+RASK049, RASK050, RASK054, RASK075 and RASK081. Each guarded a mistake that can no longer be written; a
 suppression that names one is dead and can be deleted. RASK063 and RASK065 are reserved.
 
 ---
@@ -1521,45 +1520,6 @@ This does not fire on ordinary classes. A Rask server project is an ASP.NET proj
 genuine controllers; `[Route]` on one of those is correct and is never reported.
 
 ---
-## RASK075
-
-**Option template on a native select** · Warning
-
-An `<option>`'s content model is text. There is nowhere inside the platform's own control for a
-template's markup to go, so `UiSelect<T>`/`UiMultiSelect<T>` never call the template: the list renders
-its plain words, the build stays green, and the only way to notice is to look at the running page and
-wonder where the icons went.
-
-```csharp
-// ✗ RASK075 — Native(true) says "the platform's control", the template says "markup per row"
-Ui.Select.Bind(() => _order.Package)
-        .Options(packages)
-        .Label("Package")
-        .OptionTemplate(v => Div.Class("flex gap-2")[Ui.Icon.Name(v.Icon), Span[v.Name]])
-        .Native()
-```
-
-**Fix:** drop `Native(true)`. A template already implies the drawn list, so leaving `Native` unset is
-all that is needed — the control draws its own rows and the template renders:
-
-```csharp
-Ui.Select.Bind(() => _order.Package)
-        .Options(packages)
-        .Label("Package")
-        .OptionTemplate(v => Div.Class("flex gap-2")[Ui.Icon.Name(v.Icon), Span[v.Name]])
-```
-
-If the platform's control is what you actually want — it needs no runtime, renders complete on a
-prerendered page and gets a phone's native picker — then drop the template instead and let the `Text`
-from `Options` say it.
-
-Only an **explicit** `Native(true)` is reported. `Native(false)` agrees with the template, and
-`Native(someFlag)` is not knowable at compile time, so neither is a contradiction this can name.
-`ChipTemplate` on `UiMultiSelect<T>` is reported on the same grounds: the platform's control draws its
-own selection, so a chip template has nowhere to render either.
-
----
-
 ## RASK072
 
 **Entity `Configure` method will not be called** · Warning

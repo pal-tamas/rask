@@ -85,11 +85,18 @@ const NATIVE = {
   // The tooltip's wrapper: the kit wires the trigger at render and the browser shows the [popover].
   // A toggleable tooltip is a <ui-dropdown> on Flux's page, under the tooltip's marker.
   'ui-tooltip': 'div', 'ui-dropdown': 'div',
+  // The select's, the autocomplete's and the pillbox's elements: a native popover and C# key handling in their place.
+  'ui-select': 'div', 'ui-selected': 'div', 'ui-options': 'div', 'ui-option': 'div', 'ui-option-empty': 'div',
+  'ui-option-create': 'div', 'ui-empty': 'div', 'ui-pillbox': 'div', 'ui-pillbox-trigger': 'div',
+  'ui-selected-remove': 'div',
   // The modal's wrapper, and the one around a button that closes it: the kit's buttons are invoker commands.
   'ui-modal': 'div', 'ui-close': 'div',
 };
+// …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
+// opens the file input inside it when clicked, where Flux's <div> calls input.click().
+const NATIVE_PART = { 'input-file': 'label' };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
-const sameTag = (a, b) => (NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
+const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
 // …and leaves a chart's root with no marker at all: its <ui-chart> is the chart.
 const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };

@@ -14,7 +14,7 @@ public sealed partial class FormControlsInputDemo : Component
             Div.Class("col-span-12 md:col-span-6")[
                 Ui.Input.Value(_controlled).Label("Controlled (Value + OnChange)")
                     .OnChange(v => _controlled = v)
-                    .Hint("Type, then leave the field — OnChange fires on commit.")
+                    .Description("Type, then leave the field — OnChange fires on commit.")
                     .Id("fc-input-controlled").Class("mb-2"),
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-input-controlled-out")[
                     "Echo: ", Strong[_controlled.Length == 0 ? "(empty)" : _controlled]

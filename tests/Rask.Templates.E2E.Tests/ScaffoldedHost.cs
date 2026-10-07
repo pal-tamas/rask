@@ -14,9 +14,7 @@ namespace Rask.Templates.E2E.Tests;
 ///     </para>
 ///     <para>
 ///         It runs the host the way a user does, with <c>dotnet run --no-build</c> against the build the
-///         test has already made. On the meta lane that one process is two: the host supervises the
-///         framework's Node server as a child and forwards to it over loopback, which is exactly the
-///         arrangement the journeys are here to exercise.
+///         test has already made, or the published assembly out of its publish directory.
 ///     </para>
 /// </remarks>
 internal sealed class ScaffoldedHost : IAsyncDisposable
@@ -52,24 +50,12 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
     /// </summary>
     /// <param name="projectDirectory">The scaffolded project's directory.</param>
     /// <param name="projectFile">The .csproj to run.</param>
-    /// <param name="readyTimeout">
-    ///     How long to wait. Generous on the meta lane: the host starts Node and waits for the
-    ///     framework's own server to bind before it answers anything.
-    /// </param>
-    public static async Task<ScaffoldedHost> StartAsync(
-        string projectDirectory, string projectFile, TimeSpan readyTimeout)
-    {
-        var port = LoopbackPort.Reserve();
-        var startInfo = new ProcessStartInfo("dotnet")
-        {
-            WorkingDirectory = projectDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-
-        foreach (var argument in new[]
-        {
+    /// <param name="readyTimeout">How long to wait for the first answer.</param>
+    public static Task<ScaffoldedHost> StartAsync(
+        string projectDirectory, string projectFile, TimeSpan readyTimeout) =>
+        StartAsync(
+            projectDirectory,
+            readyTimeout,
             "run", "--no-build", "--project", projectFile,
 
             // WITHOUT this the scaffolded Properties/launchSettings.json wins and ASPNETCORE_URLS
@@ -80,8 +66,33 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
 
             // The front end is already built; a `dotnet run` that rebuilt it would add minutes and
             // could pick a different bundle than the one this test just proved.
-            "-p:RaskSpaBuild=false", "-p:RaskExternalBuild=false",
-        })
+            "-p:RaskSpaBuild=false", "-p:RaskExternalBuild=false");
+
+    /// <summary>
+    ///     Starts a PUBLISHED app out of its publish directory, the way a container does, and returns
+    ///     once it answers.
+    /// </summary>
+    /// <remarks>
+    ///     The build bakes the client's dist as an absolute path on the build machine; a published app
+    ///     must not need it, and <c>MapRaskSpa</c> looks in the <c>wwwroot</c> beside the assembly first.
+    /// </remarks>
+    public static Task<ScaffoldedHost> StartPublishedAsync(
+        string publishDirectory, string assemblyName, TimeSpan readyTimeout) =>
+        StartAsync(publishDirectory, readyTimeout, Path.Combine(publishDirectory, assemblyName + ".dll"));
+
+    private static async Task<ScaffoldedHost> StartAsync(
+        string projectDirectory, TimeSpan readyTimeout, params string[] arguments)
+    {
+        var port = LoopbackPort.Reserve();
+        var startInfo = new ProcessStartInfo("dotnet")
+        {
+            WorkingDirectory = projectDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);
         }
@@ -148,8 +159,8 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
             {
                 using var response = await http.GetAsync(BaseUrl);
 
-                // A meta host answers 503 by design while it waits for Node to bind — that is a
-                // documented startup window, not a failure, so it is waited out rather than accepted.
+                // 503 is MapRaskSpa's "nothing built yet" page: waited out rather than accepted, so a
+                // host with no bundle to serve times out here and shows its log.
                 if (response.StatusCode != System.Net.HttpStatusCode.ServiceUnavailable)
                 {
                     return;
@@ -174,7 +185,7 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
     {
         if (!_process.HasExited)
         {
-            // The whole tree: a meta host has a Node child, and killing only the parent leaves a
+            // The whole tree: `dotnet run` is the app's parent, and killing only the parent leaves a
             // server holding the port for the next test.
             _process.Kill(entireProcessTree: true);
             try

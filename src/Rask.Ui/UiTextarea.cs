@@ -1,99 +1,127 @@
+using System.Linq.Expressions;
+using Rask.Core.Forms;
+
 namespace Rask;
 
 /// <summary>
-/// A multi-line text field.
+/// Flux UI's textarea: <c>Ui.Textarea.Bind(() =&gt; m.Notes).Label("Order notes")</c>.
 /// </summary>
 /// <remarks>
-/// A form control, like every input in the kit: <c>.Bind(() =&gt; model.Notes)</c> two-way binds and
-/// drives the surrounding <c>Form</c>'s validation, or <c>Value</c> with <c>OnChange</c>
-/// leaves the value with the parent. The opening step fixes both the type argument and the mode.
+/// A form control like <see cref="UiInput{T}" />: <c>Bind</c> two-way binds and drives the form's validation,
+/// <c>Value</c> with <c>OnChange</c> leaves the value with the parent, and <c>Label</c> / <c>Description</c> /
+/// <c>Badge</c> wrap it in a <see cref="UiField" />. The element is the <c>&lt;textarea&gt;</c> itself
+/// (<c>data-ui-textarea</c>), four lines tall and resizable vertically unless told otherwise.
 /// </remarks>
-public sealed partial class UiTextarea<T> : UiFormField<T>
+public sealed partial class UiTextarea<T> : Component, IFormControl<T>, IUiFormControl
 {
-    /// <inheritdoc cref="UiInput{T}.Placeholder" />
+    private const string Look =
+        "block w-full p-3 rounded-lg text-base sm:text-sm shadow-xs disabled:shadow-none data-invalid:shadow-none";
+
+    /// <inheritdoc cref="IUiFormControl.Label" />
+    public string? Label { get; set; }
+
+    /// <inheritdoc cref="IUiFormControl.Description" />
+    public string? Description { get; set; }
+
+    /// <inheritdoc cref="IUiFormControl.DescriptionTrailing" />
+    public string? DescriptionTrailing { get; set; }
+
+    /// <inheritdoc cref="IUiFormControl.Badge" />
+    public string? Badge { get; set; }
+
+    /// <summary>Shown while the textarea is empty.</summary>
     public string? Placeholder { get; set; }
 
-    /// <inheritdoc cref="UiInput{T}.Floating" />
-    public bool? Floating { get; set; }
+    /// <summary>
+    ///     How many lines it shows — 4 unless set — or <see cref="UiTextareaRows.Auto" /> to grow with what is typed.
+    /// </summary>
+    /// <remarks>
+    ///     Auto is CSS's <c>field-sizing: content</c>: no script, and where an engine has not shipped it the box
+    ///     keeps the browser's two lines and scrolls.
+    /// </remarks>
+    public UiTextareaRows? Rows { get; set; }
 
-    /// <inheritdoc />
-    private protected override bool FloatsLabel => Floating != false;
+    /// <summary>Which way the reader may drag it bigger. Vertically unless this says otherwise.</summary>
+    public Ui.TextareaResize? Resize { get; set; }
 
-    private string PlaceholderText => Label is not null && FloatsLabel ? Label : Placeholder ?? string.Empty;
+    /// <inheritdoc cref="UiInput{T}.Invalid" />
+    public bool? Invalid { get; set; }
 
-    public int? Rows { get; set; }
+    /// <inheritdoc cref="UiInput{T}.Disabled" />
+    public bool? Disabled { get; set; }
+
+    /// <inheritdoc cref="UiInput{T}.ReadOnly" />
+    public bool? ReadOnly { get; set; }
+
+    /// <summary>Classes for the <c>&lt;textarea&gt;</c>.</summary>
+    public string? Class { get; set; }
+
+    /// <inheritdoc cref="Element.Id" />
+    public string? Id { get; set; }
+
+    /// <inheritdoc cref="IUiFormControl.ShowValidation" />
+    public bool? ShowValidation { get; set; }
+
+    /// <inheritdoc cref="IFormControl{T}.Value" />
+    public T? Value { get; set; }
+
+    /// <inheritdoc cref="IFormControl{T}.OnChange" />
+    public Callback<T> OnChange { get; set; }
+
+    /// <inheritdoc cref="IFormControl{T}.Bind" />
+    public Expression<Func<T>>? Bind { get; set; }
+
+    /// <inheritdoc cref="IFormControl{T}.Validate" />
+    public Validator<T>? Validate { get; set; }
+
+    /// <inheritdoc cref="IFormControl{T}.AfterBind" />
+    public Callback<T> AfterBind { get; set; }
 
     /// <inheritdoc cref="UiInput{T}.OnInput" />
     public Callback<string> OnInput { get; set; }
 
-    /// <inheritdoc cref="UiInput{T}.Name" />
-    public string? Name { get; set; }
+    // Nothing names it — no Id, no bound member, no label: an id of its own, not one every such textarea shares.
+    private string? _ownId;
 
-    /// <summary>
-    ///     daisyUI defines only <see cref="Ui.Variant.Ghost" /> for a text control — the borderless form
-    ///     that shows its edges on focus. The rest draw the default rather than a class that does nothing.
-    /// </summary>
+    string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
+        ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
+        : UiFieldId.Derive(Id, Bind, Label);
 
-    /// <summary>
-    ///     Which way the reader may drag the box bigger. Vertically, unless this says otherwise.
-    /// </summary>
-    /// <remarks>
-    ///     <see cref="Ui.Resize.None" /> is for a box in a layout the extra height would break — a row in a
-    ///     table, a cell in a grid. Taking the handle away is a real cost to somebody writing a long answer,
-    ///     so it wants a reason; <see cref="AutoSize" /> is usually the better one.
-    /// </remarks>
-    public Ui.Resize? Resize { get; set; }
-
-    /// <summary>
-    ///     Grows the box to fit what is typed, instead of scrolling inside a fixed height.
-    /// </summary>
-    /// <remarks>
-    ///     CSS, not script: `field-sizing: content` is the platform's own answer, so it works with no runtime
-    ///     and on a prerendered page. Where an engine has not shipped it the box keeps its <see cref="Rows" />
-    ///     and scrolls, which is exactly what it does today — the feature degrades to the current behaviour
-    ///     rather than to a broken one. <see cref="Rows" /> becomes the SMALLEST it will be.
-    /// </remarks>
-    public bool? AutoSize { get; set; }
+    LambdaExpression? IUiFieldControl.Bound => Bind;
 
     /// <inheritdoc />
-    protected override Component Control()
+    protected override Component? Render()
     {
-        if (Bind is { } bind)
-        {
-            return Textarea
-                .Bind(bind)
-                .Id(FieldId)
-                .Name(Name)
-                .OnInput(OnInput)
-                .Validate(Validate)
-                .AfterBind(AfterBind)
-                .Placeholder(PlaceholderText)
-                .Rows(Rows ?? 3)
-                .Aria(ControlAria())
-                .Disabled(Disabled == true)
-                .Class(BoxClass());
-        }
+        var field = UiWithField.For(this);
+        var rows = Rows ?? 4;
 
-        return Textarea
-            .Value(Value)
-            .Id(FieldId)
-            .Name(Name)
+        // Bind and Value are the two openings of Core's textarea, and both hand back the same element.
+        var textarea = Bind is { } bind
+            ? Textarea.Bind(bind).Validate(Validate).AfterBind(AfterBind)
+            : Textarea.Value(Value).OnChange(OnChange);
+
+        return field.Wrap(textarea
+            .Id(field.ControlId)
             .OnInput(OnInput)
-            .OnChange(OnChange)
-            .Placeholder(PlaceholderText)
-            .Rows(Rows ?? 3)
-            .Aria(ControlAria())
+            .Placeholder(Placeholder)
+            .Rows(rows.Count)
             .Disabled(Disabled == true)
-            .Class(BoxClass());
+            .ReadOnly(ReadOnly == true)
+            .Aria(field.Aria)
+            .Attributes(UiInputLook.TextareaMarks(field.Invalid))
+            .Class(UiClass.Compose(
+                Look,
+                UiInputLook.Outline,
+                rows.Count is null ? "field-sizing-content" : null,
+                ResizeClass(Resize ?? Ui.TextareaResize.Vertical),
+                Class)));
     }
 
-    private string BoxClass() =>
-        UiClass.Compose(
-            "textarea validator",
-            AutoSize == true ? "ui-textarea-auto" : "",
-            Resize is { } resize ? UiClassNames.Resize(resize) : "",
-            Tone is { } tone ? UiClassNames.TextareaTone(tone) : "",
-            Variant is { } variant ? UiClassNames.TextareaVariant(variant) : "",
-            Size is { } size ? UiClassNames.TextareaSize(size) : "",
-            Class);
+    private static string ResizeClass(Ui.TextareaResize resize) => resize switch
+    {
+        Ui.TextareaResize.Horizontal => "resize-x",
+        Ui.TextareaResize.Both => "resize",
+        Ui.TextareaResize.None => "resize-none",
+        _ => "resize-y",
+    };
 }

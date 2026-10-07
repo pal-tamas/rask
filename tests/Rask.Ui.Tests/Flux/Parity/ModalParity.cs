@@ -11,9 +11,8 @@ namespace Rask.UiTests.Flux.Parity;
 ///     dialog nobody sees, and again with each example's trigger pressed — the open dialog is the component.
 ///     </para>
 ///     <para>
-///     What a modal holds is the real thing — headings, text, fields, buttons — except what is not rebuilt
-///     yet: the inputs (a box of the size Flux's takes, as on the field page), Flux's spacer and its
-///     subheading.
+///     What a modal holds is the real thing — headings, text, inputs, buttons — except what is not rebuilt
+///     yet: Flux's spacer and its subheading.
 ///     </para>
 /// </remarks>
 public sealed partial class ModalParity : FluxParity
@@ -55,8 +54,8 @@ public sealed partial class ModalParity : FluxParity
     internal static Component Profile() =>
         SpaceY(6,
             Div[Ui.Heading.Lg["Update profile"], Ui.Text.Class("parity-mt-2")["Make changes to your personal details."]],
-            FieldParity.Shorthand("Name"),
-            FieldParity.Shorthand("Date of birth"),
+            Ui.Input.Of<string>().Label("Name").Placeholder("Your name"),
+            Ui.Input.Of<string>().Label("Date of birth").Type(InputType.Date),
             Div.Style("display:flex")[Spacer(), Ui.Button.Primary.Type(Ui.ButtonType.Submit)["Save changes"]]);
 
     internal static Component Confirmation() =>
@@ -77,8 +76,8 @@ public sealed partial class ModalParity : FluxParity
             // keeps above one (its own rule for a heading a subheading follows).
             Ui.Heading.Lg.Class("parity-mb-2")["Update profile"],
             Div.Data("parity-skip", "").Style("height:20px"),
-            FieldParity.Shorthand("Name"),
-            FieldParity.Shorthand("Date of birth"));
+            Ui.Input.Of<string>().Label("Name").Placeholder("Your name"),
+            Ui.Input.Of<string>().Label("Date of birth").Type(InputType.Date));
 
     // Flux's spacer, which the kit's is not yet: the room it takes in a row.
     private static Component Spacer() => Div.Data("parity-skip", "").Style("flex:1 1 0%");

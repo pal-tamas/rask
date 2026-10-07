@@ -133,11 +133,13 @@ public sealed partial class StoragePage(
             .Page(_page)
             .TotalCount(_total)
             .OnPage(GoAsync)
-            .Toolbar(Ui.Search
+            .Toolbar(Ui.Input
+                .Value(Search ?? string.Empty)
+                .Type(InputType.Search)
+                .Icon(Ui.IconName.MagnifyingGlass)
                 .Placeholder("Search file names")
-                .AccessibleLabel("Search stored files")
-                .Value(Search)
-                .OnSearch(SearchAsync))
+                .Attributes(("aria-label", "Search file names"))
+                .OnChange(SearchAsync))
             .Empty(Ui.Empty
                 .Title(Search is { Length: > 0 } ? $"No files matching \"{Search}\"" : "No files stored yet")
                 .Detail("Files appear here as soon as the app saves one."))[c => [

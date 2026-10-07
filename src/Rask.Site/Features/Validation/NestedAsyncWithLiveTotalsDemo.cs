@@ -88,14 +88,14 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                 ],
                 Ui.Input.Bind(() => _model.Address.PostalCode)
                     .Label("Postal code")
-                    .Hint("Try 12345, 99999, or any 5-digit code.")
+                    .Description("Try 12345, 99999, or any 5-digit code.")
                     .Id("v-nlive-postal")
                     .Validate(ValidatePostalAsync),
                 ItemsPanel(),
                 Div[
                     Ui.Input.Bind(() => _model.DiscountCode)
                         .Label("Promo code")
-                        .Hint("Try SAVE10 or SAVE25.")
+                        .Description("Try SAVE10 or SAVE25.")
                         .Id("v-nlive-promo")
                 ],
                 Totals(subtotal, discountPct, discount, tax, total),
@@ -115,18 +115,18 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
             Div.Class("grid grid-cols-12 gap-4 mb-2 items-center")[
                 Div.Class("col-span-6")[
                     Ui.Input.Bind(() => _model.Items[0].Name)
-                        .AccessibleLabel("Item 1 name")
+                        .Label("Item 1 name")
                         .Id("v-nlive-item0-name")
                 ],
                 Div.Class("col-span-3")[
                     Ui.Input.Bind(() => _model.Items[0].Quantity)
-                        .AccessibleLabel("Item 1 quantity")
+                        .Label("Item 1 quantity")
                         .Id("v-nlive-item0-qty")
                         .Min("0")
                 ],
                 Div.Class("col-span-3")[
                     Ui.Input.Bind(() => _model.Items[0].UnitPrice)
-                        .AccessibleLabel("Item 1 unit price")
+                        .Label("Item 1 unit price")
                         .Id("v-nlive-item0-price")
                         .Step("0.01")
                 ]
@@ -134,18 +134,18 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
             Div.Class("grid grid-cols-12 gap-4 items-center")[
                 Div.Class("col-span-6")[
                     Ui.Input.Bind(() => _model.Items[1].Name)
-                        .AccessibleLabel("Item 2 name")
+                        .Label("Item 2 name")
                         .Id("v-nlive-item1-name")
                 ],
                 Div.Class("col-span-3")[
                     Ui.Input.Bind(() => _model.Items[1].Quantity)
-                        .AccessibleLabel("Item 2 quantity")
+                        .Label("Item 2 quantity")
                         .Id("v-nlive-item1-qty")
                         .Min("0")
                 ],
                 Div.Class("col-span-3")[
                     Ui.Input.Bind(() => _model.Items[1].UnitPrice)
-                        .AccessibleLabel("Item 2 unit price")
+                        .Label("Item 2 unit price")
                         .Id("v-nlive-item1-price")
                         .Step("0.01")
                 ]

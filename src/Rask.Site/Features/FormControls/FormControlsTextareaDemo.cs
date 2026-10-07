@@ -16,7 +16,7 @@ public sealed partial class FormControlsTextareaDemo : Component
                 Ui.Textarea.Value(_controlled).Label("Controlled (Value + OnChange)")
                     .OnChange(v => _controlled = v)
                     .Rows(3)
-                    .Hint("Type, then leave the field — OnChange fires on commit.")
+                    .Description("Type, then leave the field — OnChange fires on commit.")
                     .Id("fc-textarea-controlled").Class("mb-2"),
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-controlled-out")[
                     "Length: ", Strong[_controlled.Length]

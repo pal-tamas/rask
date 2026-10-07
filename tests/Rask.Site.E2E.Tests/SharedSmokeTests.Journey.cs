@@ -1252,19 +1252,17 @@ public abstract partial class SharedSmokeTests
         await AssertGuideDemosAsync(11, "forms-validation");
 
         // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;
-        // the async validator shows "Checking…" then "taken". (Attribute-specific messages and the
-        // latest-wins cancellation are unit-tested in Rask.Validation.DataAnnotations.Tests.)
+        // the async validator answers "taken". (Attribute-specific messages and the latest-wins
+        // cancellation are unit-tested in Rask.Validation.DataAnnotations.Tests.)
         await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
         await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
             .ToContainTextAsync("required",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
-        // The kit field draws both states itself now, so they are asserted by the words a reader sees rather
-        // than by classes the demo used to pick.
+        // The kit field draws the message itself, so it is asserted by the words a reader sees. Flux's input
+        // has no "Checking…" line while a rule runs, and neither has the kit's any more.
         var asyncForm = Page.Locator("form:has(#v3-username)");
         await asyncForm.Locator("#v3-username").FillAsync("admin");
         await asyncForm.Locator("#v3-username").BlurAsync();
-        await Expect(asyncForm.GetByRole(AriaRole.Status).Filter(new LocatorFilterOptions { HasText = "Checking" }))
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
         await Expect(asyncForm.GetByText("is already taken"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     }

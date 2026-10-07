@@ -49,15 +49,16 @@ The installer adds the .NET SDK if you don't have one, plus `dotnet-ef`, the `wa
 workload and Node — all under `$HOME`, no `sudo`. With the SDK already in place,
 `dotnet tool install -g Rask.Cli` is enough. See [Installing Rask](installation.md).
 
-`rask new` ships three templates:
+`rask new` ships three C# templates and a front-end template per framework:
 
 | `--template`        | What you get                                                                                  |
 |---------------------|-----------------------------------------------------------------------------------------------|
 | `server` (default)  | One ASP.NET project. Components render on the server; live updates ship over a WebSocket. **Best default.** |
 | `wasm`              | One browser-WASM project that publishes to a static `wwwroot/` you can host anywhere (GitHub Pages, S3, nginx). Bring your own API. |
 | `wasm-hosted`       | A WebAssembly app in `Client/`, served by its own ASP.NET host — the browser runs the UI, the server keeps the database, the handlers and every battery. |
+| `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit` | That framework's TypeScript app in `client/`, on the same kind of host, calling your C# messages through a generated typed client — see [single-page app front ends](spa.md#scaffolding-one). |
 
-They emit the same starter pages, so the rest of this guide applies whichever you chose.
+The first three emit the same starter pages in C#, so the rest of this guide applies whichever of them you chose.
 
 **Each arrives with every battery it can carry.** On `server` that is a SQLite database, the
 [Rask.Cqrs](cqrs.md) mediator, background jobs, transactional email, a cache, a transactional outbox,

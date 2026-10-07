@@ -13,7 +13,7 @@ public sealed partial class StorageDemo : Component
     protected override Component? Render() =>
         Ui.Card[
                 Div.Class("mb-2 flex gap-2")[
-                    Ui.Input.Value(_input).AccessibleLabel("Value to persist")
+                    Ui.Input.Value(_input).Label("Value to persist")
                         .Id("storage-input")
                         .Placeholder("Value to persist")
                         .OnInput(v => _input = v),

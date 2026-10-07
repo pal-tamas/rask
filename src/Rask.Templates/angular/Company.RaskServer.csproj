@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Where the client's dev server listens: `rask dev` opens it, and the host names it when nothing is built yet. -->
+    <RaskSpaDevServerUrl>http://localhost:4200</RaskSpaDevServerUrl>
+    <!-- Angular nests its output under the project name. -->
+    <RaskSpaDistDir>dist/company-raskserver-client/browser</RaskSpaDistDir>
+    <!-- Angular's CLI refuses a Node below this; stated here, the build says so first (RASKSPA005). -->
+    <RaskSpaMinimumNode>22.22.3</RaskSpaMinimumNode>
+    <!-- rask:if cqrs data -->
+    <!-- The litestream binary ships in the Docker image, not fetched at build time. -->
+    <RaskLitestreamDownload>false</RaskLitestreamDownload>
+    <!-- rask:end -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The host and every battery. A battery this app does without is switched off in Program.cs. -->
+    <PackageReference Include="Rask.Server" Version="{{RaskVersion}}"/>
+    <!-- Builds client/: its install and build, the typed client in client/src/rask/, and the bundle into
+         wwwroot on publish. -p:RaskSpaBuild=false skips node; the API still works. Named directly because
+         a package's build steps reach only the project that references it. -->
+    <PackageReference Include="Rask.Spa.Hosting" Version="{{RaskVersion}}"/>
+  </ItemGroup>
+
+</Project>

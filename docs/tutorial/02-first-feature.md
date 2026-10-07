@@ -128,7 +128,7 @@ public sealed partial class CreateProduct : Component
                 }, CancellationToken))[
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
-                        .Hint("What a customer pays, before tax."),
+                        .Description("What a customer pays, before tax."),
                     Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
                     Ui.Button.Primary.Submit.Disabled(save.IsPending)["Save"]
                 ]
@@ -142,8 +142,8 @@ public sealed partial class CreateProduct : Component
 URL, so renaming a route breaks the build instead of the link. See [routing](../routing.md).
 
 The page is built from the [Rask.Ui kit](../ui-kit.md), so there isn't a class string in it. `Ui.Input` is
-a whole field in one line: its label floats inside the box until you type (put guidance in `Hint`, under
-the field, rather than in a placeholder), and the field's own validation message appears under it.
+a whole field in one line: its label sits over the box (put guidance in `Description`, under the label,
+rather than in a placeholder), and the field's own validation message appears under it.
 `Ui.Button.Submit` is the form's submit button, and **Cancel** is a `Ui.Button` too. Given
 `Href` it renders as a link, and because `Routes.ProductsPage()` is a generated route rather than a string,
 the runtime follows it without reloading the page. See [the UI kit](../ui-kit.md#buttons-and-links-that-go-somewhere).
@@ -231,7 +231,7 @@ public sealed partial class UpdateProduct : Component
                 }, CancellationToken))[
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
-                        .Hint("What a customer pays, before tax."),
+                        .Description("What a customer pays, before tax."),
                     Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
                     Ui.Button.Primary.Submit.Disabled(save.IsPending)["Save changes"]
                 ]

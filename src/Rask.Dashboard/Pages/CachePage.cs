@@ -118,11 +118,13 @@ public sealed partial class CachePage(
             .OnPage(GoAsync)
             // An expired key still reads until the sweep takes it; a neutral tint says it is on its way out.
             .RowTone(r => r.ExpiresAt <= now ? Ui.Tone.Neutral : null)
-            .Toolbar(Ui.Search
+            .Toolbar(Ui.Input
+                .Value(Search ?? string.Empty)
+                .Type(InputType.Search)
+                .Icon(Ui.IconName.MagnifyingGlass)
                 .Placeholder("Search keys")
-                .AccessibleLabel("Search cache keys")
-                .Value(Search)
-                .OnSearch(SearchAsync))
+                .Attributes(("aria-label", "Search keys"))
+                .OnChange(SearchAsync))
             .Empty(Ui.Empty
                 .Title(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
                 .Detail("Entries appear here as soon as something is cached."))[c => [

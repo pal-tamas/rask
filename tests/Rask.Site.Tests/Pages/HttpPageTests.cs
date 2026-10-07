@@ -169,7 +169,8 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 
         Assert.False(result.TimedOut, $"did not settle ({result.Waves} waves)");
         Assert.Contains("Components are just methods", result.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("role=\"alert\"", result.Html, StringComparison.Ordinal);
+        // The demo's own failure, a callout: a Flux field's message is role="alert" too, shown or not.
+        Assert.DoesNotMatch("<[^>]*data-ui-callout[^>]*role=\"alert\"|<[^>]*role=\"alert\"[^>]*data-ui-callout", result.Html);
     }
 
     private static IServiceProvider Services(HttpClient http, TimeProvider time) =>

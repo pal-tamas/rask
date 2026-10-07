@@ -55,10 +55,10 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     public void A_bound_select_marks_the_models_option_as_the_chosen_one()
     {
         var model = new Profile { Country = "gb" };
-        var html = Ui.Select.Bind(() => model.Country)
-            .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
-            .Label("Country")
-            .ToHtml();
+        var html = Ui.Select.Bind(() => model.Country).Label("Country")[
+            Ui.SelectOption.Value("hu")["Hungary"],
+            Ui.SelectOption.Value("gb")["United Kingdom"]
+        ].ToHtml();
 
         Assert.Contains("selected value=\"gb\"", html, StringComparison.Ordinal);
     }
@@ -195,9 +195,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_field_with_no_value_yet_opens_on_its_type_alone()
     {
-        // Named with AccessibleLabel, not Label: a floating label would BE the placeholder, and this asserts the
-        // call site's placeholder reaches a field with no value yet.
-        var html = Ui.Input.Of<string>().AccessibleLabel("Search").Placeholder("Ghost").ToHtml();
+        var html = Ui.Input.Of<string>().Placeholder("Ghost").ToHtml();
 
         Assert.Contains("placeholder=\"Ghost\"", html);
         Assert.DoesNotContain("value=", html);

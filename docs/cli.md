@@ -106,6 +106,8 @@ rask                                 # the wizard, from a blank slate
 rask new                             # the same wizard
 rask new MyApp                       # everything: a server app with the whole stack wired
 rask new MyApp -t wasm-hosted        # a WebAssembly app in Client/, served by an ASP.NET host
+rask new MyApp -t react              # a React + TypeScript app in client/, served by an ASP.NET host
+rask new MyApp -t vue                # the same with Vue — or preact, angular, solid, svelte, lit
 rask new Blog --no-push --no-ops     # everything except those two
 rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
 rask new Shop --no-tests             # no Shop.Tests project beside the app
@@ -122,7 +124,9 @@ and the localization machinery. Not a sample page to delete: the wiring, ready f
 **where the UI runs** — that is the **template**, not a flag. `server` renders pages live; `wasm-hosted`
 writes them into `Client/` as a WebAssembly app an ASP.NET host serves
 ([serving a WebAssembly app](deployment.md#serving-a-webassembly-app)); `wasm` is the same browser app with no backend at
-all. It used to be a `--wasm` flag on `server`, which asked the same question twice — once as a project
+all; `react`, `preact`, `vue`, `angular`, `solid`, `svelte` and `lit` each put that framework's TypeScript
+app in `client/` on the same kind of host, with a typed client generated from your C# messages
+([single-page app front ends](spa.md#scaffolding-one)). It used to be a `--wasm` flag on `server`, which asked the same question twice — once as a project
 type and again as a yes/no afterwards.
 
 ```csharp
@@ -195,17 +199,19 @@ config file and no property that turns it off. `--bootstrap` and `--tailwind` ar
 *refused* rather than ignored, because a flag the CLI accepts and then disregards is the most expensive
 kind to discover.
 
-**Every template draws the same starter page**, in the same daisyUI class names — a navbar, a hero, a
-card and a footer — so a project looks the same whether it runs on the server or in WebAssembly.
+**Every C# template draws the same starter page**, in the same daisyUI class names — a navbar, a hero, a
+card and a footer — so a project looks the same whether it runs on the server or in WebAssembly. The
+seven front-end templates draw one starter too, in plain Tailwind utilities: a front end brings its own
+component library.
 The sign-in pages `rask new` writes into `Features/Auth/` are drawn with it too, and an app with a database
 links sign-in from the starter's navbar.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately.
 
-React, Vue, Svelte, Solid, Lit, Angular and Preact are not templates: they run as
-[islands](islands.md) inside a Rask page, scaffolded with `--islands` (below). The TypeScript SPA and
-meta-framework templates were removed.
+React, Preact, Vue, Angular, Solid, Svelte and Lit come two ways: as a **template**, where the whole client
+is that framework, or as [islands](islands.md) inside a Rask page, scaffolded with `--islands` (below).
+The meta-framework templates (Next, Nuxt, SvelteKit and the rest) were removed.
 
 A new project has **wiring, not sample code** — there is still nothing to delete before you start — and
 everything it scaffolds follows the vertical-slice layout the guides build on: feature code under
@@ -262,9 +268,9 @@ failing: the files on disk are correct either way.
 | Option | Meaning |
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
-| `--template`, `-t` | `server` (default), `wasm` or `wasm-hosted`. |
+| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, or a front end: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes Web Push with it. |
-| `--no-cqrs` | Leave out [`Rask.Cqrs`](cqrs.md), the mediator. Your pages read through the [model surface](data.md) without it, but they write through it: a save is a command whose handler loads the entity and calls `SaveChangesAsync`. The scaffold's plumbing needs it too — background jobs run through their command handlers, the outbox and `Rask.Data`'s domain events are published through it, and a `wasm-hosted` client's messages arrive through it. So it still takes the database with it, and every battery that maps onto a `DbContext` (below). It also takes [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
+| `--no-cqrs` | Leave out [`Rask.Cqrs`](cqrs.md), the mediator. Your pages read through the [model surface](data.md) without it, but they write through it: a save is a command whose handler loads the entity and calls `SaveChangesAsync`. The scaffold's plumbing needs it too — background jobs run through their command handlers, the outbox and `Rask.Data`'s domain events are published through it, and a `wasm-hosted` or front-end template's client messages arrive through it (so they refuse the flag). So it still takes the database with it, and every battery that maps onto a `DbContext` (below). It also takes [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
 | `--no-data` | Leave out the SQLite database (`c.Data.Off()`): no `RaskAppDbContext`, no WAL + `busy_timeout` connection, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Rask:Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Rask:Litestream:ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
 | `--no-jobs` | Leave out durable background jobs (`c.Jobs.Off()`). |
 | `--no-mail` | Leave out transactional email, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. |
@@ -309,20 +315,27 @@ useful than a page designed to reveal nothing.
 A template gets every battery in its column, and nothing outside it. Nobody maintains a per-template
 default list: the default set *is* the column.
 
-| Battery | `server` | `wasm` | `wasm-hosted` |
-| --- | :-: | :-: | :-: |
-| database, CQRS | ✅ | — | ✅ |
-| jobs, mail, cache, storage, outbox, snapshots, logs | ✅ | — | ✅ |
-| ops *(the operator dashboard)* | ✅ | — | ✅¹ |
-| PWA | ✅ | ✅ | ✅ |
-| Web Push | ✅ | — | ✅ |
-| Docker | ✅ | ✅ | ✅ |
-| localization *(in `appsettings.json`, not a flag)* | ✅ | —² | —² |
-| `--islands <runtime>…` *(opt-in)* | ✅ | ✅ | ✅ |
+| Battery | `server` | `wasm` | `wasm-hosted` | front ends⁴ |
+| --- | :-: | :-: | :-: | :-: |
+| database, CQRS | ✅ | — | ✅ | ✅ |
+| jobs, mail, cache, storage, outbox, snapshots, logs | ✅ | — | ✅ | ✅ |
+| ops *(the operator dashboard)* | ✅ | — | ✅¹ | ✅¹ |
+| PWA | ✅ | ✅ | ✅ | ✅³ |
+| Web Push | ✅ | — | ✅ | ✅³ |
+| Docker | ✅ | ✅ | ✅ | ✅ |
+| localization *(in `appsettings.json`, not a flag)* | ✅ | —² | —² | — |
+| `--islands <runtime>…` *(opt-in)* | ✅ | ✅ | ✅ | — |
 
 ¹ The operator dashboard is Rask components, so it needs a host built on `Rask.Server` to mount it.
-`wasm-hosted` is `RaskApp.Create(args).Serve()`, which serves the browser app *and* server-renders the
-dashboard at `/_rask`.
+`wasm-hosted` and the front ends are `RaskApp.Create(args).Serve()`, which serves the browser app *and*
+server-renders the dashboard at `/_rask`.
+
+³ On a front end both are the client's own files: `client/public/manifest.webmanifest` and `rask-sw.js`, and
+`client/src/push.ts`, which subscribes through the browser's `PushManager` and the host's `/_rask/push`
+endpoints.
+
+⁴ `react`, `preact`, `vue`, `angular`, `solid`, `svelte` and `lit` — one column, because the host is the
+same. Only the client differs.
 
 ### `--islands` — a React, Vue, Svelte, Solid, Lit, Angular, Preact or Blazor component
 
@@ -367,8 +380,8 @@ $ rask new X --template wasm --no-data
 Template 'wasm' has nothing to change for: --no-data. It supports: docker, pwa.
 ```
 
-The database-backed batteries need an ASP.NET host to put a database in, which `server` and `wasm-hosted`
-are — a pure browser-WASM app has none.
+The database-backed batteries need an ASP.NET host to put a database in, which `server`, `wasm-hosted` and the
+front-end templates are — a pure browser-WASM app has none.
 
 Turning one off takes its dependents with it, so you never end up with a battery whose database isn't there:
 
@@ -420,7 +433,7 @@ $ rask deplyo
 Unknown command 'deplyo'. Did you mean 'deploy'?
 
 $ rask new Shop --template srever
-Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted.
+Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, svelte, lit.
 Usage: rask new <name> [options]
 Run 'rask new --help' for details.
 

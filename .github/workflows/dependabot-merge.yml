@@ -4,6 +4,10 @@ name: dependabot-merge
 # reading it. What must NOT move on its own is said in .github/dependabot.yml's ignore lists, beside
 # the reason; everything else is trusted to the gates, exactly as a hand push is.
 #
+# "ci has passed it" is the deps set (gates.yml), and for a bump to a front-end template's client that
+# set includes the template's own "front end <key>" job: the scaffold installed from the new lockfile,
+# built, linted and served. scripts/tests/affected-gates.test.sh holds that rule.
+#
 # workflow_run, not pull_request: a run Dependabot starts gets a read-only token and no secrets, and
 # this one — started by ci finishing — runs from main with a token that can merge. It never checks
 # out or executes the pull request's code.

@@ -140,12 +140,13 @@ Ui.CheckboxGroup.Value(_interests).Options(interests).Label("Interests").OnChang
 
 `Ui.RadioGroup` (single value) and `Ui.CheckboxGroup` (a collection), live:
 
-**A drawn single-select.** [`UiSelect<T>`](ui-kit.md) binds one `T` and renders the platform's
-`<select>` by default; `.Native(false)` draws the list itself instead — a `[popover]` `role="listbox"`
-under a `role="combobox"` box, with the arrow keys, Home/End, Enter and a roving
-`aria-activedescendant` cursor that skips unavailable options. Reach for it when the list has to carry
-more than the platform will show (groups, options that are visibly unavailable) or has to escape an
-`overflow: hidden` ancestor. The drawn list needs the runtime; the native one does not.
+**A drawn single-select.** [`UiSelect<T>`](ui-kit.md#select) binds one `T`, takes its options as children
+(`Ui.SelectOption`) and renders the platform's `<select>` by default; `.Listbox` draws the list itself
+instead — a native `popover` `role="listbox"` under a `role="combobox"` button, with the arrow keys, Enter,
+type-ahead and an `aria-activedescendant` cursor that skips unavailable options — and `.Combobox` makes the
+box a text input that filters it. Reach for one when an option has to carry more than the platform will
+show (an icon, a description, an avatar) or the list has to be searched. The drawn list needs the runtime;
+the native one does not.
 
 **A plain `<select multiple>` bound to a collection.** `Select.Bind(() => …).Multiple()` binds the
 whole selection when `T` is a string collection — `string[]`, `List<string>`, `HashSet<string>`, or the
@@ -180,13 +181,15 @@ Select.Of<string>().Multiple().OnSelect(picked => _chosen = Map(picked))[
 
 It is the way past the string-element limit above: a control that rendered its own options already
 knows how to turn those values back into its own type, so it needs none of the binding machinery that
-limit belongs to. That is exactly how a collection-bound [`UiSelect<T>`](ui-kit.md) is generic over any `T` — an
-int, an enum, a Guid — while this control is not. Controlled mode only, and it takes precedence over
+limit belongs to. The kit's collection-bound select ([`UiSelectMultiple<T>`](ui-kit.md#select)) is generic over any `T` — an
+int, an enum, a Guid — for the same reason: it draws its own options and maps a pick back itself, while
+this control cannot. Controlled mode only, and it takes precedence over
 `OnChange`: both write the one `data-rask-on-change` attribute, so a control cannot have two.
 
 **The kit has a control for this.** Everything above is the raw `<select>`. For a field a person fills
-in, [`UiSelect<T>`](ui-kit.md) bound to a collection is the one to reach for — chips, a search box,
-select-all, a keyboard, and a drawn list that stays open while you pick.
+in, [`Ui.Select`](ui-kit.md#select) opened on a collection with `.Listbox.Multiple()` is the one to reach
+for — a search field (`Searchable()`), a keyboard, a button that names or counts what is picked, and a drawn
+list that stays open while you pick.
 
 ## Surviving a redeploy
 
@@ -220,4 +223,4 @@ The binding system is public: a custom control implementing `IFormControl<T>` ge
 bound + controlled chains, per-field validation, and the same ergonomics as the built-ins — see the
 dedicated guide **[building-form-controls.md](building-form-controls.md)** (with a complete worked example
 and the `IFormControl<T>` helper reference). `Ui.RadioGroup`/`Ui.CheckboxGroup` (§8) and
-`Ui.MultiSelect` are built entirely on it.
+`Ui.Select` are built entirely on it.

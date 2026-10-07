@@ -14,6 +14,61 @@ wrote. A host with [remote messages](#a-typed-client-for-your-messages) also get
 
 To put a React or Vue **component** inside a Rask page instead, see [Islands](islands.md).
 
+## Scaffolding one
+
+```bash
+rask new Shop --template react
+cd Shop
+rask dev
+```
+
+That writes one project: a `Rask.Server` host — `RaskApp.Create(args).Serve()`, every battery on — and
+a React + TypeScript app in `client/`, built with Vite and styled with Tailwind. `rask dev` installs the
+client's dependencies the first time, then runs the host and Vite together; Vite forwards `/_rask` and
+`/api/auth` to the host.
+
+`--template` takes seven frameworks: `react`, `preact`, `vue`, `angular`, `solid`, `svelte` and `lit`.
+The host is the same in all of them, and so is the starter — one page and one sign-in screen, drawn with
+the same Tailwind utilities in each framework's own idiom. No component library is installed.
+
+| `--template` | The starter page | The sign-in screen |
+|---|---|---|
+| `react` | `src/App.tsx` | `src/Auth.tsx` |
+| `preact` | `src/app.tsx` | `src/auth.tsx` |
+| `vue` | `src/App.vue` | `src/Auth.vue` |
+| `solid` | `src/App.tsx` | `src/Auth.tsx` |
+| `svelte` | `src/lib/Greeting.svelte` | `src/lib/Auth.svelte` |
+| `lit` | `src/my-element.ts` | the same element |
+| `angular` | `src/app/app.ts` + `app.html` | `src/app/auth.ts` |
+
+Lit's element renders into the light DOM, so the page's Tailwind sheet reaches it.
+
+**Angular is the one that is not a plain Vite project**, and its host says so in four places:
+
+- the dev server is `ng serve` on port 4200, started by `npm start` — the host's csproj sets
+  `<RaskSpaDevServerUrl>http://localhost:4200</RaskSpaDevServerUrl>`, which is what `rask dev` opens;
+- the proxy is `client/proxy.conf.json`, which `angular.json` points at, instead of a `server.proxy` block
+  in `vite.config.ts`;
+- the bundle lands in `dist/<app>-client/browser`, so the csproj sets `RaskSpaDistDir` to it;
+- Angular's CLI wants a newer Node than Vite does (`^22.22.3 || ^24.15.0 || >=26.0.0`), so the csproj sets
+  `<RaskSpaMinimumNode>22.22.3</RaskSpaMinimumNode>` and an older one fails with `RASKSPA005` instead of
+  inside `ng build`. One number cannot say the whole range: on Node 24.0–24.14 it is the CLI that refuses.
+
+In every template:
+
+- **A query and a command.** `Features/Hello/` holds the starter's messages and handlers; the starter page
+  dispatches them through the [typed client](#a-typed-client-for-your-messages) the build writes into
+  `client/src/rask/`.
+- **Sign-in screens.** `/login` and `/register`, over the host's accounts at `/api/auth`. They call `login`
+  and `register` from `client/src/rask/browser/auth.ts`, which the build copies beside the typed client.
+  The session is an HttpOnly cookie, so the page never holds a token.
+- **Web Push.** `client/src/push.ts` exports `subscribeToPush()` and `unsubscribeFromPush()`: the browser's
+  own `PushManager`, the worker in `client/public/rask-sw.js`, and the host's `/_rask/push` endpoints.
+  `--no-push` leaves it out; `--no-pwa` leaves out the manifest and the worker too.
+
+Batteries are turned off the same way as on any template — `--no-data`, `--no-ops` — except `--no-cqrs`:
+the typed client *is* the CQRS wire. See [the CLI](cli.md#which-template-supports-which-flag).
+
 ## Where the front end lives
 
 Reference the package from the host project, and put the front end in a `client` folder inside it:
@@ -57,7 +112,8 @@ only cares about the C#.
 Use the current LTS. The build's own floor is **22.12**, and it is enforced: an older Node fails with
 `RASKSPA005` naming the version it found, rather than reaching the bundler and failing there with an
 `engines` error. Set `RaskSpaMinimumNode` to move the bar — it is a real comparison, in both
-directions, so a front end on an older toolchain can lower it.
+directions, so a front end on an older toolchain can lower it. The Angular template raises it to
+**22.22.3**, the lowest Node its CLI accepts.
 
 ## Development
 
@@ -134,7 +190,7 @@ app.MapRaskSpa(configure: options => options.ImmutablePathPrefixes.Add("/static/
 | `RaskSpaInstallCommand` | `npm ci` | Run when a lockfile exists. |
 | `RaskSpaFirstInstallCommand` | `npm install` | Run when there is no lockfile yet. |
 | `RaskSpaBuildCommand` | `npm run build` | What produces the bundle. |
-| `RaskSpaMinimumNode` | `22.12.0` | The Node floor the build enforces, as `RASKSPA005`. |
+| `RaskSpaMinimumNode` | `22.12.0` (`22.22.3` in the Angular template) | The Node floor the build enforces, as `RASKSPA005`. |
 | `RaskSpaPublishDir` | `wwwroot` | Where publish puts the bundle. |
 | `RaskSpaDevServerUrl` | none | Named on the "nothing built yet" page in Development. |
 | `RaskEmitTypeScript` | on | `false` generates nothing, whatever the host declares. |

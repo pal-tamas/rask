@@ -270,4 +270,4 @@ for state the control *itself* owns.
 5. Unit-test both modes (drive the handler, assert the bound model / the emitted `OnChange` value); add an
    E2E if it has a showcase page. Construct via the chain, never `new` (RASK014).
 
-Worked example: `MultiSelect<TItem>` in `Rask.Core`.
+Worked example: `UiSelectMultiple<T>` in `Rask.Ui` — what `Ui.Select` builds when it is opened on a collection.

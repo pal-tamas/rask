@@ -24,7 +24,7 @@ internal static class TemplateCatalog
 
     /// <summary>
     /// The database-backed batteries. Available to any template that ships an ASP.NET host to put a
-    /// database <em>in</em> — server and wasm-hosted. A pure browser-WASM SPA has no server to run them on.
+    /// database <em>in</em> — server, wasm-hosted and the front-end templates. A pure browser-WASM SPA has no server to run them on.
     /// </summary>
     private static readonly string[] DatabaseFlags =
         ["cqrs", "data", "jobs", "mail", "cache", "snapshots", "logs", "storage"];
@@ -59,7 +59,22 @@ internal static class TemplateCatalog
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags, "ops", "push"],
                 StringComparer.Ordinal)),
+        // The TypeScript front-end templates, one per framework: a client in client/ on the same Serve() host,
+        // talking to it over generated TypeScript.
+        .. SpaFrameworks(),
     ];
+
+    /// <summary>One template per front-end framework, all sharing the same flag set.</summary>
+    /// <remarks>
+    ///     Derived from <see cref="Scaffolding.SpaFramework.All" /> rather than listed again: two lists of the
+    ///     same frameworks is how a template comes to be accepted by the parser and then generate something else.
+    ///     "pwa" and "push" are the client's own manifest, service worker and subscription call.
+    /// </remarks>
+    private static IEnumerable<TemplateInfo> SpaFrameworks() =>
+        Scaffolding.SpaFramework.All.Select(framework => new TemplateInfo(
+            framework.Key,
+            $"Rask {framework.DisplayName} front end + ASP.NET host",
+            new HashSet<string>([.. WebFlags, .. DatabaseFlags, "ops", "push"], StringComparer.Ordinal)));
 
     /// <summary>The default template when none is specified — a server-rendered app.</summary>
     public static TemplateInfo Default => All[0];

@@ -12,13 +12,16 @@ namespace Rask;
 ///     A control calls this from its <c>Render</c> and nothing else about fields:
 ///     </para>
 ///     <code>
-///     var field = UiWithField.For(this, Label, Description, DescriptionTrailing, Badge);
+///     var field = UiWithField.For(this);            // this : IUiFormControl
 ///     var input = Input.Id(field.ControlId).Data("ui-control", "").Aria(field.Aria);
 ///     return field.Wrap(input);
 ///     </code>
 ///     <para>
 ///     With no label and no description <see cref="Wrap" /> hands the control back alone, and
 ///     <see cref="Aria" /> then names the parts of the <see cref="UiField" /> the call site composed around it.
+///     A BOUND control with neither is still wrapped, in a field holding the control and its
+///     <see cref="UiError" />: a rule that fails has to say so somewhere, and a control inside a
+///     <c>Ui.Field</c> of the call site's own leaves that to the field.
 ///     </para>
 /// </remarks>
 internal sealed class UiWithField
@@ -28,13 +31,14 @@ internal sealed class UiWithField
     private readonly string? _description;
     private readonly string? _descriptionTrailing;
     private readonly string? _badge;
+    private readonly bool _showValidation;
 
-    private UiWithField(
-        IUiFieldControl control, string? label, string? description, string? descriptionTrailing, string? badge, bool invalid)
+    private UiWithField(IUiFieldControl control, Shorthand props)
     {
         (ControlId, _bound) = (control.ControlId, control.Bound);
-        (_label, _description, _descriptionTrailing, _badge) = (label, description, descriptionTrailing, badge);
-        Invalid = invalid || HasMessages(_bound);
+        (_label, _description, _descriptionTrailing, _badge) = (props.Label, props.Description, props.DescriptionTrailing, props.Badge);
+        _showValidation = props.ShowValidation;
+        Invalid = props.Invalid || HasMessages(_bound);
         Aria = BuildAria();
     }
 
@@ -54,6 +58,17 @@ internal sealed class UiWithField
 
     private string TrailingId => UiFieldId.Description(ControlId) + "-trailing";
 
+    /// <summary>The field for a Flux form control, read from its own props.</summary>
+    /// <param name="control">The control: Flux's shorthand props, its id and what it is bound to.</param>
+    internal static UiWithField For(IUiFormControl control) =>
+        new(control, new Shorthand(
+            control.Label,
+            control.Description,
+            control.DescriptionTrailing,
+            control.Badge,
+            control.Invalid == true,
+            control.ShowValidation != false));
+
     /// <summary>The field for one control, from the shorthand props it was given.</summary>
     /// <param name="control">The control: its id and what it is bound to.</param>
     /// <param name="label">Flux's <c>label</c>.</param>
@@ -68,7 +83,7 @@ internal sealed class UiWithField
         string? descriptionTrailing = null,
         string? badge = null,
         bool invalid = false) =>
-        new(control, label, description, descriptionTrailing, badge, invalid);
+        new(control, new Shorthand(label, description, descriptionTrailing, badge, invalid, true));
 
     /// <summary>The control inside its field, or alone when it was given nothing to draw one with.</summary>
     /// <param name="control">The control's own markup, carrying <see cref="ControlId" />.</param>
@@ -84,7 +99,7 @@ internal sealed class UiWithField
         var label = _label is null ? null : Ui.Label.Id(LabelId).For(ControlId).Badge(_badge)[_label];
         var description = _description is null ? null : Ui.Description.Id(UiFieldId.Description(ControlId))[_description];
         var trailing = _descriptionTrailing is null ? null : Ui.Description.Id(TrailingId)[_descriptionTrailing];
-        var error = Ui.Error.Id(UiFieldId.Error(ControlId)).For(_bound);
+        var error = _showValidation ? Ui.Error.Id(UiFieldId.Error(ControlId)).For(_bound) : null;
         var field = Ui.Field.Variant(variant);
 
         return controlFirst
@@ -102,9 +117,10 @@ internal sealed class UiWithField
 
         // Error first: it is the news. Only while there is one — a hidden message would still be read out.
         var scope = Wraps ? null : ComposedAround();
+        var ownError = Wraps && _showValidation;
         string?[] describedBy =
         [
-            Invalid && (Wraps || scope?.HasError == true) ? UiFieldId.Error(ControlId) : null,
+            Invalid && (ownError || scope?.HasError == true) ? UiFieldId.Error(ControlId) : null,
             _description is not null || scope?.HasDescription == true ? UiFieldId.Description(ControlId) : null,
             _descriptionTrailing is not null ? TrailingId : null,
         ];
@@ -127,4 +143,12 @@ internal sealed class UiWithField
         bound is not null
         && EditContextScope.Current is { } form
         && form.GetValidationMessages(ExpressionAccessor.Parse(bound).Field).Count > 0;
+
+    private readonly record struct Shorthand(
+        string? Label,
+        string? Description,
+        string? DescriptionTrailing,
+        string? Badge,
+        bool Invalid,
+        bool ShowValidation);
 }

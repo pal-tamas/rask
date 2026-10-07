@@ -1,0 +1,123 @@
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { rask } from './rask/client'
+import { getGreeting, recordVisit } from './rask/messages'
+import type { Greeting } from './rask/contracts'
+
+const name = ref('world')
+const greeting = ref<Greeting | null>(null)
+const error = ref<string | null>(null)
+const busy = ref(false)
+
+// watch with immediate, not a one-off call: that is what re-reads the ref and refetches when
+// it changes. The AbortController is what stops a slow earlier request landing after a later
+// one and showing the wrong answer.
+let inFlight: AbortController | null = null
+
+async function load() {
+  inFlight?.abort()
+  const controller = new AbortController()
+  inFlight = controller
+  error.value = null
+
+  try {
+    greeting.value = await rask.dispatch(getGreeting({ name: name.value }), {
+      signal: controller.signal,
+    })
+  } catch (e) {
+    if (!controller.signal.aborted) error.value = e instanceof Error ? e.message : String(e)
+  }
+}
+
+watch(name, load, { immediate: true })
+
+async function visit() {
+  busy.value = true
+  try {
+    await rask.dispatch(recordVisit({ name: name.value }))
+    await load()
+  } finally {
+    busy.value = false
+  }
+}
+
+const serverTime = computed(() =>
+  greeting.value
+    ? new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.value.seenAt)
+    : '',
+)
+</script>
+
+<!-- Plain Tailwind utilities, spelled out in full: Tailwind emits a class only where it can see
+     the name, so a name built by concatenation styles nothing. -->
+<template>
+  <div class="flex min-h-screen flex-col">
+    <nav
+      class="flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900"
+    >
+      <span class="text-lg font-semibold tracking-tight">Rask + Vue</span>
+      <a class="text-sm underline-offset-4 hover:underline" href="https://rask.sh/docs">Docs</a>
+    </nav>
+
+    <main class="grid grow place-items-center px-4 py-16">
+      <div class="w-full max-w-md text-center">
+        <h1 class="text-4xl font-bold">Rask + Vue</h1>
+        <p class="py-4 text-zinc-500 dark:text-zinc-400">
+          One query and one command, over your C# records.
+        </p>
+
+        <div
+          class="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-6 text-left shadow-xs dark:border-zinc-800 dark:bg-zinc-900"
+        >
+          <label class="flex flex-col gap-1">
+            <span class="text-sm font-medium">Name</span>
+            <input
+              class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:border-zinc-700 dark:bg-zinc-950"
+              v-model="name"
+            />
+          </label>
+
+          <span
+            v-if="!greeting && !error"
+            class="size-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100"
+            role="status"
+            aria-label="Loading"
+          />
+          <div
+            v-else-if="error"
+            role="alert"
+            class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+          >
+            {{ error }}
+          </div>
+
+          <template v-if="greeting">
+            <p>{{ greeting.message }}</p>
+            <!-- seenAt is a real Date, revived because the C# type said it was an instant. -->
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">Server time: {{ serverTime }}</p>
+            <div>
+              <div class="text-sm text-zinc-500 dark:text-zinc-400">Visits</div>
+              <div class="text-2xl font-semibold tabular-nums">{{ greeting.visits }}</div>
+            </div>
+          </template>
+
+          <div class="flex justify-end">
+            <button
+              class="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+              :disabled="busy"
+              @click="visit"
+            >
+              Record a visit
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer
+      class="border-t border-zinc-200 bg-white p-4 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+    >
+      Built with Rask.
+    </footer>
+  </div>
+</template>

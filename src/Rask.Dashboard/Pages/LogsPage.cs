@@ -214,7 +214,7 @@ public sealed partial class LogsPage(
     // A native select rather than a drawn list: a real application has dozens of logger categories, and the
     // platform's own picker is keyboard-navigable, needs no script and is the right control on a phone. Only
     // the categories actually present are offered.
-    private UiSelect<string>? CategoryFilter()
+    private Component? CategoryFilter()
     {
         var categories = IsHistory ? _storedCategories : buffer.Categories();
         if (categories.Count == 0)
@@ -226,10 +226,10 @@ public sealed partial class LogsPage(
 
         return Ui.Select
             .Value(Category ?? "")
-            .Options(choices)
             .Label("Category")
-            .Native()
-            .OnChange(CategoryChangedAsync);
+            .OnChange(CategoryChangedAsync)[
+            choices.Select(choice => Ui.SelectOption.Key(choice.Value).Value(choice.Value)[choice.Text])
+        ];
     }
 
     private Task CategoryChangedAsync(string value)
@@ -238,12 +238,14 @@ public sealed partial class LogsPage(
         return Task.CompletedTask;
     }
 
-    private UiSearch SearchBox() =>
-        Ui.Search
+    private UiInput<string> SearchBox() =>
+        Ui.Input
+            .Value(Query ?? string.Empty)
+            .Type(InputType.Search)
+            .Icon(Ui.IconName.MagnifyingGlass)
             .Placeholder("Search message or exception")
-            .AccessibleLabel("Search stored log entries")
-            .Value(Query)
-            .OnSearch(SearchAsync);
+            .Attributes(("aria-label", "Search message or exception"))
+            .OnChange(SearchAsync);
 
     private Task SearchAsync(string value)
     {

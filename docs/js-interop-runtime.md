@@ -331,6 +331,8 @@ They live in `src/Rask.Core/Resources/rask-hooks.ts` (one module per concern) be
 | `data-rask-modal="any"` \| `"press"` \| `"escape"` \| `"none"` | a `<dialog>` | How a reader dismisses it: Escape and a press outside, a press outside only, Escape only, neither. A press outside fires a cancelable `cancel`, then closes. With no value the dialog is the platform's. |
 | `data-open` *(written)* | a dialog carrying either attribute above | Present while the dialog is shown, however it was opened or closed. |
 | `command` / `commandfor` | a `<button>` | Where the engine has no invoker commands: `show-modal`, `close`, `request-close`, and the popover three. |
+| `data-rask-toggle="<popover id>"` | any element that is not a `<button popovertarget>` | A click on it toggles that popover, and so do Enter and Space while it — or something inside it that is not a control of its own — has focus (Space does not scroll). A `popover="manual"` it opened is closed by Escape, by a press outside both, and by focus moving outside both; a press inside the popover leaves it open. A `popover="auto"` gets those from the platform, and a click on its toggle closes it rather than reopening it. Focus is yours: give the element a `tabindex` and a `role`. Do not also write `popovertarget`. |
+| `aria-expanded` *(rewritten)* | an element that invokes a popover (`popovertarget`, `commandfor`, `data-rask-toggle`) and already carries `aria-expanded` | `"true"` while that popover shows and `"false"` when it does not, however it was opened or closed. Never added where the render did not write it; once written, a render no longer overwrites it. |
 | `data-rask-lock` \| `data-rask-lock="scroll"` | a popover or dialog | While it is open `<html>` does not scroll, keeps its scrollbar gutter and — unless `"scroll"` — takes no pointer; the overlay itself stays usable. Counted, so two open overlays, one removed by a render, and a navigation all end unlocked. |
 
 ### Menus
@@ -351,8 +353,18 @@ They live in `src/Rask.Core/Resources/rask-hooks.ts` (one module per concern) be
 | `data-rask-mask-money` \| `=".,2"` | an `<input>` | Groups an amount: decimal mark, thousands mark, decimals. |
 | `role="switch"` | an `<input type="checkbox">` | Enter toggles it, as Space does. |
 | `data-rask-big-step="<n>"` | an `<input type="range">` | Shift+Arrow and PageUp / PageDown move by `n`, firing `input` then `change`. |
-| `data-rask-listbox-button` | a `button[role=combobox]` | While `aria-expanded` is not `true`, Enter does not press it and ArrowUp / ArrowDown do not scroll the page. |
 | `data-rask-otp` \| `="alpha"` \| `="alphanumeric"` | the group around one-character inputs | The cells behave as one field: a character moves on, Backspace walks back, deleting closes up to the left, the arrows stop at the first empty cell, a paste fills from the first. Render the cells with no `value` and no handler, and bind ONE `<input type="hidden">` inside the group: the runtime keeps it equal to the code and fires `input` and `change` on it, and refills the cells when you change its value. |
+
+### Keys and focus
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| `data-rask-contain-keys="Arrows Home End PageUp PageDown"` | a widget that handles those keys in its own handler | Cancels the browser's default for a listed key pressed inside it — the page does not scroll behind a calendar, Enter does not press a trigger — and nothing else: your handler still receives the key. Names are `KeyboardEvent.key`'s, plus `Space` and `Arrows` (all four). A key held with Ctrl, Alt or Meta is left alone, and so is one typed into a text field inside the widget. It is a list, not a rule per role, because no two widgets keep the same keys; render a different list when the widget's keys change (open / closed). |
+| `data-rask-listbox-button` | a `button[role=combobox]` | The list `Enter ArrowUp ArrowDown`, while `aria-expanded` is not `true`: Enter does not press it and the arrows do not scroll the page. |
+| `data-rask-roving` | a `[role=radiogroup]` of `[role=radio]` elements that are not native radios | ArrowDown / ArrowRight focus the next radio and ArrowUp / ArrowLeft the one before, wrapping at both ends; the radio focused is clicked, so your `OnClick` selects it; `tabindex` moves with it (`0` on the focused one, `-1` on the rest). Space clicks the focused one. Disabled radios are skipped. |
+| `data-rask-focus-follows` + `data-rask-focus-target` | a container, and the one element in it that should hold focus | When a render moves the target mark — or replaces the element that carried it — while focus is ON that element, the new target is focused. Focus anywhere else is never taken. A render that leaves no target lets focus fall where the browser drops it. |
+| `aria-activedescendant` | a `[role=combobox]` or `[role=listbox]` | When it changes, the option it names is scrolled into view inside its nearest scrolling ancestor, by the least movement; the page never scrolls. (A `[role=tree]` has its own rule, which also handles virtualized rows.) |
+| `data-rask-press-keeps-focus` | any element | A mouse press on it or inside it does not move focus. |
 
 ### Toasts
 
@@ -360,7 +372,7 @@ They live in `src/Rask.Core/Resources/rask-hooks.ts` (one module per concern) be
 | --- | --- | --- |
 | `data-rask-dismiss-hold="pointer"` | an element with `data-rask-dismiss-after` | Only the pointer holds its countdown; focus inside it does not. |
 | `data-rask-dismiss-scope` | an ancestor of several | The pointer anywhere over it holds every countdown inside, and they run on from where they stopped. |
-| `data-rask-stack` | the element whose children are stacked | Each child gets `--rask-stack-index` (0 at the front, the last child), `--rask-stack-height` and `--rask-stack-offset` (the heights in front of it) in its style, measured again when a child joins or leaves — what a transition needs to glide a stack open. |
+| `data-rask-stack` | the element whose children are stacked | Each child gets, in its style, `--rask-stack-index` (0 at the front, the last child), `--rask-stack-height` (its own natural height), `--rask-stack-offset` (the natural heights in front of it) and `--rask-stack-front` (the front child's natural height), measured again when a child joins or leaves and when the window is resized — what a stylesheet needs to cut every card to the front one's height and glide the stack open. While it measures, the stack carries `data-rask-measuring`: write the rule that cuts a card as `[data-rask-stack]:not([data-rask-measuring]) …`, or the hook is handed the cut height back. |
 
 ### State the reader owns
 

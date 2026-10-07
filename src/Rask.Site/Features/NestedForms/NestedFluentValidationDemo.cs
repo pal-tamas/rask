@@ -23,11 +23,11 @@ public sealed partial class NestedFluentValidationDemo : Component
             var captured = line;
             rows.Add(Ui.TableRow.Key(captured.Id)[
                 Ui.TableCell[
-                    Ui.Input.Bind(() => captured.Sku).AccessibleLabel("SKU").ShowValidation(false),
+                    Ui.Input.Bind(() => captured.Sku).Label("SKU").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Sku)
                 ],
                 Ui.TableCell.Style("width: 6rem;")[
-                    Ui.Input.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
+                    Ui.Input.Bind(() => captured.Quantity).Label("Quantity").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Ui.TableCell.Style("width: 3rem;")[

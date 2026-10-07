@@ -39,7 +39,7 @@ public sealed partial class SerialDemo : Component
                         .OnClick(Disconnect)["Disconnect"]
                 ],
                 Div.Class("flex items-stretch gap-2 mb-2")[
-                    Ui.Input.Value(_outgoing).AccessibleLabel("Line to send")
+                    Ui.Input.Value(_outgoing).Label("Line to send")
                         .Id("serial-outgoing")
                         .Placeholder("Line to send")
                         .Disabled(_port is null)

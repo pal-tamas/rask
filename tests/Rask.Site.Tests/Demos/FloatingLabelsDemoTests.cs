@@ -67,7 +67,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public void The_FloatingLabelsDemo_floats_every_label_over_its_linked_control()
+    public void The_FloatingLabelsDemo_links_every_label_to_its_control()
     {
         var html = Page.Render(() => FloatingLabelsDemo, TestServices.Default()).Html;
 
@@ -76,21 +76,17 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
         Assert.Contains("<textarea ", html);
         Assert.Contains("<select ", html);
 
-        // Every field floats its label — the default for a labelled kit text field — and the label is linked
-        // to its control by for/id as well as by holding it. The ff-* ids are the browser journey's selectors.
-        Assert.Equal(5, html.Split("class=\"floating-label\"").Length - 1);
+        // The input, the textarea and the select are Flux's now, with the label over the field: nothing floats
+        // any more. Each label is linked to its control by for/id. The ff-* ids are the browser journey's selectors.
+        Assert.DoesNotContain("class=\"floating-label\"", html);
         foreach (var prop in new[] { "FullName", "Email", "Age", "Plan", "Bio" })
         {
             Assert.Contains($"id=\"ff-{prop}\"", html);
             Assert.Contains($"for=\"ff-{prop}\"", html);
         }
 
-        // The caption carries an id the control names itself by (aria-labelledby), so a floating field is
-        // announced once rather than as its caption plus its placeholder.
-        Assert.Contains("<span id=\"ff-FullName-label\">Full name</span>", html);
-        Assert.Contains("aria-labelledby=\"ff-FullName-label\"", html);
-        Assert.Contains("<span id=\"ff-Email-label\">Email address</span>", html);
-        Assert.Contains("<span id=\"ff-Bio-label\">Short bio</span>", html);
+        Assert.Contains("<label id=\"ff-FullName-label\"", html);
+        Assert.Contains("<label id=\"ff-Bio-label\"", html);
 
         Assert.Contains(">Create account<", html);
         // No messages until a failed submit.

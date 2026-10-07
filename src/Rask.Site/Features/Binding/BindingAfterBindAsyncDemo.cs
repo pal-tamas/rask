@@ -20,7 +20,6 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
     [
         Div.Class("mb-3")[
             Ui.Select.Bind(() => _model.Track)
-                .Options(Tracks)
                 // The placeholder is selected while Track is still null. Without it the <select> would
                 // visually default to "Frontend" while the model holds nothing — and re-picking the
                 // already-shown first option fires no change event, so the async load would never trigger.
@@ -58,15 +57,18 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
                     _model.Language = _languages[0];
                     _loading = false;
                 })
-                .Id("bind-async-track")
+                .Id("bind-async-track")[
+                Tracks.Select(track => Ui.SelectOption.Key(track.Text).Value(track.Value)[track.Text])
+            ]
         ],
         Div.Class("mb-3")[
             Ui.Select.Bind(() => _model.Language)
-                .Options([.. _languages.Select(l => ((string?)l, l))])
                 .Placeholder("— pick a track —")
                 .Label(_loading ? "Language (loading…)" : "Language")
                 .Id("bind-async-lang")
-                .Disabled(_loading || _languages.Length == 0)
+                .Disabled(_loading || _languages.Length == 0)[
+                _languages.Select(language => Ui.SelectOption.Key(language)[language])
+            ]
         ],
         Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code.Id("bind-async-echo")[

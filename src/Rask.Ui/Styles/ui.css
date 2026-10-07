@@ -1212,25 +1212,6 @@
 }
 
 /*
-  A textarea that grows to fit what is typed (UiTextarea.AutoSize).
-
-  `field-sizing: content` is the platform's own answer, so this needs no script and works on a prerendered
-  page — which is the whole reason it is here rather than in the runtime. Where an engine has not shipped it
-  the declaration is ignored and the box keeps its `rows` and scrolls, which is exactly what it does today:
-  the feature degrades to the current behaviour rather than to a broken one.
-
-  `rows` becomes the SMALLEST it will be, which is why min-height is left to it rather than set here.
-
-  In `rask-ui-corrections` because daisyUI's `.textarea` rules live in `utilities`, which outranks `rask`
-  however specific a selector there is.
-*/
-@layer rask-ui-corrections {
-  .ui-textarea-auto {
-    field-sizing: content;
-  }
-}
-
-/*
   The light that crosses a shimmering skeleton ([data-ui-skeleton], [data-ui-skeleton-line]).
 
   Their ::before is as wide as the skeleton and parked one width to its left (UiSkeletonScope); this carries
@@ -1470,5 +1451,33 @@
       height 250ms cubic-bezier(0.4, 0, 0.2, 1),
       content-visibility 250ms allow-discrete,
       overflow 0s 250ms allow-discrete;
+  }
+}
+
+/*
+  The chevron of the browser's own select ([data-ui-select-native], UiSelect's default variant).
+
+  `appearance: none` takes the platform's arrow away, and a <select> has no child to hold an icon: the chevron
+  is a background image, as it is on Flux — zinc-300 at rest and zinc-800 under the pointer, zinc-400 and white
+  in dark. A data URI cannot read a custom property, so each colour is its own image.
+*/
+@layer rask {
+  [data-ui-select-native] {
+    background-image: url("data:image/svg+xml,%3csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 9L12 5L16 9' stroke='%23d4d4d4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3cpath d='M16 15L12 19L8 15' stroke='%23d4d4d4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.3125rem 1.3125rem;
+
+    &:hover:not(:disabled) {
+      background-image: url("data:image/svg+xml,%3csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 9L12 5L16 9' stroke='%2327272a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3cpath d='M16 15L12 19L8 15' stroke='%2327272a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+    }
+
+    @variant dark {
+      background-image: url("data:image/svg+xml,%3csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 9L12 5L16 9' stroke='%23A1A1AA' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3cpath d='M16 15L12 19L8 15' stroke='%23A1A1AA' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+
+      &:hover:not(:disabled) {
+        background-image: url("data:image/svg+xml,%3csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 9L12 5L16 9' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3cpath d='M16 15L12 19L8 15' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+      }
+    }
   }
 }

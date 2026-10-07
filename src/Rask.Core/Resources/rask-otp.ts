@@ -12,10 +12,11 @@
 // event. The group holds ONE bound field — an <input type="hidden"> — which this keeps equal to the cells
 // joined together and announces with an `input` and a `change` event, so the page binds one string the usual
 // way. When the page changes that string itself (clearing a wrong code), the hidden field's value changes and
-// the cells are refilled from it.
+// the cells are refilled from it. The bound field and its late echo are rask-bound.ts's.
 //
 // data-rask-otp="numeric" (the default) | "alpha" | "alphanumeric" says what a cell accepts.
 
+import {announce, bind} from "./rask-bound.js";
 import {page} from "./rask-owned.js";
 
 const GROUP = "[data-rask-otp]";
@@ -71,90 +72,20 @@ function land(cells: HTMLInputElement[], index: number): void {
     cell.select();
 }
 
-function announce(group: Element, cells: HTMLInputElement[]): void {
-    const bound = group.querySelector<HTMLInputElement>("input[type=hidden]");
-    const value = join(cells);
-    if (!bound || bound.value === value) {
-        return;
-    }
-    write(bound, value);
-    let waiting = sent.get(bound);
-    if (!waiting) {
-        sent.set(bound, waiting = []);
-    }
-    waiting.push(value);
-    bound.dispatchEvent(new Event("input", {bubbles: true}));
-    bound.dispatchEvent(new Event("change", {bubbles: true}));
-}
-
 // Rewrites the whole code and puts the caret on cell `index`.
 function commit(group: Element, cells: HTMLInputElement[], value: string, index: number): void {
     fill(cells, value);
     land(cells, index);
-    announce(group, cells);
+    announce(group, join(cells));
 }
 
-// The page's answer to each value announced comes back as the hidden field's `value` attribute — and it comes
-// back LATE: the echo of "12" arrives when the cells already say "1234". An echo is therefore recognised (it
-// is one of the values still waiting) and ignored, and the field is put back to what the cells say. Anything
-// else in that attribute is the page changing the code, and the cells follow it.
-const sent = new WeakMap<Element, string[]>();
-
-// A hidden input's `value` IS its attribute, so writing it here looks, to the observer below, exactly like the
-// page writing it. The records this write caused are taken back out before the observer is handed them.
-let watcher: MutationObserver | null = null;
-
-function write(bound: HTMLInputElement, value: string): void {
-    if (bound.value === value) {
-        return;
-    }
-    const earlier = watcher ? watcher.takeRecords() : [];
-    bound.value = value;
-    if (watcher) {
-        watcher.takeRecords();
-        observed(earlier);
-    }
-}
-
-function observed(records: MutationRecord[]): void {
-    for (const record of records) {
-        if (record.type === "attributes") {
-            const t = record.target as Element;
-            const group = t instanceof HTMLInputElement && t.type === "hidden" ? t.closest(GROUP) : null;
-            if (group) refill(group);
-            continue;
-        }
-        record.addedNodes.forEach(function (n) {
-            if (n instanceof Element) {
-                if (n.matches(GROUP)) refill(n);
-                n.querySelectorAll(GROUP).forEach(refill);
-            }
-        });
-    }
-}
-
-function refill(group: Element): void {
-    const bound = group.querySelector<HTMLInputElement>("input[type=hidden]");
-    if (!bound) {
-        return;
-    }
+// The page changed the code (the bound field's value moved, or the group just arrived): the cells follow it.
+bind(GROUP, function (group) {
+    return join(cellsOf(group));
+}, function (group, rendered) {
     const cells = cellsOf(group);
-    const rendered = bound.getAttribute("value") || "";
-    const waiting = sent.get(bound);
-    const echo = waiting ? waiting.indexOf(rendered) : -1;
-    if (waiting && echo >= 0) {
-        waiting.splice(0, echo + 1);
-        write(bound, join(cells));
-        return;
-    }
-    if (waiting) {
-        waiting.length = 0;
-    }
-    if (join(cells) !== rendered) {
-        fill(cells, otpChars(rendered, group.getAttribute("data-rask-otp"), cells.length));
-    }
-    write(bound, join(cells));
-}
+    fill(cells, otpChars(rendered, group.getAttribute("data-rask-otp"), cells.length));
+});
 
 if (page) {
     const doc = page;
@@ -244,11 +175,4 @@ if (page) {
             cell.select();
         }
     }, true);
-
-    if (typeof MutationObserver === "function") {
-        // The page changed the code: its hidden field's `value` attribute moved, or the group just arrived.
-        watcher = new MutationObserver(observed);
-        watcher.observe(doc.documentElement, {subtree: true, childList: true, attributes: true, attributeFilter: ["value"]});
-        doc.querySelectorAll(GROUP).forEach(refill);
-    }
 }

@@ -103,7 +103,8 @@ jobs:
     uses: ./.github/workflows/gates.yml
     with:
       # A Dependabot pull request gets the short set, unscoped: it changes the package pins, which
-      # nothing can narrow, and several arrive at once on the runners main is waiting for.
+      # nothing can narrow, and several arrive at once on the runners main is waiting for. One that
+      # changes a front-end template's client also gets that template's "front end" job (gates.yml).
       set: >-
         ${{ github.event_name == 'workflow_dispatch' && inputs.set
             || startsWith(github.ref, 'refs/heads/ci/release/') && 'all'

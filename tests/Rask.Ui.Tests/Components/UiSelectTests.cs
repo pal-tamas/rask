@@ -1,235 +1,220 @@
+using Rask.Core;
+using Rask.Core.Forms;
+using Page = Rask.Testing.Page;
+
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The select, in both of its modes.
+///     Flux's select in its default variant — the browser's own <c>&lt;select&gt;</c> — and what every variant
+///     shares: options as children, the typed binding, the field it draws around itself.
 /// </summary>
 /// <remarks>
-///     The chain opens on <c>Value</c> or <c>Bind</c>, which is what fixes both the type argument and
-///     the mode; <c>Label</c> and <c>Options</c> follow in either order.
+///     The look is held to fluxui.dev by <c>SelectParity</c> and <c>scripts/flux/parity-select.mjs</c>; these
+///     hold what a class string cannot say. The drawn variants are in <c>UiSelectListboxTests</c>,
+///     <c>UiSelectSearchTests</c> and <c>UiSelectComboboxTests</c>.
 /// </remarks>
 public partial class UiSelectTests : global::Rask.Core.RaskMarkup
 {
-    private static readonly (string Value, string Text)[] Countries =
+    private enum Plan
+    {
+        Free,
+        Team,
+    }
+
+    private sealed class Profile
+    {
+        public string Country { get; set; } = "gb";
+
+        public Plan? Plan { get; set; }
+
+        public int Seats { get; set; } = 5;
+    }
+
+    private static Component[] Countries() =>
     [
-        ("hu", "Hungary"), ("gb", "United Kingdom"), ("ie", "Ireland")
+        Ui.SelectOption.Value("hu")["Hungary"],
+        Ui.SelectOption.Value("gb")["United Kingdom"],
     ];
 
     [Fact]
-    public void The_default_is_the_platforms_own_control()
+    public void The_default_variant_is_the_browsers_own_select()
     {
-        // The version to reach for: it works with a keyboard, a screen reader and a phone's picker
-        // without a line of script, and it renders complete on a prerendered page.
-        var html = Native(null);
+        var select = Ui.Select.Value("gb")[Countries()];
 
-        Assert.Contains("<select", html);
-        Assert.DoesNotContain("role=\"combobox\"", html);
+        var html = select.ToHtml();
+
+        Assert.StartsWith("<select", html, StringComparison.Ordinal);
+        Assert.Contains("data-ui-select-native", html, StringComparison.Ordinal);
+        Assert.Contains("data-ui-control", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("popover", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Native_true_is_the_same_as_leaving_it_unset() =>
-        Assert.Equal(Native(null), Native(true));
-
-    [Fact]
-    public void Turning_it_off_draws_a_combobox_over_a_listbox()
+    public void An_option_is_a_child_holding_a_value_and_its_words()
     {
-        var html = Native(false);
+        var select = Ui.Select.Value("gb")[Countries()];
 
-        Assert.DoesNotContain("<select", html);
-        Assert.Contains("role=\"combobox\"", html);
-        Assert.Contains("role=\"listbox\"", html);
-        Assert.Contains("role=\"option\"", html);
+        var html = select.ToHtml();
+
+        Assert.Contains("value=\"hu\">Hungary</option>", html, StringComparison.Ordinal);
+        Assert.Contains("selected value=\"gb\">United Kingdom</option>", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_combobox_carries_the_whole_popup_contract()
+    public void An_option_with_no_value_stands_for_its_own_words()
     {
-        // aria-haspopup/expanded/controls is the contract docs/forms.md documents for this pattern, and
-        // aria-expanded is only truthful because the list reports the browser's own dismissal back.
-        var html = Native(false);
+        var select = Ui.Select.Value("Design services")[Ui.SelectOption["Photography"], Ui.SelectOption["Design services"]];
 
-        Assert.Contains("aria-haspopup=\"listbox\"", html);
-        Assert.Contains("aria-expanded=\"false\"", html);
-        Assert.Contains("aria-controls=", html);
+        var html = select.ToHtml();
+
+        Assert.Contains("selected value=\"Design services\">Design services</option>", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_list_is_a_popover_named_by_its_box()
+    public void The_placeholder_is_an_option_nobody_can_pick_and_the_chosen_one_until_there_is_an_answer()
     {
-        // The browser owns dismissal: top layer, Escape and click-outside, none of it implemented here.
-        var html = Native(false);
+        var select = Ui.Select.Of<string>().Placeholder("Choose industry...")[Countries()];
 
-        Assert.Contains("popover=\"auto\"", html);
-        Assert.Contains("popovertarget=", html);
-        Assert.Contains("popovertargetaction=\"hide\"", html);
+        var html = select.ToHtml();
+
+        Assert.Contains("<option disabled selected value=\"\">Choose industry...</option>", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_list_hears_the_browser_closing_it()
+    public void A_group_is_an_optgroup_under_its_label()
     {
-        // Without this, aria-expanded above goes on saying "true" over a list Escape already closed.
-        Assert.Contains("data-rask-on-toggle=", Live(Native(false)));
+        var select = Ui.Select.Of<string>()[Ui.SelectGroup.Label("Europe")[Countries()]];
+
+        var html = select.ToHtml();
+
+        Assert.Contains("<optgroup label=\"Europe\"><option", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_box_takes_the_keyboard()
+    public void A_disabled_option_is_shown_and_cannot_be_picked()
     {
-        Assert.Contains("data-rask-on-keydown=", Live(Native(false)));
+        var select = Ui.Select.Value("gb")[Ui.SelectOption.Value("hu").Disabled()["Hungary"]];
+
+        var option = Page.Render(select).Find("option");
+
+        Assert.NotNull(option.Attribute("disabled"));
+        Assert.Equal("hu", option.Attribute("value"));
     }
 
     [Fact]
-    public void The_selected_option_is_marked_for_CSS_and_for_a_screen_reader()
+    public async Task A_bound_select_marks_the_models_option_and_writes_a_pick_back()
     {
-        var html = Custom("gb");
+        var model = new Profile();
+        var page = Page.Render(() => Form.Model(model)[Ui.Select.Bind(() => model.Country).Label("Country")[Countries()]]);
+        var before = page.Html;
 
-        Assert.Contains("menu-active", html);
-        Assert.Contains("aria-selected=\"true\"", html);
+        await page.On("select").Change("hu");
+
+        Assert.Contains("selected value=\"gb\"", before, StringComparison.Ordinal);
+        Assert.Equal("hu", model.Country);
     }
 
     [Fact]
-    public void The_box_shows_the_selected_options_words_rather_than_its_value() =>
-        Assert.Contains("United Kingdom", Custom("gb"));
-
-    [Fact]
-    public void With_nothing_selected_the_box_shows_the_placeholder() =>
-        Assert.Contains("Choose",
-            Ui.Select.Value<string>(null).Options(Countries).Label("Country").Placeholder("Choose…")
-                .Native(false).ToHtml());
-
-    [Fact]
-    public void A_disabled_option_says_so_and_is_unreachable()
+    public async Task A_bound_nullable_enum_reads_and_writes_its_own_type()
     {
-        // menu-disabled goes on the <li>, unlike menu-active and menu-focus which go on the child —
-        // an asymmetry in daisyUI's own rules rather than a choice here.
-        var html = Ui.Select.Value<string>(null).Options(Countries).Label("Country").Native(false)
-            .OptionDisabled(v => v == "gb").ToHtml();
+        var model = new Profile();
+        var page = Page.Render(() => Form.Model(model)[
+            Ui.Select.Bind(() => model.Plan).Placeholder("Choose…")[
+                Ui.SelectOption.Value(Plan.Free)["Free"],
+                Ui.SelectOption.Value(Plan.Team)["Team"]
+            ]
+        ]);
 
-        Assert.Contains("aria-disabled=\"true\"", html);
-        Assert.Contains("menu-disabled", html);
+        await page.On("select").Change("Team");
+
+        Assert.Equal(Plan.Team, model.Plan);
     }
 
     [Fact]
-    public void An_enabled_option_claims_nothing()
+    public void An_option_of_another_type_than_its_select_is_refused_by_name()
     {
-        // A valueless aria-disabled reads as "true", so it has to be absent rather than empty.
-        Assert.DoesNotContain("aria-disabled", Native(false));
+        var model = new Profile();
+        var select = Ui.Select.Bind(() => model.Seats)[Ui.SelectOption.Value("five")["Five"]];
+
+        var thrown = Assert.Throws<InvalidOperationException>(() => select.ToHtml());
+
+        Assert.Contains("\"Five\" holds String", thrown.Message, StringComparison.Ordinal);
+        Assert.Contains("Int32", thrown.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Groups_render_headers()
+    public void A_label_draws_the_field_and_points_at_the_control()
     {
-        var html = Ui.Select.Value<string>(null).Options(Countries).Label("Country").Native(false)
-            .OptionGroup(v => v == "hu" ? "Europe" : "Isles").ToHtml();
+        var select = Ui.Select.Value("gb").Label("Country").Description("Where you are billed.").Badge("Optional")[Countries()];
 
-        Assert.Contains("menu-title", html);
-        Assert.Contains("Europe", html);
-        Assert.Contains("Isles", html);
+        var page = Page.Render(select);
+
+        Assert.True(page.Exists("[data-ui-field]"));
+        Assert.Equal("f-country", page.Find("label").Attribute("for"));
+        Assert.Contains("Optional", page.TextOf("label"), StringComparison.Ordinal);
+        Assert.Equal("f-country-description", page.Find("select").Attribute("aria-describedby"));
+        Assert.Equal("f-country", page.Find("select").Id);
     }
 
     [Fact]
-    public void The_hidden_input_appears_only_when_the_field_is_named()
+    public void A_select_with_no_label_is_the_control_alone()
     {
-        // A listbox of buttons submits nothing, so without it a control inside a plain <form> would
-        // silently drop its field.
-        Assert.DoesNotContain("type=\"hidden\"", Custom("gb"));
-        Assert.Contains("type=\"hidden\"",
-            Ui.Select.Value("gb").Options(Countries).Label("Country").Native(false).Name("country")
-                .ToHtml());
+        var select = Ui.Select.Value("gb")[Countries()];
+
+        var html = select.ToHtml();
+
+        Assert.DoesNotContain("data-ui-field", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<label", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_native_mode_ignores_Name_because_a_select_posts_itself() =>
-        Assert.DoesNotContain("type=\"hidden\"",
-            Ui.Select.Value("gb").Options(Countries).Label("Country").Name("country").ToHtml());
-
-    [Fact]
-    public void Both_modes_are_named_by_their_visible_label()
+    public void A_bound_select_the_form_rejects_is_invalid_and_described_by_its_message()
     {
-        // By `for`/`id`, in both modes. The drawn box used to carry no id, so its label pointed at nothing,
-        // and each mode papered over that with an aria-label copied from the label — a second name beside
-        // the one on screen.
-        foreach (var html in new[] { Native(null), Native(false) })
-        {
-            Assert.Contains("for=\"f-country\"", html);
-            Assert.Contains("id=\"f-country\"", html);
-        }
+        var model = new Profile();
+        var form = new EditContext(model);
+        form.AddValidationMessage(new FieldIdentifier(model, nameof(Profile.Country)), "We do not ship there.");
 
-        Assert.DoesNotContain("aria-label=", Native(null));
+        var html = Page.Render(() => Form.Model(model).Context(form)[
+            Ui.Select.Bind(() => model.Country).Label("Country")[Countries()]
+        ]).Html;
 
-        // The drawn LIST is a separate widget in the top layer and keeps a name of its own; the box does not.
-        var drawn = Native(false);
-        var boxStart = drawn.IndexOf("role=\"combobox\"", StringComparison.Ordinal);
-        var box = drawn[drawn.LastIndexOf('<', boxStart)..drawn.IndexOf('>', boxStart)];
-        Assert.DoesNotContain("aria-label=", box);
-        Assert.Contains("role=\"listbox\" aria-label=\"Country\"", drawn);
+        Assert.Contains("aria-invalid=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("aria-describedby=\"f-country-error\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-invalid", html, StringComparison.Ordinal);
+        Assert.Contains("We do not ship there.", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(Ui.SelectSize.Base, "h-10")]
+    [InlineData(Ui.SelectSize.Sm, "h-8")]
+    [InlineData(Ui.SelectSize.Xs, "h-6")]
+    public void The_size_is_the_inputs(Ui.SelectSize size, string height)
+    {
+        var select = Ui.Select.Value("gb").Size(size)[Countries()];
+
+        var html = select.ToHtml();
+
+        Assert.Contains(height + " ", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void An_unlabelled_select_takes_its_accessible_label_in_both_modes()
+    public void A_disabled_named_select_says_so_on_the_control()
     {
-        // Label was copied into aria-label unconditionally, so a select with no label rendered a VALUELESS
-        // aria-label and ignored AccessibleLabel entirely.
-        Assert.Contains("aria-label=\"Country\"",
-            Ui.Select.Value("gb").Options(Countries).AccessibleLabel("Country").ToHtml());
-        Assert.Contains("aria-label=\"Country\"",
-            Ui.Select.Value("gb").Options(Countries).AccessibleLabel("Country").Native(false).ToHtml());
-        Assert.DoesNotContain("aria-label=", Ui.Select.Value("gb").Options(Countries).ToHtml());
+        var select = Ui.Select.Value("gb").Disabled().Name("country")[Countries()];
+
+        var html = select.ToHtml();
+
+        Assert.Contains(" disabled", html, StringComparison.Ordinal);
+        Assert.Contains("name=\"country\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void An_errored_control_says_so_in_both_modes()
+    public void Picking_several_needs_a_select_that_holds_a_collection()
     {
-        Assert.Contains("aria-invalid=\"true\"",
-            Ui.Select.Value("gb").Options(Countries).Label("Country").Tone(Ui.Tone.Error).ToHtml());
-        Assert.Contains("aria-invalid=\"true\"",
-            Ui.Select.Value("gb").Options(Countries).Label("Country").Tone(Ui.Tone.Error).Native(false)
-                .ToHtml());
+        var select = Ui.Select.Value("gb").Listbox.Multiple()[Countries()];
+
+        var thrown = Assert.Throws<InvalidOperationException>(() => select.ToHtml());
+
+        Assert.Contains("holds a collection", thrown.Message, StringComparison.Ordinal);
     }
-
-    [Fact]
-    public void The_native_mode_still_offers_an_unselectable_placeholder()
-    {
-        // A placeholder that can be chosen is an answer, and one chosen by accident is a bug report
-        // about a form that saved nothing.
-        var html = Ui.Select.Value<string>(null).Options(Countries).Label("Country")
-            .Placeholder("Choose…").ToHtml();
-
-        Assert.Contains("disabled", html);
-        Assert.Contains("Choose", html);
-    }
-
-    [Fact]
-    public void An_option_template_draws_the_rows_and_implies_the_drawn_list()
-    {
-        // An <option>'s content model is text, so there is nowhere in the platform's control for markup
-        // to go — supplying a template is therefore a choice of mode as well as of markup. Writing
-        // Native(true) beside one is the contradiction, and RASK075 reports it at the call site.
-        var html = Ui.Select.Value("gb").Options(Countries).Label("Country")
-            .OptionTemplate(v => Span.Class("flag-mark")[v]).ToHtml();
-
-        Assert.DoesNotContain("<select", html);
-        Assert.Contains("role=\"option\"", html);
-        Assert.Contains("flag-mark", html);
-    }
-
-    [Fact]
-    public void The_closed_box_keeps_the_words_even_with_a_template()
-    {
-        // The template draws the LIST. The box is one line of text with no room for markup, so it goes
-        // on showing the Text from Options — which is why Text stays worth supplying alongside one.
-        var html = Ui.Select.Value("gb").Options(Countries).Label("Country")
-            .OptionTemplate(v => Span.Class("flag-mark")[v]).ToHtml();
-
-        Assert.Contains("United Kingdom", html);
-    }
-
-    private static string Native(bool? native) =>
-        Ui.Select.Value("gb").Options(Countries).Label("Country").Native(native).ToHtml();
-
-    private static string Custom(string? value) =>
-        Ui.Select.Value(value).Options(Countries).Label("Country").Native(false).ToHtml();
-
-    // Handlers only exist inside a live render, so the attribute assertions above need one.
-    private static string Live(string _) =>
-        global::Rask.Testing.Page.Render(
-            Ui.Select.Value("gb").Options(Countries).Label("Country").Native(false)).Html;
 }

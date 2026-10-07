@@ -86,64 +86,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string SelectTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "select-neutral",
-        Ui.Tone.Primary => "select-primary",
-        Ui.Tone.Secondary => "select-secondary",
-        Ui.Tone.Accent => "select-accent",
-        Ui.Tone.Info => "select-info",
-        Ui.Tone.Success => "select-success",
-        Ui.Tone.Warning => "select-warning",
-        Ui.Tone.Error => "select-error",
-        _ => "",
-    };
-
-    internal static string SelectVariant(Ui.Variant value) => value switch
-    {
-        Ui.Variant.Ghost => "select-ghost",
-        _ => "",
-    };
-
-    internal static string SelectSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "select-xs",
-        Ui.Size.Sm => "select-sm",
-        Ui.Size.Md => "select-md",
-        Ui.Size.Lg => "select-lg",
-        Ui.Size.Xl => "select-xl",
-        _ => "",
-    };
-
-    internal static string TextareaTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "textarea-neutral",
-        Ui.Tone.Primary => "textarea-primary",
-        Ui.Tone.Secondary => "textarea-secondary",
-        Ui.Tone.Accent => "textarea-accent",
-        Ui.Tone.Info => "textarea-info",
-        Ui.Tone.Success => "textarea-success",
-        Ui.Tone.Warning => "textarea-warning",
-        Ui.Tone.Error => "textarea-error",
-        _ => "",
-    };
-
-    internal static string TextareaVariant(Ui.Variant value) => value switch
-    {
-        Ui.Variant.Ghost => "textarea-ghost",
-        _ => "",
-    };
-
-    internal static string TextareaSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "textarea-xs",
-        Ui.Size.Sm => "textarea-sm",
-        Ui.Size.Md => "textarea-md",
-        Ui.Size.Lg => "textarea-lg",
-        Ui.Size.Xl => "textarea-xl",
-        _ => "",
-    };
-
     internal static string FileInputTone(Ui.Tone value) => value switch
     {
         Ui.Tone.Neutral => "file-input-neutral",
@@ -530,19 +472,6 @@ internal static class UiClassNames
         Ui.Breakpoint.Lg => "lg:drawer-open",
         Ui.Breakpoint.Xl => "xl:drawer-open",
         _ => "lg:drawer-open",
-    };
-
-    /// <summary>Which way a textarea can be resized.</summary>
-    /// <remarks>
-    ///     Tailwind's own resize utilities, one complete literal per member — <c>"resize-" + value</c> is invisible
-    ///     to the scan, and a textarea that asked for a fixed size would silently keep its handle.
-    /// </remarks>
-    internal static string Resize(Ui.Resize value) => value switch
-    {
-        Ui.Resize.Horizontal => "resize-x",
-        Ui.Resize.Both => "resize",
-        Ui.Resize.None => "resize-none",
-        _ => "resize-y",
     };
 
     /// <summary>The classes that hide an element from a breakpoint up.</summary>

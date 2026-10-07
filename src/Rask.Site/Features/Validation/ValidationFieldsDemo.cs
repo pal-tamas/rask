@@ -29,11 +29,12 @@ public sealed partial class ValidationFieldsDemo : Component
             ],
             Div[
                 Ui.Select.Bind(() => _model.Plan)
-                    .Options(Plans)
                     .Placeholder("— choose —")
                     .Label("Plan")
                     .Id("v1-plan")
-                    .ShowValidation(false),
+                    .ShowValidation(false)[
+                    Plans.Select(plan => Ui.SelectOption.Key(plan.Text).Value(plan.Value)[plan.Text])
+                ],
                 Validation.Message.Template(FieldError).For(() => _model.Plan)
             ],
             Div[

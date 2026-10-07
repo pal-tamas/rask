@@ -21,11 +21,11 @@ public sealed partial class NestedListForeachDemo : Component
             var captured = item; // foreach already captures per-iteration but make it loud.
             rows.Add(Ui.TableRow.Key(captured.Id)[
                 Ui.TableCell[
-                    Ui.Input.Bind(() => captured.Description).AccessibleLabel("Description").ShowValidation(false),
+                    Ui.Input.Bind(() => captured.Description).Label("Description").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Description)
                 ],
                 Ui.TableCell.Style("width: 6rem;")[
-                    Ui.Input.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
+                    Ui.Input.Bind(() => captured.Quantity).Label("Quantity").ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Ui.TableCell.Style("width: 3rem;")[
