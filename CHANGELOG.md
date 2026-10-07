@@ -387,7 +387,9 @@ them until tagged releases begin.
   random is ignored instead of reported. A baseline measures every page twice and locks such an example
   (a chart, whose data the docs server makes up per request) as `unstable`, so it is never compared; an
   `auto` margin is recorded as `auto`, since Chromium reports the space it took on one page load and
-  `0px` on the next for the same layout.
+  `0px` on the next for the same layout. The lock also names the measuring
+  code that took it, and the run retakes it when `scripts/flux/lib.mjs` or `sync.mjs` changes — a
+  change to how a page is measured is not Flux moving.
 - **Islands load in an app served under a path base.** With `PathBase = "/shop"` the island runtime, the
   manifest and every chunk were still asked for at the root and answered 404, on both hosts. The script
   is now written under the base, as scoped assets are, and the client reads the base back off its own
