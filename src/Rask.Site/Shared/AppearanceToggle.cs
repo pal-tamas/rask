@@ -4,8 +4,8 @@ namespace Rask.Site;
 ///     The moon in the top bar: one click flips the page between light and dark, as on fluxui.dev.
 /// </summary>
 /// <remarks>
-///     Measured off Flux's own header: a 40px square subtle button, an 8px radius, the 20px <c>mini</c>
-///     moon in zinc-300 in both schemes, a tooltip below it naming the <kbd>D</kbd> shortcut. It calls
+///     Flux's own header: a subtle <c>Ui.Button</c> holding the moon, its resting ink set to zinc-300 in
+///     both schemes as Flux's docs set theirs, a tooltip below it naming the <kbd>D</kbd> shortcut. It calls
 ///     <c>Rask.dark</c>, which <c>Ui.AppearanceScript</c> defines — no C# handler, so it works before
 ///     the app has booted and costs no handler id.
 /// </remarks>
@@ -13,12 +13,10 @@ internal sealed partial class AppearanceToggle : Component
 {
     private const string Label = "Toggle dark mode";
 
-    // SEAM: swap this <button> + tooltip for
-    //   Ui.Button.Subtle.Square.Icon(Ui.IconName.Moon).Tooltip(Label).TooltipKbd("D")
-    // (keeping the onclick and the zinc-300 resting colour) when Flux's Ui.Button and Ui.Tooltip land.
-    private const string ButtonClass =
-        "inline-flex size-10 items-center justify-center rounded-lg bg-transparent text-zinc-300 "
-        + "hover:bg-zinc-800/5 hover:text-zinc-800 dark:hover:bg-white/15 dark:hover:text-white";
+    // Only at rest: under the pointer the button's own subtle hover takes over, in either scheme.
+    private const string RestingInk = "not-hover:text-zinc-300";
+
+    // SEAM: the tooltip below becomes .Tooltip(Label).TooltipKbd("D") on the button when Flux's Ui.Tooltip lands.
 
     // Anchored to the button's end rather than centred under it: the moon is the last thing in the bar,
     // and a centred tooltip would hang off a phone's edge.
@@ -41,15 +39,12 @@ internal sealed partial class AppearanceToggle : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Span.Class("group relative inline-flex")[
-            Button
-                .Type(ButtonType.Button)
-                .Class(ButtonClass)
+            Ui.Button.Subtle.Icon(Ui.IconName.Moon)
+                .Class(RestingInk)
                 .AriaLabel(Label)
                 .AriaKeyShortcuts("D")
                 .Attributes(("onclick", "Rask.dark=!Rask.dark"))
-                .Data(new AttrBag("appearance-toggle", ""))[
-                Ui.Icon.Name(Ui.IconName.Moon).Mini
-            ],
+                .Data(new AttrBag("appearance-toggle", "")),
             Span.Class(TooltipClass).Aria("hidden", "true")[
                 Label,
                 Span.Class("ps-1 text-zinc-300")["D"]
