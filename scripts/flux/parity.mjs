@@ -81,6 +81,9 @@ const NATIVE = {
   'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend', 'ui-progress': 'div',
   'ui-table-scroll-area': 'div',
 };
+// …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
+// opens the file input inside it when clicked, where Flux's <div> calls input.click().
+const NATIVE_PART = { 'input-file': 'label' };
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
 const snapshot = JSON.parse(await readFile(join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json'), 'utf8'));
 const OWN = new Set([slug, ...(snapshot.pages.find(p => p.slug === slug)?.parts ?? [])
@@ -167,7 +170,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
   const standIn = skip === '';
   const own = !standIn && skip !== 'self';
   if (skip === 'width' || skip === 'height') free = skip;
-  if ((NATIVE[a.tag] ?? a.tag) !== b.tag && own) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
+  if ((NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) !== b.tag && own) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
   if (a.text !== b.text && a !== rootA && own) diffs.push(`${where}: text "${a.text}" vs "${b.text}"`);
 
   const differs = (x, y) => Math.abs(x - y) > 0.6;
@@ -178,7 +181,9 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 
   // A node that is not displayed has no box: its rectangle is the viewport's corner, which says how far
   // each page is scrolled and nothing about the node.
-  const displayed = a.style.display !== 'none' || b.style.display !== 'none';
+  // …and neither has anything inside a node that is not displayed, whose own `display` still says inline.
+  const boxless = n => n.box[2] === 0 && n.box[3] === 0;
+  const displayed = (a.style.display !== 'none' || b.style.display !== 'none') && !(boxless(a) && boxless(b));
   if (a !== rootA && displayed) {
     const off = (n, r, i) => n.box[i] - r.box[i];
     if ([0, 1].some(i => held[i] && differs(off(a, rootA, i), off(b, rootB, i)))) {

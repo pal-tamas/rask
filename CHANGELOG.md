@@ -20,6 +20,35 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
+  `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
+  `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the
+  form). `Label`, `Description` and `DescriptionTrailing` (and `Badge` on a textarea) wrap the control in a
+  `Ui.Field` with its `Ui.Error`; a control with none of them is the control alone and draws no message.
+  New: `Variant` (`.Filled`), `Invalid()`, `ReadOnly()`, `Viewable()`, `Mask("(999) 999-9999")`,
+  `As(Ui.InputAs.Button)`, `InputClass`, `Type(InputType.File)` drawn as Flux's file input, an icon that is a
+  component of your own, `Ui.InputGroup` / `Ui.InputGroupPrefix` / `Ui.InputGroupSuffix`, and
+  `Rows(UiTextareaRows.Auto)`. Nothing Flux does not have stayed:
+  ```csharp
+  Ui.Search.Placeholder("Search").AccessibleLabel("Search keys").Value(q).OnSearch(Find)        // was
+  Ui.Input.Value(q).Icon(Ui.IconName.MagnifyingGlass).Placeholder("Search").OnChange(Find)      // now
+
+  Ui.Input.Bind(() => m.Email).Label("Email").Hint("We never share it.")                         // was
+  Ui.Input.Bind(() => m.Email).Label("Email").Description("We never share it.")                  // now
+
+  Ui.Input.Value(v).Tone(Ui.Tone.Error).Error("Not an email.")                                   // was
+  Ui.Field[Ui.Input.Value(v).Invalid(), Ui.Error.Message("Not an email.")]                       // now
+
+  Ui.Input.Value(v).Size(Ui.Size.Sm).Variant(Ui.Variant.Ghost)                                   // was
+  Ui.Input.Value(v).Sm.Filled                                                                    // now
+
+  Ui.Textarea.Bind(() => m.Notes).AutoSize(true).Resize(Ui.Resize.None)                          // was
+  Ui.Textarea.Bind(() => m.Notes).Rows(UiTextareaRows.Auto).None                                 // now
+  ```
+  Removed with no replacement: floating labels (`Floating`), `AccessibleLabel`, `Badge` on an input,
+  `ShowValidating` and its "Checking…" line, the message a bound control with no label used to draw, and
+  `aria-required` from `[Required]`. `Ui.Resize` is `Ui.TextareaResize`; a textarea is four rows by default
+  (was three). Flux's `copyable` and `mask:dynamic` need script in the page and are not built.
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:

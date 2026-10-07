@@ -1,7 +1,7 @@
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The smaller Flux UI affordances: a resizable textarea, an outbound link, a shaped placeholder, a popover
+///     The smaller Flux UI affordances: an outbound link, a shaped placeholder, a popover
 ///     that is not a menu.
 /// </summary>
 /// <remarks>
@@ -11,27 +11,6 @@ namespace Rask.UiTests.Components;
 /// </remarks>
 public partial class UiPolishTests : global::Rask.Core.RaskMarkup
 {
-    [Fact]
-    public void A_textarea_can_be_told_which_way_it_resizes()
-    {
-        Assert.Contains("resize-none",
-            Ui.Textarea.Value("").Label("Notes").Resize(Ui.Resize.None).ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("resize-y",
-            Ui.Textarea.Value("").Label("Notes").Resize(Ui.Resize.Vertical).ToHtml(), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Auto_sizing_is_CSS_rather_than_script()
-    {
-        // field-sizing: content is the platform's own answer, so it works on a prerendered page with no
-        // runtime — and where an engine has not shipped it, the box keeps its rows and scrolls, which is
-        // exactly what it does today.
-        var html = Ui.Textarea.Value("").Label("Notes").AutoSize(true).ToHtml();
-
-        Assert.Contains("ui-textarea-auto", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-rask-on-input", html, StringComparison.Ordinal);
-    }
-
     [Fact]
     public void An_external_link_opens_away_and_cannot_reach_back()
     {

@@ -72,7 +72,7 @@ public partial class UiFieldTests : global::Rask.Core.RaskMarkup
         var model = new SignUp();
 
         var html = Form.Model(model)[
-            Ui.Field[Ui.Label["Nickname"], Ui.Input.Bind(() => model.Nickname).Floating(false)]
+            Ui.Field[Ui.Label["Nickname"], Ui.Input.Bind(() => model.Nickname)]
         ].ToHtml();
 
         Assert.Contains("for=\"f-nickname\"", html, StringComparison.Ordinal);
@@ -142,7 +142,7 @@ public partial class UiFieldTests : global::Rask.Core.RaskMarkup
         var html = global::Rask.Testing.Page.Render(() => Form.Model(model).Context(ctx)[
             Ui.Field[
                 Ui.Label["Nickname"],
-                Ui.Input.Bind(() => model.Nickname).Floating(false).ShowValidation(false),
+                Ui.Input.Bind(() => model.Nickname).ShowValidation(false),
                 Ui.Error
             ]
         ]).Html;
@@ -184,7 +184,7 @@ public partial class UiFieldTests : global::Rask.Core.RaskMarkup
     public void The_icon_of_an_error_can_be_another_one_or_none()
     {
         var without = Ui.Error.Message("No.").Icon(false);
-        var other = Ui.Error.Message("No.").Icon(Ui.IconName.Info);
+        var other = Ui.Error.Message("No.").Icon(Ui.IconName.InformationCircle);
 
         var (bare, swapped) = (without.ToHtml(), other.ToHtml());
 
