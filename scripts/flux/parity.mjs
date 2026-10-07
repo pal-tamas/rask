@@ -80,6 +80,8 @@ const IGNORED = new Set(['width', 'height']);
 const NATIVE = {
   'ui-field': 'div', 'ui-label': 'label', 'ui-description': 'div', 'ui-legend': 'legend', 'ui-progress': 'div',
   'ui-table-scroll-area': 'div', 'ui-disclosure-group': 'div', 'ui-disclosure': 'details',
+  // A <label> opens the file input inside it when clicked, where <ui-file-upload> does it with script.
+  'ui-file-upload': 'label',
 };
 // …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
 // opens the file input inside it when clicked, where Flux's <div> calls input.click().

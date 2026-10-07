@@ -169,7 +169,9 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 
         Assert.False(result.TimedOut, $"did not settle ({result.Waves} waves)");
         Assert.Contains("Components are just methods", result.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("role=\"alert\"", result.Html, StringComparison.Ordinal);
+        // The fetch demo's own failure callout — not any role="alert": the upload demo's file field keeps an
+        // empty one in the page for its message, as every Flux field does.
+        Assert.DoesNotContain("Error: </", result.Html, StringComparison.Ordinal);
     }
 
     private static IServiceProvider Services(HttpClient http, TimeProvider time) =>

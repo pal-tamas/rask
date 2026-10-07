@@ -29,6 +29,9 @@ darker, an inset highlight, 12px on the icon side and 16px on the other.
 
 Behaviour is measured too: open the page, use the component with keyboard and pointer (Playwright via
 `scripts/flux/lib.mjs`'s `chromium()`), and write down what each key does before implementing it.
+A state no example shows (dragging, uploading, invalid) is read by writing Flux's attribute on the LIVE node
+(`el.setAttribute('data-dragging', '')`) and diffing computed styles; when that changes nothing, the state is
+decided on the server and cannot be measured — say so in the component, never guess silently.
 
 ## 2. Write the component
 **Nothing beyond Flux** — the owner, 2026-10-07: *"ne csináljunk ilyen kiegészítéseket"*. A component carries
@@ -139,7 +142,7 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button` today).
+card accordion callout button input textarea file-upload` today).
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -214,6 +217,17 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   tooltip around the theme button), callout page (one badge), field page (inputs).
 
 ## Open work (integration stopped here on 2026-10-07 — see the integrator's report)
+- **The kit's variants lose to an app's own sheet.** `dark:`, `in-data-*:` and every other variant built on
+  `:where()` weigh no more than a bare utility, and the app's sheet comes after the kit's in the same
+  `utilities` layer — so where the app also emits `text-zinc-500` and not `dark:text-white/80`, the kit's dark
+  colour is undone (seen on the site: the file item's heading and the dropzone's text stay zinc-500 in dark).
+  A parity page holds only the kit's sheet and cannot show it; look at the component in the running site, in
+  dark. A state that must hold whatever the app emits is written with weight: `[[data-dragging]_&]:`, not
+  `in-data-dragging:` (`UiFileUpload`). The kit-wide answer is not decided.
+- File upload waits on two runtime hooks: a `data-loading` mark for a file dispatch (rask-loading.ts marks
+  clicks and submits only) and upload progress as `--ui-file-upload-progress`; and on WASM
+  `IRaskFile.OpenReadStream` aborts the runtime (`readFileChunk` hands a `Uint8Array` to a `[JSImport]`
+  declared `Task<string>`), so a page cannot read a chosen file there, for a preview or anything else.
 - A stale `src/Rask.Site/obj/**/rask-external` folder can fail the site build after merging main
   (`@rask/routes` not found): delete that folder.
 - The `Translations` gate in `FluxConformanceTests`, and the removals the owner's rule asks for.

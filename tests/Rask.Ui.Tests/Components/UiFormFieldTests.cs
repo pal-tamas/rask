@@ -64,7 +64,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains(
             "id=\"avatar\"",
-            Ui.FileInput.Value("").Label("Avatar").Id("avatar").ToHtml(),
+            Ui.FileUpload.Label("Avatar").Id("avatar").ToHtml(),
             StringComparison.Ordinal);
     }
 }

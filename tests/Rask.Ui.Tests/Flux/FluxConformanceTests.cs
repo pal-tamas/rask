@@ -68,6 +68,10 @@ public sealed class FluxConformanceTests
         ["flux:input.group.prefix"] = typeof(UiInputGroupPrefix),
         ["flux:input.group.suffix"] = typeof(UiInputGroupSuffix),
         ["flux:textarea"] = typeof(UiTextarea<>),
+        ["flux:file-upload"] = typeof(UiFileUpload),
+        ["flux:file-upload.dropzone"] = typeof(UiFileUploadDropzone),
+        ["flux:file-item"] = typeof(UiFileItem),
+        ["flux:file-item.remove"] = typeof(UiFileItemRemove),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>

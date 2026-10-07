@@ -5,10 +5,6 @@ namespace Rask.UiTests.Components;
 /// </summary>
 public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
 {
-    [Fact]
-    public void A_file_input_takes_the_ghost_variant_too() =>
-        Assert.Contains("file-input-ghost", Ui.FileInput.Value("").Label("Avatar").Variant(Ui.Variant.Ghost).ToHtml());
-
     [Theory]
     [InlineData(Ui.Tone.Primary, "checkbox-primary")]
     [InlineData(Ui.Tone.Success, "checkbox-success")]
@@ -86,7 +82,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
 
     [Theory]
     [InlineData("select")]
-    [InlineData("file")]
     public void A_text_control_carries_the_class_the_hint_reads(string kind)
     {
         // daisyUI shows `.validator-hint` only next to a `.validator` control that is invalid. No kit
@@ -98,7 +93,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
 
     [Theory]
     [InlineData("select")]
-    [InlineData("file")]
     public void An_errored_control_says_so_to_a_screen_reader_as_well_as_in_colour(string kind)
     {
         // Also what makes daisyUI reveal the hint from the KIT's own tone rather than only from the
@@ -194,7 +188,7 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         // MODE (controlled here, bound if it opened on Bind), so Label and Options follow it.
         "select" => Ui.Select.Value<string>(null).Options([("hu", "Hungary")]).Label("Country")
             .Tone(tone).ToHtml(),
-        _ => Ui.FileInput.Value("").Label("Avatar").Tone(tone).ToHtml(),
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
     private static string Filter(string? selected) =>

@@ -808,7 +808,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.Tooltip` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
@@ -1248,7 +1248,7 @@ of them says anything about `T`. Bound mode drives the surrounding `Form`'s vali
 the value with the parent. See [building form controls](building-form-controls.md).
 
 **The controls still on daisyUI share one field shape.** `Ui.Select` (single or multiple), `Ui.Otp`,
-`Ui.FileInput`, the radio and checkbox groups and the date pickers all take the same members from
+the radio and checkbox groups and the date pickers all take the same members from
 `UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input` and `Ui.Textarea` have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
 without one, an invisible `AccessibleLabel`; a `Hint` and a controlled `Error` under it; an `Id`, derived from the
 bound member or the label when you give none; and `aria-describedby`, `aria-invalid` and `aria-required` worked out
@@ -1259,7 +1259,7 @@ anywhere after the opening — `Ui.Otp.Value(code).Length(6).Label("Verification
 `UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `Ui.Input` even
 takes its `type` attribute from `T`, so a bound `int` is a number field with nothing said at the call
 site. The rest are closed over the one type they can have: `Ui.Checkbox`, `Ui.Toggle` and `Ui.Radio` over
-`bool`, `Ui.Range` over `double`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,
+`bool`, `Ui.Range` over `double`, `Ui.Rating` over `int`, `Ui.Otp` over `string`,
 `Ui.Calendar` over `DateOnly`. A checkbox's value is a `bool` and nothing else; a type parameter there
 would have exactly one legal argument.
 
@@ -1272,28 +1272,47 @@ would have exactly one legal argument.
 | `Ui.Checkbox` `Ui.Toggle` | on or off |
 | `Ui.Range` `Ui.Rating` `Ui.Calendar` | the position, the star count, the day |
 | `Ui.Otp` | the code — `OnComplete` fires on the transition into a full one, in both modes |
-| `Ui.FileInput` | the chosen file's name, **write-only** — a browser refuses to have a file input's value set, so binding fills the model and never the box. The bytes come through `OnFiles`. |
 
 
-**A file drop area is the same file input.** `Ui.FileInput.Dropzone()` draws Flux UI's large area in place
-of the compact box, with `Title` (the `Label` by default) and `Text` for what is accepted:
+**File upload is Flux UI's** ([fluxui.dev/components/file-upload](https://fluxui.dev/components/file-upload)):
+`Ui.FileUpload` around a `Ui.FileUploadDropzone`, and a `Ui.FileItem` per file with a `Ui.FileItemRemove` in its
+`Actions`. Where Flux binds a Livewire property, the files come to the page through `OnFiles` — the same upload
+a plain file input uses — and the page draws the list from its own state:
 
 ```csharp
-Ui.FileInput.Value("").Label("Receipts")
-    .Dropzone()
-    .Title("Drop receipts here, or click to choose")
-    .Text("PDF or JPG, several at once")
-    .Accept(".pdf,.jpg")
-    .Multiple()
-    .OnFiles(files => _receipts.AddRange(files.Select(f => f.Name)))
+Ui.FileUpload.Label("Upload files").Multiple().OnFiles(Keep)[
+    Ui.FileUploadDropzone.Heading("Drop files here or click to browse").Text("JPG, PNG, GIF up to 10MB")
+],
+Div.Class("mt-4 flex flex-col gap-2")[
+    _photos.Select((photo, index) =>
+        Ui.FileItem.Key(photo.Name).Heading(photo.Name).Size(photo.Size).Image(photo.Url)
+            .Actions(Ui.FileItemRemove.AriaLabel("Remove file: " + photo.Name).OnClick(() => _photos.RemoveAt(index))))
+]
 ```
 
-The native input is stretched invisibly over the whole area, so a click anywhere opens the picker and a file
-dropped anywhere lands in the input — the browser already turns a drop on a file input into a chosen file, so no
-script decides where a drop goes and it works before the runtime boots. The one thing CSS cannot say is "a file is
-being dragged over this", so the runtime sets `data-dragging` on the nearest `[data-rask-dropzone]` while a drag
-carrying files is over it, and the area styles itself from that. `Text` is the input's `aria-describedby`, ahead of
-any `Hint` or validation message. The heading is the area's caption, so a dropzone draws no legend over it.
+Write the remove handler where the list is, as above: a handler re-renders the component it closes over, and
+one built in a static helper that closed over the list alone would remove the file and redraw nothing.
+
+| | Takes |
+|---|---|
+| `Ui.FileUpload` | `Name`, `Multiple()`, `Label`, `Description`, `Error` (a message, which also marks the input invalid), `Disabled()`, and Rask's `OnFiles`; `Accept` is the input's own attribute. Its children are the dropzone, or any markup of your own (an avatar to click). |
+| `Ui.FileUploadDropzone` | `Heading`, `Text`, `Icon` (`CloudArrowUp` by default), `Inline()` for the compact row, `WithProgress()` for a bar in place of `Text` while files upload. |
+| `Ui.FileItem` | `Heading`, `Text` (written from `Size` when unset: `162400` → `159 KB`), `Image` (a preview's address), `Size` in bytes, `Icon` (`Document` by default), `Invalid()`, and the `Actions` slot. |
+| `Ui.FileItemRemove` | `OnClick`, and `AriaLabel` ("Remove file" by default — name the file in a list of several). It removes nothing itself. |
+
+`Ui.FileUpload` is a `<label>` around a real `<input type="file">`, so a click anywhere opens the picker and the
+input keeps the keyboard (Space and Enter open it) with no script; the focus ring is drawn on the dropzone. While
+files are dragged over it the runtime writes `data-dragging` on it (the existing `data-rask-dropzone` hook) and the
+input is laid over the whole area, so the drop is the browser's own. With `data-loading` on the upload or on the
+dropzone, the dropzone shows a spinner — or, with `WithProgress()`, a bar as wide as `--ui-file-upload-progress`
+with `--ui-file-upload-progress-as-string` beside it (Flux's attribute, and its two variables under the kit's
+prefix). **Nothing writes them yet**: the runtime marks a control waiting on a click or a submit, not on files, and
+Rask's upload reports no progress — so today the uploading look is drawn only where the page writes it,
+`Ui.FileUploadDropzone.Data("loading", "").Style("--ui-file-upload-progress:42%;…")`. In markup of your own,
+`in-data-dragging:` styles the drag.
+
+`Ui.FileInput` and its `Dropzone()` mode are gone. A plain file field is the input, as on Flux's page —
+`Ui.Input.Of<string>().Type(InputType.File).Label("Logo").OnFiles(…)`.
 
 **A field with no value yet opens on its type alone**: `Ui.Input.Of<string>().Label("Search")`. A form
 control's openings are its mode pins, so a required step like `Label` never gets to pin `T` — without
