@@ -94,7 +94,7 @@ public sealed partial class UiKitFluxNavigationDemo : Component
                         Ui.NavlistItem.Key("1").Href("#")["Members"]
                     ]
                 ],
-                Ui.Navlist.Key("badges").Variant(Ui.NavlistVariant.Outline)[
+                Ui.Navlist.Key("badges")[
                     Ui.NavlistItem.Key("1").Href("#").Icon(Ui.IconName.Home).Current(true)["Home"],
                     Ui.NavlistItem.Key("2").Href("#").Icon(Ui.IconName.Envelope).Badge("12")["Inbox"],
                     Ui.NavlistItem.Key("3").Href("#").Icon(Ui.IconName.UserGroup)["Contacts"],

@@ -974,7 +974,15 @@
   screen, so there the wedge is off and a tap opens the flyout.
 */
 @layer rask {
-  :root:has([data-ui-menu]:popover-open, [data-ui-navmenu]:popover-open) {
+  /*
+    Not for a menu the pointer opens (a dropdown with `hover`, the menu of a sidebar group in the rail): a
+    page that took no pointer would take it from the trigger too, and the menu would close under it. Flux
+    locks nothing there either.
+  */
+  :root:has(
+      [data-ui-menu]:popover-open:not([data-rask-hover] > *),
+      [data-ui-navmenu]:popover-open:not([data-rask-hover] > *)
+    ) {
     overflow: hidden;
     pointer-events: none;
     scrollbar-gutter: stable;

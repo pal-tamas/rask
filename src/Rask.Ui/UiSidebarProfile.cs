@@ -35,7 +35,7 @@ public sealed partial class UiSidebarProfile : Component, IUiTrigger
             .Class(UiClass.Compose(
                 "group flex w-full cursor-default items-center rounded-lg p-1 hover:bg-zinc-800/5 dark:hover:bg-white/10",
                 Class))
-            .Attributes(UiMarks.Present(("data-ui-sidebar-profile", ""), ("title", Name)));
+            .Attributes(("data-ui-sidebar-profile", ""));
 
         return (_invoked is { } invoked ? invoked.On(button) : button)[
             Div.Class("shrink-0")[Face()],

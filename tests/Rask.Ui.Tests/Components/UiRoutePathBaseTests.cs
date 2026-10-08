@@ -47,7 +47,11 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
     // place; a string is an ordinary link, and gets neither the path base nor the runtime's interception.
     public static TheoryData<string> LinkingComponents => ["Ui.Stat", "Ui.NavbarItem", "Ui.NavlistItem", "Ui.Brand", "Ui.Avatar", "Ui.BreadcrumbsItem"];
 
+    // The links a dropdown holds, listed apart from the ones above.
+    public static TheoryData<string> MenuLinks => ["Ui.NavmenuItem"];
+
     [Theory]
+    [MemberData(nameof(MenuLinks))]
     [MemberData(nameof(LinkingComponents))]
     public void A_routed_kit_link_carries_the_path_base_and_navigates_in_place(string component) =>
         UnderPathBase("/shop", () =>
@@ -58,6 +62,7 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
         });
 
     [Theory]
+    [MemberData(nameof(MenuLinks))]
     [MemberData(nameof(LinkingComponents))]
     public void A_string_kit_link_is_an_ordinary_link_written_as_given(string component) =>
         UnderPathBase("/shop", () =>
@@ -77,6 +82,7 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
 
     private string Render(string component, RouteUrl href) => component switch
     {
+        "Ui.NavmenuItem" => Ui.NavmenuItem.Href(href)["Orders"].ToHtml(),
         "Ui.Stat" => Ui.Stat.Value("OK").Label("Status").Href(href).ToHtml(),
         "Ui.NavbarItem" => Ui.NavbarItem.Href(href)["Status"].ToHtml(),
         "Ui.NavlistItem" => Ui.NavlistItem.Href(href)["Status"].ToHtml(),

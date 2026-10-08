@@ -357,4 +357,35 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
         Assert.Contains("aria-expanded=\"true\"", open, StringComparison.Ordinal);
         Assert.Matches("<div[^>]*data-ui-dropdown=\"\"[^>]*data-open=\"\"", open);
     }
+
+    [Fact]
+    public void A_hover_dropdown_asks_the_runtime_to_open_its_menu_under_the_pointer()
+    {
+        var hover = Ui.Dropdown.Hover()[Button["Options"], Ui.Menu[Ui.MenuItem["Edit"]]].ToHtml().AsText();
+        var plain = Html(Ui.Menu[Ui.MenuItem["Edit"]]);
+
+        Assert.Matches("<div[^>]* data-ui-dropdown[^>]* data-rask-hover=\"(uidd-\\d+-panel)\"", hover);
+        Assert.Matches("<button[^>]* popovertarget=\"uidd-\\d+-panel\"", hover);
+        Assert.DoesNotContain("data-rask-hover", plain, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_navmenu_item_with_nowhere_to_go_is_a_button()
+    {
+        var html = Ui.Navmenu[Ui.NavmenuItem.Icon(Ui.IconName.ArrowTurnDownRight)["Team"]].ToHtml().AsText();
+
+        Assert.Matches("<button[^>]* data-ui-navmenu-item[^>]* type=\"button\"", html);
+        Assert.Matches("<svg[^>]* data-navmenu-icon", html);
+        Assert.DoesNotContain("<a", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_navmenu_does_not_take_the_ink_of_what_it_hangs_from()
+    {
+        var html = Ui.Navmenu[Ui.NavmenuItem["Team"]].ToHtml().AsText();
+
+        Assert.Contains("text-black", html, StringComparison.Ordinal);
+        Assert.Contains("dark:text-white", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("text-inherit", html, StringComparison.Ordinal);
+    }
 }

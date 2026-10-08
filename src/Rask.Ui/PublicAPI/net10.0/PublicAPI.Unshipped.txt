@@ -40,10 +40,6 @@ Rask.RaskSeed_UiMenuSubmenu
 Rask.RaskSeed_UiMenuSubmenu.Heading(string! Heading) -> Rask.UiMenuSubmenu!
 Rask.RaskSeed_UiMenuSubmenu.Key(object? key) -> Rask.RaskSeed_UiMenuSubmenu
 Rask.RaskSeed_UiMenuSubmenu.RaskSeed_UiMenuSubmenu() -> void
-Rask.RaskSeed_UiNavmenuItem
-Rask.RaskSeed_UiNavmenuItem.Href(Rask.Core.Routing.RouteUrl Href) -> Rask.UiNavmenuItem!
-Rask.RaskSeed_UiNavmenuItem.Key(object? key) -> Rask.RaskSeed_UiNavmenuItem
-Rask.RaskSeed_UiNavmenuItem.RaskSeed_UiNavmenuItem() -> void
 override Rask.UiInputIcon.GetHashCode() -> int
 override Rask.UiSelectControl<T>.Render() -> Rask.Core.Component?
 override Rask.UiTextareaRows.GetHashCode() -> int
@@ -332,9 +328,6 @@ Rask.Ui.ModalVariant.Flyout = 3 -> Rask.Ui.ModalVariant
 Rask.Ui.NavBadgeVariant
 Rask.Ui.NavBadgeVariant.Outline = 1 -> Rask.Ui.NavBadgeVariant
 Rask.Ui.NavBadgeVariant.Solid = 0 -> Rask.Ui.NavBadgeVariant
-Rask.Ui.NavlistVariant
-Rask.Ui.NavlistVariant.Default = 0 -> Rask.Ui.NavlistVariant
-Rask.Ui.NavlistVariant.Outline = 1 -> Rask.Ui.NavlistVariant
 Rask.Ui.PillboxSize
 Rask.Ui.PillboxSize.Base = 0 -> Rask.Ui.PillboxSize
 Rask.Ui.PillboxSize.Sm = 1 -> Rask.Ui.PillboxSize
@@ -1486,6 +1479,8 @@ Rask.UiDropdown.Class.get -> string?
 Rask.UiDropdown.Class.set -> void
 Rask.UiDropdown.Gap.get -> int?
 Rask.UiDropdown.Gap.set -> void
+Rask.UiDropdown.Hover.get -> bool?
+Rask.UiDropdown.Hover.set -> void
 Rask.UiDropdown.Offset.get -> int?
 Rask.UiDropdown.Offset.set -> void
 Rask.UiDropdown.OnToggle.get -> Rask.Core.Callback<bool>
@@ -1933,8 +1928,6 @@ Rask.UiNavlist
 Rask.UiNavlist.Class.get -> string?
 Rask.UiNavlist.Class.set -> void
 Rask.UiNavlist.UiNavlist() -> void
-Rask.UiNavlist.Variant.get -> Rask.Ui.NavlistVariant?
-Rask.UiNavlist.Variant.set -> void
 Rask.UiNavlistGroup
 Rask.UiNavlistGroup.Class.get -> string?
 Rask.UiNavlistGroup.Class.set -> void
@@ -1972,12 +1965,14 @@ Rask.UiNavmenu.UiNavmenu() -> void
 Rask.UiNavmenuItem
 Rask.UiNavmenuItem.Class.get -> string?
 Rask.UiNavmenuItem.Class.set -> void
-Rask.UiNavmenuItem.Href.get -> Rask.Core.Routing.RouteUrl
+Rask.UiNavmenuItem.Href.get -> Rask.Core.Routing.RouteUrl?
 Rask.UiNavmenuItem.Href.set -> void
 Rask.UiNavmenuItem.Icon.get -> Rask.Ui.IconName?
 Rask.UiNavmenuItem.Icon.set -> void
 Rask.UiNavmenuItem.IconVariant.get -> Rask.Ui.IconVariant?
 Rask.UiNavmenuItem.IconVariant.set -> void
+Rask.UiNavmenuItem.OnClick.get -> Rask.Core.Callback
+Rask.UiNavmenuItem.OnClick.set -> void
 Rask.UiNavmenuItem.UiNavmenuItem() -> void
 Rask.UiNavmenuItem.Variant.get -> Rask.Ui.MenuItemVariant?
 Rask.UiNavmenuItem.Variant.set -> void
@@ -2789,9 +2784,6 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiNavbarItem!).Teal.get -> Rask.UiNavba
 RaskBuilderSettersRask_Ui.extension(Rask.UiNavbarItem!).Violet.get -> Rask.UiNavbarItem!
 RaskBuilderSettersRask_Ui.extension(Rask.UiNavbarItem!).Yellow.get -> Rask.UiNavbarItem!
 RaskBuilderSettersRask_Ui.extension(Rask.UiNavbarItem!).Zinc.get -> Rask.UiNavbarItem!
-RaskBuilderSettersRask_Ui.extension(Rask.UiNavlist!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiNavlist!).Default.get -> Rask.UiNavlist!
-RaskBuilderSettersRask_Ui.extension(Rask.UiNavlist!).Outline.get -> Rask.UiNavlist!
 RaskBuilderSettersRask_Ui.extension(Rask.UiNavlistItem!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiNavlistItem!).Amber.get -> Rask.UiNavlistItem!
 RaskBuilderSettersRask_Ui.extension(Rask.UiNavlistItem!).Blue.get -> Rask.UiNavlistItem!
@@ -3075,10 +3067,10 @@ static Rask.Ui.Navlist.get -> Rask.UiNavlist!
 static Rask.Ui.NavlistGroup.get -> Rask.UiNavlistGroup!
 static Rask.Ui.NavlistItem.get -> Rask.UiNavlistItem!
 static Rask.Ui.Navmenu.get -> Rask.UiNavmenu!
-static Rask.Ui.NavmenuItem.get -> Rask.RaskSeed_UiNavmenuItem
 static Rask.Ui.Modal.get -> Rask.UiModal!
 static Rask.Ui.ModalClose.get -> Rask.UiModalClose!
 static Rask.Ui.ModalTrigger.get -> Rask.RaskSeed_UiModalTrigger
+static Rask.Ui.NavmenuItem.get -> Rask.UiNavmenuItem!
 static Rask.Ui.Pillbox.get -> Rask.RaskSeed_UiPillbox
 static Rask.Ui.PillboxInput.get -> Rask.UiPillboxInput!
 static Rask.Ui.PillboxOption.get -> Rask.UiPillboxOption!
@@ -3877,7 +3869,6 @@ static RaskBuilderSettersRask_Ui.get_Cyan(Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_Danger(Rask.UiMenuItem! __b) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.get_Danger(Rask.UiNavmenuItem! __b) -> Rask.UiNavmenuItem!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiMenuItem! __b) -> Rask.UiMenuItem!
-static RaskBuilderSettersRask_Ui.get_Default(Rask.UiNavlist! __b) -> Rask.UiNavlist!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiNavmenuItem! __b) -> Rask.UiNavmenuItem!
 static RaskBuilderSettersRask_Ui.get_Date(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_DatetimeLocal(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
@@ -4000,7 +3991,6 @@ static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiBreadcrumbsItem! __b) -> Ras
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiMenuItem! __b) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiMenuSubmenu! __b) -> Rask.UiMenuSubmenu!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiNavbarItem! __b) -> Rask.UiNavbarItem!
-static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiNavlist! __b) -> Rask.UiNavlist!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiNavlistItem! __b) -> Rask.UiNavlistItem!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiNavmenuItem! __b) -> Rask.UiNavmenuItem!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
@@ -4202,6 +4192,8 @@ static RaskBuilderSettersRask_Ui.Heading(this Rask.UiMenuGroup! __b, string? val
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiMenuSubmenu! __b, string! value) -> Rask.UiMenuSubmenu!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiNavlistGroup! __b, string? value) -> Rask.UiNavlistGroup!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiSidebarGroup! __b, string? value) -> Rask.UiSidebarGroup!
+static RaskBuilderSettersRask_Ui.Hover(this Rask.UiDropdown! __b) -> Rask.UiDropdown!
+static RaskBuilderSettersRask_Ui.Hover(this Rask.UiDropdown! __b, bool? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiAvatar! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiBrand! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiBrand!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiBreadcrumbsItem! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiBreadcrumbsItem!
@@ -4209,7 +4201,7 @@ static RaskBuilderSettersRask_Ui.Href(this Rask.UiLink! __b, Rask.Core.Routing.R
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiMenuItem! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiNavbarItem! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiNavbarItem!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiNavlistItem! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiNavlistItem!
-static RaskBuilderSettersRask_Ui.Href(this Rask.UiNavmenuItem! __b, Rask.Core.Routing.RouteUrl value) -> Rask.UiNavmenuItem!
+static RaskBuilderSettersRask_Ui.Href(this Rask.UiNavmenuItem! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiNavmenuItem!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiSidebarBrand! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiSidebarBrand!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiSidebarItem! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiSidebarItem!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiAvatar! __b, Rask.Ui.IconName? value) -> Rask.UiAvatar!
@@ -4389,6 +4381,10 @@ static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiMenuRadio! __b, Rask.Core.C
 static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiMenuRadio! __b, System.Action? value) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiMenuRadio! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiMenuRadio! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiMenuRadio!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiNavmenuItem! __b, Rask.Core.Callback? value) -> Rask.UiNavmenuItem!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiNavmenuItem! __b, System.Action? value) -> Rask.UiNavmenuItem!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiNavmenuItem! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiNavmenuItem!
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiNavmenuItem! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiNavmenuItem!
 static RaskBuilderSettersRask_Ui.OnExpandedChange(this Rask.UiNavlistGroup! __b, Rask.Core.Callback<bool>? value) -> Rask.UiNavlistGroup!
 static RaskBuilderSettersRask_Ui.OnExpandedChange(this Rask.UiNavlistGroup! __b, System.Action<bool>? value) -> Rask.UiNavlistGroup!
 static RaskBuilderSettersRask_Ui.OnExpandedChange(this Rask.UiNavlistGroup! __b, System.Action? value) -> Rask.UiNavlistGroup!
@@ -4733,7 +4729,6 @@ static RaskBuilderSettersRask_Ui.Value(this Rask.UiSidebarSearch! __b, string? v
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiAutocomplete! __b, Rask.Ui.AutocompleteVariant? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiLink! __b, Rask.Ui.LinkVariant? value) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiMenuItem! __b, Rask.Ui.MenuItemVariant? value) -> Rask.UiMenuItem!
-static RaskBuilderSettersRask_Ui.Variant(this Rask.UiNavlist! __b, Rask.Ui.NavlistVariant? value) -> Rask.UiNavlist!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiNavmenuItem! __b, Rask.Ui.MenuItemVariant? value) -> Rask.UiNavmenuItem!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiModal! __b, Rask.Ui.ModalVariant? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiText! __b, Rask.Ui.TextVariant? value) -> Rask.UiText!

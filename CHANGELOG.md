@@ -23,6 +23,25 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A collapsed `Ui.Sidebar` is Flux's rail: real tooltips, a menu per group, the navlist's count.** Measured on
+  Flux's live `sidebar-collapsible` demo and built from its pieces. Every `Ui.SidebarItem` sits in a `Ui.Tooltip`
+  to its right (`aria-describedby`, `data-rask-tooltip`) that is drawn only while the sidebar is a rail;
+  `Ui.SidebarCollapse` is named by its tooltip (`aria-labelledby`) at every width and `Ui.SidebarSearch` shows
+  its placeholder in one — the `title` attributes they wrote are gone, and so is the one on
+  `Ui.SidebarProfile`, which Flux gives no tooltip. An item's `Badge` is Flux's navlist count
+  (`data-ui-navlist-badge`). A `Ui.SidebarGroup` with an `Icon` used to widen the sidebar when its icon was
+  pressed in the rail; it now opens its items as a menu beside the icon — `Ui.Dropdown` to the right, `Ui.Menu`
+  with the heading, the group's own items as its rows (`role="menuitem"`) — under the pointer
+  (`data-rask-hover`, only while the sidebar is a rail: `data-rask-hover-if`), on a press, and from the keyboard.
+  A `Ui.SidebarSearch` given `OnInput` is Flux's filled `Ui.Input` with a lens. Markup changed; no call site
+  has to.
+- **A `Ui.NavmenuItem` without an `Href` is a `<button>`**, as Flux's is, and `OnClick` is what it does —
+  `Href` is no longer required. `Ui.Navmenu[Ui.NavmenuItem.OnClick(Open)["Client"]]` is how a breadcrumb's
+  folded-away steps are written.
+- **`Ui.Dropdown.Hover()`** — Flux's `hover` prop: the menu opens while the pointer is over the trigger or the
+  menu and closes over neither, with no page lock (a menu opened that way no longer takes the pointer from the
+  page behind it).
+
 - **BREAKING: `Ui.Calendar` and `Ui.DatePicker` are Flux's calendar and date picker.** Drawn and behaving as
   Flux UI's `flux:calendar` and `flux:date-picker` do — the grid with its outside days, today's dot, range tint and
   hover preview, month and year selects, a today shortcut, week numbers, several months side by side, a roving
@@ -1051,6 +1070,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A press on the sidebar's collapse control before the hooks have loaded is kept.** In a WebAssembly app the
+  hook that stores the rail (`data-rask-persist`) arrives after the prerendered page can already be pressed; a
+  press in that gap changed the box and stored nothing, and the hook, arriving, put the sidebar back to what the
+  last visit had left. `Ui.SidebarScript` — the head script that restores the rail before first paint — now
+  records the change too, under the same key and in the same words.
+- **A `Ui.NavmenuItem` given a string is an ordinary link.** It was always a `NavLink`, so a string `Href` was
+  routed inside the app and given the deploy's path base; like every other kit link, only a generated route is
+  now (#1070). A menu opened from greyed text (a breadcrumb) is black on white — white on zinc-700 in dark —
+  as Flux's is, where it took the grey of what it hung from.
+
 - **Three behaviour hooks, found by driving the calendar and the pickers against Flux's pages.**
   `data-rask-focus-follows` follows a target that a render took out of the page inside the container it was in —
   it was looked for across the whole document, so a paging key in one calendar handed the focus to another
@@ -1152,6 +1181,11 @@ them until tagged releases begin.
   Spectre switched interaction off behind it.
 
 ### Removed
+
+- **BREAKING: `Ui.Navlist.Variant` and `Ui.NavlistVariant` are gone.** Flux's public reference gives
+  `flux:navlist` no `variant`, so the kit has none: the outlined rows it drew are what `Ui.SidebarNav` and
+  `Ui.SidebarItem` draw. Replace `Ui.Navlist.Variant(Ui.NavlistVariant.Outline)[Ui.NavlistItem…]` with
+  `Ui.SidebarNav[Ui.SidebarItem…]` inside a `Ui.Sidebar`, or drop the step.
 
 - **BREAKING: what the kit had added to Flux's components is gone.** A `Rask.Ui` component that mirrors a
   Flux UI one carries Flux's props, values and attributes and no others, and a test now holds every built

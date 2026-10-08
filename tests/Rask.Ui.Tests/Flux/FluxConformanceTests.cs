@@ -191,7 +191,6 @@ public sealed class FluxConformanceTests
         ["flux:badge/variant=rounded"] = "not a value: the docs' deprecation note for `pill` names the `rounded` prop, and the snapshot read it as an option",
         // The popover page's prop: a panel that opens while the pointer rests on its trigger. CSS cannot open a
         // [popover] and the runtime has no hook that does, so it is built with Ui.Popover, on Flux's popover page.
-        ["flux:dropdown/hover"] = "Opening on hover needs a runtime hook that shows a popover on pointerenter; it belongs to the popover page.",
         ["flux:menu.checkbox/checked"] = "A Rask control's state is its Value, or the model it is bound to: Ui.MenuCheckbox.Value(true) / .Bind(() => filter.Draft).",
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
@@ -283,7 +282,6 @@ public sealed class FluxConformanceTests
         ["flux:chart.axis.line/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:navbar.item/Accent"] = "`:accent=\"false\"`, as flux:link",
         ["flux:navlist.item/Accent"] = "`:accent=\"false\"`, as flux:link",
-        ["flux:navlist/Variant"] = "`variant=\"outline\"`: the list of Flux's sidebar, as the profile page's example draws it; it goes when Ui.Sidebar's own nav does that",
         ["flux:navlist.group/OnExpandedChange"] = "the `toggle` event of the disclosure the group is: how the page hears that the reader folded it",
         ["flux:brand/LogoClass"] = "the `class` of `<x-slot name=\"logo\" class=\"…\">`, as Flux's own examples write it",
         ["flux:profile/IconVariant=Solid"] = "Ui.IconVariant is one enum for every `icon:variant` prop; Flux's profile lists micro and outline",

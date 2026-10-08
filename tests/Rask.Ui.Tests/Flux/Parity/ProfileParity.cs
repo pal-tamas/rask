@@ -55,12 +55,9 @@ public sealed partial class ProfileParity : FluxParity
         yield return ("examples", Row(Div[
             Div.Class("stand-in-side").Style("height:298px").Attributes(("data-ui-sidebar", null))[
                 Brand().Class("px-2"),
-                Ui.Navlist.Variant(Ui.NavlistVariant.Outline)[
-                    Ui.NavlistItem.Href("#").Icon(Ui.IconName.Home).Current(true)["Home"],
-                    Ui.NavlistItem.Href("#").Icon(Ui.IconName.Inbox).Badge("12")["Inbox"],
-                    Ui.NavlistItem.Href("#").Icon(Ui.IconName.DocumentText)["Documents"],
-                    Ui.NavlistItem.Href("#").Icon(Ui.IconName.Calendar)["Calendar"]
-                ],
+                // The docs page's own decor: a navlist drawn the way Flux's sidebar draws its items, by a
+                // `variant` no page documents. It is a box here, and Ui.SidebarNav is what draws that look.
+                NavigationStandIns.Skipped("navlist", "height:136px"),
                 Div.Style("flex:1 1 0%").Attributes(("data-ui-spacer", null)),
                 Ui.Dropdown.Top.Start[
                     Ui.Profile.Name("Caleb Porzio").Avatar(NavigationStandIns.Caleb).Class("w-full"),

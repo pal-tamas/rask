@@ -65,9 +65,11 @@ internal sealed partial class LayoutDemo : global::Rask.Core.RaskMarkup
                 Ui.SidebarItem.Icon(Ui.IconName.Cog6Tooth).Href("#")["Settings"],
                 Ui.SidebarItem.Icon(Ui.IconName.InformationCircle).Href("#")["Help"]
             ],
-            // <flux:dropdown position="top" align="start" class="max-lg:hidden"> — the menu is Ui.Dropdown's.
             profile
-                ? Div.Class("flex max-lg:hidden").Data("ui-seam", "dropdown")[Ui.SidebarProfile.Avatar(User).Name("Olivia Martin")]
+                ? Ui.Dropdown.Position(Ui.DropdownPosition.Top).Align(Ui.DropdownAlign.Start).Class("flex max-lg:hidden")[
+                    Ui.SidebarProfile.Avatar(User).Name("Olivia Martin"),
+                    Account()
+                ]
                 : null
         ];
 
@@ -76,8 +78,19 @@ internal sealed partial class LayoutDemo : global::Rask.Core.RaskMarkup
     [
         Ui.SidebarToggle.Icon(Ui.IconName.Bars2).Inset(Ui.Position.Left),
         Ui.Spacer,
-        Div.Class("flex").Data("ui-seam", "dropdown")[Div.Class("slot-profile")]
+        Ui.Dropdown.Position(Ui.DropdownPosition.Top).Align(Ui.DropdownAlign.Start)[Ui.Profile.Avatar(User), Account()]
     ];
+
+    /// <summary>The account menu both profiles open.</summary>
+    public static Component Account() =>
+        Ui.Menu[
+            Ui.MenuRadioGroup.Value("Olivia Martin")[
+                Ui.MenuRadio.Value("Olivia Martin")["Olivia Martin"],
+                Ui.MenuRadio.Value("Truly Delta")["Truly Delta"]
+            ],
+            Ui.MenuSeparator,
+            Ui.MenuItem.Icon(Ui.IconName.ArrowRightStartOnRectangle)["Logout"]
+        ];
 
     /// <summary>Heading, text and separator: three other components, three boxes.</summary>
     public static Component[] Greeting() =>
