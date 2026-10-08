@@ -79,6 +79,11 @@ public static class RaskSqlServerDbContextOptionsExtensions
                 // failover set included, and that list is the part worth not reimplementing.
                 sqlServer.EnableRetryOnFailure(options.Retry.MaxCount, options.Retry.MaxDelay, errorNumbersToAdd: null);
             }
+
+            if (options.SplitQueries)
+            {
+                sqlServer.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            }
         });
 
         // One interceptor per configuration, however many times this is called: interceptors accumulate across

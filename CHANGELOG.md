@@ -69,6 +69,9 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask:SqlServer:SplitQueries`.** Loads several included collections as one statement each instead of one
+  join, for every context that reads the section — the app's own and the one behind the generated read faces
+  (#1231). Off by default, as in EF Core; `AsSplitQuery()` still chooses per query.
 - **Runtime hooks for a widget's keys, focus and popovers (`data-rask-*`, round two).** `data-rask-contain-keys="Arrows
   Home End …"` cancels the browser's default for the keys a widget handles itself (the page no longer scrolls behind a
   calendar; `data-rask-listbox-button` is now one such list); `data-rask-roving` walks a `[role=radiogroup]` of
