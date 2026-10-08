@@ -5,7 +5,7 @@ using Rask.Site.Tests.Infrastructure;
 namespace Rask.Site.Tests.Pages;
 
 /// <remarks>
-///     The retry tests run the demo on a <see cref="ManualClock" /> and move it forward on every poll, instead of
+///     The retry tests run the demo on a <see cref="ManualClock" /> and move it forward themselves, instead of
 ///     sleeping through the loop's real 150 ms delays and 5 s deadlines. That makes a fetch that never settles
 ///     testable at all: four deadlines would otherwise be 20 s of wall clock. The persistent-failure test's old
 ///     6 s timeouts (#1067) were not slowness. The demo's last continuation called StateHasChanged while a poll
@@ -79,8 +79,17 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // Drive the demo directly through LiveHost so we assert on its rendered RESULT, not the
         // page's source-code pane (which contains the callout's own markup as literal text).
         var page = Page.Render(() => HttpFetchDemo, Services(http, clock));
+
+        // The control: the first attempt failed inside the render and the loop is parked on its retry delay.
+        Assert.Equal(1, attempts);
+        Assert.Contains("Loading", page.Render(), StringComparison.Ordinal);
+
+        // ONE step, past the 150 ms retry delay and short of the retry's own 5 s deadline, and then the clock
+        // stands still. Moving it on every poll let a retry that was slow to land fall five polls behind, which
+        // timed it out and sent a third request.
+        clock.Advance(TimeSpan.FromSeconds(1));
         await WaitFor.True(
-            () => AdvanceAndRender(page, clock).Contains("the body text", StringComparison.Ordinal),
+            () => page.Render().Contains("the body text", StringComparison.Ordinal),
             TimeSpan.FromSeconds(5),
             "the retried fetch never rendered its body");
         var html = page.Render();
