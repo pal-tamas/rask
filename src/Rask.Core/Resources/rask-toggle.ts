@@ -6,6 +6,8 @@
 //     it; a press inside the bubble does not. A popover="auto" gets the last three from the platform. A
 //     popover="manual" — what Flux's is — gets them here, for as long as this hook is what opened it.
 //     Focus and tabindex are the component's: an element that cannot be focused is toggled by the pointer only.
+//     A press in a field inside the toggle is typing there and toggles nothing — Flux's typed date and time
+//     triggers open from everything in them but their fields.
 //   * aria-expanded follows the popover: whenever one opens or closes — however it was asked to — every
 //     element that invokes it (popovertarget, commandfor, data-rask-toggle) AND already carries aria-expanded
 //     is rewritten. The attribute is never added where the render did not put it.
@@ -13,6 +15,7 @@
 import {isShown, listen, named, near, own, page, setShown} from "./rask-owned.js";
 
 const TOGGLE = "data-rask-toggle";
+const FIELD = "input, textarea, select, [contenteditable]";
 
 if (page) {
     const doc = page;
@@ -51,6 +54,11 @@ if (page) {
         const panel = invoker ? named(invoker, TOGGLE) : null;
         // A click inside the popover (it may be the invoker's own child) is using it.
         if (!invoker || !panel || (e.target instanceof Node && panel.contains(e.target))) {
+            return;
+        }
+        // A field inside the toggle (not the toggle itself) takes the press for its caret.
+        const field = near(e.target, FIELD);
+        if (field && field !== invoker && invoker.contains(field)) {
             return;
         }
         // detail 0 is a click the keyboard made (Enter on a button): no press came before it.

@@ -413,8 +413,16 @@
     Does this project reference the kit? From the package these targets only exist where it does. In this
     repository they are imported into every project (Directory.Build.targets), so the reference is looked
     for: the kit itself, or a host that carries it.
+
+    NOT THE SERVER HALF OF A ONE-PROJECT WEBASSEMBLY APP ($(RaskClient), Rask.Server.Client.targets). That app
+    is one project built twice — this server, and a browser app generated from Client/ whose wwwroot is merged
+    into this one's publish. Both reference the kit, both wrote the engine, and the publish found one relative
+    path twice: NETSDK1152, and no wasm-hosted app published. The BROWSER half owns the file: the page that
+    mounts an editor runs there, and MapRaskSpa serves that half's files in a build and in a publish alike.
+    Read in an item's condition, never a property's: items are evaluated after every property of every
+    import, so this holds whichever of the two packages' targets NuGet happens to import first.
   -->
-  <ItemGroup Condition="'$(RaskUiEditorEngine)' == 'true'">
+  <ItemGroup Condition="'$(RaskUiEditorEngine)' == 'true' AND '$(RaskClient)' != 'true'">
     <_RaskUiEditorKit Include="package" Condition="Exists('$(MSBuildThisFileDirectory)rask-ui-editor.js')"/>
     <_RaskUiEditorKit Include="@(ProjectReference->WithMetadataValue('Filename', 'Rask.Ui'))"/>
     <_RaskUiEditorKit Include="@(ProjectReference->WithMetadataValue('Filename', 'Rask.Server'))"/>
@@ -428,6 +436,22 @@
   <ItemGroup Condition=" '@(_RaskUiEditorKit)' != '' AND !Exists('$(MSBuildProjectDirectory)/$(_RaskUiEditorNotices)') ">
     <Content Include="$(_RaskUiEditorNotices)" Pack="false"/>
   </ItemGroup>
+
+  <!--
+    The copy an EARLIER build wrote into the server half's wwwroot, before that half left the file to its
+    browser app. The Web SDK's wwwroot glob has already picked it up, so it is taken back out of what is
+    published — it is the collision again otherwise — and deleted, or the server's own static files would
+    answer /js/rask-ui-editor.js with whatever version that build left there.
+  -->
+  <ItemGroup Condition="'$(RaskClient)' == 'true'">
+    <Content Remove="$(_RaskUiEditorOutput);$(_RaskUiEditorNotices)"/>
+  </ItemGroup>
+
+  <Target Name="RaskUiLeaveEditorToClient"
+          Condition="'$(RaskClient)' == 'true'"
+          BeforeTargets="BeforeBuild">
+    <Delete Files="$(MSBuildProjectDirectory)/$(_RaskUiEditorOutput);$(MSBuildProjectDirectory)/$(_RaskUiEditorNotices)"/>
+  </Target>
 
   <Target Name="RaskUiWriteEditor"
           Condition="'@(_RaskUiEditorKit)' != ''"
