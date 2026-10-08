@@ -108,23 +108,21 @@ internal static class KitConsumer
 
     /// <summary>The list the kit's build wrote beside its compiled sheet.</summary>
     /// <remarks>
-    ///     Out of <c>obj/</c>, where the package is packed from and an in-repo consumer copies from. Building
-    ///     this test project builds <c>Rask.Ui</c>, so it is there; any face will do — the list is Tailwind's
-    ///     scan of the kit's sources and does not vary by framework.
+    ///     Out of <c>obj/</c>, where the package is packed from and an in-repo consumer copies from. The face
+    ///     this test project was built for, and no other: building it builds that face of <c>Rask.Ui</c>
+    ///     alone, so the browser face's list can be one build behind — and it sorts first.
     /// </remarks>
     private static string ClassList()
     {
-        var obj = Path.Combine(_kit, "obj");
-        var list = Directory.Exists(obj)
-            ? Directory.EnumerateFiles(obj, "rask-ui.classes.txt", SearchOption.AllDirectories).Order(StringComparer.Ordinal).FirstOrDefault()
-            : null;
+        var face = Path.GetFileName(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory));
+        var list = Path.Combine(_kit, "obj", face, "rask-ui.classes.txt");
 
         Assert.True(
-            list is not null,
-            $"no rask-ui.classes.txt under {obj}: the kit's build writes it from its compiled sheet "
-            + "(RaskTailwindClassList), and without it an app that imports the kit compiles none of its classes.");
+            File.Exists(list),
+            $"no {list}: the kit's build writes it from its compiled sheet (RaskTailwindClassList), and "
+            + "without it an app that imports the kit compiles none of its classes.");
 
-        return list!;
+        return list;
     }
 
     /// <summary>The engine Rask.Tailwind cached, per user, when it built this repository's own sheets.</summary>
