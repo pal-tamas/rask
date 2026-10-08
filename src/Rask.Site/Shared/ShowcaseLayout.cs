@@ -19,7 +19,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
     // /realtime/BTC ↔ /realtime/ETH keeps "Live ticker" active). Null means
     // exact-match only.
-    private static readonly (string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)[] Links =
+    private static readonly (RouteUrl Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)[] Links =
     [
         // Paths are type-safe, generator-emitted route URLs (Routes.*) — RouteUrl converts
         // implicitly to the string Path slot, so a renamed/removed [Route] is a compile error here, not a
@@ -103,7 +103,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // default via OpenGuideGroups), followed by the interactive Examples (the framework/core showcase
     // plus any host-contributed entries, e.g. the WASM PWA examples) and the Bootstrap-component
     // showcase — both demoted below the guides and collapsed until visited.
-    private IEnumerable<(string Section, IEnumerable<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> Links)> Sections()
+    private IEnumerable<(string Section, IEnumerable<(RouteUrl Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> Links)> Sections()
     {
         yield return ("Guides", GuidesNav());
         yield return ("Examples",
@@ -111,7 +111,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     }
 
     // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
-    private static IEnumerable<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> GuidesNav()
+    private static IEnumerable<(RouteUrl Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> GuidesNav()
     {
         yield return (Routes.GuidesIndexPage(), "All guides", Ui.IconName.BookOpen, "Overview", null);
         foreach (var g in Features.GuideCatalog.All)
@@ -163,7 +163,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // state is mirrored here so the group holding the page being read can be opened from C#.
     private Component GroupBlock(
         string key, string group, bool open,
-        IReadOnlyList<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> items) =>
+        IReadOnlyList<(RouteUrl Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> items) =>
         Ui.SidebarGroup
             .Key(key)
             .Expandable(true)
@@ -174,7 +174,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             items.Select(i =>
             {
                 var item = Ui.SidebarItem
-                    .Key(i.Path)
+                    .Key(i.Path.ToString())
                     .Href(PageMeta.LinkTo(i.Path))
                     .Icon(i.Icon)
                     .Class("side-nav-link");
@@ -221,7 +221,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     {
         foreach (var (section, links) in Sections())
         {
-            if (links.FirstOrDefault(link => IsActive(link.Path, link.MatchPrefix)) is { Path: not null } active)
+            if (links.FirstOrDefault(link => IsActive(link.Path, link.MatchPrefix)) is { Path.Path: not null } active)
             {
                 _openGroups.Add(GroupKey(section, active.Group));
                 return;
@@ -233,11 +233,11 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     // Groups consecutive links by their Group label, preserving the array order (the sidebar shows
     // groups in the order their first item appears, exactly as the flat list was authored).
-    private static IEnumerable<(string Group, List<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> Items)>
-        GroupConsecutive(IEnumerable<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> links)
+    private static IEnumerable<(string Group, List<(RouteUrl Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> Items)>
+        GroupConsecutive(IEnumerable<(RouteUrl Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> links)
     {
         string? current = null;
-        List<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)>? bucket = null;
+        List<(RouteUrl Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)>? bucket = null;
 
         foreach (var link in links)
         {
