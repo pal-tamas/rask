@@ -58,7 +58,9 @@ export async function measurePage(browser, url, shots, prepare) {
   return schemes;
 }
 
-async function measure(page, shots) {
+// `layout`: a whole document rather than one example (see Layouts, below) — more controls have their
+// states measured, and only those that are rendered.
+async function measure(page, shots, layout = false) {
   await mkdir(shots, { recursive: true });
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('DOM.enable');
@@ -71,8 +73,8 @@ async function measure(page, shots) {
     // `data-parity-open` on that element — a press, or "hover" — and it is open while this example is measured.
     const opener = await wrapper.$('[data-parity-open]');
     if (opener) await open(page, wrapper, opener);
-    const example = await wrapper.evaluate(collect, { STYLES, index });
-    const targets = stateTargets(example.nodes);
+    const example = await wrapper.evaluate(collect, { STYLES, index, layout });
+    const targets = stateTargets(example.nodes, layout);
     await page.evaluate(baseline, { STYLES, targets });
     await wrapper.scrollIntoViewIfNeeded();
     const name = `${String(index).padStart(2, '0')}-${example.section || 'intro'}`;
@@ -136,7 +138,7 @@ function rest() {
 }
 
 // Runs in the page. Every element of one example: where it is, what it is, how it computed.
-function collect(wrapper, { STYLES, index }) {
+function collect(wrapper, { STYLES, index, layout }) {
   window.__fluxRest();
   // Flux's page names a section with the heading above it; a Rask parity page states it on the wrapper.
   const headings = [...document.querySelectorAll('h2[id]')];
@@ -189,6 +191,12 @@ function collect(wrapper, { STYLES, index }) {
       box: [box.x - origin.x, box.y - origin.y, box.width, box.height].map(v => Math.round(v * 100) / 100),
       style: style(el),
     };
+    if (layout) {
+      // Not rendered: display:none, or clipped to a pixel for a screen reader alone.
+      const clipped = node.style.position === 'absolute' && box.width <= 1 && box.height <= 1 && node.style.overflowX === 'hidden';
+      if (node.style.display === 'none' || clipped) node.hidden = true;
+    }
+
     for (const pseudo of ['::before', '::after']) {
       const content = getComputedStyle(el, pseudo).content;
       if (content && content !== 'none' && content !== 'normal') node[pseudo] = { content, ...style(el, pseudo) };
@@ -205,12 +213,14 @@ function collect(wrapper, { STYLES, index }) {
 // root and part (`data-flux-*` on Flux's page, `data-ui-*` on a Rask one) and every native control, in
 // document order, up to a limit that keeps a long example affordable. From the recorded nodes rather
 // than the live page, so parity.mjs can ask the same question of a measurement taken earlier.
-export function stateTargets(nodes) {
+// A layout is a whole document: 400 controls rather than 60, and none that is not rendered.
+export function stateTargets(nodes, layout = false) {
   const controls = new Set(['button', 'a', 'input', 'select', 'textarea', 'summary', 'label']);
   const marked = node => Object.keys(node.attrs).some(name => name.startsWith('data-flux') || name.startsWith('data-ui-'));
   return nodes
     .filter(node => marked(node) || controls.has(node.tag) || 'role' in node.attrs || 'tabindex' in node.attrs)
-    .slice(0, 60)
+    .filter(node => !(layout && node.hidden))
+    .slice(0, layout ? 400 : 60)
     .map(node => node.id);
 }
 
@@ -235,4 +245,85 @@ function diff({ STYLES, target }) {
   if (!base) return changed;
   for (const k of STYLES) if (computed[k] !== base[k]) changed[k] = computed[k];
   return changed;
+}
+
+// ----- Layouts ---------------------------------------------------------------------------------------
+// A layout is a whole document, so Flux's docs do not render it in a `[data-preview-wrapper]`: under each
+// heading the page links to a full-screen demo (fluxui.dev/demo/<name>). One "example" of a layout page
+// is therefore one demo, at one width, in one state — its <body> measured exactly as a wrapper is.
+
+// Desktop and phone, and what a reader can do to the sidebar at each: narrow it to its rail, slide it in.
+export const VIEWS = [
+  { width: 1280, states: ['', 'rail'] },
+  { width: 390, states: ['', 'open'] },
+];
+
+// What puts a layout into a state, on either side: Flux's control or Rask's.
+const CONTROLS = {
+  rail: '[data-flux-sidebar-collapse] button, [data-ui-sidebar-collapse] label',
+  open: '[data-flux-sidebar-toggle], [data-ui-sidebar-toggle]',
+};
+
+// The demos a layout page links to, each under the id of the <h2> above it ('' for the first).
+export async function layoutDemos(browser, url) {
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
+  const demos = await page.evaluate(() => {
+    const headings = [...document.querySelectorAll('h2[id]')];
+    const seen = new Set();
+    return [...document.querySelectorAll('a[href*="/demo/"]')].filter(a => !seen.has(a.href) && seen.add(a.href)).map(a => ({
+      name: new URL(a.href).pathname.split('/').pop(),
+      section: headings.filter(h => h.compareDocumentPosition(a) & Node.DOCUMENT_POSITION_FOLLOWING).pop()?.id ?? '',
+    }));
+  });
+  await page.close();
+  return demos;
+}
+
+// Every demo at every width and state, in light and in dark. `locate` turns a demo's name into its URL;
+// `only` names the examples to take (a side is only asked for the states the other side has).
+export async function measureLayouts(browser, demos, locate, shots, { prepare, only } = {}) {
+  const schemes = {};
+  for (const scheme of ['light', 'dark']) {
+    schemes[scheme] = [];
+    for (const demo of demos) {
+      for (const view of VIEWS) {
+        for (const state of view.states) {
+          const section = `${demo.section || demo.name}@${view.width}${state && `-${state}`}`;
+          if (only && !only.has(section)) continue;
+          const context = await browser.newContext({ viewport: { width: view.width, height: 900 }, colorScheme: scheme });
+          // Motion at rest, as measurePage has it: the sidebar's slide is measured where it ends.
+          await context.addInitScript(`window.__fluxRest = ${rest}`);
+          const page = await context.newPage();
+          await page.goto(locate(demo), { waitUntil: 'networkidle', timeout: 90000 });
+          await page.evaluate(() => document.fonts.ready);
+          if (state) {
+            const control = page.locator(CONTROLS[state]).locator('visible=true').first();
+            if (!(await control.count())) {
+              await context.close();
+              continue;
+            }
+
+            await control.click();
+            // Away from the sidebar, and off the control: its hover is a state of its own, and the tooltip a
+            // focused control shows is not the layout.
+            await page.mouse.move(view.width - 5, 895);
+            await page.evaluate(() => document.activeElement?.blur());
+            await page.waitForTimeout(400);
+          }
+
+          await page.evaluate(name => {
+            document.body.setAttribute('data-preview-wrapper', '');
+            document.body.setAttribute('data-section', name);
+          }, section);
+          if (prepare) await prepare(page, scheme, section);
+          await page.evaluate(() => window.__fluxRest());
+          schemes[scheme].push(...await measure(page, join(shots, scheme), true));
+          await context.close();
+        }
+      }
+    }
+  }
+
+  return schemes;
 }

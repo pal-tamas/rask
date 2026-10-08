@@ -62,7 +62,7 @@ public sealed partial class UiMetric : Component
                 ? "bg-base-200 shadow-[inset_0_-2px_0_0_var(--color-ui-ink)]"
                 : "bg-base-100 hover:bg-base-200"));
 
-        // Only when true — see Ui.NavTab. A ternary here would ship a meaningless attribute on every
+        // Only when true. A ternary here would ship a meaningless attribute on every
         // unselected tile.
         if (selected)
         {

@@ -52,6 +52,9 @@ public partial class App : Component
         // Dark mode, Flux's way: `dark` on <html> before the first paint, from the reader's stored
         // appearance or their operating system. The moon in SiteHeader flips it through Rask.dark.
         Ui.AppearanceScript,
+        // A sidebar the reader left narrowed to its rail (the layout demos) is narrow from the first paint:
+        // the runtime, which remembers it, loads after the prerendered page is on screen.
+        Ui.SidebarScript,
         // Brand favicon (the purple bolt). Served from the app's own origin; PathBase keeps
         // it correct under a reverse-proxy prefix (Server) or sub-path deploy (WASM).
         Link.Rel("icon").Type("image/svg+xml").Href(LiveOptions.PathBase + "/icon.svg"),

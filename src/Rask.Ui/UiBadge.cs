@@ -113,16 +113,6 @@ public sealed partial class UiBadge : UiElement
         }
     }
 
-    // For the kit's components that still take a daisyUI tone for the badge they draw. It goes when they do.
-    internal static Ui.Color? ToneColor(Ui.Tone? tone) => tone switch
-    {
-        Ui.Tone.Success => Ui.Color.Green,
-        Ui.Tone.Warning => Ui.Color.Yellow,
-        Ui.Tone.Error => Ui.Color.Red,
-        Ui.Tone.Info => Ui.Color.Blue,
-        _ => null,
-    };
-
     private static string SizeClass(Ui.BadgeSize? size) => size switch
     {
         Ui.BadgeSize.Sm => "text-xs py-1",

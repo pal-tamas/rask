@@ -27,6 +27,12 @@ colour IS a Tailwind colour: `oklch(0.274 0.006 286.033)` is `zinc-800`, `rgba(0
 `shadow-xs`. Name every value before writing a class. Every detail counts: a bottom border one shade
 darker, an inset highlight, 12px on the icon side and 16px on the other.
 
+**A layout page** (`layouts/header`, `layouts/sidebar`) has no examples: it links to full-document demos
+(`fluxui.dev/demo/<name>`). `parity.mjs layouts/<slug>` measures each demo whole — 1280 and 390 wide, light
+and dark, as loaded, narrowed to its rail and slid over the page — against one document per demo, written
+from a `FluxLayoutParity` (`tests/Rask.Ui.Tests/Flux/Parity/SidebarLayoutParity.cs`). What is not rendered
+is not compared, and another component placed in the layout is compared as a box.
+
 Behaviour is measured too: open the page, use the component with keyboard and pointer (Playwright via
 `scripts/flux/lib.mjs`'s `chromium()`), and write down what each key does before implementing it.
 
