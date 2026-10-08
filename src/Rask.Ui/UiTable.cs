@@ -23,7 +23,8 @@ public sealed partial class UiTable : UiElement, IUiHost
 {
     private const string Base = "isolate min-w-full table-fixed border-separate border-spacing-0 whitespace-nowrap text-zinc-800";
 
-    private const string Container = "flex flex-col";
+    // The pager under the rows keeps its height when the box is given one to scroll within, as Flux's does.
+    private const string Container = "flex flex-col *:data-ui-pagination:shrink-0";
 
     // The card's bleed contract (UiCard, UiCardBody): --ui-bleed sideways, and — where the table is the first
     // or last thing in the box — --ui-bleed-top / -bottom to that edge, rounded by --ui-bleed-*-radius. A box

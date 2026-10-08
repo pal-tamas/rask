@@ -1,25 +1,90 @@
 using System.Text.RegularExpressions;
+using Rask.Testing;
 
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The pager, in both of its forms: buttons that report a choice, and links to where each page lives.
+///     Flux's pager: what it says about a paginator, which pages it numbers, and its two forms — buttons that
+///     report a choice, and links to where each page lives.
 /// </summary>
+/// <remarks>
+///     The windows asserted here are Flux's: its "Large result set" example (67 pages) was widened past 640px
+///     and clicked through pages 1–6, 10–12, 59, 60, 63 and 67. Pages 7, 8 and 61 sit on the edges of the rule
+///     those show.
+/// </remarks>
 public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
+    public void The_summary_says_which_results_the_page_shows()
+    {
+        var paginator = new UiPaginator { Page = 2, PerPage = 15, Total = 240 };
+
+        var html = Ui.Pagination.Paginator(paginator).ToHtml();
+
+        Assert.Contains("Showing 16 to 30 of 240 results", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_last_page_stops_at_the_last_result()
+    {
+        var paginator = new UiPaginator { Page = 5, PerPage = 5, Total = 24 };
+
+        var html = Ui.Pagination.Paginator(paginator).ToHtml();
+
+        Assert.Contains("Showing 21 to 24 of 24 results", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_page_past_the_end_is_drawn_as_the_last_page()
+    {
+        var paginator = new UiPaginator { Page = 9, PerPage = 5, Total = 24 };
+
+        var html = Ui.Pagination.Paginator(paginator).ToHtml();
+
+        Assert.Contains("Showing 21 to 24 of 24 results", html, StringComparison.Ordinal);
+        Assert.Contains("aria-current=\"page\">5<", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_root_carries_the_marker_and_measures_its_own_width()
+    {
+        var paginator = new UiPaginator { Page = 1, PerPage = 5, Total = 24 };
+
+        var html = Ui.Pagination.Paginator(paginator).ToHtml();
+
+        Assert.StartsWith("<div class=\"@container ", html, StringComparison.Ordinal);
+        Assert.Contains(" data-ui-pagination>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Pages_are_buttons_when_the_choice_is_reported()
     {
-        var html = Ui.Pagination.Pages(3).Current(2).OnPage(_ => { }).ToHtml();
+        var paginator = new UiPaginator { Page = 2, PerPage = 5, Total = 15 };
 
-        Assert.Equal(3, Count(html, "<button"));
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
+
+        // Previous and Next in the narrow form; Previous, 1, 3 and Next in the numbered one.
+        Assert.Equal(6, Count(html, "<button"));
         Assert.DoesNotContain("<a ", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Pressing_a_page_reports_its_number()
+    {
+        var chosen = 0;
+        var page = Page.Render(Ui.Pagination.Paginator(new UiPaginator { Page = 2, PerPage = 5, Total = 24 }).OnPage(p => chosen = p));
+
+        await page.On("button:has-text(\"4\")").Click();
+
+        Assert.Equal(4, chosen);
     }
 
     [Fact]
     public void Pages_are_links_when_each_page_has_an_address()
     {
-        var html = Ui.Pagination.Pages(3).Current(2).Href(page => $"/logs?page={page}").ToHtml();
+        var paginator = new UiPaginator { Page = 2, PerPage = 5, Total = 15 };
+
+        var html = Ui.Pagination.Paginator(paginator).Href(page => $"/logs?page={page}").ToHtml();
 
         Assert.Contains("href=\"/logs?page=1\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"/logs?page=3\"", html, StringComparison.Ordinal);
@@ -29,11 +94,14 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_current_page_is_not_a_link_and_says_it_is_the_current_one()
     {
-        var html = Ui.Pagination.Pages(3).Current(2).Href(page => $"/logs?page={page}").ToHtml();
+        var paginator = new UiPaginator { Page = 2, PerPage = 5, Total = 15 };
 
+        var html = Ui.Pagination.Paginator(paginator).Href(page => $"/logs?page={page}").ToHtml();
+
+        // Previous leads to page 1 and Next to page 3, in both forms; nothing leads to page 2.
         Assert.DoesNotContain("href=\"/logs?page=2\"", html, StringComparison.Ordinal);
         Assert.Equal(1, Count(html, "aria-current=\"page\""));
-        Assert.Contains("btn-active", html, StringComparison.Ordinal);
+        Assert.Contains("aria-current=\"page\">2</div>", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -41,7 +109,9 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     {
         // NavLink adds `active` when its URL matches the current one, and a first page with no ?page= in it
         // would match every page of the same path. The pager says which page is current itself.
-        var html = Ui.Pagination.Pages(3).Current(3).Href(page => page == 1 ? "/logs" : $"/logs?page={page}").ToHtml();
+        var paginator = new UiPaginator { Page = 3, PerPage = 5, Total = 15 };
+
+        var html = Ui.Pagination.Paginator(paginator).Href(page => page == 1 ? "/logs" : $"/logs?page={page}").ToHtml();
 
         Assert.DoesNotContain(" active", html, StringComparison.Ordinal);
     }
@@ -51,55 +121,132 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     {
         // The client cancels the default action of a click it dispatches, so a page that was both would stop
         // navigating the moment a handler was attached to it.
-        var html = Ui.Pagination.Pages(3).Current(1).OnPage(_ => { }).Href(page => $"/logs?page={page}").ToHtml();
+        var paginator = new UiPaginator { Page = 1, PerPage = 5, Total = 15 };
+
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).Href(page => $"/logs?page={page}").ToHtml();
 
         Assert.DoesNotContain("<button", html, StringComparison.Ordinal);
-        Assert.Equal(2, Count(html, "<a "));
+        Assert.Contains("href=\"/logs?page=2\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_long_pager_draws_a_window_that_fits_a_phone()
+    public void On_the_first_page_Previous_is_not_a_control()
     {
-        // A join is one unbreakable row. Forty numbered buttons in it made the console's log history wider than a
-        // phone; the window keeps the first, the last and the neighbours of the current page.
-        var html = Ui.Pagination.Pages(20).Current(10).OnPage(_ => { }).ToHtml();
+        var paginator = new UiPaginator { Page = 1, PerPage = 5, Total = 24 };
 
-        Assert.Equal(7, Count(html, "join-item btn"));
-        // The encoder writes the ellipsis as a character reference, so that is what is counted.
-        Assert.Equal(2, Count(html, "&#x2026;"));
-        foreach (var page in new[] { ">1<", ">9<", ">10<", ">11<", ">20<" })
-        {
-            Assert.Contains(page, html, StringComparison.Ordinal);
-        }
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
 
-        Assert.DoesNotContain(">5<", html, StringComparison.Ordinal);
+        // Once in each form: a <div> that says it is disabled, where Next is a button.
+        Assert.Equal(2, Count(html, "<div class=\"flex items-center justify-center rounded-md text-zinc-300 size-8 sm:size-6 dark:text-zinc-500\" data-rask-key=\"previous\" aria-disabled=\"true\" aria-label=\"&amp;laquo; Previous\">"));
+        Assert.Equal(0, Count(html, "aria-disabled=\"true\" aria-label=\"Next &amp;raquo;\""));
+        Assert.Equal(2, Count(html, "aria-label=\"Next &amp;raquo;\""));
+    }
+
+    [Fact]
+    public void On_the_last_page_Next_is_not_a_control()
+    {
+        var paginator = new UiPaginator { Page = 5, PerPage = 5, Total = 24 };
+
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
+
+        Assert.Equal(2, Count(html, "aria-disabled=\"true\" aria-label=\"Next &amp;raquo;\""));
+        Assert.Equal(0, Count(html, "aria-disabled=\"true\" aria-label=\"&amp;laquo; Previous\""));
     }
 
     [Theory]
-    [InlineData(1, "1 2 3 4 … 20")]
-    [InlineData(3, "1 2 3 4 … 20")]
-    [InlineData(4, "1 … 3 4 5 … 20")]
-    [InlineData(17, "1 … 16 17 18 … 20")]
-    [InlineData(18, "1 … 17 18 19 20")]
-    [InlineData(20, "1 … 17 18 19 20")]
-    public void The_window_slides_against_either_end(int current, string expected)
+    [InlineData(1, "[1] 2 3 4 5 6 7 8 9 10 ... 66 67")]
+    [InlineData(6, "1 2 3 4 5 [6] 7 8 9 10 ... 66 67")]
+    [InlineData(7, "1 2 3 4 5 6 [7] 8 9 10 ... 66 67")]
+    [InlineData(8, "1 2 ... 5 6 7 [8] 9 10 11 ... 66 67")]
+    [InlineData(10, "1 2 ... 7 8 9 [10] 11 12 13 ... 66 67")]
+    [InlineData(60, "1 2 ... 57 58 59 [60] 61 62 63 ... 66 67")]
+    [InlineData(61, "1 2 ... 58 59 60 [61] 62 63 64 65 66 67")]
+    [InlineData(63, "1 2 ... 58 59 60 61 62 [63] 64 65 66 67")]
+    [InlineData(67, "1 2 ... 58 59 60 61 62 63 64 65 66 [67]")]
+    public void A_long_list_numbers_a_window_of_pages_as_Flux_does(int current, string expected)
     {
-        var html = Ui.Pagination.Pages(20).Current(current).OnPage(_ => { }).ToHtml();
-        var drawn = Regex.Matches(html, ">([0-9]+|&#x2026;|…)<")
-            .Select(m => m.Groups[1].Value == "&#x2026;" ? "…" : m.Groups[1].Value);
+        var paginator = new UiPaginator { Page = current, PerPage = 15, Total = 1000 };
 
-        Assert.Equal(expected, string.Join(' ', drawn));
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
+
+        Assert.Equal(expected, Drawn(html));
     }
 
     [Fact]
-    public void Seven_pages_or_fewer_draw_every_page()
+    public void Thirteen_pages_are_all_numbered_and_fourteen_open_a_gap()
     {
-        var html = Ui.Pagination.Pages(7).Current(4).OnPage(_ => { }).ToHtml();
+        var thirteen = new UiPaginator { Page = 1, PerPage = 10, Total = 130 };
+        var fourteen = new UiPaginator { Page = 1, PerPage = 10, Total = 140 };
 
-        Assert.Equal(7, Count(html, "join-item btn"));
-        Assert.DoesNotContain("&#x2026;", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("…", html, StringComparison.Ordinal);
+        var all = Ui.Pagination.Paginator(thirteen).OnPage(_ => { }).ToHtml();
+        var windowed = Ui.Pagination.Paginator(fourteen).OnPage(_ => { }).ToHtml();
+
+        Assert.Equal("[1] 2 3 4 5 6 7 8 9 10 11 12 13", Drawn(all));
+        Assert.Equal("[1] 2 3 4 5 6 7 8 9 10 ... 13 14", Drawn(windowed));
     }
+
+    [Fact]
+    public void A_gap_is_not_a_control()
+    {
+        var paginator = new UiPaginator { Page = 30, PerPage = 15, Total = 1000 };
+
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
+
+        Assert.Equal(2, Count(html, "aria-disabled=\"true\">...</div>"));
+    }
+
+    [Fact]
+    public void A_paginator_with_no_total_draws_only_Previous_and_Next()
+    {
+        var paginator = new UiPaginator { Page = 2, HasMore = true };
+
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
+
+        Assert.DoesNotContain("Showing", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("@container", html, StringComparison.Ordinal);
+        Assert.Equal(2, Count(html, "<button"));
+        Assert.Equal("", Drawn(html));
+    }
+
+    [Fact]
+    public void A_simple_paginator_with_nothing_more_ends_there()
+    {
+        var paginator = new UiPaginator { Page = 2, HasMore = false };
+
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
+
+        // Flux's simple pager names nothing and states nothing: the spent step is a bare box.
+        Assert.Equal(1, Count(html, "dark:text-zinc-500\" data-rask-key=\"next\"><svg"));
+        Assert.Equal(1, Count(html, "<button"));
+        Assert.DoesNotContain("aria-", html.Replace("aria-hidden", "", StringComparison.Ordinal), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ScrollTo_names_what_the_runtime_brings_into_view_on_a_press()
+    {
+        var paginator = new UiPaginator { Page = 1, PerPage = 5, Total = 24 };
+
+        var scrolling = Ui.Pagination.Paginator(paginator).ScrollTo("#orders").ToHtml();
+        var still = Ui.Pagination.Paginator(paginator).ToHtml();
+
+        Assert.Contains("data-rask-scroll-to=\"#orders\"", scrolling, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-scroll-to", still, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Each_arrow_is_drawn_twice_so_it_can_turn_round_in_a_right_to_left_page()
+    {
+        var paginator = new UiPaginator { Page = 1, HasMore = true };
+
+        var html = Ui.Pagination.Paginator(paginator).ToHtml();
+
+        Assert.Equal(2, Count(html, "rtl:hidden"));
+        Assert.Equal(2, Count(html, "hidden rtl:inline"));
+    }
+
+    // The numbered form's pages in order: the current one in brackets, a gap as "...".
+    private static string Drawn(string html) => string.Join(' ', Regex.Matches(html, "(aria-current=\"page\")?>([0-9]+|\\.\\.\\.)</(?:div|button|a)>")
+        .Select(m => m.Groups[1].Success ? $"[{m.Groups[2].Value}]" : m.Groups[2].Value));
 
     private static int Count(string haystack, string needle) => haystack.Split(needle).Length - 1;
 }

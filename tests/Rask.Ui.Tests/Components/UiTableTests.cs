@@ -23,7 +23,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     {
         var html = Orders().ToHtml();
 
-        Assert.StartsWith("<div class=\"flex flex-col\"><div class=\"block overflow-auto\"><table ", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"flex flex-col *:data-ui-pagination:shrink-0\"><div class=\"block overflow-auto\"><table ", html, StringComparison.Ordinal);
         Assert.EndsWith("</table></div></div>", html, StringComparison.Ordinal);
     }
 
@@ -55,7 +55,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
         var box = html[..html.IndexOf("<div class=\"block overflow-auto\"", StringComparison.Ordinal)];
         var table = html[html.IndexOf("<table", StringComparison.Ordinal)..];
 
-        Assert.Equal("<div class=\"flex flex-col max-h-80\">", box);
+        Assert.Equal("<div class=\"flex flex-col *:data-ui-pagination:shrink-0 max-h-80\">", box);
         Assert.StartsWith("<table id=\"orders\" class=\"", table, StringComparison.Ordinal);
         Assert.Matches(" mb-0\" data-ui-table data-testid=\"orders\" aria-label=\"Orders\">", table);
     }
@@ -92,7 +92,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
         var bleeding = Ui.Table.Bleed().ToHtml();
 
         Assert.DoesNotContain("data-ui-table-bleed", plain, StringComparison.Ordinal);
-        Assert.Matches("^<div class=\"flex flex-col -mx-\\[var\\(--ui-bleed,1.5rem\\)\\][^\"]*\" data-ui-table-bleed=\"\">", bleeding);
+        Assert.Matches("^<div class=\"flex flex-col \\*:data-ui-pagination:shrink-0 -mx-\\[var\\(--ui-bleed,1.5rem\\)\\][^\"]*\" data-ui-table-bleed=\"\">", bleeding);
     }
 
     [Fact]

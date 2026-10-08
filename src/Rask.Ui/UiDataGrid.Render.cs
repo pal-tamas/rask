@@ -356,7 +356,7 @@ public sealed partial class UiDataGrid<T, TKey>
             ? null
             : Div.Class("flex flex-wrap items-center gap-2 max-sm:flex-col max-sm:items-stretch")[Toolbar];
 
-    private Component? Pager(Resolved rows)
+    private UiPagination? Pager(Resolved rows)
     {
         if (Paging <= 0 || rows.Pages <= 1)
         {
@@ -366,19 +366,10 @@ public sealed partial class UiDataGrid<T, TKey>
         var current = Math.Clamp(CurrentPage, 0, rows.Pages - 1) + 1;
 
         // The pager counts from one and the grid from zero; the conversion happens here, once, in both modes.
-        return Div.Class("flex flex-wrap items-center justify-between gap-2")[
-            Span.Class("text-sm text-base-content/60")[
-                rows.Total.ToString(CultureInfo.InvariantCulture) + " rows"
-            ],
-            PageHref is { } href
-                ? Ui.Pagination
-                    .Pages(rows.Pages)
-                    .Current(current)
-                    .Href(page => href.Invoke(page - 1))
-                : Ui.Pagination
-                    .Pages(rows.Pages)
-                    .Current(current)
-                    .OnPage(page => _ = GoToPageAsync(page - 1, rows.Pages))
-        ];
+        var pager = Ui.Pagination.Paginator(new UiPaginator { Page = current, PerPage = Paging, Total = rows.Total });
+
+        return PageHref is { } href
+            ? pager.Href(page => href.Invoke(page - 1))
+            : pager.OnPage(page => _ = GoToPageAsync(page - 1, rows.Pages));
     }
 }

@@ -428,6 +428,12 @@ unasked: `popover`, `commandfor`, `aria-activedescendant` and `role="switch"` on
 | `data-autoplay="<ms>"` | the root | Advances on that interval and rewinds at the end; stops under the pointer and never starts under `prefers-reduced-motion`. |
 | `data-rask-carousel-controls` + `data-name` | an element outside the root | Its wrappers and indicators drive the root with the same `data-name`. |
 
+### Scrolling
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| `data-rask-scroll-to="<selector>"` | an element holding buttons or links — a pager | A press on a `<button>` or an `<a>` inside it brings the first element the selector matches into view (`"body"` for the top of the document, `"#orders"` for a table). The press is not stopped: the handler or the link runs after it. A press elsewhere in the element, and a value that is no selector, scroll nothing. |
+
 **A hook that writes an attribute holds it against the morph** (`rask-owned.ts`): `data-open`, `data-copied`, a tooltip's
 `aria-expanded` and a carousel's `disabled` are not what the page rendered, and a re-render neither strips them
 nor puts the rendered value back over them.

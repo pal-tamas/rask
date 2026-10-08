@@ -742,6 +742,43 @@ them until tagged releases begin.
   ```
   `Ui.Sidebar` still slides on daisyUI's drawer and is unchanged.
 
+- **BREAKING: `Ui.Pagination` is Flux's pagination, and takes a paginator.** It was a joined row of
+  daisyUI buttons told a page count; it is now `flux:pagination` — a summary ("Showing 16 to 30 of 240
+  results"), Previous and Next, and the pages numbered once the pager has 640px to itself. What Flux
+  reads from a Laravel paginator it reads from a `UiPaginator`:
+  ```csharp
+  Ui.Pagination.Pages(16).Current(2).OnPage(Load)                                              // was
+  Ui.Pagination.Paginator(new UiPaginator { Page = 2, PerPage = 15, Total = 240 }).OnPage(Load)   // now
+  ```
+  `Pages` and `Current` are gone. `OnPage` and `Href` are unchanged and still count pages from one.
+  A paginator with no `Total` is Flux's simple paginator — Previous and Next only, with `HasMore` saying
+  whether Next leads anywhere. The window of numbered pages is Laravel's (every page below fourteen; from
+  there the first two, the last two and three either side of the current one) where it was seven items.
+  The current page is a `<div aria-current="page">`, where the button form used to write a disabled
+  button and the link form a `<span>`; a gap is `...` with `aria-disabled`, not a hidden `…`. The ARIA
+  is Flux's own: a counted pager labels its arrows `&laquo; Previous` and `Next &raquo;` (the entity as
+  text, which is what Flux's page says) and a spent one says `aria-disabled="true"`; the simple pager's
+  arrows carry no label and its spent one says nothing — find them by position, not by name. New:
+  `ScrollTo("body")` / `ScrollTo("#orders")` scrolls that selector into view when a page is chosen,
+  through a new generic runtime hook, `data-rask-scroll-to` (one of the hooks loaded on demand). `Ui.DataGrid` draws this pager under its
+  rows: its "N rows" caption is now the pager's own summary ("Showing 1 to 25 of N results").
+- **BREAKING: `Ui.Timeline` is Flux's timeline, with its five parts.** It was daisyUI's `timeline` class on
+  a `<ul>` and left the items to the caller; it is now `flux:timeline` — `Ui.TimelineItem`,
+  `Ui.TimelineIndicator`, `Ui.TimelineContent`, `Ui.TimelineBlock` and `Ui.TimelineSubgrid` — drawing the
+  indicators and the line between them:
+  ```csharp
+  Ui.Timeline.Vertical()[Li[…]]                                                           // was
+  Ui.Timeline[Ui.TimelineItem[Ui.TimelineIndicator["1"], Ui.TimelineContent["Submit"]]]   // now
+  ```
+  Vertical is the default and `Vertical` is gone; `Ui.Timeline.Horizontal()` is the other direction, where
+  the old default was horizontal. Also `Lg`, `Start`/`Baseline`/`Center`/`End` (on a timeline or one
+  item), `Ui.TimelineItem.Complete`/`Current`/`Incomplete`, and on an indicator `Color(Ui.Color.…)`,
+  `Bare` and its own `Status`. Spacing is `--ui-timeline-item-gap` and `--ui-timeline-content-gap`.
+- **`Ui.Text` is regular weight wherever it stands.** Inline in a `Ui.Heading`, or in a
+  `Ui.CalloutHeading`, it took the heading's medium weight; Flux's is 400 there (measured on its timeline
+  page). A weight the call site hands it still wins: `Ui.Text.Inline().Class("font-medium")`.
+- **A pager under a `Ui.Table` keeps its height** when the table's box is given one to scroll within
+  (`ContainerClass("max-h-80")`), as Flux's does.
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:

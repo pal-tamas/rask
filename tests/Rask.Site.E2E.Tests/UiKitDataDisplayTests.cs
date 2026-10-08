@@ -25,6 +25,9 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
                  {
                      "ui-badge", "ui-card", "ui-kanban", "ui-accordion", "ui-aura", "ui-text-rotate", "ui-hover-3d",
                      "ui-hover-gallery", "ui-console-pieces", "ui-chart", "ui-table", "ui-display-rest",
+                     "ui-timeline", "ui-timeline-large", "ui-timeline-horizontal", "ui-timeline-status",
+                     "ui-timeline-color", "ui-timeline-bare", "ui-timeline-block", "ui-timeline-subgrid",
+                     "ui-timeline-align", "ui-timeline-baseline", "ui-timeline-spacing",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -418,6 +421,79 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         await Expect(count).ToHaveTextAsync("3");
         // The other column over the same list has the card too: the board is the page's own state, drawn.
         await Expect(Page.Locator("[data-testid='ui-kanban-actions'] [ui-kanban-card]")).ToHaveCountAsync(3);
+    });
+
+    [Fact]
+    public Task A_timeline_puts_its_indicators_in_one_column_and_a_line_between_them() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var timeline = Page.Locator("[data-testid='ui-timeline'] [data-ui-timeline]");
+        await Expect(timeline.Locator("[data-ui-timeline-indicator]")).ToHaveCountAsync(3);
+
+        var first = await timeline.Locator("[data-ui-timeline-indicator]").First.BoundingBoxAsync();
+        var last = await timeline.Locator("[data-ui-timeline-indicator]").Last.BoundingBoxAsync();
+        var line = await timeline.Locator("[data-ui-timeline-line-trailing] > div").First.BoundingBoxAsync();
+        var opacity = await timeline.Locator("[data-ui-timeline-line-trailing]").Last.EvaluateAsync<string>("e => getComputedStyle(e).opacity");
+
+        // Flux's numbers: 32px circles one under the other, a 1px line, and no line out of the last item.
+        Assert.Equal(32, first!.Width, 1);
+        Assert.Equal(32, first.Height, 1);
+        Assert.Equal(first.X, last!.X, 1);
+        Assert.Equal(1, line!.Width, 1);
+        Assert.Equal("0", opacity);
+    });
+
+    [Fact]
+    public Task A_horizontal_timeline_runs_across_and_shows_how_far_it_has_got() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var timeline = Page.Locator("[data-testid='ui-timeline-status'] [data-ui-timeline]");
+        var indicators = timeline.Locator("[data-ui-timeline-indicator]");
+        await Expect(indicators).ToHaveCountAsync(3);
+
+        var first = await indicators.First.BoundingBoxAsync();
+        var second = await indicators.Nth(1).BoundingBoxAsync();
+        var filled = await indicators.First.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor");
+        var ring = await indicators.Nth(1).EvaluateAsync<string>("e => getComputedStyle(e).borderTopWidth");
+        var dimmed = await timeline.Locator("[data-ui-timeline-content]").Last.EvaluateAsync<string>("e => getComputedStyle(e).opacity");
+
+        // Side by side on one line; complete is filled, current is a 2px ring, incomplete dims what it says.
+        Assert.Equal(first!.Y, second!.Y, 1);
+        Assert.True(second.X > first.X + first.Width, "the second indicator is not to the right of the first");
+        Assert.NotEqual("rgba(0, 0, 0, 0)", filled);
+        Assert.Equal("2px", ring);
+        Assert.Equal("0.75", dimmed);
+    });
+
+    [Fact]
+    public Task A_block_spans_the_timeline_and_its_subgrid_lines_up_with_the_items() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var timeline = Page.Locator("[data-testid='ui-timeline-subgrid'] [data-ui-timeline]");
+        await Expect(timeline.Locator("[data-ui-timeline-subgrid]")).ToHaveCountAsync(2);
+
+        var whole = await timeline.BoundingBoxAsync();
+        var block = await timeline.Locator("[data-ui-timeline-block]").BoundingBoxAsync();
+        var content = await timeline.Locator("[data-ui-timeline-content]").First.BoundingBoxAsync();
+        var words = await timeline.Locator("[data-ui-timeline-subgrid] > :nth-child(2)").First.BoundingBoxAsync();
+
+        // The block is as wide as the timeline; what its subgrid says starts where the items' content does.
+        Assert.Equal(whole!.Width, block!.Width, 1);
+        Assert.Equal(content!.X, words!.X, 1);
+    });
+
+    [Fact]
+    public Task A_large_timeline_draws_48px_indicators_on_a_2px_line() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var timeline = Page.Locator("[data-testid='ui-timeline-large'] [data-ui-timeline]");
+        await Expect(timeline.Locator("[data-ui-timeline-indicator]")).ToHaveCountAsync(3);
+
+        var indicator = await timeline.Locator("[data-ui-timeline-indicator]").First.BoundingBoxAsync();
+        var line = await timeline.Locator("[data-ui-timeline-line-trailing] > div").First.BoundingBoxAsync();
+
+        Assert.Equal(48, indicator!.Width, 1);
+        Assert.Equal(2, line!.Width, 1);
     });
 
     // A computed colour in sRGB whatever colour space the sheet states it in.

@@ -112,16 +112,125 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     {
         await OpenAsync();
 
-        var pager = Page.Locator("[data-testid='ui-pagination-links']");
+        var pager = Page.Locator("[data-testid='ui-pagination-links'] [data-ui-pagination]");
 
-        // Four pages, the first current: three links and one marker that is not a link.
-        await Expect(pager.Locator("a.join-item")).ToHaveCountAsync(3);
+        // Four pages, the first current: 2, 3, 4 and Next are links, and the current page is a marker that is not.
+        await Expect(pager.GetByRole(AriaRole.Link)).ToHaveCountAsync(4);
         await Expect(pager.Locator("[aria-current='page']")).ToHaveTextAsync("1");
         await Expect(pager.Locator("button")).ToHaveCountAsync(0);
 
-        var href = await pager.Locator("a.join-item").First.GetAttributeAsync("href") ?? "";
+        var href = await pager.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "2", Exact = true }).GetAttributeAsync("href") ?? "";
         Assert.EndsWith("/ui/navigation/?page=2", href, StringComparison.Ordinal);
     });
+
+    [Fact]
+    public Task Choosing_a_page_moves_the_summary_and_the_current_page() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var pager = Page.Locator("[data-testid='ui-pagination'] [data-ui-pagination]");
+        await Expect(pager).ToContainTextAsync("Showing 1 to 5 of 24 results");
+
+        await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "3", Exact = true }).ClickAsync();
+
+        await Expect(pager).ToContainTextAsync("Showing 11 to 15 of 24 results");
+        await Expect(pager.Locator("[aria-current='page']")).ToHaveTextAsync("3");
+    });
+
+    [Fact]
+    public Task Previous_and_next_stop_being_controls_at_either_end() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var pager = Page.Locator("[data-testid='ui-pagination'] [data-ui-pagination]");
+        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Previous" })).ToHaveCountAsync(0);
+
+        await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "5", Exact = true }).ClickAsync();
+
+        // On the last page it is Next that is no longer a button, and Previous that is one.
+        await Expect(pager).ToContainTextAsync("Showing 21 to 24 of 24 results");
+        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Next" })).ToHaveCountAsync(0);
+        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Previous" })).ToHaveCountAsync(1);
+        await Expect(pager.Locator("[aria-disabled='true'][aria-label='Next &raquo;']:visible")).ToHaveCountAsync(1);
+    });
+
+    [Fact]
+    public Task The_pager_draws_at_Flux_sizes_and_numbers_its_pages_from_640px() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var pager = Page.Locator("[data-testid='ui-pagination'] [data-ui-pagination]");
+        await Expect(pager.Locator("[aria-current='page']")).ToBeVisibleAsync();
+
+        var wide = await pager.Locator("[aria-current='page']").BoundingBoxAsync();
+        await Page.SetViewportSizeAsync(390, 800);
+
+        try
+        {
+            // Flux's numbers: a 24px current page; on a phone no numbers at all, and 32px arrows to press.
+            Assert.Equal(24, wide!.Height, 1);
+            await Expect(pager.Locator("[aria-current='page']")).ToBeHiddenAsync();
+            var next = await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Next" }).BoundingBoxAsync();
+            Assert.Equal(32, next!.Width, 1);
+            Assert.Equal(32, next.Height, 1);
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
+    [Fact]
+    public Task A_simple_pager_has_no_numbers_and_ends_where_there_is_no_more() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var pager = Page.Locator("[data-testid='ui-pagination-simple'] [data-ui-pagination]");
+        await Expect(pager.GetByRole(AriaRole.Button)).ToHaveCountAsync(1);
+
+        // Flux's simple pager names neither arrow, so they are found by place: Previous first, Next last.
+        for (var page = 1; page < 5; page++)
+        {
+            await pager.Locator("button:last-child").ClickAsync();
+        }
+
+        // Four presses reach the fifth page, the last one the demo has: Next is spent, Previous is not.
+        await Expect(pager.Locator("button:last-child")).ToHaveCountAsync(0);
+        await Expect(pager.Locator("button:first-child")).ToHaveCountAsync(1);
+        await Expect(pager.Locator("[aria-label], [aria-disabled]")).ToHaveCountAsync(0);
+        await Expect(pager).Not.ToContainTextAsync("Showing");
+    });
+
+    [Fact]
+    public Task A_long_pager_leaves_pages_out_either_side_of_the_current_one() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var pager = Page.Locator("[data-testid='ui-pagination-large'] [data-ui-pagination]");
+        await Expect(pager.GetByText("...", new LocatorGetByTextOptions { Exact = true })).ToHaveCountAsync(1);
+
+        await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "10", Exact = true }).ClickAsync();
+
+        // 1 2 ... 7 8 9 [10] 11 12 13 ... 66 67
+        await Expect(pager.GetByText("...", new LocatorGetByTextOptions { Exact = true })).ToHaveCountAsync(2);
+        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "13", Exact = true })).ToBeVisibleAsync();
+        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "5", Exact = true })).ToHaveCountAsync(0);
+    });
+
+    [Fact]
+    public Task Choosing_a_page_scrolls_what_ScrollTo_names_into_view() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var pager = Page.Locator("[data-testid='ui-pagination-scroll'] [data-ui-pagination]");
+        await pager.ScrollIntoViewIfNeededAsync();
+        var before = await Page.EvaluateAsync<double>(RowsTop);
+
+        await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Next" }).ClickAsync();
+
+        // The list starts again at the sixth order, and the page has moved it up towards the top of the
+        // viewport — as far as the document can scroll, which this near its end is not all the way.
+        await Expect(Page.Locator("#ui-pagination-rows")).ToContainTextAsync("Order 6");
+        await Page.WaitForFunctionAsync($"() => ({RowsTop})() < {before.ToString(System.Globalization.CultureInfo.InvariantCulture)} - 10",
+            null,
+            new PageWaitForFunctionOptions { Timeout = 5_000 });
+    });
+
+    private const string RowsTop = "() => document.querySelector('#ui-pagination-rows').getBoundingClientRect().top";
 
     private async Task OpenAsync()
     {

@@ -82,7 +82,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
             c.Field(r => r.Name).Title("Name").Sortable(true),
         ]]);
 
-        await page.On(".join button:has-text(\"2\")").Click();
+        await page.On("[data-ui-pagination] button:has-text(\"2\")").Click();
         Assert.Equal(["Carrot"], Names(page.Html));
 
         await page.On("thead button").Click();
@@ -98,7 +98,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(["Banana", "Apple"], Names(page.Html));
 
-        await page.On(".join button:has-text(\"2\")").Click();
+        await page.On("[data-ui-pagination] button:has-text(\"2\")").Click();
         Assert.Equal(["Carrot"], Names(page.Html));
     }
 
@@ -272,7 +272,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
         page.Shows(html => html.Contains("Banana", StringComparison.Ordinal));
         Assert.Equal(["Banana", "Apple"], Names(page.Html));
 
-        await page.On(".join button:has-text(\"2\")").Click();
+        await page.On("[data-ui-pagination] button:has-text(\"2\")").Click();
 
         Assert.Equal(["Carrot"], Names(page.Html));
         Assert.Equal(2, asked.Count);

@@ -14,7 +14,7 @@ public sealed partial class UiKitNavigationPage : Component
         PageMeta.For(
             "daisyUI tabs, menus and megamenu in C# — Rask",
             "daisyUI navigation components in C#: a megamenu on native popovers, tabs that are real links, "
-            + "menu, steps and breadcrumbs, with no state held in C#.",
+            + "menu, steps, breadcrumbs and Flux UI's pagination.",
             Routes.UiKitNavigationPage());
 
     /// <inheritdoc />
@@ -29,9 +29,10 @@ public sealed partial class UiKitNavigationPage : Component
             "bundle to boot."
         ],
         CodeSample
-            .Files(["UiKitNavigationDemo.cs"])
+            .Files(["UiKitNavigationDemo.cs", "UiKitPaginationDemo.cs"])
             .Notes("Nothing on this page holds state in C#. The megamenu's panels are [popover] elements "
-                + "named by their triggers, and every tab is an <a href>.")
+                + "named by their triggers, and every tab is an <a href>. The pagers are the one exception: each "
+                + "keeps the page it is on in a field.")
             .Result(UiKitNavigationDemo)
     ];
 }

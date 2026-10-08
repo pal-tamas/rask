@@ -137,6 +137,14 @@ public sealed class FluxConformanceTests
         ["flux:editor.toolbar"] = typeof(UiEditorToolbar),
         ["flux:editor.button"] = typeof(UiEditorButton),
         ["flux:editor.content"] = typeof(UiEditorContent),
+        // `paginator` is a UiPaginator: what Laravel's paginator object knows, as a value.
+        ["flux:pagination"] = typeof(UiPagination),
+        ["flux:timeline"] = typeof(UiTimeline),
+        ["flux:timeline.item"] = typeof(UiTimelineItem),
+        ["flux:timeline.indicator"] = typeof(UiTimelineIndicator),
+        ["flux:timeline.content"] = typeof(UiTimelineContent),
+        ["flux:timeline.block"] = typeof(UiTimelineBlock),
+        ["flux:timeline.subgrid"] = typeof(UiTimelineSubgrid),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -321,6 +329,15 @@ public sealed class FluxConformanceTests
         ["flux:editor/OnChange"] = "the change `wire:model` listens for: the editor's HTML, each time it changes",
         ["flux:editor.button/IconVariant=Solid"] = "Ui.IconVariant is one enum for every icon; Flux's reference lists mini, micro and outline for this button",
         ["flux:editor.button/OnClick"] = "`wire:click` / `x-on:click`, which Flux forwards to the <button>",
+        // A UiPaginator stands in for the Laravel paginator object Flux's `paginator` prop is handed: Page,
+        // PerPage and Total are what `paginate()` knows, HasMore what `simplePaginate()` knows.
+        ["flux:pagination/OnPage"] = "the `wire:click` of each page button Flux draws inside a Livewire component: the page chosen, counted from one",
+        ["flux:pagination/Href"] = "the page URLs a Laravel paginator carries, which Flux's links follow outside Livewire: a RouteUrl per page",
+        ["flux:timeline.indicator/Color=Slate"] = "Ui.Color is one enum for every `color` prop; an indicator draws a neutral as Flux's plain one",
+        ["flux:timeline.indicator/Color=Gray"] = "as Slate",
+        ["flux:timeline.indicator/Color=Zinc"] = "as Slate",
+        ["flux:timeline.indicator/Color=Neutral"] = "as Slate",
+        ["flux:timeline.indicator/Color=Stone"] = "as Slate",
     };
 
     /// <summary>What every component takes, Flux's included: its classes, its identity, what is inside it.</summary>
