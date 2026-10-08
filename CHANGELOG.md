@@ -1051,6 +1051,23 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A component without a `Key` beside keyed ones of its type keeps its instance, and a key repeated in two
+  lists no longer mixes their rows (#1215).** Once one child of a type carried a `Key`, its parent rebuilt every
+  UNKEYED child of that type on each render: a `Ui.Modal.Open(_confirming)` beside keyed modals got a new id and
+  new handler ids every time, so the `close` that follows a `cancel` reached nothing and `OnClose` never ran; an
+  unkeyed `Ui.Toast` in a keyed group remounted on every render. Unkeyed children of a keyed type are now
+  identified by their order among themselves, whatever the keyed ones around them do — so "key every sibling
+  or none" is no longer a rule to follow. And two components of one type written by ONE component with the
+  same key under DIFFERENT elements — the same menu rows in two menus, the same order in a "recent" and a
+  "pinned" list — claimed one instance on the next render, so the first showed the second's props. Each now
+  keeps an instance of its own with its own values. A component's key is scoped to the component that writes
+  it and the child's type (not to the element it sits under — `Render()` runs the `Key` step before that
+  element has its children), so repeats are told apart by the order they are written in and reported once as
+  a `Rask.Live` warning naming the component, the type and the key; give the lists distinct keys
+  (`Key($"pinned-{id}")`) where the rows hold state. `docs/composition.md` says so now; it used to promise
+  "unique among siblings" for components too. Nothing changes for a list whose keys are unique, and a live
+  update of the 20-row benchmark page allocates what it did (2,504 B with tiered PGO off, before and after).
+
 - **Three behaviour hooks, found by driving the calendar and the pickers against Flux's pages.**
   `data-rask-focus-follows` follows a target that a render took out of the page inside the container it was in —
   it was looked for across the whole document, so a paging key in one calendar handed the focus to another
