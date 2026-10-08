@@ -78,7 +78,10 @@ if (page) {
     // (replaceState for a redirect), and Back and Forward arrive as popstate — so those three are the signal,
     // read here rather than threaded through each host's navigation code.
     let path = location.pathname;
-    const navigated = function (): void {
+    const navigated = function (e?: Event): void {
+        if (e && e.cancelBubble) {
+            return; // a Back the reader called off (rask-leave.ts): nothing navigated
+        }
         if (location.pathname === path) {
             return; // the query or the fragment moved: the same page
         }

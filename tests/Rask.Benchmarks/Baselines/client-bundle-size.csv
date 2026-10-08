@@ -1,11 +1,15 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
-# Refreshed 2026-10-08 with the pager's scroll hook (rask-scroll.ts, data-rask-scroll-to): rask-hooks.js
-# 37,124 -> 37,506, and +10 on rask.js (95,581 -> 95,591) and rask.wasm.js (84,439 -> 84,449) for its name in
-# the loader's attribute list. The hook itself is in the bundle a page asks for, not in the runtimes. Of the
-# +382 on rask-hooks.js the scroll hook is +243; the other +139 is the calendar and pickers' changes to three
-# hooks, which landed on main inside the gate's 2% and were not recorded.
+# Refreshed 2026-10-08 with the pager's scroll hook (rask-scroll.ts, data-rask-scroll-to — a hook, so it is in
+# rask-hooks.js): rask-hooks.js 38,621 -> 38,864 (+243), and +10 on rask.js (95,645 -> 95,655) and rask.wasm.js
+# (84,501 -> 84,511) for its name in the loader's attribute list.
+#
+# Refreshed 2026-10-08 with the unsaved-changes guard (`Form.Model(m).ConfirmLeave("…")`, rask-leave.ts — a hook,
+# so it is in rask-hooks.js): rask-hooks.js 37,263 -> 38,621 (+1,358; the 37,124 recorded below had already
+# drifted by 139 bytes, inside the tolerance). What the runtimes carry of it is the attribute's name in the
+# loader's list and one question asked before a navigation the reader starts (`mayLeave` in rask-owned.ts):
+# rask.js 95,581 -> 95,645 (+64) and rask.wasm.js 84,439 -> 84,501 (+62).
 #
 # Refreshed 2026-10-08 with Flux's menus, whose script is in the CORE runtime (the menu block of rask-dom.ts:
 # roving focus that follows `data-active`, Enter / Space on the focused row, focus handed back after a press
@@ -86,6 +90,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,95591
-rask.wasm.js,84449
-rask-hooks.js,37506
+rask.js,95655
+rask.wasm.js,84511
+rask-hooks.js,38864

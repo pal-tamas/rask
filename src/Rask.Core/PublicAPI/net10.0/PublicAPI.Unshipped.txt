@@ -9560,6 +9560,8 @@ Rask.Core.HTMLFormElement.Target.set -> void
 Rask.Core.HTMLFormElement<TModel>
 Rask.Core.HTMLFormElement<TModel>.AutoValidate.get -> bool
 Rask.Core.HTMLFormElement<TModel>.AutoValidate.set -> void
+Rask.Core.HTMLFormElement<TModel>.ConfirmLeave.get -> string?
+Rask.Core.HTMLFormElement<TModel>.ConfirmLeave.set -> void
 Rask.Core.HTMLFormElement<TModel>.Context.get -> Rask.Core.Forms.EditContext?
 Rask.Core.HTMLFormElement<TModel>.Context.set -> void
 Rask.Core.HTMLFormElement<TModel>.HTMLFormElement() -> void
@@ -12602,6 +12604,7 @@ static RaskBuilderSettersRask_Core.ColorInterpolationFilters(this Rask.Core.SVGV
 static RaskBuilderSettersRask_Core.Cols<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, int? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Command(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
 static RaskBuilderSettersRask_Core.CommandFor(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
+static RaskBuilderSettersRask_Core.ConfirmLeave<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, string? value) -> Rask.Core.HTMLFormElement<TModel>!
 static RaskBuilderSettersRask_Core.Content(this Rask.Core.HTMLMetaElement! __b, string? value) -> Rask.Core.HTMLMetaElement!
 static RaskBuilderSettersRask_Core.Context<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, Rask.Core.Forms.EditContext? value) -> Rask.Core.HTMLFormElement<TModel>!
 static RaskBuilderSettersRask_Core.Controls(this Rask.Core.HTMLAudioElement! __b, bool? value) -> Rask.Core.HTMLAudioElement!

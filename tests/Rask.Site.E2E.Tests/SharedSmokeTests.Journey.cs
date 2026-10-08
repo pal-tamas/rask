@@ -1160,7 +1160,7 @@ public abstract partial class SharedSmokeTests
         // one page now. Open the guide once and drive each demo in place — locators are scoped by unique
         // #id or by the enclosing .guide-demo where option values (Pro/AI) repeat across demos.
         await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
-        await AssertGuideDemosAsync(14, "forms");
+        await AssertGuideDemosAsync(15, "forms");
         // The hub co-mounts its forms demos on one (large) page; wait for a late demo's control (the
         // floating-label form, the last marker on the page) before driving any interaction so clicks
         // never race hydration.
@@ -1244,6 +1244,31 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Sign up",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Unsaved-changes guard — the WebAssembly host's half of ConfirmLeave (the Server host's is
+        // ConfirmLeaveHookTests). A note typed and not saved makes the sidebar link ask; staying keeps the
+        // guide and the note. It ends SAVED on purpose: Playwright refuses a dialog nobody answers, so a form
+        // left unsaved here would silently pin the rest of this walk to this page — which is also the proof
+        // that a save ends the guard, because the next SideAsync below has nobody answering.
+        var leaveQuestions = new List<string>();
+        void RefuseToLeave(object? sender, IDialog dialog)
+        {
+            leaveQuestions.Add(dialog.Message);
+            _ = dialog.DismissAsync();
+        }
+
+        Page.Dialog += RefuseToLeave;
+        await Page.Locator("#fcl-input").FillAsync("remember the milk");
+        await ClickSidebar("Forms — validation");
+        await Expect(Page.Locator("#fcl-input")).ToHaveValueAsync("remember the milk");
+        Assert.Equal(["Leave without saving your note?"], leaveQuestions);
+        Assert.Contains("/guides/forms", Page.Url, StringComparison.Ordinal);
+        Assert.DoesNotContain("forms-validation", Page.Url, StringComparison.Ordinal);
+        await Page.Locator("#fcl-submit").ClickAsync();
+        await Expect(Page.Locator("#fcl-out")).ToContainTextAsync("remember the milk",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#fcl-form")).ToHaveAttributeAsync("data-rask-saved", "1");
+        Page.Dialog -= RefuseToLeave;
 
         // The BsRadioGroup / BsCheckboxGroup / BsMultiSelect walks that followed are gone with the
         // controls themselves; docs/building-form-controls.md is the path for building one back.

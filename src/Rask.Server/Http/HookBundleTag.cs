@@ -46,6 +46,7 @@ internal static class HookBundleTag
         "data-rask-otp",
         "data-rask-segments",
         "data-rask-dismiss-scope", "data-rask-stack",
+        "data-rask-confirm-leave",
         "data-rask-persist", "data-rask-uncheck-on-navigate",
         "data-rask-carousel", "data-rask-carousel-controls",
         "data-rask-scroll-to",

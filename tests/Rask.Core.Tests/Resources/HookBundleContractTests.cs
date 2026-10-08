@@ -42,6 +42,7 @@ public partial class HookBundleContractTests
         ["data-rask-measuring"] = "written by the stack hook",
         ["data-rask-locked"] = "written by the lock hook",
         ["data-rask-managed"] = "the morph's own mark",
+        ["data-rask-saved"] = "on a data-rask-confirm-leave",
     };
 
     [Fact]

@@ -318,7 +318,7 @@ of the runtime itself.
 ### How the hooks load
 
 **A page that carries none of these attributes does not download them.** The hooks in the tables below are a
-script of their own, `rask-hooks.js` (37 kB, 12 kB gzipped), beside the runtime every page loads (`rask.js` on
+script of their own, `rask-hooks.js` (39 kB, 12 kB gzipped), beside the runtime every page loads (`rask.js` on
 the Server host, `rask.wasm.js` in a WebAssembly app). The runtime keeps only the list of attributes that ask
 for a hook, and fetches the script the first time the page carries one — at most once per document:
 
@@ -418,6 +418,7 @@ unasked: `popover`, `commandfor`, `aria-activedescendant` and `role="switch"` on
 | --- | --- | --- |
 | `data-rask-persist="<key>"` | a checkbox | Checked as the reader last left it, from `localStorage[key]` (`"true"` / `"false"`), and stored on every change; a render no longer resets it. The runtime restores it when it loads — in a WebAssembly app that is after boot, so a page that must not flash restores the same key from a script of its own in `<head>`. |
 | `data-rask-uncheck-on-navigate` | a checkbox | Unchecked (with a `change` event) when the app navigates to another path. |
+| `data-rask-confirm-leave="<message>"` | a `<form>` — written by [`Form.Model(m).ConfirmLeave("…")`](forms.md#ask-before-leaving-unsaved-changes) | From the first `input` or `change` inside it the form is unsaved, and a nav link, `__raskHost.navigate`, Back and Forward ask `confirm(message)` first; staying sends nothing and, after Back, puts the address back. Closing the tab, a reload and a link out of the app get the browser's own prompt (`beforeunload`, listened to only while a form is unsaved). The form's `data-rask-saved`, which the server changes after each accepted submit, makes the edits sent before it saved. |
 
 ### Carousels
 
