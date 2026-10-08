@@ -1051,6 +1051,11 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`Ui.SidebarItem` and `Ui.MenuItem` follow a string `Href` out of the app.** Every other kit link writes a
+  string as an ordinary link (#1070); these two always wrote a `NavLink`, so under a path base
+  `Ui.SidebarItem.Href("/reports")` came out as `/new/reports` and was routed inside the app — a sidebar could
+  not point at a page the host still serves itself, and `https://…` came out as `/newhttps://…`. A generated
+  route navigates in place as before.
 - **Three behaviour hooks, found by driving the calendar and the pickers against Flux's pages.**
   `data-rask-focus-follows` follows a target that a render took out of the page inside the container it was in —
   it was looked for across the whole document, so a paging key in one calendar handed the focus to another

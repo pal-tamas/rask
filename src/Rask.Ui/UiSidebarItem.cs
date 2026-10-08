@@ -4,8 +4,9 @@ namespace Rask;
 
 /// <summary>Flux's <c>flux:sidebar.item</c>: one destination in a <see cref="UiSidebarNav" />. Its children are its label.</summary>
 /// <remarks>
-/// A link is a <c>NavLink</c>: a generated route navigates inside the app, and it is current — <c>aria-current="page"</c> — when
-/// the router says so; <see cref="Current" /> states it instead. With no <see cref="Href" /> it is a button.
+/// A generated route is a <c>NavLink</c>: it navigates inside the app, and it is current — <c>aria-current="page"</c> — when
+/// the router says so; <see cref="Current" /> states it instead. A string is an ordinary link the browser follows itself,
+/// written as given. With no <see cref="Href" /> it is a button.
 /// Narrowed to the rail it is its icon; the label stays for a screen reader.
 /// </remarks>
 public sealed partial class UiSidebarItem : Component
@@ -19,7 +20,7 @@ public sealed partial class UiSidebarItem : Component
         + "dark:aria-[current=page]:border-transparent dark:aria-[current=page]:bg-white/[7%] "
         + "dark:aria-[current=page]:text-white";
 
-    /// <summary>Where the item leads. A generated route navigates inside the app.</summary>
+    /// <summary>Where the item leads. A generated route navigates inside the app; a string is an ordinary link.</summary>
     public RouteUrl? Href { get; set; }
 
     /// <summary>The icon before the label, and all that is left of the item in the rail.</summary>
@@ -67,6 +68,12 @@ public sealed partial class UiSidebarItem : Component
         {
             var button = Button.Type(ButtonType.Button).Class(UiClass.Compose(classes, "w-full")).Attributes(marks);
             return button[content];
+        }
+
+        // A STRING is an ordinary link, written as given with no path base added (#1070): the way out of the app.
+        if (url.PageType is null)
+        {
+            return A.Href(url.ToString()).Class(classes).Attributes(marks)[content];
         }
 
         // Stated: the router is not asked. Otherwise its class is what turns `aria-current` on.
