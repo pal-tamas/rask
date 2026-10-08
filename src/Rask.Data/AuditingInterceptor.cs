@@ -101,10 +101,9 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     // no tenant would otherwise store a NULL that every tenant's filter then excludes — a row nobody can read.
     private static void StampTenant(EntityEntry entry)
     {
-        // The REGISTRY decides, not whether the column happens to be mapped. TenantId is a real property on
-        // Entity<TId>, so EF Core's own convention maps it on any entity the conventions did not reach — a
-        // context that maps a battery's tables AFTER ApplyRaskConventions, for one. Keying off the column
-        // would then demand a tenant for a table that never asked to be partitioned.
+        // The REGISTRY decides, not whether the column happens to be mapped. A table that is not partitioned
+        // may declare a TenantId of its own — a queue's rows record the tenant they were enqueued for — and
+        // keying off the column would then demand a tenant for a table that never asked to be partitioned.
         if (ConventionRegistry.ScopeFor(entry.Metadata.ClrType) != Tenancy.PerTenant ||
             entry.Metadata.FindProperty(Columns.TenantId) is null)
         {

@@ -70,6 +70,7 @@ Rask.Storage.StoredFile.Public.get -> bool
 Rask.Storage.StoredFile.Sha256.get -> string!
 Rask.Storage.StoredFile.Size.get -> long
 Rask.Storage.StoredFile.StoredFile() -> void
+Rask.Storage.StoredFile.TenantId.get -> System.Guid?
 Rask.Storage.StoredFileRead
 Rask.Storage.StoredFileRead.ContentType.get -> string!
 Rask.Storage.StoredFileRead.ContentType.init -> void

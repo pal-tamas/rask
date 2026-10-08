@@ -36,8 +36,23 @@ public abstract class Authenticatable : Aggregate<Guid>
     /// <summary>The roles this user holds, such as <c>admin</c>. The principal carries each one.</summary>
     public IReadOnlyList<string> Roles { get; private set; } = [];
 
+    /// <summary>The tenant this user belongs to, or <see langword="null" /> for one who belongs to none, such as an administrator.</summary>
+    /// <remarks>
+    /// The principal carries it, which is how every tenant-scoped read and write of a signed-in page finds its
+    /// tenant. Set it with <see cref="RecordTenant" />.
+    /// </remarks>
+    public Guid? TenantId { get; private set; }
+
     /// <summary>Whether the address has been confirmed.</summary>
     public bool IsEmailConfirmed => EmailConfirmedAt is not null;
+
+    /// <summary>Records which tenant this user belongs to.</summary>
+    /// <param name="tenant">The tenant, or <see langword="null" /> for a user who belongs to none.</param>
+    /// <remarks>
+    /// <c>protected</c>, so the app's <c>User</c> decides when that happens — an invitation accepted, a company
+    /// signing up — behind a method of its own: <c>public void JoinTenant(Guid tenant) =&gt; RecordTenant(tenant);</c>
+    /// </remarks>
+    protected void RecordTenant(Guid? tenant) => TenantId = tenant;
 
     /// <summary>Whether this user holds <paramref name="role" />.</summary>
     /// <param name="role">The role name.</param>

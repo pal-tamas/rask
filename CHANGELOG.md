@@ -23,6 +23,17 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `TenantId` is the entity's own column, no longer a property of `Entity<TId>`.** A
+  `Tenancy.PerTenant` table keeps the same `TenantId` column, filter, stamp and index prefix; the column is a
+  shadow one unless the entity declares it. Migration: declare `public Guid? TenantId { get; private set; }` on
+  the entity that reads `row.TenantId`. A table that is not partitioned and declares a `TenantId` gets an
+  ordinary column. `RecordTenant` moved from `Entity<TId>` to `Authenticatable`, so a `User`'s
+  `JoinTenant(Guid tenant) => RecordTenant(tenant)` compiles unchanged; any other entity assigns its own
+  property. A declared `TenantId` is never on the generated form model or read face.
+  **Schema:** four battery tables — `CacheEntry`, `RecurringJobState`, `RaskAuthPasskey`, `RaskAuthSession` —
+  carried an always-null `TenantId` in a `RaskAppDbContext` only because the base class had the property. It is
+  gone, so the next migration of such an app drops those four columns (a table rebuild on SQLite). Nothing
+  else changes for an existing database; a freshly created table lists `TenantId` in a different position.
 - **CI: the whole run follows every push, and every push to `main` gets its own run.** `full.yml` runs
   behind each push — one run at a time, the newest push waiting, fourteen jobs at once so a push's scoped
   run still finds runners — and hourly as the backstop, so `pages.yml` deploys a site change minutes

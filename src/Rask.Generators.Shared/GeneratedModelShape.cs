@@ -455,7 +455,8 @@ internal static class GeneratedModelShape
     }
 
     // Derived members first, so a property re-declared lower down hides the base one by name. The walk stops at
-    // Rask's own bases, whose members (Id, the timestamps, Version, DeletedAt, the events) are the framework's.
+    // Rask's own bases, whose members (Id, the timestamps, Version, DeletedAt, the events) are the framework's —
+    // and so is a TenantId the entity declares, which a form must never carry.
     private static IEnumerable<IPropertySymbol> Properties(INamedTypeSymbol entity)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -464,7 +465,8 @@ internal static class GeneratedModelShape
         // credentials a form must never write.
         for (var type = entity; type is not null && !IsRaskDataType(type) && !IsRaskAuthBase(type); type = type.BaseType)
         {
-            foreach (var property in type.GetMembers().OfType<IPropertySymbol>().Where(p => seen.Add(p.Name)))
+            foreach (var property in type.GetMembers().OfType<IPropertySymbol>().Where(p =>
+                         seen.Add(p.Name) && !string.Equals(p.Name, AggregateShape.TenantColumn, StringComparison.Ordinal)))
             {
                 yield return property;
             }

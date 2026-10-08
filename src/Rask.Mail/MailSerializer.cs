@@ -25,7 +25,7 @@ internal static class MailSerializer
             throw new ArgumentException("An email must have a body — call Body(...) or PlainText(...).", nameof(email));
         }
 
-        var queued = new QueuedMail
+        return new QueuedMail
         {
             From = SerializeAddress(from),
             To = JsonSerializer.Serialize(email.ToRecipients, Options),
@@ -38,12 +38,11 @@ internal static class MailSerializer
             Attachments = ToJsonOrNull(email.Attachments),
             RunAt = runAt,
             UserId = Current.UserId,
-        };
 
-        // The tenant this mail was queued for, so the sender re-enters it — a template that reads a
-        // tenant-scoped table would otherwise throw, since background work carries no principal.
-        queued.RecordQueuedTenant();
-        return queued;
+            // The tenant this mail was queued for, so the sender re-enters it — a template that reads a
+            // tenant-scoped table would otherwise throw, since background work carries no principal.
+            TenantId = Current.Tenant,
+        };
     }
 
     /// <summary>Materializes a send-ready <see cref="OutgoingMail"/> from a persisted row.</summary>
