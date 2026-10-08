@@ -18,7 +18,9 @@ internal sealed partial class LayoutDemo : global::Rask.Core.RaskMarkup
     /// </summary>
     public const string Utilities =
         "body.min-h-screen{min-height:100vh}body.min-h-dvh{min-height:100dvh}.antialiased{-webkit-font-smoothing:antialiased}"
-        + ".bg-white{background-color:#fff}.bg-zinc-50{background-color:oklch(98.5% 0 0)}"
+        // On the body and the header only, which is where the demos write it: the kit's menu says `bg-white` too,
+        // and an unlayered rule for every `.bg-white` would beat its `dark:` ground.
+        + ":is(body,[data-ui-header]).bg-white{background-color:#fff}.bg-zinc-50{background-color:oklch(98.5% 0 0)}"
         + ".dark .dark\\:bg-zinc-800{background-color:oklch(27.4% .006 286.033)}"
         + ".dark .dark\\:bg-zinc-900,.dark.dark\\:bg-zinc-900{background-color:oklch(21% .006 285.885)}"
         + ".dark.dark\\:bg-zinc-800{background-color:oklch(27.4% .006 286.033)}"
@@ -72,6 +74,61 @@ internal sealed partial class LayoutDemo : global::Rask.Core.RaskMarkup
                 ]
                 : null
         ];
+
+    private static readonly Ui.IconName[] GroupIcons =
+    [
+        Ui.IconName.Star, Ui.IconName.Folder, Ui.IconName.ChartBar, Ui.IconName.Users, Ui.IconName.CreditCard,
+        Ui.IconName.Truck, Ui.IconName.Tag, Ui.IconName.Wrench, Ui.IconName.Bell, Ui.IconName.Key,
+        Ui.IconName.GlobeAlt, Ui.IconName.ArchiveBox,
+    ];
+
+    /// <summary>
+    ///     No demo of Flux's: an application's menu — twelve groups, eighty items, three groups folded, one item
+    ///     current deep in the list — in the collapsible demo's sidebar. <c>scripts/flux/rail.mjs</c> walks it.
+    /// </summary>
+    public static Component LongMenu(string classes) =>
+        Ui.Sidebar.Sticky(true).Collapsible(Ui.SidebarCollapsible.Always).Class(classes)[
+            Ui.SidebarHeader[
+                Ui.SidebarBrand.Href("#").Logo(Logo).LogoDark(DarkLogo).Name("Acme Inc."),
+                Ui.SidebarCollapse.Class("docked:-mr-2")
+            ],
+            Ui.SidebarNav[
+                Ui.SidebarItem.Icon(Ui.IconName.Home).Href("#")["Home"],
+                Ui.SidebarItem.Icon(Ui.IconName.Inbox).Badge("12").Href("#")["Inbox"],
+                Ui.SidebarItem.Icon(Ui.IconName.DocumentText).Href("#")["Documents"],
+                Ui.SidebarItem.Icon(Ui.IconName.Calendar).Href("#")["Calendar"],
+                Enumerable.Range(0, GroupIcons.Length).Select(Group).ToArray()
+            ],
+            Ui.SidebarSpacer,
+            Ui.SidebarNav[
+                Ui.SidebarItem.Icon(Ui.IconName.Cog6Tooth).Href("#")["Settings"],
+                Ui.SidebarItem.Icon(Ui.IconName.InformationCircle).Href("#")["Help"],
+                Ui.SidebarItem.Icon(Ui.IconName.Lifebuoy).Href("#")["Support"],
+                Ui.SidebarItem.Icon(Ui.IconName.ArrowRightStartOnRectangle).Href("#")["Sign out"]
+            ],
+            Ui.Dropdown.Position(Ui.DropdownPosition.Top).Align(Ui.DropdownAlign.Start).Class("flex max-lg:hidden")[
+                Ui.SidebarProfile.Avatar(User).Name("Olivia Martin"),
+                Account()
+            ]
+        ];
+
+    // Six items a group; groups 3, 7 and 11 start folded, and the current page is the fourth item of group 9.
+    private static Component Group(int index)
+    {
+        var number = index + 1;
+        var group = Ui.SidebarGroup.Key(number).Expandable(true).Icon(GroupIcons[index]).Heading("Group " + number);
+        return (number % 4 == 3 ? group.Expanded(false) : group)[
+            Enumerable.Range(1, 6)
+                .Select(item => (Component)Item(number, item))
+                .ToArray()
+        ];
+    }
+
+    private static Component Item(int group, int item)
+    {
+        var link = Ui.SidebarItem.Key(item).Href("#");
+        return (group == 9 && item == 4 ? link.Current(true) : link)["Group " + group + " item " + item];
+    }
 
     /// <summary>The phone's header in the sidebar demos: the toggle, a spacer, the account.</summary>
     public static Component[] Bar() =>
