@@ -137,6 +137,10 @@ public sealed class FluxConformanceTests
         ["flux:editor.toolbar"] = typeof(UiEditorToolbar),
         ["flux:editor.button"] = typeof(UiEditorButton),
         ["flux:editor.content"] = typeof(UiEditorContent),
+        ["flux:file-upload"] = typeof(UiFileUpload),
+        ["flux:file-upload.dropzone"] = typeof(UiFileUploadDropzone),
+        ["flux:file-item"] = typeof(UiFileItem),
+        ["flux:file-item.remove"] = typeof(UiFileItemRemove),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -321,6 +325,10 @@ public sealed class FluxConformanceTests
         ["flux:editor/OnChange"] = "the change `wire:model` listens for: the editor's HTML, each time it changes",
         ["flux:editor.button/IconVariant=Solid"] = "Ui.IconVariant is one enum for every icon; Flux's reference lists mini, micro and outline for this button",
         ["flux:editor.button/OnClick"] = "`wire:click` / `x-on:click`, which Flux forwards to the <button>",
+        ["flux:file-upload/OnFiles"] = "`wire:model`: the files chosen or dropped reach the page as an event, Rask's upload, where Flux fills a Livewire property",
+        ["flux:file-upload/Accept"] = "the `<input type=file>`'s own `accept`, forwarded to it as Flux forwards an attribute",
+        ["flux:file-item.remove/OnClick"] = "`wire:click`",
+        ["flux:file-item.remove/AriaLabel"] = "`aria-label`, which Flux's reference lists under the directives and not under the props",
     };
 
     /// <summary>What every component takes, Flux's included: its classes, its identity, what is inside it.</summary>

@@ -97,6 +97,8 @@ const NATIVE = {
   // its engine does what Flux's elements script. `ui-menu` is the stand-in of the one example that puts a
   // dropdown menu in a toolbar.
   'ui-editor': 'div', 'ui-editor-content': 'div', 'ui-toolbar': 'div', 'ui-menu': 'div',
+  // A <label> opens the file input inside it when clicked, where <ui-file-upload> does it with script.
+  'ui-file-upload': 'label',
 };
 // Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
 // holds the native <input> that is: one child Flux has no node for, and nothing drawn.

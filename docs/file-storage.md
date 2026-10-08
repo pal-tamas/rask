@@ -114,7 +114,9 @@ public sealed partial class AvatarPicker : Component
 
     protected override Component? Render() =>
         Div[
-            Ui.FileInput.Value("").Label("Avatar").Accept("image/*").OnFiles(OnFiles),
+            Ui.FileUpload.Label("Avatar").Accept("image/*").OnFiles(OnFiles)[
+                Ui.FileUploadDropzone.Heading("Drop a picture or click to browse").Text("PNG or JPG").Inline()
+            ],
             _avatarUrl is null
                 ? (Component)P.Class("text-sm")[_error ?? "No avatar yet."]
                 : Img.Src(_avatarUrl).Alt("Your avatar")

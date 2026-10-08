@@ -433,6 +433,34 @@ them until tagged releases begin.
   `Name` step, and a radio group names its radios after its own id. ARIA is Flux's, read from its live page: an
   indeterminate checkbox is marked `data-indeterminate` and says nothing more (no `aria-checked="mixed"`).
   A control with no id, binding or label gets an id of its own (`f-field-<n>`), as the input does.
+- **BREAKING: `Ui.FileUpload` is Flux's file upload, with its dropzone and items; `Ui.FileInput` is gone.**
+  Flux UI's `flux:file-upload`, `flux:file-upload.dropzone`, `flux:file-item` and `flux:file-item.remove`: the
+  same props, look, states and `data-ui-*` markers, held to its docs page by `scripts/flux/parity.mjs file-upload`.
+  The files reach the page through `OnFiles`, Rask's upload, where Flux binds a Livewire property; the page keeps
+  what it wants of them and draws a `Ui.FileItem` for each.
+  ```csharp
+  Ui.FileInput.Value("").Label("Receipts").Dropzone()                                  // was
+      .Title("Drop receipts here").Text("PDF or JPG").Multiple().OnFiles(Keep)
+  Ui.FileUpload.Label("Receipts").Multiple().OnFiles(Keep)[                            // now
+      Ui.FileUploadDropzone.Heading("Drop receipts here").Text("PDF or JPG")
+  ]
+
+  Ui.FileInput.Value("").Label("Avatar").OnFiles(Keep)                                 // was
+  Ui.Input.Of<string>().Type(InputType.File).Label("Avatar").OnFiles(Keep)             // now
+
+  Ui.FileItem.Heading(file.Name).Size(file.Size)                                       // new
+      .Actions(Ui.FileItemRemove.OnClick(() => _files.Remove(file)))
+  ```
+  New with it: `Inline()` and `WithProgress()` on the dropzone, `Error` on the upload, markup of your own in
+  place of the dropzone (an avatar to click), and the file list. The upload is a `<label>` around the real
+  input: a click opens the picker and the input keeps the keyboard with no script; while files are dragged over
+  it the input is laid over the whole area, so the drop is the browser's own. Removed with no replacement:
+  binding the chosen file's NAME to a model (`Bind`, `Value`), `Tone`, `Variant`, `Size`, `Hint`, `Badge` and
+  `AccessibleLabel` on a file control. An upload in flight is the runtime's to report (`data-rask-loading`,
+  which the upload writes): from the moment files are chosen until `OnFiles` has rendered the upload carries
+  `data-loading`, the dropzone's icon gives way to a spinner, and with `WithProgress()` the bar is as wide as
+  the part that has gone — the request's own progress on the Server host, what the handler has read through
+  `OpenReadStream` in a WebAssembly app (`0%` for a handler that never opens the files).
 - **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
   `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
   `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the

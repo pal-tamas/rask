@@ -2129,9 +2129,13 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div
-div .fieldset
-label .fieldset-legend
-input .file-input .mb-3 .validator
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+label .cursor-auto .flex .gap-4 .items-center .mb-3 .relative
+input .sr-only
+div .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .cursor-pointer .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .flex .font-medium .gap-2 .h-10 .hover:bg-zinc-50 .hover:border-b-zinc-200 .items-center .justify-center .px-4 .relative .rounded-lg .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
+div .cursor-default .dark:text-zinc-400 .font-medium .overflow-hidden .select-none .text-ellipsis .text-sm .text-zinc-500 .whitespace-nowrap
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .text-sm .text-ui-muted
 
 === disposal-async ===

@@ -6,10 +6,6 @@ namespace Rask.UiTests.Components;
 public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void A_file_input_takes_the_ghost_variant_too() =>
-        Assert.Contains("file-input-ghost", Ui.FileInput.Value("").Label("Avatar").Variant(Ui.Variant.Ghost).ToHtml());
-
-    [Fact]
     public void A_range_can_stand_on_end() =>
         Assert.Contains("range-vertical", Ui.Range.Value(0d).Label("Volume").Vertical(true).ToHtml());
 
@@ -28,32 +24,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         Assert.Equal(1, Occurrences(html, "value=\"bug\""));
         Assert.DoesNotContain("value=\"False\"", html);
     }
-
-    [Theory]
-    [InlineData("file")]
-    public void A_text_control_carries_the_class_the_hint_reads(string kind)
-    {
-        // daisyUI shows `.validator-hint` only next to a `.validator` control that is invalid. No kit
-        // control wrote the class, so the hint was `visibility: hidden` forever — a component with a
-        // REQUIRED message that could not be read. `.validator` alone is inert: it only sets a colour
-        // variable under :user-valid/:user-invalid, so an untouched field looks exactly as before.
-        Assert.Contains("validator", Control(kind, Ui.Tone.Neutral));
-    }
-
-    [Theory]
-    [InlineData("file")]
-    public void An_errored_control_says_so_to_a_screen_reader_as_well_as_in_colour(string kind)
-    {
-        // Also what makes daisyUI reveal the hint from the KIT's own tone rather than only from the
-        // browser's native validity. A field that is visibly red and announces nothing is half a
-        // message.
-        Assert.Contains("aria-invalid=\"true\"", Control(kind, Ui.Tone.Error));
-    }
-
-    [Theory]
-    [InlineData("file")]
-    public void A_control_with_no_error_does_not_claim_one(string kind) =>
-        Assert.DoesNotContain("aria-invalid", Control(kind, Ui.Tone.Neutral));
 
     [Fact]
     public void The_hint_keeps_its_space_whether_or_not_it_is_showing()
@@ -119,11 +89,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
 
         return count;
     }
-
-    private static string Control(string kind, Ui.Tone tone) =>
-        string.Equals(kind, "file", StringComparison.Ordinal)
-            ? Ui.FileInput.Value("").Label("Avatar").Tone(tone).ToHtml()
-            : throw new ArgumentOutOfRangeException(nameof(kind));
 
     private static string Filter(string? selected) =>
         Ui.Filter.Value(selected).Group("tags")

@@ -123,19 +123,6 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_bound_file_input_still_renders_no_value()
-    {
-        // The one control whose bound mode is write-only: a browser refuses to have a file input's
-        // value set, so binding fills the model from the reader's choice and never the other way. A
-        // `value` attribute here would be markup the browser drops.
-        var model = new Profile { Avatar = "portrait.png" };
-        var html = Ui.FileInput.Bind(() => model.Avatar).Label("Avatar").ToHtml();
-
-        Assert.DoesNotContain("value=", html);
-        Assert.DoesNotContain("portrait.png", html);
-    }
-
-    [Fact]
     public void A_bound_filter_checks_the_models_option()
     {
         var model = new Profile { Tag = "feature" };
@@ -292,7 +279,6 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
 
         public string Code { get; set; } = "";
 
-        public string Avatar { get; set; } = "";
 
         public string? Tag { get; set; }
 
