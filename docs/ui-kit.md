@@ -802,7 +802,12 @@ document.addEventListener('ui:editor', e => {
 The editor's root also has what Flux's has: `element.value` (get and set) and the `editor` instance, and
 it raises `input` and `change` for every change of the document.
 
-Not built, because nothing on Flux's page shows them to measure: the icons of `subscript`,
+`code` is inline code, as it is on Flux's live editor: a control of that name wraps the selection in
+`<code>` and shows as pressed, and three backticks start a block. (Flux's reference calls the item "code
+block formatting"; its own element, its "Code" label and its `Ctrl`+`E` say otherwise, and the kit follows
+what the element does.) `subscript`, `superscript` and `highlight` are held to Flux the same way.
+
+Not measured, because no example on Flux's page shows these buttons: the icons of `subscript`,
 `superscript`, `highlight` and `code` (drawn from Lucide, as Flux draws its other non-Heroicon toolbar
 icons), their tooltips' shortcut hints, and the exact red of an `Invalid` editor.
 

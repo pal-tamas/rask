@@ -13,6 +13,7 @@
 //   - the heading and align lists: where they open, the active option by key and by pointer, picking;
 //   - the link panel: where it opens, Enter, the insert and unlink buttons, ⌘K, Escape;
 //   - the toolbar's arrow keys (they wrap) and its single tab stop; undo and redo; Markdown input rules.
+//   - the marks no example shows a button for (code, subscript, superscript, highlight), by a control of that name.
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask page
 //         node scripts/flux/parity-editor.mjs [--all]
@@ -72,6 +73,7 @@ async function transcript(scheme, url, at, inherited) {
       for (const [key, value] of Object.entries(inherited)) wrapper.style[key] = value;
       const module = await import(URL.createObjectURL(new Blob([engine], { type: 'text/javascript' })));
       for (const editor of document.querySelectorAll('[data-ui-editor]')) module.mount(editor);
+      window.__engine = module;
     }, { engine, inherited });
   } else {
     inherited = await page.evaluate(keys => Object.fromEntries(keys.map(key => [key, getComputedStyle(document.querySelector('[data-preview-wrapper]'))[key]])), INHERITED);
@@ -337,6 +339,34 @@ async function transcript(scheme, url, at, inherited) {
   await editor.evaluate((el, [name]) => el.removeAttribute(name), at.disabled);
   await page.waitForTimeout(200);
   note('enabled again', await editor.evaluate(el => `editable=${el.querySelector('[data-slot=content]').getAttribute('contenteditable')} bold disabled=${el.querySelector('[data-editor=bold]').disabled}`));
+
+  // The four marks no example's toolbar shows. Flux's element wires a control by its name, so a control of
+  // that name is made — the bold button of a copy of the editor, renamed — and pressed over a selection: what
+  // `code` does (the inline mark, not the block) is read here and nowhere else. Waits are on state.
+  for (const name of ['code', 'subscript', 'superscript', 'highlight']) {
+    note(`a control named ${name}`, await page.evaluate(async ([selector, name]) => {
+      const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
+      const first = document.querySelector(selector), copy = first.cloneNode(true);
+      const button = copy.querySelector('[data-editor=bold]');
+      button.setAttribute('data-editor', name);
+      for (const state of ['aria-pressed', 'data-match']) button.removeAttribute(state);
+      first.parentElement.appendChild(copy);
+      window.__engine?.mount(copy);
+      for (let i = 0; i < 200 && !copy.editor; i++) await frame();
+      copy.editor.commands.setContent('<p>Hello world</p>', true);
+      copy.editor.commands.focus();
+      copy.editor.commands.selectAll();
+      // A control is wired once the editor has said its state on it: until then a press is nobody's.
+      for (let i = 0; i < 200 && !button.hasAttribute('aria-pressed'); i++) await frame();
+      button.click();
+      for (let i = 0; i < 200 && copy.value === '<p>Hello world</p>'; i++) await frame();
+      await frame();
+      await frame();
+      const said = `${copy.value} pressed=${button.getAttribute('aria-pressed')} match=${button.hasAttribute('data-match')}`;
+      copy.remove();
+      return said;
+    }, [at.editor, name]));
+  }
 
   await context.close();
   return { lines, inherited };

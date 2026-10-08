@@ -376,7 +376,8 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   Flux's docs name; `prosemirror-model` is held at 1.25.1 because later ones re-serialise a `style`
   attribute with a trailing semicolon, which is not the HTML Flux answers. Stand-ins on its parity page:
   the `flux:dropdown` and `flux:menu` of "customization". Not measurable on Flux's page, so not proved:
-  the `subscript` / `superscript` / `highlight` / `code` buttons (Lucide icons, no shortcut hint), the
+  the LOOK of the `subscript` / `superscript` / `highlight` / `code` buttons (Lucide icons, no shortcut hint —
+  what each DOES is in the transcript, by a control of that name made on both pages), the
   look of `Invalid` (`aria-invalid:border-red-500` is a guess), a `Ui.EditorButton` with text, and h4–h6.
   Its notices (`Resources/ui-editor.LICENSES.txt`, written by `build.mjs`; Tiptap's and Lucide's texts are
   kept in `Resources/editor/notices/`) ship in the package and are written beside the script in `wwwroot/js`.
