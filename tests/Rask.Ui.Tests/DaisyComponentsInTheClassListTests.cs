@@ -26,8 +26,11 @@ public sealed partial class DaisyComponentsInTheClassListTests
         var written = WrittenInStringLiterals();
         var components = DaisyComponents();
 
+        // A component the plugin is told to leave out has no rules in the sheet: what is left of its classes in
+        // the list is another component's selector (daisyUI's menu styles a `.dropdown` inside it).
+        var excluded = ExcludedFromThePlugin();
         var fromProse = components
-            .Where(c => c.Classes.Overlaps(KitConsumer.Classes) && !c.Classes.Overlaps(written))
+            .Where(c => !excluded.Contains(c.Name) && c.Classes.Overlaps(KitConsumer.Classes) && !c.Classes.Overlaps(written))
             .ToList();
 
         Assert.True(
@@ -61,6 +64,11 @@ public sealed partial class DaisyComponentsInTheClassListTests
                 s.Header.Groups[1].Value,
                 ClassSelector().Matches(s.Text).Select(m => m.Groups[1].Value).ToHashSet(StringComparer.Ordinal)))];
 
+    // The `exclude: a, b;` line of the kit's `@plugin "./daisyui.mjs"` block.
+    private static HashSet<string> ExcludedFromThePlugin() =>
+        [.. PluginExclude().Match(File.ReadAllText(Path.Combine(_kit, "Styles", "ui.css"))).Groups[1].Value
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+
     // What a component can put in a class attribute: the words of the string literals in the kit's code,
     // each also without its variants (`sm:btn-wide` writes `btn-wide`).
     private static HashSet<string> WrittenInStringLiterals()
@@ -87,6 +95,9 @@ public sealed partial class DaisyComponentsInTheClassListTests
 
     [GeneratedRegex(@"\A(?:components|utilities)/(\w+)/object\.js\n")]
     private static partial Regex ObjectHeader();
+
+    [GeneratedRegex(@"^\s*exclude:([^;]*);", RegexOptions.Multiline)]
+    private static partial Regex PluginExclude();
 
     [GeneratedRegex(@"\.(-?[A-Za-z_][\w-]*)")]
     private static partial Regex ClassSelector();

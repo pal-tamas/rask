@@ -39,6 +39,18 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_stylesheet_no_longer_carries_the_dropdown_it_replaced()
+    {
+        var css = UiStylesheet.Css;
+
+        // The bare word in a kit comment would bring daisyUI's class back; the plugin's `exclude` keeps it out.
+        // (`.menu .dropdown-content` is daisyUI's menu styling one inside it, and stays with that menu.)
+        Assert.DoesNotContain(".dropdown{", css, StringComparison.Ordinal);
+        Assert.DoesNotContain(".dropdown-end", css, StringComparison.Ordinal);
+        Assert.DoesNotContain(".dropdown-open", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_trigger_with_a_tooltip_still_opens_the_menu_from_its_own_button()
     {
         var html = Ui.Dropdown[Ui.Button.Tooltip("More")["Options"], Ui.Menu[Ui.MenuItem["Edit"]]].ToHtml().AsText();

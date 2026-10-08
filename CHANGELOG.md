@@ -822,6 +822,10 @@ them until tagged releases begin.
   "a magnifying glass"; Tailwind scans comments, daisyUI emits a component wherever its name is seen, and the rule
   rode the kit's class list into each app's stylesheet. `Rask.Ui.Tests` now fails on a daisyUI component that is in
   the class list with no string literal in the kit writing it.
+- **daisyUI's `.dropdown` is out of the kit's sheet too.** Nothing writes it since `Ui.Dropdown` is Flux's, but the
+  word stands in the kit's comments, so the plugin is told to leave the component out (`exclude: … dropdown`), as it
+  is for the tooltip. The guard above reads that line: an excluded component's classes left in the list are another
+  component's selectors (daisyUI's menu styles a `.dropdown` inside it).
 - **`MapRaskSpa`'s fallback answers only GET and HEAD.** It matched every verb, so a POST to a route that
   only answers GET was given the index document and a 200 where routing owed it a 405.
 - **One-time-code cells (`data-rask-otp`) no longer lose the selection, or a cell, to a late echo.** The page's
