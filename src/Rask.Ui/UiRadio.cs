@@ -44,9 +44,16 @@ public sealed partial class UiRadio : Component, IUiFormControl
 
     /// <summary>
     ///     Attributes for the <c>&lt;input&gt;</c> itself, written as given — what Flux forwards to it:
-    ///     <c>.Attributes(("name", "role"))</c>, <c>("aria-label", "Select row")</c>, <c>("required", "")</c>.
+    ///     <c>.Attributes(("aria-label", "Select row"))</c>, <c>("required", "")</c>. A <c>name</c> given here wins over
+    ///     <see cref="Name" />.
     /// </summary>
     public IReadOnlyDictionary<string, string?>? Attributes { get; set; }
+
+    /// <summary>
+    ///     The <c>name</c> the radio posts under: the <c>&lt;input&gt;</c>'s own attribute. Unset, it is its group's,
+    ///     which is what makes the radios one choice; set, it replaces that.
+    /// </summary>
+    public string? Name { get; set; }
 
     /// <inheritdoc cref="Element.Id" />
     /// <remarks>On the <c>&lt;input&gt;</c>, which is what a <c>&lt;label for&gt;</c> names and a test clicks.</remarks>
@@ -140,7 +147,7 @@ public sealed partial class UiRadio : Component, IUiFormControl
         Input.Value(UiOptionLook.Posted(Value))
             .Type(InputType.Radio)
             .Id(field.ControlId)
-            .Name(Attributes?.ContainsKey("name") == true ? null : _group?.Name)
+            .Name(Attributes?.ContainsKey("name") == true ? null : Name ?? _group?.Name)
             .Checked(on)
             .Disabled(Disabled == true)
             .OnChange(_ => _group?.Choose(Value) ?? Task.CompletedTask)

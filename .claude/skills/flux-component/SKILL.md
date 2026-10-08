@@ -366,7 +366,9 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   Flux's live DOM and no more: an indeterminate checkbox (a check-all over some) is `data-indeterminate` on the
   root with NO `aria-checked="mixed"` (Flux says `aria-checked="false"` there, which is what a native unticked box
   says); groups say `role="group"` / `"radiogroup"` + `aria-labelledby`. `Attributes(…)` forwards to the `<input>`
-  (`name`, `aria-label`); `Name` was removed as non-Flux. Unmeasured, no example on Flux's pages: the INVALID look
+  (`aria-label`, `required`); `Name` is a typed step again on the checkbox, radio, switch and radio group (the
+  owner, 2026-10-08: a typed step for a forwarded NATIVE attribute is a translation, not an addition — a
+  `Translations` row each, as `Ui.Input`'s `Min` / `Max` / `Step` / `Name`). Unmeasured, no example on Flux's pages: the INVALID look
   (the unticked box takes the input's red-500 border), a disabled switch, `Ui.Switch` with `checked` (the card
   page writes it; it is `Value(true)`). `flux:checkbox.indicator` is on Flux's page and not in its reference, so
   `Ui.CheckboxIndicator` is in no `Built` row. `flux:switch`'s `align` lists `right|start` and `left|end` as one

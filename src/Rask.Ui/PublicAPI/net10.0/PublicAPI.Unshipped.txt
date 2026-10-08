@@ -904,6 +904,8 @@ Rask.UiCheckbox.Invalid.get -> bool?
 Rask.UiCheckbox.Invalid.set -> void
 Rask.UiCheckbox.Label.get -> string?
 Rask.UiCheckbox.Label.set -> void
+Rask.UiCheckbox.Name.get -> string?
+Rask.UiCheckbox.Name.set -> void
 Rask.UiCheckbox.OnChange.get -> Rask.Core.Callback<bool>
 Rask.UiCheckbox.OnChange.set -> void
 Rask.UiCheckbox.ShowValidation.get -> bool?
@@ -1654,6 +1656,8 @@ Rask.UiRadio.Id.get -> string?
 Rask.UiRadio.Id.set -> void
 Rask.UiRadio.Label.get -> string?
 Rask.UiRadio.Label.set -> void
+Rask.UiRadio.Name.get -> string?
+Rask.UiRadio.Name.set -> void
 Rask.UiRadio.Value.get -> object?
 Rask.UiRadioGroup<T>.AfterBind.get -> Rask.Core.Callback<T>
 Rask.UiRadioGroup<T>.AfterBind.set -> void
@@ -1671,6 +1675,8 @@ Rask.UiRadioGroup<T>.Invalid.get -> bool?
 Rask.UiRadioGroup<T>.Invalid.set -> void
 Rask.UiRadioGroup<T>.Label.get -> string?
 Rask.UiRadioGroup<T>.Label.set -> void
+Rask.UiRadioGroup<T>.Name.get -> string?
+Rask.UiRadioGroup<T>.Name.set -> void
 Rask.UiRadioGroup<T>.OnChange.get -> Rask.Core.Callback<T>
 Rask.UiRadioGroup<T>.OnChange.set -> void
 Rask.UiRadioGroup<T>.ShowValidation.get -> bool?
@@ -1908,6 +1914,8 @@ Rask.UiSwitch.Id.get -> string?
 Rask.UiSwitch.Id.set -> void
 Rask.UiSwitch.Label.get -> string?
 Rask.UiSwitch.Label.set -> void
+Rask.UiSwitch.Name.get -> string?
+Rask.UiSwitch.Name.set -> void
 Rask.UiSwitch.OnChange.get -> Rask.Core.Callback<bool>
 Rask.UiSwitch.OnChange.set -> void
 Rask.UiSwitch.ShowValidation.get -> bool?
@@ -3075,9 +3083,13 @@ static RaskBuilderSettersRask_Ui.Multiple<T>(this Rask.UiSelect<T>! __b) -> Rask
 static RaskBuilderSettersRask_Ui.Multiple<T>(this Rask.UiSelect<T>! __b, bool? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Multiple<T>(this Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Multiple<T>(this Rask.UiSelectMultiple<T>! __b, bool? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Name(this Rask.UiCheckbox! __b, string? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Name(this Rask.UiModal! __b, string? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.Name(this Rask.UiModalTrigger! __b, string! value) -> Rask.UiModalTrigger!
 static RaskBuilderSettersRask_Ui.Name(this Rask.UiOtp! __b, string? value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.Name(this Rask.UiRadio! __b, string? value) -> Rask.UiRadio!
+static RaskBuilderSettersRask_Ui.Name(this Rask.UiSwitch! __b, string? value) -> Rask.UiSwitch!
+static RaskBuilderSettersRask_Ui.Name<T>(this Rask.UiRadioGroup<T>! __b, string? value) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Name<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Offset(this Rask.UiTooltip! __b, int? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiAutocomplete! __b, Rask.Core.Callback<string!>? value) -> Rask.UiAutocomplete!

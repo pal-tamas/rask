@@ -405,9 +405,10 @@ them until tagged releases begin.
   `Error`, `Badge`, `AccessibleLabel` and floating label. `Id` on a checkbox, radio or switch lands on the
   `<input>`, which is no longer the element a pointer hits: a browser test presses the label
   (`label:has(> #id)`). A switch's input says `role="switch"`, and the runtime flips it on Enter as Flux's
-  does. What Flux forwards to the control goes through `Attributes` on a checkbox, radio or switch
-  (`.Attributes(("name", "role"))`, `("aria-label", "Select row")`) and lands on the `<input>`; there is no
-  `Name` step, and a radio group names its radios after its own id. ARIA is Flux's, read from its live page: an
+  does. What Flux forwards to the control lands on the `<input>` of a checkbox, radio or switch: `Name` is a typed
+  step on all three and on the radio group (`Ui.Checkbox.Value("push").Name("notify")`), and the rest goes
+  through `Attributes` (`("aria-label", "Select row")`). A radio group names its radios after its own id unless
+  its `Name` says otherwise, and a `Name` on one radio replaces the group's. ARIA is Flux's, read from its live page: an
   indeterminate checkbox is marked `data-indeterminate` and says nothing more (no `aria-checked="mixed"`).
   A control with no id, binding or label gets an id of its own (`f-field-<n>`), as the input does.
 - **BREAKING: `Ui.Slider` and `Ui.Otp` are Flux's; `Ui.Range` is gone.** Flux UI's `flux:slider`

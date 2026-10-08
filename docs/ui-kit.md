@@ -1764,9 +1764,11 @@ Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]           
   a click on the label, a radio group's arrow keys (they move AND choose, wrapping at the ends; Tab enters at the
   chosen radio) and the form post (`name` + `value`) are the browser's. A switch is
   `<input type="checkbox" role="switch">`, which the runtime flips on Enter as well as Space, as Flux's does.
-- **What Flux forwards to the control** goes through `Attributes`, onto the `<input>`:
-  `Ui.Radio.Value("editor").Label("Editor").Attributes(("name", "role"))`,
-  `Ui.Checkbox.Attributes(("aria-label", "Select row"))`. A radio group names its radios after its own id.
+- **What Flux forwards to the control** lands on the `<input>`. `name` has a typed step on all three and on the
+  radio group — `Ui.Checkbox.Value("push").Name("notify")`, `Ui.Switch.Bind(() => m.Alerts).Name("alerts")`,
+  `Ui.RadioGroup.Bind(() => m.Role).Name("role")[…]` — and anything else goes through `Attributes`:
+  `Ui.Checkbox.Attributes(("aria-label", "Select row"))`. A radio group names its radios after its own id
+  unless `Name` says otherwise; a `Name` on one radio replaces the group's for that radio.
 - **Validation.** A bound checkbox, switch or group is invalid on its own while its form holds a message for
   the member: `aria-invalid`, `data-invalid`, `aria-describedby` naming the field's `Ui.Error`, which `Label`
   draws with it. `Invalid()` says so by hand. Flux's pages show no invalid checkbox to measure; the unticked box

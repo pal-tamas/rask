@@ -38,7 +38,7 @@ public partial class UiSwitchTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_unbound_switch_posts_the_browsers_own_value_rather_than_a_bools_text()
     {
-        var html = Ui.Switch.Value(true).Attributes(("name", "alerts")).ToHtml();
+        var html = Ui.Switch.Value(true).Name("alerts").ToHtml();
 
         Assert.Contains("name=\"alerts\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("value=", html, StringComparison.Ordinal);
