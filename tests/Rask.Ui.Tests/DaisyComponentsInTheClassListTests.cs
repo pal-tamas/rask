@@ -18,7 +18,7 @@ public sealed partial class DaisyComponentsInTheClassListTests
     // Already in the list from a comment or an identifier when this guard was written. Each goes when its
     // word leaves the kit, or when the kit scans only what its components write; none may be added.
     private static readonly string[] _knownFromProse =
-        ["badge", "calendar", "card", "collapse", "link", "skeleton", "stat", "toast", "typography"];
+        ["badge", "card", "collapse", "link", "skeleton", "stat", "toast", "typography"];
 
     [Fact]
     public void Every_daisy_component_in_the_class_list_is_written_by_a_kit_component()

@@ -150,8 +150,10 @@ A value that fails to parse (`"not-a-number"` into an `int`) leaves the model un
 form: `Ui.Checkbox.Bind(() => model.InStock)` compiles whether `InStock` is a `bool` or a `bool?`, which is what a
 [generated form model](data.md#a-create-and-an-edit-form) holds. A `null` draws as the control's empty state
 (unchecked, unrated, no day picked), and a change writes a value. `Value` and `OnChange` stay over the plain type. The
-date controls go one further: `Ui.Calendar` and `Ui.DatePicker` bind a `DateOnly`, a collection of days, or a
-`UiDateRange`, and the bound type picks the control ([UI kit](ui-kit.md)).
+date controls go one further: `Ui.Calendar` binds a `DateOnly`, and behind Flux's mode steps a collection of days
+(`Ui.Calendar.Multiple.Bind(…)`) or a `UiDateRange` (`Ui.Calendar.Range.Bind(…)`); `Ui.DatePicker` a `DateOnly` or,
+as `Ui.DatePicker.Range`, a `UiDateRange`; and `Ui.TimePicker` a `TimeOnly?`, a `TimeOnly` or a collection of
+times ([UI kit](ui-kit.md#calendar)).
 
 Every BCL [`IParsable<T>`](https://learn.microsoft.com/dotnet/api/system.iparsable-1) type (numbers,
 `Guid`, `DateOnly`/`DateTime`/`TimeOnly`, `bool`, …) binds with no setup, and so does a **custom**

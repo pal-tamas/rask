@@ -1753,7 +1753,7 @@ of them says anything about `T`. Bound mode drives the surrounding `Form`'s vali
 the value with the parent. See [building form controls](building-form-controls.md).
 
 **The controls still on daisyUI share one field shape.** `Ui.Otp`,
-`Ui.FileInput`, the radio and checkbox groups and the date pickers all take the same members from
+`Ui.FileInput` and the radio and checkbox groups all take the same members from
 `UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input`, `Ui.Textarea` and `Ui.Select` have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
 without one, an invisible `AccessibleLabel`; a `Hint` and a controlled `Error` under it; an `Id`, derived from the
 bound member or the label when you give none; and `aria-describedby`, `aria-invalid` and `aria-required` worked out
@@ -1765,7 +1765,7 @@ anywhere after the opening — `Ui.Otp.Value(code).Length(6).Label("Verification
 takes its `type` attribute from `T`, so a bound `int` is a number field with nothing said at the call
 site. The rest are closed over the one type they can have: `Ui.Checkbox`, `Ui.Toggle` and `Ui.Radio` over
 `bool`, `Ui.Range` over `double`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,
-`Ui.Calendar` over `DateOnly`. A checkbox's value is a `bool` and nothing else; a type parameter there
+`Ui.Calendar` and `Ui.DatePicker` over `DateOnly`, a collection of days or a `UiDateRange`. A checkbox's value is a `bool` and nothing else; a type parameter there
 would have exactly one legal argument.
 
 | | Binds |
@@ -1805,39 +1805,99 @@ control's openings are its mode pins, so a required step like `Label` never gets
 `Of` a controlled field with nothing in it would have to invent a value to compile. `Of` is the
 controlled mode: the parent still owns whatever the field ends up with.
 
-`Ui.Calendar` is the one to read twice. `Month` and `OnMonth` are the **view**, not the value — paging
-through months changes nothing a form would submit, which is why they sit outside the binding. Leave `Month`
-unset and the calendar pages by itself.
+### Calendar
 
-**Several days and a range are the same entry, told apart by the model** — the way `Ui.Select` holds several
-answers when it is opened on a collection:
+`Ui.Calendar` is Flux UI's calendar: a month of day buttons in a grid, with the month steps over it.
 
-```csharp
-Ui.Calendar.Bind(() => model.Delivery).Label("Delivery")   // DateOnly: one day
-Ui.Calendar.Bind(() => model.DaysOff).Label("Days off")    // List<DateOnly>, HashSet<DateOnly>, …: several
-Ui.Calendar.Bind(() => model.Stay).Label("Stay")           // UiDateRange: a range
-Ui.Calendar.Values([monday, friday]).Label("Days off")     // several, controlled
-Ui.Calendar.Value(new UiDateRange(from, to)).Label("Stay") // a range, controlled
-```
-
-`UiDateRange(Start, End)` is always whole: the reader's first click is held by the control and drawn as the
-start, and the model changes only when the second click gives the range an end — in date order, whichever end
-was clicked first. So a bound model never holds half a range. `default(UiDateRange)` is nothing chosen, as
-`default(DateOnly)` is for one day; bind the nullable where the two must differ.
-
-**`Ui.DatePicker` is the field.** A field-shaped button showing the choice in the reader's short date format, with
-the grid in a popover — the browser's, so the top layer, Escape, a click outside and focus back on the button
-come with it. It is a form field like `Ui.Otp` (`Label`, `Hint`, `Error`, `Badge`, validation), and it takes the
-same three openings: one day closes the popover on the pick, several days keep it open while they are added, and
-a range closes on the click that gives it its end.
+**A day, several days or a range is Flux's `mode`, taken as the step that opens the calendar.** No step is
+Flux's default, one day; `.Multiple` and `.Range` hand back the calendar that binds that mode's type, so a range
+bound to a single day does not compile:
 
 ```csharp
-Ui.DatePicker.Bind(() => booking.Stay).Label("Stay").Min(DateOnly.FromDateTime(DateTime.Today))
+Ui.Calendar.Bind(() => model.Delivery)                     // single (Flux's default): DateOnly or DateOnly?
+Ui.Calendar.Multiple.Bind(() => model.DaysOff)             // mode="multiple": List<DateOnly>, HashSet<DateOnly>, …
+Ui.Calendar.Range.Bind(() => model.Stay)                   // mode="range": UiDateRange or UiDateRange?, two months
+Ui.Calendar.Value(day).OnChange(d => day = d)              // one day, controlled
+Ui.Calendar.Multiple.Values([monday, friday])              // several, controlled
+Ui.Calendar.Range.Value(new UiDateRange(from, to))         // a range, controlled
+Ui.Calendar.Value(default(DateOnly))                       // nothing chosen yet; it keeps the pick itself
+Ui.Calendar.Mode(mode).Bind(() => model.Stay)              // the mode as a value (Ui.CalendarMode)
 ```
 
-Nothing in either is typed. Where a date may be months away, a `Ui.Input` of type date is faster than paging, and
-it is the only route for somebody who cannot use a pointer comfortably. There is no drawn time picker:
-`Ui.Input.Type(InputType.Time)` is the platform's own.
+`Ui.Calendar.Single` is `Ui.Calendar`. A mode given as a value — `Ui.Calendar.Mode(Ui.CalendarMode.Range)`, or
+`.Mode(…)` / Flux's bare `.Multiple()` on an opened calendar — has to agree with what is bound; when it does not,
+rendering throws an `InvalidOperationException` that names both ("Ui.Calendar is in Range mode but what it binds
+is Single's (a DateOnly). Open it with Ui.Calendar.Range and bind a UiDateRange.").
+
+A second click on the chosen day clears it (`default(DateOnly)`, or `null` through a nullable binding).
+`UiDateRange(Start, End)` is always whole: the first click is held by the calendar and drawn as the start, the
+stretch to the day under the pointer or the keyboard is drawn as it would be, and the second click — on that day
+or a later one — writes the range; a click before the start begins again from there. `Count`, `Contains(day)`
+and `Between(a, b)` read it, and `default(UiDateRange)` is nothing chosen.
+
+| Step | Flux | |
+|---|---|---|
+| `Min(day)` `Max(day)` | `min` `max` | days outside are disabled, and a month step is too once the whole month that way is out of reach (`min="today"` is `Min(DateOnly.FromDateTime(DateTime.Today))`) |
+| `Unavailable([..])` | `unavailable` | struck through and disabled |
+| `MinRange(3)` `MaxRange(10)` | `min-range` `max-range` | while a range waits for its end, the days that would make it too short or too long are disabled, and so is every day before the start |
+| `.Xs` `.Sm` `.Lg` `.Xl` `.Xxl` | `size` | 36, 40, 48, 56 and 64px cells; 44px unset |
+| `StartDay(DayOfWeek.Monday)` | `start-day` | the locale's own first day unless set |
+| `Months(2)` | `months` | side by side; one, or two for a range |
+| `OpenTo(day)` `ForceOpenTo()` | `open-to` `force-open-to` | the month shown while nothing is chosen — or whatever is chosen |
+| `Navigation(false)` `Static()` | `navigation` `static` | no month steps; a calendar to look at, with no buttons |
+| `WeekNumbers()` `FixedWeeks()` | `week-numbers` `fixed-weeks` | the ISO week of each row; always six rows |
+| `SelectableHeader()` `WithToday()` | `selectable-header` `with-today` | month and year selects; a shortcut that comes back to this month, then picks today |
+| `Locale("ja-JP")` | `locale` | month, weekday and day names, and the first day of the week; the app's culture ([localization](localization.md)) unless set |
+
+**Keyboard.** One day is in the Tab order — the chosen one, else today, else the 1st. The arrows walk days and
+weeks, stepping over disabled days and into the neighbouring month; PageUp/PageDown and Home/End page a month;
+Enter or Space picks. Each cell is a `gridcell` with `aria-selected` and its button carries the full date as its
+name ("Thursday, January 15, 2026").
+
+### Date picker
+
+`Ui.DatePicker` is Flux UI's date picker: a field-shaped button showing the choice ("Jan 20, 2026"), with the
+calendar in a popover — the browser's, so the top layer, Escape, a click outside and focus back on the button come
+with it. A day closes it on the pick, a range on its second click.
+
+```csharp
+Ui.DatePicker.Bind(() => booking.Arrival).Label("Arrival")                         // DateOnly
+Ui.DatePicker.Range.Bind(() => booking.Stay).Label("Stay").Min(today).MinRange(3)  // mode="range": UiDateRange
+Ui.DatePicker.Bind(() => booking.Arrival).Type(Ui.DatePickerType.Input)            // month / day / year fields to type into
+Ui.DatePicker.Range.Bind(() => report.Range).WithPresets().Min(new DateOnly(2012, 1, 1)) // Today, Yesterday, This Week, …, All Time
+Ui.DatePicker.Range.Bind(() => report.Range)
+    .Presets([Ui.DateRangePreset.Today, Ui.DateRangePreset.Last30Days, Ui.DateRangePreset.Custom])
+Ui.DatePicker.Range.Bind(() => booking.Stay).Trigger(
+    Div.Class("flex gap-4")[Ui.DatePickerInput.Label("Start"), Ui.DatePickerInput.Label("End")])
+```
+
+It takes the calendar's steps (`Min`, `Max`, `Unavailable`, `MinRange`, `MaxRange`, `Months`, `OpenTo`,
+`ForceOpenTo`, `StartDay`, `WeekNumbers`, `SelectableHeader`, `WithToday`, `FixedWeeks`, `Locale`), a field's
+(`Label`, `Description`, `DescriptionTrailing`, `Badge`, `Invalid()`, `Disabled()`, validation through the form), and
+its own: `Placeholder`, `Size` (the calendar's cells), `WithConfirmation()` (nothing is written until "Select
+date"), `WithPresets()` / `Presets([..])`, and `Trigger(…)` for a trigger of your own built from
+`Ui.DatePickerButton` or `Ui.DatePickerInput`. A preset writes `UiDateRange.Of(preset, today, startDay, Min)`,
+whose `Preset` names it, and the button then shows the preset's label. There is no multiple mode, as in Flux:
+several days are `Ui.Calendar`'s.
+
+### Time picker
+
+`Ui.TimePicker` is Flux UI's time picker: a button showing the chosen time (or, with `.Type(Ui.TimePickerType.Input)`,
+hour / minute / AM-PM fields to type into) over a list of times in a popover.
+
+```csharp
+Ui.TimePicker.Bind(() => model.StartsAt).Label("Starts at")              // TimeOnly? — one time or none
+Ui.TimePicker.Bind(() => model.Slots)                                     // List<TimeOnly> — several; the list stays open
+Ui.TimePicker.Value(time).OnChange(t => time = t).Interval(15).Min(new(9, 0)).Max(new(17, 0))
+Ui.TimePicker.Of<TimeOnly?>().Unavailable([new TimeOnly(12, 0), new UiTimeRange(new(13, 0), new(13, 59))])
+```
+
+The bound type says how many it picks: `TimeOnly?` one or none, `TimeOnly` always one, a collection of `TimeOnly`
+several (Flux's `multiple`). Steps: `Interval` (minutes, 30), `Min`/`Max`, `Unavailable` (times and `UiTimeRange`
+stretches, listed but disabled), `OpenTo`, `.TwelveHour`/`.TwentyFourHour` (the culture's own clock unless set),
+`Locale("ja-JP")`, `Placeholder`, `.Sm`/`.Xs`, `Clearable()`, `Disabled()`, `Invalid()`, `Dropdown(false)` (typed
+trigger without its list), and `Label`/`Description`/`DescriptionTrailing`/`Badge` for the field around it. The button
+is the combobox and keeps focus: arrows move a cursor through the list, Enter picks, Escape closes.
 
 ## The rule the whole kit rests on
 

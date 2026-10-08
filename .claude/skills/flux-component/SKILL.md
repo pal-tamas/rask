@@ -500,6 +500,22 @@ the `__fluxRest` calls. After resolving, `git diff HEAD -- scripts/flux tests/Ra
 tests/Rask.Ui.Tests/Flux/FluxParityPages.cs tests/Rask.Ui.Tests/Flux/flux.lock.json` must be empty apart from
 what the branch ADDS; `git checkout HEAD -- <file>` puts ours back.
 
+- Calendar and date picker take Flux's `mode` as the step that OPENS them: `Ui.Calendar.Range` / `.Multiple` and
+  `Ui.DatePicker.Range` are C# extension properties on the generated seed (`UiCalendarModes`, `UiDatePickerModes`)
+  handing back the typed twin's own seed, so a wrong pairing does not compile; the twins are no longer joined by
+  `[RaskChainEntry]`, which leaves `Ui.CalendarMultiple`, `Ui.CalendarRange` and `Ui.DatePickerRange` reachable as
+  entries too (the generator has no way to hide one — to remove when it has). `Mode(value)` and the bare
+  `Multiple()` are checked against the bound type at render.
+- Calendar, date picker, time picker — waiting for a runtime hook each, none faked: containing the arrow, page
+  and Space keys inside `[role=grid]` (the page scrolls under the calendar today); scrolling an expanded
+  combobox's `aria-activedescendant` into view as the cursor moves (the time list); auto-advance, arrow
+  increments and per-keystroke normalising in the typed date and time fields; arrow keys in the date picker's
+  preset radio group; a press inside a typed segment not opening the popup. The calendar's focus move after an
+  arrow key is `ElementRef.Focus()` from `OnRendered` (`UiCalendarFocus`) and is not yet proven in a browser.
+  Not measurable on Flux's public pages, so extrapolated or `NotTranslated`: calendar sizes `Lg`/`Xxl`, every
+  date-picker size but the default, `with-inputs`, `clearable` on the date picker, the shown confirmation footer.
+  The today shortcut draws Heroicons' mini calendar where Flux draws a glyph of its own (1px taller window).
+
 ## Open work (integration stopped here on 2026-10-07 — see the integrator's report)
 - A stale `src/Rask.Site/obj/**/rask-external` folder can fail the site build after merging main
   (`@rask/routes` not found): delete that folder.

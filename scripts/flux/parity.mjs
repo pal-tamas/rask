@@ -68,6 +68,10 @@ const rask = await measurePage(browser, pathToFileURL(raskPage).href, join(out, 
       const ordinal = seen[section] = (seen[section] ?? -1) + 1;
       const theirs = examples.find(example => example.section === section && example.ordinal === ordinal);
       for (const key of theirs ? INHERITED : []) wrapper.style[key] = theirs.nodes[0].style[key];
+      // The docs page's line height is a RATIO, so a node that sets its own font size and no line height
+      // (a 9px number in an icon) gets that ratio of it. Copied as pixels it would get the wrapper's 24px.
+      const { fontSize, lineHeight } = theirs?.nodes[0].style ?? {};
+      if (lineHeight?.endsWith('px')) wrapper.style.lineHeight = String(parseFloat(lineHeight) / parseFloat(fontSize));
     }
   }, { examples: flux[scheme], INHERITED }));
 await browser.close();
@@ -91,6 +95,15 @@ const NATIVE = {
   'ui-selected-remove': 'div',
   // The modal's wrapper, and the one around a button that closes it: the kit's buttons are invoker commands.
   'ui-modal': 'div', 'ui-close': 'div',
+  // The calendar: its month steps and its today shortcut are real buttons.
+  'ui-calendar': 'div', 'ui-calendar-months': 'div', 'ui-calendar-month': 'div', 'ui-calendar-year': 'div',
+  'ui-calendar-previous': 'button', 'ui-calendar-next': 'button', 'ui-calendar-today': 'button',
+  // The date picker: a preset is a real button with the radio's role, and the box Flux scripts its confirming
+  // button through (as `ui-close` is around the cancelling one) is the box it leaves behind.
+  'ui-date-picker': 'div', 'ui-date-picker-trigger': 'div', 'ui-selected-date': 'div', 'ui-calendar-presets': 'div',
+  'ui-radio-group': 'div', 'ui-radio': 'button', 'ui-date-picker-select': 'div',
+  // The time picker: the list of times is a popover the browser opens.
+  'ui-time-picker': 'div', 'ui-time-picker-trigger': 'div', 'ui-selected-time': 'div', 'ui-time-picker-options': 'div',
 };
 // …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
 // opens the file input inside it when clicked, where Flux's <div> calls input.click().
@@ -103,6 +116,12 @@ const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };
 // What the kit adds to do WITHOUT script what Flux does with it: a chart's hover strips, each carrying the
 // cursor and tooltip Flux's script would move there. Flux has no such node, so there is nothing to pair it with.
 const EXTRA = ['data-ui-chart-hover'];
+// A popup is placed by script in Flux (`position: absolute` and an inset it computes) and by CSS anchor
+// positioning here (a popover in the top layer is `position: fixed`, the gap a margin). For exactly that pair,
+// how each says where the popup goes is not compared; where it ends up is — its offset from the root it
+// floats beside, like every other node's.
+const PLACEMENT = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft']);
+const placed = (a, b) => 'popover' in b.attrs && a.style.position === 'absolute' && b.style.position === 'fixed';
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
 const snapshot = JSON.parse(await readFile(join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json'), 'utf8'));
 const OWN = new Set([slug, ...(snapshot.pages.find(p => p.slug === slug)?.parts ?? [])
@@ -229,7 +248,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 
 // What one node looks like: computed styles, pseudo-elements, animations, and what each forced state changes.
 function compareLook(theirs, a, mine, b, where, diffs) {
-  compareStyles(a.style, b.style, where, diffs);
+  compareStyles(a.style, b.style, where, diffs, placed(a, b) ? PLACEMENT : undefined);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
     else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
@@ -261,9 +280,9 @@ function shown(example, node) {
   return true;
 }
 
-function compareStyles(x, y, where, diffs) {
+function compareStyles(x, y, where, diffs, unheld = undefined) {
   for (const key of STYLES) {
-    if (IGNORED.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
+    if (IGNORED.has(key) || unheld?.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }
 }

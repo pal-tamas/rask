@@ -23,6 +23,40 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Calendar` and `Ui.DatePicker` are Flux's calendar and date picker.** Drawn and behaving as
+  Flux UI's `flux:calendar` and `flux:date-picker` do — the grid with its outside days, today's dot, range tint and
+  hover preview, month and year selects, a today shortcut, week numbers, several months side by side, a roving
+  tab stop with arrow, page and Home/End keys; the picker's button, typed fields, presets and confirmation — on
+  the platform's own popover, with no daisyUI class. The mode is Flux's `mode`, taken as the step that opens the control, and
+  it picks the control that binds that mode's type (`DateOnly`, a collection of days, `UiDateRange`). What changed:
+  - `Ui.Calendar.Bind(() => m.DaysOff)` / `.Values(days)` → `Ui.Calendar.Multiple.Bind(() => m.DaysOff)` /
+    `Ui.Calendar.Multiple.Values(days)`; `Ui.Calendar.Bind(() => m.Stay)` / `.Value(range)` →
+    `Ui.Calendar.Range.Bind(() => m.Stay)` / `Ui.Calendar.Range.Value(range)`; `Ui.DatePicker.Bind(() => m.Stay)` →
+    `Ui.DatePicker.Range.Bind(() => m.Stay)`. No step is Flux's default, a single day, and a collection or a range
+    handed to it no longer compiles. `Ui.Calendar.Mode(Ui.CalendarMode.Range)…` takes the mode as a value, and a mode
+    that disagrees with what is bound throws when it renders. `Ui.CalendarMode`, `Ui.DatePickerMode` are new.
+  - `Ui.Calendar.Value(day).Label("Delivery")` → `Ui.Calendar.Value(day)` — a calendar has no label of its own; the
+    grid is named by its month and each day by its full date.
+  - `.Month(m).OnMonth(…)` → gone: the calendar pages itself. `.OpenTo(day)` (and `.ForceOpenTo()`) say where it opens.
+  - `.FirstDay(DayOfWeek.Monday)` → `.StartDay(DayOfWeek.Monday)`; unset, the week now starts where the LOCALE
+    starts it (it was Monday).
+  - A second click on the chosen day now clears it.
+  - A range: a click BEFORE the waiting start begins the range again from there (it used to swap the ends), and a
+    range calendar shows two months.
+  - Markup: `div[role=group][aria-label]` with `aria-pressed` buttons → `[data-ui-calendar]` holding a
+    `[role=grid]` per month, `td[role=gridcell][aria-selected][data-date]`, and one day button in the Tab order.
+  - New steps: `Unavailable`, `MinRange`/`MaxRange`, `Months`, `Size` (`.Xs` … `.Xxl`), `Navigation(false)`,
+    `Static()`, `WeekNumbers()`, `FixedWeeks()`, `SelectableHeader()`, `WithToday()`, `Locale("ja-JP")`.
+  - `Ui.DatePicker.…Hint("…")` → `.Description("…")`; `.AccessibleLabel`, `.Error`, `.Tone`, `.Variant` are gone
+    (`.Invalid()` and the form's validation remain); `.Size` now takes `Ui.DatePickerSize` and sizes the calendar.
+  - `Ui.DatePicker.Values([...])` / binding a collection (`UiDatePickerMultiple`) is gone — Flux's date picker picks
+    a day or a range; several days are `Ui.Calendar.Multiple.Values([...])`.
+  - The picker's placeholder is "Select a date" / "Select a date range" (was "Choose a date"), and it shows a
+    medium date ("Jan 20, 2026", was the short one). Its popup is a `<dialog popover>`.
+  - New on the picker: `Type(Ui.DatePickerType.Input)`, `WithPresets()` / `Presets([..])` (`Ui.DateRangePreset`),
+    `WithConfirmation()`, `Trigger(…)` with `Ui.DatePickerInput` / `Ui.DatePickerButton`, and the calendar's steps.
+  - `UiDateRange` gains `Count`, `Preset` and `UiDateRange.Of(preset, today, startDay, min)`.
+
 - **CI: the browser gates, the scoped format job and the Pages publish are shorter.** The five browser
   gates and `pages.yml` build without the analyzers — the `build` job is the one that holds the source to
   them — which took the site publish from 375 s to 270 s on a runner. A scoped `format` job builds the
@@ -62,6 +96,12 @@ them until tagged releases begin.
   ```
 
 ### Added
+
+- **`Ui.TimePicker`** — Flux UI's time picker. `Ui.TimePicker.Bind(() => m.StartsAt).Label("Starts at")` binds a
+  `TimeOnly?`, a `TimeOnly`, or a collection of `TimeOnly` for several times; `Interval`, `Min`/`Max`, `Unavailable`
+  (times and `UiTimeRange` stretches), `OpenTo`, `.TwelveHour`/`.TwentyFourHour`, `Locale`, a typed trigger
+  (`.Type(Ui.TimePickerType.Input)`), `Clearable`, sizes and the field shorthand. The list is a native popover the
+  button opens.
 
 - **Runtime hooks for a widget's keys, focus and popovers (`data-rask-*`, round two).** `data-rask-contain-keys="Arrows
   Home End …"` cancels the browser's default for the keys a widget handles itself (the page no longer scrolls behind a
