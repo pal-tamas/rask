@@ -21,7 +21,7 @@ public sealed class FluxParityPages
         "@layer base{*,::before,::after{box-sizing:border-box;border:0 solid;margin:0;padding:0}"
         + "html{line-height:1.5;-webkit-text-size-adjust:100%;font-family:Inter,sans-serif}"
         + "button,input,select,textarea{font:inherit;letter-spacing:inherit;color:inherit;background:transparent;border-radius:0}"
-        + "a{color:inherit;text-decoration:inherit}svg,img{display:block;vertical-align:middle}"
+        + "a{color:inherit;text-decoration:inherit}svg,img{display:block;vertical-align:middle}img{max-width:100%;height:auto}"
         + "h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}ol,ul,menu{list-style:none}"
         + "table{text-indent:0;border-color:inherit;border-collapse:collapse}"
         + "div[data-preview-wrapper]{padding:64px 24px}"
