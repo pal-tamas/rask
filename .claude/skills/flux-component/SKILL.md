@@ -385,11 +385,14 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `aria-labelledby`, as Flux's; a range's say `aria-valuetext="200 start range"`. Not written: Flux's root
   `tabindex="-1"` and its leaked `data-flux-aria-range-*`. `Disabled` is the input's own.
 - OTP (2026-10-08): wired to `data-rask-otp` as the table says — cells with no `value`, no handler, no key; one
-  `Input.Type(Hidden)` FIRST in the group (`parity.mjs`'s `BOUND` leaves it unpaired), bound through
-  `UiFormCommit` and rendered back EXACTLY as the hook announced it (`UiOtp._typed`): an echo that differs by
-  one character is taken for the page changing the code and written over the keys typed since. The
-  proof: every step of a 30-step walk (type, type-over, arrows, click past the end, Backspace, Delete, paste,
-  six keys at CPU ×8 with no delay) agrees with Flux's page on all seven non-submitting examples. What the hook
+  `Input.Type(Hidden)` FIRST in the group (`parity.mjs`'s `BOUND` leaves it unpaired), bound on `OnInput`
+  (what the hook's own tests bind) through `UiFormCommit`, and rendered back EXACTLY as the hook announced it
+  (`UiOtp._typed`): an echo that differs by one character is taken for the page changing the code and written
+  over the keys typed since. That state is why an unkeyed `Ui.Otp` beside a keyed one loses keys (below, "Key
+  every sibling"): the site's demo did, and six fast keys reached C# as four. The
+  proof: a 30-step walk (type, type-over, arrows, click past the end, Backspace, Delete, paste, six keys at
+  CPU ×8 with no delay) on all seven non-submitting examples, Flux's page beside the static parity page with
+  the runtime and beside the running WASM site — 189 of 210 steps agree, and the 21 are (3) and (4) below. What the hook
   does NOT do, measured on Flux, each a change to `rask-otp.ts`:
   (1) `submit="auto"` — Flux calls `requestSubmit()` on the enclosing form when the last cell is filled (one
   `submit` event, no submitter). Needs `data-rask-otp-submit` on the group: after a commit that leaves every
