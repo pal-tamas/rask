@@ -52,7 +52,7 @@ public sealed partial class SystemPage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            Ui.Header.Title("System"),
+            DashboardHeading.Title("System"),
             DashboardError.Message(LoadError),
             DatabaseCard(),
             BackupCards(now),

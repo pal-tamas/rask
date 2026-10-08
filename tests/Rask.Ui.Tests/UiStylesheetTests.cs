@@ -72,8 +72,8 @@ public sealed class UiStylesheetTests
     {
         // The kit ships utilities and components, never a reset for an application: an app owns its own
         // document, and a second reset arriving from a library restyles pages that never asked for it. The
-        // one reset it does carry is the console frame's, and every rule of it names `.rask-ops` — the class
-        // only Ui.Shell writes — so a document that never renders the frame matches none of it.
+        // one reset it does carry is the console frame's, and every rule of it names `[data-rask-ui-document]` — the attribute
+        // only a kit-only document writes — so a document that never renders the frame matches none of it.
         foreach (var rule in Rules(UiStylesheet.Css))
         {
             var body = rule.Body.Replace(" ", "", StringComparison.Ordinal);
@@ -83,7 +83,7 @@ public sealed class UiStylesheetTests
 
             if (touchesDocument || isReset)
             {
-                Assert.Contains("rask-ops", rule.Selector, StringComparison.Ordinal);
+                Assert.Contains("data-rask-ui-document", rule.Selector, StringComparison.Ordinal);
             }
         }
     }
@@ -98,10 +98,10 @@ public sealed class UiStylesheetTests
             .Select(r => (r.Selector, Body: r.Body.Replace(" ", "", StringComparison.Ordinal)))
             .ToList();
 
-        Assert.Contains(rules, r => r.Selector.Contains("rask-ops", StringComparison.Ordinal)
+        Assert.Contains(rules, r => r.Selector.Contains("data-rask-ui-document", StringComparison.Ordinal)
                                     && r.Body.Contains("box-sizing:border-box", StringComparison.Ordinal));
-        Assert.Contains(rules, r => r.Selector.StartsWith("body:has(", StringComparison.Ordinal)
-                                    && r.Selector.Contains("rask-ops", StringComparison.Ordinal)
+        Assert.Contains(rules, r => r.Selector.EndsWith(" body", StringComparison.Ordinal)
+                                    && r.Selector.Contains("data-rask-ui-document", StringComparison.Ordinal)
                                     && r.Body.Contains("margin:0", StringComparison.Ordinal));
     }
 
@@ -132,7 +132,7 @@ public sealed class UiStylesheetTests
     private static IEnumerable<(string Selector, string Body)> Rules(string css)
     {
         // A selector starts at the top of the sheet or after a brace or a semicolon — never after whitespace.
-        // Whitespace IS a selector's descendant combinator: starting there read `.rask-ops *)::file-selector-button`
+        // Whitespace IS a selector's descendant combinator: starting there read `[data-rask-ui-document] *)::file-selector-button`
         // as the selector `*)::file-selector-button`, dropping the very scope the assertions look for.
         //
         // A LOOKBEHIND, not a consumed character. Minified CSS puts rules edge to edge (`…}body:has(…){…}`), and

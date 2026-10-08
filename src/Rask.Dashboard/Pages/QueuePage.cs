@@ -89,9 +89,8 @@ public sealed partial class QueuePage(
         }
 
         return [
-            Ui.Header
+            DashboardHeading
                 .Title(_panel.Title)
-                .Icon(_panel.Icon)
                 .Actions([.. QueueActionButtons()]),
             DashboardError.Message(LoadError),
             // A question stays in the flow: it has to be answered before anything else means anything, and

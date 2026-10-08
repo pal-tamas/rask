@@ -78,8 +78,7 @@ public sealed partial class UiKitLayoutDemo : Component
                     Ui.Indicator.Key("i").Badge(Ui.Badge.Sm.Solid.Rounded().Color(Ui.Color.Red)["9"])[
                         Ui.Button["Inbox"]
                     ],
-                    Ui.Avatar.Key("a").Src("/img/favicon.svg").Alt("The Rask mark").Round()
-                        .Class("w-12"),
+                    Ui.Avatar.Key("a").Src("/img/rask-mark.svg").Alt("The Rask mark").Circle().Lg,
                     // No picture: the monogram stands in. Most accounts have none, and a broken image is
                     // worse than two letters — the NAME is still what a screen reader announces.
                     Ui.Avatar.Key("a2").Name("Ada Lovelace").Lg
@@ -88,38 +87,45 @@ public sealed partial class UiKitLayoutDemo : Component
 
     private static Component ApplicationLayoutSection() =>
         Section(
-            "Application layout — sidebar, navigation, separator, spacer, type",
-            "Flux UI's layout pieces. The sidebar beside these docs IS Ui.Sidebar: docked from md up, a drawer "
-            + "behind the hamburger below it, with no runtime needed to open it. The current item says so with "
-            + "aria-current, worked out from the route. Ui.SidebarHeader and Ui.SidebarFooter hold their place "
-            + "while the navigation between them scrolls, and Ui.Profile is the account row — with the same "
-            + "keyboard menu a dropdown has, and a monogram when there is no picture. A separator carries no "
-            + "margin — the page spaces it — and a spacer pushes what follows it to the far end of its row.",
-            Div.Data(Testid("ui-app-layout")).Class("grid gap-6 md:grid-cols-[16rem_1fr]")[
-                Div.Class("flex h-80 flex-col rounded-xl border border-base-300 p-3")[
-                    Ui.SidebarHeader.Key("head").Class("mb-2 border-b border-base-300 pb-2")[
-                        Ui.Brand.Key("brand").Label("Rask").Href(PageMeta.LinkTo(Routes.UiKitLayoutPage()))
+            "Application layout — header, sidebar, main",
+            "Flux UI's two layouts. Ui.Header, Ui.Sidebar and Ui.Main are siblings, and whatever holds the main — "
+            + "the body, or this box — becomes the grid: the header across the top, the sidebar down the side. "
+            + "A layout is a whole page, so each has a demo of its own: there the sidebar slides over the page on "
+            + "a phone and narrows to a rail of icons on a desktop, with no script. The current item says so with "
+            + "aria-current, worked out from the route.",
+            Div.Data(Testid("ui-app-layout")).Class("grid gap-6")[
+                Div.Class("flex flex-wrap gap-3")[
+                    Ui.Button.Key("sidebar-demo").Href(PageMeta.LinkTo(Routes.SidebarLayoutDemoPage()))["Open the sidebar layout"],
+                    Ui.Button.Key("header-demo").Href(PageMeta.LinkTo(Routes.HeaderLayoutDemoPage()))["Open the header layout"]
+                ],
+                // Not collapsible here: a sidebar that slides over the page is pinned to the viewport, not to a box.
+                Div.Data(Testid("ui-layout-box")).Class("h-96 overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800")[
+                    Ui.Sidebar.Key("side").Class("border-r border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900")[
+                        Ui.SidebarHeader.Key("head")[
+                            Ui.SidebarBrand.Key("brand").Name("Rask").Logo("/img/rask-mark.svg")
+                                .Href(PageMeta.LinkTo(Routes.UiKitLayoutPage()))
+                        ],
+                        Ui.SidebarNav.Key("nav")[
+                            Ui.SidebarItem.Key("layout").Href(PageMeta.LinkTo(Routes.UiKitLayoutPage()))
+                                .Icon(Ui.IconName.BookOpen)["Layout"],
+                            Ui.SidebarItem.Key("actions").Href(PageMeta.LinkTo(Routes.UiKitActionsPage()))
+                                .Icon(Ui.IconName.Sparkles).Badge("5")["Actions"],
+                            Ui.SidebarGroup.Key("more").Heading("More").Expandable()[
+                                Ui.SidebarItem.Key("feedback").Href(PageMeta.LinkTo(Routes.UiKitFeedbackPage()))["Feedback"],
+                                Ui.SidebarItem.Key("navigation").Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))["Navigation"]
+                            ]
+                        ],
+                        Ui.SidebarSpacer.Key("gap"),
+                        Ui.SidebarProfile.Key("me").Name("Ada Lovelace")
                     ],
-                    Ui.NavList.Key("nav").AccessibleLabel("Demo")[
-                        Ui.NavItem.Key("layout").Label("Layout").Href(PageMeta.LinkTo(Routes.UiKitLayoutPage()))
-                            .Icon(Ui.IconName.BookOpen),
-                        Ui.NavItem.Key("actions").Label("Actions").Href(PageMeta.LinkTo(Routes.UiKitActionsPage()))
-                            .Icon(Ui.IconName.Sparkles).Badge("5").BadgeTone(Ui.Tone.Primary),
-                        Ui.NavGroup.Key("more").Title("More").Expandable()[
-                            Ui.NavItem.Key("feedback").Label("Feedback")
-                                .Href(PageMeta.LinkTo(Routes.UiKitFeedbackPage())),
-                            Ui.NavItem.Key("navigation").Label("Navigation")
-                                .Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))
-                        ]
+                    Ui.Header.Key("bar").Class("border-b border-zinc-200 dark:border-zinc-700")[
+                        Span.Class("text-sm font-medium")["Orders"],
+                        Ui.Spacer.Key("bar-gap"),
+                        Ui.Button.Key("new").Sm["New order"]
                     ],
-                    // No Ui.Spacer in front of it: the footer pins itself, so a nav list long enough to scroll
-                    // scrolls between the header and this rather than pushing the account row off the bottom.
-                    Ui.SidebarFooter.Key("foot")[
-                        Ui.Profile.Key("me").Name("Ada Lovelace").Caption("ada@example.com")[
-                            Ui.MenuItem.Key("settings").Icon(Ui.IconName.Cog6Tooth)["Settings"],
-                            Ui.MenuSeparator.Key("sep"),
-                            Ui.MenuItem.Key("out").Danger["Sign out"]
-                        ]
+                    Ui.Main.Key("main")[
+                        Ui.Heading.Key("mh").Level(3).Lg["Orders"],
+                        Ui.Text.Key("msh").Subtle["Everything placed in the last 30 days."]
                     ]
                 ],
                 Div.Class("flex flex-col gap-4")[

@@ -12,8 +12,8 @@ public sealed partial class DevToolsKitTestApp : Component
     private readonly List<string> _rows = ["one", "two"];
 
     protected override Component? Render() =>
-        Ui.Shell.Theme(Ui.ThemeName.Light)[
-            Ui.TopBar[Ui.Brand.Label("Kit").Href("#")],
+        Div.Attributes((UiStylesheet.ThemeScopeAttribute, ""), ("data-theme", "light"))[
+            Ui.Header[Ui.Brand.Name("Kit").Href("#")],
             Ui.Main[
                 DevToolsKitBoard.Heading("Board")[
                     Ui.List[_rows.Select(r => DevToolsKitRow.Key(r).Done(r == "one").Label(r))],

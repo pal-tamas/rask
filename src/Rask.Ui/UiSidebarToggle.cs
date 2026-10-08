@@ -1,43 +1,35 @@
 namespace Rask;
 
-/// <summary>
-/// The button that slides a collapsed <see cref="UiSidebar" /> in and out — the hamburger in a phone's top bar.
-/// </summary>
+/// <summary>Flux's <c>flux:sidebar.toggle</c>: the button that slides a <see cref="UiSidebar" /> over the page — the hamburger in a phone's header.</summary>
 /// <remarks>
-/// <para>
-/// A <c>&lt;label&gt;</c> for the sidebar's checkbox, which is what opens it with no runtime. A label is not a
-/// keyboard stop of its own, so it is given one: <c>role="button"</c> and <c>tabindex="0"</c>, and the runtime
-/// presses a focused button-label on Enter and Space the way a real button is pressed.
-/// </para>
-/// <para>
-/// It hides from the sidebar's <see cref="Collapsible" /> breakpoint up, where the sidebar is docked and there is
-/// nothing to toggle. Give it the same breakpoint the sidebar has.
-/// </para>
+/// A <c>&lt;label&gt;</c> for the sidebar's checkbox, with a button's role and a tab stop; the runtime presses
+/// it on Enter and Space. From the sidebar's breakpoint up there is nothing to slide, and it is not shown.
 /// </remarks>
 public sealed partial class UiSidebarToggle : Component
 {
-    /// <summary>The <see cref="UiSidebar.Id" /> of the sidebar it toggles.</summary>
-    public required string For { get; set; }
+    private const string Root =
+        "relative flex size-10 shrink-0 cursor-default items-center justify-center gap-2 rounded-lg text-center text-sm "
+        + "font-medium whitespace-nowrap text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
+        + "dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-white";
 
-    /// <summary>The width from which the sidebar is docked, so the toggle is hidden. Shown at every width if unset.</summary>
-    public Ui.Breakpoint? Collapsible { get; set; }
+    /// <summary>The icon drawn. <see cref="Ui.IconName.Bars2" /> unless this says otherwise.</summary>
+    public Ui.IconName? Icon { get; set; }
 
-    /// <summary>What a screen reader announces. "Toggle sidebar" unless this says otherwise.</summary>
-    public string? AccessibleLabel { get; set; }
+    /// <summary>Pulls the button into its container's padding on that side. Flux's <c>inset</c>.</summary>
+    public Ui.Position? Inset { get; set; }
 
+    /// <summary>Classes for the button.</summary>
     public string? Class { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
         RaskMarkup.Label
-            .For(For)
-            .Class(UiClass.Compose(
-                "btn btn-ghost btn-square drawer-button",
-                Collapsible is { } from ? UiClassNames.HiddenFrom(from) : "",
-                Class))
+            .For(UiSidebarState.Open)
+            .Class(UiClass.Compose(Root, UiSidebarCollapse.InsetClass(Inset), Class))
             .Role("button")
             .TabIndex(0)
-            .Aria("label", AccessibleLabel ?? "Toggle sidebar")[
-            Ui.Icon.Name(Ui.IconName.Bars3).Class("size-5 shrink-0")
+            .Attributes(("data-ui-sidebar-toggle", ""))
+            .Aria("label", "Toggle sidebar")[
+            Ui.Icon.Name(Icon ?? Ui.IconName.Bars2).Mini
         ];
 }
