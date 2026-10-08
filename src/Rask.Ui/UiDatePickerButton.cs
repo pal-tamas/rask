@@ -63,7 +63,16 @@ public sealed partial class UiDatePickerButton : Component
             .Role("combobox")
             .Disabled(Disabled == true || scope.Disabled)
             .Aria(aria)
-            .Attributes(("popovertarget", scope.PopoverId))[
+            // Enter and Space press the button, which is the browser's; the arrows open it too, as on Flux, and
+            // the runtime keeps them from scrolling the page on their way.
+            .Attributes(("popovertarget", scope.PopoverId), ("data-rask-contain-keys", "ArrowUp ArrowDown"))
+            .OnKeyDown(e =>
+            {
+                if (e.Key is Keys.ArrowDown or Keys.ArrowUp)
+                {
+                    scope.Show();
+                }
+            })[
             Ui.Icon.Name(Ui.IconName.Calendar).Mini.Class(UiDatePickerLook.Leading),
             Div.Class(UiDatePickerLook.Selected)[
                 scope.Text is { } text ? Span[text] : Span.Class(UiDatePickerLook.Placeholder).Data(PlaceholderMark)[placeholder]

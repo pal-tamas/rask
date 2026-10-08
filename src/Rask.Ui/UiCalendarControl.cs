@@ -144,9 +144,6 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
     private protected virtual Task CommitAsync(ExpressionAccessor.Accessor? accessor, EditContext? context, T value) =>
         UiFormCommit.CommitAsync(this, accessor, context, value);
 
-    /// <inheritdoc />
-    protected override Task OnRendered() => UiCalendarFocus.MoveAsync(_state);
-
     private UiCalendarOptions Options()
     {
         var culture = Locale is { } locale ? CultureInfo.GetCultureInfo(locale) : CultureInfo.CurrentCulture;

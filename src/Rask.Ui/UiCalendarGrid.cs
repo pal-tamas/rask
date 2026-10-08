@@ -15,6 +15,16 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
 {
     private static readonly UiPartMarker Marker = new("ui-calendar");
 
+    private static readonly Dictionary<string, string?> StaticMonths = new(StringComparer.Ordinal) { ["ui-calendar-months"] = "" };
+
+    // The runtime's two hooks for a grid of days: the keys handled here do not scroll the page behind it (Space
+    // is not one of them, as on Flux), and the browser's focus goes with the day that is the tab stop.
+    private static readonly Dictionary<string, string?> Months = new(StaticMonths, StringComparer.Ordinal)
+    {
+        ["rask-contain-keys"] = "Arrows Home End PageUp PageDown",
+        ["rask-focus-follows"] = "",
+    };
+
     /// <summary>The first of the month a calendar shows first.</summary>
     internal static DateOnly ViewOf(UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks)
     {
@@ -40,6 +50,11 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         var months = Enumerable.Range(0, options.Months).Select(view.AddMonths).ToList();
         var shown = months.SelectMany(month => Weeks(options, month)).SelectMany(week => week).ToHashSet();
         var stop = TabStop(options, state, picks, months, shown);
+        // A paging key lets go of the focus for the one render it causes: no day asks for it, and it falls to
+        // the page, as it does on Flux.
+        var follows = !state.Dropped;
+        state.Dropped = false;
+        var host = Host(options, months, stop);
 
         var calendar = Div
             .Id(options.Id)
@@ -51,7 +66,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         }
 
 
-        var grids = Div.Class(UiCalendarLook.Months).Data("ui-calendar-months", "");
+        var grids = Div.Class(UiCalendarLook.Months).Data(options.Static ? StaticMonths : Months);
         if (!options.Static)
         {
             grids = grids.OnKeyDown(e => KeyAsync(e.Key, options, state, picks, months, shown, stop));
@@ -74,9 +89,18 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
                     ]
                 ]
             ],
-            grids[months.Select(month => Month(options, state, picks, month, stop))],
+            grids[months.Select(month => Month(options, state, picks, month, month == host ? stop : null, follows))],
             footer
         ];
+    }
+
+    // Two months side by side draw the days between them twice. The tab stop is one button: the day in its own
+    // month where that month is shown, else the first month that draws it as a neighbour's.
+    private static DateOnly Host(UiCalendarOptions options, List<DateOnly> months, DateOnly? stop)
+    {
+        var own = months.FindIndex(month => month.Year == stop?.Year && month.Month == stop?.Month);
+        var drawn = own >= 0 ? own : months.FindIndex(month => Weeks(options, month).Exists(week => week.Contains(stop ?? default)));
+        return months[Math.Max(drawn, 0)];
     }
 
     // ---- header -----------------------------------------------------------------------------------
@@ -165,7 +189,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
     // ---- one month --------------------------------------------------------------------------------
 
     private static global::Rask.Core.Component Month(
-        UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, DateOnly month, DateOnly? stop)
+        UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, DateOnly month, DateOnly? stop, bool follows)
     {
         var cell = UiCalendarLook.Cell(options.Size);
         var names = options.Culture.DateTimeFormat;
@@ -193,7 +217,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
                                     WeekOf(week).ToString(options.Culture)
                                 ]
                                 : null,
-                            week.Select((day, slot) => Day(options, state, picks, month, day, slot, stop))
+                            week.Select((day, slot) => Day(options, state, picks, month, day, slot, stop, follows))
                         ])
                 ]
             ]
@@ -223,7 +247,14 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
     // ---- one day ----------------------------------------------------------------------------------
 
     private static global::Rask.Core.Component Day(
-        UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, DateOnly month, DateOnly day, int slot, DateOnly? stop)
+        UiCalendarOptions options,
+        UiCalendarState state,
+        UiCalendarPicks picks,
+        DateOnly month,
+        DateOnly day,
+        int slot,
+        DateOnly? stop,
+        bool follows)
     {
         var marks = picks.Marks(day);
         var outside = day.Month != month.Month;
@@ -258,7 +289,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             Div.Class(marks.Selected ? UiCalendarLook.DotSelected : UiCalendarLook.Dot)
         ];
 
-        var button = DayButton(options, state, picks, day, blocked, day == stop)
+        var button = DayButton(options, state, picks, day, blocked, day == stop, follows)
             .Class(UiClass.Compose(marks.Selected ? UiCalendarLook.DaySelected : UiCalendarLook.Day, cell))
             .Aria("label", name);
 
@@ -305,7 +336,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
     }
 
     private static HTMLButtonElement DayButton(
-        UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, DateOnly day, bool blocked, bool stop)
+        UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, DateOnly day, bool blocked, bool stop, bool follows)
     {
         // The browser closes the picker on the same click that finishes the choice — no runtime, and the C#
         // handler still runs.
@@ -322,9 +353,9 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             button = button.Attributes([.. extra]);
         }
 
-        if (stop)
+        if (stop && follows)
         {
-            button = button.Ref(state.CursorRef);
+            button = button.Data("rask-focus-target", "");
         }
 
         if (blocked)
@@ -403,12 +434,18 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             case Keys.ArrowUp: Move(-7); break;
             case Keys.ArrowDown: Move(7); break;
             // Flux pages a month on all four, with or without Shift, and lets go of the focus.
-            case Keys.Home or Keys.PageUp: Page(state, months[0].AddMonths(-1)); break;
-            case Keys.End or Keys.PageDown: Page(state, months[0].AddMonths(1)); break;
+            case Keys.Home or Keys.PageUp: Drop(-1); break;
+            case Keys.End or Keys.PageDown: Drop(1); break;
             default: break;
         }
 
         return Task.CompletedTask;
+
+        void Drop(int by)
+        {
+            Page(state, months[0].AddMonths(by));
+            state.Dropped = true;
+        }
 
         void Move(int by)
         {
@@ -417,7 +454,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
                 return;
             }
 
-            (state.Cursor, state.Hover, state.FocusPending) = (to, state.Anchor is null ? null : to, true);
+            (state.Cursor, state.Hover) = (to, state.Anchor is null ? null : to);
             if (!shown.Contains(to))
             {
                 // Out of the drawn weeks: the view follows the day, by as little as shows it.

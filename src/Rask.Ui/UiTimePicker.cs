@@ -32,6 +32,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
     private readonly int _instance = UiTimePickerLook.NextInstance();
     private bool _open;
     private int _cursor = -1;
+    private string? _ownId;
 
     /// <inheritdoc cref="IUiFormControl.Label" />
     public string? Label { get; set; }
@@ -113,7 +114,9 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<T> AfterBind { get; set; }
 
-    string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Bind, Label);
+    string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
+        ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
+        : UiFieldId.Derive(Id, Bind, Label);
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 
@@ -169,8 +172,9 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
             .Disabled(Disabled == true)
             .Data(view.Field.Invalid ? UiTimePickerLook.InvalidButtonMarks : UiTimePickerLook.ButtonMarks)
             .Aria(aria)
-            // The browser opens and closes the list from the button; its toggle event below says which.
-            .Attributes(("popovertarget", ListId), ("style", "anchor-name:--" + ListId))
+            // The browser opens and closes the list from the button; its toggle event below says which. Closed,
+            // Enter does not press it and the arrows do not scroll the page: Flux's button, not a native one.
+            .Attributes(("popovertarget", ListId), ("data-rask-listbox-button", null), ("style", "anchor-name:--" + ListId))
             .OnKeyDown(e => OnKeyAsync(e, view))[
             Ui.Icon.Name(Ui.IconName.Clock).Mini.Class(UiTimePickerLook.ButtonIcon),
             Div.Class(UiTimePickerLook.Selected)[
@@ -193,7 +197,8 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
             .Class(UiTimePickerLook.Options)
             // The runtime shows or hides the list when C# changes its mind: ArrowDown on a closed picker, Enter
             // on an open one, a press on the typed trigger.
-            .Data("rask-popover-open", _open ? "true" : "false")
+            // …and while it is open the page behind it neither scrolls nor takes the pointer, as on Flux.
+            .Data(_open ? UiTimePickerLook.ListOpen : UiTimePickerLook.ListClosed)
             .Attributes(("style", "position-anchor:--" + ListId
                                   + ";inset:auto;top:calc(anchor(bottom) + 5px);inset-inline-start:anchor(start)"
                                   + ";width:anchor-size(width);position-try-fallbacks:flip-block"))

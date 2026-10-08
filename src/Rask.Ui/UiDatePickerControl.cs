@@ -33,10 +33,17 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
     private static readonly UiPartMarker FocusPlaceholder = new("ui-focus-placeholder");
 
+    private static readonly Dictionary<string, string?> PopupClosed = new(StringComparer.Ordinal)
+    {
+        ["rask-popover-open"] = "false",
+        ["rask-lock"] = "",
+    };
+
+    private static readonly Dictionary<string, string?> PopupOpen = new(PopupClosed, StringComparer.Ordinal) { ["rask-popover-open"] = "true" };
+
     private readonly string _popover = UiDatePickerIds.Next();
     private readonly UiCalendarState _state = new();
-    private readonly Dictionary<(int Slot, char Part), string> _typed = [];
-    private readonly ElementRef<HTMLDialogElement> _dialog = new();
+    private string? _ownId;
     private (bool Held, T? Value, T? Given) _own;
     private (bool Held, T? Value) _pending;
     private bool _open;
@@ -155,7 +162,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     /// <inheritdoc />
     DateOnly? IUiClock.Today { get; set; }
 
-    string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Bind, Label);
+    string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
+        ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
+        : UiFieldId.Derive(Id, Bind, Label);
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 
@@ -220,9 +229,8 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Invalid = field.Invalid,
             Aria = field.Aria,
             Dates = Dates(committed),
-            Held = _typed,
             Typed = (slot, date) => Commit(Typed(committed, slot, date)),
-            Dialog = _dialog,
+            Show = () => _open = true,
         };
 
         var calendar = UiCalendarGrid.Render(
@@ -243,9 +251,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
                 Popup(calendar)
             ]);
     }
-
-    /// <inheritdoc />
-    protected override Task OnRendered() => UiCalendarFocus.MoveAsync(_state);
 
     /// <summary>What "chosen" means for this picker, over the value as it stands.</summary>
     private protected abstract UiCalendarPicks Picks(T? current, Func<T, Task> choose);
@@ -283,7 +288,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             .Id(PopoverId)
             .Class(UiDatePickerLook.Dialog)
             .Popover(Rask.Core.Popover.Auto)
-            .Ref(_dialog)
+            // The runtime shows the popup when C# says so (an arrow key on the closed button), and holds the
+            // page still behind it while it is open, as Flux does: no scroll, no pointer.
+            .Data(_open ? PopupOpen : PopupClosed)
             // Flux focuses nothing when its picker opens. A <dialog popover> would hand the focus to its first
             // control (a month step, or the header's select with a ring); `autofocus` on the dialog itself keeps
             // it on the popup — no control lit, Tab enters the calendar, Escape returns to the trigger.

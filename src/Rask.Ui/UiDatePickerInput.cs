@@ -13,8 +13,10 @@ namespace Rask;
 /// <c>Trigger</c> slot are its start and its end, in that order.
 /// </para>
 /// <para>
-/// Three numeric fields in the locale's own order. A whole, valid date is written to the model as soon as the
-/// third field has one; the calendar shows it the next time it opens.
+/// Three numeric fields in the locale's own order, typed as one field: a part that can take no further digit
+/// moves on, the arrows walk and step the parts (the runtime's <c>data-rask-segments</c>). A whole date is
+/// written to the model as soon as the last part has one; the calendar shows it the next time it opens. The
+/// icons and the room beside the fields open the calendar; a press in a field only puts the caret there.
 /// </para>
 /// </remarks>
 public sealed partial class UiDatePickerInput : Component, IUiFieldControl
@@ -25,9 +27,17 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
         ["ui-group-target"] = "",
     };
 
+    private const string Iso = "yyyy-MM-dd";
+
     private static readonly Dictionary<string, string?> MarksInvalid = new(Marks, StringComparer.Ordinal) { ["invalid"] = "" };
 
-    private static readonly UiPartMarker Inputs = new("ui-date-inputs");
+    private static readonly Dictionary<string, string?> Inputs = new(StringComparer.Ordinal)
+    {
+        ["ui-date-inputs"] = "",
+        ["rask-segments"] = "",
+    };
+
+    private string? _ownId;
 
     /// <summary>The label drawn above the field, which wraps it in a <c>Ui.Field</c>.</summary>
     public string? Label { get; set; }
@@ -50,7 +60,9 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
     /// <summary>The field's id; derived from its label unless set.</summary>
     public string? Id { get; set; }
 
-    string IUiFieldControl.ControlId => UiFieldId.Derive(Id, null, Label);
+    string IUiFieldControl.ControlId => Id is null && Label is null
+        ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
+        : UiFieldId.Derive(Id, null, Label);
 
     LambdaExpression? IUiFieldControl.Bound => null;
 
@@ -74,26 +86,27 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
             aria["labelledby"] = field.LabelId;
         }
 
+        var locked = Disabled == true || scope.Disabled;
         var group = Div
             .Id(owns ? field.ControlId : scope.ControlId)
             .Class(UiClass.Compose(UiDatePickerLook.Typed, UiDatePickerLook.Height((int)(Size ?? Ui.DatePickerInputSize.Base)), Class))
             .Data(field.Invalid ? MarksInvalid : Marks)
             .Role("group")
-            .Aria(aria)
-            .OnClick(() => scope.Dialog.ShowPopover())[
-            Ui.Icon.Name(Ui.IconName.Calendar).Mini.Class(UiDatePickerLook.Leading),
-            Div.Class(UiDatePickerLook.Segments).Data(Inputs.With(null)).Attributes(("dir", "ltr"))[
-                Segments(scope, slot, Disabled == true || scope.Disabled)
+            .Aria(aria)[
+            Opener(scope, locked, Ui.IconName.Calendar, UiDatePickerLook.Leading),
+            Div.Class(UiDatePickerLook.Segments).Data(Inputs).Attributes(("dir", "ltr"))[
+                Segments(scope, locked),
+                Whole(scope, slot)
             ],
-            Span.Class(UiDatePickerLook.Spacer),
-            Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)
+            locked ? Span.Class(UiDatePickerLook.Spacer) : Span.Class(UiDatePickerLook.Spacer).Data("rask-toggle", scope.PopoverId),
+            Opener(scope, locked, Ui.IconName.ChevronDown, UiDatePickerLook.Trailing)
         ];
 
         return field.Wrap(group);
     }
 
     // The locale's own order and separator: mm/dd/yyyy in the US, dd.mm.yyyy in Germany, yyyy/mm/dd in Japan.
-    private static IEnumerable<Component> Segments(UiDatePickerScope scope, int slot, bool disabled)
+    private static IEnumerable<Component> Segments(UiDatePickerScope scope, bool disabled)
     {
         var format = scope.Culture.DateTimeFormat;
         var order = string.Concat(format.ShortDatePattern.Where(c => c is 'M' or 'd' or 'y').Distinct());
@@ -107,29 +120,51 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
             }
 
             first = false;
-            yield return Segment(scope, slot, part, disabled);
+            yield return Segment(part, disabled);
         }
     }
 
-    private static HTMLInputElement<string> Segment(UiDatePickerScope scope, int slot, char part, bool disabled)
+    // A part is the browser's own: no value and no handler, so a render never writes over what is being typed.
+    private static HTMLInputElement<string> Segment(char part, bool disabled)
     {
-        var (name, mark, placeholder) = part switch
+        var (name, kind, placeholder) = part switch
         {
-            'M' => ("Month", "ui-month-input", "mm"),
-            'd' => ("Day", "ui-day-input", "dd"),
-            _ => ("Year", "ui-year-input", "yyyy"),
+            'M' => ("Month", "month", "mm"),
+            'd' => ("Day", "day", "dd"),
+            _ => ("Year", "year", "yyyy"),
         };
 
-        return Input
-            .Value(UiDatePickerTyping.Text(scope, slot, part))
-            .OnChange(text => UiDatePickerTyping.TypeAsync(scope, slot, part, text))
+        return Input.Of<string>()
             .Key(part)
             .Type(InputType.Text)
             .Class(part == 'y' ? UiDatePickerLook.SegmentYear : UiDatePickerLook.Segment)
-            .Data(mark, "")
+            .Data(new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-" + kind + "-input"] = "", ["rask-segment"] = kind })
             .Disabled(disabled)
             .Placeholder(placeholder)
             .Aria("label", name)
             .Attributes(("inputmode", "numeric"));
+    }
+
+    // The one field the parts are read and written through: the whole date, or nothing.
+    private static HTMLInputElement<string> Whole(UiDatePickerScope scope, int slot) =>
+        Input
+            .Value(scope.Dates[slot]?.ToString(Iso, CultureInfo.InvariantCulture) ?? string.Empty)
+            .OnChange(text => DateOnly.TryParseExact(text, Iso, CultureInfo.InvariantCulture, DateTimeStyles.None, out var day)
+                ? scope.Typed(slot, day)
+                : Task.CompletedTask)
+            .Key("whole")
+            .Type(InputType.Hidden);
+
+    // What Flux's trigger opens the calendar from: everything in it that is not a field. A second press closes it.
+    private static Component Opener(UiDatePickerScope scope, bool locked, Ui.IconName icon, string classes)
+    {
+        if (locked)
+        {
+            return Ui.Icon.Name(icon).Mini.Class(classes);
+        }
+
+        var marks = UiIcon.MarksWith("data-rask-toggle");
+        marks["data-rask-toggle"] = scope.PopoverId;
+        return UiIcon.Marked(marks, icon, Ui.IconVariant.Mini, classes);
     }
 }

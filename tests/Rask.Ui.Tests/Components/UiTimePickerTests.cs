@@ -247,47 +247,79 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_button_is_a_listbox_button_and_its_list_holds_the_page_still()
+    {
+        var html = Ui.TimePicker.Of<TimeOnly?>().ToHtml();
+
+        // Closed, Enter does nothing and the arrows do not scroll; open, the page neither scrolls nor takes the pointer.
+        Assert.Matches("<button[^>]*role=\"combobox\"[^>]*data-rask-listbox-button", html);
+        Assert.Matches("role=\"listbox\"[^>]*data-rask-lock=\"\"|data-rask-lock=\"\"[^>]*role=\"listbox\"", html);
+    }
+
+    [Fact]
+    public void Two_pickers_with_no_label_and_no_binding_do_not_share_an_id()
+    {
+        var html = Div[Ui.TimePicker.Of<TimeOnly?>(), Ui.TimePicker.Of<TimeOnly?>()].ToHtml();
+
+        var ids = Regex.Matches(html, "<button id=\"(f-field-\\d+)\"").Select(m => m.Groups[1].Value).ToArray();
+
+        Assert.Equal(2, ids.Length);
+        Assert.Equal(2, ids.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
     public void A_twenty_four_hour_typed_trigger_has_no_period_field()
     {
         var html = Ui.TimePicker.Of<TimeOnly?>().Type(Ui.TimePickerType.Input).TwentyFourHour.ToHtml();
 
-        var fields = Regex.Count(html, "<input");
+        var parts = Regex.Matches(html, "data-rask-segment=\"(\\w+)\"").Select(m => m.Groups[1].Value).ToArray();
 
-        Assert.Equal(2, fields);
+        Assert.Equal(["hour", "minute"], parts);
     }
 
     [Fact]
-    public async Task Typing_the_hour_and_the_minute_makes_a_time()
+    public void The_typed_parts_are_the_runtimes_segments_around_one_hidden_field_that_carries_the_time()
+    {
+        var html = Ui.TimePicker.Value<TimeOnly?>(new TimeOnly(21, 5)).Type(Ui.TimePickerType.Input).Locale("en-US").ToHtml();
+
+        var parts = Regex.Matches(html, "<input[^>]*data-rask-segment=\"(\\w+)\"[^>]*>").ToArray();
+
+        // A part has no value of its own: the runtime fills it from the hidden field, and owns what is typed.
+        Assert.Contains("data-rask-segments=\"\"", html, StringComparison.Ordinal);
+        Assert.Equal(["hour", "minute", "meridiem"], parts.Select(m => m.Groups[1].Value));
+        Assert.DoesNotContain(parts, part => part.Value.Contains("value=", StringComparison.Ordinal));
+        Assert.Matches("<input[^>]*type=\"hidden\"[^>]*value=\"21:05\"|<input[^>]*value=\"21:05\"[^>]*type=\"hidden\"", html);
+    }
+
+    [Fact]
+    public async Task A_whole_time_in_the_hidden_field_is_the_typed_time_and_an_unavailable_one_is_not_taken()
     {
         var model = new Booking();
-        var page = Page.Render(() => Ui.TimePicker.Bind(() => model.At).Type(Ui.TimePickerType.Input).Locale("en-US"));
+        var page = Page.Render(() => Ui.TimePicker.Bind(() => model.At).Type(Ui.TimePickerType.Input).Locale("en-US")
+            .Unavailable([new TimeOnly(3, 0)]));
 
-        await page.On("[data-ui-hour-input]").Change("9");
-        var half = model.At;
-        await page.On("[data-ui-minute-input]").Change("5");
-        var morning = model.At;
-        await page.On("[data-ui-meridiem-input]").Change("pm");
+        await page.On("[data-rask-segments] input[type=\"hidden\"]").Change(string.Empty);
+        var unfinished = model.At;
+        await page.On("[data-rask-segments] input[type=\"hidden\"]").Change("21:05");
+        var evening = model.At;
+        await page.On("[data-rask-segments] input[type=\"hidden\"]").Change("03:00");
 
-        Assert.Null(half);
-        Assert.Equal(new TimeOnly(9, 5), morning);
+        Assert.Null(unfinished);
+        Assert.Equal(new TimeOnly(21, 5), evening);
         Assert.Equal(new TimeOnly(21, 5), model.At);
-        Assert.Contains("value=\"09\"", page.Html, StringComparison.Ordinal);
-        Assert.Contains("value=\"05\"", page.Html, StringComparison.Ordinal);
-        Assert.Contains("value=\"PM\"", page.Html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task The_arrows_step_the_field_they_are_pressed_in()
+    public void Everything_in_the_typed_trigger_but_a_field_opens_the_list_and_none_does_without_a_dropdown()
     {
-        var model = new Booking { At = new TimeOnly(9, 59) };
-        var page = Page.Render(() => Ui.TimePicker.Bind(() => model.At).Type(Ui.TimePickerType.Input).Locale("en-US"));
+        var with = Ui.TimePicker.Of<TimeOnly?>().Type(Ui.TimePickerType.Input).ToHtml();
 
-        await page.On("[data-ui-minute-input]").Raise("keydown", "{\"key\":\"ArrowUp\"}");
-        var wrapped = model.At;
-        await page.On("[data-ui-meridiem-input]").Raise("keydown", "{\"key\":\"ArrowDown\"}");
+        var without = Ui.TimePicker.Of<TimeOnly?>().Type(Ui.TimePickerType.Input).Dropdown(false).ToHtml();
 
-        Assert.Equal(new TimeOnly(9, 0), wrapped);
-        Assert.Equal(new TimeOnly(21, 0), model.At);
+        // The clock, the room beside the fields and the chevron; a press in a field only puts the caret there.
+        Assert.Equal(3, Regex.Matches(with, "data-rask-toggle=\"uitp-\\d+\"").Count);
+        Assert.DoesNotMatch("<input[^>]*data-rask-toggle", with);
+        Assert.DoesNotContain("data-rask-toggle", without, StringComparison.Ordinal);
     }
 
     [Fact]

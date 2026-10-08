@@ -102,6 +102,18 @@ internal static class UiTimePickerLook
     private static int _instances;
 
     /// <summary>A number per picker, so two on a page never share a list id.</summary>
+    internal static readonly Dictionary<string, string?> SegmentsMark = new(StringComparer.Ordinal) { ["rask-segments"] = "" };
+
+    internal static readonly (string, string?) Numeric = ("inputmode", "numeric");
+
+    internal static readonly Dictionary<string, string?> ListClosed = new(StringComparer.Ordinal)
+    {
+        ["rask-popover-open"] = "false",
+        ["rask-lock"] = "",
+    };
+
+    internal static readonly Dictionary<string, string?> ListOpen = new(ListClosed, StringComparer.Ordinal) { ["rask-popover-open"] = "true" };
+
     internal static int NextInstance() => Interlocked.Increment(ref _instances);
 
     /// <summary>Height, text and corners of the button.</summary>

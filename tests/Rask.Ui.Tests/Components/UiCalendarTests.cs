@@ -319,6 +319,65 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_grid_keeps_its_keys_from_the_page_and_names_the_tab_stop_for_the_focus_to_follow()
+    {
+        var html = Single().ToHtml();
+
+        var looked = Single().Static().ToHtml();
+
+        // Flux's list, measured: the arrows, Home, End and the paging keys — not Space, which it lets scroll.
+        Assert.Contains("data-rask-contain-keys=\"Arrows Home End PageUp PageDown\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-rask-focus-follows=\"\"", html, StringComparison.Ordinal);
+        Assert.Matches("<button[^>]*data-rask-focus-target=\"\"[^>]*aria-label=\"Thursday, January 15, 2026\"", html);
+        Assert.Single(Regex.Matches(html, "data-rask-focus-target"));
+        Assert.DoesNotContain("data-rask-contain-keys", looked, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-focus", looked, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_arrow_takes_the_focus_target_to_the_new_day_across_a_month_too()
+    {
+        var page = Page.Render(() => Single(Jan(31)));
+
+        await Press(page, "ArrowRight");
+        var html = page.Render();
+
+        Assert.Matches("<button[^>]*data-rask-focus-target=\"\"[^>]*aria-label=\"Sunday, February 1, 2026\"", html);
+        Assert.Single(Regex.Matches(html, "data-rask-focus-target"));
+    }
+
+    [Theory]
+    [InlineData("PageDown")]
+    [InlineData("End")]
+    [InlineData("PageUp")]
+    [InlineData("Home")]
+    public async Task A_paging_key_names_no_focus_target_for_its_one_render_so_the_focus_falls_to_the_page(string key)
+    {
+        var page = Page.Render(() => Single());
+
+        await Press(page, key);
+        var paged = page.Html;
+        await Press(page, "ArrowRight");
+
+        // Flux leaves the focus on <body> after these four; the tab stop is still there for Tab to find.
+        Assert.DoesNotContain("data-rask-focus-target", paged, StringComparison.Ordinal);
+        Assert.Single(TabStops(paged));
+        Assert.Single(Regex.Matches(page.Html, "data-rask-focus-target"));
+    }
+
+    [Fact]
+    public void Two_months_that_draw_the_same_day_twice_have_one_tab_stop_in_the_days_own_month()
+    {
+        var html = Ranged(new UiDateRange(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 3)))
+            .OpenTo(new DateOnly(2026, 3, 1)).ForceOpenTo().ToHtml();
+
+        // April 1 closes March's last week as a neighbour's day and stands in April's own first week.
+        Assert.Equal(2, Regex.Matches(html, "aria-label=\"Wednesday, April 1, 2026\"").Count);
+        Assert.Equal(["Wednesday, April 1, 2026"], TabStops(html));
+        Assert.Single(Regex.Matches(html, "data-rask-focus-target"));
+    }
+
+    [Fact]
     public async Task The_month_steps_page_the_view_and_leave_the_choice_alone()
     {
         var page = Page.Render(() => Single(Jan(20)));

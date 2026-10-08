@@ -171,10 +171,13 @@ function collect(wrapper, { STYLES, index }) {
   }
 
   const nodes = [];
-  // A <template> is inert — never drawn, never styled — and what a script stamps from it is in the tree beside
-  // it. Flux's client-side components leave theirs in place (one per day of a calendar), so neither a template
-  // nor what is inside one counts towards the 500 nodes an example is measured to.
-  const elements = [wrapper, ...wrapper.querySelectorAll('*')].filter(el => !el.closest('template')).slice(0, 500);
+  // What is never drawn is not collected, so it does not count towards the 500 nodes an example is measured
+  // to. A <template> and what is inside one: Flux's client-side components leave theirs in place (one per day
+  // of a calendar), and what a script stamps from it is in the tree beside it. An <input type="hidden">: the
+  // one bound field the runtime reads a group of typed segments through (data-rask-segments), where Flux's
+  // script keeps the value in the element itself.
+  const undrawn = el => el.closest('template') || (el.localName === 'input' && el.type === 'hidden');
+  const elements = [wrapper, ...wrapper.querySelectorAll('*')].filter(el => !undrawn(el)).slice(0, 500);
   elements.forEach((el, i) => {
     const id = `${index}-${i}`;
     el.setAttribute('data-m', id);

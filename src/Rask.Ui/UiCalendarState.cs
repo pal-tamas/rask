@@ -15,10 +15,8 @@ internal sealed class UiCalendarState
     /// <summary>The day a waiting range would end on: the one under the pointer or the keyboard.</summary>
     internal DateOnly? Hover { get; set; }
 
-    /// <summary>Set when a key moved the cursor: the day's button takes the focus once it is drawn.</summary>
-    internal bool FocusPending { get; set; }
-
-    internal ElementRef<HTMLButtonElement> CursorRef { get; } = new();
+    /// <summary>Set when a paging key moved the view: the next render names no day for the focus to follow.</summary>
+    internal bool Dropped { get; set; }
 
     internal void Forget()
     {

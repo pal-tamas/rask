@@ -1,9 +1,7 @@
 #nullable enable
 override Rask.UiCalendarControl<T>.BypassRenderCache.get -> bool
-override Rask.UiCalendarControl<T>.OnRendered() -> System.Threading.Tasks.Task!
 override Rask.UiCalendarControl<T>.Render() -> Rask.Core.Component?
 override Rask.UiDatePickerControl<T>.BypassRenderCache.get -> bool
-override Rask.UiDatePickerControl<T>.OnRendered() -> System.Threading.Tasks.Task!
 override Rask.UiDatePickerControl<T>.Render() -> Rask.Core.Component?
 override Rask.UiInputIcon.GetHashCode() -> int
 override Rask.UiSelectControl<T>.Render() -> Rask.Core.Component?

@@ -34,13 +34,11 @@ internal sealed class UiDatePickerScope
     /// <summary>The chosen day, or a range's start and end: one typed field each.</summary>
     internal required IReadOnlyList<DateOnly?> Dates { get; init; }
 
-    /// <summary>What has been typed into a field's segments and is not a whole date yet.</summary>
-    internal required Dictionary<(int Slot, char Part), string> Held { get; init; }
-
     /// <summary>Writes a typed date into its slot.</summary>
     internal required Func<int, DateOnly, Task> Typed { get; init; }
 
-    internal required ElementRef<HTMLDialogElement> Dialog { get; init; }
+    /// <summary>Opens the calendar from a key on the trigger, where the browser has no gesture of its own for it.</summary>
+    internal required Action Show { get; init; }
 
     /// <summary>The next typed field's slot: the first is the day or a range's start, the second its end.</summary>
     internal int Claim() => Math.Min(_claimed++, Dates.Count - 1);

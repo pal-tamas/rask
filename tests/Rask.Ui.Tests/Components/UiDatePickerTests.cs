@@ -162,6 +162,38 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task The_presets_rove_and_the_tab_stop_is_the_first_until_a_preset_is_checked()
+    {
+        var model = new Trip();
+        var page = Page.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).WithPresets().Min(new DateOnly(2012, 1, 1)).Locale("en-US").On(Today));
+        var unchosen = page.Html;
+
+        await page.On("[role=\"radio\"][value=\"last7Days\"]").Click();
+
+        // As Flux marks them: `data-active` and tabindex 0 on the first while Custom is the checked one.
+        Assert.Contains("data-rask-roving=\"\" role=\"radiogroup\"", unchosen, StringComparison.Ordinal);
+        Assert.Matches("<button[^>]*data-active=\"\"[^>]*tabindex=\"0\"[^>]*value=\"today\"", unchosen);
+        Assert.Matches("<button[^>]*tabindex=\"-1\"[^>]*value=\"custom\"", unchosen);
+        Assert.Matches("<button[^>]*data-active=\"\" data-checked=\"\"[^>]*tabindex=\"0\"[^>]*value=\"last7Days\"", page.Html);
+        Assert.Single(Regex.Matches(page.Html, "role=\"radio\" tabindex=\"0\"|tabindex=\"0\"[^>]*role=\"radio\""));
+    }
+
+    [Theory]
+    [InlineData("ArrowDown")]
+    [InlineData("ArrowUp")]
+    public async Task An_arrow_on_the_closed_button_opens_the_popup_which_holds_the_page_still(string key)
+    {
+        var page = Page.Render(() => Single(Jan(20)));
+        var closed = page.Html;
+
+        await page.On("[data-ui-date-picker-button]").Raise("keydown", "{\"key\":\"" + key + "\"}");
+
+        Assert.Contains("data-rask-contain-keys=\"ArrowUp ArrowDown\"", closed, StringComparison.Ordinal);
+        Assert.Matches("<dialog[^>]*data-rask-popover-open=\"false\" data-rask-lock=\"\"", closed);
+        Assert.Matches("<dialog[^>]*data-rask-popover-open=\"true\" data-rask-lock=\"\"", page.Html);
+    }
+
+    [Fact]
     public async Task A_preset_writes_its_range_and_puts_its_name_on_the_button()
     {
         var model = new Trip();
@@ -278,20 +310,44 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(["Month", "Day", "Year"], Segments(american));
         Assert.Equal(["Day", "Month", "Year"], Segments(german));
         Assert.Contains("role=\"group\"", american, StringComparison.Ordinal);
-        Assert.Contains("value=\"01\"", american, StringComparison.Ordinal);
-        Assert.Contains("value=\"2026\"", american, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_typed_date_is_written_once_all_three_fields_make_a_day()
+    public void The_typed_parts_are_the_runtimes_segments_around_one_hidden_field_that_carries_the_whole_date()
+    {
+        var html = Single(Jan(20)).Type(Ui.DatePickerType.Input).ToHtml();
+
+        var parts = Regex.Matches(html, "<input[^>]*data-rask-segment=\"(\\w+)\"[^>]*>").Select(m => m.Value).ToArray();
+
+        // A part has no value of its own: the runtime fills it from the hidden field, and owns what is typed.
+        Assert.Contains("data-ui-date-inputs=\"\" data-rask-segments=\"\"", html, StringComparison.Ordinal);
+        Assert.Equal(3, parts.Length);
+        Assert.DoesNotContain(parts, part => part.Contains("value=", StringComparison.Ordinal));
+        Assert.Matches("<input[^>]*type=\"hidden\"[^>]*value=\"2026-01-20\"|<input[^>]*value=\"2026-01-20\"[^>]*type=\"hidden\"", html);
+    }
+
+    [Fact]
+    public void Everything_in_the_typed_trigger_but_a_field_opens_the_calendar_and_a_disabled_one_opens_nothing()
+    {
+        var html = Single(Jan(20)).Type(Ui.DatePickerType.Input).ToHtml();
+
+        var disabled = Single(Jan(20)).Type(Ui.DatePickerType.Input).Disabled().ToHtml();
+
+        // The two icons and the room beside the fields; a press in a field only puts the caret there.
+        Assert.Equal(3, Regex.Matches(html, "data-rask-toggle=\"ui-date-picker-\\d+\"").Count);
+        Assert.DoesNotMatch("<input[^>]*data-rask-toggle", html);
+        Assert.DoesNotContain("data-rask-toggle", disabled, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_typed_date_is_written_when_the_hidden_field_carries_a_whole_one()
     {
         var model = new Trip();
         var page = Page.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Type(Ui.DatePickerType.Input).Locale("en-US").On(Today));
 
-        await page.On("[data-ui-month-input]").Change("03");
-        await page.On("[data-ui-day-input]").Change("31");
+        await page.On("[data-ui-date-inputs] input[type=\"hidden\"]").Change(string.Empty);
         var early = model.Arrival;
-        await page.On("[data-ui-year-input]").Change("2026");
+        await page.On("[data-ui-date-inputs] input[type=\"hidden\"]").Change("2026-03-31");
 
         Assert.Equal(default, early);
         Assert.Equal(new DateOnly(2026, 3, 31), model.Arrival);
@@ -304,10 +360,10 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Locale("en-US").On(Today)
             .Trigger(Div[Ui.DatePickerInput.Label("Start"), Ui.DatePickerInput.Label("End")]));
 
-        var days = Regex.Matches(page.Html, "data-ui-day-input[^>]*value=\"(\\d+)\"").Select(m => m.Groups[1].Value).ToArray();
-        await page.On("#f-end [data-ui-day-input]").Change("09");
+        var days = Regex.Matches(page.Html, "value=\"(2026-\\d\\d-\\d\\d)\"").Select(m => m.Groups[1].Value).ToArray();
+        await page.On("#f-end input[type=\"hidden\"]").Change("2026-01-09");
 
-        Assert.Equal(["04", "06"], days);
+        Assert.Equal(["2026-01-04", "2026-01-06"], days);
         Assert.Equal(new UiDateRange(Jan(4), Jan(9)), model.Stay);
     }
 
