@@ -91,11 +91,54 @@ public sealed partial class TutorialSnippetTests
             + string.Join($"{Environment.NewLine}  ", unknown.Distinct(StringComparer.Ordinal)));
     }
 
-    /// <summary>Every fenced C# block in the tutorial, with the chapter it came from.</summary>
-    private static IEnumerable<(string Source, string Code)> Snippets()
+    [Fact]
+    public void Every_kit_chain_takes_steps_the_kit_has()
     {
-        var tutorial = Path.Combine(DocsDirectory(), "tutorial");
-        foreach (var file in Directory.EnumerateFiles(tutorial, "*.md").Order(StringComparer.Ordinal))
+        // The one a parser cannot see and the override check does not look at: the kit was rebuilt under the
+        // tutorial, and `Ui.Heading.Level(1).Size(Ui.Size.Xl)` went on parsing after the heading's Size had
+        // become its own enum. Only the build of the typed-in tutorial said so, after the push.
+        var broken = Snippets().SelectMany(s => KitChainChecker.Problems(s.Code).Select(problem => $"{s.Source}: {problem}"));
+
+        AssertNoneBroken(broken);
+    }
+
+    [Fact]
+    public void Every_kit_chain_in_the_guides_and_the_package_readmes_takes_steps_the_kit_has()
+    {
+        // What a reader meets before the tutorial, and nothing builds: the guides, the front page, and the
+        // readme each package shows on nuget.org.
+        var root = Path.GetDirectoryName(DocsDirectory())!;
+        var readmes = Directory.EnumerateDirectories(Path.Combine(root, "src")).Select(package => Path.Combine(package, "NUGET.md"))
+            .Concat([Path.Combine(root, "NUGET.md"), Path.Combine(root, "README.md")])
+            .Where(File.Exists);
+        var tutorial = Path.Combine(DocsDirectory(), "tutorial") + Path.DirectorySeparatorChar;
+        var pages = Directory.EnumerateFiles(DocsDirectory(), "*.md", SearchOption.AllDirectories)
+            .Where(page => !page.StartsWith(tutorial, StringComparison.Ordinal));
+        var guides = Snippets(pages.Concat(readmes));
+        var broken = guides.SelectMany(s => KitChainChecker.Problems(s.Code).Select(problem => $"{s.Source}: {problem}"));
+
+        AssertNoneBroken(broken);
+    }
+
+    private static void AssertNoneBroken(IEnumerable<string> broken)
+    {
+        var lines = broken.Distinct(StringComparer.Ordinal).ToList();
+
+        Assert.True(
+            lines.Count == 0,
+            "These snippets call the Rask.Ui kit in a way it no longer has — a reader typing one in gets a "
+            + $"compiler error:{Environment.NewLine}  "
+            + string.Join($"{Environment.NewLine}  ", lines));
+    }
+
+    /// <summary>Every fenced C# block in the tutorial, with the chapter it came from.</summary>
+    private static IEnumerable<(string Source, string Code)> Snippets() =>
+        Snippets(Directory.EnumerateFiles(Path.Combine(DocsDirectory(), "tutorial"), "*.md"));
+
+    /// <summary>Every fenced C# block in <paramref name="files"/>, with the file it came from.</summary>
+    private static IEnumerable<(string Source, string Code)> Snippets(IEnumerable<string> files)
+    {
+        foreach (var file in files.Order(StringComparer.Ordinal))
         {
             var text = File.ReadAllText(file);
             foreach (Match match in CSharpFence().Matches(text))
@@ -103,7 +146,7 @@ public sealed partial class TutorialSnippetTests
                 // A fence nested in a blockquote carries the "> " on every line. That is Markdown, not C#,
                 // and parsing it as C# reports the quote marks as the syntax error.
                 var code = BlockquotePrefix().Replace(match.Groups["code"].Value, string.Empty);
-                yield return (Path.GetFileName(file), code);
+                yield return (Path.GetRelativePath(Path.GetDirectoryName(DocsDirectory())!, file), code);
             }
         }
     }
