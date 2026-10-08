@@ -342,16 +342,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string ModalPosition(Ui.ModalPosition value) => value switch
-    {
-        Ui.ModalPosition.Top => "modal-top",
-        Ui.ModalPosition.Middle => "modal-middle",
-        Ui.ModalPosition.Bottom => "modal-bottom",
-        Ui.ModalPosition.Start => "modal-start",
-        Ui.ModalPosition.End => "modal-end",
-        _ => "",
-    };
-
     internal static string SwapAnimation(Ui.SwapAnimation value) => value switch
     {
         Ui.SwapAnimation.Rotate => "swap-rotate",

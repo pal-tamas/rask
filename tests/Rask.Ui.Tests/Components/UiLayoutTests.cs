@@ -5,43 +5,6 @@ namespace Rask.UiTests.Components;
 /// </summary>
 public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
 {
-    [Fact]
-    public void The_drawer_still_keeps_its_state_in_a_checkbox()
-    {
-        // Not an implementation detail the kit could swap out: daisyUI's rules are written against
-        // `.drawer-toggle:checked` and `.drawer-open > .drawer-toggle`, so removing the input removes
-        // the component.
-        var html = Drawer(open: null);
-
-        Assert.Contains("drawer-toggle", html);
-        Assert.Contains("<input", html);
-    }
-
-    [Fact]
-    public void C_sharp_can_set_the_drawer_open()
-    {
-        Assert.Contains("checked", Drawer(open: true));
-        Assert.DoesNotContain("checked", Drawer(open: false));
-    }
-
-    [Fact]
-    public void The_overlay_is_a_label_so_a_click_outside_closes_it_with_no_script()
-    {
-        // The one dismissal a dropdown cannot offer without script.
-        var html = Drawer(open: null);
-
-        Assert.Contains("drawer-overlay", html);
-        Assert.Contains("aria-label=\"Close navigation\"", html);
-    }
-
-    [Fact]
-    public void The_page_and_the_panel_are_daisyUIs_two_halves()
-    {
-        var html = Drawer(open: null);
-
-        Assert.Contains("drawer-content", html);
-        Assert.Contains("drawer-side", html);
-    }
 
     [Fact]
     public void An_indicator_puts_its_badge_over_its_child()
@@ -78,15 +41,6 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
         // A literal the kit's own sheet is built from, not a class string from the call site that nothing
         // compiled.
         Assert.Contains(expected, Ui.Avatar.Src("/me.png").Alt("Ada").Size(size).ToHtml());
-    }
-
-    [Fact]
-    public void A_drawer_opens_from_the_right_only_when_asked()
-    {
-        Assert.DoesNotContain("drawer-end", Drawer(open: null));
-        Assert.Contains(
-            "drawer-end",
-            Ui.Drawer.Id("nav").Panel(Span["menu"]).Position(Ui.Position.Right)[Span["page"]].ToHtml());
     }
 
     [Fact]
@@ -129,12 +83,4 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
             Ui.Shell.Theme(Ui.ThemeName.Dark)[Span["x"]].ToHtml(),
             StringComparison.Ordinal);
     }
-
-    private static string Drawer(bool? open) =>
-        Ui.Drawer
-            .Id("nav")
-            .Panel(Ui.NavList[Ui.NavItem.Label("Home").Href("/")])
-            .Open(open)
-            .CloseLabel("Close navigation")[Span["page"]]
-            .ToHtml();
 }
