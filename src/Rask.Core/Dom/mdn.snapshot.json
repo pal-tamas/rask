@@ -2,13 +2,13 @@
  "schema": 1,
  "sources": {
   "@mdn/browser-compat-data": "8.1.4",
-  "@webref/css": "8.7.5",
-  "@webref/elements": "2.9.0",
+  "@webref/css": "8.7.6",
+  "@webref/elements": "2.9.1",
   "@webref/events": "1.27.0",
-  "@webref/idl": "3.85.0",
+  "@webref/idl": "3.85.1",
   "parse5": "8.0.1",
   "webidl2": "24.5.0",
-  "webref/dfns": "686e05e58f761ce5832baf4d9403575827fd8aca",
+  "webref/dfns": "e1f62ce423740b8f52dbd2a633c41286085bb6f5",
   "w3c/uievents-code": "b201684d1de0af90bc403814bbdee6aa96647130",
   "w3c/uievents-key": "140cae88d6039b3fb1a51787978678115111c433",
   "w3c/aria": "a4af4eb449462c00f673f264956ef9c63f0e9e06"
@@ -54583,7 +54583,7 @@
     {
      "kind": "operation",
      "name": "prompt",
-     "returns": "Promise<DOMString>",
+     "returns": "Promise<(DOMString or sequence<LanguageModelMessageContent>)>",
      "args": [
       {
        "name": "input",
@@ -126727,7 +126727,7 @@
     },
     {
      "name": "tools",
-     "type": "sequence<LanguageModelTool>"
+     "type": "sequence<LanguageModelToolDeclaration>"
     }
    ]
   },
@@ -126788,7 +126788,7 @@
     },
     {
      "name": "value",
-     "type": "((((HTMLImageElement or SVGImageElement) or HTMLVideoElement or HTMLCanvasElement or ImageBitmap or OffscreenCanvas or VideoFrame) or Blob or ImageData) or AudioBuffer or (ArrayBuffer or (Int8Array or Int16Array or Int32Array or Uint8Array or Uint16Array or Uint32Array or Uint8ClampedArray or BigInt64Array or BigUint64Array or Float16Array or Float32Array or Float64Array or DataView)) or DOMString)",
+     "type": "((((HTMLImageElement or SVGImageElement) or HTMLVideoElement or HTMLCanvasElement or ImageBitmap or OffscreenCanvas or VideoFrame) or Blob or ImageData) or AudioBuffer or (ArrayBuffer or (Int8Array or Int16Array or Int32Array or Uint8Array or Uint16Array or Uint32Array or Uint8ClampedArray or BigInt64Array or BigUint64Array or Float16Array or Float32Array or Float64Array or DataView)) or DOMString or LanguageModelToolCall or (LanguageModelToolSuccess or LanguageModelToolError))",
      "required": true
     }
    ]
@@ -126809,7 +126809,7 @@
     }
    ]
   },
-  "LanguageModelTool": {
+  "LanguageModelToolDeclaration": {
    "members": [
     {
      "name": "name",
@@ -126824,11 +126824,6 @@
     {
      "name": "inputSchema",
      "type": "object",
-     "required": true
-    },
-    {
-     "name": "execute",
-     "type": "LanguageModelToolFunction",
      "required": true
     }
    ]
@@ -129871,7 +129866,19 @@
     },
     {
      "name": "keys",
-     "type": "record<DOMString, USVString>"
+     "type": "PushSubscriptionKeys"
+    }
+   ]
+  },
+  "PushSubscriptionKeys": {
+   "members": [
+    {
+     "name": "p256dh",
+     "type": "USVString"
+    },
+    {
+     "name": "auth",
+     "type": "USVString"
     }
    ]
   },
@@ -133792,16 +133799,6 @@
     {
      "name": "observer",
      "type": "IntersectionObserver"
-    }
-   ]
-  },
-  "LanguageModelToolFunction": {
-   "returns": "Promise<DOMString>",
-   "args": [
-    {
-     "name": "arguments",
-     "type": "any",
-     "variadic": true
     }
    ]
   },
