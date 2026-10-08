@@ -47,8 +47,9 @@ public sealed class UiStylesheetTests
     [Fact]
     public void The_scroll_lock_at_the_document_root_applies_only_under_an_open_kit_dialog()
     {
-        // The kit's one rule at :root, which a library stylesheet would otherwise have no business writing. It is
-        // safe only while every selector in it requires an OPEN kit modal to be in the document.
+        // The kit's rules at :root, which a library stylesheet would otherwise have no business writing. They are
+        // safe only while every selector in them requires an OPEN kit overlay to be in the document: a modal, or
+        // a menu, behind which Flux's page does not scroll either.
         var locks = Rules(UiStylesheet.Css)
             .Where(r => r.Selector.Contains(":root:has(", StringComparison.Ordinal)
                         && r.Body.Contains("overflow", StringComparison.Ordinal))
@@ -60,7 +61,7 @@ public sealed class UiStylesheetTests
             var inner = rule.Selector[(rule.Selector.IndexOf(":has(", StringComparison.Ordinal) + 5)..];
             foreach (var alternative in inner.TrimEnd(')').Split(','))
             {
-                Assert.Contains("modal", alternative, StringComparison.Ordinal);
+                Assert.Matches("modal|data-ui-menu|data-ui-navmenu", alternative);
                 Assert.Matches(@"\[open\]|:popover-open|\.modal-open", alternative);
             }
         }

@@ -16,8 +16,14 @@ public sealed partial class UiKitActionsDemo : Component
     private bool _muted;
     private string _lastAction = "nothing yet";
     private string _sort = "name";
+    private string _activity = "latest";
+    private bool _draft = true;
+    private bool _published = true;
+    private bool _archived;
+    private bool _read = true;
+    private bool _write = true;
+    private bool _delete;
     private List<string> _filters = ["open"];
-    private bool _showArchived;
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -41,81 +47,195 @@ public sealed partial class UiKitActionsDemo : Component
             .Data(Testid("ui-actions-log"))[$"Last action: {_lastAction}."]
     ];
 
+    // Flux UI's dropdown page, example for example, each wired to this component's state.
     private Component DropdownSection() =>
         Section(
-            "Dropdown",
-            "A popover menu with Flux UI's keyboard: the arrows move a cursor, Home and End jump, a letter "
-            + "jumps to the next item starting with it, Right opens a submenu and Left closes it, Enter picks, "
-            + "Escape and Tab leave. A pointer crossing diagonally into a submenu keeps it open — the safe "
-            + "triangle. Open is nullable: unset leaves it to the reader, true and false hand it to this page.",
+            "Dropdown and menu",
+            "A trigger and the menu it opens — Flux UI's dropdown, row for row. It opens with focus on the menu; "
+            + "the arrows walk the rows and stop at the ends, a letter jumps to the row that starts with it, Right "
+            + "or Enter opens a submenu and Left closes it, Enter or Space picks, Escape and Tab leave. A pick "
+            + "closes the menu unless the menu, or the row, says KeepOpen. The page behind does not scroll, and a "
+            + "click outside only closes it.",
             Div.Data(Testid("ui-dropdown")).Class("flex flex-wrap items-center gap-2")[
-                Ui.Dropdown
-                    .Key("controlled")
-                    .Trigger(_menuOpen ? "Close menu" : "Open menu")
-                    .Position(Ui.Position.Bottom)
-                    .Open(_menuOpen)
-                    .OnToggle(open => { _menuOpen = open; })[
-                    MenuAction("rename", "Rename", "⌘R"),
-                    MenuAction("duplicate", "Duplicate", "⌘D"),
-                    MenuAction("delete", "Delete", null, Ui.Tone.Error)
-                ],
-                Ui.Dropdown.Key("rich").Trigger("View").Icon(Ui.IconName.Sparkles).Align(Ui.Align.End)[
-                    Ui.MenuGroup.Key("sort-group").Title("Arrange")[
-                        Ui.MenuSub.Key("sort").Title("Sort by")[
-                            Ui.MenuRadioGroup.Value(_sort)
-                                .Options([("name", "Name"), ("date", "Date modified"), ("size", "Size")])
-                                .OnChange(sort => { _sort = sort; _lastAction = "sorted by " + sort; })
-                        ],
-                        Ui.MenuItem.Key("refresh").Text("Refresh").Kbd("⌘⇧R")
-                            .OnClick(() => { _lastAction = "refreshed"; })
-                    ],
-                    Ui.MenuSeparator.Key("sep"),
-                    Ui.MenuCheckbox.Key("archived").Value(_showArchived).Text("Show archived")
-                        .OnChange(on => { _showArchived = on; _lastAction = on ? "showing archived" : "hiding archived"; }),
-                    Ui.MenuItem.Key("export").Text("Export").Disabled()
+                Ui.Dropdown.Key("options")[Trigger("Options"), PostMenu("list", "the list")],
+                Ui.Dropdown.Key("account").Bottom.End[Trigger("Olivia Martin"), AccountLinks()],
+                Ui.Dropdown.Key("above").Top.Start[Trigger("Above"), Places("above")],
+                Ui.Dropdown.Key("nudged").Offset(-15).Gap(2)[Trigger("Offset and gap"), Places("nudged")],
+                Ui.Dropdown.Key("shortcuts")[Trigger("Shortcuts"), ShortcutMenu()],
+                Ui.Dropdown.Key("permissions")[Trigger("Permissions"), PermissionMenu()],
+                Ui.Dropdown.Key("activity")[Trigger("Sort by"), ActivityMenu()],
+                Ui.Dropdown.Key("groups")[Trigger("Groups"), GroupedMenu()],
+                Ui.Dropdown.Key("headings")[Trigger("Headings"), HeadedMenu()],
+                // KeepOpen on the menu, then on the rows alone: there "Clear" still closes it.
+                Ui.Dropdown.Key("keeps")[Trigger("Keep open"), Ui.Menu.KeepOpen()[FilterRows("keeps", keepOpen: false)]],
+                Ui.Dropdown.Key("keeps-rows")[Trigger("Filters"), ClearableFilterMenu()],
+                // Open is nullable: unset leaves it to the reader, true and false hand it to this page.
+                Ui.Dropdown.Key("controlled").Open(_menuOpen).OnToggle(open => { _menuOpen = open; })[
+                    Trigger(_menuOpen ? "Close menu" : "Open menu"),
+                    Ui.Menu[
+                        Ui.MenuItem.Key("rename").Kbd("⌘R").OnClick(() => Did("rename", close: true))["Rename"],
+                        Ui.MenuItem.Key("archive").OnClick(() => Did("archive", close: true))["Archive"]
+                    ]
                 ]
             ]);
+
+    // The lead example of Flux's page, and the menu its context page opens: an item, two submenus, a danger item.
+    // It is written twice on this page, so every key carries the id of the menu it is in: a key names ONE
+    // component among all those this page writes, and two rows sharing one would share their props.
+    private Component PostMenu(string id, string what) =>
+        Ui.Menu[
+            Ui.MenuItem.Key(id + "-new").Icon(Ui.IconName.Plus).OnClick(() => Did("new post in " + what))["New post"],
+            Ui.MenuSeparator.Key(id + "-s1"),
+            Ui.MenuSubmenu.Key(id + "-sort").Heading("Sort by")[
+                Ui.MenuRadioGroup.Value(_sort).OnChange(sort => { _sort = sort; Did("sorted by " + sort); })[
+                    Ui.MenuRadio.Key(id + "-name").Value("name")["Name"],
+                    Ui.MenuRadio.Key(id + "-date").Value("date")["Date"],
+                    Ui.MenuRadio.Key(id + "-popularity").Value("popularity")["Popularity"]
+                ]
+            ],
+            Ui.MenuSubmenu.Key(id + "-filter").Heading("Filter")[FilterRows(id, keepOpen: false)],
+            Ui.MenuSeparator.Key(id + "-s2"),
+            Ui.MenuItem.Key(id + "-delete").Danger.Icon(Ui.IconName.Trash).OnClick(() => Did("deleted from " + what))["Delete"]
+        ];
+
+    private Component[] FilterRows(string id, bool keepOpen) =>
+    [
+        Ui.MenuCheckbox.Value(_draft).Key(id + "-draft").KeepOpen(keepOpen).OnChange(on => { _draft = on; })["Draft"],
+        Ui.MenuCheckbox.Value(_published).Key(id + "-published").KeepOpen(keepOpen).OnChange(on => { _published = on; })["Published"],
+        Ui.MenuCheckbox.Value(_archived).Key(id + "-archived").KeepOpen(keepOpen).OnChange(on => { _archived = on; })["Archived"]
+    ];
+
+    private Component ClearableFilterMenu()
+    {
+        Component[] rows =
+        [
+            .. FilterRows("rows", keepOpen: true),
+            Ui.MenuSeparator.Key("rows-s1"),
+            Ui.MenuItem.Key("rows-clear").Danger.OnClick(() =>
+            {
+                _draft = _published = _archived = false;
+                Did("cleared the filters");
+            })["Clear"]
+        ];
+
+        return Ui.Menu[rows];
+    }
+
+    // A navigation menu: links, with no menu roles and no cursor.
+    private static Component AccountLinks() =>
+        Ui.Navmenu[
+            Ui.NavmenuItem.Key("link-account").Href("#account").Icon(Ui.IconName.User)["Account"],
+            Ui.NavmenuItem.Key("link-profile").Href("#profile").Icon(Ui.IconName.BuildingStorefront)["Profile"],
+            Ui.NavmenuItem.Key("link-billing").Href("#billing").Icon(Ui.IconName.CreditCard)["Billing"],
+            Ui.NavmenuItem.Key("link-logout").Href("#logout").Icon(Ui.IconName.ArrowRightStartOnRectangle)["Logout"],
+            Ui.NavmenuItem.Key("link-delete").Href("#delete").Icon(Ui.IconName.Trash).Danger["Delete"]
+        ];
+
+    // The navigation menu Flux's two placement examples open.
+    private static Component Places(string id) =>
+        Ui.Navmenu[
+            Ui.NavmenuItem.Key(id + "-account").Href("#account")["Account"],
+            Ui.NavmenuItem.Key(id + "-profile").Href("#profile")["Profile"],
+            Ui.NavmenuItem.Key(id + "-billing").Href("#billing")["Billing"],
+            Ui.NavmenuItem.Key(id + "-logout").Href("#logout")["Logout"]
+        ];
+
+    private Component ShortcutMenu() =>
+        Ui.Menu[
+            Ui.MenuItem.Key("shortcut-save").Icon(Ui.IconName.PencilSquare).Kbd("⌘S").OnClick(() => Did("save"))["Save"],
+            Ui.MenuItem.Key("shortcut-duplicate").Icon(Ui.IconName.DocumentDuplicate).Kbd("⌘D").OnClick(() => Did("duplicate"))["Duplicate"],
+            Ui.MenuItem.Key("shortcut-export").Icon(Ui.IconName.ArrowDownTray).Suffix("PDF").Disabled()["Export"],
+            Ui.MenuItem.Key("shortcut-delete").Icon(Ui.IconName.Trash).Danger.Kbd("⌘⌫").OnClick(() => Did("delete"))["Delete"]
+        ];
+
+    private Component PermissionMenu() =>
+        Ui.Menu[
+            Ui.MenuCheckbox.Value(_read).Key("may-read").OnChange(on => { _read = on; Did(on ? "may read" : "may not read"); })["Read"],
+            Ui.MenuCheckbox.Value(_write).Key("may-write").OnChange(on => { _write = on; })["Write"],
+            Ui.MenuCheckbox.Value(_delete).Key("may-delete").OnChange(on => { _delete = on; Did(on ? "may delete" : "may not delete"); })["Delete"]
+        ];
+
+    private Component ActivityMenu() =>
+        Ui.Menu[
+            Ui.MenuRadioGroup.Value(_activity).OnChange(by => { _activity = by; Did("ordered by " + by); })[
+                Ui.MenuRadio.Key("by-latest").Value("latest")["Latest activity"],
+                Ui.MenuRadio.Key("by-created").Value("created")["Date created"],
+                Ui.MenuRadio.Key("by-popular").Value("popular")["Most popular"]
+            ]
+        ];
+
+    private Component GroupedMenu() =>
+        Ui.Menu[
+            Ui.MenuItem.Key("grouped-view").OnClick(() => Did("view"))["View"],
+            Ui.MenuItem.Key("grouped-transfer").OnClick(() => Did("transfer"))["Transfer"],
+            Ui.MenuSeparator.Key("grouped-s1"),
+            Ui.MenuItem.Key("grouped-publish").OnClick(() => Did("publish"))["Publish"],
+            Ui.MenuItem.Key("grouped-share").OnClick(() => Did("share"))["Share"],
+            Ui.MenuSeparator.Key("grouped-s2"),
+            Ui.MenuItem.Key("grouped-delete").Danger.OnClick(() => Did("delete"))["Delete"]
+        ];
+
+    private static Component HeadedMenu() =>
+        Ui.Menu[
+            Ui.MenuGroup.Key("headed-account").Heading("Account")[
+                Ui.MenuItem.Key("headed-profile")["Profile"],
+                Ui.MenuItem.Key("headed-permissions")["Permissions"]
+            ],
+            Ui.MenuGroup.Key("headed-billing").Heading("Billing")[
+                Ui.MenuItem.Key("headed-transactions")["Transactions"],
+                Ui.MenuItem.Key("headed-payouts")["Payouts"],
+                Ui.MenuItem.Key("headed-refunds")["Refunds"]
+            ],
+            Ui.MenuItem.Key("headed-logout")["Logout"]
+        ];
+
+    // Any button is a trigger: the dropdown adds what makes it one.
+    private static Component Trigger(string label) =>
+        Ui.Button.IconTrailing(Ui.IconName.ChevronDown)[label];
+
+    private void Did(string action, bool close = false)
+    {
+        _lastAction = action;
+        if (close)
+        {
+            _menuOpen = false;
+        }
+    }
 
     private Component ContextMenuSection() =>
         Section(
             "Context menu",
-            "Right-click the card. It is the same menu a dropdown draws — the same rows, the same keyboard — opened "
+            "Right-click the card. It is the same menu a dropdown opens — the same rows, the same keyboard — opened "
             + "at the pointer instead of from a button. The runtime opens it, so it appears at once on either host, "
             + "and the ContextMenu key or Shift+F10 opens it at the focused element. Nothing in it should be the "
             + "only way to do something: iOS never fires the event.",
             Div.Data(Testid("ui-context-menu"))[
-                Ui.ContextMenu.Target(
+                Ui.Context[
                     Div.TabIndex(0)
-                        .Class("rounded-box border border-dashed border-base-300 p-6 text-center text-sm text-ui-muted")[
-                        "Right-click this card"
-                    ])[
-                    Ui.MenuItem.Key("open").Text("Open").OnClick(() => { _lastAction = "opened the card"; }),
-                    Ui.MenuItem.Key("copy").Text("Copy link").OnClick(() => { _lastAction = "copied the link"; }),
-                    Ui.MenuSeparator.Key("sep"),
-                    Ui.MenuItem.Key("delete").Text("Delete").Error
-                        .OnClick(() => { _lastAction = "deleted the card"; })
+                        .Class("inline-block rounded-box border-2 border-dashed border-base-300 px-16 py-6 text-sm text-ui-muted")[
+                        "Right click"
+                    ],
+                    PostMenu("card", "the card")
                 ]
             ]);
 
     private Component CommandPaletteSection() =>
         Section(
             "Command palette",
-            "Click the field, or press ⌘K (Ctrl K off a Mac) anywhere on this page. The commands are the rows a "
-            + "dropdown takes; typing narrows them, the arrows move the highlight while focus stays in the box, "
+            "Click the field, or press ⌘K (Ctrl K off a Mac) anywhere on this page. The commands are written as the "
+            + "rows a menu takes; typing narrows them, the arrows move the highlight while focus stays in the box, "
             + "and Enter runs the highlighted one — its handler, or its link — and closes the palette. The "
             + "shortcut is a runtime hook that clicks the field, so it opens the same dialog a click does.",
             Div.Data(Testid("ui-command")).Class("max-w-sm")[
                 Ui.Command.Label("Search commands").Shortcut("mod+k")[
-                    Ui.MenuGroup.Title("Invoices")[
-                        Ui.MenuItem.Text("New invoice").Icon(Ui.IconName.Plus)
-                            .OnClick(() => { _lastAction = "started a new invoice"; }),
-                        Ui.MenuItem.Text("Export all").Icon(Ui.IconName.ArrowDownTray).Disabled()
+                    Ui.MenuGroup.Heading("Invoices")[
+                        Ui.MenuItem.Icon(Ui.IconName.Plus).OnClick(() => { _lastAction = "started a new invoice"; })["New invoice"],
+                        Ui.MenuItem.Icon(Ui.IconName.ArrowDownTray).Disabled()["Export all"]
                     ],
                     Ui.MenuSeparator,
-                    Ui.MenuItem.Text("Copy invoice link").Icon(Ui.IconName.ClipboardDocumentCheck)
-                        .OnClick(() => { _lastAction = "copied the invoice link"; }),
-                    Ui.MenuItem.Text("Sign out").Error
-                        .OnClick(() => { _lastAction = "signed out"; })
+                    Ui.MenuItem.Icon(Ui.IconName.ClipboardDocumentCheck)
+                        .OnClick(() => { _lastAction = "copied the invoice link"; })["Copy invoice link"],
+                    Ui.MenuItem.Danger.OnClick(() => { _lastAction = "signed out"; })["Sign out"]
                 ]
             ]);
 
@@ -355,12 +475,6 @@ public sealed partial class UiKitActionsDemo : Component
 
     private static AttrBag Testid(string value) => new("testid", value);
 
-    private UiMenuItem MenuAction(string key, string label, string? kbd, Ui.Tone? tone = null) =>
-        Ui.MenuItem.Key(key).Text(label).Kbd(kbd).Tone(tone).OnClick(() =>
-        {
-            _lastAction = label.ToLowerInvariant();
-            _menuOpen = false;
-        });
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[

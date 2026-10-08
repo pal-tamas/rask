@@ -5,7 +5,7 @@ namespace Rask.UiTests.Components;
 /// </summary>
 /// <remarks>
 ///     What makes it one or the other is whether it was given children, because a menu with nothing in it is not
-///     a menu. The menu half is <see cref="UiMenuButton" />'s, the same contract <c>UiDropdown</c> renders, so
+///     a menu. The menu half is a <see cref="UiDropdown" /> opening a <see cref="UiMenu" />, pinned by their own tests, so
 ///     what is worth pinning here is the ROW: the monogram, the name, and the fact that neither is announced
 ///     twice.
 /// </remarks>
@@ -24,36 +24,36 @@ public partial class UiProfileTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void With_children_the_row_is_the_menu_button()
     {
-        var html = Ui.Profile.Name("Ada Lovelace")[Ui.MenuItem.Text("Sign out")].ToHtml();
+        var html = Ui.Profile.Name("Ada Lovelace")[Ui.MenuItem["Sign out"]].ToHtml();
 
-        Assert.Contains("aria-haspopup=\"menu\"", html, StringComparison.Ordinal);
+        Assert.Contains("aria-haspopup=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-expanded=\"false\"", html, StringComparison.Ordinal);
-        Assert.Contains("popovertarget=\"uipr-", html, StringComparison.Ordinal);
+        Assert.Contains("popovertarget=\"uidd-", html, StringComparison.Ordinal);
         Assert.Contains("role=\"menu\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Its_ids_are_its_own_so_a_dropdown_beside_it_cannot_collide()
     {
-        // Both draw a menu, and aria-activedescendant names the rows by id — two controls generating the same
-        // ids would aim one menu's cursor at the other's rows.
+        // Both draw a menu a button opens by id — two controls generating the same id would have one button
+        // open the other's menu.
         var html = Div[
-            Ui.Profile.Name("Ada Lovelace")[Ui.MenuItem.Text("Sign out")],
-            Ui.Dropdown.Trigger("Actions")[Ui.MenuItem.Text("Archive")]
+            Ui.Profile.Name("Ada Lovelace")[Ui.MenuItem["Sign out"]],
+            Ui.Dropdown[Button["Actions"], Ui.Menu[Ui.MenuItem["Archive"]]]
         ].ToHtml();
 
-        Assert.Contains("uipr-", html, StringComparison.Ordinal);
-        Assert.Contains("uidd-", html, StringComparison.Ordinal);
+        var targets = System.Text.RegularExpressions.Regex.Matches(html, "popovertarget=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToList();
+        Assert.Equal(2, targets.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Fact]
     public void The_menu_opens_upward_because_the_row_sits_at_the_bottom()
     {
         // A menu below the account row would open off the bottom of the screen, which is where the row lives.
-        Assert.Contains("position-area:block-start",
-            Ui.Profile.Name("Ada Lovelace")[Ui.MenuItem.Text("Sign out")].ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("position-area:block-end",
-            Ui.Profile.Name("Ada Lovelace").Position(Ui.Position.Bottom)[Ui.MenuItem.Text("Sign out")].ToHtml(),
+        Assert.Contains("inset-block-end:calc(anchor(start)",
+            Ui.Profile.Name("Ada Lovelace")[Ui.MenuItem["Sign out"]].ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("inset-block-start:calc(anchor(end)",
+            Ui.Profile.Name("Ada Lovelace").Position(Ui.DropdownPosition.Bottom)[Ui.MenuItem["Sign out"]].ToHtml(),
             StringComparison.Ordinal);
     }
 
