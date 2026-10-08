@@ -10,14 +10,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         Assert.Contains("file-input-ghost", Ui.FileInput.Value("").Label("Avatar").Variant(Ui.Variant.Ghost).ToHtml());
 
     [Fact]
-    public void A_range_can_stand_on_end() =>
-        Assert.Contains("range-vertical", Ui.Range.Value(0d).Label("Volume").Vertical(true).ToHtml());
-
-    [Fact]
-    public void A_horizontal_range_writes_no_direction_class() =>
-        Assert.DoesNotContain("range-vertical", Ui.Range.Value(0d).Label("Volume").ToHtml());
-
-    [Fact]
     public void A_filter_option_carries_its_value_exactly_once()
     {
         // It set the value through the escape hatch while the chain's Value was believed to carry the

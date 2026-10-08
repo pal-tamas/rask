@@ -1776,6 +1776,75 @@ Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]           
   `Options`, `OptionDescription`, `OptionDisabled`, `Layout` (`Ui.ChoiceLayout`), `CheckAll` / `CheckAllLabel`,
   `Hint`, `Error`, `Badge` and `AccessibleLabel`.
 
+**`Ui.Slider` is Flux UI's slider.** Same props, same look, same markers
+([fluxui.dev/components/slider](https://fluxui.dev/components/slider)), over Rask's binding:
+
+```csharp
+Ui.Slider.Bind(() => m.Amount).Min(0).Max(100).Step(10)                  // int, long, float, double or decimal
+Ui.Slider.Bind(() => m.Radius).Label("Corner radius").Description("In pixels.")   // a field: label, help, error
+Ui.Slider.Bind(() => m.Price).Range().Max(990).Step(10).MinStepsBetween(10)       // two thumbs: int[] Price = [200, 800]
+Ui.Slider.Value(level).Min(1).Max(5).OnChange(v => { level = v; })[
+    Ui.SliderTick.Value(1)["Low"], Ui.SliderTick.Value(3)["Mid"], Ui.SliderTick.Value(5)["High"]
+]
+Ui.Slider.Value(level).Min(1).Max(5).Inside.TrackClass("h-5").ThumbClass("size-6")[   // dots on the track
+    Ui.SliderTick.Value(1).Dot, Ui.SliderTick.Value(2).Dot, Ui.SliderTick.Value(3).Dot
+]
+```
+
+- **The value follows the thumb.** The bound member (or `OnChange`) gets every step while the thumb is dragged,
+  which is what lets a label beside it show the number; a controlled slider draws the `Value` it was given, so
+  keep it in state.
+- **A range is the same slider over an array of two** — `int[]`, `double[]`, `decimal[]` — and every change
+  writes a NEW array. The thumbs do not cross, `MinStepsBetween` keeps them that many steps apart, and a press
+  on the track moves the nearer one.
+- **The browser does the moving.** Each thumb holds a real `<input type="range">`, invisible and laid over the
+  stretch of track that thumb can reach: dragging, a press on the track, the arrow keys, Page Up / Page Down (a
+  tenth of the track) and Home / End are native, and so is the accessible name — a `<label for>` from `Label`
+  or the `Ui.Field` around it. A range's two inputs say `aria-valuetext="200 start range"` / `"800 end range"`
+  and carry their neighbour as their own `max` / `min`. No script.
+- **Ticks** are `Ui.SliderTick.Value(n)` children: a line, a `.Dot`, or whatever you put inside. They sit under
+  the track, or on it with `.Inside` (`TickPosition`). Each carries `data-active` while the fill reaches it and
+  `data-current` while a thumb is on it, and pressing one moves the thumb there.
+- **`TrackClass` and `ThumbClass`** style the two parts. A `size-6` or `size-[22px]` in `ThumbClass` is also
+  where the fill and the ticks learn the thumb's size (`--ui-slider-thumb`, 1rem unless set).
+- **Not built:** Flux's `big-step` — Shift+Arrow moving by a second step size. The thumb is a native range input,
+  which has one step, and the runtime cancels no key; it waits for a runtime hook. Page Up / Page Down are the
+  browser's larger step meanwhile.
+- **Gone with daisyUI's range:** `Ui.Range` itself, `Tone`, `Size`, `Vertical`, and `Label` as a required step.
+
+**`Ui.Otp` is Flux UI's OTP input.** One real text input per character
+([fluxui.dev/components/otp-input](https://fluxui.dev/components/otp-input)), and the code they spell bound as one
+`string`:
+
+```csharp
+Ui.Otp.Bind(() => m.Code).Length(6).Label("OTP Code")
+Ui.Otp.Bind(() => m.Code).Length(6).OnComplete(code => Verify(code))      // where Flux's submit="auto" submits
+Ui.Otp.Bind(() => m.Key).Length(10).Alphanumeric.Autocomplete("off").Label("License key")
+Ui.Otp.Bind(() => m.Pin).Length(4).Private().Label("PIN Code")
+Ui.Otp.Bind(() => m.Code)[
+    Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput],
+    Ui.OtpSeparator,
+    Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput]
+]
+```
+
+- **`Length` draws the cells**, or place `Ui.OtpInput`, `Ui.OtpSeparator` and `Ui.OtpGroup` yourself and they are
+  counted (`Length` is then ignored). A group joins its cells into one box.
+- **The code has no gaps** and holds only what the `Mode` takes — digits, or `.Alphanumeric` / `.Alpha` with
+  letters upper-cased. Emptying a cell closes the row up.
+- **`OnComplete`** runs with the code each time its last cell is filled, bound or controlled. It is the
+  translation of Flux's `submit="auto"`: submit, verify or navigate from it.
+- **Markup is Flux's:** a `role="group"` named by the field's label, each cell named "Character 2 of 6", one tab
+  stop (the first empty cell), `autocomplete="one-time-code"` on the first cell (`Autocomplete("off")` to stop
+  the browser offering a code), `inputmode="numeric"` for digits, `type="password"` with `Private()`.
+- **What needs script is not here.** Flux moves focus to the next cell as a character lands, walks the cells
+  with Backspace and the arrow keys, and selects a cell's character on focus — all in its own script, and the
+  kit ships none. Without it: Tab moves to the next cell, and a code typed straight through, pasted, or offered
+  by the phone in ONE cell fills the cells after it (that cell shows what was typed until focus leaves it). It
+  waits for a runtime hook that moves focus between the cells of a `[data-ui-otp]`.
+- **Gone with daisyUI's `otp`:** the single input drawn as several, `Joined` (now `Ui.OtpGroup`), `Tone`, `Size`,
+  `Hint` (now `Description` / `DescriptionTrailing`), `Badge` and `AccessibleLabel`; `Length` is no longer required.
+
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two
 sources of truth for one field, and the compiler enforces it — both live on the control's entry, so
@@ -1790,10 +1859,10 @@ the value with the parent. See [building form controls](building-form-controls.m
 without one, an invisible `AccessibleLabel`; a `Hint` and a controlled `Error` under it; an `Id`, derived from the
 bound member or the label when you give none; and `aria-describedby`, `aria-invalid` and `aria-required` worked out
 from those and from the bound member's `[Required]` and messages. `Label` is never a required step, so write it
-anywhere after the opening — `Ui.Otp.Value(code).Length(6).Label("Verification code").Hint("Sent to your phone")`.
+anywhere after the opening — `Ui.Select.Value(plan).Options(plans).Label("Plan").Hint("Change it any time")`.
 
 **Generic where the value type varies, concrete where it does not.** `UiInput<T>`, `UiTextarea<T>`,
-`UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `Ui.Input` even
+`UiSlider<T>`, `UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `Ui.Input` even
 takes its `type` attribute from `T`, so a bound `int` is a number field with nothing said at the call
 site. `UiRadioGroup<T>` and `UiCheckboxGroup<T>` are generic over what a choice holds. The rest are closed over
 the one type they can have: `Ui.Checkbox` and `Ui.Switch` over `bool`, `Ui.Range` over `double`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,

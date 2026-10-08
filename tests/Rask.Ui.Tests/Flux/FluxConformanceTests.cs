@@ -133,6 +133,12 @@ public sealed class FluxConformanceTests
         ["flux:modal"] = typeof(UiModal),
         ["flux:modal.trigger"] = typeof(UiModalTrigger),
         ["flux:modal.close"] = typeof(UiModalClose),
+        ["flux:slider"] = typeof(UiSlider<>),
+        ["flux:slider.tick"] = typeof(UiSliderTick),
+        ["flux:otp"] = typeof(UiOtp),
+        ["flux:otp.input"] = typeof(UiOtpInput),
+        ["flux:otp.separator"] = typeof(UiOtpSeparator),
+        ["flux:otp.group"] = typeof(UiOtpGroup),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -162,6 +168,9 @@ public sealed class FluxConformanceTests
         ["Flux::modal()"] = "Flux::modal('confirm')->show()/close() from PHP: Rask's page owns the state — Ui.Modal.Open(_confirming) — or holds no state at all behind a Ui.ModalTrigger.",
         ["Flux::modals()"] = "Closes every modal on the page from PHP. Each Rask modal's open state is its own page's field; there is no registry to sweep.",
         ["$flux.modal()"] = "Alpine's magic: the kit ships no script. A button that opens or closes a named modal is Ui.ModalTrigger / Ui.ModalClose, which write the browser's own invoker commands.",
+        ["flux:otp/submit"] = "submit=\"auto\" calls requestSubmit() on the enclosing <form> the moment the last cell is filled (measured: a `submit` event with no submitter). The runtime's otp hook does not submit; it needs `data-rask-otp-submit` on the group: after a commit that leaves every cell filled, `group.closest('form')?.requestSubmit()`. Until then Ui.Otp raises OnComplete with the full code, in a form or out of one.",
+        ["flux:otp.input/\u2014"] = "The reference's empty row: the part takes no props.",
+        ["flux:otp.separator/\u2014"] = "The reference's empty row: the part takes no props.",
     };
 
     /// <summary>
@@ -304,6 +313,23 @@ public sealed class FluxConformanceTests
         ["flux:switch/Validate"] = "the Livewire component's rule for the `wire:model` property",
         ["flux:switch/AfterBind"] = "Livewire's `updated…` hook of the `wire:model` property",
         ["flux:switch/ShowValidation"] = "whether the shorthand field draws its `flux:error`: false is Flux's control written inside a `flux:field` of your own",
+        ["flux:slider/Bind"] = "`wire:model`, two-way",
+        ["flux:slider/Value"] = "`wire:model` read one way (or the `value` attribute Flux's range example sets); OnChange is the other way",
+        ["flux:slider/OnChange"] = "`wire:model`'s write, handed to the parent",
+        ["flux:slider/Validate"] = "the Livewire component's rule for the `wire:model` property",
+        ["flux:slider/AfterBind"] = "Livewire's `updated…` hook of the `wire:model` property",
+        ["flux:slider/ShowValidation"] = "whether the control draws its `flux:error`: false is Flux's control written inside a `flux:field` of your own",
+        ["flux:slider/Disabled"] = "the range <input>'s own `disabled`, forwarded to each thumb's input",
+        ["flux:otp/Bind"] = "`wire:model`, two-way",
+        ["flux:otp/OnChange"] = "`wire:model`'s write, handed to the parent",
+        ["flux:otp/Validate"] = "the Livewire component's rule for the `wire:model` property",
+        ["flux:otp/AfterBind"] = "Livewire's `updated…` hook of the `wire:model` property",
+        ["flux:otp/ShowValidation"] = "whether the shorthand field draws its `flux:error`: false is Flux's control written inside a `flux:field` of your own",
+        ["flux:otp/Label"] = "`label`, which Flux's \"Example usage\", \"Alphanumeric\" and \"Private\" examples set and its reference omits",
+        ["flux:otp/DescriptionTrailing"] = "`description:trailing`, which Flux's \"Alphanumeric\" example sets and its reference omits",
+        ["flux:otp/Name"] = "the forwarded native `name` attribute: what the code posts under, on the one field that carries it",
+        ["flux:otp/Disabled"] = "the <input>'s own `disabled`, forwarded to every cell",
+        ["flux:otp/OnComplete"] = "`submit=\"auto\"` with the form's `wire:submit`: what runs when the last cell is filled",
         ["flux:checkbox/Icon"] = "`icon`, which Flux's \"Cards with icons\" and \"Buttons\" examples set and its reference omits",
         ["flux:checkbox/Attributes"] = "the attributes Flux forwards to the control (`name`, as its radio example writes; `aria-label`, `required`): the root is a <label> around the real <input>, which is where they belong, so the control declares the bag",
         ["flux:radio/Attributes"] = "the attributes Flux forwards to the control (`name`, as its radio example writes; `aria-label`, `required`): the root is a <label> around the real <input>, which is where they belong, so the control declares the bag",
