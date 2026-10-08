@@ -273,23 +273,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string DropdownPosition(Ui.Position value) => value switch
-    {
-        Ui.Position.Top => "dropdown-top",
-        Ui.Position.Bottom => "dropdown-bottom",
-        Ui.Position.Left => "dropdown-left",
-        Ui.Position.Right => "dropdown-right",
-        _ => "",
-    };
-
-    internal static string DropdownAlign(Ui.Align value) => value switch
-    {
-        Ui.Align.Start => "dropdown-start",
-        Ui.Align.Center => "dropdown-center",
-        Ui.Align.End => "dropdown-end",
-        _ => "",
-    };
-
     internal static string SwapAnimation(Ui.SwapAnimation value) => value switch
     {
         Ui.SwapAnimation.Rotate => "swap-rotate",
@@ -463,15 +446,5 @@ internal static class UiClassNames
         Ui.Size.Lg => "w-16",
         Ui.Size.Xl => "w-24",
         _ => "w-10",
-    };
-
-    internal static string MegamenuSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "megamenu-xs",
-        Ui.Size.Sm => "megamenu-sm",
-        Ui.Size.Md => "megamenu-md",
-        Ui.Size.Lg => "megamenu-lg",
-        Ui.Size.Xl => "megamenu-xl",
-        _ => "",
     };
 }

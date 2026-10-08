@@ -147,6 +147,72 @@ public sealed class SessionTests
         return Sessions(harness).ResumeAsync(sessionId);
     }
 
+    [Fact]
+    public async Task A_claim_the_user_gives_for_itself_is_on_the_principal_a_sign_in_issues()
+    {
+        await using var harness = await ClaimedAsync();
+        await WearAsync(harness, "legacy_id", "42");
+        using var scope = harness.NewScope();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+
+        var outcome = await accounts.ValidateAsync(Owner, Password, client: null, TestContext.Current.CancellationToken);
+
+        Assert.Equal("42", outcome.Principal!.FindFirstValue("legacy_id"));
+    }
+
+    [Fact]
+    public async Task A_claim_the_user_gives_for_itself_survives_a_session_being_loaded_again()
+    {
+        await using var harness = await ClaimedAsync();
+        await WearAsync(harness, "legacy_id", "42");
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, persistent: false, cancellationToken: TestContext.Current.CancellationToken);
+
+        var loaded = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+        var fromTheCache = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+
+        Assert.Equal("42", loaded!.FindFirstValue("legacy_id"));
+        Assert.Equal("42", fromTheCache!.FindFirstValue("legacy_id"));
+    }
+
+    [Fact]
+    public async Task A_user_with_no_claims_of_its_own_carries_only_what_the_account_issues()
+    {
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, persistent: false, cancellationToken: TestContext.Current.CancellationToken);
+
+        var principal = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+
+        Assert.All(principal!.Claims, claim => Assert.True(AuthPrincipal.Issues(claim.Type), claim.Type));
+    }
+
+    [Theory]
+    [InlineData(ClaimTypes.Role)]
+    [InlineData(ClaimTypes.NameIdentifier)]
+    [InlineData("sid")]
+    [InlineData("rask:tenant")]
+    public async Task A_claim_the_account_issues_itself_is_not_the_users_to_give(string type)
+    {
+        await using var harness = await ClaimedAsync();
+        await WearAsync(harness, type, "admin");
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, persistent: false, cancellationToken: TestContext.Current.CancellationToken);
+
+        var refusal = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken));
+
+        Assert.Contains(type, refusal.Message, StringComparison.Ordinal);
+    }
+
+    private static async Task WearAsync(AuthHarness harness, string type, string value)
+    {
+        await using var db = harness.NewContext();
+        var owner = await db.Set<TestUser>().SingleAsync(u => u.Email == Owner, TestContext.Current.CancellationToken);
+        owner.Wear(type, value);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
     private static IAuthSessions Sessions(AuthHarness harness) =>
         harness.Services.GetRequiredService<IAuthSessions>();
 

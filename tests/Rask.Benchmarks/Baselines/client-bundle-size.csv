@@ -1,9 +1,10 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
-# Refreshed 2026-10-08 with the pager's scroll hook (rask-scroll.ts, data-rask-scroll-to): rask-hooks.js
-# 37,124 -> 37,367 (+243), and +10 on rask.js (94,135 -> 94,145) and rask.wasm.js (82,993 -> 83,003) for its
-# name in the loader's attribute list. The hook itself is in the bundle a page asks for, not in the runtimes.
+# Refreshed 2026-10-08 with Flux's menus, whose script is in the CORE runtime (the menu block of rask-dom.ts:
+# roving focus that follows `data-active`, Enter / Space on the focused row, focus handed back after a press
+# outside, the context menu fitted by where it landed and its position kept in a constructable sheet):
+# rask.js 94,135 -> 95,581 and rask.wasm.js 82,993 -> 84,439, +1,446 bytes each; rask-hooks.js is unchanged.
 #
 # Refreshed 2026-10-07 when the behaviour hooks became a bundle of their own, loaded on demand
 # (rask-hook-loader.ts): rask.js 129,658 -> 94,135 and rask.wasm.js 118,437 -> 82,993, with rask-hooks.js at
@@ -79,6 +80,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,94145
-rask.wasm.js,83003
-rask-hooks.js,37367
+rask.js,95581
+rask.wasm.js,84439
+rask-hooks.js,37124
