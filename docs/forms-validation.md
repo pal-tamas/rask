@@ -199,7 +199,7 @@ check is in flight:
 Validation.Indicator.Template(() => Span.Class("spinner")["Checking…"]).For(() => _model.Username)
 ```
 
-A bound `Rask.Ui` field still drawn from `UiFormField<T>` (`Ui.Otp`, `Ui.FileInput`,
+A bound `Rask.Ui` field still drawn from `UiFormField<T>` (`Ui.FileInput`,
 `Ui.DatePicker`) renders this for you, as a small spinner with an announced "Checking…" under the control,
 next to its own validation message. Place a `Validation.Indicator` yourself beside a raw `Input`, beside
 the kit's Flux-drawn fields (`Ui.Input`, `Ui.Textarea`, `Ui.Select`, the checkbox, radio and switch), which draw none, or when a kit field

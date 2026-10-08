@@ -332,10 +332,10 @@ A selected toggle is `.AriaPressed(AriaPressed.True)` on the variant that reads 
 ## The three axes
 
 On the components daisyUI still draws, colour, fill and size are independent and compose, so a small
-error-toned range needs no member of its own:
+error-toned file input needs no member of its own:
 
 ```csharp
-Ui.Range.Bind(() => settings.Volume).Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
+Ui.FileInput.Bind(() => profile.Avatar).Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
 ```
 
 | Enum | Members |
@@ -954,7 +954,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
@@ -1781,7 +1781,8 @@ Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]           
 
 ```csharp
 Ui.Slider.Bind(() => m.Amount).Min(0).Max(100).Step(10)                  // int, long, float, double or decimal
-Ui.Slider.Bind(() => m.Radius).Label("Corner radius").Description("In pixels.")   // a field: label, help, error
+Ui.Slider.Bind(() => m.Amount).Max(1000).Step(1).BigStep(100)            // Shift+Arrow and Page Up / Down move by 100
+Ui.Field[Ui.Label["Corner radius"], Ui.Slider.Bind(() => m.Radius)]      // a label is the field's, as in Flux
 Ui.Slider.Bind(() => m.Price).Range().Max(990).Step(10).MinStepsBetween(10)       // two thumbs: int[] Price = [200, 800]
 Ui.Slider.Value(level).Min(1).Max(5).OnChange(v => { level = v; })[
     Ui.SliderTick.Value(1)["Low"], Ui.SliderTick.Value(3)["Mid"], Ui.SliderTick.Value(5)["High"]
@@ -1799,18 +1800,21 @@ Ui.Slider.Value(level).Min(1).Max(5).Inside.TrackClass("h-5").ThumbClass("size-6
   on the track moves the nearer one.
 - **The browser does the moving.** Each thumb holds a real `<input type="range">`, invisible and laid over the
   stretch of track that thumb can reach: dragging, a press on the track, the arrow keys, Page Up / Page Down (a
-  tenth of the track) and Home / End are native, and so is the accessible name — a `<label for>` from `Label`
-  or the `Ui.Field` around it. A range's two inputs say `aria-valuetext="200 start range"` / `"800 end range"`
-  and carry their neighbour as their own `max` / `min`. No script.
+  tenth of the track) and Home / End are native. A range's two inputs say `aria-valuetext="200 start range"` /
+  `"800 end range"` and carry their neighbour as their own `max` / `min`.
+- **`BigStep`** is Flux's `big-step`: how far Shift with an arrow key moves the thumb, and Page Up / Page Down
+  with it. It is the one thing a range input cannot do alone, so the input carries `data-rask-big-step` and
+  the [runtime](js-interop-runtime.md#behaviour-hooks-data-rask-) steps it. Unset, Shift changes nothing and
+  the Page keys stay the browser's — which is what Flux's slider does too.
+- **A label is the field's.** Flux's slider takes no `label` of its own, and neither does this one: put it in a
+  `Ui.Field` with a `Ui.Label` (and a `Ui.Description`), and every thumb is named by that label
+  (`aria-labelledby`) and described by the rest. A bound slider outside a field still shows its own message.
 - **Ticks** are `Ui.SliderTick.Value(n)` children: a line, a `.Dot`, or whatever you put inside. They sit under
   the track, or on it with `.Inside` (`TickPosition`). Each carries `data-active` while the fill reaches it and
   `data-current` while a thumb is on it, and pressing one moves the thumb there.
 - **`TrackClass` and `ThumbClass`** style the two parts. A `size-6` or `size-[22px]` in `ThumbClass` is also
   where the fill and the ticks learn the thumb's size (`--ui-slider-thumb`, 1rem unless set).
-- **Not built:** Flux's `big-step` — Shift+Arrow moving by a second step size. The thumb is a native range input,
-  which has one step, and the runtime cancels no key; it waits for a runtime hook. Page Up / Page Down are the
-  browser's larger step meanwhile.
-- **Gone with daisyUI's range:** `Ui.Range` itself, `Tone`, `Size`, `Vertical`, and `Label` as a required step.
+- **Gone with daisyUI's range:** `Ui.Range` itself, `Tone`, `Size`, `Vertical` and `Label`.
 
 **`Ui.Otp` is Flux UI's OTP input.** One real text input per character
 ([fluxui.dev/components/otp-input](https://fluxui.dev/components/otp-input)), and the code they spell bound as one
@@ -1830,20 +1834,29 @@ Ui.Otp.Bind(() => m.Code)[
 
 - **`Length` draws the cells**, or place `Ui.OtpInput`, `Ui.OtpSeparator` and `Ui.OtpGroup` yourself and they are
   counted (`Length` is then ignored). A group joins its cells into one box.
+- **The keys are Flux's, key for key.** A character moves on to the next cell and typing over a filled cell
+  replaces it; Backspace deletes and steps back, Delete closes the row up from where it is; the arrow keys
+  walk the cells and stop at the first empty one, and a press past it lands on it; a pasted code — or the one
+  the phone offers — fills the cells from the first, keeping only what the `Mode` takes. Typing as fast as a
+  keyboard allows loses nothing: no key waits for a round trip.
+- **How.** The cells are the browser's while they are typed into. The group carries `data-rask-otp` and the
+  [runtime](js-interop-runtime.md#behaviour-hooks-data-rask-) moves between them inside the key's own event; the
+  cells are rendered with no `value` and no handler, and ONE `<input type="hidden">` inside the group carries
+  the code. That field is what `Bind` / `Value` + `OnChange` see, and `Name` is its `name`, so a plain form
+  posts the code once. Set the bound string yourself — clear a wrong code — and the cells follow.
 - **The code has no gaps** and holds only what the `Mode` takes — digits, or `.Alphanumeric` / `.Alpha` with
-  letters upper-cased. Emptying a cell closes the row up.
-- **`OnComplete`** runs with the code each time its last cell is filled, bound or controlled. It is the
-  translation of Flux's `submit="auto"`: submit, verify or navigate from it.
+  letters upper-cased in the value, as Flux's are. (A cell goes on showing a letter in the case it was typed
+  in, where Flux's shows the capital: the runtime's hook does not change case yet.)
+- **`OnComplete`** runs with the code each time its last cell is filled, bound or controlled. It stands where
+  Flux's `submit="auto"` submits the form: submit, verify or navigate from it. The form itself is not
+  submitted for you.
 - **Markup is Flux's:** a `role="group"` named by the field's label, each cell named "Character 2 of 6", one tab
   stop (the first empty cell), `autocomplete="one-time-code"` on the first cell (`Autocomplete("off")` to stop
   the browser offering a code), `inputmode="numeric"` for digits, `type="password"` with `Private()`.
-- **What needs script is not here.** Flux moves focus to the next cell as a character lands, walks the cells
-  with Backspace and the arrow keys, and selects a cell's character on focus — all in its own script, and the
-  kit ships none. Without it: Tab moves to the next cell, and a code typed straight through, pasted, or offered
-  by the phone in ONE cell fills the cells after it (that cell shows what was typed until focus leaves it). It
-  waits for a runtime hook that moves focus between the cells of a `[data-ui-otp]`.
+  `Label` and `DescriptionTrailing` are the ones Flux's examples set; an invalid code is the bound member's
+  message (every cell is marked), and `Disabled()` disables every cell.
 - **Gone with daisyUI's `otp`:** the single input drawn as several, `Joined` (now `Ui.OtpGroup`), `Tone`, `Size`,
-  `Hint` (now `Description` / `DescriptionTrailing`), `Badge` and `AccessibleLabel`; `Length` is no longer required.
+  `Hint` (now `DescriptionTrailing`), `Badge` and `AccessibleLabel`; `Length` is no longer required.
 
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two
@@ -1853,9 +1866,9 @@ of them says anything about `T`. Bound mode drives the surrounding `Form`'s vali
 `Validate`, `AfterBind`, and the `aria-invalid`/`aria-describedby` display — and controlled mode leaves
 the value with the parent. See [building form controls](building-form-controls.md).
 
-**The controls still on daisyUI share one field shape.** `Ui.Otp`,
-`Ui.FileInput` and the date pickers all take the same members from
-`UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input`, `Ui.Textarea`, `Ui.Select`, the checkbox, the radio and the switch have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
+**The controls still on daisyUI share one field shape.** `Ui.FileInput` and the date pickers all take the same
+members from `UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input`, `Ui.Textarea`, `Ui.Select`, the
+checkbox, the radio, the switch, the slider and the OTP input have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
 without one, an invisible `AccessibleLabel`; a `Hint` and a controlled `Error` under it; an `Id`, derived from the
 bound member or the label when you give none; and `aria-describedby`, `aria-invalid` and `aria-required` worked out
 from those and from the bound member's `[Required]` and messages. `Label` is never a required step, so write it
@@ -1865,7 +1878,7 @@ anywhere after the opening — `Ui.Select.Value(plan).Options(plans).Label("Plan
 `UiSlider<T>`, `UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `Ui.Input` even
 takes its `type` attribute from `T`, so a bound `int` is a number field with nothing said at the call
 site. `UiRadioGroup<T>` and `UiCheckboxGroup<T>` are generic over what a choice holds. The rest are closed over
-the one type they can have: `Ui.Checkbox` and `Ui.Switch` over `bool`, `Ui.Range` over `double`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,
+the one type they can have: `Ui.Checkbox` and `Ui.Switch` over `bool`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,
 `Ui.Calendar` over `DateOnly`. A checkbox's value is a `bool` and nothing else; a type parameter there
 would have exactly one legal argument.
 
@@ -1877,8 +1890,9 @@ would have exactly one legal argument.
 | `UiRadioGroup<T>` | the value of the chosen `Ui.Radio` |
 | `UiCheckboxGroup<T>` | the ELEMENT type — it binds an `ICollection<T>` of the ticked checkboxes' values |
 | `Ui.Checkbox` `Ui.Switch` | on or off |
-| `Ui.Range` `Ui.Rating` `Ui.Calendar` | the position, the star count, the day |
-| `Ui.Otp` | the code — `OnComplete` fires on the transition into a full one, in both modes |
+| `UiSlider<T>` | the number under the thumb, or an array of the two under a range's thumbs |
+| `Ui.Rating` `Ui.Calendar` | the star count, the day |
+| `Ui.Otp` | the code — `OnComplete` runs each time its last cell is filled, in both modes |
 | `Ui.FileInput` | the chosen file's name, **write-only** — a browser refuses to have a file input's value set, so binding fills the model and never the box. The bytes come through `OnFiles`. |
 
 
@@ -1929,7 +1943,7 @@ was clicked first. So a bound model never holds half a range. `default(UiDateRan
 
 **`Ui.DatePicker` is the field.** A field-shaped button showing the choice in the reader's short date format, with
 the grid in a popover — the browser's, so the top layer, Escape, a click outside and focus back on the button
-come with it. It is a form field like `Ui.Otp` (`Label`, `Hint`, `Error`, `Badge`, validation), and it takes the
+come with it. It is a form field like `Ui.FileInput` (`Label`, `Hint`, `Error`, `Badge`, validation), and it takes the
 same three openings: one day closes the popover on the pick, several days keep it open while they are added, and
 a range closes on the click that gives it its end.
 

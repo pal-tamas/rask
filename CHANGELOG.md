@@ -413,32 +413,36 @@ them until tagged releases begin.
 - **BREAKING: `Ui.Slider` and `Ui.Otp` are Flux's; `Ui.Range` is gone.** Flux UI's `flux:slider`
   (+ `flux:slider.tick`) and `flux:otp` (+ `.input`, `.separator`, `.group`): the same props, look and
   `data-ui-*` markers, over Rask's binding, measured against its docs in light and dark. Neither is drawn
-  with daisyUI any more.
+  with daisyUI any more, and daisyUI's `range` and `otp` are out of the kit's sheet.
   ```csharp
   Ui.Range.Bind(() => m.Volume).Label("Volume").Min(0).Max(100).Step(5)        // was — over double only
-  Ui.Slider.Bind(() => m.Volume).Label("Volume").Min(0).Max(100).Step(5)       // now — int, long, float, double or decimal
+  Ui.Field[Ui.Label["Volume"],
+      Ui.Slider.Bind(() => m.Volume).Min(0).Max(100).Step(5)]                  // now — int, long, float, double or decimal
   Ui.Range.Value(v).Label("Volume").Tone(Ui.Tone.Accent).Size(Ui.Size.Sm).Vertical()   // was
-  Ui.Slider.Value(v).Label("Volume").TrackClass("h-1").ThumbClass("size-3")            // now — Flux has no tone, size or vertical
+  Ui.Slider.Value(v).TrackClass("h-1").ThumbClass("size-3")                            // now — Flux has no tone, size or vertical
   Ui.Otp.Bind(() => m.Code).Length(6).Label("Code").Hint("Sent to your phone").Joined()     // was — one input drawn as six
   Ui.Otp.Bind(() => m.Code).Label("Code").DescriptionTrailing("Sent to your phone")[        // now — a text input per character
       Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput]]
   ```
   **Slider.** New: a range over an array of two (`Ui.Slider.Bind(() => m.Price).Range()` with `int[] Price`,
-  replaced by a new array on every change), `MinStepsBetween`, `Ui.SliderTick` children (a line, `.Dot`, or a
-  label; `TickPosition` `.Inside` draws them on the track; pressing one moves the nearer thumb), `TrackClass`,
-  `ThumbClass`, `Disabled()`, and `Label` / `Description` / `DescriptionTrailing` as a `Ui.Field`. `Label` is
-  no longer required. The value now follows the thumb WHILE it moves (`OnChange` / the bound member on every
-  step, not on release). Each thumb holds a real `<input type="range">` laid over the track it can reach, so
-  dragging, a press on the track, the arrow keys, Page Up / Page Down and Home / End are the browser's own and
-  need no script. Flux's `big-step` (Shift+Arrow) is not built: it needs a key the runtime can cancel.
-  **OTP.** New: `Mode` (`.Alphanumeric`, `.Alpha`; letters upper-cased), `Private()`, `Autocomplete`,
-  `Invalid()`, `Disabled()`, and `Ui.OtpInput` / `Ui.OtpSeparator` / `Ui.OtpGroup` to lay the cells out.
-  `Length` is optional (placed cells are counted), `OnComplete` runs every time the last cell is filled, and
-  `Joined`, `Tone`, `Size`, `Hint`, `Badge` and `AccessibleLabel` are gone. The cells are real text inputs
-  named "Character 2 of 6" with one tab stop, as Flux's are. What Flux's script does and no markup can —
-  moving focus to the next cell as a character lands, Backspace and the arrow keys walking the cells,
-  selecting a cell's character on focus — is NOT here: Tab moves between cells, and a code typed or pasted
-  straight into one cell fills the cells after it.
+  replaced by a new array on every change), `MinStepsBetween`, `BigStep` (Flux's `big-step`: Shift with an arrow
+  key, and Page Up / Page Down, move by it — `data-rask-big-step` on the range input, stepped by the runtime),
+  `Ui.SliderTick` children (a line, `.Dot`, or a label; `TickPosition` `.Inside` draws them on the track;
+  pressing one moves the nearer thumb), `TrackClass`, `ThumbClass` and `Disabled()`. It takes no `Label` of its
+  own, as Flux's does not: a `Ui.Field` with a `Ui.Label` around it names every thumb (`aria-labelledby`). The
+  value now follows the thumb WHILE it moves (`OnChange` / the bound member on every step, not on release).
+  Each thumb holds a real `<input type="range">` laid over the track it can reach, so dragging, a press on the
+  track, the arrow keys, Page Up / Page Down and Home / End are the browser's own.
+  **OTP.** New: `Mode` (`.Alphanumeric`, `.Alpha`; letters upper-cased in the value), `Private()`,
+  `Autocomplete`, `Name`, `Disabled()`, and `Ui.OtpInput` / `Ui.OtpSeparator` / `Ui.OtpGroup` to lay the cells
+  out. `Length` is optional (placed cells are counted), `OnComplete` runs every time the last cell is filled
+  (where Flux's `submit="auto"` submits the form), and `Joined`, `Tone`, `Size`, `Hint`, `Description`, `Badge`,
+  `Invalid` and `AccessibleLabel` are gone — an invalid code is the bound member's message. The cells are real
+  text inputs named "Character 2 of 6" with one tab stop, as Flux's are, and every key is Flux's: a character
+  moves on, typing over a filled cell replaces it, Backspace steps back, the arrows stop at the first empty
+  cell, a pasted code fills from the first. The group carries `data-rask-otp`, the cells are rendered with no
+  value and no handler, and one hidden field inside the group carries the code — that is what binds, so fast
+  typing drops nothing.
 - **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
   `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
   `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the
