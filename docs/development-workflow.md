@@ -161,7 +161,7 @@ scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
 scripts/run-all-gates.sh --list              # every gate, and what it needs
 ```
 
-On `main` the next push does not cancel a run in progress, so "which push broke it" has an answer.
+On `main` every push gets its own run, started at once and never cancelled, so "which push broke it" has an answer.
 
 ### Trying a change first
 
