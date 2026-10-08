@@ -194,6 +194,24 @@ before it is saved, in the same insert; the scaffolded register page uses it for
 await auth.Register(model.Email, model.Password, (User user) => user.Rename(model.DisplayName), ReturnUrl);
 ```
 
+**Give it claims of its own.** The principal carries the id, the name, the address, the roles, the session and
+the tenant. Anything else your pages or policies read off the signed-in user, the user says itself:
+
+```csharp
+public sealed class User : Authenticatable
+{
+    public int LegacyId { get; private set; }
+
+    protected override IEnumerable<Claim> Claims() =>
+        [new("legacy_id", LegacyId.ToString(CultureInfo.InvariantCulture))];
+}
+```
+
+They are on the principal a sign-in issues, in a bearer token, and on a session each time it is loaded again —
+so a live page still has them after a reconnect, and a change to the row reaches a signed-in user within half
+a minute. A claim the account issues itself is not yours to give: returning a role, the id or the tenant
+throws, naming it. Roles go through `GrantRole`.
+
 **Nothing has to name it.** A source generator finds the one `Authenticatable` in your project, so
 `AddRaskAuth()` and `modelBuilder.AddRaskAuth()` take no type argument. Two user types is
 [RASK074](diagnostics.md#rask074). Declare none and you have no accounts, and auth is not wired. An app that
