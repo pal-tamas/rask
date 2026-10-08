@@ -162,6 +162,29 @@ them until tagged releases begin.
   reports a scroll-snapping track's position to its arrows and indicators. Invoker commands
   (`command="show-modal"`) work in engines without them, and Enter toggles a `role="switch"` checkbox. An
   attribute a hook writes is held against the morph. The runtime grows by 23.5 kB (6.8 kB gzipped).
+- **`Ui.Editor` — Flux's rich text editor.** A toolbar over an editable area whose value is HTML, drawn and
+  behaving as [Flux's](https://fluxui.dev/components/editor) does: `Ui.Editor.Bind(() => post.Body)
+  .Label("Release notes")`, or `Value` with `OnChange`; `Placeholder`, `Disabled`, `Invalid`, and
+  `Toolbar("heading | bold italic underline | align ~ undo redo")` over the sixteen items Flux documents
+  (heading, bold, italic, strike, underline, bullet, ordered, blockquote, subscript, superscript, highlight,
+  link, code, align, undo, redo). Each item is a part too (`Ui.EditorBold` … `Ui.EditorSeparator`,
+  `Ui.EditorSpacer`), beside `Ui.EditorToolbar`, `Ui.EditorContent` and `Ui.EditorButton` for a button of
+  the app's own, so a toolbar can be composed. Shortcuts and Markdown input rules are Tiptap's. The engine
+  is Tiptap 2.11.7 on ProseMirror (MIT), bundled into one script that is **not** in Rask's runtime or the
+  kit's assembly: an app's build writes `wwwroot/js/rask-ui-editor.js` (374 KB, 117 KB gzipped) with no
+  setting asked for, as Flux's editor asks for none, and the browser fetches it the first time an editor
+  mounts — on a Server app and a browser-WASM app alike — so a page without an editor never requests it
+  (`<RaskUiEditorEngine>false</RaskUiEditorEngine>` keeps the file out of an app that will never draw one). The editable area is an opaque subtree, so
+  a re-render never touches what is being typed. The value is the user's HTML and is written into the
+  page as given: sanitize it before storing or rendering it (`docs/ui-kit.md#rich-text-editor`).
+  `scripts/flux/parity-editor.mjs` holds the editor in use to Flux's live one, observation for observation.
+  With it, `Ui.Tooltip`'s wrapper takes its `inline-flex` from the kit's sheet instead of its class list, as
+  Flux's does (a toolbar's tooltips are `contents`), so a display written in `Class` wins; a button's own
+  `Tooltip` still writes `inline-flex`. An editor whose engine cannot be loaded keeps its value as plain
+  markup, leaves the page live on a Server app too, and names the missing file in the browser's console. The
+  notices of what it draws on — Tiptap and ProseMirror (MIT), and Lucide 0.300.0 (ISC) for eleven toolbar
+  icons — are `rask-ui-editor.LICENSES.txt`, in the package and written beside the script in `wwwroot/js`.
+
 - **Inline style as typed CSS.** `Css` has a step for every CSS property browsers ship — 455, generated
   from MDN's data (`@webref/css` for the grammars, browser-compat-data for what two engines ship) —
   and `Style` takes one wherever it takes text: `Div.Style(Css.Position().Sticky.Top(0.Px))`. A
@@ -365,6 +388,57 @@ them until tagged releases begin.
   fluxui.dev — the popup's look and placement on the parity page, and `--live <url>` walks the keyboard on a
   running site. RASK075 (an option template on a native select) is retired with its analyzer: there is no
   `OptionTemplate` or `Native` left to contradict each other, and the id is not recycled.
+- **BREAKING: `Ui.Checkbox`, `Ui.Radio` and `Ui.Switch` are Flux's; `Ui.Toggle` is `Ui.Switch`.** Flux UI's
+  `flux:checkbox` (+ `.group`, `.all`, `.indicator`), `flux:radio.group` / `flux:radio` / `flux:radio.indicator`
+  and `flux:switch`: the same parts, props, look and `data-ui-*` markers, over Rask's binding. A checkbox or a
+  switch binds a `bool` (a checkbox a `bool?` too: `null` draws the dash); a radio group binds one value of any
+  type and a checkbox group the collection your model declares. **The choices are the group's children**, as in
+  Flux, not an `Options` list — each `Ui.Radio` / `Ui.Checkbox` carries the `Value` the group binds, with its own
+  `Label`, `Description`, `Icon` and `Disabled`. The group's variant draws them as cards, pills, buttons or (a
+  radio group) one segmented strip; `Ui.CheckboxAll` ticks or clears a group; `Ui.CheckboxIndicator` and
+  `Ui.RadioIndicator` place the box or the dot in a card laid out by hand. Every one is a `<label>` around a real
+  input that is out of sight, so the space bar, a radio group's arrow keys and the form post are the browser's:
+  ```csharp
+  Ui.Checkbox.Bind(() => m.Agreed)["I agree"]                                                    // was
+  Ui.Checkbox.Bind(() => m.Agreed).Label("I agree")                                              // now
+
+  Ui.Checkbox.Value(on).OnChange(v => on = v)["Remember me"]                                     // was
+  Ui.Checkbox.Checked(on).OnChange(v => on = v).Label("Remember me")                             // now
+
+  Ui.Toggle.Value(on).Size(Ui.Size.Sm).OnChange(v => on = v)["Email alerts"]                     // was
+  Ui.Switch.Value(on).OnChange(v => on = v).Label("Email alerts").Left                           // now
+
+  Ui.RadioGroup.Bind(() => m.Plan).Options([("free", "Free"), ("pro", "Pro")]).Label("Plan")     // was
+      .Layout(Ui.ChoiceLayout.Cards).OptionDescription(v => v == "pro" ? "Billed monthly" : null)
+  Ui.RadioGroup.Bind(() => m.Plan).Label("Plan").Cards[                                          // now
+      Ui.Radio.Value("free").Label("Free"),
+      Ui.Radio.Value("pro").Label("Pro").Description("Billed monthly")
+  ]
+
+  Ui.CheckboxGroup.Bind(() => m.Topics).Options(topics).Label("Email me about").CheckAll()       // was
+  Ui.CheckboxGroup.Bind(() => m.Topics).Label("Email me about")[                                 // now
+      Ui.CheckboxAll.Label("Everything"),
+      Ui.Checkbox.Value("news").Label("News"),
+      Ui.Checkbox.Value("jobs").Label("Jobs")
+  ]
+
+  Ui.Radio.Value(shipping is "express").Text("Express").Group("shipping").OnChange(…)            // was
+  Ui.RadioGroup.Value(shipping).OnChange(v => shipping = v)[Ui.Radio.Value("express").Label("Express"), …]   // now
+  ```
+  `Ui.ChoiceLayout` is `Ui.RadioGroupVariant` / `Ui.CheckboxGroupVariant` (`List` → `Default`), reached as the
+  steps `.Cards`, `.Pills`, `.Buttons`, `.Segmented`; `Ui.RadioGroup` gains `Size` (`.Sm`) and
+  `Indicator(false)`, a checkbox `Indeterminate()` and `Invalid()`, a switch `Align` (`.Left`). On a checkbox
+  `Value` is now the value it stands for in a group and `Checked` its state. Removed with no replacement: `Tone`
+  and `Size` on the checkbox, radio and switch, a radio bound to its own `bool`, `OptionDisabled` (say
+  `Disabled()` on the choice), `CheckAllLabel` (say `Label` on `Ui.CheckboxAll`), and the groups' `Hint`,
+  `Error`, `Badge`, `AccessibleLabel` and floating label. `Id` on a checkbox, radio or switch lands on the
+  `<input>`, which is no longer the element a pointer hits: a browser test presses the label
+  (`label:has(> #id)`). A switch's input says `role="switch"`, and the runtime flips it on Enter as Flux's
+  does. What Flux forwards to the control goes through `Attributes` on a checkbox, radio or switch
+  (`.Attributes(("name", "role"))`, `("aria-label", "Select row")`) and lands on the `<input>`; there is no
+  `Name` step, and a radio group names its radios after its own id. ARIA is Flux's, read from its live page: an
+  indeterminate checkbox is marked `data-indeterminate` and says nothing more (no `aria-checked="mixed"`).
+  A control with no id, binding or label gets an id of its own (`f-field-<n>`), as the input does.
 - **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
   `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
   `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the

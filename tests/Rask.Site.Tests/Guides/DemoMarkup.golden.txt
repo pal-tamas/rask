@@ -313,9 +313,16 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .mb-3
-label .cursor-pointer .gap-2 .label
-input .checkbox
-span
+div .[&amp;&gt;[data-ui-control]~[data-ui-description]]:col-start-2 .[&amp;&gt;[data-ui-control]~[data-ui-error]]:col-start-2 .[&amp;&gt;[data-ui-error]]:mt-1 .[&amp;&gt;[data-ui-label]~[data-ui-control]]:col-start-2 .[&amp;&gt;[data-ui-label]~[data-ui-control]]:row-start-1 .[&amp;&gt;[data-ui-label]~[data-ui-error]]:col-start-1 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .gap-x-3 .gap-y-1.5 .grid .has-[&gt;[data-ui-control]~[data-ui-label]]:grid-cols-[auto_1fr] .has-[&gt;[data-ui-label]~[data-ui-control]]:grid-cols-[1fr_auto] .min-w-0
+label .cursor-auto .flex .group/option .has-[:focus-visible]:[outline:auto_1px_-webkit-focus-ring-color] .mt-px .outline-offset-2 .rounded-[.3rem] .size-[1.125rem]
+input .sr-only
+div .bg-white .border .border-zinc-300 .dark:bg-white/10 .dark:border-white/10 .dark:group-has-disabled/option:border-white/5 .dark:text-zinc-800 .flex .group-[[data-invalid]:not(:has(:checked))]/option:border-red-500 .group-data-indeterminate/option:bg-fx-accent .group-data-indeterminate/option:border-transparent .group-data-indeterminate/option:group-has-disabled/option:border-transparent .group-data-indeterminate/option:group-has-disabled/option:opacity-50 .group-data-indeterminate/option:shadow-none .group-has-checked/option:bg-fx-accent .group-has-checked/option:border-transparent .group-has-checked/option:group-has-disabled/option:border-transparent .group-has-checked/option:group-has-disabled/option:opacity-50 .group-has-checked/option:shadow-none .group-has-disabled/option:border-zinc-200 .group-has-disabled/option:opacity-75 .group-has-disabled/option:shadow-none .items-center .justify-center .rounded-[.3rem] .shadow-xs .shrink-0 .size-[1.125rem] .text-sm .text-zinc-700
+svg .[:where(&amp;)]:size-4 .group-data-indeterminate/option:group-has-checked/option:hidden .group-has-checked/option:block .hidden .shrink-0 .text-fx-accent-foreground
+path
+svg .[:where(&amp;)]:size-4 .group-data-indeterminate/option:block .hidden .shrink-0 .text-fx-accent-foreground
+path
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .mb-3
 div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
 label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800

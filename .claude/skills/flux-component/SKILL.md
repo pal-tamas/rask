@@ -128,6 +128,15 @@ label themselves. The recipe (`UiInput.cs` and `UiTextarea.cs` are the two to co
 5. Class literals shared by a generic control live in a non-generic `internal static class UiXLook` (a static in
    `UiX<T>` is one copy per `T`, S2743). An enum member named after a tag (`Button`, `Input`) is not reachable as a
    step — the component inherits the markup entry of that name — so it is `.As(Ui.InputAs.Button)`.
+6. A control Flux writes as a custom element WITH PARTS INSIDE (`ui-checkbox`, `ui-radio`, `ui-switch`) cannot be the
+   `<input>` itself, which holds nothing: the root is a `<label>` around the real input (`sr-only`, never `hidden`),
+   and every part reads the input's own state — `has-checked:` on the root, `group-has-checked/option:` inside it
+   (`UiOptionLook.cs`). Where two states meet, write the rule for the pair with both variants stacked: two rules of
+   equal weight leave the winner to the order Tailwind prints them in. `parity.mjs`'s `HOLDS_INPUT` names the tags
+   whose label holds that one node Flux has none for.
+7. A GROUP whose choices are children (`UiRadioGroup<T>`, `UiCheckboxGroup<T>`) is the `IFormControl<T>`; it hands
+   the choices a scope through `Context.Provide` (current value, commit, variant) and they bind nothing themselves.
+   A prop that is Flux's `value` on a choice stays `Value` there, so the choice's own state is `Checked`.
 
 A custom element is written as the native one that behaves that way without script (`ui-label` → `<label for>`);
 `parity.mjs`'s `NATIVE` (by tag) and `NATIVE_PART` (by marker) tables name each pair, and a stand-in for a control
@@ -169,9 +178,10 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip kanban input textarea select autocomplete pillbox modal` today, plus the
+card accordion callout button toast badge tooltip kanban input textarea select autocomplete pillbox modal checkbox
+radio switch editor` today, plus the
 open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-modal.mjs`, `parity-select.mjs`,
-`parity-autocomplete.mjs` and `parity-pillbox.mjs`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
+`parity-autocomplete.mjs`, `parity-pillbox.mjs` and `parity-editor.mjs`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -238,6 +248,16 @@ open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-modal.mjs`,
   under the tooltip's marker) pair with `div`. `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
   `ui-modal` and `ui-close` (the wrapper of a modal, and of a button that closes it) pair with `div` too, and a
   root that is `display: contents` on both sides (a modal's trigger) anchors no offsets: it has no box.
+- **A component that is USED rather than shown** (the editor) is proved by a transcript: `node
+  scripts/flux/parity-editor.mjs` drives ONE scenario with real keys and a real pointer on Flux's live page and
+  on the Rask parity page (the kit's engine mounted on it), each step writing down what it observes — the
+  value, the events, a control's states, where a popover opened, what has focus, how every kind of node
+  computes — and the two transcripts must be equal line for line, in light and dark. Both pages settle a
+  frame or two after a click, so the script waits; a single differing line on one run that is gone on the
+  next is that, not the component (its waits are delays, not states — three runs in a row agreed on merging;
+  make them state-based the day one does not). In `parity.mjs` the editor's own elements (`ui-editor`,
+  `ui-toolbar`, `ui-editor-content`, and `ui-menu` for the stand-in) pair with `div` beside the select's, and
+  a `<path>` outside an `<svg>` is no node, as a `<template>` is none.
 - **Public API:** `python3 scripts/public-api/record.py src/Rask.Ui` builds and applies RS0016/RS0017 to
   both baselines (run it twice: a step exists only once its property compiles). It is the only such script.
 
@@ -315,8 +335,8 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   Parity stand-ins: Flux's spacer (the kit's `Ui.Spacer` carries no `data-ui-spacer`) and the subheading of
   the floating example. The Dashboard's queue sheet writes two layout
   classes (`DashboardIsKitOnlyTests.Allowed`), compiled by its own sheet.
-- Parity stand-ins still standing: none on the chart page; card page (fields, switches, the heading/text lines whose variant was
-  not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
+- Parity stand-ins still standing: none on the chart page; card page (fields, the heading/text lines whose variant was
+  not looked up — its switches are the real `Ui.Switch` now), table page (avatar, the dropdown and menu around the row button, pager), progress page
   (slider, as raw `ui-slider` markup). The field page's inputs and select and the input page's buttons are real
   now; the input page's `flux:select` inside a group is still a stand-in.
 - Tooltip: daisyUI's own is kept out of the sheet by `exclude: … tooltip` on the `@plugin` line in `ui.css`
@@ -348,6 +368,19 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - Pillbox: `Ui.PillboxTrigger.Clearable()`, a disabled pillbox and an invalid `Ui.PillboxInput` are drawn
   from the select's and the input's looks — no example on Flux's page shows them, so nothing measured them.
   A create row written before the options is DRAWN first and still comes last for the arrow keys.
+- Checkbox, radio, switch (2026-10-07): every radio of every variant is a NATIVE `<input type="radio">` sharing the
+  group's id as its `name`, so Flux's keys are the browser's and `data-rask-roving` is NOT written — recorded on
+  Flux's page for the list, segmented, cards, pills and buttons alike: all four arrows move AND choose, wrapping;
+  Home / End do nothing; Space chooses; Tab leaves the group. A checkbox flips on Space only (Enter does nothing, as
+  Flux's); a switch on Space and Enter — the `<input role="switch">` is what asks the runtime for Enter. ARIA is
+  Flux's live DOM and no more: an indeterminate checkbox (a check-all over some) is `data-indeterminate` on the
+  root with NO `aria-checked="mixed"` (Flux says `aria-checked="false"` there, which is what a native unticked box
+  says); groups say `role="group"` / `"radiogroup"` + `aria-labelledby`. `Attributes(…)` forwards to the `<input>`
+  (`name`, `aria-label`); `Name` was removed as non-Flux. Unmeasured, no example on Flux's pages: the INVALID look
+  (the unticked box takes the input's red-500 border), a disabled switch, `Ui.Switch` with `checked` (the card
+  page writes it; it is `Value(true)`). `flux:checkbox.indicator` is on Flux's page and not in its reference, so
+  `Ui.CheckboxIndicator` is in no `Built` row. `flux:switch`'s `align` lists `right|start` and `left|end` as one
+  option each: two enum members, two `NotTranslated` rows.
 - Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
   `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
   removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —
@@ -356,9 +389,34 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   until the Dashboard has a sheet of its own). daisyUI's `.badge` is STILL in the compiled sheet: the bare
   word stands in some sixty kit comments and identifiers (the last rule of section 4 was not applied) — reword them, then
   assert its absence in `UiStylesheetTests`.
+- Editor: the one component with an ENGINE. `Resources/editor/ui-editor.ts` (Tiptap pinned in
+  `package.json`, locked) is bundled by `Resources/editor/build.mjs` into the committed
+  `Resources/ui-editor.js`; after changing either, run `npm ci && node build.mjs` there — it rewrites
+  `UiEditorEngine.Version`, which `UiEditorTests` holds to the bundle's hash. There is NO switch, as Flux's has
+  none: `build/Rask.Ui.targets` copies the file to `wwwroot/js` of every app that references the kit (a Web
+  or WebAssembly SDK project; `RaskUiEditorEngine=false` opts one out, `=true` is for a host that is neither), and
+  `UiEditor.ts` — the kit's only scoped script — imports it when an editor mounts. Tiptap is the release
+  Flux's docs name; `prosemirror-model` is held at 1.25.1 because later ones re-serialise a `style`
+  attribute with a trailing semicolon, which is not the HTML Flux answers. Stand-ins on its parity page:
+  the `flux:dropdown` and `flux:menu` of "customization". Not measurable on Flux's page, so not proved:
+  the LOOK of the `subscript` / `superscript` / `highlight` / `code` buttons (Lucide icons, no shortcut hint —
+  what each DOES is in the transcript, by a control of that name made on both pages), the
+  look of `Invalid` (`aria-invalid:border-red-500` is a guess), a `Ui.EditorButton` with text, and h4–h6.
+  Its notices (`Resources/ui-editor.LICENSES.txt`, written by `build.mjs`; Tiptap's and Lucide's texts are
+  kept in `Resources/editor/notices/`) ship in the package and are written beside the script in `wwwroot/js`.
+  On the Server host it is pinned by `tests/Rask.Server.E2E.Tests/EditorOnServerTests.cs`. The `code` item is INLINE code:
+  observed on Flux's live `<ui-editor>` (a control named `data-editor="code"` runs `toggleCode` and shows
+  `aria-pressed` / `data-match`; the block is a separate control name, `code-block`), with the label "Code"
+  and the `Ctrl`+`E` of its shortcut table — the reference's one line, "Code block formatting", says otherwise
+  and no example renders the item, so what name the Blade item writes is the one thing not seen.
+- Tooltip wrapper display: measured on Flux's live pages — a plain `flux:tooltip` writes NO display class and
+  computes `inline-flex`, a button's own tooltip writes `inline-flex`, every toolbar tooltip of the editor
+  writes `contents`. So the default is a rule (`[data-ui-tooltip]{display:inline-flex}` in `@layer rask`,
+  below every utility), `Ui.Tooltip` writes only the call site's `Class`, and `Ui.Button` / `Ui.EditorButton`
+  pass `inline-flex` as Flux does. No `[:where(&)]:` was needed, and none is to be added for this.
 
 ## Runtime hooks that exist (Flux does it in script; the component writes the attribute)
-The kit ships no script. Rask's RUNTIME carries generic hooks keyed on attributes
+The kit ships no script but the editor's (`UiEditor.ts`, which only loads the engine). Rask's RUNTIME carries generic hooks keyed on attributes
 (`src/Rask.Core/Resources/rask-hooks.ts`, one module per concern; `docs/js-interop-runtime.md#behaviour-hooks-data-rask-`
 is the reference; `tests/Rask.Server.E2E.Tests/RuntimeHook*Tests.cs` pin each one to what Flux did). A
 component reaches Flux's behaviour by writing exactly these — never by a handler that round-trips:

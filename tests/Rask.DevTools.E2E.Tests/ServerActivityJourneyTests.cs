@@ -22,7 +22,9 @@ public sealed class ServerActivityJourneyTests(PlaywrightFixture playwright)
         await devTools.OpenPanelAsync();
         await devTools.ShowTabAsync("Renders");
 
-        await devTools.Panel.GetByRole(AriaRole.Checkbox, new() { Name = "Flash on the page" }).CheckAsync();
+        // The switch's input is out of sight inside the label that draws it: its words are what a reader presses.
+        await devTools.Panel.GetByText("Flash on the page").ClickAsync();
+        await Expect(devTools.Panel.GetByRole(AriaRole.Switch, new() { Name = "Flash on the page" })).ToBeCheckedAsync();
         await devTools.Page.WaitForFunctionAsync("() => localStorage.getItem('rask.devtools.flash') === 'on'");
         await devTools.Page.ClickAsync("#add-task");
 

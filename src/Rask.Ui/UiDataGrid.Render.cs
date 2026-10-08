@@ -177,7 +177,7 @@ public sealed partial class UiDataGrid<T, TKey>
         // keys it has.
         //
         // Of<bool>() rather than a value: the type argument is what makes the input a checkbox and
-        // OnChange a bool, the same way Ui.Checkbox opens.
+        // OnChange a bool.
         return Input
             .Of<bool>()
             .Checked(AllSelected(pageRows))

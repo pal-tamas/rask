@@ -1,136 +1,133 @@
+using System.Linq.Expressions;
+using Rask.Core.Components;
 using Rask.Core.Forms;
 
 namespace Rask;
 
 /// <summary>
-/// A set of choices where exactly one may be picked, bound as ONE field.
+/// Flux UI's radio group: a set of choices where exactly one may be chosen, bound as ONE field.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Flux UI's radio group. <see cref="UiRadio" /> is one option and binds its own <c>bool</c>; this binds the
-/// GROUP's value, so <c>.Bind(() =&gt; model.Plan)</c> is the whole field — which is what a form actually has.
-/// It is the control to reach for; a bare <see cref="UiRadio" /> is for a set the page assembles itself.
+/// <c>Ui.RadioGroup.Bind(() =&gt; model.Plan).Label("Plan")[Ui.Radio.Value(Plan.Free).Label("Free"), …]</c>
+/// binds the group's value, of any type. The radios are its children; each one's <c>Value</c> is what the
+/// member becomes when it is chosen. <c>.Value(x)</c> with <c>OnChange</c> leaves the value with the parent.
 /// </para>
 /// <para>
-/// <see cref="Layout" /> is the same set of looks Flux gives it: a list, cards with room for a description,
-/// pills, buttons, or one joined segmented strip. Every one of them keeps a real
-/// <c>&lt;input type="radio"&gt;</c> inside its label, so the browser's own grouping, the arrow keys, the space
-/// bar and the form post all still work — the look is CSS reading the input's own <c>:checked</c> state, never
-/// a <c>&lt;button&gt;</c> pretending to be a choice.
+/// <see cref="Variant" /> draws the same radios as one segmented strip, cards, pills or buttons. Every one of
+/// them keeps a real <c>&lt;input type="radio"&gt;</c>, so the arrow keys move and choose, wrapping at the
+/// ends, with no script.
 /// </para>
 /// </remarks>
-public sealed partial class UiRadioGroup<T> : UiFormField<T>
+public sealed partial class UiRadioGroup<T> : Component, IFormControl<T>, IUiFormControl
 {
-    /// <summary>The choices: the value stored, and the words shown.</summary>
-    public required IReadOnlyList<(T Value, string Text)> Options { get; set; }
+    private string? _ownId;
 
-    /// <summary>How the choices are laid out. A list, unless this says otherwise.</summary>
-    public Ui.ChoiceLayout? Layout { get; set; }
+    /// <summary>The group's heading, drawn over it in a <see cref="UiField" />.</summary>
+    public string? Label { get; set; }
 
-    /// <summary>A second line under a choice's words, saying what picking it means.</summary>
-    /// <remarks>Drawn only by <see cref="Ui.ChoiceLayout.Cards" />, which is the layout with room for it.</remarks>
-    public Fn<T, string?>? OptionDescription { get; set; }
+    /// <summary>Help text between the heading and the radios.</summary>
+    public string? Description { get; set; }
 
-    /// <summary>Marks choices that cannot be picked.</summary>
-    public Fn<T, bool>? OptionDisabled { get; set; }
+    /// <summary>One per row, or a segmented strip, cards, pills or buttons.</summary>
+    public Ui.RadioGroupVariant? Variant { get; set; }
 
-    /// <summary>
-    ///     The shared <c>name</c> that makes the radios exclusive, and the field's name in a plain form post.
-    /// </summary>
-    /// <remarks>The field's own id unless this says otherwise, which is already unique on the page.</remarks>
-    public string? Name { get; set; }
+    /// <summary>How tall a segmented group is. 40px unless this says smaller.</summary>
+    public Ui.RadioGroupSize? Size { get; set; }
+
+    /// <summary><see langword="false" /> draws cards without their dot: the border alone says which is chosen.</summary>
+    public bool? Indicator { get; set; }
+
+    /// <summary>Draws the error state. A bound group is invalid on its own while its form holds a message for it.</summary>
+    public bool? Invalid { get; set; }
+
+    /// <inheritdoc cref="Element.Id" />
+    public string? Id { get; set; }
+
+    /// <inheritdoc cref="IUiFormControl.ShowValidation" />
+    public bool? ShowValidation { get; set; }
+
+    /// <summary>Classes for the group: <c>flex-col</c> stacks cards, <c>max-sm:flex-col</c> only on a phone.</summary>
+    public string? Class { get; set; }
+
+    /// <inheritdoc cref="IFormControl{T}.Value" />
+    public T? Value { get; set; }
+
+    /// <inheritdoc cref="IFormControl{T}.OnChange" />
+    public Callback<T> OnChange { get; set; }
+
+    /// <inheritdoc cref="IFormControl{T}.Bind" />
+    public Expression<Func<T>>? Bind { get; set; }
+
+    /// <inheritdoc cref="IFormControl{T}.Validate" />
+    public Validator<T>? Validate { get; set; }
+
+    /// <inheritdoc cref="IFormControl{T}.AfterBind" />
+    public Callback<T> AfterBind { get; set; }
+
+    string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
+        ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
+        : UiFieldId.Derive(Id, Bind, Label);
+
+    LambdaExpression? IUiFieldControl.Bound => Bind;
+
+    string? IUiFormControl.DescriptionTrailing => null;
+
+    string? IUiFormControl.Badge => null;
 
     /// <inheritdoc />
-    protected override Component Control()
+    protected override Component? Render()
     {
-        var layout = Layout ?? Ui.ChoiceLayout.List;
-        var acc = Bind is { } bind ? ExpressionAccessor.Parse(bind) : null;
-        var ctx = acc is null ? null : BindingHelpers.ResolveBindingContext(acc.Target);
-        if (acc is not null)
-        {
-            // Every render, deliberately: passing the collapsed validator each time is also what clears a stale
-            // rule when the consumer stops supplying one.
-            ((IFormControl<T>)this).RegisterValidator(acc, ctx);
-        }
+        var (accessor, context, current) = UiFormCommit.Resolve(this);
+        var field = UiWithField.For(this);
+        var variant = Variant ?? Ui.RadioGroupVariant.Default;
+        var size = Size ?? Ui.RadioGroupSize.Base;
+        var scope = new UiRadioScope(
+            field.ControlId,
+            field.ControlId,
+            variant,
+            size,
+            Indicator != false,
+            field.Invalid,
+            current,
+            value => value is T typed ? UiFormCommit.CommitAsync(this, accessor, context, typed) : Task.CompletedTask);
 
-        var current = Current();
-        var group = Name ?? FieldId;
-
-        // A radiogroup rather than a bare div: the choices are inputs the browser already groups by name, but
-        // the GROUP has a name of its own to announce — the field's label — and nothing else would carry it.
-        var aria = BuildControlAria();
+        // The radios are grouped by name already; the GROUP has a name of its own to announce — the heading.
+        var aria = new Dictionary<string, string?>(field.Aria, StringComparer.Ordinal);
         if (Label is not null)
         {
-            aria["labelledby"] = LabelId;
-            aria.Remove("label");
+            aria["labelledby"] = field.LabelId;
         }
 
-        return Div
-            .Id(FieldId)
-            .Role("radiogroup")
-            .Class(UiClass.Compose(UiChoice.ContainerClass(layout), Class))
-            .Aria(aria)[
-            Options.Select((option, index) => Choice(option, index, layout, group, current, acc, ctx))
-        ];
+        return field.Wrap(
+            Div.Id(field.ControlId)
+                .Role("radiogroup")
+                .Class(UiClass.Compose(Look(variant, size), Class))
+                .Aria(aria)
+                .Data(Marker(variant), "")[
+                Context.Provide(scope)[Children ?? []]
+            ]);
     }
 
-    private string BoxClass() =>
-        UiClass.Compose(
-            "radio mt-0.5",
-            Tone is { } tone ? UiClassNames.RadioTone(tone) : "",
-            Size is { } size ? UiClassNames.RadioSize(size) : "");
-
-    private Component Choice(
-        (T Value, string Text) option,
-        int index,
-        Ui.ChoiceLayout layout,
-        string group,
-        T? current,
-        ExpressionAccessor.Accessor? acc,
-        EditContext? ctx)
+    // In the default list a row keeps 12px from the next, 16px when it carries a description.
+    private static string Look(Ui.RadioGroupVariant variant, Ui.RadioGroupSize size) => (variant, size) switch
     {
-        var off = Disabled == true || OptionDisabled?.Invoke(option.Value) == true;
-        var picked = EqualityComparer<T>.Default.Equals(option.Value, current);
-        var description = layout == Ui.ChoiceLayout.Cards ? OptionDescription?.Invoke(option.Value) : null;
+        (Ui.RadioGroupVariant.Segmented, Ui.RadioGroupSize.Sm) =>
+            "flex -my-px rounded-lg p-[3px] bg-zinc-800/5 dark:bg-white/10",
+        (Ui.RadioGroupVariant.Segmented, _) => "flex rounded-lg p-1 bg-zinc-800/5 dark:bg-white/10",
+        (Ui.RadioGroupVariant.Cards, _) => "flex gap-3",
+        (Ui.RadioGroupVariant.Pills, _) => "flex flex-wrap gap-3",
+        (Ui.RadioGroupVariant.Buttons, _) => "flex gap-2",
+        _ => "[&>[data-ui-field]:not(:last-child)]:mb-3 "
+             + "[&>[data-ui-field]:has(>[data-ui-description]):not(:last-child)]:mb-4",
+    };
 
-        var box = Input
-            .Of<bool>()
-            .Checked(picked)
-            .Id(FieldId + "-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture))
-            .Type(InputType.Radio)
-            .Name(group)
-            .Disabled(off)
-            .Class(UiChoice.ShowsBox(layout) ? BoxClass() : UiChoice.HiddenBoxClass)
-            // A radio only ever reports true: choosing one fires no change on the option it deselected, so the
-            // value to commit is this option's, not whatever the event carried.
-            .OnChange(_ => CommitAsync(option.Value, acc, ctx));
-
-        return RaskMarkup.Label.Key(index).Class(UiChoice.ChoiceClass(layout))[
-            box,
-            description is null
-                ? Span[option.Text]
-                : Div.Class("flex min-w-0 flex-col gap-0.5")[
-                    Span.Class("text-sm font-medium")[option.Text],
-                    Span.Class("text-xs opacity-60")[description]
-                ]
-        ];
-    }
-
-    private async Task CommitAsync(T value, ExpressionAccessor.Accessor? acc, EditContext? ctx)
+    private static string Marker(Ui.RadioGroupVariant variant) => variant switch
     {
-        var self = (IFormControl<T>)this;
-        if (acc is not null)
-        {
-            acc.Setter(value);
-            await BindingHelpers.NotifyAndValidateField(ctx, acc.Field).ConfigureAwait(false);
-            await self.InvokeAfterBind(value).ConfigureAwait(false);
-        }
-        else
-        {
-            await self.InvokeOnChange(value).ConfigureAwait(false);
-        }
-    }
-
-    private T? Current() =>
-        Bind is { } bind && ExpressionAccessor.Parse(bind).Getter() is T v ? v : Value;
+        Ui.RadioGroupVariant.Segmented => "ui-radio-group-segmented",
+        Ui.RadioGroupVariant.Cards => "ui-radio-group-cards",
+        Ui.RadioGroupVariant.Pills => "ui-radio-group-pills",
+        Ui.RadioGroupVariant.Buttons => "ui-radio-group-buttons",
+        _ => "ui-radio-group",
+    };
 }
