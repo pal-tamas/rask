@@ -1968,6 +1968,17 @@ Server host that is the upload request's own progress. In a WebAssembly app noth
 of the files your handler has read through `OpenReadStream`, and stays at `0%` for one that never opens them.
 In markup of your own, `in-data-dragging:` and `in-data-loading:` style the two states.
 
+A preview of a file that was only just chosen is the page's to make: read the picture in `OnFiles` and hand
+`Ui.FileItem.Image` a `data:` address (or the address it was stored under). Take the type from the browser only
+for the few an `<img>` draws, and cap the size:
+
+```csharp
+await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+using var bytes = new MemoryStream();
+await stream.CopyToAsync(bytes);
+var preview = $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes.ToArray())}";
+```
+
 The field's label is a `<label for>` like every other field's, so a click on it opens the picker — as a click
 on Flux's label does — and the input is named by it through `aria-labelledby`, as Flux's is, so the words of
 the dropzone are not read out as part of its name.

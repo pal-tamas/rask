@@ -876,6 +876,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A chosen file can be read in a WebAssembly app** (#1200). `IRaskFile.OpenReadStream` stopped the runtime on
+  its first read there — the chunk came back as the `Uint8Array` it is, through an import declared to return a
+  string ("Value is not a String"). It crosses as bytes now, with no base64 in between. The site's file-upload
+  demo reads a chosen picture for its preview and a file of any kind to the end, and its progress bar is that
+  reading; both are browser tests.
+
 - **An interactive tooltip no longer closes when focus drops to nothing.** A `data-rask-tooltip` whose trigger carries
   `aria-expanded` stays open after `blur()` or the window losing focus, until a press outside it, as Flux UI's does.
 

@@ -858,6 +858,64 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
             "Chosen: me.png", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     });
 
+    [Fact]
+    public Task A_chosen_picture_is_read_in_the_browser_and_shown_as_its_own_preview() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var basic = Page.Locator("[data-testid='ui-upload-basic']");
+        await basic.Locator("[data-ui-file-upload]").ScrollIntoViewIfNeededAsync();
+
+        // A real picture, one pixel square: the page reads its bytes through OpenReadStream (#1200).
+        await basic.Locator("input[type=file]").SetInputFilesAsync(
+            new FilePayload { Name = "dot.png", MimeType = "image/png", Buffer = Convert.FromBase64String(OnePixelPng) });
+
+        var preview = basic.Locator("[data-ui-file-item]").Nth(1).Locator("[data-slot='image'] img");
+        await Expect(preview).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        Assert.Equal("data:image/png;base64," + OnePixelPng, await preview.GetAttributeAsync("src"));
+        await Expect(preview).ToHaveJSPropertyAsync("naturalWidth", 1);
+    });
+
+    [Fact]
+    public Task An_upload_says_how_far_its_files_have_been_read_and_rests_once_the_page_has_them() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var progress = Page.Locator("[data-testid='ui-upload-progress']");
+        var upload = progress.Locator("[data-ui-file-upload]");
+        await upload.ScrollIntoViewIfNeededAsync();
+        var atRest = await upload.EvaluateAsync<string>("u => getComputedStyle(u).getPropertyValue('--ui-file-upload-progress')");
+        await upload.EvaluateAsync(
+            @"u => { window.seen = [];
+                     const note = () => window.seen.push((u.hasAttribute('data-loading') ? 'loading' : 'idle') + ' '
+                         + u.style.getPropertyValue('--rask-progress') + ' '
+                         + getComputedStyle(u.querySelector('[data-ui-file-upload-dropzone]')).getPropertyValue('--ui-file-upload-progress'));
+                     new MutationObserver(note).observe(u, { attributes: true }); }");
+
+        await upload.Locator("input[type=file]").SetInputFilesAsync(
+            new FilePayload { Name = "film.bin", MimeType = "application/octet-stream", Buffer = new byte[6_000_000] });
+        await Expect(progress.Locator("[data-ui-file-item]")).ToContainTextAsync(
+            "film.bin", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        await Expect(upload).Not.ToHaveAttributeAsync("data-loading", "");
+        var seen = await Page.EvaluateAsync<string[]>("() => window.seen");
+
+        // Marked at once, at nothing; then what the handler has read, which the dropzone's bar takes its width from.
+        Assert.Equal("0%", atRest.Trim());
+        Assert.Contains("loading 0% 0%", seen);
+        Assert.Contains("loading 100% 100%", seen);
+        Assert.Contains(seen, s => Between(s) is > 0 and < 100);
+        Assert.Equal(string.Empty, await upload.EvaluateAsync<string>("u => u.style.getPropertyValue('--rask-progress')"));
+    });
+
+    // A 1 × 1 PNG.
+    private const string OnePixelPng =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    // The whole percent of a note the observer took while loading, or -1.
+    private static int Between(string note)
+    {
+        var parts = note.Split(' ');
+        return parts is ["loading", var percent, ..] && int.TryParse(percent.TrimEnd('%'), out var value) ? value : -1;
+    }
+
     private static Task<string> UnderTheMiddleOf(ILocator area) =>
         area.EvaluateAsync<string>(
             @"a => { const r = a.getBoundingClientRect();
