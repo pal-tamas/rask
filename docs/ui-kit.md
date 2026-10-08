@@ -733,7 +733,8 @@ that will never draw one can keep it out of its publish folder:
 
 The host has to serve its static files, as every Rask app does (`RaskApp`, `MapRaskSpa`, a static host for
 a browser-WASM publish). A host that is not a Web or WebAssembly SDK project sets the same property to
-`true`.
+`true`. In a wasm-hosted app — one project, a server and the browser app in `Client/` — the browser app's
+build writes the file and the server serves it from there, so the app's own `wwwroot` holds no copy.
 
 Until the script has loaded — and with scripting off — the editor shows its value as plain markup. A
 strict `Content-Security-Policy` needs nothing added: the file is same-origin script.
