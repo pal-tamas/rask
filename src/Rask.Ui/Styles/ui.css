@@ -71,7 +71,7 @@
 @plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
-  exclude: rootscrollgutter, tooltip, radio, toggle;
+  exclude: rootscrollgutter, tooltip, radio, toggle, range;
 }
 
 @theme {

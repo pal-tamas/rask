@@ -303,6 +303,18 @@ public partial class UiSliderTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("data-rask-big-step", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_stylesheet_no_longer_carries_the_daisy_control_this_replaced()
+    {
+        var css = UiStylesheet.Css;
+
+        // The bare word stands in the kit's sources (`type="range"`) and would bring the class back; the
+        // plugin's `exclude` keeps it out.
+        Assert.DoesNotContain(".range{", css, StringComparison.Ordinal);
+        Assert.DoesNotContain(".range-", css, StringComparison.Ordinal);
+        Assert.DoesNotContain(".otp", css, StringComparison.Ordinal);
+    }
+
     private static int Occurrences(string haystack, string needle)
     {
         var (count, at) = (0, haystack.IndexOf(needle, StringComparison.Ordinal));
