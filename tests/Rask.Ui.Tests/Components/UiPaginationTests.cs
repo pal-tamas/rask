@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Rask.Core.Routing;
 using Rask.Testing;
 
 namespace Rask.UiTests.Components;
@@ -89,6 +90,45 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
         Assert.Contains("href=\"/logs?page=1\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"/logs?page=3\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<button", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(10, "Showing 11 to 20 of 95 results", "10")]
+    [InlineData(25, "Showing 26 to 50 of 95 results", "4")]
+    public void The_page_size_is_the_paginators_and_a_select_beside_the_pager_chooses_it(int perPage, string summary, string lastPage)
+    {
+        // Flux's pagination has no page-size prop: the choice is a select of the page's own, as docs/ui-kit.md shows.
+        var chosen = perPage;
+        var page = Div[
+            Ui.Select.Value(chosen).OnChange(size => chosen = size).Sm[
+                Ui.SelectOption.Value(10)["10"],
+                Ui.SelectOption.Value(25)["25"]
+            ],
+            Ui.Pagination.Paginator(new UiPaginator { Page = 2, PerPage = chosen, Total = 95 }).OnPage(_ => { })
+        ];
+
+        var html = page.ToHtml();
+
+        Assert.Contains(summary, html, StringComparison.Ordinal);
+        Assert.Contains($">{lastPage}</button><button", html, StringComparison.Ordinal);
+        Assert.Contains("<select", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_string_address_is_an_ordinary_link_and_a_generated_route_an_in_app_one()
+    {
+        var paginator = new UiPaginator { Page = 2, PerPage = 5, Total = 15 };
+
+        var plain = Ui.Pagination.Paginator(paginator).Href(page => $"/logs?page={page}").ToHtml();
+        var routed = Ui.Pagination.Paginator(paginator)
+            .Href(page => new RouteUrl("/logs", $"?page={page}", typeof(UiPaginationTests)))
+            .ToHtml();
+
+        // Previous, 1, 3 and Next in the numbered form and Previous and Next in the narrow one: six links.
+        Assert.Equal(6, Count(plain, "<a "));
+        Assert.DoesNotContain("data-rask-nav", plain, StringComparison.Ordinal);
+        Assert.Equal(6, Count(routed, "data-rask-nav"));
+        Assert.Contains("href=\"/logs?page=3\"", routed, StringComparison.Ordinal);
     }
 
     [Fact]

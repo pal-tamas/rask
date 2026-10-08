@@ -17,7 +17,8 @@ namespace Rask;
 ///     <b>Buttons or links.</b> Flux's pager is buttons inside a Livewire component and links outside one.
 ///     With <see cref="OnPage" /> each page is a button that reports the page chosen, and the page decides
 ///     what to show. With <see cref="Href" /> each is a link to where that page lives: shareable,
-///     bookmarkable, and working before the runtime has booted. Given both, the link wins — the client
+///     bookmarkable, and working before the runtime has booted — the way to keep the page in the query string.
+///     A generated route is an in-app link under the app's path base; a string is written as given. Given both, the link wins — the client
 ///     cancels the default action of a click it dispatches, so a link that also ran a handler would stop
 ///     navigating.
 ///     </para>
@@ -82,7 +83,10 @@ public sealed partial class UiPagination : Component
     /// <summary>The page the reader chose, counted from one. Each page is a button.</summary>
     public Callback<int> OnPage { get; set; }
 
-    /// <summary>Where each page lives, from its number counted from one. Makes every page a link.</summary>
+    /// <summary>
+    ///     Where each page lives, from its number counted from one. Makes every page a link: an in-app one for
+    ///     a generated route, an ordinary <c>&lt;a&gt;</c> for a string.
+    /// </summary>
     public Fn<int, RouteUrl>? Href { get; set; }
 
     /// <summary>Classes for the call site, added to the pager's own.</summary>
@@ -116,7 +120,7 @@ public sealed partial class UiPagination : Component
             {
                 UiPaginationWindow.Gap => Div.Key(gaps++ == 0 ? "gap-start" : "gap-end").Class(Ellipsis).Aria("disabled", "true")["..."],
                 _ when page == Paginator.Current => Div.Key(page).Class(CurrentPage).Aria("current", "page")[Number(page)],
-                _ when Href is { } href => NavLink.Key(page).Href(href.Invoke(page)).ActiveClass("").Class(PageLink)[Number(page)],
+                _ when Href is { } href => Link(Number(page), href.Invoke(page), PageLink, null, [Number(page)]),
                 _ => Button.Key(page).Type(ButtonType.Button).Class(PageButton).OnClick(() => OnPage.Invoke(page))[Number(page)],
             };
         }
@@ -148,10 +152,18 @@ public sealed partial class UiPagination : Component
         {
             null when counted => Div.Key(key).Class(ArrowOff).Aria(("disabled", "true"), ("label", label))[arrows],
             null => Div.Key(key).Class(ArrowOff)[arrows],
-            { } to when Href is { } href => NavLink.Key(key).Href(href.Invoke(to)).ActiveClass("").Class(look).AriaLabel(label)[arrows],
+            { } to when Href is { } href => Link(key, href.Invoke(to), look, label, arrows),
             { } to => Button.Key(key).Type(ButtonType.Button).Class(look).AriaLabel(label).OnClick(() => OnPage.Invoke(to))[arrows],
         };
     }
+
+    // A generated route navigates inside the app, under its path base; a string is an ordinary link, written
+    // exactly as given (#1070) — the rule the kit's other links follow. Neither lights up on its own: a
+    // first page with no ?page= in it would match every page of that path, so the pager says which is current.
+    private static Component Link(string key, RouteUrl url, string classes, string? label, Component[] content) =>
+        url.PageType is null
+            ? A.Key(key).Href(url.ToString()).Class(classes).AriaLabel(label)[content]
+            : NavLink.Key(key).Href(url).ActiveClass("").Class(classes).AriaLabel(label)[content];
 
     private static string Number(int page) => page.ToString(CultureInfo.InvariantCulture);
 }

@@ -854,6 +854,46 @@ Ui.Pagination
     .Href(page => Routes.LogsPage(Page: page))
 ```
 
+That is how the page goes in the **query string**. A generated route (`Routes.LogsPage(…)`, or one `with
+{ QueryString = $"?page={page}" }`) is an in-app link and takes the app's path base, so it is right
+wherever the app is mounted. A string — `.Href(page => $"/logs?page={page}")` — is an ordinary `<a>`
+written exactly as given, with no path base added: the rule every linking component of the kit follows.
+
+**Paging on the server.** The pager pages nothing itself: ask the store for one page and for the count,
+and hand it the three numbers.
+
+```csharp
+var total = await Orders.Count();
+var rows = await Orders.OrderBy(o => o.Date).Skip((page - 1) * PerPage).Take(PerPage).ToList();
+
+Ui.Pagination.Paginator(new UiPaginator { Page = page, PerPage = PerPage, Total = total }).OnPage(Load)
+```
+
+**Under a table.** `Ui.Table.Paginate(…)` takes the pager and draws it where Flux does — under the rows,
+outside the scroll area, full width with its rule above — and it keeps its height when the box scrolls:
+
+```csharp
+Ui.Table.Paginate(Ui.Pagination.Paginator(orders).ScrollTo("#orders").OnPage(Load)).Id("orders")[ … ]
+```
+
+**Rows per page.** Flux's pagination has no page-size prop, so the kit has none: the size is the
+paginator's `PerPage`, and the choice is a `Ui.Select` of your own beside the pager. Go back to the first
+page when it changes — the page you were on may not exist any more.
+
+```csharp
+Div.Class("flex items-center justify-between gap-4")[
+    Ui.Select.Value(_perPage).OnChange(size => { _perPage = size; _page = 1; }).Sm.Class("w-24")[
+        Ui.SelectOption.Value(10)["10"],
+        Ui.SelectOption.Value(25)["25"],
+        Ui.SelectOption.Value(50)["50"]
+    ],
+    Ui.Pagination
+        .Paginator(new UiPaginator { Page = _page, PerPage = _perPage, Total = total })
+        .OnPage(page => _page = page)
+        .Class("flex-1")
+]
+```
+
 Either way the current page is not a control: it says `aria-current="page"`. On the first page Previous
 is not one either, and on the last page Next — each keeps its place and says `aria-disabled="true"`.
 

@@ -881,7 +881,9 @@ them until tagged releases begin.
   Ui.Pagination.Pages(16).Current(2).OnPage(Load)                                              // was
   Ui.Pagination.Paginator(new UiPaginator { Page = 2, PerPage = 15, Total = 240 }).OnPage(Load)   // now
   ```
-  `Pages` and `Current` are gone. `OnPage` and `Href` are unchanged and still count pages from one.
+  `Pages` and `Current` are gone. `OnPage` and `Href` are unchanged and still count pages from one;
+  a page link follows the kit's link rule now — a generated route is an in-app link under the app's
+  path base, a string an ordinary `<a>` written as given.
   A paginator with no `Total` is Flux's simple paginator — Previous and Next only, with `HasMore` saying
   whether Next leads anywhere. The window of numbered pages is Laravel's (every page below fourteen; from
   there the first two, the last two and three either side of the current one) where it was seven items.
