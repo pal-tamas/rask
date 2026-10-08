@@ -150,6 +150,9 @@ Never key on `[data-ui-card]` from another component.
    dotnet test tests/Rask.Ui.Tests --filter "FullyQualifiedName~Flux"
    node scripts/flux/parity.mjs <slug>            # until: "matches Flux"
    ```
+   A menu loads CLOSED, so `parity.mjs` never sees it. `node scripts/flux/parity-menu.mjs <dropdown|context>`
+   opens every example on both pages and compares the popup: placement against the trigger, each row at
+   rest, under a real pointer, pressed and under the cursor, a submenu's flyout, Escape and a click outside.
    Fix the COMPONENT until it passes. A difference is only accepted when it is Livewire-specific or
    comes from the docs page rather than the component; say which, in a comment on the example.
    Two false greens to know: a crashed `parity.mjs` prints no `FAIL` (read its last line), and
@@ -169,9 +172,9 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip kanban input textarea select autocomplete pillbox modal` today, plus the
-open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-modal.mjs`, `parity-select.mjs`,
-`parity-autocomplete.mjs` and `parity-pillbox.mjs`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
+card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal` today,
+plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-menu.mjs dropdown|context`,
+`parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -199,7 +202,8 @@ open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-modal.mjs`,
   and size, inside not compared — give it the exact measured box, to 1/64px); `="self"` (its own look is
   another component's, children compared); `="width"`/`"height"` (that dimension is `rand()` on Flux's
   page, here and below). When the real component lands, the stand-in goes: Heading, Text, Field, Label,
-  Description, Icon, Separator, Table, Card, Callout, Button, Badge, Tooltip are real now — use them.
+  Description, Icon, Separator, Table, Card, Callout, Button, Badge, Tooltip, Dropdown, Menu, Context are
+  real now — use them.
 - **A real component inside a wrapper that is not rebuilt** (Flux's button sits in a `<ui-dropdown>`):
   write the wrapper as a `<div data-ui-dropdown data-parity-skip="self">` holding the real component and a
   `display:none` `data-parity-skip` box per hidden sibling (the menu). Without the marked wrapper the tool
@@ -215,7 +219,8 @@ open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-modal.mjs`,
   `<button>`, pairs with one); the colour of a border 0px wide on
   both sides, or of an outline with `outline-style:none` on both, at rest and in a forced state; the
   offset of a node with no box (`display:none` itself or above it, or 0×0 on both sides); `oklch(… none)`
-  ≡ `oklch(… 0)`; a forced state where only one side measured the node (60 per example).
+  ≡ `oklch(… 0)`; a forced state where only one side measured the node (60 per example), or on a node
+  displayed on neither side (the rows of a closed menu: Flux lights them by script, the kit by `:hover`).
 - **Animations:** clock-driven CSS animations are paused at their first frame and their DEFINITION (name
   with `flux-`≡`ui-`, duration, delay, iterations, direction, fill, keyframes with easing) is recorded per
   node and compared. Scroll-driven ones are neither paused nor recorded: the kit uses one where Flux runs
@@ -235,7 +240,9 @@ open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-modal.mjs`,
   for three frames, every declared font face loaded), never on a delay: the tooltip script used to fail one
   case in a batch when the medium Inter face, first needed by the first tooltip shown, was still loading.
   In `parity.mjs` itself `ui-tooltip` and `ui-dropdown` (what Flux renders a TOGGLEABLE tooltip as,
-  under the tooltip's marker) pair with `div`. `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
+  under the tooltip's marker) pair with `div`, and so does the menu family (`ui-context`, `ui-menu`,
+  `ui-submenu`, `ui-menu-radio-group`, `ui-menu-checkbox-group` → `div`; `ui-menu-radio`, `ui-menu-checkbox` →
+  `button`). `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
   `ui-modal` and `ui-close` (the wrapper of a modal, and of a button that closes it) pair with `div` too, and a
   root that is `display: contents` on both sides (a modal's trigger) anchors no offsets: it has no box.
 - **Public API:** `python3 scripts/public-api/record.py src/Rask.Ui` builds and applies RS0016/RS0017 to
@@ -251,6 +258,10 @@ charts are redrawn once the fonts are in), writes the rows each chart drew to
 every number of every `d`, `x1…y2`, `cx/cy/r` and `translate()`, to 0.05px. Flux's rules were found by handing
 its live `<ui-chart>` a dataset (`element.value = rows`) and reading back what it drew — the way to answer any
 new question about its layout. `scripts/flux/inter-metrics.mjs` regenerates the label-width table.
+The pin itself lives under `artifacts/` (ignored), so a checkout that did not make it has only the committed
+rows and BOTH chart scripts fail on numbers alone. To prove the chart there: `--measure`, rewrite the pages,
+run both, then `git checkout -- …/ChartParity.data.json` unless the chart itself changed — committing a new pin
+breaks the replay of whoever holds the old one.
 
 ## 4. Replace what it supersedes
 One commit per component, the solution building throughout:
@@ -280,7 +291,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   arm of `@custom-variant dark` goes too. `AppearanceToggle` is `Ui.Button.Subtle` with the button's own
   `Tooltip` / `TooltipKbd` / `TooltipPosition`, as Flux's header is.
 - Button: `UiClassNames.ButtonTone/ButtonVariant/ButtonSize` and the `.btn-*`, `.btn > svg`,
-  `.btn[data-loading]` CSS stay until Popover, Dropdown, Fab, DayGrid, Filter, MultiSelect, Profile,
+  `.btn[data-loading]` CSS stay until Popover, Fab, DayGrid, Filter, MultiSelect, Profile,
   Pagination, Sidebar and the templates stop writing raw `btn`. `Disabled`, `Command`/`CommandFor` are the
   `<button>`'s own attributes, kept as such, not Flux props. The button's tooltip is the real `Ui.Tooltip`
   (measured where Flux's pages use the prop: the separator page's moon, which `SeparatorParity` now writes
@@ -317,8 +328,33 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   classes (`DashboardIsKitOnlyTests.Allowed`), compiled by its own sheet.
 - Parity stand-ins still standing: none on the chart page; card page (fields, switches, the heading/text lines whose variant was
   not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
-  (slider, as raw `ui-slider` markup). The field page's inputs and select and the input page's buttons are real
+  (slider, as raw `ui-slider` markup), dropdown page (the profile trigger and the two icon-only triggers,
+  whose icon the snippets do not name). The field page's inputs and select and the input page's buttons are real
   now; the input page's `flux:select` inside a group is still a stand-in.
+- Dropdown / Menu / Context (merged 2026-10-07). Made Flux's on merging: the trigger says
+  `aria-haspopup="true"` whatever it opens; a submenu's row has NO `aria-haspopup`/`aria-expanded`/
+  `aria-controls` and its flyout no `aria-label`/`id` (the runtime tells such a row by the `role="menu"` right
+  after it); a leading icon and a check carry `data-ui-menu-item-icon`; a separator's line carries
+  `data-ui-separator` and a group's lines `data-ui-menu-separator` beside `-top`/`-bottom`; the kit's own
+  `data-ui-menu-indent` is `data-indent`; `Ui.MenuCheckboxGroup.KeepOpen` is gone. `Open`/`OnToggle`
+  (dropdown, context) stand for `wire:model`, `Bind`/`Value`/… for a checkbox's or radio group's, `OnClick`
+  for `wire:click`, `Ui.MenuItem.Href` for the `href` Flux's own demo sets on a menu item (`fluxui.dev/demo/qa.md`: `<flux:menu.item
+  href="/settings/profile">`, live an `<a role="menuitem">`; the reference omits it) — each a `Translations` row.
+  Not Flux's yet: `data-open` on the OPEN menu (Flux writes it on `ui-menu`; the kit writes it on the dropdown
+  and the trigger only); Flux's reflected element props (`position`, `gap`, `checked`, `keep-open` as plain
+  attributes) are not written; the popup is `popover="auto"` + `autofocus` + `popovertarget` where Flux's is
+  `popover="manual"` and script. `Ui.MenuGroup`, `Ui.Navmenu`, `Ui.NavmenuItem` are on Flux's page but not in
+  `flux.snapshot.json`, so the conformance gate does not see them. `Ui.Profile` is still the daisy-drawn row
+  around the new dropdown (its `Open`/`OnToggle`/`KeepOpen` forward), until the navigation branch brings
+  Flux's. `Ui.Command` draws its rows the old way through `UiCommandRows` until it is rebuilt.
+  The generic hooks in the table above EXIST and the menu components do NOT write them yet: no
+  `data-rask-menu-pointer` (a row is lit by `:hover` AND `data-active`, so two can be lit at once), no
+  `data-rask-safe-area` (the safe triangle is the CSS wedge in `ui.css`), no `data-rask-hover` (so
+  `flux:dropdown/hover` stays in `NotTranslated`), no `data-rask-lock` (the page lock is the `:root:has(…)`
+  rule in `ui.css`). The menu block in `rask-dom.ts` stays beside them: its focusout / toggle handlers are
+  idempotent with the hooks'. Wiring them is the next step, and then that CSS and the block's overlap go.
+  The context hook keeps the pointer's position in a constructable stylesheet (`:root{--rask-context-x/-y}`),
+  not in `<html>`'s style attribute, which the WASM host's takeover morph of a prerendered page strips.
 - Tooltip: daisyUI's own is kept out of the sheet by `exclude: … tooltip` on the `@plugin` line in `ui.css`
   (the bare word stands in the kit's comments; `UiTooltipTests` asserts the absence) — the way to drop a
   daisy component whose name the kit still has to say. A `Toggleable()` tooltip around something that is

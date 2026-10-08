@@ -15,11 +15,11 @@ public partial class UiCommandTests : global::Rask.Core.RaskMarkup
 {
     private static global::Rask.Core.Component Palette() =>
         Ui.Command.Label("Search commands").Shortcut("mod+k")[
-            Ui.MenuItem.Text("New invoice").Icon(Ui.IconName.Plus),
-            Ui.MenuItem.Text("Archive").Disabled(true),
+            Ui.MenuItem.Icon(Ui.IconName.Plus)["New invoice"],
+            Ui.MenuItem.Disabled(true)["Archive"],
             Ui.MenuSeparator,
-            Ui.MenuItem.Text("Réglages"),
-            Ui.MenuItem.Text("Sign out").Tone(Ui.Tone.Error)
+            Ui.MenuItem["Réglages"],
+            Ui.MenuItem.Danger["Sign out"]
         ];
 
     private static Task TypeAsync(Page page, string text) =>
@@ -134,7 +134,7 @@ public partial class UiCommandTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_menu_item_outside_a_palette_is_unchanged()
     {
-        var html = Ui.Dropdown.Trigger("Actions")[Ui.MenuItem.Text("Archive")].ToHtml();
+        var html = Ui.Dropdown[Button["Actions"], Ui.Menu[Ui.MenuItem["Archive"]]].ToHtml();
 
         Assert.Contains("role=\"menuitem\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-selected", html, StringComparison.Ordinal);

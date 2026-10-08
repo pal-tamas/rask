@@ -123,6 +123,16 @@ public sealed class FluxConformanceTests
         // Flux's reference spells this heading "flux:chart.summaryvalue"; its examples write flux:chart.summary.value.
         ["flux:chart.summaryvalue"] = typeof(UiChartSummaryValue),
         ["flux:chart.legend"] = typeof(UiChartLegend),
+        ["flux:dropdown"] = typeof(UiDropdown),
+        ["flux:menu"] = typeof(UiMenu),
+        ["flux:menu.item"] = typeof(UiMenuItem),
+        ["flux:menu.submenu"] = typeof(UiMenuSubmenu),
+        ["flux:menu.separator"] = typeof(UiMenuSeparator),
+        ["flux:menu.checkbox.group"] = typeof(UiMenuCheckboxGroup),
+        ["flux:menu.checkbox"] = typeof(UiMenuCheckbox),
+        ["flux:menu.radio.group"] = typeof(UiMenuRadioGroup<>),
+        ["flux:menu.radio"] = typeof(UiMenuRadio),
+        ["flux:context"] = typeof(UiContext),
         ["flux:modal"] = typeof(UiModal),
         ["flux:modal.trigger"] = typeof(UiModalTrigger),
         ["flux:modal.close"] = typeof(UiModalClose),
@@ -139,6 +149,10 @@ public sealed class FluxConformanceTests
         ["flux:button/as-an-input"] = "A section of the button page that shows flux:input drawn as a button; it is the input's to mirror.",
         ["flux:badge/variant=pill"] = "deprecated by Flux itself in favour of the `rounded` prop: Ui.Badge.Rounded()",
         ["flux:badge/variant=rounded"] = "not a value: the docs' deprecation note for `pill` names the `rounded` prop, and the snapshot read it as an option",
+        // The popover page's prop: a panel that opens while the pointer rests on its trigger. CSS cannot open a
+        // [popover] and the runtime has no hook that does, so it is built with Ui.Popover, on Flux's popover page.
+        ["flux:dropdown/hover"] = "Opening on hover needs a runtime hook that shows a popover on pointerenter; it belongs to the popover page.",
+        ["flux:menu.checkbox/checked"] = "A Rask control's state is its Value, or the model it is bound to: Ui.MenuCheckbox.Value(true) / .Bind(() => filter.Draft).",
         // Sections of the icon page rather than props, recorded here so the omission is a decision.
         ["flux:icon.*/lucide-icons"] = "`php artisan flux:icon` copies Lucide SVGs into a Laravel project as Blade files; Ui.IconName is a closed, generated set.",
         ["flux:icon.*/custom-icons"] = "A Blade file under resources/views/flux/icon. In Rask a custom icon is an ordinary component drawing its own Svg.",
@@ -270,6 +284,25 @@ public sealed class FluxConformanceTests
         ["flux:pillbox.option.create/OnClick"] = "`wire:click`, which the reference lists as a directive",
         ["flux:pillbox.search/Value"] = "as flux:select.search",
         ["flux:pillbox.search/OnInput"] = "as Value: the write of that `wire:model.live`",
+        ["flux:dropdown/Open"] = "`wire:model`, which the popover page documents for flux:dropdown: the open state",
+        ["flux:dropdown/OnToggle"] = "`wire:model`'s other half: the reader opened or closed it",
+        ["flux:context/Open"] = "`wire:model`: the context menu's open state",
+        ["flux:context/OnToggle"] = "`wire:model`'s other half: the reader opened or closed it",
+        ["flux:menu.item/OnClick"] = "`wire:click` on a row",
+        // Flux's public demo, https://fluxui.dev/demo/qa.md: <flux:menu.item href="/settings/profile" icon="cog">, live an <a role="menuitem">.
+        ["flux:menu.item/Href"] = "`href`, which Flux's Q&A demo sets on a menu item (drawn as an `<a role=\"menuitem\">`) and its reference omits",
+        ["flux:menu.checkbox/Value"] = "`wire:model`, as every Rask form control says it (IFormControl<bool>)",
+        ["flux:menu.checkbox/OnChange"] = "as Value",
+        ["flux:menu.checkbox/Bind"] = "as Value",
+        ["flux:menu.checkbox/Validate"] = "as Value",
+        ["flux:menu.checkbox/AfterBind"] = "as Value",
+        ["flux:menu.radio.group/Value"] = "`wire:model`, as every Rask form control says it (IFormControl<T>)",
+        ["flux:menu.radio.group/OnChange"] = "as Value",
+        ["flux:menu.radio.group/Bind"] = "as Value",
+        ["flux:menu.radio.group/Validate"] = "as Value",
+        ["flux:menu.radio.group/AfterBind"] = "as Value",
+        ["flux:menu.radio/Value"] = "the `value` attribute a radio is matched by in a `wire:model` group",
+        ["flux:menu.radio/OnClick"] = "`wire:click` on a radio that is in no `wire:model` group",
     };
 
     /// <summary>What every component takes, Flux's included: its classes, its identity, what is inside it.</summary>

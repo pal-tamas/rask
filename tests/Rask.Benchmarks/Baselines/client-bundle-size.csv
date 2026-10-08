@@ -18,9 +18,20 @@
 # rask.js 118,884 -> 122,313 (+3.4 kB) and rask.wasm.js 107,798 -> 111,099 (+3.3 kB). Round two so far is
 # +8.5 kB on each bundle.
 #
+# Refreshed 2026-10-07 on the tree that has BOTH of the two below (round two's hooks and Flux's menus, which
+# were each measured without the other) and the one-time-code fix: rask.js 120,330 and rask.wasm.js 109,244.
+#
 # Refreshed 2026-10-07 with round two's first hooks (rask-keys.ts, rask-focus.ts, rask-toggle.ts, the natural
 # heights of rask-toast.ts, and rask-bound.ts taken out of rask-otp.ts): rask.js 113,805 -> 118,884 and
 # rask.wasm.js 102,721 -> 107,798, +5.1 kB each.
+#
+# Refreshed 2026-10-07 with the one-time-code fix (rask-otp.ts keeps a late echo from the render's second
+# write): rask.js 115,251 -> 115,285 and rask.wasm.js 104,167 -> 104,201, +34 bytes each.
+#
+# Refreshed 2026-10-07 with Flux's menus (the menu block of rask-dom.ts: roving focus that follows
+# `data-active`, Enter / Space on the focused row, focus handed back after a press outside, the context menu
+# fitted by where it landed and its position kept in a constructable sheet): rask.js 113,805 -> 115,251 and
+# rask.wasm.js 102,721 -> 104,167, +1,446 bytes each.
 #
 # Refreshed 2026-10-07 with the behaviour hooks (rask-hooks.ts and its ten modules: tooltip and hover popovers,
 # overlay focus and modal dialogs, the page lock, menus, fields, otp cells, toast groups, persisted checkboxes,
