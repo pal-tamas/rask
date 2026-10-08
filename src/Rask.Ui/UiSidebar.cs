@@ -1,85 +1,62 @@
 namespace Rask;
 
-/// <summary>
-/// An application sidebar beside the page: docked from a breakpoint up, sliding over the page below it.
-/// </summary>
+/// <summary>Flux's <c>flux:sidebar</c>: the application's navigation, beside the page.</summary>
 /// <remarks>
 /// <para>
-/// Flux UI's sidebar layout, on daisyUI's drawer. The children are the SIDEBAR — a brand, a <see cref="UiNavlist" />,
-/// a <see cref="UiSpacer" /> and a profile at the bottom — and <see cref="Page" /> is everything beside it, usually
-/// the router outlet. It renders an <c>&lt;aside&gt;</c> landmark, sticky and full-height while docked, so a long page
-/// scrolls under a sidebar that stays put.
+/// A sibling of <see cref="UiHeader" /> and <see cref="UiMain" />: whatever holds a <see cref="UiMain" /> —
+/// the body, or a wrapper — is the layout grid, and the sidebar takes its first column. It paints nothing
+/// of its own; the ground and the border are the call site's classes, as in Flux.
 /// </para>
 /// <para>
-/// Below <see cref="Collapsible" /> the sidebar is off-screen and a <see cref="UiSidebarToggle" /> slides it in; a
-/// click on the page beside it slides it back. That open state lives in daisyUI's checkbox, so it works on a
-/// prerendered page with no runtime at all. <see cref="Open" /> and <see cref="OnToggle" /> hand it to C# as well —
-/// what lets a page close it when a navigation completes.
+/// Both states are checkboxes, so they work with no script: slid over the page below
+/// <see cref="Breakpoint" />, narrowed to a rail of icons from it up. Neither is a prop, as neither is in
+/// Flux. The runtime does what Flux's script does with them: the overlay
+/// is put away when the app navigates (<c>data-rask-uncheck-on-navigate</c>), and the rail is remembered across
+/// visits (<c>data-rask-persist</c>, under Flux's own storage key — <see cref="UiSidebarScript" /> restores it
+/// before first paint in a WebAssembly app).
 /// </para>
 /// </remarks>
 public sealed partial class UiSidebar : Component
 {
-    /// <summary>Joins the sidebar to its <see cref="UiSidebarToggle" />. Must be unique on the page.</summary>
-    public required string Id { get; set; }
+    private const string Base = "group/sidebar z-20 flex flex-col gap-4 p-4 [grid-area:sidebar] [:where(&)]:w-64";
 
-    /// <summary>The page beside the sidebar — typically the router's outlet.</summary>
-    public required Component Page { get; set; }
+    // Below the breakpoint it is over the page and off-screen until opened; from it up it is in the grid.
+    private const string PutAway =
+        "fixed inset-y-0 start-0 max-h-dvh min-h-dvh overflow-y-auto overscroll-contain transition-transform "
+        + "-translate-x-full rtl:translate-x-full sidebar-open:translate-x-0 "
+        + "sidebar-desktop:min-h-[auto] sidebar-desktop:translate-x-0";
 
-    /// <summary>
-    ///     The width below which the sidebar slides over the page instead of sitting beside it. Unset, it is always
-    ///     beside it.
-    /// </summary>
-    public Ui.Breakpoint? Collapsible { get; set; }
+    private const string Rail = "sidebar-rail:w-14 sidebar-rail:cursor-e-resize sidebar-rail:px-2";
 
-    /// <summary>Which edge the sidebar is on: <see cref="Ui.Position.Left" /> by default, or <see cref="Ui.Position.Right" />.</summary>
-    public Ui.Position? Position { get; set; }
+    /// <summary>Keeps the docked sidebar in view while the page scrolls, scrolling inside itself when it is taller.</summary>
+    public bool? Sticky { get; set; }
 
-    /// <summary>Whether the sidebar is slid in, while it is collapsed. Unset leaves the state to the checkbox alone.</summary>
-    public bool? Open { get; set; }
+    /// <summary>When the sidebar can be put away. Never, unless this says otherwise.</summary>
+    public Ui.SidebarCollapsible? Collapsible { get; set; }
 
-    /// <summary>Runs when the sidebar is slid in or out, with the state being asked for.</summary>
-    public Callback<bool> OnToggle { get; set; }
+    /// <summary>Flux's deprecated spelling of <see cref="Ui.SidebarCollapsible.Mobile" />.</summary>
+    public bool? Stashable { get; set; }
 
-    /// <summary>
-    ///     Lets a DOCKED sidebar be narrowed to a rail of icons, with a <see cref="UiSidebarCollapse" /> to do it.
-    /// </summary>
-    /// <remarks>
-    ///     Flux UI's collapsed sidebar, and a different thing from <see cref="Collapsible" />: that one says at what
-    ///     width the sidebar stops being beside the page at all. This one keeps it beside the page and takes the
-    ///     words away, which is what a dense application wants on a laptop.
-    /// </remarks>
-    public bool? Collapsable { get; set; }
+    /// <summary>The width the sidebar docks from. <see cref="Ui.Breakpoint.Lg" /> (1024px) unless this says otherwise.</summary>
+    public Ui.Breakpoint? Breakpoint { get; set; }
 
     /// <summary>
-    ///     Whether the docked sidebar is narrowed to its rail. Unset leaves the state to the checkbox alone.
+    ///     Whether the collapsed rail is remembered across visits. On unless this is <see langword="false" />.
     /// </summary>
-    /// <remarks>
-    ///     Unset, the reader collapses and expands it and the page is not asked — it works on a prerendered page
-    ///     with no runtime, like the drawer. Set it to take ownership, which is what lets a page REMEMBER the
-    ///     choice across a full page load; pair it with <see cref="OnCollapse" />.
-    /// </remarks>
-    public bool? Collapsed { get; set; }
+    public bool? Persist { get; set; }
 
-    /// <summary>Runs when the reader narrows or widens the docked sidebar, with the state being asked for.</summary>
-    public Callback<bool> OnCollapse { get; set; }
-
-    /// <summary>The name of the sidebar landmark. "Sidebar" unless this says otherwise.</summary>
-    public string? AccessibleLabel { get; set; }
-
-    /// <summary>The name of the click-away area that closes it. "Close sidebar" unless this says otherwise.</summary>
-    public string? CloseLabel { get; set; }
-
-    /// <summary>Classes for the whole layout — the drawer around the sidebar and the page.</summary>
+    /// <summary>Classes for the sidebar: its ground, its border, another width.</summary>
     public string? Class { get; set; }
 
-    /// <summary>Classes for the sidebar panel itself, the <c>&lt;aside&gt;</c>: its width, its padding, its ground.</summary>
-    public string? PanelClass { get; set; }
+    private static string Docked(bool sticky, bool putAway) => (sticky, putAway) switch
+    {
+        (true, true) => "sidebar-desktop:sticky sidebar-desktop:top-0",
+        (true, false) => "sticky top-0 max-h-dvh overflow-y-auto overscroll-contain",
+        (false, true) => "sidebar-desktop:static sidebar-desktop:max-h-none sidebar-desktop:overflow-visible",
+        _ => "",
+    };
 
-    // Which breakpoint the rail applies from, as a VALUE rather than a class name — so it lives here rather
-    // than in UiClassNames, which holds only complete Tailwind class names the shipped sheet defines. The
-    // rail's rules are the kit's own CSS, keyed by this attribute, because no Tailwind variant can say "while
-    // this drawer is open in the flow".
-    private static string RailFrom(Ui.Breakpoint value) => value switch
+    private static string Width(Ui.Breakpoint value) => value switch
     {
         Ui.Breakpoint.Sm => "sm",
         Ui.Breakpoint.Md => "md",
@@ -87,58 +64,58 @@ public sealed partial class UiSidebar : Component
         _ => "lg",
     };
 
+    // Unset when the sidebar was told not to remember its rail: the hook is then not asked for.
+    private string? RailKey => Persist == false ? null : UiSidebarState.RailKey;
+
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var toggle = Input.Of<bool>().Checked(Open == true).Id(Id).Class("drawer-toggle");
-        if (OnToggle.HasValue)
+        var collapsible = Collapsible ?? (Stashable == true ? Ui.SidebarCollapsible.Mobile : Ui.SidebarCollapsible.Never);
+        var putAway = collapsible != Ui.SidebarCollapsible.Never;
+        var rails = collapsible == Ui.SidebarCollapsible.Always;
+
+        var sidebar = Div
+            .Class(UiClass.Compose(
+                Base,
+                putAway ? PutAway : "",
+                Docked(Sticky == true, putAway),
+                rails ? Rail : "",
+                Class))
+            .Attributes(UiMarks.Present(
+                ("data-ui-sidebar", ""),
+                ("data-breakpoint", putAway ? Width(Breakpoint ?? Ui.Breakpoint.Lg) : null)))[
+            // Slid over the page: put away again when the app goes to another page, as Flux's is.
+            putAway ? State(UiSidebarState.Open, "data-ui-sidebar-open", ("data-rask-uncheck-on-navigate", "")) : null,
+            // Narrowed to its rail: kept across visits under the key Flux's own script keeps it under.
+            rails ? State(UiSidebarState.Rail, "data-ui-sidebar-rail", ("data-rask-persist", RailKey)) : null,
+            // A click anywhere on the rail widens it again, as in Flux: a label for the same checkbox, under
+            // everything else in the sidebar.
+            rails
+                ? RaskMarkup.Label
+                    .For(UiSidebarState.Rail)
+                    .Class("absolute inset-0 -z-10 hidden cursor-e-resize sidebar-rail:block")
+                    .Attributes(("data-ui-mechanism", ""), ("aria-hidden", "true"))
+                : null,
+            Children ?? []
+        ];
+
+        if (!putAway)
         {
-            toggle = toggle.OnChange(OnToggle);
+            return sidebar;
         }
 
-        // The rail's own checkbox, beside the drawer's: a sibling of `.drawer-side`, which is what lets the
-        // kit's `:checked ~ .drawer-side` rules narrow the panel with no script. Rendered only when asked for,
-        // so a sidebar that cannot collapse carries no stray input.
-        Component? rail = null;
-        if (Collapsable == true)
-        {
-            var box = Input.Of<bool>().Checked(Collapsed == true).Id(Id + "-rail").Class("ui-sidebar-rail")
-                .Type(InputType.Checkbox);
-            rail = OnCollapse.HasValue ? box.OnChange(OnCollapse) : box;
-        }
-
-        var root = Div.Class(UiClass.Compose(
-            "drawer min-h-dvh",
-            Collapsible is { } from ? UiClassNames.SidebarInFlowFrom(from) : "drawer-open",
-            Position is { } position ? UiClassNames.DrawerPosition(position) : "",
-            Class));
-
-        if (Collapsable == true)
-        {
-            // The rail applies only where the sidebar is DOCKED, and a Tailwind variant cannot say "while the
-            // drawer is open in the flow" — so the breakpoint travels as a value the kit's own media queries key
-            // off.
-            root = root.Data("ui-rail", RailFrom(Collapsible ?? Ui.Breakpoint.Lg));
-        }
-
-        return root[
-            toggle,
-            rail,
-            Div.Class("drawer-content flex min-w-0 flex-col")[Page],
-            Div.Class("drawer-side z-40")[
-                RaskMarkup.Label
-                    .For(Id)
-                    .Class("drawer-overlay")
-                    .Aria("label", CloseLabel ?? "Close sidebar"),
-                Aside
-                    .Class(UiClass.Compose(
-                        "ui-sidebar-panel flex min-h-full w-64 flex-col gap-4 overflow-hidden border-e "
-                        + "border-base-300 bg-base-100 p-4",
-                        PanelClass))
-                    .Aria("label", AccessibleLabel ?? "Sidebar")[
-                    Children ?? []
-                ]
-            ]
+        return
+        [
+            RaskMarkup.Label
+                .For(UiSidebarState.Open)
+                .Class("fixed inset-0 z-20 cursor-auto bg-black/10")
+                .Attributes(("data-ui-sidebar-backdrop", "")),
+            sidebar
         ];
     }
+
+    // A hook with no value is one the sidebar was told not to ask for (`Persist(false)`).
+    private static HTMLInputElement<bool> State(string id, string marker, (string Name, string? Value) hook) =>
+        Input.Of<bool>().Id(id).Type(InputType.Checkbox).Class("hidden")
+            .Attributes(hook.Value is null ? [(marker, "")] : [(marker, ""), hook]);
 }

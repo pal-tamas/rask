@@ -15,9 +15,6 @@ namespace Rask.Site;
 public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav)
     : Component
 {
-    // The id the sidebar and the hamburger share: the hamburger is a label for the sidebar's own checkbox.
-    private const string SidebarId = "docs-sidebar";
-
     // MatchPrefix: optional section prefix for parameterised links. When set, the
     // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
     // /realtime/BTC ↔ /realtime/ETH keeps "Live ticker" active). Null means
@@ -36,10 +33,8 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         // Composition (docs/composition.md keyed lists). See DemoRegistry.
     ];
 
-    // Mobile drawer open state (ignored at ≥md, where the responsive offcanvas is static), the
-    // search filter text, and the set of expanded sidebar groups (keyed by section + group). All
-    // three are plain component fields toggled through the live diff — no JS.
-    private bool _drawerOpen;
+    // The search filter text, and the set of expanded sidebar groups (keyed by section + group): plain
+    // component fields. Whether the sidebar is slid over the page is the sidebar's own checkbox.
     private string _filter = "";
     private readonly HashSet<string> _openGroups = new(StringComparer.Ordinal);
 
@@ -58,77 +53,49 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     private void OnRouteChanged(object? sender, EventArgs e)
     {
-        _drawerOpen = false;
         OpenActiveGroup();
         StateHasChanged();
     }
 
     protected override Component? Render() =>
     [
-        // THE LANDING PAGE'S BAR, not one shaped like it. This was daisyUI's `navbar` with its
-        // navbar-start / navbar-end halves, a second brand mark in the display face, a "showcase" pill,
-        // a version badge, a live `path:` readout and a bordered ★ GitHub button; `/` had a <header>, a
-        // bolt, a wordmark and three quiet text links. Both were defensible and neither was the other,
-        // and a visitor crossing from `/` to `/docs` was the only person positioned to notice — which is
-        // exactly who did.
-        //
-        // What is NOT shared is the sidebar below: `menu` covers the rail itself (see GroupBlock), but
-        // nothing in the kit is a filterable, grouped, eighty-guide accordion, and forcing one into the
-        // other would have been worse than sharing neither.
-        //
-        // The hamburger is the only thing the docs add, and it has to be in the bar because that is where
-        // a thumb reaches for it. It stays the kit's sidebar toggle — a label for the sidebar's checkbox,
-        // so the drawer opens on a prerendered page with no runtime, and a keyboard stop the runtime
-        // presses on Enter/Space. size-11 over daisyUI's 2.5rem because 44px is the smallest reliable
-        // touch target.
+        // THE LANDING PAGE'S BAR, not one shaped like it: a visitor crossing from `/` to `/docs` keeps the
+        // same header. The hamburger is the only thing the docs add, and it has to be in the bar because that
+        // is where a thumb reaches for it. It is the kit's sidebar toggle — a label for the sidebar's checkbox,
+        // so the sidebar opens on a prerendered page with no runtime — and it hides itself where the sidebar docks.
         SiteHeader
             .FullBleed(true)
             .Leading(Ui.SidebarToggle
-                .For(SidebarId)
-                .Collapsible(Ui.Breakpoint.Md)
-                .AccessibleLabel("Toggle navigation")
+                .Icon(Ui.IconName.Bars3)
                 .Class("hamburger-btn size-11")),
-        // The kit's sidebar: docked from md up, a drawer below it. The open state is the drawer's checkbox, mirrored
-        // in _drawerOpen so a navigation closes it. The docked rail sits under the sticky top bar rather than
-        // under its top edge, which is what the two arbitrary variants on the drawer say.
-        //
-        // The rail's own layout is utilities (#1101), where global.css's .side-nav rules used to be: a column that
-        // does not scroll — the filter is pinned, the list below it scrolls — as wide as the old 280px column from md
-        // up, and clearing the bar and the notch while it slides over the page below md. The widths are `!` because
-        // the kit's panel carries its own default width and two width utilities would be settled by sheet order.
-        Ui.Sidebar
-            .Id(SidebarId)
-            .Page(Main.Class(
-                "grow min-w-0 px-3 py-4 pb-[calc(2rem_+_env(safe-area-inset-bottom))] md:px-5 page-main")[
-                Div.Class("mx-auto max-w-[1280px] page-main-inner")[Outlet]
-            ])
-            .Collapsible(Ui.Breakpoint.Md)
-            .Open(_drawerOpen)
-            .OnToggle(open => { _drawerOpen = open; })
-            .AccessibleLabel("Guides and examples")
-            .CloseLabel("Close navigation")
-            .Class("app-shell min-h-0 md:[&>.drawer-side]:top-(--nav-h) "
-                   + "md:[&>.drawer-side]:h-[calc(100vh-var(--nav-h))]")
-            .PanelClass("side-nav h-full flex-col gap-0 overflow-hidden border-ui-line bg-ui-bg px-3 py-4 w-72! "
-                        + "pt-[calc(var(--nav-h)+env(safe-area-inset-top))] md:w-[280px]! md:pt-4")[
-            SidebarBody()
-        ]
-    ];
-
-    // The sidebar body is a non-scrolling flex column: a pinned filter header (.side-nav-search) over a
-    // single scrolling list (.side-nav-scroll). The filter is a real flex header rather than a
-    // position:sticky child because sticky-in-flexbox is unreliable in Safari (the filter would scroll
-    // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
-    private Component SidebarBody() => [
-        // Ui.SidebarHeader is the kit's own word for "holds its place while the list below scrolls", which is
-        // exactly what this is. It brings the shrink-0; the rest is this sidebar's own look.
-        Ui.SidebarHeader.Class("side-nav-search mb-1 block border-b border-ui-line bg-ui-well pb-2")[
-            Ui.Input.Value(_filter).Label("Filter guides & examples…")
-                .OnInput(v => _filter = v ?? "")
-                .Placeholder("Filter guides & examples…").InputClass("side-nav-filter rounded-lg")
-        ],
-        Div.Class("side-nav-scroll flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain")[
-            Ui.Navlist[BuildSections()]
+        // Flux's sidebar layout, under the site's own bar: whatever holds Ui.Main is the grid, so the two are
+        // wrapped — the bar is above the grid, not a row of it. Docked from md up and sliding over the page
+        // below it; the open state is the sidebar's checkbox, which the runtime unchecks when a navigation completes.
+        // The docked sidebar sits under the sticky bar rather than under the viewport's top edge, and clears
+        // the bar and the notch while it slides over the page. `!` where the kit sets the same property.
+        Div.Class("app-shell")[
+            Ui.Sidebar
+                .Sticky(true)
+                .Collapsible(Ui.SidebarCollapsible.Mobile)
+                .Breakpoint(Ui.Breakpoint.Md)
+                .Class("side-nav w-72! gap-2! overflow-hidden! border-e border-ui-line bg-ui-bg px-3! "
+                       + "pt-[calc(var(--nav-h)+env(safe-area-inset-top))]! md:top-(--nav-h)! "
+                       + "md:h-[calc(100dvh-var(--nav-h))] md:max-h-[calc(100dvh-var(--nav-h))]! md:w-[280px]! md:pt-4!")[
+                // The filter holds its place and the list below it scrolls: the sidebar itself does not.
+                Ui.SidebarSearch
+                    .Value(_filter)
+                    .Placeholder("Filter guides & examples…")
+                    .OnInput(v => _filter = v ?? "")
+                    .Class("side-nav-search shrink-0"),
+                Ui.SidebarNav
+                    .Class("side-nav-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain")[
+                    BuildSections()
+                ]
+            ],
+            Ui.Main.Class("min-w-0 px-3! py-4! pb-[calc(2rem_+_env(safe-area-inset-bottom))]! md:px-5!")[
+                // The landmark: where a screen reader jumps to, and where focus goes after a navigation.
+                Main.Class("page-main mx-auto max-w-[1280px] page-main-inner")[Outlet]
+            ]
         ]
     ];
 
@@ -172,7 +139,6 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 }
 
                 var key = GroupKey(section, group);
-                // While filtering every matching group is forced open so results are always visible.
                 var open = filtering || _openGroups.Contains(key);
                 groups.Add(GroupBlock(key, group, open, visible));
             }
@@ -182,69 +148,55 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 continue;
             }
 
-            children.Add(Div.Class("side-nav-section mt-2 border-t border-ui-line px-2 pt-3 pb-1 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-ui-brand-ink first:mt-0 first:border-t-0")[section]);
-            children.AddRange(groups);
+            children.Add(Ui.SidebarGroup.Key(section).Heading(section).Class("side-nav-section")[groups]);
         }
 
         if (children.Count == 0)
         {
-            children.Add(Div.Class("side-nav-empty px-3 py-4 text-sm text-ui-muted")["Nothing matches that filter."]);
+            children.Add(Div.Class("side-nav-empty px-3 py-4 text-sm text-zinc-500")["Nothing matches that filter."]);
         }
 
         return children;
     }
 
+    // One expandable group of the kit's sidebar: a native <details>, so it folds with no round trip, and its
+    // state is mirrored here so the group holding the page being read can be opened from C#.
     private Component GroupBlock(
         string key, string group, bool open,
         IReadOnlyList<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> items) =>
-        // The kit's navlist group: Flux's disclosure, a <details> the browser opens and closes by itself, with
-        // the open state handed back here so a navigation, or the filter, can open a group too.
-        //
-        // The nav-group and side-nav-link class names stay on the elements. They carry no styling — the kit
-        // does that — but the unit and browser suites name them, and those assertions are still about the
-        // right things: that a group reads as open, that the current link is the one for this page.
-        Ui.NavlistGroup
+        Ui.SidebarGroup
             .Key(key)
+            .Expandable(true)
             .Heading(group)
-            .Expandable()
             .Expanded(open)
-            .OnExpandedChange(now => SetGroup(key, now))
+            .OnToggle(expanded => SetGroup(key, expanded))
             .Class("nav-group")[
-            // A closed group holds nothing: eighty guides are not written into every page for a reader who
-            // opens three of them.
-            !open
-                ? []
-                : items.Select(i =>
+            items.Select(i =>
+            {
+                var item = Ui.SidebarItem
+                    .Key(i.Path)
+                    .Href(PageMeta.LinkTo(i.Path))
+                    .Icon(i.Icon)
+                    .Class("side-nav-link");
+
+                // A section's entry stays current on every page under its prefix, which the router cannot know.
+                if (i.MatchPrefix is { } prefix)
                 {
-                    // The kit's navlist item: a NavLink underneath, so the current page is worked out from the
-                    // route and says so with aria-current="page" — the attribute the browser suite selects the
-                    // current link by.
-                    var item = Ui.NavlistItem
-                        .Key(i.Path)
-                        // The slashed URL the host serves: a bare href is a 301 for every crawler (#1057).
-                        .Href(InApp(i.Path))
-                        .Icon(i.Icon)
-                        .Class("side-nav-link");
+                    item = item.Current(IsActive(i.Path, prefix));
+                }
 
-                    // A link that stands for a whole section says so itself: the route alone only knows its own page.
-                    if (i.MatchPrefix is not null)
-                    {
-                        item = item.Current(IsActive(i.Path, i.MatchPrefix));
-                    }
-
-                    // No cast: the chain ends at the children indexer, so it is already a Component
-                    // and Select infers the sequence — which is what the indexer wants.
-                    return item[i.Label];
-                })
+                return item[i.Label];
+            })
         ];
 
-    // These paths ARE routes of this app, kept as strings because a host contributes some of them. The page
-    // type is what tells a kit link to navigate in place and to compare itself with the page being shown; a
-    // bare string would be an ordinary link, handed to the browser.
-    private static RouteUrl InApp(string path) => PageMeta.LinkTo(path) with { PageType = typeof(ShowcaseLayout) };
-
+    // While a filter is typed every group is shown open, and that is not the reader's choice to remember.
     private void SetGroup(string key, bool open)
     {
+        if (_filter.Length > 0)
+        {
+            return;
+        }
+
         if (open)
         {
             _openGroups.Add(key);
@@ -255,8 +207,6 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         }
     }
 
-    // Guides-first: the guide category groups start expanded so the narrative spine is visible on
-    // landing (the interactive Examples/Bootstrap groups stay collapsed accordions until visited).
     private void OpenGuideGroups()
     {
         foreach (var (group, _) in GroupConsecutive(GuidesNav()))

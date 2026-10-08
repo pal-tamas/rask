@@ -32,18 +32,17 @@ public sealed class ShowcaseLayoutTests
         // …and the bar is the LANDING PAGE'S, shared rather than shaped alike: a <header>, not daisyUI's
         // navbar with its two halves. SiteHeaderTests is what holds the two pages to one bar (it compares
         // them byte for byte from the wordmark rightwards); this only states that the docs route reaches
-        // it. The hamburger is still daisyUI's ghost square button — the CSS that used to draw it
-        // (`background: transparent; color: #fff`) existed only to survive the dark bar above it.
+        // it. The hamburger is the kit's sidebar toggle, drawn as Flux draws it.
         Assert.Contains("<header", html);
         Assert.DoesNotContain("navbar-start", html);
         Assert.DoesNotContain("navbar-end", html);
-        Assert.Contains("btn btn-ghost btn-square", html);
+        Assert.Contains("data-ui-sidebar-toggle", html);
 
-        // The sidebar is the kit's Ui.Sidebar: in the flow from md up and a drawer below it, with the hamburger a
-        // Ui.SidebarToggle for its checkbox. It was a Bootstrap responsive offcanvas, then a hand-rolled aside.
+        // The sidebar is the kit's Ui.Sidebar — Flux's — docked from md up and sliding over the page below it, with
+        // the hamburger a Ui.SidebarToggle for its checkbox.
         Assert.Contains("side-nav", html);
-        Assert.Contains("md:drawer-open", html);
-        Assert.Contains("for=\"docs-sidebar\"", html);
+        Assert.Contains("data-breakpoint=\"md\"", html);
+        Assert.Contains("for=\"sidebar-open\"", html);
     }
 
     [Fact]
@@ -79,10 +78,10 @@ public sealed class ShowcaseLayoutTests
 
         var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
-        // Each group is the kit's navlist group — a <details>, one per group, and `open` on the ones that
-        // are expanded.
-        var toggles = Regex.Matches(html, "<details class=\"[^\"]*nav-group\"").Count;
-        var expanded = Regex.Matches(html, "<details class=\"[^\"]*nav-group\"[^>]* open").Count;
+        // A group is the kit's sidebar group, a native <details>: one per group, and `open` on the expanded ones.
+        var groups = Regex.Matches(html, "<details[^>]*nav-group[^>]*>");
+        var toggles = groups.Count;
+        var expanded = groups.Count(group => Regex.IsMatch(group.Value, "\\sopen[\\s>=]"));
 
         Assert.True(expanded >= 5, $"expected the guide groups expanded by default, only {expanded} open");
         // Most example pages are folded into guides now; the surviving Examples group(s) (e.g. Apps/Todos)
@@ -98,7 +97,7 @@ public sealed class ShowcaseLayoutTests
         var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // The kit's nav item says it is the current page to assistive tech, not only with a class.
-        Assert.Matches("class=\"[^\"]*side-nav-link[^\"]*\"[^>]*aria-current=\"page\"", html);
+        Assert.Matches("<a[^>]*side-nav-link[^>]*aria-current=\"page\"|<a[^>]*aria-current=\"page\"[^>]*side-nav-link", html);
     }
 
     [Theory]
@@ -171,59 +170,39 @@ public sealed class ShowcaseLayoutTests
     }
 
     [Fact]
-    public async Task A_route_change_expands_the_active_group_and_closes_the_drawer()
+    public void A_route_change_expands_the_active_group_and_the_drawer_asks_the_runtime_to_close_it()
     {
-        // ShowcaseLayout subscribes to RouteState.Changed in Mount so that on every nav it closes the
-        // mobile drawer and expands the accordion group holding the newly-active route (OnRouteChanged →
-        // _drawerOpen = false + OpenActiveGroup + StateHasChanged). Those two effects are the subscription's
-        // real job — NOT the sidebar's active CSS class, which each NavLink owns and refreshes off its own
-        // RouteState.Changed subscription. This test asserts the two effects, so deleting the layout's
-        // subscription (which leaves the drawer open and the group collapsed) turns it red.
+        // ShowcaseLayout subscribes to RouteState.Changed in Mount so that on every nav it expands the
+        // accordion group holding the newly-active route (OnRouteChanged → OpenActiveGroup + StateHasChanged).
+        // Closing the mobile drawer is the runtime's: the sidebar's checkbox asks for it by attribute, so it
+        // closes with no round trip (the browser suite drives that).
         var routeState = new RouteState { Path = global::Rask.Site.Routes.GuidesIndexPage() };
         var services = TestServices.Default(routeState: routeState);
         // One handle across frames: the same App/layout instance re-renders after the path change.
         var page = Page.Render(new global::Rask.Site.App(), services);
 
         // The "Apps" accordion (Examples section, holding Todos) is collapsed at "/" — only the guide
-        // groups auto-open (OpenGuideGroups). Its toggle carries the "open" class only when expanded.
+        // groups auto-open (OpenGuideGroups).
         var appsExpanded = GroupExpanded("Apps");
 
         Assert.DoesNotMatch(appsExpanded, CollapseWhitespace(page.Html));
+        Assert.Matches("<input[^>]*id=\"sidebar-open\"[^>]*data-rask-uncheck-on-navigate", page.Html);
 
-        // Open the mobile drawer the way a tap on the hamburger does: the hamburger is a label for the sidebar's
-        // checkbox, whose change handler mirrors the state into _drawerOpen — and the checkbox renders checked.
-        var opened = await page.On("#docs-sidebar").Change("true");
-
-        Assert.Matches("<input[^>]*id=\"docs-sidebar\"[^>]*checked|<input[^>]*checked[^>]*id=\"docs-sidebar\"", opened);
-
-        // Navigate to /todos → RouteState.Changed fires → OnRouteChanged closes the drawer and expands the
-        // group holding /todos. Without the subscription neither happens (the drawer stays open, Apps stays
-        // collapsed) even though the layout still re-renders.
+        // Navigate to /todos → RouteState.Changed fires → OnRouteChanged expands the group holding /todos.
         routeState.Path = global::Rask.Site.Routes.TodosPage();
 
         var atTodos = CollapseWhitespace(page.Render());
-        Assert.Matches(appsExpanded, atTodos);                 // active group auto-expanded
-        Assert.DoesNotMatch("<input[^>]*id=\"docs-sidebar\"[^>]*checked|<input[^>]*checked[^>]*id=\"docs-sidebar\"", atTodos); // drawer closed
+        Assert.Matches(appsExpanded, atTodos);
     }
 
     /// <summary>
-    ///     Matches the group toggle for <paramref name="group" /> only while it carries the "open" class.
-    ///     The label has to sit INSIDE that toggle button: the tempered token cannot cross the button's own
-    ///     closing tag, so a match means real containment.
-    ///     <para>
-    ///         The tempering is the point, and the reason this is not a distance window. A plain
-    ///         "[\s\S]{0,N}" — and equally a lazy "svg ... /svg" — backtracks FORWARD across element
-    ///         boundaries, so it cheerfully pairs one group's open toggle with a different group's label
-    ///         further down the rail, and whether it does depends on how big the chevron's markup happens
-    ///         to be. That made the old assertion silently size-dependent: it passed while the chevron was
-    ///         a one-character glyph and broke the moment the showcase moved to real SVG icons. Widening
-    ///         the window would have hidden that rather than fixed it, and would have weakened the negative
-    ///         assertion, which must mean "this group is not open" and not "no open group is nearby".
-    ///     </para>
+    ///     Matches the sidebar group headed <paramref name="group" /> only while its <c>&lt;details&gt;</c> is open.
+    ///     The heading has to sit INSIDE that group's own summary: the tempered token cannot cross the summary's
+    ///     closing tag, so a match means real containment rather than "some open group is nearby".
     /// </summary>
     private static Regex GroupExpanded(string group) =>
-        new("<details class=\"[^\"]*nav-group\"[^>]* open[^>]*><summary(?:(?!</summary>)[\\s\\S])*?"
-            + $"<span class=\"[^\"]*\">{Regex.Escape(group)}</span>");
+        new("<details(?=[^>]*\\sopen[\\s>=])[^>]*nav-group[^>]*>\\s*<summary(?:(?!</summary>)[\\s\\S])*?"
+            + $"<span[^>]*>{Regex.Escape(group)}</span>");
 
     private static string CollapseWhitespace(string s) =>
         Regex.Replace(s, @"\s+", " ");

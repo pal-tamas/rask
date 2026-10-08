@@ -74,7 +74,7 @@ public sealed partial class StoragePage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            Ui.Header.Title("Storage").Caption(
+            DashboardHeading.Title("Storage").Caption(
                 $"new files go to {_stats.ActiveProvider} · orphans swept every {DashboardParts.Duration(_stats.SweepInterval)}"),
             DashboardError.Message(LoadError),
             DiskNotice(),

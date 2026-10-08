@@ -40,10 +40,11 @@ public sealed partial class DashboardStylesheetTests : global::Rask.Core.RaskMar
     [Fact]
     public void The_consoles_sheet_carries_the_frames_reset_and_no_other()
     {
-        // The console owns its document, and the reset it gets is the kit's — keyed to Ui.Shell's .rask-ops,
-        // the rules it has always been drawn against. Tailwind's own preflight would be a second one.
-        Assert.Contains(":where(.rask-ops", DashboardStylesheet.Css, StringComparison.Ordinal);
-        Assert.Contains("body:has(.rask-ops)", DashboardStylesheet.Css, StringComparison.Ordinal);
+        // The console owns its document, and the reset it gets is the kit's — keyed to the attribute a document
+        // drawn with the kit alone writes, so an application linking the kit is untouched. Tailwind's own
+        // preflight would be a second one.
+        Assert.Contains(":where([" + UiStylesheet.DocumentAttribute, DashboardStylesheet.Css, StringComparison.Ordinal);
+        Assert.Contains(":where([" + UiStylesheet.DocumentAttribute + "]) body", DashboardStylesheet.Css, StringComparison.Ordinal);
         Assert.DoesNotContain("html,:host", DashboardStylesheet.Css, StringComparison.Ordinal);
     }
 

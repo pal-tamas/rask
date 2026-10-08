@@ -273,16 +273,21 @@ a utility written in a console page would be compiled into that sheet. Before th
 its own it inlined the kit's precompiled sheet, where such a class named a rule that existed nowhere.)
 
 The console owns its whole document, so it needs a page reset the way any application does. That travels
-with the kit, keyed to the class `Ui.Shell` writes (`.rask-ops`), so an application that draws with the
-kit is untouched by it; the console's sheet imports Tailwind's theme and utilities and not its preflight.
+in the kit's sheet as well, keyed to the attribute a kit-only document writes on its `<html>`
+(`UiStylesheet.DocumentAttribute`), so an application that links the kit is untouched by it. The
+console's sheet imports Tailwind's theme and utilities and not its preflight.
+
+**The frame is Flux's sidebar layout** (`Ui.Sidebar`, `Ui.Header`, `Ui.Main`): the sections down the side —
+narrowing to a rail of icons on a desktop, sliding over the page on a phone — a header for the queue
+switcher and the docs link, and the page in what is left.
 
 **It is pinned to daisyUI's `light` theme, and that is not configurable.** The theme scope goes on
-`<html>` with an explicit `data-theme`, and `Ui.Shell` names the same theme, so the console ignores both the
+`<html>` with an explicit `data-theme`, so the console ignores both the
 host application's theme and the reader's `prefers-color-scheme`. An operator surface is a set of contrast
 ratios checked against one ground; letting it follow the OS would move every one of them silently.
 
 It is not a hypothetical, either — it is what the console did before this was enforced. Its own
-palette was a fixed light one while `Ui.Shell` painted with daisyUI's, so on a machine set to dark mode
+palette was a fixed light one while its frame painted with daisyUI's, so on a machine set to dark mode
 the chrome and the cards went dark and every label on them stayed near-black: the queue titles on the
 overview measured **1.09:1**, with every class name in the markup correct and the whole unit suite
 green.

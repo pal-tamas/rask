@@ -748,38 +748,59 @@ and a link takes the accent with an underline at a fifth of it that fills in und
 
 ## Application layout
 
-Flux UI's layout pieces, drawn with daisyUI. The sidebar beside the docs on this site is exactly this.
+[Flux UI's two layouts](https://fluxui.dev/layouts/sidebar), part for part: `Ui.Header`, `Ui.Sidebar` and
+`Ui.Main`, written as **siblings**. Whatever holds the `Ui.Main` — the `<body>`, or a wrapper — becomes the
+layout grid: the header across the top, the sidebar down the side, the main in what is left. A header written
+*before* the sidebar runs the full width above it; written *after*, it sits beside it. Both are live at
+[/demo/sidebar](https://rask.sh/demo/sidebar) and [/demo/header](https://rask.sh/demo/header).
 
 ```csharp
-Ui.Sidebar.Id("app-nav").Collapsible(Ui.Breakpoint.Lg).Page(Main[Outlet])[
-    Ui.Brand.Name("Shop").Logo("/logo.svg").Href(Routes.HomePage()),
-    Ui.Navlist[
-        Ui.NavlistItem.Href(Routes.OrdersPage()).Icon(Ui.IconName.BookOpen).Badge("12")["Orders"],
-        Ui.NavlistGroup.Heading("Catalogue").Expandable()[
-            Ui.NavlistItem.Href(Routes.ProductsPage())["Products"],
-            Ui.NavlistItem.Href(Routes.CategoriesPage())["Categories"]
-        ]
+protected override Component? Render() =>
+[
+    Ui.Sidebar.Sticky().Collapsible(Ui.SidebarCollapsible.Always)
+        .Class("bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700")[
+        Ui.SidebarHeader[
+            Ui.SidebarBrand.Href(Routes.HomePage()).Logo("/logo.png").LogoDark("/logo-dark.png").Name("Acme Inc."),
+            Ui.SidebarCollapse
+        ],
+        Ui.SidebarSearch.Placeholder("Search..."),
+        Ui.SidebarNav[
+            Ui.SidebarItem.Icon(Ui.IconName.Home).Href(Routes.HomePage())["Home"],
+            Ui.SidebarItem.Icon(Ui.IconName.Inbox).Badge("12").Href(Routes.InboxPage())["Inbox"],
+            Ui.SidebarGroup.Expandable().Icon(Ui.IconName.Star).Heading("Favorites")[
+                Ui.SidebarItem.Href(Routes.MarketingPage())["Marketing site"]
+            ]
+        ],
+        Ui.SidebarSpacer,
+        Ui.SidebarNav[Ui.SidebarItem.Icon(Ui.IconName.Cog6Tooth).Href(Routes.SettingsPage())["Settings"]],
+        Ui.SidebarProfile.Avatar("/me.png").Name("Olivia Martin")
     ],
-    Ui.Spacer.Key("spacer"),
-    Ui.Navlist[Ui.NavlistItem.Href(Routes.SettingsPage())["Settings"]]
-]
-
-// in the top bar, shown only while the sidebar is collapsed:
-Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
+    Ui.Header.Class("lg:hidden")[
+        Ui.SidebarToggle.Inset(Ui.Position.Left),
+        Ui.Spacer
+    ],
+    Ui.Main[Main[Outlet]]
+];
 ```
 
-- **`Ui.Sidebar`** is an `<aside>` beside `Page`: docked — sticky, full height — from `Collapsible` up, and a
-  drawer below it that `Ui.SidebarToggle` slides in and a click beside it slides out. The open state is daisyUI's
-  checkbox, so it opens on a prerendered page with no runtime; `Open`/`OnToggle` mirror it into C#, which is how a
-  navigation closes it. `Ui.SidebarToggle` is a `<label>` for that checkbox with `role="button"` and a tab stop, and
-  the runtime presses it on Enter and Space.
+| Flux | Rask | |
+| --- | --- | --- |
+| `flux:header` | `Ui.Header` | `Sticky`, `Container` (content held to the container width, ground edge to edge) |
+| `flux:main` | `Ui.Main` | `Container`; `Inset` — a bordered, rounded panel that fills the viewport and scrolls inside from `lg` up |
+| `flux:sidebar` | `Ui.Sidebar` | `Sticky`, `Collapsible` (`Never` · `Mobile` · `Always`), `Breakpoint` (`Lg` by default) |
+| `flux:sidebar.header` · `.brand` · `.collapse` | `Ui.SidebarHeader` · `Ui.SidebarBrand` · `Ui.SidebarCollapse` | `Href`, `Logo`, `LogoDark`, `Name` · `Inset`, `Tooltip` |
+| `flux:sidebar.search` | `Ui.SidebarSearch` | `Placeholder`; a button (`OnClick`) as Flux draws it, a real field once given `OnInput` |
+| `flux:sidebar.nav` · `.item` · `.group` | `Ui.SidebarNav` · `Ui.SidebarItem` · `Ui.SidebarGroup` | `Href`, `Icon`, `Badge`, `Current`, `Tooltip` · `Heading`, `Expandable`, `Expanded`, `Icon` |
+| `flux:sidebar.spacer` · `.profile` · `.toggle` | `Ui.SidebarSpacer` · `Ui.SidebarProfile` · `Ui.SidebarToggle` | `Avatar`, `Name` · `Icon`, `Inset` |
+
+Inside a sidebar the list is the sidebar's own (`Ui.SidebarNav`); anywhere else:
+
 - **`Ui.Navlist`** is Flux's `flux:navlist`: a `<nav>` holding **`Ui.NavlistItem`**s and
   **`Ui.NavlistGroup`**s. An item is a `NavLink` underneath, so **`Current` is worked out from the route** and said
   with `aria-current="page"` — unless you state it, as Flux's `current` does — which is how an item stays current across
   a whole section. The current row is inked in the accent (`Accent(false)` inks it as the page is). A group
   is a heading over its items, or — `Expandable()` — a `<details>` disclosure that folds with a click, Enter or
   Space and no runtime, open unless `Expanded(false)`, and controlled with `Expanded`/`OnExpandedChange`.
-  `Variant(Ui.NavlistVariant.Outline)` is Flux's sidebar look: the current row a white, outlined pill.
 - **`Ui.Navbar`** is the same thing in a row — `flux:navbar` and **`Ui.NavbarItem`** — for a header: the current
   item is underlined in the accent, `Icon`/`IconTrailing` sit either side of the words, `Badge` + `BadgeColor`
   (a `Ui.Color`) trail them, and an item with no `Href` is the `<button>` that opens a menu.
@@ -788,24 +809,33 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
 - **`Ui.Breadcrumbs`** holds **`Ui.BreadcrumbsItem`**s: a link with an `Href`, greyed text without, an `Icon` in place of words, and a chevron separator that turns in RTL and is not
   drawn after the last item — `Separator(Ui.IconName.Slash)` for slashes. Anything can be an item's child, which
   is how a dropdown holding the folded-away steps goes in.
-- **`Ui.SidebarHeader`** and **`Ui.SidebarFooter`** hold their place while the navigation between them scrolls —
-  Flux's `sidebar.header` and `sidebar.footer`. The footer needs no `Ui.Spacer` in front of it: it pins itself, so
-  a nav list long enough to scroll scrolls *between* the two rather than pushing the account row off the bottom.
 - **`Ui.Profile`** is Flux's `flux:profile`: the signed-in person as a `<button>` — a small avatar, optionally
   their `Name`, and a chevron (`Chevron(false)` drops it, `IconTrailing` swaps it). It is the TRIGGER of an account
   menu, and the menu is the dropdown's: `Ui.Dropdown[Ui.Profile.Name(…), Ui.Menu[…]]`. Without an `Avatar` it draws the **initials** of `Name` (or of `AvatarName`,
   for a profile that shows no name), since most accounts have no picture.
-- **A docked sidebar can narrow to a rail of icons**, which is a different question from `Collapsible`:
-  `Collapsible` says at what width the sidebar stops being beside the page at all, `Collapsable(true)` keeps it
-  beside the page and takes the words away. **`Ui.SidebarCollapse`** is the control, a `<label>` for a second
-  checkbox — so it needs no runtime either — and it appears exactly where `Ui.SidebarToggle` disappears.
-  The words that go are marked `ui-rail-hide` by the components that own them, so a CSS rule never has to
-  guess which text is a label and which is content, and each link, the brand and the profile row keep their
-  name as a `title` — the rail's tooltip, and the accessible name of a link that is only an icon now. (A drawn
-  tooltip would be cut off: the panel clips its overflow.)
 
-  `Collapsed`/`OnCollapse` hand the choice to C#, and remembering it is the app's: the kit stores nothing on
-  your behalf. Read it once from `localStorage` ([`Rask.Web`](web-apis.md)) after the first render and write it back as it changes:
+- **Nothing is painted that Flux does not paint.** The sidebar's and the header's ground and border are your
+  classes, exactly as in Flux's examples. (A kit-only document gets them from `UiStylesheet.DocumentAttribute`.)
+- **No script.** Flux drives the sidebar with JavaScript; here each state is a checkbox inside the sidebar and
+  each control a `<label>` for it, so both work on a prerendered page before anything has loaded. Below
+  `Breakpoint` the sidebar is off-screen, `Ui.SidebarToggle` slides it over the page and a click on the backdrop
+  slides it back; from `Breakpoint` up it is docked, the toggle is not shown, and with `Collapsible.Always`
+  `Ui.SidebarCollapse` — or a click anywhere on the rail — narrows it to a 56px rail of icons and widens it
+  again. The labels carry `role="button"` and a tab stop, and the runtime presses them on Enter and Space.
+- **`Ui.SidebarItem` is a `NavLink` underneath**, so the current page is worked out from the route
+  (`aria-current="page"`) unless `Current` states it. Its children are its label. In the rail it is its icon — the label stays for a screen reader, and
+  `Tooltip` names it on hover.
+- **`Ui.SidebarGroup`** is a heading over its items, or with `Expandable` a native `<details>` — it folds with no
+  round trip and says whether it is open; `Expanded`/`OnToggle` hand that to C#. In the rail a group shows its
+  `Icon` alone, and one without an icon is not shown.
+- **`Ui.Main` is a `<div>`, as Flux writes it.** Put a `<main>` inside it (`Ui.Main[Main[Outlet]]`) for the
+  landmark a screen reader jumps to and where Rask puts focus after a navigation.
+- **One sidebar a page.** The controls find it by fixed ids (`sidebar-open`, `sidebar-rail`), as Flux's find it
+  by a page-wide event.
+- **`Open`/`OnToggle` and `Collapsed`/`OnCollapse` hand the two states to C#.** Two things need that today,
+  because the kit ships no script: a sidebar slid over the page stays open across a client-side navigation
+  unless the layout closes it (`route.Changed += … _open = false`), and Flux's `persist` — the rail remembered
+  in `localStorage` — is the app's to do:
 
   ```csharp
   public sealed partial class AppShell : Component
@@ -822,13 +852,16 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
       }
 
       protected override Component? Render() =>
-          Ui.Sidebar.Id("nav").Page(Ui.Main[Children ?? []]).Collapsible(Ui.Breakpoint.Lg).Collapsable()
+      [
+          Ui.Sidebar.Collapsible(Ui.SidebarCollapsible.Always)
               .Collapsed(_rail)
               .OnCollapse(async rail =>
               {
                   _rail = rail;
                   await LocalStorage.SetItem("sidebar-rail", rail ? "1" : "0");
-              })[ … ];
+              })[ … ],
+          Ui.Main[Children ?? []]
+      ];
   }
   ```
 
@@ -971,7 +1004,8 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
-| **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
+| **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
+| **Chrome** | `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
 | **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
 
 ## Who owns the state

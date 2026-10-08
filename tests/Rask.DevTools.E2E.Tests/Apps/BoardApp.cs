@@ -18,7 +18,7 @@ public sealed partial class BoardApp : Component
     ];
 
     protected override Component? Render() =>
-        Ui.Shell.Theme(Ui.ThemeName.Light)[
+        Div.Attributes((UiStylesheet.ThemeScopeAttribute, ""), ("data-theme", "light"))[
             Ui.Main[
                 Board.Heading("Ship 1.4"),
                 DeployCard.Environment("staging").ApiToken("sk_live_do_not_show")

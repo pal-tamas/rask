@@ -770,6 +770,36 @@ them until tagged releases begin.
   `aria-current="page"` — which is what the kit's classes key on. A STRING href is an ordinary link on every
   one of these now (`Ui.NavItem` used to route it): state `Current`, or hand it a generated route. `Ui.Color`
   is the shared list of Tailwind's hues.
+- **BREAKING: `Ui.Header`, `Ui.Sidebar` and `Ui.Main` are Flux's layouts** — [fluxui.dev/layouts/header](https://fluxui.dev/layouts/header)
+  and [/layouts/sidebar](https://fluxui.dev/layouts/sidebar), part for part, measured against Flux's live demos
+  at desktop and phone widths, in light and dark, with the sidebar docked, narrowed to its rail and slid over
+  the page. The three are **siblings**, and whatever holds the `Ui.Main` is the layout grid. Thirteen parts:
+  `Ui.Header`, `Ui.Main`, `Ui.Sidebar`, `Ui.SidebarHeader`, `Ui.SidebarBrand`, `Ui.SidebarCollapse`,
+  `Ui.SidebarSearch`, `Ui.SidebarNav`, `Ui.SidebarItem`, `Ui.SidebarGroup`, `Ui.SidebarSpacer`,
+  `Ui.SidebarProfile`, `Ui.SidebarToggle`. No script: both sidebar states are checkboxes, `Open`/`OnToggle`
+  and `Collapsed`/`OnCollapse` hand them to C#. Live at `/demo/sidebar` and `/demo/header`.
+  The daisyUI drawer frame they replace is gone:
+  - `Ui.Sidebar.Id("nav").Page(Main[Outlet]).Collapsible(Ui.Breakpoint.Lg)[…]` →
+    `[Ui.Sidebar.Collapsible(Ui.SidebarCollapsible.Mobile)[…], Ui.Main[Outlet]]` — the page is a sibling, not a
+    prop; there is no `Id` (one sidebar a page, as in Flux); `Breakpoint` is `Lg` unless stated.
+  - `.Collapsable()` → `.Collapsible(Ui.SidebarCollapsible.Always)`; `AccessibleLabel`, `CloseLabel`, `Position`
+    and `PanelClass` are gone (`Class` is the sidebar's own). The parts take Flux's props and nothing else.
+  - `Ui.SidebarToggle.For("nav").Collapsible(Ui.Breakpoint.Lg)` → `Ui.SidebarToggle` — it hides itself where the
+    sidebar docks; `Ui.SidebarCollapse.For("nav").Collapsible(…)` → `Ui.SidebarCollapse`.
+  - `Ui.SidebarFooter[…]` → `Ui.SidebarSpacer` before what goes at the bottom.
+  - `Ui.NavItem.Label("Orders").Href(url)` in a sidebar → `Ui.SidebarItem.Href(url)["Orders"]` (no `Match`/`MatchPrefix`: state `Current` where the router cannot know);
+    `Ui.NavGroup.Title("More")` → `Ui.SidebarGroup.Heading("More")`.
+  - `Ui.Shell[Ui.TopBar[…], Ui.Main[…]]` → `[Ui.Header[…], Ui.Main[…]]`. `Ui.Shell` and `Ui.TopBar` are gone; a
+    document drawn with the kit alone writes `UiStylesheet.DocumentAttribute` on its `<html>` for the reset
+    and the ground `Ui.Shell` carried (it was keyed to the class `.rask-ops`).
+  - `Ui.Main` no longer spaces its sections or paints a ground, and is a `<div>`: it is Flux's main, `p-6 lg:p-8`.
+    Write the landmark inside it — `Ui.Main[Main[Outlet]]`.
+  - **`Ui.Header` was a page heading** (`Title`, `Caption`, `Actions`, `Icon`, `TitleLevel`). That component is
+    gone: `Ui.Header.Title("Products").Actions(button)` →
+    `Div.Class("flex flex-wrap items-center gap-3")[Ui.Heading.Level(1).Size(Ui.Size.Xl)["Products"], Ui.Spacer, button]`.
+  - **The operator console (`/_rask`) is drawn on the sidebar layout**: its sections moved from a tab bar to a
+    sidebar that narrows to a rail and slides over the page on a phone.
+
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:

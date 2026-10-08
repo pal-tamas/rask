@@ -16,9 +16,9 @@ public sealed partial class UiKitLayoutPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "Flyout navigation, layout and mockups in C# — Rask",
-            "Layout components in C#: a flyout panel whose open state the page owns, separator, join, "
-            + "indicator, avatar, mask, and code, browser and window mockups.",
+            "Header and sidebar layouts, flyout and mockups in C# — Rask",
+            "Flux UI's header and sidebar layouts in C#, with a collapsible sidebar that needs no script, plus a "
+            + "flyout panel, separator, join, mask and mockups.",
             Routes.UiKitLayoutPage());
 
     /// <inheritdoc />
@@ -26,11 +26,14 @@ public sealed partial class UiKitLayoutPage : Component
     [
         H1.Class("text-3xl font-bold mb-1")["Layout & mockups"],
         P.Class("text-ui-muted")[
-            "A panel that slides in from an edge is a flyout: ", Code["Ui.Modal.Flyout().Left"],
-            ", Flux UI's modal anchored to a side of the viewport. The page owns whether it is open — ",
-            Code["Open"], " sets it and ", Code["OnClose"], " reports the reader closing it, by the corner ",
-            "button, Escape or a click outside — which is what lets a page close it when a navigation completes."
-
+            "The application layout is Flux UI's: ", Code["Ui.Header"], ", ", Code["Ui.Sidebar"], " and ",
+            Code["Ui.Main"], " side by side, and whatever holds them is the grid. The sidebar's two states — slid ",
+            "over the page on a phone, narrowed to a rail on a desktop — are checkboxes, so they work before ",
+            "anything has loaded; ", Code["Open"], " and ", Code["Collapsed"], " hand them to C#, which is what ",
+            "lets a page close the sidebar when a navigation completes.",
+            " A panel that slides in from an edge is a flyout: ", Code["Ui.Modal.Flyout().Left"],
+            ", Flux UI's modal anchored to a side of the viewport, whose ", Code["Open"], " the page owns and whose ",
+            Code["OnClose"], " reports the reader closing it."
         ],
         CodeSample
             .Files(["UiKitLayoutDemo.cs"])

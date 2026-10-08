@@ -222,6 +222,71 @@
 }
 
 /*
+  FLUX'S LAYOUT STATES (UiSidebar and its parts), as variants.
+
+  Flux's script stamps the sidebar with `data-flux-sidebar-on-desktop`, `-collapsed-desktop` and
+  `-collapsed-mobile`. Here nothing runs: the breakpoint is a media query keyed by the value the sidebar
+  carries, and each state is a checkbox inside it, read with :has(). They weigh MORE than a plain utility,
+  on purpose: an app's own Tailwind sheet is linked after this one, and its `.fixed` or `.hidden` would
+  otherwise outrank `sidebar-desktop:sticky` by nothing but link order. An app overrides one with `!`.
+
+    sidebar-desktop:  from the sidebar's breakpoint up, on it and inside it
+    sidebar-rail:     the same, while it is narrowed to its rail
+    sidebar-open:     while it is slid over the page
+*/
+@custom-variant sidebar-desktop {
+  @media (min-width: 40rem) {
+    &:is([data-ui-sidebar][data-breakpoint="sm"], [data-ui-sidebar][data-breakpoint="sm"] *) {
+      @slot;
+    }
+  }
+  @media (min-width: 48rem) {
+    &:is([data-ui-sidebar][data-breakpoint="md"], [data-ui-sidebar][data-breakpoint="md"] *) {
+      @slot;
+    }
+  }
+  @media (min-width: 64rem) {
+    &:is([data-ui-sidebar][data-breakpoint="lg"], [data-ui-sidebar][data-breakpoint="lg"] *) {
+      @slot;
+    }
+  }
+  @media (min-width: 80rem) {
+    &:is([data-ui-sidebar][data-breakpoint="xl"], [data-ui-sidebar][data-breakpoint="xl"] *) {
+      @slot;
+    }
+  }
+}
+
+@custom-variant sidebar-rail {
+  @media (min-width: 40rem) {
+    &:is([data-ui-sidebar][data-breakpoint="sm"]:has(> [data-ui-sidebar-rail]:checked), [data-ui-sidebar][data-breakpoint="sm"]:has(> [data-ui-sidebar-rail]:checked) *) {
+      @slot;
+    }
+  }
+  @media (min-width: 48rem) {
+    &:is([data-ui-sidebar][data-breakpoint="md"]:has(> [data-ui-sidebar-rail]:checked), [data-ui-sidebar][data-breakpoint="md"]:has(> [data-ui-sidebar-rail]:checked) *) {
+      @slot;
+    }
+  }
+  @media (min-width: 64rem) {
+    &:is([data-ui-sidebar][data-breakpoint="lg"]:has(> [data-ui-sidebar-rail]:checked), [data-ui-sidebar][data-breakpoint="lg"]:has(> [data-ui-sidebar-rail]:checked) *) {
+      @slot;
+    }
+  }
+  @media (min-width: 80rem) {
+    &:is([data-ui-sidebar][data-breakpoint="xl"]:has(> [data-ui-sidebar-rail]:checked), [data-ui-sidebar][data-breakpoint="xl"]:has(> [data-ui-sidebar-rail]:checked) *) {
+      @slot;
+    }
+  }
+}
+
+@custom-variant sidebar-open {
+  &:is([data-ui-sidebar]:has(> [data-ui-sidebar-open]:checked), [data-ui-sidebar]:has(> [data-ui-sidebar-open]:checked) *) {
+    @slot;
+  }
+}
+
+/*
   AN -ink TOKEN IS ALSO THE ONLY SAFE FILL, and that is worth stating because it replaces a whole
   vocabulary nobody needs.
 
@@ -423,16 +488,16 @@
 }
 
 /*
-  THE CONSOLE FRAME'S RESET — and only the console frame's.
+  A KIT-ONLY DOCUMENT'S RESET — and only a kit-only document's.
 
   The header of this file says the kit ships no preflight, and for an application that is right: it owns its
-  document and runs its own reset. UiShell is the one exception. It is the frame of a mounted application
-  (Rask.Dashboard at /_rask) that owns a WHOLE document of its own, draws it with nothing but this kit, and so
-  has no other sheet to take a reset from — it used to compile a second Tailwind sheet for exactly that.
+  document and runs its own reset. The exception is a document drawn with nothing but this kit — Rask.Dashboard
+  at /_rask, the DevTools panel — which has no other sheet to take a reset from. It says so by writing
+  UiStylesheet.DocumentAttribute on its <html>.
 
-  Everything below is Tailwind 4's preflight keyed to `.rask-ops`, the class UiShell writes and nothing else
-  does. A page that never renders UiShell is untouched, and an application that links this sheet keeps its own
-  reset exactly as it was:
+  Everything below is Tailwind 4's preflight keyed to `[data-rask-ui-document]`. A document that does not
+  write the attribute is untouched, and an application that links this sheet keeps its own reset exactly as
+  it was:
 
   - `:where()` around every selector, so each rule has ZERO specificity: daisyUI's components, the corrections
     below and every utility still win, just as they do over a real preflight.
@@ -440,21 +505,21 @@
   - `body:has(.rask-ops)` for the one thing a reset inside the frame cannot reach — the body's own 8px margin,
     a white border round the console otherwise. `:has()` is what keeps even that rule off every other document.
 
-  UiStylesheetTests asserts that no html/body rule and no universal reset exists without `.rask-ops` in it.
+  UiStylesheetTests asserts that no html/body rule and no universal reset exists without `[data-rask-ui-document]` in it.
 */
 @layer base {
-  :where(.rask-ops, .rask-ops *),
-  :where(.rask-ops, .rask-ops *)::after,
-  :where(.rask-ops, .rask-ops *)::before,
-  :where(.rask-ops, .rask-ops *)::backdrop,
-  :where(.rask-ops, .rask-ops *)::file-selector-button {
+  :where([data-rask-ui-document], [data-rask-ui-document] *),
+  :where([data-rask-ui-document], [data-rask-ui-document] *)::after,
+  :where([data-rask-ui-document], [data-rask-ui-document] *)::before,
+  :where([data-rask-ui-document], [data-rask-ui-document] *)::backdrop,
+  :where([data-rask-ui-document], [data-rask-ui-document] *)::file-selector-button {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
     border: 0 solid;
   }
 
-  :where(.rask-ops) {
+  :where([data-rask-ui-document]) {
     line-height: 1.5;
     -webkit-text-size-adjust: 100%;
     tab-size: 4;
@@ -473,36 +538,35 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  body:has(.rask-ops) {
+  :where([data-rask-ui-document]) body {
     margin: 0;
-    background-color: var(--color-base-200);
   }
 
-  :where(.rask-ops hr) {
+  :where([data-rask-ui-document] hr) {
     height: 0;
     color: inherit;
     border-top-width: 1px;
   }
 
-  :where(.rask-ops abbr[title]) {
+  :where([data-rask-ui-document] abbr[title]) {
     text-decoration: underline dotted;
   }
 
-  :where(.rask-ops h1, .rask-ops h2, .rask-ops h3, .rask-ops h4, .rask-ops h5, .rask-ops h6) {
+  :where([data-rask-ui-document] h1, [data-rask-ui-document] h2, [data-rask-ui-document] h3, [data-rask-ui-document] h4, [data-rask-ui-document] h5, [data-rask-ui-document] h6) {
     font-size: inherit;
     font-weight: inherit;
   }
 
-  :where(.rask-ops a) {
+  :where([data-rask-ui-document] a) {
     color: inherit;
     text-decoration: inherit;
   }
 
-  :where(.rask-ops b, .rask-ops strong) {
+  :where([data-rask-ui-document] b, [data-rask-ui-document] strong) {
     font-weight: bolder;
   }
 
-  :where(.rask-ops code, .rask-ops kbd, .rask-ops samp, .rask-ops pre) {
+  :where([data-rask-ui-document] code, [data-rask-ui-document] kbd, [data-rask-ui-document] samp, [data-rask-ui-document] pre) {
     font-family: --theme(
       --default-mono-font-family,
       ui-monospace,
@@ -517,40 +581,40 @@
     font-size: 1em;
   }
 
-  :where(.rask-ops small) {
+  :where([data-rask-ui-document] small) {
     font-size: 80%;
   }
 
-  :where(.rask-ops table) {
+  :where([data-rask-ui-document] table) {
     text-indent: 0;
     border-color: inherit;
     border-collapse: collapse;
   }
 
-  :where(.rask-ops progress) {
+  :where([data-rask-ui-document] progress) {
     vertical-align: baseline;
   }
 
-  :where(.rask-ops summary) {
+  :where([data-rask-ui-document] summary) {
     display: list-item;
   }
 
-  :where(.rask-ops ol, .rask-ops ul, .rask-ops menu) {
+  :where([data-rask-ui-document] ol, [data-rask-ui-document] ul, [data-rask-ui-document] menu) {
     list-style: none;
   }
 
-  :where(.rask-ops img, .rask-ops svg, .rask-ops video, .rask-ops canvas, .rask-ops audio, .rask-ops iframe, .rask-ops embed, .rask-ops object) {
+  :where([data-rask-ui-document] img, [data-rask-ui-document] svg, [data-rask-ui-document] video, [data-rask-ui-document] canvas, [data-rask-ui-document] audio, [data-rask-ui-document] iframe, [data-rask-ui-document] embed, [data-rask-ui-document] object) {
     display: block;
     vertical-align: middle;
   }
 
-  :where(.rask-ops img, .rask-ops video) {
+  :where([data-rask-ui-document] img, [data-rask-ui-document] video) {
     max-width: 100%;
     height: auto;
   }
 
-  :where(.rask-ops button, .rask-ops input, .rask-ops select, .rask-ops optgroup, .rask-ops textarea),
-  :where(.rask-ops *)::file-selector-button {
+  :where([data-rask-ui-document] button, [data-rask-ui-document] input, [data-rask-ui-document] select, [data-rask-ui-document] optgroup, [data-rask-ui-document] textarea),
+  :where([data-rask-ui-document] *)::file-selector-button {
     font: inherit;
     font-feature-settings: inherit;
     font-variation-settings: inherit;
@@ -561,19 +625,19 @@
     opacity: 1;
   }
 
-  :where(.rask-ops *)::placeholder {
+  :where([data-rask-ui-document] *)::placeholder {
     opacity: 1;
   }
 
-  :where(.rask-ops textarea) {
+  :where([data-rask-ui-document] textarea) {
     resize: vertical;
   }
 
-  :where(.rask-ops button, .rask-ops input[type="button"], .rask-ops input[type="reset"], .rask-ops input[type="submit"]) {
+  :where([data-rask-ui-document] button, [data-rask-ui-document] input[type="button"], [data-rask-ui-document] input[type="reset"], [data-rask-ui-document] input[type="submit"]) {
     appearance: button;
   }
 
-  :where(.rask-ops [hidden]:not([hidden="until-found"])) {
+  :where([data-rask-ui-document] [hidden]:not([hidden="until-found"])) {
     display: none !important;
   }
 }
@@ -1131,96 +1195,6 @@
 }
 
 /*
-  The sidebar's icon-only RAIL (UiSidebar.Collapsable; UiSidebarCollapse).
-
-  A second checkbox beside the drawer's, so narrowing the sidebar needs no script and survives a prerendered
-  page — the same trade the drawer itself makes. What it hides is marked `ui-rail-hide` by the components that
-  own the words (UiNavlistItem's words and badge, UiBrand's name, UiNavlistGroup's heading, UiProfile's name), so
-  the rule never has to guess which text is a label and which is content.
-
-  Keyed by `data-ui-rail` rather than a Tailwind variant, because the rail applies only while the sidebar is
-  DOCKED and no variant can say "while this drawer is open in the flow" — the breakpoint travels as a value and
-  the media query is written out per breakpoint, each one complete.
-
-  In `rask-ui-corrections`, which the browser places after `utilities`: the panel's width is the Tailwind
-  utility `w-64`, and a layer earlier than `utilities` cannot narrow it however specific the selector is.
-*/
-@layer rask-ui-corrections {
-  /*
-    Never seen, never a tab stop — the label is the control. Not `display: none`: a hidden-that-way checkbox is
-    removed from the box tree, and the sibling combinator the rules below rely on has nothing to select from in
-    some engines. The drawer's own toggle avoids it for the same reason.
-  */
-  .ui-sidebar-rail {
-    position: absolute;
-    width: 0;
-    height: 0;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  @media (min-width: 40rem) {
-    [data-ui-rail="sm"] .ui-sidebar-rail:checked ~ .drawer-side .ui-sidebar-panel {
-      width: 4.5rem;
-      padding-inline: 0.5rem;
-    }
-
-    [data-ui-rail="sm"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-hide {
-      display: none;
-    }
-
-    [data-ui-rail="sm"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-flip {
-      rotate: 180deg;
-    }
-  }
-
-  @media (min-width: 48rem) {
-    [data-ui-rail="md"] .ui-sidebar-rail:checked ~ .drawer-side .ui-sidebar-panel {
-      width: 4.5rem;
-      padding-inline: 0.5rem;
-    }
-
-    [data-ui-rail="md"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-hide {
-      display: none;
-    }
-
-    [data-ui-rail="md"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-flip {
-      rotate: 180deg;
-    }
-  }
-
-  @media (min-width: 64rem) {
-    [data-ui-rail="lg"] .ui-sidebar-rail:checked ~ .drawer-side .ui-sidebar-panel {
-      width: 4.5rem;
-      padding-inline: 0.5rem;
-    }
-
-    [data-ui-rail="lg"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-hide {
-      display: none;
-    }
-
-    [data-ui-rail="lg"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-flip {
-      rotate: 180deg;
-    }
-  }
-
-  @media (min-width: 80rem) {
-    [data-ui-rail="xl"] .ui-sidebar-rail:checked ~ .drawer-side .ui-sidebar-panel {
-      width: 4.5rem;
-      padding-inline: 0.5rem;
-    }
-
-    [data-ui-rail="xl"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-hide {
-      display: none;
-    }
-
-    [data-ui-rail="xl"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-flip {
-      rotate: 180deg;
-    }
-  }
-}
-
-/*
   The light that crosses a shimmering skeleton ([data-ui-skeleton], [data-ui-skeleton-line]).
 
   Their ::before is as wide as the skeleton and parked one width to its left (UiSkeletonScope); this carries
@@ -1421,6 +1395,86 @@
 }
 
 /*
+  FLUX'S LAYOUT GRID (UiHeader, UiSidebar, UiMain).
+
+  Whatever holds a UiMain is the grid, as Flux's <body> is: a header row, a sidebar column, the main in
+  what is left. A header written BEFORE the sidebar runs above it; written after, it sits beside it.
+  An inset main fills the viewport from lg up and scrolls inside its panel.
+
+  The backdrop is the sidebar's previous sibling, so only :has() can show it; and the toggle is anywhere
+  on the page — in a bar above the grid, on the docs — so it is the document that tells it the sidebar has docked.
+*/
+@layer rask {
+  :where(:has(> [data-ui-main])) {
+    display: grid;
+    grid-area: body;
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns: min-content minmax(0, 1fr) min-content;
+    grid-template-areas:
+      "header header header"
+      "sidebar main aside"
+      "sidebar footer aside";
+  }
+
+  :where(:has(> [data-ui-sidebar] ~ [data-ui-header])):has(> [data-ui-main]) {
+    grid-template-areas:
+      "sidebar header header"
+      "sidebar main aside"
+      "sidebar footer aside";
+  }
+
+  @media (min-width: 64rem) {
+    :where(:has(> [data-ui-main][data-inset])) {
+      height: 100dvh;
+    }
+  }
+
+  [data-ui-sidebar-backdrop] {
+    display: none;
+  }
+
+  /*
+    A group is a <details> laid out as Flux lays out its disclosure: the heading and the panel are both
+    items of its grid. The browser puts the panel in a box of its own, which this takes away — and with
+    it the box that hid a closed panel, so the panel hides itself (UiSidebarGroup).
+  */
+  [data-ui-sidebar-group]::details-content {
+    display: contents;
+  }
+
+  [data-ui-sidebar-backdrop]:has(+ [data-ui-sidebar] > [data-ui-sidebar-open]:checked) {
+    display: block;
+  }
+}
+
+@layer rask-ui-corrections {
+  @media (min-width: 40rem) {
+    [data-ui-sidebar-backdrop]:has(+ [data-ui-sidebar][data-breakpoint="sm"]),
+    :root:has([data-ui-sidebar][data-breakpoint="sm"]) [data-ui-sidebar-toggle] {
+      display: none;
+    }
+  }
+  @media (min-width: 48rem) {
+    [data-ui-sidebar-backdrop]:has(+ [data-ui-sidebar][data-breakpoint="md"]),
+    :root:has([data-ui-sidebar][data-breakpoint="md"]) [data-ui-sidebar-toggle] {
+      display: none;
+    }
+  }
+  @media (min-width: 64rem) {
+    [data-ui-sidebar-backdrop]:has(+ [data-ui-sidebar][data-breakpoint="lg"]),
+    :root:has([data-ui-sidebar][data-breakpoint="lg"]) [data-ui-sidebar-toggle] {
+      display: none;
+    }
+  }
+  @media (min-width: 80rem) {
+    [data-ui-sidebar-backdrop]:has(+ [data-ui-sidebar][data-breakpoint="xl"]),
+    :root:has([data-ui-sidebar][data-breakpoint="xl"]) [data-ui-sidebar-toggle] {
+      display: none;
+    }
+  }
+}
+
+/*
   AN ACCORDION ITEM IS A <details>, AND ITS HEIGHT IS THE BROWSER'S OWN CONTENT SLOT.
 
   ::details-content is the box a <details> puts everything but its <summary> in. Closed, it is kept out of
@@ -1487,6 +1541,50 @@
       &:hover:not(:disabled) {
         background-image: url("data:image/svg+xml,%3csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 9L12 5L16 9' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3cpath d='M16 15L12 19L8 15' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
       }
+    }
+  }
+}
+
+/*
+  A KIT-ONLY DOCUMENT (UiStylesheet.DocumentAttribute) cannot write a class — its sheet is this one, which
+  holds only what the kit wrote. So it is given what every Flux layout example writes by hand: the body's
+  ground, the sidebar's and the header's, their borders, and room between the main's sections.
+*/
+@layer rask {
+  :where([data-rask-ui-document]) body {
+    min-height: 100dvh;
+    background-color: var(--color-white);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :where([data-rask-ui-document]) [data-ui-sidebar],
+  :where([data-rask-ui-document]) [data-ui-header] {
+    background-color: var(--color-zinc-50);
+    border-color: var(--color-zinc-200);
+  }
+
+  :where([data-rask-ui-document]) [data-ui-sidebar] {
+    border-inline-end-width: 1px;
+  }
+
+  :where([data-rask-ui-document]) [data-ui-header] {
+    border-bottom-width: 1px;
+  }
+
+  :where([data-rask-ui-document]) [data-ui-main] > main > * + * {
+    margin-top: calc(var(--spacing) * 6);
+  }
+
+  @variant dark {
+    :where([data-rask-ui-document]) body {
+      background-color: var(--color-zinc-800);
+    }
+
+    :where([data-rask-ui-document]) [data-ui-sidebar],
+    :where([data-rask-ui-document]) [data-ui-header] {
+      background-color: var(--color-zinc-900);
+      border-color: var(--color-zinc-700);
     }
   }
 }

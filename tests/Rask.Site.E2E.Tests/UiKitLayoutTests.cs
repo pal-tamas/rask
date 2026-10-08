@@ -94,7 +94,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
             await Page.Keyboard.PressAsync("Enter");
 
             await Expect(sideNav).ToBeInViewportAsync(new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
-            await Expect(Page.Locator("aside.side-nav[aria-label='Guides and examples']")).ToHaveCountAsync(1);
+            await Expect(Page.Locator(".side-nav nav[data-ui-sidebar-nav]")).ToHaveCountAsync(1);
         }
         finally
         {

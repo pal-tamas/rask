@@ -118,7 +118,11 @@ public sealed partial class CreateProduct : Component
 
         return
         [
-            Ui.Header.Title("New product").Actions(Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]),
+            Div.Class("flex flex-wrap items-center gap-3")[
+                Ui.Heading.Level(1).Size(Ui.Size.Xl)["New product"],
+                Ui.Spacer,
+                Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]
+            ],
             Ui.Card[
                 save.IsError ? Ui.Callout.Danger.Role("alert").Heading("Something went wrong — please try again.") : null,
                 Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
@@ -213,7 +217,11 @@ public sealed partial class UpdateProduct : Component
 
         return
         [
-            Ui.Header.Title("Edit product").Actions(Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]),
+            Div.Class("flex flex-wrap items-center gap-3")[
+                Ui.Heading.Level(1).Size(Ui.Size.Xl)["Edit product"],
+                Ui.Spacer,
+                Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]
+            ],
             Ui.Card[
                 save.Error switch
                 {
@@ -328,8 +336,11 @@ public sealed partial class ProductsPage : Component
 
         return
         [
-        Ui.Header.Title(count.Data is { } n ? $"Products ({n})" : "Products")
-            .Actions(Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]),
+        Div.Class("flex flex-wrap items-center gap-3")[
+            Ui.Heading.Level(1).Size(Ui.Size.Xl)[count.Data is { } n ? $"Products ({n})" : "Products"],
+            Ui.Spacer,
+            Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]
+        ],
         Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(20).Label("Products")[c => [
             c.Field(p => p.Name).Title("Name").Sortable(),
             c.Field(p => p.Price).Title("Price").Sortable(),
