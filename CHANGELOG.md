@@ -23,6 +23,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **CI: the whole run follows every push, and every push to `main` gets its own run.** `full.yml` runs
+  behind each push — one run at a time, the newest push waiting, fourteen jobs at once so a push's scoped
+  run still finds runners — and hourly as the backstop, so `pages.yml` deploys a site change minutes
+  after its push instead of within the hour. `nightly.yml` is on its own hourly clock and packs the
+  newest commit the whole run passed, once, so nuget.org gets no more versions than before. `ci.yml` no
+  longer holds a push behind the run of the one before it.
 - **CI: the browser gates, the scoped format job and the Pages publish are shorter.** The five browser
   gates and `pages.yml` build without the analyzers — the `build` job is the one that holds the source to
   them — which took the site publish from 375 s to 270 s on a runner. A scoped `format` job builds the
