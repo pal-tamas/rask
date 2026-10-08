@@ -28,8 +28,9 @@ const RULES = "html[" + LOCKED + "]{overflow:hidden;scrollbar-gutter:stable}"
 let sheet = false;
 let locked = "";
 
+// A <dialog popover> shown as a popover is open and its `open` is false: both are asked.
 function isOpen(el: Element): boolean {
-    return el instanceof HTMLDialogElement ? el.open : isShown(el);
+    return (el instanceof HTMLDialogElement && el.open) || isShown(el);
 }
 
 function apply(doc: Document, state: string): void {
