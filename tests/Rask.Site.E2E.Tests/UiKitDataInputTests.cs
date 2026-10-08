@@ -23,7 +23,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         foreach (var id in new[]
                  {
-                     "ui-text-controls", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-checkbox", "ui-radio", "ui-switch", "ui-range", "ui-otp", "ui-filter",
+                     "ui-text-controls", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-checkbox", "ui-radio", "ui-switch", "ui-slider", "ui-slider-ticks", "ui-slider-range", "ui-rating", "ui-otp", "ui-otp-layout", "ui-filter",
                      "ui-calendar", "ui-date-picker", "ui-time-picker", "ui-dropzone", "ui-bound", "ui-mask",
                  })
         {
@@ -154,24 +154,149 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task The_one_time_code_is_a_single_field_that_takes_a_pasted_code() => RunAsync(async () =>
+    public Task The_one_time_code_is_a_cell_per_character_that_spells_one_code() => RunAsync(async () =>
     {
         await OpenAsync();
 
-        var scope = Page.Locator("[data-testid='ui-otp']");
-        var field = scope.Locator("input.otp");
+        var cells = OtpCells(0);
+        var state = Page.Locator("[data-testid='ui-otp-state']");
 
-        // One input, not six. This is what makes a pasted or autofilled code land correctly instead of
-        // dropping the whole string into the first box.
-        await Expect(scope.Locator("input")).ToHaveCountAsync(1);
+        // Flux's shape: a real text input per character, each named by its place, one of them a tab stop.
+        await Expect(cells).ToHaveCountAsync(6);
+        await Expect(cells.Nth(0)).ToHaveAccessibleNameAsync("Character 1 of 6");
+        await Expect(cells.Nth(0)).ToHaveAttributeAsync("autocomplete", "one-time-code");
+        await Expect(cells.Nth(0)).ToHaveAttributeAsync("tabindex", "0");
+        await Expect(cells.Nth(1)).ToHaveAttributeAsync("tabindex", "-1");
 
-        // Named by its visible label and described by its hint, like every other kit field (#1117).
-        await Expect(scope.GetByLabel("Verification code")).ToHaveCountAsync(1);
-        await Expect(field).ToHaveAccessibleDescriptionAsync("Six digits, sent to your phone.");
+        // A character moves on to the next cell, and the code reaches C#.
+        await cells.Nth(0).ClickAsync();
+        await Page.Keyboard.PressAsync("1");
+        await Expect(cells.Nth(1)).ToBeFocusedAsync();
+        await Expect(state).ToContainTextAsync("1 of 6 entered");
+        await Expect(cells.Nth(1)).ToHaveAttributeAsync("tabindex", "0");
 
-        await field.FillAsync("123456");
-        await field.BlurAsync();
-        await Expect(Page.Locator("[data-testid='ui-otp-state']")).ToContainTextAsync("Code complete");
+        // A letter is refused by a numeric code; the rest typed with no pause between keys lands a cell each.
+        await Page.Keyboard.PressAsync("a");
+        await Page.Keyboard.TypeAsync("23456");
+        await Expect(state).ToContainTextAsync("Code complete: 123456.");
+        Assert.Equal("1 2 3 4 5 6", await OtpTextAsync(0));
+    });
+
+    [Fact]
+    public Task Typing_over_a_cell_replaces_it_and_backspace_walks_back_through_the_code() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var cells = OtpCells(0);
+        var state = Page.Locator("[data-testid='ui-otp-state']");
+        await cells.Nth(0).ClickAsync();
+        await Page.Keyboard.TypeAsync("123");
+
+        // ArrowLeft selects the cell before, so the next key replaces its character and moves on.
+        await Page.Keyboard.PressAsync("ArrowLeft");
+        await Page.Keyboard.PressAsync("ArrowLeft");
+        await Page.Keyboard.PressAsync("9");
+        Assert.Equal("1 9 3 _ _ _", await OtpTextAsync(0));
+        await Expect(cells.Nth(2)).ToBeFocusedAsync();
+        await Expect(state).ToContainTextAsync("3 of 6 entered");
+
+        // A press past the first empty cell lands on it; ArrowRight stops there too.
+        await cells.Nth(5).ClickAsync();
+        await Expect(cells.Nth(3)).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(cells.Nth(3)).ToBeFocusedAsync();
+
+        // Backspace in an empty cell only steps back; in a filled one it deletes and steps back.
+        await Page.Keyboard.PressAsync("Backspace");
+        Assert.Equal("1 9 3 _ _ _", await OtpTextAsync(0));
+        await Page.Keyboard.PressAsync("Backspace");
+        Assert.Equal("1 9 _ _ _ _", await OtpTextAsync(0));
+        await Expect(state).ToContainTextAsync("2 of 6 entered");
+
+        // Delete closes the code up from where it is.
+        await cells.Nth(0).ClickAsync();
+        await Page.Keyboard.PressAsync("Delete");
+        Assert.Equal("9 _ _ _ _ _", await OtpTextAsync(0));
+        await Expect(state).ToContainTextAsync("1 of 6 entered");
+    });
+
+    [Fact]
+    public Task A_pasted_code_fills_the_cells_from_the_first_and_reaches_CSharp() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var cells = OtpCells(0);
+        var state = Page.Locator("[data-testid='ui-otp-state']");
+        await cells.Nth(0).ClickAsync();
+        await Page.Keyboard.TypeAsync("12");
+
+        await Page.EvaluateAsync(
+            """
+            () => {
+                const data = new DataTransfer();
+                data.setData('text/plain', '98-76 54zz');
+                document.activeElement.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+            }
+            """);
+
+        Assert.Equal("9 8 7 6 5 4", await OtpTextAsync(0));
+        await Expect(state).ToContainTextAsync("Code complete: 987654.");
+    });
+
+    [Fact]
+    public Task Letters_reach_CSharp_upper_cased_and_a_code_set_in_CSharp_fills_the_cells() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        // The licence key arrives from C# ("L49R4"): the runtime shares it out over the cells.
+        var license = OtpCells(3);
+        await Expect(license.Nth(0)).ToHaveValueAsync("L");
+        await Expect(license.Nth(4)).ToHaveValueAsync("4");
+        await Expect(license.Nth(5)).ToHaveValueAsync(string.Empty);
+
+        await license.Nth(9).ClickAsync();
+        await Page.Keyboard.TypeAsync("ab");
+        await Expect(Page.Locator("[data-testid='ui-otp-license']")).ToHaveTextAsync("Key: L49R4AB");
+
+        // "Resend code" empties the string in C#, and the cells follow it.
+        var form = OtpCells(1);
+        await form.Nth(0).ClickAsync();
+        await Page.Keyboard.TypeAsync("4321");
+        await Expect(form.Nth(3)).ToHaveValueAsync("1");
+        await Page.Locator("[data-testid='ui-otp-resend']").ClickAsync();
+        await Expect(form.Nth(0)).ToHaveValueAsync(string.Empty);
+        await Expect(form.Nth(3)).ToHaveValueAsync(string.Empty);
+    });
+
+    [Fact]
+    public Task A_complete_one_time_code_runs_its_completion_handler() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var verified = Page.Locator("[data-testid='ui-otp-verified']");
+
+        await Expect(verified).ToContainTextAsync("Fill every cell");
+        await OtpCells(2).Nth(0).ClickAsync();
+        await Page.Keyboard.TypeAsync("654321");
+
+        await Expect(verified).ToContainTextAsync("Verifying 654321");
+    });
+
+    [Fact]
+    public Task One_time_code_cells_join_into_groups_around_a_separator() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var grouped = Page.Locator("[data-testid='ui-otp-layout'] [data-ui-otp]").Nth(2);
+
+        await Expect(grouped.Locator("[data-ui-input-group]")).ToHaveCountAsync(2);
+        await Expect(grouped.Locator("input[data-ui-otp-input]")).ToHaveCountAsync(6);
+        await Expect(grouped.Locator("[data-ui-text]")).ToHaveTextAsync("—");
+
+        // Joined: a middle cell of a group has no left border and square corners.
+        var middle = grouped.Locator("input[data-ui-otp-input]").Nth(1);
+        Assert.Equal("0px", await middle.EvaluateAsync<string>("e => getComputedStyle(e).borderLeftWidth"));
+        Assert.Equal("0px", await middle.EvaluateAsync<string>("e => getComputedStyle(e).borderTopLeftRadius"));
     });
 
     [Fact]
@@ -339,18 +464,125 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task The_range_reports_its_value() => RunAsync(async () =>
+    public Task The_slider_follows_the_keyboard_and_reports_its_value() => RunAsync(async () =>
     {
         await OpenAsync();
 
-        var scope = Page.Locator("[data-testid='ui-range']");
+        var value = Page.Locator("[data-testid='ui-slider-value']");
+        var slider = Page.Locator("[data-testid='ui-slider'] [data-ui-field]").First.Locator("[data-ui-slider]");
+        var input = slider.Locator("input[type='range']");
 
-        await Expect(scope).ToContainTextAsync("Volume: 40");
+        await Expect(value).ToHaveTextAsync("50");
 
-        // A slider that draws a value and reports nothing is one you can push and cannot read; Ui.Range
-        // had no OnChange at all before this.
-        await scope.Locator("input[type='range']").FillAsync("75");
-        await Expect(scope).ToContainTextAsync("Volume: 75");
+        // The control is a native range input, so the keys are the browser's: an arrow is one step, Page Up a
+        // tenth of the track, Home and End the two ends. Each reaches C# and comes back as the drawn value.
+        await input.FocusAsync();
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(value).ToHaveTextAsync("51");
+        await Page.Keyboard.PressAsync("PageUp");
+        await Expect(value).ToHaveTextAsync("61");
+        await Page.Keyboard.PressAsync("Home");
+        await Expect(value).ToHaveTextAsync("0");
+        await Page.Keyboard.PressAsync("End");
+        await Expect(value).ToHaveTextAsync("100");
+    });
+
+    [Fact]
+    public Task Shift_with_an_arrow_and_the_page_keys_move_the_slider_by_its_big_step() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var value = Page.Locator("[data-testid='ui-slider-big']");
+        var input = Page.Locator("[data-testid='ui-slider'] [data-ui-field]:has([data-testid='ui-slider-big']) input[type='range']");
+        await Expect(value).ToHaveTextAsync("500");
+        await input.FocusAsync();
+
+        // Flux's numbers, on its own "Big steps" example (step 1, big-step 100, 0 to 1000).
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(value).ToHaveTextAsync("501");
+        await Page.Keyboard.PressAsync("Shift+ArrowRight");
+        await Expect(value).ToHaveTextAsync("601");
+        await Page.Keyboard.PressAsync("Shift+ArrowUp");
+        await Expect(value).ToHaveTextAsync("701");
+        await Page.Keyboard.PressAsync("Shift+ArrowLeft");
+        await Expect(value).ToHaveTextAsync("601");
+        await Page.Keyboard.PressAsync("PageDown");
+        await Expect(value).ToHaveTextAsync("501");
+        await Page.Keyboard.PressAsync("PageUp");
+        await Expect(value).ToHaveTextAsync("601");
+        await Page.Keyboard.PressAsync("End");
+        await Page.Keyboard.PressAsync("Shift+ArrowRight");
+        await Expect(value).ToHaveTextAsync("1000");
+    });
+
+    [Fact]
+    public Task Pressing_the_track_moves_the_thumb_under_the_pointer_and_dragging_carries_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var value = Page.Locator("[data-testid='ui-slider-value']");
+        var slider = Page.Locator("[data-testid='ui-slider'] [data-ui-field]").First.Locator("[data-ui-slider]");
+        var thumb = slider.Locator("[data-ui-slider-thumb]");
+        await slider.ScrollIntoViewIfNeededAsync();
+        var box = (await slider.BoundingBoxAsync())!;
+        var middle = box.Y + (box.Height / 2);
+
+        // A quarter of the way along: the value under the pointer, counted between the thumb's two resting ends.
+        await Page.Mouse.ClickAsync(box.X + (box.Width * 0.25f), middle);
+        var expected = (int)Math.Round(((box.Width * 0.25) - 8) / (box.Width - 16) * 100, MidpointRounding.AwayFromZero);
+        await Expect(value).ToHaveTextAsync(expected.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        // The drawn thumb is where the value is: centred on the pointer, to the pixel the step allows.
+        var drawn = (await thumb.BoundingBoxAsync())!;
+        Assert.InRange(drawn.X + (drawn.Width / 2) - (box.X + (box.Width * 0.25f)), -2, 2);
+
+        await Page.Mouse.MoveAsync(box.X + (box.Width * 0.25f), middle);
+        await Page.Mouse.DownAsync();
+        await Page.Mouse.MoveAsync(box.X + box.Width - 1, middle, new MouseMoveOptions { Steps = 6 });
+        await Page.Mouse.UpAsync();
+        await Expect(value).ToHaveTextAsync("100");
+    });
+
+    [Fact]
+    public Task Pressing_a_tick_moves_the_thumb_to_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var slider = Page.Locator("[data-testid='ui-slider-ticks'] [data-ui-slider]").Last;
+        var input = slider.Locator("input[type='range']");
+
+        await Expect(input).ToHaveValueAsync("3");
+        await slider.Locator("[data-ui-slider-tick]", new LocatorLocatorOptions { HasText = "High" }).ClickAsync();
+
+        await Expect(input).ToHaveValueAsync("5");
+        await Expect(slider.Locator("[data-ui-slider-tick][data-current]")).ToHaveTextAsync("High");
+    });
+
+    [Fact]
+    public Task A_range_slider_moves_the_nearer_thumb_and_the_thumbs_do_not_cross() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var price = Page.Locator("[data-testid='ui-slider-price']");
+        var slider = Page.Locator("[data-testid='ui-slider-range'] [data-ui-field] [data-ui-slider]");
+        var thumbs = slider.Locator("input[type='range']");
+        await slider.ScrollIntoViewIfNeededAsync();
+        var box = (await slider.BoundingBoxAsync())!;
+        var middle = box.Y + (box.Height / 2);
+
+        await Expect(price).ToHaveTextAsync("$200 – $800");
+        await Expect(thumbs).ToHaveCountAsync(2);
+
+        // A press near the left end is the first thumb's; one near the right end, the second's.
+        await Page.Mouse.ClickAsync(box.X + 1, middle);
+        await Expect(price).ToHaveTextAsync("$0 – $800");
+        await Page.Mouse.ClickAsync(box.X + box.Width - 1, middle);
+        await Expect(price).ToHaveTextAsync("$0 – $990");
+
+        // End on the first thumb stops ten steps short of the second: MinStepsBetween(10) at a step of 10.
+        await thumbs.First.FocusAsync();
+        await Page.Keyboard.PressAsync("End");
+        await Expect(price).ToHaveTextAsync("$890 – $990");
     });
 
     [Fact]
@@ -915,4 +1147,12 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Expect(Page.Locator("main h1")).ToContainTextAsync("Data input",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     }
+
+    private ILocator OtpCells(int example) =>
+        Page.Locator("[data-testid='ui-otp'] [data-ui-otp]").Nth(example).Locator("input[data-ui-otp-input]");
+
+    // The cells as text, an underscore for an empty one: "1 9 3 _ _ _".
+    private Task<string> OtpTextAsync(int example) =>
+        Page.Locator("[data-testid='ui-otp'] [data-ui-otp]").Nth(example).EvaluateAsync<string>(
+            "group => [...group.querySelectorAll('input[data-ui-otp-input]')].map(cell => cell.value || '_').join(' ')");
 }

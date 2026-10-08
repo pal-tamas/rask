@@ -66,9 +66,13 @@ public sealed partial class UiCheckbox : Component, IUiFormControl
 
     /// <summary>
     ///     Attributes for the <c>&lt;input&gt;</c> itself, written as given — what Flux forwards to it:
-    ///     <c>.Attributes(("name", "role"))</c>, <c>("aria-label", "Select row")</c>, <c>("required", "")</c>.
+    ///     <c>.Attributes(("aria-label", "Select row"))</c>, <c>("required", "")</c>. A <c>name</c> given here wins over
+    ///     <see cref="Name" />.
     /// </summary>
     public IReadOnlyDictionary<string, string?>? Attributes { get; set; }
+
+    /// <summary>The <c>name</c> the checkbox posts under in a form: the <c>&lt;input&gt;</c>'s own attribute.</summary>
+    public string? Name { get; set; }
 
     /// <inheritdoc cref="Element.Id" />
     /// <remarks>On the <c>&lt;input&gt;</c>, which is what a <c>&lt;label for&gt;</c> names and a test clicks.</remarks>
@@ -194,6 +198,7 @@ public sealed partial class UiCheckbox : Component, IUiFormControl
     private HTMLInputElement<T> Finish<T>(HTMLInputElement<T> input, UiWithField field) =>
         input
             .Id(field.ControlId)
+            .Name(Attributes?.ContainsKey("name") == true ? null : Name)
             .Disabled(Disabled == true || _group?.Disabled == true)
             .Aria(field.Aria)
             .Attributes(UiOptionLook.Marks(Attributes))

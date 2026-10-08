@@ -146,10 +146,10 @@ When the user clears an input, `BindingHelpers.TrySetTyped` decides what the emp
 A value that fails to parse (`"not-a-number"` into an `int`) leaves the model unchanged.
 
 **Controls over a value type bind its nullable too.** `Ui.Checkbox` and `Ui.Switch` are over `bool`,
-`Ui.Rating` over `int`, `Ui.Range` over `double` and `Ui.Calendar` over `DateOnly`, and each also binds the nullable
+`Ui.Rating` over `int`, `Ui.Slider` over a number and `Ui.Calendar` over `DateOnly`, and each also binds the nullable
 form: `Ui.Checkbox.Bind(() => model.InStock)` compiles whether `InStock` is a `bool` or a `bool?`, which is what a
 [generated form model](data.md#a-create-and-an-edit-form) holds. A `null` draws as the control's empty state
-(unchecked, unrated, no day picked), and a change writes a value. `Value` and `OnChange` stay over the plain type. The
+(unchecked, unrated, no day picked, a slider at its lowest value), and a change writes a value. `Value` and `OnChange` stay over the plain type. The
 date controls go one further: `Ui.Calendar` binds a `DateOnly`, and behind Flux's mode steps a collection of days
 (`Ui.Calendar.Multiple.Bind(…)`) or a `UiDateRange` (`Ui.Calendar.Range.Bind(…)`); `Ui.DatePicker` a `DateOnly` or,
 as `Ui.DatePicker.Range`, a `UiDateRange`; and `Ui.TimePicker` a `TimeOnly?`, a `TimeOnly` or a collection of

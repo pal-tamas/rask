@@ -8,11 +8,18 @@ public sealed partial class UiKitDataInputDemo : Component
 {
     private string _email = "";
     private string _notes = "";
-    private string _code = "";
+    // One-time codes, one per example: the plain row, the form, the auto-submitting one, the licence key, the
+    // PIN, and the three laid out by hand.
+    private readonly string[] _codes = ["", "", "", "L49R4", "1234", "", "", ""];
+    private string? _verified;
     private string? _tag;
     private string _search = "Jack Skellington";
     private int _palette;
-    private double _volume = 40;
+    // Sliders, one value per example.
+    private readonly int[] _slides = [500, 50, 50, 25, 3, 4, 3, 3, 500, 500];
+    private int[] _band = [200, 800];
+    private int[] _apart = [450, 550];
+    private int[] _price = [200, 800];
     private int _stars = 4;
     private readonly List<string> _dropped = [];
     private readonly Signup _signup = new();
@@ -33,8 +40,12 @@ public sealed partial class UiKitDataInputDemo : Component
         CheckboxSection(),
         RadioSection(),
         SwitchSection(),
-        RangeRatingSection(),
+        SliderSection(),
+        SliderTicksSection(),
+        RangeSliderSection(),
+        RatingSection(),
         OneTimeCodeSection(),
+        OneTimeCodeLayoutSection(),
         FilterSection(),
         CalendarSection(),
         DatePickerSection(),
@@ -141,34 +152,154 @@ public sealed partial class UiKitDataInputDemo : Component
                 ]
             ]);
 
-    private Component RangeRatingSection() =>
+    private Component SliderSection() =>
         Section(
-            "Range and rating",
-            "A range can stand on end, and daisyUI puts the low value at the bottom — which is what a "
-            + "volume wants and what a rank does not.",
-            Div.Data(Testid("ui-range")).Class("grid max-w-sm gap-4")[
-                Ui.Range.Value(_volume).Key("vol").Label("Volume").Min(0).Max(100).Step(5)
-                    .Accent.OnChange(v => { _volume = v; }),
-                Span.Class("text-sm text-ui-muted")[
-                    $"Volume: {_volume.ToString("0", System.Globalization.CultureInfo.InvariantCulture)}"
+            "Slider — Flux UI's, example by example",
+            "A real range input under each thumb, so dragging, a press on the track, the arrow keys, Page Up / Page "
+            + "Down and Home / End are the browser's own. The value follows the thumb while it moves, and BigStep is "
+            + "how far Shift with an arrow key takes it.",
+            Div.Data(Testid("ui-slider")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
+                Slide(0).Key("basic").Max(1000),
+                Slide(1).Key("step").Min(0).Max(100).Step(10),
+                Ui.Field.Key("value")[
+                    Ui.Label.Trailing(Span.Class("tabular-nums").Data(Testid("ui-slider-value"))[Number(_slides[2])])["Corner radius"],
+                    Slide(2).Key("value-slider")
                 ],
+                Ui.Field.Key("input")[
+                    Ui.Label["Corner radius"],
+                    Div.Class("-mt-2 flex items-center gap-4")[
+                        Slide(3).Key("input-slider"),
+                        Ui.Input.Value(_slides[3]).Type(InputType.Number).Sm.Class("max-w-18").OnChange(v => { _slides[3] = v; })
+                    ]
+                ],
+                Ui.Field.Key("big")[
+                    Ui.Label.Trailing(Span.Class("tabular-nums").Data(Testid("ui-slider-big"))[Number(_slides[9])])["Big steps"],
+                    Slide(9).Key("big-slider").Min(0).Max(1000).Step(1).BigStep(100),
+                    Ui.Description["Hold Shift and press an arrow key to move by 100."]
+                ],
+                Slide(8).Key("styles").Max(1000).TrackClass("h-5").ThumbClass("size-5"),
+                Ui.Field.Key("disabled")[
+                    Ui.Label["Disabled"],
+                    Ui.Slider.Value(30).Key("disabled-slider").Disabled()
+                ]
+            ]);
+
+    private Component SliderTicksSection() =>
+        Section(
+            "Slider ticks",
+            "Ui.SliderTick marks a value: a line, a dot on the track, or a label. Pressing one moves the thumb there.",
+            Div.Data(Testid("ui-slider-ticks")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
+                Slide(4).Key("marks").Min(1).Max(5)[Steps(step => Ui.SliderTick.Value(step))],
+                Slide(5).Key("dots").Min(1).Max(5).Inside.TrackClass("h-5").ThumbClass("size-6")[
+                    Steps(step => Ui.SliderTick.Value(step).Dot)
+                ],
+                Slide(6).Key("numbers").Min(1).Max(5)[Steps(step => Ui.SliderTick.Value(step)[Number(step)])],
+                Slide(7).Key("custom").Min(1).Max(5)[
+                    Ui.SliderTick.Value(1)["Low"],
+                    Ui.SliderTick.Value(3)["Mid"],
+                    Ui.SliderTick.Value(5)["High"]
+                ]
+            ]);
+
+    private Component RangeSliderSection() =>
+        Section(
+            "Range slider",
+            "Two thumbs over an array of two. They do not cross, MinStepsBetween keeps them further apart, and a press "
+            + "on the track moves the nearer one.",
+            Div.Data(Testid("ui-slider-range")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
+                Ui.Slider.Value(_band).Key("range").Range().Max(1000).OnChange(v => { _band = v; }),
+                Ui.Slider.Value(_apart).Key("apart").Range().Max(1000).Step(1).MinStepsBetween(100).OnChange(v => { _apart = v; }),
+                Ui.Field.Key("price")[
+                    Ui.Label.Trailing(Span.Class("tabular-nums").Data(Testid("ui-slider-price"))[
+                        $"${Number(_price[0])} – ${Number(_price[1])}"
+                    ])["Price range"],
+                    Ui.Slider.Value(_price).Key("price-slider").Range().Min(0).Max(990).Step(10).MinStepsBetween(10).BigStep(100)
+                        .OnChange(v => { _price = v; })
+                ]
+            ]);
+
+    private Component RatingSection() =>
+        Section(
+            "Rating",
+            "Radios sharing a name, so the arrow keys move between stars and a screen reader hears a group.",
+            Div.Data(Testid("ui-rating")).Class("grid max-w-sm gap-4")[
                 Ui.Rating.Value(_stars).Key("stars").Group("score").Label("Rate this").Max(5)
                     .OnChange(v => { _stars = v; })
             ]);
 
     private Component OneTimeCodeSection() =>
         Section(
-            "One-time code",
-            "One input drawn as several. Per-digit boxes need script to move focus, defeat the "
-            + "browser's SMS autofill, and drop a pasted code entirely into the first box.",
-            Div.Data(Testid("ui-otp")).Class("space-y-2")[
-                Ui.Otp.Key("otp").Value(_code).Length(6).Label("Verification code").Joined()
-                    .Hint("Six digits, sent to your phone.")
-                    .Primary.OnChange(v => { _code = v; }),
-                P.Class("text-sm text-ui-muted").Data(Testid("ui-otp-state"))[
-                    _code.Length == 6 ? "Code complete." : $"{_code.Length} of 6 entered."
+            "OTP input — Flux UI's, example by example",
+            "One real text input per character, and the code they spell kept in one string. A character moves on to "
+            + "the next cell, Backspace walks back, and a pasted code — or one the phone offers — fills every cell "
+            + "from the first. OnComplete runs when the last cell is filled.",
+            Div.Data(Testid("ui-otp")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
+                Div.Key("basic").Class("space-y-2")[
+                    Code(0).Key("code-basic").Length(6),
+                    P.Class("text-sm text-ui-muted").Data(Testid("ui-otp-state"))[
+                        _codes[0].Length == 6 ? $"Code complete: {_codes[0]}." : $"{Number(_codes[0].Length)} of 6 entered."
+                    ]
+                ],
+                Ui.Card.Key("form").Class("space-y-8")[
+                    Div.Class("mx-auto max-w-64 space-y-2")[
+                        Ui.Heading.Lg.Class("text-center")["Verify your account"],
+                        Ui.Text.Class("text-center")["Please enter a one-time password from the authenticator app."]
+                    ],
+                    Code(1).Key("code-form").Length(6).Label("OTP Code").Class("mx-auto"),
+                    Div.Class("space-y-4")[
+                        Ui.Button.Primary.Class("w-full").OnClick(() => { _verified = _codes[1]; })["Verify"],
+                        Ui.Button.Class("w-full").Data(Testid("ui-otp-resend"))
+                            .OnClick(() => { _codes[1] = ""; })["Resend code"]
+                    ]
+                ],
+                Div.Key("auto").Class("space-y-2")[
+                    Code(2).Key("code-auto").Length(6).OnComplete(code => { _verified = code; }).Class("mx-auto"),
+                    P.Class("text-center text-sm text-ui-muted").Data(Testid("ui-otp-verified"))[
+                        _verified is null ? "Fill every cell to verify." : $"Verifying {_verified}…"
+                    ]
+                ],
+                Div.Key("license").Class("sm:col-span-2")[
+                    Code(3).Key("code-license").Length(10).Alphanumeric.Autocomplete("off").Label("License key")
+                        .DescriptionTrailing("Enter the license key printed on the installation disc"),
+                    P.Class("mt-2 text-sm text-ui-muted").Data(Testid("ui-otp-license"))[$"Key: {_codes[3]}"]
+                ],
+                Code(4).Key("pin").Length(4).Private().Label("PIN Code")
+            ]);
+
+    private Component OneTimeCodeLayoutSection() =>
+        Section(
+            "OTP input — separators and groups",
+            "Place the cells yourself to put a separator between them, or join them into groups.",
+            Div.Data(Testid("ui-otp-layout")).Class("flex flex-wrap items-center gap-8")[
+                Code(5).Key("separator")[
+                    Ui.OtpInput, Ui.OtpInput, Ui.OtpInput,
+                    Ui.OtpSeparator,
+                    Ui.OtpInput, Ui.OtpInput, Ui.OtpInput
+                ],
+                Code(6).Key("group")[
+                    Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput]
+                ],
+                Code(7).Key("groups")[
+                    Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput],
+                    Ui.OtpSeparator,
+                    Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput]
                 ]
             ]);
+
+    // A controlled slider keeps its value in the page: the thumb is drawn from it, so each example owns one.
+    // Every slider and every code on this page carries a Key: once one sibling of a type is keyed, an unkeyed
+    // one is a new instance on every render, and a handler a key was already on its way to would be gone.
+    private UiSlider<int> Slide(int example) =>
+        Ui.Slider.Value(_slides[example]).OnChange(v => { _slides[example] = v; });
+
+    private UiOtp Code(int example) =>
+        Ui.Otp.Value(_codes[example]).OnChange(v => { _codes[example] = v; });
+
+    private static IEnumerable<Component> Steps(Func<int, Component> tick) =>
+        Enumerable.Range(1, 5).Select(tick);
+
+    private static string Number(int value) =>
+        value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     private Component FilterSection() =>
         Section(

@@ -40,13 +40,13 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_range_bound_to_a_nullable_double_draws_the_model_and_nothing_for_null()
+    public void A_slider_bound_to_a_nullable_double_draws_the_model_and_its_lowest_value_for_null()
     {
         var set = new Form { Volume = 40 };
         var unset = new Form();
 
-        Assert.Contains("value=\"40\"", Ui.Range.Bind(() => set.Volume).Label("Volume").ToHtml());
-        Assert.DoesNotContain("value=\"40\"", Ui.Range.Bind(() => unset.Volume).Label("Volume").ToHtml());
+        Assert.Contains("value=\"40\"", Ui.Slider.Bind(() => set.Volume).ToHtml());
+        Assert.Contains("value=\"0\"", Ui.Slider.Bind(() => unset.Volume).ToHtml());
     }
 
     [Fact]

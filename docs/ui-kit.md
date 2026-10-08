@@ -333,10 +333,10 @@ A selected toggle is `.AriaPressed(AriaPressed.True)` on the variant that reads 
 ## The three axes
 
 On the components daisyUI still draws, colour, fill and size are independent and compose, so a small
-error-toned range needs no member of its own:
+error-toned file input needs no member of its own:
 
 ```csharp
-Ui.Range.Bind(() => settings.Volume).Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
+Ui.FileInput.Bind(() => profile.Avatar).Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
 ```
 
 | Enum | Members |
@@ -1095,7 +1095,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
@@ -1953,9 +1953,11 @@ Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]           
   a click on the label, a radio group's arrow keys (they move AND choose, wrapping at the ends; Tab enters at the
   chosen radio) and the form post (`name` + `value`) are the browser's. A switch is
   `<input type="checkbox" role="switch">`, which the runtime flips on Enter as well as Space, as Flux's does.
-- **What Flux forwards to the control** goes through `Attributes`, onto the `<input>`:
-  `Ui.Radio.Value("editor").Label("Editor").Attributes(("name", "role"))`,
-  `Ui.Checkbox.Attributes(("aria-label", "Select row"))`. A radio group names its radios after its own id.
+- **What Flux forwards to the control** lands on the `<input>`. `name` has a typed step on all three and on the
+  radio group — `Ui.Checkbox.Value("push").Name("notify")`, `Ui.Switch.Bind(() => m.Alerts).Name("alerts")`,
+  `Ui.RadioGroup.Bind(() => m.Role).Name("role")[…]` — and anything else goes through `Attributes`:
+  `Ui.Checkbox.Attributes(("aria-label", "Select row"))`. A radio group names its radios after its own id
+  unless `Name` says otherwise; a `Name` on one radio replaces the group's for that radio.
 - **Validation.** A bound checkbox, switch or group is invalid on its own while its form holds a message for
   the member: `aria-invalid`, `data-invalid`, `aria-describedby` naming the field's `Ui.Error`, which `Label`
   draws with it. `Invalid()` says so by hand. Flux's pages show no invalid checkbox to measure; the unticked box
@@ -1965,6 +1967,88 @@ Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]           
   `Options`, `OptionDescription`, `OptionDisabled`, `Layout` (`Ui.ChoiceLayout`), `CheckAll` / `CheckAllLabel`,
   `Hint`, `Error`, `Badge` and `AccessibleLabel`.
 
+**`Ui.Slider` is Flux UI's slider.** Same props, same look, same markers
+([fluxui.dev/components/slider](https://fluxui.dev/components/slider)), over Rask's binding:
+
+```csharp
+Ui.Slider.Bind(() => m.Amount).Min(0).Max(100).Step(10)                  // int, long, float, double or decimal
+Ui.Slider.Bind(() => m.Amount).Max(1000).Step(1).BigStep(100)            // Shift+Arrow and Page Up / Down move by 100
+Ui.Field[Ui.Label["Corner radius"], Ui.Slider.Bind(() => m.Radius)]      // a label is the field's, as in Flux
+Ui.Slider.Bind(() => m.Price).Range().Max(990).Step(10).MinStepsBetween(10)       // two thumbs: int[] Price = [200, 800]
+Ui.Slider.Value(level).Min(1).Max(5).OnChange(v => { level = v; })[
+    Ui.SliderTick.Value(1)["Low"], Ui.SliderTick.Value(3)["Mid"], Ui.SliderTick.Value(5)["High"]
+]
+Ui.Slider.Value(level).Min(1).Max(5).Inside.TrackClass("h-5").ThumbClass("size-6")[   // dots on the track
+    Ui.SliderTick.Value(1).Dot, Ui.SliderTick.Value(2).Dot, Ui.SliderTick.Value(3).Dot
+]
+```
+
+- **The value follows the thumb.** The bound member (or `OnChange`) gets every step while the thumb is dragged,
+  which is what lets a label beside it show the number; a controlled slider draws the `Value` it was given, so
+  keep it in state.
+- **A range is the same slider over an array of two** — `int[]`, `double[]`, `decimal[]` — and every change
+  writes a NEW array. The thumbs do not cross, `MinStepsBetween` keeps them that many steps apart, and a press
+  on the track moves the nearer one.
+- **The browser does the moving.** Each thumb holds a real `<input type="range">`, invisible and laid over the
+  stretch of track that thumb can reach: dragging, a press on the track, the arrow keys, Page Up / Page Down (a
+  tenth of the track) and Home / End are native. A range's two inputs say `aria-valuetext="200 start range"` /
+  `"800 end range"` and carry their neighbour as their own `max` / `min`.
+- **`BigStep`** is Flux's `big-step`: how far Shift with an arrow key moves the thumb, and Page Up / Page Down
+  with it. It is the one thing a range input cannot do alone, so the input carries `data-rask-big-step` and
+  the [runtime](js-interop-runtime.md#behaviour-hooks-data-rask-) steps it. Unset, Shift changes nothing and
+  the Page keys stay the browser's — which is what Flux's slider does too.
+- **A label is the field's.** Flux's slider takes no `label` of its own, and neither does this one: put it in a
+  `Ui.Field` with a `Ui.Label` (and a `Ui.Description`), and every thumb is named by that label
+  (`aria-labelledby`) and described by the rest. A bound slider outside a field still shows its own message.
+- **Ticks** are `Ui.SliderTick.Value(n)` children: a line, a `.Dot`, or whatever you put inside. They sit under
+  the track, or on it with `.Inside` (`TickPosition`). Each carries `data-active` while the fill reaches it and
+  `data-current` while a thumb is on it, and pressing one moves the thumb there.
+- **`TrackClass` and `ThumbClass`** style the two parts. A `size-6` or `size-[22px]` in `ThumbClass` is also
+  where the fill and the ticks learn the thumb's size (`--ui-slider-thumb`, 1rem unless set).
+- **Gone with daisyUI's range:** `Ui.Range` itself, `Tone`, `Size`, `Vertical` and `Label`.
+
+**`Ui.Otp` is Flux UI's OTP input.** One real text input per character
+([fluxui.dev/components/otp-input](https://fluxui.dev/components/otp-input)), and the code they spell bound as one
+`string`:
+
+```csharp
+Ui.Otp.Bind(() => m.Code).Length(6).Label("OTP Code")
+Ui.Otp.Bind(() => m.Code).Length(6).OnComplete(code => Verify(code))      // where Flux's submit="auto" submits
+Ui.Otp.Bind(() => m.Key).Length(10).Alphanumeric.Autocomplete("off").Label("License key")
+Ui.Otp.Bind(() => m.Pin).Length(4).Private().Label("PIN Code")
+Ui.Otp.Bind(() => m.Code)[
+    Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput],
+    Ui.OtpSeparator,
+    Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput]
+]
+```
+
+- **`Length` draws the cells**, or place `Ui.OtpInput`, `Ui.OtpSeparator` and `Ui.OtpGroup` yourself and they are
+  counted (`Length` is then ignored). A group joins its cells into one box.
+- **The keys are Flux's, key for key.** A character moves on to the next cell and typing over a filled cell
+  replaces it; Backspace deletes and steps back, Delete closes the row up from where it is; the arrow keys
+  walk the cells and stop at the first empty one, and a press past it lands on it; a pasted code — or the one
+  the phone offers — fills the cells from the first, keeping only what the `Mode` takes. Typing as fast as a
+  keyboard allows loses nothing: no key waits for a round trip.
+- **How.** The cells are the browser's while they are typed into. The group carries `data-rask-otp` and the
+  [runtime](js-interop-runtime.md#behaviour-hooks-data-rask-) moves between them inside the key's own event; the
+  cells are rendered with no `value` and no handler, and ONE `<input type="hidden">` inside the group carries
+  the code. That field is what `Bind` / `Value` + `OnChange` see, and `Name` is its `name`, so a plain form
+  posts the code once. Set the bound string yourself — clear a wrong code — and the cells follow.
+- **The code has no gaps** and holds only what the `Mode` takes — digits, or `.Alphanumeric` / `.Alpha` with
+  letters upper-cased in the value, as Flux's are. (A cell goes on showing a letter in the case it was typed
+  in, where Flux's shows the capital: the runtime's hook does not change case yet.)
+- **`OnComplete`** runs with the code each time its last cell is filled, bound or controlled. It stands where
+  Flux's `submit="auto"` submits the form: submit, verify or navigate from it. The form itself is not
+  submitted for you.
+- **Markup is Flux's:** a `role="group"` named by the field's label, each cell named "Character 2 of 6", one tab
+  stop (the first empty cell), `autocomplete="one-time-code"` on the first cell (`Autocomplete("off")` to stop
+  the browser offering a code), `inputmode="numeric"` for digits, `type="password"` with `Private()`.
+  `Label` and `DescriptionTrailing` are the ones Flux's examples set; an invalid code is the bound member's
+  message (every cell is marked), and `Disabled()` disables every cell.
+- **Gone with daisyUI's `otp`:** the single input drawn as several, `Joined` (now `Ui.OtpGroup`), `Tone`, `Size`,
+  `Hint` (now `DescriptionTrailing`), `Badge` and `AccessibleLabel`; `Length` is no longer required.
+
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two
 sources of truth for one field, and the compiler enforces it — both live on the control's entry, so
@@ -1973,19 +2057,19 @@ of them says anything about `T`. Bound mode drives the surrounding `Form`'s vali
 `Validate`, `AfterBind`, and the `aria-invalid`/`aria-describedby` display — and controlled mode leaves
 the value with the parent. See [building form controls](building-form-controls.md).
 
-**The controls still on daisyUI share one field shape.** `Ui.Otp`,
-`Ui.FileInput` and the rest all take the same members from
-`UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input`, `Ui.Textarea`, `Ui.Select`, the checkbox, the radio and the switch have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
+**The controls still on daisyUI share one field shape.** `Ui.FileInput` and the rest all take the same
+members from `UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input`, `Ui.Textarea`, `Ui.Select`, the
+checkbox, the radio, the switch, the slider and the OTP input have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
 without one, an invisible `AccessibleLabel`; a `Hint` and a controlled `Error` under it; an `Id`, derived from the
 bound member or the label when you give none; and `aria-describedby`, `aria-invalid` and `aria-required` worked out
 from those and from the bound member's `[Required]` and messages. `Label` is never a required step, so write it
-anywhere after the opening — `Ui.Otp.Value(code).Length(6).Label("Verification code").Hint("Sent to your phone")`.
+anywhere after the opening — `Ui.Select.Value(plan).Options(plans).Label("Plan").Hint("Change it any time")`.
 
 **Generic where the value type varies, concrete where it does not.** `UiInput<T>`, `UiTextarea<T>`,
-`UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `Ui.Input` even
+`UiSlider<T>`, `UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `Ui.Input` even
 takes its `type` attribute from `T`, so a bound `int` is a number field with nothing said at the call
 site. `UiRadioGroup<T>` and `UiCheckboxGroup<T>` are generic over what a choice holds. The rest are closed over
-the one type they can have: `Ui.Checkbox` and `Ui.Switch` over `bool`, `Ui.Range` over `double`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,
+the one type they can have: `Ui.Checkbox` and `Ui.Switch` over `bool`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,
 `Ui.Calendar` and `Ui.DatePicker` over `DateOnly`, a collection of days or a `UiDateRange`. A checkbox's value is a `bool` and nothing else; a type parameter there
 would have exactly one legal argument.
 
@@ -1997,8 +2081,9 @@ would have exactly one legal argument.
 | `UiRadioGroup<T>` | the value of the chosen `Ui.Radio` |
 | `UiCheckboxGroup<T>` | the ELEMENT type — it binds an `ICollection<T>` of the ticked checkboxes' values |
 | `Ui.Checkbox` `Ui.Switch` | on or off |
-| `Ui.Range` `Ui.Rating` `Ui.Calendar` | the position, the star count, the day |
-| `Ui.Otp` | the code — `OnComplete` fires on the transition into a full one, in both modes |
+| `UiSlider<T>` | the number under the thumb, or an array of the two under a range's thumbs |
+| `Ui.Rating` `Ui.Calendar` | the star count, the day |
+| `Ui.Otp` | the code — `OnComplete` runs each time its last cell is filled, in both modes |
 | `Ui.FileInput` | the chosen file's name, **write-only** — a browser refuses to have a file input's value set, so binding fills the model and never the box. The bytes come through `OnFiles`. |
 
 

@@ -9,27 +9,13 @@ namespace Rask.UiTests.Flux.Parity;
 /// </remarks>
 public sealed class ProgressParity : FluxParity
 {
-    // A STAND-IN for flux:slider, not rebuilt yet: plain elements styled to what Flux's measure, so the
-    // example that places a bar under it can be compared whole. It goes when the slider lands. With it, the
-    // two utilities these examples hand to Class, which an app's own Tailwind build would emit.
+    // The utilities these examples hand to Class, which an app's own Tailwind build would emit, and the value
+    // beside a bar: a plain span on Flux's page.
     private const string StandIns =
         "<style>"
-        + ".mb-6{margin-bottom:24px}.flex{display:flex}"
+        + ".mb-4{margin-bottom:16px}.mb-6{margin-bottom:24px}.flex{display:flex}"
         + ".standin-value{font-size:14px;line-height:20px;font-variant-numeric:tabular-nums;color:oklch(0.552 0.016 285.938)}"
-        + "ui-slider{display:flex;flex-direction:column;justify-content:center;min-height:16px;margin-bottom:16px}"
-        + "ui-slider>div{display:flex;flex-direction:column;justify-content:center}"
-        + ".standin-track{position:relative;flex-shrink:0;height:6px;border-radius:calc(infinity*1px);background:oklch(0.92 0.004 286.32)}"
-        + ".standin-track>div:first-child{position:relative;height:100%;border-radius:inherit;overflow:hidden}"
-        + ".standin-indicator{position:absolute;inset:0 50% 0 0;background:oklch(0.274 0.006 286.033)}"
-        + ".standin-thumb{position:absolute;top:-5px;left:calc(50% - 8px);width:16px;height:16px;border-radius:calc(infinity*1px);"
-        + "background:#fff;box-shadow:0 0 #0000,0 0 #0000,0 0 #0000,0 0 0 1px color-mix(in oklab,#000 15%,transparent),"
-        + "0 1px 2px 0 rgb(0 0 0/.05),0 2px 4px 0 rgb(0 0 0/.1)}"
-        + ".standin-thumb>input{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;white-space:nowrap}"
         + ".dark .standin-value{color:oklch(0.705 0.015 286.067)}"
-        + ".dark .standin-track{background:color-mix(in oklab,#fff 10%,transparent)}"
-        + ".dark .standin-indicator{background:#fff}"
-        + ".dark .standin-thumb{box-shadow:0 0 #0000,0 0 #0000,0 0 #0000,0 0 0 1px color-mix(in oklab,#000 30%,transparent),"
-        + "0 1px 2px 0 rgb(0 0 0/.05),0 2px 4px 0 rgb(0 0 0/.1)}"
         + "</style>";
 
     public override string Page => "progress";
@@ -66,14 +52,9 @@ public sealed class ProgressParity : FluxParity
             ]));
 
         // wire:model there, on a slider and the bar both: Livewire's binding. Here the page's own state is
-        // the bar's Value, and the slider is a stand-in resting where Flux's does, at 50.
+        // the slider's Value and the bar's.
         yield return ("controlled", Column(
-            Raw.Value(
-                "<ui-slider data-ui-control data-ui-slider tabindex=\"-1\">"
-                + "<div data-ui-slider-track><div data-ui-slider-track class=\"standin-track\">"
-                + "<div><div data-ui-slider-indicator class=\"standin-indicator\"></div></div>"
-                + "<div data-ui-slider-thumb class=\"standin-thumb\"><input type=\"range\" min=\"0\" max=\"100\" step=\"1\"></div>"
-                + "</div></div></ui-slider>"),
+            Ui.Slider.Value(50).Class("mb-4"),
             Ui.Progress.Value(50)));
     }
 

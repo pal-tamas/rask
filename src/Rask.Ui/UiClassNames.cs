@@ -86,29 +86,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string RangeTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "range-neutral",
-        Ui.Tone.Primary => "range-primary",
-        Ui.Tone.Secondary => "range-secondary",
-        Ui.Tone.Accent => "range-accent",
-        Ui.Tone.Info => "range-info",
-        Ui.Tone.Success => "range-success",
-        Ui.Tone.Warning => "range-warning",
-        Ui.Tone.Error => "range-error",
-        _ => "",
-    };
-
-    internal static string RangeSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "range-xs",
-        Ui.Size.Sm => "range-sm",
-        Ui.Size.Md => "range-md",
-        Ui.Size.Lg => "range-lg",
-        Ui.Size.Xl => "range-xl",
-        _ => "",
-    };
-
     internal static string LoadingSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "loading-xs",
@@ -310,29 +287,6 @@ internal static class UiClassNames
         Ui.MaskShape.Half1 => "mask-half-1",
         Ui.MaskShape.Half2 => "mask-half-2",
         _ => "mask-circle",
-    };
-
-    internal static string OtpTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "otp-neutral",
-        Ui.Tone.Primary => "otp-primary",
-        Ui.Tone.Secondary => "otp-secondary",
-        Ui.Tone.Accent => "otp-accent",
-        Ui.Tone.Info => "otp-info",
-        Ui.Tone.Success => "otp-success",
-        Ui.Tone.Warning => "otp-warning",
-        Ui.Tone.Error => "otp-error",
-        _ => "",
-    };
-
-    internal static string OtpSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "otp-xs",
-        Ui.Size.Sm => "otp-sm",
-        Ui.Size.Md => "otp-md",
-        Ui.Size.Lg => "otp-lg",
-        Ui.Size.Xl => "otp-xl",
-        _ => "",
     };
 
     internal static string LoadingShape(Ui.LoadingShape value) => value switch

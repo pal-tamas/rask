@@ -188,7 +188,7 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker` today, plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker slider otp-input` today, plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
 `parity-pillbox.mjs`, `parity-editor.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
@@ -370,7 +370,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   classes (`DashboardIsKitOnlyTests.Allowed`), compiled by its own sheet.
 - Parity stand-ins still standing: none on the chart page; card page (fields, the heading/text lines whose variant was
   not looked up — its switches are the real `Ui.Switch` now), table page (avatar, the dropdown and menu around the row button, pager), progress page
-  (slider, as raw `ui-slider` markup), dropdown page (the profile trigger and the two icon-only triggers,
+  (none: its slider is the real `Ui.Slider` now), dropdown page (the profile trigger and the two icon-only triggers,
   whose icon the snippets do not name). The field page's inputs and select and the input page's buttons are real
   now; the input page's `flux:select` inside a group is still a stand-in.
 - Dropdown / Menu / Context (merged 2026-10-07). Made Flux's on merging: the trigger says
@@ -434,11 +434,47 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   Flux's live DOM and no more: an indeterminate checkbox (a check-all over some) is `data-indeterminate` on the
   root with NO `aria-checked="mixed"` (Flux says `aria-checked="false"` there, which is what a native unticked box
   says); groups say `role="group"` / `"radiogroup"` + `aria-labelledby`. `Attributes(…)` forwards to the `<input>`
-  (`name`, `aria-label`); `Name` was removed as non-Flux. Unmeasured, no example on Flux's pages: the INVALID look
+  (`aria-label`, `required`); `Name` is a typed step again on the checkbox, radio, switch and radio group (the
+  owner, 2026-10-08: a typed step for a forwarded NATIVE attribute is a translation, not an addition — a
+  `Translations` row each, as `Ui.Input`'s `Min` / `Max` / `Step` / `Name`). Unmeasured, no example on Flux's pages: the INVALID look
   (the unticked box takes the input's red-500 border), a disabled switch, `Ui.Switch` with `checked` (the card
   page writes it; it is `Value(true)`). `flux:checkbox.indicator` is on Flux's page and not in its reference, so
   `Ui.CheckboxIndicator` is in no `Built` row. `flux:switch`'s `align` lists `right|start` and `left|end` as one
   option each: two enum members, two `NotTranslated` rows.
+- Slider (2026-10-08): script-free but for `big-step`. Each thumb holds a native `<input type="range">` laid over
+  the track it can reach (`NATIVE_CONTROL` in `parity.mjs`: tag and place compared, box and look the platform's),
+  so drag, track press, arrows, Home / End are the browser's and `data-rask-drag` is NOT used. Measured on Flux's
+  page: with `big-step="100"` Shift+Arrow and PageUp / PageDown move by 100; WITHOUT it Shift+Arrow moves one
+  step and PageUp / PageDown are the browser's own tenth of the track (50 → 60 at 0–100 step 1; 500 → 600 at
+  0–1000) — so `data-rask-big-step` is written ONLY when `BigStep` is set (`BigStep ?? Step` would turn PageUp
+  into one step). A range thumb's input has its neighbour as its `min` / `max`, so its native PageUp is a tenth
+  of what it can reach, where Flux's is a tenth of the whole track: unaligned without `BigStep`. No `Label`,
+  `Description` or `Invalid` (Flux documents none and its examples use `flux:field`): every thumb in a field says
+  `aria-labelledby`, as Flux's; a range's say `aria-valuetext="200 start range"`. Not written: Flux's root
+  `tabindex="-1"` and its leaked `data-flux-aria-range-*`. `Disabled` is the input's own.
+- OTP (2026-10-08): wired to `data-rask-otp` as the table says — cells with no `value`, no handler, no key; one
+  `Input.Type(Hidden)` FIRST in the group (`parity.mjs`'s `BOUND` leaves it unpaired), bound on `OnInput`
+  (what the hook's own tests bind) through `UiFormCommit`, and rendered back EXACTLY as the hook announced it
+  (`UiOtp._typed`): an echo that differs by one character is taken for the page changing the code and written
+  over the keys typed since. That state is why an unkeyed `Ui.Otp` beside a keyed one loses keys (below, "Key
+  every sibling"): the site's demo did, and six fast keys reached C# as four. The
+  proof: a 30-step walk (type, type-over, arrows, click past the end, Backspace, Delete, paste, six keys at
+  CPU ×8 with no delay) on all seven non-submitting examples, Flux's page beside the static parity page with
+  the runtime and beside the running WASM site — 189 of 210 steps agree, and the 21 are (3) and (4) below. What the hook
+  does NOT do, measured on Flux, each a change to `rask-otp.ts`:
+  (1) `submit="auto"` — Flux calls `requestSubmit()` on the enclosing form when the last cell is filled (one
+  `submit` event, no submitter). Needs `data-rask-otp-submit` on the group: after a commit that leaves every
+  cell filled, `group.closest('form')?.requestSubmit()`. `Ui.Otp.OnComplete` stands in; `flux:otp/submit` is
+  `NotTranslated`.
+  (2) Upper-casing — Flux's alpha and alphanumeric cells show and hold capitals; `otpChars` keeps the case typed.
+  The kit upper-cases the VALUE in C# and the cells go on showing what was typed (a CSS `uppercase` would differ
+  in `text-transform` on the parity page). Fix in `otpChars`, then `UiOtp` can bind the hidden field directly
+  and `_typed` goes.
+  (3) Roving `tabindex` — Flux moves `tabindex="0"` with focus, so Tab always leaves the group. The kit renders
+  it on the first empty cell (right at rest and while typing forward); after ArrowLeft, Tab stops there once.
+  (4) ArrowUp, ArrowDown and Home collapse the selection in Flux's cell (the browser's own); the hook cancels them.
+  `Label` and `DescriptionTrailing` are from Flux's examples (rows in `Translations`); `Description`, `Invalid`
+  and an `autofocus` are not Flux's and not built. `Name` is the hidden field's.
 - Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
   `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
   removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —
@@ -527,7 +563,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Input `clearable` | button `data-rask-clear="<input id>"` (no `OnClick`) | emptied, `input` fired, focus in the field |
 | Input `mask` / `mask:dynamic="$money($input)"` | `data-rask-mask="<pattern>"` / `data-rask-mask-money` (`=".,2"`) | Flux's (Alpine's) shaping; any other `mask:dynamic` expression is NOT supported |
 | Switch | `<input type="checkbox" role="switch">` | Enter toggles |
-| Slider | `data-rask-big-step="<BigStep ?? Step>"` on the `<input type="range">` | Shift+Arrow, PageUp / PageDown |
+| Slider | `data-rask-big-step="<BigStep>"` on each thumb's `<input type="range">`, only when `BigStep` is set (Flux without `big-step`: Shift changes nothing, the Page keys are the browser's) | Shift+Arrow, PageUp / PageDown |
 | Select (listbox button) | `data-rask-listbox-button` on the closed `button[role=combobox]` | Enter does nothing, the arrows do not scroll (open the list from the C# key handler: Flux opens on ArrowUp / ArrowDown / Space) |
 | Calendar | grid `data-rask-contain-keys="Arrows Home End PageUp PageDown"` (NOT Space — Flux lets it scroll); the calendar root `data-rask-focus-follows`, the day that is the tab stop `data-rask-focus-target` + `tabindex="0"`; key the day cells by DATE. On Home / End / PageUp / PageDown render NO `data-rask-focus-target` for that render (or let the keyed day leave) | arrows never scroll the page; focus lands on the new day after the morph, across a month change too; after Home / End / Page keys focus is on `<body>`, as Flux |
 | Color picker | area and tracks `data-rask-contain-keys="Arrows Home End PageUp PageDown"` on the `[role=slider]`; swatch `[role=listbox]` the same list plus `Space Enter`; the area `data-rask-press-keeps-focus` | keys kept; a press on the area leaves focus where it was |

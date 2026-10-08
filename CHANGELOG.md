@@ -514,11 +514,45 @@ them until tagged releases begin.
   `Error`, `Badge`, `AccessibleLabel` and floating label. `Id` on a checkbox, radio or switch lands on the
   `<input>`, which is no longer the element a pointer hits: a browser test presses the label
   (`label:has(> #id)`). A switch's input says `role="switch"`, and the runtime flips it on Enter as Flux's
-  does. What Flux forwards to the control goes through `Attributes` on a checkbox, radio or switch
-  (`.Attributes(("name", "role"))`, `("aria-label", "Select row")`) and lands on the `<input>`; there is no
-  `Name` step, and a radio group names its radios after its own id. ARIA is Flux's, read from its live page: an
+  does. What Flux forwards to the control lands on the `<input>` of a checkbox, radio or switch: `Name` is a typed
+  step on all three and on the radio group (`Ui.Checkbox.Value("push").Name("notify")`), and the rest goes
+  through `Attributes` (`("aria-label", "Select row")`). A radio group names its radios after its own id unless
+  its `Name` says otherwise, and a `Name` on one radio replaces the group's. ARIA is Flux's, read from its live page: an
   indeterminate checkbox is marked `data-indeterminate` and says nothing more (no `aria-checked="mixed"`).
   A control with no id, binding or label gets an id of its own (`f-field-<n>`), as the input does.
+- **BREAKING: `Ui.Slider` and `Ui.Otp` are Flux's; `Ui.Range` is gone.** Flux UI's `flux:slider`
+  (+ `flux:slider.tick`) and `flux:otp` (+ `.input`, `.separator`, `.group`): the same props, look and
+  `data-ui-*` markers, over Rask's binding, measured against its docs in light and dark. Neither is drawn
+  with daisyUI any more, and daisyUI's `range` and `otp` are out of the kit's sheet.
+  ```csharp
+  Ui.Range.Bind(() => m.Volume).Label("Volume").Min(0).Max(100).Step(5)        // was — over double only
+  Ui.Field[Ui.Label["Volume"],
+      Ui.Slider.Bind(() => m.Volume).Min(0).Max(100).Step(5)]                  // now — int, long, float, double or decimal
+  Ui.Range.Value(v).Label("Volume").Tone(Ui.Tone.Accent).Size(Ui.Size.Sm).Vertical()   // was
+  Ui.Slider.Value(v).TrackClass("h-1").ThumbClass("size-3")                            // now — Flux has no tone, size or vertical
+  Ui.Otp.Bind(() => m.Code).Length(6).Label("Code").Hint("Sent to your phone").Joined()     // was — one input drawn as six
+  Ui.Otp.Bind(() => m.Code).Label("Code").DescriptionTrailing("Sent to your phone")[        // now — a text input per character
+      Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput]]
+  ```
+  **Slider.** New: a range over an array of two (`Ui.Slider.Bind(() => m.Price).Range()` with `int[] Price`,
+  replaced by a new array on every change), `MinStepsBetween`, `BigStep` (Flux's `big-step`: Shift with an arrow
+  key, and Page Up / Page Down, move by it — `data-rask-big-step` on the range input, stepped by the runtime),
+  `Ui.SliderTick` children (a line, `.Dot`, or a label; `TickPosition` `.Inside` draws them on the track;
+  pressing one moves the nearer thumb), `TrackClass`, `ThumbClass` and `Disabled()`. It takes no `Label` of its
+  own, as Flux's does not: a `Ui.Field` with a `Ui.Label` around it names every thumb (`aria-labelledby`). The
+  value now follows the thumb WHILE it moves (`OnChange` / the bound member on every step, not on release).
+  Each thumb holds a real `<input type="range">` laid over the track it can reach, so dragging, a press on the
+  track, the arrow keys, Page Up / Page Down and Home / End are the browser's own.
+  **OTP.** New: `Mode` (`.Alphanumeric`, `.Alpha`; letters upper-cased in the value), `Private()`,
+  `Autocomplete`, `Name`, `Disabled()`, and `Ui.OtpInput` / `Ui.OtpSeparator` / `Ui.OtpGroup` to lay the cells
+  out. `Length` is optional (placed cells are counted), `OnComplete` runs every time the last cell is filled
+  (where Flux's `submit="auto"` submits the form), and `Joined`, `Tone`, `Size`, `Hint`, `Description`, `Badge`,
+  `Invalid` and `AccessibleLabel` are gone — an invalid code is the bound member's message. The cells are real
+  text inputs named "Character 2 of 6" with one tab stop, as Flux's are, and every key is Flux's: a character
+  moves on, typing over a filled cell replaces it, Backspace steps back, the arrows stop at the first empty
+  cell, a pasted code fills from the first. The group carries `data-rask-otp`, the cells are rendered with no
+  value and no handler, and one hidden field inside the group carries the code — that is what binds, so fast
+  typing drops nothing.
 - **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
   `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
   `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the
@@ -570,6 +604,8 @@ them until tagged releases begin.
   - `Ui.Label.Text("€").Trailing("per month")[input]` — daisyUI's caption inside a control's frame — is
     gone; `Ui.Label` is now the control's NAME (`Ui.Label["Email"]`, `Badge`, a `Trailing` slot). For the
     old look write the daisyUI markup: `Label.Class("label")[Span["€"], input, Span["per month"]]`.
+  `Ui.Input`, `Ui.Select` and the other controls are unchanged and still draw their own label, `Hint` and
+  message; each takes Flux's `Label`/`Description` field as it is rebuilt.
 - **BREAKING: UI kit — `Ui.Heading`, `Ui.Text` and `Ui.Link` are Flux UI's, and `Ui.Subheading` is gone.**
   Same names, props and look as [fluxui.dev](https://fluxui.dev/components/heading)'s `flux:heading`,
   `flux:text` and `flux:link`, measured against its docs in light and dark; none of the three is drawn
@@ -898,6 +934,22 @@ them until tagged releases begin.
   ```
   `Ui.Sidebar` still slides on daisyUI's drawer and is unchanged.
 
+  Ui.Input.Bind(() => m.Email).Label("Email").Hint("We never share it.")                         // was
+  Ui.Input.Bind(() => m.Email).Label("Email").Description("We never share it.")                  // now
+
+  Ui.Input.Value(v).Tone(Ui.Tone.Error).Error("Not an email.")                                   // was
+  Ui.Field[Ui.Input.Value(v).Invalid(), Ui.Error.Message("Not an email.")]                       // now
+
+  Ui.Input.Value(v).Size(Ui.Size.Sm).Variant(Ui.Variant.Ghost)                                   // was
+  Ui.Input.Value(v).Sm.Filled                                                                    // now
+
+  Ui.Textarea.Bind(() => m.Notes).AutoSize(true).Resize(Ui.Resize.None)                          // was
+  Ui.Textarea.Bind(() => m.Notes).Rows(UiTextareaRows.Auto).None                                 // now
+  ```
+  Removed with no replacement: floating labels (`Floating`), `AccessibleLabel`, `Badge` on an input,
+  `ShowValidating` and its "Checking…" line, the message a bound control with no label used to draw, and
+  `aria-required` from `[Required]`. `Ui.Resize` is `Ui.TextareaResize`; a textarea is four rows by default
+  (was three). Flux's `copyable` and `mask:dynamic` need script in the page and are not built.
 - **BREAKING: the kit's navigation is Flux's — navbar, navlist, brand, profile, breadcrumbs and avatar.**
   Eleven components take Flux UI's names, props, markup and look, measured against fluxui.dev example for
   example in light and dark, and replace thirteen daisyUI-drawn ones. A link's words are its children now,

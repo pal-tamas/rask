@@ -41,6 +41,12 @@ public sealed partial class UiRadioGroup<T> : Component, IFormControl<T>, IUiFor
     /// <summary>Draws the error state. A bound group is invalid on its own while its form holds a message for it.</summary>
     public bool? Invalid { get; set; }
 
+    /// <summary>
+    ///     The <c>name</c> every radio of the group posts under: their <c>&lt;input&gt;</c>s' own attribute. The
+    ///     group's id unless set.
+    /// </summary>
+    public string? Name { get; set; }
+
     /// <inheritdoc cref="Element.Id" />
     public string? Id { get; set; }
 
@@ -84,7 +90,7 @@ public sealed partial class UiRadioGroup<T> : Component, IFormControl<T>, IUiFor
         var size = Size ?? Ui.RadioGroupSize.Base;
         var scope = new UiRadioScope(
             field.ControlId,
-            field.ControlId,
+            Name ?? field.ControlId,
             variant,
             size,
             Indicator != false,
