@@ -11,6 +11,7 @@ Rask.Outbox.OutboxMessage.Payload.get -> string!
 Rask.Outbox.OutboxMessage.ProcessedAt.get -> System.DateTime?
 Rask.Outbox.OutboxMessage.Published(System.DateTime at) -> void
 Rask.Outbox.OutboxMessage.Release() -> void
+Rask.Outbox.OutboxMessage.TenantId.get -> System.Guid?
 Rask.Outbox.OutboxMessage.Type.get -> string!
 Rask.Outbox.OutboxMessage.UserId.get -> System.Guid?
 Rask.Outbox.OutboxMessageConfiguration

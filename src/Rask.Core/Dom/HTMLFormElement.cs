@@ -42,6 +42,11 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
     private bool _submitting;
     private Exception? _submitError;
 
+    // How many submits passed validation and ran their handler to the end. The browser decides that a
+    // guarded form is unsaved (rask-leave.ts) and cannot know a save went through; this number changing
+    // on the <form> is how it learns that it did.
+    private int _acceptedSubmits;
+
     private TModel _model = default!;
 
 
@@ -106,6 +111,25 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
     ///     </para>
     /// </summary>
     public bool AutoValidate { get; set; } = true;
+
+    /// <summary>
+    ///     Asks before the reader leaves the page with this form changed and not yet saved:
+    ///     <c>Form.Model(m).OnSubmit(Save).ConfirmLeave("Leave without saving?")[ … ]</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The form counts as unsaved from the first thing typed or changed in it — decided in the
+    ///         browser, so it asks even for a value that has not reached the server — until a submit passes
+    ///         validation and its handler returns. A link inside the app, a navigation from front-end code
+    ///         and the Back / Forward buttons ask with this message in the browser's own confirm dialog.
+    ///         Closing the tab, reloading and a link out of the app show the browser's own leave prompt,
+    ///         whose text no page can set.
+    ///     </para>
+    ///     <para>
+    ///         A navigation the app itself makes from a handler (<c>Go.To(…)</c> after a save) never asks.
+    ///     </para>
+    /// </remarks>
+    public string? ConfirmLeave { get; set; }
 
 
     /// <summary>
@@ -315,19 +339,13 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
                 await ctx.Validate().ConfigureAwait(false);
                 ctx.TouchAllRegisteredFields();
                 var isValid = !ctx.HasValidationMessages();
-                var onModel = isValid ? OnSubmit : OnInvalidSubmit;
-                if (!onModel.HasValue)
-                {
-                    // No model-shaped handler: fall back to the raw FormData one, which is what a form that
-                    // only wants the posted values uses.
-                    await OnAnySubmit.Invoke(formData).ConfigureAwait(false);
-                    return;
-                }
+                await RunSubmitHandler(isValid, ctx, formData).ConfigureAwait(false);
 
-                // Typed, so the model goes straight to the handler — the non-generic Form had to
-                // DynamicInvoke here, because all it held was a Delegate.
-                var model = (TModel)ctx.Model;
-                await onModel.Invoke(model).ConfigureAwait(false);
+                // Only here: a refused submit and a handler that threw both leave the form unsaved.
+                if (isValid)
+                {
+                    _acceptedSubmits++;
+                }
             }
 #pragma warning disable CA1031 // Any failure of the app's own save is the page's to render, not the framework's to choose between.
             catch (Exception ex)
@@ -355,6 +373,15 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             }
         };
 
+    private ValueTask RunSubmitHandler(bool isValid, EditContext ctx, FormData formData)
+    {
+        // Typed, so the model goes straight to the handler — the non-generic Form had to DynamicInvoke
+        // here, because all it held was a Delegate. With no model-shaped handler the raw FormData one
+        // runs, which is what a form that only wants the posted values uses.
+        var onModel = isValid ? OnSubmit : OnInvalidSubmit;
+        return onModel.HasValue ? onModel.Invoke((TModel)ctx.Model) : OnAnySubmit.Invoke(formData);
+    }
+
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
@@ -372,6 +399,18 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
         if (submit is not null && LiveRenderContext.CurrentSync is { } liveCtx)
         {
             AppendAttr(sb, "data-rask-on-submit", liveCtx.RegisterHandler(submit));
+        }
+
+        if (ConfirmLeave is { } message)
+        {
+            AppendAttr(sb, "data-rask-confirm-leave", message);
+            if (_acceptedSubmits > 0)
+            {
+                // An attribute rather than a message of its own: it rides the render the submit already
+                // causes, the morph applies it like any other, and it is still there for a browser that
+                // reads it later. The value only has to differ from the one before.
+                AppendAttr(sb, "data-rask-saved", _acceptedSubmits);
+            }
         }
     }
 

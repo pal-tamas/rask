@@ -18,6 +18,12 @@ internal static class AggregateShape
     /// <summary>How deep value objects nest inside an entity before the walk stops.</summary>
     public const int MaxValueObjectDepth = 4;
 
+    /// <summary>
+    ///     The tenant column. The framework's on every entity, whether the entity declares the property or leaves
+    ///     it a shadow one: never on a form model, so a post cannot set it, and never on a read face.
+    /// </summary>
+    public const string TenantColumn = "TenantId";
+
     private const string RaskDataNamespace = "Rask.Data";
     private const string EntityBase = "Entity";
     private const string AggregateBase = "Aggregate";

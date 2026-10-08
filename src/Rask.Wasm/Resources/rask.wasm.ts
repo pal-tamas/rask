@@ -38,6 +38,7 @@ import {
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
+import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {
@@ -651,6 +652,7 @@ document.addEventListener("click", (e) => {
 
 // One in-app navigation, whoever asked: a click on a nav link, or front-end code through the bridge.
 function navigate(url: URL, replace: boolean): void {
+    if (!mayLeave()) return; // a form with unsaved edits, and the reader stays (ConfirmLeave)
     // Stash the "#fragment" so applyNavScroll can scroll to the anchor once the new page commits
     // (the fragment is not sent to .NET).
     _pendingScrollHash = url.hash || "";

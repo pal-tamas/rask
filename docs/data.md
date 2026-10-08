@@ -965,7 +965,8 @@ var invoices = await Invoice.OrderByDescending(i => i.CreatedAt).Take(20);   // 
 ```
 
 That gives the table a `TenantId` column, a query filter no read can compose away, and a `TenantId` prefix on
-every index. The tenant is the signed-in user's — it rides on the principal as the `rask:tenant` claim — so the
+every index. The column is a shadow one; an entity that reads its tenant declares
+`public Guid? TenantId { get; private set; }`. The tenant is the signed-in user's — it rides on the principal as the `rask:tenant` claim — so the
 read above filters with nothing passed to it; `Tenant.Use(id)` and `Tenant.Across()` say otherwise explicitly.
 A tenant-scoped read with no tenant **throws** rather than return nothing, `IgnoreQueryFilters()` never
 crosses tenants, and a create stamps the tenant while an update refuses to move a row between tenants.

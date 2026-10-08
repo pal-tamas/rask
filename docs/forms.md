@@ -301,6 +301,62 @@ Only a form offers the function form. It is an indexer declared on `Form` itself
 `Div[submitting => …]` does not compile — there is no submit state behind a `<div>` to report. See
 [`Form`](../src/Rask.Core/Dom/HTMLFormElement.cs).
 
+### Ask before leaving unsaved changes
+
+`ConfirmLeave` makes a form ask before the reader walks away from what they typed:
+
+```csharp
+Form.Model(_model).OnSubmit(Save)
+    .ConfirmLeave("Leave without saving your changes?")[
+    Input.Bind(() => _model.Name),
+    Button.Type(ButtonType.Submit)["Save"]
+]
+```
+
+<!-- demo:form-confirm-leave -->
+
+The form counts as **unsaved from the first thing typed or changed in it**. That is decided in the
+browser, so it holds for a value that has not reached the server yet — and it is not a comparison with
+the original values: typing a value and typing it back still counts. While it is unsaved, every way out
+of the page asks first:
+
+| The reader… | What asks |
+| --- | --- |
+| follows a link inside the app (`NavLink`, a Markdown link to another page) | the browser's own `confirm` dialog, with your message |
+| is navigated by front-end code (`__raskHost.navigate(…)`, an island's router) | the same dialog |
+| presses Back or Forward | the same dialog; staying puts the address and the history back where they were |
+| closes the tab, reloads, or follows a link out of the app | the browser's own "leave site?" prompt. No page can set its text, so your message is not shown there. |
+
+Staying sends nothing to the server and leaves the page exactly as it was, typed values included.
+
+The form is **clean again after a submit that passed validation and whose handler returned** — and
+unsaved again at the next edit. A submit validation refuses, or a handler that throws, leaves it
+unsaved. A navigation your own handler makes never asks, so the usual "save, then go to the list" needs
+nothing extra:
+
+```csharp
+private async Task Save(Product product)
+{
+    await product.Save();
+    Routes.ProductsPage().Go();   // not asked about: the app is leaving, not the reader
+}
+```
+
+A form that is no longer on the page guards nothing. With several guarded forms on one page, the first
+unsaved one asks, with its own message.
+
+Three things to know:
+
+- **What counts as an edit is the browser's `input` and `change` events** inside the form. A control that
+  changes a value only in C# — a button whose `OnClick` sets a property — fires neither, so it does not
+  make the form unsaved by itself.
+- **Which way Back went** is read from the Navigation API. On a browser without it (Safari before 26.2,
+  Firefox before 147) a refused Back or Forward still leaves the reader on the page with the right
+  address, but as a new history entry.
+- **A press in the first instant** — before the script that guards the form has arrived — is not asked
+  about. The guard is one of the [behaviour hooks](js-interop-runtime.md#how-the-hooks-load): a page
+  rendered with the form loads it with the runtime, so this is a matter of milliseconds.
+
 ### Auto-created vs explicit `Context`
 
 By default the form creates (and caches per model reference) its own `EditContext` — it persists

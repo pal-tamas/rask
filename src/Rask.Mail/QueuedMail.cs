@@ -85,11 +85,13 @@ public sealed class QueuedMail : Entity<long>
     /// </remarks>
     public Guid? UserId { get; internal set; }
 
-    /// <summary>Records the tenant this email was queued for, so the sender can re-enter it.</summary>
+    /// <summary>
+    /// The tenant the email was queued for — <c>Current.Tenant</c> at the time — or <c>null</c> when it
+    /// belongs to nobody.
+    /// </summary>
     /// <remarks>
-    ///     Here rather than at the construction site because <c>RecordTenant</c> is the entity's own: only
-    ///     the row may say which tenant it belongs to. Null when there is none — mail sent by the host
-    ///     itself belongs to nobody.
+    /// Recorded as data, not as a partition: the processor sees every tenant's mail, and
+    /// re-enters this one with <c>Tenant.Use</c> before calling the sender.
     /// </remarks>
-    internal void RecordQueuedTenant() => RecordTenant(Current.Tenant);
+    public Guid? TenantId { get; internal set; }
 }

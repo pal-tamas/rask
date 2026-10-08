@@ -1,3 +1,5 @@
+using Rask.Core.Routing;
+
 namespace Rask.Site;
 
 /// <summary>
@@ -5,4 +7,4 @@ namespace Rask.Site;
 ///     and <see cref="ShowcaseLayout" /> appends them to its sidebar — this lets the WASM host surface
 ///     WASM-only example pages (e.g. PWA/notifications) that the shared project can't reference.
 /// </summary>
-public sealed record ShowcaseNavEntry(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix = null);
+public sealed record ShowcaseNavEntry(RouteUrl Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix = null);

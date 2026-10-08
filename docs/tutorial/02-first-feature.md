@@ -119,7 +119,7 @@ public sealed partial class CreateProduct : Component
         return
         [
             Div.Class("flex flex-wrap items-center gap-3")[
-                Ui.Heading.Level(1).Size(Ui.Size.Xl)["New product"],
+                Ui.Heading.Level(1).Xl["New product"],
                 Ui.Spacer,
                 Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]
             ],
@@ -218,7 +218,7 @@ public sealed partial class UpdateProduct : Component
         return
         [
             Div.Class("flex flex-wrap items-center gap-3")[
-                Ui.Heading.Level(1).Size(Ui.Size.Xl)["Edit product"],
+                Ui.Heading.Level(1).Xl["Edit product"],
                 Ui.Spacer,
                 Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]
             ],
@@ -337,7 +337,7 @@ public sealed partial class ProductsPage : Component
         return
         [
         Div.Class("flex flex-wrap items-center gap-3")[
-            Ui.Heading.Level(1).Size(Ui.Size.Xl)[count.Data is { } n ? $"Products ({n})" : "Products"],
+            Ui.Heading.Level(1).Xl[count.Data is { } n ? $"Products ({n})" : "Products"],
             Ui.Spacer,
             Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]
         ],
