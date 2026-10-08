@@ -398,6 +398,16 @@ The kit ships no script but the editor's (`UiEditor.ts`, which only loads the en
 is the reference; `tests/Rask.Server.E2E.Tests/RuntimeHook*Tests.cs` pin each one to what Flux did). A
 component reaches Flux's behaviour by writing exactly these — never by a handler that round-trips:
 
+**The hooks are a bundle of their own, loaded on demand** (`rask-hooks.js`; `rask-hook-loader.ts` is the part
+every page loads). A NEW hook therefore needs three things beyond its module: its import in `rask-hooks.ts`
+(never in `rask.ts` / `rask.wasm.ts` — that puts it back in every app's download), its attribute in
+`HOOK_ATTRIBUTES` (`rask-hook-loader.ts`) and in `HookBundleTag.Attributes` (`src/Rask.Server/Http`), and its
+document listeners added with `listen(...)` from `rask-owned.ts`, not `document.addEventListener` — that is what
+keeps a late-arriving hook's place ahead of the host's own click/change listener and replays what the reader did
+while the bundle was on its way. `HookBundleContractTests` (Rask.Core.Tests) fails on the first two;
+`RuntimeHookLoadingTests` (Rask.Server.E2E.Tests) proves the loading. An attribute read only on or inside an
+element that already carries a listed one (`data-rask-segment`) is declared in that test instead.
+
 | Component | Writes | Gets |
 |---|---|---|
 | Tooltip (and Button's `Tooltip`) | root `data-rask-tooltip="<bubble id>"`; bubble `popover="manual"`; `interactive`: `aria-expanded="false"` + `aria-controls` on the trigger | shown at 0 ms on pointer and keyboard focus, hidden on leave / blur / Escape / press, top layer for any trigger, `aria-expanded` mirrored |
@@ -422,6 +432,11 @@ component reaches Flux's behaviour by writing exactly these — never by a handl
 | Date picker presets | `[role=radiogroup]` `data-rask-roving`; each preset `[role=radio]` button with `OnClick` selecting it, `tabindex` 0 on the checked one | arrows walk and select, wrapping |
 | Tooltip `Toggleable()` | non-button trigger wrapper: `data-rask-toggle="<bubble id>"` + `aria-expanded="false"` + `tabindex="0"`, bubble `popover="manual"`; a `<button>` trigger: `popovertarget` + `aria-expanded="false"`, bubble `popover` | Flux's toggleable tooltip: click / Enter / Space toggle, Escape / outside press / Tab away close; `aria-expanded` mirrored |
 | any popover invoker | `aria-expanded="false"` beside `popovertarget` / `commandfor` / `data-rask-toggle` | mirrored from the popover's `toggle` event; never added for you |
+| Color picker area / hue / alpha, a custom slider | surface `data-rask-drag="x y"` (tracks: `"x"`), `data-rask-drag-inset="<half the thumb>"` when Flux keeps the thumb inside, `touch-action:none`, ONE `Input.Type(Hidden)` inside bound with `OnInput` (live) / `OnChange` (settled) to `"x y"` fractions; thumb CSS from `--rask-drag-x` / `--rask-drag-y`; NO pointer handlers in C# | the thumb under the pointer every frame; one event per frame and one on release |
+| Color picker eyedropper | button rendered `hidden` with `data-rask-requires="EyeDropper"` | shown only where the API exists (Flux hides it, it does not disable it) |
+| File upload / dropzone | `data-rask-loading` on the dropzone around the `Input.Type(File).OnFiles(…)`; CSS from `[data-loading]`, `width: var(--rask-progress)` and `content: var(--rask-progress-as-string)` | Flux's `data-loading` + percent pair; real upload progress on Server, bytes read on WASM |
+| Date picker `type="input"`, Time picker typed trigger | group `data-rask-segments`; each part `Input.Of<string>()` with `data-rask-segment="month|day|year|hour|minute|meridiem"`, a `placeholder`, NO `value`, NO handler, in the locale's order; ONE `Input.Type(Hidden)` inside bound to `yyyy-mm-dd` / `HH:mm` / both joined by `T` | every key of Flux's typed date and time; one committed value. NOT covered: keeping a click on a part from reaching a handler on the surrounding trigger — put the parts beside the element that opens the popover, not inside it |
+| Chart | root `data-rask-plot="<each row's x, 0–1>"`; the plot box `data-rask-plot-area`; every row's cursor / points / summary rendered once with `data-rask-plot-row="<i>"` and shown on `[data-active]`; tooltip `data-rask-plot-tooltip="<gap px>"`, `position:absolute; left:0; top:0`; for the real size, the container `data-rask-measure` with ONE bound `Input.Type(Hidden)` (`"<w> <h>"`) | active row, cursor and tooltip follow the pointer with no round trip; the chart redraws at its own box |
 | OTP | group `data-rask-otp` (`="alpha"`, `="alphanumeric"`); cells rendered with NO `value`, NO handler, NO re-keying; ONE `Input.Type(Hidden)` inside, bound to the string | every key of Flux's otp input, fast typing included |
 | Toast | `data-rask-dismiss-hold="pointer"` beside `data-rask-dismiss-after` | focus no longer holds the countdown |
 | ToastGroup | `data-rask-dismiss-scope` on the group (wired). `data-rask-stack` on the parent of the stacked toasts, newest LAST; no rendered `--ui-toast-index` / anchor names in `style`; CSS from `--rask-stack-index` / `-height` / `-offset` / `-front`, the rule that cuts the card written under `[data-rask-stack]:not([data-rask-measuring])` (hook ready since round two, NOT wired — see below) | one pointer holds them all; the 350 ms glide |
@@ -455,7 +470,8 @@ faded would stay, unseen). What is NOT wired, each with what it needs:
   wrapper's `tabindex` stand-in stays; (b) one that mirrors `aria-expanded` on a `popovertarget` button from
   its popover's `toggle` event — Flux writes `aria-expanded` there, the kit leaves it to the browser because a
   written one would never change.
-- **`Interactive()` and a focus dropped to nothing** — Flux keeps an interactive tooltip open when its trigger
+- **`Interactive()` and a focus dropped to nothing** (ALIGNED in round two: `rask-hover.ts` now keeps a tooltip
+  whose trigger carries `aria-expanded` open on a focus that goes to nothing, until a press outside) — Flux keeps an interactive tooltip open when its trigger
   loses focus with no next element (`blur()`, the window), until a press outside; `rask-hover.ts` closes on
   any `focusout` that leaves the wrapper. Tab into the content and out of it agree. `parity-tooltip.mjs`
   prints it as `OPEN`.

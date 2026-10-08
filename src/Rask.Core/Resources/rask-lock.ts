@@ -16,7 +16,7 @@
 // that rewrites <html>'s own style attribute cannot undo it. The panel itself stays usable through the same
 // sheet. Where constructed stylesheets are missing the declarations go on <html> directly.
 
-import {disown, isShown, own, page} from "./rask-owned.js";
+import {disown, isShown, listen, own, page} from "./rask-owned.js";
 
 const LOCK = "data-rask-lock";
 const LOCKED = "data-rask-locked";
@@ -85,9 +85,9 @@ if (page) {
     // None of them bubbles; all are caught on the way down. beforetoggle is the one that runs in the same task
     // as the open or the close — Flux's lock is there and gone that promptly — but it is cancelable, so a
     // count afterwards settles it.
-    doc.addEventListener("toggle", onChange, true);
-    doc.addEventListener("close", onChange, true);
-    doc.addEventListener("beforetoggle", function (e) {
+    listen("toggle", onChange, true);
+    listen("close", onChange, true);
+    listen("beforetoggle", function (e) {
         const el = e.target;
         if (!(el instanceof Element) || !el.hasAttribute(LOCK)) {
             return;

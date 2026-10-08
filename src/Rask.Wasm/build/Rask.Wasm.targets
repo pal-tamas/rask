@@ -44,6 +44,8 @@
     <ItemGroup>
       <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\main.js"/>
       <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\rask.wasm.js"/>
+      <!-- The behaviour hooks: rask.wasm.js loads this from beside itself when a page first asks for one. -->
+      <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\rask-hooks.js"/>
       <!-- Default PWA service worker (offline app-shell cache + Web Push), served at {root}/rask-sw.js. -->
       <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\rask-sw.js"/>
     </ItemGroup>

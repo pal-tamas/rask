@@ -9,6 +9,8 @@
 // on every host has to be reachable from every host. WASM re-exports raskReadFileChunk through a [JSImport]
 // that marshals a Uint8Array directly.
 
+import { uploadOf } from "./rask-upload.js";
+
 /** The metadata .NET turns into a RaskFile. Field names are the wire contract with the C# record. */
 export interface RaskFileMeta {
     ref: string;
@@ -29,7 +31,27 @@ interface FileInputWithRefs extends HTMLInputElement {
     __raskFileRefs?: string[];
 }
 
-const raskFileRegistry = new Map<string, File>();
+/** A registered File, the input it was chosen in, and how far .NET has read into it. */
+interface RegisteredFile {
+    file: File;
+    input: FileInputWithRefs | null;
+    read: number;
+}
+
+const raskFileRegistry = new Map<string, RegisteredFile>();
+
+// How much of the files chosen in `input` .NET has read so far — the only progress there is where nothing is
+// sent anywhere (rask-upload.ts). Reported on the upload in flight from that input, if one is.
+function reportRead(input: FileInputWithRefs | null): void {
+    const upload = uploadOf(input);
+    if (!upload || !input || !input.__raskFileRefs) return;
+    let read = 0, total = 0;
+    for (const r of input.__raskFileRefs) {
+        const entry = raskFileRegistry.get(r);
+        if (entry) { read += entry.read; total += entry.file.size; }
+    }
+    upload.progress(read, total);
+}
 
 // Registers each File under a fresh ref and returns the metadata .NET turns into RaskFile instances.
 // Re-picking on the same input drops that input's previous refs, so a user cycling through files does not
@@ -48,7 +70,7 @@ export function raskRegisterFiles(
         const r = (typeof crypto !== "undefined" && crypto.randomUUID)
             ? crypto.randomUUID()
             : "f-" + Math.random().toString(36).slice(2);
-        raskFileRegistry.set(r, f);
+        raskFileRegistry.set(r, {file: f, input: inputEl, read: 0});
         refs.push(r);
         metas.push({
             ref: r,
@@ -69,12 +91,17 @@ export async function raskReadFileChunk(
     ref: string,
     offset: number,
     length: number): Promise<Uint8Array> {
-    const file = raskFileRegistry.get(ref);
-    if (!file) return new Uint8Array();
+    const entry = raskFileRegistry.get(ref);
+    if (!entry) return new Uint8Array();
 
+    const file = entry.file;
     const end = Math.min(file.size, offset + length);
     if (end <= offset) return new Uint8Array();
 
     const buf = await file.slice(offset, end).arrayBuffer();
+    if (end > entry.read) {
+        entry.read = end;
+        reportRead(entry.input);
+    }
     return new Uint8Array(buf);
 }

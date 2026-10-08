@@ -49,15 +49,16 @@ trap 'rm -f "$build_log"; rask_lane_release' EXIT
 
 project=tests/Rask.SQLite.Browser.E2E.Tests
 # Release for both, because the static host serves the publish of the configuration its own assembly was built in.
-# Serial, because a WASM publish builds Rask.Core twice. MinVerSkip=true like every other gate.
+# Serial, because a WASM publish builds Rask.Core twice. MinVerSkip=true like every other gate, and no
+# analyzers like every other browser gate: the unit gate's `build` part runs them (run-e2e-local.sh).
 echo "==> Publish the full-text fixture (Release, native-linked)"
 build_status=0
 dotnet publish tests/Rask.SQLite.Browser.Fixture.Wasm/Rask.SQLite.Browser.Fixture.Wasm.csproj -c Release -m:"${RASK_BUILD_SLOTS:-1}" \
-  -p:MinVerSkip=true --nologo 2>&1 | tee "$build_log" || build_status=$?
+  -p:MinVerSkip=true -p:RunAnalyzers=false --nologo 2>&1 | tee "$build_log" || build_status=$?
 
 if [ "$build_status" -eq 0 ]; then
   echo "==> Build the browser-journey project (Release)"
-  dotnet build tests/Rask.SQLite.Browser.E2E.Tests/Rask.SQLite.Browser.E2E.Tests.csproj -c Release -p:MinVerSkip=true --nologo 2>&1 \
+  dotnet build tests/Rask.SQLite.Browser.E2E.Tests/Rask.SQLite.Browser.E2E.Tests.csproj -c Release -p:MinVerSkip=true -p:RunAnalyzers=false --nologo 2>&1 \
     | tee -a "$build_log" || build_status=$?
 fi
 

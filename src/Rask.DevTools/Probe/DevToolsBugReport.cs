@@ -37,7 +37,7 @@ internal static class DevToolsBugReport
     private const int FrameLimit = 30;
 
     // The script files that are Rask's own on a page: the runtimes, the island runtime, anything a Rask package serves.
-    private static readonly string[] RaskScripts = ["/rask/rask.js", "rask.wasm", "rask-external.js", "/_content/Rask.", "/_rask/"];
+    private static readonly string[] RaskScripts = ["/rask/rask.js", "rask.wasm", "rask-hooks.js", "rask-external.js", "/_content/Rask.", "/_rask/"];
 
     /// <summary>
     ///     Reads a .NET stack (<see cref="Exception.StackTrace" />). <paramref name="appNamespaces" /> are namespaces known to

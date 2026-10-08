@@ -149,15 +149,19 @@ case "$suite" in
   *) echo "run-e2e-local: RASK_E2E_SUITE must be site or server, not '$suite'." >&2; exit 1 ;;
 esac
 
+# RunAnalyzers=false on all three: the unit gate's `build` part is the one job that pays for the
+# analyzers, warnings-as-errors, over this same source. Here they bought a second verdict for about a
+# minute of every shard (Rask.Core for the browser: 67 s with them, 22 s without, on a CI runner).
+# Source generators are not analyzers and still run; so does the trimmer, whose IL warnings are its own.
 if [ "$suite" != "server" ]; then
-  dotnet publish src/Rask.Site -c Release -m:"${RASK_BUILD_SLOTS:-1}" -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
+  dotnet publish src/Rask.Site -c Release -m:"${RASK_BUILD_SLOTS:-1}" -p:WasmBuildNative=false -p:MinVerSkip=true -p:RunAnalyzers=false --nologo 2>&1 \
     | tee "$build_log" || build_status=$?
 fi
 
 if [ "$build_status" -eq 0 ] && [ "$suite" != "server" ]; then
   echo "==> Build the browser-journey project (leaf; bundles BrowserFixtures/*.ts with esbuild)"
   dotnet build tests/Rask.Site.E2E.Tests/Rask.Site.E2E.Tests.csproj \
-    -c Release -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
+    -c Release -p:WasmBuildNative=false -p:MinVerSkip=true -p:RunAnalyzers=false --nologo 2>&1 \
     | tee -a "$build_log" || build_status=$?
 fi
 
@@ -166,7 +170,7 @@ if [ "$build_status" -eq 0 ] && [ "$suite" != "site" ]; then
   # MinVerSkip caveat above holds for them too: no out-of-process host has to resolve a version identity.
   echo "==> Build the Rask.Server browser-journey project"
   dotnet build tests/Rask.Server.E2E.Tests/Rask.Server.E2E.Tests.csproj \
-    -c Release -p:MinVerSkip=true --nologo 2>&1 \
+    -c Release -p:MinVerSkip=true -p:RunAnalyzers=false --nologo 2>&1 \
     | tee -a "$build_log" || build_status=$?
 fi
 

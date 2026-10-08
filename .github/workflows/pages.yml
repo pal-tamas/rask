@@ -48,15 +48,17 @@ jobs:
       # renders its route to real HTML and splices it into the boot shell — no flag needed here. Look
       # for the "[Rask.Prerender] result written=N" line in this step's log: it is the only thing that
       # says whether the pass produced anything, since the file it writes is the one the shell occupies.
+      # No analyzers, here or on the demo below: this publishes a commit the gates' `build` job already
+      # held to them, warnings-as-errors, and they change no byte of what is published.
       - name: Publish the site (src/Rask.Site → /)
-        run: dotnet publish src/Rask.Site -c Release
+        run: dotnet publish src/Rask.Site -c Release -p:RunAnalyzers=false
 
       # The full-stack data demo, embedded as a lazy iframe on the data, full-text-search and query guides. Its own
       # small WASM app so EF Core and SQLite stay out of the site's bundle. Native-linked like the site (no
       # -p:WasmBuildNative=false): without it e_sqlite3 is not linked in and every database call fails. Its csproj
       # sets <RaskPathBase>/demos/data</RaskPathBase>, so the publish already carries <base href="/demos/data/">.
       - name: Publish the data demo (src/Rask.Site.DataDemo → /demos/data/)
-        run: dotnet publish src/Rask.Site.DataDemo -c Release
+        run: dotnet publish src/Rask.Site.DataDemo -c Release -p:RunAnalyzers=false
 
       # Expected, harmless: with DevTools open each WASM app logs a 404 for _framework/dotnet.runtime.js.map.
       # The Release publish strips all .map files, but the fingerprinted dotnet.runtime.*.js keeps its

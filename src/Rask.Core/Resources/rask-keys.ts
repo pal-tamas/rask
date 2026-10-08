@@ -26,7 +26,7 @@
 // and the one focused is PRESSED — a radio group's selection follows its focus — so the page's own click
 // handler checks it. The tab stop (`tabindex="0"`) moves with the focus; Space presses the focused one.
 
-import {near, page} from "./rask-owned.js";
+import {listen, near, page} from "./rask-owned.js";
 
 const CONTAIN = "data-rask-contain-keys";
 const ARROWS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
@@ -53,7 +53,7 @@ function typesText(el: Element): boolean {
 }
 
 if (page) {
-    page.addEventListener("keydown", function (e) {
+    listen("keydown", function (e) {
         const t = e.target;
         if (!(t instanceof Element) || e.ctrlKey || e.altKey || e.metaKey) {
             return;

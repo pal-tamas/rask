@@ -144,6 +144,94 @@ public sealed class RuntimeHookShapingTests
     }
 
     [Fact]
+    public void A_pointer_becomes_a_fraction_of_the_track_inside_the_inset_and_never_leaves_zero_to_one()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var drag = root.GetProperty("drag");
+
+        Assert.Equal([0, 0.25, 1, 0], drag.GetProperty("fractions").EnumerateArray().Select(e => e.GetDouble()).ToArray());
+        Assert.Equal(["0.3333", "1", "0"], drag.GetProperty("text").EnumerateArray().Select(e => e.GetString()).ToArray());
+    }
+
+    [Fact]
+    public void A_required_global_is_a_plain_identifier_the_scope_has_and_nothing_else()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var provided = root.GetProperty("requires").EnumerateArray().Select(e => e.GetBoolean()).ToArray();
+
+        Assert.Equal([true, false, false, false], provided);
+    }
+
+    [Fact]
+    public void Upload_progress_is_a_whole_percent_rounded_down_and_never_over_a_hundred()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var progress = root.GetProperty("progress").EnumerateArray().Select(e => e.GetString()).ToArray();
+
+        Assert.Equal(["0%", "12%", "99%", "100%"], progress);
+    }
+
+    [Fact]
+    public void The_row_nearest_the_pointer_changes_at_the_midpoint_and_a_tooltip_flips_when_it_would_leave_the_frame()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var plot = root.GetProperty("plot");
+
+        Assert.Equal([0, 0, 1, -1], plot.GetProperty("nearest").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        Assert.Equal([60, 400 - 80, 311 - 10 - 80], plot.GetProperty("beside").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        Assert.Equal("300 100", plot.GetProperty("size").GetString());
+    }
+
+    [Fact]
+    public void A_digit_no_second_could_follow_finishes_its_part_and_one_too_many_starts_the_part_again()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var segments = root.GetProperty("segments");
+        string?[] Texts(string name) => segments.GetProperty(name).EnumerateArray().Select(e => e.GetString()).ToArray();
+
+        Assert.Equal(["03.", "01", "12.", "03."], Texts("month"));
+        Assert.Equal(["01.", "00"], Texts("zeros"));
+        Assert.Equal(["02", "03.", "23.", "06."], Texts("hour"));
+        Assert.Equal(["0026", "0206", "2026."], Texts("year"));
+    }
+
+    [Fact]
+    public void A_short_year_lands_within_twenty_years_ahead_and_a_pasted_date_is_read_in_the_order_of_the_parts()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var segments = root.GetProperty("segments");
+        string?[] Texts(string name) => segments.GetProperty(name).EnumerateArray().Select(e => e.GetString()).ToArray();
+
+        Assert.Equal(["2026", "2046", "1947", "2005", "0202"], Texts("pivot"));
+        Assert.Equal([29, 28, 29, 28, 30, 31], segments.GetProperty("days").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        Assert.Equal(["2026-03-14", "2026-03-14", "2026-03-14", null, null], Texts("pasted"));
+    }
+
+    [Fact]
     public void A_hook_holds_one_attribute_of_one_element_until_it_lets_go()
     {
         if (Run() is not { } root)

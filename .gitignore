@@ -163,6 +163,7 @@ tests/Rask.Benchmarks.Sqlite/Results/
 # runtime. The TypeScript is that form now.
 src/Rask.Wasm/Browser/main.js
 src/Rask.Wasm/Browser/rask.wasm.js
+src/Rask.Wasm/Browser/rask-hooks.js
 src/Rask.Wasm/Browser/rask-sw.js
 
 # Tailwind output. Rask.Tailwind compiles Styles/app.css into wwwroot/css/ at build, so the file in the

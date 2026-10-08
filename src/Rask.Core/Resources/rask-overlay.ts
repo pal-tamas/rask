@@ -19,7 +19,7 @@
 //
 // All of it is delegated to the document; the two observers are filtered to the two attributes.
 
-import {disown, isShown, near, own, page, setShown} from "./rask-owned.js";
+import {disown, isShown, listen, near, own, page, setShown} from "./rask-owned.js";
 
 type Dialog = HTMLDialogElement & { requestClose?: (value?: string) => void; closedBy?: string };
 
@@ -43,7 +43,7 @@ let pressedAt = 0;
 let pressed: EventTarget | null = null;
 
 function installPopoverFocus(doc: Document): void {
-    doc.addEventListener("focusout", function (e) {
+    listen("focusout", function (e) {
         const panel = near(e.target, "[popover]");
         const next = e.relatedTarget;
         // No relatedTarget is focus leaving the window, or a press on something that takes none: not a Tab.
@@ -53,14 +53,14 @@ function installPopoverFocus(doc: Document): void {
         setShown(panel, false);
     });
 
-    doc.addEventListener("pointerdown", function (e) {
+    listen("pointerdown", function (e) {
         pressedAt = Date.now();
         pressed = e.target;
     }, {capture: true, passive: true});
 
     // `toggle` does not bubble; it is caught on the way down. Only a close that a press outside caused, and
     // only when it left focus nowhere: a panel the pointer merely left, or one the page closed, takes no focus.
-    doc.addEventListener("toggle", function (e) {
+    listen("toggle", function (e) {
         const panel = e.target;
         if (!(panel instanceof HTMLElement) || !panel.id || (e as ToggleEvent).newState !== "closed"
             || !panel.hasAttribute("popover") || Date.now() - pressedAt > 1000
@@ -165,13 +165,13 @@ function installModal(doc: Document): void {
 
     // data-open follows the dialog, however it was opened or closed. `toggle` on a dialog is recent, so
     // `close` is listened for as well; neither bubbles.
-    doc.addEventListener("toggle", function (e) {
+    listen("toggle", function (e) {
         const dialog = e.target;
         if (dialog instanceof HTMLDialogElement) {
             mark(dialog, dialog.open);
         }
     }, true);
-    doc.addEventListener("close", function (e) {
+    listen("close", function (e) {
         if (e.target instanceof HTMLDialogElement) {
             mark(e.target, false);
         }
@@ -181,11 +181,11 @@ function installModal(doc: Document): void {
     // outside its box. Both ends of the press have to be outside: dragging a selection out of a field and
     // letting go over the backdrop is not a dismissal.
     let downOutside: Element | null = null;
-    doc.addEventListener("pointerdown", function (e) {
+    listen("pointerdown", function (e) {
         const dialog = e.target;
         downOutside = dialog instanceof HTMLDialogElement && dialog.hasAttribute(MODAL) && outside(dialog, e) ? dialog : null;
     }, true);
-    doc.addEventListener("click", function (e) {
+    listen("click", function (e) {
         const dialog = e.target;
         if (!(dialog instanceof HTMLDialogElement) || dialog !== downOutside || !outside(dialog, e)) {
             return;
@@ -201,7 +201,7 @@ function installModal(doc: Document): void {
     // Escape, on a dialog that says it does not close on it. Preventing the key is what keeps the close
     // request from being made at all — refusing the `cancel` event instead is honoured only once in a row.
     // (closedby="none" beside it also covers a phone's back gesture, where the engine has it.)
-    doc.addEventListener("keydown", function (e) {
+    listen("keydown", function (e) {
         if (e.key !== "Escape") {
             return;
         }
@@ -214,7 +214,7 @@ function installModal(doc: Document): void {
 
     // Invoker commands, for an engine without them. One with them never reaches the body of this: it has
     // already run the command, and the test is one property read.
-    doc.addEventListener("click", function (e) {
+    listen("click", function (e) {
         // Asked of the prototype, not of the button: the DOM typings say every button has the property, so
         // testing the element itself tells the compiler nothing is left to handle below.
         if ("commandForElement" in HTMLButtonElement.prototype || e.defaultPrevented) {
