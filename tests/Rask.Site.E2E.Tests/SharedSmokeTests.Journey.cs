@@ -259,13 +259,12 @@ public abstract partial class SharedSmokeTests
     {
         // Guides-first: the guide category groups are expanded by default (the narrative spine), while the
         // demoted Examples group stays collapsed so the long item list isn't dumped at once.
-        await Expect(Page.Locator(".side-nav .nav-group-toggle").First)
+        await Expect(Page.Locator(".side-nav .nav-group > summary").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // A collapsed group renders NO items element at all now, where BsCollapse rendered one and hid
-        // it with .collapse — so "expanded" is the presence of the items container, not a class on it.
-        var open = await Page.Locator(".side-nav .nav-group-items").CountAsync();
+        // A group is the kit's sidebar group, a native <details>: "expanded" is its `open` attribute.
+        var open = await Page.Locator(".side-nav .nav-group[open]").CountAsync();
         Assert.True(open >= 5, $"expected the guide groups expanded by default, got {open}");
-        var groups = await Page.Locator(".side-nav .nav-group-toggle").CountAsync();
+        var groups = await Page.Locator(".side-nav .nav-group > summary").CountAsync();
         // The five guide groups (Overview + the four GuideCatalog categories) plus the surviving Examples
         // groups (most example pages are now folded into guides). Keep this a "many groups" floor.
         Assert.True(groups >= 6, $"expected the nav split into many collapsible groups, got {groups}");
@@ -273,7 +272,7 @@ public abstract partial class SharedSmokeTests
         // Collapse/expand toggle: the guide category groups are open by default (guides-first), so
         // collapsing one hides its links and re-expanding reveals them. The "Frontend" guide group (the
         // old "Core", renamed when the nav regrouped by domain) holds the routing guide.
-        var core = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Frontend\")").First;
+        var core = Page.Locator(".side-nav .nav-group > summary:has-text(\"Frontend\")").First;
         var routingGuide = Page.Locator($".side-nav a.side-nav-link[href=\"{Docs}/guides/routing/\"]");
         await core.ClickAsync(); // collapse
         await Expect(routingGuide).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
@@ -282,7 +281,7 @@ public abstract partial class SharedSmokeTests
 
         // The filter narrows the list to matching labels (and force-opens their groups); clearing it
         // restores the accordion. Uses durable guide labels (always present).
-        var filter = Page.Locator(".side-nav .side-nav-filter");
+        var filter = Page.Locator(".side-nav .side-nav-search input");
         await filter.FillAsync("Getting started");
         await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Getting started\")").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -312,8 +311,8 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
         // Dismiss by tapping the overlay beside the drawer. A real tap lands on the visible strip, but
         // Playwright's centre-click would be intercepted by the panel over it — so dispatch the click to the
-        // overlay itself: the kit's sidebar overlay is a label for the drawer's checkbox, so the click closes it.
-        await Page.Locator(".app-shell .drawer-overlay").DispatchEventAsync("click");
+        // overlay itself: the kit's sidebar backdrop is a label for the sidebar's checkbox, so the click closes it.
+        await Page.Locator(".app-shell [data-ui-sidebar-backdrop]").DispatchEventAsync("click");
         await Expect(Page.Locator(".side-nav")).Not.ToBeInViewportAsync(
             new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
         await Page.SetViewportSizeAsync(1280, 720);

@@ -74,7 +74,7 @@ public sealed partial class CachePage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            Ui.Header.Title("Cache").Actions(FlushButton()),
+            DashboardHeading.Title("Cache").Actions(FlushButton()),
             DashboardError.Message(LoadError),
             ConfirmPrompt(),
             Ui.MetricRow.Columns(3)[

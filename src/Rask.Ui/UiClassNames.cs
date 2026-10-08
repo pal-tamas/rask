@@ -316,47 +316,6 @@ internal static class UiClassNames
         _ => "loading-spinner",
     };
 
-    /// <summary>The classes that keep a sidebar in the page's flow from a breakpoint up.</summary>
-    /// <remarks>
-    ///     The width from which a sidebar sits in the page's flow instead of sliding over it. Every member a complete
-    ///     literal: <c>"lg:" + "drawer-open"</c> is invisible to Tailwind's scan, and the sidebar would never open.
-    /// </remarks>
-    internal static string SidebarInFlowFrom(Ui.Breakpoint value) => value switch
-    {
-        Ui.Breakpoint.Sm => "sm:drawer-open",
-        Ui.Breakpoint.Md => "md:drawer-open",
-        Ui.Breakpoint.Lg => "lg:drawer-open",
-        Ui.Breakpoint.Xl => "xl:drawer-open",
-        _ => "lg:drawer-open",
-    };
-
-    /// <summary>The classes that hide an element from a breakpoint up.</summary>
-    /// <remarks>The toggle is only needed while the sidebar slides over the page, so it hides where the sidebar docks.</remarks>
-    internal static string HiddenFrom(Ui.Breakpoint value) => value switch
-    {
-        Ui.Breakpoint.Sm => "sm:hidden",
-        Ui.Breakpoint.Md => "md:hidden",
-        Ui.Breakpoint.Lg => "lg:hidden",
-        Ui.Breakpoint.Xl => "xl:hidden",
-        _ => "lg:hidden",
-    };
-
-    /// <summary>The classes that show an element from a breakpoint up.</summary>
-    /// <remarks>
-    ///     The mirror of <see cref="HiddenFrom" />, for the collapse control: narrowing the sidebar to a rail only
-    ///     means anything once it is DOCKED, so the control is hidden until then. ONE class name, as every member
-    ///     here is — the call site pairs it with its own <c>hidden</c>, because a member returning two names would
-    ///     be a name built by concatenation in everything but spelling, which is what this file exists to avoid.
-    /// </remarks>
-    internal static string ShownFrom(Ui.Breakpoint value) => value switch
-    {
-        Ui.Breakpoint.Sm => "sm:inline-flex",
-        Ui.Breakpoint.Md => "md:inline-flex",
-        Ui.Breakpoint.Lg => "lg:inline-flex",
-        Ui.Breakpoint.Xl => "xl:inline-flex",
-        _ => "lg:inline-flex",
-    };
-
     /// <summary>The ink a value takes when it reports a problem; null for a value that reports none.</summary>
     internal static string? ValueTone(Ui.Tone? value) => value switch
     {
@@ -374,19 +333,5 @@ internal static class UiClassNames
     {
         Ui.Position.Right => "drawer-end",
         _ => "",
-    };
-
-    /// <summary>The frame size of an avatar.</summary>
-    /// <remarks>
-    ///     daisyUI's avatar has no size classes of its own — its docs size the inner box with a width
-    ///     utility — so the literals live here, where Tailwind can see them.
-    /// </remarks>
-    internal static string AvatarSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "w-6",
-        Ui.Size.Sm => "w-8",
-        Ui.Size.Lg => "w-16",
-        Ui.Size.Xl => "w-24",
-        _ => "w-10",
     };
 }

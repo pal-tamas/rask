@@ -536,7 +536,7 @@ Rask generates a type-safe route helper — `Routes.<Page>()` — for every page
 that safety: rename or remove the `[Route]` and the string becomes a silent dead link that still compiles,
 whereas `Routes.<Page>()` becomes a compile error you fix immediately. The analyzer flags a string literal
 passed to internal navigation — `Go.To("…")` or any `RouteUrl` slot (`NavLink.Href(…)`,
-`Ui.NavItem.Href(…)`, via the `string → RouteUrl` implicit conversion) — **only** when
+`Ui.NavlistItem.Href(…)`, via the `string → RouteUrl` implicit conversion) — **only** when
 the path maps to a generated parameterless route helper.
 
 It deliberately leaves alone:

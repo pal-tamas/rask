@@ -27,7 +27,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { chromium, measurePage, root } from './lib.mjs';
+import { chromium, layoutDemos, measureLayouts, measurePage, root } from './lib.mjs';
 
 const flux = join(root, 'tests', 'Rask.Ui.Tests', 'Flux');
 const snapshotFile = join(flux, 'flux.snapshot.json');
@@ -95,8 +95,12 @@ process.exit(moved.length ? 2 : 0);
 async function measure(page, known) {
   const dir = join(root, 'artifacts', 'flux-parity', 'flux', page.slug);
   const url = `https://fluxui.dev/${page.kind}/${page.slug}`;
+  // A layout's examples are the demos its page links to, each at every width and state (lib.mjs).
+  const take = async () => page.kind === 'layouts'
+    ? measureLayouts(browser, await layoutDemos(browser, url), demo => `https://fluxui.dev/demo/${demo.name}`, dir)
+    : measurePage(browser, url, dir);
   // One more try: a docs page that never went idle once is the network, not Flux.
-  const schemes = await measurePage(browser, url, dir).catch(() => measurePage(browser, url, dir));
+  const schemes = await take().catch(() => take());
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, 'measurements.json'), JSON.stringify(schemes));
   const prints = fingerprints(schemes);

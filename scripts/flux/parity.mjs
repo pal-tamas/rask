@@ -25,7 +25,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, measurePage, root, stateTargets, STYLES } from './lib.mjs';
+import { chromium, layoutDemos, measureLayouts, measurePage, root, stateTargets, STYLES } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const flag = name => args.includes(`--${name}`);
@@ -39,7 +39,11 @@ if (!page) {
 const path = page.includes('/') ? page : `components/${page}`;
 const slug = path.split('/')[1];
 const out = join(root, 'artifacts', 'flux-parity');
-const raskPage = join(out, 'rask', `${slug}.html`);
+// A layout page (layouts/header, layouts/sidebar) has no examples of its own: it links to full-document demos,
+// and each is measured whole — at desktop and phone widths, with the sidebar as it loads, narrowed to its rail
+// and slid over the page — against artifacts/flux-parity/rask/<slug>/<demo>.html.
+const layout = path.startsWith('layouts/');
+const raskPage = join(out, 'rask', layout ? slug : `${slug}.html`);
 if (!existsSync(raskPage)) {
   console.error(`flux parity: ${raskPage} is missing — run: dotnet test tests/Rask.Ui.Tests --filter FluxParityPages`);
   process.exit(1);
@@ -51,7 +55,9 @@ let flux;
 if (existsSync(fluxFile) && !flag('refresh')) {
   flux = JSON.parse(await readFile(fluxFile, 'utf8'));
 } else {
-  flux = await measurePage(browser, `https://fluxui.dev/${path}`, join(out, 'flux', slug));
+  flux = layout
+    ? await measureLayouts(browser, await layoutDemos(browser, `https://fluxui.dev/${path}`), demo => `https://fluxui.dev/demo/${demo.name}`, join(out, 'flux', slug))
+    : await measurePage(browser, `https://fluxui.dev/${path}`, join(out, 'flux', slug));
   await mkdir(join(out, 'flux', slug), { recursive: true });
   await writeFile(fluxFile, JSON.stringify(flux));
 }
@@ -60,7 +66,7 @@ if (existsSync(fluxFile) && !flag('refresh')) {
 // example sits in the prose. A component inherits those, so each Rask example is given what its Flux
 // twin was given before anything is measured — the same surroundings, and only the component differs.
 const INHERITED = ['color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'];
-const rask = await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', slug), (document, scheme) =>
+const inherit = (document, scheme) =>
   document.evaluate(({ examples, INHERITED }) => {
     const seen = {};
     for (const wrapper of document.querySelectorAll('[data-preview-wrapper]')) {
@@ -73,8 +79,33 @@ const rask = await measurePage(browser, pathToFileURL(raskPage).href, join(out, 
       const { fontSize, lineHeight } = theirs?.nodes[0].style ?? {};
       if (lineHeight?.endsWith('px')) wrapper.style.lineHeight = String(parseFloat(lineHeight) / parseFloat(fontSize));
     }
-  }, { examples: flux[scheme], INHERITED }));
+  }, { examples: flux[scheme], INHERITED });
+// A demo is told apart by the section it was measured under: `<h2 id>@<width>`, or its own name for the first.
+const demos = () => [...new Map(flux.light.map(example => example.section.split('@')[0]).map(key => [key, { name: key, section: key }])).values()];
+const rask = layout
+  ? await measureLayouts(browser, demos(), demo => pathToFileURL(join(raskPage, `${demo.name}.html`)).href, join(out, 'rask', slug),
+    { prepare: inherit, only: new Set(flux.light.map(example => example.section)) })
+  : await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', slug), inherit);
 await browser.close();
+
+// ----- Layouts ---------------------------------------------------------------------------------------
+// What is not rendered is not compared — the menu of a closed dropdown, the label a rail hides — and each
+// state that shows it is measured on its own. Nor is what floats over the page (a `popover`: the tooltip of
+// the control that was just pressed), which is another component's. What Flux does in script Rask does with
+// an element (a checkbox, a label under the rail), marked `data-ui-mechanism` and left out.
+const rendered = example => {
+  const gone = new Set();
+  for (const node of example.nodes) if (node.hidden || 'popover' in node.attrs || 'data-ui-mechanism' in node.attrs || gone.has(node.parent)) gone.add(node.id);
+  return { ...example, nodes: example.nodes.filter(node => !gone.has(node.id)) };
+};
+if (layout) for (const side of [flux, rask]) for (const scheme of ['light', 'dark']) side[scheme] = side[scheme].map(rendered);
+
+// Another component placed in a layout is compared as a box: where it is and how big. Its inside is its own
+// page's business, where it is compared whole.
+const FOREIGN = /^data-flux-(navbar|navlist|navmenu|brand|profile|avatar|menu|heading|text|separator)/;
+const foreign = node => layout && Object.keys(node.attrs).some(name => FOREIGN.test(name));
+// In a layout the kit's controls are labels for the checkbox that holds the sidebar's state.
+const LAYOUT_NATIVE = { 'ui-sidebar-toggle': ['label', 'div'], 'ui-dropdown': ['label'], button: ['label'] };
 
 // Not compared: what the surrounding docs page decides rather than the component (where a top-level
 // node sits, how wide a stretched one is), and the two the box already states.
@@ -96,6 +127,8 @@ const NATIVE = {
   'ui-select': 'div', 'ui-selected': 'div', 'ui-options': 'div', 'ui-option': 'div', 'ui-option-empty': 'div',
   'ui-option-create': 'div', 'ui-empty': 'div', 'ui-pillbox': 'div', 'ui-pillbox-trigger': 'div',
   'ui-selected-remove': 'div',
+  // The sidebar: a checkbox and CSS collapse it and slide it over the page, where Flux's element runs script.
+  'ui-sidebar': 'div',
   // The checkbox, radio and switch: a <label> around the real <input>, and a group that is only a box.
   'ui-checkbox-group': 'div', 'ui-radio-group': 'div', 'ui-checkbox': 'label', 'ui-radio': 'label', 'ui-switch': 'label',
   // The modal's wrapper, and the one around a button that closes it: the kit's buttons are invoker commands.
@@ -126,7 +159,8 @@ const NATIVE_PART = { 'input-file': 'label' };
 // A <ui-radio> that is a choice among buttons, not a form's radio (a date picker's preset), is a real
 // <button role="radio">, which the runtime's roving group walks.
 const RADIO_BUTTON = (a, b) => a.tag === 'ui-radio' && b.tag === 'button' && b.attrs.role === 'radio';
-const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary') || RADIO_BUTTON(a, b);
+const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary') || RADIO_BUTTON(a, b)
+  || (layout && (LAYOUT_NATIVE[a.tag] ?? []).includes(b.tag));
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
 // …and leaves a chart's root with no marker at all: its <ui-chart> is the chart.
 const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };
@@ -193,6 +227,15 @@ function compareExample(theirs, mine, notes) {
       continue;
     }
 
+    // A layout's parts are placed by the layout: where each is on the page is the thing being compared.
+    if (layout) {
+      x.forEach((node, i) => {
+        if (Math.abs(node.box[0] - y[i].box[0]) > 0.6 || Math.abs(node.box[1] - y[i].box[1]) > 0.6) {
+          diffs.push(`${name}[${i}]: at ${fix(node.box[0])},${fix(node.box[1])} vs ${fix(y[i].box[0])},${fix(y[i].box[1])}`);
+        }
+      });
+    }
+
     x.forEach((node, i) => compareTree(theirs, node, mine, y[i], node, y[i], `${name}[${i}]${node.text ? ` "${node.text.slice(0, 16)}"` : ''}`, diffs));
   }
 
@@ -223,7 +266,7 @@ function mark(node, prefix) {
 //   "width" / "height"   that dimension is random on Flux's page (`rand()` in the docs), here and below it.
 function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') {
   const skip = b.attrs['data-parity-skip'];
-  const standIn = skip === '';
+  const standIn = skip === '' || foreign(a);
   const own = !standIn && skip !== 'self';
   if (skip === 'width' || skip === 'height') free = skip;
   if (!sameTag(a, b) && own) diffs.push(`${where}: tag <${a.tag}> vs <${b.tag}>`);
@@ -295,7 +338,7 @@ function compareLook(theirs, a, mine, b, where, diffs) {
 }
 
 function measured(example) {
-  return (example.measured ??= new Set(stateTargets(example.nodes)));
+  return (example.measured ??= new Set(stateTargets(example.nodes, layout)));
 }
 
 function shown(example, node) {

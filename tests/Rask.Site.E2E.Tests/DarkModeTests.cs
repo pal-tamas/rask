@@ -203,7 +203,7 @@ public sealed partial class DarkModeTests
         await page.GotoAsync("/docs/");
         await Expect(page.Locator("body[data-rask-root='wasm']"))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
-        await page.Locator(".side-nav .side-nav-filter").First.FillAsync("Data display");
+        await page.Locator(".side-nav .side-nav-search input").First.FillAsync("Data display");
         await page.Locator(".side-nav a.side-nav-link[href*='/docs/ui/data-display']").First.ClickAsync();
 
         try

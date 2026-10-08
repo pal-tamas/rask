@@ -50,7 +50,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, OpsOpt
         }
 
         return [
-            Ui.Header.Title("Overview").Caption(StateLine()),
+            DashboardHeading.Title("Overview").Caption(StateLine()),
             DashboardError.Message(LoadError),
             FailureBanner(),
             Ui.Grid[_queues.Select(q => QueueCard(q.Panel, q.Counts))],
