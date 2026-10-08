@@ -23,6 +23,7 @@ import {
     waitForUnappliedHeadCss,
 } from "../../Rask.Core/Resources/rask-scoped.js";
 import { raskReadFileChunk, raskRegisterFiles } from "../../Rask.Core/Resources/rask-files.js";
+import { beginUpload } from "../../Rask.Core/Resources/rask-upload.js";
 import { showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
@@ -36,7 +37,7 @@ import {
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
-import "../../Rask.Core/Resources/rask-hooks.js";
+import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {
@@ -607,6 +608,24 @@ async function send(payload: unknown): Promise<void> {
 // unreferenced would additionally let esbuild elide rask-host.ts from the bundle.
 setHost({send, inRoot});
 
+// The behaviour hooks are a script of their own beside this module, loaded when the page first asks for one
+// (rask-hook-loader.ts).
+//
+// A module that was not loaded from a place (a `data:` URL, which is how the Node fixtures import this bundle)
+// has no "beside": there is nothing to load the hooks from, and nothing is watched for.
+function hooksUrl(): string | null {
+    try {
+        return new URL("./rask-hooks.js", import.meta.url).href;
+    } catch (e) {
+        return null;
+    }
+}
+
+const hooks = hooksUrl();
+if (hooks) {
+    loadHooksOnDemand(hooks);
+}
+
 // And the same two facts again, on a global, for modules that are NOT in this bundle.
 //
 // setHost above is an intra-bundle contract: a shared module imports `send` from rask-host.ts and
@@ -671,7 +690,9 @@ document.addEventListener("change", (e) => {
         const files = asInput.files;
         if (!files || files.length === 0) return;
         const metas = registerFiles(asInput, files);
-        send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas});
+        // Marked until the handler and its render are done; what it has read of the files is its progress.
+        const upload = beginUpload(asInput);
+        send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas}).finally(upload.end);
         return;
     }
     if (t.hasAttribute("data-rask-on-change")) {

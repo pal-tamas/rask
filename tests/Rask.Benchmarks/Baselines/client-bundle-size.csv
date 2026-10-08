@@ -1,19 +1,31 @@
-# The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify).
+# The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
+# only a page that carries a hooked attribute downloads.
 #
-# Refreshed 2026-10-07 on the tree that has BOTH of the two below (round two's hooks and Flux's menus, which
-# were each measured without the other) and the one-time-code fix: rask.js 120,330 and rask.wasm.js 109,244.
+# Refreshed 2026-10-08 with Flux's menus, whose script is in the CORE runtime (the menu block of rask-dom.ts:
+# roving focus that follows `data-active`, Enter / Space on the focused row, focus handed back after a press
+# outside, the context menu fitted by where it landed and its position kept in a constructable sheet):
+# rask.js 94,135 -> 95,581 and rask.wasm.js 82,993 -> 84,439, +1,446 bytes each; rask-hooks.js is unchanged.
+#
+# Refreshed 2026-10-07 when the behaviour hooks became a bundle of their own, loaded on demand
+# (rask-hook-loader.ts): rask.js 129,658 -> 94,135 and rask.wasm.js 118,437 -> 82,993, with rask-hooks.js at
+# 37,124 (gzip -9: 40,432 -> 29,789, 36,301 -> 25,743, and 11,929). What stayed in the runtimes of the hooks'
+# 39 kB is 3.4 kB: the loader (2.2 kB: the attribute list, the observer, the kept places and the kept events),
+# rask-upload.ts (0.8 kB, which the hosts' own file handling calls) and the morph's half of rask-owned.ts. The
+# rest of the distance to the 90,270 / 79,250 the runtimes weighed before any hook is the runtimes' own growth
+# since. A page with hooks downloads 131,259 where it downloaded 129,658: +1.6 kB, the loader and the second
+# copy of rask-owned.ts.
+#
+# Refreshed 2026-10-07 with round two's third batch (rask-segments.ts and rask-plot.ts): rask.js 122,313 -> 129,658 and
+# rask.wasm.js 111,099 -> 118,437, +7.3 kB each. Round two in all: +15.9 kB on each bundle.
+#
+# Refreshed 2026-10-07 with round two's second batch (rask-drag.ts, rask-requires.ts, rask-upload.ts with the
+# Server host's XMLHttpRequest upload and the WASM host's read progress, the interactive-tooltip focus rule):
+# rask.js 118,884 -> 122,313 (+3.4 kB) and rask.wasm.js 107,798 -> 111,099 (+3.3 kB). Round two so far is
+# +8.5 kB on each bundle.
 #
 # Refreshed 2026-10-07 with round two's first hooks (rask-keys.ts, rask-focus.ts, rask-toggle.ts, the natural
 # heights of rask-toast.ts, and rask-bound.ts taken out of rask-otp.ts): rask.js 113,805 -> 118,884 and
 # rask.wasm.js 102,721 -> 107,798, +5.1 kB each.
-#
-# Refreshed 2026-10-07 with the one-time-code fix (rask-otp.ts keeps a late echo from the render's second
-# write): rask.js 115,251 -> 115,285 and rask.wasm.js 104,167 -> 104,201, +34 bytes each.
-#
-# Refreshed 2026-10-07 with Flux's menus (the menu block of rask-dom.ts: roving focus that follows
-# `data-active`, Enter / Space on the focused row, focus handed back after a press outside, the context menu
-# fitted by where it landed and its position kept in a constructable sheet): rask.js 113,805 -> 115,251 and
-# rask.wasm.js 102,721 -> 104,167, +1,446 bytes each.
 #
 # Refreshed 2026-10-07 with the behaviour hooks (rask-hooks.ts and its ten modules: tooltip and hover popovers,
 # overlay focus and modal dialogs, the page lock, menus, fields, otp cells, toast groups, persisted checkboxes,
@@ -68,5 +80,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,120330
-rask.wasm.js,109244
+rask.js,95581
+rask.wasm.js,84439
+rask-hooks.js,37124

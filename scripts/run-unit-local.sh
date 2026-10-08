@@ -164,8 +164,9 @@ fi
 #   tests          a build without analyzers, then the tests
 #   tests-K/N      the same build, then shard K of N of the test projects (dealt round-robin from a
 #                  sorted list, so a new project joins a shard by existing)
-#   format         a build without analyzers, then the formatter (over the changed .cs files when
-#                  RASK_FORMAT_SCOPE=range, which is how a scoped CI run calls it)
+#   format         a build without analyzers, then the formatter. A scoped CI run calls it with
+#                  RASK_FORMAT_SCOPE=range: the changed .cs files only, over a build of the projects
+#                  the change reaches
 #   format-src     a build without analyzers, then the formatter over src/
 #   format-tests   a build without analyzers, then the formatter over tests/
 #
@@ -193,12 +194,25 @@ case "$unit_part" in
 esac
 
 # With RASK_TEST_SCOPE=affected as well (a scoped CI run), the scope narrows what a part RUNS and what
-# `build` compiles. A tests or format part still builds the whole solution, for the reason above, so
-# its scope is set aside here and applied after the build.
+# `build` compiles. A tests part still builds the whole solution, for the reason above, so its scope is
+# set aside here and applied after the build.
+#
+# A format part keeps the narrowed build when the formatter is narrowed to the same change: it decides
+# per document, and every project a changed document compiles against is in the affected build, being
+# what the projects that changed depend on. The whole-solution build was 198 s of a 292 s job that
+# formatted two files. Asked for every document, the formatter still gets the whole solution.
 tests_scope=""
 skip_tests=0
+format_follows_scope=0
+case "${RASK_FORMAT_SCOPE:-}" in
+  range)  [ -n "${RASK_SCOPE_RANGE:-}" ] && format_follows_scope=1 ;;
+  staged) [ -z "${RASK_SCOPE_RANGE:-}" ] && format_follows_scope=1 ;;
+esac
 case "$unit_part" in
   ""|build) ;;
+  format)
+    [ "$format_follows_scope" -eq 1 ] || scope_projects=""
+    ;;
   *)
     tests_scope="$scope_projects"
     scope_projects=""
@@ -285,6 +299,12 @@ done
 rask_phase "gate script tests"
 [ "$gate_tests_failed" -eq 0 ] || exit 1
 
+# Only `build` pays for the analyzers: it runs them over this same source on another machine at the
+# same moment, and the tests and the formatter need the assemblies, not a second verdict. Source
+# generators are not analyzers and still run.
+build_analyzers=""
+case "$unit_part" in ""|build) ;; *) build_analyzers="-p:RunAnalyzers=false" ;; esac
+
 if [ -n "$scope_projects" ]; then
   # ONE MSBuild invocation over the affected set, not a loop of `dotnet build` per project. The set
   # has edges inside it, and two concurrent builds of a project that both depend on a third race on
@@ -311,9 +331,10 @@ if [ -n "$scope_projects" ]; then
   } >"$scope_proj"
 
   echo "==> Build (Release; affected projects only)"
+  # shellcheck disable=SC2086  # empty unless set above
   dotnet build "$scope_proj" -c Release -m:"$lane_slots" \
     -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
-    -p:RaskSpaBuild=false
+    -p:RaskSpaBuild=false $build_analyzers
   rm -f "$scope_proj"
 else
 
@@ -326,12 +347,6 @@ echo "==> Build once (Release; no WASM bundle)"
 # RaskWasm / RaskSpaBuild off: this gate runs UNIT tests, and not one of them needs a published
 # WebAssembly bundle — the browser E2E gate publishes those. The gate's real cost is elsewhere — the test
 # run and `dotnet format --verify-no-changes` are about 90% of a warm run.
-#
-# The `tests` part builds without the analyzers: the `format` part builds this same solution with
-# them on another machine at the same moment, so running them twice buys nothing, and the tests only
-# need the assemblies. Source generators are not analyzers and still run.
-build_analyzers=""
-case "$unit_part" in ""|build) ;; *) build_analyzers="-p:RunAnalyzers=false" ;; esac
 # shellcheck disable=SC2086  # empty unless set above
 dotnet build Rask.slnx -c Release -m:"$lane_slots" \
   -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \

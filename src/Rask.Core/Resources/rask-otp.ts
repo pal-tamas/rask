@@ -17,7 +17,7 @@
 // data-rask-otp="numeric" (the default) | "alpha" | "alphanumeric" says what a cell accepts.
 
 import {announce, bind} from "./rask-bound.js";
-import {page} from "./rask-owned.js";
+import {listen, page} from "./rask-owned.js";
 
 const GROUP = "[data-rask-otp]";
 
@@ -90,7 +90,7 @@ bind(GROUP, function (group) {
 if (page) {
     const doc = page;
 
-    doc.addEventListener("beforeinput", function (e) {
+    listen("beforeinput", function (e) {
         const cell = e.target;
         const group = cell instanceof HTMLInputElement ? cell.closest(GROUP) : null;
         const data = (e as InputEvent).data;
@@ -101,7 +101,7 @@ if (page) {
         }
     }, true);
 
-    doc.addEventListener("input", function (e) {
+    listen("input", function (e) {
         const cell = e.target;
         const group = cell instanceof HTMLInputElement && cell.type !== "hidden" ? cell.closest(GROUP) : null;
         if (!group || (e as InputEvent).isComposing) {
@@ -121,7 +121,7 @@ if (page) {
         commit(group, cells, value, typed ? index + 1 : index);
     }, true);
 
-    doc.addEventListener("keydown", function (e) {
+    listen("keydown", function (e) {
         const cell = e.target;
         const group = cell instanceof HTMLInputElement && cell.type !== "hidden" ? cell.closest(GROUP) : null;
         if (!group || e.ctrlKey || e.altKey || e.metaKey) {
@@ -143,7 +143,7 @@ if (page) {
         }
     }, true);
 
-    doc.addEventListener("paste", function (e) {
+    listen("paste", function (e) {
         const group = e.target instanceof Element ? e.target.closest(GROUP) : null;
         const data = (e as ClipboardEvent).clipboardData;
         if (!group || !data) {
@@ -160,7 +160,7 @@ if (page) {
 
     // A press past the first empty cell lands on it, and whatever cell takes focus has its character selected,
     // so the next key replaces it.
-    doc.addEventListener("focusin", function (e) {
+    listen("focusin", function (e) {
         const cell = e.target;
         const group = cell instanceof HTMLInputElement && cell.type !== "hidden" ? cell.closest(GROUP) : null;
         if (group) {
@@ -169,7 +169,7 @@ if (page) {
         }
     }, true);
     // The press that follows the focus would put a caret where it landed and drop the selection.
-    doc.addEventListener("pointerup", function (e) {
+    listen("pointerup", function (e) {
         const cell = e.target;
         if (cell instanceof HTMLInputElement && cell === doc.activeElement && cell.closest(GROUP)) {
             cell.select();
