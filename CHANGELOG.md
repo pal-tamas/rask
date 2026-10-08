@@ -992,6 +992,12 @@ them until tagged releases begin.
   false), so a date picker's popup holds the page still. `data-rask-toggle` leaves a press in a text field, a
   `<select>` or an editable element inside the toggle to that field, which is what lets a typed date's parts sit
   inside the trigger that opens its calendar.
+- **A wasm-hosted app publishes again.** `dotnet publish` of a `rask new --template wasm-hosted` app failed with
+  NETSDK1152 on `wwwroot/js/rask-ui-editor.js`: the app is one project built twice, and both the server half and
+  its browser half wrote the editor's engine, which the publish then found twice. The browser half writes it now
+  — that is where a page mounting a `Ui.Editor` runs, and `MapRaskSpa` serves its files in a build and in a
+  publish — and the server half leaves it alone, taking out a copy an earlier build left in its `wwwroot`.
+  `<RaskUiEditorEngine>false</RaskUiEditorEngine>` in the app still keeps the file out of both.
 
 - **An interactive tooltip no longer closes when focus drops to nothing.** A `data-rask-tooltip` whose trigger carries
   `aria-expanded` stays open after `blur()` or the window losing focus, until a press outside it, as Flux UI's does.

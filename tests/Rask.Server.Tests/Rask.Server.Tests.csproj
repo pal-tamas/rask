@@ -62,6 +62,9 @@
     <RaskTestReads Include="..\..\src\Rask.Core\Rask.Core.csproj" />
     <RaskTestReads Include="..\..\src\Rask.Api.Client\Rask.Api.Client.csproj" />
     <RaskTestReads Include="..\..\src\Rask.Generators\Rask.Generators.csproj" />
+    <RaskTestReads Include="..\..\src\Rask.Ui\build\Rask.Ui.targets" />
+    <RaskTestReads Include="..\..\src\Rask.Ui\Resources\ui-editor.js" />
+    <RaskTestReads Include="..\..\src\Rask.Ui\Resources\ui-editor.LICENSES.txt" />
   </ItemGroup>
 
 </Project>
