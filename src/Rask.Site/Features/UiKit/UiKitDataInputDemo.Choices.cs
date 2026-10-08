@@ -17,8 +17,8 @@ public sealed partial class UiKitDataInputDemo
                 CheckboxLists(),
                 CheckboxVariants(),
                 P.Key("state").Class("text-sm text-zinc-500 sm:col-span-2 dark:text-white/60").Data(Testid("ui-checkbox-state"))[
-                    $"terms {(_choices.Terms ? "agreed" : "open")} · notify by {Listed(_choices.Notifications)}"
-                    + $" · subscribed to {Listed(_choices.Subscription)} · people {Listed(_choices.People)}"
+                    $"terms {(_choices.Terms ? "agreed" : "open")} · notify by {Chosen(_choices.Notifications)}"
+                    + $" · subscribed to {Chosen(_choices.Subscription)} · people {Chosen(_choices.People)}"
                 ]
             ]);
 
@@ -264,7 +264,7 @@ public sealed partial class UiKitDataInputDemo
         Ui.Radio.Value("next-day").Icon(icons ? Ui.IconName.Clock : null).Label("Next day").Description("1 business day"),
     ];
 
-    private static string Listed(ICollection<string> values) => values.Count == 0 ? "nothing" : string.Join(", ", values);
+    private static string Chosen(ICollection<string> values) => values.Count == 0 ? "nothing" : string.Join(", ", values);
 
     // An ordinary model: the groups bind its collections and its strings, the checkboxes and switches its bools.
     public sealed class Choices
