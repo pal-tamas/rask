@@ -240,7 +240,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task The_menu_sits_where_Position_Align_Gap_and_Offset_say() => RunAsync(async () =>
+    public Task The_menu_opens_on_the_side_and_at_the_distance_it_was_asked_for() => RunAsync(async () =>
     {
         await OpenAsync();
 
