@@ -1,6 +1,6 @@
 name: pages
 
-# Runs AFTER full.yml — the whole push set, hourly — and only from a commit it passed. Own work lands on
+# Runs AFTER full.yml — the whole push set, behind every push — and only from a commit it passed. Own work lands on
 # main ungated and a push is gated by a SCOPED run (ci.yml), so the whole run is the
 # door a red commit stops at before rask.sh. workflow_dispatch deploys whatever main holds.
 on:

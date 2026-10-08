@@ -5,7 +5,8 @@
 package — so a Rask app gets the whole component vocabulary without a single utility string, an npm
 install, or a Tailwind configuration of its own.
 
-It is **markup and nothing else**: no data access, no host dependency, and no JavaScript. It runs on
+It is **markup and nothing else**: no data access, no host dependency, and no JavaScript — with one exception, the
+[rich text editor](#rich-text-editor), whose engine is a script a page loads only when it draws one. It runs on
 the ASP.NET host and in browser-WebAssembly, which is the one place it differs from `Rask.Dashboard` —
 the console is deliberately server-only because its panels read a `DbContext`.
 
@@ -697,6 +698,123 @@ What is left: a `Toggleable()` tooltip around something that is not a `<button>`
 the browser's own rather than a written `aria-expanded`. On a page whose scripts never run
 (`@media (scripting: none)`) the stylesheet shows a tooltip in place on `:hover` and keyboard focus.
 
+## Rich text editor
+
+`Ui.Editor` is [Flux's editor](https://fluxui.dev/components/editor): a toolbar over an editable area, and
+a value that is HTML. Its engine is [Tiptap](https://tiptap.dev) on [ProseMirror](https://prosemirror.net),
+as Flux's is.
+
+```csharp
+Ui.Editor.Bind(() => _post.Body).Label("Release notes").Description("Explain what's new in this release.")
+
+Ui.Editor.Value(_html).OnChange(html => _html = html)          // unbound: you keep the value
+Ui.Editor.Placeholder("Write something...")                    // shown while the document is empty
+Ui.Editor.Toolbar("heading | bold italic underline | align ~ undo redo")   // | separator, ~ spacer
+Ui.Editor.Disabled(locked)                                     // read-only, toolbar off
+Ui.Editor.Invalid(!ok)                                         // error styling
+Ui.Editor.Class("**:data-[slot=content]:min-h-[100px]!")       // the area is 200–500px tall unless you say
+```
+
+The value is the document as HTML — `<p>Hello <strong>world</strong></p>` — and an empty document is the
+empty string. `Bind` writes it to the model on every change and validates the field; `Value` with
+`OnChange` leaves it to you. A value the app changes afterwards is shown in the editor.
+
+**Nothing to configure.** The engine is 374 KB (117 KB gzipped), so it is in neither Rask's runtime nor
+the kit's assembly: it is a static file, `wwwroot/js/rask-ui-editor.js`, which the build of every app that
+references the kit writes — add it to `.gitignore` — and which the browser fetches the first time an
+editor mounts. A page without an editor never requests it, and nothing preloads or precaches it; an app
+that will never draw one can keep it out of its publish folder:
+
+```xml
+<PropertyGroup>
+  <RaskUiEditorEngine>false</RaskUiEditorEngine>
+</PropertyGroup>
+```
+
+The host has to serve its static files, as every Rask app does (`RaskApp`, `MapRaskSpa`, a static host for
+a browser-WASM publish). A host that is not a Web or WebAssembly SDK project sets the same property to
+`true`.
+
+Until the script has loaded — and with scripting off — the editor shows its value as plain markup. A
+strict `Content-Security-Policy` needs nothing added: the file is same-origin script.
+
+**Third-party code.** The engine bundles Tiptap 2.11.7 and ProseMirror (47 packages, all MIT), and eleven
+of the toolbar's icons are drawn from [Lucide](https://lucide.dev) 0.300.0 path data (ISC), as Flux's are.
+Their notices are `rask-ui-editor.LICENSES.txt`: in the `Rask.Ui` package, and written beside the script
+in `wwwroot/js`, so they travel with the copy your app serves.
+
+**The value is the user's HTML.** The editor itself only produces the tags of its schema (paragraphs,
+headings, lists, quotes, code, links, marks), but what you bind may have come from anywhere — a database
+row, an import, a request made by hand. `Ui.Editor` writes its value into the page as it is, exactly as
+`Raw` does. So: sanitize HTML on the server before you store it or bind it, and never render a stored
+value with `Raw` without doing so. Showing it as text (`Pre[_post.Body]`) is always safe.
+
+### Toolbar
+
+The default is `heading | bold italic strike | bullet ordered blockquote | link | align`. Every item:
+
+| Item | Does | Shortcut |
+|---|---|---|
+| `heading` | text, or a heading of level 1–3, from a list | `Ctrl`+`Alt`+`0`…`3` |
+| `bold` `italic` `strike` `underline` | the mark | `Ctrl`+`B`, `I`, `Shift`+`S`, `U` |
+| `subscript` `superscript` `highlight` `code` | the mark | `Ctrl`+`,` `.` `Shift`+`H`, `E` |
+| `bullet` `ordered` `blockquote` | the block | `Ctrl`+`Shift`+`8`, `7`, `B` |
+| `link` | a panel with the address, a button to set it and one to remove it | `Ctrl`+`K` |
+| `align` | left, center or right, from a list | `Ctrl`+`Shift`+`L`, `E`, `R` |
+| `undo` `redo` | history | `Ctrl`+`Z`, `Ctrl`+`Shift`+`Z` |
+
+`Cmd` on a Mac. The toolbar is one tab stop; the arrow keys walk its controls. Markdown works while
+typing: `#`, `##`, `###`, `**bold**`, `*italic*`, `~~strike~~`, `-`, `1.`, `>`, `` `code` ``, three
+backticks for a code block and `---` for a rule.
+
+For anything the list cannot say, compose the editor from its parts — each item is a component
+(`Ui.EditorBold`, `Ui.EditorHeading`, `Ui.EditorLink`, `Ui.EditorSeparator`, `Ui.EditorSpacer`, …), and
+`Ui.EditorButton` is a button of your own:
+
+```csharp
+Ui.Editor.Bind(() => _post.Body)[
+    Ui.EditorToolbar[
+        Ui.EditorHeading, Ui.EditorSeparator,
+        Ui.EditorBold, Ui.EditorItalic, Ui.EditorSeparator,
+        Ui.EditorLink,
+        Ui.EditorSpacer,
+        Ui.EditorButton.Icon(Ui.IconName.Clipboard).Tooltip("Copy to clipboard").OnClick(Copy)
+    ],
+    Ui.EditorContent
+]
+```
+
+A button of your own runs C# and reads the document from what the editor is bound to. Flux resolves a
+custom item's *name* to a Blade file; here it is a child of the toolbar.
+
+### Extensions
+
+Highlight, Link, Placeholder, StarterKit, Subscript, Superscript, TextAlign and Underline are on; Table,
+TableRow, TableCell and TableHeader are bundled and off. Before an editor is created it raises
+`ui:editor` on itself (it bubbles) — Flux's `flux:editor` event under the kit's name — and a script of the
+page can change the set or reach the Tiptap instance:
+
+```js
+document.addEventListener('ui:editor', e => {
+    e.detail.enableExtension('table');
+    e.detail.disableExtension('underline');
+    e.detail.registerExtensions([Youtube.configure({ nocookie: true })]);   // an extension of the same name is replaced
+    e.detail.init(({ editor }) => editor.on('update', () => { /* … */ }));
+});
+```
+
+The editor's root also has what Flux's has: `element.value` (get and set) and the `editor` instance, and
+it raises `input` and `change` for every change of the document.
+
+`code` is inline code, as it is on Flux's live editor: a control of that name wraps the selection in
+`<code>` and shows as pressed, and three backticks start a block. (Flux's reference calls the item "code
+block formatting"; its own element, its "Code" label and its `Ctrl`+`E` say otherwise, and the kit follows
+what the element does.) `subscript`, `superscript` and `highlight` are held to Flux the same way.
+
+Not measured, because no example on Flux's page shows these buttons: the icons of `subscript`,
+`superscript`, `highlight` and `code` (drawn from Lucide, as Flux draws its other non-Heroicon toolbar
+icons), their tooltips' shortcut hints, and the exact red of an `Invalid` editor.
+
 ## Buttons and links that go somewhere
 
 Every kit component that goes somewhere takes a `RouteUrl`: `Ui.Button.Href`, `Ui.Link.Href`,
@@ -966,7 +1084,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 ## Who owns the state
 
-The kit ships no JavaScript, and that constraint decides the shape of every interactive component. It
+The kit ships no JavaScript (the [editor](#rich-text-editor)'s engine apart), and that constraint decides the shape of every interactive component. It
 resolves three ways, and which one a component takes is a property of what the platform can do rather
 than of anyone's preference.
 

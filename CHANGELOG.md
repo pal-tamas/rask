@@ -23,6 +23,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **CI: the whole run follows every push, and every push to `main` gets its own run.** `full.yml` runs
+  behind each push — one run at a time, the newest push waiting, fourteen jobs at once so a push's scoped
+  run still finds runners — and hourly as the backstop, so `pages.yml` deploys a site change minutes
+  after its push instead of within the hour. `nightly.yml` is on its own hourly clock and packs the
+  newest commit the whole run passed, once, so nuget.org gets no more versions than before. `ci.yml` no
+  longer holds a push behind the run of the one before it.
 - **CI: the browser gates, the scoped format job and the Pages publish are shorter.** The five browser
   gates and `pages.yml` build without the analyzers — the `build` job is the one that holds the source to
   them — which took the site publish from 375 s to 270 s on a runner. A scoped `format` job builds the
@@ -156,6 +162,29 @@ them until tagged releases begin.
   reports a scroll-snapping track's position to its arrows and indicators. Invoker commands
   (`command="show-modal"`) work in engines without them, and Enter toggles a `role="switch"` checkbox. An
   attribute a hook writes is held against the morph. The runtime grows by 23.5 kB (6.8 kB gzipped).
+- **`Ui.Editor` — Flux's rich text editor.** A toolbar over an editable area whose value is HTML, drawn and
+  behaving as [Flux's](https://fluxui.dev/components/editor) does: `Ui.Editor.Bind(() => post.Body)
+  .Label("Release notes")`, or `Value` with `OnChange`; `Placeholder`, `Disabled`, `Invalid`, and
+  `Toolbar("heading | bold italic underline | align ~ undo redo")` over the sixteen items Flux documents
+  (heading, bold, italic, strike, underline, bullet, ordered, blockquote, subscript, superscript, highlight,
+  link, code, align, undo, redo). Each item is a part too (`Ui.EditorBold` … `Ui.EditorSeparator`,
+  `Ui.EditorSpacer`), beside `Ui.EditorToolbar`, `Ui.EditorContent` and `Ui.EditorButton` for a button of
+  the app's own, so a toolbar can be composed. Shortcuts and Markdown input rules are Tiptap's. The engine
+  is Tiptap 2.11.7 on ProseMirror (MIT), bundled into one script that is **not** in Rask's runtime or the
+  kit's assembly: an app's build writes `wwwroot/js/rask-ui-editor.js` (374 KB, 117 KB gzipped) with no
+  setting asked for, as Flux's editor asks for none, and the browser fetches it the first time an editor
+  mounts — on a Server app and a browser-WASM app alike — so a page without an editor never requests it
+  (`<RaskUiEditorEngine>false</RaskUiEditorEngine>` keeps the file out of an app that will never draw one). The editable area is an opaque subtree, so
+  a re-render never touches what is being typed. The value is the user's HTML and is written into the
+  page as given: sanitize it before storing or rendering it (`docs/ui-kit.md#rich-text-editor`).
+  `scripts/flux/parity-editor.mjs` holds the editor in use to Flux's live one, observation for observation.
+  With it, `Ui.Tooltip`'s wrapper takes its `inline-flex` from the kit's sheet instead of its class list, as
+  Flux's does (a toolbar's tooltips are `contents`), so a display written in `Class` wins; a button's own
+  `Tooltip` still writes `inline-flex`. An editor whose engine cannot be loaded keeps its value as plain
+  markup, leaves the page live on a Server app too, and names the missing file in the browser's console. The
+  notices of what it draws on — Tiptap and ProseMirror (MIT), and Lucide 0.300.0 (ISC) for eleven toolbar
+  icons — are `rask-ui-editor.LICENSES.txt`, in the package and written beside the script in `wwwroot/js`.
+
 - **Inline style as typed CSS.** `Css` has a step for every CSS property browsers ship — 455, generated
   from MDN's data (`@webref/css` for the grammars, browser-compat-data for what two engines ship) —
   and `Style` takes one wherever it takes text: `Div.Style(Css.Position().Sticky.Top(0.Px))`. A
