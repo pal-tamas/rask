@@ -45,7 +45,8 @@
   that only wanted a button. This kit already refuses to ship a preflight for that reason, and a `:root`
   background is the same bug wearing a different selector. See UiStylesheet.ThemeScopeAttribute.
 
-  exclude rootscrollgutter, which paints the document for its own reasons.
+  exclude rootscrollgutter, which paints the document for its own reasons — and the components the kit has
+  replaced with Flux's while still saying their names in prose (the hover bubble, the radio, the toggle).
 
   NOTE ON EMISSION: daisyUI 5 emits a component's CSS only where Tailwind can SEE its class name in the
   scanned source. So every class a component writes must appear as a COMPLETE literal in C# — which is
@@ -70,7 +71,7 @@
 @plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
-  exclude: rootscrollgutter, tooltip;
+  exclude: rootscrollgutter, tooltip, radio, toggle;
 }
 
 @theme {

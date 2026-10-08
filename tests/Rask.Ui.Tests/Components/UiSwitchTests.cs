@@ -110,4 +110,16 @@ public partial class UiSwitchTests : global::Rask.Core.RaskMarkup
     }
 
     private static int At(string html, string marker) => html.IndexOf(marker, StringComparison.Ordinal);
+
+    [Fact]
+    public void The_stylesheet_no_longer_carries_the_daisy_controls_these_replaced()
+    {
+        var css = UiStylesheet.Css;
+
+        // The bare words stand in the kit's comments and would bring the classes back; the plugin's `exclude` keeps them out.
+        // daisyUI's aura still names `.toggle` inside a selector of its own, so it is the rules that are looked for.
+        Assert.DoesNotContain(".toggle{", css, StringComparison.Ordinal);
+        Assert.DoesNotContain(".toggle:", css, StringComparison.Ordinal);
+        Assert.DoesNotContain(".radio", css, StringComparison.Ordinal);
+    }
 }
