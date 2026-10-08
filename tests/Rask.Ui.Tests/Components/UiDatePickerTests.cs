@@ -333,9 +333,9 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
 
         var disabled = Single(Jan(20)).Type(Ui.DatePickerType.Input).Disabled().ToHtml();
 
-        // The two icons and the room beside the fields; a press in a field only puts the caret there.
-        Assert.Equal(3, Regex.Matches(html, "data-rask-toggle=\"ui-date-picker-\\d+\"").Count);
-        Assert.DoesNotMatch("<input[^>]*data-rask-toggle", html);
+        // The whole trigger toggles; the runtime leaves a press in a field inside it to the field.
+        Assert.Matches("<div[^>]*data-rask-toggle=\"ui-date-picker-\\d+\"[^>]*role=\"group\"", html);
+        Assert.Single(Regex.Matches(html, "data-rask-toggle"));
         Assert.DoesNotContain("data-rask-toggle", disabled, StringComparison.Ordinal);
     }
 

@@ -16,7 +16,8 @@ namespace Rask;
 /// Three numeric fields in the locale's own order, typed as one field: a part that can take no further digit
 /// moves on, the arrows walk and step the parts (the runtime's <c>data-rask-segments</c>). A whole date is
 /// written to the model as soon as the last part has one; the calendar shows it the next time it opens. The
-/// icons and the room beside the fields open the calendar; a press in a field only puts the caret there.
+/// field opens the calendar from everywhere but its parts (<c>data-rask-toggle</c>): a press in one only puts
+/// the caret there.
 /// </para>
 /// </remarks>
 public sealed partial class UiDatePickerInput : Component, IUiFieldControl
@@ -90,16 +91,16 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
         var group = Div
             .Id(owns ? field.ControlId : scope.ControlId)
             .Class(UiClass.Compose(UiDatePickerLook.Typed, UiDatePickerLook.Height((int)(Size ?? Ui.DatePickerInputSize.Base)), Class))
-            .Data(field.Invalid ? MarksInvalid : Marks)
+            .Data(Marked(field.Invalid, locked ? null : scope.PopoverId))
             .Role("group")
             .Aria(aria)[
-            Opener(scope, locked, Ui.IconName.Calendar, UiDatePickerLook.Leading),
+            Ui.Icon.Name(Ui.IconName.Calendar).Mini.Class(UiDatePickerLook.Leading),
             Div.Class(UiDatePickerLook.Segments).Data(Inputs).Attributes(("dir", "ltr"))[
                 Segments(scope, locked),
                 Whole(scope, slot)
             ],
-            locked ? Span.Class(UiDatePickerLook.Spacer) : Span.Class(UiDatePickerLook.Spacer).Data("rask-toggle", scope.PopoverId),
-            Opener(scope, locked, Ui.IconName.ChevronDown, UiDatePickerLook.Trailing)
+            Span.Class(UiDatePickerLook.Spacer),
+            Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)
         ];
 
         return field.Wrap(group);
@@ -155,16 +156,11 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
             .Key("whole")
             .Type(InputType.Hidden);
 
-    // What Flux's trigger opens the calendar from: everything in it that is not a field. A second press closes it.
-    private static Component Opener(UiDatePickerScope scope, bool locked, Ui.IconName icon, string classes)
+    // What Flux's trigger opens the calendar from is everything in it that is not a field, and a second press
+    // closes it: the runtime's toggle, which leaves a press in a field to the field.
+    private static Dictionary<string, string?> Marked(bool invalid, string? opens)
     {
-        if (locked)
-        {
-            return Ui.Icon.Name(icon).Mini.Class(classes);
-        }
-
-        var marks = UiIcon.MarksWith("data-rask-toggle");
-        marks["data-rask-toggle"] = scope.PopoverId;
-        return UiIcon.Marked(marks, icon, Ui.IconVariant.Mini, classes);
+        var marks = invalid ? MarksInvalid : Marks;
+        return opens is null ? marks : new(marks, StringComparer.Ordinal) { ["rask-toggle"] = opens };
     }
 }

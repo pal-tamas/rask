@@ -56,6 +56,14 @@ them until tagged releases begin.
   - New on the picker: `Type(Ui.DatePickerType.Input)`, `WithPresets()` / `Presets([..])` (`Ui.DateRangePreset`),
     `WithConfirmation()`, `Trigger(…)` with `Ui.DatePickerInput` / `Ui.DatePickerButton`, and the calendar's steps.
   - `UiDateRange` gains `Count`, `Preset` and `UiDateRange.Of(preset, today, startDay, min)`.
+  - What Flux does in script is asked of the runtime's hooks: the grid keeps the arrows, Home, End and the paging
+    keys from the page and the browser's focus goes with the day, across a month change too
+    (`data-rask-contain-keys`, `data-rask-focus-follows`; a paging key lets the focus fall to the page, as Flux's
+    does); a typed date or time is the runtime's segments around ONE hidden field (`data-rask-segments`) — a part
+    that is full moves on, the arrows walk and step the parts — and everything in the trigger but a field opens
+    the popup (`data-rask-toggle`); the presets are a roving radio group (`data-rask-roving`); an open picker
+    holds the page still (`data-rask-lock`); an arrow on the closed date button opens it, and Enter on the closed
+    time button does nothing. A picker with no label, id or binding gets an id of its own (`f-field-<n>`).
 
 - **CI: the browser gates, the scoped format job and the Pages publish are shorter.** The five browser
   gates and `pages.yml` build without the analyzers — the `build` job is the one that holds the source to
@@ -813,6 +821,14 @@ them until tagged releases begin.
   gone.
 
 ### Fixed
+
+- **Three behaviour hooks, found by driving the calendar and the pickers against Flux's pages.**
+  `data-rask-focus-follows` follows a target that a render took out of the page inside the container it was in —
+  it was looked for across the whole document, so a paging key in one calendar handed the focus to another
+  calendar's tab stop. `data-rask-lock` counts a `<dialog popover>` shown as a popover as open (its `open` is
+  false), so a date picker's popup holds the page still. `data-rask-toggle` leaves a press in a text field, a
+  `<select>` or an editable element inside the toggle to that field, which is what lets a typed date's parts sit
+  inside the trigger that opens its calendar.
 
 - **An interactive tooltip no longer closes when focus drops to nothing.** A `data-rask-tooltip` whose trigger carries
   `aria-expanded` stays open after `blur()` or the window losing focus, until a press outside it, as Flux UI's does.

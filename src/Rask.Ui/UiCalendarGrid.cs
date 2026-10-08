@@ -53,7 +53,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         // A paging key lets go of the focus for the one render it causes: no day asks for it, and it falls to
         // the page, as it does on Flux.
         var follows = !state.Dropped;
-        state.Dropped = false;
+        (state.Unnamed, state.Dropped) = (state.Dropped, false);
         var host = Host(options, months, stop);
 
         var calendar = Div

@@ -138,6 +138,9 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
         }));
     }
 
+    /// <inheritdoc />
+    protected override Task OnRendered() => _state.RenameAsync(StateHasChanged);
+
     /// <summary>What "chosen" means for this calendar, over the value as it stands.</summary>
     private protected abstract UiCalendarPicks Picks(T? current, Func<T, Task> commit);
 

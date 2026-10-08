@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Playwright;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -622,6 +623,147 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Expect(Page.Locator("[data-testid='ui-time-picker-state']")).ToHaveTextAsync("Chosen: 09:30",
             new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
     });
+
+    [Fact]
+    public Task The_arrows_carry_the_focus_through_the_calendar_and_the_page_does_not_scroll() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var calendar = Page.Locator("[data-testid='ui-calendar'] [data-ui-calendar]").First;
+        await calendar.ScrollIntoViewIfNeededAsync();
+        await calendar.Locator("td button[tabindex='0']").FocusAsync();
+        var start = DateOnly.ParseExact(await Page.EvaluateAsync<string>(FocusedDay), "yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var scrolled = await Page.EvaluateAsync<double>("() => scrollY");
+
+        // A day on, then five weeks down — into another month whatever today is. After each key the BROWSER's
+        // focus is on that day's button, which is what the next key is pressed on.
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await FocusIsOnAsync(start.AddDays(1));
+        for (var week = 1; week <= 5; week++)
+        {
+            await Page.Keyboard.PressAsync("ArrowDown");
+            await FocusIsOnAsync(start.AddDays(1 + (7 * week)));
+        }
+
+        // A paging key pages a month and lets go of the focus, as Flux UI's calendar does.
+        await Page.Keyboard.PressAsync("PageDown");
+        await Page.WaitForFunctionAsync("() => document.activeElement === document.body", null,
+            new PageWaitForFunctionOptions { Timeout = 15_000 });
+
+        // The tab stop is named again once the focus has fallen: an arrow pressed on it carries the focus on.
+        var stop = calendar.Locator("td button[tabindex='0'][data-rask-focus-target]");
+        await Expect(stop).ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await stop.FocusAsync();
+        var paged = DateOnly.ParseExact(await Page.EvaluateAsync<string>(FocusedDay), "yyyy-MM-dd", CultureInfo.InvariantCulture);
+        await Page.Keyboard.PressAsync("ArrowLeft");
+        await FocusIsOnAsync(paged.AddDays(-1));
+
+        // None of it scrolled the page behind the grid.
+        Assert.Equal(scrolled, await Page.EvaluateAsync<double>("() => scrollY"));
+    });
+
+    [Fact]
+    public Task A_date_typed_into_the_fields_is_committed_and_only_the_room_beside_them_opens_the_calendar() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var picker = Page.Locator("[data-testid='ui-date-picker'] [data-ui-date-picker]").Nth(1);
+        var dialog = picker.Locator("dialog");
+        await picker.ScrollIntoViewIfNeededAsync();
+
+        // A press in a field puts the caret there and opens nothing. 3 can only be March, so it moves on.
+        await picker.Locator("[data-rask-segment='month']").ClickAsync();
+        await Page.Keyboard.TypeAsync("3152027", new KeyboardTypeOptions { Delay = 60 });
+
+        await Expect(Page.Locator("[data-testid='ui-date-picker-state']")).ToHaveTextAsync("Arrival: 2027-03-15",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(picker.Locator("[data-rask-segment='month']")).ToHaveValueAsync("03");
+        await Expect(picker.Locator("[data-rask-segment='year']")).ToHaveValueAsync("2027");
+        await Expect(dialog).ToBeHiddenAsync();
+
+        // The chevron beside the fields opens the calendar, on the month that was typed.
+        await picker.Locator("[data-ui-group-target] > svg").Last.ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Expect(dialog.Locator("[data-month]").First).ToContainTextAsync("March 2027");
+        await Expect(dialog.Locator("td[data-date='2027-03-15']")).ToHaveAttributeAsync("aria-selected", "true");
+    });
+
+    [Fact]
+    public Task An_arrow_in_the_presets_chooses_the_next_one_which_closes_the_picker() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var picker = Page.Locator("[data-testid='ui-date-picker'] [data-ui-date-picker]").Nth(6);
+        var field = picker.Locator("[data-ui-date-picker-button]");
+        var dialog = picker.Locator("dialog");
+        await field.ScrollIntoViewIfNeededAsync();
+        await field.ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        // The page behind the open picker neither scrolls nor takes the pointer, as under Flux's.
+        await Expect(Page.Locator("html")).ToHaveAttributeAsync("data-rask-locked", "all");
+
+        // The tab stop is the first preset while none is chosen; the arrow walks to the next and chooses it, as
+        // a radio group does — and a chosen preset closes Flux's picker and hands the focus back to its button.
+        await dialog.Locator("[role='radio'][tabindex='0']").FocusAsync();
+        await Page.Keyboard.PressAsync("ArrowDown");
+
+        await Expect(dialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 15_000 });
+        await Expect(field).ToContainTextAsync("Yesterday", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(field).ToBeFocusedAsync();
+        await Expect(dialog.Locator("[role='radio'][value='yesterday']")).ToHaveAttributeAsync("aria-checked", "true");
+        await Expect(Page.Locator("html")).Not.ToHaveAttributeAsync("data-rask-locked", "all");
+    });
+
+    [Fact]
+    public Task The_time_list_follows_the_keyboard_inside_itself_and_a_typed_time_is_committed() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var picker = Page.Locator("[data-testid='ui-time-picker'] [data-ui-time-picker]").First;
+        var field = picker.GetByRole(AriaRole.Combobox);
+        var list = picker.GetByRole(AriaRole.Listbox);
+        await field.ScrollIntoViewIfNeededAsync();
+        await field.FocusAsync();
+
+        // Closed, Enter does nothing — Flux's button, not a native one — and an arrow opens the list.
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(list).ToBeHiddenAsync();
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await Expect(list).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        var scrolled = await Page.EvaluateAsync<double>("() => scrollY");
+
+        // Past the visible window: the list scrolls to keep the active time in view, the page stays, and the
+        // button keeps the focus.
+        for (var step = 0; step < 14; step++)
+        {
+            await Page.Keyboard.PressAsync("ArrowDown");
+        }
+
+        await Page.WaitForFunctionAsync("list => list.scrollTop > 0", await list.ElementHandleAsync(),
+            new PageWaitForFunctionOptions { Timeout = 15_000 });
+        await Expect(field).ToBeFocusedAsync();
+        Assert.Equal(scrolled, await Page.EvaluateAsync<double>("() => scrollY"));
+        await Page.Keyboard.PressAsync("Escape");
+
+        // The typed trigger: 9 can only be nine o'clock, so the hour moves on; `p` makes it the afternoon.
+        var typed = Page.Locator("[data-testid='ui-time-picker'] [data-ui-time-picker]").Nth(1);
+        await typed.ScrollIntoViewIfNeededAsync();
+        await typed.Locator("[data-rask-segment='hour']").ClickAsync();
+        await Page.Keyboard.TypeAsync("930p", new KeyboardTypeOptions { Delay = 60 });
+
+        await Expect(typed.Locator("input[type='hidden']")).ToHaveValueAsync("21:30",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 15_000 });
+        await Expect(typed.Locator("[popover]")).ToBeHiddenAsync();
+    });
+
+    private const string FocusedDay = "() => document.activeElement.closest('[data-date]')?.getAttribute('data-date') ?? ''";
+
+    private Task FocusIsOnAsync(DateOnly day) =>
+        Page.WaitForFunctionAsync(
+            "day => document.activeElement.closest('[data-date]')?.getAttribute('data-date') === day",
+            day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            new PageWaitForFunctionOptions { Timeout = 15_000 });
 
     [Fact]
     public Task The_drop_area_is_the_native_input_and_lights_up_under_a_dragged_file() => RunAsync(async () =>

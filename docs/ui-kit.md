@@ -1850,9 +1850,12 @@ and `Between(a, b)` read it, and `default(UiDateRange)` is nothing chosen.
 | `Locale("ja-JP")` | `locale` | month, weekday and day names, and the first day of the week; the app's culture ([localization](localization.md)) unless set |
 
 **Keyboard.** One day is in the Tab order — the chosen one, else today, else the 1st. The arrows walk days and
-weeks, stepping over disabled days and into the neighbouring month; PageUp/PageDown and Home/End page a month;
-Enter or Space picks. Each cell is a `gridcell` with `aria-selected` and its button carries the full date as its
-name ("Thursday, January 15, 2026").
+weeks, stepping over disabled days and into the neighbouring month, and the browser's focus goes with the day;
+PageUp/PageDown and Home/End page a month and let the focus fall to the page, as Flux's do; Enter or Space picks.
+None of those keys scrolls the page behind the grid. Each
+cell is a `gridcell` with `aria-selected` and its button carries the full date as its name ("Thursday, January 15,
+2026"). The keys and the focus are the runtime's [behaviour hooks](js-interop-runtime.md#keys-and-focus):
+`data-rask-contain-keys` and `data-rask-focus-follows` on the grid, `data-rask-focus-target` on the tab stop.
 
 ### Date picker
 
@@ -1880,6 +1883,16 @@ date"), `WithPresets()` / `Presets([..])`, and `Trigger(…)` for a trigger of y
 whose `Preset` names it, and the button then shows the preset's label. There is no multiple mode, as in Flux:
 several days are `Ui.Calendar`'s.
 
+**Keys and presses, as measured on Flux.** Enter, Space and either vertical arrow open the closed button. The
+open popup holds the page behind it still — no scroll, no pointer (`data-rask-lock`). The presets are a radio
+group one arrow walks, and the preset an arrow reaches is chosen, which closes the picker. The typed trigger is
+ONE field in three parts: digits only, a part that can take no more moves on (3 is March), the horizontal arrows
+walk the parts and the vertical ones step them, Backspace steps back, a pasted date is shared out. A whole date
+is written as soon as the year has four digits. Everything in the trigger but a part opens the calendar; a press
+in a part only puts the caret there. The parts are the runtime's
+[`data-rask-segments`](js-interop-runtime.md#fields): they are rendered with no value, and ONE hidden field
+beside them carries `yyyy-MM-dd` to the binding.
+
 ### Time picker
 
 `Ui.TimePicker` is Flux UI's time picker: a button showing the chosen time (or, with `.Type(Ui.TimePickerType.Input)`,
@@ -1897,7 +1910,11 @@ several (Flux's `multiple`). Steps: `Interval` (minutes, 30), `Min`/`Max`, `Unav
 stretches, listed but disabled), `OpenTo`, `.TwelveHour`/`.TwentyFourHour` (the culture's own clock unless set),
 `Locale("ja-JP")`, `Placeholder`, `.Sm`/`.Xs`, `Clearable()`, `Disabled()`, `Invalid()`, `Dropdown(false)` (typed
 trigger without its list), and `Label`/`Description`/`DescriptionTrailing`/`Badge` for the field around it. The button
-is the combobox and keeps focus: arrows move a cursor through the list, Enter picks, Escape closes.
+is the combobox and keeps focus: Space or a vertical arrow opens it (Enter on the closed button does nothing, as on
+Flux), arrows move a cursor through the list — which scrolls to keep it in view while the page stays — Enter picks,
+Escape closes. The open list holds the page still (`data-rask-lock`). The typed trigger is one field in parts, as the
+date picker's is: 9 is nine o'clock and moves on, `a` and `p` set the half of the day, and a whole time reaches the
+binding through one hidden field as `HH:mm`.
 
 ## The rule the whole kit rests on
 

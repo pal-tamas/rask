@@ -16,9 +16,10 @@ public sealed partial class UiKitDataInputDemo
     private Component CalendarSection() =>
         Section(
             "Calendar — Flux UI's, example by example",
-            "The bound type is the mode: a DateOnly picks a day, a collection of days picks several, a UiDateRange "
-            + "picks a range — its first click is held and drawn, the second writes the whole range. One day is in the "
-            + "Tab order; the arrows walk days and weeks, PageUp and PageDown page a month, Enter picks.",
+            "Flux's mode is the step that opens it: Ui.Calendar picks a day, Ui.Calendar.Multiple several, "
+            + "Ui.Calendar.Range a range — its first click is held and drawn, the second writes the whole range. One day "
+            + "is in the Tab order; the arrows walk days and weeks and take the focus with them, PageUp and PageDown page "
+            + "a month, Enter picks.",
             Div.Data(Testid("ui-calendar")).Class("grid gap-8 lg:grid-cols-2")[
                 Example("A day", "ui-calendar-state", _date == default ? "No date chosen." : $"Chosen: {Iso(_date)}",
                     Ui.Calendar.Value(_date).Key("day").OnChange(d => { _date = d; })),
@@ -48,7 +49,7 @@ public sealed partial class UiKitDataInputDemo
             "Date picker — Flux UI's, example by example",
             "A field-shaped button over the calendar in a popover the browser opens and closes: a day closes it on "
             + "the pick, a range on its second click, a preset at once. Type(Input) swaps the button for month, day "
-            + "and year fields to type into.",
+            + "and year fields typed as one: a part that is full moves on to the next.",
             Div.Data(Testid("ui-date-picker")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
                 Example("A day", "ui-date-picker-state", _arrival == default ? "No arrival chosen." : $"Arrival: {Iso(_arrival)}",
                     Ui.DatePicker.Value(_arrival).Key("day").Label("Arrival").OnChange(d => { _arrival = d; })),

@@ -316,9 +316,9 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
 
         var without = Ui.TimePicker.Of<TimeOnly?>().Type(Ui.TimePickerType.Input).Dropdown(false).ToHtml();
 
-        // The clock, the room beside the fields and the chevron; a press in a field only puts the caret there.
-        Assert.Equal(3, Regex.Matches(with, "data-rask-toggle=\"uitp-\\d+\"").Count);
-        Assert.DoesNotMatch("<input[^>]*data-rask-toggle", with);
+        // The whole box toggles; the runtime leaves a press in a field inside it to the field.
+        Assert.Matches("<div[^>]*data-rask-toggle=\"uitp-\\d+\"", with);
+        Assert.Single(Regex.Matches(with, "data-rask-toggle"));
         Assert.DoesNotContain("data-rask-toggle", without, StringComparison.Ordinal);
     }
 

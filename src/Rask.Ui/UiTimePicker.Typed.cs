@@ -17,11 +17,16 @@ public sealed partial class UiTimePicker<T>
 
         var box = Div
             .Class(UiClass.Compose(UiTimePickerLook.InputBox, UiTimePickerLook.BoxSize(Size ?? Ui.TimePickerSize.Base)))
-            .Data(view.Field.Invalid ? UiTimePickerLook.InvalidBoxMarks : UiTimePickerLook.BoxMarks)
-            .Attributes(("style", "anchor-name:--" + ListId));
+            .Data(view.Field.Invalid ? UiTimePickerLook.InvalidBoxMarks : UiTimePickerLook.BoxMarks);
+
+        // Everything in the box but a field opens the list, and a second press closes it, as on Flux: the
+        // runtime's toggle, which leaves a press in a field to the field.
+        box = opens
+            ? box.Attributes(("data-rask-toggle", ListId), ("style", "anchor-name:--" + ListId))
+            : box.Attributes(("style", "anchor-name:--" + ListId));
 
         return box[
-            Opener(opens, Ui.IconName.Clock, UiTimePickerLook.InputIcon),
+            Ui.Icon.Name(Ui.IconName.Clock).Mini.Class(UiTimePickerLook.InputIcon),
             Div.Class(UiTimePickerLook.Segments).Data(UiTimePickerLook.SegmentsMark).Attributes(("dir", "ltr"))[
                 Segment("hour", "Hour", "hh").Id(view.Field.ControlId).Aria(Named(view, "Hour")).Attributes(UiTimePickerLook.Numeric),
                 ":",
@@ -30,9 +35,8 @@ public sealed partial class UiTimePicker<T>
                 twelve ? Segment("meridiem", "AM/PM", UiTimePickerLook.Period(false, Culture)) : null,
                 Whole(view)
             ],
-            // The room after the fields opens the list, as a press anywhere on Flux's trigger but a field does.
-            opens ? Span.Class("grow").Data("rask-toggle", ListId) : Span.Class("grow"),
-            Dropdown != false ? Opener(opens, Ui.IconName.ChevronDown, UiTimePickerLook.InputChevron) : null
+            Span.Class("grow"),
+            Dropdown != false ? Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiTimePickerLook.InputChevron) : null
         ];
     }
 
@@ -69,18 +73,5 @@ public sealed partial class UiTimePicker<T>
         }
 
         return Off(time) ? Task.CompletedTask : CommitAsync(view, [time]);
-    }
-
-    // What opens the list beside the fields: a press on either icon toggles it, as on Flux.
-    private Component Opener(bool opens, Ui.IconName icon, string classes)
-    {
-        if (!opens)
-        {
-            return Ui.Icon.Name(icon).Mini.Class(classes);
-        }
-
-        var marks = UiIcon.MarksWith("data-rask-toggle");
-        marks["data-rask-toggle"] = ListId;
-        return UiIcon.Marked(marks, icon, Ui.IconVariant.Mini, classes);
     }
 }

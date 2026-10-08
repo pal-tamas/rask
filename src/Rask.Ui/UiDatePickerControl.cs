@@ -252,6 +252,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             ]);
     }
 
+    /// <inheritdoc />
+    protected override Task OnRendered() => _state.RenameAsync(StateHasChanged);
+
     /// <summary>What "chosen" means for this picker, over the value as it stands.</summary>
     private protected abstract UiCalendarPicks Picks(T? current, Func<T, Task> choose);
 
