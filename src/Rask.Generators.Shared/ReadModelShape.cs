@@ -376,7 +376,8 @@ internal static class ReadModelShape
     }
 
     // Derived first, so a property re-declared lower down hides the base one, and stopping at Rask's own
-    // bases — their members are the framework columns, added above.
+    // bases — their members are the framework columns, added above. A declared TenantId is the framework's
+    // too: the face filters by it as a shadow column and never shows it.
     private static IEnumerable<IPropertySymbol> StoredProperties(INamedTypeSymbol entity)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -388,7 +389,8 @@ internal static class ReadModelShape
                 if (property.IsStatic || property.IsIndexer ||
                     property.DeclaredAccessibility != Accessibility.Public ||
                     property.GetMethod is not { DeclaredAccessibility: Accessibility.Public } ||
-                    !seen.Add(property.Name))
+                    !seen.Add(property.Name) ||
+                    string.Equals(property.Name, AggregateShape.TenantColumn, StringComparison.Ordinal))
                 {
                     continue;
                 }

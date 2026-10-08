@@ -140,6 +140,7 @@ Rask.WebPush.PushSubscriber.ExpiresAt.get -> System.DateTime?
 Rask.WebPush.PushSubscriber.P256dh.get -> string!
 Rask.WebPush.PushSubscriber.PushSubscriber() -> void
 Rask.WebPush.PushSubscriber.Subscription.get -> Rask.Wire.PushSubscription!
+Rask.WebPush.PushSubscriber.TenantId.get -> System.Guid?
 Rask.WebPush.PushSubscriber.UserId.get -> System.Guid?
 Rask.WebPush.PushSubscriberRead
 Rask.WebPush.PushSubscriberRead.Auth.get -> string!

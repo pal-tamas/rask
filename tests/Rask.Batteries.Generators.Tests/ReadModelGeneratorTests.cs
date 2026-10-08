@@ -204,4 +204,51 @@ public class ReadModelGeneratorTests
         Assert.Contains("public global::System.Guid? CategoryId { get; init; }", source, StringComparison.Ordinal);
         Assert.DoesNotContain("CategoryRead Category {", source, StringComparison.Ordinal);
     }
+
+    // Three ways an entity can stand to the tenant column: partitioned and silent (a shadow column),
+    // partitioned and reading it, and not partitioned at all but keeping a tenant as data of its own.
+    private const string Tenants = """
+        using System;
+        using Rask.Data;
+        namespace Shop;
+
+        public sealed class Invoice : Aggregate<Guid>
+        {
+            private Invoice() { }
+            public const Tenancy Scope = Tenancy.PerTenant;
+            public string Number { get; private set; } = "";
+        }
+
+        public sealed class Receipt : Aggregate<Guid>
+        {
+            private Receipt() { }
+            public const Tenancy Scope = Tenancy.PerTenant;
+            public Guid? TenantId { get; private set; }
+            public string Number { get; private set; } = "";
+        }
+
+        public sealed class Delivery : Aggregate<Guid>
+        {
+            private Delivery() { }
+            public Guid? TenantId { get; set; }
+            public string Number { get; private set; } = "";
+        }
+        """;
+
+    [Theory]
+    [InlineData("Invoice")]
+    [InlineData("Receipt")]
+    [InlineData("Delivery")]
+    public void The_tenant_is_never_on_a_read_face_nor_a_reference_whether_the_entity_declares_it_or_not(string entity)
+    {
+        var run = Run(Tenants);
+
+        var source = run.GeneratedSource($"Shop_{entity}Read");
+        var registry = run.GeneratedSource("__RaskReadModelRegistry");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Contains("public string Number { get; init; } = null!;", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tenant", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tenant", registry, StringComparison.Ordinal);
+    }
 }

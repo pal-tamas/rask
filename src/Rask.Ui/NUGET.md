@@ -73,7 +73,7 @@ protected override Component? Render() =>
     // Every data-input control is an IFormControl<T>: Value opens the controlled chain and Bind the
     // bound one, and the opening step fixes the value type and the mode together.
     Ui.Input.Value(_email).Label("Email").Type(InputType.Email)
-           .Tone(_email.Contains('@') ? null : Ui.Tone.Error)
+           .Invalid(!_email.Contains('@'))
            .OnChange(value => _email = value),
 
     Ui.Accordion.Exclusive()[

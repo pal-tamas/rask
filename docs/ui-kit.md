@@ -964,7 +964,7 @@ Ui.Timeline.Class("[--ui-timeline-item-gap:3rem] [--ui-timeline-content-gap:1rem
 ## Buttons and links that go somewhere
 
 Every kit component that goes somewhere takes a `RouteUrl`: `Ui.Button.Href`, `Ui.Link.Href`,
-`Ui.Stat.Href`, `Ui.NavbarItem.Href`, `Ui.NavlistItem.Href`, `Ui.BreadcrumbsItem.Href`, `Ui.Avatar.Href` and `Ui.Brand.Href`. All of them follow one rule. Hand one a
+`Ui.Stat.Href`, `Ui.NavbarItem.Href`, `Ui.NavlistItem.Href`, `Ui.SidebarItem.Href`, `Ui.SidebarBrand.Href`, `Ui.MenuItem.Href`, `Ui.BreadcrumbsItem.Href`, `Ui.Avatar.Href` and `Ui.Brand.Href`. All of them follow one rule. Hand one a
 **generated route** and it navigates inside the app, the way `NavLink` does. The anchor carries
 `data-rask-nav`, which the runtime intercepts and routes without reloading the page. It also carries the
 deploy's path base, so a new tab or a copied link reaches the same page. Hand one a **string** and it
