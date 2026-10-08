@@ -43,6 +43,7 @@ public partial class HookBundleContractTests
         ["data-rask-locked"] = "written by the lock hook",
         ["data-rask-managed"] = "the morph's own mark",
         ["data-rask-saved"] = "on a data-rask-confirm-leave",
+        ["data-rask-leave"] = "the parts of Ui.ConfirmLeave's dialog, which a data-rask-confirm-leave asks in",
     };
 
     [Fact]

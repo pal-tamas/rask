@@ -26,7 +26,7 @@ public class ConfirmLeaveClientContractTests
         var js = Read(host.Split('/'));
 
         var navigate = js[js.IndexOf("function navigate(url: URL, replace: boolean): void {", StringComparison.Ordinal)..];
-        var asked = navigate.IndexOf("if (!mayLeave()) return;", StringComparison.Ordinal);
+        var asked = navigate.IndexOf("if (!mayLeave(() => navigate(url, replace))) return;", StringComparison.Ordinal);
         var sent = navigate.IndexOf("send(", StringComparison.Ordinal);
 
         Assert.Contains("import { mayLeave } from \"../../Rask.Core/Resources/rask-owned.js\";", js, StringComparison.Ordinal);

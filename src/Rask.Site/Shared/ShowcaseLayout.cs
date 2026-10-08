@@ -96,7 +96,9 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 // The landmark: where a screen reader jumps to, and where focus goes after a navigation.
                 Main.Class("page-main mx-auto max-w-[1280px] page-main-inner")[Outlet]
             ]
-        ]
+        ],
+        // Once, for every page under this layout: where a form's ConfirmLeave asks, in place of `confirm`.
+        Ui.ConfirmLeave
     ];
 
     // Guides-first: the narrative guides are the primary spine (top of the sidebar, groups expanded by

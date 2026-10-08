@@ -1245,23 +1245,28 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Sign up",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Unsaved-changes guard — the WebAssembly host's half of ConfirmLeave (the Server host's is
-        // ConfirmLeaveHookTests). A note typed and not saved makes the sidebar link ask; staying keeps the
-        // guide and the note. It ends SAVED on purpose: Playwright refuses a dialog nobody answers, so a form
-        // left unsaved here would silently pin the rest of this walk to this page — which is also the proof
-        // that a save ends the guard, because the next SideAsync below has nobody answering.
-        var leaveQuestions = new List<string>();
+        // Unsaved-changes guard — the WebAssembly host's half of ConfirmLeave and of the dialog the layout
+        // places for it (the Server host's are ConfirmLeaveHookTests and ConfirmLeaveDialogTests). A note typed
+        // and not saved makes the sidebar link ask in Ui.ConfirmLeave — never in the browser's own confirm —
+        // and Stay keeps the guide and the note. It ends SAVED on purpose: a form left unsaved here would open
+        // the dialog over every later step of this walk — which is also the proof that a save ends the guard.
+        var browserQuestions = new List<string>();
         void RefuseToLeave(object? sender, IDialog dialog)
         {
-            leaveQuestions.Add(dialog.Message);
+            browserQuestions.Add(dialog.Message);
             _ = dialog.DismissAsync();
         }
 
         Page.Dialog += RefuseToLeave;
         await Page.Locator("#fcl-input").FillAsync("remember the milk");
         await ClickSidebar("Forms — validation");
+        var leaveDialog = Page.Locator("#ui-confirm-leave");
+        await Expect(leaveDialog).ToBeVisibleAsync();
+        await Expect(leaveDialog.Locator("h2")).ToHaveTextAsync("Leave without saving your note?");
+        await leaveDialog.GetByRole(AriaRole.Button, new() { Name = "Stay" }).ClickAsync();
+        await Expect(leaveDialog).ToBeHiddenAsync();
         await Expect(Page.Locator("#fcl-input")).ToHaveValueAsync("remember the milk");
-        Assert.Equal(["Leave without saving your note?"], leaveQuestions);
+        Assert.Empty(browserQuestions);
         Assert.Contains("/guides/forms", Page.Url, StringComparison.Ordinal);
         Assert.DoesNotContain("forms-validation", Page.Url, StringComparison.Ordinal);
         await Page.Locator("#fcl-submit").ClickAsync();

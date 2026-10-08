@@ -322,7 +322,7 @@ of the page asks first:
 
 | The reader… | What asks |
 | --- | --- |
-| follows a link inside the app (`NavLink`, a Markdown link to another page) | the browser's own `confirm` dialog, with your message |
+| follows a link inside the app (`NavLink`, a Markdown link to another page) | your message, in the browser's own `confirm` dialog — or in [`Ui.ConfirmLeave`](#ask-in-a-dialog-of-your-own) when the layout has one |
 | is navigated by front-end code (`__raskHost.navigate(…)`, an island's router) | the same dialog |
 | presses Back or Forward | the same dialog; staying puts the address and the history back where they were |
 | closes the tab, reloads, or follows a link out of the app | the browser's own "leave site?" prompt. No page can set its text, so your message is not shown there. |
@@ -342,6 +342,24 @@ private async Task Save(Product product)
 }
 ```
 
+#### Ask in a dialog of your own
+
+The browser's `confirm` cannot be styled or translated. Put `Ui.ConfirmLeave` in the layout, once, and every
+guarded form under it asks in that dialog instead — a [`Ui.Modal`](ui-kit.md#who-owns-the-state), with the form's message
+as its heading:
+
+```csharp
+Ui.Main[Outlet],
+Ui.Toast,
+Ui.ConfirmLeave.Stay("Nem").Leave("Igen")   // the two buttons; "Stay" and "Leave" when unset
+```
+
+The forms do not change. `Stay`, the close button, Escape and a press outside the dialog all keep the reader
+on the page, as it was; `Leave` carries on with the navigation that was asked for — the same link, the same
+`navigate(…)`, the same history entry Back was going to. The dialog is rendered closed and opened in the
+browser, so it needs no round trip to appear. Closing the tab, a reload and a link out of the app still get
+the browser's own prompt: no page can draw that one.
+
 A form that is no longer on the page guards nothing. With several guarded forms on one page, the first
 unsaved one asks, with its own message.
 
@@ -352,7 +370,8 @@ Three things to know:
   make the form unsaved by itself.
 - **Which way Back went** is read from the Navigation API. On a browser without it (Safari before 26.2,
   Firefox before 147) a refused Back or Forward still leaves the reader on the page with the right
-  address, but as a new history entry.
+  address, but as a new history entry — and Back and Forward ask with `confirm` there even when the
+  layout has a `Ui.ConfirmLeave`, because the move cannot be made a second time.
 - **A press in the first instant** — before the script that guards the form has arrived — is not asked
   about. The guard is one of the [behaviour hooks](js-interop-runtime.md#how-the-hooks-load): a page
   rendered with the form loads it with the runtime, so this is a matter of milliseconds.

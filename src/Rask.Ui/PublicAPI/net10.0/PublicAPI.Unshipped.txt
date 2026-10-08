@@ -1208,6 +1208,12 @@ Rask.UiCommand.Placeholder.set -> void
 Rask.UiCommand.Shortcut.get -> string?
 Rask.UiCommand.Shortcut.set -> void
 Rask.UiCommand.UiCommand() -> void
+Rask.UiConfirmLeave
+Rask.UiConfirmLeave.Leave.get -> string?
+Rask.UiConfirmLeave.Leave.set -> void
+Rask.UiConfirmLeave.Stay.get -> string?
+Rask.UiConfirmLeave.Stay.set -> void
+Rask.UiConfirmLeave.UiConfirmLeave() -> void
 Rask.UiContext
 Rask.UiContext.Class.get -> string?
 Rask.UiContext.Class.set -> void
@@ -2962,6 +2968,7 @@ static Rask.Ui.Breadcrumbs.get -> Rask.UiBreadcrumbs!
 static Rask.Ui.BreadcrumbsItem.get -> Rask.UiBreadcrumbsItem!
 static Rask.Ui.CalendarMultiple.get -> Rask.RaskSeed_UiCalendarMultiple
 static Rask.Ui.CalendarRange.get -> Rask.RaskSeed_UiCalendarRange
+static Rask.Ui.ConfirmLeave.get -> Rask.UiConfirmLeave!
 static Rask.Ui.Context.get -> Rask.UiContext!
 static Rask.Ui.DatePickerButton.get -> Rask.UiDatePickerButton!
 static Rask.Ui.DatePickerInput.get -> Rask.UiDatePickerInput!
@@ -3154,6 +3161,7 @@ static Rask.UiTimeRange.operator ==(Rask.UiTimeRange left, Rask.UiTimeRange righ
 static Rask.UiToast.Messages(System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>! messages, System.Action<int>! dismiss, Rask.ToastOptions! options) -> Rask.Core.Component!
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiAvatarGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiBreadcrumbsItem(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiConfirmLeave(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiContext(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDatePickerButton(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDatePickerInput(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -3178,6 +3186,7 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiToastGroup(Rask.Core.C
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTooltipContent(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiAvatarGroup(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiBreadcrumbsItem(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiConfirmLeave(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiContext(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiAutocomplete(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiAutocompleteItem(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -3292,6 +3301,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiToastGroup(Rask.Core.Co
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTooltipContent(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiAvatarGroup(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiBreadcrumbsItem(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiConfirmLeave(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiContext(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiModalTrigger(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiPillbox_1<T>(Rask.Core.Component! __c0) -> void
@@ -6349,6 +6359,7 @@ static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiSelect<T>! __b, string? va
 static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiTextarea<T>! __b, string? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Leading(this Rask.UiListRow! __b, Rask.Core.Component? value) -> Rask.UiListRow!
 static RaskBuilderSettersRask_Ui.Length(this Rask.UiOtp! __b, int value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.Leave(this Rask.UiConfirmLeave! __b, string? value) -> Rask.UiConfirmLeave!
 static RaskBuilderSettersRask_Ui.Level(this Rask.UiHeading! __b, int? value) -> Rask.UiHeading!
 static RaskBuilderSettersRask_Ui.Lines(this Rask.UiMockupCode! __b, System.Collections.Generic.IReadOnlyList<(string! Prefix, string! Text)>! value) -> Rask.UiMockupCode!
 static RaskBuilderSettersRask_Ui.Loading(this Rask.UiButton! __b, bool? value) -> Rask.UiButton!
@@ -6577,6 +6588,7 @@ static RaskBuilderSettersRask_Ui.Source<T, TKey>(this Rask.UiDataGrid<T, TKey>! 
 static RaskBuilderSettersRask_Ui.Source<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<Rask.UiGridRequest, System.Threading.Tasks.Task<Rask.UiGridPage<T>!>!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Square(this Rask.UiButton! __b, bool? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Src(this Rask.UiAvatar! __b, string? value) -> Rask.UiAvatar!
+static RaskBuilderSettersRask_Ui.Stay(this Rask.UiConfirmLeave! __b, string? value) -> Rask.UiConfirmLeave!
 static RaskBuilderSettersRask_Ui.Step(this Rask.UiRange! __b, double? value) -> Rask.UiRange!
 static RaskBuilderSettersRask_Ui.Step<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.StickyHeader<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
