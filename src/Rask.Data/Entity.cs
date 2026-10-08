@@ -33,46 +33,6 @@ public abstract class Entity<TId> : IEntity
     public DateTime UpdatedAt { get; private set; }
 
     /// <summary>
-    ///     Which tenant owns this row, on a table whose <c>Scope</c> const says
-    ///     <see cref="Tenancy.PerTenant" />.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         Stamped from <c>Current.Tenant</c> on insert and refused thereafter: a row does not
-    ///         move between tenants. It is never on the generated form model, so a post cannot set it.
-    ///     </para>
-    ///     <para>
-    ///         Declared here rather than on <see cref="Aggregate{TId}" /> so a CHILD carries it too. A child
-    ///         is queryable through its own read face, which would otherwise return every tenant&apos;s rows.
-    ///         On a table that is not tenant-scoped the column is ignored, exactly as <c>DeletedAt</c> and
-    ///         <c>Version</c> are when their consts decline them.
-    ///     </para>
-    /// </remarks>
-    public Guid? TenantId { get; private set; }
-
-    /// <summary>Records which tenant owns this row. Called by the framework on insert.</summary>
-    /// <param name="tenant">The owning tenant.</param>
-    internal void AssignTenant(Guid tenant) => TenantId = tenant;
-
-    /// <summary>
-    ///     Records which tenant this row belongs to, for an entity whose package writes it.
-    /// </summary>
-    /// <param name="tenant">The owning tenant, or <see langword="null" /> for a row that belongs to nobody.</param>
-    /// <remarks>
-    ///     <para>
-    ///         The sibling of <see cref="Stamp" />, and it exists for the same tables: a queue's rows carry
-    ///         the tenant they were enqueued for, but the queue itself is NOT partitioned — a drain has to see
-    ///         every tenant's work, so these tables must not take the query filter that a
-    ///         <see cref="Tenancy.PerTenant" /> table takes. They record the tenant as data rather than as a
-    ///         partition, and the runner re-enters it before invoking the handler.
-    ///     </para>
-    ///     <para>
-    ///         Null is an ordinary answer here: a job enqueued by the host at startup belongs to no tenant.
-    ///     </para>
-    /// </remarks>
-    protected void RecordTenant(Guid? tenant) => TenantId = tenant;
-
-    /// <summary>
     ///     Stamps this row's own times, for an entity whose package writes it and knows when.
     /// </summary>
     /// <param name="at">The moment to record (UTC).</param>

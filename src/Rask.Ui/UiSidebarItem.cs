@@ -5,8 +5,9 @@ namespace Rask;
 /// <summary>Flux's <c>flux:sidebar.item</c>: one destination in a <see cref="UiSidebarNav" />. Its children are its label.</summary>
 /// <remarks>
 /// <para>
-/// A link is a <c>NavLink</c>: a generated route navigates inside the app, and it is current — <c>aria-current="page"</c> — when
-/// the router says so; <see cref="Current" /> states it instead. With no <see cref="Href" /> it is a button.
+/// A generated route is a <c>NavLink</c>: it navigates inside the app, and it is current — <c>aria-current="page"</c> — when
+/// the router says so; <see cref="Current" /> states it instead. A string is an ordinary link the browser follows itself,
+/// written as given. With no <see cref="Href" /> it is a button.
 /// </para>
 /// <para>
 /// Narrowed to the rail it is its icon, and its label is the <see cref="UiTooltip" /> beside it: every item
@@ -39,7 +40,7 @@ public sealed partial class UiSidebarItem : Component
     /// </summary>
     internal const string RailTooltip = "hidden sidebar-rail:not-in-data-ui-menu:open:block";
 
-    /// <summary>Where the item leads. A generated route navigates inside the app.</summary>
+    /// <summary>Where the item leads. A generated route navigates inside the app; a string is an ordinary link.</summary>
     public RouteUrl? Href { get; set; }
 
     /// <summary>The icon before the label, and all that is left of the item in the rail.</summary>
@@ -83,9 +84,19 @@ public sealed partial class UiSidebarItem : Component
     // Stated: the router is not asked. Otherwise its class is what turns `aria-current` on.
     private string RouterClass => Current is null ? "current" : "";
 
-    private Element Anchor(string classes) => Href is { } url
-        ? NavLink.Href(url).ActiveClass(RouterClass).Class(classes)
-        : Button.Type(ButtonType.Button).Class(UiClass.Compose(classes, "w-full"));
+    private Element Anchor(string classes)
+    {
+        if (Href is not { } url)
+        {
+            return Button.Type(ButtonType.Button).Class(UiClass.Compose(classes, "w-full"));
+        }
+
+        // A STRING is an ordinary link, written as given with no path base added (#1070): the way out of the
+        // app. It carries no handler, so the browser follows it.
+        return url.PageType is null
+            ? A.Href(url.ToString()).Class(classes)
+            : NavLink.Href(url).ActiveClass(RouterClass).Class(classes);
+    }
 
     // In a menu the item is one of its rows: it takes a place in the keyboard's order and says so. A pick
     // closes the menu, which the runtime does for any row.

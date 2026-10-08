@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-/// <summary>A tenant-scoped aggregate: one const, and nothing else is configured.</summary>
+/// <summary>A tenant-scoped aggregate: one const, and it never mentions the tenant again.</summary>
 public sealed class Ledger : Aggregate<Guid>
 {
     private readonly List<LedgerEntry> _entries = [];
@@ -35,6 +35,32 @@ public sealed class LedgerEntry : Entity<Guid>
 
     internal static LedgerEntry For(string description) =>
         new() { Id = Guid.NewGuid(), Description = description };
+}
+
+/// <summary>A tenant-scoped aggregate that READS its tenant, so it declares the column itself.</summary>
+public sealed class Vault : Aggregate<Guid>
+{
+    private Vault() { }
+
+    public const Tenancy Scope = Tenancy.PerTenant;
+
+    public Guid? TenantId { get; private set; }
+
+    public string Code { get; private set; } = "";
+
+    public static Vault For(string code) => new() { Id = Guid.NewGuid(), Code = code };
+}
+
+/// <summary>Not partitioned, but it keeps a tenant as data of its own — the shape a queue's rows have.</summary>
+public sealed class Haulier : Aggregate<Guid>
+{
+    private Haulier() { }
+
+    public Guid? TenantId { get; private set; }
+
+    public string Name { get; private set; } = "";
+
+    public static Haulier For(string name, Guid? tenant) => new() { Id = Guid.NewGuid(), Name = name, TenantId = tenant };
 }
 
 /// <summary>An aggregate that says nothing, so it is one table for everybody.</summary>
@@ -78,7 +104,7 @@ public sealed class TenancyTests : IDisposable
         // and it carries the column itself, because LedgerEntry.Where(…) is queryable on its own.
         Assert.NotNull(model.FindEntityType(typeof(LedgerEntry))!.FindProperty(Columns.TenantId));
 
-        // Ignored, not merely unmapped, on a table that said nothing.
+        // A table that said nothing has no such column at all.
         Assert.Null(model.FindEntityType(typeof(RateCard))!.FindProperty(Columns.TenantId));
     }
 
@@ -113,8 +139,8 @@ public sealed class TenancyTests : IDisposable
             database.Context.Add(ledger);
             await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-            Assert.Equal(_acme, ledger.TenantId);
-            Assert.Equal(_acme, ledger.Entries.Single().TenantId);
+            Assert.Equal(_acme, TenantOf(database, ledger));
+            Assert.Equal(_acme, TenantOf(database, ledger.Entries.Single()));
         }
     }
 
@@ -270,10 +296,108 @@ public sealed class TenancyTests : IDisposable
             database.Context.Add(ledger);
             await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-            Assert.Equal(_acme, ledger.TenantId);
+            Assert.Equal(_acme, TenantOf(database, ledger));
             Assert.Equal(["ACME-1"], await Ledger.Select(l => l.Reference));
         }
     }
+
+    [Fact]
+    public async Task A_table_that_does_not_declare_its_tenant_keeps_it_as_a_shadow_column()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var column = database.Context.Model.FindEntityType(typeof(Ledger))!.FindProperty(Columns.TenantId)!;
+
+        Assert.True(column.IsShadowProperty());
+        Assert.Equal(typeof(Guid?), column.ClrType);
+        Assert.Equal("TenantId", column.GetColumnName());
+    }
+
+    [Fact]
+    public async Task A_table_that_declares_its_tenant_maps_that_property_to_the_same_column()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var column = database.Context.Model.FindEntityType(typeof(Vault))!.FindProperty(Columns.TenantId)!;
+
+        Assert.False(column.IsShadowProperty());
+        Assert.Equal(typeof(Guid?), column.ClrType);
+        Assert.Equal("TenantId", column.GetColumnName());
+    }
+
+    [Fact]
+    public async Task A_declared_tenant_reads_the_stamp_after_the_save_and_after_a_load()
+    {
+        await using var database = await StartDatabaseAsync();
+        var vault = Vault.For("V-1");
+
+        using (Tenant.Use(_acme))
+        {
+            database.Context.Add(vault);
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            database.Context.ChangeTracker.Clear();
+            var loaded = await database.Context.Set<Vault>().SingleAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal(_acme, vault.TenantId);
+            Assert.Equal(_acme, loaded.TenantId);
+        }
+    }
+
+    [Fact]
+    public async Task A_table_that_declares_its_tenant_is_filtered_like_any_other()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        foreach (var (tenant, code) in new[] { (_acme, "V-ACME"), (_globex, "V-GLOBEX") })
+        {
+            using (Tenant.Use(tenant))
+            {
+                database.Context.Add(Vault.For(code));
+                await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+        }
+
+        using (Tenant.Use(_globex))
+        {
+            Assert.Equal(["V-GLOBEX"], await Vault.Select(v => v.Code));
+        }
+    }
+
+    [Fact]
+    public async Task A_row_that_declares_its_tenant_cannot_move_to_another_tenant_either()
+    {
+        await using var database = await StartDatabaseAsync();
+        var vault = Vault.For("V-1");
+
+        using (Tenant.Use(_acme))
+        {
+            database.Context.Add(vault);
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            database.Context.Entry(vault).Property(v => v.TenantId).CurrentValue = _globex;
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        }
+    }
+
+    [Fact]
+    public async Task A_tenant_declared_on_a_table_that_is_not_partitioned_is_an_ordinary_column()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        // No tenant in flight at all: nothing stamps the row, nothing demands a tenant, nothing filters it.
+        database.Context.AddRange(Haulier.For("host", tenant: null), Haulier.For("acme", _acme));
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var hauliers = await Haulier.Select(c => c.Name);
+
+        Assert.Equal(["acme", "host"], hauliers.Order(StringComparer.Ordinal));
+        Assert.NotNull(database.Context.Model.FindEntityType(typeof(Haulier))!.FindProperty(Columns.TenantId));
+        Assert.Empty(database.Context.Model.FindEntityType(typeof(Haulier))!.GetDeclaredQueryFilters());
+    }
+
+    // The stamp of a row that does not declare its tenant: the column is a shadow one, read through the entry.
+    private static object? TenantOf(TestDatabase database, object row) =>
+        database.Context.Entry(row).Property(Columns.TenantId).CurrentValue;
 
     private static IServiceProvider ScopeFor(Guid tenant) => new StubScope(new StubTenantSource(tenant));
 

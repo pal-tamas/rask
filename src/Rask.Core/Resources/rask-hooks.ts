@@ -24,6 +24,7 @@ import "./rask-plot.js";     // data-rask-plot / -plot-area / -plot-row / -plot-
 import "./rask-otp.js";      // data-rask-otp
 import "./rask-segments.js"; // data-rask-segments, data-rask-segment
 import "./rask-toast.js";    // data-rask-dismiss-scope, data-rask-stack
+import "./rask-leave.js";    // data-rask-confirm-leave
 import "./rask-persist.js";  // data-rask-persist, data-rask-uncheck-on-navigate
 import "./rask-carousel.js"; // data-rask-carousel
 

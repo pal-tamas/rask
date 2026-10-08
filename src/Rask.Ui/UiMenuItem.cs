@@ -93,6 +93,14 @@ public sealed partial class UiMenuItem : Component
 
         if (Href is { Path: not null } href && !disabled)
         {
+            // A STRING is an ordinary link, written as given with no path base added (#1070): the way out of the app.
+            // No handler on it — the runtime would take the click, and the browser has to follow this one itself.
+            if (href.PageType is null)
+            {
+                var plain = A.Href(href.ToString()).Class(classes);
+                return UiMenuRow.Decorate(plain, level, ordinal, "menuitem", "ui-menu-item", aria, data)[content];
+            }
+
             var link = NavLink.Href(href).ActiveClass("").Class(classes).OnClick(() => PickAsync(level, ordinal));
             return UiMenuRow.Decorate(link, level, ordinal, "menuitem", "ui-menu-item", aria, data)[content];
         }

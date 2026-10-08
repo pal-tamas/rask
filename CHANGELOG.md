@@ -7,6 +7,20 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`ConfirmLeave` — a form asks before it is left unsaved.**
+  `Form.Model(m).OnSubmit(Save).ConfirmLeave("Leave without saving?")[ … ]`. From the first thing typed or
+  changed in the form — decided in the browser, so a value that has not reached the server counts — a link
+  inside the app, a navigation from front-end code and the Back / Forward buttons ask with that message in the
+  browser's own `confirm` dialog, and closing the tab, a reload and a link out of the app show the browser's own
+  leave prompt. Staying sends nothing and keeps the page and what was typed; after Back it puts the address and
+  the history back. The form is clean again after a submit that passed validation and ran its handler, and a
+  `Go.To(…)` from that handler never asks. Both hosts. It is one of the behaviour hooks
+  (`data-rask-confirm-leave`, `rask-leave.ts`), so only a page with such a form pays for it: `rask-hooks.js`
+  37,263 -> 38,621 bytes, and the runtimes every page loads grow by the question they put to it —
+  `rask.js` +64 bytes, `rask.wasm.js` +62. See `docs/forms.md#ask-before-leaving-unsaved-changes`.
+
 ### Performance
 
 - **The behaviour hooks load on demand; the runtime every page downloads is a quarter smaller.** Everything an
@@ -42,6 +56,17 @@ them until tagged releases begin.
   menu and closes over neither, with no page lock (a menu opened that way no longer takes the pointer from the
   page behind it).
 
+- **BREAKING: `TenantId` is the entity's own column, no longer a property of `Entity<TId>`.** A
+  `Tenancy.PerTenant` table keeps the same `TenantId` column, filter, stamp and index prefix; the column is a
+  shadow one unless the entity declares it. Migration: declare `public Guid? TenantId { get; private set; }` on
+  the entity that reads `row.TenantId`. A table that is not partitioned and declares a `TenantId` gets an
+  ordinary column. `RecordTenant` moved from `Entity<TId>` to `Authenticatable`, so a `User`'s
+  `JoinTenant(Guid tenant) => RecordTenant(tenant)` compiles unchanged; any other entity assigns its own
+  property. A declared `TenantId` is never on the generated form model or read face.
+  **Schema:** four battery tables — `CacheEntry`, `RecurringJobState`, `RaskAuthPasskey`, `RaskAuthSession` —
+  carried an always-null `TenantId` in a `RaskAppDbContext` only because the base class had the property. It is
+  gone, so the next migration of such an app drops those four columns (a table rebuild on SQLite). Nothing
+  else changes for an existing database; a freshly created table lists `TenantId` in a different position.
 - **BREAKING: `Ui.Calendar` and `Ui.DatePicker` are Flux's calendar and date picker.** Drawn and behaving as
   Flux UI's `flux:calendar` and `flux:date-picker` do — the grid with its outside days, today's dot, range tint and
   hover preview, month and year selects, a today shortcut, week numbers, several months side by side, a roving
@@ -1081,6 +1106,11 @@ them until tagged releases begin.
   routed inside the app and given the deploy's path base; like every other kit link, only a generated route is
   now (#1070), and the plain link carries no click handler, which would keep the browser from following it. A menu opened from greyed text (a breadcrumb) is black on white — white on zinc-700 in dark —
   as Flux's is, where it took the grey of what it hung from.
+- **`Ui.SidebarItem` and `Ui.MenuItem` follow a string `Href` out of the app.** Every other kit link writes a
+  string as an ordinary link (#1070); these two always wrote a `NavLink`, so under a path base
+  `Ui.SidebarItem.Href("/reports")` came out as `/new/reports` and was routed inside the app — a sidebar could
+  not point at a page the host still serves itself, and `https://…` came out as `/newhttps://…`. A generated
+  route navigates in place as before.
 - **The tutorial builds again when it is typed in.** Chapters 2 and 3 wrote their page titles as
   `Ui.Heading.Level(1).Size(Ui.Size.Xl)`, and Flux's heading takes its own `Ui.HeadingSize` — `Ui.Heading.Level(1).Xl`
   — so the three pages of the Products slice stopped at CS1929. The `Rask.Ui` package readme marked its input

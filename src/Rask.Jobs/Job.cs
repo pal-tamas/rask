@@ -68,6 +68,16 @@ public sealed class Job : Entity<long>
     /// </remarks>
     public Guid? UserId { get; private set; }
 
+    /// <summary>
+    /// The tenant the job was enqueued for — <c>Current.Tenant</c> at the time — or <c>null</c> when it
+    /// belongs to nobody.
+    /// </summary>
+    /// <remarks>
+    /// Recorded as data, not as a partition: the drain sees every tenant's work, and the runner
+    /// re-enters this one with <c>Tenant.Use</c> before invoking the handler.
+    /// </remarks>
+    public Guid? TenantId { get; private set; }
+
     /// <summary>Enqueues a job.</summary>
     /// <param name="type">The job's registered type name.</param>
     /// <param name="payload">The serialized job.</param>
@@ -82,9 +92,7 @@ public sealed class Job : Entity<long>
     /// </remarks>
     public static Job For(string type, string payload, DateTime runAt)
     {
-        var job = new Job { Type = type, Payload = payload, RunAt = runAt, UserId = Current.UserId };
-        job.RecordTenant(Current.Tenant);
-        return job;
+        return new Job { Type = type, Payload = payload, RunAt = runAt, UserId = Current.UserId, TenantId = Current.Tenant };
     }
 
     /// <summary>Records a successful run, clearing any error from an earlier attempt.</summary>

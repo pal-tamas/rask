@@ -22,6 +22,8 @@ interface Seam {
     reserved: {[type: string]: Heard[] | undefined};
     /** What happened while the hooks were on their way, oldest first; null when nothing is being kept. */
     missed: Event[] | null;
+    /** Asks the reader about a guarded form's unsaved edits; false when they stay. Set by rask-leave.ts. */
+    leave?: () => boolean;
 }
 
 const scope = globalThis as typeof globalThis & {__raskHookSeam?: Seam};
@@ -58,6 +60,15 @@ export function ownsAttr(el: Element, name: string): boolean {
 /** Whether a hook holds the checked state of `el` (a checkbox restored from storage), so a render does not. */
 export function ownsChecked(el: Element): boolean {
     return ownsAttr(el, "checked");
+}
+
+/**
+ * Whether a navigation the reader started inside the app may go ahead: false when a form guarded with
+ * `data-rask-confirm-leave` holds unsaved edits and the reader chose to stay. Asked by both hosts, answered
+ * by rask-leave.ts — which is only there on a page that has such a form, so until then nothing is asked.
+ */
+export function mayLeave(): boolean {
+    return !seam.leave || seam.leave();
 }
 
 // ----- Shared helpers ---------------------------------------------------------------------------------
