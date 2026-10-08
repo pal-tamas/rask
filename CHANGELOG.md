@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **CI: the browser gates, the scoped format job and the Pages publish are shorter.** The five browser
+  gates and `pages.yml` build without the analyzers — the `build` job is the one that holds the source to
+  them — which took the site publish from 375 s to 270 s on a runner. A scoped `format` job builds the
+  projects its change reaches instead of the whole solution (335 s to 141 s for a two-file change), and
+  the four site shards are dealt by measured journey time (slowest job 716 s to 563 s).
 - **BREAKING: `Ui.Chart` is Flux's chart, part by part.** The factory chart (`Ui.Chart.Data(rows).Label(…)[c => [c.X(…),
   c.Line(…)]]`), `Ui.ChartSeries`, `Ui.ChartAxis`'s old role and `Ui.ChartKind` are gone, with their `Tone` palette,
   `Min`/`Max`, `Legend`, `Grid`, the `<figure>` and the hidden data table — none of which Flux's chart has. A chart is
