@@ -2,8 +2,8 @@
 # only a page that carries a hooked attribute downloads.
 #
 # Refreshed 2026-10-07 when the behaviour hooks became a bundle of their own, loaded on demand
-# (rask-hook-loader.ts): rask.js 129,658 -> 94,135 and rask.wasm.js 118,437 -> 82,930, with rask-hooks.js at
-# 37,124 (gzip -9: 40,432 -> 29,789, 36,301 -> 25,722, and 11,929). What stayed in the runtimes of the hooks'
+# (rask-hook-loader.ts): rask.js 129,658 -> 94,135 and rask.wasm.js 118,437 -> 82,993, with rask-hooks.js at
+# 37,124 (gzip -9: 40,432 -> 29,789, 36,301 -> 25,743, and 11,929). What stayed in the runtimes of the hooks'
 # 39 kB is 3.4 kB: the loader (2.2 kB: the attribute list, the observer, the kept places and the kept events),
 # rask-upload.ts (0.8 kB, which the hosts' own file handling calls) and the morph's half of rask-owned.ts. The
 # rest of the distance to the 90,270 / 79,250 the runtimes weighed before any hook is the runtimes' own growth
@@ -76,5 +76,5 @@
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
 rask.js,94135
-rask.wasm.js,82930
+rask.wasm.js,82993
 rask-hooks.js,37124
