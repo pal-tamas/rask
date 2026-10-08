@@ -45,7 +45,7 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
 
     // #1070: every kit component that takes a RouteUrl follows Ui.Button and Ui.Link. A generated route navigates in
     // place; a string is an ordinary link, and gets neither the path base nor the runtime's interception.
-    public static TheoryData<string> LinkingComponents => ["Ui.Stat", "Ui.NavTab", "Ui.Brand"];
+    public static TheoryData<string> LinkingComponents => ["Ui.Stat", "Ui.NavbarItem", "Ui.NavlistItem", "Ui.Brand", "Ui.Avatar", "Ui.BreadcrumbsItem"];
 
     [Theory]
     [MemberData(nameof(LinkingComponents))]
@@ -69,17 +69,20 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
         });
 
     [Fact]
-    public void An_active_string_tab_still_says_it_is_the_current_page() => UnderPathBase("/shop", () =>
+    public void A_current_string_item_still_says_it_is_the_current_page() => UnderPathBase("/shop", () =>
         Assert.Contains(
             "aria-current=\"page\"",
-            Ui.NavTab.Label("Status").Href("https://status.example.test").Active(true).ToHtml(),
+            Ui.NavbarItem.Href("https://status.example.test").Current(true)["Status"].ToHtml(),
             StringComparison.Ordinal));
 
     private string Render(string component, RouteUrl href) => component switch
     {
         "Ui.Stat" => Ui.Stat.Value("OK").Label("Status").Href(href).ToHtml(),
-        "Ui.NavTab" => Ui.NavTab.Label("Status").Href(href).ToHtml(),
-        "Ui.Brand" => Ui.Brand.Label("Status").Href(href).ToHtml(),
+        "Ui.NavbarItem" => Ui.NavbarItem.Href(href)["Status"].ToHtml(),
+        "Ui.NavlistItem" => Ui.NavlistItem.Href(href)["Status"].ToHtml(),
+        "Ui.Brand" => Ui.Brand.Name("Status").Href(href).ToHtml(),
+        "Ui.Avatar" => Ui.Avatar.Name("Status").Href(href).ToHtml(),
+        "Ui.BreadcrumbsItem" => Ui.BreadcrumbsItem.Href(href)["Status"].ToHtml(),
         _ => throw new ArgumentOutOfRangeException(nameof(component)),
     };
 

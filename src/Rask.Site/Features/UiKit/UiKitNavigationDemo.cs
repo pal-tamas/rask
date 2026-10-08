@@ -74,19 +74,23 @@ public sealed partial class UiKitNavigationDemo : Component
             "Nav list, steps, breadcrumbs and the dock",
             "The rest of the category, each a real link where it navigates.",
             Div.Data(Testid("ui-nav-rest")).Class("space-y-4")[
-                Ui.NavList.Sm.AccessibleLabel("Sections")[
-                    Ui.NavItem.Key("m1").Label("Overview").Href("#overview").Current(),
-                    Ui.NavItem.Key("m2").Label("Queues").Href("#queues").Current(false),
-                    Ui.NavItem.Key("m3").Label("Logs").Href("#logs").Current(false)
+                Ui.Navlist[
+                    Ui.NavlistItem.Key("m1").Href("#overview").Current()["Overview"],
+                    Ui.NavlistItem.Key("m2").Href("#queues").Current(false)["Queues"],
+                    Ui.NavlistItem.Key("m3").Href("#logs").Current(false)["Logs"]
                 ],
                 Ui.Steps[
                     Ui.Step.Key("s1").Success["Ordered"],
                     Ui.Step.Key("s2").Success["Packed"],
                     Ui.Step.Key("s3")["Shipped"]
                 ],
-                // Already data-shaped: the crumbs are a list of (text, href), and the last one has no
-                // href because the page you are on is not a link to itself.
-                Ui.Breadcrumbs.Items([("Home", "#home"), ("Orders", "#orders"), ("ord_18f", null)])
+                // The last crumb has no href, because the page you are on is not a link to itself; it says
+                // aria-current instead.
+                Ui.Breadcrumbs[
+                    Ui.BreadcrumbsItem.Key("home").Href("#home")["Home"],
+                    Ui.BreadcrumbsItem.Key("orders").Href("#orders")["Orders"],
+                    Ui.BreadcrumbsItem.Key("order")["ord_18f"]
+                ]
             ]);
 
     private static Component PaginationSection() =>

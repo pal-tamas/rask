@@ -231,12 +231,13 @@ public partial class UiBadgeTests : global::Rask.Core.RaskMarkup
     {
         var kit = string.Concat(
             Ui.Badge.Color(Ui.Color.Green)["x"].ToHtml(),
-            Ui.NavTab.Label("Errors").Href("/errors").Badge("12").BadgeTone(Ui.Tone.Error).ToHtml(),
+            Ui.NavbarItem.Href("/errors").Badge("12").BadgeColor(Ui.Color.Red)["Errors"].ToHtml(),
             Ui.Select.Value("").Label("Email").Badge("Required").ToHtml());
 
         Assert.DoesNotContain("class=\"badge", kit, StringComparison.Ordinal);
         Assert.DoesNotContain(" badge-", kit, StringComparison.Ordinal);
-        // The label's own word beside a field ("Required") is the label's, not a Ui.Badge: two badges, not three.
-        Assert.Equal(2, kit.Split("data-ui-badge ").Length + kit.Split("data-ui-badge>").Length - 2);
+        // A navbar item's count and the label's own word beside a field ("Required") are theirs, not a Ui.Badge:
+        // one badge, not three.
+        Assert.Equal(1, kit.Split("data-ui-badge ").Length + kit.Split("data-ui-badge>").Length - 2);
     }
 }

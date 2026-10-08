@@ -5,12 +5,10 @@ namespace Rask.Dashboard;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Named once because it has to be written in two places and they must not drift. daisyUI applies a
-/// theme through <c>data-theme</c> on the element carrying the kit's theme scope, and the console has
-/// two such elements: <c>&lt;html&gt;</c>, so the page ground the kit's console reset paints on the body
-/// from <c>--color-base-200</c> resolves there (<see cref="RaskDashboardShell" />), and the <c>UiShell</c>
-/// div, because <c>[data-rask-ui]:not([data-theme])</c> would otherwise redefine <c>--color-base-*</c> for
-/// everything inside it whenever the operator's OS is in dark mode.
+/// daisyUI applies a theme through <c>data-theme</c> on the element carrying the kit's theme scope, which
+/// for the console is <c>&lt;html&gt;</c> (<see cref="RaskDashboardShell" />). Unnamed,
+/// <c>[data-rask-ui]:not([data-theme])</c> would repaint everything inside it whenever the operator's OS
+/// is in dark mode.
 /// </para>
 /// <para>
 /// Light, and deliberately not a setting. An operator surface is a set of contrast ratios checked against

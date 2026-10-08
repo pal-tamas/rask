@@ -47,10 +47,10 @@ public sealed partial class RaskDashboardShell : Component
     /// </para>
     /// <para>
     /// <b>The scope has to reach the document.</b> daisyUI defines <c>--color-base-*</c> only inside
-    /// <c>[data-rask-ui]</c>, and the kit's console reset paints <c>&lt;body&gt;</c> from
-    /// <c>--color-base-200</c> — the page ground an operator sees past the frame on a wide screen and while
-    /// scrolling past its end. A custom property is inherited downward, never up, so <c>UiShell</c> carrying
-    /// the scope on a div inside the body cannot give the body that colour.
+    /// <c>[data-rask-ui]</c>, and a custom property is inherited downward, never up — so the scope goes on
+    /// the document element, where everything the console draws is beneath it. Beside it goes
+    /// <see cref="UiStylesheet.DocumentAttribute" />: the console's only sheet is the kit's, and that is what
+    /// gives a kit-only document its reset and its ground.
     /// </para>
     /// <para>
     /// <b>And the theme has to be named.</b> daisyUI follows <c>prefers-color-scheme</c> through
@@ -62,6 +62,7 @@ public sealed partial class RaskDashboardShell : Component
         Html.Lang(HtmlLang).Dir(HtmlDir)
             .Attributes(
                 (UiStylesheet.ThemeScopeAttribute, ""),
+                (UiStylesheet.DocumentAttribute, ""),
                 ("data-theme", UiTheme.Value(DashboardTheme.Name)))[
             head,
             Body[body]
