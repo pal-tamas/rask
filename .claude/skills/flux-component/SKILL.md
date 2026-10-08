@@ -128,6 +128,15 @@ label themselves. The recipe (`UiInput.cs` and `UiTextarea.cs` are the two to co
 5. Class literals shared by a generic control live in a non-generic `internal static class UiXLook` (a static in
    `UiX<T>` is one copy per `T`, S2743). An enum member named after a tag (`Button`, `Input`) is not reachable as a
    step — the component inherits the markup entry of that name — so it is `.As(Ui.InputAs.Button)`.
+6. A control Flux writes as a custom element WITH PARTS INSIDE (`ui-checkbox`, `ui-radio`, `ui-switch`) cannot be the
+   `<input>` itself, which holds nothing: the root is a `<label>` around the real input (`sr-only`, never `hidden`),
+   and every part reads the input's own state — `has-checked:` on the root, `group-has-checked/option:` inside it
+   (`UiOptionLook.cs`). Where two states meet, write the rule for the pair with both variants stacked: two rules of
+   equal weight leave the winner to the order Tailwind prints them in. `parity.mjs`'s `HOLDS_INPUT` names the tags
+   whose label holds that one node Flux has none for.
+7. A GROUP whose choices are children (`UiRadioGroup<T>`, `UiCheckboxGroup<T>`) is the `IFormControl<T>`; it hands
+   the choices a scope through `Context.Provide` (current value, commit, variant) and they bind nothing themselves.
+   A prop that is Flux's `value` on a choice stays `Value` there, so the choice's own state is `Checked`.
 
 A custom element is written as the native one that behaves that way without script (`ui-label` → `<label for>`);
 `parity.mjs`'s `NATIVE` (by tag) and `NATIVE_PART` (by marker) tables name each pair, and a stand-in for a control
@@ -172,8 +181,8 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal` today,
-plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-menu.mjs dropdown|context`,
+card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch`
+today, plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-menu.mjs dropdown|context`,
 `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
@@ -326,8 +335,8 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   Parity stand-ins: Flux's spacer (the kit's `Ui.Spacer` carries no `data-ui-spacer`) and the subheading of
   the floating example. The Dashboard's queue sheet writes two layout
   classes (`DashboardIsKitOnlyTests.Allowed`), compiled by its own sheet.
-- Parity stand-ins still standing: none on the chart page; card page (fields, switches, the heading/text lines whose variant was
-  not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
+- Parity stand-ins still standing: none on the chart page; card page (fields, the heading/text lines whose variant was
+  not looked up — its switches are the real `Ui.Switch` now), table page (avatar, the dropdown and menu around the row button, pager), progress page
   (slider, as raw `ui-slider` markup), dropdown page (the profile trigger and the two icon-only triggers,
   whose icon the snippets do not name). The field page's inputs and select and the input page's buttons are real
   now; the input page's `flux:select` inside a group is still a stand-in.
@@ -384,6 +393,19 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - Pillbox: `Ui.PillboxTrigger.Clearable()`, a disabled pillbox and an invalid `Ui.PillboxInput` are drawn
   from the select's and the input's looks — no example on Flux's page shows them, so nothing measured them.
   A create row written before the options is DRAWN first and still comes last for the arrow keys.
+- Checkbox, radio, switch (2026-10-07): every radio of every variant is a NATIVE `<input type="radio">` sharing the
+  group's id as its `name`, so Flux's keys are the browser's and `data-rask-roving` is NOT written — recorded on
+  Flux's page for the list, segmented, cards, pills and buttons alike: all four arrows move AND choose, wrapping;
+  Home / End do nothing; Space chooses; Tab leaves the group. A checkbox flips on Space only (Enter does nothing, as
+  Flux's); a switch on Space and Enter — the `<input role="switch">` is what asks the runtime for Enter. ARIA is
+  Flux's live DOM and no more: an indeterminate checkbox (a check-all over some) is `data-indeterminate` on the
+  root with NO `aria-checked="mixed"` (Flux says `aria-checked="false"` there, which is what a native unticked box
+  says); groups say `role="group"` / `"radiogroup"` + `aria-labelledby`. `Attributes(…)` forwards to the `<input>`
+  (`name`, `aria-label`); `Name` was removed as non-Flux. Unmeasured, no example on Flux's pages: the INVALID look
+  (the unticked box takes the input's red-500 border), a disabled switch, `Ui.Switch` with `checked` (the card
+  page writes it; it is `Value(true)`). `flux:checkbox.indicator` is on Flux's page and not in its reference, so
+  `Ui.CheckboxIndicator` is in no `Built` row. `flux:switch`'s `align` lists `right|start` and `left|end` as one
+  option each: two enum members, two `NotTranslated` rows.
 - Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
   `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
   removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —

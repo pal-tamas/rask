@@ -1,31 +1,13 @@
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The daisyUI-drawn form controls, at daisyUI class parity. Ui.Input and Ui.Textarea are Flux's: UiInputTests.
+///     The daisyUI-drawn form controls, at daisyUI class parity. Ui.Input, Ui.Textarea, Ui.Checkbox, Ui.Radio and Ui.Switch are Flux's: UiInputTests, UiCheckboxTests, UiRadioTests, UiSwitchTests.
 /// </summary>
 public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void A_file_input_takes_the_ghost_variant_too() =>
         Assert.Contains("file-input-ghost", Ui.FileInput.Value("").Label("Avatar").Variant(Ui.Variant.Ghost).ToHtml());
-
-    [Theory]
-    [InlineData(Ui.Tone.Primary, "checkbox-primary")]
-    [InlineData(Ui.Tone.Success, "checkbox-success")]
-    public void A_checkbox_takes_a_tone(Ui.Tone tone, string expected) =>
-        Assert.Contains(expected, Ui.Checkbox.Value(false).Tone(tone)["Remember me"].ToHtml());
-
-    [Theory]
-    [InlineData(Ui.Tone.Primary, "toggle-primary")]
-    [InlineData(Ui.Tone.Warning, "toggle-warning")]
-    public void A_toggle_takes_a_tone(Ui.Tone tone, string expected) =>
-        Assert.Contains(expected, Ui.Toggle.Value(false).Tone(tone)["Email alerts"].ToHtml());
-
-    [Theory]
-    [InlineData(Ui.Tone.Accent, "radio-accent")]
-    [InlineData(Ui.Tone.Info, "radio-info")]
-    public void A_radio_takes_a_tone(Ui.Tone tone, string expected) =>
-        Assert.Contains(expected, Ui.Radio.Value(false).Text("Standard").Group("shipping").Tone(tone).ToHtml());
 
     [Fact]
     public void A_range_can_stand_on_end() =>
@@ -34,43 +16,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_horizontal_range_writes_no_direction_class() =>
         Assert.DoesNotContain("range-vertical", Ui.Range.Value(0d).Label("Volume").ToHtml());
-
-    [Theory]
-    [InlineData("checkbox")]
-    [InlineData("toggle")]
-    [InlineData("radio")]
-    public void A_control_the_page_says_is_on_renders_as_checked(string kind)
-    {
-        // These wrote `.Value(Checked == true)`, and on an <input> that is the VALUE attribute — so
-        // every checked control in the kit rendered `value="True"` with no `checked` at all. It looked
-        // right in C#, passed every markup assertion that did not name the attribute, and came out off
-        // on a prerendered page. The state is now the form control's own Value, and it still has to
-        // reach the markup as `checked`.
-        var html = kind switch
-        {
-            "checkbox" => Ui.Checkbox.Value(true)["Remember"].ToHtml(),
-            "toggle" => Ui.Toggle.Value(true)["Alerts"].ToHtml(),
-            _ => Ui.Radio.Value(true).Text("Standard").Group("shipping").ToHtml(),
-        };
-
-        Assert.Contains("checked", html);
-    }
-
-    [Theory]
-    [InlineData("checkbox")]
-    [InlineData("toggle")]
-    [InlineData("radio")]
-    public void A_control_the_page_says_is_off_does_not(string kind)
-    {
-        var html = kind switch
-        {
-            "checkbox" => Ui.Checkbox.Value(false)["Remember"].ToHtml(),
-            "toggle" => Ui.Toggle.Value(false)["Alerts"].ToHtml(),
-            _ => Ui.Radio.Value(false).Text("Standard").Group("shipping").ToHtml(),
-        };
-
-        Assert.DoesNotContain("checked", html);
-    }
 
     [Fact]
     public void A_filter_option_carries_its_value_exactly_once()
@@ -116,17 +61,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         // daisyUI hides it with `visibility`, not `display`, so a form does not jump as the reader
         // types. That is the reason the hint is rendered rather than conditionally omitted.
         Assert.Contains("validator-hint", Ui.Validator.Message("Enter a valid email").ToHtml());
-    }
-
-    [Fact]
-    public void A_checkbox_wraps_its_words_in_the_hit_target()
-    {
-        // On a phone a 16px box on its own is the difference between a control and a dare, so the label
-        // has to be part of what you can press.
-        var html = Ui.Checkbox.Value(false)["Remember me"].ToHtml();
-
-        Assert.StartsWith("<label", html, StringComparison.Ordinal);
-        Assert.Contains("Remember me", html);
     }
 
     [Theory]

@@ -27,7 +27,7 @@ public sealed partial class DaisyComponentsInTheClassListTests
         var components = DaisyComponents();
 
         // A component the plugin is told to leave out has no rules in the sheet: what is left of its classes in
-        // the list is another component's selector (daisyUI's menu styles a `.dropdown` inside it).
+        // the list is another component's selector (daisyUI's menu styles a `.dropdown` inside it, its aura a `.toggle`).
         var excluded = ExcludedFromThePlugin();
         var fromProse = components
             .Where(c => !excluded.Contains(c.Name) && c.Classes.Overlaps(KitConsumer.Classes) && !c.Classes.Overlaps(written))

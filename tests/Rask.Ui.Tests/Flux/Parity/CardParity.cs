@@ -7,7 +7,7 @@ namespace Rask.UiTests.Flux;
 /// </summary>
 /// <remarks>
 ///     The examples put other Flux components inside the cards. The buttons and the table are the real
-///     ones; the fields, switches and the lines of text whose variant was not looked up are built elsewhere
+///     ones; the fields and the lines of text whose variant was not looked up are built elsewhere
 ///     or later, and each is a <see cref="StandIn" /> here: a box the measured size of that neighbour,
 ///     marked <c>data-parity-skip</c> so the comparison holds it to its box and skips what is inside. Everything
 ///     that is the card's own — the card, its header, heading, subheading, actions, body, footer and bleed — is
@@ -16,7 +16,7 @@ namespace Rask.UiTests.Flux;
 public sealed partial class CardParity : FluxParity
 {
     // `my-4` and `my-6` on the separators there: an app's own utilities.
-    private const string Spacing = "<style>.parity-mt-1{margin-top:4px}.parity-my-4{margin-block:16px}.parity-my-6{margin-block:24px}</style>";
+    private const string Spacing = "<style>.parity-mt-1{margin-top:4px}.parity-my-4{margin-block:16px}.parity-my-6{margin-block:24px}.parity-space-y-4>:not(:last-child){margin-bottom:16px}</style>";
 
     public override string Page => "card";
 
@@ -101,10 +101,11 @@ public sealed partial class CardParity : FluxParity
                 Ui.CardHeading["Notifications"],
                 Ui.CardSubheading["Choose what you hear about"]
             ],
-            Ui.CardBody[
-                StandIn("height:20px;margin-bottom:16px", "Product updates"),
-                StandIn("height:20px;margin-bottom:16px", "Weekly digest"),
-                StandIn("height:20px", "Security alerts")
+            // class="space-y-4" on the body is the example's own: stated on the page under a name of its own.
+            Ui.CardBody.Class("parity-space-y-4")[
+                Ui.Switch.Value(true).Label("Product updates"),
+                Ui.Switch.Value(false).Label("Weekly digest"),
+                Ui.Switch.Value(true).Label("Security alerts")
             ]
         ];
 
