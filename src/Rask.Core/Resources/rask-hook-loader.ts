@@ -46,6 +46,7 @@ export const HOOK_ATTRIBUTES: string[] = (
     + " otp"                                                      // rask-otp
     + " segments"                                                 // rask-segments
     + " dismiss-scope stack"                                      // rask-toast
+    + " confirm-leave"                                            // rask-leave
     + " persist uncheck-on-navigate"                              // rask-persist
     + " carousel carousel-controls"                               // rask-carousel
 ).split(" ").map(function (name) { return "data-rask-" + name; }).concat(

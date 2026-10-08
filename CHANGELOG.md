@@ -7,6 +7,20 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`ConfirmLeave` — a form asks before it is left unsaved.**
+  `Form.Model(m).OnSubmit(Save).ConfirmLeave("Leave without saving?")[ … ]`. From the first thing typed or
+  changed in the form — decided in the browser, so a value that has not reached the server counts — a link
+  inside the app, a navigation from front-end code and the Back / Forward buttons ask with that message in the
+  browser's own `confirm` dialog, and closing the tab, a reload and a link out of the app show the browser's own
+  leave prompt. Staying sends nothing and keeps the page and what was typed; after Back it puts the address and
+  the history back. The form is clean again after a submit that passed validation and ran its handler, and a
+  `Go.To(…)` from that handler never asks. Both hosts. It is one of the behaviour hooks
+  (`data-rask-confirm-leave`, `rask-leave.ts`), so only a page with such a form pays for it: `rask-hooks.js`
+  37,263 -> 38,621 bytes, and the runtimes every page loads grow by the question they put to it —
+  `rask.js` +64 bytes, `rask.wasm.js` +62. See `docs/forms.md#ask-before-leaving-unsaved-changes`.
+
 ### Performance
 
 - **The behaviour hooks load on demand; the runtime every page downloads is a quarter smaller.** Everything an
