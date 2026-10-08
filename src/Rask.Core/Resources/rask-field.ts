@@ -16,7 +16,7 @@
 //
 // Delegated to the document throughout. The shaping functions are exported for the Node fixture.
 
-import {disown, named, near, own, page} from "./rask-owned.js";
+import {disown, listen, named, near, own, page} from "./rask-owned.js";
 
 /** How long a button says it copied. Flux UI's input shows its tick for this long. */
 export const COPIED_MS = 2000;
@@ -173,7 +173,7 @@ function copy(button: HTMLElement): void {
 }
 
 if (page) {
-    page.addEventListener("click", function (e) {
+    listen("click", function (e) {
         const copier = near(e.target, "[data-rask-copy]");
         if (copier) {
             copy(copier);
@@ -194,14 +194,14 @@ if (page) {
 
     // Capture phase on the document: ahead of the listener that sends the value to the page (rask-input,
     // on the bubble), so what is sent is what is shown.
-    page.addEventListener("input", function (e) {
+    listen("input", function (e) {
         if (isField(e.target as Element) && !(e as InputEvent).isComposing) {
             const kind = (e as InputEvent).inputType || "";
             shape(e.target as Field, kind.indexOf("delete") === 0);
         }
     }, true);
 
-    page.addEventListener("keydown", function (e) {
+    listen("keydown", function (e) {
         const t = e.target;
         if (!(t instanceof HTMLInputElement) || e.ctrlKey || e.altKey || e.metaKey) {
             return;

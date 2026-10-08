@@ -149,6 +149,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="$(IntermediateOutputPath)rask.js" LogicalName="Rask.Server.Resources.rask.js"/>
+    <EmbeddedResource Include="$(IntermediateOutputPath)rask-hooks.js" LogicalName="Rask.Server.Resources.rask-hooks.js"/>
     <EmbeddedResource Include="$(IntermediateOutputPath)rask-sw.js" LogicalName="Rask.Server.Resources.rask-sw.js"/>
   </ItemGroup>
 
@@ -165,7 +166,7 @@
   -->
   <Target Name="_RaskBundleClientJs" BeforeTargets="PrepareForBuild" DependsOnTargets="ResolveProjectReferences"
           Inputs="@(_RaskServerClientTs)"
-          Outputs="$(IntermediateOutputPath)rask.js">
+          Outputs="$(IntermediateOutputPath)rask.js;$(IntermediateOutputPath)rask-hooks.js">
     <ResolveTypeScriptToolTask Tool="esbuild"
                                Version="$(RaskEsbuildVersion)"
                                CacheRoot="$(RaskTypeScriptCacheRoot)"
@@ -182,6 +183,14 @@
       blank lines, and three source files carried comments working around its regex-literal bug.
     -->
     <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(IntermediateOutputPath)rask.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+
+    <!--
+      The behaviour hooks, a second script the first one loads when a page first asks for a hook
+      (Rask.Core/Resources/rask-hook-loader.ts). An entry of its own because an iife cannot be split;
+      the two share state through one object on the global (rask-owned.ts), not through the bundler.
+    -->
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/../Rask.Core/Resources/rask-hooks.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(IntermediateOutputPath)rask-hooks.js&quot; $(_RaskEsbuildMinify)"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 

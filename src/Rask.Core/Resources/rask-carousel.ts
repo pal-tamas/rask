@@ -23,7 +23,7 @@
 // Everything written is held against the morph (rask-owned.ts): the page rendered the first slide selected
 // and "previous" disabled, and a render must not put that back over where the reader has scrolled to.
 
-import {near, own, page} from "./rask-owned.js";
+import {listen, near, own, page} from "./rask-owned.js";
 
 const ROOT = "[data-rask-carousel]";
 const TRACK = "[data-rask-carousel-track]";
@@ -228,7 +228,7 @@ if (page) {
 
     // Scroll does not bubble; it is caught on the way down, and answered once per frame per track.
     const pending = new Set<Element>();
-    doc.addEventListener("scroll", function (e) {
+    listen("scroll", function (e) {
         const root = e.target instanceof Element && e.target.matches(TRACK) ? e.target.closest(ROOT) : null;
         if (!root || pending.has(root)) {
             return;
@@ -244,7 +244,7 @@ if (page) {
         doc.querySelectorAll(ROOT).forEach(function (root) { sync(doc, root); });
     }, {passive: true});
 
-    doc.addEventListener("click", function (e) {
+    listen("click", function (e) {
         const button = near(e.target, "button");
         if (!button) {
             return;
@@ -267,13 +267,13 @@ if (page) {
         }
     });
 
-    doc.addEventListener("pointerover", function (e) {
+    listen("pointerover", function (e) {
         const root = near(e.target, ROOT + "[data-autoplay]");
         if (root) {
             stop(root);
         }
     }, {capture: true, passive: true});
-    doc.addEventListener("pointerout", function (e) {
+    listen("pointerout", function (e) {
         const root = near(e.target, ROOT + "[data-autoplay]");
         const to = (e as PointerEvent).relatedTarget;
         if (root && !(to instanceof Node && root.contains(to))) {

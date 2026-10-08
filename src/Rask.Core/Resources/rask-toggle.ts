@@ -10,7 +10,7 @@
 //     element that invokes it (popovertarget, commandfor, data-rask-toggle) AND already carries aria-expanded
 //     is rewritten. The attribute is never added where the render did not put it.
 
-import {isShown, named, near, own, page, setShown} from "./rask-owned.js";
+import {isShown, listen, named, near, own, page, setShown} from "./rask-owned.js";
 
 const TOGGLE = "data-rask-toggle";
 
@@ -39,14 +39,14 @@ if (page) {
         }
     }
 
-    doc.addEventListener("pointerdown", function (e) {
+    listen("pointerdown", function (e) {
         const invoker = near(e.target, "[" + TOGGLE + "]");
         const panel = invoker ? named(invoker, TOGGLE) : null;
         shownAtPress = panel && isShown(panel) ? panel : null;
         closeUnless(e.target);
     }, {capture: true, passive: true});
 
-    doc.addEventListener("click", function (e) {
+    listen("click", function (e) {
         const invoker = near(e.target, "[" + TOGGLE + "]");
         const panel = invoker ? named(invoker, TOGGLE) : null;
         // A click inside the popover (it may be the invoker's own child) is using it.
@@ -59,7 +59,7 @@ if (page) {
         set(invoker, panel, !wasShown);
     });
 
-    doc.addEventListener("keydown", function (e) {
+    listen("keydown", function (e) {
         if (e.key === "Escape") {
             closeUnless(null);
             return;
@@ -77,7 +77,7 @@ if (page) {
         set(invoker, panel, !isShown(panel));
     });
 
-    doc.addEventListener("focusout", function (e) {
+    listen("focusout", function (e) {
         // No relatedTarget is focus leaving the window, or a press on something that takes none: not a Tab.
         if (opened.size && e.relatedTarget instanceof Node) {
             closeUnless(e.relatedTarget);
@@ -85,7 +85,7 @@ if (page) {
     }, true);
 
     // `toggle` does not bubble; it is caught on the way down.
-    doc.addEventListener("toggle", function (e) {
+    listen("toggle", function (e) {
         const panel = e.target;
         if (!(panel instanceof HTMLElement) || !panel.id || !panel.hasAttribute("popover")) {
             return;

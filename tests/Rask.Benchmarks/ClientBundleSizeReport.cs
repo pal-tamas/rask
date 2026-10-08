@@ -3,7 +3,8 @@ using System.Globalization;
 namespace Rask.Benchmarks;
 
 /// <summary>
-///     Measures the two client runtimes Rask serves, and gates them against a committed baseline.
+///     Measures the client runtimes Rask serves — the two every page loads and the behaviour hooks a page loads
+///     on demand — and gates them against a committed baseline.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -49,6 +50,12 @@ internal static class ClientBundleSizeReport
     [
         new("rask.js", Path.Combine("src", "Rask.Server", "obj", "Release", "net10.0", "rask.js")),
         new("rask.wasm.js", Path.Combine("src", "Rask.Wasm", "Browser", "rask.wasm.js")),
+
+        // The behaviour hooks, which only a page that asks for one downloads (rask-hook-loader.ts). Tracked so
+        // that what left the two runtimes above is still counted somewhere: a hook that grows shows up here,
+        // and a hook that slips back into a runtime shows up there. One line for both hosts — the Server host
+        // embeds the same bytes the WASM host serves.
+        new("rask-hooks.js", Path.Combine("src", "Rask.Wasm", "Browser", "rask-hooks.js")),
     ];
 
     public static int Run(string[] args)

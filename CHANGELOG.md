@@ -7,6 +7,20 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Performance
+
+- **The behaviour hooks load on demand; the runtime every page downloads is a quarter smaller.** Everything an
+  element asks of the runtime by carrying an attribute (`data-rask-tooltip`, `data-rask-otp`, `data-rask-modal-open`
+  … — `docs/js-interop-runtime.md`) had grown `rask.js` from 90 kB to 130 kB and `rask.wasm.js` from 79 kB to
+  118 kB, for every app, including one that uses none of it. Those hooks are now a script of their own,
+  `rask-hooks.js` (37 kB, 12 kB gzipped), and the runtimes are `rask.js` 94 kB (30 kB gzipped, from 40 kB) and
+  `rask.wasm.js` 83 kB (26 kB gzipped, from 36 kB). A page that carries no hooked attribute never requests it. A page the
+  server rendered with one gets its `<script>` in the same response, after the runtime's, so nothing runs later
+  than it did; an attribute that arrives in a render or a navigation fetches it once, and what the reader did in
+  between (a hover, a key, a press) is handed to the hooks when they arrive. No attribute, behaviour or API
+  changed, and there is nothing to configure. A hook-free page also runs one filtered `MutationObserver` where
+  eight unfiltered ones ran. The client-bundle-size gate tracks the third file too.
+
 ### Changed
 
 - **CI: the browser gates, the scoped format job and the Pages publish are shorter.** The five browser
@@ -60,6 +74,19 @@ them until tagged releases begin.
   manual one); and every popover invoker that carries `aria-expanded` now follows its popover. `data-rask-stack` also
   writes `--rask-stack-front` and measures each child's natural height (the stack carries `data-rask-measuring` while
   it does), so a deck cut to the front card's height can still fan out. See `docs/js-interop-runtime.md`.
+- **Runtime hooks for a dragged value, a missing browser API and upload progress.** `data-rask-drag="x y"` makes a
+  surface the pointer's: the runtime writes `--rask-drag-x` / `--rask-drag-y` on every move with no round trip and
+  tells the page through the surface's one hidden field (`input` once a frame, `change` on release) — a colour area
+  or a custom slider with no pointer handler in C#. `data-rask-requires="EyeDropper"` hides a control where the
+  browser has no such global. A file input inside a `data-rask-loading` element now marks it `data-loading` from the
+  moment files are chosen until the handler has rendered, with `--rask-progress` (`12%`) and
+  `--rask-progress-as-string` (`'12%'`): the request's real progress on the Server host (the upload is sent with
+  `XMLHttpRequest` for that), bytes read by the handler in a WebAssembly app.
+- **Runtime hooks for a typed date or time and for a chart.** `data-rask-segments` turns a group of small inputs
+  (`data-rask-segment="month|day|year|hour|minute|meridiem"`) into one field — auto-advance, arrows, Backspace, paste,
+  AM/PM — that reaches the page as one hidden field carrying `yyyy-mm-dd` / `HH:mm`. `data-rask-plot` lights the row
+  nearest the pointer and moves a tooltip beside it with no round trip, and `data-rask-measure` keeps a hidden field at
+  an element's own width and height so a chart can be drawn at its real size.
 
 - **Six more front-end templates: `preact`, `vue`, `angular`, `solid`, `svelte` and `lit`.**
   `rask new Shop --template vue` writes the same project `--template react` does — the same `Rask.Server`
@@ -746,6 +773,9 @@ them until tagged releases begin.
   gone.
 
 ### Fixed
+
+- **An interactive tooltip no longer closes when focus drops to nothing.** A `data-rask-tooltip` whose trigger carries
+  `aria-expanded` stays open after `blur()` or the window losing focus, until a press outside it, as Flux UI's does.
 
 - **daisyUI's `.glass` is out of the kit's sheet and of every app's.** A doc comment on the new search fields said
   "a magnifying glass"; Tailwind scans comments, daisyUI emits a component wherever its name is seen, and the rule

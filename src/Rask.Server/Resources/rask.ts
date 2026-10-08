@@ -38,6 +38,7 @@ import {
     loadingTarget,
     type LoadingTicket,
 } from "../../Rask.Core/Resources/rask-loading.js";
+import { beginUpload, type Upload } from "../../Rask.Core/Resources/rask-upload.js";
 import {
     createTransportChooser,
     openHttpConnection,
@@ -47,7 +48,7 @@ import {
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
-import "../../Rask.Core/Resources/rask-hooks.js";
+import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {
@@ -1243,6 +1244,8 @@ import {
         clearPending();
         loadingBySeq.clear();
         endAllLoading();
+        for (const upload of uploadBySeq.values()) upload.end();
+        uploadBySeq.clear();
     }
 
     // The control waiting on each handler seq (rask-loading.ts). The server runs one session's handlers in
@@ -1263,6 +1266,20 @@ import {
             loadingBySeq.delete(seq);
             endLoading(ticket);
         }
+        for (const [seq, upload] of uploadBySeq) {
+            if (seq > upTo) continue;
+            uploadBySeq.delete(seq);
+            upload.end();
+        }
+    }
+
+    // The file input sending under each handler seq (rask-upload.ts): its mark stays from the moment the files
+    // are chosen, through the POST that carries them, until the handler that receives them has rendered.
+    const uploadBySeq = new Map<number, Upload>();
+
+    function trackUpload(upload: Upload, payload: Record<string, unknown>): void {
+        if (typeof payload.seq === "number") uploadBySeq.set(payload.seq, upload);
+        else upload.end();
     }
 
     function forcePendingTimeout() {
@@ -1544,6 +1561,14 @@ import {
     // unreferenced would additionally let esbuild elide rask-host.ts from the bundle.
     setHost({send, inRoot});
 
+    // The behaviour hooks are a script of their own beside this one, loaded when the page first asks for one
+    // (rask-hook-loader.ts). `currentScript` is this script only while it first runs, which is now; the
+    // sibling keeps this script's `?v=`, which names both of them, and its nonce.
+    const self = document.currentScript as HTMLScriptElement | null;
+    if (self && self.src) {
+        loadHooksOnDemand(self.src.replace(/rask\.js(?=\?|$)/, "rask-hooks.js"), self.nonce);
+    }
+
     document.addEventListener("click", (e) => {
         const url = navLinkClick(e);
         if (url) navigate(url, false);
@@ -1590,9 +1615,13 @@ import {
         if (asInput && asInput.type === "file" && asInput.hasAttribute("data-rask-on-files")) {
             const files = asInput.files;
             if (!files || files.length === 0) return;
-            uploadFiles(files).then((metas) => {
-                send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas});
+            const upload = beginUpload(asInput);
+            uploadFiles(files, upload).then((metas) => {
+                const payload: Record<string, unknown> = {id: t.getAttribute("data-rask-on-files"), type: "files", files: metas};
+                send(payload);
+                trackUpload(upload, payload);
             }).catch((err) => {
+                upload.end();
                 console.error("Rask: file upload failed", err);
             });
             return;
@@ -1630,20 +1659,34 @@ import {
         }
     });
 
-    function uploadFiles(files: FileList): Promise<unknown> {
+    // An XMLHttpRequest rather than fetch(): it is the one request the platform reports the BODY's progress
+    // for, and how far the files have gone is what `upload` shows.
+    function uploadFiles(files: FileList, upload?: Upload): Promise<unknown> {
         const fd = new FormData();
         for (let i = 0; i < files.length; i++) {
             fd.append(`f${i}`, files[i], files[i].name);
             fd.append(`f${i}__lastModified`, String(files[i].lastModified || 0));
         }
-        return fetch(prependBase(`/_rask/upload/${encodeURIComponent(sessionId ?? "")}`), {
-            method: "POST",
-            body: fd,
-            credentials: "same-origin"
-        }).then((res) => {
-            if (!res.ok) throw new Error(`upload failed: ${res.status}`);
-            return res.json();
-        }).then((json) => Array.isArray(json.files) ? json.files : []);
+        return new Promise<unknown>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", prependBase(`/_rask/upload/${encodeURIComponent(sessionId ?? "")}`));
+            xhr.responseType = "json";
+            if (upload) {
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) upload.progress(e.loaded, e.total);
+                };
+            }
+            xhr.onload = () => {
+                if (xhr.status < 200 || xhr.status >= 300) {
+                    reject(new Error(`upload failed: ${xhr.status}`));
+                    return;
+                }
+                const json = xhr.response as { files?: unknown } | null;
+                resolve(json && Array.isArray(json.files) ? json.files : []);
+            };
+            xhr.onerror = xhr.onabort = () => reject(new Error("upload failed: network"));
+            xhr.send(fd);
+        });
     }
 
     function triggerDownload(url: string, filename: string): void {
