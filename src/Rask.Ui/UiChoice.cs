@@ -56,8 +56,8 @@ internal static class UiChoice
     };
 
     // Whether the input itself is seen. In a card or a list it is — it is the affordance. In a pill, a button
-    // or a segment the whole label is the affordance, so the box would be a second one saying the same thing;
-    // it is taken out of the picture but NOT out of the accessibility tree or the tab order, which
+    // or a segment the whole label is the affordance, so the box would be a second one saying the same thing.
+    // There it is taken out of the picture but NOT out of the accessibility tree or the tab order, which
     // `display: none` or `hidden` would do.
     internal static bool ShowsBox(Ui.ChoiceLayout layout) =>
         layout is Ui.ChoiceLayout.List or Ui.ChoiceLayout.Cards;
