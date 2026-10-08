@@ -1081,6 +1081,10 @@ them until tagged releases begin.
   routed inside the app and given the deploy's path base; like every other kit link, only a generated route is
   now (#1070), and the plain link carries no click handler, which would keep the browser from following it. A menu opened from greyed text (a breadcrumb) is black on white — white on zinc-700 in dark —
   as Flux's is, where it took the grey of what it hung from.
+- **The tutorial builds again when it is typed in.** Chapters 2 and 3 wrote their page titles as
+  `Ui.Heading.Level(1).Size(Ui.Size.Xl)`, and Flux's heading takes its own `Ui.HeadingSize` — `Ui.Heading.Level(1).Xl`
+  — so the three pages of the Products slice stopped at CS1929. The `Rask.Ui` package readme marked its input
+  invalid with a `Tone` the Flux input does not have; it is `.Invalid(…)`.
 
 - **Three behaviour hooks, found by driving the calendar and the pickers against Flux's pages.**
   `data-rask-focus-follows` follows a target that a render took out of the page inside the container it was in —
