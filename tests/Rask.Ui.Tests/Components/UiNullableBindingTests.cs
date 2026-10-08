@@ -65,10 +65,10 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
         var set = new Form { Due = new DateOnly(2026, 3, 14) };
         var unset = new Form();
 
-        Assert.Contains("aria-pressed=\"true\"",
-            Ui.Calendar.Bind(() => set.Due).Label("Due").Month(March).ToHtml());
-        Assert.DoesNotContain("aria-pressed=\"true\"",
-            Ui.Calendar.Bind(() => unset.Due).Label("Due").Month(March).ToHtml());
+        Assert.Contains("aria-selected=\"true\"",
+            Ui.Calendar.Bind(() => set.Due).OpenTo(March).ToHtml());
+        Assert.DoesNotContain("aria-selected=\"true\"",
+            Ui.Calendar.Bind(() => unset.Due).OpenTo(March).ToHtml());
     }
 
     [Fact]

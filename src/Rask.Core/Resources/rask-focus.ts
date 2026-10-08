@@ -56,10 +56,13 @@ if (page) {
     const doc = page;
     // The target that has focus, while it has it. Null whenever focus is anywhere else.
     let from: Element | null = null;
+    // …and the container it was in then: once a render has taken the target out, it has none to ask.
+    let home: Element | null = null;
 
     listen("focusin", function (e) {
         const t = e.target;
-        from = t instanceof Element && t.hasAttribute(TARGET) && near(t, FOLLOWS) ? t : null;
+        home = t instanceof Element && t.hasAttribute(TARGET) ? near(t, FOLLOWS) : null;
+        from = home ? t as Element : null;
     }, true);
 
     // Focus left for nowhere. If a render removed the target, the observer below has already answered by the
@@ -86,8 +89,10 @@ if (page) {
         if (!was) {
             return;
         }
-        const container = was.isConnected ? was.closest(FOLLOWS) : null;
-        // A target taken out of the page has no container to ask; the one that follows it is looked for among
+        // A target taken out of the page is followed inside the container it was in — a second calendar on the
+        // page keeps its own tab stop, and its focus is not this one's to take.
+        const container = was.isConnected ? was.closest(FOLLOWS) : home && home.isConnected ? home : null;
+        // With the container gone too there is none to ask; the one that follows it is looked for among
         // those the page has now.
         const candidates = container ? [container] : Array.from(doc.querySelectorAll(FOLLOWS));
         let target: HTMLElement | null = null;
