@@ -44,13 +44,7 @@ internal static class UiListboxRow
             : null;
     }
 
-    // Flux's extra-small round avatar, as it measures inside an option. Ui.Avatar is not Flux's yet; when it
-    // is, this is `Ui.Avatar.Src(…).Xs.Circle`.
-    private static Component Avatar(string source, string name) =>
-        Div.Class("relative flex-none isolate flex items-center justify-center size-6 me-2 rounded-full text-xs font-medium "
-                  + "bg-zinc-200 dark:bg-zinc-600 text-zinc-800 dark:text-white "
-                  + "after:absolute after:inset-0 after:rounded-full after:inset-ring-[1px] after:inset-ring-black/7 dark:after:inset-ring-white/10")
-            .Data("ui-avatar", "")[
-            Img.Src(source).Alt(name).Class("block size-full max-w-full rounded-full")
-        ];
+    // Flux's extra-small round avatar, with the room an option leaves after it.
+    private static UiAvatar Avatar(string source, string name) =>
+        Ui.Avatar.Xs.Circle().Src(source).Name(name).Class("me-2 isolate");
 }

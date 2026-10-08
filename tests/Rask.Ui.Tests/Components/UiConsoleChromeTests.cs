@@ -12,14 +12,6 @@ namespace Rask.UiTests.Components;
 public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void The_content_column_spaces_its_sections() =>
-        Assert.Contains("flex flex-col gap-4", Ui.Main[Span["a"], Span["b"]].ToHtml(), StringComparison.Ordinal);
-
-    [Fact]
-    public void A_page_heading_leaves_the_spacing_to_the_column_it_sits_in() =>
-        Assert.DoesNotContain("mb-", Ui.Header.Title("Jobs").ToHtml(), StringComparison.Ordinal);
-
-    [Fact]
     public void Two_figures_across_stay_two_across_at_every_width()
     {
         var html = Ui.MetricRow.Columns(2)[

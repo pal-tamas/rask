@@ -21,7 +21,7 @@ public sealed partial class DaisyComponentsInTheClassListTests
     // editor's toolbar item of that name is a string literal now (a data-editor value, never a class), which
     // is all this guard can tell a written class by. The rule goes with daisyUI, as the others do.
     private static readonly string[] _knownFromProse =
-        ["badge", "calendar", "card", "collapse", "skeleton", "stat", "toast", "typography"];
+        ["card", "collapse", "skeleton", "stat", "toast", "typography"];
 
     [Fact]
     public void Every_daisy_component_in_the_class_list_is_written_by_a_kit_component()

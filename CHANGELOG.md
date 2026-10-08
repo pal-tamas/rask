@@ -34,6 +34,48 @@ them until tagged releases begin.
   carried an always-null `TenantId` in a `RaskAppDbContext` only because the base class had the property. It is
   gone, so the next migration of such an app drops those four columns (a table rebuild on SQLite). Nothing
   else changes for an existing database; a freshly created table lists `TenantId` in a different position.
+- **BREAKING: `Ui.Calendar` and `Ui.DatePicker` are Flux's calendar and date picker.** Drawn and behaving as
+  Flux UI's `flux:calendar` and `flux:date-picker` do — the grid with its outside days, today's dot, range tint and
+  hover preview, month and year selects, a today shortcut, week numbers, several months side by side, a roving
+  tab stop with arrow, page and Home/End keys; the picker's button, typed fields, presets and confirmation — on
+  the platform's own popover, with no daisyUI class. The mode is Flux's `mode`, taken as the step that opens the control, and
+  it picks the control that binds that mode's type (`DateOnly`, a collection of days, `UiDateRange`). What changed:
+  - `Ui.Calendar.Bind(() => m.DaysOff)` / `.Values(days)` → `Ui.Calendar.Multiple.Bind(() => m.DaysOff)` /
+    `Ui.Calendar.Multiple.Values(days)`; `Ui.Calendar.Bind(() => m.Stay)` / `.Value(range)` →
+    `Ui.Calendar.Range.Bind(() => m.Stay)` / `Ui.Calendar.Range.Value(range)`; `Ui.DatePicker.Bind(() => m.Stay)` →
+    `Ui.DatePicker.Range.Bind(() => m.Stay)`. No step is Flux's default, a single day, and a collection or a range
+    handed to it no longer compiles. `Ui.Calendar.Mode(Ui.CalendarMode.Range)…` takes the mode as a value, and a mode
+    that disagrees with what is bound throws when it renders. `Ui.CalendarMode`, `Ui.DatePickerMode` are new.
+  - `Ui.Calendar.Value(day).Label("Delivery")` → `Ui.Calendar.Value(day)` — a calendar has no label of its own; the
+    grid is named by its month and each day by its full date.
+  - `.Month(m).OnMonth(…)` → gone: the calendar pages itself. `.OpenTo(day)` (and `.ForceOpenTo()`) say where it opens.
+  - `.FirstDay(DayOfWeek.Monday)` → `.StartDay(DayOfWeek.Monday)`; unset, the week now starts where the LOCALE
+    starts it (it was Monday).
+  - A second click on the chosen day now clears it.
+  - A range: a click BEFORE the waiting start begins the range again from there (it used to swap the ends), and a
+    range calendar shows two months.
+  - Markup: `div[role=group][aria-label]` with `aria-pressed` buttons → `[data-ui-calendar]` holding a
+    `[role=grid]` per month, `td[role=gridcell][aria-selected][data-date]`, and one day button in the Tab order.
+  - New steps: `Unavailable`, `MinRange`/`MaxRange`, `Months`, `Size` (`.Xs` … `.Xxl`), `Navigation(false)`,
+    `Static()`, `WeekNumbers()`, `FixedWeeks()`, `SelectableHeader()`, `WithToday()`, `Locale("ja-JP")`.
+  - `Ui.DatePicker.…Hint("…")` → `.Description("…")`; `.AccessibleLabel`, `.Error`, `.Tone`, `.Variant` are gone
+    (`.Invalid()` and the form's validation remain); `.Size` now takes `Ui.DatePickerSize` and sizes the calendar.
+  - `Ui.DatePicker.Values([...])` / binding a collection (`UiDatePickerMultiple`) is gone — Flux's date picker picks
+    a day or a range; several days are `Ui.Calendar.Multiple.Values([...])`.
+  - The picker's placeholder is "Select a date" / "Select a date range" (was "Choose a date"), and it shows a
+    medium date ("Jan 20, 2026", was the short one). Its popup is a `<dialog popover>`.
+  - New on the picker: `Type(Ui.DatePickerType.Input)`, `WithPresets()` / `Presets([..])` (`Ui.DateRangePreset`),
+    `WithConfirmation()`, `Trigger(…)` with `Ui.DatePickerInput` / `Ui.DatePickerButton`, and the calendar's steps.
+  - `UiDateRange` gains `Count`, `Preset` and `UiDateRange.Of(preset, today, startDay, min)`.
+  - What Flux does in script is asked of the runtime's hooks: the grid keeps the arrows, Home, End and the paging
+    keys from the page and the browser's focus goes with the day, across a month change too
+    (`data-rask-contain-keys`, `data-rask-focus-follows`; a paging key lets the focus fall to the page, as Flux's
+    does); a typed date or time is the runtime's segments around ONE hidden field (`data-rask-segments`) — a part
+    that is full moves on, the arrows walk and step the parts — and everything in the trigger but a field opens
+    the popup (`data-rask-toggle`); the presets are a roving radio group (`data-rask-roving`); an open picker
+    holds the page still (`data-rask-lock`); an arrow on the closed date button opens it, and Enter on the closed
+    time button does nothing. A picker with no label, id or binding gets an id of its own (`f-field-<n>`).
+
 - **CI: the whole run follows every push, and every push to `main` gets its own run.** `full.yml` runs
   behind each push — one run at a time, the newest push waiting, fourteen jobs at once so a push's scoped
   run still finds runners — and hourly as the backstop, so `pages.yml` deploys a site change minutes
@@ -79,6 +121,12 @@ them until tagged releases begin.
   ```
 
 ### Added
+
+- **`Ui.TimePicker`** — Flux UI's time picker. `Ui.TimePicker.Bind(() => m.StartsAt).Label("Starts at")` binds a
+  `TimeOnly?`, a `TimeOnly`, or a collection of `TimeOnly` for several times; `Interval`, `Min`/`Max`, `Unavailable`
+  (times and `UiTimeRange` stretches), `OpenTo`, `.TwelveHour`/`.TwentyFourHour`, `Locale`, a typed trigger
+  (`.Type(Ui.TimePickerType.Input)`), `Clearable`, sizes and the field shorthand. The list is a native popover the
+  button opens.
 
 - **A user gives claims of its own.** Override `Authenticatable.Claims()` and what it returns is on the
   principal a sign-in issues, in a bearer token, and on a session each time it is loaded again — a live page
@@ -836,6 +884,72 @@ them until tagged releases begin.
   ```
   `Ui.Sidebar` still slides on daisyUI's drawer and is unchanged.
 
+- **BREAKING: the kit's navigation is Flux's — navbar, navlist, brand, profile, breadcrumbs and avatar.**
+  Eleven components take Flux UI's names, props, markup and look, measured against fluxui.dev example for
+  example in light and dark, and replace thirteen daisyUI-drawn ones. A link's words are its children now,
+  not a `Label`; rename each use, there are no aliases:
+  - `Ui.NavList` → `Ui.Navlist`, `Ui.NavItem.Label("Orders").Href(url)` → `Ui.NavlistItem.Href(url)["Orders"]`,
+    `Ui.NavGroup.Title("Catalogue")` → `Ui.NavlistGroup.Heading("Catalogue")`, `OnToggle` → `OnExpandedChange`,
+    `Ui.NavList.Outline()` → `Ui.Navlist.Variant(Ui.NavlistVariant.Outline)`; `Size`, `AccessibleLabel`, `Match`
+    and `MatchPrefix` are gone — Flux has none of them: state `Current` for an item that stands for a section.
+  - `Ui.Nav[Ui.NavTab.Label("Logs").Href(url).Active(on)]` → `Ui.Navbar[Ui.NavbarItem.Href(url).Current(on)["Logs"]]`.
+    The old three-slot `Ui.Navbar` (`Start`/`Center`/`End`) is gone: a navbar is a row of items.
+  - `BadgeTone(Ui.Tone.Primary)` → `BadgeColor(Ui.Color.Blue)`, on both items; `Badge` takes any content.
+  - `Ui.TopLink.Label("Docs").Href(url)` → `Ui.NavbarItem.Href(url)["Docs"]` (it opens in the same tab).
+  - `Ui.Brand.Label("Shop").Href(url).Icon(…)` → `Ui.Brand.Name("Shop").Href(url).Logo(…)`; `Logo` is an image's
+    address or any content, `Href` defaults to `/`, and there is no default icon.
+  - `Ui.Profile` is the button alone — `Caption` and the menu children are gone, the menu is a dropdown's:
+    `Ui.Profile.Name("Ada")[rows]` → `Ui.Dropdown[Ui.Profile.Name("Ada"), Ui.Menu[rows]]`, which makes the row
+    the menu's trigger. `Circle` is off by default, as Flux's is, and `AvatarName`, `AvatarColor`, `Initials`,
+    `IconTrailing` and `IconVariant` are new.
+  - `Ui.Breadcrumbs.Items([("Home", "/"), ("Post", null)])` →
+    `Ui.Breadcrumbs[Ui.BreadcrumbsItem.Href("/")["Home"], Ui.BreadcrumbsItem["Post"]]`.
+    `Ui.CrumbSeparator` is the item's own `Separator`; `Ui.CrumbSwitcher`, a `<select>`, has no Flux
+    counterpart — put a dropdown in a `Ui.BreadcrumbsItem`. The trail is Flux's plain `<div>`: the
+    `nav`/`aria-label="Breadcrumb"` wrapper is gone.
+  - `Ui.Avatar.Round()` → `.Circle()` (square with rounded corners unless asked), `Size(Ui.Size.Lg)` →
+    `.Lg` of `Ui.AvatarSize` (`Xs` 24, `Sm` 32, 40, `Lg` 48, `Xl` 64 — `Lg` was 64), and initials are Flux's:
+    first and LAST word, not the first two. New: `Initials`, `InitialsSingle`, `Color`, `ColorAuto`,
+    `ColorSeed`, `Icon`, `Badge*`, `Tooltip`, `As`, `Href`, and `Ui.AvatarGroup`.
+
+  The current item is still worked out from the route for a generated link, and says so with
+  `aria-current="page"` — which is what the kit's classes key on. A STRING href is an ordinary link on every
+  one of these now (`Ui.NavItem` used to route it): state `Current`, or hand it a generated route. `Ui.Color`
+  is the shared list of Tailwind's hues.
+- **BREAKING: `Ui.Header`, `Ui.Sidebar` and `Ui.Main` are Flux's layouts** — [fluxui.dev/layouts/header](https://fluxui.dev/layouts/header)
+  and [/layouts/sidebar](https://fluxui.dev/layouts/sidebar), part for part, measured against Flux's live demos
+  at desktop and phone widths, in light and dark, with the sidebar docked, narrowed to its rail and slid over
+  the page. The three are **siblings**, and whatever holds the `Ui.Main` is the layout grid. Thirteen parts:
+  `Ui.Header`, `Ui.Main`, `Ui.Sidebar`, `Ui.SidebarHeader`, `Ui.SidebarBrand`, `Ui.SidebarCollapse`,
+  `Ui.SidebarSearch`, `Ui.SidebarNav`, `Ui.SidebarItem`, `Ui.SidebarGroup`, `Ui.SidebarSpacer`,
+  `Ui.SidebarProfile`, `Ui.SidebarToggle`. Both sidebar states are checkboxes, so they work before
+  anything has loaded, and the runtime keeps them as Flux's script does: the overlay is put away on
+  navigation, and the rail is remembered under Flux's own storage key (`Persist(false)` turns that off;
+  `Ui.SidebarScript` in a WebAssembly app's head restores it before first paint). There is no `Open`,
+  `OnToggle`, `Collapsed` or `OnCollapse`: Flux has none. `Ui.SidebarProfile` is a dropdown's trigger:
+  `Ui.Dropdown[Ui.SidebarProfile.Name("Ada"), Ui.Menu[…]]`. Live at `/demo/sidebar` and `/demo/header`.
+  The daisyUI drawer frame they replace is gone:
+  - `Ui.Sidebar.Id("nav").Page(Main[Outlet]).Collapsible(Ui.Breakpoint.Lg)[…]` →
+    `[Ui.Sidebar.Collapsible(Ui.SidebarCollapsible.Mobile)[…], Ui.Main[Outlet]]` — the page is a sibling, not a
+    prop; there is no `Id` (one sidebar a page, as in Flux); `Breakpoint` is `Lg` unless stated.
+  - `.Collapsable()` → `.Collapsible(Ui.SidebarCollapsible.Always)`; `AccessibleLabel`, `CloseLabel`, `Position`
+    and `PanelClass` are gone (`Class` is the sidebar's own). The parts take Flux's props and nothing else.
+  - `Ui.SidebarToggle.For("nav").Collapsible(Ui.Breakpoint.Lg)` → `Ui.SidebarToggle` — it hides itself where the
+    sidebar docks; `Ui.SidebarCollapse.For("nav").Collapsible(…)` → `Ui.SidebarCollapse`.
+  - `Ui.SidebarFooter[…]` → `Ui.SidebarSpacer` before what goes at the bottom.
+  - `Ui.NavItem.Label("Orders").Href(url)` in a sidebar → `Ui.SidebarItem.Href(url)["Orders"]` (no `Match`/`MatchPrefix`: state `Current` where the router cannot know);
+    `Ui.NavGroup.Title("More")` → `Ui.SidebarGroup.Heading("More")`.
+  - `Ui.Shell[Ui.TopBar[…], Ui.Main[…]]` → `[Ui.Header[…], Ui.Main[…]]`. `Ui.Shell` and `Ui.TopBar` are gone; a
+    document drawn with the kit alone writes `UiStylesheet.DocumentAttribute` on its `<html>` for the reset
+    and the ground `Ui.Shell` carried (it was keyed to the class `.rask-ops`).
+  - `Ui.Main` no longer spaces its sections or paints a ground, and is a `<div>`: it is Flux's main, `p-6 lg:p-8`.
+    Write the landmark inside it — `Ui.Main[Main[Outlet]]`.
+  - **`Ui.Header` was a page heading** (`Title`, `Caption`, `Actions`, `Icon`, `TitleLevel`). That component is
+    gone: `Ui.Header.Title("Products").Actions(button)` →
+    `Div.Class("flex flex-wrap items-center gap-3")[Ui.Heading.Level(1).Size(Ui.Size.Xl)["Products"], Ui.Spacer, button]`.
+  - **The operator console (`/_rask`) is drawn on the sidebar layout**: its sections moved from a tab bar to a
+    sidebar that narrows to a rail and slides over the page on a phone.
+
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:
@@ -947,6 +1061,30 @@ them until tagged releases begin.
   gone.
 
 ### Fixed
+
+- **`Ui.SidebarItem` and `Ui.MenuItem` follow a string `Href` out of the app.** Every other kit link writes a
+  string as an ordinary link (#1070); these two always wrote a `NavLink`, so under a path base
+  `Ui.SidebarItem.Href("/reports")` came out as `/new/reports` and was routed inside the app — a sidebar could
+  not point at a page the host still serves itself, and `https://…` came out as `/newhttps://…`. A generated
+  route navigates in place as before.
+- **The tutorial builds again when it is typed in.** Chapters 2 and 3 wrote their page titles as
+  `Ui.Heading.Level(1).Size(Ui.Size.Xl)`, and Flux's heading takes its own `Ui.HeadingSize` — `Ui.Heading.Level(1).Xl`
+  — so the three pages of the Products slice stopped at CS1929. The `Rask.Ui` package readme marked its input
+  invalid with a `Tone` the Flux input does not have; it is `.Invalid(…)`.
+
+- **Three behaviour hooks, found by driving the calendar and the pickers against Flux's pages.**
+  `data-rask-focus-follows` follows a target that a render took out of the page inside the container it was in —
+  it was looked for across the whole document, so a paging key in one calendar handed the focus to another
+  calendar's tab stop. `data-rask-lock` counts a `<dialog popover>` shown as a popover as open (its `open` is
+  false), so a date picker's popup holds the page still. `data-rask-toggle` leaves a press in a text field, a
+  `<select>` or an editable element inside the toggle to that field, which is what lets a typed date's parts sit
+  inside the trigger that opens its calendar.
+- **A wasm-hosted app publishes again.** `dotnet publish` of a `rask new --template wasm-hosted` app failed with
+  NETSDK1152 on `wwwroot/js/rask-ui-editor.js`: the app is one project built twice, and both the server half and
+  its browser half wrote the editor's engine, which the publish then found twice. The browser half writes it now
+  — that is where a page mounting a `Ui.Editor` runs, and `MapRaskSpa` serves its files in a build and in a
+  publish — and the server half leaves it alone, taking out a copy an earlier build left in its `wwwroot`.
+  `<RaskUiEditorEngine>false</RaskUiEditorEngine>` in the app still keeps the file out of both.
 
 - **An interactive tooltip no longer closes when focus drops to nothing.** A `data-rask-tooltip` whose trigger carries
   `aria-expanded` stays open after `blur()` or the window losing focus, until a press outside it, as Flux UI's does.

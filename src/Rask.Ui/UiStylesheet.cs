@@ -52,6 +52,17 @@ public static class UiStylesheet
     public const string ThemeScopeAttribute = "data-rask-ui";
 
     /// <summary>
+    /// The attribute a document drawn with this kit ALONE writes on its <c>&lt;html&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    /// An application runs its own Tailwind and has its own reset and its own classes for the page's ground.
+    /// A document whose only sheet is this one — the operator console, the DevTools panel — has neither, and
+    /// cannot write a class the sheet would know. This gives it both: Tailwind's preflight, and what every Flux
+    /// layout writes by hand on the body, the sidebar and the header.
+    /// </remarks>
+    public const string DocumentAttribute = "data-rask-ui-document";
+
+    /// <summary>
     /// The compiled CSS. Empty if the sheet did not ship, which leaves a surface unstyled rather than
     /// unstartable.
     /// </summary>

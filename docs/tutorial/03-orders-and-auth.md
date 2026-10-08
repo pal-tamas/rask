@@ -106,10 +106,13 @@ Route gating stops direct navigation, but you also don't want to *show* buttons 
 login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`):
 
 ```csharp
-Ui.Header.Title("Products").Actions(
+Div.Class("flex flex-wrap items-center gap-3")[
+    Ui.Heading.Level(1).Xl["Products"],
+    Ui.Spacer,
     Authorize[                             // only rendered for signed-in users
         Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]
-    ])
+    ]
+]
 ```
 
 For role-specific bits — say a "Delete" button only admins should see — pass `Roles`. In the grid's

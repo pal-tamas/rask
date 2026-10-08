@@ -41,11 +41,13 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-app-layout']");
+        // The sidebar in the box: the two buttons above it also say "layout".
+        var box = Page.Locator("[data-testid='ui-layout-box']");
 
         // The item for this page is current without being told, and says so to assistive tech.
-        await Expect(scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Layout" }))
+        await Expect(box.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Layout", Exact = true }))
             .ToHaveAttributeAsync("aria-current", "page", new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
-        await Expect(scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Actions 5" }))
+        await Expect(box.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Actions 5" }))
             .Not.ToHaveAttributeAsync("aria-current", "page");
 
         // The spacer pushes "Sign in" to the far end of its row.
@@ -57,6 +59,51 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         // The separator has no margin of its own: the page spaces it.
         var margin = await scope.Locator("[data-ui-separator]").Last.EvaluateAsync<string>("d => getComputedStyle(d).marginTop");
         Assert.Equal("0px", margin);
+    });
+
+    [Fact]
+    public Task The_sidebar_slid_over_a_phone_is_put_away_when_the_reader_goes_somewhere() => RunAsync(async () =>
+    {
+        // Opened at a desktop width, where the sidebar is docked and its links can be pressed; then a phone's.
+        await OpenAsync();
+        await Page.SetViewportSizeAsync(390, 800);
+        var open = Page.Locator("#sidebar-open");
+        await Page.Locator("[data-ui-sidebar-toggle]").First.ClickAsync();
+        await Expect(open).ToBeCheckedAsync(new LocatorAssertionsToBeCheckedOptions { Timeout = 15_000 });
+
+        var before = Page.Url;
+        // Pressed in the page: the sidebar scrolls inside itself, and which link is in view is not the point.
+        await Page.EvaluateAsync("() => document.querySelector(\"[data-ui-sidebar] a[data-ui-sidebar-item]:not([aria-current='page'])\").click()");
+
+        await Expect(Page).Not.ToHaveURLAsync(before, new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
+        await Expect(open).Not.ToBeCheckedAsync(new LocatorAssertionsToBeCheckedOptions { Timeout = 15_000 });
+    });
+
+    [Fact]
+    public Task A_collapsed_rail_is_still_collapsed_after_a_reload_and_never_drawn_wide() => RunAsync(async () =>
+    {
+        // Reached from a page of the running app, so the runtime that stores the choice is there to hear it.
+        await OpenAsync();
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Open the sidebar layout" }).ClickAsync();
+        await Expect(Page.Locator("[data-testid='sidebar-layout-demo']")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        var rail = Page.Locator("#sidebar-rail");
+        var sidebar = Page.Locator("[data-ui-sidebar]");
+        await Page.Locator("[data-ui-sidebar-collapse] label:visible").First.ClickAsync();
+        await Expect(rail).ToBeCheckedAsync(new LocatorAssertionsToBeCheckedOptions { Timeout = 15_000 });
+        await Page.WaitForFunctionAsync("() => localStorage.getItem('flux-sidebar-collapsed-desktop') === 'true'");
+
+        // Every width the sidebar is painted at after the reload, from the first frame on: a flash would be a wide one.
+        await Page.AddInitScriptAsync(
+            "window.__widths=[];(function f(){var s=document.querySelector('[data-ui-sidebar]');"
+            + "if(s)window.__widths.push(Math.round(s.getBoundingClientRect().width));requestAnimationFrame(f);})();");
+        await Page.ReloadAsync();
+
+        await Expect(rail).ToBeCheckedAsync(new LocatorAssertionsToBeCheckedOptions { Timeout = 15_000 });
+        await Expect(sidebar).ToHaveCSSAsync("width", "56px");
+        var widths = await Page.EvaluateAsync<int[]>("() => window.__widths");
+        Assert.NotEmpty(widths);
+        Assert.All(widths, width => Assert.Equal(56, width));
     });
 
     [Fact]
@@ -94,7 +141,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
             await Page.Keyboard.PressAsync("Enter");
 
             await Expect(sideNav).ToBeInViewportAsync(new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
-            await Expect(Page.Locator("aside.side-nav[aria-label='Guides and examples']")).ToHaveCountAsync(1);
+            await Expect(Page.Locator(".side-nav nav[data-ui-sidebar-nav]")).ToHaveCountAsync(1);
         }
         finally
         {

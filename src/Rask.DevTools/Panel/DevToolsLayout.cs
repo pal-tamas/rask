@@ -34,9 +34,10 @@ internal sealed partial class DevToolsLayout : Component
             return Ui.Callout.Secondary.Heading("The Rask DevTools panel opens only in its own frame.").Text("Open it from the page's Rask pill.");
         }
 
-        return Ui.Shell[
-            Ui.TopBar[Ui.Brand.Label("Rask DevTools").Href("#")],
-            Ui.Main[Outlet]
+        return
+        [
+            Ui.Header[Ui.Brand.Name("Rask DevTools").Logo(Ui.Icon.Name(Ui.IconName.Squares2x2).Mini).Href("#")],
+            Ui.Main[Main[Outlet]]
         ];
     }
 }

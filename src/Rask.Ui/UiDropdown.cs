@@ -95,8 +95,13 @@ public sealed partial class UiDropdown : Component
 
     // What makes the caller's element the trigger. It is THEIR element, so what they put on it is kept.
     // `aria-haspopup="true"` whatever it opens, a menu or a list of links: that is what Flux writes.
-    private Component Trigger(Component trigger, bool open) =>
-        trigger is Element element ? UiInvoker.Decorate(element, PanelId, "true", open) : trigger;
+    // A trigger of the kit's own that is not an element (a profile, an item of a nav bar) wires the button it draws.
+    private Component Trigger(Component trigger, bool open) => trigger switch
+    {
+        Element element => UiInvoker.Decorate(element, PanelId, "true", open),
+        IUiTrigger own => own.Invoking(PanelId, open),
+        _ => trigger,
+    };
 
     private async Task ToggledAsync(bool open)
     {

@@ -41,7 +41,7 @@ public sealed partial class DashboardLayout(
     DashboardSecurityState security) : Component
 {
     // Enumerated once and kept: IsAvailable asks whether the battery is registered AND mapped in the EF
-    // model, and the chrome asks that question for the tab bar, the crumb and the switcher on every render.
+    // model, and the chrome asks that question for the sidebar and the switcher on every render.
     private IReadOnlyList<IQueuePanel>? _available;
 
     /// <inheritdoc />
@@ -81,62 +81,68 @@ public sealed partial class DashboardLayout(
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        // The shell carries the kit's theme scope, so it is also where daisyUI reads data-theme. Named
-        // rather than left to default: the default is "follow prefers-color-scheme", which would repaint this
-        // subtree dark. RaskDashboardShell pins the same theme on <html>; DashboardTheme is the one place the
-        // two agree.
-        Ui.Shell.Theme(DashboardTheme.Name)[
-            Ui.TopBar.Trailing(Ui.TopLink.Label("Docs").Href("https://rask.sh/docs/"))[
-                // The wordmark and the destination are the console's, not the kit's — the kit is shared
-                // with the site and the docs now, and each says its own name.
-                Ui.Brand.Label("Ops").Href(Routes.OverviewPage()),
-                QueueSeparator(),
-                QueueSwitcher()
+    [
+        // Flux's sidebar layout: the sections down the side, a header for what belongs to the page being read,
+        // the page in what is left. The three are siblings in the body, which is what makes it the grid.
+        // The grounds and the hairlines are the call site's, as in Flux's own layouts.
+        Ui.Sidebar.Sticky(true).Collapsible(Ui.SidebarCollapsible.Always)
+            .Class("border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900")[
+            Ui.SidebarHeader[
+                // The wordmark and the destination are the console's, not the kit's.
+                Ui.SidebarBrand.Name("Ops").Href(Routes.OverviewPage()),
+                Ui.SidebarCollapse
             ],
-            Ui.Nav[NavTabs()],
-            Ui.Main[
+            Ui.SidebarNav[Sections()]
+        ],
+        Ui.Header.Class("border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900")[
+            Ui.SidebarToggle.Inset(Ui.Position.Left),
+            QueueCrumbs(),
+            Ui.Spacer,
+            Ui.Navbar[Ui.NavbarItem.Href("https://rask.sh/docs/")["Docs"]]
+        ],
+        Ui.Main[
+            // The landmark: where a screen reader jumps to, and where focus goes after a navigation.
+            Main[
                 UnsecuredWarning(),
                 Outlet
-            ],
-            // Where a page's Toast.Success("Evicted …") shows: the console is a mounted app with its own
-            // document, so the host places none for it.
-            Ui.Toast
-        ];
+            ]
+        ],
+        // Where a page's Toast.Success("Evicted …") shows: the console is a mounted app with its own
+        // document, so the host places none for it.
+        Ui.Toast
+    ];
 
     // ── Chrome ──────────────────────────────────────────────────────────────────────────────────────
 
-    private IEnumerable<Component> NavTabs()
+    private IEnumerable<Component> Sections()
     {
-        yield return Tab(Routes.OverviewPage(), "Overview", exact: true);
+        yield return Section(Routes.OverviewPage(), "Overview", Ui.IconName.Home, exact: true);
 
-        // One tab for every queue. It keeps you on the queue you are already reading and otherwise lands on
+        // One item for every queue. It keeps you on the queue you are already reading and otherwise lands on
         // the first — there is no memory of a previously-viewed queue, and claiming one would be a promise
-        // this makes nowhere. A deployment with no queue batteries gets no tab at all rather than a dead
+        // this makes nowhere. A deployment with no queue batteries gets no item at all rather than a dead
         // link.
         if (Available.Count > 0)
         {
             var target = CurrentQueue() ?? Available[0];
-            yield return Tab(Routes.QueuePage(target.Slug), "Queues", exact: false, prefix: QueuesPrefix);
+            yield return Section(Routes.QueuePage(target.Slug), "Queues", Ui.IconName.QueueList, exact: false, prefix: QueuesPrefix);
         }
 
-        yield return Tab(Routes.CachePage(), "Cache", exact: false);
-        yield return Tab(Routes.StoragePage(), "Storage", exact: false);
-        yield return Tab(Routes.LogsPage(), "Logs", exact: false);
-        yield return Tab(Routes.SystemPage(), "System", exact: false);
+        yield return Section(Routes.CachePage(), "Cache", Ui.IconName.CircleStack, exact: false);
+        yield return Section(Routes.StoragePage(), "Storage", Ui.IconName.ArchiveBox, exact: false);
+        yield return Section(Routes.LogsPage(), "Logs", Ui.IconName.DocumentText, exact: false);
+        yield return Section(Routes.SystemPage(), "System", Ui.IconName.ServerStack, exact: false);
     }
 
-    // Named Tab, not NavTab: a private method named after a chain entry would shadow the entry it needs to
-    // call, and the entry is a member of this markup host rather than a type it can qualify.
-    private UiNavTab Tab(RouteUrl url, string label, bool exact, string? prefix = null) =>
-        Ui.NavTab
-            .Label(label)
+    // Stated rather than left to the router: "Queues" is current on every queue's page, whichever one it links to.
+    private Component Section(RouteUrl url, string label, Ui.IconName icon, bool exact, string? prefix = null) =>
+        Ui.SidebarItem
             .Href(url)
-            .Active(IsActive(prefix ?? url.Path, exact));
+            .Icon(icon)
+            .Tooltip(label)
+            .Current(IsActive(prefix ?? url.Path, exact))[label];
 
-    private UiCrumbSeparator? QueueSeparator() =>
-        CurrentQueue() is null ? null : Ui.CrumbSeparator;
-
-    private UiCrumbSwitcher? QueueSwitcher()
+    private Component? QueueCrumbs()
     {
         // Only while you are looking at one. Elsewhere the crumb would be asserting a scope the page below
         // it does not actually have.
@@ -145,22 +151,22 @@ public sealed partial class DashboardLayout(
             return null;
         }
 
-        return Ui.CrumbSwitcher
-            .Label("Switch queue")
-            .Value(current.Slug)
-            .Choices([.. Available.Select(q => (q.Slug, q.Title))])
-            .Icon(current.Icon)
-            .OnSelect(GoToQueueAsync);
-    }
-
-    private Task GoToQueueAsync(string slug)
-    {
-        if (Available.Any(q => string.Equals(q.Slug, slug, StringComparison.Ordinal)))
-        {
-            Go.To(Routes.QueuePage(slug).Path);
-        }
-
-        return Task.CompletedTask;
+        // Flux's breadcrumb with a dropdown in it: the trail says where you are, and its last step is the
+        // way to the queues beside this one. Links, so switching is a navigation and nothing round-trips.
+        return Ui.Breadcrumbs[
+            Ui.BreadcrumbsItem.Separator(Ui.IconName.Slash)["Queues"],
+            Ui.BreadcrumbsItem[
+                Ui.Dropdown[
+                    Ui.Button.Ghost.Sm.Icon(current.Icon).IconTrailing(Ui.IconName.ChevronUpDown)[current.Title],
+                    Ui.Navmenu[
+                        Available.Select(queue => Ui.NavmenuItem
+                            .Href(Routes.QueuePage(queue.Slug))
+                            .Key(queue.Slug)
+                            .Icon(queue.Icon)[queue.Title])
+                    ]
+                ]
+            ]
+        ];
     }
 
     // Matched against the generated URL rather than by parsing the path, so an unknown slug simply selects

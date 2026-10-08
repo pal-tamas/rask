@@ -13,5 +13,5 @@ public sealed partial class UiSpacer : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("flex-1").Aria("hidden", "true");
+        Div.Class("flex-1").Data("ui-spacer", "").Aria("hidden", "true");
 }
