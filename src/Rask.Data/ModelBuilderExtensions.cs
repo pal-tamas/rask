@@ -209,9 +209,10 @@ public static class ModelBuilderExtensions
     /// create a row because a different tenant already has it — with nothing in the code saying so.
     /// </para>
     /// <para>
-    /// <c>TenantId</c> is ignored on a table that did not ask, exactly as <c>DeletedAt</c> and
-    /// <c>Version</c> are: it is a real property on <see cref="Entity{TId}" /> so a child carries it too, and
-    /// EF Core maps a real property by its own convention whatever this does.
+    /// The column is the entity's own <c>public Guid? TenantId { get; private set; }</c> when it declares one,
+    /// and a shadow property when it does not — a child included, which is how it carries its root's answer
+    /// without saying anything. A table that did not ask is left alone: a <c>TenantId</c> it declares is an
+    /// ordinary column of its own, mapped by EF Core's convention like any other.
     /// </para>
     /// </remarks>
     private static void ApplyTenancy(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes, DbContext? context)
@@ -220,27 +221,13 @@ public static class ModelBuilderExtensions
         foreach (var entityType in entityTypes)
         {
             var clrType = entityType.ClrType;
-            if (!typeof(IEntity).IsAssignableFrom(clrType))
+            if (!typeof(IEntity).IsAssignableFrom(clrType) ||
+                ConventionRegistry.ScopeFor(clrType) != Tenancy.PerTenant)
             {
                 continue;
             }
 
             var builder = modelBuilder.Entity(clrType);
-
-            if (ConventionRegistry.ScopeFor(clrType) != Tenancy.PerTenant)
-            {
-                // Unless the entity mapped it ITSELF. Rask.Auth does: its accounts table carries an optional
-                // tenant that it manages, because a tenant-scoped row is stamped from the ambient tenant and
-                // refused without one, and an administrator legitimately has none. Ignoring it here would
-                // silently undo that — the same rule as every other convention in this file.
-                if (((IConventionEntityType)builder.Metadata).FindProperty(Columns.TenantId)
-                    ?.GetConfigurationSource() is not (ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation))
-                {
-                    builder.Ignore(Columns.TenantId);
-                }
-
-                continue;
-            }
 
             if (context is not ITenantScoped)
             {

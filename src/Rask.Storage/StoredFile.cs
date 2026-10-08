@@ -40,6 +40,9 @@ public sealed class StoredFile : Entity<Guid>
     /// <summary>Whether <see cref="IFiles.Url"/> serves the file to anyone who has the link.</summary>
     public bool Public { get; internal set; }
 
+    /// <summary>The tenant the file was saved for, or <c>null</c> for one the host itself saved.</summary>
+    public Guid? TenantId { get; private set; }
+
     /// <summary>Records a file whose bytes are already stored.</summary>
     /// <param name="id">The id the object key was built from, so the row and the bytes agree.</param>
     /// <param name="name">The safe display name.</param>
@@ -80,7 +83,7 @@ public sealed class StoredFile : Entity<Guid>
 
         // And which tenant it belongs to, for the same reason: the interceptors may not be there. Null when
         // there is none, which is an ordinary answer — a file saved by the host itself belongs to nobody.
-        file.RecordTenant(Current.Tenant);
+        file.TenantId = Current.Tenant;
         return file;
     }
 }

@@ -31,6 +31,9 @@ public sealed class PushSubscriber : Entity<Guid>
     /// <summary>The account that was signed in when the browser subscribed, when one was.</summary>
     public Guid? UserId { get; internal set; }
 
+    /// <summary>The tenant that was in flight when the browser subscribed, when one was.</summary>
+    public Guid? TenantId { get; private set; }
+
     /// <summary>When the push service will drop the subscription, when it said.</summary>
     public DateTime? ExpiresAt { get; internal set; }
 
@@ -57,6 +60,6 @@ public sealed class PushSubscriber : Entity<Guid>
         // This battery can be pointed at any DbContext, Rask interceptors or not, so the row records its own
         // time and tenant rather than hoping something else will.
         Stamp(now);
-        RecordTenant(Current.Tenant);
+        TenantId = Current.Tenant;
     }
 }

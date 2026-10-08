@@ -37,6 +37,17 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `TenantId` is the entity's own column, no longer a property of `Entity<TId>`.** A
+  `Tenancy.PerTenant` table keeps the same `TenantId` column, filter, stamp and index prefix; the column is a
+  shadow one unless the entity declares it. Migration: declare `public Guid? TenantId { get; private set; }` on
+  the entity that reads `row.TenantId`. A table that is not partitioned and declares a `TenantId` gets an
+  ordinary column. `RecordTenant` moved from `Entity<TId>` to `Authenticatable`, so a `User`'s
+  `JoinTenant(Guid tenant) => RecordTenant(tenant)` compiles unchanged; any other entity assigns its own
+  property. A declared `TenantId` is never on the generated form model or read face.
+  **Schema:** four battery tables — `CacheEntry`, `RecurringJobState`, `RaskAuthPasskey`, `RaskAuthSession` —
+  carried an always-null `TenantId` in a `RaskAppDbContext` only because the base class had the property. It is
+  gone, so the next migration of such an app drops those four columns (a table rebuild on SQLite). Nothing
+  else changes for an existing database; a freshly created table lists `TenantId` in a different position.
 - **BREAKING: `Ui.Calendar` and `Ui.DatePicker` are Flux's calendar and date picker.** Drawn and behaving as
   Flux UI's `flux:calendar` and `flux:date-picker` do — the grid with its outside days, today's dot, range tint and
   hover preview, month and year selects, a today shortcut, week numbers, several months side by side, a roving
@@ -1064,6 +1075,16 @@ them until tagged releases begin.
   gone.
 
 ### Fixed
+
+- **`Ui.SidebarItem` and `Ui.MenuItem` follow a string `Href` out of the app.** Every other kit link writes a
+  string as an ordinary link (#1070); these two always wrote a `NavLink`, so under a path base
+  `Ui.SidebarItem.Href("/reports")` came out as `/new/reports` and was routed inside the app — a sidebar could
+  not point at a page the host still serves itself, and `https://…` came out as `/newhttps://…`. A generated
+  route navigates in place as before.
+- **The tutorial builds again when it is typed in.** Chapters 2 and 3 wrote their page titles as
+  `Ui.Heading.Level(1).Size(Ui.Size.Xl)`, and Flux's heading takes its own `Ui.HeadingSize` — `Ui.Heading.Level(1).Xl`
+  — so the three pages of the Products slice stopped at CS1929. The `Rask.Ui` package readme marked its input
+  invalid with a `Tone` the Flux input does not have; it is `.Invalid(…)`.
 
 - **Three behaviour hooks, found by driving the calendar and the pickers against Flux's pages.**
   `data-rask-focus-follows` follows a target that a render took out of the page inside the container it was in —

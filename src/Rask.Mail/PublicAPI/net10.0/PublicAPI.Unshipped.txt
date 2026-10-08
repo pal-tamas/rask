@@ -117,6 +117,7 @@ Rask.Mailing.QueuedMail.QueuedMail() -> void
 Rask.Mailing.QueuedMail.ReplyTo.get -> string?
 Rask.Mailing.QueuedMail.RunAt.get -> System.DateTime
 Rask.Mailing.QueuedMail.Subject.get -> string!
+Rask.Mailing.QueuedMail.TenantId.get -> System.Guid?
 Rask.Mailing.QueuedMail.TextBody.get -> string?
 Rask.Mailing.QueuedMail.To.get -> string!
 Rask.Mailing.QueuedMail.UserId.get -> System.Guid?

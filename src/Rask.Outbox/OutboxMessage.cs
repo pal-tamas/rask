@@ -84,6 +84,16 @@ public sealed class OutboxMessage : Entity<long>
     /// </remarks>
     public Guid? UserId { get; private set; }
 
+    /// <summary>
+    /// The tenant the event was raised for — <c>Current.Tenant</c> at the time — or <c>null</c> when it
+    /// belongs to nobody.
+    /// </summary>
+    /// <remarks>
+    /// Recorded as data, not as a partition: the processor sees every tenant's events, and
+    /// re-enters this one with <c>Tenant.Use</c> before running the handler.
+    /// </remarks>
+    public Guid? TenantId { get; private set; }
+
     /// <summary>Enqueues <paramref name="payload" /> for publication.</summary>
     /// <param name="type">The event's registered type name.</param>
     /// <param name="payload">The serialized event.</param>
@@ -99,9 +109,15 @@ public sealed class OutboxMessage : Entity<long>
     /// </remarks>
     public static OutboxMessage For(string type, string payload, string handler, DateTime occurredAt)
     {
-        var message = new OutboxMessage { Type = type, Payload = payload, Handler = handler, OccurredAt = occurredAt, UserId = Current.UserId };
-        message.RecordTenant(Current.Tenant);
-        return message;
+        return new OutboxMessage
+        {
+            Type = type,
+            Payload = payload,
+            Handler = handler,
+            OccurredAt = occurredAt,
+            UserId = Current.UserId,
+            TenantId = Current.Tenant,
+        };
     }
 
     /// <summary>Records a successful publish, clearing any error from an earlier attempt.</summary>

@@ -29,6 +29,18 @@ every index it has. The default, `Tenancy.Shared`, is what a table that declares
 takes its root's answer and carries the column itself, because a child's read face is queryable on its own and
 would otherwise return every tenant's rows.
 
+The column is the framework's, so the entity does not mention it. One that wants to read its tenant declares
+the property, and Rask maps the column to it:
+
+```csharp
+public sealed class Invoice : Aggregate<Guid>
+{
+    public const Tenancy Scope = Tenancy.PerTenant;
+
+    public Guid? TenantId { get; private set; }
+}
+```
+
 **Why a `const`.** Like the other four, it is read at compile time rather than reflected over, so a trimmed
 publish cannot lose it and quietly fall back to "shared".
 
@@ -55,8 +67,8 @@ alongside.
 ### Putting a user in a tenant
 
 Rask.Auth records the tenant on the account row but does not decide it — your app does, usually when an
-invitation is accepted or a company signs up. Every entity has a protected `RecordTenant`, so your `User` can
-say what joining a tenant means, and the registration lambda sets it in the same insert:
+invitation is accepted or a company signs up. `Authenticatable` has a protected `RecordTenant`, so your `User`
+can say what joining a tenant means, and the registration lambda sets it in the same insert:
 
 ```csharp
 public sealed class User : Authenticatable
@@ -137,7 +149,7 @@ entity, so uniqueness means *within this tenant* and the filtered query can use 
 
 A create records the tenant in flight — the signed-in user's, with no `Tenant.Use` needed. An update that
 would move a row to another tenant is refused: copy the row into the other tenant instead. The column is never
-on the generated form model, so a post cannot set it. Inserting a tenant-scoped row inside `Tenant.Across()`
+on the generated form model, declared or not, so a post cannot set it. Inserting a tenant-scoped row inside `Tenant.Across()`
 is refused too, unless the row's `TenantId` is already set, because "across" names no tenant to stamp.
 
 ## The batteries

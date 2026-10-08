@@ -12,6 +12,7 @@ Rask.Background.Job.Payload.get -> string!
 Rask.Background.Job.ProcessedAt.get -> System.DateTime?
 Rask.Background.Job.Release() -> void
 Rask.Background.Job.RunAt.get -> System.DateTime
+Rask.Background.Job.TenantId.get -> System.Guid?
 Rask.Background.Job.Type.get -> string!
 Rask.Background.Job.UserId.get -> System.Guid?
 Rask.Background.JobConfiguration
