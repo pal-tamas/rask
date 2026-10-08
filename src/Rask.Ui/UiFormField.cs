@@ -383,9 +383,8 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>, IUiFi
         var floats = Label is not null && FloatsLabel;
 
         // RaskMarkup.Label, qualified: this type has a Label PROPERTY, which shadows the <label> chain entry
-        // of the same name — the "Color Color" problem. Ui.Checkbox avoids it by calling its own property
-        // Text; a form field's label should be called Label, so the entry is reached through the base that
-        // declares it instead.
+        // of the same name — the "Color Color" problem. A form field's label should be called Label, so the
+        // entry is reached through the base that declares it instead.
         //
         // A floating caption is the FIRST child and the control follows it: daisyUI positions the caption
         // over the control and raises it once the control stops showing its placeholder.

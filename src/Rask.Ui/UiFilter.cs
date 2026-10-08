@@ -13,8 +13,8 @@ namespace Rask;
 /// The group also gives a keyboard the arrow-key behaviour a row of buttons would have to reimplement.
 /// </para>
 /// <para>
-/// This is the kit's control for a whole radio GROUP, so it is the one that binds the chosen value —
-/// <see cref="UiRadio" /> is a single option and binds only its own checked state.
+/// It binds the chosen value, as <see cref="UiRadioGroup{T}" /> does: this is daisyUI's filter row, that one
+/// Flux's radio group.
 /// </para>
 /// </remarks>
 public sealed partial class UiFilter<T> : Component, IFormControl<T>

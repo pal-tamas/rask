@@ -17,11 +17,13 @@ public sealed partial class DaisyComponentsInTheClassListTests
 
     // Already in the list from a comment or an identifier when this guard was written. Each goes when its
     // word leaves the kit, or when the kit scans only what its components write; none may be added.
+    // "toggle" is the one that is not prose: the component is excluded on the plugin line with the control that
+    // drew it (Ui.Switch is Flux's), and its class is still named by a selector of the aura's, `.aura:has(>.toggle)`.
     // The "link" component left this list with the editor, and not because its rule left the sheet: the
     // editor's toolbar item of that name is a string literal now (a data-editor value, never a class), which
     // is all this guard can tell a written class by. The rule goes with daisyUI, as the others do.
     private static readonly string[] _knownFromProse =
-        ["badge", "calendar", "card", "collapse", "skeleton", "stat", "toast", "typography"];
+        ["badge", "calendar", "card", "collapse", "skeleton", "stat", "toast", "toggle", "typography"];
 
     [Fact]
     public void Every_daisy_component_in_the_class_list_is_written_by_a_kit_component()

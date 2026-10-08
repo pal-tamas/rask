@@ -89,6 +89,8 @@ const NATIVE = {
   'ui-select': 'div', 'ui-selected': 'div', 'ui-options': 'div', 'ui-option': 'div', 'ui-option-empty': 'div',
   'ui-option-create': 'div', 'ui-empty': 'div', 'ui-pillbox': 'div', 'ui-pillbox-trigger': 'div',
   'ui-selected-remove': 'div',
+  // The checkbox, radio and switch: a <label> around the real <input>, and a group that is only a box.
+  'ui-checkbox-group': 'div', 'ui-radio-group': 'div', 'ui-checkbox': 'label', 'ui-radio': 'label', 'ui-switch': 'label',
   // The modal's wrapper, and the one around a button that closes it: the kit's buttons are invoker commands.
   'ui-modal': 'div', 'ui-close': 'div',
   // The editor and its toolbar: the kit writes the roles at render (toolbar, combobox, listbox, option) and
@@ -96,6 +98,9 @@ const NATIVE = {
   // dropdown menu in a toolbar.
   'ui-editor': 'div', 'ui-editor-content': 'div', 'ui-toolbar': 'div', 'ui-menu': 'div',
 };
+// Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
+// holds the native <input> that is: one child Flux has no node for, and nothing drawn.
+const HOLDS_INPUT = new Set(['ui-checkbox', 'ui-radio', 'ui-switch']);
 // …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
 // opens the file input inside it when clicked, where Flux's <div> calls input.click().
 const NATIVE_PART = { 'input-file': 'label' };
@@ -224,7 +229,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
   const stray = (c, n) => c.tag === 'template' || (c.tag === 'path' && !['svg', 'g', 'defs', 'clippath', 'mask', 'symbol'].includes(n.tag));
   const kids = (example, n) => example.nodes.filter(c => c.parent === n.id && !stray(c, n) && !EXTRA.some(name => name in c.attrs));
   const ca = kids(theirs, a);
-  const cb = kids(mine, b);
+  const cb = kids(mine, b).filter(c => !(HOLDS_INPUT.has(a.tag) && c.tag === 'input'));
   if (ca.length !== cb.length) {
     diffs.push(`${where}: children <${ca.map(c => c.tag).join(' ')}> vs <${cb.map(c => c.tag).join(' ')}>`);
     return;
