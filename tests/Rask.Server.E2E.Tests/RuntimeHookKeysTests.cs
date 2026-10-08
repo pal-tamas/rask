@@ -165,6 +165,20 @@ public sealed class RuntimeHookKeysTests(PlaywrightFixture playwright) : IClassF
     }
 
     [Fact]
+    public async Task A_tab_stop_replaced_with_no_successor_does_not_hand_focus_to_another_containers_tab_stop()
+    {
+        await using var session = await HookSession.OpenAsync<KeysHookPage>(playwright);
+        var page = session.Page;
+
+        await page.FocusAsync("#d1");
+        await page.EvaluateAsync("() => { days.innerHTML = '<button id=n1 tabindex=0>1</button><button id=n2>2</button>'; }");
+        var paged = await page.EvaluateAsync<string>("() => new Promise(done => setTimeout(() => done(document.activeElement.id || document.activeElement.localName), 50))");
+
+        // Flux's calendar on a paging key, on a page that shows a second calendar: the focus falls to the page.
+        Assert.Equal("body", paged);
+    }
+
+    [Fact]
     public async Task A_press_on_an_element_that_keeps_focus_leaves_focus_where_it_was()
     {
         await using var session = await HookSession.OpenAsync<KeysHookPage>(playwright);
@@ -203,6 +217,7 @@ public sealed partial class KeysHookPage : Component
             <button id="prev" type="button">Previous month</button>
             <div id="days"><button id="d1" tabindex="0" data-rask-focus-target>1</button><button id="d2" tabindex="-1">2</button></div>
         </div>
+        <div id="cal2" data-rask-focus-follows><button id="e1" tabindex="0" data-rask-focus-target>1</button></div>
         <div id="area" data-rask-press-keeps-focus tabindex="-1" style="width:100px;height:100px;background:#ccc"></div>
         <div style="height:3000px"></div>
         """;

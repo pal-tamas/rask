@@ -179,6 +179,23 @@ public sealed class RuntimeHookOverlayTests(PlaywrightFixture playwright) : ICla
     }
 
     [Fact]
+    public async Task A_dialog_shown_as_a_popover_holds_the_page_still_as_any_popover_does()
+    {
+        await using var session = await HookSession.OpenAsync<OverlayHookPage>(playwright);
+        var page = session.Page;
+
+        await page.ClickAsync("#lock-dialog-open");
+        var open = await page.EvaluateAsync<string>(Lock);
+        var asDialog = await page.EvaluateAsync<bool>("() => document.getElementById('lock-dialog').open");
+        await page.Keyboard.PressAsync("Escape");
+
+        // A date picker's popup: the element is a <dialog>, the browser shows it as a popover, and `open` stays false.
+        Assert.Equal("hidden|none|stable", open);
+        Assert.False(asDialog);
+        Assert.Equal("visible|auto|auto", await page.EvaluateAsync<string>(Lock));
+    }
+
+    [Fact]
     public async Task Two_locking_overlays_are_counted_and_one_removed_while_open_lets_go_too()
     {
         await using var session = await HookSession.OpenAsync<OverlayHookPage>(playwright);
@@ -221,6 +238,8 @@ public sealed partial class OverlayHookPage : Component
           <button id="lock-inside" type="button" onclick="this.dataset.pressed='yes'">Inside</button>
         </div>
         <dialog id="lock-scroll" data-rask-lock="scroll">Modal</dialog>
+        <button id="lock-dialog-open" type="button" popovertarget="lock-dialog">Lock</button>
+        <dialog id="lock-dialog" popover data-rask-lock style="position:fixed;left:20px;top:300px;margin:0">Calendar</dialog>
         """;
 
     private bool _open;

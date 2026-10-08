@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Rask.Data;
 
 namespace Rask.Auth;
@@ -65,6 +66,38 @@ public abstract class Authenticatable : Aggregate<Guid>
         {
             Roles = [.. Roles.Where(r => !string.Equals(r, role, StringComparison.Ordinal))];
         }
+    }
+
+    /// <summary>
+    /// Claims of this user's own, carried by the principal Rask.Auth issues: on the session a cookie points at and
+    /// in a bearer token alike.
+    /// </summary>
+    /// <remarks>
+    /// Read when the user signs in and each time their session is loaded again, so a change to the row reaches a
+    /// signed-in user within the half minute a loaded session is kept. The claims Rask.Auth issues itself — the id,
+    /// the name, the address, the roles, the session and the tenant — are not this method's to give, and naming one
+    /// of them throws.
+    /// </remarks>
+    /// <returns>The extra claims; none by default.</returns>
+    protected virtual IEnumerable<Claim> Claims() => [];
+
+    // Checked here rather than where the principal is built, so sign-in and a resumed session refuse the same way.
+    internal OwnClaim[] OwnClaims()
+    {
+        var claims = new List<OwnClaim>();
+        foreach (var claim in Claims())
+        {
+            if (AuthPrincipal.Issues(claim.Type))
+            {
+                throw new InvalidOperationException(
+                    $"{GetType().Name}.{nameof(Claims)}() returned a '{claim.Type}' claim, which Rask.Auth issues itself. "
+                    + "Give roles with GrantRole, and leave the id, name, address, session and tenant to the account.");
+            }
+
+            claims.Add(new OwnClaim(claim.Type, claim.Value));
+        }
+
+        return [.. claims];
     }
 
     /// <summary>Normalizes an address the way <see cref="Email" /> stores it.</summary>

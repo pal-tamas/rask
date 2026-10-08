@@ -187,9 +187,10 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor`
-today, plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-menu.mjs dropdown|context`,
-`parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`, `parity-pillbox.mjs` and `parity-editor.mjs`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
+card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
+calendar date-picker time-picker` today, plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+`parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
+`parity-pillbox.mjs`, `parity-editor.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -205,6 +206,22 @@ today, plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `pa
   render, and it goes BEFORE the `[children]` indexer, which hands back a plain `Component`.
 - The runtime runs the CLOSEST handler of an event and no ancestor's: a cross inside a trigger needs no
   stop-propagation, and a click on a child with no handler is the trigger's.
+- **A popup `parity.mjs` itself opens**: `data-parity-open` on what a reader presses (`="hover"` to hover it).
+  `lib.mjs` presses its centre with a real pointer while that example is measured, then Escape.
+  `parity-date.mjs` marks Flux's pickers that way and files the result as the page `<slug>-open`; the Rask page
+  of that name (`DatePickerOpenParity`, `TimePickerOpenParity`) carries the same mark. It is NOT an `open.mjs`
+  config: that module compares a list of rows under a `:popover-open` popup with no pinned clock, and Flux's
+  date popup is a `<dialog open>` whose calendar opens on today. A popover the kit anchors (`position: fixed`,
+  the gap a margin) where Flux places its popup by script (`position: absolute`, insets) is held to where it
+  LANDS: for exactly that pair `position` and the four margins are not compared (`placed` in `parity.mjs`).
+- **Never drawn, never collected** (`lib.mjs`): a `<template>` and what is inside one (Flux keeps one per day of
+  a calendar — they used up the 500 nodes an example is measured to), and an `<input type="hidden">` (the one
+  bound field of a `data-rask-segments` group).
+- **Line height is copied as a RATIO** of the font size, as the docs page states it, so a node that sets its own
+  font size and no line height (the 9px number in the calendar's today icon) computes as Flux's does.
+- **Two clocks**: the measuring browser is pinned to 2026-01-15, and Flux's SERVER writes `now()` from the real
+  date. A parity example pins the first through the internal `IUiClock` (`.On(FluxClock.Today)`), takes the
+  second from `FluxClock.Now` / `FluxClock.Day(n)`, and states `.Locale("en-US")`, the browser's.
 - **The page** is the kit's sheet, then a preflight-like reset in `@layer base`. Nothing of Flux's docs
   page is hard-coded in it.
 - **Inherited context** (ink, font, size, weight, line height, letter spacing) is copied from each
@@ -456,6 +473,29 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   below every utility), `Ui.Tooltip` writes only the call site's `Class`, and `Ui.Button` / `Ui.EditorButton`
   pass `inline-flex` as Flux does. No `[:where(&)]:` was needed, and none is to be added for this.
 
+- Calendar, date picker, time picker (merged 2026-10-08). Flux's `mode` is the step that OPENS the control:
+  `Ui.Calendar.Range` / `.Multiple` and `Ui.DatePicker.Range` are C# extension properties on the generated seed
+  (`UiCalendarModes`, `UiDatePickerModes`) handing back the typed twin's seed, so a wrong pairing does not
+  compile; `Mode(value)` and the bare `Multiple()` are checked against the bound type at render. The twins are
+  reachable as entries too — `Ui.CalendarMultiple`, `Ui.CalendarRange`, `Ui.DatePickerRange` — because the
+  generator cannot hide one: to remove when it can. Every hook is wired and was driven on the published site
+  against Flux's pages (`UiKitDataInputTests`): the grid's keys and focus, the typed segments (the whole
+  trigger is the `data-rask-toggle`; the runtime leaves a press in a field to the field), the roving presets
+  (tab stop = the checked preset, or the FIRST while Custom is the checked one, with `data-active`, as Flux
+  marks it), `data-rask-lock` on both popups, `data-rask-listbox-button` on the time button, arrows opening the
+  closed date button (`data-rask-contain-keys="ArrowUp ArrowDown"` + `data-rask-popover-open`). A paging key
+  names NO focus target for its one render and the control renders once more from `OnRendered`
+  (`UiCalendarState.RenameAsync`) so the tab stop is named again — without that an arrow pressed after
+  tabbing back in moved the mark and left the focus behind. Kept, not Flux's: the popup `<dialog>` carries
+  `autofocus`, so an open date picker has the focus on the dialog where Flux leaves it on `<body>` (a
+  `<dialog popover>` would otherwise hand it to its first control). Unmeasured, no example on Flux's pages:
+  calendar sizes `Lg` / `Xxl`, every date-picker size but the default, `with-inputs`, `clearable` on the date
+  picker, the SHOWN confirmation footer, the time picker's `Sm` / `Xs` / invalid / disabled / clearable looks.
+  The today shortcut draws Heroicons' mini calendar where Flux draws a glyph of its own (1px taller window).
+  ja-JP: Flux's button reads `2026年10月20日`, which is what the kit writes (measured; the earlier note of a
+  `2026/01/20` difference did not reproduce). A typed part is EMPTY in server-rendered markup until the hooks
+  run and fill it from the hidden field.
+
 ## Runtime hooks that exist (Flux does it in script; the component writes the attribute)
 The kit ships no script but the editor's (`UiEditor.ts`, which only loads the engine). Rask's RUNTIME carries generic hooks keyed on attributes
 (`src/Rask.Core/Resources/rask-hooks.ts`, one module per concern; `docs/js-interop-runtime.md#behaviour-hooks-data-rask-`
@@ -499,7 +539,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Color picker area / hue / alpha, a custom slider | surface `data-rask-drag="x y"` (tracks: `"x"`), `data-rask-drag-inset="<half the thumb>"` when Flux keeps the thumb inside, `touch-action:none`, ONE `Input.Type(Hidden)` inside bound with `OnInput` (live) / `OnChange` (settled) to `"x y"` fractions; thumb CSS from `--rask-drag-x` / `--rask-drag-y`; NO pointer handlers in C# | the thumb under the pointer every frame; one event per frame and one on release |
 | Color picker eyedropper | button rendered `hidden` with `data-rask-requires="EyeDropper"` | shown only where the API exists (Flux hides it, it does not disable it) |
 | File upload / dropzone | `data-rask-loading` on the dropzone around the `Input.Type(File).OnFiles(…)`; CSS from `[data-loading]`, `width: var(--rask-progress)` and `content: var(--rask-progress-as-string)` | Flux's `data-loading` + percent pair; real upload progress on Server, bytes read on WASM |
-| Date picker `type="input"`, Time picker typed trigger | group `data-rask-segments`; each part `Input.Of<string>()` with `data-rask-segment="month|day|year|hour|minute|meridiem"`, a `placeholder`, NO `value`, NO handler, in the locale's order; ONE `Input.Type(Hidden)` inside bound to `yyyy-mm-dd` / `HH:mm` / both joined by `T` | every key of Flux's typed date and time; one committed value. NOT covered: keeping a click on a part from reaching a handler on the surrounding trigger — put the parts beside the element that opens the popover, not inside it |
+| Date picker `type="input"`, Time picker typed trigger | group `data-rask-segments`; each part `Input.Of<string>()` with `data-rask-segment="month|day|year|hour|minute|meridiem"`, a `placeholder`, NO `value`, NO handler, in the locale's order; ONE `Input.Type(Hidden)` inside bound to `yyyy-mm-dd` / `HH:mm` / both joined by `T` | every key of Flux's typed date and time; one committed value. The parts may sit INSIDE the element that opens the popover when that element opens it by `data-rask-toggle`: the toggle leaves a press in a field to the field (a C# `OnClick` on the trigger would not) |
 | Chart | root `data-rask-plot="<each row's x, 0–1>"`; the plot box `data-rask-plot-area`; every row's cursor / points / summary rendered once with `data-rask-plot-row="<i>"` and shown on `[data-active]`; tooltip `data-rask-plot-tooltip="<gap px>"`, `position:absolute; left:0; top:0`; for the real size, the container `data-rask-measure` with ONE bound `Input.Type(Hidden)` (`"<w> <h>"`) | active row, cursor and tooltip follow the pointer with no round trip; the chart redraws at its own box |
 | OTP | group `data-rask-otp` (`="alpha"`, `="alphanumeric"`); cells rendered with NO `value`, NO handler, NO re-keying; ONE `Input.Type(Hidden)` inside, bound to the string | every key of Flux's otp input, fast typing included |
 | Toast | `data-rask-dismiss-hold="pointer"` beside `data-rask-dismiss-after` | focus no longer holds the countdown |
@@ -598,6 +638,22 @@ unexplained. In a demo (or an app): key all of them.
 the `__fluxRest` calls. After resolving, `git diff HEAD -- scripts/flux tests/Rask.Ui.Tests/Flux/FluxParity.cs
 tests/Rask.Ui.Tests/Flux/FluxParityPages.cs tests/Rask.Ui.Tests/Flux/flux.lock.json` must be empty apart from
 what the branch ADDS; `git checkout HEAD -- <file>` puts ours back.
+
+- Calendar and date picker take Flux's `mode` as the step that OPENS them: `Ui.Calendar.Range` / `.Multiple` and
+  `Ui.DatePicker.Range` are C# extension properties on the generated seed (`UiCalendarModes`, `UiDatePickerModes`)
+  handing back the typed twin's own seed, so a wrong pairing does not compile; the twins are no longer joined by
+  `[RaskChainEntry]`, which leaves `Ui.CalendarMultiple`, `Ui.CalendarRange` and `Ui.DatePickerRange` reachable as
+  entries too (the generator has no way to hide one — to remove when it has). `Mode(value)` and the bare
+  `Multiple()` are checked against the bound type at render.
+- Calendar, date picker, time picker — waiting for a runtime hook each, none faked: containing the arrow, page
+  and Space keys inside `[role=grid]` (the page scrolls under the calendar today); scrolling an expanded
+  combobox's `aria-activedescendant` into view as the cursor moves (the time list); auto-advance, arrow
+  increments and per-keystroke normalising in the typed date and time fields; arrow keys in the date picker's
+  preset radio group; a press inside a typed segment not opening the popup. The calendar's focus move after an
+  arrow key is `ElementRef.Focus()` from `OnRendered` (`UiCalendarFocus`) and is not yet proven in a browser.
+  Not measurable on Flux's public pages, so extrapolated or `NotTranslated`: calendar sizes `Lg`/`Xxl`, every
+  date-picker size but the default, `with-inputs`, `clearable` on the date picker, the shown confirmation footer.
+  The today shortcut draws Heroicons' mini calendar where Flux draws a glyph of its own (1px taller window).
 
 ## Open work (integration stopped here on 2026-10-07 — see the integrator's report)
 - A stale `src/Rask.Site/obj/**/rask-external` folder can fail the site build after merging main

@@ -235,6 +235,14 @@
         property rather than a coincidence, for the app that adds Rask.Api to RaskClientPackageReference.
       -->
       <_RaskClientLine Include="    &lt;RaskApiClientBaked&gt;true&lt;/RaskApiClientBaked&gt;"/>
+      <!--
+        The kit's editor engine (wwwroot/js/rask-ui-editor.js) is written by THIS half and by no other: the
+        server's build leaves it alone (Rask.Ui.targets), or the publish would find it twice. So the app's one
+        switch for an editor it never draws has to cross, or it would turn nothing off. Only a Web SDK
+        server's `false` is something the app SAID — anywhere else it is the kit's own default.
+      -->
+      <_RaskClientLine Condition=" '$(RaskUiEditorEngine)' == 'false' AND '$(UsingMicrosoftNETSdkWeb)' == 'true' "
+                       Include="    &lt;RaskUiEditorEngine&gt;false&lt;/RaskUiEditorEngine&gt;"/>
       <_RaskClientLine Include="  &lt;/PropertyGroup&gt;"/>
       <_RaskClientLine Include="  &lt;ItemGroup&gt;"/>
       <_RaskClientLine Include="    &lt;CompilerVisibleProperty Include=&quot;RaskApiClientBaked&quot; /&gt;"/>

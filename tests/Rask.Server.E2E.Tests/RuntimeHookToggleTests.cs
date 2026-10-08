@@ -99,6 +99,23 @@ public sealed class RuntimeHookToggleTests(PlaywrightFixture playwright) : IClas
     }
 
     [Fact]
+    public async Task A_press_in_a_field_inside_a_toggle_puts_the_caret_there_and_one_beside_the_field_toggles()
+    {
+        await using var session = await HookSession.OpenAsync<ToggleHookPage>(playwright);
+        var page = session.Page;
+
+        await page.ClickAsync("#typed-part");
+        var afterField = await session.ShownAsync("#auto");
+        var focused = await page.EvaluateAsync<string>("() => document.activeElement.id");
+        await page.ClickAsync("#typed-room");
+
+        // Flux's typed date trigger: the fields are inside what opens the calendar, and do not open it.
+        Assert.False(afterField);
+        Assert.Equal("typed-part", focused);
+        Assert.True(await session.ShownAsync("#auto"));
+    }
+
+    [Fact]
     public async Task Every_invoker_that_carries_aria_expanded_follows_its_popover_and_one_that_does_not_never_gains_it()
     {
         await using var session = await HookSession.OpenAsync<ToggleHookPage>(playwright);
@@ -127,6 +144,7 @@ public sealed partial class ToggleHookPage : Component
         <div id="tip" popover="manual" style="inset:auto;top:100px;left:100px">Help <button id="inside" type="button">more</button></div>
         <span id="auto-trigger" tabindex="0" aria-expanded="false" data-rask-toggle="auto">auto</span>
         <div id="auto" popover style="inset:auto;top:200px;left:100px">Auto</div>
+        <div id="typed" data-rask-toggle="auto" style="display:flex;width:300px"><input id="typed-part" size="2"><span id="typed-room" style="flex:1;height:20px"></span></div>
         <button id="native" type="button" popovertarget="panel" aria-expanded="false">native</button>
         <button id="bare" type="button" popovertarget="panel">bare</button>
         <button id="command" type="button" commandfor="panel" command="toggle-popover" aria-expanded="false">command</button>

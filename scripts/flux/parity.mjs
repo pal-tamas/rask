@@ -74,6 +74,10 @@ const inherit = (document, scheme) =>
       const ordinal = seen[section] = (seen[section] ?? -1) + 1;
       const theirs = examples.find(example => example.section === section && example.ordinal === ordinal);
       for (const key of theirs ? INHERITED : []) wrapper.style[key] = theirs.nodes[0].style[key];
+      // The docs page's line height is a RATIO, so a node that sets its own font size and no line height
+      // (a 9px number in an icon) gets that ratio of it. Copied as pixels it would get the wrapper's 24px.
+      const { fontSize, lineHeight } = theirs?.nodes[0].style ?? {};
+      if (lineHeight?.endsWith('px')) wrapper.style.lineHeight = String(parseFloat(lineHeight) / parseFloat(fontSize));
     }
   }, { examples: flux[scheme], INHERITED });
 // A demo is told apart by the section it was measured under: `<h2 id>@<width>`, or its own name for the first.
@@ -133,6 +137,15 @@ const NATIVE = {
   // its engine does what Flux's elements script. `ui-menu` is the stand-in of the one example that puts a
   // dropdown menu in a toolbar.
   'ui-editor': 'div', 'ui-editor-content': 'div', 'ui-toolbar': 'div', 'ui-menu': 'div',
+  // The calendar: its month steps and its today shortcut are real buttons.
+  'ui-calendar': 'div', 'ui-calendar-months': 'div', 'ui-calendar-month': 'div', 'ui-calendar-year': 'div',
+  'ui-calendar-previous': 'button', 'ui-calendar-next': 'button', 'ui-calendar-today': 'button',
+  // The date picker: the box Flux scripts its confirming button through (as `ui-close` is around the
+  // cancelling one) is the box it leaves behind. Its presets are a `ui-radio-group` of RADIO_BUTTONs, below.
+  'ui-date-picker': 'div', 'ui-date-picker-trigger': 'div', 'ui-selected-date': 'div', 'ui-calendar-presets': 'div',
+  'ui-date-picker-select': 'div',
+  // The time picker: the list of times is a popover the browser opens.
+  'ui-time-picker': 'div', 'ui-time-picker-trigger': 'div', 'ui-selected-time': 'div', 'ui-time-picker-options': 'div',
 };
 // Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
 // holds the native <input> that is: one child Flux has no node for, and nothing drawn.
@@ -141,7 +154,10 @@ const HOLDS_INPUT = new Set(['ui-checkbox', 'ui-radio', 'ui-switch']);
 // opens the file input inside it when clicked, where Flux's <div> calls input.click().
 const NATIVE_PART = { 'input-file': 'label' };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
-const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary')
+// A <ui-radio> that is a choice among buttons, not a form's radio (a date picker's preset), is a real
+// <button role="radio">, which the runtime's roving group walks.
+const RADIO_BUTTON = (a, b) => a.tag === 'ui-radio' && b.tag === 'button' && b.attrs.role === 'radio';
+const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary') || RADIO_BUTTON(a, b)
   || (layout && (LAYOUT_NATIVE[a.tag] ?? []).includes(b.tag));
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
 // …and leaves a chart's root with no marker at all: its <ui-chart> is the chart.
@@ -149,6 +165,12 @@ const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };
 // What the kit adds to do WITHOUT script what Flux does with it: a chart's hover strips, each carrying the
 // cursor and tooltip Flux's script would move there. Flux has no such node, so there is nothing to pair it with.
 const EXTRA = ['data-ui-chart-hover'];
+// A popup is placed by script in Flux (`position: absolute` and an inset it computes) and by CSS anchor
+// positioning here (a popover in the top layer is `position: fixed`, the gap a margin). For exactly that pair,
+// how each says where the popup goes is not compared; where it ends up is — its offset from the root it
+// floats beside, like every other node's.
+const PLACEMENT = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft']);
+const placed = (a, b) => 'popover' in b.attrs && a.style.position === 'absolute' && b.style.position === 'fixed';
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
 const snapshot = JSON.parse(await readFile(join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json'), 'utf8'));
 const OWN = new Set([slug, ...(snapshot.pages.find(p => p.slug === slug)?.parts ?? [])
@@ -286,7 +308,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 
 // What one node looks like: computed styles, pseudo-elements, animations, and what each forced state changes.
 function compareLook(theirs, a, mine, b, where, diffs) {
-  compareStyles(a.style, b.style, where, diffs);
+  compareStyles(a.style, b.style, where, diffs, placed(a, b) ? PLACEMENT : undefined);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
     else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
@@ -322,9 +344,9 @@ function shown(example, node) {
   return true;
 }
 
-function compareStyles(x, y, where, diffs) {
+function compareStyles(x, y, where, diffs, unheld = undefined) {
   for (const key of STYLES) {
-    if (IGNORED.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
+    if (IGNORED.has(key) || unheld?.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }
 }

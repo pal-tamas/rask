@@ -69,6 +69,10 @@ async function measure(page, shots, layout = false) {
   const wrappers = await page.$$('[data-preview-wrapper]');
   const examples = [];
   for (const [index, wrapper] of wrappers.entries()) {
+    // A popup is closed as loaded, and the open popup is the component. An example says what opens it with
+    // `data-parity-open` on that element — a press, or "hover" — and it is open while this example is measured.
+    const opener = await wrapper.$('[data-parity-open]');
+    if (opener) await open(page, wrapper, opener);
     const example = await wrapper.evaluate(collect, { STYLES, index, layout });
     const targets = stateTargets(example.nodes, layout);
     await page.evaluate(baseline, { STYLES, targets });
@@ -93,10 +97,28 @@ async function measure(page, shots, layout = false) {
       await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
     }
 
+    if (opener) await close(page);
     examples.push(example);
   }
 
   return examples;
+}
+
+// Opened the way a reader opens it — a real pointer, at the element's centre — with the example mid-screen, so
+// the popup has the same room around it on both pages.
+async function open(page, wrapper, opener) {
+  await wrapper.evaluate(el => el.scrollIntoView({ block: 'center' }));
+  const box = await opener.boundingBox();
+  const at = [box.x + box.width / 2, box.y + box.height / 2];
+  if (await opener.getAttribute('data-parity-open') === 'hover') await page.mouse.move(...at);
+  else await page.mouse.click(...at);
+  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+}
+
+async function close(page) {
+  await page.keyboard.press('Escape');
+  await page.mouse.move(0, 0);
+  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
 }
 
 // Runs in the page. Everything in motion, put where it rests: what ends (a transition, an entrance) at
@@ -151,7 +173,13 @@ function collect(wrapper, { STYLES, index, layout }) {
   }
 
   const nodes = [];
-  const elements = [wrapper, ...wrapper.querySelectorAll('*')].slice(0, 500);
+  // What is never drawn is not collected, so it does not count towards the 500 nodes an example is measured
+  // to. A <template> and what is inside one: Flux's client-side components leave theirs in place (one per day
+  // of a calendar), and what a script stamps from it is in the tree beside it. An <input type="hidden">: the
+  // one bound field the runtime reads a group of typed segments through (data-rask-segments), where Flux's
+  // script keeps the value in the element itself.
+  const undrawn = el => el.closest('template') || (el.localName === 'input' && el.type === 'hidden');
+  const elements = [wrapper, ...wrapper.querySelectorAll('*')].filter(el => !undrawn(el)).slice(0, 500);
   elements.forEach((el, i) => {
     const id = `${index}-${i}`;
     el.setAttribute('data-m', id);

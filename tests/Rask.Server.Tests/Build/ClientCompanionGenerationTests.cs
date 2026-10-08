@@ -199,8 +199,79 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         Assert.Equal(bundle, (await Evaluate("-getProperty:_RaskClientFramework")).Trim());
     }
 
+    [Fact]
+    public async Task The_server_half_leaves_the_editors_engine_to_its_browser_app()
+    {
+        // One project, built twice, and the browser half's wwwroot is merged into the server's publish. Both
+        // halves writing wwwroot/js/rask-ui-editor.js is one relative path twice: NETSDK1152, and no
+        // wasm-hosted app publishes. The browser half owns it — the page that mounts an editor runs there,
+        // and MapRaskSpa serves that half's files in a build and in a publish alike.
+        WriteProject(clientSwitch: null, WebSdk);
+
+        var result = await Run("-t:RaskUiWriteEditor", "-v:minimal");
+        var content = Slashes(await Evaluate("-getItem:Content"));
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.False(File.Exists(Path.Combine(_dir, EditorEngine)), "the server half wrote the engine too");
+        Assert.False(File.Exists(Path.Combine(_dir, EditorNotices)), "the server half wrote the notices too");
+        Assert.DoesNotContain("rask-ui-editor", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_server_app_with_no_browser_half_writes_the_editors_engine_with_nothing_said()
+    {
+        // The control for the test above: the same fixture with its client switched off is an ordinary
+        // Server app, and that one gets the file — so the skip above is the client's doing, not the fixture's.
+        WriteProject(clientSwitch: false, WebSdk);
+
+        var result = await Run("-t:RaskUiWriteEditor", "-v:minimal");
+        var content = Slashes(await Evaluate("-getItem:Content"));
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.True(File.Exists(Path.Combine(_dir, EditorEngine)), result.Output);
+        Assert.True(File.Exists(Path.Combine(_dir, EditorNotices)), result.Output);
+        Assert.Contains(EditorEngine, content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_engine_an_earlier_build_left_in_the_server_half_is_removed_and_not_published()
+    {
+        // A build from before the server half stopped writing it left the file in the app's own wwwroot,
+        // where the Web SDK's glob finds it: published beside the browser half's, it is the collision again.
+        Write(EditorEngine, "// left by an earlier build");
+        Write(EditorNotices, "left by an earlier build");
+        WriteProject(clientSwitch: null, WebSdk);
+
+        var content = Slashes(await Evaluate("-getItem:Content"));
+        var result = await Run("-t:RaskUiLeaveEditorToClient", "-v:minimal");
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.DoesNotContain("rask-ui-editor", content, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(_dir, EditorEngine)));
+        Assert.False(File.Exists(Path.Combine(_dir, EditorNotices)));
+    }
+
+    [Fact]
+    public async Task The_browser_app_writes_the_editors_engine_unless_the_app_said_it_draws_none()
+    {
+        WriteProject(clientSwitch: null, WebSdk);
+        var unsaid = await Generate();
+
+        WriteProject(clientSwitch: null, WebSdk, editorEngine: false);
+        var optedOut = await Generate();
+
+        // Nothing said: the browser half is a WebAssembly SDK app, which gets the engine by default.
+        Assert.DoesNotContain("RaskUiEditorEngine", unsaid, StringComparison.Ordinal);
+        // The app's one switch has to reach the half that does the writing, or it would turn nothing off.
+        Assert.Contains("<RaskUiEditorEngine>false</RaskUiEditorEngine>", optedOut, StringComparison.Ordinal);
+    }
+
     [GeneratedRegex("<Compile Include=\"(?<path>[^\"]*\\*\\*[^\"]*)\" />")]
     private static partial Regex CompileGlob();
+
+    private const string WebSdk = "Microsoft.NET.Sdk.Web";
+    private const string EditorEngine = "wwwroot/js/rask-ui-editor.js";
+    private const string EditorNotices = "wwwroot/js/rask-ui-editor.LICENSES.txt";
 
     private void Write(string relative, string content)
     {
@@ -209,14 +280,17 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         File.WriteAllText(full, content);
     }
 
-    private void WriteProject(bool? clientSwitch) =>
+    // The kit's targets are imported as its package would import them, and the kit is "referenced" by name
+    // only: nothing here compiles, so the reference is never resolved.
+    private void WriteProject(bool? clientSwitch, string sdk = "Microsoft.NET.Sdk", bool? editorEngine = null) =>
         Write("App.csproj", $"""
-            <Project Sdk="Microsoft.NET.Sdk">
+            <Project Sdk="{sdk}">
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
                 <RootNamespace>Fixture</RootNamespace>
                 <RaskClientCompanionSrc>{SrcDir}</RaskClientCompanionSrc>
                 {(clientSwitch is { } on ? $"<RaskClient>{on.ToString().ToLowerInvariant()}</RaskClient>" : "")}
+                {(editorEngine is { } engine ? $"<RaskUiEditorEngine>{engine.ToString().ToLowerInvariant()}</RaskUiEditorEngine>" : "")}
               </PropertyGroup>
               <ItemGroup>
                 <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="9.9.9"/>
@@ -225,8 +299,10 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
                 <RaskClientUsing Include="Fixture.Statics" Static="true"/>
                 <!-- Stands in for what a referenced package's build/*.props injects. It must NOT cross. -->
                 <Using Include="Fixture.InjectedByAPackage"/>
+                <ProjectReference Include="{Path.Combine(SrcDir, "Rask.Ui", "Rask.Ui.csproj")}"/>
               </ItemGroup>
               <Import Project="{Path.Combine(SrcDir, "Rask.Server", "build", "Rask.Server.Client.targets")}"/>
+              <Import Project="{Path.Combine(SrcDir, "Rask.Ui", "build", "Rask.Ui.targets")}"/>
             </Project>
             """);
 

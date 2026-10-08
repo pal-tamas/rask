@@ -23,6 +23,48 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Calendar` and `Ui.DatePicker` are Flux's calendar and date picker.** Drawn and behaving as
+  Flux UI's `flux:calendar` and `flux:date-picker` do — the grid with its outside days, today's dot, range tint and
+  hover preview, month and year selects, a today shortcut, week numbers, several months side by side, a roving
+  tab stop with arrow, page and Home/End keys; the picker's button, typed fields, presets and confirmation — on
+  the platform's own popover, with no daisyUI class. The mode is Flux's `mode`, taken as the step that opens the control, and
+  it picks the control that binds that mode's type (`DateOnly`, a collection of days, `UiDateRange`). What changed:
+  - `Ui.Calendar.Bind(() => m.DaysOff)` / `.Values(days)` → `Ui.Calendar.Multiple.Bind(() => m.DaysOff)` /
+    `Ui.Calendar.Multiple.Values(days)`; `Ui.Calendar.Bind(() => m.Stay)` / `.Value(range)` →
+    `Ui.Calendar.Range.Bind(() => m.Stay)` / `Ui.Calendar.Range.Value(range)`; `Ui.DatePicker.Bind(() => m.Stay)` →
+    `Ui.DatePicker.Range.Bind(() => m.Stay)`. No step is Flux's default, a single day, and a collection or a range
+    handed to it no longer compiles. `Ui.Calendar.Mode(Ui.CalendarMode.Range)…` takes the mode as a value, and a mode
+    that disagrees with what is bound throws when it renders. `Ui.CalendarMode`, `Ui.DatePickerMode` are new.
+  - `Ui.Calendar.Value(day).Label("Delivery")` → `Ui.Calendar.Value(day)` — a calendar has no label of its own; the
+    grid is named by its month and each day by its full date.
+  - `.Month(m).OnMonth(…)` → gone: the calendar pages itself. `.OpenTo(day)` (and `.ForceOpenTo()`) say where it opens.
+  - `.FirstDay(DayOfWeek.Monday)` → `.StartDay(DayOfWeek.Monday)`; unset, the week now starts where the LOCALE
+    starts it (it was Monday).
+  - A second click on the chosen day now clears it.
+  - A range: a click BEFORE the waiting start begins the range again from there (it used to swap the ends), and a
+    range calendar shows two months.
+  - Markup: `div[role=group][aria-label]` with `aria-pressed` buttons → `[data-ui-calendar]` holding a
+    `[role=grid]` per month, `td[role=gridcell][aria-selected][data-date]`, and one day button in the Tab order.
+  - New steps: `Unavailable`, `MinRange`/`MaxRange`, `Months`, `Size` (`.Xs` … `.Xxl`), `Navigation(false)`,
+    `Static()`, `WeekNumbers()`, `FixedWeeks()`, `SelectableHeader()`, `WithToday()`, `Locale("ja-JP")`.
+  - `Ui.DatePicker.…Hint("…")` → `.Description("…")`; `.AccessibleLabel`, `.Error`, `.Tone`, `.Variant` are gone
+    (`.Invalid()` and the form's validation remain); `.Size` now takes `Ui.DatePickerSize` and sizes the calendar.
+  - `Ui.DatePicker.Values([...])` / binding a collection (`UiDatePickerMultiple`) is gone — Flux's date picker picks
+    a day or a range; several days are `Ui.Calendar.Multiple.Values([...])`.
+  - The picker's placeholder is "Select a date" / "Select a date range" (was "Choose a date"), and it shows a
+    medium date ("Jan 20, 2026", was the short one). Its popup is a `<dialog popover>`.
+  - New on the picker: `Type(Ui.DatePickerType.Input)`, `WithPresets()` / `Presets([..])` (`Ui.DateRangePreset`),
+    `WithConfirmation()`, `Trigger(…)` with `Ui.DatePickerInput` / `Ui.DatePickerButton`, and the calendar's steps.
+  - `UiDateRange` gains `Count`, `Preset` and `UiDateRange.Of(preset, today, startDay, min)`.
+  - What Flux does in script is asked of the runtime's hooks: the grid keeps the arrows, Home, End and the paging
+    keys from the page and the browser's focus goes with the day, across a month change too
+    (`data-rask-contain-keys`, `data-rask-focus-follows`; a paging key lets the focus fall to the page, as Flux's
+    does); a typed date or time is the runtime's segments around ONE hidden field (`data-rask-segments`) — a part
+    that is full moves on, the arrows walk and step the parts — and everything in the trigger but a field opens
+    the popup (`data-rask-toggle`); the presets are a roving radio group (`data-rask-roving`); an open picker
+    holds the page still (`data-rask-lock`); an arrow on the closed date button opens it, and Enter on the closed
+    time button does nothing. A picker with no label, id or binding gets an id of its own (`f-field-<n>`).
+
 - **CI: the whole run follows every push, and every push to `main` gets its own run.** `full.yml` runs
   behind each push — one run at a time, the newest push waiting, fourteen jobs at once so a push's scoped
   run still finds runners — and hourly as the backstop, so `pages.yml` deploys a site change minutes
@@ -69,6 +111,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.TimePicker`** — Flux UI's time picker. `Ui.TimePicker.Bind(() => m.StartsAt).Label("Starts at")` binds a
+  `TimeOnly?`, a `TimeOnly`, or a collection of `TimeOnly` for several times; `Interval`, `Min`/`Max`, `Unavailable`
+  (times and `UiTimeRange` stretches), `OpenTo`, `.TwelveHour`/`.TwentyFourHour`, `Locale`, a typed trigger
+  (`.Type(Ui.TimePickerType.Input)`), `Clearable`, sizes and the field shorthand. The list is a native popover the
+  button opens.
+
+- **A user gives claims of its own.** Override `Authenticatable.Claims()` and what it returns is on the
+  principal a sign-in issues, in a bearer token, and on a session each time it is loaded again — a live page
+  keeps them across a reconnect (#1230). The claims the account issues itself (id, name, address, roles,
+  session, tenant) are refused.
 - **`Rask:SqlServer:SplitQueries`.** Loads several included collections as one statement each instead of one
   join, for every context that reads the section — the app's own and the one behind the generated read faces
   (#1231). Off by default, as in EF Core; `AsSplitQuery()` still chooses per query.
@@ -998,6 +1050,20 @@ them until tagged releases begin.
   gone.
 
 ### Fixed
+
+- **Three behaviour hooks, found by driving the calendar and the pickers against Flux's pages.**
+  `data-rask-focus-follows` follows a target that a render took out of the page inside the container it was in —
+  it was looked for across the whole document, so a paging key in one calendar handed the focus to another
+  calendar's tab stop. `data-rask-lock` counts a `<dialog popover>` shown as a popover as open (its `open` is
+  false), so a date picker's popup holds the page still. `data-rask-toggle` leaves a press in a text field, a
+  `<select>` or an editable element inside the toggle to that field, which is what lets a typed date's parts sit
+  inside the trigger that opens its calendar.
+- **A wasm-hosted app publishes again.** `dotnet publish` of a `rask new --template wasm-hosted` app failed with
+  NETSDK1152 on `wwwroot/js/rask-ui-editor.js`: the app is one project built twice, and both the server half and
+  its browser half wrote the editor's engine, which the publish then found twice. The browser half writes it now
+  — that is where a page mounting a `Ui.Editor` runs, and `MapRaskSpa` serves its files in a build and in a
+  publish — and the server half leaves it alone, taking out a copy an earlier build left in its `wwwroot`.
+  `<RaskUiEditorEngine>false</RaskUiEditorEngine>` in the app still keeps the file out of both.
 
 - **An interactive tooltip no longer closes when focus drops to nothing.** A `data-rask-tooltip` whose trigger carries
   `aria-expanded` stays open after `blur()` or the window losing focus, until a press outside it, as Flux UI's does.
