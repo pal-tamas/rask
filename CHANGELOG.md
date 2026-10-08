@@ -117,6 +117,13 @@ them until tagged releases begin.
   (`.Type(Ui.TimePickerType.Input)`), `Clearable`, sizes and the field shorthand. The list is a native popover the
   button opens.
 
+- **A user gives claims of its own.** Override `Authenticatable.Claims()` and what it returns is on the
+  principal a sign-in issues, in a bearer token, and on a session each time it is loaded again — a live page
+  keeps them across a reconnect (#1230). The claims the account issues itself (id, name, address, roles,
+  session, tenant) are refused.
+- **`Rask:SqlServer:SplitQueries`.** Loads several included collections as one statement each instead of one
+  join, for every context that reads the section — the app's own and the one behind the generated read faces
+  (#1231). Off by default, as in EF Core; `AsSplitQuery()` still chooses per query.
 - **Runtime hooks for a widget's keys, focus and popovers (`data-rask-*`, round two).** `data-rask-contain-keys="Arrows
   Home End …"` cancels the browser's default for the keys a widget handles itself (the page no longer scrolls behind a
   calendar; `data-rask-listbox-button` is now one such list); `data-rask-roving` walks a `[role=radiogroup]` of

@@ -281,6 +281,7 @@ static Rask.Auth.AuthUser.Reset() -> void
 static Rask.Auth.AuthUser.Type.get -> System.Type?
 static Rask.Auth.AuthUser.Use<TUser>() -> void
 static Rask.Auth.Authenticatable.NormalizeEmail(string! email) -> string!
+virtual Rask.Auth.Authenticatable.Claims() -> System.Collections.Generic.IEnumerable<System.Security.Claims.Claim!>!
 static Rask.Auth.EmailConfirmed.operator !=(Rask.Auth.EmailConfirmed? left, Rask.Auth.EmailConfirmed? right) -> bool
 static Rask.Auth.EmailConfirmed.operator ==(Rask.Auth.EmailConfirmed? left, Rask.Auth.EmailConfirmed? right) -> bool
 static Rask.Auth.PasskeyAdded.operator !=(Rask.Auth.PasskeyAdded? left, Rask.Auth.PasskeyAdded? right) -> bool

@@ -1772,7 +1772,9 @@ ceiling on a runaway query is the client `CommandTimeout` (30s). On every connec
 `SET XACT_ABORT ON` — so a run-time error rolls the whole transaction back instead of leaving it open with its
 locks — and `SET LOCK_TIMEOUT` (10s, below the command timeout, so lock contention is not reported as a slow
 query). Those go as one batch per open: SQL Server takes no session settings in the connection string, and
-SqlClient resets them on every pooled open. Retrying (`Retry`) is SQL Server's own strategy. Each is
+SqlClient resets them on every pooled open. Retrying (`Retry`) is SQL Server's own strategy. `SplitQueries`
+loads several included collections as one statement each rather than one join — for every context that reads
+the section, the generated read faces among them; a single query still picks with `AsSplitQuery()`. Each is
 `Rask:SqlServer` in `appsettings.json` (`"LockTimeout": "00:00:03"`, `"Retry": { "MaxCount": 3 }`); a callback —
 `UseRaskSqlServer(sp, s => …)` — runs after the section and wins.
 
