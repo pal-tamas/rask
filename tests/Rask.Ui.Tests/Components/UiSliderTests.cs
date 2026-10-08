@@ -280,6 +280,17 @@ public partial class UiSliderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Two_sliders_with_no_id_or_binding_do_not_share_one()
+    {
+        var html = Div[Ui.Slider.Value(1), Ui.Slider.Value(2)].ToHtml();
+
+        var ids = Inputs(html).Select(input => System.Text.RegularExpressions.Regex.Match(input, " id=\"(f-field-\\d+)\"").Groups[1].Value).ToList();
+
+        Assert.Equal(2, ids.Distinct(StringComparer.Ordinal).Count());
+        Assert.DoesNotContain("", ids);
+    }
+
+    [Fact]
     public void A_big_step_is_handed_to_the_runtime_on_the_input()
     {
         var html = Ui.Slider.Value(500).Max(1000).Step(1).BigStep(100).ToHtml();

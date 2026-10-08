@@ -27,6 +27,8 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormControl
 {
+    private string? _ownId;
+
     /// <summary>Two thumbs, over an array of two numbers.</summary>
     public bool? Range { get; set; }
 
@@ -87,7 +89,9 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<T> AfterBind { get; set; }
 
-    string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Bind, null);
+    string IUiFieldControl.ControlId => Id is null && Bind is null
+        ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
+        : UiFieldId.Derive(Id, Bind, null);
 
     // Flux's slider takes no label of its own: its examples put it inside a flux:field.
     string? IUiFormControl.Label => null;

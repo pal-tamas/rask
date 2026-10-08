@@ -30,6 +30,7 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
     // What the hidden field last reported, as it was typed. It is rendered back unchanged while it still spells
     // the code: the runtime tells its own value coming back from a new one by the exact text.
     private string? _typed;
+    private string? _ownId;
 
     /// <inheritdoc cref="IUiFormControl.Label" />
     public string? Label { get; set; }
@@ -82,7 +83,9 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
     /// <summary>Runs with the code when its last cell is filled.</summary>
     public Callback<string> OnComplete { get; set; }
 
-    string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Bind, Label);
+    string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
+        ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
+        : UiFieldId.Derive(Id, Bind, Label);
 
     string? IUiFormControl.Description => null;
 
