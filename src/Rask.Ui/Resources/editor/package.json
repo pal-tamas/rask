@@ -7,20 +7,20 @@
     "build": "node build.mjs"
   },
   "dependencies": {
-    "@tiptap/core": "2.11.7",
-    "@tiptap/extension-highlight": "2.11.7",
-    "@tiptap/extension-link": "2.11.7",
-    "@tiptap/extension-placeholder": "2.11.7",
-    "@tiptap/extension-subscript": "2.11.7",
-    "@tiptap/extension-superscript": "2.11.7",
-    "@tiptap/extension-table": "2.11.7",
-    "@tiptap/extension-table-cell": "2.11.7",
-    "@tiptap/extension-table-header": "2.11.7",
-    "@tiptap/extension-table-row": "2.11.7",
-    "@tiptap/extension-text-align": "2.11.7",
-    "@tiptap/extension-underline": "2.11.7",
+    "@tiptap/core": "3.31.4",
+    "@tiptap/extension-highlight": "3.31.4",
+    "@tiptap/extension-link": "3.31.4",
+    "@tiptap/extension-placeholder": "3.31.4",
+    "@tiptap/extension-subscript": "3.31.4",
+    "@tiptap/extension-superscript": "3.31.4",
+    "@tiptap/extension-table": "3.31.4",
+    "@tiptap/extension-table-cell": "3.31.4",
+    "@tiptap/extension-table-header": "3.31.4",
+    "@tiptap/extension-table-row": "3.31.4",
+    "@tiptap/extension-text-align": "3.31.4",
+    "@tiptap/extension-underline": "3.31.4",
     "@tiptap/pm": "2.11.7",
-    "@tiptap/starter-kit": "2.11.7"
+    "@tiptap/starter-kit": "3.31.4"
   },
   "devDependencies": {
     "esbuild": "0.28.2"
