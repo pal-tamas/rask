@@ -207,6 +207,116 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(code.Locator("pre[data-prefix='$']")).ToHaveCountAsync(2);
     });
 
+    [Fact]
+    public Task A_collapsed_rail_says_an_items_label_in_a_tooltip_beside_it_and_a_wide_sidebar_does_not() => RunAsync(async () =>
+    {
+        await OpenSidebarDemoAsync();
+        var tooltip = Page.Locator("[data-ui-sidebar-nav] > [data-ui-tooltip]").Nth(1);
+        var item = tooltip.Locator("a[data-ui-sidebar-item]");
+        var bubble = tooltip.Locator("[data-ui-tooltip-content]");
+
+        await item.HoverAsync();
+        await Expect(bubble).ToBeHiddenAsync();
+        await Page.Locator("[data-ui-sidebar-collapse] label:visible").First.ClickAsync();
+        await Expect(Page.Locator("[data-ui-sidebar]")).ToHaveCSSAsync("width", "56px");
+        await Page.Mouse.MoveAsync(900, 500);
+        await item.HoverAsync();
+
+        await Expect(bubble).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Expect(bubble).ToHaveTextAsync("Header layout");
+        await Expect(item).ToHaveAttributeAsync("aria-describedby", await bubble.GetAttributeAsync("id") ?? "");
+        var (link, tip) = ((await item.BoundingBoxAsync())!, (await bubble.BoundingBoxAsync())!);
+        Assert.Equal(link.X + link.Width + 5, tip.X, 1.0);
+        Assert.Equal(link.Y + (link.Height / 2), tip.Y + (tip.Height / 2), 1.0);
+    });
+
+    [Fact]
+    public Task A_group_in_the_rail_opens_its_items_as_a_menu_under_the_pointer_and_from_the_keyboard() => RunAsync(async () =>
+    {
+        await OpenSidebarDemoAsync();
+        var group = Page.Locator("[data-ui-sidebar-group-dropdown]");
+        var button = group.Locator("> button");
+        var menu = group.Locator("[role='menu']");
+        await Expect(button).ToBeHiddenAsync();
+        await Page.Locator("[data-ui-sidebar-collapse] label:visible").First.ClickAsync();
+        await Expect(Page.Locator("[data-ui-sidebar]")).ToHaveCSSAsync("width", "56px");
+        await Page.Mouse.MoveAsync(900, 500);
+
+        // The pointer: open while it is on the icon or the menu, shut once it is on neither.
+        var icon = (await button.BoundingBoxAsync())!;
+        await Page.Mouse.MoveAsync(icon.X + (icon.Width / 2), icon.Y + (icon.Height / 2), new MouseMoveOptions { Steps = 4 });
+        await Expect(menu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Expect(menu.GetByRole(AriaRole.Menuitem)).ToHaveTextAsync(["Actions", "Navigation"]);
+        await Expect(menu.Locator("[data-ui-menu-heading]")).ToHaveTextAsync("Favorites");
+        var panel = (await menu.BoundingBoxAsync())!;
+        Assert.Equal(icon.X + icon.Width + 5, panel.X, 1.0);
+        Assert.Equal(icon.Y, panel.Y, 1.0);
+        await Page.Mouse.MoveAsync(panel.X + 40, icon.Y + (icon.Height / 2));
+        await Expect(menu).ToBeVisibleAsync();
+        await Page.Mouse.MoveAsync(900, 500);
+        await Expect(menu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 15_000 });
+
+        // The keyboard: Enter opens it, the arrows walk its rows, Escape hands the focus back to the icon.
+        await button.FocusAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(menu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await Expect(menu.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Actions" })).ToBeFocusedAsync(
+            new LocatorAssertionsToBeFocusedOptions { Timeout = 15_000 });
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(menu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 15_000 });
+        await Expect(button).ToBeFocusedAsync();
+
+        // A row is the group's own link: picking it goes there.
+        await Page.Keyboard.PressAsync("Enter");
+        await menu.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Navigation" }).ClickAsync();
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Navigation",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+    });
+
+    [Fact]
+    public Task A_press_on_the_collapse_control_before_the_hooks_have_loaded_is_remembered() => RunAsync(async () =>
+    {
+        // A cold load of the page itself, with the runtime held back — and the hook bundle with it, which the
+        // runtime is what asks for: the gap in which the prerendered page can be pressed and nothing but the
+        // head script is there to hear it.
+        var release = new TaskCompletionSource();
+        var asked = new TaskCompletionSource();
+        await Page.RouteAsync("**/main.js*", async route =>
+        {
+            asked.TrySetResult();
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        // The held script holds the load event too, so the navigation is over once the document is.
+        await Page.GotoAsync($"{BaseUrl}/demo/sidebar", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
+        var rail = Page.Locator("#sidebar-rail");
+        var control = Page.Locator("[data-ui-sidebar-collapse] label:visible").First;
+        await Expect(control).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await control.ClickAsync();
+        await Expect(rail).ToBeCheckedAsync();
+        var stored = await Page.EvaluateAsync<string?>("() => localStorage.getItem('flux-sidebar-collapsed-desktop')");
+        release.SetResult();
+        // The runtime was asked for and held, or this proved nothing.
+        await asked.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        Assert.Equal("true", stored);
+        await Expect(rail).ToBeCheckedAsync();
+        await Expect(Page.Locator("[data-ui-sidebar]")).ToHaveCSSAsync("width", "56px");
+    });
+
+    // The sidebar layout as a page of its own, reached from the docs so the app is running when it opens.
+    private async Task OpenSidebarDemoAsync()
+    {
+        await OpenAsync();
+        await Page.EvaluateAsync("() => localStorage.removeItem('flux-sidebar-collapsed-desktop')");
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Open the sidebar layout" }).ClickAsync();
+        await Expect(Page.Locator("[data-testid='sidebar-layout-demo']")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+    }
+
     private async Task OpenAsync()
     {
         await Page.GotoAsync(Docs);

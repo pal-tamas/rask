@@ -58,8 +58,7 @@ public sealed partial class UiNavlistItem : Component
         Component?[] content =
         [
             Icon is { } icon ? Div.Class("relative")[Ui.Icon.Name(icon).Class("size-4")] : null,
-            // ui-rail-hide: a collapsed sidebar keeps the icon and drops the words.
-            Div.Class("ui-rail-hide flex-1 whitespace-nowrap text-sm leading-none font-medium")
+            Div.Class("flex-1 whitespace-nowrap text-sm leading-none font-medium")
                 .Attributes(("data-content", null))[Children ?? []],
             Badge is { } badge ? UiNavItemMarkup.Badge(badge, BadgeColor, BadgeVariant, "", marked: true) : null,
         ];

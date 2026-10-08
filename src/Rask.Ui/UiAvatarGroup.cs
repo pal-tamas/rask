@@ -15,5 +15,6 @@ public sealed partial class UiAvatarGroup : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("isolate flex *:ring-4 *:ring-white *:not-first:-ms-2 dark:*:ring-zinc-900", Class)[Children ?? []];
+        // Measured in Flux's kanban card: the smallest avatars are ringed half as wide.
+        Div.Class("isolate flex *:ring-4 *:ring-white *:not-first:-ms-2 *:data-[size=xs]:ring-2 dark:*:ring-zinc-900", Class)[Children ?? []];
 }

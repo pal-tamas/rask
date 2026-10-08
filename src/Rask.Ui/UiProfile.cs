@@ -75,11 +75,11 @@ public sealed partial class UiProfile : Component, IUiTrigger
         return (_invoked is { } invoked ? invoked.On(button) : button)[
             Div.Class("shrink-0")[Face()],
             Name is { } name
-                ? Span.Class("ui-rail-hide mx-2 truncate text-sm font-medium text-zinc-500 group-hover:text-zinc-800 dark:text-white/80 dark:group-hover:text-white")[name]
+                ? Span.Class("mx-2 truncate text-sm font-medium text-zinc-500 group-hover:text-zinc-800 dark:text-white/80 dark:group-hover:text-white")[name]
                 : null,
             Chevron == false && IconTrailing is null
                 ? null
-                : Div.Class("ui-rail-hide ms-auto flex size-8 shrink-0 items-center justify-center")[
+                : Div.Class("ms-auto flex size-8 shrink-0 items-center justify-center")[
                     Ui.Icon.Name(IconTrailing ?? Ui.IconName.ChevronDown).Variant(IconVariant ?? Ui.IconVariant.Micro).Class(Ink)
                 ]
         ];

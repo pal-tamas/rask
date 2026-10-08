@@ -1075,9 +1075,11 @@ them until tagged releases begin.
   press in that gap changed the box and stored nothing, and the hook, arriving, put the sidebar back to what the
   last visit had left. `Ui.SidebarScript` — the head script that restores the rail before first paint — now
   records the change too, under the same key and in the same words.
+- **Grouped `Xs` avatars are ringed 2px**, as Flux rings them (measured in its kanban card); every other
+  size keeps the 4px ring.
 - **A `Ui.NavmenuItem` given a string is an ordinary link.** It was always a `NavLink`, so a string `Href` was
   routed inside the app and given the deploy's path base; like every other kit link, only a generated route is
-  now (#1070). A menu opened from greyed text (a breadcrumb) is black on white — white on zinc-700 in dark —
+  now (#1070), and the plain link carries no click handler, which would keep the browser from following it. A menu opened from greyed text (a breadcrumb) is black on white — white on zinc-700 in dark —
   as Flux's is, where it took the grey of what it hung from.
 
 - **Three behaviour hooks, found by driving the calendar and the pickers against Flux's pages.**

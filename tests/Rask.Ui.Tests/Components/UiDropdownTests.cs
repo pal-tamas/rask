@@ -388,4 +388,14 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
         Assert.Contains("dark:text-white", html, StringComparison.Ordinal);
         Assert.DoesNotContain("text-inherit", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_navmenu_link_given_a_string_carries_no_click_handler_so_the_browser_follows_it()
+    {
+        var html = Ui.Navmenu[Ui.NavmenuItem.Href("https://status.example.test").OnClick(() => { })["Status"]].ToHtml().AsText();
+
+        Assert.Contains("href=\"https://status.example.test\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-click", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-nav", html, StringComparison.Ordinal);
+    }
 }

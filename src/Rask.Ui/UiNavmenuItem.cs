@@ -15,7 +15,7 @@ public sealed partial class UiNavmenuItem : Component
     /// <summary>Where the link leads. Without one the row is a button.</summary>
     public RouteUrl? Href { get; set; }
 
-    /// <summary>Runs when the row is pressed.</summary>
+    /// <summary>Runs when the row is pressed. Not for a string <see cref="Href" />: that row is the browser's link.</summary>
     public Callback OnClick { get; set; }
 
     /// <summary>An icon at the start of the row.</summary>
@@ -47,10 +47,11 @@ public sealed partial class UiNavmenuItem : Component
 
         // A STRING is an ordinary link, written exactly as given with no path base added (#1070): only a
         // generated route is routed inside the app.
+        // It carries no handler: the runtime keeps the click of an element that has one, and the browser
+        // would never follow the link.
         if (href.PageType is null)
         {
-            var plain = A.Href(href.ToString()).Class(classes);
-            return OnClick.HasValue ? plain.OnClick(OnClick) : plain;
+            return A.Href(href.ToString()).Class(classes);
         }
 
         var link = NavLink.Href(href).ActiveClass("").Class(classes);
