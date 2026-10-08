@@ -167,24 +167,24 @@ public sealed partial class UiKitDataInputDemo : Component
                 Slide(1).Key("step").Min(0).Max(100).Step(10),
                 Ui.Field.Key("value")[
                     Ui.Label.Trailing(Span.Class("tabular-nums").Data(Testid("ui-slider-value"))[Number(_slides[2])])["Corner radius"],
-                    Slide(2)
+                    Slide(2).Key("value-slider")
                 ],
                 Ui.Field.Key("input")[
                     Ui.Label["Corner radius"],
                     Div.Class("-mt-2 flex items-center gap-4")[
-                        Slide(3),
+                        Slide(3).Key("input-slider"),
                         Ui.Input.Value(_slides[3]).Type(InputType.Number).Sm.Class("max-w-18").OnChange(v => { _slides[3] = v; })
                     ]
                 ],
                 Ui.Field.Key("big")[
                     Ui.Label.Trailing(Span.Class("tabular-nums").Data(Testid("ui-slider-big"))[Number(_slides[9])])["Big steps"],
-                    Slide(9).Min(0).Max(1000).Step(1).BigStep(100),
+                    Slide(9).Key("big-slider").Min(0).Max(1000).Step(1).BigStep(100),
                     Ui.Description["Hold Shift and press an arrow key to move by 100."]
                 ],
                 Slide(8).Key("styles").Max(1000).TrackClass("h-5").ThumbClass("size-5"),
                 Ui.Field.Key("disabled")[
                     Ui.Label["Disabled"],
-                    Ui.Slider.Value(30).Disabled()
+                    Ui.Slider.Value(30).Key("disabled-slider").Disabled()
                 ]
             ]);
 
@@ -217,7 +217,7 @@ public sealed partial class UiKitDataInputDemo : Component
                     Ui.Label.Trailing(Span.Class("tabular-nums").Data(Testid("ui-slider-price"))[
                         $"${Number(_price[0])} – ${Number(_price[1])}"
                     ])["Price range"],
-                    Ui.Slider.Value(_price).Range().Min(0).Max(990).Step(10).MinStepsBetween(10).BigStep(100)
+                    Ui.Slider.Value(_price).Key("price-slider").Range().Min(0).Max(990).Step(10).MinStepsBetween(10).BigStep(100)
                         .OnChange(v => { _price = v; })
                 ]
             ]);
@@ -239,7 +239,7 @@ public sealed partial class UiKitDataInputDemo : Component
             + "from the first. OnComplete runs when the last cell is filled.",
             Div.Data(Testid("ui-otp")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
                 Div.Key("basic").Class("space-y-2")[
-                    Code(0).Length(6),
+                    Code(0).Key("code-basic").Length(6),
                     P.Class("text-sm text-ui-muted").Data(Testid("ui-otp-state"))[
                         _codes[0].Length == 6 ? $"Code complete: {_codes[0]}." : $"{Number(_codes[0].Length)} of 6 entered."
                     ]
@@ -249,21 +249,21 @@ public sealed partial class UiKitDataInputDemo : Component
                         Ui.Heading.Lg.Class("text-center")["Verify your account"],
                         Ui.Text.Class("text-center")["Please enter a one-time password from the authenticator app."]
                     ],
-                    Code(1).Length(6).Label("OTP Code").Class("mx-auto"),
+                    Code(1).Key("code-form").Length(6).Label("OTP Code").Class("mx-auto"),
                     Div.Class("space-y-4")[
-                        Ui.Button.Key("verify").Primary.Class("w-full").OnClick(() => { _verified = _codes[1]; })["Verify"],
-                        Ui.Button.Key("resend").Class("w-full").Data(Testid("ui-otp-resend"))
+                        Ui.Button.Primary.Class("w-full").OnClick(() => { _verified = _codes[1]; })["Verify"],
+                        Ui.Button.Class("w-full").Data(Testid("ui-otp-resend"))
                             .OnClick(() => { _codes[1] = ""; })["Resend code"]
                     ]
                 ],
                 Div.Key("auto").Class("space-y-2")[
-                    Code(2).Length(6).OnComplete(code => { _verified = code; }).Class("mx-auto"),
+                    Code(2).Key("code-auto").Length(6).OnComplete(code => { _verified = code; }).Class("mx-auto"),
                     P.Class("text-center text-sm text-ui-muted").Data(Testid("ui-otp-verified"))[
                         _verified is null ? "Fill every cell to verify." : $"Verifying {_verified}…"
                     ]
                 ],
                 Div.Key("license").Class("sm:col-span-2")[
-                    Code(3).Length(10).Alphanumeric.Autocomplete("off").Label("License key")
+                    Code(3).Key("code-license").Length(10).Alphanumeric.Autocomplete("off").Label("License key")
                         .DescriptionTrailing("Enter the license key printed on the installation disc"),
                     P.Class("mt-2 text-sm text-ui-muted").Data(Testid("ui-otp-license"))[$"Key: {_codes[3]}"]
                 ],
@@ -291,6 +291,8 @@ public sealed partial class UiKitDataInputDemo : Component
             ]);
 
     // A controlled slider keeps its value in the page: the thumb is drawn from it, so each example owns one.
+    // Every slider and every code on this page carries a Key: once one sibling of a type is keyed, an unkeyed
+    // one is a new instance on every render, and a handler a key was already on its way to would be gone.
     private UiSlider<int> Slide(int example) =>
         Ui.Slider.Value(_slides[example]).OnChange(v => { _slides[example] = v; });
 

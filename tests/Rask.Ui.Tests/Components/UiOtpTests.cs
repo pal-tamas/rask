@@ -98,7 +98,7 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         var model = new Login { Code = "12" };
         var page = Page.Render(() => Ui.Otp.Bind(() => model.Code).Length(6));
 
-        await page.On(Field).Change("123");
+        await page.On(Field).Input("123");
 
         Assert.Equal("123", model.Code);
     }
@@ -111,7 +111,7 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         var model = new Login();
         var page = Page.Render(() => Ui.Otp.Bind(() => model.Code).Length(6).Alphanumeric);
 
-        var html = await page.On(Field).Change("ab1");
+        var html = await page.On(Field).Input("ab1");
 
         Assert.Equal("AB1", model.Code);
         Assert.Contains("value=\"ab1\"", Hidden(html), StringComparison.Ordinal);
@@ -134,7 +134,7 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         var model = new Login();
         var page = Page.Render(() => Ui.Otp.Bind(() => model.Code).Length(6).Mode(mode));
 
-        await page.On(Field).Change(reported);
+        await page.On(Field).Input(reported);
 
         Assert.Equal(expected, model.Code);
     }
@@ -154,7 +154,7 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         var model = new Login();
         var page = Page.Render(() => Ui.Otp.Bind(() => model.Code).Length(6));
 
-        await page.On(Field).Change("12345678");
+        await page.On(Field).Input("12345678");
 
         Assert.Equal("123456", model.Code);
     }
@@ -166,7 +166,7 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         var model = new Login { Code = "12345" };
         var page = Page.Render(() => Ui.Otp.Bind(() => model.Code).Length(6).OnComplete(completed.Add));
 
-        await page.On(Field).Change("123456");
+        await page.On(Field).Input("123456");
 
         Assert.Equal(["123456"], completed);
     }
@@ -177,7 +177,7 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         var completed = new List<string>();
         var page = Page.Render(() => Ui.Otp.Value("123").Length(6).OnComplete(completed.Add));
 
-        await page.On(Field).Change("1234");
+        await page.On(Field).Input("1234");
 
         Assert.Empty(completed);
     }
@@ -188,7 +188,7 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         string? reported = null;
         var page = Page.Render(() => Ui.Otp.Value("12").Length(6).OnChange(code => { reported = code; }));
 
-        var html = await page.On(Field).Change("123");
+        var html = await page.On(Field).Input("123");
 
         Assert.Equal("123", reported);
         Assert.Contains("value=\"12\"", Hidden(html), StringComparison.Ordinal);

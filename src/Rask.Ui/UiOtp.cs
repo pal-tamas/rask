@@ -120,7 +120,7 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
                 .Role("group")
                 .Aria(Names(field))[
                 Input.Value(Shown(live))
-                    .OnChange(raw => TypedAsync(live, raw))
+                    .OnInput(raw => TypedAsync(live, raw))
                     .Type(InputType.Hidden)
                     .Name(Name)
                     .Disabled(Disabled == true),
