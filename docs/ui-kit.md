@@ -41,8 +41,8 @@ C# component framework that ships no script of its own:
 - **One vocabulary.** `Position` + `Align` place everything that floats, events are `On…`, `Kbd` shows a shortcut
   wherever one is shown, `Tone`/`Variant`/`Size` style everything.
 - **We style, you space.** Components bring padding, borders and colour — never an outer margin.
-- **Simple first, composable after.** `Ui.Input.Label("Email").Description(…)` is one line; `Ui.NavList` with
-  `Ui.NavGroup`s and `Ui.NavItem`s, or a `Ui.Menu` with `Ui.MenuSubmenu`s, is there when one line is not enough.
+- **Simple first, composable after.** `Ui.Input.Label("Email").Description(…)` is one line; `Ui.Navlist` with
+  `Ui.NavlistGroup`s and `Ui.NavlistItem`s, or a `Ui.Menu` with `Ui.MenuSubmenu`s, is there when one line is not enough.
 
 ## Wiring it up
 
@@ -382,7 +382,7 @@ A kit component brings its padding, its border and its colours, and **never an o
 sits — the gap above a row of tabs, the bleed of a scrolling strip to the screen edge — belongs to the
 page that places it, because the same component sits in a card, a toolbar and a page gutter, and a margin
 right for one is wrong for the other two. Two exceptions are part of a component's shape rather than its
-placement: `Ui.NavTab`'s `-mb-px`, which joins the active tab's border to its nav's hairline, and
+placement: `Ui.Brand`'s `me-4`, the gap Flux puts between a brand and the navbar after it, and
 `Ui.Toast`'s 24px from the viewport's edges, which is where Flux puts a toast.
 
 ## Components that are one element
@@ -700,7 +700,7 @@ the browser's own rather than a written `aria-expanded`. On a page whose scripts
 ## Buttons and links that go somewhere
 
 Every kit component that goes somewhere takes a `RouteUrl`: `Ui.Button.Href`, `Ui.Link.Href`,
-`Ui.Stat.Href`, `Ui.NavTab.Href` and `Ui.Brand.Href`. All of them follow one rule. Hand one a
+`Ui.Stat.Href`, `Ui.NavbarItem.Href`, `Ui.NavlistItem.Href`, `Ui.BreadcrumbsItem.Href`, `Ui.Avatar.Href` and `Ui.Brand.Href`. All of them follow one rule. Hand one a
 **generated route** and it navigates inside the app, the way `NavLink` does. The anchor carries
 `data-rask-nav`, which the runtime intercepts and routes without reloading the page. It also carries the
 deploy's path base, so a new tab or a copied link reaches the same page. Hand one a **string** and it
@@ -752,16 +752,16 @@ Flux UI's layout pieces, drawn with daisyUI. The sidebar beside the docs on this
 
 ```csharp
 Ui.Sidebar.Id("app-nav").Collapsible(Ui.Breakpoint.Lg).Page(Main[Outlet])[
-    Ui.Brand.Label("Shop").Href(Routes.HomePage()),
-    Ui.NavList.AccessibleLabel("Main")[
-        Ui.NavItem.Label("Orders").Href(Routes.OrdersPage()).Icon(Ui.IconName.BookOpen).Badge("12"),
-        Ui.NavGroup.Title("Catalogue").Expandable()[
-            Ui.NavItem.Label("Products").Href(Routes.ProductsPage()),
-            Ui.NavItem.Label("Categories").Href(Routes.CategoriesPage())
+    Ui.Brand.Name("Shop").Logo("/logo.svg").Href(Routes.HomePage()),
+    Ui.Navlist[
+        Ui.NavlistItem.Href(Routes.OrdersPage()).Icon(Ui.IconName.BookOpen).Badge("12")["Orders"],
+        Ui.NavlistGroup.Heading("Catalogue").Expandable()[
+            Ui.NavlistItem.Href(Routes.ProductsPage())["Products"],
+            Ui.NavlistItem.Href(Routes.CategoriesPage())["Categories"]
         ]
     ],
     Ui.Spacer.Key("spacer"),
-    Ui.NavList.AccessibleLabel("Account")[Ui.NavItem.Label("Settings").Href(Routes.SettingsPage())]
+    Ui.Navlist[Ui.NavlistItem.Href(Routes.SettingsPage())["Settings"]]
 ]
 
 // in the top bar, shown only while the sidebar is collapsed:
@@ -773,18 +773,28 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
   checkbox, so it opens on a prerendered page with no runtime; `Open`/`OnToggle` mirror it into C#, which is how a
   navigation closes it. `Ui.SidebarToggle` is a `<label>` for that checkbox with `role="button"` and a tab stop, and
   the runtime presses it on Enter and Space.
-- **`Ui.NavList`** is a named `<nav>` around daisyUI's `menu`. **`Ui.NavItem`** is a `NavLink` underneath, so
-  **`Current` is worked out from the route** — `menu-active` and `aria-current="page"` — unless you state it;
-  `Match` + `MatchPrefix` keep an item current across a section. **`Ui.NavGroup`** is a heading over its items, or a
-  `<details>` disclosure with `Expandable`, controlled with `Expanded`/`OnToggle`.
+- **`Ui.Navlist`** is Flux's `flux:navlist`: a `<nav>` holding **`Ui.NavlistItem`**s and
+  **`Ui.NavlistGroup`**s. An item is a `NavLink` underneath, so **`Current` is worked out from the route** and said
+  with `aria-current="page"` — unless you state it, as Flux's `current` does — which is how an item stays current across
+  a whole section. The current row is inked in the accent (`Accent(false)` inks it as the page is). A group
+  is a heading over its items, or — `Expandable()` — a `<details>` disclosure that folds with a click, Enter or
+  Space and no runtime, open unless `Expanded(false)`, and controlled with `Expanded`/`OnExpandedChange`.
+  `Variant(Ui.NavlistVariant.Outline)` is Flux's sidebar look: the current row a white, outlined pill.
+- **`Ui.Navbar`** is the same thing in a row — `flux:navbar` and **`Ui.NavbarItem`** — for a header: the current
+  item is underlined in the accent, `Icon`/`IconTrailing` sit either side of the words, `Badge` + `BadgeColor`
+  (a `Ui.Color`) trail them, and an item with no `Href` is the `<button>` that opens a menu.
+- **`Ui.Brand`** is the product's mark and name linking home (`Href` defaults to `/`): `Logo` takes an image's
+  address or anything you draw, and `LogoClass` dresses the box around a drawn one.
+- **`Ui.Breadcrumbs`** holds **`Ui.BreadcrumbsItem`**s: a link with an `Href`, greyed text without, an `Icon` in place of words, and a chevron separator that turns in RTL and is not
+  drawn after the last item — `Separator(Ui.IconName.Slash)` for slashes. Anything can be an item's child, which
+  is how a dropdown holding the folded-away steps goes in.
 - **`Ui.SidebarHeader`** and **`Ui.SidebarFooter`** hold their place while the navigation between them scrolls —
   Flux's `sidebar.header` and `sidebar.footer`. The footer needs no `Ui.Spacer` in front of it: it pins itself, so
   a nav list long enough to scroll scrolls *between* the two rather than pushing the account row off the bottom.
-- **`Ui.Profile`** is that account row: an avatar, a name, an optional caption, and — given children — the button
-  that opens the account menu, with the same keyboard contract `Ui.Dropdown` has, because it IS a
-  `Ui.Dropdown` opening a `Ui.Menu` underneath. Without an `Avatar` it draws the **initials** of `Name`, since most accounts have
-  no picture and a broken image is worse than a monogram. Its menu opens upward by default, because the row sits
-  at the bottom of the sidebar.
+- **`Ui.Profile`** is Flux's `flux:profile`: the signed-in person as a `<button>` — a small avatar, optionally
+  their `Name`, and a chevron (`Chevron(false)` drops it, `IconTrailing` swaps it). It is the TRIGGER of an account
+  menu, and the menu is the dropdown's: `Ui.Dropdown[Ui.Profile.Name(…), Ui.Menu[…]]`. Without an `Avatar` it draws the **initials** of `Name` (or of `AvatarName`,
+  for a profile that shows no name), since most accounts have no picture.
 - **A docked sidebar can narrow to a rail of icons**, which is a different question from `Collapsible`:
   `Collapsible` says at what width the sidebar stops being beside the page at all, `Collapsable(true)` keeps it
   beside the page and takes the words away. **`Ui.SidebarCollapse`** is the control, a `<label>` for a second
@@ -955,13 +965,13 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Swap` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
-| **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Navbar` `Ui.NavList` `Ui.NavItem` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
+| **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
-| **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
+| **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
 | **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
 
 ## Who owns the state
@@ -1742,11 +1752,16 @@ between empty and full, and moves to a new value over 300ms. The same share is o
 a `UiElement`, so name it with `.Aria("label", …)` or `.Aria("labelledby", id)`. There is no radial progress:
 Flux has none, and `Ui.RadialProgress` is gone.
 
-**`Ui.Avatar` draws initials when there is no picture.** `Src` is optional; give it a `Name` and it renders the
-monogram — the first letter of each of the first two words, deliberately not first-and-last, since a name is
-not reliably two words in that order. The letters are `aria-hidden` and the frame carries the name, because
-"AL" read letter by letter tells a reader nothing. Same frame, same rounding either way, so a list does not
-change shape when somebody removes their photo.
+**`Ui.Avatar` is Flux's `flux:avatar`, and draws initials when there is no picture.** `Src` is optional; give
+it a `Name` and it shows the first letter of the first and last words ("Caleb Porzio" → CP), the first two
+letters of a single word ("calebporzio" → Ca), or one letter with `InitialsSingle()`. `Initials` states them,
+`Icon` draws an icon instead, and children replace all of it (`Ui.Avatar["3+"]`). Sizes are
+`Xs` `Sm` (40px default) `Lg` `Xl`; `Circle()` rounds it; `Color` fills it with one of `Ui.Color`'s hues and
+`ColorAuto()` picks one from the initials — the CRC-32 of them over Flux's seventeen hues, so the same person is
+the same colour here as there — or from `ColorSeed`. `Badge` marks a corner (`""` is the plain dot) with
+`BadgeColor`, `BadgeCircle`, `BadgePosition` and `BadgeVariant`; `Tooltip` names it on hover; `Href` makes it a
+link and `As(Ui.AvatarAs.Button)` a button. **`Ui.AvatarGroup`** stacks them, each ringed in the page's colour
+(`Class("*:ring-zinc-100")` for another ground).
 
 **`Ui.Input` and `Ui.Textarea` are Flux UI's.** Same props, same look, same markers
 ([fluxui.dev/components/input](https://fluxui.dev/components/input), [textarea](https://fluxui.dev/components/textarea)),

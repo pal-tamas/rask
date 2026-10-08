@@ -15,7 +15,7 @@ public sealed partial class App : Component
 
     protected override Component? Render() =>
         Ui.Shell.Theme(Ui.ThemeName.Light)[
-            Ui.TopBar[Ui.Brand.Label("Release board").Href("#")],
+            Ui.TopBar[Ui.Brand.Name("Release board").Href("#")],
             Ui.Main[
                 Div.Class("grid gap-4 md:grid-cols-2")[
                     TaskBoard.Heading("Ship 1.4").Owner("Ada"),

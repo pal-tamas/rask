@@ -13,7 +13,7 @@ public sealed partial class DevToolsKitTestApp : Component
 
     protected override Component? Render() =>
         Ui.Shell.Theme(Ui.ThemeName.Light)[
-            Ui.TopBar[Ui.Brand.Label("Kit").Href("#")],
+            Ui.TopBar[Ui.Brand.Name("Kit").Href("#")],
             Ui.Main[
                 DevToolsKitBoard.Heading("Board")[
                     Ui.List[_rows.Select(r => DevToolsKitRow.Key(r).Done(r == "one").Label(r))],

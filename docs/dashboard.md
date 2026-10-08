@@ -67,11 +67,11 @@ A panel appears **only when its battery is registered and its table is mapped**.
 nothing else gets a jobs panel and no empty placeholders — the nav is an inventory of what this deployment
 actually runs.
 
-The chrome is two rows: a **breadcrumb bar** saying what you are looking at, over a **tab bar** saying
-which part of the console you are in. Every queue shares the one `Queues` tab, and the breadcrumb carries
-a switcher between them — so a deployment running all three does not spend half its navigation on them.
-The switcher is a plain `<select>`: the console ships no JavaScript, so it is keyboard-navigable for free
-and opens the platform's own picker on a phone.
+The chrome is two rows: a bar with the console's **brand** and, on a queue, a **breadcrumb** saying which
+one, over a **navbar** saying which part of the console you are in — `Ui.Brand`, `Ui.Breadcrumbs` and
+`Ui.Navbar`, Flux UI's pieces from the kit. Every queue shares the one `Queues` item, and the breadcrumb's
+last step is a dropdown of the queues beside the one you are reading — so a deployment running all three
+does not spend half its navigation on them.
 
 It is built mobile-first. Below `sm` every table stacks each row into labelled lines rather than scrolling
 sideways — a table you have to swipe has hidden the column you came for — and from `sm` up a secondary

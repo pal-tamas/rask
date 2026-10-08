@@ -35,7 +35,7 @@ public sealed partial class UiToast : Component
     public bool? Invert { get; set; }
 
     /// <summary>
-    ///     Classes for the call site, added to each toast's own — <c>pt-24</c> to clear a navbar at the top.
+    ///     Classes for the call site, added to each toast's own — <c>pt-24</c> to clear a nav bar at the top.
     /// </summary>
     public string? Class { get; set; }
 

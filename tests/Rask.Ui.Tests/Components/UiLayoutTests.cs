@@ -25,25 +25,6 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
         Assert.Contains("join-vertical", Ui.Join.Vertical(true)[Ui.Button["1"]].ToHtml());
 
     [Fact]
-    public void An_avatar_keeps_its_alt_text()
-    {
-        // A decorative avatar would take an empty alt; this one takes a required one, because an avatar
-        // in a list of people is the only thing saying which person the row is about.
-        Assert.Contains("alt=\"Ada\"", Ui.Avatar.Src("/me.png").Alt("Ada").ToHtml());
-    }
-
-    [Theory]
-    [InlineData(null, "w-10")]
-    [InlineData(Ui.Size.Xs, "w-6")]
-    [InlineData(Ui.Size.Xl, "w-24")]
-    public void An_avatar_is_sized_on_the_kit_axis(Ui.Size? size, string expected)
-    {
-        // A literal the kit's own sheet is built from, not a class string from the call site that nothing
-        // compiled.
-        Assert.Contains(expected, Ui.Avatar.Src("/me.png").Alt("Ada").Size(size).ToHtml());
-    }
-
-    [Fact]
     public void A_kbd_is_a_kbd_element() =>
         Assert.Contains("<kbd", Ui.Kbd.Text("K").ToHtml());
 

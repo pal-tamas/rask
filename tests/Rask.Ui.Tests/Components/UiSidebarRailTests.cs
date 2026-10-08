@@ -21,23 +21,10 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
         (collapsable
             ? Ui.Sidebar.Id("nav").Page(Div["page"]).Collapsible(Ui.Breakpoint.Lg).Collapsable(true)
             : Ui.Sidebar.Id("nav").Page(Div["page"]).Collapsible(Ui.Breakpoint.Lg))[
-            Ui.SidebarHeader[Ui.Brand.Label("Rask").Href("/")],
-            Ui.NavList[Ui.NavItem.Label("Overview").Href("/")],
+            Ui.SidebarHeader[Ui.Brand.Name("Rask")],
+            Ui.Navlist[Ui.NavlistItem.Href("/").Icon(Ui.IconName.Home)["Overview"]],
             Ui.SidebarFooter[Ui.Profile.Name("Ada Lovelace")]
         ].ToHtml();
-
-    [Fact]
-    public void Everything_the_rail_strips_to_an_icon_keeps_its_name_as_a_title()
-    {
-        // #1119: collapsed to the rail, a nav link is an icon and nothing else. Its title is the tooltip the rail
-        // shows, and the accessible name the link falls back to once its words are display:none — a CSS tooltip
-        // would be clipped by the panel, which hides its overflow.
-        var html = Sidebar(collapsable: true);
-
-        Assert.Matches("<a [^>]*title=\"Overview\"", html);
-        Assert.Matches("<a [^>]*title=\"Rask\"", html);
-        Assert.Contains("title=\"Ada Lovelace\"", html, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void A_sidebar_that_cannot_collapse_carries_no_rail_checkbox()
@@ -137,9 +124,9 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
     {
         // The rule hides .ui-rail-hide and nothing else, so a component that forgot the mark keeps its words in
         // a 4.5rem rail — which is why this asserts on all four at once rather than one at a time.
-        Assert.Contains("ui-rail-hide", Ui.NavItem.Label("Overview").Href("/").ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("ui-rail-hide", Ui.Brand.Label("Rask").Href("/").ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("ui-rail-hide", Ui.NavGroup.Title("Data")[Li].ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("ui-rail-hide", Ui.NavlistItem.Href("/")["Overview"].ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("ui-rail-hide", Ui.Brand.Name("Rask").ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("ui-rail-hide", Ui.NavlistGroup.Heading("Data")[Div].ToHtml(), StringComparison.Ordinal);
         Assert.Contains("ui-rail-hide", Ui.Profile.Name("Ada Lovelace").ToHtml(), StringComparison.Ordinal);
     }
 }

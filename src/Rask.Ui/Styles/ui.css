@@ -1135,7 +1135,7 @@
 
   A second checkbox beside the drawer's, so narrowing the sidebar needs no script and survives a prerendered
   page — the same trade the drawer itself makes. What it hides is marked `ui-rail-hide` by the components that
-  own the words (UiNavItem's label and badge, UiBrand's wordmark, UiNavGroup's heading, UiProfile's name), so
+  own the words (UiNavlistItem's words and badge, UiBrand's name, UiNavlistGroup's heading, UiProfile's name), so
   the rule never has to guess which text is a label and which is content.
 
   Keyed by `data-ui-rail` rather than a Tailwind variant, because the rail applies only while the sidebar is
@@ -1217,24 +1217,6 @@
     [data-ui-rail="xl"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-flip {
       rotate: 180deg;
     }
-  }
-}
-
-/*
-  The outlined navlist (UiNavList.Outline) — Flux UI's `outline` variant.
-
-  daisyUI's `menu-active` fills the current row with the base content colour, which vanishes on a coloured
-  ground. This draws the row's outline instead and leaves the ground alone.
-
-  In `rask-ui-corrections` because daisyUI's own `.menu :where(li > *):is(.menu-active)` lives in `utilities`,
-  which outranks `rask` however specific a selector there is.
-*/
-@layer rask-ui-corrections {
-  .ui-navlist-outline :where(li > *).menu-active,
-  .ui-navlist-outline :where(li > *)[aria-current="page"] {
-    background-color: transparent;
-    color: inherit;
-    box-shadow: inset 0 0 0 1px currentcolor;
   }
 }
 

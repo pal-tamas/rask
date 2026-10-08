@@ -128,7 +128,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 .Placeholder("Filter guides & examples…").InputClass("side-nav-filter rounded-lg")
         ],
         Div.Class("side-nav-scroll flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain")[
-            Ul.Class("menu menu-sm w-full flex-nowrap p-0")[BuildSections()]
+            Ui.Navlist[BuildSections()]
         ]
     ];
 
@@ -182,13 +182,13 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 continue;
             }
 
-            children.Add(Li.Class("side-nav-section menu-title mt-2 border-t border-ui-line px-2 pt-3 pb-1 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-ui-brand-ink first:mt-0 first:border-t-0")[section]);
+            children.Add(Div.Class("side-nav-section mt-2 border-t border-ui-line px-2 pt-3 pb-1 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-ui-brand-ink first:mt-0 first:border-t-0")[section]);
             children.AddRange(groups);
         }
 
         if (children.Count == 0)
         {
-            children.Add(Li.Class("side-nav-empty menu-title px-2 py-4")["Nothing matches that filter."]);
+            children.Add(Div.Class("side-nav-empty px-3 py-4 text-sm text-ui-muted")["Nothing matches that filter."]);
         }
 
         return children;
@@ -197,61 +197,59 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     private Component GroupBlock(
         string key, string group, bool open,
         IReadOnlyList<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> items) =>
-        // daisyUI's menu, and a real <ul>/<li> tree rather than a stack of divs: that shape is what the
-        // component styles, and it is also what tells a screen reader how many entries a group has and
-        // which one it is on.
+        // The kit's navlist group: Flux's disclosure, a <details> the browser opens and closes by itself, with
+        // the open state handed back here so a navigation, or the filter, can open a group too.
         //
-        // The nav-group-* and side-nav-link class names stay on the elements. They carry no styling any
-        // more — daisyUI does that — but 55 assertions across the unit and browser suites name them, and
-        // those assertions are still about the right things: that a group reads as open, that the active
-        // link is the one for this page. Renaming them would have turned a restyle into a rewrite of the
-        // tests that prove the restyle works, which is how a conversion loses its own safety net.
-        Li.Class("nav-group").Key(key)[
-            Button
-                .Type(ButtonType.Button)
-                .Class(open ? "nav-group-toggle open menu-dropdown-toggle menu-dropdown-show" : "nav-group-toggle menu-dropdown-toggle")
-                .OnClick(() => ToggleGroup(key))[
-                Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight).Class("nav-group-chevron size-3.5"),
-                Span.Class("nav-group-label")[group]
-            ],
-            // menu-dropdown-show belongs on the SUBMENU, not only on the toggle. daisyUI hides the
-            // list with `.menu :where(li > .menu-dropdown:not(.menu-dropdown-show)) { display: none }`
-            // and carries the class on the toggle purely to rotate its chevron — so with it on the
-            // button alone every group rendered and nothing inside one was ever visible.
+        // The nav-group and side-nav-link class names stay on the elements. They carry no styling — the kit
+        // does that — but the unit and browser suites name them, and those assertions are still about the
+        // right things: that a group reads as open, that the current link is the one for this page.
+        Ui.NavlistGroup
+            .Key(key)
+            .Heading(group)
+            .Expandable()
+            .Expanded(open)
+            .OnExpandedChange(now => SetGroup(key, now))
+            .Class("nav-group")[
+            // A closed group holds nothing: eighty guides are not written into every page for a reader who
+            // opens three of them.
             !open
-                ? null
-                : Ul.Class("nav-group-items menu-dropdown menu-dropdown-show")[
+                ? []
+                : items.Select(i =>
+                {
+                    // The kit's navlist item: a NavLink underneath, so the current page is worked out from the
+                    // route and says so with aria-current="page" — the attribute the browser suite selects the
+                    // current link by.
+                    var item = Ui.NavlistItem
+                        .Key(i.Path)
+                        // The slashed URL the host serves: a bare href is a 301 for every crawler (#1057).
+                        .Href(InApp(i.Path))
+                        .Icon(i.Icon)
+                        .Class("side-nav-link");
+
+                    // A link that stands for a whole section says so itself: the route alone only knows its own page.
+                    if (i.MatchPrefix is not null)
+                    {
+                        item = item.Current(IsActive(i.Path, i.MatchPrefix));
+                    }
+
                     // No cast: the chain ends at the children indexer, so it is already a Component
                     // and Select infers the sequence — which is what the indexer wants.
-                    items.Select(i =>
-                    {
-                        // The kit's nav item: a NavLink underneath, so the current page is worked out from the
-                        // route and says so with menu-active AND aria-current="page" — the attribute the browser
-                        // suite now selects the current link by, where it used to rely on a class.
-                        var item = Ui.NavItem
-                            .Key(i.Path)
-                            .Label(i.Label)
-                            // The slashed URL the host serves: a bare href is a 301 for every crawler (#1057).
-                            .Href(PageMeta.LinkTo(i.Path))
-                            .Icon(i.Icon)
-                            .Class("side-nav-link");
-
-                        // The local is what makes string -> RouteUrl reachable: the conversion is defined on a
-                        // string, not on a string?.
-                        if (i.MatchPrefix is { } mp)
-                        {
-                            RouteUrl match = mp;
-                            item = item.Match(match).MatchPrefix();
-                        }
-
-                        return item;
-                    })
-                ]
+                    return item[i.Label];
+                })
         ];
 
-    private void ToggleGroup(string key)
+    // These paths ARE routes of this app, kept as strings because a host contributes some of them. The page
+    // type is what tells a kit link to navigate in place and to compare itself with the page being shown; a
+    // bare string would be an ordinary link, handed to the browser.
+    private static RouteUrl InApp(string path) => PageMeta.LinkTo(path) with { PageType = typeof(ShowcaseLayout) };
+
+    private void SetGroup(string key, bool open)
     {
-        if (!_openGroups.Add(key))
+        if (open)
+        {
+            _openGroups.Add(key);
+        }
+        else
         {
             _openGroups.Remove(key);
         }

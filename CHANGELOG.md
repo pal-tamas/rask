@@ -738,6 +738,38 @@ them until tagged releases begin.
   ```
   `Ui.Sidebar` still slides on daisyUI's drawer and is unchanged.
 
+- **BREAKING: the kit's navigation is Flux's — navbar, navlist, brand, profile, breadcrumbs and avatar.**
+  Eleven components take Flux UI's names, props, markup and look, measured against fluxui.dev example for
+  example in light and dark, and replace thirteen daisyUI-drawn ones. A link's words are its children now,
+  not a `Label`; rename each use, there are no aliases:
+  - `Ui.NavList` → `Ui.Navlist`, `Ui.NavItem.Label("Orders").Href(url)` → `Ui.NavlistItem.Href(url)["Orders"]`,
+    `Ui.NavGroup.Title("Catalogue")` → `Ui.NavlistGroup.Heading("Catalogue")`, `OnToggle` → `OnExpandedChange`,
+    `Ui.NavList.Outline()` → `Ui.Navlist.Variant(Ui.NavlistVariant.Outline)`; `Size`, `AccessibleLabel`, `Match`
+    and `MatchPrefix` are gone — Flux has none of them: state `Current` for an item that stands for a section.
+  - `Ui.Nav[Ui.NavTab.Label("Logs").Href(url).Active(on)]` → `Ui.Navbar[Ui.NavbarItem.Href(url).Current(on)["Logs"]]`.
+    The old three-slot `Ui.Navbar` (`Start`/`Center`/`End`) is gone: a navbar is a row of items.
+  - `BadgeTone(Ui.Tone.Primary)` → `BadgeColor(Ui.Color.Blue)`, on both items; `Badge` takes any content.
+  - `Ui.TopLink.Label("Docs").Href(url)` → `Ui.NavbarItem.Href(url)["Docs"]` (it opens in the same tab).
+  - `Ui.Brand.Label("Shop").Href(url).Icon(…)` → `Ui.Brand.Name("Shop").Href(url).Logo(…)`; `Logo` is an image's
+    address or any content, `Href` defaults to `/`, and there is no default icon.
+  - `Ui.Profile` is the button alone — `Caption` and the menu children are gone, the menu is a dropdown's:
+    `Ui.Profile.Name("Ada")[rows]` → `Ui.Dropdown[Ui.Profile.Name("Ada"), Ui.Menu[rows]]`, which makes the row
+    the menu's trigger. `Circle` is off by default, as Flux's is, and `AvatarName`, `AvatarColor`, `Initials`,
+    `IconTrailing` and `IconVariant` are new.
+  - `Ui.Breadcrumbs.Items([("Home", "/"), ("Post", null)])` →
+    `Ui.Breadcrumbs[Ui.BreadcrumbsItem.Href("/")["Home"], Ui.BreadcrumbsItem["Post"]]`.
+    `Ui.CrumbSeparator` is the item's own `Separator`; `Ui.CrumbSwitcher`, a `<select>`, has no Flux
+    counterpart — put a dropdown in a `Ui.BreadcrumbsItem`. The trail is Flux's plain `<div>`: the
+    `nav`/`aria-label="Breadcrumb"` wrapper is gone.
+  - `Ui.Avatar.Round()` → `.Circle()` (square with rounded corners unless asked), `Size(Ui.Size.Lg)` →
+    `.Lg` of `Ui.AvatarSize` (`Xs` 24, `Sm` 32, 40, `Lg` 48, `Xl` 64 — `Lg` was 64), and initials are Flux's:
+    first and LAST word, not the first two. New: `Initials`, `InitialsSingle`, `Color`, `ColorAuto`,
+    `ColorSeed`, `Icon`, `Badge*`, `Tooltip`, `As`, `Href`, and `Ui.AvatarGroup`.
+
+  The current item is still worked out from the route for a generated link, and says so with
+  `aria-current="page"` — which is what the kit's classes key on. A STRING href is an ordinary link on every
+  one of these now (`Ui.NavItem` used to route it): state `Current`, or hand it a generated route. `Ui.Color`
+  is the shared list of Tailwind's hues.
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in
   PascalCase of its name, plus Flux's `Loading` spinner. Rename each use; there are no aliases:

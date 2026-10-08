@@ -79,11 +79,10 @@ public sealed class ShowcaseLayoutTests
 
         var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
-        // A closed group renders NO items element now, where BsCollapse rendered one with .collapse and
-        // hid it — so "expanded" is the presence of the container and "collapsed" is its absence. The
-        // toggle button is what is always there, one per group.
-        var toggles = Regex.Matches(html, "nav-group-toggle").Count;
-        var expanded = Regex.Matches(html, "nav-group-items").Count;
+        // Each group is the kit's navlist group — a <details>, one per group, and `open` on the ones that
+        // are expanded.
+        var toggles = Regex.Matches(html, "<details class=\"[^\"]*nav-group\"").Count;
+        var expanded = Regex.Matches(html, "<details class=\"[^\"]*nav-group\"[^>]* open").Count;
 
         Assert.True(expanded >= 5, $"expected the guide groups expanded by default, only {expanded} open");
         // Most example pages are folded into guides now; the surviving Examples group(s) (e.g. Apps/Todos)
@@ -99,7 +98,7 @@ public sealed class ShowcaseLayoutTests
         var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // The kit's nav item says it is the current page to assistive tech, not only with a class.
-        Assert.Matches("class=\"side-nav-link menu-active\"[^>]*aria-current=\"page\"", html);
+        Assert.Matches("class=\"[^\"]*side-nav-link[^\"]*\"[^>]*aria-current=\"page\"", html);
     }
 
     [Theory]
@@ -223,8 +222,8 @@ public sealed class ShowcaseLayoutTests
     ///     </para>
     /// </summary>
     private static Regex GroupExpanded(string group) =>
-        new("<button class=\"[^\"]*nav-group-toggle open\\b[^\"]*\"(?:(?!</button>)[\\s\\S])*?"
-            + $"<span class=\"nav-group-label\">{Regex.Escape(group)}</span>");
+        new("<details class=\"[^\"]*nav-group\"[^>]* open[^>]*><summary(?:(?!</summary>)[\\s\\S])*?"
+            + $"<span class=\"[^\"]*\">{Regex.Escape(group)}</span>");
 
     private static string CollapseWhitespace(string s) =>
         Regex.Replace(s, @"\s+", " ");

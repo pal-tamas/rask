@@ -1,28 +1,15 @@
 namespace Rask;
 
 /// <summary>
-/// The bar across the top of a page.
+///     Flux's <c>flux:navbar</c>: a row of <see cref="UiNavbarItem" />s — the links across a header.
 /// </summary>
-/// <remarks>
-/// Three slots rather than children, because that is the shape daisyUI's navbar lays out — leading,
-/// centre, trailing — and a single children list would leave the caller writing the three wrappers by
-/// hand every time.
-/// </remarks>
+/// <remarks>A <c>&lt;nav&gt;</c> landmark, as Flux's is.</remarks>
 public sealed partial class UiNavbar : Component
 {
-    public Component? Start { get; set; }
-
-    public Component? Center { get; set; }
-
-    public Component? End { get; set; }
-
+    /// <summary>Classes for the call site, added to the nav bar's own.</summary>
     public string? Class { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Nav.Class(UiClass.Compose("navbar bg-base-100", Class))[
-            Start is null ? null : Div.Class("navbar-start")[Start],
-            Center is null ? null : Div.Class("navbar-center")[Center],
-            End is null ? null : Div.Class("navbar-end")[End]
-        ];
+        Nav.Class("flex items-center gap-[2px] py-3", Class).Attributes(("data-ui-navbar", null))[Children ?? []];
 }

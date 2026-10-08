@@ -1,7 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Live;
-using Rask.Core.Routing;
-
 namespace Rask.UiTests.Components;
 
 /// <summary>
@@ -10,17 +6,6 @@ namespace Rask.UiTests.Components;
 /// </summary>
 public partial class UiFluxLayoutTests : global::Rask.Core.RaskMarkup
 {
-    private sealed class StubComponent(global::Rask.Core.Component inner) : global::Rask.Core.Component
-    {
-        protected override global::Rask.Core.Component? Render() => inner;
-    }
-
-    private static IDisposable OnPage(string path)
-    {
-        var services = new ServiceCollection().AddSingleton(new RouteState { Path = path }).BuildServiceProvider();
-        return LiveRenderContext.Begin(new StubComponent(Span), services);
-    }
-
     // ---- spacer ---------------------------------------------------------------------------------
 
     [Fact]
@@ -33,7 +18,7 @@ public partial class UiFluxLayoutTests : global::Rask.Core.RaskMarkup
     public void A_sidebar_is_an_aside_beside_the_page_docked_from_its_breakpoint()
     {
         var html = Ui.Sidebar.Id("nav").Page(Main["page"]).Collapsible(Ui.Breakpoint.Lg)[
-            Ui.NavList[Ui.NavItem.Label("Home").Href("/")]
+            Ui.Navlist[Ui.NavlistItem.Href("/")["Home"]]
         ].ToHtml();
 
         Assert.Contains("lg:drawer-open", html);
@@ -61,66 +46,6 @@ public partial class UiFluxLayoutTests : global::Rask.Core.RaskMarkup
         Assert.Contains("tabindex=\"0\"", html);
         Assert.Contains("aria-label=\"Toggle sidebar\"", html);
         Assert.Contains("lg:hidden", html);
-    }
-
-    // ---- navigation -----------------------------------------------------------------------------
-
-    [Fact]
-    public void A_nav_list_is_a_named_nav_landmark_around_a_menu()
-    {
-        var html = Ui.NavList.AccessibleLabel("Main")[Ui.NavItem.Label("Home").Href("/")].ToHtml();
-
-        Assert.StartsWith("<nav aria-label=\"Main\"><ul class=\"menu", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_item_for_the_page_being_shown_is_current_without_being_told()
-    {
-        using var _ = OnPage("/orders");
-
-        var current = Ui.NavItem.Label("Orders").Href("/orders").Icon(Ui.IconName.BookOpen).Badge("12").ToHtml();
-        var other = Ui.NavItem.Label("Customers").Href("/customers").ToHtml();
-
-        Assert.Contains("menu-active", current);
-        Assert.Contains("aria-current=\"page\"", current);
-        Assert.Contains("badge", current);
-        Assert.DoesNotContain("aria-current", other);
-        Assert.DoesNotContain("menu-active", other);
-    }
-
-    [Fact]
-    public void A_section_item_stays_current_under_its_prefix()
-    {
-        using var _ = OnPage("/orders/42");
-
-        Assert.Contains(
-            "aria-current=\"page\"",
-            Ui.NavItem.Label("Orders").Href("/orders").MatchPrefix(true).ToHtml());
-    }
-
-    [Fact]
-    public void Current_can_be_stated_either_way()
-    {
-        using var _ = OnPage("/orders");
-
-        Assert.DoesNotContain("aria-current", Ui.NavItem.Label("Orders").Href("/orders").Current(false).ToHtml());
-        Assert.Contains("aria-current=\"page\"", Ui.NavItem.Label("Help").Href("/help").Current(true).ToHtml());
-    }
-
-    [Fact]
-    public void A_nav_group_is_a_heading_or_a_disclosure()
-    {
-        var plain = Ui.NavGroup.Title("Settings")[Ui.NavItem.Label("Profile").Href("/profile")].ToHtml();
-        Assert.Contains("menu-title", plain);
-        Assert.DoesNotContain("<details", plain);
-
-        var folding = Ui.NavGroup.Title("Settings").Expandable(true)[Ui.NavItem.Label("Profile").Href("/profile")].ToHtml();
-        Assert.Contains("<details open>", folding);
-        Assert.Contains("<summary>", folding);
-
-        Assert.Contains(
-            "<details>",
-            Ui.NavGroup.Title("Settings").Expandable(true).Expanded(false)[Ui.NavItem.Label("P").Href("/p")].ToHtml());
     }
 
     // ---- type -----------------------------------------------------------------------------------
