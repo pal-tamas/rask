@@ -602,6 +602,56 @@ them until tagged releases begin.
   **A screen reader now says it**: the trigger carries `aria-describedby` (or `aria-labelledby`, when it
   has no text of its own), which the daisyUI tooltip never wrote. `docs/ui-kit.md#tooltips` lists the four
   things Flux's script does that a script-less tooltip does not, and the runtime hook that would close them.
+- **BREAKING: `Ui.Modal` is Flux's modal, flyouts included; `Ui.Drawer` folds into it.** Measured against
+  [fluxui.dev/components/modal](https://fluxui.dev/components/modal) open as well as loaded
+  (`scripts/flux/parity-modal.mjs`): the panel, the backdrop, the close button, the 150ms in and 75ms out,
+  and what Escape, a click outside and the close button each do. The trigger is its own component now, a
+  modal has a `Name` instead of an `Id`, and it no longer draws a title bar or a footer — what it holds is
+  yours, as in Flux:
+  ```csharp
+  // was
+  Ui.Modal.Title("Delete order").Id("confirm").Trigger("Delete").Footer(Ui.Button["Cancel"])[ … ]
+  // now
+  Ui.ModalTrigger.Name("confirm")[Ui.Button["Delete"]],
+  Ui.Modal.Name("confirm")[
+      Ui.Heading.Lg["Delete order"], … ,
+      Ui.ModalClose[Ui.Button["Cancel"]]
+  ]
+  ```
+  `Ui.ModalTrigger` and `Ui.ModalClose` (Flux's `modal.trigger`, `modal.close`) make the button inside them
+  an invoker for the dialog (`command` / `commandfor`) — no handler, no round trip — and a trigger takes
+  `Shortcut("mod+k")`.
+  `Ui.ModalPosition` is now the edge a **flyout** opens from, `Right`, `Left` or `Bottom`:
+  ```csharp
+  Ui.Modal.Title("Filters").Id("filters").Position(Ui.ModalPosition.End)[ … ]    // was
+  Ui.Modal.Name("filters").Flyout()[ … ]                                         // now (Right is the default)
+  Ui.Modal.Position(Ui.ModalPosition.Start)   →   Ui.Modal.Flyout().Left
+  Ui.Modal.Position(Ui.ModalPosition.Bottom)  →   Ui.Modal.Flyout().Bottom
+  ```
+  `Top` and `Middle` are gone: a modal that is not a flyout is centred. New: `Variant` (`Floating` for a
+  flyout that stands off the edges, `Bare` for no panel at all) and `Scroll(Ui.ModalScroll.Body)` for a long
+  modal that runs past the bottom of the screen. It carries Flux's props and nothing else. `Open`, `OnClose`,
+  `OnCancel`, `Dismissible`, `Escapable` and `Closable` keep their names. What Flux does in script the dialog
+  asks the runtime's hooks for: `data-rask-modal` (a click outside, and all four combinations of
+  `Dismissible` × `Escapable` — `Escapable(false)` alone no longer gives up the click outside),
+  `data-rask-lock="scroll"` (the page held still, its scrollbar's gutter kept; the `:root:has(dialog…)` rule
+  is gone from the sheet) and the invoker commands where the engine has none, so the `popover` /
+  `popovertarget` fallback and `closedby` are no longer written. **`Open` is a real modal now**: the dialog
+  says `data-rask-modal-open` and the runtime calls `showModal()` / `close()` to match — top layer,
+  `::backdrop`, inert page — where it used to be a `<dialog open>` over a backdrop the kit drew, held by
+  `data-rask-focus-trap`. Its corner button and a `Ui.ModalClose` close it in the browser and `OnClose` tells
+  the page, so **an `Open(…)` modal needs an `OnClose` that clears the field**.
+  **`Ui.Drawer` is removed** — a panel that slides in from an edge is a flyout, and the page owns whether
+  it is open:
+  ```csharp
+  // was
+  Ui.Drawer.Id("nav").Panel(menu).Open(_open).OnToggle(open => _open = open)[page]
+  // now
+  page,
+  Ui.Modal.Flyout().Left.Open(_open).OnClose(() => _open = false)[menu]
+  Ui.Drawer.Position(Ui.Position.Right)   →   Ui.Modal.Flyout()        // Right is the default
+  ```
+  `Ui.Sidebar` still slides on daisyUI's drawer and is unchanged.
 
 - **BREAKING: `Ui.Icon` is Flux's icon — all of Heroicons, in four variants, under Heroicons' names.**
   `Ui.IconName` was 78 names of the kit's own; it is now every Heroicon (316, from `heroicons` 2.2.0) in

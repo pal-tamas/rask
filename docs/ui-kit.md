@@ -366,8 +366,7 @@ daisyUI composes them — a menu above its trigger, flush with the trigger's end
 Ui.Dropdown.Trigger("Actions").Position(Ui.Position.Top).Align(Ui.Align.End)[ … ]
 Ui.Tooltip.Content("Copy").Right[ … ]   // Flux's own Ui.TooltipPosition / Ui.TooltipAlign — see Tooltips
 Ui.Tabs.Position(Ui.Position.Bottom)[ … ]
-Ui.Drawer.Id("nav").Panel(menu).Position(Ui.Position.Right)[ … ]
-Ui.Modal.Title("Details").Position(Ui.ModalPosition.End)[ … ]   // placed against the viewport, not a trigger
+Ui.Modal.Name("details").Flyout().Left[ … ]   // a flyout is placed against the viewport: Ui.ModalPosition
 ```
 
 Events are always `On…` — `Ui.Modal.OnClose`, `Ui.Modal.OnCancel` — the same prefix every
@@ -1064,12 +1063,12 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.Swap` `Ui.Fab` |
+| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Swap` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
-| **Layout** | `Ui.Separator` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
+| **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
 | **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
@@ -1080,29 +1079,59 @@ The kit ships no JavaScript (the [editor](#rich-text-editor)'s engine apart), an
 resolves three ways, and which one a component takes is a property of what the platform can do rather
 than of anyone's preference.
 
-**The browser owns it, declaratively.** `Ui.Modal` with an `Id` and a `Trigger` is a real **modal**
-`<dialog>`, opened by an HTML invoker command (`command="show-modal" commandfor`): the browser supplies
-the top layer, an inert page behind it so Tab cannot wander out, Escape, and focus handed back to the
-trigger on close. Every open and close control also names the dialog as a `popover`, so a browser
-without invoker commands (before Chrome 135, Firefox 144, Safari 26.2) opens it as a popover instead —
-top layer and Escape, without the inert page. `Ui.Megamenu` is built on the popover the same way. `Ui.Fab`
-opens on `:focus-within` because daisyUI defines no class to force it. All of these work on a prerendered
-page with no runtime booted, and with scripting off entirely.
+**The browser owns it, declaratively.** `Ui.Modal` is [Flux's modal](https://fluxui.dev/components/modal),
+measured against it: a real **modal** `<dialog>` with a `Name`, opened by the button inside a
+`Ui.ModalTrigger` of that name. No handler runs — the trigger makes its button an HTML invoker
+(`command="show-modal" commandfor`), so the browser supplies the top layer, an inert page behind it so Tab
+cannot wander out, Escape, and focus handed back to the trigger on close. What Flux adds in script the dialog
+asks Rask's runtime for by attribute ([behaviour hooks](js-interop-runtime.md#behaviour-hooks-data-rask-)):
+`data-rask-modal` for a click outside and for which of the two dismissals are allowed,
+`data-rask-lock="scroll"` for the page held still behind it, and the invoker commands themselves in a browser
+that has none (before Chrome 135, Firefox 144, Safari 26.2). `Ui.Megamenu` is built on a `popover`.
+`Ui.Fab` opens on `:focus-within` because daisyUI defines no class to force it.
 
 ```csharp
-Ui.Modal.Title("Shortcuts").Id("shortcuts").Trigger("Show shortcuts")[ … ]
-Ui.Modal.Title("Filters").Id("filters").Trigger("Filters").Position(Ui.ModalPosition.End)[ … ]  // a flyout
-Ui.Modal.Title("Unsaved work").Id("edit").Dismissible(false).Escapable(false)[ … ]
+Ui.ModalTrigger.Name("edit-profile")[Ui.Button["Edit profile"]],
+Ui.Modal.Name("edit-profile").Class("md:w-96")[
+    Div.Class("space-y-6")[
+        Ui.Heading.Lg["Update profile"],
+        Ui.Input.Bind(() => _profile.Name).Label("Name"),
+        Div.Class("flex gap-2")[
+            Ui.Spacer,
+            Ui.ModalClose[Ui.Button.Ghost["Cancel"]],          // closes the modal it is in
+            Ui.Button.Primary["Save changes"]
+        ]
+    ]
+]
+
+Ui.Modal.Name("filters").Flyout()[ … ]                         // against the right edge, full height
+Ui.Modal.Name("nav").Flyout().Left[ … ]                        // Ui.ModalPosition: Right, Left, Bottom
+Ui.Modal.Name("edit").Flyout().Floating.Class("md:w-lg")[ … ]  // standing off the edges, rounded
+Ui.Modal.Name("search").Bare[ … ]                              // no panel, no close button
+Ui.Modal.Name("terms").Scroll(Ui.ModalScroll.Body)[ … ]        // the whole layer scrolls, not the dialog
+Ui.Modal.Name("draft").Dismissible(false).Escapable(false)[ … ]
+Ui.ModalTrigger.Name("search").Shortcut("mod+k")[Ui.Button["Search"]]   // Flux's cmd.k
 ```
 
-Flux UI's switches are all here: `Dismissible(false)` ignores a click outside, `Escapable(false)` ignores
-Escape (`closedby="none"`; Safari has not shipped it), `Closable(false)` drops the header's close button, and
-`OnClose` hears every way it closed. `OnCancel` hears only a DISMISSAL — Escape or a click outside — and runs
-before `OnClose`, so a dialog holding a draft can throw it away when the user backs out and keep it when they
-press a button that closes it; the header's close button is not a dismissal. `Position(Ui.ModalPosition.Start|End)` makes it a full-height flyout. While
-any kit dialog is open the page behind it does not scroll. The state-driven `Open` path below cannot reach the
-top layer, but it is not left without containment: it carries the runtime's `data-rask-focus-trap`, so focus
-moves in, Tab cycles inside, Escape runs `OnCancel` then `OnClose`, and focus returns when it closes.
+A modal draws the panel and the close button in its corner; what it holds — a heading, fields, a row of
+buttons — is yours, as in Flux. Flux UI's switches are all here: `Dismissible(false)` ignores a click outside,
+`Escapable(false)` ignores Escape, `Closable(false)` drops the corner's close button, and `OnClose` hears every
+way it closed. `OnCancel` hears only a DISMISSAL — Escape or a click outside — and runs before `OnClose`, so a
+dialog holding a draft can throw it away when the user backs out and keep it when they press a button that
+closes it; the close button and a `Ui.ModalClose` are not dismissals. Both are the dialog's own events: a
+dismissal raises `cancel` before `close`, in every browser, and all four combinations of the two switches
+work — `Escapable(false)` alone still closes on a click outside. While a modal is open the page behind it
+does not scroll, and keeps its scrollbar's gutter so it does not shift sideways.
+
+Where Flux controls a modal from PHP (`Flux::modal('confirm')->show()`), a Rask page owns the state instead:
+`Ui.Modal.Open(_confirming).OnClose(() => _confirming = false)[ … ]`, which is Rask's `wire:model`. It is
+the same modal: the dialog says `data-rask-modal-open` and the runtime shows and closes it to match, so it is
+in the top layer behind the same backdrop, Escape and a click outside run `OnCancel` then `OnClose`, and focus
+returns when it closes. `OnClose` is where the page hears that the reader closed it — set the field there, or
+the page goes on saying it is open. A modal with neither a `Name` nor `Open` is open for as long as the page
+renders it. Where one modal on a page has a `Key`, give every modal there one: a parent that identifies a
+type by key no longer reuses the unkeyed ones by position, and a modal rebuilt on every render loses the
+`close` that follows a `cancel`. `Ui.Drawer` is gone: a panel that slides in from an edge is a flyout.
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 
@@ -1154,8 +1183,8 @@ redraw through the live diff.
 all, and `Expanded` is only the state it starts in — see [Accordion](#accordion).
 
 **The markup owns it.** `Ui.Tab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
-survives a refresh and answers the back button. `Ui.Drawer` keeps its checkbox because daisyUI's rules are
-written against `.drawer-toggle:checked`; C# sets it and hears it change, but the input is the component.
+survives a refresh and answers the back button.
+
 
 **And for a view with no URL, the same tab takes a `Name` instead.** Wrap the row in a `Ui.TabGroup` and give
 each tab a `Ui.TabPanel`:

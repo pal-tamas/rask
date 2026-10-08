@@ -224,30 +224,33 @@ public sealed partial class QueuePage(
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var isDead = IsDead(row);
 
+        Component actions = [.. RowActionButtons(row, isDead), Ui.Button.Key("close").OnClick(Close)["Close"]];
+
         // Rendered only while a row is selected, and Close flips that back — which is the whole of the
         // dialog's open state. Ui.Modal.Open is for a sheet kept mounted while hidden; this one has
         // nothing to preserve between openings, so not rendering it at all is cheaper and simpler.
-        return Ui.Modal
-            .Title(row.Type)
-            .OnClose(Close)
-            .Footer([.. RowActionButtons(row, isDead), Ui.Button.Key("close").OnClick(Close)["Close"]])[
-            Ui.DetailList[
-                Ui.DetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(),
-                Ui.DetailRow.Key("queue").Label("Queue").Value(_panel!.Title),
-                Ui.DetailRow.Key("status").Label("Status").Value(StatusText(row, isDead, now))
-                    .Tone(isDead ? Ui.Tone.Error : null),
-                Ui.DetailRow.Key("attempts").Label("Total attempts")
-                    .Value($"{row.Attempts} of {_panel.MaxAttempts}").Mono(),
-                Ui.DetailRow.Key("created").Label("Queued time").Value(row.CreatedAt.ToString("u")).Mono(),
-                Ui.DetailRow.Key("runat").Label(row.ProcessedAt is null ? "Runs at" : "Started")
-                    .Value(row.RunAt.ToString("u")).Mono(),
-                row.ProcessedAt is { } done
-                    ? Ui.DetailRow.Key("done").Label("Processed").Value(done.ToString("u")).Mono()
-                    : null,
-                Ui.DetailRow.Key("age").Label("Age").Value(DashboardParts.Ago(row.CreatedAt, now))
-            ],
-            row.Error is { } error ? Ui.Code.Content(error).Label("Last error").Tone(Ui.Tone.Error) : null,
-            Ui.Code.Content(row.Payload).Label("Payload")
+        return Ui.Modal.OnClose(Close)[
+            Div.Class("space-y-6")[
+                Ui.Heading.Level(2).Lg[row.Type],
+                Ui.DetailList[
+                    Ui.DetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(),
+                    Ui.DetailRow.Key("queue").Label("Queue").Value(_panel!.Title),
+                    Ui.DetailRow.Key("status").Label("Status").Value(StatusText(row, isDead, now))
+                        .Tone(isDead ? Ui.Tone.Error : null),
+                    Ui.DetailRow.Key("attempts").Label("Total attempts")
+                        .Value($"{row.Attempts} of {_panel.MaxAttempts}").Mono(),
+                    Ui.DetailRow.Key("created").Label("Queued time").Value(row.CreatedAt.ToString("u")).Mono(),
+                    Ui.DetailRow.Key("runat").Label(row.ProcessedAt is null ? "Runs at" : "Started")
+                        .Value(row.RunAt.ToString("u")).Mono(),
+                    row.ProcessedAt is { } done
+                        ? Ui.DetailRow.Key("done").Label("Processed").Value(done.ToString("u")).Mono()
+                        : null,
+                    Ui.DetailRow.Key("age").Label("Age").Value(DashboardParts.Ago(row.CreatedAt, now))
+                ],
+                row.Error is { } error ? Ui.Code.Key("error").Content(error).Label("Last error").Tone(Ui.Tone.Error) : null,
+                Ui.Code.Key("payload").Content(row.Payload).Label("Payload"),
+                Div.Class("flex flex-wrap gap-2 sm:justify-end")[actions]
+            ]
         ];
     }
 
