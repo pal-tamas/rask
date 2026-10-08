@@ -30,11 +30,11 @@ The bucket decides whether steps 3/3b/4 apply.
 **Never build, test or format `Rask.slnx` locally, and never run a gate script** (`run-unit-local.sh`,
 `run-e2e-local.sh`, `run-all-gates.sh`) as part of shipping. Every worktree doing that at once is what
 turned a one-minute gate into ten. After the push `ci.yml` runs the gates your change can reach, each
-its own job, and `full.yml` runs every gate each hour `main` has moved.
+its own job, and `full.yml` runs every gate behind every push, one run at a time.
 Locally you prove the thing you changed, in the project you changed, and move on.
 
 Before you start: `gh run list --workflow ci --branch main --limit 3`, and the same with
-`--workflow full` — the hourly run of everything, which is where a break a scoped push could not see
+`--workflow full` — the run of everything behind each push, which is where a break a scoped push could not see
 shows up. A red `main` is fixed first —
 read the failing job (`gh run view <id> --log-failed`), reproduce it with the script the job names.
 
