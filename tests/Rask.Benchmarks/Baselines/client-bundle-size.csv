@@ -4,7 +4,8 @@
 # Refreshed 2026-10-08 with the tablist's arrow keys (rask-tabs.ts, Flux's tabs): rask-hooks.js 37,124 -> 37,884
 # (+760), a hook module like the others, so a page without a tablist does not download it. The loader's
 # selector learned `[role=tablist]` beside `input[role=switch]`: rask.js 95,581 -> 95,596 and rask.wasm.js
-# 84,439 -> 84,454, +15 bytes each.
+# 84,439 -> 84,454, +15 bytes each. Measured again on the tree that has the calendar and the pickers, whose three
+# hook fixes had not been taken: rask-hooks.js 37,884 -> 38,023 (+139).
 #
 # Refreshed 2026-10-08 with Flux's menus, whose script is in the CORE runtime (the menu block of rask-dom.ts:
 # roving focus that follows `data-active`, Enter / Space on the focused row, focus handed back after a press
@@ -87,4 +88,4 @@
 bundle,bytes
 rask.js,95596
 rask.wasm.js,84454
-rask-hooks.js,37884
+rask-hooks.js,38023
