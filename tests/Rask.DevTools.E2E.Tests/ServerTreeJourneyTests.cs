@@ -24,6 +24,7 @@ public sealed class ServerTreeJourneyTests(PlaywrightFixture playwright)
 
         var label = devTools.Page.Locator("rask-devtools .hl-label");
         await Expect(label).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^BoardRow"), DevToolsPage.Text);
+        await BoxSettlesOnAsync(devTools, "Tag the release");
         var box = await devTools.Page.Locator("rask-devtools .hl").BoundingBoxAsync();
         var row = await devTools.Page.Locator("#board li", new() { HasText = "Tag the release" }).BoundingBoxAsync();
         Assert.NotNull(box);
@@ -87,6 +88,33 @@ public sealed class ServerTreeJourneyTests(PlaywrightFixture playwright)
         await devTools.ShowTabAsync("Tree");
         await Expect(devTools.Panel.GetByRole(AriaRole.Tree)).ToBeVisibleAsync(DevToolsPage.Visible);
         return devTools;
+    }
+
+    // Waits until the box starts where the board's row with this text does. The label cannot say so: both rows are a
+    // BoardRow of one size, and the hover is two hovers when the tree row is below the fold of the drawer. Bringing it
+    // into view scrolls the panel under a pointer still resting where the Tree tab was clicked, the browser reports
+    // whichever row that leaves there, and the row asked for is boxed a frame later. A box that never arrives is left
+    // to the assertions after this, which say where it was instead.
+    private static async Task BoxSettlesOnAsync(DevToolsPage devTools, string rowText)
+    {
+        try
+        {
+            await devTools.Page.WaitForFunctionAsync(
+                """
+                text => {
+                    const box = document.querySelector('rask-devtools')?.shadowRoot?.querySelector('.hl');
+                    const row = [...document.querySelectorAll('#board li')].find(li => li.textContent.includes(text));
+                    return !!box && !box.hidden && !!row
+                        && Math.abs(box.getBoundingClientRect().top - row.getBoundingClientRect().top) <= 1;
+                }
+                """,
+                rowText,
+                new() { Timeout = (float)DevToolsPage.Wait.TotalMilliseconds });
+        }
+        catch (TimeoutException)
+        {
+            // Not this method's failure to report: the caller measures the box next.
+        }
     }
 
     // A tree row by the text on it: a component's type or one of its prop values.

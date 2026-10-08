@@ -107,7 +107,7 @@ login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`)
 
 ```csharp
 Div.Class("flex flex-wrap items-center gap-3")[
-    Ui.Heading.Level(1).Size(Ui.Size.Xl)["Products"],
+    Ui.Heading.Level(1).Xl["Products"],
     Ui.Spacer,
     Authorize[                             // only rendered for signed-in users
         Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]
