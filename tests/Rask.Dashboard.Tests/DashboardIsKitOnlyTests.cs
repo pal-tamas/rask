@@ -26,8 +26,15 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
 {
     private static readonly Regex ClassString = new(@"\.(Class|Style)\(|\bUiStyles\.", RegexOptions.Compiled);
 
-    // The owner has decided the console may use Tailwind (it gets its own compiled sheet later); until then exactly this call, whose utilities the kit's sheet carries.
-    private const string Allowed = "Ui.Badge.Key(s.Key).Class(\"font-mono max-w-full break-all whitespace-normal!\")";
+    // The owner has decided the console may use Tailwind, and it has a compiled sheet of its own now. Until the
+    // rule itself is lifted, exactly these calls: the badge's long token, and what a queue row's detail modal
+    // lays its content out with — Flux's modal spaces nothing, as Flux's examples do it with utilities.
+    private static readonly string[] Allowed =
+    [
+        "Ui.Badge.Key(s.Key).Class(\"font-mono max-w-full break-all whitespace-normal!\")",
+        "Div.Class(\"space-y-6\")[",
+        "Div.Class(\"flex flex-wrap gap-2 sm:justify-end\")[actions]",
+    ];
 
     [Fact]
     public void The_console_writes_no_class_strings()
@@ -43,7 +50,7 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
 
                 // Comments may name the thing they explain; only code writes a class.
                 if (line.StartsWith("//", StringComparison.Ordinal)
-                    || line.StartsWith(Allowed, StringComparison.Ordinal)
+                    || Allowed.Any(allowed => line.StartsWith(allowed, StringComparison.Ordinal))
                     || !ClassString.IsMatch(line))
                 {
                     continue;

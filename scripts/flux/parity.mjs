@@ -91,6 +91,8 @@ const NATIVE = {
   'ui-selected-remove': 'div',
   // The checkbox, radio and switch: a <label> around the real <input>, and a group that is only a box.
   'ui-checkbox-group': 'div', 'ui-radio-group': 'div', 'ui-checkbox': 'label', 'ui-radio': 'label', 'ui-switch': 'label',
+  // The modal's wrapper, and the one around a button that closes it: the kit's buttons are invoker commands.
+  'ui-modal': 'div', 'ui-close': 'div',
 };
 // Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
 // holds the native <input> that is: one child Flux has no node for, and nothing drawn.
@@ -205,7 +207,9 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
   // A node that is not displayed — itself or by an ancestor — or that is 0×0 on both sides has no box:
   // its rectangle is the viewport's corner, which says how far each page is scrolled and nothing about it.
   const boxed = (shown(theirs, a) || shown(mine, b)) && [a, b].some(n => n.box[2] > 0 || n.box[3] > 0);
-  if (a !== rootA && boxed) {
+  // Nor has a `display: contents` root (a modal's trigger): nothing under it can be placed against it.
+  const anchored = rootA.style.display !== 'contents' || rootB.style.display !== 'contents';
+  if (a !== rootA && boxed && anchored) {
     const off = (n, r, i) => n.box[i] - r.box[i];
     if ([0, 1].some(i => held[i] && differs(off(a, rootA, i), off(b, rootB, i)))) {
       diffs.push(`${where}: offset ${fix(off(a, rootA, 0))},${fix(off(a, rootA, 1))} vs ${fix(off(b, rootB, 0))},${fix(off(b, rootB, 1))}`);

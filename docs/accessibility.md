@@ -167,12 +167,18 @@ it on open (its `[autofocus]` element, else the element itself), `Tab`/`Shift+Ta
 (focus can't reach the inert page behind), and focus returns to the previously-focused element when it
 closes. If the trap (or a descendant) carries `data-rask-dismiss`, `Escape` closes it by triggering that
 element's click handler — no per-keystroke server round-trip. The trap follows the attribute as well as the
-element: adding or removing `data-rask-focus-trap` on an element that stays mounted engages or releases it,
-which is how Rask UI's state-driven `Ui.Modal` hands focus back when `Open(false)` closes it in place.
+element: adding or removing `data-rask-focus-trap` on an element that stays mounted engages or releases it.
 
-Rask UI's declarative `Ui.Modal` needs none of this: it opens with `command="show-modal"`, so the browser's own
-modal dialog makes the page inert, closes on Escape and returns focus to the trigger. While any kit dialog is
-open, the kit's stylesheet also stops the page behind it from scrolling.
+Rask UI's `Ui.Modal` needs none of this: it is a modal `<dialog>` — opened by a `Ui.ModalTrigger`'s
+`command="show-modal"`, or by the runtime when the page's state says so (`Ui.Modal.Open(…)`,
+`data-rask-modal-open`) — so the browser's own modal dialog makes the page inert, closes on Escape and returns
+focus to what opened it. While one is open the runtime also stops the page behind it from scrolling
+(`data-rask-lock="scroll"`).
+
+As Flux UI's does, a `Ui.Modal` opens with focus on nothing: an empty `autofocus` placeholder inside the dialog
+takes the focus the browser would hand the first field, then leaves, so no control is ringed before the reader
+chose one and the first `Tab` lands on the first control. A modal has no title of its own — its content
+carries the heading, exactly as Flux's does. Its close button is named "Close modal".
 
 A dialog should opt in deliberately: an open modal traps focus, is labelled (`aria-labelledby`
 its title, or `aria-label` from the title text), and dismisses on `Escape` (except with a static backdrop,
