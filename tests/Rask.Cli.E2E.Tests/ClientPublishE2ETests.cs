@@ -58,6 +58,14 @@ public sealed class ClientPublishE2ETests
             Assert.True(File.Exists(Path.Combine(wwwroot, "rask.wasm.js")), "Rask's runtime module is absent.");
             // The runtime loads this from beside itself the first time a page asks for a behaviour hook.
             Assert.True(File.Exists(Path.Combine(wwwroot, "rask-hooks.js")), "the behaviour hooks' bundle is absent.");
+            // A page that mounts a Ui.Editor fetches this. The browser half writes it and the server half
+            // does not: both doing so was one relative path twice, and this publish failed on it (NETSDK1152).
+            Assert.True(
+                File.Exists(Path.Combine(wwwroot, "js", "rask-ui-editor.js")),
+                "the editor's engine is absent, so a Ui.Editor would stay a block of plain markup.");
+            Assert.False(
+                File.Exists(Path.Combine(projectDir, "wwwroot", "js", "rask-ui-editor.js")),
+                "the server half wrote the editor's engine as well as the browser half.");
 
             // The companion compiled the app's own Client/ code: its assembly is named after the app.
             var framework = Path.Combine(wwwroot, "_framework");

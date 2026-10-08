@@ -1,8 +1,8 @@
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     The kit's form controls: Flux UI's input, textarea, checkbox, radio and switch, example by example, then
-///     the controls that are still daisyUI's until each is rebuilt.
+///     The kit's form controls: Flux UI's input, textarea, checkbox, radio, switch, calendar, date picker and time
+///     picker, example by example, then the controls that are still daisyUI's until each is rebuilt.
 /// </summary>
 public sealed partial class UiKitDataInputDemo : Component
 {
@@ -14,11 +14,6 @@ public sealed partial class UiKitDataInputDemo : Component
     private int _palette;
     private double _volume = 40;
     private int _stars = 4;
-    private DateOnly _month = DateOnly.FromDateTime(TimeProvider.System.GetLocalNow().Date);
-    private DateOnly? _date;
-    private UiDateRange _stay;
-    private DateOnly _arrival;
-    private List<DateOnly> _daysOff = [];
     private readonly Signup _signup = new();
 
     /// <inheritdoc />
@@ -41,7 +36,8 @@ public sealed partial class UiKitDataInputDemo : Component
         OneTimeCodeSection(),
         FilterSection(),
         CalendarSection(),
-        SeveralDaysRangeSection(),
+        DatePickerSection(),
+        TimePickerSection(),
         FileUploadSection(),
         BoundModelSection(),
         MaskSection()
@@ -187,59 +183,6 @@ public sealed partial class UiKitDataInputDemo : Component
                 ]
             ]);
 
-    private Component CalendarSection() =>
-        Section(
-            "Calendar",
-            "Built in C#, because the element daisyUI styles for this is a JavaScript web component the "
-            + "kit does not ship. Every day is a button carrying its full date as its name.",
-            Div.Data(Testid("ui-calendar")).Class("space-y-2")[
-                // Month and OnMonth are the VIEW, not the value: paging through months changes nothing
-                // a form would submit, which is why they are not part of the binding.
-                Ui.Calendar
-                    .Value(_date ?? default)
-                    .Label("Delivery date")
-                    .Month(_month)
-                    .OnMonth(m => { _month = m; })
-                    .OnChange(d => { _date = d; })
-                    .Class("max-w-xs"),
-                P.Class("text-sm text-ui-muted").Data(Testid("ui-calendar-state"))[
-                    _date is { } picked
-                        ? $"Chosen: {picked.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}"
-                        : "No date chosen."
-                ]
-            ]);
-
-    private Component SeveralDaysRangeSection() =>
-        Section(
-            "Several days, a range, and a picker",
-            "The same entries. Bind a collection of days and Ui.Calendar picks several; bind a UiDateRange and it "
-            + "picks a range — the first click is held and drawn, the second writes the whole range, so the model "
-            + "never holds half of one. Ui.DatePicker is the field-shaped button that opens the grid in a popover: "
-            + "a single day closes it on the pick, several days keep it open, a range closes on its second click.",
-            Div.Data(Testid("ui-dates")).Class("grid gap-4 md:grid-cols-2")[
-                Div.Class("space-y-2")[
-                    Ui.Calendar.Value(_stay).Label("Stay").Class("max-w-xs")
-                        .OnChange(r => { _stay = r; }),
-                    P.Class("text-sm text-ui-muted").Data(Testid("ui-dates-stay"))[
-                        _stay == default
-                            ? "No stay chosen."
-                            : $"Stay: {Iso(_stay.Start)} to {Iso(_stay.End)}"
-                    ]
-                ],
-                Div.Class("space-y-3")[
-                    Ui.DatePicker.Value(_arrival).Label("Arrival")
-                        .OnChange(d => { _arrival = d; }),
-                    Ui.DatePicker.Values(_daysOff).Label("Days off")
-                        .OnChange(days => { _daysOff = [.. days]; }),
-                    Ui.DatePicker.Value(_stay).Label("Stay, as a field")
-                        .OnChange(r => { _stay = r; }),
-                    P.Class("text-sm text-ui-muted").Data(Testid("ui-dates-picked"))[
-                        _arrival == default ? "No arrival chosen." : $"Arrival: {Iso(_arrival)}",
-                        $" · {_daysOff.Count} days off"
-                    ]
-                ]
-            ]);
-
     private Component BoundModelSection() =>
         Section(
             "Bound to a model",
@@ -279,9 +222,6 @@ public sealed partial class UiKitDataInputDemo : Component
             ]);
 
     private static AttrBag Testid(string value) => new("testid", value);
-
-    private static string Iso(DateOnly date) =>
-        date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
     private static UiMask Masked(string key, Ui.MaskShape shape) =>
         Ui.Mask.Key(key).Shape(shape).Class("size-14 bg-primary");

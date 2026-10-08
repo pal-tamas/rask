@@ -144,10 +144,10 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     public void A_bound_calendar_marks_the_models_day()
     {
         var model = new Profile { Delivery = new DateOnly(2026, 3, 14) };
-        var html = Ui.Calendar.Bind(() => model.Delivery).Label("Delivery date").Month(March).ToHtml();
+        var html = Ui.Calendar.Bind(() => model.Delivery).OpenTo(March).ToHtml();
 
-        Assert.Contains("aria-pressed=\"true\"", html);
-        Assert.Equal(1, Occurrences(html, "aria-pressed=\"true\""));
+        Assert.Contains("aria-selected=\"true\"", html);
+        Assert.Equal(1, Occurrences(html, "aria-selected=\"true\""));
     }
 
     [Fact]
@@ -156,13 +156,13 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         // default(DateOnly) is 1 January year 1. Letting it choose the view would open the grid on a
         // month nobody meant to look at, so an unset value falls back to today.
         var model = new Profile();
-        var html = Ui.Calendar.Bind(() => model.Delivery).Label("Delivery date").ToHtml();
+        var html = Ui.Calendar.Bind(() => model.Delivery).ToHtml();
 
         Assert.Contains(
-            DateOnly.FromDateTime(DateTime.Today).ToString("MMMM yyyy",
+            DateOnly.FromDateTime(DateTime.Today).ToString("Y",
                 System.Globalization.CultureInfo.CurrentCulture),
             html);
-        Assert.DoesNotContain("aria-pressed=\"true\"", html);
+        Assert.DoesNotContain("aria-selected=\"true\"", html);
     }
 
     // Of<T>() exists on these because a form control's openings are its MODE pins, so its required

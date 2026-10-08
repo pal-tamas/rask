@@ -16,7 +16,7 @@ public sealed partial class UiKitDataInputDemo
 
     // What a picture may weigh to be shown as its own preview, and what the reading example will read.
     private const long PreviewLimit = 2 * 1024 * 1024;
-    private const long ReadLimit = 256 * 1024 * 1024;
+    private const long ReadLimit = 10 * 1024 * 1024;
 
     private static readonly HashSet<string> Pictures =
         new(StringComparer.OrdinalIgnoreCase) { "image/png", "image/jpeg", "image/gif", "image/webp" };

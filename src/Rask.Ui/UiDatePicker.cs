@@ -1,95 +1,34 @@
-using System.Globalization;
-
 namespace Rask;
 
 /// <summary>
-/// A field that shows a date and opens a calendar to pick one.
+/// A field that shows a date and opens a calendar to pick one — Flux UI's <c>flux:date-picker</c>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Flux UI's date picker: a field-shaped button showing the chosen day in the reader's own short date format, and
-/// the month grid in a popover beside it. The browser owns the popover — the top layer, Escape, a click outside,
-/// and focus back on the button — and a pick closes it on the same click.
+/// <c>Ui.DatePicker.Bind(() =&gt; model.Arrival)</c> two-way binds a <c>DateOnly</c> (or a <c>DateOnly?</c>);
+/// <c>.Value(day).OnChange(…)</c> leaves it with the parent. The button shows the day as the locale writes a
+/// medium date ("Jan 20, 2026"), and a pick closes the popup on the same click.
 /// </para>
 /// <para>
-/// A form field like the kit's inputs, so <c>Label</c>, <c>Hint</c>, <c>Error</c>, <c>Badge</c> and validation all
-/// work as they do there. <b>The same entry picks several days or a range</b>: bind a collection of days and it is
-/// <see cref="UiDatePickerMultiple" />, which stays open while days are added; bind a <see cref="UiDateRange" />
-/// and it is <see cref="UiDatePickerRange" />, which closes once the range has both ends.
-/// </para>
-/// <para>
-/// Nothing here is typed. Where a date may be far away, a <c>UiInput</c> of type date beside it — or instead of
-/// it — is faster than paging through months, and the only route for somebody who cannot use a pointer comfortably.
+/// <c>Ui.DatePicker.Range</c> opens <see cref="UiDatePickerRange" /> over a <see cref="UiDateRange" />. Every prop is on
+/// <see cref="UiDatePickerControl{T}" />.
 /// </para>
 /// </remarks>
-public sealed partial class UiDatePicker : UiFormField<DateOnly>
+public sealed partial class UiDatePicker : UiDatePickerControl<DateOnly>
 {
-    private static int _instances;
+    private protected override Ui.DatePickerMode Bound => Ui.DatePickerMode.Single;
 
-    private readonly int _instance = Interlocked.Increment(ref _instances);
-    private DateOnly? _month;
-    private bool _open;
+    private protected override string DefaultPlaceholder => "Select a date";
 
-    /// <summary>What the field shows before a day is chosen. "Choose a date" unless this says otherwise.</summary>
-    public string? Placeholder { get; set; }
+    private protected override string ConfirmLabel => "Select date";
 
-    /// <inheritdoc cref="UiCalendar.Min" />
-    public DateOnly? Min { get; set; }
+    private protected override UiCalendarPicks Picks(DateOnly current, Func<DateOnly, Task> choose) =>
+        new UiCalendarSinglePick(current, choose);
 
-    /// <inheritdoc cref="UiCalendar.Max" />
-    public DateOnly? Max { get; set; }
+    private protected override string? Text(DateOnly current, UiCalendarOptions options) =>
+        current == default ? null : Medium(current, options.Culture);
 
-    /// <inheritdoc cref="UiCalendar.FirstDay" />
-    public DayOfWeek? FirstDay { get; set; }
+    private protected override IReadOnlyList<DateOnly?> Dates(DateOnly current) => [current == default ? null : current];
 
-    // The open state and the view month are FIELDS, which the render cache cannot see.
-    /// <inheritdoc />
-    protected override bool BypassRenderCache => true;
-
-    private string Prefix => "uidp-" + _instance.ToString(CultureInfo.InvariantCulture);
-
-    /// <inheritdoc />
-    protected override Component Control()
-    {
-        var (acc, ctx, chosen) = UiFormCommit.Resolve<DateOnly>(this);
-        var panel = UiDayGrid.PanelIdOf(Prefix);
-
-        var grid = UiDayGrid.Render(new UiDayGrid.View(
-            Label ?? AccessibleLabel ?? "Date",
-            UiDayGrid.MonthOf(null, _month, chosen),
-            FirstDay,
-            Min,
-            Max,
-            "border-0",
-            month =>
-            {
-                _month = month;
-                return Task.CompletedTask;
-            },
-            date => new UiDayGrid.DayState(chosen == date, false),
-            date => UiFormCommit.CommitAsync(this, acc, ctx, date),
-            _ => panel));
-
-        return UiDayGrid.PickerShell(
-            new UiDayGrid.Picker(
-                Prefix,
-                FieldId,
-                chosen == default ? null : UiDayGrid.Short(chosen),
-                Placeholder ?? "Choose a date",
-                BuildControlAria(),
-                _open,
-                Disabled == true,
-                UiClass.Compose(UiDayGrid.BoxClass(Tone, Size, Variant), Class),
-                Label ?? AccessibleLabel,
-                open =>
-                {
-                    _open = open;
-                    // Reopening goes back to the chosen day's month rather than wherever it was last paged to.
-                    if (!open)
-                    {
-                        _month = null;
-                    }
-                }),
-            grid);
-    }
+    private protected override DateOnly Typed(DateOnly current, int slot, DateOnly date) => date;
 }

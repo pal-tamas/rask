@@ -57,35 +57,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string InputTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "input-neutral",
-        Ui.Tone.Primary => "input-primary",
-        Ui.Tone.Secondary => "input-secondary",
-        Ui.Tone.Accent => "input-accent",
-        Ui.Tone.Info => "input-info",
-        Ui.Tone.Success => "input-success",
-        Ui.Tone.Warning => "input-warning",
-        Ui.Tone.Error => "input-error",
-        _ => "",
-    };
-
-    internal static string InputVariant(Ui.Variant value) => value switch
-    {
-        Ui.Variant.Ghost => "input-ghost",
-        _ => "",
-    };
-
-    internal static string InputSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "input-xs",
-        Ui.Size.Sm => "input-sm",
-        Ui.Size.Md => "input-md",
-        Ui.Size.Lg => "input-lg",
-        Ui.Size.Xl => "input-xl",
-        _ => "",
-    };
-
     internal static string RangeTone(Ui.Tone value) => value switch
     {
         Ui.Tone.Neutral => "range-neutral",
