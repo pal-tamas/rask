@@ -17,7 +17,7 @@ namespace Rask;
 ///     With no <see cref="Href" /> it is a <c>&lt;button&gt;</c> — the trigger of a dropdown.
 ///     </para>
 /// </remarks>
-public sealed partial class UiNavbarItem : Component
+public sealed partial class UiNavbarItem : Component, IUiTrigger
 {
     private const string Base =
         "relative flex h-8 items-center rounded-lg px-3 text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
@@ -65,6 +65,18 @@ public sealed partial class UiNavbarItem : Component
     /// <summary>Classes for the call site, added to the item's own.</summary>
     public string? Class { get; set; }
 
+    private UiInvoked? _invoked;
+
+    /// <inheritdoc />
+    Component IUiTrigger.Invoking(string panelId, bool open)
+    {
+        _invoked = new UiInvoked(panelId, open);
+        // What a generated step does when it writes a new value: the component is drawn again with it.
+        BuilderRuntime.MarkChanged(this);
+
+        return this;
+    }
+
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -79,7 +91,7 @@ public sealed partial class UiNavbarItem : Component
         return UiNavItemMarkup.Element(
             Href, Current,
             UiClass.Compose(Base, Accent == false ? PlainCurrent : AccentCurrent, Class),
-            "data-ui-navbar-items", content);
+            "data-ui-navbar-items", content, _invoked);
     }
 
     // An item that is only an icon has no words to hold a place for.

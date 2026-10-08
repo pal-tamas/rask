@@ -62,8 +62,18 @@ public sealed partial class ProfileParity : FluxParity
                     Ui.NavlistItem.Href("#").Icon(Ui.IconName.Calendar)["Calendar"]
                 ],
                 Div.Style("flex:1 1 0%").Attributes(("data-ui-spacer", null)),
-                NavigationStandIns.Skipped("dropdown", "display:flex",
-                    Ui.Profile.Name("Caleb Porzio").Avatar(NavigationStandIns.Caleb).Class("w-full"))
+                Ui.Dropdown.Top.Start[
+                    Ui.Profile.Name("Caleb Porzio").Avatar(NavigationStandIns.Caleb).Class("w-full"),
+                    Ui.Menu[
+                        Ui.MenuRadioGroup.Value("Caleb Porzio")[
+                            Ui.MenuRadio.Value("Caleb Porzio")["Caleb Porzio"],
+                            Ui.MenuRadio.Value("Hugo Sainte-Marie")["Hugo Sainte-Marie"],
+                            Ui.MenuRadio.Value("Josh Hanley")["Josh Hanley"]
+                        ],
+                        Ui.MenuSeparator,
+                        Ui.MenuItem.Icon(Ui.IconName.ArrowRightStartOnRectangle)["Logout"]
+                    ]
+                ]
             ]
         ]));
     }

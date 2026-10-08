@@ -36,13 +36,18 @@ public sealed partial class NavbarParity : FluxParity
             Ui.NavbarItem.Href("#").Badge("Pro").BadgeColor(Ui.Color.Lime)["Calendar"]
         ]]));
 
-        // The dropdown is another page's component: one box around the item that opens it. The item itself —
-        // a button, with its trailing chevron — is the navbar's, and is what gives the box its size.
+        // The item is a button with a trailing chevron, and the dropdown makes it the trigger of its menu.
         yield return ("dropdown-navigation", Row(Div[Ui.Navbar[
             Ui.NavbarItem.Href("#").Current(true)["Dashboard"],
             Ui.NavbarItem.Href("#")["Transactions"],
-            NavigationStandIns.Skipped("dropdown", "display:flex",
-                Ui.NavbarItem.IconTrailing(Ui.IconName.ChevronDown)["Account"])
+            Ui.Dropdown[
+                Ui.NavbarItem.IconTrailing(Ui.IconName.ChevronDown)["Account"],
+                Ui.Navmenu[
+                    Ui.NavmenuItem.Href("#")["Profile"],
+                    Ui.NavmenuItem.Href("#")["Settings"],
+                    Ui.NavmenuItem.Href("#")["Billing"]
+                ]
+            ]
         ]]));
 
         yield return ("navlist-(sidebar)", Row(Div[Ui.Navlist.Class("w-64")[

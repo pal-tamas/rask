@@ -23,7 +23,7 @@ namespace Rask;
 ///     is the plain dot — and <see cref="Tooltip" /> names it on hover.
 ///     </para>
 /// </remarks>
-public sealed partial class UiAvatar : Component
+public sealed partial class UiAvatar : Component, IUiTrigger
 {
     private const string Frame =
         "relative flex shrink-0 items-center justify-center font-medium after:absolute after:inset-0 "
@@ -101,6 +101,18 @@ public sealed partial class UiAvatar : Component
     /// <summary>Classes for the call site, added to the avatar's own.</summary>
     public string? Class { get; set; }
 
+    private UiInvoked? _invoked;
+
+    /// <inheritdoc />
+    Component IUiTrigger.Invoking(string panelId, bool open)
+    {
+        _invoked = new UiInvoked(panelId, open);
+        // What a generated step does when it writes a new value: the component is drawn again with it.
+        BuilderRuntime.MarkChanged(this);
+
+        return this;
+    }
+
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -131,9 +143,13 @@ public sealed partial class UiAvatar : Component
     {
         if (Href is not { } href)
         {
-            return As == Ui.AvatarAs.Button
-                ? Button.Type(ButtonType.Button).Class(classes).Attributes(marks)[content]
-                : Div.Class(classes).Attributes(marks)[content];
+            if (As != Ui.AvatarAs.Button)
+            {
+                return Div.Class(classes).Attributes(marks)[content];
+            }
+
+            var button = Button.Type(ButtonType.Button).Class(classes).Attributes(marks);
+            return (_invoked is { } invoked ? invoked.On(button) : button)[content];
         }
 
         return href.PageType is null

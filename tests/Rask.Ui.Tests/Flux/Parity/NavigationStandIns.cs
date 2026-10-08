@@ -29,6 +29,8 @@ internal static class NavigationStandIns
 
     public const string Sheet =
         "<style>.w-64{width:16rem}.w-full{width:100%}.mt-4{margin-top:1rem}.px-2{padding-inline:.5rem}"
+        // `mt-2 mb-4` on the separator of the avatar page's card: an app's own utilities.
+        + ".parity-rule{margin-top:.5rem;margin-bottom:1rem}"
         + ".only-light:where(.dark,.dark *){display:none}"
         + ".only-dark{display:none}.only-dark:where(.dark,.dark *){display:flex}"
         // Flux's "Launchpad" mark: a cyan-500 disc, white, text-xs, bold.

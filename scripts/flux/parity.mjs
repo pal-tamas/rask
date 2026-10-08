@@ -92,6 +92,8 @@ const NATIVE = {
   'ui-select': 'div', 'ui-selected': 'div', 'ui-options': 'div', 'ui-option': 'div', 'ui-option-empty': 'div',
   'ui-option-create': 'div', 'ui-empty': 'div', 'ui-pillbox': 'div', 'ui-pillbox-trigger': 'div',
   'ui-selected-remove': 'div',
+  // The sidebar: a checkbox and CSS collapse it and slide it over the page, where Flux's element runs script.
+  'ui-sidebar': 'div',
   // The modal's wrapper, and the one around a button that closes it: the kit's buttons are invoker commands.
   'ui-modal': 'div', 'ui-close': 'div',
 };

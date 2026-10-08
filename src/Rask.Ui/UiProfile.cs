@@ -14,7 +14,7 @@ namespace Rask;
 ///     worked out from <see cref="Name" />, or from <see cref="AvatarName" /> for a profile that shows no name.
 ///     </para>
 /// </remarks>
-public sealed partial class UiProfile : Component
+public sealed partial class UiProfile : Component, IUiTrigger
 {
     private const string Base =
         "group flex items-center p-1 hover:bg-zinc-800/5 dark:hover:bg-white/15";
@@ -52,13 +52,13 @@ public sealed partial class UiProfile : Component
     /// <summary>Classes for the call site, added to the profile's own.</summary>
     public string? Class { get; set; }
 
-    private (string PanelId, bool Open)? _invoker;
+    private UiInvoked? _invoked;
 
-    /// <summary>Makes the row the button that opens a dropdown's panel. The kit's own chain step.</summary>
-    internal UiProfile Invoking(string panelId, bool open)
+    /// <inheritdoc />
+    Component IUiTrigger.Invoking(string panelId, bool open)
     {
-        _invoker = (panelId, open);
-        // What a generated step does when it writes a new value: the row is drawn again with it.
+        _invoked = new UiInvoked(panelId, open);
+        // What a generated step does when it writes a new value: the component is drawn again with it.
         BuilderRuntime.MarkChanged(this);
 
         return this;
@@ -67,13 +67,12 @@ public sealed partial class UiProfile : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var button = Button.Type(ButtonType.Button).Class(Base, Circle == true ? "rounded-full" : "rounded-lg", Class);
-        if (_invoker is var (panelId, open))
-        {
-            button = UiInvoker.Decorate(button, panelId, "true", open);
-        }
+        // The marker first: `Attributes` replaces the bag, and what makes the row a dropdown's trigger is in it.
+        var button = Button.Type(ButtonType.Button)
+            .Class(Base, Circle == true ? "rounded-full" : "rounded-lg", Class)
+            .Attributes(("data-ui-profile", null));
 
-        return button.Attributes(("data-ui-profile", null))[
+        return (_invoked is { } invoked ? invoked.On(button) : button)[
             Div.Class("shrink-0")[Face()],
             Name is { } name
                 ? Span.Class("ui-rail-hide mx-2 truncate text-sm font-medium text-zinc-500 group-hover:text-zinc-800 dark:text-white/80 dark:group-hover:text-white")[name]

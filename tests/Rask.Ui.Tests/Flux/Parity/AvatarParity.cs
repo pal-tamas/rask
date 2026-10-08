@@ -21,14 +21,16 @@ public sealed partial class AvatarParity : FluxParity
 {
     private const string Taylor = "https://unavatar.io/x/taylorotwell";
 
+    private static Component Assignee(string src, string name) =>
+        Li.Style("display:flex;align-items:center;gap:8px")[Ui.Avatar.Xs.Src(src), Ui.Heading[name]];
+
     public override string Page => "avatar";
 
     public override IEnumerable<(string Section, Component Example)> Examples()
     {
         yield return ("", Row(Raw.Value(NavigationStandIns.Sheet), Div[Ui.Avatar.Src(NavigationStandIns.Caleb)]));
 
-        yield return ("tooltip", Row(NavigationStandIns.Skipped("tooltip", "display:flex",
-            Ui.Avatar.Tooltip("Caleb Porzio").Src(NavigationStandIns.Caleb))));
+        yield return ("tooltip", Row(Ui.Avatar.Tooltip("Caleb Porzio").Src(NavigationStandIns.Caleb)));
 
         yield return ("initials", Row(
             Ui.Avatar.Name("Caleb Porzio"),
@@ -106,11 +108,19 @@ public sealed partial class AvatarParity : FluxParity
             Ui.Avatar.Circle().Lg.Src(NavigationStandIns.Josh))));
 
         // Assignees list.
-        yield return ("examples", Row(NavigationStandIns.Skipped("card-body-variant", "width:384px;height:227px;display:flex;flex-direction:column;gap:12px",
-            Ui.Avatar.Xs.Src(NavigationStandIns.Caleb),
-            Ui.Avatar.Xs.Src(NavigationStandIns.Hugo),
-            Ui.Avatar.Xs.Src(NavigationStandIns.Josh),
-            Ui.Avatar.Xs.Src("https://unavatar.io/github/jasonlbeggs"))));
+        yield return ("examples", Row(Div.Style("width:384px")[Ui.Card[
+            Div.Style("display:flex;justify-content:space-between;align-items:center")[
+                Ui.Heading["Assignees"],
+                Ui.Button.Sm.Subtle.Icon(Ui.IconName.Plus).Inset(Ui.Inset.Top | Ui.Inset.Bottom)
+            ],
+            Ui.Separator.Subtle.Class("parity-rule"),
+            Ul.Style("display:flex;flex-direction:column;gap:12px")[
+                Assignee(NavigationStandIns.Caleb, "Caleb Porzio"),
+                Assignee(NavigationStandIns.Hugo, "Hugo Sainte-Marie"),
+                Assignee(NavigationStandIns.Josh, "Josh Hanley"),
+                Assignee("https://unavatar.io/github/jasonlbeggs", "Jason Beggs")
+            ]
+        ]]));
 
         // Select options.
         yield return ("examples", Row(NavigationStandIns.Skipped("field", "width:224px;height:76px",

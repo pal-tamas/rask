@@ -18,12 +18,14 @@ internal static class UiNavItemMarkup
 
     /// <summary>The item itself: a link when it has somewhere to go, a button when it only opens something.</summary>
     internal static Component Element(
-        RouteUrl? href, bool? current, string classes, string marker, Component?[] content)
+        RouteUrl? href, bool? current, string classes, string marker, Component?[] content, UiInvoked? invoked = null)
     {
         if (href is not { } url)
         {
+            // The marker first: `Attributes` replaces the bag, and what makes the item a dropdown's trigger is in it.
             var button = Markup.Button.Type(ButtonType.Button).Class(classes);
-            return (current == true ? button.Attributes(CurrentPage, (marker, null)) : button.Attributes((marker, null)))[content];
+            button = current == true ? button.Attributes(CurrentPage, (marker, null)) : button.Attributes((marker, null));
+            return (invoked is { } panel ? panel.On(button) : button)[content];
         }
 
         // A STRING is an ordinary link, written exactly as given with no path base added (#1070), and there is
