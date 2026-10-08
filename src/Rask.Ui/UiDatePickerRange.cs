@@ -1,99 +1,69 @@
-using System.Globalization;
-
 namespace Rask;
 
 /// <summary>
-/// A field that shows a range of dates and opens a calendar to pick its two ends.
+/// A field that shows a range of dates and opens two months to pick one — Flux UI's
+/// <c>flux:date-picker mode="range"</c>.
 /// </summary>
 /// <remarks>
-/// Not written by name: <c>UiDatePicker</c> becomes this control when the model holds a <see cref="UiDateRange" /> —
-/// <c>Ui.DatePicker.Bind(() =&gt; model.Stay)</c>, or <c>Ui.DatePicker.Value(new UiDateRange(from, to))</c> for the
-/// parent to own. The first click is held and drawn as the start; the second writes the whole range and closes the
-/// popover on the same click, as <see cref="UiCalendarRange" /> does without one.
+/// <para>
+/// Opened by Flux's mode step on the picker's entry: <c>Ui.DatePicker.Range.Bind(() =&gt; model.Stay)</c>
+/// over a <see cref="UiDateRange" /> (or a <c>UiDateRange?</c>). The first click is the start, the second writes
+/// the range and closes the popup.
+/// </para>
+/// <para>
+/// <c>WithPresets()</c> lists Flux's frequently used ranges beside the months, and <c>Presets([...])</c> says
+/// which. A preset writes its range with <see cref="UiDateRange.Preset" /> set, and the button then shows its
+/// name; a range picked by hand shows its two dates.
+/// </para>
 /// </remarks>
-[RaskChainEntry("UiDatePicker")]
-public sealed partial class UiDatePickerRange : UiFormField<UiDateRange>
+public sealed partial class UiDatePickerRange : UiDatePickerControl<UiDateRange>
 {
-    private static int _instances;
+    private protected override Ui.DatePickerMode Bound => Ui.DatePickerMode.Range;
 
-    private readonly int _instance = Interlocked.Increment(ref _instances);
-    private DateOnly? _month;
-    private DateOnly? _anchor;
-    private bool _open;
+    private protected override int DefaultMonths => 2;
 
-    /// <summary>What the field shows before a range is chosen. "Choose dates" unless this says otherwise.</summary>
-    public string? Placeholder { get; set; }
+    private protected override string DefaultPlaceholder => "Select a date range";
 
-    /// <inheritdoc cref="UiCalendar.Min" />
-    public DateOnly? Min { get; set; }
+    private protected override string ConfirmLabel => "Select date";
 
-    /// <inheritdoc cref="UiCalendar.Max" />
-    public DateOnly? Max { get; set; }
+    private protected override UiCalendarPicks Picks(UiDateRange current, Func<UiDateRange, Task> choose) =>
+        new UiCalendarRangePick(current, State, MinRange, MaxRange, choose);
 
-    /// <inheritdoc cref="UiCalendar.FirstDay" />
-    public DayOfWeek? FirstDay { get; set; }
-
-    // The open state, the half-picked start and the view month are FIELDS, which the render cache cannot see.
-    /// <inheritdoc />
-    protected override bool BypassRenderCache => true;
-
-    private string Prefix => "uidpr-" + _instance.ToString(CultureInfo.InvariantCulture);
-
-    /// <inheritdoc />
-    protected override Component Control()
+    private protected override string? Text(UiDateRange current, UiCalendarOptions options)
     {
-        var (acc, ctx, chosen) = UiFormCommit.Resolve<UiDateRange>(this);
-        var panel = UiDayGrid.PanelIdOf(Prefix);
-        var anchor = _anchor;
+        if (current == default)
+        {
+            return null;
+        }
 
-        var grid = UiDayGrid.Render(new UiDayGrid.View(
-            Label ?? AccessibleLabel ?? "Dates",
-            UiDayGrid.MonthOf(null, _month, anchor ?? (chosen == default ? null : chosen.Start)),
-            FirstDay,
-            Min,
-            Max,
-            "border-0",
-            month =>
-            {
-                _month = month;
-                return Task.CompletedTask;
-            },
-            date => UiCalendarRange.State(chosen, anchor, date),
-            date =>
-            {
-                if (_anchor is not { } start)
-                {
-                    _anchor = date;
-                    return Task.CompletedTask;
-                }
+        return current.Preset is { } preset && preset != Ui.DateRangePreset.Custom
+            ? UiDateRangePresets.Label(preset)
+            : Medium(current.Start, options.Culture) + " – " + Medium(current.End, options.Culture);
+    }
 
-                _anchor = null;
-                return UiFormCommit.CommitAsync(this, acc, ctx, UiDateRange.Between(start, date));
-            },
-            // Only the click that gives the range its end closes the popover; the first one leaves it open for it.
-            _ => anchor is null ? null : panel));
+    private protected override IReadOnlyList<DateOnly?> Dates(UiDateRange current) =>
+        current == default ? [null, null] : [current.Start, current.End];
 
-        return UiDayGrid.PickerShell(
-            new UiDayGrid.Picker(
-                Prefix,
-                FieldId,
-                chosen == default ? null : UiDayGrid.Short(chosen.Start) + " – " + UiDayGrid.Short(chosen.End),
-                Placeholder ?? "Choose dates",
-                BuildControlAria(),
-                _open,
-                Disabled == true,
-                UiClass.Compose(UiDayGrid.BoxClass(Tone, Size, Variant), Class),
-                Label ?? AccessibleLabel,
-                open =>
-                {
-                    _open = open;
-                    if (!open)
-                    {
-                        // Closed half-way through: the start is dropped with it, so reopening starts afresh.
-                        _anchor = null;
-                        _month = null;
-                    }
-                }),
-            grid);
+    // A typed start keeps the end where it can; a typed end before the start begins the range there.
+    private protected override UiDateRange Typed(UiDateRange current, int slot, DateOnly date)
+    {
+        if (current == default)
+        {
+            return new UiDateRange(date, date);
+        }
+
+        return slot == 0 ? UiDateRange.Between(date, current.End) : UiDateRange.Between(current.Start, date);
+    }
+
+    private protected override Component? Aside(UiDateRange current, UiCalendarOptions options, Func<UiDateRange, Task> choose)
+    {
+        if (WithPresets != true && Presets is null)
+        {
+            return null;
+        }
+
+        // A choice waiting to be confirmed keeps the popup open; otherwise a preset closes it as a pick does.
+        var closes = WithConfirmation == true ? null : PopoverId;
+        return UiDatePickerPresets.Render(Presets ?? UiDateRangePresets.Default, current, options, closes, choose);
     }
 }

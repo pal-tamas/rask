@@ -1,7 +1,37 @@
 #nullable enable
+override Rask.UiCalendarControl<T>.BypassRenderCache.get -> bool
+override Rask.UiCalendarControl<T>.OnRendered() -> System.Threading.Tasks.Task!
+override Rask.UiCalendarControl<T>.Render() -> Rask.Core.Component?
+override Rask.UiDatePickerControl<T>.BypassRenderCache.get -> bool
+override Rask.UiDatePickerControl<T>.OnRendered() -> System.Threading.Tasks.Task!
+override Rask.UiDatePickerControl<T>.Render() -> Rask.Core.Component?
 override Rask.UiPaginator.Equals(object? obj) -> bool
 override Rask.UiPaginator.GetHashCode() -> int
 override Rask.UiPaginator.ToString() -> string!
+override Rask.UiTimeRange.GetHashCode() -> int
+Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>! Bind) -> Rask.UiCalendar!
+Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! Bind) -> Rask.UiCalendar!
+Rask.RaskSeed_UiCalendar.Value(System.DateOnly Value) -> Rask.UiCalendar!
+Rask.RaskSeed_UiCalendarMultiple
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.HashSet<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.IList<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.List<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.Collection<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.ObservableCollection<System.DateOnly>!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly[]!>!>! Bind) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarMultiple.RaskSeed_UiCalendarMultiple() -> void
+Rask.RaskSeed_UiCalendarMultiple.Values(System.Collections.Generic.ICollection<System.DateOnly>? Values) -> Rask.UiCalendarMultiple!
+Rask.RaskSeed_UiCalendarRange
+Rask.RaskSeed_UiCalendarRange.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! Bind) -> Rask.UiCalendarRange!
+Rask.RaskSeed_UiCalendarRange.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! Bind) -> Rask.UiCalendarRange!
+Rask.RaskSeed_UiCalendarRange.RaskSeed_UiCalendarRange() -> void
+Rask.RaskSeed_UiCalendarRange.Value(Rask.UiDateRange Value) -> Rask.UiCalendarRange!
+Rask.RaskSeed_UiDatePickerRange
+Rask.RaskSeed_UiDatePickerRange.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! Bind) -> Rask.UiDatePickerRange!
+Rask.RaskSeed_UiDatePickerRange.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! Bind) -> Rask.UiDatePickerRange!
+Rask.RaskSeed_UiDatePickerRange.RaskSeed_UiDatePickerRange() -> void
+Rask.RaskSeed_UiDatePickerRange.Value(Rask.UiDateRange Value) -> Rask.UiDatePickerRange!
 Rask.RaskSeed_UiMenuCheckbox.Bind(System.Linq.Expressions.Expression<System.Func<bool>!>! Bind) -> Rask.UiMenuCheckbox!
 Rask.RaskSeed_UiMenuCheckbox.Bind(System.Linq.Expressions.Expression<System.Func<bool?>!>! Bind) -> Rask.UiMenuCheckbox!
 Rask.RaskSeed_UiMenuCheckbox.Value(bool Value) -> Rask.UiMenuCheckbox!
@@ -68,6 +98,12 @@ Rask.RaskSeed_UiSwitch.Bind(System.Linq.Expressions.Expression<System.Func<bool>
 Rask.RaskSeed_UiSwitch.Bind(System.Linq.Expressions.Expression<System.Func<bool?>!>! Bind) -> Rask.UiSwitch!
 Rask.RaskSeed_UiSwitch.RaskSeed_UiSwitch() -> void
 Rask.RaskSeed_UiSwitch.Value(bool Value) -> Rask.UiSwitch!
+Rask.RaskSeed_UiTimePicker
+Rask.RaskSeed_UiTimePicker.Bind<T>(System.Linq.Expressions.Expression<System.Func<T>!>! Bind) -> Rask.UiTimePicker<T>!
+Rask.RaskSeed_UiTimePicker.Key(object? key) -> Rask.RaskSeed_UiTimePicker
+Rask.RaskSeed_UiTimePicker.Of<T>() -> Rask.UiTimePicker<T>!
+Rask.RaskSeed_UiTimePicker.RaskSeed_UiTimePicker() -> void
+Rask.RaskSeed_UiTimePicker.Value<T>(T? Value) -> Rask.UiTimePicker<T>!
 Rask.ToastOptions.At(Rask.Ui.ToastPosition position) -> Rask.ToastOptions!
 Rask.ToastOptions.Position.get -> Rask.Ui.ToastPosition
 Rask.Ui.AccordionVariant
@@ -83,6 +119,17 @@ Rask.Ui.AutocompleteSize.Xs = 2 -> Rask.Ui.AutocompleteSize
 Rask.Ui.AutocompleteVariant
 Rask.Ui.AutocompleteVariant.Filled = 1 -> Rask.Ui.AutocompleteVariant
 Rask.Ui.AutocompleteVariant.Outline = 0 -> Rask.Ui.AutocompleteVariant
+Rask.Ui.CalendarMode
+Rask.Ui.CalendarMode.Multiple = 1 -> Rask.Ui.CalendarMode
+Rask.Ui.CalendarMode.Range = 2 -> Rask.Ui.CalendarMode
+Rask.Ui.CalendarMode.Single = 0 -> Rask.Ui.CalendarMode
+Rask.Ui.CalendarSize
+Rask.Ui.CalendarSize.Base = 0 -> Rask.Ui.CalendarSize
+Rask.Ui.CalendarSize.Lg = 3 -> Rask.Ui.CalendarSize
+Rask.Ui.CalendarSize.Sm = 2 -> Rask.Ui.CalendarSize
+Rask.Ui.CalendarSize.Xl = 4 -> Rask.Ui.CalendarSize
+Rask.Ui.CalendarSize.Xs = 1 -> Rask.Ui.CalendarSize
+Rask.Ui.CalendarSize.Xxl = 5 -> Rask.Ui.CalendarSize
 Rask.Ui.CalloutVariant
 Rask.Ui.CalloutVariant.Danger = 3 -> Rask.Ui.CalloutVariant
 Rask.Ui.CalloutVariant.Secondary = 0 -> Rask.Ui.CalloutVariant
@@ -177,6 +224,55 @@ Rask.Ui.ContextPosition.BottomStart = 2 -> Rask.Ui.ContextPosition
 Rask.Ui.ContextPosition.TopCenter = 4 -> Rask.Ui.ContextPosition
 Rask.Ui.ContextPosition.TopEnd = 3 -> Rask.Ui.ContextPosition
 Rask.Ui.ContextPosition.TopStart = 5 -> Rask.Ui.ContextPosition
+Rask.Ui.DatePickerButtonSize
+Rask.Ui.DatePickerButtonSize.Base = 0 -> Rask.Ui.DatePickerButtonSize
+Rask.Ui.DatePickerButtonSize.Sm = 1 -> Rask.Ui.DatePickerButtonSize
+Rask.Ui.DatePickerButtonSize.Xs = 2 -> Rask.Ui.DatePickerButtonSize
+Rask.Ui.DatePickerInputSize
+Rask.Ui.DatePickerInputSize.Base = 0 -> Rask.Ui.DatePickerInputSize
+Rask.Ui.DatePickerInputSize.Sm = 1 -> Rask.Ui.DatePickerInputSize
+Rask.Ui.DatePickerInputSize.Xs = 2 -> Rask.Ui.DatePickerInputSize
+Rask.Ui.DatePickerMode
+Rask.Ui.DatePickerMode.Range = 1 -> Rask.Ui.DatePickerMode
+Rask.Ui.DatePickerMode.Single = 0 -> Rask.Ui.DatePickerMode
+Rask.Ui.DatePickerSize
+Rask.Ui.DatePickerSize.Default = 0 -> Rask.Ui.DatePickerSize
+Rask.Ui.DatePickerSize.Lg = 2 -> Rask.Ui.DatePickerSize
+Rask.Ui.DatePickerSize.Sm = 1 -> Rask.Ui.DatePickerSize
+Rask.Ui.DatePickerSize.Xl = 3 -> Rask.Ui.DatePickerSize
+Rask.Ui.DatePickerSize.Xxl = 4 -> Rask.Ui.DatePickerSize
+Rask.Ui.DatePickerType
+Rask.Ui.DatePickerType.Button = 0 -> Rask.Ui.DatePickerType
+Rask.Ui.DatePickerType.Input = 1 -> Rask.Ui.DatePickerType
+Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.AllTime = 26 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Custom = 27 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Last14Days = 11 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Last30Days = 12 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Last3Months = 13 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Last6Months = 14 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Last7Days = 4 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.LastMonth = 6 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.LastQuarter = 8 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.LastWeek = 3 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.LastYear = 10 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Next14Days = 22 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Next30Days = 23 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Next3Months = 24 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Next6Months = 25 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Next7Days = 18 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.NextMonth = 19 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.NextQuarter = 20 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.NextWeek = 17 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.NextYear = 21 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.ThisMonth = 5 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.ThisQuarter = 7 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.ThisWeek = 2 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.ThisYear = 9 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Today = 0 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Tomorrow = 16 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.YearToDate = 15 -> Rask.Ui.DateRangePreset
+Rask.Ui.DateRangePreset.Yesterday = 1 -> Rask.Ui.DateRangePreset
 Rask.Ui.DropdownAlign
 Rask.Ui.DropdownAlign.Center = 1 -> Rask.Ui.DropdownAlign
 Rask.Ui.DropdownAlign.End = 2 -> Rask.Ui.DropdownAlign
@@ -269,6 +365,17 @@ Rask.Ui.TimelineStatus.Complete = 1 -> Rask.Ui.TimelineStatus
 Rask.Ui.TimelineStatus.Current = 2 -> Rask.Ui.TimelineStatus
 Rask.Ui.TimelineStatus.Default = 0 -> Rask.Ui.TimelineStatus
 Rask.Ui.TimelineStatus.Incomplete = 3 -> Rask.Ui.TimelineStatus
+Rask.Ui.TimePickerSize
+Rask.Ui.TimePickerSize.Base = 0 -> Rask.Ui.TimePickerSize
+Rask.Ui.TimePickerSize.Sm = 1 -> Rask.Ui.TimePickerSize
+Rask.Ui.TimePickerSize.Xs = 2 -> Rask.Ui.TimePickerSize
+Rask.Ui.TimePickerTimeFormat
+Rask.Ui.TimePickerTimeFormat.Auto = 0 -> Rask.Ui.TimePickerTimeFormat
+Rask.Ui.TimePickerTimeFormat.TwelveHour = 1 -> Rask.Ui.TimePickerTimeFormat
+Rask.Ui.TimePickerTimeFormat.TwentyFourHour = 2 -> Rask.Ui.TimePickerTimeFormat
+Rask.Ui.TimePickerType
+Rask.Ui.TimePickerType.Button = 0 -> Rask.Ui.TimePickerType
+Rask.Ui.TimePickerType.Input = 1 -> Rask.Ui.TimePickerType
 Rask.Ui.ToastPosition
 Rask.Ui.ToastPosition.BottomCenter = 1 -> Rask.Ui.ToastPosition
 Rask.Ui.ToastPosition.BottomEnd = 0 -> Rask.Ui.ToastPosition
@@ -511,83 +618,82 @@ Rask.Ui.ButtonType.Submit = 1 -> Rask.Ui.ButtonType
 Rask.UiButtonGroup
 Rask.UiButtonGroup.UiButtonGroup() -> void
 Rask.UiCalendar
-Rask.UiCalendar.AfterBind.get -> Rask.Core.Callback<System.DateOnly>
-Rask.UiCalendar.AfterBind.set -> void
-Rask.UiCalendar.Bind.get -> System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>?
-Rask.UiCalendar.Bind.set -> void
-Rask.UiCalendar.Class.get -> string?
-Rask.UiCalendar.Class.set -> void
-Rask.UiCalendar.FirstDay.get -> System.DayOfWeek?
-Rask.UiCalendar.FirstDay.set -> void
-Rask.UiCalendar.Label.get -> string!
-Rask.UiCalendar.Label.set -> void
-Rask.UiCalendar.Max.get -> System.DateOnly?
-Rask.UiCalendar.Max.set -> void
-Rask.UiCalendar.Min.get -> System.DateOnly?
-Rask.UiCalendar.Min.set -> void
-Rask.UiCalendar.Month.get -> System.DateOnly?
-Rask.UiCalendar.Month.set -> void
-Rask.UiCalendar.OnChange.get -> Rask.Core.Callback<System.DateOnly>
-Rask.UiCalendar.OnChange.set -> void
-Rask.UiCalendar.OnMonth.get -> Rask.Core.Callback<System.DateOnly>
-Rask.UiCalendar.OnMonth.set -> void
 Rask.UiCalendar.UiCalendar() -> void
-Rask.UiCalendar.Validate.get -> Rask.Core.Validator<System.DateOnly>?
-Rask.UiCalendar.Validate.set -> void
-Rask.UiCalendar.Value.get -> System.DateOnly
-Rask.UiCalendar.Value.set -> void
+Rask.UiCalendarControl<T>
+Rask.UiCalendarControl<T>.AfterBind.get -> Rask.Core.Callback<T>
+Rask.UiCalendarControl<T>.AfterBind.set -> void
+Rask.UiCalendarControl<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
+Rask.UiCalendarControl<T>.Bind.set -> void
+Rask.UiCalendarControl<T>.Class.get -> string?
+Rask.UiCalendarControl<T>.Class.set -> void
+Rask.UiCalendarControl<T>.FixedWeeks.get -> bool?
+Rask.UiCalendarControl<T>.FixedWeeks.set -> void
+Rask.UiCalendarControl<T>.ForceOpenTo.get -> bool?
+Rask.UiCalendarControl<T>.ForceOpenTo.set -> void
+Rask.UiCalendarControl<T>.Id.get -> string?
+Rask.UiCalendarControl<T>.Id.set -> void
+Rask.UiCalendarControl<T>.Locale.get -> string?
+Rask.UiCalendarControl<T>.Locale.set -> void
+Rask.UiCalendarControl<T>.Max.get -> System.DateOnly?
+Rask.UiCalendarControl<T>.Max.set -> void
+Rask.UiCalendarControl<T>.MaxRange.get -> int?
+Rask.UiCalendarControl<T>.MaxRange.set -> void
+Rask.UiCalendarControl<T>.Min.get -> System.DateOnly?
+Rask.UiCalendarControl<T>.Min.set -> void
+Rask.UiCalendarControl<T>.MinRange.get -> int?
+Rask.UiCalendarControl<T>.MinRange.set -> void
+Rask.UiCalendarControl<T>.Mode.get -> Rask.Ui.CalendarMode?
+Rask.UiCalendarControl<T>.Mode.set -> void
+Rask.UiCalendarControl<T>.Months.get -> int?
+Rask.UiCalendarControl<T>.Months.set -> void
+Rask.UiCalendarControl<T>.Multiple.get -> bool?
+Rask.UiCalendarControl<T>.Multiple.set -> void
+Rask.UiCalendarControl<T>.Navigation.get -> bool?
+Rask.UiCalendarControl<T>.Navigation.set -> void
+Rask.UiCalendarControl<T>.OnChange.get -> Rask.Core.Callback<T>
+Rask.UiCalendarControl<T>.OnChange.set -> void
+Rask.UiCalendarControl<T>.OpenTo.get -> System.DateOnly?
+Rask.UiCalendarControl<T>.OpenTo.set -> void
+Rask.UiCalendarControl<T>.SelectableHeader.get -> bool?
+Rask.UiCalendarControl<T>.SelectableHeader.set -> void
+Rask.UiCalendarControl<T>.Size.get -> Rask.Ui.CalendarSize?
+Rask.UiCalendarControl<T>.Size.set -> void
+Rask.UiCalendarControl<T>.StartDay.get -> System.DayOfWeek?
+Rask.UiCalendarControl<T>.StartDay.set -> void
+Rask.UiCalendarControl<T>.Static.get -> bool?
+Rask.UiCalendarControl<T>.Static.set -> void
+Rask.UiCalendarControl<T>.UiCalendarControl() -> void
+Rask.UiCalendarControl<T>.Unavailable.get -> System.Collections.Generic.IReadOnlyCollection<System.DateOnly>?
+Rask.UiCalendarControl<T>.Unavailable.set -> void
+Rask.UiCalendarControl<T>.Validate.get -> Rask.Core.Validator<T>?
+Rask.UiCalendarControl<T>.Validate.set -> void
+Rask.UiCalendarControl<T>.Value.get -> T?
+Rask.UiCalendarControl<T>.Value.set -> void
+Rask.UiCalendarControl<T>.WeekNumbers.get -> bool?
+Rask.UiCalendarControl<T>.WeekNumbers.set -> void
+Rask.UiCalendarControl<T>.WithToday.get -> bool?
+Rask.UiCalendarControl<T>.WithToday.set -> void
+Rask.UiCalendarModeEntry
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! bind) -> Rask.UiCalendarRange!
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! bind) -> Rask.UiCalendarRange!
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<System.DateOnly>!>!>! bind) -> Rask.UiCalendarMultiple!
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.List<System.DateOnly>!>!>! bind) -> Rask.UiCalendarMultiple!
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>! bind) -> Rask.UiCalendar!
+Rask.UiCalendarModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! bind) -> Rask.UiCalendar!
+Rask.UiCalendarModeEntry.UiCalendarModeEntry() -> void
+Rask.UiCalendarModeEntry.Value(Rask.UiDateRange value) -> Rask.UiCalendarRange!
+Rask.UiCalendarModeEntry.Value(System.DateOnly value) -> Rask.UiCalendar!
+Rask.UiCalendarModeEntry.Values(System.Collections.Generic.ICollection<System.DateOnly>? values) -> Rask.UiCalendarMultiple!
+Rask.UiCalendarModes
+Rask.UiCalendarModes.extension(Rask.RaskSeed_UiCalendar)
+Rask.UiCalendarModes.extension(Rask.RaskSeed_UiCalendar).Mode(Rask.Ui.CalendarMode mode) -> Rask.UiCalendarModeEntry
+Rask.UiCalendarModes.extension(Rask.RaskSeed_UiCalendar).Multiple.get -> Rask.RaskSeed_UiCalendarMultiple
+Rask.UiCalendarModes.extension(Rask.RaskSeed_UiCalendar).Range.get -> Rask.RaskSeed_UiCalendarRange
+Rask.UiCalendarModes.extension(Rask.RaskSeed_UiCalendar).Single.get -> Rask.RaskSeed_UiCalendar
 Rask.UiCalendarMultiple
-Rask.UiCalendarMultiple.AfterBind.get -> Rask.Core.Callback<System.Collections.Generic.ICollection<System.DateOnly>!>
-Rask.UiCalendarMultiple.AfterBind.set -> void
-Rask.UiCalendarMultiple.Bind.get -> System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<System.DateOnly>!>!>?
-Rask.UiCalendarMultiple.Bind.set -> void
-Rask.UiCalendarMultiple.Class.get -> string?
-Rask.UiCalendarMultiple.Class.set -> void
-Rask.UiCalendarMultiple.FirstDay.get -> System.DayOfWeek?
-Rask.UiCalendarMultiple.FirstDay.set -> void
-Rask.UiCalendarMultiple.Label.get -> string!
-Rask.UiCalendarMultiple.Label.set -> void
-Rask.UiCalendarMultiple.Max.get -> System.DateOnly?
-Rask.UiCalendarMultiple.Max.set -> void
-Rask.UiCalendarMultiple.Min.get -> System.DateOnly?
-Rask.UiCalendarMultiple.Min.set -> void
-Rask.UiCalendarMultiple.Month.get -> System.DateOnly?
-Rask.UiCalendarMultiple.Month.set -> void
-Rask.UiCalendarMultiple.OnChange.get -> Rask.Core.Callback<System.Collections.Generic.ICollection<System.DateOnly>!>
-Rask.UiCalendarMultiple.OnChange.set -> void
-Rask.UiCalendarMultiple.OnMonth.get -> Rask.Core.Callback<System.DateOnly>
-Rask.UiCalendarMultiple.OnMonth.set -> void
 Rask.UiCalendarMultiple.UiCalendarMultiple() -> void
-Rask.UiCalendarMultiple.Validate.get -> Rask.Core.Validator<System.Collections.Generic.ICollection<System.DateOnly>!>?
-Rask.UiCalendarMultiple.Validate.set -> void
-Rask.UiCalendarMultiple.Value.get -> System.Collections.Generic.ICollection<System.DateOnly>?
-Rask.UiCalendarMultiple.Value.set -> void
 Rask.UiCalendarRange
-Rask.UiCalendarRange.AfterBind.get -> Rask.Core.Callback<Rask.UiDateRange>
-Rask.UiCalendarRange.AfterBind.set -> void
-Rask.UiCalendarRange.Bind.get -> System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>?
-Rask.UiCalendarRange.Bind.set -> void
-Rask.UiCalendarRange.Class.get -> string?
-Rask.UiCalendarRange.Class.set -> void
-Rask.UiCalendarRange.FirstDay.get -> System.DayOfWeek?
-Rask.UiCalendarRange.FirstDay.set -> void
-Rask.UiCalendarRange.Label.get -> string!
-Rask.UiCalendarRange.Label.set -> void
-Rask.UiCalendarRange.Max.get -> System.DateOnly?
-Rask.UiCalendarRange.Max.set -> void
-Rask.UiCalendarRange.Min.get -> System.DateOnly?
-Rask.UiCalendarRange.Min.set -> void
-Rask.UiCalendarRange.Month.get -> System.DateOnly?
-Rask.UiCalendarRange.Month.set -> void
-Rask.UiCalendarRange.OnChange.get -> Rask.Core.Callback<Rask.UiDateRange>
-Rask.UiCalendarRange.OnChange.set -> void
-Rask.UiCalendarRange.OnMonth.get -> Rask.Core.Callback<System.DateOnly>
-Rask.UiCalendarRange.OnMonth.set -> void
 Rask.UiCalendarRange.UiCalendarRange() -> void
-Rask.UiCalendarRange.Validate.get -> Rask.Core.Validator<Rask.UiDateRange>?
-Rask.UiCalendarRange.Validate.set -> void
-Rask.UiCalendarRange.Value.get -> Rask.UiDateRange
-Rask.UiCalendarRange.Value.set -> void
 Rask.UiCallout
 Rask.UiCallout.Actions.get -> Rask.Core.Component?
 Rask.UiCallout.Actions.set -> void
@@ -1170,41 +1276,133 @@ Rask.UiDataGrid<T, TKey>.Zebra.get -> bool?
 Rask.UiDataGrid<T, TKey>.Zebra.set -> void
 Rask.UiDataGrid<T, TKey>.this[System.Func<Rask.UiDataGrid<T, TKey>!, System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>! columns].get -> Rask.Core.Component!
 Rask.UiDatePicker
-Rask.UiDatePicker.FirstDay.get -> System.DayOfWeek?
-Rask.UiDatePicker.FirstDay.set -> void
-Rask.UiDatePicker.Max.get -> System.DateOnly?
-Rask.UiDatePicker.Max.set -> void
-Rask.UiDatePicker.Min.get -> System.DateOnly?
-Rask.UiDatePicker.Min.set -> void
-Rask.UiDatePicker.Placeholder.get -> string?
-Rask.UiDatePicker.Placeholder.set -> void
 Rask.UiDatePicker.UiDatePicker() -> void
-Rask.UiDatePickerMultiple
-Rask.UiDatePickerMultiple.FirstDay.get -> System.DayOfWeek?
-Rask.UiDatePickerMultiple.FirstDay.set -> void
-Rask.UiDatePickerMultiple.Max.get -> System.DateOnly?
-Rask.UiDatePickerMultiple.Max.set -> void
-Rask.UiDatePickerMultiple.Min.get -> System.DateOnly?
-Rask.UiDatePickerMultiple.Min.set -> void
-Rask.UiDatePickerMultiple.Placeholder.get -> string?
-Rask.UiDatePickerMultiple.Placeholder.set -> void
-Rask.UiDatePickerMultiple.UiDatePickerMultiple() -> void
+Rask.UiDatePickerButton
+Rask.UiDatePickerButton.Class.get -> string?
+Rask.UiDatePickerButton.Class.set -> void
+Rask.UiDatePickerButton.Disabled.get -> bool?
+Rask.UiDatePickerButton.Disabled.set -> void
+Rask.UiDatePickerButton.Invalid.get -> bool?
+Rask.UiDatePickerButton.Invalid.set -> void
+Rask.UiDatePickerButton.Placeholder.get -> string?
+Rask.UiDatePickerButton.Placeholder.set -> void
+Rask.UiDatePickerButton.Size.get -> Rask.Ui.DatePickerButtonSize?
+Rask.UiDatePickerButton.Size.set -> void
+Rask.UiDatePickerButton.UiDatePickerButton() -> void
+Rask.UiDatePickerControl<T>
+Rask.UiDatePickerControl<T>.AfterBind.get -> Rask.Core.Callback<T>
+Rask.UiDatePickerControl<T>.AfterBind.set -> void
+Rask.UiDatePickerControl<T>.Badge.get -> string?
+Rask.UiDatePickerControl<T>.Badge.set -> void
+Rask.UiDatePickerControl<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
+Rask.UiDatePickerControl<T>.Bind.set -> void
+Rask.UiDatePickerControl<T>.Class.get -> string?
+Rask.UiDatePickerControl<T>.Class.set -> void
+Rask.UiDatePickerControl<T>.Description.get -> string?
+Rask.UiDatePickerControl<T>.Description.set -> void
+Rask.UiDatePickerControl<T>.DescriptionTrailing.get -> string?
+Rask.UiDatePickerControl<T>.DescriptionTrailing.set -> void
+Rask.UiDatePickerControl<T>.Disabled.get -> bool?
+Rask.UiDatePickerControl<T>.Disabled.set -> void
+Rask.UiDatePickerControl<T>.FixedWeeks.get -> bool?
+Rask.UiDatePickerControl<T>.FixedWeeks.set -> void
+Rask.UiDatePickerControl<T>.ForceOpenTo.get -> bool?
+Rask.UiDatePickerControl<T>.ForceOpenTo.set -> void
+Rask.UiDatePickerControl<T>.Id.get -> string?
+Rask.UiDatePickerControl<T>.Id.set -> void
+Rask.UiDatePickerControl<T>.Invalid.get -> bool?
+Rask.UiDatePickerControl<T>.Invalid.set -> void
+Rask.UiDatePickerControl<T>.Label.get -> string?
+Rask.UiDatePickerControl<T>.Label.set -> void
+Rask.UiDatePickerControl<T>.Locale.get -> string?
+Rask.UiDatePickerControl<T>.Locale.set -> void
+Rask.UiDatePickerControl<T>.Max.get -> System.DateOnly?
+Rask.UiDatePickerControl<T>.Max.set -> void
+Rask.UiDatePickerControl<T>.MaxRange.get -> int?
+Rask.UiDatePickerControl<T>.MaxRange.set -> void
+Rask.UiDatePickerControl<T>.Min.get -> System.DateOnly?
+Rask.UiDatePickerControl<T>.Min.set -> void
+Rask.UiDatePickerControl<T>.MinRange.get -> int?
+Rask.UiDatePickerControl<T>.MinRange.set -> void
+Rask.UiDatePickerControl<T>.Mode.get -> Rask.Ui.DatePickerMode?
+Rask.UiDatePickerControl<T>.Mode.set -> void
+Rask.UiDatePickerControl<T>.Months.get -> int?
+Rask.UiDatePickerControl<T>.Months.set -> void
+Rask.UiDatePickerControl<T>.OnChange.get -> Rask.Core.Callback<T>
+Rask.UiDatePickerControl<T>.OnChange.set -> void
+Rask.UiDatePickerControl<T>.OpenTo.get -> System.DateOnly?
+Rask.UiDatePickerControl<T>.OpenTo.set -> void
+Rask.UiDatePickerControl<T>.Placeholder.get -> string?
+Rask.UiDatePickerControl<T>.Placeholder.set -> void
+Rask.UiDatePickerControl<T>.Presets.get -> System.Collections.Generic.IReadOnlyList<Rask.Ui.DateRangePreset>?
+Rask.UiDatePickerControl<T>.Presets.set -> void
+Rask.UiDatePickerControl<T>.SelectableHeader.get -> bool?
+Rask.UiDatePickerControl<T>.SelectableHeader.set -> void
+Rask.UiDatePickerControl<T>.ShowValidation.get -> bool?
+Rask.UiDatePickerControl<T>.ShowValidation.set -> void
+Rask.UiDatePickerControl<T>.Size.get -> Rask.Ui.DatePickerSize?
+Rask.UiDatePickerControl<T>.Size.set -> void
+Rask.UiDatePickerControl<T>.StartDay.get -> System.DayOfWeek?
+Rask.UiDatePickerControl<T>.StartDay.set -> void
+Rask.UiDatePickerControl<T>.Trigger.get -> Rask.Core.Component?
+Rask.UiDatePickerControl<T>.Trigger.set -> void
+Rask.UiDatePickerControl<T>.Type.get -> Rask.Ui.DatePickerType?
+Rask.UiDatePickerControl<T>.Type.set -> void
+Rask.UiDatePickerControl<T>.UiDatePickerControl() -> void
+Rask.UiDatePickerControl<T>.Unavailable.get -> System.Collections.Generic.IReadOnlyCollection<System.DateOnly>?
+Rask.UiDatePickerControl<T>.Unavailable.set -> void
+Rask.UiDatePickerControl<T>.Validate.get -> Rask.Core.Validator<T>?
+Rask.UiDatePickerControl<T>.Validate.set -> void
+Rask.UiDatePickerControl<T>.Value.get -> T?
+Rask.UiDatePickerControl<T>.Value.set -> void
+Rask.UiDatePickerControl<T>.WeekNumbers.get -> bool?
+Rask.UiDatePickerControl<T>.WeekNumbers.set -> void
+Rask.UiDatePickerControl<T>.WithConfirmation.get -> bool?
+Rask.UiDatePickerControl<T>.WithConfirmation.set -> void
+Rask.UiDatePickerControl<T>.WithPresets.get -> bool?
+Rask.UiDatePickerControl<T>.WithPresets.set -> void
+Rask.UiDatePickerControl<T>.WithToday.get -> bool?
+Rask.UiDatePickerControl<T>.WithToday.set -> void
+Rask.UiDatePickerInput
+Rask.UiDatePickerInput.Class.get -> string?
+Rask.UiDatePickerInput.Class.set -> void
+Rask.UiDatePickerInput.Description.get -> string?
+Rask.UiDatePickerInput.Description.set -> void
+Rask.UiDatePickerInput.Disabled.get -> bool?
+Rask.UiDatePickerInput.Disabled.set -> void
+Rask.UiDatePickerInput.Id.get -> string?
+Rask.UiDatePickerInput.Id.set -> void
+Rask.UiDatePickerInput.Invalid.get -> bool?
+Rask.UiDatePickerInput.Invalid.set -> void
+Rask.UiDatePickerInput.Label.get -> string?
+Rask.UiDatePickerInput.Label.set -> void
+Rask.UiDatePickerInput.Size.get -> Rask.Ui.DatePickerInputSize?
+Rask.UiDatePickerInput.Size.set -> void
+Rask.UiDatePickerInput.UiDatePickerInput() -> void
+Rask.UiDatePickerModeEntry
+Rask.UiDatePickerModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! bind) -> Rask.UiDatePickerRange!
+Rask.UiDatePickerModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! bind) -> Rask.UiDatePickerRange!
+Rask.UiDatePickerModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>! bind) -> Rask.UiDatePicker!
+Rask.UiDatePickerModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! bind) -> Rask.UiDatePicker!
+Rask.UiDatePickerModeEntry.UiDatePickerModeEntry() -> void
+Rask.UiDatePickerModeEntry.Value(Rask.UiDateRange value) -> Rask.UiDatePickerRange!
+Rask.UiDatePickerModeEntry.Value(System.DateOnly value) -> Rask.UiDatePicker!
+Rask.UiDatePickerModes
+Rask.UiDatePickerModes.extension(Rask.RaskSeed_UiDatePicker)
+Rask.UiDatePickerModes.extension(Rask.RaskSeed_UiDatePicker).Mode(Rask.Ui.DatePickerMode mode) -> Rask.UiDatePickerModeEntry
+Rask.UiDatePickerModes.extension(Rask.RaskSeed_UiDatePicker).Range.get -> Rask.RaskSeed_UiDatePickerRange
+Rask.UiDatePickerModes.extension(Rask.RaskSeed_UiDatePicker).Single.get -> Rask.RaskSeed_UiDatePicker
 Rask.UiDatePickerRange
-Rask.UiDatePickerRange.FirstDay.get -> System.DayOfWeek?
-Rask.UiDatePickerRange.FirstDay.set -> void
-Rask.UiDatePickerRange.Max.get -> System.DateOnly?
-Rask.UiDatePickerRange.Max.set -> void
-Rask.UiDatePickerRange.Min.get -> System.DateOnly?
-Rask.UiDatePickerRange.Min.set -> void
-Rask.UiDatePickerRange.Placeholder.get -> string?
-Rask.UiDatePickerRange.Placeholder.set -> void
 Rask.UiDatePickerRange.UiDatePickerRange() -> void
 Rask.UiDateRange
 Rask.UiDateRange.Contains(System.DateOnly date) -> bool
+Rask.UiDateRange.Count.get -> int
 Rask.UiDateRange.Deconstruct(out System.DateOnly Start, out System.DateOnly End) -> void
 Rask.UiDateRange.End.get -> System.DateOnly
 Rask.UiDateRange.End.init -> void
 Rask.UiDateRange.Equals(Rask.UiDateRange other) -> bool
+Rask.UiDateRange.Preset.get -> Rask.Ui.DateRangePreset?
+Rask.UiDateRange.Preset.init -> void
 Rask.UiDateRange.Start.get -> System.DateOnly
 Rask.UiDateRange.Start.init -> void
 Rask.UiDateRange.UiDateRange() -> void
@@ -2139,6 +2337,70 @@ Rask.UiTimelineItem.Status.set -> void
 Rask.UiTimelineItem.UiTimelineItem() -> void
 Rask.UiTimelineSubgrid
 Rask.UiTimelineSubgrid.UiTimelineSubgrid() -> void
+Rask.UiTimePicker<T>
+Rask.UiTimePicker<T>.AfterBind.get -> Rask.Core.Callback<T>
+Rask.UiTimePicker<T>.AfterBind.set -> void
+Rask.UiTimePicker<T>.Badge.get -> string?
+Rask.UiTimePicker<T>.Badge.set -> void
+Rask.UiTimePicker<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
+Rask.UiTimePicker<T>.Bind.set -> void
+Rask.UiTimePicker<T>.Class.get -> string?
+Rask.UiTimePicker<T>.Class.set -> void
+Rask.UiTimePicker<T>.Clearable.get -> bool?
+Rask.UiTimePicker<T>.Clearable.set -> void
+Rask.UiTimePicker<T>.Description.get -> string?
+Rask.UiTimePicker<T>.Description.set -> void
+Rask.UiTimePicker<T>.DescriptionTrailing.get -> string?
+Rask.UiTimePicker<T>.DescriptionTrailing.set -> void
+Rask.UiTimePicker<T>.Disabled.get -> bool?
+Rask.UiTimePicker<T>.Disabled.set -> void
+Rask.UiTimePicker<T>.Dropdown.get -> bool?
+Rask.UiTimePicker<T>.Dropdown.set -> void
+Rask.UiTimePicker<T>.Id.get -> string?
+Rask.UiTimePicker<T>.Id.set -> void
+Rask.UiTimePicker<T>.Interval.get -> int?
+Rask.UiTimePicker<T>.Interval.set -> void
+Rask.UiTimePicker<T>.Invalid.get -> bool?
+Rask.UiTimePicker<T>.Invalid.set -> void
+Rask.UiTimePicker<T>.Label.get -> string?
+Rask.UiTimePicker<T>.Label.set -> void
+Rask.UiTimePicker<T>.Locale.get -> string?
+Rask.UiTimePicker<T>.Locale.set -> void
+Rask.UiTimePicker<T>.Max.get -> System.TimeOnly?
+Rask.UiTimePicker<T>.Max.set -> void
+Rask.UiTimePicker<T>.Min.get -> System.TimeOnly?
+Rask.UiTimePicker<T>.Min.set -> void
+Rask.UiTimePicker<T>.OnChange.get -> Rask.Core.Callback<T>
+Rask.UiTimePicker<T>.OnChange.set -> void
+Rask.UiTimePicker<T>.OpenTo.get -> System.TimeOnly?
+Rask.UiTimePicker<T>.OpenTo.set -> void
+Rask.UiTimePicker<T>.Placeholder.get -> string?
+Rask.UiTimePicker<T>.Placeholder.set -> void
+Rask.UiTimePicker<T>.ShowValidation.get -> bool?
+Rask.UiTimePicker<T>.ShowValidation.set -> void
+Rask.UiTimePicker<T>.Size.get -> Rask.Ui.TimePickerSize?
+Rask.UiTimePicker<T>.Size.set -> void
+Rask.UiTimePicker<T>.TimeFormat.get -> Rask.Ui.TimePickerTimeFormat?
+Rask.UiTimePicker<T>.TimeFormat.set -> void
+Rask.UiTimePicker<T>.Type.get -> Rask.Ui.TimePickerType?
+Rask.UiTimePicker<T>.Type.set -> void
+Rask.UiTimePicker<T>.UiTimePicker() -> void
+Rask.UiTimePicker<T>.Unavailable.get -> System.Collections.Generic.IReadOnlyList<Rask.UiTimeRange>?
+Rask.UiTimePicker<T>.Unavailable.set -> void
+Rask.UiTimePicker<T>.Validate.get -> Rask.Core.Validator<T>?
+Rask.UiTimePicker<T>.Validate.set -> void
+Rask.UiTimePicker<T>.Value.get -> T?
+Rask.UiTimePicker<T>.Value.set -> void
+Rask.UiTimeRange
+Rask.UiTimeRange.Contains(System.TimeOnly time) -> bool
+Rask.UiTimeRange.Deconstruct(out System.TimeOnly Start, out System.TimeOnly End) -> void
+Rask.UiTimeRange.End.get -> System.TimeOnly
+Rask.UiTimeRange.End.init -> void
+Rask.UiTimeRange.Equals(Rask.UiTimeRange other) -> bool
+Rask.UiTimeRange.Start.get -> System.TimeOnly
+Rask.UiTimeRange.Start.init -> void
+Rask.UiTimeRange.UiTimeRange() -> void
+Rask.UiTimeRange.UiTimeRange(System.TimeOnly Start, System.TimeOnly End) -> void
 Rask.UiTooltip.Align.get -> Rask.Ui.TooltipAlign?
 Rask.UiTooltip.Content.get -> string?
 Rask.UiTooltip.Content.set -> void
@@ -2208,6 +2470,33 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiBadge!).Teal.get -> Rask.UiBadge!
 RaskBuilderSettersRask_Ui.extension(Rask.UiBadge!).Violet.get -> Rask.UiBadge!
 RaskBuilderSettersRask_Ui.extension(Rask.UiBadge!).Yellow.get -> Rask.UiBadge!
 RaskBuilderSettersRask_Ui.extension(Rask.UiBadge!).Zinc.get -> Rask.UiBadge!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Base.get -> Rask.UiCalendar!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Lg.get -> Rask.UiCalendar!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Range.get -> Rask.UiCalendar!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Single.get -> Rask.UiCalendar!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Sm.get -> Rask.UiCalendar!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Xl.get -> Rask.UiCalendar!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Xs.get -> Rask.UiCalendar!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendar!).Xxl.get -> Rask.UiCalendar!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Base.get -> Rask.UiCalendarMultiple!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Lg.get -> Rask.UiCalendarMultiple!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Range.get -> Rask.UiCalendarMultiple!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Single.get -> Rask.UiCalendarMultiple!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Sm.get -> Rask.UiCalendarMultiple!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Xl.get -> Rask.UiCalendarMultiple!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Xs.get -> Rask.UiCalendarMultiple!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarMultiple!).Xxl.get -> Rask.UiCalendarMultiple!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Base.get -> Rask.UiCalendarRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Lg.get -> Rask.UiCalendarRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Range.get -> Rask.UiCalendarRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Single.get -> Rask.UiCalendarRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Sm.get -> Rask.UiCalendarRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Xl.get -> Rask.UiCalendarRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Xs.get -> Rask.UiCalendarRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiCalendarRange!).Xxl.get -> Rask.UiCalendarRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCallout!).Amber.get -> Rask.UiCallout!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCallout!).Blue.get -> Rask.UiCallout!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCallout!).Cyan.get -> Rask.UiCallout!
@@ -2271,6 +2560,24 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiChartCursor!).Line.get -> Rask.UiChar
 RaskBuilderSettersRask_Ui.extension(Rask.UiChartLine!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiChartLine!).None.get -> Rask.UiChartLine!
 RaskBuilderSettersRask_Ui.extension(Rask.UiChartLine!).Smooth.get -> Rask.UiChartLine!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Button.get -> Rask.UiDatePicker!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Input.get -> Rask.UiDatePicker!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Range.get -> Rask.UiDatePicker!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Single.get -> Rask.UiDatePicker!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Xxl.get -> Rask.UiDatePicker!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerButton!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerButton!).Base.get -> Rask.UiDatePickerButton!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerButton!).Sm.get -> Rask.UiDatePickerButton!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerButton!).Xs.get -> Rask.UiDatePickerButton!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerInput!)
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerInput!).Base.get -> Rask.UiDatePickerInput!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerInput!).Sm.get -> Rask.UiDatePickerInput!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerInput!).Xs.get -> Rask.UiDatePickerInput!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Button.get -> Rask.UiDatePickerRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Input.get -> Rask.UiDatePickerRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Range.get -> Rask.UiDatePickerRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Single.get -> Rask.UiDatePickerRange!
+RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Xxl.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiEditorButton!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiEditorButton!).Micro.get -> Rask.UiEditorButton!
 RaskBuilderSettersRask_Ui.extension(Rask.UiEditorButton!).Mini.get -> Rask.UiEditorButton!
@@ -2442,7 +2749,21 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).BottomStart.get -> Rask.
 RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).TopCenter.get -> Rask.UiToastGroup!
 RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).TopEnd.get -> Rask.UiToastGroup!
 RaskBuilderSettersRask_Ui.extension(Rask.UiToastGroup!).TopStart.get -> Rask.UiToastGroup!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!)
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).Auto.get -> Rask.UiTimePicker<T>!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).Base.get -> Rask.UiTimePicker<T>!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).Button.get -> Rask.UiTimePicker<T>!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).Input.get -> Rask.UiTimePicker<T>!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).Sm.get -> Rask.UiTimePicker<T>!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).TwelveHour.get -> Rask.UiTimePicker<T>!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).TwentyFourHour.get -> Rask.UiTimePicker<T>!
+RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTimePicker<T>!).Xs.get -> Rask.UiTimePicker<T>!
+static Rask.Ui.CalendarMultiple.get -> Rask.RaskSeed_UiCalendarMultiple
+static Rask.Ui.CalendarRange.get -> Rask.RaskSeed_UiCalendarRange
 static Rask.Ui.Context.get -> Rask.UiContext!
+static Rask.Ui.DatePickerButton.get -> Rask.UiDatePickerButton!
+static Rask.Ui.DatePickerInput.get -> Rask.UiDatePickerInput!
+static Rask.Ui.DatePickerRange.get -> Rask.RaskSeed_UiDatePickerRange
 static Rask.Ui.Dropdown.get -> Rask.UiDropdown!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiInput<T>!).Base.get -> Rask.UiInput<T>!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiInput<T>!).Filled.get -> Rask.UiInput<T>!
@@ -2573,10 +2894,15 @@ static Rask.Ui.TimelineContent.get -> Rask.UiTimelineContent!
 static Rask.Ui.TimelineIndicator.get -> Rask.UiTimelineIndicator!
 static Rask.Ui.TimelineItem.get -> Rask.UiTimelineItem!
 static Rask.Ui.TimelineSubgrid.get -> Rask.UiTimelineSubgrid!
+static Rask.Ui.TimePicker.get -> Rask.RaskSeed_UiTimePicker
 static Rask.Ui.Toast.get -> Rask.UiToast!
 static Rask.Ui.ToastGroup.get -> Rask.UiToastGroup!
 static Rask.Ui.Tooltip.get -> Rask.UiTooltip!
 static Rask.Ui.TooltipContent.get -> Rask.UiTooltipContent!
+static Rask.UiCalendarModes.get_Multiple(Rask.RaskSeed_UiCalendar calendar) -> Rask.RaskSeed_UiCalendarMultiple
+static Rask.UiCalendarModes.get_Range(Rask.RaskSeed_UiCalendar calendar) -> Rask.RaskSeed_UiCalendarRange
+static Rask.UiCalendarModes.get_Single(Rask.RaskSeed_UiCalendar calendar) -> Rask.RaskSeed_UiCalendar
+static Rask.UiCalendarModes.Mode(this Rask.RaskSeed_UiCalendar calendar, Rask.Ui.CalendarMode mode) -> Rask.UiCalendarModeEntry
 static Rask.UiChartBinding.ColorField<TRow>(this Rask.UiChartPie! pie, System.Func<TRow, Rask.Ui.Color>! field) -> Rask.UiChartPie!
 static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartArea! part, System.Func<TRow, TValue>! field) -> Rask.UiChartArea!
 static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartAxis! part, System.Func<TRow, TValue>! field) -> Rask.UiChartAxis!
@@ -2592,6 +2918,10 @@ static Rask.UiChartBinding.Field<TRow, TValue>(this Rask.UiChartTooltipValue! pa
 static Rask.UiChartBinding.LabelField<TRow, TValue>(this Rask.UiChartPie! part, System.Func<TRow, TValue>! field) -> Rask.UiChartPie!
 static Rask.UiChartBinding.LabelField<TRow, TValue>(this Rask.UiChartTooltipValue! part, System.Func<TRow, TValue>! field) -> Rask.UiChartTooltipValue!
 static Rask.UiChartBinding.Value<TRow>(this Rask.UiChart! chart, System.Collections.Generic.IEnumerable<TRow>! rows) -> Rask.UiChart!
+static Rask.UiDatePickerModes.get_Range(Rask.RaskSeed_UiDatePicker picker) -> Rask.RaskSeed_UiDatePickerRange
+static Rask.UiDatePickerModes.get_Single(Rask.RaskSeed_UiDatePicker picker) -> Rask.RaskSeed_UiDatePicker
+static Rask.UiDatePickerModes.Mode(this Rask.RaskSeed_UiDatePicker picker, Rask.Ui.DatePickerMode mode) -> Rask.UiDatePickerModeEntry
+static Rask.UiDateRange.Of(Rask.Ui.DateRangePreset preset, System.DateOnly today, System.DayOfWeek startDay = System.DayOfWeek.Sunday, System.DateOnly? min = null) -> Rask.UiDateRange
 static Rask.UiInputIcon.FromComponent(Rask.Core.Component! content) -> Rask.UiInputIcon
 static Rask.UiInputIcon.FromIconName(Rask.Ui.IconName name) -> Rask.UiInputIcon
 static Rask.UiInputIcon.implicit operator Rask.UiInputIcon(Rask.Core.Component! content) -> Rask.UiInputIcon
@@ -2605,8 +2935,14 @@ static Rask.UiTextareaRows.FromInt32(int count) -> Rask.UiTextareaRows
 static Rask.UiTextareaRows.implicit operator Rask.UiTextareaRows(int count) -> Rask.UiTextareaRows
 static Rask.UiTextareaRows.operator !=(Rask.UiTextareaRows left, Rask.UiTextareaRows right) -> bool
 static Rask.UiTextareaRows.operator ==(Rask.UiTextareaRows left, Rask.UiTextareaRows right) -> bool
+static Rask.UiTimeRange.FromTimeOnly(System.TimeOnly time) -> Rask.UiTimeRange
+static Rask.UiTimeRange.implicit operator Rask.UiTimeRange(System.TimeOnly time) -> Rask.UiTimeRange
+static Rask.UiTimeRange.operator !=(Rask.UiTimeRange left, Rask.UiTimeRange right) -> bool
+static Rask.UiTimeRange.operator ==(Rask.UiTimeRange left, Rask.UiTimeRange right) -> bool
 static Rask.UiToast.Messages(System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>! messages, System.Action<int>! dismiss, Rask.ToastOptions! options) -> Rask.Core.Component!
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiContext(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDatePickerButton(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDatePickerInput(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuCheckboxGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuRadio(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuSubmenu(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -2614,6 +2950,7 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiNavmenu(Rask.Core.Comp
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiNavmenuItem(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTimelineIndicator(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTimelineItem(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTimePicker_1<T>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiToastGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTooltipContent(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiContext(Rask.Core.Component! __c0) -> void
@@ -2699,6 +3036,8 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiChartViewport(Rask.Core
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiChartZeroLine(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCheckboxAll(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCheckboxIndicator(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDatePickerButton(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDatePickerInput(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiEditor(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiEditorButton(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiEditorToolbar(Rask.Core.Component! __c0) -> void
@@ -2714,6 +3053,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiNavmenu(Rask.Core.Compo
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiNavmenuItem(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTimelineIndicator(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTimelineItem(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTimePicker_1<T>(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiToastGroup(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTooltipContent(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiContext(Rask.Core.Component! __c0, ulong __p) -> void
@@ -2764,6 +3104,8 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiChartViewport(Rask.Co
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiChartZeroLine(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCheckboxAll(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCheckboxIndicator(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDatePickerButton(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDatePickerInput(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiEditor(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiEditorButton(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiEditorToolbar(Rask.Core.Component! __c0, ulong __p) -> void
@@ -2797,11 +3139,19 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSelectSearch(Rask.Cor
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSwitch(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTimelineIndicator(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTimelineItem(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTimePicker_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiToastGroup(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTooltipContent(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b, bool? value) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Actions(this Rask.UiKanbanColumnHeader! __b, Rask.Core.Component? value) -> Rask.UiKanbanColumnHeader!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTimePicker<T>! __b, Rask.Core.Callback<T>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTimePicker<T>! __b, System.Action<T>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTimePicker<T>! __b, System.Action? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTimePicker<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTimePicker<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTimePicker<T>! __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTimePicker<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Align(this Rask.UiDropdown! __b, Rask.Ui.DropdownAlign? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.Align(this Rask.UiProfile! __b, Rask.Ui.DropdownAlign? value) -> Rask.UiProfile!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiAutocomplete! __b, Rask.Core.Callback<string!>? value) -> Rask.UiAutocomplete!
@@ -2841,10 +3191,15 @@ static RaskBuilderSettersRask_Ui.As(this Rask.UiAutocomplete! __b, Rask.Ui.Autoc
 static RaskBuilderSettersRask_Ui.As(this Rask.UiKanbanCard! __b, Rask.Ui.KanbanCardAs? value) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.Align(this Rask.UiTooltip! __b, Rask.Ui.TooltipAlign? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.As(this Rask.UiLink! __b, Rask.Ui.LinkAs? value) -> Rask.UiLink!
+static RaskBuilderSettersRask_Ui.Badge<T>(this Rask.UiTimePicker<T>! __b, string? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Checked(this Rask.UiMenuRadio! __b) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.Checked(this Rask.UiMenuRadio! __b, bool? value) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiContext! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiContext! __b, string? value) -> Rask.UiContext!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePickerButton! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePickerButton! __b, string? value) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePickerInput! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiDatePickerInput!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePickerInput! __b, string? value) -> Rask.UiDatePickerInput!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMenuCheckboxGroup! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiMenuCheckboxGroup!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMenuCheckboxGroup! __b, string? value) -> Rask.UiMenuCheckboxGroup!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMenuRadio! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiMenuRadio!
@@ -2988,6 +3343,8 @@ static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiPillbox<T>! __b, params Sy
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiPillbox<T>! __b, string? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiSelectMultiple<T>! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiTimePicker<T>! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiTimePicker<T>! __b, string? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Clear<T>(this Rask.UiSelect<T>! __b, Rask.Ui.SelectClear? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Clear<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Ui.SelectClear? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
@@ -3002,6 +3359,8 @@ static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiSelectSearch! __b) -> Ras
 static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiSelectSearch! __b, bool? value) -> Rask.UiSelectSearch!
 static RaskBuilderSettersRask_Ui.Clearable<T>(this Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Clearable<T>(this Rask.UiSelectMultiple<T>! __b, bool? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Clearable<T>(this Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Clearable<T>(this Rask.UiTimePicker<T>! __b, bool? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Color(this Rask.UiText! __b, Rask.Ui.Color? value) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.Color(this Rask.UiTimelineIndicator! __b, Rask.Ui.Color? value) -> Rask.UiTimelineIndicator!
 static RaskBuilderSettersRask_Ui.ColorField(this Rask.UiChartPie! __b, Rask.UiChartField? value) -> Rask.UiChartPie!
@@ -3016,6 +3375,9 @@ static RaskBuilderSettersRask_Ui.Curve(this Rask.UiChartLine! __b, Rask.Ui.Chart
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiCheckbox! __b, string? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiCheckboxAll! __b, string? value) -> Rask.UiCheckboxAll!
+static RaskBuilderSettersRask_Ui.Description(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Description(this Rask.UiDatePickerInput! __b, string? value) -> Rask.UiDatePickerInput!
+static RaskBuilderSettersRask_Ui.Description(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiRadio! __b, string? value) -> Rask.UiRadio!
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiSelectOption! __b, string? value) -> Rask.UiSelectOption!
@@ -3027,17 +3389,25 @@ static RaskBuilderSettersRask_Ui.Description<T>(this Rask.UiRadioGroup<T>! __b, 
 static RaskBuilderSettersRask_Ui.Description<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Description<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Description<T>(this Rask.UiTextarea<T>! __b, string? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.Description<T>(this Rask.UiTimePicker<T>! __b, string? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.DescriptionTrailing(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.DescriptionTrailing(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.DescriptionTrailing(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.DescriptionTrailing<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.DescriptionTrailing<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.DescriptionTrailing<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.DescriptionTrailing<T>(this Rask.UiTextarea<T>! __b, string? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.DescriptionTrailing<T>(this Rask.UiTimePicker<T>! __b, string? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiAutocompleteItem! __b) -> Rask.UiAutocompleteItem!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiAutocompleteItem! __b, bool? value) -> Rask.UiAutocompleteItem!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiCheckboxAll! __b) -> Rask.UiCheckboxAll!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiCheckboxAll! __b, bool? value) -> Rask.UiCheckboxAll!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiDatePickerButton! __b) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiDatePickerButton! __b, bool? value) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiDatePickerInput! __b) -> Rask.UiDatePickerInput!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiDatePickerInput! __b, bool? value) -> Rask.UiDatePickerInput!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiEditor! __b) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiEditor! __b, bool? value) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiEditorButton! __b) -> Rask.UiEditorButton!
@@ -3054,6 +3424,10 @@ static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiPillbox<T>! __b) -> Ras
 static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiPillbox<T>! __b, bool? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiSelectMultiple<T>! __b, bool? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiTimePicker<T>! __b, bool? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Dropdown<T>(this Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Dropdown<T>(this Rask.UiTimePicker<T>! __b, bool? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Empty<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Empty<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Fallback(this Rask.UiChartSummaryValue! __b, string? value) -> Rask.UiChartSummaryValue!
@@ -3076,6 +3450,16 @@ static RaskBuilderSettersRask_Ui.Filter<T>(this Rask.UiSelectMultiple<T>! __b) -
 static RaskBuilderSettersRask_Ui.Filter<T>(this Rask.UiSelectMultiple<T>! __b, bool? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Filterable(this Rask.UiPillboxOption! __b) -> Rask.UiPillboxOption!
 static RaskBuilderSettersRask_Ui.Filterable(this Rask.UiPillboxOption! __b, bool? value) -> Rask.UiPillboxOption!
+static RaskBuilderSettersRask_Ui.FixedWeeks(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.FixedWeeks(this Rask.UiCalendar! __b, bool? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.FixedWeeks(this Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.FixedWeeks(this Rask.UiCalendarMultiple! __b, bool? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.FixedWeeks(this Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.FixedWeeks(this Rask.UiCalendarRange! __b, bool? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.FixedWeeks(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.FixedWeeks(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.FixedWeeks(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.FixedWeeks(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Flyout(this Rask.UiModal! __b) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.Flyout(this Rask.UiModal! __b, bool? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.Footer(this Rask.UiKanbanCard! __b, Rask.Core.Component? value) -> Rask.UiKanbanCard!
@@ -3087,6 +3471,16 @@ static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiMenuRadio! __b) -> Rask.Ui
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiMenuRadio! __b, bool? value) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiTooltip! __b) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiTooltip! __b, bool? value) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.ForceOpenTo(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.ForceOpenTo(this Rask.UiCalendar! __b, bool? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.ForceOpenTo(this Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.ForceOpenTo(this Rask.UiCalendarMultiple! __b, bool? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.ForceOpenTo(this Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.ForceOpenTo(this Rask.UiCalendarRange! __b, bool? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.ForceOpenTo(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.ForceOpenTo(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.ForceOpenTo(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.ForceOpenTo(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Gap(this Rask.UiContext! __b, int? value) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.Format(this Rask.UiChartAxis! __b, Rask.UiChartFormat? value) -> Rask.UiChartAxis!
 static RaskBuilderSettersRask_Ui.Format(this Rask.UiChartAxisTick! __b, Rask.UiChartFormat? value) -> Rask.UiChartAxisTick!
@@ -3102,9 +3496,15 @@ static RaskBuilderSettersRask_Ui.get_Amber(Rask.UiProgress! __b) -> Rask.UiProgr
 static RaskBuilderSettersRask_Ui.get_Amber(Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_Amber(Rask.UiTimelineIndicator! __b) -> Rask.UiTimelineIndicator!
 static RaskBuilderSettersRask_Ui.get_Area(Rask.UiChartCursor! __b) -> Rask.UiChartCursor!
+static RaskBuilderSettersRask_Ui.get_Auto<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.get_Bare(Rask.UiModal! __b) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.get_Bare(Rask.UiTimelineIndicator! __b) -> Rask.UiTimelineIndicator!
 static RaskBuilderSettersRask_Ui.get_Base(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Base(Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.get_Base(Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.get_Base(Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.get_Base(Rask.UiDatePickerButton! __b) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.get_Base(Rask.UiDatePickerInput! __b) -> Rask.UiDatePickerInput!
 static RaskBuilderSettersRask_Ui.get_Base(Rask.UiInputGroupPrefix! __b) -> Rask.UiInputGroupPrefix!
 static RaskBuilderSettersRask_Ui.get_Base(Rask.UiInputGroupSuffix! __b) -> Rask.UiInputGroupSuffix!
 static RaskBuilderSettersRask_Ui.get_Base(Rask.UiPillboxTrigger! __b) -> Rask.UiPillboxTrigger!
@@ -3117,6 +3517,7 @@ static RaskBuilderSettersRask_Ui.get_Base<T>(Rask.UiPillbox<T>! __b) -> Rask.UiP
 static RaskBuilderSettersRask_Ui.get_Base<T>(Rask.UiRadioGroup<T>! __b) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.get_Base<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.get_Base<T>(Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.get_Base<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.get_Baseline(Rask.UiTimeline! __b) -> Rask.UiTimeline!
 static RaskBuilderSettersRask_Ui.get_Baseline(Rask.UiTimelineItem! __b) -> Rask.UiTimelineItem!
 static RaskBuilderSettersRask_Ui.get_Blue(Rask.UiBadge! __b) -> Rask.UiBadge!
@@ -3133,7 +3534,10 @@ static RaskBuilderSettersRask_Ui.get_Bottom(Rask.UiChartAxisMark! __b) -> Rask.U
 static RaskBuilderSettersRask_Ui.get_Bottom<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.get_Bottom<T>(Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.get_Button(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Button(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.get_Button(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Button(Rask.UiKanbanCard! __b) -> Rask.UiKanbanCard!
+static RaskBuilderSettersRask_Ui.get_Button<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.get_Center(Rask.UiTimeline! __b) -> Rask.UiTimeline!
 static RaskBuilderSettersRask_Ui.get_Center(Rask.UiTimelineItem! __b) -> Rask.UiTimelineItem!
 static RaskBuilderSettersRask_Ui.get_Center<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
@@ -3206,13 +3610,19 @@ static RaskBuilderSettersRask_Ui.get_Indigo(Rask.UiProgress! __b) -> Rask.UiProg
 static RaskBuilderSettersRask_Ui.get_Indigo(Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_Indigo(Rask.UiTimelineIndicator! __b) -> Rask.UiTimelineIndicator!
 static RaskBuilderSettersRask_Ui.get_Input(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Input(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.get_Input(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Input<T>(Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.get_Input<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.get_Left(Rask.UiChartAxis! __b) -> Rask.UiChartAxis!
 static RaskBuilderSettersRask_Ui.get_Left(Rask.UiChartAxisMark! __b) -> Rask.UiChartAxisMark!
 static RaskBuilderSettersRask_Ui.get_Left(Rask.UiModal! __b) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.get_Left(Rask.UiSwitch! __b) -> Rask.UiSwitch!
 static RaskBuilderSettersRask_Ui.get_Left<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.get_Left<T>(Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiTimeline! __b) -> Rask.UiTimeline!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiTimelineItem! __b) -> Rask.UiTimelineItem!
 static RaskBuilderSettersRask_Ui.get_Lime(Rask.UiBadge! __b) -> Rask.UiBadge!
@@ -3265,6 +3675,11 @@ static RaskBuilderSettersRask_Ui.get_Purple(Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_Purple(Rask.UiTimelineIndicator! __b) -> Rask.UiTimelineIndicator!
 static RaskBuilderSettersRask_Ui.get_Radio(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Range(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Range(Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.get_Range(Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.get_Range(Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.get_Range(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.get_Range(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Red(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Red(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Red(Rask.UiProgress! __b) -> Rask.UiProgress!
@@ -3285,6 +3700,11 @@ static RaskBuilderSettersRask_Ui.get_Rose(Rask.UiTimelineIndicator! __b) -> Rask
 static RaskBuilderSettersRask_Ui.get_Search(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Select<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.get_Select<T>(Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.get_Single(Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.get_Single(Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.get_Single(Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.get_Single(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.get_Single(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Sky(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Sky(Rask.UiCallout! __b) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.get_Sky(Rask.UiProgress! __b) -> Rask.UiProgress!
@@ -3295,6 +3715,12 @@ static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiCallout! __b) -> Rask.UiCallou
 static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiProgress! __b) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_Slate(Rask.UiTimelineIndicator! __b) -> Rask.UiTimelineIndicator!
+static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiDatePickerButton! __b) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiDatePickerInput! __b) -> Rask.UiDatePickerInput!
+static RaskBuilderSettersRask_Ui.get_Sm<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiMenuItem! __b) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiMenuSubmenu! __b) -> Rask.UiMenuSubmenu!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiNavmenuItem! __b) -> Rask.UiNavmenuItem!
@@ -3335,6 +3761,8 @@ static RaskBuilderSettersRask_Ui.get_Top(Rask.UiChartAxis! __b) -> Rask.UiChartA
 static RaskBuilderSettersRask_Ui.get_Top(Rask.UiChartAxisMark! __b) -> Rask.UiChartAxisMark!
 static RaskBuilderSettersRask_Ui.get_Top<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.get_Top<T>(Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.get_TwelveHour<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.get_TwentyFourHour<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.get_Url(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Violet(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Violet(Rask.UiCallout! __b) -> Rask.UiCallout!
@@ -3343,12 +3771,26 @@ static RaskBuilderSettersRask_Ui.get_Violet(Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.get_Violet(Rask.UiTimelineIndicator! __b) -> Rask.UiTimelineIndicator!
 static RaskBuilderSettersRask_Ui.get_Week(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_X(Rask.UiChartAxis! __b) -> Rask.UiChartAxis!
+static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiDatePickerButton! __b) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiDatePickerInput! __b) -> Rask.UiDatePickerInput!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiInputGroupPrefix! __b) -> Rask.UiInputGroupPrefix!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiInputGroupSuffix! __b) -> Rask.UiInputGroupSuffix!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiSelectButton! __b) -> Rask.UiSelectButton!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiSelectInput! __b) -> Rask.UiSelectInput!
 static RaskBuilderSettersRask_Ui.get_Xs<T>(Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.get_Xs<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.get_Xxl(Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.get_Xxl(Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.get_Xxl(Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.get_Xxl(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.get_Xxl(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Y(Rask.UiChartAxis! __b) -> Rask.UiChartAxis!
 static RaskBuilderSettersRask_Ui.get_Yellow(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Yellow(Rask.UiCallout! __b) -> Rask.UiCallout!
@@ -3391,6 +3833,10 @@ static RaskBuilderSettersRask_Ui.IconTrailing(this Rask.UiMenuSubmenu! __b, Rask
 static RaskBuilderSettersRask_Ui.IconVariant(this Rask.UiMenuItem! __b, Rask.Ui.IconVariant? value) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.IconVariant(this Rask.UiMenuSubmenu! __b, Rask.Ui.IconVariant? value) -> Rask.UiMenuSubmenu!
 static RaskBuilderSettersRask_Ui.IconVariant(this Rask.UiNavmenuItem! __b, Rask.Ui.IconVariant? value) -> Rask.UiNavmenuItem!
+static RaskBuilderSettersRask_Ui.Id(this Rask.UiCalendar! __b, string? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Id(this Rask.UiCalendarMultiple! __b, string? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Id(this Rask.UiCalendarRange! __b, string? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Id(this Rask.UiDatePickerInput! __b, string? value) -> Rask.UiDatePickerInput!
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiMenu! __b, string? value) -> Rask.UiMenu!
 static RaskBuilderSettersRask_Ui.Height(this Rask.UiChartSvg! __b, double? value) -> Rask.UiChartSvg!
 static RaskBuilderSettersRask_Ui.Horizontal(this Rask.UiChart! __b) -> Rask.UiChart!
@@ -3414,6 +3860,7 @@ static RaskBuilderSettersRask_Ui.Id(this Rask.UiRadio! __b, string? value) -> Ra
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiSwitch! __b, string? value) -> Rask.UiSwitch!
 static RaskBuilderSettersRask_Ui.Id<T>(this Rask.UiPillbox<T>! __b, string? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.Id<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Id<T>(this Rask.UiTimePicker<T>! __b, string? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Indeterminate(this Rask.UiCheckbox! __b) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Indeterminate(this Rask.UiCheckbox! __b, bool? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Indicator<T>(this Rask.UiRadioGroup<T>! __b) -> Rask.UiRadioGroup<T>!
@@ -3424,10 +3871,19 @@ static RaskBuilderSettersRask_Ui.InputClass<T>(this Rask.UiInput<T>! __b, string
 static RaskBuilderSettersRask_Ui.Inset(this Rask.UiBadge! __b, Rask.Ui.Inset? value) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.Interactive(this Rask.UiTooltip! __b) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Interactive(this Rask.UiTooltip! __b, bool? value) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.Interval<T>(this Rask.UiTimePicker<T>! __b, int? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiCheckbox! __b) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiCheckbox! __b, bool? value) -> Rask.UiCheckbox!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiDatePickerButton! __b) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiDatePickerButton! __b, bool? value) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiDatePickerInput! __b) -> Rask.UiDatePickerInput!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiDatePickerInput! __b, bool? value) -> Rask.UiDatePickerInput!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiEditor! __b) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiEditor! __b, bool? value) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.Invalid(this Rask.UiPillboxInput! __b) -> Rask.UiPillboxInput!
@@ -3452,6 +3908,8 @@ static RaskBuilderSettersRask_Ui.Invalid<T>(this Rask.UiSelectMultiple<T>! __b) 
 static RaskBuilderSettersRask_Ui.Invalid<T>(this Rask.UiSelectMultiple<T>! __b, bool? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Invalid<T>(this Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Invalid<T>(this Rask.UiTextarea<T>! __b, bool? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.Invalid<T>(this Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Invalid<T>(this Rask.UiTimePicker<T>! __b, bool? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Invert(this Rask.UiToast! __b) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.Invert(this Rask.UiToast! __b, bool? value) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.Items(this Rask.UiEditorToolbar! __b, string? value) -> Rask.UiEditorToolbar!
@@ -3463,8 +3921,57 @@ static RaskBuilderSettersRask_Ui.KeepOpen(this Rask.UiMenuRadio! __b) -> Rask.Ui
 static RaskBuilderSettersRask_Ui.KeepOpen(this Rask.UiMenuRadio! __b, bool? value) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.KeepOpen(this Rask.UiMenuSubmenu! __b) -> Rask.UiMenuSubmenu!
 static RaskBuilderSettersRask_Ui.KeepOpen(this Rask.UiMenuSubmenu! __b, bool? value) -> Rask.UiMenuSubmenu!
+static RaskBuilderSettersRask_Ui.Label(this Rask.UiDatePickerInput! __b, string? value) -> Rask.UiDatePickerInput!
+static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiTimePicker<T>! __b, string? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Locale(this Rask.UiCalendar! __b, string? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Locale(this Rask.UiCalendarMultiple! __b, string? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Locale(this Rask.UiCalendarRange! __b, string? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Locale(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Locale(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Locale<T>(this Rask.UiTimePicker<T>! __b, string? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Max<T>(this Rask.UiTimePicker<T>! __b, System.TimeOnly? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.MaxRange(this Rask.UiCalendar! __b, int? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.MaxRange(this Rask.UiCalendarMultiple! __b, int? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.MaxRange(this Rask.UiCalendarRange! __b, int? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.MaxRange(this Rask.UiDatePicker! __b, int? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.MaxRange(this Rask.UiDatePickerRange! __b, int? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Min<T>(this Rask.UiTimePicker<T>! __b, System.TimeOnly? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.MinRange(this Rask.UiCalendar! __b, int? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.MinRange(this Rask.UiCalendarMultiple! __b, int? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.MinRange(this Rask.UiCalendarRange! __b, int? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.MinRange(this Rask.UiDatePicker! __b, int? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.MinRange(this Rask.UiDatePickerRange! __b, int? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Mode(this Rask.UiCalendar! __b, Rask.Ui.CalendarMode? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Mode(this Rask.UiCalendarMultiple! __b, Rask.Ui.CalendarMode? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Mode(this Rask.UiCalendarRange! __b, Rask.Ui.CalendarMode? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Mode(this Rask.UiDatePicker! __b, Rask.Ui.DatePickerMode? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Mode(this Rask.UiDatePickerRange! __b, Rask.Ui.DatePickerMode? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Months(this Rask.UiCalendar! __b, int? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Months(this Rask.UiCalendarMultiple! __b, int? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Months(this Rask.UiCalendarRange! __b, int? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Months(this Rask.UiDatePicker! __b, int? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Months(this Rask.UiDatePickerRange! __b, int? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendar! __b, bool? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendarMultiple! __b, bool? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiCalendarRange! __b, bool? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Navigation(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Navigation(this Rask.UiCalendar! __b, bool? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Navigation(this Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Navigation(this Rask.UiCalendarMultiple! __b, bool? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Navigation(this Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Navigation(this Rask.UiCalendarRange! __b, bool? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.Offset(this Rask.UiContext! __b, (int X, int Y)? value) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.Offset(this Rask.UiTooltip! __b, int? value) -> Rask.UiTooltip!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTimePicker<T>! __b, Rask.Core.Callback<T>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTimePicker<T>! __b, System.Action<T>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTimePicker<T>! __b, System.Action? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTimePicker<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTimePicker<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTimePicker<T>! __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTimePicker<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiMenuRadio! __b, Rask.Core.Callback? value) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiMenuRadio! __b, System.Action? value) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiMenuRadio! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiMenuRadio!
@@ -3478,7 +3985,15 @@ static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiContext! __b, System.Func<
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiContext! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.Open(this Rask.UiContext! __b) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.Open(this Rask.UiContext! __b, bool? value) -> Rask.UiContext!
+static RaskBuilderSettersRask_Ui.OpenTo(this Rask.UiCalendar! __b, System.DateOnly? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.OpenTo(this Rask.UiCalendarMultiple! __b, System.DateOnly? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.OpenTo(this Rask.UiCalendarRange! __b, System.DateOnly? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.OpenTo(this Rask.UiDatePicker! __b, System.DateOnly? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.OpenTo(this Rask.UiDatePickerRange! __b, System.DateOnly? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.OpenTo<T>(this Rask.UiTimePicker<T>! __b, System.TimeOnly? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Paginator(this Rask.UiPagination! __b, Rask.UiPaginator! value) -> Rask.UiPagination!
+static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiDatePickerButton! __b, string? value) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.Placeholder<T>(this Rask.UiTimePicker<T>! __b, string? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Position(this Rask.UiContext! __b, Rask.Ui.ContextPosition? value) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.Position(this Rask.UiDropdown! __b, Rask.Ui.DropdownPosition? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.Position(this Rask.UiProfile! __b, Rask.Ui.DropdownPosition? value) -> Rask.UiProfile!
@@ -3627,6 +4142,8 @@ static RaskBuilderSettersRask_Ui.Position<T>(this Rask.UiSelectMultiple<T>! __b,
 static RaskBuilderSettersRask_Ui.Prefix(this Rask.UiChartTooltipValue! __b, string? value) -> Rask.UiChartTooltipValue!
 static RaskBuilderSettersRask_Ui.Prefix<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Prefix<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Presets(this Rask.UiDatePicker! __b, System.Collections.Generic.IReadOnlyList<Rask.Ui.DateRangePreset>? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Presets(this Rask.UiDatePickerRange! __b, System.Collections.Generic.IReadOnlyList<Rask.Ui.DateRangePreset>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.R(this Rask.UiChartPoint! __b, double? value) -> Rask.UiChartPoint!
 static RaskBuilderSettersRask_Ui.Radius(this Rask.UiChartBar! __b, string? value) -> Rask.UiChartBar!
 static RaskBuilderSettersRask_Ui.Radius(this Rask.UiChartPie! __b, double? value) -> Rask.UiChartPie!
@@ -3645,6 +4162,16 @@ static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiPillbox<T>! __b, bool
 static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiSelectMultiple<T>! __b, bool? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.SearchPlaceholder<T>(this Rask.UiPillbox<T>! __b, string? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.SelectableHeader(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.SelectableHeader(this Rask.UiCalendar! __b, bool? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.SelectableHeader(this Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.SelectableHeader(this Rask.UiCalendarMultiple! __b, bool? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.SelectableHeader(this Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.SelectableHeader(this Rask.UiCalendarRange! __b, bool? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.SelectableHeader(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.SelectableHeader(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.SelectableHeader(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.SelectableHeader(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.SelectedLabel(this Rask.UiPillboxOption! __b, string? value) -> Rask.UiPillboxOption!
 static RaskBuilderSettersRask_Ui.SelectedLabel(this Rask.UiSelectOption! __b, string? value) -> Rask.UiSelectOption!
 static RaskBuilderSettersRask_Ui.SelectedSuffix<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
@@ -3660,7 +4187,16 @@ static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiPillbox<T>! __b) 
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiPillbox<T>! __b, bool? value) -> Rask.UiPillbox<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiSelectMultiple<T>! __b, bool? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiTimePicker<T>! __b, bool? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiAutocomplete! __b, Rask.Ui.AutocompleteSize? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiCalendar! __b, Rask.Ui.CalendarSize? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiCalendarMultiple! __b, Rask.Ui.CalendarSize? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiCalendarRange! __b, Rask.Ui.CalendarSize? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiDatePicker! __b, Rask.Ui.DatePickerSize? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiDatePickerButton! __b, Rask.Ui.DatePickerButtonSize? value) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiDatePickerInput! __b, Rask.Ui.DatePickerInputSize? value) -> Rask.UiDatePickerInput!
+static RaskBuilderSettersRask_Ui.Size(this Rask.UiDatePickerRange! __b, Rask.Ui.DatePickerSize? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiHeading! __b, Rask.Ui.HeadingSize? value) -> Rask.UiHeading!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiInputGroupPrefix! __b, Rask.Ui.InputSize? value) -> Rask.UiInputGroupPrefix!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiInputGroupSuffix! __b, Rask.Ui.InputSize? value) -> Rask.UiInputGroupSuffix!
@@ -3675,6 +4211,18 @@ static RaskBuilderSettersRask_Ui.Size<T>(this Rask.UiPillbox<T>! __b, Rask.Ui.Pi
 static RaskBuilderSettersRask_Ui.Size<T>(this Rask.UiRadioGroup<T>! __b, Rask.Ui.RadioGroupSize? value) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Size<T>(this Rask.UiSelect<T>! __b, Rask.Ui.SelectSize? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Size<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Ui.SelectSize? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Size<T>(this Rask.UiTimePicker<T>! __b, Rask.Ui.TimePickerSize? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.StartDay(this Rask.UiCalendar! __b, System.DayOfWeek? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.StartDay(this Rask.UiCalendarMultiple! __b, System.DayOfWeek? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.StartDay(this Rask.UiCalendarRange! __b, System.DayOfWeek? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.StartDay(this Rask.UiDatePicker! __b, System.DayOfWeek? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.StartDay(this Rask.UiDatePickerRange! __b, System.DayOfWeek? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Static(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Static(this Rask.UiCalendar! __b, bool? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Static(this Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Static(this Rask.UiCalendarMultiple! __b, bool? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Static(this Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Static(this Rask.UiCalendarRange! __b, bool? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.Status(this Rask.UiTimelineIndicator! __b, Rask.Ui.TimelineStatus? value) -> Rask.UiTimelineIndicator!
 static RaskBuilderSettersRask_Ui.Status(this Rask.UiTimelineItem! __b, Rask.Ui.TimelineStatus? value) -> Rask.UiTimelineItem!
 static RaskBuilderSettersRask_Ui.StrokeDasharray(this Rask.UiChartAxisGrid! __b, string? value) -> Rask.UiChartAxisGrid!
@@ -3689,6 +4237,21 @@ static RaskBuilderSettersRask_Ui.StrokeWidth(this Rask.UiChartZeroLine! __b, dou
 static RaskBuilderSettersRask_Ui.Subheading(this Rask.UiKanbanColumnHeader! __b, string? value) -> Rask.UiKanbanColumnHeader!
 static RaskBuilderSettersRask_Ui.Suffix(this Rask.UiMenuItem! __b, string? value) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.Target(this Rask.UiContext! __b, string? value) -> Rask.UiContext!
+static RaskBuilderSettersRask_Ui.TimeFormat<T>(this Rask.UiTimePicker<T>! __b, Rask.Ui.TimePickerTimeFormat? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Trigger(this Rask.UiDatePicker! __b, Rask.Core.Component? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Trigger(this Rask.UiDatePickerRange! __b, Rask.Core.Component? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Type(this Rask.UiDatePicker! __b, Rask.Ui.DatePickerType? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Type(this Rask.UiDatePickerRange! __b, Rask.Ui.DatePickerType? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Type<T>(this Rask.UiTimePicker<T>! __b, Rask.Ui.TimePickerType? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Unavailable(this Rask.UiCalendar! __b, System.Collections.Generic.IReadOnlyCollection<System.DateOnly>? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Unavailable(this Rask.UiCalendarMultiple! __b, System.Collections.Generic.IReadOnlyCollection<System.DateOnly>? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Unavailable(this Rask.UiCalendarRange! __b, System.Collections.Generic.IReadOnlyCollection<System.DateOnly>? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Unavailable(this Rask.UiDatePicker! __b, System.Collections.Generic.IReadOnlyCollection<System.DateOnly>? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Unavailable(this Rask.UiDatePickerRange! __b, System.Collections.Generic.IReadOnlyCollection<System.DateOnly>? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Unavailable<T>(this Rask.UiTimePicker<T>! __b, System.Collections.Generic.IReadOnlyList<Rask.UiTimeRange>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiTimePicker<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiTimePicker<T>! __b, Rask.Core.Validator<T>? value) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiTimePicker<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Value(this Rask.UiMenuRadio! __b, object? value) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.Suffix(this Rask.UiChartTooltipValue! __b, string? value) -> Rask.UiChartTooltipValue!
 static RaskBuilderSettersRask_Ui.TickCount(this Rask.UiChartAxis! __b, int? value) -> Rask.UiChartAxis!
@@ -5037,9 +5600,6 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiBadgeClose(Rask.Core.Co
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiBadgeClose(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiHeading! __b, bool? value) -> Rask.UiHeading!
 static RaskBuilderSettersRask_Ui.Accept(this Rask.UiFileInput! __b, string? value) -> Rask.UiFileInput!
-static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.UiDatePickerMultiple! __b, string? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.UiFab! __b, string! value) -> Rask.UiFab!
 static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.UiNavList! __b, string? value) -> Rask.UiNavList!
 static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.UiSidebar! __b, string? value) -> Rask.UiSidebar!
@@ -5068,9 +5628,6 @@ static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCheckbox! __b, System.Fun
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePicker! __b, Rask.Core.Callback<System.DateOnly>? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePicker! __b, System.Action<System.DateOnly>? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePicker! __b, System.Func<System.DateOnly, System.Threading.Tasks.Task!>? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerMultiple! __b, Rask.Core.Callback<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerMultiple! __b, System.Action<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerMultiple! __b, System.Func<System.Collections.Generic.ICollection<System.DateOnly>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerRange! __b, Rask.Core.Callback<Rask.UiDateRange>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerRange! __b, System.Action<Rask.UiDateRange>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerRange! __b, System.Func<Rask.UiDateRange, System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerRange!
@@ -5122,7 +5679,6 @@ static RaskBuilderSettersRask_Ui.Author(this Rask.UiChatBubble! __b, string? val
 static RaskBuilderSettersRask_Ui.Autofocus<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Avatar(this Rask.UiProfile! __b, string? value) -> Rask.UiProfile!
 static RaskBuilderSettersRask_Ui.Badge(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Badge(this Rask.UiDatePickerMultiple! __b, string? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Badge(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Badge(this Rask.UiIndicator! __b, Rask.Core.Component! value) -> Rask.UiIndicator!
 static RaskBuilderSettersRask_Ui.Badge(this Rask.UiNavItem! __b, string? value) -> Rask.UiNavItem!
@@ -5168,7 +5724,6 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiCheckbox! __b, string? value)
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiCommand! __b, string? value) -> Rask.UiCommand!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiCountdown! __b, string? value) -> Rask.UiCountdown!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePickerMultiple! __b, string? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDiff! __b, string? value) -> Rask.UiDiff!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDock! __b, string? value) -> Rask.UiDock!
@@ -5275,7 +5830,6 @@ static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiAccordionItem! __b, bool? 
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiButton! __b, bool? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiCheckbox! __b, bool? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiDatePickerMultiple! __b, bool? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiFileInput! __b, bool? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiMenuCheckbox! __b, bool? value) -> Rask.UiMenuCheckbox!
@@ -5291,9 +5845,6 @@ static RaskBuilderSettersRask_Ui.Dropzone(this Rask.UiFileInput! __b, bool? valu
 static RaskBuilderSettersRask_Ui.Empty<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Component? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.EmptyText(this Rask.UiCommand! __b, string? value) -> Rask.UiCommand!
 static RaskBuilderSettersRask_Ui.End(this Rask.UiNavbar! __b, Rask.Core.Component? value) -> Rask.UiNavbar!
-static RaskBuilderSettersRask_Ui.Error(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Error(this Rask.UiDatePickerMultiple! __b, string? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.Error(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Escapable(this Rask.UiModal! __b, bool? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.Exclusive(this Rask.UiAccordion! __b) -> Rask.UiAccordion!
 static RaskBuilderSettersRask_Ui.Exclusive(this Rask.UiAccordion! __b, bool? value) -> Rask.UiAccordion!
@@ -5307,12 +5858,6 @@ static RaskBuilderSettersRask_Ui.External(this Rask.UiCalloutLink! __b) -> Rask.
 static RaskBuilderSettersRask_Ui.External(this Rask.UiCalloutLink! __b, bool? value) -> Rask.UiCalloutLink!
 static RaskBuilderSettersRask_Ui.External(this Rask.UiLink! __b, bool? value) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Field<T>(this Rask.UiColumn<T>! __b, System.Linq.Expressions.Expression<System.Func<T, object?>!>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.FirstDay(this Rask.UiCalendar! __b, System.DayOfWeek? value) -> Rask.UiCalendar!
-static RaskBuilderSettersRask_Ui.FirstDay(this Rask.UiCalendarMultiple! __b, System.DayOfWeek? value) -> Rask.UiCalendarMultiple!
-static RaskBuilderSettersRask_Ui.FirstDay(this Rask.UiCalendarRange! __b, System.DayOfWeek? value) -> Rask.UiCalendarRange!
-static RaskBuilderSettersRask_Ui.FirstDay(this Rask.UiDatePicker! __b, System.DayOfWeek? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.FirstDay(this Rask.UiDatePickerMultiple! __b, System.DayOfWeek? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.FirstDay(this Rask.UiDatePickerRange! __b, System.DayOfWeek? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Flower(this Rask.UiFab! __b, bool? value) -> Rask.UiFab!
 static RaskBuilderSettersRask_Ui.Footer<T>(this Rask.UiColumn<T>! __b, Rask.Core.Fn<System.Collections.Generic.IReadOnlyList<T>!, object?>? value) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Footer<T>(this Rask.UiColumn<T>! __b, System.Func<System.Collections.Generic.IReadOnlyList<T>!, object?>? value) -> Rask.UiColumn<T>!
@@ -5468,9 +6013,6 @@ static RaskBuilderSettersRask_Ui.TitleLevel(this Rask.UiHeader! __b, int? value)
 static RaskBuilderSettersRask_Ui.Height<T, TKey>(this Rask.UiTree<T, TKey>! __b, int? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.HiddenColumns<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<string!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Hideable<T>(this Rask.UiColumn<T>! __b, bool? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Hint(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Hint(this Rask.UiDatePickerMultiple! __b, string? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.Hint(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Horizontal(this Rask.UiFooter! __b, bool? value) -> Rask.UiFooter!
 static RaskBuilderSettersRask_Ui.Hover<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiBrand! __b, Rask.Core.Routing.RouteUrl value) -> Rask.UiBrand!
@@ -5498,7 +6040,6 @@ static RaskBuilderSettersRask_Ui.IconTrailing(this Rask.UiMenuItem! __b, Rask.Ui
 static RaskBuilderSettersRask_Ui.IconTrailing(this Rask.UiPopover! __b, Rask.Ui.IconName? value) -> Rask.UiPopover!
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiCheckbox! __b, string? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Id(this Rask.UiDatePickerMultiple! __b, string? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiFileInput! __b, string? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiSidebar! __b, string! value) -> Rask.UiSidebar!
@@ -5520,15 +6061,11 @@ static RaskBuilderSettersRask_Ui.KeepOpen(this Rask.UiMenuItem! __b, bool? value
 static RaskBuilderSettersRask_Ui.KeepOpen(this Rask.UiProfile! __b, bool? value) -> Rask.UiProfile!
 static RaskBuilderSettersRask_Ui.KeepOpen<T>(this Rask.UiMenuRadioGroup<T>! __b, bool? value) -> Rask.UiMenuRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiBrand! __b, string! value) -> Rask.UiBrand!
-static RaskBuilderSettersRask_Ui.Label(this Rask.UiCalendar! __b, string! value) -> Rask.UiCalendar!
-static RaskBuilderSettersRask_Ui.Label(this Rask.UiCalendarMultiple! __b, string! value) -> Rask.UiCalendarMultiple!
-static RaskBuilderSettersRask_Ui.Label(this Rask.UiCalendarRange! __b, string! value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiCode! __b, string? value) -> Rask.UiCode!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiCommand! __b, string! value) -> Rask.UiCommand!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiCountdown! __b, string! value) -> Rask.UiCountdown!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiCrumbSwitcher! __b, string! value) -> Rask.UiCrumbSwitcher!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Label(this Rask.UiDatePickerMultiple! __b, string? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiDetailRow! __b, string! value) -> Rask.UiDetailRow!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiMetric! __b, string! value) -> Rask.UiMetric!
@@ -5563,7 +6100,6 @@ static RaskBuilderSettersRask_Ui.Max(this Rask.UiCalendar! __b, System.DateOnly?
 static RaskBuilderSettersRask_Ui.Max(this Rask.UiCalendarMultiple! __b, System.DateOnly? value) -> Rask.UiCalendarMultiple!
 static RaskBuilderSettersRask_Ui.Max(this Rask.UiCalendarRange! __b, System.DateOnly? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.Max(this Rask.UiDatePicker! __b, System.DateOnly? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Max(this Rask.UiDatePickerMultiple! __b, System.DateOnly? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Max(this Rask.UiDatePickerRange! __b, System.DateOnly? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Max(this Rask.UiProgress! __b, double? value) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.Max(this Rask.UiRange! __b, double? value) -> Rask.UiRange!
@@ -5577,16 +6113,12 @@ static RaskBuilderSettersRask_Ui.Min(this Rask.UiCalendar! __b, System.DateOnly?
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiCalendarMultiple! __b, System.DateOnly? value) -> Rask.UiCalendarMultiple!
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiCalendarRange! __b, System.DateOnly? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiDatePicker! __b, System.DateOnly? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Min(this Rask.UiDatePickerMultiple! __b, System.DateOnly? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiDatePickerRange! __b, System.DateOnly? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiRange! __b, double? value) -> Rask.UiRange!
 static RaskBuilderSettersRask_Ui.Min<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Mine(this Rask.UiChatBubble! __b, bool? value) -> Rask.UiChatBubble!
 static RaskBuilderSettersRask_Ui.Mono(this Rask.UiDetailRow! __b, bool? value) -> Rask.UiDetailRow!
 static RaskBuilderSettersRask_Ui.Mono<T>(this Rask.UiColumn<T>! __b, bool? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Month(this Rask.UiCalendar! __b, System.DateOnly? value) -> Rask.UiCalendar!
-static RaskBuilderSettersRask_Ui.Month(this Rask.UiCalendarMultiple! __b, System.DateOnly? value) -> Rask.UiCalendarMultiple!
-static RaskBuilderSettersRask_Ui.Month(this Rask.UiCalendarRange! __b, System.DateOnly? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.Multiple(this Rask.UiFileInput! __b, bool? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Name(this Rask.UiAvatar! __b, string? value) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.Name(this Rask.UiIcon! __b, Rask.Ui.IconName value) -> Rask.UiIcon!
@@ -5617,9 +6149,6 @@ static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCheckbox! __b, System.Func
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePicker! __b, Rask.Core.Callback<System.DateOnly>? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePicker! __b, System.Action<System.DateOnly>? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePicker! __b, System.Func<System.DateOnly, System.Threading.Tasks.Task!>? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerMultiple! __b, Rask.Core.Callback<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerMultiple! __b, System.Action<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerMultiple! __b, System.Func<System.Collections.Generic.ICollection<System.DateOnly>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerRange! __b, Rask.Core.Callback<Rask.UiDateRange>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerRange! __b, System.Action<Rask.UiDateRange>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerRange! __b, System.Func<Rask.UiDateRange, System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerRange!
@@ -5698,15 +6227,6 @@ static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Fu
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, Rask.Core.Callback<string!>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Action<string!>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendar! __b, Rask.Core.Callback<System.DateOnly>? value) -> Rask.UiCalendar!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendar! __b, System.Action<System.DateOnly>? value) -> Rask.UiCalendar!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendar! __b, System.Func<System.DateOnly, System.Threading.Tasks.Task!>? value) -> Rask.UiCalendar!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarMultiple! __b, Rask.Core.Callback<System.DateOnly>? value) -> Rask.UiCalendarMultiple!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarMultiple! __b, System.Action<System.DateOnly>? value) -> Rask.UiCalendarMultiple!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarMultiple! __b, System.Func<System.DateOnly, System.Threading.Tasks.Task!>? value) -> Rask.UiCalendarMultiple!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, Rask.Core.Callback<System.DateOnly>? value) -> Rask.UiCalendarRange!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.Action<System.DateOnly>? value) -> Rask.UiCalendarRange!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.Func<System.DateOnly, System.Threading.Tasks.Task!>? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<int>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<int>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<int, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
@@ -5763,7 +6283,6 @@ static RaskBuilderSettersRask_Ui.PanelClass(this Rask.UiPopover! __b, string? va
 static RaskBuilderSettersRask_Ui.PanelClass(this Rask.UiSidebar! __b, string? value) -> Rask.UiSidebar!
 static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiCommand! __b, string? value) -> Rask.UiCommand!
 static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiDatePickerMultiple! __b, string? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Placeholder<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Placeholder<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
@@ -5793,11 +6312,7 @@ static RaskBuilderSettersRask_Ui.Shape(this Rask.UiMask! __b, Rask.Ui.MaskShape 
 static RaskBuilderSettersRask_Ui.Shortcut(this Rask.UiCommand! __b, string? value) -> Rask.UiCommand!
 static RaskBuilderSettersRask_Ui.ShowFrom<T>(this Rask.UiColumn<T>! __b, Rask.Ui.Breakpoint? value) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.ShowGroupedColumns<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.ShowValidating(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.ShowValidating(this Rask.UiDatePickerMultiple! __b, bool? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.ShowValidating(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiDatePickerMultiple! __b, bool? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiCheckboxGroup<T>! __b, bool? value) -> Rask.UiCheckboxGroup<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
@@ -5806,9 +6321,6 @@ static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiSelect<T>! __b, b
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiTextarea<T>! __b, bool? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiAura! __b, Rask.Ui.Size? value) -> Rask.UiAura!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiAvatar! __b, Rask.Ui.Size? value) -> Rask.UiAvatar!
-static RaskBuilderSettersRask_Ui.Size(this Rask.UiDatePicker! __b, Rask.Ui.Size? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Size(this Rask.UiDatePickerMultiple! __b, Rask.Ui.Size? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.Size(this Rask.UiDatePickerRange! __b, Rask.Ui.Size? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiDock! __b, Rask.Ui.Size? value) -> Rask.UiDock!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiFileInput! __b, Rask.Ui.Size? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiKbd! __b, Rask.Ui.Size? value) -> Rask.UiKbd!
@@ -5848,9 +6360,6 @@ static RaskBuilderSettersRask_Ui.Title<T>(this Rask.UiColumn<T>! __b, string? va
 static RaskBuilderSettersRask_Ui.Toggleable(this Rask.UiTooltip! __b, bool? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.UiChatBubble! __b, Rask.Ui.Tone? value) -> Rask.UiChatBubble!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.UiCode! __b, Rask.Ui.Tone? value) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.Tone(this Rask.UiDatePicker! __b, Rask.Ui.Tone? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Tone(this Rask.UiDatePickerMultiple! __b, Rask.Ui.Tone? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.Tone(this Rask.UiDatePickerRange! __b, Rask.Ui.Tone? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.UiDetailRow! __b, Rask.Ui.Tone? value) -> Rask.UiDetailRow!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.UiFileInput! __b, Rask.Ui.Tone? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.UiMetric! __b, Rask.Ui.Tone? value) -> Rask.UiMetric!
@@ -5882,8 +6391,6 @@ static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCheckbox! __b, Rask.Core.F
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCheckbox! __b, Rask.Core.Validator<bool>? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePicker! __b, Rask.Core.Forms.Validate<System.DateOnly>? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePicker! __b, Rask.Core.Validator<System.DateOnly>? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerMultiple! __b, Rask.Core.Forms.Validate<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerMultiple! __b, Rask.Core.Validator<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerRange! __b, Rask.Core.Forms.Validate<Rask.UiDateRange>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerRange! __b, Rask.Core.Validator<Rask.UiDateRange>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiFileInput! __b, Rask.Core.Forms.Validate<string!>? value) -> Rask.UiFileInput!
@@ -5921,9 +6428,6 @@ static RaskBuilderSettersRask_Ui.Variant(this Rask.UiAccordion! __b, Rask.Ui.Acc
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiCallout! __b, Rask.Ui.CalloutVariant? value) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiButton! __b, Rask.Ui.ButtonVariant? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiBadge! __b, Rask.Ui.BadgeVariant? value) -> Rask.UiBadge!
-static RaskBuilderSettersRask_Ui.Variant(this Rask.UiDatePicker! __b, Rask.Ui.Variant? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Variant(this Rask.UiDatePickerMultiple! __b, Rask.Ui.Variant? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.Variant(this Rask.UiDatePickerRange! __b, Rask.Ui.Variant? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiFileInput! __b, Rask.Ui.Variant? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiIcon! __b, Rask.Ui.IconVariant? value) -> Rask.UiIcon!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiPopover! __b, Rask.Ui.Variant? value) -> Rask.UiPopover!
@@ -5941,6 +6445,16 @@ static RaskBuilderSettersRask_Ui.Viewable(this Rask.UiAutocomplete! __b) -> Rask
 static RaskBuilderSettersRask_Ui.Viewable(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Viewable<T>(this Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Viewable<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiCalendar! __b, bool? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiCalendarMultiple! __b, bool? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiCalendarRange! __b, bool? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.When(this Rask.UiChatBubble! __b, string? value) -> Rask.UiChatBubble!
 static RaskBuilderSettersRask_Ui.WhenLoading(this Rask.UiPillboxOptionEmpty! __b, string? value) -> Rask.UiPillboxOptionEmpty!
 static RaskBuilderSettersRask_Ui.WhenLoading(this Rask.UiSelectOptionEmpty! __b, string? value) -> Rask.UiSelectOptionEmpty!
@@ -5948,6 +6462,24 @@ static RaskBuilderSettersRask_Ui.Width(this Rask.UiChartBar! __b, string? value)
 static RaskBuilderSettersRask_Ui.Width(this Rask.UiChartGroup! __b, string? value) -> Rask.UiChartGroup!
 static RaskBuilderSettersRask_Ui.Width(this Rask.UiChartStack! __b, string? value) -> Rask.UiChartStack!
 static RaskBuilderSettersRask_Ui.Width(this Rask.UiChartSvg! __b, double? value) -> Rask.UiChartSvg!
+static RaskBuilderSettersRask_Ui.WithConfirmation(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.WithConfirmation(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.WithConfirmation(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.WithConfirmation(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.WithPresets(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.WithPresets(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.WithPresets(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.WithPresets(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiCalendar! __b, bool? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiCalendarMultiple! __b, bool? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiCalendarRange! __b, bool? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Words(this Rask.UiTextRotate! __b, System.Collections.Generic.IReadOnlyList<string!>! value) -> Rask.UiTextRotate!
 static RaskBuilderSettersRask_Ui.Zebra<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
 virtual Rask.UiElement.ResolveAria() -> System.Collections.Generic.IReadOnlyDictionary<string!, string?>?
@@ -5987,18 +6519,6 @@ Rask.RaskPending_UiBrand_Label
 Rask.RaskPending_UiBrand_Label.Href(Rask.Core.Routing.RouteUrl Href) -> Rask.UiBrand!
 Rask.RaskPending_UiBrand_Label.Key(object? key) -> Rask.RaskPending_UiBrand_Label
 Rask.RaskPending_UiBrand_Label.RaskPending_UiBrand_Label() -> void
-Rask.RaskPending_UiCalendar
-Rask.RaskPending_UiCalendar.Key(object? key) -> Rask.RaskPending_UiCalendar
-Rask.RaskPending_UiCalendar.Label(string! Label) -> Rask.UiCalendar!
-Rask.RaskPending_UiCalendar.RaskPending_UiCalendar() -> void
-Rask.RaskPending_UiCalendarMultiple
-Rask.RaskPending_UiCalendarMultiple.Key(object? key) -> Rask.RaskPending_UiCalendarMultiple
-Rask.RaskPending_UiCalendarMultiple.Label(string! Label) -> Rask.UiCalendarMultiple!
-Rask.RaskPending_UiCalendarMultiple.RaskPending_UiCalendarMultiple() -> void
-Rask.RaskPending_UiCalendarRange
-Rask.RaskPending_UiCalendarRange.Key(object? key) -> Rask.RaskPending_UiCalendarRange
-Rask.RaskPending_UiCalendarRange.Label(string! Label) -> Rask.UiCalendarRange!
-Rask.RaskPending_UiCalendarRange.RaskPending_UiCalendarRange() -> void
 Rask.RaskPending_UiCountdown_Label
 Rask.RaskPending_UiCountdown_Label.Key(object? key) -> Rask.RaskPending_UiCountdown_Label
 Rask.RaskPending_UiCountdown_Label.RaskPending_UiCountdown_Label() -> void
@@ -6206,22 +6726,7 @@ Rask.RaskSeed_UiBreadcrumbs.Items(System.Collections.Generic.IReadOnlyList<(stri
 Rask.RaskSeed_UiBreadcrumbs.Key(object? key) -> Rask.RaskSeed_UiBreadcrumbs
 Rask.RaskSeed_UiBreadcrumbs.RaskSeed_UiBreadcrumbs() -> void
 Rask.RaskSeed_UiCalendar
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! Bind) -> Rask.RaskPending_UiCalendarRange
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! Bind) -> Rask.RaskPending_UiCalendarRange
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.HashSet<System.DateOnly>!>!>! Bind) -> Rask.RaskPending_UiCalendarMultiple
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<System.DateOnly>!>!>! Bind) -> Rask.RaskPending_UiCalendarMultiple
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.IList<System.DateOnly>!>!>! Bind) -> Rask.RaskPending_UiCalendarMultiple
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.List<System.DateOnly>!>!>! Bind) -> Rask.RaskPending_UiCalendarMultiple
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.Collection<System.DateOnly>!>!>! Bind) -> Rask.RaskPending_UiCalendarMultiple
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.ObservableCollection<System.DateOnly>!>!>! Bind) -> Rask.RaskPending_UiCalendarMultiple
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>! Bind) -> Rask.RaskPending_UiCalendar
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! Bind) -> Rask.RaskPending_UiCalendar
-Rask.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly[]!>!>! Bind) -> Rask.RaskPending_UiCalendarMultiple
-Rask.RaskSeed_UiCalendar.Key(object? key) -> Rask.RaskSeed_UiCalendar
 Rask.RaskSeed_UiCalendar.RaskSeed_UiCalendar() -> void
-Rask.RaskSeed_UiCalendar.Value(Rask.UiDateRange Value) -> Rask.RaskPending_UiCalendarRange
-Rask.RaskSeed_UiCalendar.Value(System.DateOnly Value) -> Rask.RaskPending_UiCalendar
-Rask.RaskSeed_UiCalendar.Values(System.Collections.Generic.ICollection<System.DateOnly>? Values) -> Rask.RaskPending_UiCalendarMultiple
 Rask.RaskSeed_UiChatBubble
 Rask.RaskSeed_UiChatBubble.Key(object? key) -> Rask.RaskSeed_UiChatBubble
 Rask.RaskSeed_UiChatBubble.Message(string! Message) -> Rask.UiChatBubble!
@@ -6261,21 +6766,10 @@ Rask.RaskSeed_UiDataGrid.Of<T, TKey>() -> Rask.RaskPending_UiDataGrid<T, TKey>
 Rask.RaskSeed_UiDataGrid.RaskSeed_UiDataGrid() -> void
 Rask.RaskSeed_UiDataGrid.Selected<TKey>(System.Collections.Generic.IReadOnlyList<TKey>? Selected) -> Rask.RaskStage_UiDataGrid_Selected<TKey>
 Rask.RaskSeed_UiDatePicker
-Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>! Bind) -> Rask.UiDatePickerRange!
-Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange?>!>! Bind) -> Rask.UiDatePickerRange!
-Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.HashSet<System.DateOnly>!>!>! Bind) -> Rask.UiDatePickerMultiple!
-Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<System.DateOnly>!>!>! Bind) -> Rask.UiDatePickerMultiple!
-Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.IList<System.DateOnly>!>!>! Bind) -> Rask.UiDatePickerMultiple!
-Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.List<System.DateOnly>!>!>! Bind) -> Rask.UiDatePickerMultiple!
-Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.Collection<System.DateOnly>!>!>! Bind) -> Rask.UiDatePickerMultiple!
-Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.ObservableCollection<System.DateOnly>!>!>! Bind) -> Rask.UiDatePickerMultiple!
 Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>! Bind) -> Rask.UiDatePicker!
 Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! Bind) -> Rask.UiDatePicker!
-Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly[]!>!>! Bind) -> Rask.UiDatePickerMultiple!
 Rask.RaskSeed_UiDatePicker.RaskSeed_UiDatePicker() -> void
-Rask.RaskSeed_UiDatePicker.Value(Rask.UiDateRange Value) -> Rask.UiDatePickerRange!
 Rask.RaskSeed_UiDatePicker.Value(System.DateOnly Value) -> Rask.UiDatePicker!
-Rask.RaskSeed_UiDatePicker.Values(System.Collections.Generic.ICollection<System.DateOnly>? Values) -> Rask.UiDatePickerMultiple!
 Rask.RaskSeed_UiDetailRow
 Rask.RaskSeed_UiDetailRow.Key(object? key) -> Rask.RaskSeed_UiDetailRow
 Rask.RaskSeed_UiDetailRow.Label(string! Label) -> Rask.RaskPending_UiDetailRow_Label
@@ -6599,7 +7093,6 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCountdown(Rask.Core.Co
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCrumbSwitcher(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDataGrid_2<T, TKey>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDatePicker(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDatePickerMultiple(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDatePickerRange(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDetailRow(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDiff(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -6699,7 +7192,6 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCountdown(Rask.Core.Com
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCrumbSwitcher(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDataGrid_2<T, TKey>(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDatePicker(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDatePickerMultiple(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDatePickerRange(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDetailRow(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDiff(Rask.Core.Component! __c0) -> void
@@ -6805,7 +7297,6 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCountdown(Rask.Core.C
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCrumbSwitcher(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDataGrid_2<T, TKey>(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDatePicker(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDatePickerMultiple(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDatePickerRange(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDetailRow(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDiff(Rask.Core.Component! __c0, ulong __p) -> void
@@ -6951,65 +7442,15 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiCode!).Secondary.get -> Rask.UiCode!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCode!).Success.get -> Rask.UiCode!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCode!).Warning.get -> Rask.UiCode!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Accent.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Dash.get -> Rask.UiDatePicker!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Default.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Ghost.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Info.get -> Rask.UiDatePicker!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Lg.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Link.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Md.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Neutral.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Outline.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Primary.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Secondary.get -> Rask.UiDatePicker!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Sm.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Soft.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Solid.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Success.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Warning.get -> Rask.UiDatePicker!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Xl.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Xs.get -> Rask.UiDatePicker!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Accent.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Dash.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Default.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Ghost.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Info.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Lg.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Link.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Md.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Neutral.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Outline.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Primary.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Secondary.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Sm.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Soft.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Solid.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Success.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Warning.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Xl.get -> Rask.UiDatePickerMultiple!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerMultiple!).Xs.get -> Rask.UiDatePickerMultiple!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Accent.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Dash.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Default.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Ghost.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Info.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Lg.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Link.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Md.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Neutral.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Outline.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Primary.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Secondary.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Sm.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Soft.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Solid.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Success.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Warning.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Xl.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Xs.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!).Accent.get -> Rask.UiDetailRow!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!).Error.get -> Rask.UiDetailRow!
@@ -7331,9 +7772,6 @@ RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTextarea<T>!).None.get -> Rask.UiT
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTextarea<T>!).Vertical.get -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiChatBubble! __b) -> Rask.UiChatBubble!
 static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
 static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiMetric! __b) -> Rask.UiMetric!
@@ -7366,9 +7804,6 @@ static RaskBuilderSettersRask_Ui.get_Center(Rask.UiDropdown! __b) -> Rask.UiDrop
 static RaskBuilderSettersRask_Ui.get_Center(Rask.UiPopover! __b) -> Rask.UiPopover!
 static RaskBuilderSettersRask_Ui.get_Center(Rask.UiProfile! __b) -> Rask.UiProfile!
 static RaskBuilderSettersRask_Ui.get_Center(Rask.UiTooltip! __b) -> Rask.UiTooltip!
-static RaskBuilderSettersRask_Ui.get_Dash(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Dash(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Dash(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Dash(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Dash(Rask.UiOtp! __b) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.get_Dash(Rask.UiPopover! __b) -> Rask.UiPopover!
@@ -7377,7 +7812,6 @@ static RaskBuilderSettersRask_Ui.get_Default(Rask.UiAvatar! __b) -> Rask.UiAvata
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiCard! __b) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Default(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiDock! __b) -> Rask.UiDock!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiFileInput! __b) -> Rask.UiFileInput!
@@ -7418,9 +7852,6 @@ static RaskBuilderSettersRask_Ui.get_Error(Rask.UiStatusDot! __b) -> Rask.UiStat
 static RaskBuilderSettersRask_Ui.get_Error(Rask.UiStep! __b) -> Rask.UiStep!
 static RaskBuilderSettersRask_Ui.get_Flip(Rask.UiSwap! __b) -> Rask.UiSwap!
 static RaskBuilderSettersRask_Ui.get_Ghost(Rask.UiButton! __b) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.get_Ghost(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Ghost(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Ghost(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Ghost(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Ghost(Rask.UiOtp! __b) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.get_Ghost(Rask.UiPopover! __b) -> Rask.UiPopover!
@@ -7431,9 +7862,6 @@ static RaskBuilderSettersRask_Ui.get_Horizontal<T>(Rask.UiTextarea<T>! __b) -> R
 static RaskBuilderSettersRask_Ui.get_Infinity(Rask.UiLoading! __b) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.get_Info(Rask.UiChatBubble! __b) -> Rask.UiChatBubble!
 static RaskBuilderSettersRask_Ui.get_Info(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Info(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Info(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Info(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Info(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
 static RaskBuilderSettersRask_Ui.get_Info(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Info(Rask.UiMetric! __b) -> Rask.UiMetric!
@@ -7456,7 +7884,6 @@ static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiAvatar! __b) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiCard! __b) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiDock! __b) -> Rask.UiDock!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiFileInput! __b) -> Rask.UiFileInput!
@@ -7478,18 +7905,12 @@ static RaskBuilderSettersRask_Ui.get_Lg<T, TKey>(Rask.UiDataGrid<T, TKey>! __b) 
 static RaskBuilderSettersRask_Ui.get_Lg<T, TKey>(Rask.UiTree<T, TKey>! __b) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.get_Lg<T>(Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.get_Lift(Rask.UiTabs! __b) -> Rask.UiTabs!
-static RaskBuilderSettersRask_Ui.get_Link(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Link(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Link(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Link(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Link(Rask.UiOtp! __b) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.get_Link(Rask.UiPopover! __b) -> Rask.UiPopover!
 static RaskBuilderSettersRask_Ui.get_Md(Rask.UiAura! __b) -> Rask.UiAura!
 static RaskBuilderSettersRask_Ui.get_Md(Rask.UiAvatar! __b) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.get_Md(Rask.UiCard! __b) -> Rask.UiCard!
-static RaskBuilderSettersRask_Ui.get_Md(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Md(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Md(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Md(Rask.UiDock! __b) -> Rask.UiDock!
 static RaskBuilderSettersRask_Ui.get_Md(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Md(Rask.UiKbd! __b) -> Rask.UiKbd!
@@ -7513,9 +7934,6 @@ static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiChatBubble! __b) -> Rask.UiChatBubble!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiMetric! __b) -> Rask.UiMetric!
@@ -7531,9 +7949,6 @@ static RaskBuilderSettersRask_Ui.get_None<T, TKey>(Rask.UiTree<T, TKey>! __b) ->
 static RaskBuilderSettersRask_Ui.get_None<T>(Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiButton! __b) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiIcon! __b) -> Rask.UiIcon!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiOtp! __b) -> Rask.UiOtp!
@@ -7544,9 +7959,6 @@ static RaskBuilderSettersRask_Ui.get_Pills<T>(Rask.UiRadioGroup<T>! __b) -> Rask
 static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiChatBubble! __b) -> Rask.UiChatBubble!
 static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
 static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiMetric! __b) -> Rask.UiMetric!
@@ -7569,9 +7981,6 @@ static RaskBuilderSettersRask_Ui.get_Ring(Rask.UiLoading! __b) -> Rask.UiLoading
 static RaskBuilderSettersRask_Ui.get_Rotate(Rask.UiSwap! __b) -> Rask.UiSwap!
 static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiChatBubble! __b) -> Rask.UiChatBubble!
 static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
 static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiMetric! __b) -> Rask.UiMetric!
@@ -7591,7 +8000,6 @@ static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiCard! __b) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiDock! __b) -> Rask.UiDock!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiFileInput! __b) -> Rask.UiFileInput!
@@ -7615,17 +8023,11 @@ static RaskBuilderSettersRask_Ui.get_Sm<T>(Rask.UiInput<T>! __b) -> Rask.UiInput
 static RaskBuilderSettersRask_Ui.get_Sm<T>(Rask.UiRadioGroup<T>! __b) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.get_Sm<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.get_Soft(Rask.UiBadge! __b) -> Rask.UiBadge!
-static RaskBuilderSettersRask_Ui.get_Soft(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Soft(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Soft(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Soft(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Soft(Rask.UiOtp! __b) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.get_Soft(Rask.UiPopover! __b) -> Rask.UiPopover!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiButton! __b) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiIcon! __b) -> Rask.UiIcon!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiOtp! __b) -> Rask.UiOtp!
@@ -7638,9 +8040,6 @@ static RaskBuilderSettersRask_Ui.get_Start(Rask.UiTooltip! __b) -> Rask.UiToolti
 static RaskBuilderSettersRask_Ui.get_Submit(Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.get_Success(Rask.UiChatBubble! __b) -> Rask.UiChatBubble!
 static RaskBuilderSettersRask_Ui.get_Success(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Success(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Success(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Success(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Success(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
 static RaskBuilderSettersRask_Ui.get_Success(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Success(Rask.UiMetric! __b) -> Rask.UiMetric!
@@ -7661,9 +8060,6 @@ static RaskBuilderSettersRask_Ui.get_Top(Rask.UiTooltip! __b) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.get_Vertical<T>(Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiChatBubble! __b) -> Rask.UiChatBubble!
 static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
 static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiMetric! __b) -> Rask.UiMetric!
@@ -7678,7 +8074,6 @@ static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiStep! __b) -> Rask.UiStep!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiAura! __b) -> Rask.UiAura!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiAvatar! __b) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiDock! __b) -> Rask.UiDock!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiFileInput! __b) -> Rask.UiFileInput!
@@ -7703,9 +8098,6 @@ static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiAura! __b) -> Rask.UiAura!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiAvatar! __b) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiCard! __b) -> Rask.UiCard!
-static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiDock! __b) -> Rask.UiDock!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiKbd! __b) -> Rask.UiKbd!
@@ -7731,8 +8123,6 @@ static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCheckbox! __b, System.Act
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCheckbox! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePicker! __b, System.Action? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePicker! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerMultiple! __b, System.Action? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerMultiple! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerRange! __b, System.Action? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiFileInput! __b, System.Action? value) -> Rask.UiFileInput!
@@ -7769,8 +8159,6 @@ static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCheckbox! __b, System.Acti
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCheckbox! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePicker! __b, System.Action? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePicker! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerMultiple! __b, System.Action? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerMultiple! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerRange! __b, System.Action? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiFileInput! __b, System.Action? value) -> Rask.UiFileInput!
@@ -7819,12 +8207,6 @@ static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Ac
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Action? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendar! __b, System.Action? value) -> Rask.UiCalendar!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendar! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendar!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarMultiple! __b, System.Action? value) -> Rask.UiCalendarMultiple!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarMultiple! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendarMultiple!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.Action? value) -> Rask.UiCalendarRange!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
@@ -7884,8 +8266,6 @@ static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCheckbox! __b, System.Fun
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCheckbox! __b, System.Func<bool, System.Threading.Tasks.ValueTask>? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePicker! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePicker! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerMultiple! __b, System.Func<System.Collections.Generic.ICollection<System.DateOnly>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerMultiple! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerRange! __b, System.Func<Rask.UiDateRange, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerRange! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiFileInput! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiFileInput!
@@ -7931,7 +8311,6 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiCheckbox! __b, params System.
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiCommand! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiCommand!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiCountdown! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiCountdown!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePicker! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePickerMultiple! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePickerRange! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDiff! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiDiff!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDock! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiDock!
@@ -8015,7 +8394,6 @@ static RaskBuilderSettersRask_Ui.Current(this Rask.UiNavItem! __b) -> Rask.UiNav
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiCheckbox! __b) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiMenuCheckbox! __b) -> Rask.UiMenuCheckbox!
@@ -8066,8 +8444,6 @@ static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCheckbox! __b, System.Func
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCheckbox! __b, System.Func<bool, System.Threading.Tasks.ValueTask>? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePicker! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePicker! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerMultiple! __b, System.Func<System.Collections.Generic.ICollection<System.DateOnly>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerMultiple! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerRange! __b, System.Func<Rask.UiDateRange, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerRange! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiFileInput! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiFileInput!
@@ -8110,12 +8486,6 @@ static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Fu
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendar! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendar!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendar! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendar!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarMultiple! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendarMultiple!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarMultiple! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendarMultiple!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendarRange!
-static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<T, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiCrumbSwitcher! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiCrumbSwitcher!
@@ -8144,13 +8514,9 @@ static RaskBuilderSettersRask_Ui.Round(this Rask.UiAvatar! __b) -> Rask.UiAvatar
 static RaskBuilderSettersRask_Ui.RowClickable<T>(this Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.ShowGroupedColumns<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.ShowValidating(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.ShowValidating(this Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.ShowValidating(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.ShowValidating(this Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.ShowValidating(this Rask.UiOtp! __b) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiDatePickerMultiple! __b) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiFileInput! __b) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiOtp! __b) -> Rask.UiOtp!
@@ -8174,7 +8540,6 @@ static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarMultiple! __b, Sys
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarRange! __b, System.Func<Rask.UiDateRange, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCheckbox! __b, System.Func<bool, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePicker! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerMultiple! __b, System.Func<System.Collections.Generic.ICollection<System.DateOnly>!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerRange! __b, System.Func<Rask.UiDateRange, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiFileInput! __b, System.Func<string!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiMenuCheckbox! __b, System.Func<bool, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiMenuCheckbox!
@@ -8697,3 +9062,5 @@ static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiCardHeader! __b) -> Rask.UiCardHe
 ~override Rask.UiInputIcon.ToString() -> string
 ~override Rask.UiTextareaRows.Equals(object obj) -> bool
 ~override Rask.UiTextareaRows.ToString() -> string
+~override Rask.UiTimeRange.Equals(object obj) -> bool
+~override Rask.UiTimeRange.ToString() -> string
