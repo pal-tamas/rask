@@ -2,8 +2,10 @@
 # only a page that carries a hooked attribute downloads.
 #
 # Refreshed 2026-10-08 with the pager's scroll hook (rask-scroll.ts, data-rask-scroll-to): rask-hooks.js
-# 37,124 -> 37,367 (+243), and +10 on rask.js (95,581 -> 95,591) and rask.wasm.js (84,439 -> 84,449) for its
-# name in the loader's attribute list. The hook itself is in the bundle a page asks for, not in the runtimes.
+# 37,124 -> 37,506, and +10 on rask.js (95,581 -> 95,591) and rask.wasm.js (84,439 -> 84,449) for its name in
+# the loader's attribute list. The hook itself is in the bundle a page asks for, not in the runtimes. Of the
+# +382 on rask-hooks.js the scroll hook is +243; the other +139 is the calendar and pickers' changes to three
+# hooks, which landed on main inside the gate's 2% and were not recorded.
 #
 # Refreshed 2026-10-08 with Flux's menus, whose script is in the CORE runtime (the menu block of rask-dom.ts:
 # roving focus that follows `data-active`, Enter / Space on the focused row, focus handed back after a press
@@ -86,4 +88,4 @@
 bundle,bytes
 rask.js,95591
 rask.wasm.js,84449
-rask-hooks.js,37367
+rask-hooks.js,37506
