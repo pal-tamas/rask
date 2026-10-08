@@ -23,6 +23,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **CI: the whole run follows every push, and every push to `main` gets its own run.** `full.yml` runs
+  behind each push — one run at a time, the newest push waiting, fourteen jobs at once so a push's scoped
+  run still finds runners — and hourly as the backstop, so `pages.yml` deploys a site change minutes
+  after its push instead of within the hour. `nightly.yml` is on its own hourly clock and packs the
+  newest commit the whole run passed, once, so nuget.org gets no more versions than before. `ci.yml` no
+  longer holds a push behind the run of the one before it.
 - **CI: the browser gates, the scoped format job and the Pages publish are shorter.** The five browser
   gates and `pages.yml` build without the analyzers — the `build` job is the one that holds the source to
   them — which took the site publish from 375 s to 270 s on a runner. A scoped `format` job builds the
@@ -63,6 +69,13 @@ them until tagged releases begin.
 
 ### Added
 
+- **A user gives claims of its own.** Override `Authenticatable.Claims()` and what it returns is on the
+  principal a sign-in issues, in a bearer token, and on a session each time it is loaded again — a live page
+  keeps them across a reconnect (#1230). The claims the account issues itself (id, name, address, roles,
+  session, tenant) are refused.
+- **`Rask:SqlServer:SplitQueries`.** Loads several included collections as one statement each instead of one
+  join, for every context that reads the section — the app's own and the one behind the generated read faces
+  (#1231). Off by default, as in EF Core; `AsSplitQuery()` still chooses per query.
 - **Runtime hooks for a widget's keys, focus and popovers (`data-rask-*`, round two).** `data-rask-contain-keys="Arrows
   Home End …"` cancels the browser's default for the keys a widget handles itself (the page no longer scrolls behind a
   calendar; `data-rask-listbox-button` is now one such list); `data-rask-roving` walks a `[role=radiogroup]` of
@@ -713,6 +726,82 @@ them until tagged releases begin.
   **A screen reader now says it**: the trigger carries `aria-describedby` (or `aria-labelledby`, when it
   has no text of its own), which the daisyUI tooltip never wrote. `docs/ui-kit.md#tooltips` lists the four
   things Flux's script does that a script-less tooltip does not, and the runtime hook that would close them.
+- **BREAKING: `Ui.Dropdown`, `Ui.Menu` and `Ui.Context` are Flux's — the same parts, props, look and
+  keyboard.** A dropdown is no longer a labelled button with rows inside it: it is Flux's shape, a trigger
+  and the menu it opens, and a row's words are its children.
+  ```csharp
+  Ui.Dropdown.Trigger("Actions").Position(Ui.Position.Top).Align(Ui.Align.End)[
+      Ui.MenuItem.Text("Edit").Icon(Ui.IconName.PencilSquare).Kbd("⌘E").OnClick(Edit),
+      Ui.MenuSub.Title("Sort by")[
+          Ui.MenuRadioGroup.Bind(() => view.Sort).Options([("name", "Name"), ("date", "Date")])
+      ],
+      Ui.MenuCheckbox.Bind(() => view.Archived).Text("Show archived"),
+      Ui.MenuGroup.Title("Danger")[Ui.MenuItem.Text("Delete").Tone(Ui.Tone.Error).OnClick(Delete)]
+  ]   // was
+
+  Ui.Dropdown.Top.End[
+      Ui.Button["Actions"],
+      Ui.Menu[
+          Ui.MenuItem.Icon(Ui.IconName.PencilSquare).Kbd("⌘E").OnClick(Edit)["Edit"],
+          Ui.MenuSubmenu.Heading("Sort by")[
+              Ui.MenuRadioGroup.Bind(() => view.Sort)[
+                  Ui.MenuRadio.Value("name")["Name"],
+                  Ui.MenuRadio.Value("date")["Date"]
+              ]
+          ],
+          Ui.MenuCheckbox.Bind(() => view.Archived)["Show archived"],
+          Ui.MenuGroup.Heading("Danger")[Ui.MenuItem.Danger.OnClick(Delete)["Delete"]]
+      ]
+  ]   // now
+  ```
+  - **The trigger is yours.** `Trigger("…")`, `Icon` and `IconTrailing` on the dropdown are gone: the first
+    child is the button — a `Button`, a `Ui.Button` — and the dropdown adds `popovertarget`,
+    `aria-haspopup="true"` (Flux's value, whatever it opens), `aria-expanded` and `aria-controls` to it. `Position` and `Align` are `Ui.DropdownPosition` (Bottom, Top,
+    Right, Left) and `Ui.DropdownAlign` (Start, Center, End), each member a chain step. An unwritten `Gap` is
+    5px, as Flux's page draws it.
+  - **Renamed, to Flux's parts:** `Ui.MenuSub.Title(…)` → `Ui.MenuSubmenu.Heading(…)`; `Ui.MenuGroup.Title(…)`
+    → `.Heading(…)`; `Ui.MenuItem.Text("x")` → `Ui.MenuItem["x"]`; `.Tone(Ui.Tone.Error)` → `.Danger`
+    (`Ui.MenuItemVariant`); `Ui.MenuCheckbox.Text("x")` → `Ui.MenuCheckbox[…]`;
+    `Ui.MenuRadioGroup.Options([...])` → `Ui.MenuRadio.Value(v)["…"]` children;
+    `Ui.ContextMenu.Target(area)[rows]` → `Ui.Context[area, Ui.Menu[rows]]` (its `Target` is now Flux's: the
+    id of a menu written elsewhere).
+  - **New, from Flux:** `Ui.MenuItem.Suffix` and `.IconVariant`, `Ui.MenuRadio` (with `Checked` for one
+    outside a group), `Ui.MenuCheckboxGroup`, `Ui.Navmenu` and `Ui.NavmenuItem` (a dropdown of links, with no
+    menu roles), and on `Ui.Context`: `Position`, `Gap`, `Offset`, `Target`, `Detail`, `Disabled`.
+  - **Markers and ARIA are Flux's, attribute for attribute.** A submenu's row is a bare `menuitem` — no
+    `aria-haspopup`, `aria-expanded` or `aria-controls` — and its flyout a `role="menu"` with no name and no
+    id; a row's leading icon and a checkbox's or radio's mark carry `data-ui-menu-item-icon`; a separator is
+    `data-ui-menu-separator` around a `data-ui-separator` line. The runtime tells a submenu's row by the
+    `role="menu"` right after it, and a menu button by the menu its popover holds.
+  - **The keyboard is Flux's, key for key, and it changed.** The menu opens with focus on it and no row
+    chosen (it used to start on the first row); the arrows **stop** at the ends (they wrapped); Home, End and
+    the page keys do nothing (they jumped); Enter on a submenu's row opens it onto its first row and Space
+    opens it in place; ArrowDown on the closed trigger opens the menu onto its first row, and ArrowUp no
+    longer opens it. The row under the cursor now has **focus** — roving focus, with `tabindex="0"` and
+    `data-active` — where the menu used to name it with `aria-activedescendant` and mark it
+    `data-highlighted`; restyle from `data-active`.
+  - **A checkbox row closes the menu** when picked, like any other row; it used to keep it open. Put
+    `KeepOpen` on the menu, a submenu, a radio group or the row for the menu someone ticks several of.
+  - **Behind an open menu the page does not scroll and does not take the pointer**, so a click outside only
+    closes the menu, and focus goes back to the trigger afterwards. A context menu lands where Flux's does:
+    below the pointer, the menu's end edge on it.
+  - **Removed:** `Ui.Megamenu` and `Ui.MegamenuPanel` (daisyUI's; Flux has none — a `Ui.Dropdown` with a
+    `Ui.Navmenu` is the menu of links), `Ui.OpenOn` and `Ui.Dropdown.OpenOn` (daisyUI's hover dropdown),
+    daisyUI's list `Ui.Menu.Horizontal`/`.Size` and `Ui.MenuItem.Active` (use `Ui.NavList` with
+    `Ui.NavItem`s for a list of links), `Ui.MenuRadioGroup.Title`/`.OptionDisabled` (a `Ui.MenuGroup.Heading`
+    and `Ui.MenuRadio.Disabled`), and the public base classes `UiMenuSurface` and `UiMenuButton`
+    (`Ui.Profile` keeps its `Position`/`Align`/`Gap`/`Offset`/`Open`/`OnToggle`/`KeepOpen`, now typed
+    `Ui.DropdownPosition`/`Ui.DropdownAlign`). `Ui.Command` still takes `Ui.MenuItem`, `Ui.MenuGroup` and
+    `Ui.MenuSeparator` rows, written the new way.
+  - Runtime: a menu row that gains `data-active` inside an open popover is focused; Enter and Space press the
+    focused row; a popover that closes with focus nowhere hands it to the `[popovertarget][aria-haspopup]`
+    button that opens it; the context-menu hook fits the menu inside the viewport by where it landed, and keeps
+    the pointer's position in a stylesheet of its own (`:root{--rask-context-x/-y}`) rather than in `<html>`'s
+    style attribute, which the WASM host strips when it takes over a prerendered page — on the first
+    right-click, the menu opened in the corner.
+  - `scripts/flux/parity-menu.mjs` holds the OPEN menu to Flux's live page — placement against the trigger,
+    every row at rest, under a real pointer, pressed and under the cursor, a submenu's flyout, the page lock,
+    Escape and a click outside — beside `parity.mjs`, which compares the page as it loads.
 - **BREAKING: `Ui.Modal` is Flux's modal, flyouts included; `Ui.Drawer` folds into it.** Measured against
   [fluxui.dev/components/modal](https://fluxui.dev/components/modal) open as well as loaded
   (`scripts/flux/parity-modal.mjs`): the panel, the backdrop, the close button, the 150ms in and 75ms out,
@@ -889,6 +978,10 @@ them until tagged releases begin.
   "a magnifying glass"; Tailwind scans comments, daisyUI emits a component wherever its name is seen, and the rule
   rode the kit's class list into each app's stylesheet. `Rask.Ui.Tests` now fails on a daisyUI component that is in
   the class list with no string literal in the kit writing it.
+- **daisyUI's `.dropdown` is out of the kit's sheet too.** Nothing writes it since `Ui.Dropdown` is Flux's, but the
+  word stands in the kit's comments, so the plugin is told to leave the component out (`exclude: … dropdown`), as it
+  is for the tooltip. The guard above reads that line: an excluded component's classes left in the list are another
+  component's selectors (daisyUI's menu styles a `.dropdown` inside it).
 - **`MapRaskSpa`'s fallback answers only GET and HEAD.** It matched every verb, so a POST to a route that
   only answers GET was given the index document and a 200 where routing owed it a 405.
 - **One-time-code cells (`data-rask-otp`) no longer lose the selection, or a cell, to a late echo.** The page's

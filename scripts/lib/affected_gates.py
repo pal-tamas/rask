@@ -27,8 +27,8 @@ gates, for the gates whose subject is not a test project's references:
                                                  -> its "front end <key>" job
 
 The contract is the same lopsided one: a gate too many costs minutes on a runner, a gate too few
-lets a break through until the next full run. A push to main is scoped; the full set runs on a
-schedule (.github/workflows/full.yml), and publishing follows that run, not a scoped one.
+lets a break through until the next full run. A push to main is scoped; the full set runs behind
+it (.github/workflows/full.yml), and publishing follows that run, not a scoped one.
 """
 
 from __future__ import annotations

@@ -4,31 +4,26 @@ using Rask.Core.Forms;
 namespace Rask;
 
 /// <summary>
-/// A menu item that is on or off — "Show archived", "Word wrap".
+/// A row that is on or off — "Draft", "Word wrap". Flux UI's <c>flux:menu.checkbox</c>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A form control like every other in the kit: <c>.Bind(() =&gt; view.ShowArchived)</c> writes back to the model,
-/// or <c>Value</c> with <c>OnChange</c> leaves the value to the parent. It is a <c>menuitemcheckbox</c> with a
-/// truthful <c>aria-checked</c>, and <c>data-checked</c> for styling.
+/// A form control like every other in the kit, where Flux takes <c>wire:model</c> and <c>checked</c>:
+/// <c>.Bind(() =&gt; view.ShowArchived)</c> writes back to the model, or <c>Value</c> with <c>OnChange</c> leaves
+/// the value to the parent. It is a <c>menuitemcheckbox</c> with a truthful <c>aria-checked</c>, and
+/// <c>data-checked</c> for styling.
 /// </para>
 /// <para>
-/// Picking it does NOT close the dropdown by default, unlike an ordinary item: a menu of switches is a menu
-/// someone flips several of. <see cref="KeepOpen" /> set to <see langword="false" /> closes it after a pick.
+/// Picking it closes the menu, as picking any row does. <see cref="KeepOpen" /> — on the row, or on the menu —
+/// is for the menu someone ticks several of.
 /// </para>
 /// </remarks>
 public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
 {
-    public new required string Text { get; set; }
-
-    public Ui.IconName? Icon { get; set; }
-
-    /// <summary>A keyboard shortcut shown at the end of the row.</summary>
-    public string? Kbd { get; set; }
-
+    /// <summary>Shown but not pickable. The keyboard cursor steps over it.</summary>
     public bool? Disabled { get; set; }
 
-    /// <summary>Keeps the dropdown open after a pick. On unless this is <see langword="false" />.</summary>
+    /// <summary>Keeps the menu open after this row is picked.</summary>
     public bool? KeepOpen { get; set; }
 
     public string? Class { get; set; }
@@ -57,28 +52,26 @@ public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
     {
         var (accessor, context, current) = UiFormCommit.Resolve<bool>(this);
         var level = Context.Get<UiMenuLevel>();
-        var ordinal = level?.Scope.Register(level.Parent, Text, Disabled == true, isSub: false) ?? -1;
+        var disabled = Disabled == true;
+        var ordinal = level?.Scope.Register(level.Parent, UiMenuRow.Label(Children), disabled, isSub: false) ?? -1;
 
         var button = Button
             .Type(ButtonType.Button)
-            .Class(UiClass.Compose(
-                level is not null && ordinal == level.Scope.Active ? "menu-focus" : "",
-                Disabled == true ? "menu-disabled" : ""));
-        if (Disabled != true)
+            .Class(UiClass.Compose(UiMenuRow.Classes(variant: null), Class))
+            .Disabled(disabled);
+        if (!disabled)
         {
-            button = button.OnClick(() => UiFormCommit.CommitAsync<bool>(this, accessor, context, !current));
+            button = button.OnClick(() =>
+            {
+                level?.Scope.MoveTo(ordinal);
+                return UiFormCommit.CommitAsync<bool>(this, accessor, context, !current);
+            });
         }
 
         var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["checked"] = current ? "true" : "false" };
-        if (Disabled == true)
-        {
-            aria["disabled"] = "true";
-        }
+        var data = UiMenuRow.Checkable(current, KeepOpen == true);
 
-        button = UiMenuItemMarkup.AsMenuItem(button, level, ordinal, "menuitemcheckbox", aria, KeepOpen != false, current);
-
-        return Li.Role(level is null ? null : "none").Class(Class)[
-            button[global::Rask.UiMenuItem.Row(Icon, Text, Kbd, trailing: null, global::Rask.UiMenuItem.Indicator(current))]
-        ];
+        Component?[] content = [UiMenuRow.Check(current), .. Children ?? []];
+        return UiMenuRow.Decorate(button, level, ordinal, "menuitemcheckbox", "ui-menu-checkbox", aria, data)[content];
     }
 }

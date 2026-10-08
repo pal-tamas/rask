@@ -37,6 +37,10 @@ on:
         description: With scope affected, the commit the change is measured from. Empty runs the whole set.
         type: string
         default: ''
+      parallel:
+        description: How many gates run at once. The account runs twenty jobs at a time; full.yml takes fewer.
+        type: number
+        default: 20
 
 permissions:
   contents: read
@@ -176,6 +180,7 @@ jobs:
     timeout-minutes: 30   # the longest gate takes about twelve; a hung one must not hold a runner
     strategy:
       fail-fast: false   # one red gate says nothing about the others; report all of them
+      max-parallel: ${{ inputs.parallel }}
       matrix:
         gate: ${{ fromJSON(needs.plan.outputs.gates) }}
     steps:

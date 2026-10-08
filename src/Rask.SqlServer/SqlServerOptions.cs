@@ -42,6 +42,18 @@ public sealed class SqlServerOptions
     /// </remarks>
     public bool AbortOnError { get; set; } = true;
 
+    /// <summary>
+    /// Whether a query that includes several collections runs as one statement per collection rather than one
+    /// joined statement. Defaults to <see langword="false"/>, EF Core's own default.
+    /// </summary>
+    /// <remarks>
+    /// One joined statement repeats the parent row for every combination of its children, which for two wide
+    /// collections is a lot of rows to send and discard. Splitting trades that for extra round trips, and for the
+    /// chance that a row changes between them. A single query still chooses for itself with
+    /// <c>AsSplitQuery()</c> or <c>AsSingleQuery()</c>.
+    /// </remarks>
+    public bool SplitQueries { get; set; }
+
     /// <summary>How EF Core retries a transient failure — a dropped connection, an Azure SQL failover.</summary>
     public SqlServerRetryOptions Retry { get; } = new();
 

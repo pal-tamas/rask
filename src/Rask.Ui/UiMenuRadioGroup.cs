@@ -4,31 +4,24 @@ using Rask.Core.Forms;
 namespace Rask;
 
 /// <summary>
-/// A run of menu items of which exactly one is chosen — "Sort by name / date / size".
+/// A run of <see cref="UiMenuRadio" /> rows of which one is chosen. Flux UI's <c>flux:menu.radio.group</c>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A form control over the chosen value: <c>.Bind(() =&gt; view.Sort)</c> or <c>Value</c> with <c>OnChange</c>,
-/// and <see cref="Options" /> in the same shape <see cref="UiSelect{T}" /> takes. Each option is a
-/// <c>menuitemradio</c> with a truthful <c>aria-checked</c> and <c>data-checked</c>.
+/// A form control over the chosen value, where Flux takes <c>wire:model</c>: <c>.Bind(() =&gt; view.Sort)</c>, or
+/// <c>Value</c> with <c>OnChange</c>. Each <see cref="UiMenuRadio" /> inside says which value it stands for, and
+/// the one equal to the group's is the checked one.
 /// </para>
-/// <para>
-/// The options sit at the menu's own level, so the arrow keys move through them like any other rows. Picking one
-/// closes the dropdown, as choosing from a list does; <see cref="KeepOpen" /> keeps it up.
-/// </para>
+/// <code>
+/// Ui.MenuRadioGroup.Bind(() =&gt; view.Sort)[
+///     Ui.MenuRadio.Value(Sort.Latest)["Latest activity"],
+///     Ui.MenuRadio.Value(Sort.Created)["Date created"]
+/// ]
+/// </code>
 /// </remarks>
 public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
 {
-    /// <summary>The options: the value stored, and the words shown.</summary>
-    public required IReadOnlyList<(T Value, string Text)> Options { get; set; }
-
-    /// <summary>The words above the options.</summary>
-    public new string? Title { get; set; }
-
-    /// <summary>Marks options unpickable. The keyboard cursor skips them.</summary>
-    public Fn<T, bool>? OptionDisabled { get; set; }
-
-    /// <summary>Keeps the dropdown open after a pick.</summary>
+    /// <summary>Keeps the menu open after a row in the group is picked.</summary>
     public bool? KeepOpen { get; set; }
 
     public string? Class { get; set; }
@@ -48,7 +41,7 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<T> AfterBind { get; set; }
 
-    // Registration happens in Render; see Ui.MenuItem.
+    // The scope is rebuilt around the value this render resolved.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
@@ -56,49 +49,18 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
     protected override Component? Render()
     {
         var (accessor, context, current) = UiFormCommit.Resolve<T>(this);
-        var level = Context.Get<UiMenuLevel>();
-        var role = level is null ? null : "presentation";
+        var scope = new UiMenuRadioScope(
+            value => value is T candidate && EqualityComparer<T?>.Default.Equals(candidate, current),
+            value => value is T chosen ? UiFormCommit.CommitAsync(this, accessor, context, chosen) : Task.CompletedTask);
 
-        return
-        [
-            Title is null
-                ? null
-                : Li.Class("menu-title").Role(role)[Title],
-            .. Options.Select(option => OptionRow(option, level, accessor, context, current))
+        return Div.Role("group").Class(UiClass.Compose("inline", Class)).Data(KeepOpen == true ? KeepsOpen : Group)[
+            Context.Provide(scope)[Children ?? []]
         ];
     }
 
-    private Component OptionRow(
-        (T Value, string Text) option,
-        UiMenuLevel? level,
-        ExpressionAccessor.Accessor? accessor,
-        EditContext? context,
-        T? current)
-    {
-        var disabled = OptionDisabled?.Invoke(option.Value) == true;
-        var chosen = EqualityComparer<T?>.Default.Equals(option.Value, current);
-        var ordinal = level?.Scope.Register(level.Parent, option.Text, disabled, isSub: false) ?? -1;
+    private static readonly Dictionary<string, string?> Group =
+        new(StringComparer.Ordinal) { ["ui-menu-radio-group"] = "" };
 
-        var button = Button
-            .Type(ButtonType.Button)
-            .Class(UiClass.Compose(
-                level is not null && ordinal == level.Scope.Active ? "menu-focus" : "",
-                disabled ? "menu-disabled" : ""));
-        if (!disabled)
-        {
-            button = button.OnClick(() => UiFormCommit.CommitAsync(this, accessor, context, option.Value));
-        }
-
-        var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["checked"] = chosen ? "true" : "false" };
-        if (disabled)
-        {
-            aria["disabled"] = "true";
-        }
-
-        button = UiMenuItemMarkup.AsMenuItem(button, level, ordinal, "menuitemradio", aria, KeepOpen == true, chosen);
-
-        return Li.Key(option.Text).Role(level is null ? null : "none")[
-            button[global::Rask.UiMenuItem.Row(icon: null, option.Text, kbd: null, trailing: null, global::Rask.UiMenuItem.Indicator(chosen))]
-        ];
-    }
+    private static readonly Dictionary<string, string?> KeepsOpen =
+        new(StringComparer.Ordinal) { ["ui-menu-radio-group"] = "", ["rask-keep-open"] = "" };
 }

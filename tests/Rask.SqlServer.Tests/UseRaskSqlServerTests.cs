@@ -41,6 +41,36 @@ public sealed class UseRaskSqlServerTests
     }
 
     [Fact]
+    public void Queries_are_joined_into_one_statement_unless_asked_otherwise()
+    {
+        var options = Options<PlainContext>();
+
+        Assert.Null(RelationalOptionsExtension.Extract(options).QuerySplittingBehavior);
+    }
+
+    [Fact]
+    public void Split_queries_can_be_turned_on_for_every_query()
+    {
+        var options = Options<PlainContext>(s => s.SplitQueries = true);
+
+        Assert.Equal(QuerySplittingBehavior.SplitQuery, RelationalOptionsExtension.Extract(options).QuerySplittingBehavior);
+    }
+
+    [Fact]
+    public void The_Rask_SqlServer_section_turns_split_queries_on()
+    {
+        var services = ServicesWith(new()
+        {
+            ["Rask:ConnectionStrings:App"] = ConnectionString,
+            ["Rask:SqlServer:SplitQueries"] = "true",
+        });
+
+        var options = new DbContextOptionsBuilder<PlainContext>().UseRaskSqlServer(services).Options;
+
+        Assert.Equal(QuerySplittingBehavior.SplitQuery, RelationalOptionsExtension.Extract(options).QuerySplittingBehavior);
+    }
+
+    [Fact]
     public void A_sub_second_command_timeout_rounds_up_rather_than_to_wait_forever()
     {
         var options = Options<PlainContext>(s =>

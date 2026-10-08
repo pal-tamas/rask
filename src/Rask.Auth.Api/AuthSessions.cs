@@ -50,7 +50,7 @@ internal sealed class AuthSessions<TContext, TUser>(
         {
             if (cached.ExpiresAt > now)
             {
-                return AuthPrincipal.For(cached.UserId, cached.Email, cached.Roles, sessionId, cached.TenantId);
+                return AuthPrincipal.For(cached.UserId, cached.Email, cached.Roles, sessionId, cached.TenantId, cached.OwnClaims);
             }
 
             cache.Remove(CacheKey(sessionId));
@@ -64,7 +64,7 @@ internal sealed class AuthSessions<TContext, TUser>(
                     from s in db.Set<Session>().AsNoTracking()
                     join u in db.Set<TUser>().AsNoTracking() on s.UserId equals u.Id
                     where s.Id == sessionId
-                    select new { s.UserId, u.Email, u.Roles, u.TenantId, s.ExpiresAt, s.LastSeenAt })
+                    select new { s.UserId, User = u, s.ExpiresAt, s.LastSeenAt })
                 .FirstOrDefaultAsync(cancellationToken)
                 .ConfigureAwait(false);
 
@@ -87,10 +87,12 @@ internal sealed class AuthSessions<TContext, TUser>(
                     .ConfigureAwait(false);
             }
 
-            var snapshot = new Snapshot(found.UserId, found.Email, [.. found.Roles], expiresAt, found.TenantId);
+            var snapshot = new Snapshot(
+                found.UserId, found.User.Email, [.. found.User.Roles], expiresAt, found.User.TenantId, found.User.OwnClaims());
             cache.Set(CacheKey(sessionId), snapshot, CacheFor);
 
-            return AuthPrincipal.For(snapshot.UserId, snapshot.Email, snapshot.Roles, sessionId, snapshot.TenantId);
+            return AuthPrincipal.For(
+                snapshot.UserId, snapshot.Email, snapshot.Roles, sessionId, snapshot.TenantId, snapshot.OwnClaims);
         }
     }
 
@@ -140,5 +142,8 @@ internal sealed class AuthSessions<TContext, TUser>(
 
     // TenantId rides along so a restored session filters for the same tenant the sign-in did. Without it a
     // reconnect would come back with no tenant claim and every tenant-scoped read would throw.
-    private sealed record Snapshot(Guid UserId, string Email, string[] Roles, DateTime ExpiresAt, Guid? TenantId);
+    // The account's own claims ride along for the same reason: a session loaded again must be the principal the
+    // sign-in issued, or a claim would be there until the first reconnect and gone after it.
+    private sealed record Snapshot(
+        Guid UserId, string Email, string[] Roles, DateTime ExpiresAt, Guid? TenantId, OwnClaim[] OwnClaims);
 }
