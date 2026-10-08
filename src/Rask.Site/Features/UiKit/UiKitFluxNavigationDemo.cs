@@ -108,11 +108,11 @@ public sealed partial class UiKitFluxNavigationDemo : Component
             "The product's mark and name, linking home. The logo is an image's address or anything you draw; "
             + "leave the name out for the mark alone.",
             Div.Data(Testid("ui-flux-brand")).Class(Tray)[
-                Ui.Brand.Key("image").Href("#").Logo("/img/favicon.svg").Name("Acme Inc."),
+                Ui.Brand.Key("image").Href("#").Logo("/img/rask-mark.svg").Name("Acme Inc."),
                 Ui.Brand.Key("slot").Href("#").Name("Launchpad")
                     .Logo(Ui.Icon.Name(Ui.IconName.RocketLaunch).Micro)
                     .LogoClass("rounded-full bg-cyan-500 text-white"),
-                Ui.Brand.Key("only").Href("#").Logo("/img/favicon.svg").Alt("Acme Inc."),
+                Ui.Brand.Key("only").Href("#").Logo("/img/rask-mark.svg").Alt("Acme Inc."),
                 Div.Key("header").Class("flex min-h-14 items-center rounded-lg border border-zinc-100 bg-zinc-50 px-4 dark:border-white/5 dark:bg-zinc-800")[
                     Ui.Brand.Href("#").Name("Acme Inc.")
                         .Logo(I.Class("font-serif font-bold")["A"])

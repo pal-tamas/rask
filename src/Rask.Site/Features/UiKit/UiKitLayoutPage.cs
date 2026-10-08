@@ -29,8 +29,8 @@ public sealed partial class UiKitLayoutPage : Component
             "The application layout is Flux UI's: ", Code["Ui.Header"], ", ", Code["Ui.Sidebar"], " and ",
             Code["Ui.Main"], " side by side, and whatever holds them is the grid. The sidebar's two states — slid ",
             "over the page on a phone, narrowed to a rail on a desktop — are checkboxes, so they work before ",
-            "anything has loaded; ", Code["Open"], " and ", Code["Collapsed"], " hand them to C#, which is what ",
-            "lets a page close the sidebar when a navigation completes.",
+            "anything has loaded; the runtime puts the sidebar away when a navigation completes and remembers ",
+            "the rail across visits, as Flux's script does.",
             " A panel that slides in from an edge is a flyout: ", Code["Ui.Modal.Flyout().Left"],
             ", Flux UI's modal anchored to a side of the viewport, whose ", Code["Open"], " the page owns and whose ",
             Code["OnClose"], " reports the reader closing it."

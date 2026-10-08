@@ -950,41 +950,16 @@ Inside a sidebar the list is the sidebar's own (`Ui.SidebarNav`); anywhere else:
   landmark a screen reader jumps to and where Rask puts focus after a navigation.
 - **One sidebar a page.** The controls find it by fixed ids (`sidebar-open`, `sidebar-rail`), as Flux's find it
   by a page-wide event.
-- **`Open`/`OnToggle` and `Collapsed`/`OnCollapse` hand the two states to C#.** Two things need that today,
-  because the kit ships no script: a sidebar slid over the page stays open across a client-side navigation
-  unless the layout closes it (`route.Changed += … _open = false`), and Flux's `persist` — the rail remembered
-  in `localStorage` — is the app's to do:
-
-  ```csharp
-  public sealed partial class AppShell : Component
-  {
-      private bool _rail;
-
-      // After the first render, because storage lives in the browser. The hook repaints when it completes.
-      protected override async Task OnFirstRender()
-      {
-          if (await LocalStorage.GetItem("sidebar-rail") == "1")
-          {
-              _rail = true;
-          }
-      }
-
-      protected override Component? Render() =>
-      [
-          Ui.Sidebar.Collapsible(Ui.SidebarCollapsible.Always)
-              .Collapsed(_rail)
-              .OnCollapse(async rail =>
-              {
-                  _rail = rail;
-                  await LocalStorage.SetItem("sidebar-rail", rail ? "1" : "0");
-              })[ … ],
-          Ui.Main[Children ?? []]
-      ];
-  }
-  ```
-
-  The first paint is the open sidebar and a remembered rail follows a frame later; a page that must not flicker
-  keeps the choice in a cookie instead and reads it on the server.
+- **The two states are the reader's, and the runtime keeps them as Flux's script does.** Neither is a prop,
+  as neither is in Flux. A sidebar slid over the page is put away when the app navigates
+  (`data-rask-uncheck-on-navigate` on its checkbox), and the rail is remembered across visits in `localStorage`
+  under Flux's own key, `flux-sidebar-collapsed-desktop` (`data-rask-persist`); `Persist(false)` is Flux's
+  `persist="false"`. A Server page restores the rail before its first paint. A WebAssembly app's runtime loads
+  after the prerendered page is on screen, so it adds **`Ui.SidebarScript`** to its `HeadAssets`, beside
+  `Ui.AppearanceScript`: a few lines that check the box as the parser reaches it, so a narrow sidebar never
+  opens wide and snaps shut.
+- **`Ui.SidebarProfile`** draws the kit's avatar (`Ui.Avatar.Sm`: the picture, or the initials of `Name`), and a
+  dropdown makes it the trigger of the account menu: `Ui.Dropdown.Top.Start[Ui.SidebarProfile.Name("Ada"), Ui.Menu[…]]`.
 - **`Ui.Spacer`** is `flex: 1`: it pushes what follows it to the far end of a row or a column.
 - **`Ui.Separator`** is Flux's separator, prop for prop: `Vertical()` (or `Orientation(Ui.SeparatorOrientation.Vertical)`),
   `Text("or")` for a word in the middle of the line, and `.Subtle` (`Variant(Ui.SeparatorVariant.Subtle)`) for a

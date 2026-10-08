@@ -78,7 +78,7 @@ public sealed partial class UiKitLayoutDemo : Component
                     Ui.Indicator.Key("i").Badge(Ui.Badge.Sm.Solid.Rounded().Color(Ui.Color.Red)["9"])[
                         Ui.Button["Inbox"]
                     ],
-                    Ui.Avatar.Key("a").Src("/img/favicon.svg").Alt("The Rask mark").Circle().Lg,
+                    Ui.Avatar.Key("a").Src("/img/rask-mark.svg").Alt("The Rask mark").Circle().Lg,
                     // No picture: the monogram stands in. Most accounts have none, and a broken image is
                     // worse than two letters — the NAME is still what a screen reader announces.
                     Ui.Avatar.Key("a2").Name("Ada Lovelace").Lg
@@ -102,7 +102,7 @@ public sealed partial class UiKitLayoutDemo : Component
                 Div.Data(Testid("ui-layout-box")).Class("h-96 overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800")[
                     Ui.Sidebar.Key("side").Class("border-r border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900")[
                         Ui.SidebarHeader.Key("head")[
-                            Ui.SidebarBrand.Key("brand").Name("Rask").Logo("/img/favicon.svg")
+                            Ui.SidebarBrand.Key("brand").Name("Rask").Logo("/img/rask-mark.svg")
                                 .Href(PageMeta.LinkTo(Routes.UiKitLayoutPage()))
                         ],
                         Ui.SidebarNav.Key("nav")[

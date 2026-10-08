@@ -36,7 +36,7 @@ public sealed partial class HeaderLayoutDemoPage : Component
             Ui.Sidebar.Sticky().Collapsible(Ui.SidebarCollapsible.Mobile)
                 .Class("lg:hidden " + Ground + " border-r border-zinc-200 dark:border-zinc-700")[
                 Ui.SidebarHeader[
-                    Ui.SidebarBrand.Href(Routes.HomePage()).Logo("/img/favicon.svg").Name("Rask"),
+                    Ui.SidebarBrand.Href(Routes.HomePage()).Logo("/img/rask-mark.svg").Name("Rask"),
                     Ui.SidebarCollapse
                 ],
                 Ui.SidebarNav[

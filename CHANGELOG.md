@@ -859,8 +859,12 @@ them until tagged releases begin.
   the page. The three are **siblings**, and whatever holds the `Ui.Main` is the layout grid. Thirteen parts:
   `Ui.Header`, `Ui.Main`, `Ui.Sidebar`, `Ui.SidebarHeader`, `Ui.SidebarBrand`, `Ui.SidebarCollapse`,
   `Ui.SidebarSearch`, `Ui.SidebarNav`, `Ui.SidebarItem`, `Ui.SidebarGroup`, `Ui.SidebarSpacer`,
-  `Ui.SidebarProfile`, `Ui.SidebarToggle`. No script: both sidebar states are checkboxes, `Open`/`OnToggle`
-  and `Collapsed`/`OnCollapse` hand them to C#. Live at `/demo/sidebar` and `/demo/header`.
+  `Ui.SidebarProfile`, `Ui.SidebarToggle`. Both sidebar states are checkboxes, so they work before
+  anything has loaded, and the runtime keeps them as Flux's script does: the overlay is put away on
+  navigation, and the rail is remembered under Flux's own storage key (`Persist(false)` turns that off;
+  `Ui.SidebarScript` in a WebAssembly app's head restores it before first paint). There is no `Open`,
+  `OnToggle`, `Collapsed` or `OnCollapse`: Flux has none. `Ui.SidebarProfile` is a dropdown's trigger:
+  `Ui.Dropdown[Ui.SidebarProfile.Name("Ada"), Ui.Menu[…]]`. Live at `/demo/sidebar` and `/demo/header`.
   The daisyUI drawer frame they replace is gone:
   - `Ui.Sidebar.Id("nav").Page(Main[Outlet]).Collapsible(Ui.Breakpoint.Lg)[…]` →
     `[Ui.Sidebar.Collapsible(Ui.SidebarCollapsible.Mobile)[…], Ui.Main[Outlet]]` — the page is a sibling, not a
