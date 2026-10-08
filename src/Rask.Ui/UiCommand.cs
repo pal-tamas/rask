@@ -79,8 +79,8 @@ public sealed partial class UiCommand : Component
             Prefix,
             active,
             new HashSet<int>(),
-            keepOpen: false,
             static _ => Task.CompletedTask,
+            static _ => { },
             query: _query,
             options: true);
         _scope = scope;

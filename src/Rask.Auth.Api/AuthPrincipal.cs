@@ -14,10 +14,11 @@ internal static class AuthPrincipal
 
     /// <summary>A principal for <paramref name="user" />, carrying <paramref name="sessionId" /> when there is one.</summary>
     internal static ClaimsPrincipal For(Authenticatable user, Guid? sessionId = null) =>
-        For(user.Id, user.Email, user.Roles, sessionId, user.TenantId);
+        For(user.Id, user.Email, user.Roles, sessionId, user.TenantId, user.OwnClaims());
 
     internal static ClaimsPrincipal For(
-        Guid userId, string email, IEnumerable<string> roles, Guid? sessionId, Guid? tenantId = null)
+        Guid userId, string email, IEnumerable<string> roles, Guid? sessionId, Guid? tenantId = null,
+        IReadOnlyList<OwnClaim>? ownClaims = null)
     {
         var identity = new ClaimsIdentity(AuthenticationType, ClaimTypes.Name, ClaimTypes.Role);
         identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userId.ToString()));
@@ -42,8 +43,18 @@ internal static class AuthPrincipal
             identity.AddClaim(new Claim(Tenant.ClaimType, tenant.ToString()));
         }
 
+        foreach (var own in ownClaims ?? [])
+        {
+            identity.AddClaim(new Claim(own.Type, own.Value));
+        }
+
         return new ClaimsPrincipal(identity);
     }
+
+    /// <summary>Whether <paramref name="claimType" /> is one Rask.Auth issues itself, and so not an account's to give.</summary>
+    internal static bool Issues(string claimType) =>
+        claimType is ClaimTypes.NameIdentifier or ClaimTypes.Name or ClaimTypes.Email or ClaimTypes.Role
+            or SessionClaim or Tenant.ClaimType;
 
     /// <summary>The tenant a principal belongs to, if any.</summary>
     internal static Guid? TenantId(ClaimsPrincipal? principal) =>

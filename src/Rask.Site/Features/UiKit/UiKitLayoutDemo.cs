@@ -116,9 +116,9 @@ public sealed partial class UiKitLayoutDemo : Component
                     // scrolls between the header and this rather than pushing the account row off the bottom.
                     Ui.SidebarFooter.Key("foot")[
                         Ui.Profile.Key("me").Name("Ada Lovelace").Caption("ada@example.com")[
-                            Ui.MenuItem.Key("settings").Text("Settings").Icon(Ui.IconName.Cog6Tooth),
+                            Ui.MenuItem.Key("settings").Icon(Ui.IconName.Cog6Tooth)["Settings"],
                             Ui.MenuSeparator.Key("sep"),
-                            Ui.MenuItem.Key("out").Text("Sign out").Error
+                            Ui.MenuItem.Key("out").Danger["Sign out"]
                         ]
                     ]
                 ],

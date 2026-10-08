@@ -74,16 +74,17 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await trigger.ClickAsync();
 
         // The popover opened, C# heard it through the toggle event, and the page's own state now drives the label.
-        var panel = scope.Locator("[popover]").First;
-        await Expect(panel).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        var reopened = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Close menu" });
+        var menu = scope.Locator("[data-ui-menu]:popover-open");
+        await Expect(menu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var reopened = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Close menu", IncludeHidden = true });
         await Expect(reopened).ToHaveAttributeAsync("aria-expanded", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 });
 
-        // The menu took focus when it opened, so the keyboard works straight away.
-        await Expect(panel.Locator("[role='menu']").First).ToBeFocusedAsync();
+        // The menu took focus when it opened, with no row chosen: the keyboard works straight away.
+        await Expect(menu).ToBeFocusedAsync();
+        await Expect(menu.Locator("[data-active]")).ToHaveCountAsync(0);
 
         await Page.Keyboard.PressAsync("Escape");
-        await Expect(panel).ToBeHiddenAsync();
+        await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToHaveCountAsync(0);
         await Expect(scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open menu" }))
             .ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
     });
@@ -95,46 +96,79 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         var scope = Page.Locator("[data-testid='ui-dropdown']");
 
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open menu" }).ClickAsync();
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Shortcuts" }).ClickAsync();
         await scope.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Duplicate" }).ClickAsync();
 
         // Both halves matter: the action ran, and the menu closed itself afterwards.
         await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("duplicate");
-        await Expect(scope.Locator("[popover]").First).ToBeHiddenAsync();
+        await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToHaveCountAsync(0);
     });
 
     [Fact]
-    public Task The_menu_is_driven_by_the_keyboard_into_a_submenu() => RunAsync(async () =>
+    public Task The_keyboard_walks_the_menu_as_Flux_does_with_focus_on_the_row_under_the_cursor() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-dropdown']");
-        var trigger = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "View" });
+        var trigger = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Options" });
 
         await trigger.FocusAsync();
         await Page.Keyboard.PressAsync("Enter");
 
-        var menu = scope.Locator("[role='menu'][autofocus]").Last;
+        var menu = scope.Locator("[data-ui-menu]:popover-open");
         await Expect(menu).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
 
-        async Task<string> CursorAsync() =>
-            await menu.EvaluateAsync<string>(
-                "m => { const r = document.getElementById(m.getAttribute('aria-activedescendant') || ''); "
-                + "return r ? r.textContent.trim() : ''; }");
-
-        // Home puts the cursor on the first row, Right walks into "Sort by", and Down moves among its options.
-        await Page.Keyboard.PressAsync("Home");
-        await WaitForCursorAsync(CursorAsync, "Sort by");
-        await Page.Keyboard.PressAsync("ArrowRight");
-        await WaitForCursorAsync(CursorAsync, "Name");
-        await Expect(scope.Locator(".ui-menu-flyout").First).ToBeVisibleAsync();
-
+        // Down starts at the top; real focus follows the cursor, row by row, and `data-active` marks it.
         await Page.Keyboard.PressAsync("ArrowDown");
-        await WaitForCursorAsync(CursorAsync, "Date modified");
+        await WaitForCursorAsync(FocusedRowAsync, "New post");
+        await Page.Keyboard.PressAsync("ArrowUp");
+        // No wrapping: Up at the first row stays there, and Home and End are not menu keys.
+        await Page.Keyboard.PressAsync("End");
+        await WaitForCursorAsync(FocusedRowAsync, "New post");
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await WaitForCursorAsync(FocusedRowAsync, "Sort by");
 
-        // Enter presses the row under the cursor, exactly as a click would.
+        // Right walks into the submenu, onto its first row.
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await WaitForCursorAsync(FocusedRowAsync, "Name");
+        await Expect(scope.Locator("[data-ui-menu-submenu] > [data-ui-menu]").First).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await WaitForCursorAsync(FocusedRowAsync, "Date");
+
+        // Left closes it and puts the cursor back on its row; Enter opens it again.
+        await Page.Keyboard.PressAsync("ArrowLeft");
+        await WaitForCursorAsync(FocusedRowAsync, "Sort by");
+        await Page.Keyboard.PressAsync("Enter");
+        await WaitForCursorAsync(FocusedRowAsync, "Name");
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await WaitForCursorAsync(FocusedRowAsync, "Date");
+
+        // Enter presses the row that has focus, exactly as a click would, and the whole menu closes.
         await Page.Keyboard.PressAsync("Enter");
         await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("sorted by date");
+        await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToHaveCountAsync(0);
+        await Expect(trigger).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task ArrowDown_on_the_trigger_opens_the_menu_onto_its_first_row_and_a_letter_jumps() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        var trigger = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Groups" });
+
+        await trigger.FocusAsync();
+        await Page.Keyboard.PressAsync("ArrowDown");
+
+        await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await WaitForCursorAsync(FocusedRowAsync, "View");
+        await Page.Keyboard.PressAsync("s");
+        await WaitForCursorAsync(FocusedRowAsync, "Share");
+
+        // Tab leaves the menu, which closes it.
+        await Page.Keyboard.PressAsync("Tab");
+        await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToHaveCountAsync(0);
     });
 
     [Fact]
@@ -144,43 +178,141 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         var scope = Page.Locator("[data-testid='ui-dropdown']");
 
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "View" }).ClickAsync();
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Options" }).ClickAsync();
 
         var sub = scope.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Sort by" });
         await sub.HoverAsync(new LocatorHoverOptions { Timeout = 10_000 });
-        var flyout = scope.Locator(".ui-menu-flyout").First;
+        var flyout = scope.Locator("[data-ui-menu-submenu] > [data-ui-menu]").First;
         await Expect(flyout).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // From the middle of the row to the flyout's last option, in small steps: the path crosses the row below
-        // ("Refresh"), which without the safe triangle would take the hover and close the flyout on the way.
+        // Beside its row, overlapping the menu's padding by five pixels, as Flux places it.
         var from = (await sub.BoundingBoxAsync())!;
-        var target = flyout.GetByRole(AriaRole.Menuitemradio, new LocatorGetByRoleOptions { Name = "Size" });
+        var beside = (await flyout.BoundingBoxAsync())!;
+        Assert.InRange(beside.X, from.X + from.Width - 6, from.X + from.Width - 4);
+        Assert.InRange(beside.Y, from.Y - 1, from.Y + 1);
+
+        // From near the end of the row to the flyout's last option, in small steps: the path crosses the row
+        // below ("Filter"), which without the safe triangle would take the hover and swap the flyout on the way.
+        var target = flyout.GetByRole(AriaRole.Menuitemradio, new LocatorGetByRoleOptions { Name = "Popularity" });
         var to = (await target.BoundingBoxAsync())!;
-        await Page.Mouse.MoveAsync(from.X + (from.Width * 0.6f), from.Y + (from.Height / 2));
+        await Page.Mouse.MoveAsync(from.X + (from.Width * 0.8f), from.Y + (from.Height / 2));
         await Page.Mouse.MoveAsync(to.X + 12, to.Y + (to.Height / 2), new MouseMoveOptions { Steps = 25 });
 
         await Expect(flyout).ToBeVisibleAsync();
 
-        await target.ClickAsync();
-        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("sorted by size");
+        // Pressed where the pointer already is. The radio group is an inline box around block rows, as Flux's
+        // <ui-menu-radio-group> is, and at a row's centre Chromium's elementsFromPoint — what Playwright checks a
+        // click against — lists that box above the row, though elementFromPoint and a real press reach the row.
+        await target.ClickAsync(new LocatorClickOptions { Position = new Position { X = 12, Y = to.Height / 2 } });
+        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("sorted by popularity");
     });
 
     [Fact]
-    public Task A_checkbox_item_toggles_and_keeps_the_menu_open() => RunAsync(async () =>
+    public Task A_checkbox_row_closes_the_menu_unless_the_menu_or_the_row_keeps_it_open() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        var open = scope.Locator("[data-ui-menu]:popover-open");
+
+        // A pick closes the menu, checkbox or not — Flux's default.
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Permissions" }).ClickAsync();
+        await open.GetByRole(AriaRole.Menuitemcheckbox, new LocatorGetByRoleOptions { Name = "Delete" }).ClickAsync();
+        await Expect(open).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // KeepOpen on the menu: ticking three should not mean opening it three times.
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Keep open" }).ClickAsync();
+        var archived = open.GetByRole(AriaRole.Menuitemcheckbox, new LocatorGetByRoleOptions { Name = "Archived" });
+        await archived.ClickAsync();
+        await Expect(archived).ToHaveAttributeAsync("aria-checked", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 });
+        await Page.WaitForTimeoutAsync(300);
+        await Expect(archived).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
+
+        // KeepOpen on the rows only: the checkboxes stay, and "Clear" closes it.
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Filters" }).ClickAsync();
+        await open.GetByRole(AriaRole.Menuitemcheckbox, new LocatorGetByRoleOptions { Name = "Draft" }).ClickAsync();
+        await Page.WaitForTimeoutAsync(300);
+        await Expect(open).ToBeVisibleAsync();
+        await open.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Clear" }).ClickAsync();
+        await Expect(open).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("cleared the filters");
+    });
+
+    [Fact]
+    public Task The_menu_opens_on_the_side_and_at_the_distance_it_was_asked_for() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-dropdown']");
 
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "View" }).ClickAsync();
-        var item = scope.GetByRole(AriaRole.Menuitemcheckbox, new LocatorGetByRoleOptions { Name = "Show archived" });
+        // Below, start edges together, five pixels off: the default.
+        var options = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Options" });
+        await options.ClickAsync();
+        var at = (await options.BoundingBoxAsync())!;
+        var menu = (await scope.Locator("[data-ui-menu]:popover-open").BoundingBoxAsync())!;
+        Assert.InRange(menu.X - at.X, -0.6f, 0.6f);
+        Assert.InRange(menu.Y - (at.Y + at.Height), 4.4f, 5.6f);
+        await Page.Keyboard.PressAsync("Escape");
 
-        await item.ClickAsync();
-        await Expect(item).ToHaveAttributeAsync("aria-checked", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 });
-        // A menu of switches stays up: flipping three should not mean opening it three times.
-        await Page.WaitForTimeoutAsync(300);
-        await Expect(item).ToBeVisibleAsync();
+        // Above.
+        var above = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Above" });
+        await above.ClickAsync();
+        at = (await above.BoundingBoxAsync())!;
+        menu = (await scope.Locator("[data-ui-navmenu]:popover-open").BoundingBoxAsync())!;
+        Assert.InRange(at.Y - (menu.Y + menu.Height), 4.4f, 5.6f);
+        await Page.Keyboard.PressAsync("Escape");
+
+        // Two pixels below, fifteen back past the trigger's start edge.
+        var nudged = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Offset and gap" });
+        await nudged.ClickAsync();
+        at = (await nudged.BoundingBoxAsync())!;
+        menu = (await scope.Locator("[data-ui-navmenu]:popover-open").BoundingBoxAsync())!;
+        Assert.InRange(menu.X - at.X, -15.6f, -14.4f);
+        Assert.InRange(menu.Y - (at.Y + at.Height), 1.4f, 2.6f);
+        await Page.Keyboard.PressAsync("Escape");
+
+        // End edges together.
+        var account = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Olivia Martin" });
+        await account.ClickAsync();
+        at = (await account.BoundingBoxAsync())!;
+        menu = (await scope.Locator("[data-ui-navmenu]:popover-open").BoundingBoxAsync())!;
+        Assert.InRange((menu.X + menu.Width) - (at.X + at.Width), -0.6f, 0.6f);
+        // A navigation menu is links, not a menu: focus stays on the button, and Tab reaches the first link.
+        await Expect(account).ToBeFocusedAsync();
+        await Expect(scope.Locator("[data-ui-navmenu]:popover-open a")).ToHaveCountAsync(5);
     });
+
+    [Fact]
+    public Task A_click_outside_closes_the_menu_and_presses_nothing_under_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        var options = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Options" });
+        var other = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Groups" });
+
+        await options.ClickAsync();
+        await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // The page behind an open menu does not scroll and does not take the pointer, as on Flux's.
+        Assert.Equal("hidden", await Page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).overflowY"));
+
+        // On another dropdown's trigger: the click closes this menu and does not open that one.
+        var box = (await other.BoundingBoxAsync())!;
+        await Page.Mouse.ClickAsync(box.X + (box.Width / 2), box.Y + (box.Height / 2));
+
+        await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(other).ToHaveAttributeAsync("aria-expanded", "false");
+        // And focus is handed back to the trigger, which the browser's own light dismiss does not do.
+        await Expect(options).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+    });
+
+    // The words of the row that has focus: where the keyboard cursor is, to a screen reader.
+    private Task<string> FocusedRowAsync() =>
+        Page.EvaluateAsync<string>(
+            "() => { const a = document.activeElement; "
+            + "return a && a.hasAttribute('data-active') && /^menuitem/.test(a.getAttribute('role') || '') ? a.textContent.trim() : ''; }");
 
     private static async Task WaitForCursorAsync(Func<Task<string>> read, string expected)
     {
@@ -205,12 +337,12 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-context-menu']");
-        var card = scope.GetByText("Right-click this card");
+        var card = scope.GetByText("Right click");
         await card.ScrollIntoViewIfNeededAsync();
         var box = (await card.BoundingBoxAsync())!;
-        var x = box.X + 24;
+        var x = box.X + (box.Width / 2);
         var y = box.Y + 8;
-        var panel = scope.Locator("[popover]");
+        var panel = scope.Locator("[data-ui-menu][popover]");
 
         // The hook is installed when the runtime loads; a right-click that lands on the prerendered page first gets
         // the browser's own menu, so press again until the runtime is there to replace it.
@@ -227,26 +359,19 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Page.WaitForTimeoutAsync(300);
         await Expect(panel).ToBeVisibleAsync();
 
-        // At the pointer, not centred on the screen the way an unplaced popover would be.
+        // At the pointer as Flux puts it: below by five pixels, reaching back from it — not centred on the
+        // screen the way an unplaced popover would be.
         var at = (await panel.BoundingBoxAsync())!;
-        Assert.InRange(at.X, x - 2, x + 2);
-        Assert.InRange(at.Y, y - 2, y + 2);
+        Assert.InRange(at.X + at.Width, x - 2, x + 2);
+        Assert.InRange(at.Y, y + 3, y + 7);
 
         // The same keyboard a dropdown has: focus is on the menu, the arrows move the cursor, Enter presses the row.
-        var menu = scope.Locator("[role='menu']");
-        await Expect(menu).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
-
-        async Task<string> CursorAsync() =>
-            await menu.EvaluateAsync<string>(
-                "m => { const r = document.getElementById(m.getAttribute('aria-activedescendant') || ''); "
-                + "return r ? r.textContent.trim() : ''; }");
-
-        await WaitForCursorAsync(CursorAsync, "Open");
+        await Expect(panel).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
         await Page.Keyboard.PressAsync("ArrowDown");
-        await WaitForCursorAsync(CursorAsync, "Copy link");
+        await WaitForCursorAsync(FocusedRowAsync, "New post");
         await Page.Keyboard.PressAsync("Enter");
 
-        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("copied the link");
+        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("new post in the card");
         await Expect(panel).ToBeHiddenAsync();
     });
 
@@ -256,29 +381,29 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-context-menu']");
-        var card = scope.GetByText("Right-click this card");
+        var card = scope.GetByText("Right click");
         await card.ScrollIntoViewIfNeededAsync();
-        var panel = scope.Locator("[popover]");
+        var panel = scope.Locator("[data-ui-menu][popover]");
 
-        // A real MouseEvent on the card, reporting a pointer at the bottom-right corner of the viewport — where a menu
-        // placed at the pointer would open off both edges. The card is not under that corner, so a real mouse cannot
-        // be sent there; the event is what the runtime reads either way.
+        // A real MouseEvent on the card, reporting a pointer at the bottom-LEFT corner of the viewport — where a
+        // menu that reaches back from the pointer and hangs below it would open off both edges. The card is not
+        // under that corner, so a real mouse cannot be sent there; the event is what the runtime reads either way.
         var size = Page.ViewportSize!;
         for (var attempt = 0; attempt < 10 && !await panel.IsVisibleAsync(); attempt++)
         {
             await card.EvaluateAsync(
                 "(el, p) => el.dispatchEvent(new MouseEvent('contextmenu', "
                 + "{ bubbles: true, cancelable: true, button: 2, clientX: p[0], clientY: p[1] }))",
-                new[] { size.Width - 2, size.Height - 2 });
+                new[] { 2, size.Height - 2 });
             await Page.WaitForTimeoutAsync(300);
         }
 
         await Expect(panel).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         var at = (await panel.BoundingBoxAsync())!;
-        Assert.True(at.X + at.Width <= size.Width, $"the menu ran off the right edge ({at.X}+{at.Width}).");
+        Assert.True(at.X >= 0, $"the menu ran off the left edge ({at.X}).");
         Assert.True(at.Y + at.Height <= size.Height, $"the menu ran off the bottom edge ({at.Y}+{at.Height}).");
         // Pulled back only as far as it had to be: still in the corner the pointer was in, not reset to the origin.
-        Assert.True(at.X > size.Width / 2 && at.Y > size.Height / 2, $"the menu left the pointer's corner ({at.X},{at.Y}).");
+        Assert.True(at.X < size.Width / 2 && at.Y > size.Height / 3, $"the menu left the pointer's corner ({at.X},{at.Y}).");
 
         await Page.Keyboard.PressAsync("Escape");
         await Expect(panel).ToBeHiddenAsync();

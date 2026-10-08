@@ -17,6 +17,16 @@ public sealed class TestUser : Authenticatable
     public string DisplayName { get; private set; } = "";
 
     public void Rename(string name) => DisplayName = name;
+
+    /// <summary>The type of the one claim this user gives for itself; empty gives none.</summary>
+    public string BadgeType { get; private set; } = "";
+
+    public string Badge { get; private set; } = "";
+
+    public void Wear(string type, string value) => (BadgeType, Badge) = (type, value);
+
+    protected override IEnumerable<System.Security.Claims.Claim> Claims() =>
+        BadgeType.Length == 0 ? [] : [new(BadgeType, Badge)];
 }
 
 /// <summary>One captured message, in the terms a test asks questions in.</summary>
