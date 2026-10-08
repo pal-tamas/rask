@@ -45,7 +45,8 @@
   that only wanted a button. This kit already refuses to ship a preflight for that reason, and a `:root`
   background is the same bug wearing a different selector. See UiStylesheet.ThemeScopeAttribute.
 
-  exclude rootscrollgutter, which paints the document for its own reasons.
+  exclude rootscrollgutter, which paints the document for its own reasons — and the components the kit has
+  replaced with Flux's while still saying their names in prose (the hover bubble, the radio, the toggle).
 
   NOTE ON EMISSION: daisyUI 5 emits a component's CSS only where Tailwind can SEE its class name in the
   scanned source. So every class a component writes must appear as a COMPLETE literal in C# — which is
@@ -70,7 +71,7 @@
 @plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
-  exclude: rootscrollgutter, tooltip;
+  exclude: rootscrollgutter, tooltip, dropdown, radio, toggle;
 }
 
 @theme {
@@ -889,25 +890,105 @@
 }
 
 /*
-  UiDropdown's menu rows, submenus and the safe triangle.
+  Ui.Menu (Flux's flux:menu), for what a utility cannot say: a :has() chain, anchor positioning, the top layer.
 
-  In `rask-ui-corrections` because every rule it has to beat — daisyUI's grid row, its nested-list indent and the
-  vertical line it draws with a nested list's ::before — is emitted inside `@layer utilities`.
+  THE PAGE BEHIND AN OPEN MENU does not scroll and does not take the pointer, as Flux leaves it: a click outside
+  closes the menu and does nothing else, so it cannot also press whatever happened to be under it.
 
-  A row is a flex row, not daisyUI's column grid, so the words take the slack and a shortcut sits at the end.
+  A ROW WITH NO ICON, in a menu where another row has one, keeps the icon's room, so every row's words start at
+  the same place. Only rows of the same menu count: a submenu's checkboxes do not indent its parent.
 
-  A submenu flies out beside its row. A pointer opens it by hovering and the keyboard by the dropdown writing
-  `data-open`. Closing waits 300 ms, and the flyout carries a WEDGE — its ::before, clipped to a triangle from the
-  middle of the parent row to the flyout's edge — that belongs to the flyout, so hovering it keeps the parent row
-  hovered. Together they are the safe triangle: a diagonal move toward the flyout that crosses the next row down
-  does not close it. Hovering a different submenu row closes this one at once instead of after the delay. There is
-  no hover on a touch screen, so there the wedge is off and a tap opens the flyout.
+  A GROUP draws a line above and below itself, and drops the one that would double up or lead nowhere — above
+  the first thing in the menu or another group, below the last.
+
+  A SUBMENU's flyout sits beside its row, overlapping the menu's padding. A pointer opens it by resting on the
+  row and the keyboard by the menu writing `data-open`; resting on any other row closes one the keyboard opened.
+  It is `position: fixed` so the menu's own scrolling cannot clip it, placed by anchor positioning against its
+  row. The row carries a WEDGE while its flyout is open — its ::after, clipped to a triangle from the middle of
+  the row to the flyout's edge — so a diagonal move toward the flyout that crosses the next row down does not
+  close it: Flux's safe area, which it works out in script from the pointer's path. There is no hover on a touch
+  screen, so there the wedge is off and a tap opens the flyout.
 */
-@layer rask-ui-corrections {
-  .menu > li > :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) {
-    display: flex;
+@layer rask {
+  :root:has([data-ui-menu]:popover-open, [data-ui-navmenu]:popover-open) {
+    overflow: hidden;
+    pointer-events: none;
+    scrollbar-gutter: stable;
   }
 
+  :is([data-ui-menu], [data-ui-navmenu]):popover-open {
+    pointer-events: auto;
+  }
+
+  [data-indent] {
+    display: none;
+  }
+
+  [data-ui-menu]:has(> [data-ui-menu-item-has-icon], > [role="group"] > [data-ui-menu-item-has-icon]) {
+    & > * > [data-indent],
+    & > [role="group"] > * > [data-indent],
+    & > [data-ui-menu-submenu] > [role="menuitem"] > [data-indent] {
+      display: block;
+    }
+  }
+
+  [data-ui-menu-group]:first-child > [data-ui-menu-separator-top],
+  [data-ui-menu-group] + [data-ui-menu-group] > [data-ui-menu-separator-top],
+  [data-ui-menu-group]:last-child > [data-ui-menu-separator-bottom] {
+    display: none;
+  }
+
+  [data-ui-menu-submenu] {
+    anchor-scope: --ui-menu-submenu;
+  }
+
+  [data-ui-menu-submenu] > [role="menuitem"] {
+    anchor-name: --ui-menu-submenu;
+  }
+
+  [data-ui-menu-submenu] > [data-ui-menu] {
+    display: none;
+    position: fixed;
+    position-anchor: --ui-menu-submenu;
+    inset: auto;
+    inset-block-start: anchor(start);
+    inset-inline-start: calc(anchor(end) - 0.3125rem);
+    position-try-fallbacks: flip-inline;
+  }
+
+  [data-ui-menu-submenu]:is(:hover, [data-open]) > [data-ui-menu] {
+    display: block;
+  }
+
+  [data-ui-menu]:has(> :hover) > [data-ui-menu-submenu][data-open]:not(:hover) > [data-ui-menu] {
+    display: none;
+  }
+
+  @media (hover: hover) {
+    [data-ui-menu-submenu]:hover > [role="menuitem"]::after {
+      content: "";
+      position: fixed;
+      position-anchor: --ui-menu-submenu;
+      inset-block-start: anchor(start);
+      inset-inline-start: calc(anchor(end) - 3.5625rem);
+      inline-size: 3.25rem;
+      block-size: 12rem;
+      clip-path: polygon(100% 0, 100% 100%, 0 1rem);
+    }
+
+    [dir="rtl"] [data-ui-menu-submenu]:hover > [role="menuitem"]::after {
+      clip-path: polygon(0 0, 0 100%, 100% 1rem);
+    }
+  }
+}
+
+/*
+  Ui.Command's rows, which are daisyUI's `menu` rows until the palette is rebuilt on Flux's: a shortcut at the
+  end of its row, and the line between two runs of commands.
+
+  In `rask-ui-corrections` because daisyUI's `.menu li` rules live in `utilities`.
+*/
+@layer rask-ui-corrections {
   .menu .ui-menu-kbd {
     margin-inline-start: auto;
     opacity: 0.7;
@@ -918,59 +999,6 @@
     margin-block: 0.25rem;
     padding: 0;
     background-color: var(--color-base-300);
-  }
-
-  .menu > li.ui-menu-sub {
-    position: relative;
-  }
-
-  .menu > li.ui-menu-sub > .ui-menu-flyout {
-    position: absolute;
-    z-index: 2;
-    inset-block-start: calc(-0.5rem - 1px);
-    inset-inline-start: 100%;
-    margin: 0 0 0 0.25rem;
-    white-space: normal;
-    visibility: hidden;
-    opacity: 0;
-    transition: visibility 0s linear 300ms, opacity 120ms ease-out 180ms;
-  }
-
-  .menu > li.ui-menu-sub:is(:hover, [data-open]) > .ui-menu-flyout {
-    visibility: visible;
-    opacity: 1;
-    transition-delay: 0s;
-  }
-
-  .menu:has(> li.ui-menu-sub:hover) > li.ui-menu-sub:not(:hover, [data-open]) > .ui-menu-flyout {
-    transition-delay: 0s;
-  }
-
-  .menu > li.ui-menu-sub > .ui-menu-flyout::before {
-    content: "";
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: auto;
-    inset-inline-end: 100%;
-    inline-size: 3.25rem;
-    opacity: 1;
-    background-color: transparent;
-    clip-path: polygon(100% 0, 100% 100%, 0 var(--ui-menu-apex, 1.25rem));
-    pointer-events: none;
-  }
-
-  [dir="rtl"] .menu > li.ui-menu-sub > .ui-menu-flyout::before {
-    clip-path: polygon(0 0, 0 100%, 100% var(--ui-menu-apex, 1.25rem));
-  }
-
-  .menu > li.ui-menu-sub:hover > .ui-menu-flyout::before {
-    pointer-events: auto;
-  }
-
-  @media (hover: none) {
-    .menu > li.ui-menu-sub > .ui-menu-flyout::before {
-      display: none;
-    }
   }
 }
 
@@ -992,7 +1020,13 @@
   whose scripts never run, where :hover and keyboard focus are all there is.
 */
 @layer rask {
+  /*
+    The wrapper's display is here and not in its class list, as on Flux: a tooltip written without a class
+    computes inline-flex there, and the one an editor's toolbar writes with `contents` computes contents. In
+    this layer any utility of the call site's wins, whatever order Tailwind sorts the two in.
+  */
   [data-ui-tooltip] {
+    display: inline-flex;
     anchor-scope: --ui-tooltip;
   }
   [data-ui-tooltip] > :first-child {
@@ -1508,5 +1542,184 @@
         background-image: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%23ffffff%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E");
       }
     }
+  }
+}
+
+/*
+  Ui.Editor — the document inside the editable area.
+
+  What is in there is the user's HTML, written by ProseMirror: no class of the kit's reaches a node of it,
+  so its typography is the one thing of the editor a utility cannot say. Measured node by node on
+  fluxui.dev/components/editor (scripts/flux/parity-editor.mjs keeps it there): headings on Tailwind's
+  type scale, a quote indented in ems of the area's 14px, and Flux's own inline code, code block, quote
+  bar and list markers. The first and last node sit flush with the area's padding.
+
+  The placeholder is ProseMirror's convention: the engine marks the empty paragraph and names the text in
+  `data-placeholder`, and the sheet draws it. The kit renders that same paragraph before the engine has
+  loaded, so the first paint already shows it.
+*/
+@layer rask {
+  [data-ui-editor] [data-slot="content"] {
+    outline: none;
+    overflow-wrap: break-word;
+  }
+
+  [data-ui-editor] [data-slot="content"] :focus-visible {
+    outline: none;
+    outline-offset: 0;
+  }
+
+  /* Tailwind's preflight says this of every page it is on; a page without it gets it here. */
+  [data-ui-editor] [data-slot="content"] sub,
+  [data-ui-editor] [data-slot="content"] sup {
+    position: relative;
+    font-size: 75%;
+    line-height: 0;
+    vertical-align: baseline;
+  }
+
+  [data-ui-editor] [data-slot="content"] sub {
+    bottom: -0.25em;
+  }
+
+  [data-ui-editor] [data-slot="content"] sup {
+    top: -0.5em;
+  }
+
+  [data-ui-editor] [data-slot="content"] > :first-child {
+    margin-top: 0;
+  }
+
+  [data-ui-editor] [data-slot="content"] > :last-child {
+    margin-bottom: 0;
+  }
+
+  [data-ui-editor] [data-slot="content"] h1 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.875rem;
+    font-weight: 800;
+    line-height: 2.25rem;
+  }
+
+  [data-ui-editor] [data-slot="content"] h2 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.75rem;
+  }
+
+  [data-ui-editor] [data-slot="content"] h3 {
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.75rem;
+  }
+
+  [data-ui-editor] [data-slot="content"] p {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  [data-ui-editor] [data-slot="content"] strong {
+    font-weight: 600;
+  }
+
+  [data-ui-editor] [data-slot="content"] a {
+    color: var(--color-fx-accent-content);
+    font-weight: 500;
+    cursor: text;
+  }
+
+  [data-ui-editor] [data-slot="content"] code {
+    display: inline-block;
+    padding-inline: 6px;
+    border-radius: 8px;
+    background-color: rgb(82 82 91 / 0.1);
+    font-family: monospace;
+    font-size: 13.24px;
+    white-space: nowrap;
+  }
+
+  [data-ui-editor] [data-slot="content"] pre {
+    padding: 16px;
+    border-radius: 8px;
+    background-color: rgb(82 82 91 / 0.1);
+    font-family: var(--font-mono);
+    white-space: pre;
+  }
+
+  [data-ui-editor] [data-slot="content"] pre code {
+    display: inline;
+    padding: 0;
+    border-radius: 0;
+    background-color: transparent;
+    font-size: inherit;
+    font-weight: 500;
+    white-space: inherit;
+  }
+
+  [data-ui-editor] [data-slot="content"] ul,
+  [data-ui-editor] [data-slot="content"] ol {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    padding-left: 22px;
+    list-style: none;
+  }
+
+  [data-ui-editor] [data-slot="content"] li {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+    padding-left: 0.375rem;
+  }
+
+  [data-ui-editor] [data-slot="content"] ul > li {
+    list-style-type: disc;
+  }
+
+  [data-ui-editor] [data-slot="content"] ol > li {
+    list-style-type: decimal;
+  }
+
+  [data-ui-editor] [data-slot="content"] li > p,
+  [data-ui-editor] [data-slot="content"] blockquote > p {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  [data-ui-editor] [data-slot="content"] li > ul,
+  [data-ui-editor] [data-slot="content"] li > ol {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-left: 0;
+  }
+
+  [data-ui-editor] [data-slot="content"] blockquote {
+    position: relative;
+    /* 18.6667px and 15.5556px on Flux: in rem, because the sheet's minifier keeps six digits of an em. */
+    margin-top: 1.16667rem;
+    margin-bottom: 1.16667rem;
+    padding-left: 0.972222rem;
+    font-style: italic;
+  }
+
+  [data-ui-editor] [data-slot="content"] blockquote::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 4px;
+    border-radius: 4px;
+    background-color: rgb(0 0 0 / 0.2);
+  }
+
+  [data-ui-editor] [data-slot="content"] p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: rgb(161 161 170);
+    pointer-events: none;
   }
 }

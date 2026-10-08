@@ -23,7 +23,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         foreach (var id in new[]
                  {
-                     "ui-text-controls", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-choices", "ui-range", "ui-otp", "ui-filter",
+                     "ui-text-controls", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-checkbox", "ui-radio", "ui-switch", "ui-range", "ui-otp", "ui-filter",
                      "ui-calendar", "ui-date-picker", "ui-time-picker", "ui-dropzone", "ui-bound", "ui-mask",
                  })
         {
@@ -237,13 +237,105 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await seats.BlurAsync();
         await Expect(state).ToContainTextAsync("4 seats");
 
-        await scope.Locator("input.checkbox").CheckAsync();
+        // The input is out of sight inside its label; the box is what a reader presses.
+        await scope.Locator("[data-ui-checkbox]").ClickAsync();
+        await Expect(scope.Locator("[data-ui-checkbox] input")).ToBeCheckedAsync();
         await Expect(state).ToContainTextAsync("agreed yes");
 
         // A rating is radios sharing a name, and a bound radio's state is `checked` rather than a
         // value attribute — which is exactly what used to be wrong.
         await scope.Locator("input.mask-star-2").Nth(2).CheckAsync();
         await Expect(state).ToContainTextAsync("3 stars");
+    });
+
+    [Fact]
+    public Task A_checkbox_group_and_its_check_all_write_the_bound_collection() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-checkbox']");
+        var state = Page.Locator("[data-testid='ui-checkbox-state']");
+        var all = scope.Locator("#cb-people-all");
+
+        // One of three is ticked: the check-all is neither on nor off, and says so.
+        await Expect(state).ToContainTextAsync("people caleb");
+        await Expect(scope.Locator("label:has(> #cb-people-all)")).ToHaveAttributeAsync("data-indeterminate", "");
+
+        // Pressing it while some are ticked ticks them all; pressing it again clears them.
+        await scope.Locator("label:has(> #cb-people-all)").ClickAsync();
+        await Expect(state).ToContainTextAsync("people caleb, hugo, keith");
+        await Expect(all).ToBeCheckedAsync();
+        await scope.Locator("label:has(> #cb-people-all)").ClickAsync();
+        await Expect(state).ToContainTextAsync("people nothing");
+
+        // A card is the checkbox: pressing anywhere on it ticks it, and every example over the same member follows.
+        await scope.Locator("[data-ui-checkbox-cards]:has(> #cb-cards-updates)").ClickAsync();
+        await Expect(state).ToContainTextAsync("subscribed to newsletter, updates");
+        await Expect(scope.Locator("#cb-described-updates")).ToBeCheckedAsync();
+
+        // The space bar is the browser's: the input is real, however it is drawn.
+        await scope.Locator("#cb-terms").FocusAsync();
+        await Page.Keyboard.PressAsync("Space");
+        await Expect(state).ToContainTextAsync("terms agreed");
+    });
+
+    [Fact]
+    public Task A_radio_group_follows_the_arrow_keys_in_every_variant() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-radio']");
+        var state = Page.Locator("[data-testid='ui-radio-state']");
+
+        // Clicking a radio's label chooses it and focuses the input, with no script of the kit's.
+        await scope.Locator("label[for='rd-payment-paypal']").ClickAsync();
+        await Expect(state).ToContainTextAsync("paying by paypal");
+        await Expect(scope.Locator("#rd-payment-paypal")).ToBeFocusedAsync();
+
+        // The arrows move AND choose, and wrap at the end of the group.
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await Expect(state).ToContainTextAsync("paying by ach");
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await Expect(state).ToContainTextAsync("paying by cc");
+
+        // A segment is the same radio: the arrow keys work there too, and the list over the same member follows.
+        await scope.Locator("#rd-segmented-administrator").FocusAsync();
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(state).ToContainTextAsync("editor");
+        await Expect(scope.Locator("#rd-described-editor")).ToBeCheckedAsync();
+
+        await scope.Locator("[data-ui-radio-cards]:has(> #rd-cards-fast)").ClickAsync();
+        await Expect(state).ToContainTextAsync("shipping fast");
+    });
+
+    [Fact]
+    public Task A_switch_flips_on_a_click_on_its_label_and_on_Space_and_Enter() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-switch']");
+        var state = Page.Locator("[data-testid='ui-switch-state']");
+        var notify = scope.Locator("#sw-notify");
+
+        await Expect(notify).ToHaveRoleAsync(AriaRole.Switch);
+        await scope.Locator("label[for='sw-notify']").ClickAsync();
+        await Expect(state).ToContainTextAsync("notifications on");
+        await Expect(notify).ToBeCheckedAsync();
+
+        await Page.Keyboard.PressAsync("Space");
+        await Expect(state).ToContainTextAsync("notifications off");
+
+        // Flux's switch flips on Enter too; a native checkbox does not, so the runtime does it for role="switch".
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(state).ToContainTextAsync("notifications on");
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(state).ToContainTextAsync("notifications off");
+
+        // Two switches over one member: flipping the left-aligned one flips its twin in the fieldset.
+        await scope.Locator("[data-ui-switch]:has(> #sw-left-marketing)").ClickAsync();
+        await Expect(state).ToContainTextAsync("marketing on");
+        await Expect(scope.Locator("#sw-marketing")).ToBeCheckedAsync();
+        await Expect(scope.Locator("#sw-left-security")).ToBeDisabledAsync();
     });
 
     [Fact]

@@ -89,27 +89,42 @@ const NATIVE = {
   // The tooltip's wrapper: the kit wires the trigger at render and the browser shows the [popover].
   // A toggleable tooltip is a <ui-dropdown> on Flux's page, under the tooltip's marker.
   'ui-tooltip': 'div', 'ui-dropdown': 'div',
+  // The menu family: a [popover] opens from `popovertarget` alone, and its rows are buttons.
+  'ui-context': 'div', 'ui-menu': 'div', 'ui-submenu': 'div', 'ui-menu-radio-group': 'div',
+  'ui-menu-checkbox-group': 'div', 'ui-menu-radio': 'button', 'ui-menu-checkbox': 'button',
   // The select's, the autocomplete's and the pillbox's elements: a native popover and C# key handling in their place.
   'ui-select': 'div', 'ui-selected': 'div', 'ui-options': 'div', 'ui-option': 'div', 'ui-option-empty': 'div',
   'ui-option-create': 'div', 'ui-empty': 'div', 'ui-pillbox': 'div', 'ui-pillbox-trigger': 'div',
   'ui-selected-remove': 'div',
+  // The checkbox, radio and switch: a <label> around the real <input>, and a group that is only a box.
+  'ui-checkbox-group': 'div', 'ui-radio-group': 'div', 'ui-checkbox': 'label', 'ui-radio': 'label', 'ui-switch': 'label',
   // The modal's wrapper, and the one around a button that closes it: the kit's buttons are invoker commands.
   'ui-modal': 'div', 'ui-close': 'div',
+  // The editor and its toolbar: the kit writes the roles at render (toolbar, combobox, listbox, option) and
+  // its engine does what Flux's elements script. `ui-menu` is the stand-in of the one example that puts a
+  // dropdown menu in a toolbar.
+  'ui-editor': 'div', 'ui-editor-content': 'div', 'ui-toolbar': 'div', 'ui-menu': 'div',
   // The calendar: its month steps and its today shortcut are real buttons.
   'ui-calendar': 'div', 'ui-calendar-months': 'div', 'ui-calendar-month': 'div', 'ui-calendar-year': 'div',
   'ui-calendar-previous': 'button', 'ui-calendar-next': 'button', 'ui-calendar-today': 'button',
-  // The date picker: a preset is a real button with the radio's role, and the box Flux scripts its confirming
-  // button through (as `ui-close` is around the cancelling one) is the box it leaves behind.
+  // The date picker: the box Flux scripts its confirming button through (as `ui-close` is around the
+  // cancelling one) is the box it leaves behind. Its presets are a `ui-radio-group` of RADIO_BUTTONs, below.
   'ui-date-picker': 'div', 'ui-date-picker-trigger': 'div', 'ui-selected-date': 'div', 'ui-calendar-presets': 'div',
-  'ui-radio-group': 'div', 'ui-radio': 'button', 'ui-date-picker-select': 'div',
+  'ui-date-picker-select': 'div',
   // The time picker: the list of times is a popover the browser opens.
   'ui-time-picker': 'div', 'ui-time-picker-trigger': 'div', 'ui-selected-time': 'div', 'ui-time-picker-options': 'div',
 };
+// Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
+// holds the native <input> that is: one child Flux has no node for, and nothing drawn.
+const HOLDS_INPUT = new Set(['ui-checkbox', 'ui-radio', 'ui-switch']);
 // …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
 // opens the file input inside it when clicked, where Flux's <div> calls input.click().
 const NATIVE_PART = { 'input-file': 'label' };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
-const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary');
+// A <ui-radio> that is a choice among buttons, not a form's radio (a date picker's preset), is a real
+// <button role="radio">, which the runtime's roving group walks.
+const RADIO_BUTTON = (a, b) => a.tag === 'ui-radio' && b.tag === 'button' && b.attrs.role === 'radio';
+const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary') || RADIO_BUTTON(a, b);
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
 // …and leaves a chart's root with no marker at all: its <ui-chart> is the chart.
 const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };
@@ -235,9 +250,11 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 
   // A <template> is never drawn — Flux keeps a prototype of every chart node in one, and inside an <svg> a
   // template's children are ordinary DOM children — so it is no child on either side. Nor is an EXTRA node.
-  const kids = (example, n) => example.nodes.filter(c => c.parent === n.id && c.tag !== 'template' && !EXTRA.some(name => name in c.attrs));
+  // Nor is a <path> outside an <svg>: Flux's editor leaves one beside the link panel's check icon, and no browser draws it.
+  const stray = (c, n) => c.tag === 'template' || (c.tag === 'path' && !['svg', 'g', 'defs', 'clippath', 'mask', 'symbol'].includes(n.tag));
+  const kids = (example, n) => example.nodes.filter(c => c.parent === n.id && !stray(c, n) && !EXTRA.some(name => name in c.attrs));
   const ca = kids(theirs, a);
-  const cb = kids(mine, b);
+  const cb = kids(mine, b).filter(c => !(HOLDS_INPUT.has(a.tag) && c.tag === 'input'));
   if (ca.length !== cb.length) {
     diffs.push(`${where}: children <${ca.map(c => c.tag).join(' ')}> vs <${cb.map(c => c.tag).join(' ')}>`);
     return;
@@ -261,6 +278,10 @@ function compareLook(theirs, a, mine, b, where, diffs) {
   // A long example is measured for its first 60 controls only, and the two pages need not run out at the
   // same node: a state is compared where both sides measured it.
   if (!measured(theirs).has(a.id) || !measured(mine).has(b.id)) return;
+  // A node that is not displayed on either side cannot be hovered, pressed or focused, so a state forced
+  // onto it says nothing — and inside a closed menu something false: Flux lights a row from script
+  // (`data-active`) where the kit has `:hover`. parity-menu.mjs holds an OPEN menu's rows under a real pointer.
+  if (!shown(theirs, a) && !shown(mine, b)) return;
   for (const state of ['hover', 'active', 'focus-visible']) {
     const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
     const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};

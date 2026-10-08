@@ -69,29 +69,18 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     public void A_bound_checkbox_takes_its_checked_state_from_the_model(bool agreed)
     {
         var model = new Profile { Agreed = agreed };
-        var html = Ui.Checkbox.Bind(() => model.Agreed)["I agree"].ToHtml();
+        var html = Ui.Checkbox.Bind(() => model.Agreed).Label("I agree").ToHtml();
 
-        Assert.Equal(agreed, html.Contains("checked", StringComparison.Ordinal));
+        Assert.Equal(agreed, html.Contains(" checked", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void A_bound_toggle_takes_its_checked_state_from_the_model() =>
-        Assert.Contains("checked", Toggle(alerts: true));
+    public void A_bound_switch_takes_its_checked_state_from_the_model() =>
+        Assert.Contains(" checked", Switch(alerts: true));
 
     [Fact]
-    public void A_bound_toggle_that_is_off_writes_no_checked_attribute() =>
-        Assert.DoesNotContain("checked", Toggle(alerts: false));
-
-    [Fact]
-    public void A_bound_radio_takes_its_own_checked_state_from_the_model()
-    {
-        // Its OWN state: a single radio binds whether this option is the chosen one, not the group's
-        // value. UiFilter<T> is the control that binds the value of a whole group.
-        var model = new Profile { Express = true };
-
-        Assert.Contains("checked",
-            Ui.Radio.Bind(() => model.Express).Text("Express").Group("shipping").ToHtml());
-    }
+    public void A_bound_switch_that_is_off_writes_no_checked_attribute() =>
+        Assert.DoesNotContain(" checked", Switch(alerts: false));
 
     [Fact]
     public void A_bound_range_draws_the_model()
@@ -259,11 +248,11 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         Assert.Equal("bug", control.Value);
     }
 
-    private static string Toggle(bool alerts)
+    private static string Switch(bool alerts)
     {
         var model = new Profile { Alerts = alerts };
 
-        return Ui.Toggle.Bind(() => model.Alerts)["Email alerts"].ToHtml();
+        return Ui.Switch.Bind(() => model.Alerts).Label("Email alerts").ToHtml();
     }
 
     private static string Rating(int stars)

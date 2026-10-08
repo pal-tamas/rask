@@ -20,6 +20,16 @@ internal sealed partial class HostedElement : Element
 
     public IUiHost? Owner { get; set; }
 
+    /// <summary>
+    ///     True when what is below this element is another writer's — the editor's surface is ProseMirror's.
+    ///     The frame diff then skips the subtree and the client morph refuses to descend into it, so what is
+    ///     rendered inside is only ever the first paint.
+    /// </summary>
+    public bool? Opaque { get; set; }
+
+    /// <inheritdoc />
+    protected override bool OpaqueSubtree => Opaque == true;
+
     /// <inheritdoc />
     protected override string TagName => Tag;
 

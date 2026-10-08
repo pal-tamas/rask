@@ -5,7 +5,8 @@
 package — so a Rask app gets the whole component vocabulary without a single utility string, an npm
 install, or a Tailwind configuration of its own.
 
-It is **markup and nothing else**: no data access, no host dependency, and no JavaScript. It runs on
+It is **markup and nothing else**: no data access, no host dependency, and no JavaScript — with one exception, the
+[rich text editor](#rich-text-editor), whose engine is a script a page loads only when it draws one. It runs on
 the ASP.NET host and in browser-WebAssembly, which is the one place it differs from `Rask.Dashboard` —
 the console is deliberately server-only because its panels read a `DbContext`.
 
@@ -28,8 +29,8 @@ Live, on rask.sh: [Actions](https://rask.sh/docs/ui/actions) · [Data display](h
 The kit's behaviour follows the practices [Flux UI](https://fluxui.dev) set out for Livewire, adapted to a
 C# component framework that ships no script of its own:
 
-- **Use the browser.** A dialog is a modal `<dialog>` opened by an invoker command; a menu, a listbox and a
-  megamenu are `[popover]`s; a sidebar is a checkbox drawer. The top layer, Escape, light-dismiss and focus
+- **Use the browser.** A dialog is a modal `<dialog>` opened by an invoker command; a menu and a listbox
+  are `[popover]`s; a sidebar is a checkbox drawer. The top layer, Escape, light-dismiss and focus
   return are the platform's, and they work before any runtime has booted.
 - **Use CSS.** The submenu's safe triangle is a clipped wedge, the scroll lock under a dialog is a `:has()`
   rule, a button's spinner is a `[data-loading]` rule. Where something truly needs script — pressing a menu row,
@@ -42,7 +43,7 @@ C# component framework that ships no script of its own:
   wherever one is shown, `Tone`/`Variant`/`Size` style everything.
 - **We style, you space.** Components bring padding, borders and colour — never an outer margin.
 - **Simple first, composable after.** `Ui.Input.Label("Email").Description(…)` is one line; `Ui.NavList` with
-  `Ui.NavGroup`s and `Ui.NavItem`s, or `Ui.Dropdown` with `Ui.MenuSub`s, is there when one line is not enough.
+  `Ui.NavGroup`s and `Ui.NavItem`s, or a `Ui.Menu` with `Ui.MenuSubmenu`s, is there when one line is not enough.
 
 ## Wiring it up
 
@@ -332,10 +333,10 @@ A selected toggle is `.AriaPressed(AriaPressed.True)` on the variant that reads 
 ## The three axes
 
 On the components daisyUI still draws, colour, fill and size are independent and compose, so a small
-error-toned toggle needs no member of its own:
+error-toned range needs no member of its own:
 
 ```csharp
-Ui.Toggle.Bind(() => settings.Alerts).Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
+Ui.Range.Bind(() => settings.Volume).Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
 ```
 
 | Enum | Members |
@@ -352,7 +353,7 @@ Not every component honours every member — daisyUI defines no `input-outline` 
 the markup looking as though it styled something.
 
 Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.ModalPosition`, `Ui.MaskShape`,
-`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`, `Ui.TabStyle`, `Ui.OpenOn`.
+`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`, `Ui.TabStyle`.
 
 ### One vocabulary for placing things
 
@@ -361,8 +362,12 @@ Everything that floats against something else is placed with the same two words,
 side (`Ui.Align` — Start, Center, End, following the reading direction). They are two properties because
 daisyUI composes them — a menu above its trigger, flush with the trigger's end edge, is both.
 
+A component rebuilt on Flux has its own pair, with Flux's values and Flux's default first — a dropdown is
+`Ui.DropdownPosition` (Bottom, Top, Right, Left) and `Ui.DropdownAlign` (Start, Center, End), each member a chain
+step:
+
 ```csharp
-Ui.Dropdown.Trigger("Actions").Position(Ui.Position.Top).Align(Ui.Align.End)[ … ]
+Ui.Dropdown.Top.End[ trigger, Ui.Menu[ … ] ]
 Ui.Tooltip.Content("Copy").Right[ … ]   // Flux's own Ui.TooltipPosition / Ui.TooltipAlign — see Tooltips
 Ui.Tabs.Position(Ui.Position.Bottom)[ … ]
 Ui.Modal.Name("details").Flyout().Left[ … ]   // a flyout is placed against the viewport: Ui.ModalPosition
@@ -693,6 +698,123 @@ What is left: a `Toggleable()` tooltip around something that is not a `<button>`
 the browser's own rather than a written `aria-expanded`. On a page whose scripts never run
 (`@media (scripting: none)`) the stylesheet shows a tooltip in place on `:hover` and keyboard focus.
 
+## Rich text editor
+
+`Ui.Editor` is [Flux's editor](https://fluxui.dev/components/editor): a toolbar over an editable area, and
+a value that is HTML. Its engine is [Tiptap](https://tiptap.dev) on [ProseMirror](https://prosemirror.net),
+as Flux's is.
+
+```csharp
+Ui.Editor.Bind(() => _post.Body).Label("Release notes").Description("Explain what's new in this release.")
+
+Ui.Editor.Value(_html).OnChange(html => _html = html)          // unbound: you keep the value
+Ui.Editor.Placeholder("Write something...")                    // shown while the document is empty
+Ui.Editor.Toolbar("heading | bold italic underline | align ~ undo redo")   // | separator, ~ spacer
+Ui.Editor.Disabled(locked)                                     // read-only, toolbar off
+Ui.Editor.Invalid(!ok)                                         // error styling
+Ui.Editor.Class("**:data-[slot=content]:min-h-[100px]!")       // the area is 200–500px tall unless you say
+```
+
+The value is the document as HTML — `<p>Hello <strong>world</strong></p>` — and an empty document is the
+empty string. `Bind` writes it to the model on every change and validates the field; `Value` with
+`OnChange` leaves it to you. A value the app changes afterwards is shown in the editor.
+
+**Nothing to configure.** The engine is 374 KB (117 KB gzipped), so it is in neither Rask's runtime nor
+the kit's assembly: it is a static file, `wwwroot/js/rask-ui-editor.js`, which the build of every app that
+references the kit writes — add it to `.gitignore` — and which the browser fetches the first time an
+editor mounts. A page without an editor never requests it, and nothing preloads or precaches it; an app
+that will never draw one can keep it out of its publish folder:
+
+```xml
+<PropertyGroup>
+  <RaskUiEditorEngine>false</RaskUiEditorEngine>
+</PropertyGroup>
+```
+
+The host has to serve its static files, as every Rask app does (`RaskApp`, `MapRaskSpa`, a static host for
+a browser-WASM publish). A host that is not a Web or WebAssembly SDK project sets the same property to
+`true`.
+
+Until the script has loaded — and with scripting off — the editor shows its value as plain markup. A
+strict `Content-Security-Policy` needs nothing added: the file is same-origin script.
+
+**Third-party code.** The engine bundles Tiptap 2.11.7 and ProseMirror (47 packages, all MIT), and eleven
+of the toolbar's icons are drawn from [Lucide](https://lucide.dev) 0.300.0 path data (ISC), as Flux's are.
+Their notices are `rask-ui-editor.LICENSES.txt`: in the `Rask.Ui` package, and written beside the script
+in `wwwroot/js`, so they travel with the copy your app serves.
+
+**The value is the user's HTML.** The editor itself only produces the tags of its schema (paragraphs,
+headings, lists, quotes, code, links, marks), but what you bind may have come from anywhere — a database
+row, an import, a request made by hand. `Ui.Editor` writes its value into the page as it is, exactly as
+`Raw` does. So: sanitize HTML on the server before you store it or bind it, and never render a stored
+value with `Raw` without doing so. Showing it as text (`Pre[_post.Body]`) is always safe.
+
+### Toolbar
+
+The default is `heading | bold italic strike | bullet ordered blockquote | link | align`. Every item:
+
+| Item | Does | Shortcut |
+|---|---|---|
+| `heading` | text, or a heading of level 1–3, from a list | `Ctrl`+`Alt`+`0`…`3` |
+| `bold` `italic` `strike` `underline` | the mark | `Ctrl`+`B`, `I`, `Shift`+`S`, `U` |
+| `subscript` `superscript` `highlight` `code` | the mark | `Ctrl`+`,` `.` `Shift`+`H`, `E` |
+| `bullet` `ordered` `blockquote` | the block | `Ctrl`+`Shift`+`8`, `7`, `B` |
+| `link` | a panel with the address, a button to set it and one to remove it | `Ctrl`+`K` |
+| `align` | left, center or right, from a list | `Ctrl`+`Shift`+`L`, `E`, `R` |
+| `undo` `redo` | history | `Ctrl`+`Z`, `Ctrl`+`Shift`+`Z` |
+
+`Cmd` on a Mac. The toolbar is one tab stop; the arrow keys walk its controls. Markdown works while
+typing: `#`, `##`, `###`, `**bold**`, `*italic*`, `~~strike~~`, `-`, `1.`, `>`, `` `code` ``, three
+backticks for a code block and `---` for a rule.
+
+For anything the list cannot say, compose the editor from its parts — each item is a component
+(`Ui.EditorBold`, `Ui.EditorHeading`, `Ui.EditorLink`, `Ui.EditorSeparator`, `Ui.EditorSpacer`, …), and
+`Ui.EditorButton` is a button of your own:
+
+```csharp
+Ui.Editor.Bind(() => _post.Body)[
+    Ui.EditorToolbar[
+        Ui.EditorHeading, Ui.EditorSeparator,
+        Ui.EditorBold, Ui.EditorItalic, Ui.EditorSeparator,
+        Ui.EditorLink,
+        Ui.EditorSpacer,
+        Ui.EditorButton.Icon(Ui.IconName.Clipboard).Tooltip("Copy to clipboard").OnClick(Copy)
+    ],
+    Ui.EditorContent
+]
+```
+
+A button of your own runs C# and reads the document from what the editor is bound to. Flux resolves a
+custom item's *name* to a Blade file; here it is a child of the toolbar.
+
+### Extensions
+
+Highlight, Link, Placeholder, StarterKit, Subscript, Superscript, TextAlign and Underline are on; Table,
+TableRow, TableCell and TableHeader are bundled and off. Before an editor is created it raises
+`ui:editor` on itself (it bubbles) — Flux's `flux:editor` event under the kit's name — and a script of the
+page can change the set or reach the Tiptap instance:
+
+```js
+document.addEventListener('ui:editor', e => {
+    e.detail.enableExtension('table');
+    e.detail.disableExtension('underline');
+    e.detail.registerExtensions([Youtube.configure({ nocookie: true })]);   // an extension of the same name is replaced
+    e.detail.init(({ editor }) => editor.on('update', () => { /* … */ }));
+});
+```
+
+The editor's root also has what Flux's has: `element.value` (get and set) and the `editor` instance, and
+it raises `input` and `change` for every change of the document.
+
+`code` is inline code, as it is on Flux's live editor: a control of that name wraps the selection in
+`<code>` and shows as pressed, and three backticks start a block. (Flux's reference calls the item "code
+block formatting"; its own element, its "Code" label and its `Ctrl`+`E` say otherwise, and the kit follows
+what the element does.) `subscript`, `superscript` and `highlight` are held to Flux the same way.
+
+Not measured, because no example on Flux's page shows these buttons: the icons of `subscript`,
+`superscript`, `highlight` and `code` (drawn from Lucide, as Flux draws its other non-Heroicon toolbar
+icons), their tooltips' shortcut hints, and the exact red of an `Invalid` editor.
+
 ## Buttons and links that go somewhere
 
 Every kit component that goes somewhere takes a `RouteUrl`: `Ui.Button.Href`, `Ui.Link.Href`,
@@ -777,8 +899,8 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
   Flux's `sidebar.header` and `sidebar.footer`. The footer needs no `Ui.Spacer` in front of it: it pins itself, so
   a nav list long enough to scroll scrolls *between* the two rather than pushing the account row off the bottom.
 - **`Ui.Profile`** is that account row: an avatar, a name, an optional caption, and — given children — the button
-  that opens the account menu, with the same keyboard contract `Ui.Dropdown` has, because both are
-  **`UiMenuButton`** underneath. Without an `Avatar` it draws the **initials** of `Name`, since most accounts have
+  that opens the account menu, with the same keyboard contract `Ui.Dropdown` has, because it IS a
+  `Ui.Dropdown` opening a `Ui.Menu` underneath. Without an `Avatar` it draws the **initials** of `Name`, since most accounts have
   no picture and a broken image is worse than a monogram. Its menu opens upward by default, because the row sits
   at the bottom of the sidebar.
 - **A docked sidebar can narrow to a rail of icons**, which is a different question from `Collapsible`:
@@ -950,11 +1072,11 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.ContextMenu` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Swap` `Ui.Fab` |
+| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Swap` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
-| **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.MegamenuPanel` `Ui.Menu` `Ui.MenuItem` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
+| **Navigation** | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Navbar` `Ui.NavList` `Ui.NavItem` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Chrome** | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.CrumbSeparator` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
@@ -962,7 +1084,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 ## Who owns the state
 
-The kit ships no JavaScript, and that constraint decides the shape of every interactive component. It
+The kit ships no JavaScript (the [editor](#rich-text-editor)'s engine apart), and that constraint decides the shape of every interactive component. It
 resolves three ways, and which one a component takes is a property of what the platform can do rather
 than of anyone's preference.
 
@@ -974,7 +1096,7 @@ cannot wander out, Escape, and focus handed back to the trigger on close. What F
 asks Rask's runtime for by attribute ([behaviour hooks](js-interop-runtime.md#behaviour-hooks-data-rask-)):
 `data-rask-modal` for a click outside and for which of the two dismissals are allowed,
 `data-rask-lock="scroll"` for the page held still behind it, and the invoker commands themselves in a browser
-that has none (before Chrome 135, Firefox 144, Safari 26.2). `Ui.Megamenu` is built on a `popover`.
+that has none (before Chrome 135, Firefox 144, Safari 26.2).
 `Ui.Fab` opens on `:focus-within` because daisyUI defines no class to force it.
 
 ```csharp
@@ -1022,45 +1144,78 @@ type by key no longer reuses the unkeyed ones by position, and a modal rebuilt o
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 
-**The browser owns the open state, C# owns the cursor.** `Ui.Dropdown` is a menu button over a `[popover]`
-menu: the browser opens and closes it — top layer, Escape, a click outside, focus back on the trigger — and
-the menu takes focus as it opens. What C# owns is the keyboard cursor Flux UI's menus have: the arrows move an
-`aria-activedescendant` cursor that skips disabled rows and wraps, Home/End jump, a letter jumps to the next
-row starting with it, ArrowRight opens a submenu and ArrowLeft closes it, Enter or Space press the row, Tab
-leaves. The runtime supplies the few things C# cannot: pressing the row, closing the popover after a pick, and
-closing it when Tab leaves.
+**`Ui.Dropdown` and `Ui.Menu` are Flux UI's dropdown, exactly.** The first child is the trigger — a `Button`, a
+`Ui.Button`, any element that is a button — and the second is what it opens: a `Ui.Menu` of actions, or a
+`Ui.Navmenu` of links.
 
 ```csharp
-Ui.Dropdown.Trigger("View").Align(Ui.Align.End)[
-    Ui.MenuGroup.Title("Arrange")[
-        Ui.MenuSub.Title("Sort by")[
-            Ui.MenuRadioGroup.Value(_sort).Options([("name", "Name"), ("date", "Date")]).OnChange(s => _sort = s)
+Ui.Dropdown[
+    Ui.Button["Options", Ui.Icon.Name(Ui.IconName.ChevronDown).Micro],
+    Ui.Menu[
+        Ui.MenuItem.Icon(Ui.IconName.Plus).Kbd("⌘N").OnClick(NewPost)["New post"],
+        Ui.MenuSeparator,
+        Ui.MenuSubmenu.Heading("Sort by")[
+            Ui.MenuRadioGroup.Bind(() => view.Sort)[
+                Ui.MenuRadio.Value(Sort.Name)["Name"],
+                Ui.MenuRadio.Value(Sort.Date)["Date"]
+            ]
         ],
-        Ui.MenuItem.Text("Refresh").Kbd("⌘R").OnClick(Refresh)
-    ],
-    Ui.MenuSeparator.Key("sep"),
-    Ui.MenuCheckbox.Key("archived").Value(_archived).Text("Show archived").OnChange(on => _archived = on),
-    Ui.MenuItem.Text("Delete").Error.OnClick(Delete)
+        Ui.MenuSubmenu.Heading("Filter")[
+            Ui.MenuCheckbox.Bind(() => view.Draft)["Draft"],
+            Ui.MenuCheckbox.Bind(() => view.Published)["Published"]
+        ],
+        Ui.MenuGroup.Heading("Account")[
+            Ui.MenuItem.Href(Routes.ProfilePage())["Profile"]
+        ],
+        Ui.MenuItem.Danger.Icon(Ui.IconName.Trash).OnClick(Delete)["Delete"]
+    ]
 ]
 ```
 
-A submenu flies out beside its row, and a pointer moving diagonally toward it — across the row below — does
-not close it: the flyout carries a CSS wedge back to its row and waits 300 ms before closing, Flux's **safe
-triangle** with no script. A tap opens it on a touch screen. `Ui.MenuCheckbox` keeps the menu open, since
-flipping three switches should not mean opening it three times; any row can ask for the same with `KeepOpen`.
-Style the rows from `data-highlighted` (the cursor), `data-checked` and the dropdown's `data-open`.
+| Flux | Rask.Ui | |
+| --- | --- | --- |
+| `flux:dropdown` | `Ui.Dropdown` | `Position` (`.Bottom` `.Top` `.Right` `.Left`), `Align` (`.Start` `.Center` `.End`), `Gap`, `Offset`; `Open` + `OnToggle` to own the state |
+| `flux:menu` | `Ui.Menu` | `KeepOpen` |
+| `flux:menu.item` | `Ui.MenuItem` | `Icon`, `IconTrailing`, `IconVariant`, `Kbd`, `Suffix`, `Variant` (`.Danger`), `Disabled`, `KeepOpen`; `OnClick`, `Href` |
+| `flux:menu.submenu` | `Ui.MenuSubmenu` | `Heading`, `Icon`, `IconTrailing`, `IconVariant`, `KeepOpen` |
+| `flux:menu.separator` | `Ui.MenuSeparator` | |
+| `flux:menu.group` | `Ui.MenuGroup` | `Heading` |
+| `flux:menu.checkbox` | `Ui.MenuCheckbox` | `Bind` or `Value` + `OnChange` (for `wire:model` and `checked`), `Disabled`, `KeepOpen` |
+| `flux:menu.checkbox.group` | `Ui.MenuCheckboxGroup` | each checkbox binds its own flag |
+| `flux:menu.radio.group` | `Ui.MenuRadioGroup` | `Bind` or `Value` + `OnChange`, `KeepOpen` |
+| `flux:menu.radio` | `Ui.MenuRadio` | `Value` (the value it stands for in its group), `Checked` (outside one), `Disabled`, `KeepOpen` |
+| `flux:navmenu`, `flux:navmenu.item` | `Ui.Navmenu`, `Ui.NavmenuItem` | `Href`, `Icon`, `Variant` — links, with no menu roles and no cursor |
+| `flux:context` | `Ui.Context` | `Position`, `Gap`, `Offset`, `Target`, `Detail`, `Disabled`; `Open` + `OnToggle` |
 
-`Key` can go anywhere in an item's chain — `Ui.MenuCheckbox.Value(x).Key("k")` and
-`Ui.MenuCheckbox.Key("k").Value(x)` mean the same thing, and a generic item such as `Ui.MenuRadioGroup` takes
-one too (see [composition.md](composition.md)).
+**The browser owns the open state, C# owns the cursor.** The menu is a `[popover]` the trigger opens with
+`popovertarget`, so the browser opens and closes it — top layer, Escape, a click outside — with no runtime at
+all, and it is placed with CSS anchor positioning. While it is open the page behind does not scroll and does
+not take the pointer, so a click outside only closes it. What C# owns is the keyboard, which is Flux's key for
+key: the menu opens with focus on it and no row chosen; ArrowDown or ArrowUp puts the cursor on the first row,
+and from there the arrows move it a row at a time, **stopping at the ends** and stepping over disabled rows;
+Home, End and the page keys are not menu keys; a letter jumps to the row that starts with it; ArrowRight or
+Enter opens a submenu onto its first row and ArrowLeft closes it; Enter or Space picks; Tab leaves; ArrowDown
+on the closed trigger opens the menu onto its first row. The row under the cursor has **focus** (roving
+focus, not `aria-activedescendant`), `tabindex="0"` and `data-active`. The runtime supplies what C# cannot:
+moving focus to that row, pressing it, closing the popover after a pick or when Tab leaves, and handing focus
+back to the trigger after a click outside.
+
+A pick closes the menu — a checkbox or a radio too, as in Flux. `KeepOpen` on the menu, a submenu, a radio
+group or a single row keeps it up, for the menu someone ticks several of. A submenu flies out beside its row the
+moment a pointer rests on it, and a pointer moving diagonally toward it — across the row below — does not close
+it: its row carries a CSS wedge to the flyout, Flux's **safe area** with no script. A tap opens it on a touch
+screen. Style the rows from `data-active` (the cursor), `data-checked`, and `data-open` on the dropdown, its
+trigger and an open submenu; a row under a pointer is `:hover`.
+
+`Key` can go anywhere in a row's chain — `Ui.MenuCheckbox.Value(x).Key("k")` — and a generic one such as
+`Ui.MenuRadioGroup` takes one too (see [composition.md](composition.md)).
 
 `Open` is nullable and the three settings mean three things: unset leaves it to the reader; `true` and `false`
 hand it to the page, and the runtime shows or hides the popover to match whenever the page changes its mind,
-which is what lets a dropdown close itself when the action inside it completes. `OpenOn(Ui.OpenOn.Hover)` keeps
-daisyUI's CSS dropdown, which a pointer can open and a popover cannot — without the keyboard cursor.
+which is what lets a dropdown close itself when the action inside it completes.
 
 ```csharp
-Ui.Dropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
+Ui.Dropdown.Open(_open).OnToggle(open => _open = open)[ trigger, Ui.Menu[ … ] ]
 ```
 
 **The page owns it, in C#.** `Ui.Swap`, `Ui.Tabs` and `Ui.Modal`'s `Open` path hold their state in a field and
@@ -1129,30 +1284,6 @@ is the same question a select asks: `.Listbox.Searchable()` puts a search field 
 
 A short list needs none of it: a letter typed on a listbox's closed button picks the next option starting
 with it, which is what a native select does.
-
-**A whole set of choices is one field too.** `UiRadioGroup<T>` binds the group's value and
-`UiCheckboxGroup<T>` binds the collection your model declares — one field, not one per option, which is what
-a bare `Ui.Radio` (bound to its own `bool`) could never give a form.
-
-```csharp
-Ui.RadioGroup.Bind(() => _account.Plan).Options(plans).Label("Plan")
-    .Layout(Ui.ChoiceLayout.Cards)
-    .OptionDescription(v => v == "pro" ? "Everything, billed monthly" : null)
-
-Ui.CheckboxGroup.Bind(() => _account.Topics).Options(topics).Label("Email me about").CheckAll()
-```
-
-`Layout` is Flux's set of looks — `List`, `Cards`, `Pills`, `Buttons`, `Segmented`. It is not called
-`Variant` because every field already has one (`Ui.Variant`: Solid, Outline, Ghost…) and two properties of
-that name meaning different things on one control is worse than one with a plainer name.
-
-**Every layout keeps a real `<input>` inside its label.** A card, a pill and a segment look like buttons, and
-a button is the one thing a choice must not be: the browser's own grouping, the arrow keys inside a radio
-group, the space bar, the form post and every assistive technology all come from the input being there. The
-look is `has-[:checked]:` rules on the label around it — CSS reading the input's own state, with nothing to
-keep in sync. Where the whole label is the affordance the box is `sr-only`, never `hidden`, which would take
-it out of the tab order too. `CheckAll` reports `aria-checked="mixed"` while only some of the list is in,
-rather than claiming "all" over a half-filled one.
 
 A row of a drawn select that needs more than words says so on the option — `Icon`, `Avatar`, `Description`,
 or children of its own. Those are the listbox's and the combobox's: a native `<option>` holds text and
@@ -1546,36 +1677,45 @@ render agrees with the screen. An action's button shows a spinner while its hand
 Like Flux's, the host is `role="status"` and each toast `aria-atomic="true"`, so a toast is announced politely
 and whole; the variant is carried by its icon's shape as well as its colour.
 
-**`Ui.ContextMenu` is the same menu, opened by a right-click.** Its children are the rows a `Ui.Dropdown` takes,
-and it is the same control underneath (`UiMenuSurface`), so the keyboard is identical; only the opening differs:
+**`Ui.Context` is the same menu, opened by a right-click** — Flux's `flux:context`. The first child is the area
+that is right-clicked and the second is the `Ui.Menu`, the same one a `Ui.Dropdown` opens, so the rows and the
+keyboard are identical; only the opening differs:
 
 ```csharp
-Ui.ContextMenu.Target(Div.TabIndex(0).Class("card")["Invoice 42"])[
-    Ui.MenuItem.Text("Open").OnClick(Open),
-    Ui.MenuSeparator,
-    Ui.MenuItem.Text("Delete").Error.OnClick(Delete)
+Ui.Context[
+    Div.TabIndex(0).Class("card")["Invoice 42"],
+    Ui.Menu[
+        Ui.MenuItem.OnClick(Open)["Open"],
+        Ui.MenuSeparator,
+        Ui.MenuItem.Danger.OnClick(Delete)["Delete"]
+    ]
 ]
 ```
 
 The runtime opens it: an element carrying `data-rask-contextmenu="<popover id>"` shows that popover at the pointer
 in place of the browser's menu, straight away and on either host — a round trip first would be a lag felt on every
-right-click — and pulls it back inside the viewport near an edge. The ContextMenu key and Shift+F10 open it at the
-focused element, which is why the target above is focusable. Nothing in a context menu should be the ONLY way to
-do something: iOS Safari never fires the event, so put the same actions somewhere visible too.
+right-click — and pulls it back inside the viewport near an edge. It lands where Flux's does: below the pointer,
+the menu's END edge on it. `Position` (`.BottomEnd` `.BottomCenter` `.BottomStart` `.TopEnd` `.TopCenter`
+`.TopStart`), `Gap` and `Offset((x, y))` move it; `Target("id")` opens a `Ui.Menu.Id("id")` written somewhere
+else; `Detail` lands on the menu as `data-detail`; `Disabled` leaves the browser's own menu alone. The ContextMenu
+key and Shift+F10 open it at the focused element, which is why the area above is focusable — and unlike Flux's,
+the menu takes focus as it opens, so the arrow keys work at once. Nothing in a context menu should be the ONLY way
+to do something: iOS Safari never fires the event, so put the same actions somewhere visible too.
 
 **`Ui.Command` is a command palette.** A search field that opens a dialog of commands — from a click, or from
 anywhere on the page with its `Shortcut`:
 
 ```csharp
 Ui.Command.Label("Search commands").Shortcut("mod+k")[
-    Ui.MenuGroup.Title("Invoices")[
-        Ui.MenuItem.Text("New invoice").Icon(Ui.IconName.Plus).OnClick(NewInvoice)
+    Ui.MenuGroup.Heading("Invoices")[
+        Ui.MenuItem.Icon(Ui.IconName.Plus).OnClick(NewInvoice)["New invoice"]
     ],
-    Ui.MenuItem.Text("Settings").Href(Routes.Settings())
+    Ui.MenuItem.Href(Routes.Settings())["Settings"]
 ]
 ```
 
-The commands are the same `Ui.MenuItem`s a dropdown takes. The dialog is the platform's modal `<dialog>`, opened by
+The commands are written as the `Ui.MenuItem`s a menu takes (and drawn the palette's own way until it is rebuilt
+on Flux's `command.item`). The dialog is the platform's modal `<dialog>`, opened by
 the invoker command as `Ui.Modal` is. Inside, the search box is a `combobox` over a `listbox` whose options are the
 commands: typing narrows them in C# (case- and accent-insensitive, and a command that does not match is not
 rendered, so the keyboard cannot land on it), ArrowUp and ArrowDown move the highlight while focus stays in the box,
@@ -1744,6 +1884,62 @@ Ui.Textarea.Bind(() => m.Notes).Label("Notes").Rows(UiTextareaRows.Auto).None   
   `Rows(UiTextareaRows.Auto)`), `Ui.Resize` (now `Ui.TextareaResize`) and `Ui.Search` (now
   `Ui.Input.Icon(Ui.IconName.MagnifyingGlass)`).
 
+### Checkbox, radio and switch
+
+**`Ui.Checkbox`, `Ui.Radio` and `Ui.Switch` are Flux UI's.** Same parts, props, look and markers
+([checkbox](https://fluxui.dev/components/checkbox), [radio](https://fluxui.dev/components/radio),
+[switch](https://fluxui.dev/components/switch)), over Rask's binding.
+
+```csharp
+Ui.Checkbox.Bind(() => m.Agreed).Label("I agree to the terms")                  // a bool, or a bool?
+Ui.Checkbox.Checked(on).OnChange(v => on = v).Label("Remember me")              // the parent owns the state
+Ui.Switch.Bind(() => m.Alerts).Label("Email alerts").Description("At most once a day.")
+Ui.Switch.Value(on).OnChange(v => on = v).Label("Compact rows").Left            // align="left"
+
+Ui.CheckboxGroup.Bind(() => m.Topics).Label("Email me about")[                  // a List<T>, a HashSet<T>, an array
+    Ui.CheckboxAll.Label("Everything"),
+    Ui.Checkbox.Value("news").Label("News").Description("Once a month."),
+    Ui.Checkbox.Value("jobs").Label("Jobs")
+]
+
+Ui.RadioGroup.Bind(() => m.Plan).Label("Plan").Cards[                           // one value, of any type
+    Ui.Radio.Value(Plan.Free).Label("Free").Description("For trying it out."),
+    Ui.Radio.Value(Plan.Pro).Label("Pro").Icon(Ui.IconName.Bolt)
+]
+Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]             // variant="segmented" size="sm"
+```
+
+- **The group is the field; the choices are its children.** A `Ui.Radio` or a `Ui.Checkbox` inside a group binds
+  nothing itself: its `Value` is what the group's member becomes (radio) or what its collection holds while the
+  box is ticked (checkbox). A checkbox group writes the collection in the order the checkboxes are written, and
+  its controlled opening is `Values`. `Ui.Radio.Checked()` chooses a radio only while the group holds no value.
+- **Variants draw the same inputs.** `Variant` on a checkbox group is `Cards`, `Pills` or `Buttons`; a radio group
+  adds `Segmented`, with `Size` (`Sm`) and, for cards, `Indicator(false)`. A choice's `Label`, `Description` and
+  `Icon` are drawn on the card, the pill, the segment or the button. A card's children replace them:
+  `Ui.Radio.Value(x)[Ui.RadioIndicator, Div[…]]` (and `Ui.CheckboxIndicator`). `Class("flex-col")` on a cards
+  group stacks it; `max-sm:flex-col` only on a phone.
+- **`Ui.CheckboxAll`** sits among a group's checkboxes, anywhere in its markup: ticked when all are, a dash
+  (`data-indeterminate`, as Flux marks it) while some are, and pressing it ticks them all unless they all are already. Disabled
+  checkboxes keep what they have. `Ui.Checkbox.Indeterminate()` draws the same dash on a checkbox of your own, and
+  a bound `bool?` that is `null` draws it too.
+- **No script, and real inputs.** Each root (`data-ui-checkbox`, `data-ui-radio`, `data-ui-switch`, and
+  `…-cards` / `-pills` / `-buttons` / `-segmented`) is a `<label>` around an `<input>` that is out of sight, never
+  `hidden`: the tick, the dot and the thumb's 150ms travel read the input's own `:checked`. So the space bar,
+  a click on the label, a radio group's arrow keys (they move AND choose, wrapping at the ends; Tab enters at the
+  chosen radio) and the form post (`name` + `value`) are the browser's. A switch is
+  `<input type="checkbox" role="switch">`, which the runtime flips on Enter as well as Space, as Flux's does.
+- **What Flux forwards to the control** goes through `Attributes`, onto the `<input>`:
+  `Ui.Radio.Value("editor").Label("Editor").Attributes(("name", "role"))`,
+  `Ui.Checkbox.Attributes(("aria-label", "Select row"))`. A radio group names its radios after its own id.
+- **Validation.** A bound checkbox, switch or group is invalid on its own while its form holds a message for
+  the member: `aria-invalid`, `data-invalid`, `aria-describedby` naming the field's `Ui.Error`, which `Label`
+  draws with it. `Invalid()` says so by hand. Flux's pages show no invalid checkbox to measure; the unticked box
+  takes the red-500 border Flux's input has.
+- **Gone with daisyUI's controls:** `Ui.Toggle` (now `Ui.Switch`), `Tone` and `Size` on all three, children as
+  the label (now `Label`), `Ui.Radio.Text` / `.Group` and a radio bound to its own `bool`, and the groups'
+  `Options`, `OptionDescription`, `OptionDisabled`, `Layout` (`Ui.ChoiceLayout`), `CheckAll` / `CheckAllLabel`,
+  `Hint`, `Error`, `Badge` and `AccessibleLabel`.
+
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two
 sources of truth for one field, and the compiler enforces it — both live on the control's entry, so
@@ -1753,8 +1949,8 @@ of them says anything about `T`. Bound mode drives the surrounding `Form`'s vali
 the value with the parent. See [building form controls](building-form-controls.md).
 
 **The controls still on daisyUI share one field shape.** `Ui.Otp`,
-`Ui.FileInput` and the radio and checkbox groups all take the same members from
-`UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input`, `Ui.Textarea` and `Ui.Select` have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
+`Ui.FileInput` and the rest all take the same members from
+`UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input`, `Ui.Textarea`, `Ui.Select`, the checkbox, the radio and the switch have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
 without one, an invisible `AccessibleLabel`; a `Hint` and a controlled `Error` under it; an `Id`, derived from the
 bound member or the label when you give none; and `aria-describedby`, `aria-invalid` and `aria-required` worked out
 from those and from the bound member's `[Required]` and messages. `Label` is never a required step, so write it
@@ -1763,8 +1959,8 @@ anywhere after the opening — `Ui.Otp.Value(code).Length(6).Label("Verification
 **Generic where the value type varies, concrete where it does not.** `UiInput<T>`, `UiTextarea<T>`,
 `UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `Ui.Input` even
 takes its `type` attribute from `T`, so a bound `int` is a number field with nothing said at the call
-site. The rest are closed over the one type they can have: `Ui.Checkbox`, `Ui.Toggle` and `Ui.Radio` over
-`bool`, `Ui.Range` over `double`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,
+site. `UiRadioGroup<T>` and `UiCheckboxGroup<T>` are generic over what a choice holds. The rest are closed over
+the one type they can have: `Ui.Checkbox` and `Ui.Switch` over `bool`, `Ui.Range` over `double`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,
 `Ui.Calendar` and `Ui.DatePicker` over `DateOnly`, a collection of days or a `UiDateRange`. A checkbox's value is a `bool` and nothing else; a type parameter there
 would have exactly one legal argument.
 
@@ -1773,8 +1969,9 @@ would have exactly one legal argument.
 | `UiInput<T>` `UiTextarea<T>` `UiSelect<T>` | what the field holds |
 | `UiSelectMultiple<T>` — `Ui.Select` opened on a collection | the ELEMENT type — it binds an `ICollection<T>` |
 | `UiFilter<T>` | the chosen option of a whole radio group |
-| `Ui.Radio` | whether **this** option is the chosen one — the group's value belongs to `UiFilter<T>` |
-| `Ui.Checkbox` `Ui.Toggle` | on or off |
+| `UiRadioGroup<T>` | the value of the chosen `Ui.Radio` |
+| `UiCheckboxGroup<T>` | the ELEMENT type — it binds an `ICollection<T>` of the ticked checkboxes' values |
+| `Ui.Checkbox` `Ui.Switch` | on or off |
 | `Ui.Range` `Ui.Rating` `Ui.Calendar` | the position, the star count, the day |
 | `Ui.Otp` | the code — `OnComplete` fires on the transition into a full one, in both modes |
 | `Ui.FileInput` | the chosen file's name, **write-only** — a browser refuses to have a file input's value set, so binding fills the model and never the box. The bytes come through `OnFiles`. |

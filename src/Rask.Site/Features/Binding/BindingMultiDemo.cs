@@ -12,7 +12,7 @@ public sealed partial class BindingMultiDemo : Component
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            Ui.Checkbox.Bind(() => _model.Subscribe).Id("bind-subscribe")["Subscribe to the newsletter"]
+            Ui.Checkbox.Bind(() => _model.Subscribe).Id("bind-subscribe").Label("Subscribe to the newsletter")
         ],
         Div.Class("mb-3")[
             Ui.Input.Bind(() => _model.Age).Label("Age")

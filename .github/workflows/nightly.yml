@@ -5,14 +5,14 @@ name: nightly
 # prerelease on nuget.org. Stable releases (no -prerelease suffix) still come only from tagging
 # via release.yml.
 #
-# Runs AFTER full.yml — the whole push set, hourly — and only from a commit it passed. Own work lands on
-# main ungated and a push is gated by a SCOPED run (ci.yml), so the whole run is the
-# door a red commit stops at. workflow_dispatch publishes whatever main holds, verdict or not.
+# Hourly, and only the newest commit full.yml — the whole push set — has passed on main, once. Own work
+# lands on main ungated and a push is gated by a SCOPED run (ci.yml), so the whole run is the door a red
+# commit stops at. It does NOT follow each of those runs the way pages.yml does: full.yml runs behind
+# every push now, a deploy replaces the one before it, and a version on nuget.org is there for good.
+# workflow_dispatch publishes whatever main holds, verdict or not.
 on:
-  workflow_run:
-    workflows: [full]
-    types: [completed]
-    branches: [main]
+  schedule:
+    - cron: '17 * * * *'   # hourly, off the hour
   workflow_dispatch:
 
 permissions:
@@ -24,11 +24,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The commit to publish: the newest one the whole run passed, unless the rolling "nightly" release was
+  # already cut from it. Empty publishes nothing.
+  pick:
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read    # the last green whole run
+      contents: read   # the release the last nightly left
+    outputs:
+      sha: ${{ steps.find.outputs.sha }}
+    steps:
+      - id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          sha=""
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            sha="$GITHUB_SHA"
+          else
+            green="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/full.yml/runs?branch=main&status=success&per_page=1" \
+              --jq '.workflow_runs[0].head_sha // empty' 2>/dev/null || true)"
+            published="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" \
+              --jq '.target_commitish // empty' 2>/dev/null || true)"
+            echo "nightly: the whole run last passed ${green:-nothing}; the last nightly is ${published:-none}."
+            if [ -n "$green" ] && [ "$green" != "$published" ]; then sha="$green"; fi
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
   publish-nightly:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    needs: pick
+    if: needs.pick.outputs.sha != ''
     runs-on: ubuntu-24.04
     env:
-      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}   # the commit ci passed
+      SHA: ${{ needs.pick.outputs.sha }}   # the commit the whole run passed
     steps:
       - uses: actions/checkout@v7
         with:

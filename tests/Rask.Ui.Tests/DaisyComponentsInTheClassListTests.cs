@@ -17,8 +17,11 @@ public sealed partial class DaisyComponentsInTheClassListTests
 
     // Already in the list from a comment or an identifier when this guard was written. Each goes when its
     // word leaves the kit, or when the kit scans only what its components write; none may be added.
+    // The "link" component left this list with the editor, and not because its rule left the sheet: the
+    // editor's toolbar item of that name is a string literal now (a data-editor value, never a class), which
+    // is all this guard can tell a written class by. The rule goes with daisyUI, as the others do.
     private static readonly string[] _knownFromProse =
-        ["badge", "card", "collapse", "link", "skeleton", "stat", "toast", "typography"];
+        ["badge", "card", "collapse", "skeleton", "stat", "toast", "typography"];
 
     [Fact]
     public void Every_daisy_component_in_the_class_list_is_written_by_a_kit_component()
@@ -26,8 +29,11 @@ public sealed partial class DaisyComponentsInTheClassListTests
         var written = WrittenInStringLiterals();
         var components = DaisyComponents();
 
+        // A component the plugin is told to leave out has no rules in the sheet: what is left of its classes in
+        // the list is another component's selector (daisyUI's menu styles a `.dropdown` inside it, its aura a `.toggle`).
+        var excluded = ExcludedFromThePlugin();
         var fromProse = components
-            .Where(c => c.Classes.Overlaps(KitConsumer.Classes) && !c.Classes.Overlaps(written))
+            .Where(c => !excluded.Contains(c.Name) && c.Classes.Overlaps(KitConsumer.Classes) && !c.Classes.Overlaps(written))
             .ToList();
 
         Assert.True(
@@ -61,6 +67,11 @@ public sealed partial class DaisyComponentsInTheClassListTests
                 s.Header.Groups[1].Value,
                 ClassSelector().Matches(s.Text).Select(m => m.Groups[1].Value).ToHashSet(StringComparer.Ordinal)))];
 
+    // The `exclude: a, b;` line of the kit's `@plugin "./daisyui.mjs"` block.
+    private static HashSet<string> ExcludedFromThePlugin() =>
+        [.. PluginExclude().Match(File.ReadAllText(Path.Combine(_kit, "Styles", "ui.css"))).Groups[1].Value
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+
     // What a component can put in a class attribute: the words of the string literals in the kit's code,
     // each also without its variants (`sm:btn-wide` writes `btn-wide`).
     private static HashSet<string> WrittenInStringLiterals()
@@ -87,6 +98,9 @@ public sealed partial class DaisyComponentsInTheClassListTests
 
     [GeneratedRegex(@"\A(?:components|utilities)/(\w+)/object\.js\n")]
     private static partial Regex ObjectHeader();
+
+    [GeneratedRegex(@"^\s*exclude:([^;]*);", RegexOptions.Multiline)]
+    private static partial Regex PluginExclude();
 
     [GeneratedRegex(@"\.(-?[A-Za-z_][\w-]*)")]
     private static partial Regex ClassSelector();

@@ -86,75 +86,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string CheckboxTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "checkbox-neutral",
-        Ui.Tone.Primary => "checkbox-primary",
-        Ui.Tone.Secondary => "checkbox-secondary",
-        Ui.Tone.Accent => "checkbox-accent",
-        Ui.Tone.Info => "checkbox-info",
-        Ui.Tone.Success => "checkbox-success",
-        Ui.Tone.Warning => "checkbox-warning",
-        Ui.Tone.Error => "checkbox-error",
-        _ => "",
-    };
-
-    internal static string CheckboxSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "checkbox-xs",
-        Ui.Size.Sm => "checkbox-sm",
-        Ui.Size.Md => "checkbox-md",
-        Ui.Size.Lg => "checkbox-lg",
-        Ui.Size.Xl => "checkbox-xl",
-        _ => "",
-    };
-
-    internal static string RadioTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "radio-neutral",
-        Ui.Tone.Primary => "radio-primary",
-        Ui.Tone.Secondary => "radio-secondary",
-        Ui.Tone.Accent => "radio-accent",
-        Ui.Tone.Info => "radio-info",
-        Ui.Tone.Success => "radio-success",
-        Ui.Tone.Warning => "radio-warning",
-        Ui.Tone.Error => "radio-error",
-        _ => "",
-    };
-
-    internal static string RadioSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "radio-xs",
-        Ui.Size.Sm => "radio-sm",
-        Ui.Size.Md => "radio-md",
-        Ui.Size.Lg => "radio-lg",
-        Ui.Size.Xl => "radio-xl",
-        _ => "",
-    };
-
-    internal static string ToggleTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "toggle-neutral",
-        Ui.Tone.Primary => "toggle-primary",
-        Ui.Tone.Secondary => "toggle-secondary",
-        Ui.Tone.Accent => "toggle-accent",
-        Ui.Tone.Info => "toggle-info",
-        Ui.Tone.Success => "toggle-success",
-        Ui.Tone.Warning => "toggle-warning",
-        Ui.Tone.Error => "toggle-error",
-        _ => "",
-    };
-
-    internal static string ToggleSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "toggle-xs",
-        Ui.Size.Sm => "toggle-sm",
-        Ui.Size.Md => "toggle-md",
-        Ui.Size.Lg => "toggle-lg",
-        Ui.Size.Xl => "toggle-xl",
-        _ => "",
-    };
-
     internal static string RangeTone(Ui.Tone value) => value switch
     {
         Ui.Tone.Neutral => "range-neutral",
@@ -310,23 +241,6 @@ internal static class UiClassNames
         Ui.Size.Md => "rating-md",
         Ui.Size.Lg => "rating-lg",
         Ui.Size.Xl => "rating-xl",
-        _ => "",
-    };
-
-    internal static string DropdownPosition(Ui.Position value) => value switch
-    {
-        Ui.Position.Top => "dropdown-top",
-        Ui.Position.Bottom => "dropdown-bottom",
-        Ui.Position.Left => "dropdown-left",
-        Ui.Position.Right => "dropdown-right",
-        _ => "",
-    };
-
-    internal static string DropdownAlign(Ui.Align value) => value switch
-    {
-        Ui.Align.Start => "dropdown-start",
-        Ui.Align.Center => "dropdown-center",
-        Ui.Align.End => "dropdown-end",
         _ => "",
     };
 
@@ -503,15 +417,5 @@ internal static class UiClassNames
         Ui.Size.Lg => "w-16",
         Ui.Size.Xl => "w-24",
         _ => "w-10",
-    };
-
-    internal static string MegamenuSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "megamenu-xs",
-        Ui.Size.Sm => "megamenu-sm",
-        Ui.Size.Md => "megamenu-md",
-        Ui.Size.Lg => "megamenu-lg",
-        Ui.Size.Xl => "megamenu-xl",
-        _ => "",
     };
 }

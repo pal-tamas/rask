@@ -187,7 +187,7 @@ which keeps `Escape` inert). Build your own overlay the same way — add `data-r
 
 A menu that must escape an `overflow: hidden/auto` ancestor uses the platform's own answer instead:
 a `[popover]`, which the browser lifts into the top layer, dismisses on Escape and on a click outside,
-and gives a real `::backdrop`. `Ui.Select`'s `.Listbox` and `.Combobox` variants, `Ui.Megamenu` and `Ui.Modal` are all
+and gives a real `::backdrop`. `Ui.Select`'s `.Listbox` and `.Combobox` variants, `Ui.Menu` and `Ui.Modal` are all
 built that way. C# hears the browser's own dismissal through `OnToggle`, which is what lets a control
 keep `aria-expanded` truthful rather than drifting the moment Escape is pressed.
 
@@ -205,16 +205,22 @@ which is what loads it.
 
 ## Menus
 
-An element with `role="menu"` is a focused list with a cursor inside it (`aria-activedescendant`), and the
-runtime treats it like one: the arrows, Home/End, Page keys and Space are contained so they move the cursor
-rather than scrolling the page, and Enter or Space press the row the cursor names — its own click handler, link
-or checkbox runs exactly as a pointer would run it. ArrowDown or ArrowUp on a closed `aria-haspopup="menu"`
-button opens it; a pick closes the popover the menu sits in unless the row or the menu carries
-`data-rask-keep-open`; Tab out of an open menu closes it. Escape is the browser's, and hands focus back to the
-trigger. Rask UI's `Ui.Dropdown` builds on this, with `menuitem`, `menuitemcheckbox` and `menuitemradio` rows. `Ui.ContextMenu` is the
-same menu opened by a right-click: the runtime shows its popover at the pointer (`data-rask-contextmenu`), the
-ContextMenu key and Shift+F10 open it at the focused element, and focus goes back where it was when it closes —
-so give its target something focusable, or a keyboard user has no way in. `Ui.Command`, the command palette,
+An element with `role="menu"` is a list with a cursor inside it, and the cursor is where FOCUS is: the row the
+cursor is on carries `data-active` and `tabindex="0"`, and the runtime moves focus to it whenever a render moves
+the attribute — roving focus, as Flux UI's menus have it, so a screen reader follows the arrow keys row by row.
+The runtime treats a menu like one: the arrows, Home/End, Page keys and Space are contained so they move the
+cursor rather than scrolling the page, and Enter or Space press the row that has focus — its own click handler,
+link or checkbox runs exactly as a pointer would run it. ArrowDown on the closed button that opens a menu (an invoker with `aria-haspopup` whose popover is, or
+holds, a `role="menu"`) opens it onto its first row; a pick closes the popover the menu sits in unless the row, or something around it,
+carries `data-rask-keep-open`; Tab out of an open menu closes it; a click outside closes it and focus is handed
+back to the trigger. Escape is the browser's, and hands focus back too. Rask UI's `Ui.Menu` — what a
+`Ui.Dropdown` opens — builds on this, with `menuitem`, `menuitemcheckbox` and `menuitemradio` rows and Flux's
+keyboard: the arrows stop at the ends and step over disabled rows, a letter jumps to the row starting with it,
+ArrowRight or Enter opens a submenu and ArrowLeft closes it. A `Ui.Navmenu` is not a menu: it is a `<nav>` of
+links, reached with Tab. `Ui.Context` is the same menu opened by a right-click: the runtime shows its popover at
+the pointer (`data-rask-contextmenu`), the ContextMenu key and Shift+F10 open it at the focused element, the
+menu takes focus as it opens, and focus goes back where it was when it closes —
+so give its area something focusable, or a keyboard user has no way in. `Ui.Command`, the command palette,
 is the combobox pattern instead: focus stays in its search box, the commands are the `option`s of the `listbox` it
 controls, the highlighted one is `aria-activedescendant` and says `aria-selected="true"`, and Enter presses it.
 

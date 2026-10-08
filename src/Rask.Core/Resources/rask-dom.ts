@@ -880,16 +880,23 @@ export function applyFrameInvokes(
 })();
 
 // ----- Menus (role="menu") -----------------------------------------------
-// A menu is one focused element with a cursor inside it (aria-activedescendant), like the tree below, so its
-// navigation keys move the cursor rather than scrolling: the C# handler still receives every one — this only
-// prevents the default. What C# cannot do is press a row or move focus, so the rest lives here:
-//   * Enter / Space press the row the cursor is on, so its own click handler, its link, or its checkbox runs
-//     exactly as a pointer would run it;
-//   * ArrowDown / ArrowUp on a closed menu button open it;
-//   * a pick closes the popover the menu sits in — unless the row, or the menu, says data-rask-keep-open, or the
-//     row opens a submenu;
-//   * Tab out of an open menu closes it, the way a menu is left.
+// A menu's keyboard cursor is C#'s: its key handler decides which row the cursor is on and a render writes
+// `data-active` on that row. What C# cannot do is move focus, press a row or close a popover, so the rest lives
+// here:
+//   * FOCUS FOLLOWS THE CURSOR — the row that gains `data-active` is focused, so a screen reader follows the
+//     arrow keys row by row (roving focus, as Flux UI's menus have it);
+//   * the navigation keys move the cursor rather than scrolling the page behind it: the C# handler still receives
+//     every one — this only prevents the default;
+//   * Enter / Space press the row that has focus, so its own click handler, its link, or its checkbox runs
+//     exactly as a pointer would run it — except on a submenu's row, where each key means something different
+//     and C# answers them;
+//   * ArrowDown on a closed menu button opens it with the cursor on the first row;
+//   * a pick closes the popover the menu sits in — unless the row, or something around it, says
+//     data-rask-keep-open, or the row opens a submenu;
+//   * Tab out of an open menu closes it, the way a menu is left;
+//   * a click outside closes it (the browser's) and focus goes back to its trigger (ours).
 // Escape is not touched: closing the popover on Escape is the browser's, and it hands focus back to the trigger.
+// A menu that names its row with aria-activedescendant instead of focusing it is pressed the same way.
 (function () {
     if (typeof document === "undefined" || typeof document.addEventListener !== "function") {
         return;
@@ -897,6 +904,21 @@ export function applyFrameInvokes(
 
     const CONTAIN = [" ", "Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"];
     const ITEM = "[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio]";
+
+    // A row that opens a submenu: it says so (aria-haspopup="menu"), or — as Flux UI's rows do, which carry no
+    // ARIA of their own — the menu it opens is the element right after it.
+    function opensSubmenu(row: Element): boolean {
+        const next = row.nextElementSibling;
+        return row.getAttribute("aria-haspopup") === "menu" || (!!next && next.getAttribute("role") === "menu");
+    }
+
+    // The menu a key belongs to: the element itself, or the menu around the row that has focus.
+    function menuOf(t: HTMLElement): Element | null {
+        if (t.getAttribute("role") === "menu") {
+            return t;
+        }
+        return t.matches(ITEM) ? t.closest("[role=menu]") : null;
+    }
 
     document.addEventListener("keydown", function (e) {
         if (e.ctrlKey || e.altKey || e.metaKey) {
@@ -907,29 +929,42 @@ export function applyFrameInvokes(
             return;
         }
 
-        if (t.getAttribute("role") === "menu" && CONTAIN.indexOf(e.key) >= 0) {
+        const menu = menuOf(t);
+        if (menu && CONTAIN.indexOf(e.key) >= 0) {
             e.preventDefault();
             if (e.key === "Enter" || e.key === " ") {
-                const id = t.getAttribute("aria-activedescendant");
-                const row = id ? document.getElementById(id) : null;
-                if (row && t.contains(row) && row.getAttribute("aria-disabled") !== "true") {
+                const id = menu.getAttribute("aria-activedescendant");
+                const row = t !== menu ? t : (id ? document.getElementById(id) : null);
+                if (row && menu.contains(row) && row.getAttribute("aria-disabled") !== "true"
+                    && !opensSubmenu(row)) {
                     row.click();
                 }
             }
             return;
         }
 
-        if ((e.key === "ArrowDown" || e.key === "ArrowUp")
-            && t.getAttribute("aria-haspopup") === "menu" && t.hasAttribute("popovertarget")
+        // A menu button is the invoker of a popover that is, or holds, a menu. Flux UI says aria-haspopup="true"
+        // on it whatever it opens, so the attribute's value does not tell; the panel does.
+        if (e.key === "ArrowDown"
+            && t.hasAttribute("aria-haspopup") && t.hasAttribute("popovertarget")
             && t.getAttribute("aria-expanded") !== "true") {
+            const panel = document.getElementById(t.getAttribute("popovertarget") || "");
+            const opened = panel && (panel.getAttribute("role") === "menu" ? panel : panel.querySelector("[role=menu]"));
+            if (!opened) {
+                return;
+            }
             e.preventDefault();
             t.click();
+            // The same key, handed to the menu it just opened: its handler puts the cursor on the first row.
+            if (typeof KeyboardEvent === "function") {
+                opened.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowDown", bubbles: true}));
+            }
         }
     }, true);
 
     document.addEventListener("click", function (e) {
         const row = e.target instanceof Element ? e.target.closest(ITEM) : null;
-        if (!row || row.getAttribute("aria-haspopup") === "menu" || row.getAttribute("aria-disabled") === "true"
+        if (!row || opensSubmenu(row) || row.getAttribute("aria-disabled") === "true"
             || row.closest("[data-rask-keep-open]")) {
             return;
         }
@@ -949,17 +984,17 @@ export function applyFrameInvokes(
     });
 
     document.addEventListener("focusout", function (e) {
-        const menu = e.target instanceof Element && e.target.getAttribute("role") === "menu" ? e.target : null;
+        const from = e.target instanceof HTMLElement ? menuOf(e.target) : null;
         const next = e.relatedTarget;
-        if (!menu || !(next instanceof Element)) {
+        if (!from || !(next instanceof Element)) {
             return;
         }
-        const panel = menu.closest("[popover]") as (HTMLElement & { hidePopover?: () => void }) | null;
+        const panel = from.closest("[popover]") as (HTMLElement & { hidePopover?: () => void }) | null;
         if (!panel || panel.contains(next) || typeof panel.hidePopover !== "function") {
             return;
         }
         // Focus went somewhere a Tab took it: leaving the menu closes it. The trigger itself is left alone — the
-        // click on it is already toggling the popover.
+        // click on it is already toggling the popover, and Shift+Tab back to it leaves the menu open, as Flux does.
         if (next.getAttribute("popovertarget") === panel.id) {
             return;
         }
@@ -969,6 +1004,46 @@ export function applyFrameInvokes(
             // already gone
         }
     });
+
+    // The browser hands focus back to the trigger when Escape closes a popover, and not when a click outside
+    // does: that leaves it on the page, and a keyboard user back at the top. So a popover that closes with focus
+    // nowhere hands it to the button that opens it. `toggle` does not bubble; it is caught on the way down.
+    document.addEventListener("toggle", function (e) {
+        const panel = e.target;
+        if (!(panel instanceof HTMLElement) || !panel.id || (e as ToggleEvent).newState !== "closed"
+            || (document.activeElement && document.activeElement !== document.body)) {
+            return;
+        }
+        const invokers = document.querySelectorAll<HTMLElement>("[popovertarget][aria-haspopup]");
+        for (let i = 0; i < invokers.length; i++) {
+            if (invokers[i].getAttribute("popovertarget") === panel.id) {
+                invokers[i].focus();
+                return;
+            }
+        }
+    }, true);
+
+    if (typeof MutationObserver !== "function") {
+        return;
+    }
+
+    // Focus follows the cursor. Only inside an open menu, so a render of a closed one cannot steal focus.
+    new MutationObserver(function (records) {
+        for (const record of records) {
+            const row = record.target;
+            if (!(row instanceof HTMLElement) || !row.hasAttribute("data-active") || !row.matches(ITEM)) {
+                continue;
+            }
+            const panel = row.closest("[popover]");
+            try {
+                if (panel && panel.matches(":popover-open") && document.activeElement !== row) {
+                    row.focus();
+                }
+            } catch (err) {
+                // an engine without the popover API
+            }
+        }
+    }).observe(document.documentElement, {subtree: true, attributes: true, attributeFilter: ["data-active"]});
 })();
 
 // A tree is one focusable element with a cursor inside it, so the navigation keys mean "move the cursor",
@@ -1244,7 +1319,7 @@ export function applyFrameInvokes(
 // pointer at once: a round trip before the menu shows is a lag the reader feels on every right-click, and a page
 // that has not booted yet would get the browser's menu instead.
 //
-// The position goes on <html> as --rask-context-x / --rask-context-y, which the panel's own style reads. Not on
+// The position is --rask-context-x / --rask-context-y on the root, which the panel's own style reads. Not on
 // the panel: a render rewrites the panel's style attribute, and the cursor moving is a render. Only one menu is
 // open at a time — an auto popover closes the others — so one pair is enough.
 //
@@ -1301,24 +1376,50 @@ export function applyFrameInvokes(
         open(panel, x, y);
     });
 
+    // Where the pointer was, for the panel's style to read. In a sheet of the runtime's own, not in <html>'s
+    // style attribute: a render that morphs the document root — the WASM host taking over a prerendered page on
+    // this very right-click — strips an attribute no render wrote, and the open menu would jump to the corner.
+    let sheet: CSSStyleSheet | null = null;
+
+    function place(x: number, y: number): void {
+        const doc = document as Document & { adoptedStyleSheets?: CSSStyleSheet[] };
+        if (!sheet && doc.adoptedStyleSheets && typeof CSSStyleSheet === "function") {
+            try {
+                sheet = new CSSStyleSheet();
+                doc.adoptedStyleSheets = doc.adoptedStyleSheets.concat(sheet);
+            } catch (err) {
+                sheet = null; // no constructable stylesheets here: the inline path below
+            }
+        }
+        if (sheet) {
+            sheet.replaceSync(":root{--rask-context-x:" + x + "px;--rask-context-y:" + y + "px}");
+            return;
+        }
+        document.documentElement.style.setProperty("--rask-context-x", x + "px");
+        document.documentElement.style.setProperty("--rask-context-y", y + "px");
+    }
+
     function open(panel: HTMLElement & { showPopover?: () => void; hidePopover?: () => void }, x: number, y: number): void {
-        const vars = document.documentElement.style;
         try {
             if (panel.matches(":popover-open")) {
                 panel.hidePopover!(); // open again at the new point, not where it was
             }
-            vars.setProperty("--rask-context-x", x + "px");
-            vars.setProperty("--rask-context-y", y + "px");
+            place(x, y);
             panel.showPopover!();
         } catch (err) {
             return; // not connected, or mid-transition
         }
 
+        // Which corner of the menu sits on the pointer is the panel's own style, so it is pulled back by where it
+        // landed rather than by where it was asked to go.
         const menu = panel.getBoundingClientRect();
-        const fitX = Math.max(EDGE, Math.min(x, window.innerWidth - menu.width - EDGE));
-        const fitY = y + menu.height > window.innerHeight - EDGE ? Math.max(EDGE, y - menu.height) : y;
-        vars.setProperty("--rask-context-x", fitX + "px");
-        vars.setProperty("--rask-context-y", fitY + "px");
+        let fitX = x;
+        if (menu.left < EDGE) fitX += EDGE - menu.left;
+        else if (menu.right > window.innerWidth - EDGE) fitX += window.innerWidth - EDGE - menu.right;
+        let fitY = y;
+        if (menu.bottom > window.innerHeight - EDGE) fitY += window.innerHeight - EDGE - menu.bottom;
+        else if (menu.top < EDGE) fitY += EDGE - menu.top;
+        place(fitX, fitY);
     }
 })();
 

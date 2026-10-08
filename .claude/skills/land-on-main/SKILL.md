@@ -65,11 +65,11 @@ git push origin HEAD:main
   (`-f set=all` to reach a release-only gate).
 - **A push is gated by a SCOPED run.** `ci.yml` runs the gates the change reaches; a change to the CI
   itself, a script, or the package pins runs everything. The CLI build and template gates run on a push
-  only when the CLI, a template or a project/props/targets file changed — otherwise the hourly `full.yml`
+  only when the CLI, a template or a project/props/targets file changed — otherwise `full.yml`, behind the push,
   runs them.
 - **A red `main` publishes nothing, and neither does a scoped green.** `nightly.yml` and `pages.yml` run
-  only from a commit `full.yml` passed, so a site or package change is live within the hour, once the
-  whole run is green. `gh workflow run full.yml` starts one now.
+  only from a commit `full.yml` passed: it runs behind every push, so a site change is live about twenty
+  minutes later and a package on `nightly.yml`'s next hourly run.
 
 If the push is rejected as non-fast-forward, someone landed first: `git fetch origin main` and redo
 step 2 — never `--force` `main`.

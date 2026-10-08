@@ -1,8 +1,8 @@
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     The kit's form controls: Flux UI's input, textarea, calendar, date picker and time picker, example by
-///     example, then the controls that are still daisyUI's until each is rebuilt.
+///     The kit's form controls: Flux UI's input, textarea, checkbox, radio, switch, calendar, date picker and time
+///     picker, example by example, then the controls that are still daisyUI's until each is rebuilt.
 /// </summary>
 public sealed partial class UiKitDataInputDemo : Component
 {
@@ -10,14 +10,8 @@ public sealed partial class UiKitDataInputDemo : Component
     private string _notes = "";
     private string _code = "";
     private string? _tag;
-    private bool _remember = true;
-    private bool _alerts;
-    private string _shipping = "standard";
     private string _search = "Jack Skellington";
     private int _palette;
-    private string _plan = "pro";
-    private string _density = "cosy";
-    private List<string> _topics = ["releases"];
     private double _volume = 40;
     private int _stars = 4;
     private readonly List<string> _dropped = [];
@@ -36,8 +30,9 @@ public sealed partial class UiKitDataInputDemo : Component
         AutocompleteSection(),
         PillboxSection(),
         PillboxComboboxSection(),
-        ChoiceListsSection(),
-        ChoicesSection(),
+        CheckboxSection(),
+        RadioSection(),
+        SwitchSection(),
         RangeRatingSection(),
         OneTimeCodeSection(),
         FilterSection(),
@@ -146,65 +141,6 @@ public sealed partial class UiKitDataInputDemo : Component
                 ]
             ]);
 
-    private Component ChoiceListsSection() =>
-        Section(
-            "Choice lists — a whole set as one field",
-            "A radio group binds the GROUP's value and a checkbox group binds the collection your model "
-            + "declares, so each is one field rather than one per option. Layout is Flux's set of looks: a "
-            + "list, cards with room for a description, pills, buttons, or one segmented strip. Every one of "
-            + "them keeps a real input inside its label — a card and a pill look like buttons, and a button "
-            + "is the one thing a choice must not be, because the grouping, the arrow keys, the space bar "
-            + "and the form post all come from the input being there.",
-            Div.Data(Testid("ui-choice-lists")).Class("grid gap-5 lg:grid-cols-2")[
-                Ui.RadioGroup.Value(_plan).Key("plan")
-                    .Options([("free", "Free"), ("pro", "Pro"), ("team", "Team")])
-                    .Label("Plan")
-                    .Layout(Ui.ChoiceLayout.Cards)
-                    .OptionDescription(v => v switch
-                    {
-                        "pro" => "Everything, billed monthly.",
-                        "team" => "Seats, roles and shared billing.",
-                        _ => "For trying it out."
-                    })
-                    .OnChange(v => { _plan = v; }),
-                Div.Class("flex flex-col gap-5")[
-                    Ui.RadioGroup.Value(_density).Key("density")
-                        .Options([("cosy", "Cosy"), ("compact", "Compact")])
-                        .Label("Density")
-                        .Layout(Ui.ChoiceLayout.Segmented)
-                        .OnChange(v => { _density = v; }),
-                    Ui.CheckboxGroup.Values(_topics).Key("topics")
-                        .Options([("news", "News"), ("releases", "Releases"), ("jobs", "Jobs")])
-                        .Label("Email me about")
-                        .Layout(Ui.ChoiceLayout.Pills)
-                        .CheckAll()
-                        .OnChange(v => { _topics = [.. v]; }),
-                    P.Class("text-sm text-ui-muted").Data(Testid("ui-choice-state"))[
-                        _topics.Count == 0
-                            ? $"{_plan}, {_density}, nothing subscribed."
-                            : $"{_plan}, {_density}, {string.Join(", ", _topics)}."
-                    ]
-                ]
-            ]);
-
-    private Component ChoicesSection() =>
-        Section(
-            "Choices",
-            "The words are part of the hit target: on a phone a 16px box on its own is the difference "
-            + "between a control and a dare.",
-            Div.Data(Testid("ui-choices")).Class("flex flex-wrap items-center gap-4")[
-                Ui.Checkbox.Value(_remember).Key("remember").Primary
-                    .OnChange(v => { _remember = v; })["Remember me"],
-                Ui.Toggle.Value(_alerts).Key("alerts").Success
-                    .OnChange(v => { _alerts = v; })["Email alerts"],
-                // A radio binds its OWN checked state, so it only ever reports true — choosing one
-                // fires nothing on the option it deselected. The group's value belongs to the group.
-                Ui.Radio.Value(_shipping is "standard").Key("std").Text("Standard").Group("shipping")
-                    .OnChange(_ => { _shipping = "standard"; }),
-                Ui.Radio.Value(_shipping is "express").Key("exp").Text("Express").Group("shipping")
-                    .OnChange(_ => { _shipping = "express"; })
-            ]);
-
     private Component RangeRatingSection() =>
         Section(
             "Range and rating",
@@ -286,7 +222,7 @@ public sealed partial class UiKitDataInputDemo : Component
                         Ui.Input.Bind(() => _signup.Seats).Label("Seats")
                     ],
                     Div.Class("mt-3 flex flex-wrap items-center gap-4")[
-                        Ui.Checkbox.Bind(() => _signup.Agreed)["I agree to the terms"],
+                        Ui.Checkbox.Bind(() => _signup.Agreed).Label("I agree to the terms"),
                         Ui.Rating.Bind(() => _signup.Score).Group("bound-score").Label("Rate this").Max(5)
                     ]
                 ],

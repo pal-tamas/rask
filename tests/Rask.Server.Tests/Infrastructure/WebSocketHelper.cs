@@ -85,8 +85,20 @@ internal static class WebSocketHelper
             return (frames, null, null);
         }
 
-        await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
-        return (frames, ws.CloseStatus, ws.CloseStatusDescription);
+        // Read before the answer: what the server said is settled the moment its close arrived.
+        var (status, reason) = (ws.CloseStatus, ws.CloseStatusDescription);
+        try
+        {
+            await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
+        {
+            // The server did not wait for the answer. Its receive loop reads only while the socket is Open,
+            // so a close that lands between two frames ends the loop, and the connection, with the answer
+            // still on its way. The close the server SENT is what a caller asserts on, and it arrived.
+        }
+
+        return (frames, status, reason);
     }
 
     /// <summary>

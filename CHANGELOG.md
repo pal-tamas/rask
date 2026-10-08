@@ -65,6 +65,12 @@ them until tagged releases begin.
     holds the page still (`data-rask-lock`); an arrow on the closed date button opens it, and Enter on the closed
     time button does nothing. A picker with no label, id or binding gets an id of its own (`f-field-<n>`).
 
+- **CI: the whole run follows every push, and every push to `main` gets its own run.** `full.yml` runs
+  behind each push — one run at a time, the newest push waiting, fourteen jobs at once so a push's scoped
+  run still finds runners — and hourly as the backstop, so `pages.yml` deploys a site change minutes
+  after its push instead of within the hour. `nightly.yml` is on its own hourly clock and packs the
+  newest commit the whole run passed, once, so nuget.org gets no more versions than before. `ci.yml` no
+  longer holds a push behind the run of the one before it.
 - **CI: the browser gates, the scoped format job and the Pages publish are shorter.** The five browser
   gates and `pages.yml` build without the analyzers — the `build` job is the one that holds the source to
   them — which took the site publish from 375 s to 270 s on a runner. A scoped `format` job builds the
@@ -204,6 +210,29 @@ them until tagged releases begin.
   reports a scroll-snapping track's position to its arrows and indicators. Invoker commands
   (`command="show-modal"`) work in engines without them, and Enter toggles a `role="switch"` checkbox. An
   attribute a hook writes is held against the morph. The runtime grows by 23.5 kB (6.8 kB gzipped).
+- **`Ui.Editor` — Flux's rich text editor.** A toolbar over an editable area whose value is HTML, drawn and
+  behaving as [Flux's](https://fluxui.dev/components/editor) does: `Ui.Editor.Bind(() => post.Body)
+  .Label("Release notes")`, or `Value` with `OnChange`; `Placeholder`, `Disabled`, `Invalid`, and
+  `Toolbar("heading | bold italic underline | align ~ undo redo")` over the sixteen items Flux documents
+  (heading, bold, italic, strike, underline, bullet, ordered, blockquote, subscript, superscript, highlight,
+  link, code, align, undo, redo). Each item is a part too (`Ui.EditorBold` … `Ui.EditorSeparator`,
+  `Ui.EditorSpacer`), beside `Ui.EditorToolbar`, `Ui.EditorContent` and `Ui.EditorButton` for a button of
+  the app's own, so a toolbar can be composed. Shortcuts and Markdown input rules are Tiptap's. The engine
+  is Tiptap 2.11.7 on ProseMirror (MIT), bundled into one script that is **not** in Rask's runtime or the
+  kit's assembly: an app's build writes `wwwroot/js/rask-ui-editor.js` (374 KB, 117 KB gzipped) with no
+  setting asked for, as Flux's editor asks for none, and the browser fetches it the first time an editor
+  mounts — on a Server app and a browser-WASM app alike — so a page without an editor never requests it
+  (`<RaskUiEditorEngine>false</RaskUiEditorEngine>` keeps the file out of an app that will never draw one). The editable area is an opaque subtree, so
+  a re-render never touches what is being typed. The value is the user's HTML and is written into the
+  page as given: sanitize it before storing or rendering it (`docs/ui-kit.md#rich-text-editor`).
+  `scripts/flux/parity-editor.mjs` holds the editor in use to Flux's live one, observation for observation.
+  With it, `Ui.Tooltip`'s wrapper takes its `inline-flex` from the kit's sheet instead of its class list, as
+  Flux's does (a toolbar's tooltips are `contents`), so a display written in `Class` wins; a button's own
+  `Tooltip` still writes `inline-flex`. An editor whose engine cannot be loaded keeps its value as plain
+  markup, leaves the page live on a Server app too, and names the missing file in the browser's console. The
+  notices of what it draws on — Tiptap and ProseMirror (MIT), and Lucide 0.300.0 (ISC) for eleven toolbar
+  icons — are `rask-ui-editor.LICENSES.txt`, in the package and written beside the script in `wwwroot/js`.
+
 - **Inline style as typed CSS.** `Css` has a step for every CSS property browsers ship — 455, generated
   from MDN's data (`@webref/css` for the grammars, browser-compat-data for what two engines ship) —
   and `Style` takes one wherever it takes text: `Div.Style(Css.Position().Sticky.Top(0.Px))`. A
@@ -407,6 +436,57 @@ them until tagged releases begin.
   fluxui.dev — the popup's look and placement on the parity page, and `--live <url>` walks the keyboard on a
   running site. RASK075 (an option template on a native select) is retired with its analyzer: there is no
   `OptionTemplate` or `Native` left to contradict each other, and the id is not recycled.
+- **BREAKING: `Ui.Checkbox`, `Ui.Radio` and `Ui.Switch` are Flux's; `Ui.Toggle` is `Ui.Switch`.** Flux UI's
+  `flux:checkbox` (+ `.group`, `.all`, `.indicator`), `flux:radio.group` / `flux:radio` / `flux:radio.indicator`
+  and `flux:switch`: the same parts, props, look and `data-ui-*` markers, over Rask's binding. A checkbox or a
+  switch binds a `bool` (a checkbox a `bool?` too: `null` draws the dash); a radio group binds one value of any
+  type and a checkbox group the collection your model declares. **The choices are the group's children**, as in
+  Flux, not an `Options` list — each `Ui.Radio` / `Ui.Checkbox` carries the `Value` the group binds, with its own
+  `Label`, `Description`, `Icon` and `Disabled`. The group's variant draws them as cards, pills, buttons or (a
+  radio group) one segmented strip; `Ui.CheckboxAll` ticks or clears a group; `Ui.CheckboxIndicator` and
+  `Ui.RadioIndicator` place the box or the dot in a card laid out by hand. Every one is a `<label>` around a real
+  input that is out of sight, so the space bar, a radio group's arrow keys and the form post are the browser's:
+  ```csharp
+  Ui.Checkbox.Bind(() => m.Agreed)["I agree"]                                                    // was
+  Ui.Checkbox.Bind(() => m.Agreed).Label("I agree")                                              // now
+
+  Ui.Checkbox.Value(on).OnChange(v => on = v)["Remember me"]                                     // was
+  Ui.Checkbox.Checked(on).OnChange(v => on = v).Label("Remember me")                             // now
+
+  Ui.Toggle.Value(on).Size(Ui.Size.Sm).OnChange(v => on = v)["Email alerts"]                     // was
+  Ui.Switch.Value(on).OnChange(v => on = v).Label("Email alerts").Left                           // now
+
+  Ui.RadioGroup.Bind(() => m.Plan).Options([("free", "Free"), ("pro", "Pro")]).Label("Plan")     // was
+      .Layout(Ui.ChoiceLayout.Cards).OptionDescription(v => v == "pro" ? "Billed monthly" : null)
+  Ui.RadioGroup.Bind(() => m.Plan).Label("Plan").Cards[                                          // now
+      Ui.Radio.Value("free").Label("Free"),
+      Ui.Radio.Value("pro").Label("Pro").Description("Billed monthly")
+  ]
+
+  Ui.CheckboxGroup.Bind(() => m.Topics).Options(topics).Label("Email me about").CheckAll()       // was
+  Ui.CheckboxGroup.Bind(() => m.Topics).Label("Email me about")[                                 // now
+      Ui.CheckboxAll.Label("Everything"),
+      Ui.Checkbox.Value("news").Label("News"),
+      Ui.Checkbox.Value("jobs").Label("Jobs")
+  ]
+
+  Ui.Radio.Value(shipping is "express").Text("Express").Group("shipping").OnChange(…)            // was
+  Ui.RadioGroup.Value(shipping).OnChange(v => shipping = v)[Ui.Radio.Value("express").Label("Express"), …]   // now
+  ```
+  `Ui.ChoiceLayout` is `Ui.RadioGroupVariant` / `Ui.CheckboxGroupVariant` (`List` → `Default`), reached as the
+  steps `.Cards`, `.Pills`, `.Buttons`, `.Segmented`; `Ui.RadioGroup` gains `Size` (`.Sm`) and
+  `Indicator(false)`, a checkbox `Indeterminate()` and `Invalid()`, a switch `Align` (`.Left`). On a checkbox
+  `Value` is now the value it stands for in a group and `Checked` its state. Removed with no replacement: `Tone`
+  and `Size` on the checkbox, radio and switch, a radio bound to its own `bool`, `OptionDisabled` (say
+  `Disabled()` on the choice), `CheckAllLabel` (say `Label` on `Ui.CheckboxAll`), and the groups' `Hint`,
+  `Error`, `Badge`, `AccessibleLabel` and floating label. `Id` on a checkbox, radio or switch lands on the
+  `<input>`, which is no longer the element a pointer hits: a browser test presses the label
+  (`label:has(> #id)`). A switch's input says `role="switch"`, and the runtime flips it on Enter as Flux's
+  does. What Flux forwards to the control goes through `Attributes` on a checkbox, radio or switch
+  (`.Attributes(("name", "role"))`, `("aria-label", "Select row")`) and lands on the `<input>`; there is no
+  `Name` step, and a radio group names its radios after its own id. ARIA is Flux's, read from its live page: an
+  indeterminate checkbox is marked `data-indeterminate` and says nothing more (no `aria-checked="mixed"`).
+  A control with no id, binding or label gets an id of its own (`f-field-<n>`), as the input does.
 - **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
   `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
   `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the
@@ -659,6 +739,82 @@ them until tagged releases begin.
   **A screen reader now says it**: the trigger carries `aria-describedby` (or `aria-labelledby`, when it
   has no text of its own), which the daisyUI tooltip never wrote. `docs/ui-kit.md#tooltips` lists the four
   things Flux's script does that a script-less tooltip does not, and the runtime hook that would close them.
+- **BREAKING: `Ui.Dropdown`, `Ui.Menu` and `Ui.Context` are Flux's — the same parts, props, look and
+  keyboard.** A dropdown is no longer a labelled button with rows inside it: it is Flux's shape, a trigger
+  and the menu it opens, and a row's words are its children.
+  ```csharp
+  Ui.Dropdown.Trigger("Actions").Position(Ui.Position.Top).Align(Ui.Align.End)[
+      Ui.MenuItem.Text("Edit").Icon(Ui.IconName.PencilSquare).Kbd("⌘E").OnClick(Edit),
+      Ui.MenuSub.Title("Sort by")[
+          Ui.MenuRadioGroup.Bind(() => view.Sort).Options([("name", "Name"), ("date", "Date")])
+      ],
+      Ui.MenuCheckbox.Bind(() => view.Archived).Text("Show archived"),
+      Ui.MenuGroup.Title("Danger")[Ui.MenuItem.Text("Delete").Tone(Ui.Tone.Error).OnClick(Delete)]
+  ]   // was
+
+  Ui.Dropdown.Top.End[
+      Ui.Button["Actions"],
+      Ui.Menu[
+          Ui.MenuItem.Icon(Ui.IconName.PencilSquare).Kbd("⌘E").OnClick(Edit)["Edit"],
+          Ui.MenuSubmenu.Heading("Sort by")[
+              Ui.MenuRadioGroup.Bind(() => view.Sort)[
+                  Ui.MenuRadio.Value("name")["Name"],
+                  Ui.MenuRadio.Value("date")["Date"]
+              ]
+          ],
+          Ui.MenuCheckbox.Bind(() => view.Archived)["Show archived"],
+          Ui.MenuGroup.Heading("Danger")[Ui.MenuItem.Danger.OnClick(Delete)["Delete"]]
+      ]
+  ]   // now
+  ```
+  - **The trigger is yours.** `Trigger("…")`, `Icon` and `IconTrailing` on the dropdown are gone: the first
+    child is the button — a `Button`, a `Ui.Button` — and the dropdown adds `popovertarget`,
+    `aria-haspopup="true"` (Flux's value, whatever it opens), `aria-expanded` and `aria-controls` to it. `Position` and `Align` are `Ui.DropdownPosition` (Bottom, Top,
+    Right, Left) and `Ui.DropdownAlign` (Start, Center, End), each member a chain step. An unwritten `Gap` is
+    5px, as Flux's page draws it.
+  - **Renamed, to Flux's parts:** `Ui.MenuSub.Title(…)` → `Ui.MenuSubmenu.Heading(…)`; `Ui.MenuGroup.Title(…)`
+    → `.Heading(…)`; `Ui.MenuItem.Text("x")` → `Ui.MenuItem["x"]`; `.Tone(Ui.Tone.Error)` → `.Danger`
+    (`Ui.MenuItemVariant`); `Ui.MenuCheckbox.Text("x")` → `Ui.MenuCheckbox[…]`;
+    `Ui.MenuRadioGroup.Options([...])` → `Ui.MenuRadio.Value(v)["…"]` children;
+    `Ui.ContextMenu.Target(area)[rows]` → `Ui.Context[area, Ui.Menu[rows]]` (its `Target` is now Flux's: the
+    id of a menu written elsewhere).
+  - **New, from Flux:** `Ui.MenuItem.Suffix` and `.IconVariant`, `Ui.MenuRadio` (with `Checked` for one
+    outside a group), `Ui.MenuCheckboxGroup`, `Ui.Navmenu` and `Ui.NavmenuItem` (a dropdown of links, with no
+    menu roles), and on `Ui.Context`: `Position`, `Gap`, `Offset`, `Target`, `Detail`, `Disabled`.
+  - **Markers and ARIA are Flux's, attribute for attribute.** A submenu's row is a bare `menuitem` — no
+    `aria-haspopup`, `aria-expanded` or `aria-controls` — and its flyout a `role="menu"` with no name and no
+    id; a row's leading icon and a checkbox's or radio's mark carry `data-ui-menu-item-icon`; a separator is
+    `data-ui-menu-separator` around a `data-ui-separator` line. The runtime tells a submenu's row by the
+    `role="menu"` right after it, and a menu button by the menu its popover holds.
+  - **The keyboard is Flux's, key for key, and it changed.** The menu opens with focus on it and no row
+    chosen (it used to start on the first row); the arrows **stop** at the ends (they wrapped); Home, End and
+    the page keys do nothing (they jumped); Enter on a submenu's row opens it onto its first row and Space
+    opens it in place; ArrowDown on the closed trigger opens the menu onto its first row, and ArrowUp no
+    longer opens it. The row under the cursor now has **focus** — roving focus, with `tabindex="0"` and
+    `data-active` — where the menu used to name it with `aria-activedescendant` and mark it
+    `data-highlighted`; restyle from `data-active`.
+  - **A checkbox row closes the menu** when picked, like any other row; it used to keep it open. Put
+    `KeepOpen` on the menu, a submenu, a radio group or the row for the menu someone ticks several of.
+  - **Behind an open menu the page does not scroll and does not take the pointer**, so a click outside only
+    closes the menu, and focus goes back to the trigger afterwards. A context menu lands where Flux's does:
+    below the pointer, the menu's end edge on it.
+  - **Removed:** `Ui.Megamenu` and `Ui.MegamenuPanel` (daisyUI's; Flux has none — a `Ui.Dropdown` with a
+    `Ui.Navmenu` is the menu of links), `Ui.OpenOn` and `Ui.Dropdown.OpenOn` (daisyUI's hover dropdown),
+    daisyUI's list `Ui.Menu.Horizontal`/`.Size` and `Ui.MenuItem.Active` (use `Ui.NavList` with
+    `Ui.NavItem`s for a list of links), `Ui.MenuRadioGroup.Title`/`.OptionDisabled` (a `Ui.MenuGroup.Heading`
+    and `Ui.MenuRadio.Disabled`), and the public base classes `UiMenuSurface` and `UiMenuButton`
+    (`Ui.Profile` keeps its `Position`/`Align`/`Gap`/`Offset`/`Open`/`OnToggle`/`KeepOpen`, now typed
+    `Ui.DropdownPosition`/`Ui.DropdownAlign`). `Ui.Command` still takes `Ui.MenuItem`, `Ui.MenuGroup` and
+    `Ui.MenuSeparator` rows, written the new way.
+  - Runtime: a menu row that gains `data-active` inside an open popover is focused; Enter and Space press the
+    focused row; a popover that closes with focus nowhere hands it to the `[popovertarget][aria-haspopup]`
+    button that opens it; the context-menu hook fits the menu inside the viewport by where it landed, and keeps
+    the pointer's position in a stylesheet of its own (`:root{--rask-context-x/-y}`) rather than in `<html>`'s
+    style attribute, which the WASM host strips when it takes over a prerendered page — on the first
+    right-click, the menu opened in the corner.
+  - `scripts/flux/parity-menu.mjs` holds the OPEN menu to Flux's live page — placement against the trigger,
+    every row at rest, under a real pointer, pressed and under the cursor, a submenu's flyout, the page lock,
+    Escape and a click outside — beside `parity.mjs`, which compares the page as it loads.
 - **BREAKING: `Ui.Modal` is Flux's modal, flyouts included; `Ui.Drawer` folds into it.** Measured against
   [fluxui.dev/components/modal](https://fluxui.dev/components/modal) open as well as loaded
   (`scripts/flux/parity-modal.mjs`): the panel, the backdrop, the close button, the 150ms in and 75ms out,
@@ -837,6 +993,10 @@ them until tagged releases begin.
   "a magnifying glass"; Tailwind scans comments, daisyUI emits a component wherever its name is seen, and the rule
   rode the kit's class list into each app's stylesheet. `Rask.Ui.Tests` now fails on a daisyUI component that is in
   the class list with no string literal in the kit writing it.
+- **daisyUI's `.dropdown` is out of the kit's sheet too.** Nothing writes it since `Ui.Dropdown` is Flux's, but the
+  word stands in the kit's comments, so the plugin is told to leave the component out (`exclude: … dropdown`), as it
+  is for the tooltip. The guard above reads that line: an excluded component's classes left in the list are another
+  component's selectors (daisyUI's menu styles a `.dropdown` inside it).
 - **`MapRaskSpa`'s fallback answers only GET and HEAD.** It matched every verb, so a POST to a route that
   only answers GET was given the index document and a 200 where routing owed it a 405.
 - **One-time-code cells (`data-rask-otp`) no longer lose the selection, or a cell, to a late echo.** The page's
