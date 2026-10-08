@@ -306,13 +306,38 @@ styleEl.setAttribute("data-rask-managed", "");
 Some behaviour can be written neither as a render (which only writes attributes) nor as a handler (which runs a
 round trip later, after the gesture is gone): showing a popover under the pointer, writing the clipboard,
 keeping a caret in place. For those the runtime carries small generic hooks. An element asks for one by carrying
-an attribute; every hook is a delegated listener on the document, so a page that uses none of them pays for none.
+an attribute; every hook is a delegated listener on the document.
 [Rask UI](ui-kit.md) is built on them, and they are just as usable from your own markup:
 `Div.Data("rask-tooltip", "tip-1")[…]`.
 
 They live in `src/Rask.Core/Resources/rask-hooks.ts` (one module per concern) beside the older ones in
-`rask-dom.ts` — `data-rask-dismiss`, `data-rask-dismiss-after`, `data-rask-focus-trap`, `data-rask-popover-open`,
-`data-rask-dropzone`, `data-rask-shortcut`, `data-rask-contextmenu`.
+`rask-dom.ts` — `data-rask-dismiss`, `data-rask-dismiss-after`, `data-rask-dismiss-hold`, `data-rask-focus-trap`,
+`data-rask-popover-open`, `data-rask-dropzone`, `data-rask-shortcut`, `data-rask-contextmenu` — which are part
+of the runtime itself.
+
+### How the hooks load
+
+**A page that carries none of these attributes does not download them.** The hooks in the tables below are a
+script of their own, `rask-hooks.js` (37 kB, 12 kB gzipped), beside the runtime every page loads (`rask.js` on
+the Server host, `rask.wasm.js` in a WebAssembly app). The runtime keeps only the list of attributes that ask
+for a hook, and fetches the script the first time the page carries one — at most once per document:
+
+| The attribute is… | What the network tab shows |
+| --- | --- |
+| nowhere on the page | `rask.js` only. No request for the hooks, however long the page lives. |
+| in the page the **server rendered** | `rask.js` and `/rask/rask-hooks.js?v=…` side by side: the server writes the second `<script>` after the first in that response, so the hooks run straight after the runtime, as when they were one file. A dialog rendered open is a modal, and a remembered checkbox is restored, by the time the page has been read. |
+| added later, by a render or an in-app navigation | one request for `rask-hooks.js`, when the attribute arrives. What the reader did to the page in between — a hover, a key, a press — is kept and handed to the hooks when they run: the tooltip under the pointer shows, the character typed into a one-time code moves on. Only what fires per pixel (a drag in flight, a chart's cursor) picks up at the next move. |
+| in a **WebAssembly** app | `rask-hooks.js` from beside `rask.wasm.js`, requested when the runtime starts and finds one (a prerendered page usually has) or when a render adds one. |
+
+Nothing is asked of you: there is no tag to write and nothing to register. Both scripts are served with the same
+caching (one `?v=` names the pair on the Server host and both are immutable under it; a WebAssembly app serves
+`rask-hooks.js` as it serves `rask.wasm.js`, and its service worker keeps it for offline use once fetched), from
+your own origin, with the runtime's nonce when its `<script>` has one. Under a Content-Security-Policy the
+hooks need what the runtime already needs — `script-src 'self'`, or the nonce — and no inline script.
+
+Any element counts, whoever wrote it: your own markup, a `Raw` fragment, a node a script of yours inserted.
+Besides the `data-rask-*` names, four of the platform's own ask for a hook, because a hook improves them
+unasked: `popover`, `commandfor`, `aria-activedescendant` and `role="switch"` on a checkbox.
 
 ### Pointer-opened popovers
 
@@ -321,6 +346,7 @@ They live in `src/Rask.Core/Resources/rask-hooks.ts` (one module per concern) be
 | `data-rask-tooltip="<popover id>"` | the element wrapping a trigger and its `popover="manual"` bubble | Shows the bubble in the pointer's own task when it enters the wrapper and hides it when it leaves; shows it on keyboard focus (`:focus-visible`) and keeps it while that focus lasts; Escape hides it; a press on the trigger hides it until the pointer has left and come back. The element inside carrying `aria-expanded` has it kept true or false. Any element can be the trigger — the bubble reaches the top layer. A touch never hovers. |
 | `data-rask-hover="<popover id>"` | the element wrapping a trigger and its panel | Opens the panel while the pointer is over the wrapper (trigger or panel) and closes it over neither — the pixels between them included. A press on the trigger's own `popovertarget` button leaves it open; Enter opens it the platform's way; focus alone does not. |
 | `data-rask-hover-if="<selector>"` | the same element | The hover opens only while the element matches the selector — a rail item that opens its menu only while the sidebar is collapsed: `"input:checked ~ *"`. |
+| `aria-expanded` on the trigger inside a `data-rask-tooltip` | an interactive tooltip (one whose bubble holds links or buttons) | Mirrored while the bubble shows. It also marks the tooltip as interactive: when focus drops to nothing (`blur()`, the window losing focus) the bubble stays, until a press outside it. A tooltip without it closes. |
 
 ### Popovers, dialogs and the page behind them
 
@@ -354,6 +380,7 @@ They live in `src/Rask.Core/Resources/rask-hooks.ts` (one module per concern) be
 | `role="switch"` | an `<input type="checkbox">` | Enter toggles it, as Space does. |
 | `data-rask-big-step="<n>"` | an `<input type="range">` | Shift+Arrow and PageUp / PageDown move by `n`, firing `input` then `change`. |
 | `data-rask-otp` \| `="alpha"` \| `="alphanumeric"` | the group around one-character inputs | The cells behave as one field: a character moves on, Backspace walks back, deleting closes up to the left, the arrows stop at the first empty cell, a paste fills from the first. Render the cells with no `value` and no handler, and bind ONE `<input type="hidden">` inside the group: the runtime keeps it equal to the code and fires `input` and `change` on it, and refills the cells when you change its value. |
+| `data-rask-segments` + `data-rask-segment="month"` \| `"day"` \| `"year"` \| `"hour"` \| `"minute"` \| `"meridiem"` | the group around the small inputs of a typed date or time, and each input | The parts behave as one field: digits only, zero-padded; a part that can take no further digit moves on (3 is March, 9 is nine o'clock); ArrowLeft / ArrowRight walk the parts and stop at the ends; ArrowUp / ArrowDown step a part and wrap; Backspace empties a part and, on an empty one, steps back; `a` / `p` set the meridiem; a pasted date is shared out; a day the month does not have becomes its last; a one- or two-digit year is read within twenty years ahead. Render the parts in your locale's order with a `placeholder`, NO `value` and NO handler, and bind ONE `<input type="hidden">` inside the group: it carries `yyyy-mm-dd`, `HH:mm` (24-hour) or the two joined by `T` once every part is there, fires `input` and `change`, and refills the parts when you write it. A `readonly` part is left alone. |
 
 ### Keys and focus
 
@@ -365,6 +392,17 @@ They live in `src/Rask.Core/Resources/rask-hooks.ts` (one module per concern) be
 | `data-rask-focus-follows` + `data-rask-focus-target` | a container, and the one element in it that should hold focus | When a render moves the target mark — or replaces the element that carried it — while focus is ON that element, the new target is focused. Focus anywhere else is never taken. A render that leaves no target lets focus fall where the browser drops it. |
 | `aria-activedescendant` | a `[role=combobox]` or `[role=listbox]` | When it changes, the option it names is scrolled into view inside its nearest scrolling ancestor, by the least movement; the page never scrolls. (A `[role=tree]` has its own rule, which also handles virtualized rows.) |
 | `data-rask-press-keeps-focus` | any element | A mouse press on it or inside it does not move focus. |
+
+### Gestures, capabilities and uploads
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| `data-rask-drag="x y"` \| `"x"` \| `"y"` | a surface holding ONE `<input type="hidden">` you bind | On a press the runtime captures the pointer and, on every move, writes where it is along each named axis — `0` to `1`, clamped, `0` at the left / top edge — into `--rask-drag-x` / `--rask-drag-y` on the surface, with no round trip: draw the thumb from those. The hidden field carries the same numbers (`"0.25 0.5"`, or the one axis) and fires `input` at most once per animation frame while the pointer moves and `change` once on release, so `OnInput` / `OnChange` on it are the whole C# side. Write the field's value yourself (a key handled in C#) and the properties follow, except while the surface is held. Give the surface `touch-action: none`. |
+| `data-rask-drag-inset="<px>"` | the same surface | The track is that much shorter at both ends, so a thumb centred on the value stays inside the surface. |
+| `data-rask-requires="<global>"` | a control for an API the browser may lack (`EyeDropper`) | `hidden` is set where `window` has no property of that name and removed where it has, when the control arrives. Render it `hidden`. The name must be a plain identifier; nothing is evaluated. |
+| `data-rask-plot="0 0.25 0.5 1"` with `data-rask-plot-area`, `data-rask-plot-row="<index>"`, `data-rask-plot-tooltip="<px>"` | a chart's root: each row's x from 0 to 1 across the area; the element whose box is the plot; everything that belongs to one row (render every row's cursor, point and summary once); an absolutely placed box | While the pointer is inside the area the root carries `data-active`, `--rask-plot-x` (the nearest row's x), `--rask-pointer-x` and `--rask-pointer-y` (px from the root's corner); every element of the row nearest in x carries `data-active` — the switch is at the midpoint between two rows; the tooltip carries `data-active` and `transform: translate(x, y)`, x beside the row and y beside the pointer, each `<px>` away and flipped to the other side when the box would leave the root. Outside, the marks come off. No round trip: style `[data-active]`. |
+| `data-rask-measure` | an element holding ONE `<input type="hidden">` you bind | The field is kept at `"<width> <height>"` of the element's content box, in CSS px, with `input` and `change` when it arrives and whenever it changes (a `ResizeObserver`, so at most once a frame) — what a chart needs to redraw at its real size. |
+| `data-rask-loading` around an `<input type="file">` with `OnFiles` | the dropzone | From the moment files are chosen until the handler that receives them has rendered, the element carries `data-loading`, `--rask-progress` (a whole percentage, `12%`) and `--rask-progress-as-string` (`'12%'`, for `content:`). On the Server host the percentage is the upload request's own progress. In a WebAssembly app nothing is sent: it is how much of the files your handler has read through `OpenReadStream`, and stays `0%` for a handler that never opens them. `data-rask-loading="off"` opts out. |
 
 ### Toasts
 

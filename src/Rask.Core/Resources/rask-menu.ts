@@ -18,7 +18,7 @@
 // The triangle is a real element — a child of the row, so being over it IS being over the row, to :hover and
 // to every pointer handler alike — clipped to shape and marked data-rask-managed so a render leaves it be.
 
-import {named, near, page} from "./rask-owned.js";
+import {listen, named, near, page} from "./rask-owned.js";
 
 const POINTER = "[role=menu][data-rask-menu-pointer]";
 const ROW = "[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio]";
@@ -93,7 +93,7 @@ function place(row: HTMLElement, flyout: Element, x: number, y: number): void {
 }
 
 if (page) {
-    page.addEventListener("pointerover", function (e) {
+    listen("pointerover", function (e) {
         const row = near(e.target, ROW);
         const menu = row ? row.closest("[role=menu]") : null;
         if (row && menu && menu.matches(POINTER) && row.getAttribute("aria-disabled") !== "true") {
@@ -102,7 +102,7 @@ if (page) {
         armed = near(e.target, "[" + SAFE + "]");
     }, {capture: true, passive: true});
 
-    page.addEventListener("pointerout", function (e) {
+    listen("pointerout", function (e) {
         const menu = near(e.target, POINTER);
         const to = (e as PointerEvent).relatedTarget;
         if (menu && !(to instanceof Node && menu.contains(to))) {
@@ -115,7 +115,7 @@ if (page) {
         }
     }, {capture: true, passive: true});
 
-    page.addEventListener("pointermove", function (e) {
+    listen("pointermove", function (e) {
         const row = armed;
         if (!row) {
             return;

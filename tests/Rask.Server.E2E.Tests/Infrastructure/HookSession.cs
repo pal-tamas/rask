@@ -28,15 +28,32 @@ internal sealed class HookSession : IAsyncDisposable
 
     public string BaseUrl => _host.BaseUrl;
 
-    public static async Task<HookSession> OpenAsync<TPage>(PlaywrightFixture playwright, BrowserNewContextOptions? options = null)
+    /// <param name="playwright">The browser.</param>
+    /// <param name="options">The context's options; a 1000 × 700 viewport when null.</param>
+    /// <param name="beforeLoad">What to do to the page before it loads anything: an init script, a route.</param>
+    public static async Task<HookSession> OpenAsync<TPage>(
+        PlaywrightFixture playwright, BrowserNewContextOptions? options = null, Func<IPage, Task>? beforeLoad = null)
         where TPage : Component
     {
         var host = await LiveServerHost.StartAsync<TPage>(blockWebSockets: false);
         var context = await playwright.Browser.NewContextAsync(options ?? new() { ViewportSize = new() { Width = 1000, Height = 700 } });
         var page = await context.NewPageAsync();
+        if (beforeLoad is not null)
+        {
+            await beforeLoad(page);
+        }
+
         await page.GotoAsync(host.BaseUrl + "/");
         return new HookSession(host, context, page);
     }
+
+    /// <summary>How many times this page has asked the network for the behaviour hooks' bundle.</summary>
+    public Task<int> HookBundleRequestsAsync() =>
+        Page.EvaluateAsync<int>("() => performance.getEntriesByType('resource').filter(e => e.name.includes('/rask/rask-hooks.js')).length");
+
+    /// <summary>Resolves once the behaviour hooks' bundle has run on this page.</summary>
+    public Task HooksLoadedAsync() =>
+        Page.WaitForFunctionAsync("() => performance.getEntriesByType('resource').some(e => e.name.includes('/rask/rask-hooks.js') && e.responseEnd > 0) && !window.__raskHookSeam.missed");
 
     /// <summary>Whether the element is a popover that is showing.</summary>
     public Task<bool> ShownAsync(string selector) =>

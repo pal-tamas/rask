@@ -233,6 +233,27 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
         await Expect(content).ToBeHiddenAsync();
     });
 
+    // The hooks are not in rask.wasm.js: the runtime fetches them from beside itself when a page asks for one
+    // (docs/js-interop-runtime.md, "How the hooks load"). In a WebAssembly app that is a classic script next to
+    // the module, and however many hooked elements and renders a page sees, it is asked for once.
+    [Fact]
+    public Task The_behaviour_hooks_are_fetched_once_from_beside_the_runtime_and_a_tooltip_answers() => RunAsync(async () =>
+    {
+        await OpenTooltipsAsync();
+
+        var tooltip = Page.Locator("[data-testid='ui-tooltip'] > [data-ui-tooltip]").First;
+        await tooltip.Locator("button").HoverAsync();
+        await Expect(tooltip.Locator("[data-ui-tooltip-content]")).ToBeVisibleAsync();
+        var requested = await Page.EvaluateAsync<string[]>(
+            "() => performance.getEntriesByType('resource').map(e => new URL(e.name).pathname).filter(p => p.includes('rask-hooks'))");
+        var runtime = await Page.EvaluateAsync<string[]>(
+            "() => performance.getEntriesByType('resource').map(e => new URL(e.name).pathname).filter(p => p.endsWith('/rask.wasm.js'))");
+
+        Assert.Equal(["/rask-hooks.js"], requested);
+        Assert.Equal(["/rask.wasm.js"], runtime.Distinct());
+        Assert.Equal(1, await Page.Locator("script[data-rask-hooks]").CountAsync());
+    });
+
     [Fact]
     public Task A_tooltip_shows_on_keyboard_focus_and_Escape_dismisses_it() => RunAsync(async () =>
     {

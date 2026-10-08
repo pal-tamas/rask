@@ -52,16 +52,16 @@ project=tests/Rask.DevTools.E2E.Tests
 # are in it) and with the kit (-p:RaskDevToolsFixtureUi=true; without it the devtools stay off by design).
 # WasmBuildNative=false for the reason run-e2e-local.sh gives: one WASM build mode, so the fingerprinted runtime assets
 # and the boot import map's hashes cannot drift apart in a shared obj/. Serial, because a WASM publish builds
-# Rask.Core twice.
+# Rask.Core twice. No analyzers, like every other browser gate (run-e2e-local.sh says why).
 echo "==> Publish the WASM fixture the WASM journeys serve (Debug, with the kit)"
 build_status=0
 dotnet publish tests/Rask.DevTools.Fixture.Wasm/Rask.DevTools.Fixture.Wasm.csproj -c Debug -m:"${RASK_BUILD_SLOTS:-1}" \
-  -p:RaskDevToolsFixtureUi=true -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
+  -p:RaskDevToolsFixtureUi=true -p:WasmBuildNative=false -p:MinVerSkip=true -p:RunAnalyzers=false --nologo 2>&1 \
   | tee "$build_log" || build_status=$?
 
 if [ "$build_status" -eq 0 ]; then
   echo "==> Build the devtools browser-journey project (Debug)"
-  dotnet build tests/Rask.DevTools.E2E.Tests/Rask.DevTools.E2E.Tests.csproj -c Debug -p:MinVerSkip=true --nologo 2>&1 \
+  dotnet build tests/Rask.DevTools.E2E.Tests/Rask.DevTools.E2E.Tests.csproj -c Debug -p:MinVerSkip=true -p:RunAnalyzers=false --nologo 2>&1 \
     | tee -a "$build_log" || build_status=$?
 fi
 

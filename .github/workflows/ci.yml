@@ -39,12 +39,15 @@ on:
 permissions:
   contents: read
 
-# On main a push never cancels the run in progress, so a red run names the push that caused it.
-# (GitHub keeps one run waiting behind it: the newest.) Anywhere else only the newest push matters.
+# On main every push gets a run of its own, at once: none waits behind the one before it and none is
+# dropped for a newer one, so a red run names the push that caused it. (One group for the branch kept a
+# single run waiting, the newest — a push landed during a run waited that run out, and the ones between
+# were never run at all.) The runners are free for a public repository and a scoped run is a few jobs
+# of the twenty that may run at once. Anywhere else only the newest push matters.
 concurrency:
-  # A manual run is its own group: two of them on one ref ask different questions (`only`), and the
+  # A manual run is its own group too: two of them on one ref ask different questions (`only`), and the
   # second must not cancel the first.
-  group: ci-${{ github.event_name }}-${{ github.ref }}${{ github.event_name == 'workflow_dispatch' && format('-{0}', github.run_id) || '' }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}${{ (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main') && format('-{0}', github.run_id) || '' }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
