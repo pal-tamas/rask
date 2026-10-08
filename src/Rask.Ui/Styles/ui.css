@@ -630,6 +630,35 @@
 }
 
 /*
+  A SCROLLABLE TAB ROW FADES ITS TRAILING EDGE WHILE THERE IS MORE PAST IT (Ui.Tabs.ScrollableFade).
+
+  The last 6rem fade out, and the fade retreats as the row is scrolled until, at the end, nothing is faded:
+  the mask's opaque stop is whichever is further along, 6rem short of the edge or how far the row has been
+  scrolled. Flux measures that distance in script. Here the browser does: a registered percentage, driven
+  from 0% to 100% by the row's own scroll position. Where scroll-driven animations are missing the
+  percentage stays at 0%, and the edge is simply always faded.
+*/
+@property --ui-tabs-scrolled {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+
+@layer rask {
+  .ui-tabs-fade {
+    mask-image: linear-gradient(to right, #000 max(calc(100% - 6rem), var(--ui-tabs-scrolled)), transparent);
+    animation: ui-tabs-scrolled linear both;
+    animation-timeline: scroll(self inline);
+  }
+
+  @keyframes ui-tabs-scrolled {
+    to {
+      --ui-tabs-scrolled: 100%;
+    }
+  }
+}
+
+/*
   A TREE IS ONE FOCUSABLE ELEMENT, AND ITS CURSOR IS NOT THE FOCUS RING.
 
   The focus is on the tree; the cursor is a row inside it, named by aria-activedescendant. A ring around the

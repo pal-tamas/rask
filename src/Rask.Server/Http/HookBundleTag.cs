@@ -92,8 +92,9 @@ internal static class HookBundleTag
             var name = length < 0 ? rest : rest[..length];
             html = rest[name.Length..];
 
-            // A role asks for a hook only when it is the switch role, which Enter toggles.
-            if (Names.Contains(name) && (!name.SequenceEqual("role") || html.StartsWith("=\"switch\"", StringComparison.Ordinal)))
+            // A role asks for a hook only when it is the switch role, which Enter toggles, or a tablist,
+            // whose tabs the arrow keys walk.
+            if (Names.Contains(name) && (!name.SequenceEqual("role") || IsHookedRole(html)))
             {
                 return true;
             }
@@ -101,6 +102,9 @@ internal static class HookBundleTag
 
         return false;
     }
+
+    private static bool IsHookedRole(ReadOnlySpan<char> afterName) =>
+        afterName.StartsWith("=\"switch\"", StringComparison.Ordinal) || afterName.StartsWith("=\"tablist\"", StringComparison.Ordinal);
 
     private static readonly SearchValues<char> NameCharacters = SearchValues.Create("abcdefghijklmnopqrstuvwxyz-");
 }

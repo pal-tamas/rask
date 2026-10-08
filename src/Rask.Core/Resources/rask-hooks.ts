@@ -26,6 +26,7 @@ import "./rask-segments.js"; // data-rask-segments, data-rask-segment
 import "./rask-toast.js";    // data-rask-dismiss-scope, data-rask-stack
 import "./rask-persist.js";  // data-rask-persist, data-rask-uncheck-on-navigate
 import "./rask-carousel.js"; // data-rask-carousel
+import "./rask-tabs.js";     // role="tablist": the arrow keys
 
 // Last, when every hook is listening: what the reader did while this bundle was on its way.
 replayMissed();

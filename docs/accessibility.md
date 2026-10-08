@@ -237,6 +237,24 @@ composite nothing is wired, as Flux wires nothing but the trigger. And a tooltip
 screen has no hover, so what matters there is `Toggleable()`, which a tap opens. See
 [ui-kit.md](ui-kit.md#tooltips) for the little that is left undone.
 
+## Tabs
+
+An element with `role="tablist"` is a ring of `<button role="tab">`s of which one — the selected one — is a
+tab stop (`tabindex="0"`, the rest `-1`), and the runtime gives it the arrow keys (a
+[behaviour hook](js-interop-runtime.md#keys-and-focus), loaded by a page that carries a tablist): **ArrowRight** and
+**ArrowDown** move to the next tab, **ArrowLeft** and **ArrowUp** to the previous, past any tab that is
+`disabled` and around the ends. The tab arrived at is focused **and pressed**, so its own click handler runs
+exactly as a pointer would run it: selection follows focus, with no Enter or Space. The key's default is
+prevented, so an arrow does not scroll the page behind the row. From a button in the row that is not a tab —
+an "Add tab" action — the arrows start from the selected tab.
+
+Tab leaves the row for whatever comes next, which in a `Ui.TabGroup` is the shown `role="tabpanel"`
+(`tabindex="0"`, named by its tab through `aria-labelledby`; the tab names it back with `aria-controls`).
+Home and End are not handled and stay the page's — the behaviour of the Flux tabs Rask UI mirrors. Only
+buttons take part: a link you give `role="tab"` goes somewhere, and an arrow key must not navigate.
+Rask UI's `Ui.Tabs` builds on this; so does any `tablist` you write by hand. See
+[ui-kit.md](ui-kit.md#tabs).
+
 ## Controls that are waiting
 
 A `<button>` (or `<input type=button|submit>`) whose own handler is still running after 200 ms is marked
@@ -279,8 +297,7 @@ host today; the WASM navigation path is a follow-up.)
 
 ## What's not covered yet
 
-This is the framework primitive layer. Higher-level affordances — skip links, ARIA `tablist`/`tab`
-keyboard widgets (the `aria-activedescendant` cursor in `Ui.Select`'s drawn listbox), and automated axe-core scans in the sample
-E2E suite — are tracked as follow-up work. Today you build those from the typed `Aria*`/`Role`/`TabIndex`
+This is the framework primitive layer. Higher-level affordances — skip links and automated axe-core scans in
+the sample E2E suite — are tracked as follow-up work. Today you build those from the typed `Aria*`/`Role`/`TabIndex`
 primitives above (plus the focus trap) and standard semantic HTML (`Nav`, `Main`, `Aside`, `Label.For(…)`,
 `Th.Scope(…)`, …).

@@ -12,9 +12,9 @@ public sealed partial class UiKitNavigationPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "daisyUI tabs, menus and megamenu in C# — Rask",
-            "daisyUI navigation components in C#: a megamenu on native popovers, tabs that are real links, "
-            + "menu, steps and breadcrumbs, with no state held in C#.",
+            "Tabs, menus and megamenu in C# — Rask",
+            "Navigation components in C#: Flux-style tabs with panels, segmented and pill variants, a megamenu "
+            + "on native popovers, menus, steps and breadcrumbs.",
             Routes.UiKitNavigationPage());
 
     /// <inheritdoc />
@@ -22,16 +22,15 @@ public sealed partial class UiKitNavigationPage : Component
     [
         H1.Class("text-3xl font-bold mb-1")["Navigation"],
         P.Class("text-ui-muted")[
-            "This category is the browser's, deliberately. The megamenu is built on the native popover ",
-            "API, so it gets the top layer, Escape and light-dismiss without a line of script; the tabs ",
-            "are real links, so they are bookmarkable, survive a refresh and answer the back button. ",
-            "Navigation is the first thing a reader touches and the last thing that should wait for a ",
-            "bundle to boot."
+            "The megamenu is the browser's, deliberately: it is built on the native popover API, so it gets ",
+            "the top layer, Escape and light-dismiss without a line of script. The tabs are Flux's — a row, ",
+            "a segmented control or pills, over panels or on their own — and their selected tab is a value ",
+            "the page can bind."
         ],
         CodeSample
-            .Files(["UiKitNavigationDemo.cs"])
-            .Notes("Nothing on this page holds state in C#. The megamenu's panels are [popover] elements "
-                + "named by their triggers, and every tab is an <a href>.")
+            .Files(["UiKitTabsDemo.cs", "UiKitNavigationDemo.cs"])
+            .Notes("The megamenu's panels are [popover] elements named by their triggers. Only two of the tab "
+                + "rows hold their selected tab in the page; the rest keep track themselves.")
             .Result(UiKitNavigationDemo)
     ];
 }

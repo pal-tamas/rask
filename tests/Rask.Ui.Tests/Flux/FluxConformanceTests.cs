@@ -137,6 +137,10 @@ public sealed class FluxConformanceTests
         ["flux:editor.toolbar"] = typeof(UiEditorToolbar),
         ["flux:editor.button"] = typeof(UiEditorButton),
         ["flux:editor.content"] = typeof(UiEditorContent),
+        ["flux:tab.group"] = typeof(UiTabGroup),
+        ["flux:tabs"] = typeof(UiTabs),
+        ["flux:tab"] = typeof(UiTab),
+        ["flux:tab.panel"] = typeof(UiTabPanel),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -178,6 +182,10 @@ public sealed class FluxConformanceTests
     /// </summary>
     private static readonly Dictionary<string, string> Translations = new(StringComparer.Ordinal)
     {
+        ["flux:tabs/Value"] = "`wire:model`, held by the page: Ui.Tabs.Value(tab).OnChange(...)",
+        ["flux:tabs/Bind"] = "`wire:model`, two-way: Ui.Tabs.Bind(() => Tab)",
+        ["flux:tabs/OnChange"] = "`wire:model`'s write, as the event a Rask control raises",
+        ["flux:tab/OnClick"] = "`wire:click`, as the dynamic-tabs example writes on its `action` tab",
         ["flux:label/For"] = "the `for` of the <label> that stands in for <ui-label>, which finds its control by script",
         ["flux:error/For"] = "`name`, as the expression a Rask form binds by: Ui.Error.For(() => order.Email)",
         ["flux:heading/Size=Xxl"] = "`2xl`: an identifier cannot start with a digit",

@@ -179,7 +179,7 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban input textarea select autocomplete pillbox modal checkbox
-radio switch editor` today, plus the
+radio switch editor tabs` today, plus the
 open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-modal.mjs`, `parity-select.mjs`,
 `parity-autocomplete.mjs`, `parity-pillbox.mjs` and `parity-editor.mjs`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
@@ -409,6 +409,18 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `aria-pressed` / `data-match`; the block is a separate control name, `code-block`), with the label "Code"
   and the `Ctrl`+`E` of its shortcut table — the reference's one line, "Code block formatting", says otherwise
   and no example renders the item, so what name the Blade item writes is the one thing not seen.
+- Tabs (2026-10-08): `Ui.TabGroup` / `Ui.Tabs` / `Ui.Tab` / `Ui.TabPanel`. A tab is ALWAYS a `<button>` — Flux's
+  tab has no `href` (its page: "for full-page navigation, use the navbar"), so `Ui.Tab.Href` was removed on
+  merging and a row that navigates is `Ui.Tabs.Value(x).OnChange(v => Go.To(…))` (the console's log page). The
+  panel's `pt-8` is a plain utility: Flux's own examples override it with `pt-6!`, and so does a call site.
+  `ScrollableFade()` is the kit's one scroll-driven animation beside the table's (`.ui-tabs-fade`,
+  `@property --ui-tabs-scrolled`), where Flux measures in script; the harness neither pauses nor records it.
+  Keys recorded on Flux's live page, list by list, and equal on the parity page with the hook: all four arrows
+  move AND select, wrapping, never scrolling; they pass over an `action` tab, which Tab reaches; Home, End,
+  Enter and Space do nothing of the tabs' own. Unmeasured, no example on Flux's page: a DISABLED tab (drawn
+  from the reference: 50% / 75% dark opacity, no pointer, skipped by the arrows), `accent="false"`,
+  `icon:trailing`, `scrollable:scrollbar="hide"`, a tab's own `size`. Still daisyUI's `tabs` / `tab`, written
+  by hand: the site's `CodeSample` file tabs and the landing page's hero / install tabs — neither is a `Ui.Tab`.
 - Tooltip wrapper display: measured on Flux's live pages — a plain `flux:tooltip` writes NO display class and
   computes `inline-flex`, a button's own tooltip writes `inline-flex`, every toolbar tooltip of the editor
   writes `contents`. So the default is a rule (`[data-ui-tooltip]{display:inline-flex}` in `@layer rask`,
@@ -446,6 +458,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Input `clearable` | button `data-rask-clear="<input id>"` (no `OnClick`) | emptied, `input` fired, focus in the field |
 | Input `mask` / `mask:dynamic="$money($input)"` | `data-rask-mask="<pattern>"` / `data-rask-mask-money` (`=".,2"`) | Flux's (Alpine's) shaping; any other `mask:dynamic` expression is NOT supported |
 | Switch | `<input type="checkbox" role="switch">` | Enter toggles |
+| Tabs | `role="tablist"` over `button[role=tab]`, roving `tabindex`, `aria-selected`; each tab's `OnClick` selects it — NO key handler in C# | the arrows move focus and select, past disabled tabs and around the ends; Home / End are the page's, as Flux's (`rask-tabs.ts`; the role alone loads the bundle, like the switch's) |
 | Slider | `data-rask-big-step="<BigStep ?? Step>"` on the `<input type="range">` | Shift+Arrow, PageUp / PageDown |
 | Select (listbox button) | `data-rask-listbox-button` on the closed `button[role=combobox]` | Enter does nothing, the arrows do not scroll (open the list from the C# key handler: Flux opens on ArrowUp / ArrowDown / Space) |
 | Calendar | grid `data-rask-contain-keys="Arrows Home End PageUp PageDown"` (NOT Space — Flux lets it scroll); the calendar root `data-rask-focus-follows`, the day that is the tab stop `data-rask-focus-target` + `tabindex="0"`; key the day cells by DATE. On Home / End / PageUp / PageDown render NO `data-rask-focus-target` for that render (or let the keyed day leave) | arrows never scroll the page; focus lands on the new day after the morph, across a month change too; after Home / End / Page keys focus is on `<body>`, as Flux |

@@ -50,12 +50,13 @@ export const HOOK_ATTRIBUTES: string[] = (
     + " carousel carousel-controls"                               // rask-carousel
 ).split(" ").map(function (name) { return "data-rask-" + name; }).concat(
     // And the ones the platform named: any popover (rask-overlay closes it when focus leaves), an invoker
-    // command (the fallback), a switch (rask-field), a listbox's active option (rask-focus).
+    // command (the fallback), a switch (rask-field) or a tablist (rask-tabs), a listbox's active option (rask-focus).
     "popover commandfor role aria-activedescendant".split(" "));
 
-// `role` asks for a hook on one element only: a checkbox that is a switch (Enter toggles it).
+// `role` asks for a hook on two elements only: a checkbox that is a switch (Enter toggles it) and a tablist
+// (the arrow keys walk its tabs).
 const SELECTOR = HOOK_ATTRIBUTES
-    .map(function (name) { return name === "role" ? "input[role=switch]" : "[" + name + "]"; })
+    .map(function (name) { return name === "role" ? "input[role=switch],[role=tablist]" : "[" + name + "]"; })
     .join(",");
 
 /** The mark on the bundle's own <script>, whoever wrote it: the Server host into the page, or `load` below. */
