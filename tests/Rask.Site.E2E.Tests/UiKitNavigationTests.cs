@@ -217,17 +217,28 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     {
         await OpenAsync();
         var pager = Page.Locator("[data-testid='ui-pagination-scroll'] [data-ui-pagination]");
-        await pager.ScrollIntoViewIfNeededAsync();
-        var before = await Page.EvaluateAsync<double>(RowsTop);
 
-        await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Next" }).ClickAsync();
+        // A short window: the pager sits near the foot of the document, and in a tall one the list above it
+        // is in view however far the page scrolls. Here its first rows can be put above the top edge.
+        await Page.SetViewportSizeAsync(1280, 300);
 
-        // The list starts again at the sixth order, and the page has moved it up towards the top of the
-        // viewport — as far as the document can scroll, which this near its end is not all the way.
-        await Expect(Page.Locator("#ui-pagination-rows")).ToContainTextAsync("Order 6");
-        await Page.WaitForFunctionAsync($"() => ({RowsTop})() < {before.ToString(System.Globalization.CultureInfo.InvariantCulture)} - 10",
-            null,
-            new PageWaitForFunctionOptions { Timeout = 5_000 });
+        try
+        {
+            await pager.ScrollIntoViewIfNeededAsync();
+            await Page.EvaluateAsync($"() => scrollBy(0, ({RowsTop})() + 40)");
+            var before = await Page.EvaluateAsync<double>(RowsTop);
+
+            await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Next" }).ClickAsync();
+
+            // The list starts again at the sixth order, with its top back at the top of the window.
+            Assert.InRange(before, -42, -38);
+            await Expect(Page.Locator("#ui-pagination-rows")).ToContainTextAsync("Order 6");
+            await Page.WaitForFunctionAsync($"() => Math.abs(({RowsTop})()) < 2", null, new PageWaitForFunctionOptions { Timeout = 5_000 });
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
     });
 
     private const string RowsTop = "() => document.querySelector('#ui-pagination-rows').getBoundingClientRect().top";
