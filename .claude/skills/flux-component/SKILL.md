@@ -155,15 +155,23 @@ Never key on `[data-ui-card]` from another component.
    Two false greens to know: a crashed `parity.mjs` prints no `FAIL` (read its last line), and
    `dotnet test` prints `Passed!` with a lower total after the test process crashed — look for
    `FATAL ERROR` / `Test Run Failed`, and compare the total with the last run.
+   `parity.mjs` measures a page AS LOADED, where a modal is a trigger and a dialog nobody is shown.
+   `node scripts/flux/parity-modal.mjs` presses each example's trigger on both pages and compares the
+   open dialog — its subtree, its box in the viewport, `::backdrop`, `data-open`, the page lock, focus — then
+   the transitions in and out, and what Escape, a click outside, a press dragged across the panel's edge and
+   each close button do (36 checks). It then opens the same dialogs the way a RENDER does, on the pseudo-page
+   `modal-state` (`ModalStateParity`, `Ui.Modal.Open(false)`): it changes `data-rask-modal-open` and nothing
+   else, and holds the result to what Flux's trigger opened. It waits on state (open, no transition running,
+   the same box for three frames). A component that is only itself once opened needs the same; start from it.
 4. Unit tests in `tests/Rask.Ui.Tests/Components/Ui<Name>Tests.cs`: behaviour and markup contract
    (roles, attributes, what a prop writes). Names are sentences; three blank-line-separated blocks.
 
 ### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip kanban input textarea select autocomplete pillbox` today, plus the
-open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs` and
-`parity-pillbox.mjs`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
+card accordion callout button toast badge tooltip kanban input textarea select autocomplete pillbox modal` today, plus the
+open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-modal.mjs`, `parity-select.mjs`,
+`parity-autocomplete.mjs` and `parity-pillbox.mjs`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -228,6 +236,8 @@ open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`, `parity-select.mjs`
   case in a batch when the medium Inter face, first needed by the first tooltip shown, was still loading.
   In `parity.mjs` itself `ui-tooltip` and `ui-dropdown` (what Flux renders a TOGGLEABLE tooltip as,
   under the tooltip's marker) pair with `div`. `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
+  `ui-modal` and `ui-close` (the wrapper of a modal, and of a button that closes it) pair with `div` too, and a
+  root that is `display: contents` on both sides (a modal's trigger) anchors no offsets: it has no box.
 - **Public API:** `python3 scripts/public-api/record.py src/Rask.Ui` builds and applies RS0016/RS0017 to
   both baselines (run it twice: a step exists only once its property compiles). It is the only such script.
 
@@ -290,6 +300,21 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   box instead). A pie's default hues go in palette order; Flux hashes the slice's id, by a rule not derived.
   Not built for want of an example to measure: `scale` on an axis, `tick-start="min"` / `tick-end="max"`, an X
   axis on top, the look of `axis.mark` and `zero-line` (drawn, unverified), smooth curves on a horizontal chart.
+- Modal: `Ui.Modal`, `Ui.ModalTrigger`, `Ui.ModalClose`; `Ui.Drawer` and the daisy modal are gone (the command
+  palette still draws daisyUI's `dialog.modal`, and keeps the one `:root:has()` scroll-lock rule in `ui.css`).
+  ONE dialog for both paths, always with an id (`Name`, or a generated `ui-modal-<n>`): its own buttons and a
+  `Ui.ModalClose` are `command="close"` invokers, so a state-driven modal is closed IN THE BROWSER and `OnClose`
+  (the dialog's `close` event) is how the page catches up — a page that does not clear its field there goes on
+  saying "true", and the hook only acts on a change. `Open` unset and no `Name` renders `"true"`. `scroll="body"`
+  keeps an inner button (`command="request-close"`: `cancel`, then `close`) behind the panel, because the dialog
+  fills the viewport and nothing is outside its box; Flux's page shows no `scroll="body"`, `bare`, `left` or
+  `bottom` example, so those are built on the Reference and the measured variants, unmeasured. The corner button
+  is the kit's own `Ui.Button.Subtle.Sm` with Flux's lighter resting colour by `!` utilities (the one way to say
+  it over the button's own). The focus placeholder stays (`autofocus` + the `ui-modal-placeholder` keyframe):
+  the hook does not do it. Not written, as Flux writes none: `closedby`, `popover`, `aria-modal`, a label.
+  Parity stand-ins: Flux's spacer (the kit's `Ui.Spacer` carries no `data-ui-spacer`) and the subheading of
+  the floating example. The Dashboard's queue sheet writes two layout
+  classes (`DashboardIsKitOnlyTests.Allowed`), compiled by its own sheet.
 - Parity stand-ins still standing: none on the chart page; card page (fields, switches, the heading/text lines whose variant was
   not looked up), table page (avatar, the dropdown and menu around the row button, pager), progress page
   (slider, as raw `ui-slider` markup). The field page's inputs and select and the input page's buttons are real
@@ -390,9 +415,12 @@ restart). The earlier note here said otherwise.
 Known and open: two toasts whose countdowns end in the same frame press two dismiss buttons at once, and the
 second press can carry a handler id the first render retired — give stacked toasts distinct durations or key
 the handler. An unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a `switch` among keyed call
-sites, was remounted on every parent render (unexplained). The built-in toast shows one at a time, as Flux's.
+sites, was remounted on every parent render (see "Key every sibling of a type, or none"). The built-in toast shows one at a time, as Flux's.
 
-Wired (2026-10-07): `Ui.Tooltip` writes `data-rask-tooltip` and an `Interactive()` trigger's
+Wired (2026-10-07): `Ui.Modal` writes `data-rask-modal` (all four values), `data-rask-lock="scroll"` and, with
+`Open` or without a `Name`, `data-rask-modal-open`; its trigger and close buttons are `command` / `commandfor`
+alone. `parity-modal.mjs` holds every step of both paths to Flux's page, and `UiModalHookTests`
+(`tests/Rask.Server.E2E.Tests`) drives the component on a Server host. `Ui.Tooltip` writes `data-rask-tooltip` and an `Interactive()` trigger's
 `aria-expanded="false"`; the interest invoker and the `:hover` CSS are gone (`:hover` survives only under
 `@media (scripting: none)`). `Ui.Toast` writes `data-rask-dismiss-hold="pointer"`, `Ui.ToastGroup`
 `data-rask-dismiss-scope`, and `ui.css` pauses the fade of every toast of a hovered group (a held toast that
@@ -456,6 +484,15 @@ An entry built during a render (`Div`, `Ui.Button`) is a positional slot of the 
 `Div` (the loading indicator, built while the button is serialized) landed on it: the demo's placeholder
 came back as a spinner box, only when one particular test ran first. `DemoMarkupGoldenTests
 .No_site_component_keeps_a_component_in_a_static_field` guards the Site; the same holds anywhere.
+
+## Key every sibling of a type, or none
+Once ONE child of a type carries a `Key`, its parent stops reusing that type by position
+(`Component.ClaimKeyedChild`, `LiveState.KeyedTypes`), so every UNKEYED child of the same type in that parent
+is a new instance on every render: its fields restart, its handler ids are minted again. Seen on the site's
+actions demo — an unkeyed state-driven `Ui.Modal` beside keyed ones got a new `ui-modal-<n>` id each render,
+and the `close` that follows a `cancel` carried a handler id the render in between had retired, so `OnClose`
+never ran and the page went on saying the dialog was open. This is also the toast remount noted above as
+unexplained. In a demo (or an app): key all of them.
 
 ## Merging a component branch
 `git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped

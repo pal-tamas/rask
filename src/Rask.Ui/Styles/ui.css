@@ -1026,14 +1026,33 @@
 }
 
 /*
-  A kit modal locks the page's scroll while it is open, so a long page does not slide underneath a sheet the
-  reader is scrolling. Keyed to an OPEN kit dialog, which is what keeps this — the kit's one rule at the
-  document root — off every page that is not showing one: the modal path (`[open]` from show-modal), the
-  popover fallback, and the state-driven `modal-open`.
+  The command palette (`dialog.modal`, still drawn by daisyUI) locks the page's scroll while it is open, so a
+  long page does not slide underneath it. Keyed to an OPEN dialog, which keeps this — the kit's one rule at
+  the document root — off every page not showing one. Ui.Modal needs no rule: it asks the runtime
+  (`data-rask-lock="scroll"`), which also keeps the scrollbar's gutter, as Flux does.
 */
 @layer rask {
-  :root:has(dialog.modal[open], dialog.modal:popover-open, .modal.modal-open) {
+  :root:has(dialog.modal[open], dialog.modal:popover-open) {
     overflow: hidden;
+  }
+}
+
+/*
+  Ui.Modal's focus placeholder. A dialog hands focus to its first field when it opens, which rings a field
+  nobody chose; Flux gives it an empty element to focus instead and then takes that element away. Here the
+  element is in the markup with `autofocus`, and this is the taking away: it is there for the instant the
+  browser places focus, then gone, so focus rests on nothing and the first Tab lands on the first control.
+  An animation, because nothing else changes `display` after a delay.
+*/
+@layer rask {
+  dialog[data-modal][open] > [data-ui-focus-placeholder] {
+    animation: ui-modal-placeholder 0s 150ms forwards;
+  }
+
+  @keyframes ui-modal-placeholder {
+    to {
+      display: none;
+    }
   }
 }
 
