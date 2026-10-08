@@ -179,6 +179,7 @@ public sealed class RuntimeHookLoadingTests(PlaywrightFixture playwright) : ICla
         await using var session = await HookSession.OpenAsync<ModalAtLoadPage>(playwright, beforeLoad: RecordAtPageReadAsync);
         var page = session.Page;
 
+        await page.WaitForFunctionAsync("() => window.__atFirstFrame");
         var atPageRead = await page.EvaluateAsync<string>("() => window.__atPageRead");
         var atFirstFrame = await page.EvaluateAsync<string>("() => window.__atFirstFrame");
 
