@@ -66,7 +66,11 @@ public sealed partial class UiTooltip : Component
     /// <summary>A keyboard shortcut shown after <see cref="Content" /> — <c>"⌘S"</c>.</summary>
     public string? Kbd { get; set; }
 
-    /// <summary>Classes for the wrapper around the trigger.</summary>
+    /// <summary>
+    ///     Classes for the wrapper around the trigger. It lays out as <c>inline-flex</c> by the kit's sheet, as
+    ///     Flux's does, so a display written here wins: <c>.Class("contents")</c> takes the wrapper out of a
+    ///     flex row's layout, which is what an editor's toolbar does.
+    /// </summary>
     public string? Class { get; set; }
 
     private string ContentId => "ui-tooltip-" + _instance.ToString(CultureInfo.InvariantCulture);
@@ -79,7 +83,7 @@ public sealed partial class UiTooltip : Component
         var toggled = Toggleable == true;
         var clicks = toggled && trigger is not null && UiTooltipTrigger.IsButton(trigger);
         var controls = toggled || Interactive == true;
-        var root = Div.Class("inline-flex", Class).Data(Marks(toggled));
+        var root = Div.Class(Class).Data(Marks(toggled));
 
         if (trigger is not null && toggled == clicks)
         {

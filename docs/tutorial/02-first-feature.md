@@ -133,7 +133,7 @@ public sealed partial class CreateProduct : Component
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Description("What a customer pays, before tax."),
-                    Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
+                    Ui.Checkbox.Bind(() => _model.InStock).Label("In stock"),
                     Ui.Button.Primary.Submit.Disabled(save.IsPending)["Save"]
                 ]
             ]
@@ -240,7 +240,7 @@ public sealed partial class UpdateProduct : Component
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Description("What a customer pays, before tax."),
-                    Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
+                    Ui.Checkbox.Bind(() => _model.InStock).Label("In stock"),
                     Ui.Button.Primary.Submit.Disabled(save.IsPending)["Save changes"]
                 ]
             ]

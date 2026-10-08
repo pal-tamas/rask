@@ -84,7 +84,7 @@ internal sealed partial class DevToolsRendersTab : Component
                     ViewButton("By commit", byCommit: true)
                 ],
                 Div.Class("flex flex-wrap items-center gap-3")[
-                    Ui.Toggle.Value(Flash ?? false).Size(Ui.Size.Sm).OnChange(OnFlash)["Flash on the page"],
+                    Ui.Switch.Value(Flash ?? false).OnChange(OnFlash).Label("Flash on the page").Left,
                     Flash == true
                         ? Span.Class("flex items-center gap-3 text-xs")[
                             Swatch(RenderColour, "rendered"),

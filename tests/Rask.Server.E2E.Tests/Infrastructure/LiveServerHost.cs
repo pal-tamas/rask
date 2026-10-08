@@ -19,6 +19,10 @@ namespace Rask.Server.E2E.Tests.Infrastructure;
 ///         opens. Every attempt is counted, so a journey can prove a tab stopped trying.
 ///     </para>
 ///     <para>
+///         <paramref name="staticFiles" /> serves <c>wwwroot</c> as an app's static-file middleware does — off by
+///         default, because most journeys here have no file to serve and one proves what a missing file does.
+///     </para>
+///     <para>
 ///         Port 0, read back from the server, so a run cannot collide with a dev server or another worktree's gate.
 ///     </para>
 /// </remarks>
@@ -36,10 +40,15 @@ internal sealed class LiveServerHost : IAsyncDisposable
     /// <summary>How many WebSocket upgrades a browser has asked for.</summary>
     public int WebSocketAttempts => Volatile.Read(ref _webSocketAttempts);
 
-    public static async Task<LiveServerHost> StartAsync<TApp>(bool blockWebSockets)
+    public static async Task<LiveServerHost> StartAsync<TApp>(bool blockWebSockets, bool staticFiles = false)
         where TApp : Component
     {
-        var builder = WebApplication.CreateBuilder();
+        // The wwwroot the build copied beside the tests: what a web project serves from its own folder.
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            ContentRootPath = AppContext.BaseDirectory,
+            WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot"),
+        });
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
         builder.Services.AddRouting();
@@ -62,6 +71,11 @@ internal sealed class LiveServerHost : IAsyncDisposable
 
             await next(ctx);
         });
+
+        if (staticFiles)
+        {
+            app.UseStaticFiles();
+        }
 
         app.UseRouting();
         app.UseWebSockets();

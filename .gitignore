@@ -173,6 +173,9 @@ src/Rask.Wasm/Browser/rask-sw.js
 # Rask.Ui writes its compiled stylesheet into the consuming app's wwwroot at build, for the same
 # reason: the file in the tree is build output, not source.
 **/wwwroot/css/rask-ui.css
+# …and the editor's engine, for a project that sets RaskUiEditor=true (build/Rask.Ui.targets).
+**/wwwroot/js/rask-ui-editor.js
+**/wwwroot/js/rask-ui-editor.LICENSES.txt
 # And the kit's Tailwind sources beside an app's own stylesheet, for an app that compiles the kit into
 # its one sheet (`@import "./vendor/rask-ui.css";`): written at build, never source.
 **/Styles/vendor/

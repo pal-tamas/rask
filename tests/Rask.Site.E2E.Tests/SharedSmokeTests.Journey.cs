@@ -1176,7 +1176,8 @@ public abstract partial class SharedSmokeTests
         // Scope to the live result pane — the embedded sample source (.sample-code) now shows the
         // demo's full class, which also contains "Subscribe =" in its echo template.
         var subscribeEcho = Page.Locator(".sample-result-body pre code").Filter(new LocatorFilterOptions { HasText = "Subscribe =" });
-        var checkbox = Page.Locator("#bind-subscribe");
+        // The input is out of sight inside the label that draws the box: the box is what a reader presses.
+        var checkbox = Page.Locator("label:has(> #bind-subscribe)");
         await checkbox.ClickAsync();
         await Expect(subscribeEcho).ToContainTextAsync("Subscribe = true",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });

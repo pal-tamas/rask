@@ -1,15 +1,18 @@
 name: full
 
-# The whole push set against main, every hour that main has moved.
+# The whole push set against main: after every push, and every hour as the backstop.
 #
 # A push to main runs only the gates its change can reach (ci.yml), which is what makes that verdict
-# take minutes. This is the other half of the bargain: everything, unscoped, on a schedule — so a break
-# a scoped run could not see is at most an hour old when it is found. nightly.yml and pages.yml publish
-# from a commit THIS workflow passed, never from a scoped run.
+# take minutes. This is the other half of the bargain: everything, unscoped. One run at a time, and one
+# waiting behind it — the newest push — so a burst of pushes costs two runs, not one each. pages.yml
+# deploys from a commit THIS workflow passed, never from a scoped run; nightly.yml packs the newest
+# such commit on its own hourly clock.
 #
 # A red run here with green pushes on top of it means exactly that: something a scoped run does not
 # cover is broken on main. Fix it forward; `gh run list --workflow full --branch main` is where to look.
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: '47 * * * *'   # hourly, off the hour (the top of the hour is when Actions queues)
   workflow_dispatch:
@@ -19,7 +22,7 @@ permissions:
 
 concurrency:
   group: full
-  cancel-in-progress: false   # a run in progress gets its verdict; the next hour takes whatever main is then
+  cancel-in-progress: false   # a run in progress gets its verdict; the newest push waits behind it
 
 jobs:
   # Has main moved since the last commit this workflow passed? If not, the run cancels itself rather
@@ -51,3 +54,6 @@ jobs:
     with:
       set: push
       scope: full
+      # Fourteen of the account's twenty concurrent jobs: this runs behind every push now, and the
+      # scoped run of the NEXT push is the verdict somebody is waiting for. Nobody waits for this one.
+      parallel: 14

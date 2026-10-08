@@ -8,6 +8,8 @@ Rask.SqlServer.SqlServerOptions.CommandTimeout.set -> void
 Rask.SqlServer.SqlServerOptions.LockTimeout.get -> System.TimeSpan
 Rask.SqlServer.SqlServerOptions.LockTimeout.set -> void
 Rask.SqlServer.SqlServerOptions.Retry.get -> Rask.SqlServer.SqlServerRetryOptions!
+Rask.SqlServer.SqlServerOptions.SplitQueries.get -> bool
+Rask.SqlServer.SqlServerOptions.SplitQueries.set -> void
 Rask.SqlServer.SqlServerOptions.SqlServerOptions() -> void
 Rask.SqlServer.SqlServerRetryOptions
 Rask.SqlServer.SqlServerRetryOptions.Enabled.get -> bool
