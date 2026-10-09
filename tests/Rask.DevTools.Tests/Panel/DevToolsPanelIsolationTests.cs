@@ -46,14 +46,17 @@ public sealed partial class DevToolsPanelIsolationTests
         var queryAt = panel.IndexOf('?', StringComparison.Ordinal);
         await socket.SendJsonAsync(new { type = "navigate", path = panel[..queryAt], query = panel[queryAt..] }, ct: TestContext.Current.CancellationToken);
 
-        var frames = new List<string>();
-        while (await socket.TryReceiveTextAsync(TimeSpan.FromSeconds(2)) is { } frame)
+        // The answer, however long it takes; then a window for a second frame, which only an idle machine
+        // can fill — a busy one passes this last line for less reason, and never fails it.
+        var location = await socket.ReceiveTextAsync();
+        var frames = new List<string> { location };
+        while (await socket.TryReceiveTextAsync(TimeSpan.FromMilliseconds(300)) is { } frame)
         {
             frames.Add(frame);
         }
 
         var all = string.Join(Environment.NewLine, frames);
-        var location = Assert.Single(frames);
+        Assert.Single(frames);
         using (var doc = System.Text.Json.JsonDocument.Parse(location))
         {
             Assert.Equal("location", doc.RootElement.GetProperty("type").GetString());

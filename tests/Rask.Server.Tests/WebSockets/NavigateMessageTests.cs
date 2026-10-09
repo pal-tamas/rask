@@ -14,10 +14,9 @@ public class NavigateMessageTests
 
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" }, ct: TestContext.Current.CancellationToken);
 
-        var text = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var text = await fixture.Ws.ReceiveTextAsync();
 
-        Assert.NotNull(text);
-        using var doc = JsonDocument.Parse(text!);
+        using var doc = JsonDocument.Parse(text);
         var history = doc.RootElement.GetProperty("history");
         Assert.Equal("push", history.GetProperty("action").GetString());
         Assert.Equal("/destination", history.GetProperty("url").GetString());
@@ -33,9 +32,9 @@ public class NavigateMessageTests
 
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/x", query = "", replace = true }, ct: TestContext.Current.CancellationToken);
 
-        var text = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var text = await fixture.Ws.ReceiveTextAsync();
 
-        using var doc = JsonDocument.Parse(text!);
+        using var doc = JsonDocument.Parse(text);
         Assert.Equal("replace", doc.RootElement.GetProperty("history").GetProperty("action").GetString());
     }
 
@@ -45,9 +44,9 @@ public class NavigateMessageTests
         await using var fixture = await ConnectedSession.Connect<TestApp>();
 
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "" }, ct: TestContext.Current.CancellationToken);
-        var text = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(300));
+        var frames = await fixture.Ws.SettledAsync();
 
-        Assert.Null(text);
+        Assert.Empty(frames);
     }
 
     [Fact]
@@ -57,9 +56,9 @@ public class NavigateMessageTests
 
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/x", query = "a=1&b=2" }, ct: TestContext.Current.CancellationToken);
 
-        var text = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var text = await fixture.Ws.ReceiveTextAsync();
 
-        using var doc = JsonDocument.Parse(text!);
+        using var doc = JsonDocument.Parse(text);
         Assert.Equal("/x?a=1&b=2", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
     }
 }

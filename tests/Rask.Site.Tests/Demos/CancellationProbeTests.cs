@@ -13,12 +13,12 @@ public sealed partial class CancellationProbeTests : global::Rask.Core.RaskMarku
             () => mounted ? CancellationProbe.InstanceId(1).Log(log.Add) : null,
             TestServices.Default());
         // Wait until the probe is in the "running" state (its post-StateHasChanged render).
-        await WaitFor.True(() => page.Render().Contains("running"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => page.Render().Contains("running"));
 
         mounted = false;
         page.Render();
 
-        await WaitFor.True(() => log.Contains("cancelled"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => log.Contains("cancelled"));
         Assert.Contains(log.Snapshot(), e => e.Contains("#1 cancelled"));
     }
 
@@ -30,11 +30,11 @@ public sealed partial class CancellationProbeTests : global::Rask.Core.RaskMarku
         var page = Page.Render(
             () => mounted ? CancellationProbe.InstanceId(9).Log(log.Add) : null,
             TestServices.Default());
-        await WaitFor.True(() => page.Render().Contains("running"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => page.Render().Contains("running"));
 
         mounted = false;
         page.Render();
-        await WaitFor.True(() => log.Contains("cancelled"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => log.Contains("cancelled"));
 
         // Even if both the Register callback and the polling loop observe cancellation,
         // Interlocked.Exchange guards a single "cancelled" log entry.

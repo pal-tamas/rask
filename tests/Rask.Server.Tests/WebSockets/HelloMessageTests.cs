@@ -14,10 +14,9 @@ public class HelloMessageTests
         using var host = RaskTestHost.Create<TestApp>();
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, "no-such-id");
 
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var text = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(text);
-        using var doc = JsonDocument.Parse(text!);
+        using var doc = JsonDocument.Parse(text);
         Assert.Equal("session", doc.RootElement.GetProperty("type").GetString());
         Assert.Equal("unknown", doc.RootElement.GetProperty("status").GetString());
     }
@@ -38,9 +37,9 @@ public class HelloMessageTests
 
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+        var frames = await ws.SettledAsync();
 
-        Assert.Null(text);
+        Assert.Empty(frames);
         Assert.True(ws.IsOpen);
     }
 
@@ -66,13 +65,12 @@ public class HelloMessageTests
         // Let MountAsyncApp's Mount await complete before opening the socket.
         // The continuation calls StateHasChanged with no socket attached, setting the
         // session's pending-render flag.
-        await DetachedPushApp.Pushed.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        await DetachedPushApp.Pushed.Task.WaitAsync(LiveFrames.HangCeiling, TestContext.Current.CancellationToken);
 
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var text = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(text);
         // The catch-up frame must carry the post-GET "loaded" state. Its wire shape depends
         // on the active diff mode: with the diff codec on, the GET render seeded the baseline
         // (<p>loading</p>) so this ships a minimal text diff (loading -> loaded) the browser
@@ -94,14 +92,13 @@ public class HelloMessageTests
         var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken));
 
         var ws1 = await LiveTestConnection.OpenAsync(host, transport, sessionId);
-        _ = await ws1.TryReceiveTextAsync(TimeSpan.FromMilliseconds(200));
+        await ws1.SettledAsync();
         await ws1.DisposeAsync();
 
         await using var ws2 = await LiveTestConnection.OpenAsync(host, transport, sessionId);
-        var frame = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var frame = await ws2.ReceiveTextAsync();
 
-        Assert.NotNull(frame);
-        using var doc = JsonDocument.Parse(frame!);
+        using var doc = JsonDocument.Parse(frame);
         Assert.True(doc.RootElement.TryGetProperty("html", out _));
     }
 
@@ -116,7 +113,7 @@ public class HelloMessageTests
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = first }, ct: TestContext.Current.CancellationToken);
-        await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
+        await WaitFor.True(() => host.Store.ConnectedCount == 1);
 
         await ws.SendJsonAsync(new { type = "hello", session = second }, ct: TestContext.Current.CancellationToken);
 
@@ -126,7 +123,7 @@ public class HelloMessageTests
         Assert.Equal("hello", close.Value.Reason);
         // Answer the handshake so the server's CloseAsync returns now rather than at its 2 s deadline.
         await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
-        await WaitFor.True(() => host.Store.ConnectedCount == 0, TimeSpan.FromSeconds(5));
+        await WaitFor.True(() => host.Store.ConnectedCount == 0);
         ws.Dispose();
     }
 
@@ -136,6 +133,8 @@ public class HelloMessageTests
         using var host = RaskTestHost.Create<TestApp>();
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
 
+        // A hello that names no session attaches nothing, and a socket with no session is answered by
+        // nothing at all: there is no word from the server to wait for, only a window to watch.
         await ws.SendJsonAsync(new { type = "hello" }, ct: TestContext.Current.CancellationToken);
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(300));
 

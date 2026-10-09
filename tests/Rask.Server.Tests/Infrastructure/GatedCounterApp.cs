@@ -13,6 +13,9 @@ public sealed partial class GatedCounterApp : Component
 {
     public static TaskCompletionSource Gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    // Set when the "hang" handler has reached the gate, so a test waits for that rather than for a while.
+    public static TaskCompletionSource Parked = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     public int Counter;
 
     protected override Component? HeadAssets => Markup.Title["gated"];
@@ -21,7 +24,11 @@ public sealed partial class GatedCounterApp : Component
     protected override Component? Render() =>
     [
         Markup.P[$"count={Counter}"],
-        Button.OnClick(async () => await Gate.Task)["hang"],
+        Button.OnClick(async () =>
+        {
+            Parked.TrySetResult();
+            await Gate.Task;
+        })["hang"],
         Button.OnClick(() => Counter++)["bump"]
     ];
 }

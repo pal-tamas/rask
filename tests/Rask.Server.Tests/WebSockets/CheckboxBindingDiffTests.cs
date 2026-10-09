@@ -21,7 +21,9 @@ public class CheckboxBindingDiffTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        // The hello owes this page a frame — the first render queued a JS invoke — and it is read past here,
+        // so the first click's frame is not mistaken for it.
+        await ws.SettledAsync();
 
         async Task AssertEchoAsync(string sentValue, string expectedEcho, string label)
         {
@@ -30,9 +32,8 @@ public class CheckboxBindingDiffTests
             // of how many frames coalesce. The frame is a diff (UpdateText carries the new
             // "S=True"/"S=False" text) or full HTML — assert on the raw frame either way.
             await ws.SendJsonAsync(new { id = changeId, type = "change", value = sentValue });
-            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            Assert.False(string.IsNullOrEmpty(frame), $"no frame for {label}");
-            Assert.Contains($"S={expectedEcho}", frame!);
+            var frame = await ws.ReceiveTextAsync();
+            Assert.True(frame.Contains($"S={expectedEcho}", StringComparison.Ordinal), $"{label}: {frame}");
         }
 
         await AssertEchoAsync("true", "True", "click 1");

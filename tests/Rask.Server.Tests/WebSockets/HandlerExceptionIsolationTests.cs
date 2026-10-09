@@ -29,16 +29,15 @@ public class HandlerExceptionIsolationTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2)); // initial render dedups → no frame
+        await ws.AttachedAsync(host, sessionId);
 
         // The handler throws; the root error boundary catches it and renders the fallback page.
         // The dispatch completes normally (so the lock is released) and the socket stays open —
         // no HTTP 500, no crash, no leaked lock that would hang every future dispatch.
         await ws.SendJsonAsync(new { id = boom }, ct: TestContext.Current.CancellationToken);
-        var resp = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var resp = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(resp);
-        Assert.Contains("Application error", HtmlOf(resp!));
+        Assert.Contains("Application error", HtmlOf(resp));
         Assert.Equal(WebSocketState.Open, ws.State);
     }
 
@@ -46,6 +45,7 @@ public class HandlerExceptionIsolationTests
     public async Task A_reconnect_after_a_parked_handler_resumes_dispatch_once_it_clears()
     {
         GatedCounterApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        GatedCounterApp.Parked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         try
         {
             using var host = RaskTestHost.Create<GatedCounterApp>(diffMode: LiveDiffMode.DisabledFull);
@@ -58,9 +58,9 @@ public class HandlerExceptionIsolationTests
             // InHandlerScope set), then drop the socket without releasing it.
             var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-            _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            await ws1.AttachedAsync(host, sessionId);
             await ws1.SendJsonAsync(new { id = hang }, ct: TestContext.Current.CancellationToken);
-            await Task.Delay(150, TestContext.Current.CancellationToken); // let the handler reach the gate
+            await GatedCounterApp.Parked.Task.WaitAsync(LiveFrames.HangCeiling, TestContext.Current.CancellationToken);
             await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "drop", CancellationToken.None);
             ws1.Dispose();
 
@@ -68,7 +68,7 @@ public class HandlerExceptionIsolationTests
             // if it did, this connect+hello+queue sequence would hang here.
             using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-            _ = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            await ws2.AttachedAsync(host, sessionId);
 
             Assert.Equal(WebSocketState.Open, ws2.State);
 
@@ -78,21 +78,12 @@ public class HandlerExceptionIsolationTests
             await ws2.SendJsonAsync(new { id = bump }, ct: TestContext.Current.CancellationToken);
             GatedCounterApp.Gate.TrySetResult();
 
-            // Drain frames until the bump's render lands — the parked handler's own completion
-            // render (count=0) may arrive first; the point is the queued bump reaches the socket.
-            var sawBump = false;
-            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(4);
-            while (DateTime.UtcNow < deadline)
-            {
-                var frame = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(1));
-                if (frame is not null && HtmlOf(frame).Contains("count=1"))
-                {
-                    sawBump = true;
-                    break;
-                }
-            }
+            // Read until the bump's render lands — the parked handler's own completion render
+            // (count=0) may arrive first; the point is the queued bump reaches the socket.
+            var bumped = await ws2.ReceiveUntilAsync(
+                frame => HtmlOf(frame).Contains("count=1"), "the queued bump's render on the reconnected socket");
 
-            Assert.True(sawBump, "the queued bump never rendered through the reconnected socket");
+            Assert.Contains("count=1", HtmlOf(bumped));
         }
         finally
         {

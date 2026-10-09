@@ -55,6 +55,7 @@
     <Compile Include="..\Rask.Server.Tests\Infrastructure\RaskTestHost.cs" LinkBase="Infrastructure"/>
     <Compile Include="..\Rask.Server.Tests\Infrastructure\ConnectedSession.cs" LinkBase="Infrastructure"/>
     <Compile Include="..\Rask.Server.Tests\Infrastructure\WebSocketHelper.cs" LinkBase="Infrastructure"/>
+    <Compile Include="..\Rask.Server.Tests\Infrastructure\LiveFrames.cs" LinkBase="Infrastructure"/>
   </ItemGroup>
 
   <ItemGroup>

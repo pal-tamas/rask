@@ -70,14 +70,10 @@ public sealed partial class DevToolsWireTabTests
         host.Services.GetRequiredService<DevToolsFeeds>().For(session)
             .RecordWire(DevToolsWireDirection.Out, "wire-live-event", 7, Stopwatch.GetTimestamp());
 
-        string? frame;
-        do
-        {
-            frame = await socket.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
-        }
-        while (frame is not null && !frame.Contains("wire-live-event", StringComparison.Ordinal));
+        var frame = await socket.ReceiveUntilAsync(
+            f => f.Contains("wire-live-event", StringComparison.Ordinal), "the frame that shows the recorded traffic");
 
-        Assert.NotNull(frame);
+        Assert.Contains("wire-live-event", frame, StringComparison.Ordinal);
     }
 
     [Fact]

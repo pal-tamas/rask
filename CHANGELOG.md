@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A handler still running when a shutdown gives up on it is no longer reported as having thrown.** A
+  shutdown that outlasts `ShutdownDrainTimeout` disposes the session with its handler still in flight. When
+  the handler returned, the render that follows it reached for the session's disposed services, and the
+  `ObjectDisposedException` was logged as `Rask Live handler 'h0' threw` and counted in
+  `rask.handlers.faulted`; releasing the session's disposed lock then threw a second one out of the dispatch.
+  Both are gone: there is nothing left to render to, and the handler did nothing wrong.
+
 - **A pager's arrows are named `« Previous` and `Next »`.** The label was written as the entity's name and
   then encoded, so the markup said `aria-label="&amp;laquo; Previous"` and a screen reader read out
   "&laquo; Previous". It is the character now, encoded once. `RaskString.PaginationPrevious` /
@@ -16,6 +23,25 @@ them until tagged releases begin.
 
 ### Added
 
+- **A page declares its title, and its layout shows it in the first HTML (#1239).** A routed page overrides
+  `protected override string? PageTitle => _relation is { } r ? $"Edit {r.Name}" : null;`, and the layout around
+  it reads the injected `RouteState`'s `route.Title` — the last breadcrumb
+  (`route.Title is { } t ? Ui.BreadcrumbsItem[t] : null`) and its one `HeadAssets` line
+  (`Title[route.Title is { } t ? $"{t} | Acme" : "Acme"]`; Rask writes no `<title>` of its own). The first HTML
+  already carries it — a direct load shows the crumb and the tab title with no script, where a page that told
+  its layout through a shared service served an empty crumb and filled it a frame later — and a navigation
+  changes the page, the crumb and `<title>` in one frame. Nothing about when a page is created moved: it is
+  mounted where its layout places the `Outlet`, after the layout has rendered, and when its title turns out to
+  have changed the components that read `route.Title` render once more before anything is sent. So the layout
+  renders one more time when the title changes — a navigation to a page called something else, a rename — and
+  never when it does not; the page is not rendered again and its hooks do not re-run. The title is read on every
+  render, so one built from a route parameter follows the URL on the reused page, one built from data loaded in
+  `OnMount` / `OnUpdated` appears with the data (the initial `GET` waits for it within the usual budget, and a
+  build-time prerender bakes it), and a rename on the page moves the crumb and the tab with the heading. On a
+  navigation in an open page a title loaded after a real `await` is `null` for the frame that shows the page's
+  placeholder. `null`, the default, is a page with no title; with nested `[ParentRoute]` layouts the deepest
+  page that declares one wins, and a leaf that declares none takes the nearest layout's. It may be read above
+  the `Router` as well — an `App` writing `<title>` in its own `HeadAssets`. `docs/routing.md` has the section.
 - **`IsUnique("message")` — a unique index says what breaking it means.**
   `builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique("A destination with this name already
   exists.")` — one step, beside EF Core's own `IsUnique()` / `IsUnique(false)`, which still bind as they did
@@ -175,6 +201,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A routed page keeps its instance when its layout re-creates the `Outlet` around it.** An `Outlet` is a
+  positional child of its layout, and the page went with it: a layout that rendered one sibling more ahead of
+  the outlet — a breadcrumb that appears once there is something to show — got a new `Outlet` and with it a
+  new page, constructed and mounted from scratch, its loaded data gone. The router now remembers the page by
+  its place in the route, so it stays as long as the same type is at that place under the same layouts. When
+  and where a page is created is unchanged: where the layout places the `Outlet`, after the layout has
+  rendered, and not at all when the layout withholds it.
 - **BREAKING: an index declared in `Configure` (or by `[Index]`) on a tenant-scoped entity becomes tenant-first
   (#1233).** An app that has an entity with `Scope = Tenancy.PerTenant` and an index it declared in the
   entity's static `Configure`, or with an `[Index]` attribute, **gets a schema change in its next migration**:

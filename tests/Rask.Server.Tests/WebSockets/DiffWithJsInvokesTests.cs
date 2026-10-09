@@ -22,28 +22,27 @@ public class DiffWithJsInvokesTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        // Drain the hello-time catch-up frame (queued first-render invoke).
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        // Read past the hello-time catch-up frame (queued first-render invoke).
+        await ws.SettledAsync();
 
         // Keystroke 1: mutate the bound value. The echo <p> text changes, so the
         // render differs and a frame is sent.
         await ws.SendJsonAsync(new { id = inputId, value = "ab" }, ct: TestContext.Current.CancellationToken);
-        var frame1 = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var frame1 = await ws.ReceiveTextAsync();
 
         AssertDiffCarryingInvoke(frame1, "first keystroke");
 
         // Keystroke 2: proves _forceFullHtmlNextRender no longer sticks after a
         // diff+jsInvokes frame — a second keystroke also ships a diff.
         await ws.SendJsonAsync(new { id = inputId, value = "abc" }, ct: TestContext.Current.CancellationToken);
-        var frame2 = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var frame2 = await ws.ReceiveTextAsync();
 
         AssertDiffCarryingInvoke(frame2, "second keystroke");
     }
 
-    private static void AssertDiffCarryingInvoke(string? frame, string label)
+    private static void AssertDiffCarryingInvoke(string frame, string label)
     {
-        Assert.False(string.IsNullOrEmpty(frame), $"no frame received for {label}");
-        using var doc = JsonDocument.Parse(frame!);
+        using var doc = JsonDocument.Parse(frame);
         var root = doc.RootElement;
 
         Assert.True(root.TryGetProperty("kind", out var kind) && kind.GetString() == "diff",

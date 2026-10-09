@@ -15,6 +15,7 @@ namespace Rask.Core.Routing;
 /// </summary>
 public sealed class RouteState
 {
+    private readonly RouteTitle _title = new();
     private string _path = "/";
     private IQueryCollection _query = QueryCollection.Empty;
 
@@ -58,6 +59,17 @@ public sealed class RouteState
     }
 
     /// <summary>
+    ///     What the current page is called — its <see cref="Component.PageTitle" /> — or <c>null</c> when it
+    ///     declares none: <c>route.Title is { } t ? Ui.BreadcrumbsItem[t] : null</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A component that reads it while rendering renders again when it changes — in the same render, so
+    ///     the first HTML and a navigation's frame already carry the new one — and not otherwise. A page with no title of its
+    ///     own takes the nearest layout's above it. A change does not raise <see cref="Changed" />.
+    /// </remarks>
+    public string? Title => _title.Read();
+
+    /// <summary>
     ///     Raised whenever <see cref="Path" /> or <see cref="Query" /> changes. Subscribe in
     ///     <c>OnMount</c> and unsubscribe in <c>OnUnmount</c>. Components inside the routed page
     ///     subtree usually don't need this — the router re-renders them on navigation.
@@ -75,6 +87,9 @@ public sealed class RouteState
     ///     it is asked again on every resolution, which the registry's per-tree cache keeps cheap.
     /// </remarks>
     internal Func<IReadOnlyList<Route>>? Table { get; set; }
+
+    /// <summary>The title as the pages of each walk declare it; the router and the render root drive it.</summary>
+    internal RouteTitle TitleSource => _title;
 
     /// <summary>The table to resolve against now: the session's application, or the whole registry.</summary>
     internal IReadOnlyList<Route> CurrentTable => Table?.Invoke() ?? RouteRegistry.BuildTree();
