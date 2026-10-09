@@ -139,14 +139,20 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     }
 
     private BindTiming _timing;
+    private bool _saidInvalid;
 
 
     protected override void WriteAttributes(StringBuilder sb)
     {
-        base.WriteAttributes(sb);
-
         var acc = Bind is not null ? ExpressionAccessor.Parse(Bind) : null;
         var bindCtx = acc is not null ? BindingHelpers.ResolveBindingContext(acc.Target) : null;
+        if (acc is not null)
+        {
+            SayInvalid(bindCtx, acc.Field, ref _saidInvalid);
+        }
+
+        base.WriteAttributes(sb);
+
         var resolvedType = ResolveType(acc);
 
         // A RADIO bound over a bool is the same control as a checkbox as far as the model is concerned:

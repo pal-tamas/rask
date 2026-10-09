@@ -121,7 +121,8 @@ public interface IFormControl<T> : IFormControl
             return;
         }
 
-        context.RegisterFieldValidator(accessor.Field, Validator, () => accessor.Getter());
+        context.RegisterFieldValidator(
+            accessor.Field, RaskValidation.RuleFor<T>(accessor.Field, Validator), () => accessor.Getter());
         // Record the binding's authoring component so a two-way write re-renders it (and any derived UI it
         // owns outside the control/Form) automatically — no StateHasChanged on the consumer surface. Prefer
         // the bind expression's root component (`() => _model.Field`); when the bind closed over a loop

@@ -22,7 +22,9 @@ supported in a form, and they run with nothing declared.
 > app.Configure(c => c.Validation.Off());   // or RaskValidation.AutoValidate = false; on any host
 > ```
 >
-> Inline `.Validate(…)` rules keep running either way.
+> Inline `.Validate(…)` rules keep running either way, and so do the two kinds a data layer registers for
+> its models: the rule a property's type carries, and the rule the store owns — a unique index, a range
+> that must not overlap — which a form [checks before the save](forms-validation.md#the-database-said-no).
 
 ## Where it runs
 

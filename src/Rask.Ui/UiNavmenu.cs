@@ -39,6 +39,13 @@ public sealed partial class UiNavmenu : Component
     {
         _host = Context.Get<UiPopupHost>();
         var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-navmenu"] = "" };
+        if (_host?.Hover != true)
+        {
+            // The page behind neither scrolls nor takes the pointer, as under Flux's (rask-lock.ts). Not under
+            // one the pointer opens: a page with no pointer would take it from the trigger too.
+            data["rask-lock"] = "";
+        }
+
         if (_host?.Controlled is { } controlled)
         {
             // The runtime shows or hides the popover to match whenever this changes (rask-dom.ts).

@@ -3767,6 +3767,8 @@ Rask.Core.Forms.IFormControl<T>.Validate.set -> void
 Rask.Core.Forms.IFormControl<T>.Validator.get -> System.Delegate?
 Rask.Core.Forms.IFormControl<T>.Value.get -> T?
 Rask.Core.Forms.IFormControl<T>.Value.set -> void
+Rask.Core.Forms.IStoreRules
+Rask.Core.Forms.IStoreRules.Check(object! model, string? field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>
 Rask.Core.Forms.ModelGraphWalker
 Rask.Core.Forms.RaskBinding
 Rask.Core.Forms.IRaskFile
@@ -7120,8 +7122,11 @@ static Rask.Core.Forms.ModelGraphWalker.Walk(object! root) -> System.Collections
 static Rask.Core.Forms.RaskBinding.RegisterParsable<T>() -> void
 static Rask.Core.Forms.RaskValidation.AutoValidate.get -> bool
 static Rask.Core.Forms.RaskValidation.AutoValidate.set -> void
+static Rask.Core.Forms.RaskValidation.HasStoreRulesFor(System.Type! modelType) -> bool
 static Rask.Core.Forms.RaskValidation.HasValidatorFor(System.Type! modelType) -> bool
+static Rask.Core.Forms.RaskValidation.RegisterFieldRules(System.Type! modelType, System.Func<string!, System.Delegate?>! rule) -> void
 static Rask.Core.Forms.RaskValidation.RegisterSource(System.Func<System.Type!, bool>! has, System.Func<System.Type!, System.IServiceProvider?, Rask.Core.Forms.IAsyncFieldValidator?>! resolve) -> void
+static Rask.Core.Forms.RaskValidation.RegisterStoreRules(System.Type! modelType, System.Func<System.IServiceProvider?, Rask.Core.Forms.IStoreRules?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.Resolve(System.Type! modelType, System.IServiceProvider? services) -> Rask.Core.Forms.IAsyncFieldValidator?
 static Rask.Core.Forms.ValidationEntry.operator !=(Rask.Core.Forms.ValidationEntry left, Rask.Core.Forms.ValidationEntry right) -> bool
 static Rask.Core.Forms.ValidationEntry.operator ==(Rask.Core.Forms.ValidationEntry left, Rask.Core.Forms.ValidationEntry right) -> bool

@@ -75,14 +75,7 @@ public sealed partial class UiCommand : Component
         // lands is worked out against the list the last render left, which is the list the reader has been looking
         // at. After typing, the cursor is back at 0, which every narrowed list starts with.
         var active = _scope is { } previous ? Active(previous.Entries) : 0;
-        var scope = new UiMenuScope(
-            Prefix,
-            active,
-            new HashSet<int>(),
-            static _ => Task.CompletedTask,
-            static _ => { },
-            query: _query,
-            options: true);
+        var scope = new UiMenuScope(Prefix, active, query: _query, options: true);
         _scope = scope;
 
         return

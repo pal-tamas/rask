@@ -9,6 +9,9 @@ public sealed partial class EditContext
 {
     private List<PlacedFailure>? _failures;
 
+    // The live field whose keystroke is being handled, from the write to the end of its validation.
+    private FieldIdentifier? _typedInto;
+
     // Latched by the first render that asks for the form's own messages: a summary, or an error for the
     // model itself. Never reset: a summary inside a cached component is not asked again on a later render.
     private bool _showsFormMessages;
@@ -52,11 +55,13 @@ public sealed partial class EditContext
     /// <summary>
     ///     Records one failure: its message under each of <paramref name="under" />, and
     ///     <paramref name="marked" /> invalid without one. Every field is touched, so the next keystroke
-    ///     in one validates it again.
+    ///     in one validates it again. <paramref name="checkedFor" /> is the field whose commit found it,
+    ///     for a failure found before the save: the next check of that field replaces it.
     /// </summary>
-    internal void AddFailure(string message, FieldIdentifier[] under, FieldIdentifier[] marked)
+    internal void AddFailure(
+        string message, FieldIdentifier[] under, FieldIdentifier[] marked, FieldIdentifier? checkedFor = null)
     {
-        (_failures ??= []).Add(new PlacedFailure(message, under, marked));
+        (_failures ??= []).Add(new PlacedFailure(message, under, marked, checkedFor));
         foreach (var field in under)
         {
             AddValidationMessage(field, message);
@@ -70,6 +75,21 @@ public sealed partial class EditContext
 
         ValidationStateChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>Takes off what the last check of <paramref name="field" /> found, and leaves what a save was refused for.</summary>
+    internal void ClearChecked(FieldIdentifier field) => RemoveFailures(field, checkedOnly: true);
+
+    /// <summary>
+    ///     Says a keystroke of a live field is being handled, until <see cref="TypingDone" />: whatever
+    ///     validates <paramref name="field" /> meanwhile — the bind itself, an <c>AfterBind</c> that rewrites
+    ///     the value — is validating a value still being typed.
+    /// </summary>
+    internal void TypingInto(FieldIdentifier field) => _typedInto = field;
+
+    /// <inheritdoc cref="TypingInto" />
+    internal void TypingDone() => _typedInto = null;
+
+    private bool IsTypedInto(FieldIdentifier field) => _typedInto is { } typed && typed.Equals(field);
 
     /// <summary>The model itself, with no field name: where a message about the whole form is kept.</summary>
     internal FieldIdentifier FormSlot => FormField;
@@ -110,8 +130,10 @@ public sealed partial class EditContext
         ValidationStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    // Takes every failure that names `field` off ALL the fields it names.
-    private void ClearFailuresNaming(FieldIdentifier field)
+    // Takes every failure that names `field`, or that its commit found, off ALL the fields it names.
+    private void ClearFailuresNaming(FieldIdentifier field) => RemoveFailures(field, checkedOnly: false);
+
+    private void RemoveFailures(FieldIdentifier field, bool checkedOnly)
     {
         if (_failures is not { Count: > 0 } failures)
         {
@@ -122,7 +144,9 @@ public sealed partial class EditContext
         for (var i = failures.Count - 1; i >= 0; i--)
         {
             var failure = failures[i];
-            if (Array.IndexOf(failure.Under, field) < 0 && Array.IndexOf(failure.Marked, field) < 0)
+            var found = failure.CheckedFor is { } origin && origin.Equals(field);
+            var names = !checkedOnly && (Array.IndexOf(failure.Under, field) >= 0 || Array.IndexOf(failure.Marked, field) >= 0);
+            if (!found && !names)
             {
                 continue;
             }
@@ -153,5 +177,6 @@ public sealed partial class EditContext
         return true;
     }
 
-    private sealed record PlacedFailure(string Message, FieldIdentifier[] Under, FieldIdentifier[] Marked);
+    private sealed record PlacedFailure(
+        string Message, FieldIdentifier[] Under, FieldIdentifier[] Marked, FieldIdentifier? CheckedFor);
 }

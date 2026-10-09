@@ -172,4 +172,25 @@ public class ModelRegistryGeneratorTests
         Assert.Equal("RASK073", diagnostic.Id);
         Assert.Contains("2 public properties", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_one_value_value_object_maps_in_an_app_that_imports_nothing_itself()
+    {
+        // The registry names the value's column with HasColumnName, an extension method. The app below has no
+        // implicit usings and never imports EF Core, so the generated file has to bring the namespace itself.
+        var run = Run("""
+            namespace Shop;
+            public sealed record Email(string Value);
+            public sealed class Customer : global::Rask.Data.Aggregate<global::System.Guid>
+            {
+                private Customer() { }
+                public Email Contact { get; private set; } = null!;
+            }
+            """);
+
+        var registry = run.GeneratedSource("__RaskModelRegistry");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(".Property(v => v.Value).HasColumnName(\"Contact\")", registry, StringComparison.Ordinal);
+    }
 }
