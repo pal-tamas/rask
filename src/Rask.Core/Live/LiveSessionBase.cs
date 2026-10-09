@@ -358,8 +358,14 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     ///     Whether the handler <paramref name="id" /> names may run ahead of the render its batch owes — see
     ///     <see cref="Component.HandlerOutlivesRender" />. When it may not, the host renders first.
     /// </summary>
-    internal bool HandlerOutlivesRender(string id)
+    internal bool HandlerOutlivesRender(string id, System.Text.Json.JsonElement sent)
     {
+        // An event read from an older page is matched to a handler of the page as it will be: render first.
+        if (!View.ReadFromThePageAsItIs(sent))
+        {
+            return false;
+        }
+
         _parents ??= new Dictionary<Component, Component>(ReferenceEqualityComparer.Instance);
         if (!_parentsMapped)
         {
@@ -412,6 +418,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         await SendFrameAsync(_writeBuffer.WrittenMemory).ConfigureAwait(false);
+
+        // The browser has this page now: the number it carried is the one its events will name.
+        View.HandlersSent();
 
         // Before the swap: the frame just sent is still the write buffer.
         if (RaskDevToolsHook.Active is { } devTools)
@@ -560,8 +569,16 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             // Full-HTML path (first render, structural change, out-of-band side effect, size fallback):
             // encoded straight from the pooled page buffer — a page-sized string here would be garbage
             // the moment the payload is written, and on the large-object heap past ~42K chars.
-            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html.Span, sessionId, historyUrl,
-                replace, auth, download, jsInvokes, resume, devError);
+            LivePayload.BeginPage(View.HandlerVersionToSend(whole: true));
+            try
+            {
+                LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html.Span, sessionId, historyUrl,
+                    replace, auth, download, jsInvokes, resume, devError);
+            }
+            finally
+            {
+                LivePayload.EndPage();
+            }
             // Keep the cache in lockstep with the client even when shipping full HTML: promote
             // current → previous so the NEXT diff's baseline matches what the client received. Skip
             // when TryComputeDiff already rotated (diffPathEntered), or when the caller defers the
@@ -594,8 +611,16 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             && !renderCache.LastDiffForcedFullHtml)
         {
             var headHtml = headChanged ? LiveDiffGate.ExtractHead(html.Span) : null;
-            LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
-                headHtml, html.Span, resume, devError);
+            LivePayload.BeginPage(View.HandlerVersionToSend(whole: false));
+            try
+            {
+                LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
+                    headHtml, html.Span, resume, devError);
+            }
+            finally
+            {
+                LivePayload.EndPage();
+            }
 
             // Ship the diff whenever it isn't larger than re-sending the body, or unconditionally
             // under Forced. Only the pathological case (nearly every node changed on a tiny page,

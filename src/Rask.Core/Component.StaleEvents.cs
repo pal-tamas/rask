@@ -65,7 +65,7 @@ public abstract partial class Component
     /// <summary>Whether <paramref name="payload" /> was read from the page as it is now, or names no page at all.</summary>
     internal bool ReadFromThePageAsItIs(JsonElement payload) =>
         EventVersion.TryRead(payload, out var sent)
-        && (sent is not { } version || _live?.HandlerState is not { } root || (long)version + root.Floor >= root.Version);
+        && (sent is not { } version || _live?.HandlerState is not { } root || (!root.Moved && (long)version + root.Floor >= root.Version));
 
     // The handler an event is for: the one its id names in the page it was read from, as the page has it now.
     private bool TryFindHandler(string id, JsonElement payload, out (Component Owner, Delegate Handler) entry)

@@ -90,6 +90,7 @@ All metrics publish on the meter named **`Rask.Server`** (`RaskTelemetry.MeterNa
 | `rask.handlers.dispatched` | Counter | | Client event handlers dispatched to user code. |
 | `rask.handlers.faulted` | Counter | | Handler dispatches that threw (isolated; session survives). |
 | `rask.handlers.timedout` | Counter | | Handler dispatches cancelled by `HandlerTimeout`. |
+| `rask.handlers.stale` | Counter | | Events that ran nothing because the page had changed under them: the handler they were sent to was gone, or could not be shown to be the same one. A few are normal (a double click on a row being removed); a steady stream is clicks being dropped — see [An event that outlived its render](js-interop-runtime.md#an-event-that-outlived-its-render). |
 | `rask.handler.duration` | Histogram (ms) | | Wall-clock duration of an event-handler dispatch. |
 | `rask.ws.frames.rejected` | Counter | `reason` = `size` \| `rate` \| `backlog` \| `idle` \| `hello` | Inbound frames refused by a safety limit. |
 | `rask.sessions.resumed` | Counter | | Pages rebuilt on a host that had never heard of the session, from the client's [resume record](configuration.md#surviving-a-restart-or-a-redeploy). |

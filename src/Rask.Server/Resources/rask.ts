@@ -31,7 +31,7 @@ import { pollDevStatus, showDevError } from "../../Rask.Core/Resources/rask-deve
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
 import { setHost, standDown } from "../../Rask.Core/Resources/rask-host.js";
-import { eventBatch, isHandlerEvent } from "../../Rask.Core/Resources/rask-batch.js";
+import { eventBatch, isHandlerEvent, pageApplied } from "../../Rask.Core/Resources/rask-batch.js";
 import {
     beginLoading,
     endAllLoading,
@@ -1399,6 +1399,7 @@ import {
             // op-specific payload.
             const devtools = window.__raskDevtoolsHook;
             const startedAt = devtools ? performance.now() : 0;
+            pageApplied(data);
             applyDiff((data.ops ?? []) as DiffOp[], Array.isArray(data.names) ? data.names : undefined);
             if (devtools) devtools.commit(data, startedAt);
             if (data.history && typeof data.history.url === "string") {
@@ -1451,6 +1452,7 @@ import {
             if (freshHtml) {
                 const devtools = window.__raskDevtoolsHook;
                 const startedAt = devtools ? performance.now() : 0;
+                pageApplied(data);
                 morph(document.documentElement, freshHtml);
                 if (devtools) devtools.commit(data, startedAt);
                 root = document.querySelector("[data-rask-root]") || root;

@@ -11,6 +11,19 @@
 // ORDER. Only handler events wait here. Anything else a host sends (a navigation, an interop reply) goes at
 // once, AFTER the host has flushed what waits: nothing overtakes an event that happened before it.
 
+// WHICH PAGE. A handler id is a slot in its component, and the handler in a slot can change from one page to the
+// next. So every event says which page it was read from: the number the last applied page carried (`v`; a page
+// whose handlers did not move carries none, and the document itself is zero). The host uses it to find the handler
+// the event was sent to, wherever that handler is by the time the event arrives — or to run nothing.
+let pageVersion = 0;
+
+/** Notes the page a reply carries, at the moment it is put on screen — not when it arrives. */
+export function pageApplied(reply: { v?: unknown }): void {
+    if (typeof reply.v === "number") {
+        pageVersion = reply.v;
+    }
+}
+
 /** The most events one frame carries; the host refuses a longer one, so the rest go in a frame of their own. */
 export const MAX_BATCH = 256;
 
@@ -57,6 +70,7 @@ export function eventBatch(ship: (frame: unknown) => unknown): EventBatch {
                 queueMicrotask(flush);
             }
             const mine = answer;
+            (event as { v?: number }).v = pageVersion;
             held.push(event);
             if (held.length >= MAX_BATCH) {
                 flush();

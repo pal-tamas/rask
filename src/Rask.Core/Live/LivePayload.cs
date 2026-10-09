@@ -797,7 +797,30 @@ public static class LivePayload
         {
             writer.WriteString("resume", resume);
         }
+
+        if (PageVersion is { } version)
+        {
+            writer.WriteNumber(EventVersion.Name, version);
+        }
     }
+
+    /// <summary>
+    ///     The number the payload being built carries as <c>v</c>, which the browser sends back with every event
+    ///     it reads from that page — see <c>Component.StaleEvents</c>. Null for none.
+    /// </summary>
+    /// <remarks>
+    ///     Set by the session around the one synchronous build it makes, rather than passed down: the builders
+    ///     are public and their signatures are recorded, and a payload built by anything but a session — a test,
+    ///     a prerender — carries no number, which is what null writes.
+    /// </remarks>
+    [ThreadStatic]
+    private static int? PageVersion;
+
+    /// <summary>Says which page the payload built next, on this thread, is. Undone by <see cref="EndPage" />.</summary>
+    internal static void BeginPage(int? version) => PageVersion = version;
+
+    /// <summary>The payload is built: the next one carries no number unless it is given one.</summary>
+    internal static void EndPage() => PageVersion = null;
 
     /// <summary>
     ///     Writes the development error overlay record when a handler or async lifecycle hook threw.

@@ -603,6 +603,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     private void CommitInitialRoot(string html)
     {
         _renderCache?.Snapshot(); // promote GET frames to the diff baseline
+        View.HandlersDelivered(); // the document is the page a browser's first events are read from
         SeedInitialHtml(html);
     }
 

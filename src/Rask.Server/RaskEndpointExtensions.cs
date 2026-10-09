@@ -2554,7 +2554,7 @@ public static partial class RaskEndpointExtensions
         // A render made now would rebuild this handler — an earlier event of the batch dirtied its component or
         // one above it — so the page is rendered first and the handler that runs is the one that render
         // registers, exactly as when each event was a frame of its own.
-        if (session.RenderOwed && !session.HandlerOutlivesRender(handlerId))
+        if (session.RenderOwed && !session.HandlerOutlivesRender(handlerId, root))
         {
             await RenderOwedAsync(session, metrics).ConfigureAwait(false);
         }

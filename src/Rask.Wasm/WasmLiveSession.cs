@@ -315,7 +315,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
                 // A render made now would rebuild this handler — an earlier event of the batch dirtied its
                 // component or one above it — so the page is rendered first and the handler that runs is the one
                 // that render registers, exactly as when each event was a call of its own.
-                if (RenderOwed && !HandlerOutlivesRender(handlerId))
+                if (RenderOwed && !HandlerOutlivesRender(handlerId, e))
                 {
                     sent = Latest(sent, await RenderOwedAsync(copyFrame).ConfigureAwait(false));
                 }

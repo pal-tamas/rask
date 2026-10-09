@@ -28,7 +28,7 @@ import { showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
 import { setHost } from "../../Rask.Core/Resources/rask-host.js";
-import { eventBatch, isHandlerEvent } from "../../Rask.Core/Resources/rask-batch.js";
+import { eventBatch, isHandlerEvent, pageApplied } from "../../Rask.Core/Resources/rask-batch.js";
 import {
     beginLoading,
     endLoading,
@@ -488,6 +488,7 @@ function applyDiffReply(reply: RaskFrameReply): unknown {
     const applyBody = () => {
         const devtools = window.__raskDevtoolsHook;
         const startedAt = devtools ? performance.now() : 0;
+        pageApplied(reply);
         applyDiff((reply.ops ?? []) as DiffOp[], Array.isArray(reply.names) ? reply.names : undefined);
         if (devtools) devtools.commit(reply, startedAt);
         applyHistory(reply.history);
@@ -533,6 +534,7 @@ function applyFullReply(reply: RaskFrameReply): unknown {
         if (freshHtml) {
             const devtools = window.__raskDevtoolsHook;
             const startedAt = devtools ? performance.now() : 0;
+            pageApplied(reply);
             morph(document.documentElement, freshHtml);
             if (devtools) devtools.commit(reply, startedAt);
             root = document.querySelector("[data-rask-root]") || document.body;
