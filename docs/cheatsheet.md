@@ -134,6 +134,8 @@ public const Tenancy Scope = Tenancy.PerTenant;     // a TenantId, a filter, ten
 // Who is signed in, from a static factory or anything with no constructor to inject into:
 OwnerId = Current.RequiredUserId,                   // Current.UserId is null when nobody is
 using (Tenant.Use(tenantId)) { /* … */ }           // work as one tenant; Tenant.Across() spans them
+using (Tenant.Use(42)) { /* … */ }                 // a numbered tenant: `public int? TenantId { get; private set; }`
+builder.Services.AddRaskTenant(sp => …);            // the tenant from the request instead of the claim (Guid?, int?, long?)
 
 // One row by id to SHOW it (a ProductRead), or the aggregate to CHANGE it — both skip soft-deleted rows:
 var one = await Product.Where(p => p.Id == id).First(CancellationToken);

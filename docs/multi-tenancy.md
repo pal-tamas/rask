@@ -44,6 +44,43 @@ public sealed class Invoice : Aggregate<Guid>
 **Why a `const`.** Like the other four, it is read at compile time rather than reflected over, so a trimmed
 publish cannot lose it and quietly fall back to "shared".
 
+### Tenants that are numbered
+
+An app whose tenants are rows with an integer key declares the column in that type, and the declared type is
+the column's, the filter's and the stamp's:
+
+```csharp
+public sealed class Destination : Aggregate<int>
+{
+    public const Tenancy Scope = Tenancy.PerTenant;
+
+    public int? TenantId { get; private set; }     // or long?
+
+    public string Name { get; private set; } = "";
+}
+
+using (Tenant.Use(42))
+{
+    await Destination.Named("Budapest").Save();     // TenantId = 42
+    var mine = await Destination.OrderBy(d => d.Name);   // WHERE TenantId = 42
+}
+```
+
+`Guid?`, `int?` and `long?` are the three types a tenant is kept in — nullable, because a row has none until
+it is saved — and any other is refused when the model is built. An entity that declares nothing keeps a shadow
+`Guid?`, a child included: a child of a numbered aggregate declares its own `int? TenantId` to keep the number.
+
+Everywhere else the tenant is still a `Guid` — `Current.Tenant`, a job's row, a cache key — and a number
+travels inside it by a fixed rule: **the first eight bytes are zero and the last eight are the number,
+big-endian**. Tenant 42 is `00000000-0000-0000-0000-00000000002a`, readable by eye on a job row or in a log, and
+it is what lets a job enqueued in tenant 42 run in tenant 42. No generated `Guid` has those eight zero bytes,
+so a real identifier is never taken for a number. Two consequences:
+
+- A tenant that is **not** a number — a `Guid` from a claim — met by a table that keeps a number is refused
+  with an exception, on a read as on a write, rather than compared with something. So is a number too large
+  for an `int` column, which would otherwise truncate into another tenant's.
+- Tenant `0` is `Guid.Empty`, which the batteries read as "no tenant". Number tenants from one.
+
 ## Where the tenant comes from
 
 **The signed-in user's.** The tenant is an outcome of authentication rather than an input to routing: signing
@@ -60,8 +97,9 @@ every HTTP request — a minimal API, a controller, a CQRS endpoint — because 
 services ambient for the data layer after authentication has run.
 
 `Current.Tenant` says which tenant that is, from anywhere, and `Current.RequiredTenant` throws when there is
-none. The order it answers in is: an explicit `Tenant.Use` scope first, then the signed-in user's claim, and
-`null` inside `Tenant.Across()`. See [`Current`](data.md#the-current-user--current) for the user it answers
+none. The order it answers in is: an explicit `Tenant.Use` scope first, then the signed-in user's claim — or,
+in an app that registered one, [its resolver](#from-the-request-a-resolver) in the claim's place — and `null`
+inside `Tenant.Across()`. See [`Current`](data.md#the-current-user--current) for the user it answers
 alongside.
 
 ### Putting a user in a tenant
@@ -80,6 +118,54 @@ await auth.Register(model.Email, model.Password, (User user) => user.JoinTenant(
 ```
 
 A user with no tenant — an administrator — carries no claim, and is covered [below](#administrators).
+
+### From the request: a resolver
+
+An app that knows its tenant some other way — a host name per customer, a header, a route value, a request
+service it already has — says so once, and that replaces the claim as the source:
+
+```csharp
+builder.Services.AddRaskTenant(sp => sp.GetRequiredService<ICurrentRequest>().TenantId);   // int?, long? or Guid?
+```
+
+The function is handed the services of the work in flight and returns its tenant, or `null` when it belongs to
+none. It is asked **once per scope and the answer is kept**: as an HTTP request starts, and as a live session
+opens — for as long as that session lives, so a session does not change tenant because a later message
+arrived without the request that opened it. `Current.Tenant`, every filter and every stamp then use it.
+
+| | With a resolver registered |
+|---|---|
+| `Tenant.Use(id)` / `Tenant.Across()` | still win. A background job goes on running in the tenant its row recorded, and there the resolver is not even asked |
+| a signed-in user with no tenant claim | works in the resolved tenant — an administrator on a customer's host, or anybody in an app that signs people in itself |
+| a signed-in user whose claim names **another** tenant | refused: reading the tenant throws `ForbiddenException` |
+| the resolver returns `null` | [no tenant](#when-the-resolver-names-no-tenant): reads are empty, writes are refused |
+
+Three things to know when writing one:
+
+- **A live session's scope is not a request's.** It is a DI scope of its own, opened inside the request that
+  started the session, so read the request through `IHttpContextAccessor` rather than through a scoped object
+  a middleware filled in — that object is a different instance there.
+- **It also runs for background work that recorded no tenant** — a recurring job the host scheduled — where
+  there is no request. Return `null` then; do not assume one.
+- **It must not read the tenant it is being asked for.** Resolve it from the request, or from a table that is
+  not tenant-scoped (the table of tenants itself); a resolver that reads `Current.Tenant` is told so.
+
+`AddRaskTenant` is called once; a second registration is refused at startup.
+
+#### When the resolver names no tenant
+
+```csharp
+await Invoice.Count();                    // 0
+await Invoice.Find(id);                   // null
+await Invoice.For("A-1").Save();          // MissingTenantException
+```
+
+A request on a host no customer owns is an ordinary thing in an app that resolves its tenant from the request,
+so it is not an error to read there: a tenant-scoped table is **empty**. It is never every tenant's rows, and
+never the rows that belong to no tenant either. Every write to one — create, update, delete — is refused with
+a `MissingTenantException` (an `InvalidOperationException`), because a row saved for nobody is a row nobody
+can read. This is the one place the rule [below](#a-read-with-no-tenant-throws) gives way, and only for an app
+that registered a resolver.
 
 ## Saying which tenant explicitly
 
@@ -128,6 +214,10 @@ Deliberately, and it is the decision most worth understanding. Returning *nothin
 leaks and **indistinguishable from an empty database** — the failure that costs the most time to find.
 Returning *everything* would be the leak itself. So it refuses, and says how to say which tenant.
 
+An app that registered a [resolver](#from-the-request-a-resolver) has told Rask that "no tenant" is an answer
+it gives on purpose, and there the read is empty instead — see
+[When the resolver names no tenant](#when-the-resolver-names-no-tenant).
+
 ## `IgnoreQueryFilters()` does not cross tenants
 
 ```csharp
@@ -143,7 +233,22 @@ never quietly becomes a cross-tenant read the day an aggregate declares `Scope`.
 `HasIndex(p => p.Sku).IsUnique()` on a partitioned table would otherwise mean "no two tenants may ever use
 the same SKU", and the symptom is one tenant unable to create a row because a different tenant already has
 it, with nothing in the code saying so. Rask puts `TenantId` at the front of every index on a tenant-scoped
-entity, so uniqueness means *within this tenant* and the filtered query can use the index.
+entity that does not name the tenant, so uniqueness means *within this tenant* and the filtered query can use
+the index — wherever the index was declared: in the entity's `Configure`, by an `[Index]` attribute, or in a
+context of your own.
+
+**An index that already names `TenantId` is left exactly as written**, wherever in the index it is:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Destination> builder)
+{
+    builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique();   // stays (Name, TenantId)
+    builder.HasIndex(d => d.Code).IsUnique();                       // becomes (TenantId, Code)
+}
+```
+
+That is what lets a table that already exists keep the indexes it has. A declared `TenantId` is what the first
+line needs; for a shadow one, name it as a string — `builder.HasIndex("Name", Columns.TenantId)`.
 
 ## Writes stamp it, and it never moves
 
@@ -197,7 +302,26 @@ rather than an error.
 
 Outside a Rask app, the host also has to say who is signed in: register an `IPrincipalSource` (scoped) that
 returns the session's or request's principal, and open `Db.UseScope(scope)` around each request's work so a
-static read can reach it. See [Wiring, when Rask is not hosting](data.md#wiring-when-rask-is-not-hosting).
+static read can reach it. See [Wiring, when Rask is not hosting](data.md#wiring-when-rask-is-not-hosting). The
+same scope is where a [resolver](#from-the-request-a-resolver) is found and called: with no `Db.UseScope` open
+there is nothing to ask, and a tenant-scoped read throws as it does in an app without one.
+
+## What reads or writes without the filter
+
+Worth knowing exactly, because each is a place a review should look:
+
+| Path | What it does | Why |
+|---|---|---|
+| `Tenant.Across()` | reads every tenant's rows, and the rows that belong to none | the one deliberate way across; an insert inside it is refused unless the row already says its tenant |
+| `IgnoreQueryFilters()` on EF Core's own `IQueryable` | lifts every filter, the tenant's included | EF Core's meaning of the call. `Invoice.IgnoreQueryFilters()` — Rask's — lifts soft delete only |
+| raw SQL — `FromSql`, `ExecuteSql`, `SqlQuery` | whatever the SQL says | Rask does not rewrite SQL; a `FromSql` composed over an entity set still gets the filter |
+| `BulkInsert` with `SkipChangeTracking` | writes rows with **no tenant stamp** | it replaces the change tracker, and the interceptors with it. Set `TenantId` on each row, or use the default path |
+| a row whose `TenantId` the entity set itself | is saved into that tenant | the stamp fills an unset tenant and leaves a set one alone; only the entity can set it, through its private setter |
+| a context of your own that does not call `ApplyRaskConventions(this)` | no filter, no stamp | the conventions are what add them |
+| a second mapping of the same table — a legacy `DbContext` beside Rask's | that context's own rules | Rask filters what goes through its contexts and nothing else |
+
+Everything else — `Where`, `Find`, `Count`, `Update`, `Delete`, `Save`, `AsQueryable()`, a child's own read
+face, an `Include`, `ExecuteUpdate`/`ExecuteDelete` over a set — goes through the filter.
 
 ## On each provider
 

@@ -965,9 +965,11 @@ var invoices = await Invoice.OrderByDescending(i => i.CreatedAt).Take(20);   // 
 ```
 
 That gives the table a `TenantId` column, a query filter no read can compose away, and a `TenantId` prefix on
-every index. The column is a shadow one; an entity that reads its tenant declares
-`public Guid? TenantId { get; private set; }`. The tenant is the signed-in user's — it rides on the principal as the `rask:tenant` claim — so the
-read above filters with nothing passed to it; `Tenant.Use(id)` and `Tenant.Across()` say otherwise explicitly.
+every index that does not already name it. The column is a shadow one; an entity that reads its tenant declares
+`public Guid? TenantId { get; private set; }` — or `int?` / `long?` where tenants are numbered, and the declared
+type is then the column's. The tenant is the signed-in user's — it rides on the principal as the `rask:tenant`
+claim — or whatever a resolver you register returns (`services.AddRaskTenant(sp => …)`), so the read above
+filters with nothing passed to it; `Tenant.Use(id)` and `Tenant.Across()` say otherwise explicitly.
 A tenant-scoped read with no tenant **throws** rather than return nothing, `IgnoreQueryFilters()` never
 crosses tenants, and a create stamps the tenant while an update refuses to move a row between tenants.
 `RaskAppDbContext` applies it; a context of your own calls `modelBuilder.ApplyRaskConventions(this)`.
@@ -1228,7 +1230,8 @@ public sealed class Product : Aggregate<Guid>
 
 It runs **last** — after Rask's conventions — so it can extend them or overrule them, replacing the
 soft-delete query filter or dropping the concurrency token. It is optional; an entity without one is
-mapped by convention.
+mapped by convention. One thing follows it: on a [tenant-scoped](multi-tenancy.md#indexes-are-prefixed-for-you)
+table, an index declared here that does not name `TenantId` gets it in front.
 
 The method is matched by signature, so a near miss (an instance method, a private one, the wrong
 builder type) is reported as [RASK072](diagnostics.md#rask072) rather than silently not called.
@@ -1404,6 +1407,101 @@ host.Services.AddRaskQuery();
 
 .OnSubmit(note => Note.Create(note))        // the QueryKey.For<Note> list refetches
 ```
+
+## Mapping tables that already exist
+
+An app that already has a database — its own `DbContext`, its own classes, its own migrations — can model
+its domain with aggregates over the tables it has, with **no migration**. Rask's defaults assume it created
+the schema, so the work is declining each one the table does not have, on the entity that maps it.
+
+```csharp
+public sealed class Destination : Aggregate<int>             // an int key is the store's identity column
+{
+    public const Timestamps  Stamps = Timestamps.None;        // no CreatedAt / UpdatedAt columns
+    public const Concurrency Checks = Concurrency.None;       // no Version column
+    public const Tenancy     Scope  = Tenancy.PerTenant;      // filtered and stamped by TenantId
+
+    public int? TenantId { get; private set; }                // the column's own type: int?, long? or Guid?
+    public string Name   { get; private set; } = "";
+
+    public static Destination Named(string name) => new() { Name = name };
+    public void Rename(string name) => Name = name;
+
+    public static void Configure(EntityTypeBuilder<Destination> b)
+    {
+        b.ToTable("Destinations");                                // the default would be the class name
+        b.Property(d => d.Name).IsRequired().HasMaxLength(255);
+        b.HasIndex(d => new { d.Name, d.TenantId }).IsUnique();   // names the tenant, so it stays as written
+    }
+}
+```
+
+| What Rask assumes | What an existing table usually has | How to say so |
+|---|---|---|
+| `CreatedAt` and `UpdatedAt` | neither | `Stamps = Timestamps.None` (or `Created` / `Updated` for the one it has) |
+| a `Version` concurrency token | none | `Checks = Concurrency.None` — a write then takes no version, and the last writer wins |
+| a hard delete | the same | nothing: `Deletes` defaults to `Deletion.Hard`, and there is no `DeletedAt` unless you ask |
+| a table named after the class | a plural, or a name of its own | `b.ToTable("Destinations")` in `Configure` |
+| a `Guid?` tenant column | an `int` one | declare `public int? TenantId { get; private set; }` — see [numbered tenants](multi-tenancy.md#tenants-that-are-numbered) |
+| `TenantId` in front of every index | indexes in the order they were created | name `TenantId` in the index and it is [left exactly as written](multi-tenancy.md#indexes-are-prefixed-for-you) |
+
+Column names, lengths, precision, conversions and relationships are ordinary EF Core in the same `Configure`.
+
+### A second context, beside the one you have
+
+The app's own context and classes stay exactly as they are. Beside them goes one more context — Rask's model,
+over the same tables — and nothing has to make an aggregate live inside the old one:
+
+```csharp
+public sealed class DomainContext(DbContextOptions<DomainContext> options) : RaskDbContext(options);
+```
+
+```csharp
+builder.Services.AddRaskCqrs();
+builder.Services.AddRaskData<DomainContext>();                       // the context Destination.Where(…) opens
+builder.Services.AddDbContextFactory<DomainContext>((sp, o) => o
+    .UseSqlServer(connectionString)                                  // the same database as the legacy context
+    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));    // the tenant stamp lives here
+builder.Services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlServer(connectionString));
+
+builder.Services.AddRaskTenant(sp => sp.GetRequiredService<ICurrentRequest>().TenantId);
+
+var app = builder.Build();
+Db.Configure(app.Services);
+```
+
+Then make each request's services ambient, after authentication, exactly as
+[above](#wiring-when-rask-is-not-hosting) — that scope is where the tenant resolver is found and called:
+
+```csharp
+app.Use(async (context, next) =>
+{
+    using (Db.UseScope(context.RequestServices))
+    {
+        await next(context);
+    }
+});
+```
+
+```csharp
+await Destination.Named("Budapest").Save();                  // TenantId stamped with the resolved tenant
+var first = await Destination.OrderBy(d => d.Name).Take(15); // only the resolved tenant's rows
+await Destination.Update(id, d => d.Rename("Pest"));         // no version to pass
+```
+
+Three things keep the two contexts honest with each other:
+
+- **The old context goes on owning the schema.** Never point `dotnet ef migrations` at the Rask context, and
+  never call `EnsureCreated` or `Migrate` on it: it maps tables, it does not define them.
+- **Nothing checks the mapping against the database.** A column the table has and the class does not is left
+  alone on an update and must be nullable or defaulted for an insert; a property the table has no column for
+  is an error from the first query that selects it. Map one table, run it, then the next.
+- **Each context tracks its own changes.** A row saved through one is not seen by an instance of the other
+  that already loaded it, and a save through each is two transactions unless you open one on a shared
+  connection yourself.
+
+Where the tenant comes from, what a request with no tenant reads, and every path that reads or writes without
+the filter: **[Multi-tenancy](multi-tenancy.md#from-the-request-a-resolver)**.
 
 ## What the interceptors do
 

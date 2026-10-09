@@ -15,8 +15,8 @@ them until tagged releases begin.
   signed-in user's `rask:tenant` claim as the source — the claim stays the default for an app that registers
   nothing — and is asked once per scope, the answer kept: as an HTTP request starts and as a live session
   opens, for the session's whole life. `Current.Tenant`, every tenant filter and every insert stamp use it; an
-  explicit `Tenant.Use` / `Tenant.Across` still wins and the resolver is then not asked at all, so a job goes
-  on running in the tenant its row recorded. A user with no tenant claim works in the resolved tenant; one
+  explicit `Tenant.Use` / `Tenant.Across` still wins, so a job goes on running in the tenant its row recorded
+  — and there the resolver is not even asked. A user with no tenant claim works in the resolved tenant; one
   whose claim names a different tenant is refused with a `ForbiddenException` when the tenant is read.
   **When the resolver names no tenant**, a tenant-scoped table reads as *empty* — `Count()` is 0, `Find` is
   null — and every write to one is refused with the new `MissingTenantException` (an
@@ -36,7 +36,10 @@ them until tagged releases begin.
   for an `int` column, met by a table that keeps a number is refused rather than compared.
   **The filter's SQL changed shape for every tenant-scoped table**: it is now
   `TenantId IS NOT NULL AND TenantId = @tenant`, so a row that belongs to no tenant can never be matched by a
-  read that names none. No schema change.
+  read that names none. No schema change. With `Stamps = Timestamps.None`, `Checks = Concurrency.None` and
+  `ToTable` in `Configure`, this is what lets an app map aggregates over tables it already has, through a second
+  context deriving from `RaskDbContext` beside its own — [Mapping tables that already
+  exist](docs/data.md#mapping-tables-that-already-exist).
 
 - **`Ui.ConfirmLeave` — the unsaved-changes question in a dialog of the app's own.** Placed once in a layout
   (`Ui.ConfirmLeave.Stay("Nem").Leave("Igen")`, "Stay" / "Leave" when unset), it is where every form's
