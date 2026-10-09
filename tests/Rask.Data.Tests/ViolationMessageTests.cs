@@ -105,6 +105,7 @@ public sealed class ViolationMessageTests : IDisposable
 
         Assert.Equal([Lane.NameTaken], refused.Errors["Name"]);
         Assert.Single(refused.Errors);
+        Assert.Equal(["Name"], Assert.Single(refused.Failures).Fields);
         Assert.IsType<DbUpdateException>(refused.InnerException);
     }
 
@@ -138,7 +139,7 @@ public sealed class ViolationMessageTests : IDisposable
     }
 
     [Fact]
-    public async Task An_index_over_several_columns_fails_with_the_message_about_the_row_as_a_whole()
+    public async Task An_index_over_several_columns_fails_once_with_the_message_over_every_one_of_them()
     {
         await using var database = await StartDatabaseAsync();
         await SaveAsync(Acme, Lane.Between("Budapest", "Vienna"));
@@ -146,8 +147,12 @@ public sealed class ViolationMessageTests : IDisposable
         var refused = await Assert.ThrowsAsync<RaskValidationException>(
             () => SaveAsync(Acme, Lane.Between("Budapest", "Vienna").With(name: "other", code: "OTHER", slug: "other")));
 
-        Assert.Equal([Lane.RouteTaken], refused.Errors[""]);
-        Assert.Single(refused.Errors);
+        var failure = Assert.Single(refused.Failures);
+        Assert.Equal(Lane.RouteTaken, failure.Message);
+        Assert.Equal(["Origin", "Target"], failure.Fields);
+        Assert.Equal("IX_Lane_TenantId_Origin_Target", failure.Source);
+        Assert.Equal([Lane.RouteTaken], refused.Errors["Origin"]);
+        Assert.Equal([Lane.RouteTaken], refused.Errors["Target"]);
     }
 
     [Fact]
