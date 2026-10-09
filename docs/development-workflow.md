@@ -84,7 +84,7 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
   push — `release.yml` runs every gate, the release-only ones included, and only then packs the
   NuGets and publishes to nuget.org + a GitHub release (the `cut-release` skill). Try those gates
   ahead of the tag on a `ci/release/**` branch.
-- **Nightly:** `nightly.yml` runs hourly and takes the newest commit `full` (the whole run) has passed on `main` — it packs the MinVer
+- **Nightly:** `nightly.yml` runs when `full` (the whole run) ends, and takes the newest commit it has passed on `main` — it packs the MinVer
   prerelease versions and publishes them to nuget.org (prerelease) and GitHub Packages. A commit
   `ci` did not pass publishes nothing.
 - **The released version is the only one left listed.** After publishing, `release.yml` runs
@@ -137,7 +137,7 @@ free for a public repository and nobody waits on it.
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
 | **CI, every push to `main` and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` and `unit` always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the last commit `ci` or `full` passed; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, behind every push to `main`, one run at a time** — `full.yml`; also `ci.yml` on a `ci/**` branch | The whole **push** set, unscoped: build, unit (two shards), format (two halves) (`run-unit-local.sh`), browser E2E in four shards and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, behind every push to `main`, one run at a time** — `full.yml`; also `ci.yml` on a `ci/**` branch | The whole **push** set, unscoped: build, unit (two shards), format (two halves) (`run-unit-local.sh`), browser E2E in five shards and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
@@ -178,10 +178,11 @@ git push origin --delete ci/my-change
 ### What a red `main` stops
 
 Publishing. `pages.yml` triggers when `full` completes on `main` and does nothing unless it concluded
-`success`; `nightly.yml` runs hourly and packs the newest commit `full` passed, once. So neither a
+`success`; `nightly.yml` triggers on the same completion and packs the newest commit `full` passed, once (an hourly
+schedule is its backstop). So neither a
 prerelease package nor rask.sh is built from a commit the WHOLE set did not pass — a scoped run's green
 publishes nothing. `full` runs behind every push, one run at a time with the newest push waiting, so a
-site change is live about twenty minutes after its push and a package within the hour after that.
+site change is live about twenty minutes after its push and a package is on nuget.org about as soon.
 
 The price of a scoped push is named here once: a break the scoped run could not see is found by the
 next whole run, minutes later, with green pushes on top of it. `full` red and `ci` green means

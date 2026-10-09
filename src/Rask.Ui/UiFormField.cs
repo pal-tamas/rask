@@ -244,7 +244,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>, IUiFi
         }
 
         var boundMessages = HasBoundMessages();
-        if (Tone == Ui.Tone.Error || boundMessages)
+        if (Tone == Ui.Tone.Error || boundMessages || FormCallsInvalid())
         {
             aria["invalid"] = "true";
         }
@@ -303,6 +303,12 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>, IUiFi
         Bind is { } bind
         && EditContextScope.Current is { } ctx
         && ctx.GetValidationMessages(ExpressionAccessor.Parse(bind).Field).Count > 0;
+
+    // Marked by a failure whose message is under another field: invalid, with nothing of its own to say.
+    private bool FormCallsInvalid() =>
+        Bind is { } bind
+        && EditContextScope.Current is { } ctx
+        && ctx.IsInvalid(ExpressionAccessor.Parse(bind).Field);
 
     // [Required] is the one required rule a field can see from its bind expression. Asked of a member the
     // expression already roots, so it costs the trimmer nothing.

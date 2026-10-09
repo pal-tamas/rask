@@ -278,7 +278,7 @@ public static class GuideCatalog
         new("forms-validation", "Forms — validation", "Inline Validate rules, sync or async; attributes and FluentValidation too.", "Frontend")
         {
             SearchTitle = "Form validation with inline rules in C#",
-            Description = "Validate a form with inline Validate rules on a field or the form, sync or async, kept in a value object. DataAnnotations and FluentValidation work too.",
+            Description = "Validate a form with inline rules on a field or the form, sync or async, or with DataAnnotations. A database unique-constraint error shows under its field.",
         },
         new("forms-advanced", "Forms — advanced", "Nested/complex models, radio & checkbox groups, custom controls.", "Frontend")
         {
