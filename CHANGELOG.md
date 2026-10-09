@@ -199,7 +199,9 @@ them until tagged releases begin.
   `Ui.ChartSvg.Width(606).Height(202)[…]` → `Ui.ChartSvg[…]`. A page prerendered for a WebAssembly app shows the
   empty boxes until the runtime has started; a chart whose part reads the wrong row type now says so when it is
   first drawn rather than when it is first rendered. In a test, `page.On("[data-rask-measure] input").Input("606 202")`
-  is the browser's measurement.
+  is the browser's measurement. The measuring hook now also follows a measured element that a render replaces
+  (the first drawing does): it measures whatever stands in its place, where it used to go on watching the element
+  that had left the page, and a chart drawn once was then never drawn again for a new box.
 - **BREAKING: an index declared in `Configure` (or by `[Index]`) on a tenant-scoped entity becomes tenant-first
   (#1233).** An app that has an entity with `Scope = Tenancy.PerTenant` and an index it declared in the
   entity's static `Configure`, or with an `[Index]` attribute, **gets a schema change in its next migration**:

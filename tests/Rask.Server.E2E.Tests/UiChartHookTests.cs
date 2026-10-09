@@ -29,10 +29,10 @@ public sealed class UiChartHookTests(PlaywrightFixture playwright) : IClassFixtu
         await using var session = await HookSession.OpenAsync<ChartHookPage>(playwright);
         var page = session.Page;
 
-        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg').getAttribute('viewBox') === '0 0 400 133.33'");
+        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg')?.getAttribute('viewBox') === '0 0 400 133.33'");
         var widthAtFirst = await page.EvaluateAsync<double>("() => document.querySelector('#fluid svg').getBoundingClientRect().width");
         await page.EvaluateAsync("() => { document.getElementById('fluid').style.width = '300px'; }");
-        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg').getAttribute('viewBox') === '0 0 300 100'");
+        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg')?.getAttribute('viewBox') === '0 0 300 100'");
         var area = await page.EvaluateAsync<string>("() => { const a = document.querySelector('#fluid [data-rask-plot-area]').getBoundingClientRect(), s = document.querySelector('#fluid svg').getBoundingClientRect(); return [a.left - s.left, a.top - s.top, a.right - s.left, a.bottom - s.top].map(Math.round).join(' '); }");
 
         // A drawing in the box's own units, so nothing in it is scaled; and the plot area is the plot's, gutters in.
@@ -45,13 +45,13 @@ public sealed class UiChartHookTests(PlaywrightFixture playwright) : IClassFixtu
     {
         await using var session = await HookSession.OpenAsync<ChartHookPage>(playwright);
         var page = session.Page;
-        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg').getAttribute('viewBox') === '0 0 400 133.33'");
+        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg')?.getAttribute('viewBox') === '0 0 400 133.33'");
 
         await page.EvaluateAsync("() => { const f = document.getElementById('fluid'); f.style.display = 'none'; f.style.width = '240px'; }");
         await page.WaitForTimeoutAsync(400);
         var whileHidden = await page.EvaluateAsync<string>(ViewBox);
         await page.EvaluateAsync("() => { document.getElementById('fluid').style.display = ''; }");
-        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg').getAttribute('viewBox') === '0 0 240 80'");
+        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg')?.getAttribute('viewBox') === '0 0 240 80'");
 
         Assert.Equal("0 0 400 133.33", whileHidden);
     }
@@ -68,7 +68,7 @@ public sealed class UiChartHookTests(PlaywrightFixture playwright) : IClassFixtu
         });
         var page = session.Page;
 
-        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg').getAttribute('viewBox') === '0 0 400 133.33'");
+        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg')?.getAttribute('viewBox') === '0 0 400 133.33'");
         heard.AddRange(await page.EvaluateAsync<string[]>("() => window.sized"));
 
         // No chart is drawn before it is measured, so each says its box — once, and the three of them together.
@@ -87,7 +87,7 @@ public sealed class UiChartHookTests(PlaywrightFixture playwright) : IClassFixtu
             return Task.CompletedTask;
         });
         var page = session.Page;
-        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg').getAttribute('viewBox') === '0 0 400 133.33'");
+        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg')?.getAttribute('viewBox') === '0 0 400 133.33'");
         await session.HooksLoadedAsync();
         const string read = "() => { const c = document.querySelector('#fluid [data-ui-chart]'), t = c.querySelector('[data-rask-plot-tooltip]'), f = c.getBoundingClientRect(), b = t.getBoundingClientRect(); return [c.hasAttribute('data-active') ? 'on' : 'off', t.hasAttribute('data-active') ? t.innerText.replace(/\\s+/g, ' ').trim() : '-', Math.round(b.left - f.left) + ',' + Math.round(b.top - f.top), c.querySelector('slot').textContent, c.style.getPropertyValue('--rask-plot-at'), [...c.querySelectorAll('circle')].map(p => p.hasAttribute('data-active') ? 'A' : '.').join('')].join(' | '); }";
         var before = Volatile.Read(ref sent);
