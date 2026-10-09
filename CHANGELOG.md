@@ -7,6 +7,26 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: a one-value value object is stored as a converted scalar column, so it can be indexed and made
+  unique.** `public Email Email { get; private set; }` with `record Email(string Value)` used to be an EF Core
+  complex type whose one column was named after the property, and EF Core has no index over a complex type's
+  column — `builder.HasIndex(c => new { c.Email, c.TenantId })` threw as the model was built. It is now an
+  ordinary scalar column with a conversion, so `HasIndex(…).IsUnique("…")`, `HasMaxLength`, `HasPrecision` and
+  the rest go on `builder.Property(c => c.Email)`, and the unique rule's failure names the field `Email`.
+  **No migration:** the column is the same — name, type, nullability, length, precision — and EF Core's own
+  migration differ reports nothing between the two mappings on SQLite, SQL Server and PostgreSQL (pinned by a
+  test for a string with a length, an int, a decimal with a precision, a `DateOnly`, a `Guid` and a nullable
+  value object). Only the column ORDER of a table created from scratch changes. **What an existing app has to
+  change:** (1) a `Configure` that reached the column through `builder.ComplexProperty(c => c.Email)` now
+  configures `builder.Property(c => c.Email)`; (2) a query on the AGGREGATE that reads inside the value —
+  `db.Set<Customer>().Where(c => c.Email.Value.Contains("a"))` — no longer translates: compare whole values
+  (`c.Email == new Email("…")`) or query the read face, where `Email` is the string it always was. Read faces,
+  form models and the generated writes are unchanged. A value object with several values stays a complex type,
+  and so does a one-value value object nested inside one. The value object is rebuilt through a constructor
+  taking its value or a parameterless constructor and its property, either of which may be private.
+
 ### Fixed
 
 - **The edit form works on an aggregate that declares `Checks = Concurrency.None`.** Its generated form model

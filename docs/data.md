@@ -1308,8 +1308,9 @@ checked.
 ## Value objects
 
 A value object needs **no marker and no base class**. Any composite an entity holds that is not itself an
-entity (a record, a struct or a plain class) is a value object, mapped as an EF Core **complex type**: its
-properties become columns on the owning row.
+entity (a record, a struct or a plain class) is a value object, and its values become columns on the owning
+row: one that holds a single value is that value's column, and one that holds several is an EF Core **complex
+type**.
 
 ```csharp
 public sealed record Money(decimal Amount, string Currency);
@@ -1326,10 +1327,42 @@ public sealed class Customer : Aggregate<Guid>
 form model carries it as its value, `string? Email`. A value object with several values is prefixed by the
 property, and a form model carries it as a nested model.
 
+That one column is an ordinary scalar column with a conversion — the value object goes in and out through its
+one value — so everything a column can have, it can have, configured on the property itself:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Customer> builder)
+{
+    builder.Property(c => c.Email).HasMaxLength(255);
+    builder.HasIndex(c => new { c.Email, c.TenantId }).IsUnique("This address is already registered.");
+}
+```
+
+The unique rule's failure names the field `Email` — the form's own name for it — not `Email.Value`. The value
+object is rebuilt through the constructor that takes its value, or, for the private shape, a parameterless
+constructor and its property; both may be private.
+
+**What it costs: a query on the aggregate cannot reach inside the value.**
+
+```csharp
+// on the read face — where queries belong — the value IS the primitive, and everything translates
+await Customer.Where(c => c.Email.StartsWith("ada@")).OrderBy(c => c.Email);
+
+// on the write model (plain EF Core over the aggregate): comparing the whole value translates…
+await db.Set<Customer>().Where(c => c.Email == new Email("ada@example.com")).ToListAsync(ct);
+
+// …and member access does not: "could not be translated"
+await db.Set<Customer>().Where(c => c.Email.Value.Contains("ada")).ToListAsync(ct);
+```
+
+Before, when a one-value value object was a complex type, the last line translated and no index could name the
+column. Filter and sort on the read face, or compare whole values. This applies to a one-value value object the
+**entity** holds; one nested inside a larger value object (`Price.Currency`) is still part of that complex type.
+
 What is **not** a value object: a type EF Core maps as a column on its own (`string`, `DateTime`, `Guid`, an
 enum, anything from `System` or `Microsoft`), a collection, an abstract or generic type, and an `Entity<TId>`.
 
-**A complex type, not an owned entity**, and the distinction is the point. An owned entity is a row
+**A value object with several values is a complex type, not an owned entity**, and the distinction is the point. An owned entity is a row
 with hidden identity: tracked separately, nullable in ways a value has no business being, and quietly
 producing a join. A complex type is part of the row, which is what a value object *is*, and it is why `Money` can
 be held by two aggregates without either owning it.
