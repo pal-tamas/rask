@@ -179,7 +179,11 @@ Never key on `[data-ui-card]` from another component.
    the transitions in and out, and what Escape, a click outside, a press dragged across the panel's edge and
    each close button do (36 checks). It then opens the same dialogs the way a RENDER does, on the pseudo-page
    `modal-state` (`ModalStateParity`, `Ui.Modal.Open(false)`): it changes `data-rask-modal-open` and nothing
-   else, and holds the result to what Flux's trigger opened. It waits on state (open, no transition running,
+   else, and holds the result to what Flux's trigger opened. Last (24 more, 60 in all) the confirmation as an
+   app writes it, which Flux's page does not show: the script turns Flux's confirmation into a BARE modal and
+   into one whose heading is a whole question (`CONFIRM`, made on the live page) and holds `modal-confirm`
+   (`ModalConfirmParity`) to it at 1280 and 390 — the width, the close button against its corner, how near the
+   heading's first line comes to it — and `Ui.ConfirmLeave` to Flux's corner. It waits on state (open, no transition running,
    the same box for three frames). A component that is only itself once opened needs the same; start from it.
 4. Unit tests in `tests/Rask.Ui.Tests/Components/Ui<Name>Tests.cs`: behaviour and markup contract
    (roles, attributes, what a prop writes). Names are sentences; three blank-line-separated blocks.
@@ -188,7 +192,7 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker slider otp-input pagination timeline` today, plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker slider otp-input pagination timeline tabs` today, plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
 `parity-pillbox.mjs`, `parity-editor.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
@@ -363,7 +367,13 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   fills the viewport and nothing is outside its box; Flux's page shows no `scroll="body"`, `bare`, `left` or
   `bottom` example, so those are built on the Reference and the measured variants, unmeasured. The corner button
   is the kit's own `Ui.Button.Subtle.Sm` with Flux's lighter resting colour by `!` utilities (the one way to say
-  it over the button's own). The focus placeholder stays (`autofocus` + the `ui-modal-placeholder` keyframe):
+  it over the button's own). Measured 2026-10-09, when a hugging leave dialog was taken for a kit bug: a bare
+  `flux:modal` HUGS its content too (min 20rem, max 36rem, both in `:where()`; the Site's sheet computes the
+  same), the corner button is 32px at 16/16 at every width, and Flux's heading keeps NO room for it — a first
+  line that fills the panel ends 24px under the button on Flux's own page. Flux's docs look right because
+  their headings are short and the sentence is a `flux:text`; the confirmation's `min-w-[22rem]` is the
+  example's class, not a default. So `Ui.ConfirmLeave`'s `min-w-[22rem]` is Flux's and its `pe-8` is its own
+  (its heading is a whole question); neither belongs in `Ui.Modal`. The focus placeholder stays (`autofocus` + the `ui-modal-placeholder` keyframe):
   the hook does not do it. Not written, as Flux writes none: `closedby`, `popover`, `aria-modal`, a label.
   Parity stand-ins: Flux's spacer (the kit's `Ui.Spacer` carries no `data-ui-spacer`) and the subheading of
   the floating example. The Dashboard's queue sheet writes two layout
@@ -503,6 +513,18 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `aria-pressed` / `data-match`; the block is a separate control name, `code-block`), with the label "Code"
   and the `Ctrl`+`E` of its shortcut table — the reference's one line, "Code block formatting", says otherwise
   and no example renders the item, so what name the Blade item writes is the one thing not seen.
+- Tabs (2026-10-08): `Ui.TabGroup` / `Ui.Tabs` / `Ui.Tab` / `Ui.TabPanel`. A tab is ALWAYS a `<button>` — Flux's
+  tab has no `href` (its page: "for full-page navigation, use the navbar"), so `Ui.Tab.Href` was removed on
+  merging and a row that navigates is `Ui.Tabs.Value(x).OnChange(v => Go.To(…))` (the console's log page). The
+  panel's `pt-8` is a plain utility: Flux's own examples override it with `pt-6!`, and so does a call site.
+  `ScrollableFade()` is the kit's one scroll-driven animation beside the table's (`.ui-tabs-fade`,
+  `@property --ui-tabs-scrolled`), where Flux measures in script; the harness neither pauses nor records it.
+  Keys recorded on Flux's live page, list by list, and equal on the parity page with the hook: all four arrows
+  move AND select, wrapping, never scrolling; they pass over an `action` tab, which Tab reaches; Home, End,
+  Enter and Space do nothing of the tabs' own. Unmeasured, no example on Flux's page: a DISABLED tab (drawn
+  from the reference: 50% / 75% dark opacity, no pointer, skipped by the arrows), `accent="false"`,
+  `icon:trailing`, `scrollable:scrollbar="hide"`, a tab's own `size`. Still daisyUI's `tabs` / `tab`, written
+  by hand: the site's `CodeSample` file tabs and the landing page's hero / install tabs — neither is a `Ui.Tab`.
 - Tooltip wrapper display: measured on Flux's live pages — a plain `flux:tooltip` writes NO display class and
   computes `inline-flex`, a button's own tooltip writes `inline-flex`, every toolbar tooltip of the editor
   writes `contents`. So the default is a rule (`[data-ui-tooltip]{display:inline-flex}` in `@layer rask`,
@@ -563,6 +585,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Input `clearable` | button `data-rask-clear="<input id>"` (no `OnClick`) | emptied, `input` fired, focus in the field |
 | Input `mask` / `mask:dynamic="$money($input)"` | `data-rask-mask="<pattern>"` / `data-rask-mask-money` (`=".,2"`) | Flux's (Alpine's) shaping; any other `mask:dynamic` expression is NOT supported |
 | Switch | `<input type="checkbox" role="switch">` | Enter toggles |
+| Tabs | `role="tablist"` over `button[role=tab]`, roving `tabindex`, `aria-selected`; each tab's `OnClick` selects it — NO key handler in C# | the arrows move focus and select, past disabled tabs and around the ends; Home / End are the page's, as Flux's (`rask-tabs.ts`; the role alone loads the bundle, like the switch's) |
 | Slider | `data-rask-big-step="<BigStep>"` on each thumb's `<input type="range">`, only when `BigStep` is set (Flux without `big-step`: Shift changes nothing, the Page keys are the browser's) | Shift+Arrow, PageUp / PageDown |
 | Select (listbox button) | `data-rask-listbox-button` on the closed `button[role=combobox]` | Enter does nothing, the arrows do not scroll (open the list from the C# key handler: Flux opens on ArrowUp / ArrowDown / Space) |
 | Calendar | grid `data-rask-contain-keys="Arrows Home End PageUp PageDown"` (NOT Space — Flux lets it scroll); the calendar root `data-rask-focus-follows`, the day that is the tab stop `data-rask-focus-target` + `tabindex="0"`; key the day cells by DATE. On Home / End / PageUp / PageDown render NO `data-rask-focus-target` for that render (or let the keyed day leave) | arrows never scroll the page; focus lands on the new day after the morph, across a month change too; after Home / End / Page keys focus is on `<body>`, as Flux |

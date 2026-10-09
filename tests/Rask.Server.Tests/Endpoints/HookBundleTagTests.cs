@@ -25,6 +25,7 @@ public sealed class HookBundleTagTests
     [InlineData("<dialog data-rask-modal-open=\"true\"></dialog>")]
     [InlineData("<div popover id=\"menu\"></div>")]
     [InlineData("<input type=\"checkbox\" role=\"switch\">")]
+    [InlineData("<div role=\"tablist\"></div>")]
     [InlineData("<div role=\"listbox\" aria-activedescendant=\"o1\"></div>")]
     public void A_page_that_asks_for_a_hook_gets_the_bundle_after_the_runtime(string hooked)
     {
@@ -38,7 +39,7 @@ public sealed class HookBundleTagTests
     }
 
     [Fact]
-    public void A_role_that_is_not_a_switch_and_a_longer_name_that_starts_like_a_hooks_ask_for_nothing()
+    public void A_role_that_asks_for_no_hook_and_a_longer_name_that_starts_like_a_hooks_ask_for_nothing()
     {
         var html = $"<html><head></head><body><p role=\"status\" data-rask-focus-trap data-rask-popover-open=\"true\">(data-rask-tooltip)</p>{Runtime}</body></html>";
 

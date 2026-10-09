@@ -1,208 +1,144 @@
 using Rask.Core;
+using Rask.Testing;
 
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     Tabs over panels in one page — the form for a view that has no URL of its own.
+///     Flux's tab group: a tablist and the panels it switches between.
 /// </summary>
 /// <remarks>
-///     <para>
-///     The link form stays the default and is covered by <c>UiTabsTests</c>. What is pinned here is what a
-///     tablist owes a reader: each tab tied to what it shows and back again, one tab stop rather than a walk
-///     through every tab, the arrows moving between them, and the panels that are not shown still being IN the
-///     markup so the browser's own find-in-page can reach them.
-///     </para>
-///     <para>
-///     A <c>UiTabs</c> inside the group is not ceremony — a <c>tablist</c> may contain only tabs, so the panels
-///     cannot be its siblings.
-///     </para>
+///     What a tab group owes a reader: each tab tied to what it shows and back again, the panel of the
+///     selected tab shown and reachable with Tab, the others in the markup but hidden — or, in a findable
+///     group, hidden only until the browser's find-in-page lands in one.
 /// </remarks>
 public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
 {
-    private static Component Group(string? selected = null, Callback<string>? onSelect = null)
-    {
-        var group = selected is null ? Ui.TabGroup : Ui.TabGroup.Selected(selected);
-        if (onSelect is { } cb)
-        {
-            group = group.OnSelect(cb);
-        }
-
-        return group[
-            Ui.Tabs[
-                Ui.Tab.Key("d").Label("Details").Name("details"),
-                Ui.Tab.Key("h").Label("History").Name("history")
+    private static Component Group(UiTabGroup group, UiTabs row) =>
+        group[
+            row[
+                Ui.Tab.Name("profile")["Profile"],
+                Ui.Tab.Name("account")["Account"]
             ],
-            Ui.TabPanel.Key("pd").Name("details")["The details."],
-            Ui.TabPanel.Key("ph").Name("history")["The history."]
+            Ui.TabPanel.Name("profile")["Your profile."],
+            Ui.TabPanel.Name("account")["Your account."]
         ];
-    }
-
-    [Fact]
-    public void A_named_tab_inside_a_group_is_a_button_rather_than_a_link()
-    {
-        // There is nowhere for it to go — the panel is already on the page — and a link with href="#" is one
-        // the browser will follow, putting a stray fragment in the address bar and breaking the back button it
-        // was supposed to protect.
-        var html = Group().ToHtml();
-
-        Assert.Contains("<button", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("href=\"#\"", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_tab_with_an_href_is_still_a_link()
-    {
-        // The default, and the one to reach for: a URL is bookmarkable and answers the back button.
-        var html = Ui.Tabs[Ui.Tab.Label("All").Href("/orders")].ToHtml();
-
-        Assert.Contains("href=\"/orders\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("<button", html, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void Each_tab_and_its_panel_name_each_other()
     {
-        // aria-controls points at what the tab shows; aria-labelledby points back, so the panel is announced
-        // with the words on the tab that opened it rather than as an unnamed region.
-        var html = Group().ToHtml();
+        var page = Page.Render(Group(Ui.TabGroup, Ui.Tabs));
 
-        Assert.Contains("aria-controls=", html, StringComparison.Ordinal);
-        Assert.Contains("aria-labelledby=", html, StringComparison.Ordinal);
-        Assert.Contains("role=\"tabpanel\"", html, StringComparison.Ordinal);
-        Assert.Contains("role=\"tablist\"", html, StringComparison.Ordinal);
+        var tab = page.Find("[role=\"tab\"]:has-text(\"Account\")");
+        var panel = page.Find("[role=\"tabpanel\"]:has-text(\"Your account.\")");
+
+        Assert.False(string.IsNullOrEmpty(tab.Id));
+        Assert.Equal(panel.Id, tab.Attribute("aria-controls"));
+        Assert.Equal(tab.Id, panel.Attribute("aria-labelledby"));
     }
 
     [Fact]
-    public void With_nothing_selected_the_first_tab_is_the_one_shown()
+    public void The_group_and_its_panels_are_marked_as_Flux_marks_them()
     {
-        // A group that opens with nothing shown is a set of panels with no way in, and a page should not have
-        // to repeat its own first tab's name to avoid that.
-        var html = Group().ToHtml();
+        var page = Page.Render(Group(Ui.TabGroup, Ui.Tabs));
 
-        Assert.Contains("aria-selected=\"true\"", html, StringComparison.Ordinal);
-        Assert.Equal(1, Occurrences(html, "aria-selected=\"true\""));
-    }
+        var panels = page.FindAll("[data-ui-tab-group] > [data-ui-tab-panel][role=\"tabpanel\"]");
 
-    [Fact]
-    public void Only_the_selected_tab_is_a_tab_stop()
-    {
-        // The roving tabindex: Tab out of the tablist lands in the PANEL, where the reader is going, rather
-        // than walking every remaining tab first.
-        var html = Group().ToHtml();
-
-        Assert.Equal(1, Occurrences(html, "tabindex=\"0\"") - Occurrences(html, "role=\"tabpanel\" tabindex=\"0\""));
-        Assert.Contains("tabindex=\"-1\"", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Every_panel_is_rendered_and_the_hidden_ones_say_so()
-    {
-        // Rendered, not omitted: the content is then findable by the browser's own in-page search and by a
-        // screen reader's virtual cursor, and switching tabs shows markup that is already there.
-        var html = Group().ToHtml();
-
-        Assert.Contains("The details.", html, StringComparison.Ordinal);
-        Assert.Contains("The history.", html, StringComparison.Ordinal);
-
-        // Counted on the PANEL tags, not on the whole document: "hidden" also appears in the tab row's
-        // `[&::-webkit-scrollbar]:hidden`, so a bare Contains here would pass with no panel hidden at all.
-        var panels = PanelTags(html);
         Assert.Equal(2, panels.Count);
-        Assert.Equal(1, panels.Count(tag => tag.Contains("hidden", StringComparison.Ordinal)));
-    }
-
-    // The opening tag of each tabpanel, which is where `hidden` lands.
-    private static List<string> PanelTags(string html)
-    {
-        var tags = new List<string>();
-        for (var i = html.IndexOf("role=\"tabpanel\"", StringComparison.Ordinal); i >= 0;
-             i = html.IndexOf("role=\"tabpanel\"", i + 1, StringComparison.Ordinal))
-        {
-            var open = html.LastIndexOf('<', i);
-            var close = html.IndexOf('>', i);
-            tags.Add(html[open..close]);
-        }
-
-        return tags;
+        Assert.Single(page.FindAll("[data-ui-tab-group] > [data-ui-tabs]"));
     }
 
     [Fact]
-    public void Selected_says_which_panel_is_shown()
+    public void Only_the_selected_tabs_panel_is_shown_and_it_is_a_tab_stop()
     {
-        // The panel tags are in document order, so the second is history's — and `hidden` lives on the TAG,
-        // ahead of the content, which is why slicing from the words inside it would assert nothing.
-        var panels = PanelTags(Group("history").ToHtml());
+        var page = Page.Render(Group(Ui.TabGroup, Ui.Tabs));
 
-        Assert.Contains("hidden", panels[0], StringComparison.Ordinal);
-        Assert.DoesNotContain("hidden", panels[1], StringComparison.Ordinal);
+        var panels = page.FindAll("[role=\"tabpanel\"]");
+
+        Assert.False(panels[0].Attributes.ContainsKey("hidden"));
+        Assert.True(panels[0].Attributes.ContainsKey("data-selected"));
+        Assert.Equal("0", panels[0].Attribute("tabindex"));
+        Assert.True(panels[1].Attributes.ContainsKey("hidden"));
+        Assert.False(panels[1].Attributes.ContainsKey("data-selected"));
+        Assert.Equal("-1", panels[1].Attribute("tabindex"));
     }
 
     [Fact]
-    public async Task Clicking_a_tab_reports_the_name_it_showed()
+    public async Task Clicking_a_tab_shows_its_panel_and_hides_the_other()
     {
-        string? heard = null;
-        var page = global::Rask.Testing.Page.Render(Group(onSelect: new Callback<string>(n => heard = n)));
+        var page = Page.Render(Group(Ui.TabGroup, Ui.Tabs));
 
-        await page.On("[role=\"tab\"][aria-selected=\"false\"]").Click();
+        await page.On("[role=\"tab\"]:has-text(\"Account\")").Click();
 
-        Assert.Equal("history", heard);
+        var panels = page.FindAll("[role=\"tabpanel\"]");
+        Assert.True(panels[0].Attributes.ContainsKey("hidden"));
+        Assert.False(panels[1].Attributes.ContainsKey("hidden"));
     }
 
     [Fact]
-    public async Task An_uncontrolled_group_keeps_track_itself()
+    public void The_rows_value_says_which_panel_is_shown()
     {
-        // A page that does not care which tab is up should not have to hold a field for it.
-        var page = global::Rask.Testing.Page.Render(Group());
+        var page = Page.Render(Group(Ui.TabGroup, Ui.Tabs.Value("account")));
 
-        await page.On("[role=\"tab\"][aria-selected=\"false\"]").Click();
+        var shown = page.Find("[role=\"tabpanel\"][data-selected]");
 
-        var panels = PanelTags(page.Html);
-        Assert.Contains("hidden", panels[0], StringComparison.Ordinal);
-        Assert.DoesNotContain("hidden", panels[1], StringComparison.Ordinal);
+        Assert.Equal("Your account.", shown.TextContent);
     }
 
     [Fact]
-    public async Task The_arrows_move_and_show_as_they_go()
+    public void A_findable_group_hides_a_panel_only_until_find_in_page_reaches_it()
     {
-        // Automatic activation, which is the common tabs pattern and what Flux does. Home and End jump.
-        string? heard = null;
-        var page = global::Rask.Testing.Page.Render(Group(onSelect: new Callback<string>(n => heard = n)));
+        var page = Page.Render(Group(Ui.TabGroup.Findable(), Ui.Tabs));
 
-        await page.On("[role=\"tablist\"]").Raise("keydown", "{\"key\":\"ArrowRight\"}");
-        Assert.Equal("history", heard);
+        var panels = page.FindAll("[role=\"tabpanel\"]");
 
-        await page.On("[role=\"tablist\"]").Raise("keydown", "{\"key\":\"Home\"}");
-        Assert.Equal("details", heard);
+        Assert.False(panels[0].Attributes.ContainsKey("hidden"));
+        Assert.Equal("until-found", panels[1].Attribute("hidden"));
+        Assert.True(panels[1].HasClass("absolute"));
     }
 
     [Fact]
-    public async Task The_arrows_wrap_because_a_tab_row_is_a_ring()
+    public async Task A_match_found_in_a_hidden_panel_selects_its_tab()
     {
-        string? heard = null;
-        var page = global::Rask.Testing.Page.Render(Group(onSelect: new Callback<string>(n => heard = n)));
+        // `beforematch` is what the browser raises on an until-found element it is about to reveal.
+        var page = Page.Render(Group(Ui.TabGroup.Findable(), Ui.Tabs));
 
-        // Left from the first tab lands on the last, rather than stopping dead.
-        await page.On("[role=\"tablist\"]").Raise("keydown", "{\"key\":\"ArrowLeft\"}");
+        await page.On("[role=\"tabpanel\"][hidden]").Raise("beforematch");
 
-        Assert.Equal("history", heard);
+        Assert.Equal("Account", page.Find("[role=\"tab\"][aria-selected=\"true\"]").TextContent);
+        Assert.Equal("Your account.", page.Find("[role=\"tabpanel\"][data-selected]").TextContent);
+    }
+
+    [Fact]
+    public void Two_groups_on_one_page_do_not_share_an_id()
+    {
+        var page = Page.Render(Div[Group(Ui.TabGroup, Ui.Tabs), Group(Ui.TabGroup, Ui.Tabs)]);
+
+        var ids = page.FindAll("[id]").Select(node => node.Id).ToList();
+
+        Assert.Equal(8, ids.Count);
+        Assert.Equal(8, ids.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void A_tab_in_a_row_with_no_group_controls_nothing()
+    {
+        var page = Page.Render(Ui.Tabs[Ui.Tab.Name("list")["List"]]);
+
+        var tab = page.Find("[role=\"tab\"]");
+
+        Assert.Null(tab.Attribute("aria-controls"));
+        Assert.Null(tab.Id);
     }
 
     [Fact]
     public void A_panel_outside_a_group_is_its_own_content()
     {
-        // Lifted out of a group during a refactor it should show what it holds, not vanish.
-        Assert.Contains("Orphan", Ui.TabPanel.Name("x")["Orphan"].ToHtml(), StringComparison.Ordinal);
-    }
+        // Lifted out of a group during a refactor it shows what it holds rather than vanishing.
+        var page = Page.Render(Ui.TabPanel.Name("orphan")["Orphan"]);
 
-    private static int Occurrences(string haystack, string needle)
-    {
-        var n = 0;
-        for (var i = haystack.IndexOf(needle, StringComparison.Ordinal); i >= 0;
-             i = haystack.IndexOf(needle, i + needle.Length, StringComparison.Ordinal))
-        {
-            n++;
-        }
+        var panel = page.Find("[role=\"tabpanel\"]");
 
-        return n;
+        Assert.Equal("Orphan", panel.TextContent);
+        Assert.False(panel.Attributes.ContainsKey("hidden"));
     }
 }

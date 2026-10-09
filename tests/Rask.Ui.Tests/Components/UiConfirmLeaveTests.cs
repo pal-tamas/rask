@@ -52,6 +52,29 @@ public partial class UiConfirmLeaveTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_dialog_is_as_wide_as_a_Flux_confirmation()
+    {
+        var html = Ui.ConfirmLeave.ToHtml();
+
+        var dialog = Tag(html, "<dialog");
+
+        // Flux's own confirmation example: without it the box hugs a short question and the X lands beside the text.
+        Assert.Contains("min-w-[22rem]", dialog, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_heading_titles_the_dialog_and_the_question_becomes_the_sentence_beneath_it()
+    {
+        var html = Ui.ConfirmLeave.Heading("Unsaved changes").ToHtml();
+
+        var title = Tag(html, "<h2");
+
+        Assert.Contains(title + "Unsaved changes</h2>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-leave=\"message\"", title, StringComparison.Ordinal);
+        Assert.Matches("<p[^>]*data-rask-leave=\"message\"[^>]*data-rask-opaque[^>]*></p>", html);
+    }
+
+    [Fact]
     public void With_no_labels_the_buttons_read_Stay_and_Leave()
     {
         var html = Ui.ConfirmLeave.ToHtml();

@@ -34,7 +34,8 @@ them until tagged releases begin.
 - **`Ui.ConfirmLeave` — the unsaved-changes question in a dialog of the app's own.** Placed once in a layout
   (`Ui.ConfirmLeave.Stay("Nem").Leave("Igen")`, "Stay" / "Leave" when unset), it is where every form's
   `ConfirmLeave("…")` asks, in place of the browser's `confirm`: a `Ui.Modal` with the form's message as its
-  heading, a ghost button that stays and a danger button that leaves. Stay, the close button, Escape and a
+  heading — or, given `.Heading("Unsaved changes")`, that short title with the message as the sentence beneath
+  it, the way Flux titles a confirmation — a ghost button that stays and a danger button that leaves. Stay, the close button, Escape and a
   press outside keep the page, what was typed and the history as they were; Leave carries on with the
   navigation that was asked for — the link, `__raskHost.navigate`, or the entry Back / Forward was going to.
   It is rendered closed and opened in the browser, with no round trip. Without the element nothing changes:
@@ -966,6 +967,54 @@ them until tagged releases begin.
   Ui.Drawer.Position(Ui.Position.Right)   →   Ui.Modal.Flyout()        // Right is the default
   ```
   `Ui.Sidebar` still slides on daisyUI's drawer and is unchanged.
+- **BREAKING: `Ui.Tabs` is Flux's tabs, with its group and panels.** `Ui.TabGroup`, `Ui.Tabs`, `Ui.Tab` and
+  `Ui.TabPanel` now mirror [`flux:tab.group`, `flux:tabs`, `flux:tab` and
+  `flux:tab.panel`](https://fluxui.dev/components/tabs) — every documented prop, the same markup, the same
+  pixels in light and dark, the same keys — and the daisyUI drawings are gone. A tab's label is its
+  children, and the selected tab is the ROW's value rather than the group's:
+  ```csharp
+  // was
+  Ui.TabGroup.Selected(_pane).OnSelect(p => _pane = p)[
+      Ui.Tabs.Style(Ui.TabStyle.Border)[
+          Ui.Tab.Label("Details").Name("details").Icon(Ui.IconName.BookOpen),
+          Ui.Tab.Label("History").Name("history").Count("4")
+      ],
+      Ui.TabPanel.Name("details")[ … ], Ui.TabPanel.Name("history")[ … ]
+  ]
+  // now
+  Ui.TabGroup[
+      Ui.Tabs.Value(_pane).OnChange(p => _pane = p)[          // or .Bind(() => Pane), or neither
+          Ui.Tab.Name("details").Icon(Ui.IconName.BookOpen)["Details"],
+          Ui.Tab.Name("history")["History", Ui.Badge["4"]]
+      ],
+      Ui.TabPanel.Name("details")[ … ], Ui.TabPanel.Name("history")[ … ]
+  ]
+  ```
+  - `Ui.Tab.Label("x")` → `Ui.Tab["x"]`; `.Active(b)` → `.Selected(b)`; `.Count("4")` / `.Alarm()` → a
+    badge child (`Ui.Badge.Sm["4"]`, `Ui.Badge.Sm.Solid.Color(Ui.Color.Red)["3"]`).
+  - `Ui.Tab.Href` is removed: Flux's tab takes no `href` and says to use the navbar for full-page
+    navigation. A row whose choice is part of the address reads it and goes there —
+    `Ui.Tabs.Value(view).OnChange(v => Go.To(Routes.LogsPage(View: v)))[Ui.Tab.Name("live")["Live"], …]`
+    — which is what the console's log page now does for both of its rows.
+  - `Ui.TabGroup.Selected(x).OnSelect(f)` → `Ui.Tabs.Value(x).OnChange(f)` on the row inside it, or
+    `Ui.Tabs.Bind(() => Property)`. With neither, the row keeps track itself.
+  - `Ui.TabStyle` is removed with `Ui.Tabs.Style`: `Box` → `.Segmented`, `Border` and `Default` → the default
+    row, `Lift` has no Flux counterpart; `.Pills` is new. `Ui.Tabs.Size` takes `Ui.TabsSize` (`Base`, `Sm`)
+    in place of `Ui.Size`, and `Ui.Tabs.Position` is removed — Flux's tabs sit above their panels.
+  - New, from Flux: `Ui.Tabs.Scrollable()`, `.ScrollableFade()`, `.ScrollableScrollbar(Ui.TabsScrollbar.Hide)`;
+    `Ui.Tab.IconTrailing`, `.IconVariant`, `.Selected()`, `.Accent(false)`, `.Action().OnClick(…)`;
+    `Ui.TabPanel.Selected()`; `Ui.TabGroup.Findable()` (`hidden="until-found"`, and a find-in-page match
+    selects its tab).
+  - The markers are `data-ui-tab-group`, `data-ui-tabs`, `data-ui-tab`, `data-ui-tab-panel` and
+    `data-selected`; `.tabs`, `.tab` and `.tab-active` are no longer written. The row no longer forces a
+    44px touch height or scrolls by itself — ask with `Scrollable()`. A panel has Flux's `pt-8`; another
+    top padding is said the way Flux's examples say it, `Class("pt-6!")`.
+  - **The keyboard moved into the runtime and changed to Flux's.** Any `role="tablist"` of
+    `<button role="tab">` now gets ArrowRight/ArrowDown and ArrowLeft/ArrowUp from a behaviour hook
+    (`rask-tabs.ts`, in `rask-hooks.js` — a page with a tablist loads it, as one with a switch does): they move
+    FOCUS as well as the selection (the C# handler moved only the selection), pass over disabled tabs
+    (they used to land on them) and wrap. Home and End are no longer handled, as Flux does not handle
+    them.
 
   Ui.Input.Bind(() => m.Email).Label("Email").Hint("We never share it.")                         // was
   Ui.Input.Bind(() => m.Email).Label("Email").Description("We never share it.")                  // now

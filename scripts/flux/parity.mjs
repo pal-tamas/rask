@@ -148,6 +148,8 @@ const NATIVE = {
   'ui-time-picker': 'div', 'ui-time-picker-trigger': 'div', 'ui-selected-time': 'div', 'ui-time-picker-options': 'div',
   // The slider and the one-time code: a box around native inputs.
   'ui-slider': 'div', 'ui-otp': 'div',
+  // The tabs: a role="tablist" of buttons, with the runtime's arrow keys (rask-tabs.ts).
+  'ui-tab-group': 'div', 'ui-tabs': 'div', 'ui-tabs-scroll-area': 'div',
 };
 // Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
 // holds the native <input> that is: one child Flux has no node for, and nothing drawn.
