@@ -93,6 +93,38 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     /// <summary>Runs after a successful bind, once the model has the new value.</summary>
     public Callback<T> AfterBind { get; set; }
 
+    /// <summary>
+    ///     Binds when the reader leaves the field rather than on every keystroke, and validates then:
+    ///     <c>Input.Bind(() =&gt; m.Name).Blur()</c>. Nothing is sent while they type.
+    /// </summary>
+    /// <remarks>
+    ///     Bound mode, and a field that is typed into: a checkbox, a radio, a file or a range commits as it
+    ///     always did.
+    /// </remarks>
+    public bool? Blur
+    {
+        get => _timing.Blur;
+        set => _timing.Blur = value;
+    }
+
+    /// <summary>
+    ///     Binds once typing has paused for this long, and validates then:
+    ///     <c>Input.Bind(() =&gt; m.Name).Debounce(300.Milliseconds)</c>. The pause is kept in the browser, so
+    ///     the keystrokes before it cost nothing; Enter, a press on a button and leaving the field do not
+    ///     wait for it.
+    /// </summary>
+    /// <remarks>
+    ///     Bound mode, and a field that is typed into: a checkbox, a radio, a file or a range commits as it
+    ///     always did.
+    /// </remarks>
+    public TimeSpan? Debounce
+    {
+        get => _timing.Debounce;
+        set => _timing.Debounce = value;
+    }
+
+    private BindTiming _timing;
+
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -117,7 +149,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
 
         if (acc is not null)
         {
-            WireBound(sb, ctx, acc, bindCtx, isCheckbox);
+            WireBound(sb, ctx, acc, bindCtx, isCheckbox, BindingHelpers.IsTypedInto(resolvedType));
         }
         else
         {
@@ -195,7 +227,9 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     }
 
     // Bound: write the model on input (immediate for string) / change, validate.
-    private void WireBound(StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor acc, EditContext? bindCtx, bool isCheckbox)
+    private void WireBound(
+        StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor acc, EditContext? bindCtx,
+        bool isCheckbox, bool typedInto)
     {
         var fid = acc.Field;
         var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
@@ -204,6 +238,12 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         {
             AppendAttr(sb, "data-rask-on-change",
                 ctx.RegisterHandler(BindingHelpers.BoolSetHandler(acc, bindCtx, fid, afterBind)));
+            return;
+        }
+
+        if (typedInto && _timing.Waits)
+        {
+            WriteWaitingBind(sb, ctx, _timing, acc, bindCtx, afterBind);
             return;
         }
 

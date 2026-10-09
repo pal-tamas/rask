@@ -3975,6 +3975,14 @@ Rask.Core.Globalization.SessionCulture.Set(System.Globalization.CultureInfo! cul
 Rask.Core.Globalization.SessionCulture.Set(string! name) -> System.Threading.Tasks.Task<bool>!
 Rask.Core.Globalization.SessionCulture.Supported.get -> System.Collections.Generic.IReadOnlyList<System.Globalization.CultureInfo!>!
 Rask.Core.Globalization.SessionCulture.UICulture.get -> System.Globalization.CultureInfo!
+Rask.Core.HTMLInputElement<T>.Blur.get -> bool?
+Rask.Core.HTMLInputElement<T>.Blur.set -> void
+Rask.Core.HTMLInputElement<T>.Debounce.get -> System.TimeSpan?
+Rask.Core.HTMLInputElement<T>.Debounce.set -> void
+Rask.Core.HTMLTextAreaElement<T>.Blur.get -> bool?
+Rask.Core.HTMLTextAreaElement<T>.Blur.set -> void
+Rask.Core.HTMLTextAreaElement<T>.Debounce.get -> System.TimeSpan?
+Rask.Core.HTMLTextAreaElement<T>.Debounce.set -> void
 Rask.Core.Http.IPageResponse
 Rask.Core.Http.IPageResponse.SetStatus(int statusCode) -> void
 Rask.Core.InputType
@@ -4705,6 +4713,7 @@ static Rask.Core.BuilderRuntime.ResetComponentPending(Rask.Core.Component! __c0,
 static Rask.Core.BuilderRuntime.ResetElementEager(Rask.Core.Component! __c0) -> void
 static Rask.Core.BuilderRuntime.ResetElementPending(Rask.Core.Component! __c0, ulong __p) -> void
 static Rask.Core.BuilderRuntime.ResetNothing(Rask.Core.Component! target, ulong pending) -> void
+static Rask.Core.BuilderRuntime.Then<T>(Rask.Core.Validator<T>? earlier, Rask.Core.Validator<T>? later) -> Rask.Core.Validator<T>?
 static Rask.Core.BuilderRuntime.Track<TValue>(Rask.Core.Component! target, TValue oldValue, TValue newValue) -> void
 static Rask.Core.BuilderRuntime.Written(Rask.Core.Component! target, ulong bit) -> void
 static Rask.Core.Component.AppendAttr(System.Text.StringBuilder! sb, string! name, int value) -> void
@@ -7277,6 +7286,10 @@ static RaskBuilderSettersRask_Core.Authorized(this Rask.Core.Components.Authoriz
 static RaskBuilderSettersRask_Core.Authorized(this Rask.Core.Components.Authorize! __b, System.Func<System.Security.Claims.ClaimsPrincipal!, Rask.Core.Component!>? value) -> Rask.Core.Components.Authorize!
 static RaskBuilderSettersRask_Core.Authorizing(this Rask.Core.Components.Authorize! __b, Rask.Core.Component? value) -> Rask.Core.Components.Authorize!
 static RaskBuilderSettersRask_Core.AutoDismissAfter(this Rask.Core.Components.ToastOutlet! __b, System.TimeSpan? value) -> Rask.Core.Components.ToastOutlet!
+static RaskBuilderSettersRask_Core.Blur<T>(this Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.Blur<T>(this Rask.Core.HTMLInputElement<T>! __b, bool? value) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.Blur<T>(this Rask.Core.HTMLTextAreaElement<T>! __b) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskBuilderSettersRask_Core.Blur<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Body(this Rask.Core.Components.DragDrop! __b, Rask.Core.Fn<Rask.Core.DragAndDrop.DragDropContext!, Rask.Core.Component!>? value) -> Rask.Core.Components.DragDrop!
 static RaskBuilderSettersRask_Core.Body(this Rask.Core.Components.DragDrop! __b, System.Func<Rask.Core.DragAndDrop.DragDropContext!, Rask.Core.Component!>? value) -> Rask.Core.Components.DragDrop!
 static RaskBuilderSettersRask_Core.Body(this Rask.Core.Components.VirtualizeModel! __b, Rask.Core.Fn<Rask.Core.Virtualization.VirtualizationState!, Rask.Core.Component!>? value) -> Rask.Core.Components.VirtualizeModel!
@@ -7288,6 +7301,8 @@ static RaskBuilderSettersRask_Core.Data<T>(this T! __b, System.Collections.Gener
 static RaskBuilderSettersRask_Core.Data<T>(this T! __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> T!
 static RaskBuilderSettersRask_Core.Data<T>(this T! __b, string! name) -> T!
 static RaskBuilderSettersRask_Core.Data<T>(this T! __b, string! name, string? value) -> T!
+static RaskBuilderSettersRask_Core.Debounce<T>(this Rask.Core.HTMLInputElement<T>! __b, System.TimeSpan? value) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.Debounce<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, System.TimeSpan? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Draggable<T>(this T! __b, bool? value) -> T!
 static RaskBuilderSettersRask_Core.FacingMode(this Rask.Core.Components.MediaCaptureTrigger! __b, string? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.Fallback(this Rask.Core.Components.ErrorBoundary! __b, Rask.Core.Fn<System.Exception!, System.Action!, Rask.Core.Component!>? value) -> Rask.Core.Components.ErrorBoundary!
