@@ -4588,6 +4588,7 @@ static Rask.Core.BuilderRuntime.ResetComponentPending(Rask.Core.Component! __c0,
 static Rask.Core.BuilderRuntime.ResetElementEager(Rask.Core.Component! __c0) -> void
 static Rask.Core.BuilderRuntime.ResetElementPending(Rask.Core.Component! __c0, ulong __p) -> void
 static Rask.Core.BuilderRuntime.ResetNothing(Rask.Core.Component! target, ulong pending) -> void
+static Rask.Core.BuilderRuntime.Then<T>(Rask.Core.Validator<T>? earlier, Rask.Core.Validator<T>? later) -> Rask.Core.Validator<T>?
 static Rask.Core.BuilderRuntime.Track<TValue>(Rask.Core.Component! target, TValue oldValue, TValue newValue) -> void
 static Rask.Core.BuilderRuntime.Written(Rask.Core.Component! target, ulong bit) -> void
 static Rask.Core.Component.AppendAttr(System.Text.StringBuilder! sb, string! name, int value) -> void
