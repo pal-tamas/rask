@@ -241,6 +241,24 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
     }
 
     [Fact]
+    public async Task A_pointer_moving_about_inside_its_row_does_not_take_the_light_back_from_the_keyboard()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+        var row = (await page.Locator("#row-d").BoundingBoxAsync())!;
+
+        await page.Mouse.MoveAsync(row.X + 100, row.Y + (row.Height / 2));
+        var entered = await page.EvaluateAsync<string>("() => document.querySelector('#menu > [data-active]').id");
+        // The arrows go on to another row while the pointer rests where it is.
+        await page.EvaluateAsync("() => { document.getElementById('row-d').removeAttribute('data-active'); document.getElementById('row-c').setAttribute('data-active', ''); }");
+        await page.Mouse.MoveAsync(row.X + 8, row.Y + (row.Height / 2), new Microsoft.Playwright.MouseMoveOptions { Steps = 6 });
+
+        Assert.Equal("row-d", entered);
+        // Flux: 3 px along the same row, onto its icon, and the lit row was still the keyboard's.
+        Assert.Equal("row-c", await page.EvaluateAsync<string>("() => document.querySelector('#menu > [data-active]').id"));
+    }
+
+    [Fact]
     public async Task Focus_follows_the_row_given_the_tab_stop_and_leaves_a_lit_row_that_says_it_is_the_pointers()
     {
         await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
@@ -390,7 +408,7 @@ public sealed partial class PointerHookPage : Component
             </div>
           </span>
           <button id="row-c" type="button" role="menuitem">Filter</button>
-          <button id="row-d" type="button" role="menuitem">Delete</button>
+          <button id="row-d" type="button" role="menuitem"><span id="row-d-icon" style="display:inline-block;width:24px">x</span>Delete</button>
           <button id="row-disabled" type="button" role="menuitem" aria-disabled="true">Archive</button>
         </div>
         """;

@@ -94,7 +94,7 @@ them until tagged releases begin.
   It is a hook module now (`rask-menu-keys.ts`, in `rask-hooks.js`), and the role is what asks for it, as a
   tablist's does: a page with a `[role=menu]` loads the hooks, in the first response on the Server host. No
   behaviour changed. `rask.js` 96,350 -> 93,559 bytes and `rask.wasm.js` 85,110 -> 82,328 (2.8 kB each, off
-  every page); `rask-hooks.js` carries it instead.
+  every page); `rask-hooks.js` carries it instead, 42,367 -> 45,272 with the lock and menu fixes below.
 - **A `Ui.Chart` is a third of the markup and a third of the work.** Every row used to carry its own strip, its
   own cursor and its own copy of the whole tooltip; there is one tooltip and one cursor now, and each part
   carries what it reads per row as one short line. Sixty charts of fifty points, with axes, a cursor and a

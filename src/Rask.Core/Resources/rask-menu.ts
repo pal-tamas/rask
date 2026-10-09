@@ -99,7 +99,11 @@ if (page) {
     listen("pointerover", function (e) {
         const row = near(e.target, ROW);
         const menu = row ? row.closest("[role=menu]") : null;
-        if (row && menu && menu.matches(POINTER) && row.getAttribute("aria-disabled") !== "true") {
+        const from = (e as PointerEvent).relatedTarget;
+        // On ENTERING the row, not on moving about inside it: with the arrows gone on to another row, Flux's
+        // pointer takes the light back only by leaving and coming in again.
+        if (row && menu && menu.matches(POINTER) && row.getAttribute("aria-disabled") !== "true"
+            && !(from instanceof Node && row.contains(from))) {
             light(menu, row);
         }
         armed = near(e.target, "[" + SAFE + "]");

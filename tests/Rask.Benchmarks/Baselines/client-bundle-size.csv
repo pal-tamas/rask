@@ -115,6 +115,12 @@
 # should have been watching and nothing was: BundleSizeReport prints a table of a published WASM
 # _framework/ and has no committed numbers, so this file could have doubled with every check green.
 #
+# Refreshed 2026-10-09 with a menu's keyboard moved out of the runtime every page loads (the role=menu block of
+# rask-dom.ts is rask-menu-keys.ts in the hooks bundle, asked for by the role): rask.js 96,350 -> 93,559 (-2,791)
+# and rask.wasm.js 85,110 -> 82,328 (-2,782). rask-hooks.js 42,367 -> 45,272 (+2,905): that block, the page
+# lock reading whether a scrollbar shows before it keeps a gutter, a hover-opened panel taking no focus, and a
+# menu's pointer leaving the focused row lit.
+#
 # Refresh with:
 #   dotnet build src/Rask.Server -c Release -p:MinVerSkip=true
 #   dotnet build src/Rask.Wasm   -c Release -p:MinVerSkip=true
@@ -123,6 +129,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,96350
-rask.wasm.js,85110
-rask-hooks.js,42367
+rask.js,93559
+rask.wasm.js,82328
+rask-hooks.js,45272
