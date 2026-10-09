@@ -80,6 +80,24 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
+    public Task The_sidebar_slid_over_a_phone_is_put_away_when_the_page_already_open_is_chosen() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        await Page.SetViewportSizeAsync(390, 844);
+        var open = Page.Locator("#sidebar-open");
+        await Page.Locator("[data-ui-sidebar-toggle]").First.ClickAsync();
+        await Expect(open).ToBeCheckedAsync(new LocatorAssertionsToBeCheckedOptions { Timeout = 15_000 });
+
+        var before = Page.Url;
+        // The row of the page the reader is on: it navigates nowhere, and the sidebar must not stay over the page.
+        await Page.EvaluateAsync("() => document.querySelector(\"[data-ui-sidebar] a[data-ui-sidebar-item][aria-current='page']\").click()");
+
+        await Expect(open).Not.ToBeCheckedAsync(new LocatorAssertionsToBeCheckedOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("[data-ui-sidebar-backdrop]").First).ToBeHiddenAsync();
+        Assert.Equal(before, Page.Url);
+    });
+
+    [Fact]
     public Task A_collapsed_rail_is_still_collapsed_after_a_reload_and_never_drawn_wide() => RunAsync(async () =>
     {
         // Reached from a page of the running app, so the runtime that stores the choice is there to hear it.

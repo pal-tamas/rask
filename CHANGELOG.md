@@ -1246,6 +1246,11 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A sidebar slid over a phone is put away when the page already open is chosen.** The overlay closed only on
+  a navigation (`data-rask-uncheck-on-navigate`), and a tap on the row of the page the reader is on navigates
+  nowhere: the sidebar and its backdrop stayed over the page and took every tap. The hook now unchecks the box
+  on a plain press on a link to the current page too (same path and query), a generated route and a string
+  `href` alike. A link with a fragment moves within the page and leaves it open, as Flux's does.
 - **A press on the sidebar's collapse control before the hooks have loaded is kept.** In a WebAssembly app the
   hook that stores the rail (`data-rask-persist`) arrives after the prerendered page can already be pressed; a
   press in that gap changed the box and stored nothing, and the hook, arriving, put the sidebar back to what the

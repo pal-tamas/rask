@@ -1160,8 +1160,8 @@ Inside a sidebar the list is the sidebar's own (`Ui.SidebarNav`); anywhere else:
 - **One sidebar a page.** The controls find it by fixed ids (`sidebar-open`, `sidebar-rail`), as Flux's find it
   by a page-wide event.
 - **The two states are the reader's, and the runtime keeps them as Flux's script does.** Neither is a prop,
-  as neither is in Flux. A sidebar slid over the page is put away when the app navigates
-  (`data-rask-uncheck-on-navigate` on its checkbox), and the rail is remembered across visits in `localStorage`
+  as neither is in Flux. A sidebar slid over the page is put away when the app navigates, or when the row of
+  the page already open is pressed (`data-rask-uncheck-on-navigate` on its checkbox), and the rail is remembered across visits in `localStorage`
   under Flux's own key, `flux-sidebar-collapsed-desktop` (`data-rask-persist`); `Persist(false)` is Flux's
   `persist="false"`. A Server page restores the rail before its first paint. A WebAssembly app's runtime loads
   after the prerendered page is on screen, so it adds **`Ui.SidebarScript`** to its `HeadAssets`, beside

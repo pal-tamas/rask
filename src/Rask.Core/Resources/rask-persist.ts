@@ -12,7 +12,10 @@
 //     the same key from a script of its own in <head>, and this then agrees with it.
 //   * data-rask-uncheck-on-navigate: the box is unchecked when the app navigates to another path, so a drawer
 //     opened to reach a link is closed on the page the link leads to. A client-side navigation replaces the
-//     content, not the document, and the box would otherwise stay as it was.
+//     content, not the document, and the box would otherwise stay as it was. A press on a link to the page
+//     the reader is already on unchecks it too: that navigates nowhere, so nothing else would say so, and the
+//     drawer would stay over the page it was opened to reach. A link with a fragment moves within the page
+//     and leaves the box alone, as Flux UI's sidebar does (its demo's `href="#"` items keep the drawer open).
 //
 // localStorage can throw (a private window, a blocked origin); every touch of it is guarded and a failure
 // means the box behaves like any other.
@@ -74,6 +77,33 @@ if (page) {
         scan(doc.documentElement);
     }
 
+    const uncheck = function (): void {
+        const boxes = doc.querySelectorAll<HTMLInputElement>(UNCHECK);
+        for (let i = 0; i < boxes.length; i++) {
+            if (boxes[i].checked) {
+                boxes[i].checked = false;
+                boxes[i].dispatchEvent(new Event("change", {bubbles: true}));
+            }
+        }
+    };
+
+    // The page the reader is on, asked for again: a plain press on a link in this window whose address is
+    // this one, fragment apart. Heard on the way down, since a host that routes the link keeps the click.
+    listen("click", function (e) {
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+            return;
+        }
+        const link = e.target instanceof Element ? e.target.closest("a[href]") : null;
+        if (!(link instanceof HTMLAnchorElement) || link.hasAttribute("download") || (link.target && link.target !== "_self")) {
+            return;
+        }
+        if (link.href.indexOf("#") >= 0 || link.origin !== location.origin
+            || link.pathname !== location.pathname || link.search !== location.search) {
+            return;
+        }
+        uncheck();
+    }, true);
+
     // A navigation inside the app is a history entry with another path. Both hosts make one with pushState
     // (replaceState for a redirect), and Back and Forward arrive as popstate — so those three are the signal,
     // read here rather than threaded through each host's navigation code.
@@ -86,13 +116,7 @@ if (page) {
             return; // the query or the fragment moved: the same page
         }
         path = location.pathname;
-        const boxes = doc.querySelectorAll<HTMLInputElement>(UNCHECK);
-        for (let i = 0; i < boxes.length; i++) {
-            if (boxes[i].checked) {
-                boxes[i].checked = false;
-                boxes[i].dispatchEvent(new Event("change", {bubbles: true}));
-            }
-        }
+        uncheck();
     };
     const wrap = function (name: "pushState" | "replaceState"): void {
         const original = history[name];
