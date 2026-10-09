@@ -56,16 +56,21 @@ public static partial class DemoRegistry
                 .Result(BindingTextareaDemo),
 
             // --- Forms guide: validation ---
-            ["validation-fields"] = () => CodeSample
-                .Files(["ValidationFieldsDemo.cs"])
-                .Notes("Per-field DataAnnotations attributes with a Validation.Message under each input — the "
-                + "message appears once the field is touched and clears when it becomes valid.")
-                .Result(ValidationFieldsDemo),
             ["validation-inline"] = () => CodeSample
                 .Files(["InlineValidateDemo.cs", "LoginModel.cs"])
                 .Notes("Inline Validate: on a field or the whole form — no extra package. Return the error "
                 + "strings for the value; an empty result means valid.")
                 .Result(InlineValidateDemo),
+            ["validation-value-object"] = () => CodeSample
+                .Files(["ValueObjectValidateDemo.cs", "DestinationName.cs", "DestinationModel.cs"])
+                .Notes("The rules live in a value object and the field's Validate names them — required, length "
+                + "and format in one place, shared with the domain.")
+                .Result(ValueObjectValidateDemo),
+            ["validation-fields"] = () => CodeSample
+                .Files(["ValidationFieldsDemo.cs"])
+                .Notes("Also supported: DataAnnotations attributes on the model, with a Validation.Message under "
+                + "each input — the message appears once the field is touched and clears when it becomes valid.")
+                .Result(ValidationFieldsDemo),
             ["validation-fluent"] = () => CodeSample
                 .Files(["FluentValidationDemo.cs", "OrderModel.cs", "OrderValidator.cs"])
                 .Notes("An AbstractValidator<TModel>, discovered at compile time and run by the form with nothing "

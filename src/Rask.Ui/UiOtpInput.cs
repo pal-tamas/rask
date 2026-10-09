@@ -34,7 +34,7 @@ public sealed partial class UiOtpInput : Component
             .Id(cell == 0 ? scope.FirstId : null)
             .TabIndex(cell == scope.Stop ? 0 : -1)
             .Disabled(scope.Disabled)
-            .Aria("label", string.Create(CultureInfo.InvariantCulture, $"Character {cell + 1} of {scope.Total}"))
+            .Aria("label", RaskStrings.Get(RaskString.OtpCharacter, "Character {0} of {1}", cell + 1, scope.Total))
             .Attributes(Marks(scope, cell))
             .Class(Look);
 

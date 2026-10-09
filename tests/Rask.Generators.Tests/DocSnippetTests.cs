@@ -184,6 +184,79 @@ public sealed class DocSnippetTests
         }
         """);
 
+    // docs/forms-validation.md — the inline rules every other page now points at: a field's rule, the
+    // form's, the value object's method named as a group, and the async shape of each. The kit spelling
+    // (`Ui.Input…MaxLength(…)`) is compiled by the site's ValueObjectValidateDemo; this is the core one.
+    [Fact]
+    public void Forms_validation_doc_inline_rules_compile() => AssertCompiles("""
+        using System.Collections.Generic;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Rask;
+        using Rask.Core;
+        using Rask.Core.Forms;
+
+        namespace Demo;
+
+        public readonly record struct DestinationName(string Value)
+        {
+            public const int MaxLength = 255;
+
+            public static IEnumerable<string> Validate(string value)
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    yield return "A destination needs a name.";
+                else if (value.Length > MaxLength)
+                    yield return $"A name is at most {MaxLength} characters.";
+                else if (!char.IsLetter(value[0]))
+                    yield return "A name starts with a letter.";
+            }
+        }
+
+        public sealed class Codes
+        {
+            public ValueTask<bool> IsReserved(string code, CancellationToken ct) => new(code.Length == 0);
+        }
+
+        public sealed class SignupModel
+        {
+            public string Email { get; set; } = "";
+            public string Password { get; set; } = "";
+            public string Confirm { get; set; } = "";
+            public string Name { get; set; } = "";
+            public string Code { get; set; } = "";
+        }
+
+        public sealed partial class Host : Component
+        {
+            private readonly SignupModel _model = new();
+            private readonly Codes codes = new();
+            private string? _submission;
+
+            private void Redeem(SignupModel model) => _submission = model.Code;
+
+            protected override Component? Render() =>
+            [
+                Form.Model(_model)
+                    .OnSubmit(m => _submission = "Welcome")
+                    .Validate(m => m.Password == m.Confirm ? [] : ["Passwords do not match."])[
+                    Input.Bind(() => _model.Email)
+                        .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."]),
+                    Input.Bind(() => _model.Name)
+                        .MaxLength(DestinationName.MaxLength)
+                        .Validate(DestinationName.Validate),
+                    Input.Bind(() => _model.Code).Validate(async code =>
+                        await codes.IsReserved(code, Current.Cancellation) ? [$"\"{code}\" is reserved."] : []),
+                    Button.Type(ButtonType.Submit)["Sign in"]
+                ],
+                Form.Model(_model).OnSubmit(Redeem).Validate(async m =>
+                    await codes.IsReserved(m.Code, Current.Cancellation) ? ["That code is reserved."] : [])[
+                    Button.Type(ButtonType.Submit)["Redeem"]
+                ]
+            ];
+        }
+        """);
+
     // Errors only. Warnings are noise here — an unused private field in a snippet that mirrors prose is
     // the prose being an excerpt, not the API being wrong.
     private static void AssertCompiles(string source)

@@ -217,7 +217,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl
     // Flux names the box "Rich text editor" and, in a field, by its label as well.
     private Dictionary<string, string?> Names(UiWithField field)
     {
-        var names = new Dictionary<string, string?>(field.Aria, StringComparer.Ordinal) { ["label"] = "Rich text editor" };
+        var names = new Dictionary<string, string?>(field.Aria, StringComparer.Ordinal) { ["label"] = RaskStrings.Get(RaskString.EditorLabel, "Rich text editor") };
         if (Label is not null)
         {
             names["labelledby"] = field.LabelId;

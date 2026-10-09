@@ -1,23 +1,33 @@
 # Forms — validation
 
-Inline, DataAnnotations, FluentValidation, and async validators for Rask forms.
+Write the rule where the field is: `.Validate(…)` on an input, or on the form for a rule that spans
+fields. DataAnnotations and FluentValidation are [also supported](#also-supported-dataannotations).
 
 ‹ Back to [Forms & validation](forms.md)
 
 ## Inline validation
 
-The lightest layer. Chain a `.Validate(…)` rule — per-field or per-form. Both take either shape
-under the one name, the way `Callback` takes a sync or an async handler: `v => …` returning the
-messages, or `async v => …` awaiting something first (its token is `Current.Cancellation`). The
-lambda's shape picks the overload — no cast, no `…Async` sibling. An empty
-sequence means valid.
+A rule takes the value and returns the messages that reject it. An empty sequence means valid.
+
+```csharp
+Input.Bind(() => _model.Email)
+    .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."])
+```
+
+There is no package to add and nothing to register. The rule runs when the field changes, once the
+reader has touched it, and again on submit.
+
+### A rule across fields
+
+A rule that no single field owns goes on the form. It runs on submit, and its messages belong to the
+form rather than to an input, so they show in `Validation.Summary`:
 
 ```csharp
 Form.Model(_model)
     .OnSubmit(m => _submission = "Welcome")
-    .Validate(m => m.Password == m.Confirm ? [] : ["Passwords do not match."])[   // cross-field, at submit
+    .Validate(m => m.Password == m.Confirm ? [] : ["Passwords do not match."])[
     Input.Bind(() => _model.Email)
-        .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."]),             // per-field, per-keystroke
+        .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."]),
     Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Email),
     Validation.Summary.Template(SummaryAlert),
     Button.Type(ButtonType.Submit)["Sign in"]
@@ -26,22 +36,72 @@ Form.Model(_model)
 
 <!-- demo:validation-inline -->
 
-Per-field `Validate:` produces field-scoped messages and runs on each keystroke after the field is
-touched. Form-level `Validate:` runs at submit and attaches messages to the form-level slot
-(`FieldIdentifier(model, "")`) — they surface in `Validation.Summary`, never against a specific input.
+### Rules in a value object
 
-An inline `Validate:` can also be async (`async v => …`); the next keystroke cancels the in-flight
-check through the ambient token — `Current.Cancellation`, which anything awaited inside picks up:
+A field's simple rules — required, length, format — belong to the value, not to one form. Put them in
+a value object and name them from the field:
+
+```csharp
+public readonly record struct DestinationName(string Value)
+{
+    public const int MaxLength = 255;
+
+    public static IEnumerable<string> Validate(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            yield return "A destination needs a name.";
+        else if (value.Length > MaxLength)
+            yield return $"A name is at most {MaxLength} characters.";
+        else if (!char.IsLetter(value[0]))
+            yield return "A name starts with a letter.";
+    }
+}
+
+Ui.Input.Bind(() => _model.Name)
+    .MaxLength(DestinationName.MaxLength)
+    .Validate(DestinationName.Validate)
+```
+
+`Validate` takes the method by name, because it has the shape of a rule: the value in, the messages
+out. Every form that edits a destination's name asks the same question, the constant sets the input's
+`maxlength` too, and the domain can call the same method before it saves.
+
+<!-- demo:validation-value-object -->
+
+### An async rule
+
+A rule that has to ask something is the same step with an `async` lambda or method. There is no second
+name to learn:
+
+```csharp
+Ui.Input.Bind(() => _model.Code).Validate(async code =>
+    await codes.IsReserved(code, Current.Cancellation) ? [$"\"{code}\" is reserved."] : [])
+```
+
+**The latest value wins.** A new change cancels the check still in flight through
+`Current.Cancellation`, which anything awaited inside the rule picks up, so an answer for an older
+value never lands on a newer one.
+
+A field's async rule runs on every change. Keep it to a check that is cheap to repeat. An expensive
+one belongs in the form's rule, which runs once, on submit:
+
+```csharp
+Form.Model(_model).OnSubmit(Redeem).Validate(async m =>
+    await codes.IsReserved(m.Code, Current.Cancellation) ? ["That code is reserved."] : [])[ … ]
+```
 
 <!-- demo:validation-inline-async -->
 
+A form's check is a convenience for the reader, never the control: check again where the data is
+written.
+
 ---
 
-## DataAnnotations
+## Also supported: DataAnnotations
 
-Put the attributes on the model. That is the whole setup — there is no package to add and nothing to
-declare in the form. `HTMLFormElement<TModel>` registers the pass itself, and one registration covers the whole
-reachable model graph.
+A model that already carries `[Required]` and its relatives is validated by them. There is no package
+to add and nothing to declare in the form: `HTMLFormElement<TModel>` registers the pass itself, and one
+registration covers the whole reachable model graph. Inline rules run first, and both can guard one form.
 
 ```csharp
 public sealed class SignupModel
@@ -79,23 +139,9 @@ A custom `ValidationAttribute` (with DI via `ctx.GetService<T>()`):
 
 <!-- demo:validation-validatable-object -->
 
-### Turning it off
-
-Absence of code is the meaning here: a form that says nothing about validation validates. Only the
-deviation is written.
-
-```csharp
-Form.Model(_model).AutoValidate(false)[ … ]   // this form only
-
-app.Configure(c => c.Validation.Off());       // the whole app
-RaskValidation.AutoValidate = false;          // the same switch, without the Rask package
-```
-
-The global off wins — a form cannot opt back in.
-
 ---
 
-## FluentValidation
+## Also supported: FluentValidation
 
 Writing the validator is the registration. A generator finds every `AbstractValidator<T>` in your app
 at compile time, and a `HTMLFormElement<T>` asks for the one that validates its model — so there is nothing to
@@ -160,14 +206,29 @@ the sync stage and the discovered validator the async one, so the existing pipel
 puts attributes first, and per-field first-error-wins means an attribute message shadows a
 FluentValidation one on the same field. Nothing was reordered to make this work.
 
+### Turning the automatic validators off
+
+The attribute pass and the discovered validator run with nothing declared. An app that writes its rules
+inline and wants only those says so once:
+
+```csharp
+RaskValidation.AutoValidate = false;          // every form, on any host
+app.Configure(c => c.Validation.Off());       // the same switch, from a RaskApp
+Form.Model(_model).AutoValidate(false)[ … ]   // this form only
+```
+
+Inline `.Validate(…)` rules keep running: the switch only stops what was never written in the form.
+It is one switch for the app, so it also stops the same two passes on a
+[dispatched request](validation.md#requests). The global off wins — a form cannot opt back in.
+
 ---
 
 ## Async validators and the validating indicator
 
 Three ways to validate asynchronously:
 
-1. **Inline async `Validate:`** — `async v => …`. The field's token cancels the in-flight check on
-   the next keystroke (latest-wins).
+1. **Inline async `.Validate(…)`** — `async v => …`, [above](#an-async-rule). The next change cancels
+   the check in flight (latest wins).
 2. **`IAsyncFieldValidator`** — reach for this when the rule needs DI (an `HttpClient`, a
    repository) or you want to reuse it across forms. Add it to an `EditContext` you own:
 

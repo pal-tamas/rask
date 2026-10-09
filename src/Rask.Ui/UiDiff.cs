@@ -27,6 +27,6 @@ public sealed partial class UiDiff : Component
             Div
                 .Class("diff-resizer")
                 .Attributes(("tabindex", "0"))
-                .Aria("label", HandleLabel ?? "Compare")
+                .Aria("label", HandleLabel ?? RaskStrings.Get(RaskString.DiffHandle, "Compare"))
         ];
 }

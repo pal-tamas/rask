@@ -7,6 +7,13 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A pager's arrows are named `« Previous` and `Next »`.** The label was written as the entity's name and
+  then encoded, so the markup said `aria-label="&amp;laquo; Previous"` and a screen reader read out
+  "&laquo; Previous". It is the character now, encoded once. `RaskString.PaginationPrevious` /
+  `PaginationNext` carry it, and the kit's Hungarian says `« Előző` / `Következő »`.
+
 ### Added
 
 - **A page declares its title, and its layout shows it in the first HTML (#1239).** A routed page overrides
@@ -28,6 +35,27 @@ them until tagged releases begin.
   placeholder. `null`, the default, is a page with no title; with nested `[ParentRoute]` layouts the deepest
   page that declares one wins, and a leaf that declares none takes the nearest layout's. It may be read above
   the `Router` as well — an `App` writing `<title>` in its own `HeadAssets`. `docs/routing.md` has the section.
+- **The UI kit's own words are translatable, and it speaks Hungarian out of the box.** The Flux rebuild had
+  written the kit's few fixed texts as English literals — the pager's "Showing 1 to 10 of 13 results" and its
+  arrow names, a select's "No results found" / "Loading..." / "Clear selected", the date pickers' "Select a
+  date", "Cancel" and range presets, the calendar's "Today", the editor's tooltips, an input's "Clear input",
+  "Close modal", the leave dialog's "Stay" / "Leave", the names a screen reader hears in the one-time code,
+  the slider, the rating, the sidebar and the data grid. Each is a `RaskString` key now (116 new ones;
+  `docs/localization.md` lists every key with its English), read as
+  `RaskStrings.Get(RaskString.SelectEmpty, "No results found")`. `Rask.Ui` ships `Resources/RaskStrings.hu.json`
+  for all of them, so an app that lists `hu` in `SupportedCultures` draws a Hungarian kit with no catalog of
+  its own; the app's `Resources/RaskStrings.{culture}.json` still wins key by key, and adds any other
+  language. English output is byte-for-byte what it was, and an app that lists no languages stays English
+  whatever its machine speaks. A component's own props (`Empty`, `Placeholder`, `Stay`) are said as given.
+- **A framework text can carry values.** `RaskStrings.Get(key, "Showing {0} to {1} of {2} results", from, to,
+  total)` — one, two or three values, unboxed. A translation numbers them in its own order
+  (`"{2} találatból {0}–{1}."`) and may format one (`{2:N0}`), written in the visitor's culture; the
+  generator refuses a place the text does not carry and a named one (RASK051), and at runtime a hand-written
+  source that gets it wrong is passed over for the English rather than throwing.
+- **A library ships translations of the framework texts it draws.** `<RaskStringsLibrary>true</RaskStringsLibrary>`
+  compiles its `Resources/RaskStrings.{culture}.json` into a source registered with
+  `RaskStrings.UseLibrarySource`, a layer under the app's. The generated lookup walks `hu-HU` → `hu` over a
+  span, so a language with no catalog costs no allocation.
 - **`Ui.Chart` fills its container and follows the pointer, as Flux's does.** Two things Flux's chart does in
   script and the kit's did not do at all, both done by the runtime's plot hook with the chart still drawn in C#.
   *Size.* The drawing is measured in the browser (`data-rask-measure`) and drawn again for the box it has — when
@@ -109,6 +137,16 @@ them until tagged releases begin.
   its place in the route, so it stays as long as the same type is at that place under the same layouts. When
   and where a page is created is unchanged: where the layout places the `Outlet`, after the layout has
   rendered, and not at all when the layout withholds it.
+- **The docs lead with inline `.Validate(…)`; DataAnnotations and FluentValidation follow as "also supported".**
+  No API changed and nothing is deprecated: only order, emphasis and examples. `docs/forms-validation.md` opens
+  on a field's rule, then the form's rule for what spans fields, rules kept in a value object
+  (`Ui.Input.Bind(() => m.Name).MaxLength(DestinationName.MaxLength).Validate(DestinationName.Validate)`, with a
+  live demo), and the async rule with its latest-value-wins note. A field's async rule runs on every change, so
+  the guide now says an expensive check belongs in the form's rule, on submit. The attribute and FluentValidation
+  sections keep their content under "Also supported", beside how an app that wants only its inline rules turns
+  the automatic validators off (`RaskValidation.AutoValidate = false`). `docs/forms.md`, `docs/validation.md`,
+  best practices, the home page card, the guide search copy, `llms.txt` and the package READMEs say the same.
+
 - **A collapsed `Ui.Sidebar` is Flux's rail: real tooltips, a menu per group, the navlist's count.** Measured on
   Flux's live `sidebar-collapsible` demo and built from its pieces. Every `Ui.SidebarItem` sits in a `Ui.Tooltip`
   to its right (`aria-describedby`, `data-rask-tooltip`) that is drawn only while the sidebar is a rail;

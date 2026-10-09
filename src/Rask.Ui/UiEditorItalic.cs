@@ -7,5 +7,5 @@ public sealed partial class UiEditorItalic : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("italic", "Italic", "⌘I", UiEditorIcons.Hero(Ui.IconName.Italic));
+        UiEditorMarkup.Toggle("italic", RaskStrings.Get(RaskString.EditorItalic, "Italic"), "⌘I", UiEditorIcons.Hero(Ui.IconName.Italic));
 }

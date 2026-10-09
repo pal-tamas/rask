@@ -1279,7 +1279,20 @@ public abstract partial class SharedSmokeTests
         // controls themselves; docs/building-form-controls.md is the path for building one back.
         // ---- validation subpage (docs/forms-validation.md) ----
         await SideAsync("Forms — validation", "Forms — validation", "main .markdown-body h1");
-        await AssertGuideDemosAsync(11, "forms-validation");
+        await AssertGuideDemosAsync(12, "forms-validation");
+
+        // The rule the page leads with: a value object's Validate, named from the field. The message is the
+        // value object's own, and a name it accepts reaches the submit handler.
+        var destination = Page.Locator("form:has(#v-vo-name)");
+        await destination.Locator("#v-vo-name").FillAsync("9 lives");
+        await destination.Locator("#v-vo-name").BlurAsync();
+        await Expect(destination.GetByText("A name starts with a letter."))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(destination.Locator("#v-vo-name")).ToHaveAttributeAsync("maxlength", "255");
+        await destination.Locator("#v-vo-name").FillAsync("Lisbon");
+        await destination.Locator("button[type=submit]").ClickAsync();
+        await Expect(Page.GetByText("Saved: Lisbon"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;
         // the async validator answers "taken". (Attribute-specific messages and the latest-wins

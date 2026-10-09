@@ -174,12 +174,26 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     {
         var paginator = new UiPaginator { Page = 1, PerPage = 5, Total = 24 };
 
-        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml().AsText();
 
         // Once in each form: a <div> that says it is disabled, where Next is a button.
-        Assert.Equal(2, Count(html, "<div class=\"flex items-center justify-center rounded-md text-zinc-300 size-8 sm:size-6 dark:text-zinc-500\" data-rask-key=\"previous\" aria-disabled=\"true\" aria-label=\"&amp;laquo; Previous\">"));
-        Assert.Equal(0, Count(html, "aria-disabled=\"true\" aria-label=\"Next &amp;raquo;\""));
-        Assert.Equal(2, Count(html, "aria-label=\"Next &amp;raquo;\""));
+        Assert.Equal(2, Count(html, "<div class=\"flex items-center justify-center rounded-md text-zinc-300 size-8 sm:size-6 dark:text-zinc-500\" data-rask-key=\"previous\" aria-disabled=\"true\" aria-label=\"« Previous\">"));
+        Assert.Equal(0, Count(html, "aria-disabled=\"true\" aria-label=\"Next »\""));
+        Assert.Equal(2, Count(html, "aria-label=\"Next »\""));
+    }
+
+    [Fact]
+    public void An_arrow_is_named_with_the_character_and_not_with_the_name_of_its_entity()
+    {
+        // "&amp;laquo; Previous" in the markup is "&laquo; Previous" to a screen reader.
+        var paginator = new UiPaginator { Page = 2, PerPage = 5, Total = 24 };
+
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
+
+        var labels = Regex.Matches(html, "aria-label=\"([^\"]*)\"").Select(label => label.Groups[1].Value).ToList();
+        Assert.Equal(4, labels.Count);
+        Assert.All(labels, label => Assert.DoesNotContain("&amp;", label, StringComparison.Ordinal));
+        Assert.Equal(["« Previous", "Next »"], labels.Select(label => label.AsText()).Distinct(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -187,10 +201,10 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     {
         var paginator = new UiPaginator { Page = 5, PerPage = 5, Total = 24 };
 
-        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml().AsText();
 
-        Assert.Equal(2, Count(html, "aria-disabled=\"true\" aria-label=\"Next &amp;raquo;\""));
-        Assert.Equal(0, Count(html, "aria-disabled=\"true\" aria-label=\"&amp;laquo; Previous\""));
+        Assert.Equal(2, Count(html, "aria-disabled=\"true\" aria-label=\"Next »\""));
+        Assert.Equal(0, Count(html, "aria-disabled=\"true\" aria-label=\"« Previous\""));
     }
 
     [Theory]

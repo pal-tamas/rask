@@ -7,5 +7,5 @@ public sealed partial class UiEditorUndo : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("undo", "Undo", "⌘Z", UiEditorIcons.Undo());
+        UiEditorMarkup.Toggle("undo", RaskStrings.Get(RaskString.EditorUndo, "Undo"), "⌘Z", UiEditorIcons.Undo());
 }

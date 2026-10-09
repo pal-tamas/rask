@@ -162,6 +162,10 @@ text, `bool` → checkbox, `int` → number, `DateOnly` → date). `Validation.M
 `Validation.Summary` are headless — you chain a `.Template(…)` lambda for the markup. See
 [forms](forms.md) for nested models, collections, and async validation.
 
+The attributes you already have keep working. A new rule is usually written beside its field instead —
+`Input.Bind(() => _model.Name).Validate(v => v.Length > 0 ? [] : ["Name is required."])` — see
+[forms — validation](forms-validation.md).
+
 ### Scoped CSS
 
 Identical idea, no association ceremony. Drop a sibling `{Component}.css` next to

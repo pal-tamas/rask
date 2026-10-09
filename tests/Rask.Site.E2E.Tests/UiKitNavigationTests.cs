@@ -204,7 +204,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
         await Expect(pager).ToContainTextAsync("Showing 21 to 24 of 24 results");
         await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Next" })).ToHaveCountAsync(0);
         await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Previous" })).ToHaveCountAsync(1);
-        await Expect(pager.Locator("[aria-disabled='true'][aria-label='Next &raquo;']:visible")).ToHaveCountAsync(1);
+        await Expect(pager.Locator("[aria-disabled='true'][aria-label='Next »']:visible")).ToHaveCountAsync(1);
     });
 
     [Fact]

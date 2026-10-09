@@ -7,5 +7,5 @@ public sealed partial class UiEditorBullet : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("bullet", "Bullet list", null, UiEditorIcons.Hero(Ui.IconName.ListBullet));
+        UiEditorMarkup.Toggle("bullet", RaskStrings.Get(RaskString.EditorBullet, "Bullet list"), null, UiEditorIcons.Hero(Ui.IconName.ListBullet));
 }

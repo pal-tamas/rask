@@ -43,6 +43,33 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void ValueObjectValidateDemo_takes_its_length_limit_from_the_value_object()
+    {
+        var html = new LiveHost(() => ValueObjectValidateDemo, TestServices.Default()).RenderAsLiveRoot();
+
+        Assert.Contains("v-vo-name", html);
+        Assert.Contains("maxlength=\"255\"", html);
+    }
+
+    [Theory]
+    [InlineData("", "A destination needs a name.")]
+    [InlineData("9 lives", "A name starts with a letter.")]
+    public void DestinationName_rejects_a_name_with_the_reason(string name, string reason)
+    {
+        var messages = DestinationName.Validate(name);
+
+        Assert.Equal([reason], messages);
+    }
+
+    [Fact]
+    public void DestinationName_accepts_a_name_that_starts_with_a_letter()
+    {
+        var messages = DestinationName.Validate("Lisbon");
+
+        Assert.Empty(messages);
+    }
+
+    [Fact]
     public void NestedAsyncWithLiveTotalsDemo_renders_the_item_rows_and_the_totals_block()
     {
         var html = new LiveHost(() => NestedAsyncWithLiveTotalsDemo, TestServices.Default()).RenderAsLiveRoot();

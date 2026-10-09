@@ -179,7 +179,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
             Ui.Icon.Name(Ui.IconName.Clock).Mini.Class(UiTimePickerLook.ButtonIcon),
             Div.Class(UiTimePickerLook.Selected)[
                 view.Chosen.Count == 0
-                    ? Span.Class(UiTimePickerLook.Placeholder).Data("ui-time-picker-placeholder", null)[Placeholder ?? "Select a time"]
+                    ? Span.Class(UiTimePickerLook.Placeholder).Data("ui-time-picker-placeholder", null)[Placeholder ?? RaskStrings.Get(RaskString.TimePickerPlaceholder, "Select a time")]
                     : Div.Attributes(("dir", "auto"))[string.Join(", ", view.Chosen.Select(Written))]
             ],
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiTimePickerLook.ButtonChevron)
@@ -270,7 +270,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
         Button
             .Type(ButtonType.Button)
             .Class(UiTimePickerLook.Clear)
-            .Aria("label", "Clear")
+            .Aria("label", RaskStrings.Get(RaskString.PickerClear, "Clear"))
             .Data("ui-button", null)
             .OnClick(() => CommitAsync(view, []))[
             Ui.Icon.Name(Ui.IconName.XMark).Mini

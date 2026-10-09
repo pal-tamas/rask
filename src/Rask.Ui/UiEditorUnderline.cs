@@ -7,5 +7,5 @@ public sealed partial class UiEditorUnderline : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("underline", "Underline", "⌘U", UiEditorIcons.Hero(Ui.IconName.Underline));
+        UiEditorMarkup.Toggle("underline", RaskStrings.Get(RaskString.EditorUnderline, "Underline"), "⌘U", UiEditorIcons.Hero(Ui.IconName.Underline));
 }

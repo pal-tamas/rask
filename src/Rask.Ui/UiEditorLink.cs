@@ -36,7 +36,7 @@ public sealed partial class UiEditorLink : Component
             })[UiEditorIcons.Link()];
 
         return Div.Class("contents").Data(Dropdown.With(null, "editor", "link"))[
-            Ui.Tooltip.Content("Insert link").Kbd("⌘K").Class("contents")[trigger],
+            Ui.Tooltip.Content(RaskStrings.Get(RaskString.EditorLink, "Insert link")).Kbd("⌘K").Class("contents")[trigger],
             Div.Id(panelId).Class(PanelClass).TabIndex(-1).Attributes(("popover", "manual"))[
                 Div.Class("flex justify-between gap-2 ps-2 pe-1").Data(Panel.With(null))[
                     Input.Value(string.Empty)
@@ -44,8 +44,8 @@ public sealed partial class UiEditorLink : Component
                         .Data("editor", "link:url")
                         .Attributes(("type", "text"), ("placeholder", "https://..."), ("autofocus", "")),
                     Div.Class("flex items-center gap-2")[
-                        Action("link:insert", "Insert link", UiEditorIcons.Hero(Ui.IconName.Check, Ui.IconVariant.Solid, "shrink-0")),
-                        Action("link:unlink", "Unlink", UiEditorIcons.Unlink(panelId + "-clip"))
+                        Action("link:insert", RaskStrings.Get(RaskString.EditorLink, "Insert link"), UiEditorIcons.Hero(Ui.IconName.Check, Ui.IconVariant.Solid, "shrink-0")),
+                        Action("link:unlink", RaskStrings.Get(RaskString.EditorUnlink, "Unlink"), UiEditorIcons.Unlink(panelId + "-clip"))
                     ]
                 ]
             ]

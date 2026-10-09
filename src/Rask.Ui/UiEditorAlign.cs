@@ -10,9 +10,9 @@ public sealed partial class UiEditorAlign : Component
     protected override Component? Render() =>
         UiEditorMarkup.Select(
             "align",
-            "Align",
+            RaskStrings.Get(RaskString.EditorAlign, "Align"),
             labelled: false,
-            ("left", "Left", () => UiEditorIcons.Hero(Ui.IconName.Bars3BottomLeft)),
-            ("center", "Center", () => UiEditorIcons.Hero(Ui.IconName.Bars3)),
-            ("right", "Right", () => UiEditorIcons.Hero(Ui.IconName.Bars3BottomRight)));
+            ("left", RaskStrings.Get(RaskString.EditorAlignLeft, "Left"), () => UiEditorIcons.Hero(Ui.IconName.Bars3BottomLeft)),
+            ("center", RaskStrings.Get(RaskString.EditorAlignCenter, "Center"), () => UiEditorIcons.Hero(Ui.IconName.Bars3)),
+            ("right", RaskStrings.Get(RaskString.EditorAlignRight, "Right"), () => UiEditorIcons.Hero(Ui.IconName.Bars3BottomRight)));
 }

@@ -145,7 +145,7 @@ public abstract partial class UiSelectControl<T>
         var marks = RowMarks("data-ui-listbox-empty", picked: false, active: false, hidden: view.AnyShown || view.CreateShown);
 
         return Div.Class(UiClass.Compose(UiListboxLook.Empty, slot?.Class)).Attributes(marks)[
-            _busy ? [slot?.WhenLoading ?? "Loading..."] : slot?.Children ?? [Empty ?? "No results found"]
+            _busy ? [slot?.WhenLoading ?? RaskStrings.Get(RaskString.SelectLoading, "Loading...")] : slot?.Children ?? [Empty ?? RaskStrings.Get(RaskString.SelectEmpty, "No results found")]
         ];
     }
 
@@ -194,7 +194,7 @@ public abstract partial class UiSelectControl<T>
                 .Value(view.Search)
                 .Type(InputType.Text)
                 // A space when there is none of its own: the clear button reads :placeholder-shown.
-                .Placeholder(slot?.Placeholder ?? "Search...")
+                .Placeholder(slot?.Placeholder ?? RaskStrings.Get(RaskString.SelectSearchPlaceholder, "Search..."))
                 .Role("combobox")
                 .Autocomplete("off")
                 .Autofocus()
@@ -214,7 +214,7 @@ public abstract partial class UiSelectControl<T>
                         .Type(ButtonType.Button)
                         .TabIndex(-1)
                         .Class(UiSelectLook.SearchClearButton)
-                        .Aria("label", "Clear command input")
+                        .Aria("label", RaskStrings.Get(RaskString.SelectSearchClear, "Clear command input"))
                         .Data("ui-button", "")
                         .OnClick(() => SearchedAsync(string.Empty, slot?.OnInput ?? default, opens: false))[
                         Ui.Icon.Name(Ui.IconName.XMark).Micro
