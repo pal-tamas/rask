@@ -410,8 +410,8 @@ they say when you set nothing.
 | `ErrorTryAgain` | Error page | `Try again` |
 | `ErrorReload` | Error page | `Reload this page` |
 | `PaginationSummary` | Pagination | `Showing {0} to {1} of {2} results` |
-| `PaginationPrevious` | Pagination | `&laquo; Previous` |
-| `PaginationNext` | Pagination | `Next &raquo;` |
+| `PaginationPrevious` | Pagination | `« Previous` |
+| `PaginationNext` | Pagination | `Next »` |
 | `CalendarToday` | Calendar | `Today` |
 | `DatePickerPlaceholder` | Date picker | `Select a date` |
 | `DatePickerRangePlaceholder` | Date picker | `Select a date range` |
@@ -525,9 +525,6 @@ they say when you set nothing.
 | `FilterReset` | Filter | `All` |
 | `FieldValidating` | Form field | `Checking…` |
 | `FileItemRemove` | File upload | `Remove file` |
-
-`&laquo; Previous` and `Next &raquo;` are written exactly so — Flux UI's pager names its arrows with the
-unresolved entity, and the kit mirrors it. A translation is free to write `«`.
 
 ## Docker
 

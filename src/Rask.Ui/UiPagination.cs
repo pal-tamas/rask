@@ -126,14 +126,14 @@ public sealed partial class UiPagination : Component
     }
 
     private Component Previous() =>
-        Step("previous", RaskStrings.Get(RaskString.PaginationPrevious, "&laquo; Previous"), Paginator.OnFirstPage ? null : Paginator.Current - 1, Ui.IconName.ChevronLeft, Ui.IconName.ChevronRight);
+        Step("previous", RaskStrings.Get(RaskString.PaginationPrevious, "« Previous"), Paginator.OnFirstPage ? null : Paginator.Current - 1, Ui.IconName.ChevronLeft, Ui.IconName.ChevronRight);
 
     private Component Next() =>
-        Step("next", RaskStrings.Get(RaskString.PaginationNext, "Next &raquo;"), Paginator.OnLastPage ? null : Paginator.Current + 1, Ui.IconName.ChevronRight, Ui.IconName.ChevronLeft);
+        Step("next", RaskStrings.Get(RaskString.PaginationNext, "Next »"), Paginator.OnLastPage ? null : Paginator.Current + 1, Ui.IconName.ChevronRight, Ui.IconName.ChevronLeft);
 
     // A step with nowhere to go is not a control: it keeps its place. A counted pager names its steps and
-    // says aria-disabled on a spent one; the simple one says neither. Both are Flux's live DOM, down to the
-    // label, which is the text of Laravel's translation with its entity unresolved ("&laquo; Previous").
+    // says aria-disabled on a spent one; the simple one says neither. The label is Laravel's translation as
+    // a reader hears it — "« Previous", the character and not the name of its entity — encoded once.
     // The arrow turns round where the page reads right to left.
     private Component Step(string key, string name, int? page, Ui.IconName arrow, Ui.IconName mirrored)
     {

@@ -7,6 +7,13 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A pager's arrows are named `« Previous` and `Next »`.** The label was written as the entity's name and
+  then encoded, so the markup said `aria-label="&amp;laquo; Previous"` and a screen reader read out
+  "&laquo; Previous". It is the character now, encoded once. `RaskString.PaginationPrevious` /
+  `PaginationNext` carry it, and the kit's Hungarian says `« Előző` / `Következő »`.
+
 ### Added
 
 - **The UI kit's own words are translatable, and it speaks Hungarian out of the box.** The Flux rebuild had

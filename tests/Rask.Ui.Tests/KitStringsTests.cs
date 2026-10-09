@@ -29,11 +29,11 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     {
         var pager = Ui.Pagination.Paginator(new UiPaginator { Page = 1, PerPage = 10, Total = 13 });
 
-        var html = KitCulture.In("en-US", pager.ToHtml);
+        var html = KitCulture.In("en-US", pager.ToHtml).AsText();
 
         Assert.Contains("Showing 1 to 10 of 13 results", html, StringComparison.Ordinal);
-        Assert.Contains("aria-label=\"&amp;laquo; Previous\"", html, StringComparison.Ordinal);
-        Assert.Contains("aria-label=\"Next &amp;raquo;\"", html, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"« Previous\"", html, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"Next »\"", html, StringComparison.Ordinal);
     }
 
     [Fact]

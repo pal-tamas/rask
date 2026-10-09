@@ -957,8 +957,8 @@ Div.Class("flex items-center justify-between gap-4")[
 Either way the current page is not a control: it says `aria-current="page"`. On the first page Previous
 is not one either, and on the last page Next — each keeps its place and says `aria-disabled="true"`.
 
-The names are Flux's, exactly. A counted pager labels its arrows `&laquo; Previous` and `Next &raquo;` —
-the entity as text, which is what Flux's own page carries. The simple paginator's arrows carry no label,
+A counted pager labels its arrows `« Previous` and `Next »` — Laravel's translation, with the character
+a reader hears rather than the name of its entity. The simple paginator's arrows carry no label,
 and its spent arrow says nothing at all; a test finds them by position.
 
 **`ScrollTo`** brings something back into view when a page is chosen, for a pager at the foot of a long
