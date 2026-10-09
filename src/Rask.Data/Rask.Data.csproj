@@ -67,6 +67,9 @@
     <InternalsVisibleTo Include="Rask.SQLite.EntityFrameworkCore"/>
     <InternalsVisibleTo Include="Rask.Data.Tests"/>
     <InternalsVisibleTo Include="Rask.Postgres"/>
+    <!-- The host asks the app's tenant resolver as a request starts and as a live session opens
+         (ResolvedTenant.Capture), which is a moment only the host knows and no app should have to name. -->
+    <InternalsVisibleTo Include="Rask.Server"/>
   </ItemGroup>
 
   <!-- Ship the global `using Rask.Data;` to downstream consumers (mirrors Rask.Cqrs). -->

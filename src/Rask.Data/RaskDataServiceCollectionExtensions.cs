@@ -43,6 +43,10 @@ public static partial class RaskDataServiceCollectionExtensions
             // same instance both roles — which is how a save inside the caller's transaction waits for its
             // commit before anyone refetches.
             services.AddSingleton<ISaveChangesInterceptor, DataChangesInterceptor>();
+
+            // After every other: it replaces a unique index's violation with the message the index carries, by
+            // throwing — and an interceptor after it would not be told the save failed.
+            services.AddSingleton<ISaveChangesInterceptor, UniqueViolationInterceptor>();
         }
 
 #pragma warning disable S3251 // implemented only by the browser build (Browser/); a server build has nothing to wire

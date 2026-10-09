@@ -18,7 +18,7 @@ namespace Rask.Data;
 ///         <see cref="Db.UseScope" /> exists.
 ///     </para>
 ///     <para>
-///         An explicit <see cref="Tenant.Use" /> or <c>Current.UseUser</c> always wins over this: a
+///         An explicit <see cref="Tenant.Use(Guid)" /> or <c>Current.UseUser</c> always wins over this: a
 ///         background job runs for the tenant and user its row recorded, not for whoever happened to enqueue it.
 ///     </para>
 /// </remarks>
