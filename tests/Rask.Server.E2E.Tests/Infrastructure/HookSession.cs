@@ -45,12 +45,15 @@ internal sealed class HookSession : IAsyncDisposable
     /// <param name="path">The path the browser opens.</param>
     /// <param name="browser">A browser launched some other way than the fixture's — one that shows its scrollbars.</param>
     /// <param name="live">The app's live options: a suite that needs every render sent whole says so here.</param>
+    /// <param name="pathBase">The prefix the app is mapped under, through the endpoint-routing overload.</param>
+    /// <param name="environment">The host's environment; whatever the process says when null.</param>
     public static async Task<HookSession> OpenAsync<TPage>(
         PlaywrightFixture playwright, BrowserNewContextOptions? options = null, Func<IPage, Task>? beforeLoad = null,
-        string path = "/", IBrowser? browser = null, Action<Rask.Core.Live.RaskLiveOptions>? live = null)
+        string path = "/", IBrowser? browser = null, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
+        string pathBase = "", string? environment = null)
         where TPage : Component
     {
-        var host = await LiveServerHost.StartAsync<TPage>(blockWebSockets: false, live: live);
+        var host = await LiveServerHost.StartAsync<TPage>(blockWebSockets: false, live: live, pathBase: pathBase, environment: environment);
         var context = await (browser ?? playwright.Browser).NewContextAsync(options ?? new() { ViewportSize = new() { Width = 1000, Height = 700 } });
         var page = await context.NewPageAsync();
         var pageErrors = new ConcurrentQueue<string>();

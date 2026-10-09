@@ -41,7 +41,8 @@ internal sealed class LiveServerHost : IAsyncDisposable
     public int WebSocketAttempts => Volatile.Read(ref _webSocketAttempts);
 
     public static async Task<LiveServerHost> StartAsync<TApp>(
-        bool blockWebSockets, bool staticFiles = false, Action<Rask.Core.Live.RaskLiveOptions>? live = null)
+        bool blockWebSockets, bool staticFiles = false, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
+        string pathBase = "", string? environment = null)
         where TApp : Component
     {
         // The wwwroot the build copied beside the tests: what a web project serves from its own folder.
@@ -49,6 +50,7 @@ internal sealed class LiveServerHost : IAsyncDisposable
         {
             ContentRootPath = AppContext.BaseDirectory,
             WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot"),
+            EnvironmentName = environment,
         });
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
@@ -80,7 +82,16 @@ internal sealed class LiveServerHost : IAsyncDisposable
 
         app.UseRouting();
         app.UseWebSockets();
-        app.MapRask<TApp>();
+        // The endpoint-routing overload when the app has a path base: what a host that composes its own pipeline calls.
+        if (pathBase.Length > 0)
+        {
+            ((Microsoft.AspNetCore.Routing.IEndpointRouteBuilder)app).MapRask<TApp>(pathBase: pathBase);
+        }
+        else
+        {
+            app.MapRask<TApp>();
+        }
+
         await app.StartAsync();
 
         var address = app.Services.GetRequiredService<IServer>().Features
