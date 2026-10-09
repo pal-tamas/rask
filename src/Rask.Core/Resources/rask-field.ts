@@ -11,6 +11,7 @@
 //     itself — and data-rask-mask-money=".,2" groups a number (decimal mark, thousands mark, decimals). Both
 //     run before the page's own input handler, so the page receives the shaped value, and both put the caret
 //     back where the reader was typing.
+//   * data-rask-clear-keys="Escape" on a field empties it when that key is pressed in it.
 //   * Enter toggles a checkbox that is a role="switch"; Shift+Arrow and PageUp/PageDown move a range input by
 //     its data-rask-big-step. (A closed data-rask-listbox-button's keys are rask-keys.ts's.)
 //
@@ -189,6 +190,16 @@ if (page) {
         const target = cleared || (focuser ? named(focuser, "data-rask-focus") : null);
         if (target) {
             target.focus();
+        }
+    });
+
+    // data-rask-clear-keys="Escape" on a field: that key empties it, here, at the key. The page hears the key
+    // itself and no `input`; emptied from its handler a round trip later, the field lost what was typed since.
+    listen("keydown", function (e) {
+        const field = e.target as Element;
+        const keys = isField(field) ? field.getAttribute("data-rask-clear-keys") : null;
+        if (keys !== null && keys.split(" ").indexOf((e as KeyboardEvent).key) >= 0 && (field as Field).value !== "") {
+            (field as Field).value = "";
         }
     });
 

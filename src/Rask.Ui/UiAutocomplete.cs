@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Linq.Expressions;
+using Rask.Core;
 using Rask.Core.Forms;
 
 namespace Rask;
@@ -149,6 +150,8 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>
                 AnchorName = Prefixed,
                 Aria = InputAria(view),
                 OnKeyDown = e => OnKeyAsync(e, view),
+                Keys = HeardKeys,
+                ClearKeys = Keys.Escape,
                 OnClick = Opened,
             });
 

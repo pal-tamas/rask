@@ -36,7 +36,7 @@ export const HOOK_ATTRIBUTES: string[] = (
     + " modal modal-open"                                         // rask-overlay
     + " lock"                                                     // rask-lock
     + " menu-pointer safe-area"                                   // rask-menu
-    + " copy clear focus mask mask-money big-step"                // rask-field
+    + " copy clear clear-keys focus mask mask-money big-step"     // rask-field
     + " contain-keys listbox-button roving"                       // rask-keys
     + " focus-follows press-keeps-focus"                          // rask-focus
     + " toggle"                                                   // rask-toggle

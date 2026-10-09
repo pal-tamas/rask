@@ -11,6 +11,9 @@ public sealed partial class UiAutocomplete
 
     private const int First = -2;
 
+    // The keys OnKeyAsync acts on. Every other one is the text's own, and never leaves the browser.
+    private static readonly string HeardKeys = string.Join(' ', Keys.ArrowDown, Keys.ArrowUp, Keys.Enter, Keys.Escape, Keys.Tab);
+
     private readonly ElementRef<HTMLInputElement> _input = new();
 
     private bool _open;
@@ -96,20 +99,23 @@ public sealed partial class UiAutocomplete
         }
     }
 
-    // The browser closed the popover — Escape, a click elsewhere — or C# opened or closed it.
+    // The browser closed the popover: Escape, a click elsewhere. It never opens one — only a render does, and
+    // the toggle that render causes arrives after it, when the list may be shut again. Taken as news, that
+    // late "open" opened the list, whose own toggle shut it, and so on for as long as the page was up.
     private void OnToggle(ToggleEvent e)
     {
-        var open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
-        if (open != _open)
+        if (string.Equals(e.NewState, "open", StringComparison.Ordinal))
         {
-            _open = open;
+            return;
+        }
+
+        if (_open)
+        {
+            _open = false;
             _cursor = Unset;
         }
 
-        if (!open)
-        {
-            _typing = false;
-        }
+        _typing = false;
     }
 
     private void Close()
@@ -155,16 +161,28 @@ public sealed partial class UiAutocomplete
                 await PickAsync(view.Cursor, view).ConfigureAwait(false);
                 break;
             case Keys.Escape:
-                // Flux's `clear="esc"`: the list shuts and the input is emptied, open or not.
+                // Flux's `clear="esc"`: the list shuts and the input is emptied, open or not. The browser
+                // emptied it at the key (UiInputHost.ClearKeys); what is typed since is the next text.
                 Close();
-                await UiInputReach.SayAsync(_input, string.Empty).ConfigureAwait(false);
                 await CommitAsync(string.Empty).ConfigureAwait(false);
                 break;
             case Keys.Tab:
-                Close();
+                await LeaveAsync().ConfigureAwait(false);
                 break;
             default:
                 break;
+        }
+    }
+
+    // Tab leaves with what was typed, and the page holds it from this render on: the input's own `change`
+    // comes a round trip behind the key, and the field showed the text before it in between.
+    private async Task LeaveAsync()
+    {
+        var typed = _typing ? _search : null;
+        Close();
+        if (typed is not null)
+        {
+            await CommitAsync(typed).ConfigureAwait(false);
         }
     }
 
