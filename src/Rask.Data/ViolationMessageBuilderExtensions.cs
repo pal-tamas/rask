@@ -14,9 +14,9 @@ namespace Rask.Data;
 ///     <para>
 ///         A save that violates the index then fails the way a validator's rule does — a
 ///         <see cref="Rask.Cqrs.RaskValidationException" /> carrying the message — rather than as the provider's
-///         <c>DbUpdateException</c>, whose text names tables and holds the conflicting value. The message is
-///         filed under the property the index is over when that is ONE property beside the tenant, and under
-///         the empty key — the request as a whole — when it is several.
+///         <c>DbUpdateException</c>, whose text names tables and holds the conflicting value. It is ONE
+///         failure over every property the index names — the tenant aside — so a form shows the message under
+///         each of those fields with nothing written in its submit handler.
 ///     </para>
 ///     <para>
 ///         The message is a constant, on purpose: it is shown to whoever sent the value, and on a table where

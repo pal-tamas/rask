@@ -18,7 +18,7 @@ namespace Rask.Cqrs;
 ///         result type rather than here; an exception is for the call not completing.
 ///     </para>
 /// </remarks>
-public sealed class RemoteDispatchException : Exception
+public class RemoteDispatchException : Exception
 {
     /// <summary>Creates an exception with a default message.</summary>
     public RemoteDispatchException()

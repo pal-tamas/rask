@@ -2,6 +2,7 @@ using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Rask.Cqrs;
+using Rask.Wire;
 
 namespace Rask.Data;
 
@@ -54,9 +55,7 @@ internal static class UniqueViolation
             .ToList();
 
         return Violated(provider, candidates) is { } index
-            ? new RaskValidationException(
-                [new RequestValidationError(FieldOf(index), (string)index.FindAnnotation(Annotation)!.Value!)],
-                failure)
+            ? new RaskValidationException([FailureOf(index)], failure)
             : null;
     }
 
@@ -112,11 +111,13 @@ internal static class UniqueViolation
             index.Properties.Select(p => $"{table}.{(store is { } at ? p.GetColumnName(at) : p.GetColumnName())}"));
     }
 
-    // The property the index is over, when it is one property beside the tenant: the message then belongs under
-    // that field. Several properties are a rule about the row, which is filed under the empty key.
-    private static string FieldOf(IIndex index)
-    {
-        var own = index.Properties.Where(static p => !string.Equals(p.Name, Columns.TenantId, StringComparison.Ordinal)).ToList();
-        return own.Count == 1 ? own[0].Name : string.Empty;
-    }
+    /// <summary>
+    ///     What the violation of <paramref name="index" /> says: its message, over every property the index names
+    ///     in index order — the tenant aside, which is never a field — and found by the index's name.
+    /// </summary>
+    internal static FieldFailure FailureOf(IReadOnlyIndex index) =>
+        new(
+            (string)index.FindAnnotation(Annotation)!.Value!,
+            [.. index.Properties.Select(static p => p.Name).Where(static name => !string.Equals(name, Columns.TenantId, StringComparison.Ordinal))],
+            Source: index.GetDatabaseName());
 }

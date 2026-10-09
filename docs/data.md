@@ -1257,10 +1257,14 @@ A save that violates the index then fails the way a [validator's rule](validatio
 whose text names tables and holds the conflicting value. Every save through the context does this:
 `Save()`, `Create`, `Update`, and plain `SaveChangesAsync`.
 
-| The index is over | `Errors` key | Meaning |
+It carries ONE failure for the index (`Failures`, the shape a form reads): the message, over every property the
+index names in index order — `TenantId` aside, which is never a field — and the index's name as its source.
+`Errors`, the shape that crosses the wire, repeats the message under each of those fields.
+
+| The index is over | `Failures` | `Errors` |
 |---|---|---|
-| one property (beside `TenantId`, which does not count) | that property's name — `"Name"` | the message belongs under that field |
-| several properties | `""` | a rule about the row as a whole |
+| `(Name, TenantId)` | one, over `Name` | `"Name"` |
+| `(Year, Number)` | one, over `Year` and `Number` | `"Year"` and `"Number"`, the same message under both |
 
 - **The message is a constant, and stays one.** It is shown to whoever sent the value, and nothing is appended
   to it — not the value, and not which row it collided with.
@@ -1273,9 +1277,33 @@ whose text names tables and holds the conflicting value. Every save through the 
   database has to be the one in the model — EF Core's `IX_{Table}_{Columns}`, or say `HasDatabaseName("…")`.
 - The original exception is the `InnerException`, for the log.
 
-Over [remote dispatch](validation.md#a-rejected-request) this is the same 400 with field errors a validator produces. **In
-a `Form` it reaches the page as `f.Error` today**, like any other failure of the submit handler — the form does
-not yet file it under the field by itself.
+**In a `Form` the message appears under the field** — under each of them, for an index over several — with
+nothing written in the submit handler: the exception names its fields (`IFieldFailures`), and a form shows
+such a failure where it can be corrected instead of failing the submit. Over
+[remote dispatch](validation.md#a-rejected-request) it is the same 400 with field errors a validator produces,
+and the client's exception names its fields too, rebuilt from that dictionary: one failure per distinct
+message, over every field that carries it.
+
+#### When the index may not be there
+
+On a database Rask did not create — [a table that already exists](#mapping-tables-that-already-exist) — an
+index the model declares is a claim about somebody else's schema, and the table may not have it. A host wired
+with `AddRaskData<TContext>(o => …)` therefore asks every rule declared with `IsUnique("…")` as a **query**
+before each save, and refuses the save with the same failure:
+
+- through the context's own filters, so a tenant-scoped table is asked about this tenant's rows only
+- a NULL in one of the index's columns is not checked, as a database does not let NULLs collide
+- an index filter that only says its own columns are `NOT NULL` counts as no filter; an index with any other
+  filter is skipped, because its condition is SQL that Rask will not guess at
+- two rows of one save that break a rule between them are refused too
+- the row being saved does not collide with itself
+
+The check and the save share one transaction — the caller's when there is one, otherwise one opened for the
+save (not on a context whose execution strategy retries, which refuses a transaction it did not start; there
+the check runs just before the save). **It is a check, not a lock:** two saves at the same instant can both
+pass it, and only a real unique index closes that. Where the index does exist the database still has the last
+word, reported the same way. An index declared with plain `IsUnique()` has no message to fail with and is not
+checked.
 
 ## Value objects
 
