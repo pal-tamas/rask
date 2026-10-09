@@ -31,6 +31,10 @@ them until tagged releases begin.
   goes to `Validation.Summary`, and to `f.Error` when nothing would show it. It is logged at information,
   not as a fault. The app writes no `try`/`catch`. See
   [The database said no](docs/forms-validation.md#the-database-said-no).
+- **BREAKING for an app that has its own component named `PageTitle`.** `PageTitle` is now a member of every
+  component, so inside a component the bare name means that member and no longer your component's chain entry
+  (CS1929 at each call site). Rename or delete your `PageTitle` component and state
+  `protected override string? PageTitle => …` on the routed page instead.
 
 - **A page declares its title, and its layout shows it in the first HTML (#1239).** A routed page overrides
   `protected override string? PageTitle => _relation is { } r ? $"Edit {r.Name}" : null;`, and the layout around
