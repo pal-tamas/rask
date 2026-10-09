@@ -277,12 +277,8 @@ internal static class HtmlSerializer
         switch (component)
         {
             case Text t:
-            {
-                var textStart = html.Length;
-                html.AppendEncoded(t.Value ?? string.Empty);
-                frames?.Text(t.Value, textStart, html.Length);
+                SerializeText(t, html, frames);
                 break;
-            }
 
             case Raw r:
             {
@@ -319,6 +315,20 @@ internal static class HtmlSerializer
             default:
                 SerializeComponent(component, html, frames);
                 break;
+        }
+    }
+
+    private static void SerializeText(Text text, HtmlWriter html, FrameWriter? frames)
+    {
+        var textStart = html.Length;
+        html.AppendEncoded(text.Value ?? string.Empty);
+        frames?.Text(text.Value, textStart, html.Length);
+
+        // `Text["hi"]` hands its words over as children, the way every other tag in a chain takes them.
+        // They used to be dropped here, so that spelling rendered nothing at all, for ever.
+        if (text.Children is { } words)
+        {
+            SerializeChildren(words as Component?[], words, html);
         }
     }
 
