@@ -1861,10 +1861,14 @@ Rask.UiInput<T>.Attributes.get -> System.Collections.Generic.IReadOnlyDictionary
 Rask.UiInput<T>.Attributes.set -> void
 Rask.UiInput<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.UiInput<T>.Bind.set -> void
+Rask.UiInput<T>.Blur.get -> bool?
+Rask.UiInput<T>.Blur.set -> void
 Rask.UiInput<T>.Class.get -> string?
 Rask.UiInput<T>.Class.set -> void
 Rask.UiInput<T>.Copyable.get -> bool?
 Rask.UiInput<T>.Copyable.set -> void
+Rask.UiInput<T>.Debounce.get -> System.TimeSpan?
+Rask.UiInput<T>.Debounce.set -> void
 Rask.UiInput<T>.Description.get -> string?
 Rask.UiInput<T>.Description.set -> void
 Rask.UiInput<T>.DescriptionTrailing.get -> string?
@@ -2677,8 +2681,12 @@ Rask.UiTextarea<T>.Badge.get -> string?
 Rask.UiTextarea<T>.Badge.set -> void
 Rask.UiTextarea<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.UiTextarea<T>.Bind.set -> void
+Rask.UiTextarea<T>.Blur.get -> bool?
+Rask.UiTextarea<T>.Blur.set -> void
 Rask.UiTextarea<T>.Class.get -> string?
 Rask.UiTextarea<T>.Class.set -> void
+Rask.UiTextarea<T>.Debounce.get -> System.TimeSpan?
+Rask.UiTextarea<T>.Debounce.set -> void
 Rask.UiTextarea<T>.Description.get -> string?
 Rask.UiTextarea<T>.Description.set -> void
 Rask.UiTextarea<T>.DescriptionTrailing.get -> string?
@@ -3853,6 +3861,10 @@ static RaskBuilderSettersRask_Ui.BadgeVariant(this Rask.UiNavbarItem! __b, Rask.
 static RaskBuilderSettersRask_Ui.BadgeVariant(this Rask.UiNavlistItem! __b, Rask.Ui.NavBadgeVariant? value) -> Rask.UiNavlistItem!
 static RaskBuilderSettersRask_Ui.BigStep<T>(this Rask.UiSlider<T>! __b, double? value) -> Rask.UiSlider<T>!
 static RaskBuilderSettersRask_Ui.Bind(this Rask.UiTabs! __b, System.Linq.Expressions.Expression<System.Func<string!>!>? value) -> Rask.UiTabs!
+static RaskBuilderSettersRask_Ui.Blur<T>(this Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Blur<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Blur<T>(this Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.Blur<T>(this Rask.UiTextarea<T>! __b, bool? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Breakpoint(this Rask.UiSidebar! __b, Rask.Ui.Breakpoint? value) -> Rask.UiSidebar!
 static RaskBuilderSettersRask_Ui.Checked(this Rask.UiMenuRadio! __b) -> Rask.UiMenuRadio!
 static RaskBuilderSettersRask_Ui.Checked(this Rask.UiMenuRadio! __b, bool? value) -> Rask.UiMenuRadio!
@@ -4089,6 +4101,8 @@ static RaskBuilderSettersRask_Ui.Current(this Rask.UiSidebarItem! __b) -> Rask.U
 static RaskBuilderSettersRask_Ui.Current(this Rask.UiSidebarItem! __b, bool? value) -> Rask.UiSidebarItem!
 static RaskBuilderSettersRask_Ui.Curve(this Rask.UiChartArea! __b, Rask.Ui.ChartCurve? value) -> Rask.UiChartArea!
 static RaskBuilderSettersRask_Ui.Curve(this Rask.UiChartLine! __b, Rask.Ui.ChartCurve? value) -> Rask.UiChartLine!
+static RaskBuilderSettersRask_Ui.Debounce<T>(this Rask.UiInput<T>! __b, System.TimeSpan? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Debounce<T>(this Rask.UiTextarea<T>! __b, System.TimeSpan? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiCheckbox! __b, string? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiCheckboxAll! __b, string? value) -> Rask.UiCheckboxAll!

@@ -1,13 +1,19 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
-# Refreshed 2026-10-09 with the chart that draws nothing until it is measured: its first drawing puts the SVG in
+# Refreshed 2026-10-09 with the events of one task leaving as one frame (rask-batch.ts, shared by both runtimes:
+# handler events held until the task ends and sent as one batch, anything else sent at once behind them), on top
+# of the bound field that waits: rask.js 97,409 -> 97,895 (+486) and rask.wasm.js 86,167 -> 86,668
+# (+501). And with the chart that draws nothing until it is measured: its first drawing puts the SVG in
 # beside the measured layer, a render that replaces the layer's element, so the measuring hook now watches
 # whatever stands where a watched element was (rask-plot.ts): rask-hooks.js 42,367 -> 42,445 (+78).
 #
-# Refreshed 2026-10-09 with the events of one task leaving as one frame (rask-batch.ts, shared by both runtimes:
-# handler events held until the task ends and sent as one batch, anything else sent at once behind them):
-# rask.js 96,350 -> 96,836 (+486) and rask.wasm.js 85,110 -> 85,611 (+501). rask-hooks.js is unchanged at 42,367.
+# Refreshed 2026-10-09 with a bound field that waits (`.Debounce(…)` / `.Blur()`, rask-input.ts — the CORE bundle,
+# because what it has to get ahead of is the runtimes' own submit, click, key and navigation): rask.js
+# 96,350 -> 97,409 (+1,059) and rask.wasm.js 85,110 -> 86,167 (+1,057). A timer per paused field and the flush that
+# empties it, the fields bound on blur sent as the change they are ahead of what follows, the check that keeps
+# the browser's own `change` from saying it twice, `compositionend`, the first-edit report (data-rask-on-edit),
+# and one more attribute in the morph's "is this field being typed into". rask-hooks.js is unchanged at 42,367.
 #
 # Refreshed 2026-10-09 with the chart following its container and the pointer (rask-plot.ts — a hook module, so
 # only a page with a chart downloads it): rask-hooks.js 40,669 -> 42,367 (+1,698). A part's text for every row
@@ -131,6 +137,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,96836
-rask.wasm.js,85611
+rask.js,97895
+rask.wasm.js,86668
 rask-hooks.js,42445

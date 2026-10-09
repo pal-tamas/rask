@@ -30,9 +30,10 @@ function send(payload: unknown): unknown {
 
 setHost({send, inRoot: () => true});
 
-// The end of the task: every microtask queued so far has run.
+// The end of the task: every microtask queued so far has run. Node's own next task, since the page's timers
+// are the fixture's (stub-events.ts) and only run when a test lets time pass.
 async function taskEnds(): Promise<void> {
-    await new Promise<void>(function (done) { setTimeout(done, 0); });
+    await new Promise<void>(function (done) { setImmediate(done); });
 }
 
 async function answer(): Promise<void> {
@@ -128,7 +129,27 @@ const heldWhileOwed = frames.slice();
 await answer();
 const sentOnceAnswered = frames.slice();
 
+// A field's first edit is reported ahead of the value typed, in the frame that carries it.
+start();
+field = new StubField({"data-rask-on-edit": "h9", "data-rask-on-input": "h1", "data-rask-on-change": "h2"});
+field.value = "A";
+listeners.input({target: field});
+await taskEnds();
+const editThenInput = frames.slice();
+
+// What was typed is flushed ahead of the submit that follows it, and the two leave together, the value first.
+start();
+field = new StubField({"data-rask-on-input": "h1"});
+field.value = "Atlantis";
+listeners.input({target: field});
+flushInputsNow();
+send({id: "h5", type: "submit", form: {}});
+await taskEnds();
+const typedThenSubmitted = frames.slice();
+
 process.stdout.write(JSON.stringify({
+    editThenInput,
+    typedThenSubmitted,
     duringTask,
     sixty,
     alone,

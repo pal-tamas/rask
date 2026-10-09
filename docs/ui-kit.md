@@ -2125,6 +2125,8 @@ Ui.Input.Bind(() => m.Query).Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K").Clear
 Ui.Input.Bind(() => m.Password).Type(InputType.Password).Viewable()                // reveal button
 Ui.Input.Value(key).ReadOnly().Filled                                              // variant="filled"
 Ui.Input.Bind(() => m.Phone).Mask("(999) 999-9999")                                // 9 digit, a letter, * either
+Ui.Input.Bind(() => m.Name).Blur()                                                 // wire:model.blur
+Ui.Input.Bind(() => m.Name).Debounce(300.Milliseconds)                             // wire:model.live.debounce.300ms
 Ui.Input.Value(key).Icon(Ui.IconName.Key).ReadOnly().Copyable()                    // copy button, a tick for 2 s
 Ui.Input.Of<string>().Type(InputType.File).Multiple().OnFiles(Save)                // "Choose files" + the chosen name
 Ui.Input.Of<string>().As(Ui.InputAs.Button).Placeholder("Search...").OnClick(Open) // a button drawn as the input

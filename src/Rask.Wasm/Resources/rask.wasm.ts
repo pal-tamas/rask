@@ -17,7 +17,7 @@ import {
     raskChangeFrameValues,
     raskNotePendingFormState,
 } from "../../Rask.Core/Resources/rask-morph.js";
-import { flushInputsNow } from "../../Rask.Core/Resources/rask-input.js";
+import { changeSent, flushInputsNow } from "../../Rask.Core/Resources/rask-input.js";
 import {
     preloadNewHeadStylesheets,
     waitForUnappliedHeadCss,
@@ -713,7 +713,7 @@ document.addEventListener("change", (e) => {
         send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas}).finally(upload.end);
         return;
     }
-    if (t.hasAttribute("data-rask-on-change")) {
+    if (t.hasAttribute("data-rask-on-change") && !changeSent(t)) {
         // What the frame reports, from the shared module (rask-morph.js) rather than computed here —
         // the hosts each carried their own copy and drifted, which is how <select> ended up with no
         // lagging-frame guard. `values` is null for everything except a <select multiple>, whose

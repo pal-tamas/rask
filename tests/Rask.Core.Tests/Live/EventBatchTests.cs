@@ -148,4 +148,35 @@ public sealed class EventBatchTests
         Assert.Equal(["A"], whileOwed);
         Assert.Equal(["A", "Atlantis"], onceAnswered);
     }
+
+    [Fact]
+    public void A_fields_first_edit_reaches_the_host_ahead_of_the_value_typed_in_the_same_frame()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var frame = Assert.Single(root.GetProperty("editThenInput").EnumerateArray());
+        var events = frame.GetProperty("events").EnumerateArray().ToArray();
+
+        Assert.Equal(["edit", "input"], events.Select(e => e.GetProperty("type").GetString()));
+        Assert.Equal(["h9", "h1"], events.Select(e => e.GetProperty("id").GetString()));
+        Assert.Equal("A", events[1].GetProperty("value").GetString());
+    }
+
+    [Fact]
+    public void A_typed_value_flushed_ahead_of_a_submit_leaves_in_the_same_frame_ahead_of_it()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var frame = Assert.Single(root.GetProperty("typedThenSubmitted").EnumerateArray());
+        var events = frame.GetProperty("events").EnumerateArray().ToArray();
+
+        Assert.Equal(["input", "submit"], events.Select(e => e.GetProperty("type").GetString()));
+        Assert.Equal("Atlantis", events[0].GetProperty("value").GetString());
+    }
 }
