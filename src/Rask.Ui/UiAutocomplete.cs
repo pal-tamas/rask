@@ -150,7 +150,7 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>
                 AnchorName = Prefixed,
                 Aria = InputAria(view),
                 OnKeyDown = e => OnKeyAsync(e, view),
-                Keys = HeardKeys,
+                Keys = UiListKeys.Text,
                 ClearKeys = Keys.Escape,
                 OnClick = Opened,
             });

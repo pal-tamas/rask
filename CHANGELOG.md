@@ -1087,6 +1087,28 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Typing fast into a slow page no longer queues a render per key behind the reader — and `Ui.Autocomplete`
+  no longer shows stale text, goes empty, or opens and closes for ever after it is left.** Every key typed into
+  a text input over a list (`Ui.Autocomplete`, `Ui.Select.Combobox`, `Ui.Pillbox`'s input) was two round
+  trips and two renders: the `keydown`, which changed nothing, and the `input`. On a page that renders slower
+  than a key they queued: eight letters and a Tab on the published site's data-input page were 18 renders, the
+  field's answer four seconds behind the reader, and each stale render was written into the field once it was
+  left — the letters again one by one, then EMPTY (Tab's render, drawn before the input's own `change` had
+  arrived), then the text. The site's end-to-end test timed out in that window on a loaded runner. Four changes:
+  - **What is typed while .NET still owes the field an answer is held, and only the latest value is sent** —
+    when the answer arrives, or at once ahead of any key, click or `change` that follows. WASM only: the
+    Server's socket does not say when it has answered, and sends every value as before. An `OnInput` handler
+    now hears `"Atlantis"` where it heard eight values, exactly as it does for a paste.
+  - **`data-rask-keys="ArrowDown ArrowUp Enter Escape Tab"`** on an element with a key handler: the handler
+    hears only the listed keys. The three controls carry it.
+  - **`data-rask-clear-keys="Escape"`** on a field: that key empties it in the browser, at the key. The
+    autocomplete's Escape (and the pillbox input's Escape and Tab) emptied the input from the C# handler, a
+    round trip later — text typed straight after Escape was wiped, or was appended to the text Escape should
+    have removed (`Tex`, Escape, `Atlantis` gave `TexAtlantis`; Flux gives `Atlantis`, and so does Rask now).
+  - **`Ui.Autocomplete`'s Tab hands the page what was typed** in its own handler, and a late `toggle` of an
+    opening no longer opens the list: the echo of a render's own `showPopover` arrived after Tab had shut
+    the list, opened it, and that opening's echo shut it — every 230 ms, for as long as the page was up.
+
 - **`Ui.SidebarItem` and `Ui.MenuItem` follow a string `Href` out of the app.** Every other kit link writes a
   string as an ordinary link (#1070); these two always wrote a `NavLink`, so under a path base
   `Ui.SidebarItem.Href("/reports")` came out as `/new/reports` and was routed inside the app — a sidebar could

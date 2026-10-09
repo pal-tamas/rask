@@ -11,9 +11,6 @@ public sealed partial class UiAutocomplete
 
     private const int First = -2;
 
-    // The keys OnKeyAsync acts on. Every other one is the text's own, and never leaves the browser.
-    private static readonly string HeardKeys = string.Join(' ', Keys.ArrowDown, Keys.ArrowUp, Keys.Enter, Keys.Escape, Keys.Tab);
-
     private readonly ElementRef<HTMLInputElement> _input = new();
 
     private bool _open;

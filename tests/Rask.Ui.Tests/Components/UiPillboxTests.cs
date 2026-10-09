@@ -60,6 +60,18 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
     private static IEnumerable<string> Shown(Page page) =>
         page.FindAll("[data-ui-listbox-option]").Where(row => row.Attribute("data-hidden") is null).Select(row => row.TextContent.Trim());
 
+    // Emptied from the key's handler, a round trip after the key, the input lost what was typed in between.
+    [Fact]
+    public void The_comboboxs_input_sends_only_its_own_keys_and_is_emptied_in_the_browser_by_the_ones_that_close_it()
+    {
+        var page = Page.Render(Combobox);
+
+        var input = page.Find("[data-ui-pillbox-input]");
+
+        Assert.Equal("ArrowDown ArrowUp Enter Escape Tab Backspace", input.Attribute("data-rask-keys"));
+        Assert.Equal("Escape Tab", input.Attribute("data-rask-clear-keys"));
+    }
+
     [Fact]
     public void The_trigger_is_a_combobox_that_shows_the_placeholder_while_nothing_is_picked()
     {

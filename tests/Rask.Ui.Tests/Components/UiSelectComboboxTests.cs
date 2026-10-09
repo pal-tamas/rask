@@ -49,6 +49,17 @@ public partial class UiSelectComboboxTests : global::Rask.Core.RaskMarkup
     private static IEnumerable<string> Shown(Page page) =>
         page.FindAll("[data-ui-option]").Where(row => row.Attribute("data-hidden") is null).Select(row => row.TextContent.Trim());
 
+    // Every key used to be sent: a letter typed was two round trips and two renders, the key's changing nothing.
+    [Fact]
+    public void The_input_sends_only_the_keys_the_list_acts_on()
+    {
+        var page = Page.Render(Combobox);
+
+        var input = page.Find("input[role=\"combobox\"]");
+
+        Assert.Equal("ArrowDown ArrowUp Enter Escape Tab", input.Attribute("data-rask-keys"));
+    }
+
     [Fact]
     public void The_trigger_is_a_text_input_in_the_inputs_own_box()
     {

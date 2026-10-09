@@ -120,7 +120,7 @@ public abstract partial class UiSelectControl<T>
                     UiInputLook.Variant(Ui.InputVariant.Outline),
                     slot?.Class))
                 .Aria(TriggerAria(view, autocompletes: true))
-                .Attributes(TriggerMarks(view, "data-ui-control", view.Field.Invalid || slot?.Invalid == true, anchors: false))
+                .Attributes(InputMarks(view, view.Field.Invalid || slot?.Invalid == true))
                 .Ref(_input)
                 .OnClick(() => OnInputClickAsync(view))
                 .OnBlur(OnInputBlur)
@@ -193,6 +193,15 @@ public abstract partial class UiSelectControl<T>
         }
 
         return aria;
+    }
+
+    // The combobox's input: the trigger's marks, and the keys OnInputKeyAsync acts on.
+    private Dictionary<string, string?> InputMarks(View view, bool invalid)
+    {
+        var marks = TriggerMarks(view, "data-ui-control", invalid, anchors: false);
+        marks["data-rask-keys"] = UiListKeys.Text;
+
+        return marks;
     }
 
     private Dictionary<string, string?> TriggerMarks(View view, string marker, bool invalid, bool anchors)
