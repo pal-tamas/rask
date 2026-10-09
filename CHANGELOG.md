@@ -9,6 +9,28 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The edit form works on an aggregate that declares `Checks = Concurrency.None`.** Its generated form model
+  still carried `Version`, `X.Model(id)` filled it with 0, and `X.Update(id, model)` then refused every edit
+  with *"declares Checks = Concurrency.None, so it has no Version to compare 0 with"*. The model of an
+  aggregate without a version now carries none, and its `Update(id, model)` compares none.
+  **For an existing app:** `XModel.Version` is gone for an aggregate that declares `Checks = Concurrency.None`
+  — code that read or set it no longer compiles; delete the line. Nothing changes for any other aggregate.
+
+- **BREAKING: a read face shows only the framework columns its table has.** `XRead` always declared
+  `CreatedAt`, `UpdatedAt`, `Version` and `DeletedAt`, whatever the entity's consts said, so
+  `X.OrderBy(d => d.CreatedAt)` compiled against a table with no such column and threw at the first query.
+  A column the consts rule out is now not on the face, and using one is a compile error: no `CreatedAt` /
+  `UpdatedAt` without the matching `Stamps` flag, no `Version` with `Checks = Concurrency.None`, and — the one
+  that reaches every app — **no `DeletedAt` unless the aggregate declares `Deletes = Deletion.Soft`**, which
+  is the default's opposite. That property was never mapped on a hard-delete aggregate, so a query could
+  not filter or sort by it; code that only read it off a materialised row got `null` and now has to drop the
+  read. No schema change. Among Rask's own faces, `PasskeyRead.DeletedAt` and `OutboxMessageRead.CreatedAt`
+  are gone for the same reason.
+
+- **The generated model registry compiles in an app without implicit usings.** For an aggregate holding a
+  one-value value object it emits `.Property(v => v.Value).HasColumnName("…")` — an extension method — and
+  relied on the app importing `Microsoft.EntityFrameworkCore` somewhere, failing with CS1061 where none did.
+  The generated file now brings the namespace itself. It was the only extension call in the generated files.
 - **A pick in a multiple `Ui.Select` is answered with a diff, not the whole page.** The listbox button says one
   of three things — the placeholder, the one picked option, "N selected" — and each was a different element in
   the same place: a `<span>`, a `<div>` holding the option, a `<div>` holding text. The live diff patches a node

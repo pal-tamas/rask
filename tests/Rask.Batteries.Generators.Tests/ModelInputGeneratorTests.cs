@@ -1476,4 +1476,27 @@ public class ModelInputGeneratorTests
         Assert.Contains("public string? Number { get; set; }", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Tenant", source, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void An_aggregate_that_declined_its_version_gets_a_model_without_one_and_an_update_that_compares_none()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Depot : Aggregate<int>
+            {
+                private Depot() { }
+                public const Concurrency Checks = Concurrency.None;
+                public string Name { get; private set; } = "";
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.DepotModel");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain("Version", source, StringComparison.Ordinal);
+        Assert.Contains(".Update<global::Shop.Depot>(id!, null, entity =>", source, StringComparison.Ordinal);
+    }
 }
