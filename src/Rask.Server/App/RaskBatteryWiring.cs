@@ -187,32 +187,9 @@ internal static class RaskBatteryWiring
         }
     }
 
-    private static void WireData(IServiceCollection services)
-    {
-        services.AddRaskData();
-
-        // A live session's reads have to see the tenant of the user that session belongs to, and a read
-        // is a static call that runs outside any DI scope. This makes the session's own scope ambient
-        // for the duration of its work; Rask.Server brackets with it, Rask.Data reads through it.
-        services.AddSingleton<ISessionWorkScope, SessionDataScope>();
-
-        // Scoped, because the principal it reads is: this instance belongs to one session or request, and
-        // SessionDataScope above (and the request middleware in RaskApp) is what makes it reachable from a
-        // read, a write's tenant stamp and Current.UserId.
-        services.AddScoped<ClaimsPrincipalSource>();
-        services.AddScoped<IPrincipalSource>(static sp => sp.GetRequiredService<ClaimsPrincipalSource>());
-
-        // The same user is who a handler's [Authorize] is held to when a page dispatches to it in-process, and
-        // ASP.NET's authorization is what decides a policy it names.
-        services.AddSingleton<IDispatchPrincipal, DispatchPrincipal>();
-        services.TryAddTransient<IPolicyEvaluator, AuthorizationPolicyEvaluator>();
-
-        // A write refreshes the queries about what it wrote, on the screen of the session that made it:
-        // Person.Create(model) refetches QueryKey.For<Person> queries with no invalidation to write.
-        // Rask.Query is always here with data — both need the mediator — and the scope is the same one
-        // SessionDataScope makes ambient.
-        services.AddScoped<IDataChanges, QueryDataChanges>();
-    }
+    // The session scope, the principal source and what a save tells the session — shared with a host wired by
+    // hand through AddRaskData<TContext>(…), so the two cannot drift.
+    private static void WireData(IServiceCollection services) => DataHostSeams.Add(services);
 
     private static void WireHostBatteries(WebApplicationBuilder builder, RaskAppOptions options, bool serverDatabase)
     {

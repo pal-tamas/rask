@@ -273,6 +273,9 @@ public static class GeneratedModelWrites
     private static async Task<TEntity> LoadAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(DbContext context, object key, CancellationToken cancellationToken)
         where TEntity : class, IAggregate
     {
+        // Before the load, which would only report the row missing: with no tenant resolved every row is.
+        Tenant.DemandForWrite(typeof(TEntity));
+
         var entity = await context.Set<TEntity>().FindAsync([key], cancellationToken).ConfigureAwait(false)
                      ?? throw new KeyNotFoundException(
                          $"There is no {typeof(TEntity).Name} with key '{key}' — it was never created, or it has " +
@@ -295,6 +298,15 @@ public static class GeneratedModelWrites
             return;
         }
 
-        context.Entry(entity).Property(Columns.Version).OriginalValue = expected;
+        var entry = context.Entry(entity);
+
+        if (entry.Metadata.FindProperty(Columns.Version) is null)
+        {
+            throw new InvalidOperationException(
+                $"{entry.Metadata.ClrType.Name} declares Checks = Concurrency.None, so it has no Version to compare " +
+                $"{expected} with. Call the write without a version, or remove the const to keep the check.");
+        }
+
+        entry.Property(Columns.Version).OriginalValue = expected;
     }
 }
