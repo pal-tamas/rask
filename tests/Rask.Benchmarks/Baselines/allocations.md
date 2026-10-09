@@ -37,7 +37,9 @@ adds about 1 KB to a click on an open page and 4 KB behind the guard.
 
 `Rask.Benchmarks -- allocation-profile [rows|page]` names the types behind a number here.
 `allocation-profile --check` is the gate CI runs: a live update of the 20-row page against
-`allocation-budget.csv`.
+`allocation-budget.csv`. The budget is the count with tiered PGO off — `scripts/run-benchmarks-local.sh`
+sets `DOTNET_TieredPGO=0` on that process — which reads 2,504 B on every run; with it on, the measured
+window straddles the tier-up and the same binary reads anything from 2,397 to 2,514 B.
 
 Session memory, from `session-footprint` on `efb13c941` (bytes retained per session):
 

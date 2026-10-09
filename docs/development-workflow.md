@@ -349,7 +349,8 @@ True of the scripts wherever they run — a CI job or your terminal.
   modified, ending with a `curl` TLS handshake with no `--cacert`. **Not covered:** macOS and Windows.
 - **Benchmarks — `scripts/run-benchmarks-local.sh`** (CI, every push). Checks both wire-byte baselines —
   the standalone codec and the head-to-head against Blazor — byte-for-byte, holds a live update to its
-  allocation budget (`Baselines/allocation-budget.csv`, +5%), and smoke-runs the three
+  allocation budget (`Baselines/allocation-budget.csv`, +5%; measured with `DOTNET_TieredPGO=0`, which
+  the script sets on that one process, so the count is the same on every run), and smoke-runs the three
   live-session capacity reports; `session-churn --smoke` asserts that 100 create→dispose cycles leave
   nothing behind. Every check runs even when an earlier one fails. A regression means one of two
   opposite things: the render/diff path got heavier (fix the code, leave the baseline), or a

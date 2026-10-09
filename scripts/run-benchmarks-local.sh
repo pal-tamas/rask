@@ -137,9 +137,16 @@ echo "==> Live-session capacity: session-load (smoke, real Kestrel + real socket
 # What a live update allocates, in bytes — the other thing a render-path change can make worse without
 # moving a single byte on the wire. Deterministic like the byte gates, so it is gated the same way; the
 # times BenchmarkDotNet reports are not, and are in no gate.
+#
+# Tiered PGO is OFF for this one process, and that is what makes the count exact. With it on, the JIT
+# re-compiles the hot methods from what it sampled while the measured window is already running, so the
+# window straddles the tier-up and the same binary read 2,397 to 2,428 B from one run to the next (and
+# 2,456 to 2,514 B on a busier day). With it off the same binary reads 2,504 B, every run. The variable
+# is set HERE, on the measured process, so CI and a hand run of this script agree; run the binary
+# yourself without it and expect the wandering number.
 echo
-echo "==> Allocation gate (a live update of the 20-row page)"
-"$standalone_bin" allocation-profile --check || status=1
+echo "==> Allocation gate (a live update of the 20-row page, tiered PGO off)"
+DOTNET_TieredPGO=0 "$standalone_bin" allocation-profile --check || status=1
 
 if [ "$status" -ne 0 ]; then
   cat >&2 <<'EOF'
@@ -148,7 +155,8 @@ if [ "$status" -ne 0 ]; then
 
   THE ALLOCATION GATE. A live update allocates more than Baselines/allocation-budget.csv allows.
   `-- allocation-profile 20` names the types responsible, as shares of those bytes; fix the code. Raise
-  the budget only for a feature that has to cost something, in the same commit, saying what.
+  the budget only for a feature that has to cost something, in the same commit, saying what. The budget
+  is the exact count with tiered PGO off: `DOTNET_TieredPGO=0 <binary> allocation-profile --check`.
 
   A CAPACITY SMOKE. session-churn reports the bytes a disposed session leaves behind: anything above
   the budget means a session is outliving its own teardown, and the full report (`-- session-churn`)

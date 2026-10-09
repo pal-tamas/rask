@@ -50,7 +50,9 @@ internal static class AllocationProfileReport
     }
 
     // The gate: a live update of the 20-row page may not allocate more than the committed budget allows.
-    // Bytes, not time, so a shared runner answers the same as a quiet machine.
+    // Bytes, not time, so a shared runner answers the same as a quiet machine. The budget is the count
+    // with tiered PGO off (scripts/run-benchmarks-local.sh sets DOTNET_TieredPGO=0 on this process): with
+    // it on, the measured window straddles the tier-up and the count wanders by a few dozen bytes.
     private static int CheckLiveUpdate()
     {
         const int rows = 20;
@@ -78,6 +80,11 @@ internal static class AllocationProfileReport
         if (each < budget / headroom)
         {
             Console.WriteLine("  An improvement: lower the budget in Baselines/allocation-budget.csv to keep it.");
+        }
+
+        if (!string.Equals(Environment.GetEnvironmentVariable("DOTNET_TieredPGO"), "0", StringComparison.Ordinal))
+        {
+            Console.WriteLine("  Tiered PGO is on, so this count wanders from run to run. The budget is the exact count with DOTNET_TieredPGO=0.");
         }
 
         return ok ? 0 : 1;
