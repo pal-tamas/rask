@@ -73,11 +73,15 @@ jobs:
           # script tests; the "unit" and "format" jobs build without analyzers and then run tests or
           # the formatter. run-unit-local.sh says why at RASK_UNIT_PART.
           #
-          # The browser suite runs its journeys one at a time, so it is cut four ways by class.
-          # Shards 1-3 NAME their classes and shard 4 takes everything they do not: a new or renamed
-          # class lands in 4 by itself and cannot fall between two. The Rask.Server journeys need no
-          # site publish and are a job of their own. Dealt by measured seconds of journeys (130, 170,
-          # 182, 152 on 2026-10-07); the slowest shard is the gate's time, so re-deal when one drifts.
+          # The browser suite runs its journeys one at a time, so it is cut five ways by class.
+          # Shards 1-4 NAME their classes and shard 5 takes everything they do not: a new or renamed
+          # class lands in 5 by itself and cannot fall between two. UiKitDataInputTests is one class in
+          # two shards, its "The_..." journeys and the rest, so a new one lands in one of the two
+          # whatever it is called: its page takes ten seconds to open, and its 56 journeys alone
+          # were 808 s. The Rask.Server journeys need no site publish and are a job of their own.
+          # Dealt by measured seconds of journeys (about 150, 340, 351, 484, 397 on 2026-10-09, on top
+          # of a five-minute publish); the slowest shard is the WHOLE run's time, and so how long a
+          # fix waits for its package, so re-deal when one drifts.
           #
           # "each": "front end" is one gate per front-end template, expanded below from the script's own
           # list (a tree with a committed npm client), so a new template is a new job with no edit here:
@@ -98,10 +102,11 @@ jobs:
               {"set": "push",               "when": "cs",   "mode": "scoped",  "name": "format",             "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format"},
               {"set": "push", "deps": true,                 "mode": "full",    "name": "format src",         "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-src"},
               {"set": "push", "deps": true,                 "mode": "full",    "name": "format tests",       "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-tests"},
-              {"set": "push", "when": "site",      "name": "browser E2E 1/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.WasmExampleTests"},
-              {"set": "push", "when": "site",      "name": "browser E2E 2/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitActionsTests|FullyQualifiedName~.UiKitDataDisplayTests"},
-              {"set": "push", "when": "site",      "name": "browser E2E 3/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitDataInputTests|FullyQualifiedName~.UiKitDataGridTests"},
-              {"set": "push", "when": "site",      "name": "browser E2E 4/4",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName!~.WasmExampleTests&FullyQualifiedName!~.UiKitActionsTests&FullyQualifiedName!~.UiKitDataDisplayTests&FullyQualifiedName!~.UiKitDataInputTests&FullyQualifiedName!~.UiKitDataGridTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 1/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.WasmExampleTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 2/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitActionsTests|FullyQualifiedName~.UiKitDataDisplayTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 3/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitDataInputTests.The_|FullyQualifiedName~.UiKitDataGridTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 4/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitDataInputTests&FullyQualifiedName!~.UiKitDataInputTests.The_"},
+              {"set": "push", "when": "site",      "name": "browser E2E 5/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName!~.WasmExampleTests&FullyQualifiedName!~.UiKitActionsTests&FullyQualifiedName!~.UiKitDataDisplayTests&FullyQualifiedName!~.UiKitDataInputTests&FullyQualifiedName!~.UiKitDataGridTests"},
               {"set": "push", "when": "server",    "name": "server E2E",         "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "server"},
               {"set": "push", "when": "devtools",  "name": "devtools E2E",       "run": "scripts/run-devtools-e2e-local.sh", "browser": true},
               {"set": "push", "when": "sqlite",    "name": "browser SQLite E2E", "run": "scripts/run-browser-sqlite-e2e-local.sh", "browser": true},
