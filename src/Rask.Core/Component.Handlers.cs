@@ -545,6 +545,18 @@ public abstract partial class Component
         /// </summary>
         public long Generation;
 
+        /// <summary>
+        ///     How many times the browser was sent a page whose handlers had moved. An event says which of those
+        ///     pages it was read from, counted from <see cref="Floor" />.
+        /// </summary>
+        public int Version;
+
+        /// <summary>The <see cref="Version" /> the browser's document was, which it counts from as zero.</summary>
+        public int Floor;
+
+        /// <summary>A walk since the last page was sent put a different handler in a slot.</summary>
+        public bool Moved;
+
         // ---- a component that renders handlers ----
 
         /// <summary>
