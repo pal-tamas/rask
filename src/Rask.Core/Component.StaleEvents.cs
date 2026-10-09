@@ -151,7 +151,7 @@ public abstract partial class Component
             RaskDiagnostics.Report(
                 RaskLogLevel.Information, "Rask.Live",
                 string.Create(CultureInfo.InvariantCulture,
-                    $"Rask live: an event for {handler} ran nothing. It was read from page {sent}, the page is now {now}, and that handler is no longer there or cannot be shown to be the same one — see https://rask.sh/docs/js-interop-runtime#an-event-that-outlived-its-render"));
+                    $"Rask live: an event for {handler} ran nothing. It was read from page {sent}, the page is now {now}, and that handler is no longer there or cannot be shown to be the same one — see https://rask.sh/docs/guides/js-interop-runtime#an-event-that-outlived-its-render"));
         }
 
         return false;

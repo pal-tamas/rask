@@ -301,6 +301,48 @@ styleEl.setAttribute("data-rask-managed", "");
 
 ---
 
+## An event that outlived its render
+
+A click leaves the browser naming a handler by the id in the markup it was read from (`data-rask-on-click="h3"`).
+The id is a position — the fourth handler its component rendered — so when an earlier button leaves or arrives,
+the id names another handler. An event that left before a re-render and arrived after it used to run whichever
+handler held the id by then.
+
+**The rule: such an event reaches the handler it was sent to, or nothing. Never another handler.** Every event
+says which page it was read from (`v`, a number the page carried when it was put on screen), and Rask finds the
+handler that page had under that id as the page has it now:
+
+- **It is still there** — in the same place, or moved because something before it left or arrived: it runs.
+  A click on *Delete* sent just before *Cancel* disappeared still deletes.
+- **It is gone** — its button, its row or its whole component left the page: nothing runs. The event is still
+  answered, so a button waiting on it stops waiting, and no error is shown. The second click of a double click
+  on a row that the first click removed does nothing.
+
+"The same handler" means the same method, over the same component or over a lambda that captured **equal**
+values: the same instance, or a type that says two instances are equal (a number, a string, a record).
+Two things follow for a list of rows:
+
+- **Capture the row's id, not the row object, when the rows are read again on every render.** Take the id into
+  a local first — `var id = row.Id;` … `.OnClick(() => Remove(id))` — and the lambda captures a number, which
+  is equal across renders. `.OnClick(() => Remove(row))`, and `.OnClick(() => Remove(row.Id))` just the same,
+  capture the row object: after a reload from the store it is a new instance, not equal to the one before
+  unless it is a record, and a click that raced the reload is dropped rather than risked.
+- **Key the rows** (`.Key(row.Id)`). A row that is a component of its own and carries no key is the same
+  *instance* by position, whatever record it is handed — so after the first row is removed, the instance in
+  second place shows the third record, and a click sent to "the second row" reaches it. A key ties the instance
+  to its record, and that click then reaches its own row or nothing.
+
+One more case is dropped rather than risked: a lambda handler in a component that the *server* re-rendered twice
+or more — a ticking page — while a single click was on its way. Handlers that are methods of the component
+(`.OnClick(Save)`), and lambdas that capture only the component, are not affected: they are the same handler in
+every render.
+
+A dropped event is counted in the `rask.handlers.stale` metric ([observability](observability.md)), and in
+Development it is logged on `Rask.Live` at Information, naming the component, the handler's position, the page
+the event was read from and the page as it is.
+
+Frames written by hand — a test, a script — that carry no `v` are read against the page as it is, as before.
+
 ## Behaviour hooks (`data-rask-*`)
 
 Some behaviour can be written neither as a render (which only writes attributes) nor as a handler (which runs a

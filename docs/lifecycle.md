@@ -163,6 +163,14 @@ protected override async Task OnRendered() =>
     // re-render from another component won't re-fire this — no loop
 ```
 
+## An event that arrives after a re-render
+
+An event the browser sent before a re-render and that arrives after it runs the handler it was sent to, wherever
+that handler is in the page now — or nothing, when its button, row or component has left. It never runs another
+handler, and a component that was unmounted never hears an event again. What counts as the same handler, and what
+that means for a list of rows, is in
+[An event that outlived its render](js-interop-runtime.md#an-event-that-outlived-its-render).
+
 ## Asking another component to render, from a hook
 
 A page often has something to tell the layout above it — its title for a breadcrumb, say — and tells it as it

@@ -27,7 +27,26 @@ them until tagged releases begin.
   and so does a one-value value object nested inside one. The value object is rebuilt through a constructor
   taking its value or a parameterless constructor and its property, either of which may be private.
 
+### Security
+
+- **An event sent before a re-render no longer runs another handler.** A handler id is a position in its
+  component, so when an earlier button left or arrived, a click already on its way ran whichever handler held
+  the id by then — after a row was deleted, a click on the last row's bin could land on the confirmation's
+  *Yes*. Every event now says which page it was read from, and it reaches the handler that page had under that
+  id — in place or moved — or nothing. A hand-written frame without the page number is read against the page as
+  it is, as before; the number selects among handlers the page has now and reaches nothing a click could not.
+
 ### Fixed
+
+- **A stale click reaches its own handler or none** (see Security above for the hazard). `Div[show ?
+  Button.OnClick(Cancel)["Cancel"] : null, Button.OnClick(Delete)["Delete"]]`: after Cancel left, a click sent
+  to Cancel ran Delete; it now runs nothing, and a click sent to Delete still deletes. Both hosts, single events
+  and batches (a later event of a batch whose earlier event re-rendered the page), and a page rebuilt after a
+  reconnect. The second click of a double click on a row the first click removed does nothing. Dropped events
+  are counted in the new `rask.handlers.stale` metric and logged on `Rask.Live` in Development. Cost: `"v":N`
+  on every event, on every whole-page payload, and on a diff only when a handler moved; nothing is allocated
+  per render. Limits and the advice that follows from them — capture a row's id rather than the row object, key
+  the rows — are in `docs/js-interop-runtime.md`.
 
 - **The edit form works on an aggregate that declares `Checks = Concurrency.None`.** Its generated form model
   still carried `Version`, `X.Model(id)` filled it with 0, and `X.Update(id, model)` then refused every edit

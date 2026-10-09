@@ -208,7 +208,7 @@ public abstract partial class Component
         // Resolved before the invoke: a render the handler triggers rebuilds the handler map.
         if (!TryFindHandler(id, payload, out var entry))
         {
-            return await TryInvokeHandlerCoreAsync(id, payload, services, dispatchToken).ConfigureAwait(false);
+            return false;
         }
 
         var (owner, _) = entry;
