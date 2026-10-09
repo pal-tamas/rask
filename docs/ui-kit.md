@@ -1297,6 +1297,33 @@ dismissal raises `cancel` before `close`, in every browser, and all four combina
 work — `Escapable(false)` alone still closes on a click outside. While a modal is open the page behind it
 does not scroll, and keeps its scrollbar's gutter so it does not shift sideways.
 
+**How wide it is.** A modal with no width of its own is as wide as what it holds, between Flux's two
+defaults — at least 20rem, at most 36rem (a side flyout: at least 25rem from `md`). A width handed to `Class`
+replaces them: `md:w-96` for a form, and for a confirmation `min-w-[22rem]`, which is what Flux's own example
+writes — a short question over two buttons is a narrow box without it.
+
+```csharp
+Ui.Modal.Name("delete-project").Class("min-w-[22rem]")[
+    Div.Class("space-y-6")[
+        Div[
+            Ui.Heading.Lg["Delete project?"],                                   // short: it shares its line with the close button
+            Ui.Text.Class("mt-2")["This action cannot be reversed."]            // the sentence goes under it
+        ],
+        Div.Class("flex gap-2")[
+            Ui.Spacer,
+            Ui.ModalClose[Ui.Button.Ghost["Cancel"]],
+            Ui.Button.Danger.OnClick(Delete)["Delete project"]
+        ]
+    ]
+]
+```
+
+The close button is 32px, 16px in from the top and from the end edge, at every width. The heading keeps no
+room for it, in Flux as here: the panel's padding is 24px, so a first line that fills the panel — and a
+one-line question the modal hugs always does — ends 24px under the button. Flux's examples avoid that the
+way the one above does: a short heading, the sentence in a `Ui.Text` under it. Where the heading IS the
+sentence, `Ui.Heading.Class("pe-8")` keeps it clear of the button.
+
 Where Flux controls a modal from PHP (`Flux::modal('confirm')->show()`), a Rask page owns the state instead:
 `Ui.Modal.Open(_confirming).OnClose(() => _confirming = false)[ … ]`, which is Rask's `wire:model`. It is
 the same modal: the dialog says `data-rask-modal-open` and the runtime shows and closes it to match, so it is
@@ -1318,7 +1345,8 @@ Ui.ConfirmLeave.Stay("Nem").Leave("Igen")    // your own words
 ```
 
 It is rendered closed and the runtime opens it, so the question appears without a round trip. The close
-button, Escape and a press outside mean stay.
+button, Escape and a press outside mean stay. It is drawn as the confirmation above is — `min-w-[22rem]` —
+and, because its heading is a whole question of the form's own, with `pe-8` on it.
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 

@@ -37,11 +37,13 @@ public sealed partial class UiConfirmLeave : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        // As wide as Flux draws its confirmation, so the close button sits in the corner and not beside the question.
+        // The width Flux's own confirmation writes. A modal hugs what it holds, there and here.
         Ui.Modal.Name(DialogId).Class("min-w-[22rem]")[
             Div.Class("space-y-6")[
                 // Empty in every render and filled in the browser, so it is kept out of the morph's hands: a
                 // render that lands while the dialog is open would otherwise blank the question.
+                // Flux's heading keeps no room for the close button, because its examples keep a heading
+                // short. This one is a whole question, so it keeps the room itself (measured: parity-modal.mjs).
                 Ui.Heading.Level(2).Lg.Class("pe-8").Data(Part, "message").Attributes(("data-rask-opaque", null)),
                 Div.Class("flex gap-2")[
                     Ui.Spacer,
