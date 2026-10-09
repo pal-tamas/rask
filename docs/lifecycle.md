@@ -307,6 +307,14 @@ under the saving page's, which the navigation has just ended. The handler keeps 
 load is in flight shows nothing — the cancellation is silent, and a failure a data provider raises because of it
 is logged, never displayed on the page the visitor went to.
 
+**A callback answers to the component that wrote it, not the one that invoked it.** A page's
+`.OnSaved(async () => { _editing = false; await Reload(); })` is the page's code, reached through the editor's
+handler: while it runs — its first line and everything after each `await` — the work in progress is the page's,
+so unmounting the editor does not cancel the reload, and leaving the page does. When it returns, the editor's
+handler is back under the editor's lifetime. With a `HandlerTimeout` configured the callback is bound by both:
+its owner's lifetime and the same timeout as the event that raised it. More in
+[callbacks](composition-callbacks-context.md#callbacks-child--parent).
+
 Mount the probe to start a 2.5-second `Task.Delay` inside `OnMount`; click **Unmount** before it settles to
 cancel — the probe records what happened into the log:
 

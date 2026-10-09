@@ -52,6 +52,27 @@ returns unchanged and does **not** trigger a re-render.
 Auto-wrapped callbacks are excluded from the `propsChanged` diff — changing only the
 lambda identity between renders does not refire `OnUpdated`.
 
+**A callback runs for the component that wrote it.** The lambda is the parent's code, so the calls it
+makes that pass no token — `await Product.Where(…)`, `Cache.Remember(…)` — and the parent's own
+`CancellationToken` are cancelled when the *parent* leaves the page, not when the child that invoked it
+does. That is what lets a callback take the child off the page and carry on:
+
+```csharp
+_editing ? Editor.Record(_record).OnSaved(async () =>
+{
+    _editing = false;     // the editor is unmounted
+    await Reload();       // still the page's work: it runs to the end
+}) : null
+```
+
+The owner is whoever *wrote* the lambda, however many components handed it on (`.OnSaved(OnSaved)`), and
+it holds from a child's event handler and from its lifecycle hook alike. Once the callback returns, the
+child's code is back under its own lifetime. Only the cancellation changes hands: the user, the services
+and a configured `HandlerTimeout` are still the event's, so under a timeout the callback is cancelled by
+its owner leaving *or* the timeout passing, whichever is first. The same rule as for re-rendering applies:
+a lambda over plain locals, a static method, or a `new Callback(…)` built by hand has no owner and runs
+for whoever invokes it. See [cancellation](lifecycle.md#cancellation-tied-to-component-lifetime).
+
 **Why a `Callback` and not a plain delegate.** The chain's receiver is the component itself, so
 `.OnClick(Save)` is looked up on the component. A delegate-typed property there would be *invocable*: C#
 would read the call as invoking the property (CS1593) and never reach the setter of the same name.

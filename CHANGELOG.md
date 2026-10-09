@@ -9,6 +9,30 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A callback runs under the lifetime of the component that wrote it. Behaviour change.** A page's
+  `Editor.OnSaved(async () => { _editing = false; await Reload(); })` is the page's code, but it ran under
+  the lifetime of the component whose handler invoked it — the editor, which its first line unmounts. So
+  the reads in `Reload()` that pass no token (`await Product.Where(…)`) were cancelled: the editor closed
+  and the list kept its old rows, with an `OperationCanceledException` in the log. While a callback set
+  through a chain step runs — its synchronous part and every continuation — `Current.Cancellation`, the
+  token-less data calls and the owner's `CancellationToken` are now the *owner's*: unmounting the invoker
+  no longer cancels it, the owner leaving the page does, and the invoker's own code is back under its own
+  lifetime when the callback returns. It holds for `Callback`, `Callback<T>` and `Callback<T1, T2>`, for a
+  callback handed down through several components (the owner is whoever wrote the lambda), for one raised
+  from a child's lifecycle hook, and for the kit components that raise from their own handlers
+  (`Ui.Pagination.OnPage`, `Ui.Tabs.OnChange`, a save button inside a `Ui.Modal`). With
+  `RaskServerOptions.HandlerTimeout` set, the callback is cancelled by its owner leaving or by that same
+  timeout, whichever is first. Unchanged: a handler's own code after it unmounted its own component still
+  sees a cancelled token; a static lambda, one over plain locals, or a `new Callback(…)` built by hand has
+  no owner and runs for its invoker.
+  **What an app notices:** the reload after "close the editor, then refresh" completes. Code that relied
+  on a parent's callback being cancelled when the child closed must now pass that child's token itself.
+- **A cancellation a data provider wraps, raised by a handler whose component has left the page, no longer
+  trips the error boundary.** Leaving cancels the reads in flight and EF's execution strategy reports that
+  as an `InvalidOperationException`; from a handler it replaced the page the visitor had gone to with the
+  error fallback. It is logged at Information (`Rask.Handler`), as the same fault from a lifecycle hook
+  already was. A fault that carries no cancellation still reaches the boundary.
+
 - **The edit form works on an aggregate that declares `Checks = Concurrency.None`.** Its generated form model
   still carried `Version`, `X.Model(id)` filled it with 0, and `X.Update(id, model)` then refused every edit
   with *"declares Checks = Concurrency.None, so it has no Version to compare 0 with"*. The model of an

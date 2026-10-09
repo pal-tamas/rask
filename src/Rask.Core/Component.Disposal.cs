@@ -44,6 +44,11 @@ public abstract partial class Component
     /// </summary>
     internal CancellationToken LifetimeTokenInternal => LifetimeToken;
 
+    // The lifetime a callback this component wrote runs under. Once the component has left the page that is
+    // over — where LifetimeToken would mint a fresh source for one whose own was disposed with it.
+    internal CancellationToken CallbackLifetime =>
+        IsTornDown ? new CancellationToken(canceled: true) : LifetimeToken;
+
     // One-shot guard for the unmount → cancel → dispose teardown. A tree mutation inside an
     // Unmount hook (e.g. clearing PersistedChildren, or re-parenting) can leave a node
     // reachable from more than one dispose pass; without this guard that node would fire
