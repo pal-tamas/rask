@@ -64,10 +64,11 @@ public class ReadModelGeneratorTests
         Assert.Contains("sealed class OrderRead : global::Rask.Data.IReadModel", source, StringComparison.Ordinal);
         Assert.Contains("public string Reference { get; init; } = null!;", source, StringComparison.Ordinal);
 
-        // The framework's own columns, and Version/DeletedAt only because this is a root.
+        // The framework's own columns: Version because this is a root, and no DeletedAt because it did not ask
+        // for soft delete.
         Assert.Contains("public global::System.Guid Id { get; init; }", source, StringComparison.Ordinal);
         Assert.Contains("public int Version { get; init; }", source, StringComparison.Ordinal);
-        Assert.Contains("public global::System.DateTime? DeletedAt { get; init; }", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("DeletedAt", source, StringComparison.Ordinal);
 
         // Computed — no column on the write side, so no member here either.
         Assert.DoesNotContain("IsEmpty", source, StringComparison.Ordinal);
@@ -250,5 +251,59 @@ public class ReadModelGeneratorTests
         Assert.Contains("public string Number { get; init; } = null!;", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Tenant", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Tenant", registry, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("public const Timestamps Stamps = Timestamps.None;", "CreatedAt")]
+    [InlineData("public const Timestamps Stamps = Timestamps.None;", "UpdatedAt")]
+    [InlineData("public const Timestamps Stamps = Timestamps.Created;", "UpdatedAt")]
+    [InlineData("public const Timestamps Stamps = Timestamps.Updated;", "CreatedAt")]
+    [InlineData("public const Concurrency Checks = Concurrency.None;", "Version")]
+    [InlineData("", "DeletedAt")]
+    [InlineData("public const Deletion Deletes = Deletion.Hard;", "DeletedAt")]
+    public void A_column_the_consts_rule_out_is_not_on_the_read_face(string consts, string column)
+    {
+        var run = Run($$"""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Depot : Aggregate<int>
+            {
+                private Depot() { }
+                {{consts}}
+                public string Name { get; private set; } = "";
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop_DepotRead");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain(" " + column + " {", source, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("", "CreatedAt")]
+    [InlineData("", "UpdatedAt")]
+    [InlineData("", "Version")]
+    [InlineData("public const Timestamps Stamps = Timestamps.Created;", "CreatedAt")]
+    [InlineData("public const Deletion Deletes = Deletion.Soft;", "DeletedAt")]
+    public void A_column_the_table_has_stays_on_the_read_face(string consts, string column)
+    {
+        var run = Run($$"""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Depot : Aggregate<int>
+            {
+                private Depot() { }
+                {{consts}}
+                public string Name { get; private set; } = "";
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop_DepotRead");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(" " + column + " {", source, StringComparison.Ordinal);
     }
 }

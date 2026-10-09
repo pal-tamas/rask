@@ -9,6 +9,62 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The edit form works on an aggregate that declares `Checks = Concurrency.None`.** Its generated form model
+  still carried `Version`, `X.Model(id)` filled it with 0, and `X.Update(id, model)` then refused every edit
+  with *"declares Checks = Concurrency.None, so it has no Version to compare 0 with"*. The model of an
+  aggregate without a version now carries none, and its `Update(id, model)` compares none.
+  **For an existing app:** `XModel.Version` is gone for an aggregate that declares `Checks = Concurrency.None`
+  — code that read or set it no longer compiles; delete the line. Nothing changes for any other aggregate.
+
+- **BREAKING: a read face shows only the framework columns its table has.** `XRead` always declared
+  `CreatedAt`, `UpdatedAt`, `Version` and `DeletedAt`, whatever the entity's consts said, so
+  `X.OrderBy(d => d.CreatedAt)` compiled against a table with no such column and threw at the first query.
+  A column the consts rule out is now not on the face, and using one is a compile error: no `CreatedAt` /
+  `UpdatedAt` without the matching `Stamps` flag, no `Version` with `Checks = Concurrency.None`, and — the one
+  that reaches every app — **no `DeletedAt` unless the aggregate declares `Deletes = Deletion.Soft`**, which
+  is the default's opposite. That property was never mapped on a hard-delete aggregate, so a query could
+  not filter or sort by it; code that only read it off a materialised row got `null` and now has to drop the
+  read. No schema change. Among Rask's own faces, `PasskeyRead.DeletedAt` and `OutboxMessageRead.CreatedAt`
+  are gone for the same reason.
+
+- **The generated model registry compiles in an app without implicit usings.** For an aggregate holding a
+  one-value value object it emits `.Property(v => v.Value).HasColumnName("…")` — an extension method — and
+  relied on the app importing `Microsoft.EntityFrameworkCore` somewhere, failing with CS1061 where none did.
+  The generated file now brings the namespace itself. It was the only extension call in the generated files.
+- **A pick in a multiple `Ui.Select` is answered with a diff, not the whole page.** The listbox button says one
+  of three things — the placeholder, the one picked option, "N selected" — and each was a different element in
+  the same place: a `<span>`, a `<div>` holding the option, a `<div>` holding text. The live diff patches a node
+  in place only when it can tell which node stayed, so 0→1, 1→2 and 2→1 were each answered with the whole
+  document (85 KB on the reporting app's form, 30 KB on the test page) where the reply is now 1,018 / 246 / 971
+  bytes. Each of the three is keyed, as are the button, the list and the clear slot around them, the rows of
+  the list (an option without a `Key` by its place, the empty and create rows by name), a pillbox's clear button
+  and chevron, and a combobox's. The rendered elements are the ones Flux stamps, unchanged. `Clearable` on a
+  listbox writes its button after the list it is laid over, so the rows keep the handler ids they had when a
+  pick brings the button in. The same shape in `Ui.TimePicker` (placeholder against chosen time, the clear
+  button) and in the data grid's group bar (the hint against the first chip) is keyed too.
+
+- **A toast arriving or leaving is answered with a diff, not the whole page.** `Ui.Toast` drew nothing until
+  there was a toast, so its popover came and went among the layout's children — and a child that arrives before
+  a sibling is a change by position, which the live diff answers with the whole document. Every save and delete
+  that says so in a toast cost a document twice: on a one-field form 33,648 bytes arriving and 31,296 leaving in
+  the reporting app (6,127 and 3,798 on the test page), where the replies are now 2,330 and 110 bytes whatever
+  the page weighs. The host — `<div popover="manual" data-ui-toast role="status">`, or `data-ui-toast-group`
+  inside a `Ui.ToastGroup` — is on the page from the first render now, closed and empty, as Flux's `<ui-toast>`
+  is; a toast is put into it and taken out. The toasts the host draws when an app places no `Ui.Toast` do the
+  same. **What changes for a page:** there is one more element where `Ui.Toast` is written, displayed `none`
+  until a toast shows — a rule that counts children (`space-y-*`, `:last-child`) sees it, so place `Ui.Toast`
+  beside the layout's content rather than between two spaced blocks. The host is no longer keyed by its toast;
+  each toast's dialog still is, so a toast that takes another's place is a new node with its own entrance and
+  its own countdown.
+
+- **A number being typed survives a reply that is the whole page.** A field bound to a number or a date sends
+  on `change`, so while the reader is still in it the server has not heard what they typed. A reply that is a
+  diff leaves such a field alone; a reply that is the whole page carries, for every bound field, the value the
+  server knew when it rendered — and the morph wrote that over the digits being typed. The field then held what
+  it held when it was entered, so leaving it raised no `change` either: nothing was sent, and the save had no
+  number. The morph now leaves a focused change-only field alone when the render carries the value it had
+  already rendered for it (it has nothing newer than the reader); a value the server did change still wins. A
+  field that sends each keystroke was already kept while focused.
 - **A page reached by `Go()` from a handler loads under its own lifetime, not the handler's.** The documented
   save — `await thing.Save(); Routes.ListPage().Go();` — mounted the list inside the handler's turn, where the
   ambient cancellation (`Current.Cancellation`, what every read with no token uses) was still the SAVING
@@ -68,6 +124,15 @@ them until tagged releases begin.
   are now linked to `Current.Cancellation`, so an asynchronous rule in flight is cancelled when its control
   goes away or the handler times out, not only when a later edit supersedes it.
 
+- **A reply that goes out as the whole page says why, in Development.** When the live diff cannot carry a
+  render the session answers with the whole document — tens of kilobytes where a diff is a few hundred bytes —
+  and until now only the devtools' wire tab showed that it had, never which node it gave up on. In Development
+  the `Rask.Live` logger now says, at Information: `Rask live: a reply went out as the whole page (85618 chars)
+  instead of a diff: RemoveSubtree at /1/1/0/1/0/1/1/0/0/0 is by position, replaced by <div class="truncate
+  min-w-0" …>. A child that comes and goes before its siblings, or changes element, is patched in place only
+  when it and its siblings each carry a Key…` — or that the diff was no smaller than the page, or that raw
+  markup sits at the document's own level. Nothing is formatted outside Development, and a reply that ships as a
+  diff never reaches the code.
 - **A save the store refuses is shown under the field it is about.** A submit handler that throws an
   exception implementing `IFieldFailures` (new, in `Rask.Wire`) no longer fails the submit: each
   `FieldFailure`'s message appears under the bound fields it names, drawn exactly as a rule's message, and
@@ -241,6 +306,14 @@ them until tagged releases begin.
 
 ### Performance
 
+- **A menu's keyboard left the runtime every page downloads.** What a `role="menu"` needs from script — the
+  navigation keys not scrolling the page, Enter and Space pressing the focused row, ArrowDown on a closed menu
+  button opening it, a pick closing the popover, Tab out closing it, focus handed back to the trigger, focus
+  following `data-active` — was a block of `rask-dom.ts`, in every app's bundle whether or not it has a menu.
+  It is a hook module now (`rask-menu-keys.ts`, in `rask-hooks.js`), and the role is what asks for it, as a
+  tablist's does: a page with a `[role=menu]` loads the hooks, in the first response on the Server host. No
+  behaviour changed. `rask.js` 96,350 -> 93,559 bytes and `rask.wasm.js` 85,110 -> 82,328 (2.8 kB each, off
+  every page); `rask-hooks.js` carries it instead, 42,367 -> 48,853 with the lock fix and the menu's cursor below.
 - **A `Ui.Chart` is a third of the markup and a third of the work.** Every row used to carry its own strip, its
   own cursor and its own copy of the whole tooltip; there is one tooltip and one cursor now, and each part
   carries what it reads per row as one short line. Sixty charts of fifty points, with axes, a cursor and a
@@ -1525,6 +1598,74 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An open select, date picker, dropdown or modal no longer moves the page it is locked over.** The lock
+  (`data-rask-lock`) wrote Flux's `scrollbar-gutter: stable` on `<html>` every time, and that reserves a
+  scrollbar's 15 px whether or not a scrollbar was taking any. On a page that showed none — one too short to
+  scroll, and every page in a browser run with its scrollbars hidden, which is every headless one — the page
+  narrowed by 15 px for as long as the overlay was open: centred content slid 7.5 px, text wrapped again, and
+  scroll anchoring moved `window.scrollY` by the lines that added above the reader's place (20 px a line; 540 px
+  on a 390 px wide page of text). The width a scrollbar takes is now read as the lock goes on, and the gutter is
+  kept (`data-rask-gutter` on `<html>`) only where there was one. Measured on Flux's live dropdown, context,
+  popover, date picker and modal at 1920 × 1080 and 390 × 844: with a scrollbar showing, `scrollY`, the
+  content's `x` and its `width` are the same before, during and after, and `<html>` carries `overflow: hidden;
+  pointer-events: none; scrollbar-gutter: stable` — which is what the kit does there, unchanged. With none
+  showing Flux shifts the same 15 px; the kit no longer does. Nested locks (a select inside a flyout), a
+  `<dialog popover>` and the position after closing are held by `RuntimeHookLockTests`, in both browsers.
+
+- **A collapsed sidebar no longer flashes wide after a reload in a WebAssembly app.** `Ui.SidebarScript` restores
+  the rail's checkbox before the first paint, and the behaviour hooks (`data-rask-persist`) hold it from then
+  on — but the hooks are a bundle that arrives on its own time, and until it did nothing told the runtime the
+  box was the reader's. An app whose first render landed in that gap put the box back to the unchecked one it
+  had rendered: traced frame by frame, the prerendered box was checked and the sidebar 56 px from the first
+  frame, then unchecked and 256 px for 2 to 12 frames with the hooks not yet loaded, then right again. The
+  runtime every page loads now leaves a `data-rask-persist` box's `checked` alone itself (`ownsChecked` in
+  `rask-owned.ts`), so the head script is sufficient on its own and the hook only stores changes. 3 failures in
+  15 runs before, 0 in 30 after (60 reloads, half of them with the hooks bundle held back four seconds), on a
+  machine at a load average of 40. The site test's failure message now prints each wide frame with what could
+  have made it so — the document's state, whether the hooks had run, whether the app had replaced the box.
+
+- **`Ui.Menu` under a pointer is Flux's: one lit row, focus left alone, a flyout that survives the diagonal — and
+  a hover menu that takes no focus.** The runtime had the hooks and the menus did not use them: a row was
+  highlighted by `:hover` and, separately, by the keyboard's `data-active`, so a pointer resting on one row and
+  an arrow key moving to another lit two; the safe area to a submenu was a fixed CSS wedge; a flyout closed the
+  moment the pointer left the menu; and the page lock was a `:has()` rule in the kit's stylesheet, with the
+  gutter fault above. Measured on Flux's live dropdown, context and sidebar-demo pages and now the same here:
+  - a row is lit by `data-active` and nothing else, the moment the pointer enters it (`data-rask-menu-pointer`,
+    on the menu and on each flyout), and **focus does not move** — the first arrow then takes the row the
+    pointer is on, and later ones count from whichever row is lit; the keyboard's row stays lit when the
+    pointer leaves the menu, the pointer's does not;
+  - a submenu opens under the pointer, stays through the diagonal to it (`data-rask-safe-area` on its row — the
+    triangle follows the pointer, 8 steps across the rows below with none of them lit), stays after the pointer
+    has left the menu altogether (Flux's was still there 400 ms later) and closes when another row is entered;
+    while the arrows are inside a flyout its submenu's row stays lit;
+  - the page behind an open dropdown AND an open context menu is locked (`data-rask-lock` on the menu and on a
+    navigation menu: `overflow: hidden; pointer-events: none`, and the gutter where a scrollbar shows) — Flux
+    locks both; a menu the pointer opened (`Ui.Dropdown.Hover()`, a sidebar group in the rail) locks nothing;
+  - a menu the pointer opened takes no focus (`data-rask-hover`): on Flux's rail `document.activeElement` stays
+    where it was, and here the menu was taking it through its `autofocus`.
+
+  **And none of it is the page's state: an open menu sends the server nothing while the reader moves about it.**
+  The cursor was C#'s — every arrow key a round trip and a render, and with the pointer wired the same way a
+  glide down a twelve-row menu would have been twelve more. The runtime keeps it now
+  (`data-rask-menu-cursor` on the menu, `rask-menu.ts` / `rask-menu-keys.ts`): the lit row, the focused row and
+  its tab stop, and the open flyouts (`data-open` on the submenu) are written in the browser and held against the
+  next render, exactly as Flux keeps them in script. `Ui.Menu` has no key handler and no cursor, a row has no
+  pointer handler, a submenu's row no click handler, and a `Ui.MenuItem` with no `OnClick` no handler at all;
+  the page hears a row when it is pressed and the menu opening and closing. Measured on a live Server page,
+  over one walk of twelve rows entered, three flyouts opened and closed and eight keys: 25 WebSocket frames sent
+  before, **0 sent and 0 received** now (`UiMenuHookTests` asserts it, and that what the runtime wrote survives a
+  render the server sends meanwhile). It costs the hooks bundle 3,581 bytes, on pages that have a menu. A flyout is no longer shown by `:hover`, so it also closes under a pointer
+  still resting on its row once the arrows have moved on, as Flux's does.
+
+  In the runtime: `data-rask-safe-area` with no value means the element right after the row (Flux's flyout has
+  no id); the pointer leaving a `data-rask-menu-pointer` menu no longer darkens the row that has focus, and a
+  pointer moving about inside its row no longer takes the light back from the keyboard; focus follows the row
+  given `tabindex="0"`, and a lit row that says `tabindex="-1"` — the pointer's — takes none. One thing is
+  deliberately not Flux's: after the pointer has lit a row and left, Flux's arrow keys do nothing until the
+  pointer comes back; here they go on from the row that has focus. `scripts/flux/parity-menu.mjs` now drives
+  both pages with the same pointer and the same keys (lit rows and focus on every row, the pointer and the
+  arrows together, the diagonal step by step) and compares the page behind in a browser that shows its
+  scrollbars.
 - **A unique index declared in a tenant-scoped entity's `Configure` is unique within the tenant (#1233).**
   The tenant prefix was applied with the conventions, which run before an entity's own `Configure`, so
   `builder.HasIndex(p => p.Sku).IsUnique()` written there stayed unique across every tenant — tenant B could

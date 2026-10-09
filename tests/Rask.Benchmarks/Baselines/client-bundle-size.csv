@@ -1,6 +1,11 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-09 with the morph leaving alone a change-only field the reader is typing into, when the
+# render carries the value it had already rendered for it (rask-morph.ts, shared, so both runtimes carry it —
+# the value read before the attributes are synced, and the one comparison): rask.js 97,409 -> 97,583 (+174)
+# and rask.wasm.js 86,167 -> 86,324 (+157). rask-hooks.js is unchanged at 42,367.
+#
 # Refreshed 2026-10-09 with a bound field that waits (`.Debounce(…)` / `.Blur()`, rask-input.ts — the CORE bundle,
 # because what it has to get ahead of is the runtimes' own submit, click, key and navigation): rask.js
 # 96,350 -> 97,409 (+1,059) and rask.wasm.js 85,110 -> 86,167 (+1,057). A timer per paused field and the flush that
@@ -122,6 +127,22 @@
 # should have been watching and nothing was: BundleSizeReport prints a table of a published WASM
 # _framework/ and has no committed numbers, so this file could have doubled with every check green.
 #
+# Refreshed 2026-10-09 with a menu's keyboard moved out of the runtime every page loads (the role=menu block of
+# rask-dom.ts is rask-menu-keys.ts in the hooks bundle, asked for by the role): rask.js 96,350 -> 93,559 (-2,791)
+# and rask.wasm.js 85,110 -> 82,328 (-2,782). rask-hooks.js 42,367 -> 45,272 (+2,905): that block, the page
+# lock reading whether a scrollbar shows before it keeps a gutter, a hover-opened panel taking no focus, and a
+# menu's pointer leaving the focused row lit.
+#
+# Refreshed 2026-10-09 with a menu's CURSOR kept in the browser (data-rask-menu-cursor: the arrows, type-ahead,
+# the submenu keys, the lit row and the open flyouts, which were C# state and a round trip each):
+# rask-hooks.js 45,272 -> 48,853 (+3,581). The runtimes every page loads are unchanged by it.
+#
+# Refreshed 2026-10-09 on top of the bind timing (main at 97,409 / 86,167 / 42,367), with the three changes above
+# and the runtime leaving a data-rask-persist box's checked alone before the hooks arrive (ownsChecked in
+# rask-owned.ts, +37 bytes in each runtime): rask.js 94,655, rask.wasm.js 83,422, rask-hooks.js 48,853.
+# And again on top of the full-page reply that keeps a number being typed (main at 97,583 / 86,324 / 42,367):
+# rask.js 94,829, rask.wasm.js 83,579, rask-hooks.js 48,853.
+#
 # Refresh with:
 #   dotnet build src/Rask.Server -c Release -p:MinVerSkip=true
 #   dotnet build src/Rask.Wasm   -c Release -p:MinVerSkip=true
@@ -130,6 +151,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,97409
-rask.wasm.js,86167
-rask-hooks.js,42367
+rask.js,94829
+rask.wasm.js,83579
+rask-hooks.js,48853

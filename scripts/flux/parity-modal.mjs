@@ -68,6 +68,13 @@ const INHERITED = ['color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight'
 const LAYER = ['display', 'position', 'backgroundColor', 'opacity', 'backdropFilter', 'transform', 'transitionProperty', 'transitionDuration', 'transitionTimingFunction', 'transitionBehavior'];
 const HOOKS = 'rask-hooks.ts';
 
+// A Rask parity page as an app has it: the runtime's hooks, and — as Flux's page goes on below its last
+// example — more page than the viewport, so that it scrolls and shows the scrollbar Flux's shows.
+async function asInAnApp(page) {
+  await withRuntime(page, HOOKS);
+  await page.evaluate(() => { document.body.style.paddingBottom = '100vh'; });
+}
+
 // What only a dialog the page opens can be asked: the page changing its mind, and a reader closing a dialog
 // the page still says is open.
 const STATE_ONLY = {
@@ -87,7 +94,11 @@ const CONFIRM = [
 ];
 const WIDTHS = [1280, 390];
 
-const browser = await chromium().launch();
+// A browser that SHOWS its scrollbars, as a reader's does. Headless hides them, and there Flux's
+// `scrollbar-gutter: stable` reserves 15px that nothing was using: its own dialog sits 7.5px off centre and its
+// flyout 15px short of the edge. The kit keeps the gutter only where a scrollbar was taking room (rask-lock.ts),
+// so the two agree where it matters — with the scrollbar there.
+const browser = await chromium().launch({ ignoreDefaultArgs: ['--hide-scrollbars'] });
 const fluxFile = join(out, 'flux', 'modal', 'open.json');
 let flux;
 if (existsSync(fluxFile) && !args.includes('--refresh')) {
@@ -188,7 +199,7 @@ function dress(like) {
         for (const key of examples[i] ? INHERITED : []) wrapper.style[key] = examples[i].nodes[0].style[key];
       });
     }, { examples: like.loaded[scheme], INHERITED });
-    await withRuntime(page, HOOKS);
+    await asInAnApp(page);
   };
 }
 
@@ -294,7 +305,7 @@ async function dressAs(page, example) {
   await page.evaluate(({ style, INHERITED }) => {
     for (const wrapper of document.querySelectorAll('[data-preview-wrapper]')) for (const key of INHERITED) wrapper.style[key] = style[key];
   }, { style: example.nodes[0].style, INHERITED });
-  await withRuntime(page, HOOKS);
+  await asInAnApp(page);
 }
 
 // Runs in Flux's page. Its confirmation, turned into the one a case names: the width its example hands the
@@ -348,7 +359,7 @@ async function walked(url, like) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
   const page = await context.newPage();
   await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
-  if (like) await withRuntime(page, HOOKS);
+  if (like) await asInAnApp(page);
   return page;
 }
 

@@ -33,6 +33,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- For Page.Watching: the kit's tests watch every render they drive and fail on one a live session
+         would answer with the whole page instead of a diff (tests/Rask.Ui.Tests/Live/DiffGuard.cs). -->
+    <InternalsVisibleTo Include="Rask.Ui.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- PrivateAssets="all" keeps the (unpublished, IsPackable=false) Rask.Core "package" out of the
          nuspec: Rask.Testing is consumed alongside a host that already bundles Rask.Core.dll, so it
          resolves transitively — same pattern as Rask.Bootstrap. Core still resolves at compile time

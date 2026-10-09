@@ -142,8 +142,6 @@ Rask.Auth.PasskeyRead.CreatedAt.get -> System.DateTime
 Rask.Auth.PasskeyRead.CreatedAt.init -> void
 Rask.Auth.PasskeyRead.CredentialId.get -> byte[]!
 Rask.Auth.PasskeyRead.CredentialId.init -> void
-Rask.Auth.PasskeyRead.DeletedAt.get -> System.DateTime?
-Rask.Auth.PasskeyRead.DeletedAt.init -> void
 Rask.Auth.PasskeyRead.Id.get -> System.Guid
 Rask.Auth.PasskeyRead.Id.init -> void
 Rask.Auth.PasskeyRead.LastUsedAt.get -> System.DateTime?

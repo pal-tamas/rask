@@ -16,7 +16,8 @@ namespace Rask.Server.E2E.Tests;
 ///     shown and fires <c>cancel</c> then <c>close</c> for Escape AND for a press outside; under an open select,
 ///     dropdown and popover <c>&lt;html&gt;</c> has <c>overflow: hidden; pointer-events: none; scrollbar-gutter:
 ///     stable</c>, and under a modal the same without <c>pointer-events</c>; a press outside a menu left focus
-///     on the button that opens it.
+///     on the button that opens it. The gutter is kept only where a scrollbar was taking room, which the
+///     browser here — scrollbars hidden, as in every headless run — never has: <c>RuntimeHookLockTests</c>.
 /// </remarks>
 public sealed class RuntimeHookOverlayTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
@@ -172,7 +173,8 @@ public sealed class RuntimeHookOverlayTests(PlaywrightFixture playwright) : ICla
         await page.Keyboard.PressAsync("Escape");
 
         Assert.Equal("visible|auto|auto", before);
-        Assert.Equal("hidden|none|stable", open);
+        // No gutter: this browser shows no scrollbar to keep one for (RuntimeHookLockTests drives one that does).
+        Assert.Equal("hidden|none|auto", open);
         Assert.Equal("auto", panel);
         Assert.Equal("yes", pressedInside);
         Assert.Equal("visible|auto|auto", await page.EvaluateAsync<string>(Lock));
@@ -190,7 +192,7 @@ public sealed class RuntimeHookOverlayTests(PlaywrightFixture playwright) : ICla
         await page.Keyboard.PressAsync("Escape");
 
         // A date picker's popup: the element is a <dialog>, the browser shows it as a popover, and `open` stays false.
-        Assert.Equal("hidden|none|stable", open);
+        Assert.Equal("hidden|none|auto", open);
         Assert.False(asDialog);
         Assert.Equal("visible|auto|auto", await page.EvaluateAsync<string>(Lock));
     }
@@ -210,9 +212,9 @@ public sealed class RuntimeHookOverlayTests(PlaywrightFixture playwright) : ICla
         await page.EvaluateAsync("() => document.getElementById('lock-scroll').remove()");
         await page.WaitForTimeoutAsync(50);
 
-        Assert.Equal("hidden|none|stable", both);
+        Assert.Equal("hidden|none|auto", both);
         // Flux's modal: the page does not scroll, and keeps its pointer (the dialog makes it inert anyway).
-        Assert.Equal("hidden|auto|stable", modalOnly);
+        Assert.Equal("hidden|auto|auto", modalOnly);
         Assert.Equal("visible|auto|auto", await page.EvaluateAsync<string>(Lock));
     }
 }

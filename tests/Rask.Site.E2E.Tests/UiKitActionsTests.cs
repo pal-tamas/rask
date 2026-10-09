@@ -208,6 +208,34 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
+    public Task The_pointer_lights_a_menu_row_without_taking_focus_and_the_arrows_go_on_from_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Options" }).ClickAsync();
+        var menu = scope.Locator("[data-ui-menu]:popover-open");
+        await Expect(menu).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+
+        // One highlight, Flux's data-active: the row under the pointer has it, and focus is still the menu's.
+        await scope.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Delete" }).HoverAsync();
+        await scope.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "New post" }).HoverAsync();
+        await Expect(menu.Locator("[data-active]")).ToHaveTextAsync("New post", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Expect(menu).ToBeFocusedAsync();
+
+        // The first arrow takes the row the pointer lit, and the next goes on from it.
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await WaitForCursorAsync(FocusedRowAsync, "New post");
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await WaitForCursorAsync(FocusedRowAsync, "Sort by");
+
+        // The pointer leaving takes nothing from the keyboard's row.
+        await Page.Mouse.MoveAsync(3, 3, new MouseMoveOptions { Steps = 4 });
+        await Expect(menu.Locator(":scope > [data-active], :scope > * > [data-active]")).ToHaveTextAsync("Sort by");
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToHaveCountAsync(0);
+    });
+
+    [Fact]
     public Task A_checkbox_row_closes_the_menu_unless_the_menu_or_the_row_keeps_it_open() => RunAsync(async () =>
     {
         await OpenAsync();
@@ -499,11 +527,11 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // The invoker command: a :modal <dialog>, marked open, the page behind inert and held still as Flux
-        // holds it — no scroll, the scrollbar's gutter kept, the pointer left alone.
+        // holds it — no scroll, the pointer left alone, and no gutter where this browser shows no scrollbar.
         Assert.Equal("DIALOG", await dialog.EvaluateAsync<string>("el => el.tagName"));
         Assert.True(await dialog.EvaluateAsync<bool>("d => d.matches(':modal')"), "the kit's dialog did not open as a modal");
         await Expect(dialog).ToHaveAttributeAsync("data-open", "");
-        Assert.Equal("hidden|auto|stable", await Page.EvaluateAsync<string>(PageLock));
+        Assert.Equal("hidden|auto|auto", await Page.EvaluateAsync<string>(PageLock));
         // Nothing is ringed when it opens, as on Flux: the placeholder took the focus and left.
         Assert.False(
             await dialog.EvaluateAsync<bool>("d => d.contains(document.activeElement) && document.activeElement.matches('input, button')"),
@@ -627,6 +655,31 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
+    public Task Opening_a_flyout_leaves_the_page_where_it_was_scrolled_and_as_wide_as_it_was() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var demo = Page.Locator("[data-testid='ui-modal-flyout']");
+        await demo.EvaluateAsync("el => el.scrollIntoView({ block: 'center' })");
+        // Where the page is scrolled to, and where the demo's own box is on screen.
+        const string place = "() => { const box = document.querySelector(\"[data-testid='ui-modal-flyout']\").getBoundingClientRect(); return [scrollY, box.x, box.y, box.width].join('|'); }";
+        var before = await Page.EvaluateAsync<string>(place);
+
+        await demo.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Edit profile" }).ClickAsync();
+        var dialog = Page.Locator("#edit-profile-flyout");
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Settled(dialog);
+        var open = await Page.EvaluateAsync<string>(place);
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(dialog).ToBeHiddenAsync();
+
+        // The lock's gutter used to narrow a page that showed no scrollbar: its text wrapped again and scrollY
+        // followed, by a line's height or several.
+        Assert.False(before.StartsWith("0|", StringComparison.Ordinal), "the page is not scrolled, so nothing could have moved.");
+        Assert.Equal(before, open);
+        Assert.Equal(before, await Page.EvaluateAsync<string>(place));
+    });
+
+    [Fact]
     public Task The_floating_flyout_stands_off_the_edges_of_the_viewport() => RunAsync(async () =>
     {
         await OpenAsync();
@@ -727,7 +780,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         Assert.True(await dialog.EvaluateAsync<bool>("d => d.matches(':modal')"), "the page's state opened a dialog that is not modal");
         Assert.Equal("rgba(0, 0, 0, 0.1)", await dialog.EvaluateAsync<string>("d => getComputedStyle(d, '::backdrop').backgroundColor"));
         await Expect(dialog).ToHaveAttributeAsync("data-open", "");
-        Assert.Equal("hidden|auto|stable", await Page.EvaluateAsync<string>(PageLock));
+        Assert.Equal("hidden|auto|auto", await Page.EvaluateAsync<string>(PageLock));
         for (var i = 0; i < 5; i++)
         {
             await Page.Keyboard.PressAsync("Tab");
