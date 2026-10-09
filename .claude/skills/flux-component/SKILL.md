@@ -361,8 +361,11 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   whole band, whatever the bar's `width`; a heading with no `format` shows the field as the row holds it (a
   string in Flux's rows — the parity page reads the same string; a C# date reads as the reader's short date).
   Flux redraws in the frame its box changes; the kit after 100 ms of no change (a round trip per frame per
-  chart on a Server page otherwise), scaled by its `viewBox` meanwhile. `Ui.ChartSvg.Width/Height` are the box
-  drawn for BEFORE the browser has measured — a `Translations` row each; whether they stay is the owner's call (asked 2026-10-09).
+  chart on a Server page otherwise), scaled by its `viewBox` meanwhile. No stated size (`Ui.ChartSvg.Width/Height`
+  were removed 2026-10-09, the owner's call: exactly Flux's API): the first render draws nothing, as Flux's first
+  paint is an empty box, and a page's charts are all measured in one task and drawn by one render. A test or a
+  parity page stands in for the browser with `MeasuredCharts` (tests/Rask.Ui.Tests), which writes each drawing's
+  box into its `data-rask-measure` field.
   The area cursor is a dashed CSS border at 10% where Flux strokes a path `4,4`. A pie's default hues go in
   palette order; Flux hashes the slice's id, by a rule not derived.
   Not built for want of an example to measure: `scale` on an axis, `tick-start="min"` / `tick-end="max"`, an X

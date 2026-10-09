@@ -62,7 +62,7 @@ public sealed class PostgresViolationMessageTests
     }
 
     [Fact]
-    public async Task A_duplicate_in_a_composite_index_fails_with_the_message_about_the_row()
+    public async Task A_duplicate_in_a_composite_index_fails_once_with_the_message_over_both_fields()
     {
         Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
         await using var app = App();
@@ -74,7 +74,9 @@ public sealed class PostgresViolationMessageTests
         var refused = await Assert.ThrowsAsync<RaskValidationException>(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken));
 
-        Assert.Equal([Subscriber.SeatTaken], refused.Errors[""]);
+        Assert.Equal(["Room", "Seat"], Assert.Single(refused.Failures).Fields);
+        Assert.Equal([Subscriber.SeatTaken], refused.Errors["Room"]);
+        Assert.Equal([Subscriber.SeatTaken], refused.Errors["Seat"]);
     }
 
     [Fact]
@@ -190,7 +192,7 @@ public sealed class SqlServerViolationMessageTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_duplicate_in_a_composite_index_fails_with_the_message_about_the_row()
+    public async Task A_duplicate_in_a_composite_index_fails_once_with_the_message_over_both_fields()
     {
         Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
         await using var app = App();
@@ -201,7 +203,9 @@ public sealed class SqlServerViolationMessageTests : IAsyncLifetime
         var refused = await Assert.ThrowsAsync<RaskValidationException>(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken));
 
-        Assert.Equal([Subscriber.SeatTaken], refused.Errors[""]);
+        Assert.Equal(["Room", "Seat"], Assert.Single(refused.Failures).Fields);
+        Assert.Equal([Subscriber.SeatTaken], refused.Errors["Room"]);
+        Assert.Equal([Subscriber.SeatTaken], refused.Errors["Seat"]);
     }
 
     [Fact]

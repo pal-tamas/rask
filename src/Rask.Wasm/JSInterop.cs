@@ -265,10 +265,12 @@ internal static partial class JSInterop
         return _session?.DispatchAsync(json, copyFrame: false) ?? Task.CompletedTask;
     }
 
-    public static void ApplyRender(Span<byte> payload)
-    {
-        // No page to apply the frame to.
-    }
+    /// <summary>Where a test collects the frames a session pushed; nothing is kept while it is null.</summary>
+    internal static List<string>? AppliedFrames { get; set; }
+
+    // No page to apply the frame to.
+    public static void ApplyRender(Span<byte> payload) =>
+        AppliedFrames?.Add(System.Text.Encoding.UTF8.GetString(payload));
 
 #pragma warning disable S3400 // each stub mirrors a browser [JSImport] method, which a constant cannot stand in for
     public static string GetLocation() => "/";

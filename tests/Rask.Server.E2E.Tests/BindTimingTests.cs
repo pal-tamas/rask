@@ -236,7 +236,13 @@ public sealed class BindTimingTests(PlaywrightFixture playwright) : IClassFixtur
         """
         window.__sent = 0;
         const send = WebSocket.prototype.send;
-        WebSocket.prototype.send = function (data) { window.__sent++; return send.call(this, data); };
+        // What the page SAID, not how it was framed: the events of one task leave as one batch (rask-batch.ts),
+        // so the value a key sends ahead of itself and the key are one frame, and two things said.
+        WebSocket.prototype.send = function (data) {
+            const frame = JSON.parse(data);
+            window.__sent += frame.type === "batch" ? frame.events.length : 1;
+            return send.call(this, data);
+        };
         """);
 
     private static Task<int> SentAsync(IPage page) => page.EvaluateAsync<int>("() => window.__sent");
