@@ -104,6 +104,26 @@ them until tagged releases begin.
 
 ### Added
 
+- **A rule the store owns is checked as the field is committed, with no step on the field or the form.**
+  A data layer announces a model's rules with `RaskValidation.RegisterStoreRules(typeof(Model), services =>
+  rules)` (`IStoreRules.Check(model, field, cancellationToken)` hands back `FieldFailure`s), and a form over
+  that model asks on change, at the pause of `.Debounce(…)`, on leaving a `.Blur()` field, and for the whole
+  model on submit before the save runs. Never on a keystroke of a live field, never about a value one of
+  the field's rules rejected, and not twice for a value already answered. The answer is drawn like a
+  refused save: under each field it names, the marked ones only invalid, cleared from all at the first
+  keystroke — a waiting field that is only marked now hears that keystroke too. A store that cannot be
+  asked says nothing and the save decides.
+- **A rule a property's type carries runs with no `Validate` step.** `RaskValidation.RegisterFieldRules(
+  typeof(Model), property => rule)` makes a field bound to that property run the rule first, on the field's
+  own bind timing and on submit; the steps the field writes run after it, for a value it accepted. Neither
+  kind is switched off by `RaskValidation.AutoValidate = false`; a model nobody registered is untouched.
+- **A bound `Input`, `Select` and `Textarea` say `aria-invalid="true"` themselves** while the form holds a
+  message for their field, or a failure told under another field marks it — so a form written with no kit
+  component shows a marked field too. An `aria-invalid` written on the control is left as written.
+- **A field's check stops with the field.** `EditContext.ValidateField` and `Validate` called with no token
+  are now linked to `Current.Cancellation`, so an asynchronous rule in flight is cancelled when its control
+  goes away or the handler times out, not only when a later edit supersedes it.
+
 - **A reply that goes out as the whole page says why, in Development.** When the live diff cannot carry a
   render the session answers with the whole document — tens of kilobytes where a diff is a few hundred bytes —
   and until now only the devtools' wire tab showed that it had, never which node it gave up on. In Development

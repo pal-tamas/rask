@@ -382,6 +382,25 @@ public abstract partial class Element : Component
     // id/class/style/data-* walk. NavLink overrides this to splice in its active class.
     protected virtual string? ResolveClass() => Class;
 
+    // A bound control is invalid when its form says so: a message under its field, or a failure told under
+    // another field that marks this one. Called ahead of the universal attributes, so aria-invalid lands in
+    // its documented place. `said` remembers that the mark is the form's: it goes when the form's does, and
+    // an aria-invalid the author wrote is left alone.
+    private protected void SayInvalid(Forms.EditContext? form, Forms.FieldIdentifier field, ref bool said)
+    {
+        var invalid = form is not null && form.IsInvalid(field);
+        if (invalid && !said && AriaInvalid is null)
+        {
+            AriaInvalid = Core.AriaInvalid.True;
+            said = true;
+        }
+        else if (!invalid && said)
+        {
+            AriaInvalid = null;
+            said = false;
+        }
+    }
+
     // The universal attributes, in the documented order: id, class, style, title, the plain globals, data-*,
     // role, tabindex, aria-*, then Attributes. A subclass's tag-specific attrs follow (after base.WriteAttributes).
     protected override void WriteAttributes(StringBuilder sb)

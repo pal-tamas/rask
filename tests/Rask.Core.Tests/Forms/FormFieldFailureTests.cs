@@ -167,6 +167,18 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task An_exception_that_carries_no_failure_at_all_is_still_the_forms_error_and_a_fault()
+    {
+        var empty = new RefusedException();
+        var page = new InvoicePage(empty);
+
+        var reported = await Reported(page.Submit);
+
+        Assert.Same(empty, page.Errors[^1]);
+        Assert.Contains(reported, e => e.Level == RaskLogLevel.Error && ReferenceEquals(e.Exception, empty));
+    }
+
+    [Fact]
     public async Task Editing_one_field_of_a_failure_clears_it_from_every_field_it_names()
     {
         var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Year", "Number"])));

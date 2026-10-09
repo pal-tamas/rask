@@ -47,6 +47,46 @@ public class RequestValidationPassTests
         Assert.Equal(string.Empty, Assert.Single(entries).Field);
     }
 
+    // What the pass records TODAY for a member that is not on the root: its own name, with nothing of the
+    // way to it. The same string is the key of a request's `errors` in the 400 problem document, so it is
+    // pinned here: making it a path (`Lines[1].ValidFrom`) changes what every API caller reads.
+    [Fact]
+    public void A_member_of_a_nested_object_is_recorded_by_its_own_name_without_the_path_to_it()
+    {
+        var entries = DataAnnotationsFieldValidator.Validate(new Order { Price = new Money { Currency = "" } });
+
+        Assert.Equal(["Currency"], entries.Select(e => e.Field));
+    }
+
+    [Fact]
+    public void A_member_of_a_row_is_recorded_by_its_own_name_so_two_rows_are_told_apart_by_nothing()
+    {
+        var order = new Order { Lines = [new Line { ValidFrom = "" }, new Line { ValidFrom = "" }] };
+
+        var entries = DataAnnotationsFieldValidator.Validate(order);
+
+        Assert.Equal(["ValidFrom", "ValidFrom"], entries.Select(e => e.Field));
+    }
+
+    private sealed class Order
+    {
+        public Money Price { get; set; } = new();
+
+        public List<Line> Lines { get; set; } = [];
+    }
+
+    private sealed class Money
+    {
+        [Required]
+        public string Currency { get; set; } = "HUF";
+    }
+
+    private sealed class Line
+    {
+        [Required]
+        public string ValidFrom { get; set; } = "2026-10-01";
+    }
+
     private sealed class Booking : IValidatableObject
     {
         [Required(ErrorMessage = "Name is required.")]
