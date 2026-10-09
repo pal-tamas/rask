@@ -49,11 +49,13 @@ them until tagged releases begin.
 
 ### Changed
 
-- **The allocation gate measures with tiered PGO off, and its budget is the exact count.** With tiered PGO on,
-  the JIT re-compiles the hot methods while the measured window is running, so one binary read 2,397 to 2,514 B
-  per live update of the 20-row page depending on the run. `scripts/run-benchmarks-local.sh` now sets
-  `DOTNET_TieredPGO=0` on that one process, where it reads 2,504 B every time, and
-  `Baselines/allocation-budget.csv` is 2,504 (was 2,444, a tiered-PGO reading). The +5% allowance stays.
+- **The allocation gate measures with tiered compilation and PGO off, and its budget is the exact count.** With
+  tiered PGO on, the JIT re-compiles the hot methods while the measured window is running, so one binary read
+  2,397 to 2,514 B per live update of the 20-row page depending on the run; with PGO off alone it read 2,504 B,
+  and 2,505 on a loaded machine when the re-compile still landed inside the window.
+  `scripts/run-benchmarks-local.sh` now sets `DOTNET_TieredCompilation=0 DOTNET_TieredPGO=0` on that one
+  process, where it reads 2,504 B every time, and `Baselines/allocation-budget.csv` is 2,504 (was 2,444, a
+  tiered-PGO reading). The +5% allowance stays.
 
 - **BREAKING: `TenantId` is the entity's own column, no longer a property of `Entity<TId>`.** A
   `Tenancy.PerTenant` table keeps the same `TenantId` column, filter, stamp and index prefix; the column is a
