@@ -137,6 +137,8 @@ const NATIVE = {
   // its engine does what Flux's elements script. `ui-menu` is the stand-in of the one example that puts a
   // dropdown menu in a toolbar.
   'ui-editor': 'div', 'ui-editor-content': 'div', 'ui-toolbar': 'div', 'ui-menu': 'div',
+  // A <label> opens the file input inside it when clicked, where <ui-file-upload> does it with script.
+  'ui-file-upload': 'label',
   // The calendar: its month steps and its today shortcut are real buttons.
   'ui-calendar': 'div', 'ui-calendar-months': 'div', 'ui-calendar-month': 'div', 'ui-calendar-year': 'div',
   'ui-calendar-previous': 'button', 'ui-calendar-next': 'button', 'ui-calendar-today': 'button',

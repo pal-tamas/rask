@@ -21,7 +21,6 @@ public sealed partial class UiKitDataInputDemo : Component
     private int[] _apart = [450, 550];
     private int[] _price = [200, 800];
     private int _stars = 4;
-    private readonly List<string> _dropped = [];
     private readonly Signup _signup = new();
 
     /// <inheritdoc />
@@ -50,7 +49,7 @@ public sealed partial class UiKitDataInputDemo : Component
         CalendarSection(),
         DatePickerSection(),
         TimePickerSection(),
-        FileDropAreaSection(),
+        FileUploadSection(),
         BoundModelSection(),
         MaskSection()
     ];
@@ -312,29 +311,6 @@ public sealed partial class UiKitDataInputDemo : Component
                     .ResetLabel("All").OnChange(tag => { _tag = tag; }),
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-filter-state"))[
                     _tag is null ? "Showing everything." : $"Filtered to {_tag}."
-                ]
-            ]);
-
-    private Component FileDropAreaSection() =>
-        Section(
-            "File drop area",
-            "Still the native file input, stretched invisibly over the whole area: a click anywhere opens the "
-            + "picker and a file dropped anywhere lands in the input, which the browser already does with no "
-            + "script. The runtime only marks the area while a file is dragged over it.",
-            Div.Data(Testid("ui-dropzone")).Class("max-w-md space-y-2")[
-                Ui.FileInput.Value("").Key("receipts").Label("Receipts").Id("demo-receipts")
-                    .Dropzone()
-                    .Title("Drop receipts here, or click to choose")
-                    .Text("PDF or JPG, several at once")
-                    .Accept(".pdf,.jpg,.jpeg")
-                    .Multiple()
-                    .OnFiles(files =>
-                    {
-                        _dropped.Clear();
-                        _dropped.AddRange(files.Select(f => f.Name));
-                    }),
-                P.Class("text-sm text-ui-muted").Data(Testid("ui-dropzone-state"))[
-                    _dropped.Count == 0 ? "No files yet." : "Chosen: " + string.Join(", ", _dropped)
                 ]
             ]);
 
