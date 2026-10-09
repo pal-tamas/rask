@@ -63,7 +63,7 @@ public sealed class RuntimeSignalTests
         await fixture.Ws.SendJsonAsync(new { id = handlerId, seq = 1 }, ct: TestContext.Current.CancellationToken);
         await fixture.Ws.ReceiveTextAsync();
         await WaitFor.True(
-            () => fixture.Host.Store.PendingHandlerCount == 0, LiveFrames.HangCeiling, "the dispatch leaves the queue");
+            () => fixture.Host.Store.PendingHandlerCount == 0, "the dispatch leaves the queue");
 
         Assert.Equal(0, fixture.Host.Store.PendingHandlerCount);
     }
@@ -94,7 +94,7 @@ public sealed class RuntimeSignalTests
         await fixture.Ws.SendJsonAsync(new { id = handlerId, seq = 1 }, ct: TestContext.Current.CancellationToken);
         await fixture.Ws.ReceiveTextAsync();
         await WaitFor.True(
-            () => capture.HistogramSampleCount("rask.render.duration") > 0, LiveFrames.HangCeiling, "the render is timed");
+            () => capture.HistogramSampleCount("rask.render.duration") > 0, "the render is timed");
 
         Assert.True(capture.HistogramSampleCount("rask.render.duration") >= 1,
             "the render that the click caused was not timed");

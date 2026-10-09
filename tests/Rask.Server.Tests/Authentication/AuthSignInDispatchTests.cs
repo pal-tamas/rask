@@ -117,7 +117,7 @@ public class AuthSignInDispatchTests
         await ws.ReceiveTextAsync();
         var session = host.Store.Get(sessionId)!;
         await WaitFor.True(
-            () => session.SuppressEventsUntilReconnect, LiveFrames.HangCeiling, "the handoff suppresses further events");
+            () => session.SuppressEventsUntilReconnect, "the handoff suppresses further events");
 
         // Now the session is in suppressed mode. A second click should produce no payload. A suppressed
         // frame is dropped unread, so nothing the server does says it has seen this one: the wait is a

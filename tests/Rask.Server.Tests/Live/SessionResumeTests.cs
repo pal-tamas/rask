@@ -248,7 +248,7 @@ public sealed class SessionResumeTests
         var (host, sessionId, token) = await StartAndCapture(seed: 2);
         using var _ = host;
         await host.Store.RemoveAsync(sessionId);
-        await WaitFor.True(() => host.Store.ConnectedCount == 0, TimeSpan.FromSeconds(5));
+        await WaitFor.True(() => host.Store.ConnectedCount == 0);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token }, ct: TestContext.Current.CancellationToken);

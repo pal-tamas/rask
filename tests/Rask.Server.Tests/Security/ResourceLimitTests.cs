@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.WebSockets;
 using Rask.Server.Tests.Infrastructure;
 
@@ -10,18 +11,23 @@ public class ResourceLimitTests
     [Fact]
     public async Task A_socket_with_no_inbound_frames_is_closed_after_the_idle_timeout()
     {
-        using var host = RaskTestHost.Create<TestApp>(
-            configureServer: o => o.IdleSocketTimeout = TimeSpan.FromMilliseconds(300));
+        var idleTimeout = TimeSpan.FromMilliseconds(300);
+        using var host = RaskTestHost.Create<TestApp>(configureServer: o => o.IdleSocketTimeout = idleTimeout);
         var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
-
+        var connecting = Stopwatch.GetTimestamp();
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId);
 
-        // Send nothing further — the server must close the idle socket.
-        _ = await ws.TryReceiveCloseAsync(LiveFrames.HangCeiling);
+        // Send nothing further. The wait is for the server's close itself, however long this machine takes
+        // to deliver it; what is measured is the one thing a busy machine cannot fake, that the close did
+        // not come sooner than the timeout the socket was given.
+        var close = await ws.TryReceiveCloseAsync(LiveFrames.HangCeiling);
+        var open = Stopwatch.GetElapsedTime(connecting);
 
-        Assert.NotEqual(WebSocketState.Open, ws.State);
+        Assert.NotNull(close);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, close.Value.Status);
+        Assert.Equal("idle timeout", close.Value.Reason);
+        Assert.True(open >= idleTimeout, $"closed after {open}, sooner than the {idleTimeout} it was allowed to idle");
     }
 
     [Fact]

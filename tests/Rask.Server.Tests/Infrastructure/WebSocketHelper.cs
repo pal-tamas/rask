@@ -32,7 +32,7 @@ internal static class WebSocketHelper
 
         // Qualified: this file is linked into test projects that do not import Rask.TestSupport globally.
         await Rask.TestSupport.WaitFor.True(
-            () => session.HasOpenTransport, LiveFrames.HangCeiling, "the server attaches the socket");
+            () => session.HasOpenTransport, "the server attaches the socket");
     }
 
     /// <summary>The next frame; fails the test when none comes. See <see cref="LiveFrames.NextAsync" />.</summary>

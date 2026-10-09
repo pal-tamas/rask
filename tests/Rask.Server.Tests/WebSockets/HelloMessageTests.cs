@@ -113,7 +113,7 @@ public class HelloMessageTests
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = first }, ct: TestContext.Current.CancellationToken);
-        await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
+        await WaitFor.True(() => host.Store.ConnectedCount == 1);
 
         await ws.SendJsonAsync(new { type = "hello", session = second }, ct: TestContext.Current.CancellationToken);
 
@@ -123,7 +123,7 @@ public class HelloMessageTests
         Assert.Equal("hello", close.Value.Reason);
         // Answer the handshake so the server's CloseAsync returns now rather than at its 2 s deadline.
         await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
-        await WaitFor.True(() => host.Store.ConnectedCount == 0, TimeSpan.FromSeconds(5));
+        await WaitFor.True(() => host.Store.ConnectedCount == 0);
         ws.Dispose();
     }
 

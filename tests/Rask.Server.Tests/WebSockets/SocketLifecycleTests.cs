@@ -37,7 +37,7 @@ public class SocketLifecycleTests
         await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
 
         await WaitFor.True(
-            () => host.Store.Count == 0, LiveFrames.HangCeiling, "the session is removed once its grace period ends");
+            () => host.Store.Count == 0, "the session is removed once its grace period ends");
 
         Assert.Equal(0, host.Store.Count);
     }
@@ -76,7 +76,7 @@ public class SocketLifecycleTests
         await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
 
         await WaitFor.True(
-            () => host.Store.Count == 0, LiveFrames.HangCeiling, "the session is removed once its grace period ends");
+            () => host.Store.Count == 0, "the session is removed once its grace period ends");
 
         Assert.Equal(0, host.Store.Count);
 
@@ -127,7 +127,7 @@ public class SocketLifecycleTests
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
+        await WaitFor.True(() => host.Store.ConnectedCount == 1);
 
         // A reconnect always emits a frame, so receiving one proves ws2 is attached.
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -168,7 +168,7 @@ public class SocketLifecycleTests
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
+        await WaitFor.True(() => host.Store.ConnectedCount == 1);
 
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
@@ -202,7 +202,7 @@ public class SocketLifecycleTests
             CancellationToken.None);
 
         await WaitFor.True(
-            () => host.Store.Count == 0, LiveFrames.HangCeiling, "the session is removed once its grace period ends");
+            () => host.Store.Count == 0, "the session is removed once its grace period ends");
 
         Assert.Equal(0, host.Store.Count);
     }

@@ -20,12 +20,8 @@ namespace Rask.Server.Tests.Infrastructure;
 /// </remarks>
 internal static class LiveFrames
 {
-    /// <summary>How long a wait for something the server owes may run before the test calls it a hang.</summary>
-    /// <remarks>
-    ///     Not a budget for the work. Every wait here ends the moment its frame arrives, so the ceiling costs a
-    ///     passing run nothing and is only ever paid in full by a test that was going to fail anyway.
-    /// </remarks>
-    public static readonly TimeSpan HangCeiling = TimeSpan.FromSeconds(30);
+    /// <summary>The ceiling on every wait here: it bounds a hang, never the work. See <see cref="Rask.TestSupport.WaitFor.HangCeiling" />.</summary>
+    public static readonly TimeSpan HangCeiling = Rask.TestSupport.WaitFor.HangCeiling;
 
     // No handler carries this id (theirs are h0, h1, …), so the dispatch runs nothing and renders nothing.
     private const string SettleHandlerId = "settle";
