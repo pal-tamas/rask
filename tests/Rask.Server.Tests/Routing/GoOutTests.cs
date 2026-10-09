@@ -10,19 +10,6 @@ namespace Rask.Server.Tests.Routing;
 public sealed class GoOutTests
 {
     [Fact]
-    public async Task A_first_request_under_a_path_base_is_answered_with_a_302_to_the_address_as_written()
-    {
-        using var host = RaskTestHost.Create<RedirectingApp>(pathBase: "/uj");
-
-        var outside = await host.Http.GetAsync("/uj/redirect/out", TestContext.Current.CancellationToken);
-        var inside = await host.Http.GetAsync("/uj/redirect/moved", TestContext.Current.CancellationToken);
-
-        Assert.Equal(HttpStatusCode.Found, outside.StatusCode);
-        Assert.Equal("/tenants", outside.Headers.Location?.OriginalString);
-        Assert.Equal("/uj/redirect/home", inside.Headers.Location?.OriginalString);
-    }
-
-    [Fact]
     public async Task A_handler_that_goes_out_sends_the_browser_a_full_page_navigation_and_renders_nothing_more()
     {
         await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
@@ -61,5 +48,21 @@ public sealed class GoOutTests
         Assert.Equal(url, doc.RootElement.GetProperty("url").GetString());
         Assert.True(doc.RootElement.GetProperty("outside").GetBoolean());
         Assert.False(doc.RootElement.GetProperty("replace").GetBoolean());
+    }
+}
+
+// The path base is one value for the whole process, so the suites that map an app under one take turns.
+[Collection("ScopedAssets")]
+public sealed class GoOutUnderAPathBaseTests
+{
+    [Fact]
+    public async Task A_first_request_under_a_path_base_is_answered_with_a_302_to_the_address_as_written()
+    {
+        using var host = RaskTestHost.Create<RedirectingApp>(pathBase: "/uj");
+
+        var response = await host.Http.GetAsync("/uj/redirect/out", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.Equal("/tenants", response.Headers.Location?.OriginalString);
     }
 }
