@@ -119,12 +119,15 @@ public static class RaskStrings
         _libraries = [];
     }
 
-    // The app's translation, else the first library's, else nothing. With no source at all — an app
-    // without a catalog that draws nothing from a translated library — this is two reads and no culture.
+    // The app's translation, else the first library's, else nothing. An app with no catalog and no
+    // languages of its own — the common case — pays three reads here and never asks for the culture.
     private static string? Translation(RaskString key)
     {
         var app = Source;
-        var libraries = _libraries;
+
+        // A library speaks only the languages the app says it ships: without that list the language is
+        // the machine's, and an English app would turn Hungarian on a Hungarian server.
+        var libraries = RaskCulture.IsEnabled ? _libraries : [];
         if (app is null && libraries.Length == 0)
         {
             return null;

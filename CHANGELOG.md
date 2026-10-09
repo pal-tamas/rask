@@ -9,6 +9,28 @@ them until tagged releases begin.
 
 ### Added
 
+- **The UI kit's own words are translatable, and it speaks Hungarian out of the box.** The Flux rebuild had
+  written the kit's few fixed texts as English literals — the pager's "Showing 1 to 10 of 13 results" and its
+  arrow names, a select's "No results found" / "Loading..." / "Clear selected", the date pickers' "Select a
+  date", "Cancel" and range presets, the calendar's "Today", the editor's tooltips, an input's "Clear input",
+  "Close modal", the leave dialog's "Stay" / "Leave", the names a screen reader hears in the one-time code,
+  the slider, the rating, the sidebar and the data grid. Each is a `RaskString` key now (115 new ones;
+  `docs/localization.md` lists every key with its English), read as
+  `RaskStrings.Get(RaskString.SelectEmpty, "No results found")`. `Rask.Ui` ships `Resources/RaskStrings.hu.json`
+  for all of them, so an app that lists `hu` in `SupportedCultures` draws a Hungarian kit with no catalog of
+  its own; the app's `Resources/RaskStrings.{culture}.json` still wins key by key, and adds any other
+  language. English output is byte-for-byte what it was, and an app that lists no languages stays English
+  whatever its machine speaks. A component's own props (`Empty`, `Placeholder`, `Stay`) are said as given.
+- **A framework text can carry values.** `RaskStrings.Get(key, "Showing {0} to {1} of {2} results", from, to,
+  total)` — one, two or three values, unboxed. A translation numbers them in its own order
+  (`"{0}–{1}. találat, összesen {2}"`) and may format one (`{2:N0}`), written in the visitor's culture; the
+  generator refuses a place the text does not carry and a named one (RASK051), and at runtime a hand-written
+  source that gets it wrong is passed over for the English rather than throwing.
+- **A library ships translations of the framework texts it draws.** `<RaskStringsLibrary>true</RaskStringsLibrary>`
+  compiles its `Resources/RaskStrings.{culture}.json` into a source registered with
+  `RaskStrings.UseLibrarySource`, a layer under the app's. The generated lookup walks `hu-HU` → `hu` over a
+  span, so a language with no catalog costs no allocation.
+
 - **`Ui.ConfirmLeave` — the unsaved-changes question in a dialog of the app's own.** Placed once in a layout
   (`Ui.ConfirmLeave.Stay("Nem").Leave("Igen")`, "Stay" / "Leave" when unset), it is where every form's
   `ConfirmLeave("…")` asks, in place of the browser's `confirm`: a `Ui.Modal` with the form's message as its
