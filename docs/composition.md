@@ -91,6 +91,10 @@ protected override Component? Render() =>
 The page root is an ordinary component too: it renders into `<body>`, and Rask composes the document
 around it — see [the document and the `HeadAssets` override](getting-started.md#7-the-document-and-the-headassets-override).
 
+What a layout shows *about* the page inside it — the last breadcrumb, the tab title — is not passed down or
+shared through a service: the page declares `PageTitle` and the layout reads `route.Title`, right in the
+first HTML. See [A page's title](routing.md#a-pages-title--pagetitle-and-routetitle).
+
 ---
 
 ## Hosting a component you built yourself

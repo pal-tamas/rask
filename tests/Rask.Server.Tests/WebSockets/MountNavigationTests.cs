@@ -47,9 +47,8 @@ public sealed class MountNavigationTests : IDisposable
 
         await ws.SendJsonAsync(new { type = "navigate", path = "/_mounted", query = "?tab=1" }, ct: TestContext.Current.CancellationToken);
 
-        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        var frame = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(frame);
         Assert.DoesNotContain("mounted-page", frame);
         AssertLocation(frame, "/_mounted?tab=1", replace: false);
     }
@@ -62,9 +61,8 @@ public sealed class MountNavigationTests : IDisposable
 
         await ws.SendJsonAsync(new { type = "navigate", path = "/host-page", query = "", replace = true }, ct: TestContext.Current.CancellationToken);
 
-        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        var frame = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(frame);
         Assert.DoesNotContain("host-page-body", frame);
         AssertLocation(frame, "/host-page", replace: true);
     }
@@ -78,9 +76,8 @@ public sealed class MountNavigationTests : IDisposable
 
         await ws.SendJsonAsync(new { type = "navigate", path = "/host-other", query = "" }, ct: TestContext.Current.CancellationToken);
 
-        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        var frame = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(frame);
         Assert.Contains("host-other-body", frame);
     }
 
@@ -108,7 +105,7 @@ public sealed class MountNavigationTests : IDisposable
         var html = await host.Http.GetStringAsync(path);
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = MarkupAssert.SessionId(html) });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(300));
+        await ws.SettledAsync();
         return ws;
     }
 

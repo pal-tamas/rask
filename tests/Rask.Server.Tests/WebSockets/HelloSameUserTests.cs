@@ -76,9 +76,8 @@ public sealed class HelloSameUserTests
         using var ws = await ConnectAsync(host, "bob");
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
-        var reply = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var reply = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(reply);
         Assert.Contains("\"type\":\"session\"", reply, StringComparison.Ordinal);
         Assert.Contains("\"status\":\"unknown\"", reply, StringComparison.Ordinal);
 
@@ -131,9 +130,8 @@ public sealed class HelloSameUserTests
         using var ws = await ConnectAsync(host, user: null);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
-        var reply = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var reply = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(reply);
         Assert.Contains("\"type\":\"session\"", reply, StringComparison.Ordinal);
         Assert.Contains("\"status\":\"unknown\"", reply, StringComparison.Ordinal);
         Assert.Equal(0, host.Store.ConnectedCount);
@@ -196,8 +194,7 @@ public sealed class HelloSameUserTests
         using (var stranger = await ConnectAsync(host, "carol"))
         {
             await stranger.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-            var reply = await stranger.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            Assert.NotNull(reply);
+            var reply = await stranger.ReceiveTextAsync();
             Assert.Contains("\"status\":\"unknown\"", reply, StringComparison.Ordinal);
         }
 

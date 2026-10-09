@@ -23,13 +23,12 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var text = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(text);
-        using var doc = JsonDocument.Parse(text!);
+        using var doc = JsonDocument.Parse(text);
         var html = doc.RootElement.GetProperty("html").GetString()!;
         Assert.Contains("count=1", html);
     }
@@ -43,12 +42,12 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.SendJsonAsync(new { id = "h999" }, ct: TestContext.Current.CancellationToken);
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+        var frames = await ws.SettledAsync();
 
-        Assert.Null(text);
+        Assert.Empty(frames);
         Assert.Equal(WebSocketState.Open, ws.State);
     }
 
@@ -66,20 +65,19 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.SendJsonAsync(new { id = handlerId, type = "input", value = "x" }, ct: TestContext.Current.CancellationToken);
 
         // No render: the counter was never bumped. Answered exactly like the stale id it is.
-        Assert.Null(await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400)));
+        Assert.Empty(await ws.SettledAsync());
         Assert.Equal(WebSocketState.Open, ws.State);
 
         // ...and the socket still dispatches the frame that DOES fit.
         await ws.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var text = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(text);
-        using var doc = JsonDocument.Parse(text!);
+        using var doc = JsonDocument.Parse(text);
         Assert.Contains("count=1", doc.RootElement.GetProperty("html").GetString()!);
     }
 
@@ -92,12 +90,12 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.SendJsonAsync(new { foo = "bar" }, ct: TestContext.Current.CancellationToken);
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+        var frames = await ws.SettledAsync();
 
-        Assert.Null(text);
+        Assert.Empty(frames);
     }
 
     [Fact]
@@ -115,7 +113,7 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
         Assert.Equal(1, host.Store.Count);
 
         var bytes = Encoding.UTF8.GetBytes("{not-json");
@@ -124,10 +122,9 @@ public class HandlerDispatchTests
         // No teardown: the socket stays open, the session is not removed, and a subsequent
         // valid handler frame still dispatches and renders.
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var text = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(text);
-        using var doc = JsonDocument.Parse(text!);
+        using var doc = JsonDocument.Parse(text);
         Assert.Contains("count=1", doc.RootElement.GetProperty("html").GetString()!);
         Assert.Equal(WebSocketState.Open, ws.State);
         Assert.Equal(1, host.Store.Count);
@@ -141,12 +138,12 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.SendJsonAsync(new { foo = "bar", x = 1 }, ct: TestContext.Current.CancellationToken);
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+        var frames = await ws.SettledAsync();
 
-        Assert.Null(text);
+        Assert.Empty(frames);
         Assert.Equal(WebSocketState.Open, ws.State);
     }
 
@@ -161,7 +158,7 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         for (var i = 0; i < 5; i++)
         {
@@ -171,9 +168,8 @@ public class HandlerDispatchTests
         var counts = new List<int>();
         for (var i = 0; i < 5; i++)
         {
-            var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            Assert.NotNull(text);
-            var match = Regex.Match(text!, "count=(\\d+)");
+            var text = await ws.ReceiveTextAsync();
+            var match = Regex.Match(text, "count=(\\d+)");
             Assert.True(match.Success);
             counts.Add(int.Parse(match.Groups[1].Value));
         }
@@ -198,7 +194,7 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         // MapRask<TApp> wraps the App in an implicit RootErrorBoundary, so a handler throw trips the boundary
         // and its render replaces the App's tree with the built-in DefaultErrorPage. The dispatcher must remain
@@ -211,17 +207,16 @@ public class HandlerDispatchTests
         // read as a missing error boundary, green on an idle machine and red under the full gate.
         await ws.SendJsonAsync(new { id = throwingId }, ct: TestContext.Current.CancellationToken);
         var afterThrow = await ws.ReceiveUntilAsync(
-            f => f.Contains("rask-error-boundary", StringComparison.Ordinal), TimeSpan.FromSeconds(5));
+            f => f.Contains("rask-error-boundary", StringComparison.Ordinal), "the frame that draws the error boundary");
 
-        Assert.NotNull(afterThrow);
         Assert.Contains("Something went wrong", afterThrow);
         Assert.DoesNotContain("count=", afterThrow);
 
         // Unknown id post-trip still gets handled gracefully (no payload, socket alive).
         await ws.SendJsonAsync(new { id = "h999" }, ct: TestContext.Current.CancellationToken);
-        var unknown = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+        var unknown = await ws.SettledAsync();
 
-        Assert.Null(unknown);
+        Assert.Empty(unknown);
         Assert.Equal(WebSocketState.Open, ws.State);
     }
 }

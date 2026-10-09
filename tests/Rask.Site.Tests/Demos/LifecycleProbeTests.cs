@@ -43,7 +43,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         Assert.Matches(@"OnMount \(after a 450ms await\)</code>\s*<span[^>]*>awaiting", first);
 
         // Mount awaits 450ms; allow time for the full sequence.
-        await WaitFor.True(() => page.Render().Contains("resolved"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => page.Render().Contains("resolved"));
 
         var html = page.Render();
         Assert.Matches(@"OnMount \(before its await\)</code>\s*<span[^>]*>ran 1x", html);
@@ -75,11 +75,11 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(
             () => mounted ? LifecycleCycleProbe.InstanceId(1).Log(log.Add) : null,
             TestServices.Default());
-        await WaitFor.True(() => log.Contains("#1 OnMount (after a 150ms await)"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => log.Contains("#1 OnMount (after a 150ms await)"));
 
         mounted = false;
         page.Render();
-        await WaitFor.True(() => log.Contains("#1 OnUnmount"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => log.Contains("#1 OnUnmount"));
 
         Assert.Single(log.Snapshot(), e => e == "#1 OnUnmount");
     }

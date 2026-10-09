@@ -43,11 +43,11 @@ public class RevokedAuthDispatchTests
         host.WebSockets.ConfigureRequest = req => req.Headers["Cookie"] = cookie;
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         // Sanity: while authorized, the handler runs.
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.SettledAsync();
 
         Assert.Equal(1, counter.Count);
 
@@ -57,11 +57,10 @@ public class RevokedAuthDispatchTests
 
         // Fire the same handler again: it must be skipped and a challenge redirect emitted.
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        var afterRevoke = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var afterRevoke = await ws.ReceiveTextAsync();
 
         Assert.Equal(1, counter.Count); // handler did NOT run a second time
-        Assert.NotNull(afterRevoke);
-        Assert.Contains("/login", afterRevoke!);
+        Assert.Contains("/login", afterRevoke);
     }
 
     private static async Task<string> SignInAsync(RaskTestHost host, string name)

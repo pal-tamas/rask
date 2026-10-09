@@ -100,6 +100,65 @@ public class RouteGuardPipelineTests
         Assert.Equal(HttpStatusCode.Found, resp.StatusCode); // back to the challenge
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_layout_that_withholds_its_outlet_keeps_the_page_from_being_constructed_or_mounted(bool signedIn)
+    {
+        using var host = CreateHost();
+        var cookie = signedIn ? await SignInAsync(host, "alice", "user") : "";
+        var constructed = Volatile.Read(ref E2EGatedPage.Constructed);
+        var mounted = Volatile.Read(ref E2EGatedPage.Mounted);
+
+        var resp = await GetWithCookieAsync(host, "/e2e/gated/secret", cookie);
+
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        Assert.Contains("admins only", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret-content", body, StringComparison.Ordinal);
+        Assert.Equal(constructed, Volatile.Read(ref E2EGatedPage.Constructed));
+        Assert.Equal(mounted, Volatile.Read(ref E2EGatedPage.Mounted));
+    }
+
+    [Fact]
+    public async Task A_layout_that_places_its_outlet_for_an_admin_shows_the_page()
+    {
+        using var host = CreateHost();
+        var cookie = await SignInAsync(host, "root", "admin");
+
+        var resp = await GetWithCookieAsync(host, "/e2e/gated/secret", cookie);
+
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.Contains("secret-content", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("admins only", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_anonymous_visitor_to_a_page_under_a_guarded_layout_never_constructs_the_page()
+    {
+        using var host = CreateHost();
+        var before = Volatile.Read(ref E2EVaultPage.Constructed);
+
+        var resp = await host.Http.GetAsync("/e2e/vault/mine", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Found, resp.StatusCode);
+        Assert.Equal("/login", resp.Headers.Location!.AbsolutePath);
+        Assert.Equal(before, Volatile.Read(ref E2EVaultPage.Constructed));
+    }
+
+    [Fact]
+    public async Task A_page_under_a_guarded_layout_mounts_as_the_signed_in_user()
+    {
+        using var host = CreateHost();
+        var cookie = await SignInAsync(host, "alice");
+
+        var resp = await GetWithCookieAsync(host, "/e2e/vault/mine", cookie);
+
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        Assert.Contains("<span id=\"vault-crumb\">vault of alice</span>", body, StringComparison.Ordinal);
+    }
+
     private static async Task<string> SignInAsync(RaskTestHost host, string name, params string[] roles)
     {
         var store = host.Server.Services.GetRequiredService<IAuthTicketStore>();

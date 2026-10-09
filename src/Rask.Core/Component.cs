@@ -288,6 +288,22 @@ public abstract partial class Component : RaskMarkup
     ///     <see cref="RenderForLive" />).
     /// </remarks>
     internal Component? CachedHeadInternal => _live?.CachedHead;
+
+    /// <summary>
+    ///     What a routed page is called, for the layout around it to show — a breadcrumb, the document title:
+    ///     <c>protected override string? PageTitle =&gt; _order is { } o ? $"Order {o.Number}" : null;</c>
+    /// </summary>
+    /// <remarks>
+    ///     The layout reads it as <see cref="Routing.RouteState.Title" />, and the first HTML carries it: when
+    ///     the title turns out to have changed, whatever showed it renders once more before anything is
+    ///     sent. Read again on every render, so a title built from loaded data follows the data. <c>null</c>, the default, is a page with
+    ///     no title of its own — the nearest layout above it that declares one stands in, and with none the
+    ///     layout shows nothing. Only read on a component a route renders.
+    /// </remarks>
+    protected virtual string? PageTitle => null;
+
+    internal string? PageTitleInternal => PageTitle;
+
     internal void MarkReadsAmbientStateInternal() => SetFlag(FlagReadsAmbientState, true);
 
     // Test seam: whether this component read something the render cache cannot see (context,

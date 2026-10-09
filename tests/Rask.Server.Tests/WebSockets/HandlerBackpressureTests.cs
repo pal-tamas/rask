@@ -39,15 +39,7 @@ public class HandlerBackpressureTests
                 }
             }
 
-            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
-            while (ws.IsOpen && DateTime.UtcNow < deadline)
-            {
-                // Draining receives lets the client observe the server's close frame.
-                if (await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(100)) is null && ws.IsOpen)
-                {
-                    await Task.Delay(20, TestContext.Current.CancellationToken);
-                }
-            }
+            _ = await ws.TryReceiveCloseReasonAsync(LiveFrames.HangCeiling);
 
             Assert.False(ws.IsOpen);
         }
@@ -73,7 +65,7 @@ public class HandlerBackpressureTests
         for (var i = 0; i < 10; i++)
         {
             await ws.SendJsonAsync(new { id = handlerId });
-            _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            await ws.ReceiveTextAsync();
         }
 
         Assert.True(ws.IsOpen);

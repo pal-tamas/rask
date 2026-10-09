@@ -64,11 +64,11 @@ public class AuthDeferredNavDispatchTests
         using (var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None))
         {
             await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: ct);
-            _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            await ws.AttachedAsync(host, sessionId);
 
             await ws.SendJsonAsync(new { id = ExtractHandlerId(initialHtml, button) }, ct: ct);
-            handoff = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2)) ?? "";
-            Assert.NotEqual("", handoff);
+            handoff = await ws.ReceiveUntilAsync(
+                frame => frame.Contains("\"ticket\"", StringComparison.Ordinal), "the frame that hands over the sign-in ticket");
 
             using var doc = JsonDocument.Parse(handoff);
             var ticket = doc.RootElement.GetProperty("auth").GetProperty("ticket").GetString();
@@ -92,9 +92,8 @@ public class AuthDeferredNavDispatchTests
 
         using var ws2 = await wsClient.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: ct);
-        var afterReconnect = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var afterReconnect = await ws2.ReceiveTextAsync();
 
-        Assert.NotNull(afterReconnect);
         return (handoff, afterReconnect);
     }
 

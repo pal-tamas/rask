@@ -63,27 +63,10 @@ public class HandlerOrderingTests
             await ws.SendJsonAsync(new { id = handlerIds[i] });
         }
 
-        // Drain renders until Sequence contains all ten digits, or fail.
-        string? finalSequence = null;
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-        while (DateTime.UtcNow < deadline)
-        {
-            var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
-            if (text is null)
-            {
-                continue;
-            }
+        var last = await ws.ReceiveUntilAsync(
+            frame => SequenceIn(frame).Length == 10, "the render after all ten handlers ran");
 
-            var match = Regex.Match(text, "Sequence=([0-9]*)");
-            if (match.Success && match.Groups[1].Value.Length == 10)
-            {
-                finalSequence = match.Groups[1].Value;
-                break;
-            }
-        }
-
-        Assert.NotNull(finalSequence);
-        Assert.Equal("0123456789", finalSequence);
+        Assert.Equal("0123456789", SequenceIn(last));
     }
 
     [Theory]
@@ -112,27 +95,14 @@ public class HandlerOrderingTests
             await ws.SendJsonAsync(new { id = handlerIds[1] });
         }
 
-        string? finalSequence = null;
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
-        while (DateTime.UtcNow < deadline)
-        {
-            var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
-            if (text is null)
-            {
-                continue;
-            }
+        var last = await ws.ReceiveUntilAsync(
+            frame => SequenceIn(frame).Length == expected.Length, "the render after every round ran");
 
-            var match = Regex.Match(text, "Sequence=([0-9]*)");
-            if (match.Success && match.Groups[1].Value.Length == expected.Length)
-            {
-                finalSequence = match.Groups[1].Value;
-                break;
-            }
-        }
-
-        Assert.NotNull(finalSequence);
-        Assert.Equal(expected, finalSequence);
+        Assert.Equal(expected, SequenceIn(last));
     }
+
+    // The digits the handlers have appended so far, as a frame shows them; empty for a frame that shows none.
+    private static string SequenceIn(string frame) => Regex.Match(frame, "Sequence=([0-9]*)").Groups[1].Value;
 
     private static List<string> ExtractAllHandlerIds(string html) =>
         Regex.Matches(html, "data-rask-on-click=\"(h\\d+)\"")

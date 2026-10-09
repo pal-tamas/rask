@@ -17,14 +17,12 @@ public class WsLoopMetricsTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(5));
+        await ws.AttachedAsync(host, sessionId);
 
         // Awaiting the render reply guarantees the server-side dispatch (and its instrumentation)
         // has completed before we assert.
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        var reply = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
-
-        Assert.NotNull(reply);
+        var reply = await ws.ReceiveTextAsync();
 
         // The render frame is sent inside the dispatch's try; the duration histogram is recorded in
         // its finally (so it includes the send). Receiving the reply therefore does not guarantee the
@@ -32,7 +30,7 @@ public class WsLoopMetricsTests
         var ok = await WaitUntil(
             () => capture.Counter("rask.handlers.dispatched") >= 1
                   && capture.HistogramSampleCount("rask.handler.duration") >= 1,
-            TimeSpan.FromSeconds(2));
+            LiveFrames.HangCeiling);
 
         Assert.True(ok,
             "expected a dispatched counter and a duration sample; " +

@@ -65,7 +65,8 @@ public class CrossSessionCallbackTests
             argsJson = $"[{rid},\"{value}\"]"
         });
 
-        var reply = await ws.ReceiveUntilAsync(f => f.Contains(callId, StringComparison.Ordinal), TimeSpan.FromSeconds(5));
+        var reply = await ws.ReceiveUntilAsync(
+            f => f.Contains(callId, StringComparison.Ordinal), "the frame that answers the call");
         Assert.NotNull(reply);
     }
 }
