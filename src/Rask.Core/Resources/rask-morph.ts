@@ -34,7 +34,7 @@ export function reviveScript(node: Node): Node {
 
     // The runtime's own tag goes back as it was parsed, which is to say without running: it runs a document
     // once, and a second copy would bind every shared listener again.
-    if (runtimePath !== null && scriptPath(source) === runtimePath) return node;
+    if (runtimeSrc !== null && srcPath(source) === runtimeSrc) return node;
 
     const s = document.createElement("script");
     for (const a of source.attributes) s.setAttribute(a.name, a.value);
@@ -48,9 +48,9 @@ export function reviveScript(node: Node): Node {
     return s;
 }
 
-// Where the runtime's own <script> was loaded from, without its `?v=`: a deploy changes the version, not
-// which script it is.
-let runtimePath: string | null = null;
+// The runtime's own <script>, by its `src` without the `?v=`: a deploy changes the version, not which script
+// it is. The server writes the attribute the same way into every page, so the text is compared as written.
+let runtimeSrc: string | null = null;
 
 /**
  * Names the runtime's own `<script>`, the one tag a morph puts back without running it.
@@ -62,17 +62,11 @@ let runtimePath: string | null = null;
  * modules had already bound their listeners, with no host behind them.
  */
 export function keepRuntimeScript(script: HTMLScriptElement): void {
-    runtimePath = scriptPath(script);
+    runtimeSrc = srcPath(script);
 }
 
-function scriptPath(script: HTMLScriptElement): string | null {
-    const src = script.getAttribute("src");
-    if (!src) return null;
-    try {
-        return new URL(src, document.baseURI).pathname;
-    } catch {
-        return null;
-    }
+function srcPath(script: HTMLScriptElement): string {
+    return (script.getAttribute("src") || "").split("?")[0];
 }
 
 import {ignoresFormattingText, isElement, isFormattingText} from "./rask-dom-path.js";
