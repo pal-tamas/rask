@@ -246,13 +246,20 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
             .Disabled(Disabled == true)
             .ReadOnly(ReadOnly == true)
             .Aria(Host?.AriaOver(field.Aria) ?? field.Aria)
-            .Attributes(UiInputLook.Marks(field.Invalid, Attributes))
+            .Attributes(Marks(field.Invalid))
             .Class(UiClass.Compose(
                 UiInputLook.Control,
                 UiInputLook.Size(Size ?? Ui.InputSize.Base),
                 UiInputLook.Padding(leading, trailing),
                 UiInputLook.Variant(Variant ?? Ui.InputVariant.Outline),
                 InputClass));
+    }
+
+    private IReadOnlyDictionary<string, string?> Marks(bool invalid)
+    {
+        var marks = UiInputLook.Marks(invalid, Attributes);
+
+        return Host?.MarksOver(marks) ?? marks;
     }
 
     private static Component Glyph(UiInputIcon icon) =>

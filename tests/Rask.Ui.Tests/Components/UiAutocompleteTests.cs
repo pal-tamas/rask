@@ -174,6 +174,47 @@ public partial class UiAutocompleteTests : global::Rask.Core.RaskMarkup
         Assert.Equal(States, Shown(page));
     }
 
+    // The input's own `change` comes a round trip behind the key. Until it did, the render Tab caused showed the
+    // text the page still held: on a slow page the field was seen empty after it was left.
+    [Fact]
+    public async Task Tab_hands_the_page_what_was_typed_without_waiting_for_the_inputs_change()
+    {
+        var page = Page.Render(Autocomplete);
+        await page.On("input[role=\"combobox\"]").Input("Atlantis");
+
+        await Key(page, Keys.Tab);
+
+        Assert.Equal("Atlantis", _state);
+        Assert.Equal("Atlantis", page.Find("input").Attribute("value"));
+    }
+
+    // A render opens the list and the browser says so afterwards. That late "open" used to open a list Tab had
+    // shut by then; its own toggle shut it again, and the two went on for as long as the page was up.
+    [Fact]
+    public async Task The_toggle_of_an_opening_that_arrives_after_the_list_was_shut_does_not_open_it_again()
+    {
+        var page = Page.Render(Autocomplete);
+        await page.On("input[role=\"combobox\"]").Input("Tex");
+        await Key(page, Keys.Tab);
+
+        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
+
+        Assert.False(IsOpen(page));
+        Assert.Equal("false", page.Find("input").Attribute("aria-expanded"));
+    }
+
+    // Emptied from the Escape handler, a round trip after the key, the input lost what was typed in between.
+    [Fact]
+    public void The_browser_empties_the_input_on_Escape_and_sends_only_the_keys_the_list_acts_on()
+    {
+        var page = Page.Render(Autocomplete);
+
+        var input = page.Find("input");
+
+        Assert.Equal("Escape", input.Attribute("data-rask-clear-keys"));
+        Assert.Equal("ArrowDown ArrowUp Enter Escape Tab", input.Attribute("data-rask-keys"));
+    }
+
     [Fact]
     public async Task A_click_on_an_item_picks_it()
     {

@@ -28,14 +28,52 @@ type ValueElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 const inputPending = new Set<ValueElement>();
 let inputRaf = 0;
 
+// TYPING FASTER THAN .NET ANSWERS. Every value sent is a handler and a render, one after the other, and on
+// a heavy page that is slower than a key: eight letters typed at once used to be eight renders queued behind
+// each other, the field's answer seconds behind the reader, each stale one written into a field already
+// left. So while .NET still owes an element the answer to a value, what is typed into it is HELD, and only
+// the latest value goes — when the answer arrives, or at once before any event that has to come after it
+// (flushInputsNow). Only for a host that says when it has answered (rask-host.ts); the Server's socket
+// does not, and every value is sent as before.
+const unanswered = new Map<ValueElement, number>();
+// What each held field said when it was last typed into. Kept, not read back when it is sent: the answer to
+// an older value may have been written into a field already left, and that is not what was typed.
+const held = new Map<ValueElement, string>();
+
+function answered(el: ValueElement): void {
+    const left = (unanswered.get(el) || 1) - 1;
+    if (left > 0) {
+        unanswered.set(el, left);
+        return;
+    }
+    unanswered.delete(el);
+    const value = held.get(el);
+    if (value !== undefined) {
+        held.delete(el);
+        dispatchInput(el, value);
+    }
+}
+
+function dispatchInput(el: ValueElement, value: string): void {
+    if (!el.isConnected) return;
+    const id = el.getAttribute("data-rask-on-input");
+    if (!id) return;
+    const answer = send({ id, type: "input", value });
+    if (answer instanceof Promise) {
+        unanswered.set(el, (unanswered.get(el) || 0) + 1);
+        const done = () => answered(el);
+        answer.then(done, done);
+    }
+}
+
+function sendInput(el: ValueElement): void {
+    if (unanswered.has(el)) held.set(el, el.value);
+    else dispatchInput(el, el.value);
+}
+
 function flushInputs(): void {
     inputRaf = 0;
-    inputPending.forEach((el) => {
-        if (!el.isConnected) return;
-        const id = el.getAttribute("data-rask-on-input");
-        if (!id) return;
-        send({ id, type: "input", value: el.value });
-    });
+    inputPending.forEach(sendInput);
     inputPending.clear();
 }
 
@@ -45,6 +83,12 @@ export function flushInputsNow(): void {
         inputRaf = 0;
     }
     if (inputPending.size > 0) flushInputs();
+    if (held.size > 0) {
+        // What follows — a key, a click, the change — must find the page knowing what was typed.
+        const waiting = Array.from(held);
+        held.clear();
+        waiting.forEach(function (entry) { dispatchInput(entry[0], entry[1]); });
+    }
 }
 
 function queueInput(el: ValueElement): void {
@@ -74,7 +118,7 @@ document.addEventListener("input", (e) => {
     // the .NET dispatcher and the validator would observe stale state. Only standalone
     // input handlers (no change wired) get the rAF coalescing win.
     if (t.hasAttribute("data-rask-on-change")) {
-        send({ id: t.getAttribute("data-rask-on-input"), type: "input", value: t.value });
+        sendInput(t);
         return;
     }
 
