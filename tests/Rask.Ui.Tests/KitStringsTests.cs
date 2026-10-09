@@ -59,7 +59,7 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     [InlineData("calendar", "Következő hónap", "Next month")]
     [InlineData("time-picker", "Válassz időpontot", "Select a time")]
     [InlineData("editor", "Félkövér", "Bold")]
-    [InlineData("editor", "Formázott szövegszerkesztő", "Rich text editor")]
+    [InlineData("editor", "Formázott szöveg módosítása", "Rich text editor")]
     [InlineData("input", "Mező törlése", "Clear input")]
     [InlineData("modal", "Ablak bezárása", "Close modal")]
     [InlineData("otp-input", "1. karakter, összesen 6", "Character 1 of 6")]
@@ -115,6 +115,29 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Asking_in_a_language_the_kit_has_no_catalog_for_allocates_nothing()
+    {
+        // The render path of every English page: the kit's Hungarian is registered and is not the answer.
+        var kitIsLoaded = Ui.ConfirmLeave.ToHtml();
+        var warm = KitCulture.In("en-US", () => RaskStrings.Get(RaskString.SelectEmpty, "No results found"));
+
+        var allocated = KitCulture.In("en-US", () =>
+        {
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 1000; i++)
+            {
+                _ = RaskStrings.Get(RaskString.SelectEmpty, "No results found");
+            }
+
+            return (GC.GetAllocatedBytesForCurrentThread() - before).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        });
+
+        Assert.NotEmpty(kitIsLoaded);
+        Assert.Equal("No results found", warm);
+        Assert.Equal("0", allocated);
+    }
+
+    [Fact]
     public void Every_key_the_kit_reads_has_a_hungarian_and_the_file_holds_no_other()
     {
         var read = KitEnglish().Keys.Order(StringComparer.Ordinal);
@@ -122,6 +145,17 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         var translated = KitHungarian().Keys.Order(StringComparer.Ordinal);
 
         Assert.Equal(read, translated);
+    }
+
+    [Fact]
+    public void The_kits_hungarian_says_modositas_and_never_szerkesztes()
+    {
+        // One word for one thing, everywhere: the owner's rule for the built-in Hungarian.
+        var hungarian = KitHungarian();
+
+        var offending = hungarian.Where(text => text.Value.Contains("szerkeszt", StringComparison.OrdinalIgnoreCase)).Select(text => text.Key);
+
+        Assert.Empty(offending);
     }
 
     [Fact]
