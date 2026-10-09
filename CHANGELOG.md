@@ -9,6 +9,20 @@ them until tagged releases begin.
 
 ### Added
 
+- **A tenant-scoped table can number its tenants: the declared `TenantId` decides the column's type (#1227).**
+  `public int? TenantId { get; private set; }` — or `long?`, or `Guid?` as before — on an aggregate (or child)
+  with `Scope = Tenancy.PerTenant` makes the column, the query filter on both the write model and the read
+  face, and the insert stamp that type. An entity that declares nothing keeps today's shadow `Guid?`; any
+  other type is refused when the model is built, with the three that are accepted.
+  `Tenant.Use(42)` opens the tenant by its number. The framework still carries the tenant as a `Guid`
+  (`Current.Tenant`, every battery's own column), and a number travels inside it by a fixed rule — first eight
+  bytes zero, last eight the number, big-endian, so tenant 42 is `00000000-0000-0000-0000-00000000002a` — which
+  is what lets a job enqueued in tenant 42 run in tenant 42. A tenant that is not a number, or one too large
+  for an `int` column, met by a table that keeps a number is refused rather than compared.
+  **The filter's SQL changed shape for every tenant-scoped table**: it is now
+  `TenantId IS NOT NULL AND TenantId = @tenant`, so a row that belongs to no tenant can never be matched by a
+  read that names none. No schema change.
+
 - **`Ui.ConfirmLeave` — the unsaved-changes question in a dialog of the app's own.** Placed once in a layout
   (`Ui.ConfirmLeave.Stay("Nem").Leave("Igen")`, "Stay" / "Leave" when unset), it is where every form's
   `ConfirmLeave("…")` asks, in place of the browser's `confirm`: a `Ui.Modal` with the form's message as its

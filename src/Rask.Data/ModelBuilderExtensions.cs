@@ -186,12 +186,6 @@ public static class ModelBuilderExtensions
         }
     }
 
-    // EF.Property<Guid?>(entity, "TenantId"), captured from a real expression rather than through
-    // MakeGenericMethod — no reflection for the trimmer to be unable to follow, as with the DeletedAt one.
-    private static readonly MethodInfo EfPropertyNullableGuid =
-        ((MethodCallExpression)((Expression<Func<object, Guid?>>)(e => EF.Property<Guid?>(e, Columns.TenantId))).Body)
-        .Method;
-
     /// <summary>The name of the soft-delete query filter, which <c>IgnoreQueryFilters()</c> lifts.</summary>
     internal const string SoftDeleteFilter = "SoftDelete";
 
@@ -209,10 +203,12 @@ public static class ModelBuilderExtensions
     /// create a row because a different tenant already has it — with nothing in the code saying so.
     /// </para>
     /// <para>
-    /// The column is the entity's own <c>public Guid? TenantId { get; private set; }</c> when it declares one,
-    /// and a shadow property when it does not — a child included, which is how it carries its root's answer
-    /// without saying anything. A table that did not ask is left alone: a <c>TenantId</c> it declares is an
-    /// ordinary column of its own, mapped by EF Core's convention like any other.
+    /// The column is the entity's own <c>public Guid? TenantId { get; private set; }</c> when it declares one —
+    /// or <c>int?</c> or <c>long?</c>, for a table whose tenants are numbered: the declared type is the
+    /// column's, the filter's and the stamp's (<see cref="TenantColumn" />) — and a shadow <c>Guid?</c> when it
+    /// does not, a child included, which is how it carries its root's answer without saying anything. A table
+    /// that did not ask is left alone: a <c>TenantId</c> it declares is an ordinary column of its own, mapped by
+    /// EF Core's convention like any other.
     /// </para>
     /// </remarks>
     private static void ApplyTenancy(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes, DbContext? context)
@@ -239,33 +235,15 @@ public static class ModelBuilderExtensions
                     "context, or EF Core inlines one tenant's id into the cached query for every tenant.");
             }
 
-            builder.Property<Guid?>(Columns.TenantId);
-            builder.HasQueryFilter(TenantFilter, BuildTenantFilter(clrType, context));
+            // In the type the entity declared it — Guid?, int? or long? — and a shadow Guid? when it did not.
+            var column = TenantColumn.TypeFor(entityType);
+
+            builder.Property(column, Columns.TenantId);
+            builder.HasQueryFilter(TenantFilter, TenantColumn.BuildFilter(clrType, column, context));
 
             TenantIndexes.Prefix(builder.Metadata);
         }
 #pragma warning restore S3267
-    }
-
-    // e => current == null || EF.Property<Guid?>(e, "TenantId") == current
-    //
-    // The `current == null` arm is what makes Tenant.Across() mean "every tenant" rather than "the rows
-    // nobody owns". Without it a null ambient narrows to TenantId IS NULL, which returns nothing on a table
-    // where every row is owned — a cross-tenant admin view that is silently, plausibly empty.
-    internal static LambdaExpression BuildTenantFilter(Type clrType, DbContext context)
-    {
-        var entity = Expression.Parameter(clrType, "e");
-
-        var stored = Expression.Call(EfPropertyNullableGuid, entity, Expression.Constant(Columns.TenantId));
-
-        var current = Expression.Property(
-            Expression.Convert(Expression.Constant(context), typeof(ITenantScoped)),
-            typeof(ITenantScoped).GetProperty(nameof(ITenantScoped.CurrentTenant))!);
-
-        var unrestricted = Expression.Equal(current, Expression.Constant(null, typeof(Guid?)));
-
-        return Expression.Lambda(
-            Expression.OrElse(unrestricted, Expression.Equal(stored, current)), entity);
     }
 
     /// <summary>

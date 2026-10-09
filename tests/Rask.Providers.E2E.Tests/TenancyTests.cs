@@ -14,6 +14,20 @@ public sealed class Ledger : Aggregate<Guid>
     public static Ledger For(string reference) => new() { Id = Guid.NewGuid(), Reference = reference };
 }
 
+/// <summary>A table whose tenants are numbered: the declared property's type is the column's.</summary>
+public sealed class Depot : Aggregate<int>
+{
+    private Depot() { }
+
+    public const Tenancy Scope = Tenancy.PerTenant;
+
+    public int? TenantId { get; private set; }
+
+    public string Name { get; private set; } = "";
+
+    public static Depot Named(string name) => new() { Name = name };
+}
+
 /// <summary>
 /// The shape the accounts table has: a NULLABLE tenant inside a unique index. This is the one the providers
 /// disagree about, so it is modelled here rather than only reasoned about.
@@ -35,11 +49,14 @@ public sealed class TenancyDbContext(DbContextOptions<TenancyDbContext> options)
 {
     public DbSet<Ledger> Ledgers => Set<Ledger>();
 
+    public DbSet<Depot> Depots => Set<Depot>();
+
     public DbSet<Member> Members => Set<Member>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Ledger>().ToTable("Ledger", "tenancy");
+        modelBuilder.Entity<Depot>().ToTable("Depots", "tenancy");
 
         modelBuilder.Entity<Member>(b =>
         {
@@ -178,5 +195,22 @@ public sealed class SqlServerTenancyTests
             Assert.Contains("TenantId", sql, StringComparison.Ordinal);
             Assert.Contains("@", sql, StringComparison.Ordinal);
         }
+    }
+
+    [Fact]
+    public void A_numbered_tenant_is_an_int_column_compared_with_an_int_parameter()
+    {
+        using var db = new TenancyDbContext(
+            new DbContextOptionsBuilder<TenancyDbContext>().UseRaskSqlServerAt(Offline).Options);
+
+        string sql;
+        using (Tenant.Use(987654))
+        {
+            sql = db.Depots.ToQueryString();
+        }
+
+        Assert.Equal("int", db.Model.FindEntityType(typeof(Depot))!.FindProperty(Columns.TenantId)!.GetColumnType());
+        Assert.Contains(" int = 987654;", sql, StringComparison.Ordinal);
+        Assert.Contains("[d].[TenantId] = @", sql, StringComparison.Ordinal);
     }
 }

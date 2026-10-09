@@ -81,7 +81,7 @@ public static class CurrentUser
         /// </summary>
         /// <remarks>
         ///     <para>
-        ///         An explicit <see cref="Rask.Data.Tenant.Use" /> first — a job runs for the tenant its row
+        ///         An explicit <see cref="Rask.Data.Tenant.Use(Guid)" /> first — a job runs for the tenant its row
         ///         recorded, an admin in the tenant they chose — then the <see cref="Rask.Data.Tenant.ClaimType" />
         ///         claim of <c>Current.Principal</c>.
         ///     </para>

@@ -116,17 +116,18 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
         // Already set deliberately — a cross-tenant tool creating a row on somebody's behalf inside
         // Tenant.Across(), or a test — is left alone.
-        if (property.CurrentValue is Guid existing && existing != Guid.Empty)
+        if (property.CurrentValue is { } existing && !Equals(existing, Guid.Empty))
         {
             return;
         }
 
+        // In the column's own type: a table whose tenants are numbered is stamped with the number.
         property.CurrentValue = Tenant.IsAcrossTenants
             ? throw new InvalidOperationException(
                 $"'{entry.Metadata.ClrType.Name}' is tenant-scoped and is being inserted inside " +
                 "Tenant.Across(), which says which tenant it belongs to for nobody. Set TenantId on the row, " +
                 "or open Tenant.Use(id) around the insert.")
-            : Current.RequiredTenant;
+            : TenantColumn.ValueFor(Current.RequiredTenant, property.Metadata.ClrType, entry.Metadata.ClrType.Name);
     }
 
     // A row does not move between tenants. The query filter already stops you LOADING another tenant's row,

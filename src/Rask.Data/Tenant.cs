@@ -11,7 +11,7 @@ namespace Rask.Data;
 ///         <see cref="AsyncLocal{T}" />, so it follows an await without being handed on.
 ///     </para>
 ///     <para>
-///         This type holds the SCOPES — <see cref="Use" />, <see cref="Across" />, <see cref="None" />. Which
+///         This type holds the SCOPES — <see cref="Use(Guid)" />, <see cref="Across" />, <see cref="None" />. Which
 ///         tenant is in flight is read from <c>Current.Tenant</c>, beside the current user.
 ///     </para>
 ///     <para>
@@ -38,7 +38,7 @@ public static class Tenant
     /// <summary>Whether the work in flight deliberately spans tenants — see <see cref="Across" />.</summary>
     public static bool IsAcrossTenants => Ambient.Value.AllTenants;
 
-    /// <summary>The tenant an explicit <see cref="Use" /> scope set, ignoring the principal.</summary>
+    /// <summary>The tenant an explicit <see cref="Use(Guid)" /> scope set, ignoring the principal.</summary>
     /// <remarks>The tenant in flight from every source is <c>Current.Tenant</c>.</remarks>
     internal static Guid? Explicit => Ambient.Value.Tenant;
 
@@ -48,6 +48,28 @@ public static class Tenant
     /// <param name="tenant">The tenant to work in.</param>
     /// <returns>A scope that restores the previous tenant.</returns>
     public static IDisposable Use(Guid tenant) => new Scope(new State(tenant, AllTenants: false));
+
+    /// <summary>
+    ///     Makes the tenant numbered <paramref name="tenant" /> the tenant until the returned scope is disposed.
+    /// </summary>
+    /// <param name="tenant">The number of the tenant to work in — the value its rows hold in <c>TenantId</c>.</param>
+    /// <returns>A scope that restores the previous tenant.</returns>
+    /// <remarks>
+    ///     <para>
+    ///         For an app whose tenants are rows with an integer key. A table that declares
+    ///         <c>public int? TenantId { get; private set; }</c> (or <c>long?</c>) is filtered by, and stamped
+    ///         with, this number.
+    ///     </para>
+    ///     <para>
+    ///         Everywhere else the tenant is still a <see cref="Guid" /> — <c>Current.Tenant</c>, a job's row, a
+    ///         cache key — and the number travels inside it by a fixed rule: the first eight bytes are zero and
+    ///         the last eight are the number, big-endian. <c>Tenant.Use(42)</c> is
+    ///         <c>Tenant.Use(new Guid("00000000-0000-0000-0000-00000000002a"))</c>, so a job enqueued in tenant
+    ///         42 runs in tenant 42. Tenant <c>0</c> would be <see cref="Guid.Empty" />, which the batteries read
+    ///         as "no tenant": number tenants from one.
+    ///     </para>
+    /// </remarks>
+    public static IDisposable Use(long tenant) => Use(TenantNumber.ToGuid(tenant));
 
     /// <summary>
     ///     Lets the work in flight see every tenant, until the returned scope is disposed.
@@ -72,7 +94,7 @@ public static class Tenant
     /// <returns>The tenant to filter by, or <see langword="null" /> to filter by nothing.</returns>
     /// <remarks>
     ///     <para>
-    ///         Order matters. <see cref="Use" /> and <see cref="Across" /> win over the principal, because a
+    ///         Order matters. <see cref="Use(Guid)" /> and <see cref="Across" /> win over the principal, because a
     ///         background job runs for the tenant its own row recorded rather than for whoever enqueued it,
     ///         and an admin who has switched tenant is working in the one they chose.
     ///     </para>
