@@ -85,7 +85,7 @@
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <!-- Trimming is safe: page types reach the runtime via the route registry's generated
          module initialiser, which emits [DynamicDependency] per registered page; the reflection
-         sites in RouteChainRenderer / PageBinder / RouteValueParser are either DAM-annotated or
+         sites in RouteChainPages / PageBinder / RouteValueParser are either DAM-annotated or
          carry a documented suppression. -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>

@@ -118,6 +118,13 @@ public sealed class LiveRenderContext : IDisposable
 
     internal RouteRenderState? Route { get; set; }
 
+    /// <summary>
+    ///     Set by the router when the page's title changed after a component AHEAD of it in the walk had
+    ///     already rendered with the old one — an App that puts the title in its own head, above the router.
+    ///     The root then walks once more, so the frame that goes out is right.
+    /// </summary>
+    internal bool WalkAgain { get; set; }
+
     // The render engine, forwarded from the owning session (the render handle) and surfaced to components via
     // Component.HostEngine. Constant for the session → safe to read from Render() without the render-cache
     // ambient-state opt-out.

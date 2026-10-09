@@ -72,7 +72,7 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
     {
         // #682. Router publishes ctx.Route, and that is per-FRAME state: it lives only for the walk
         // that assigned it. So a frame in which Router does NOT execute has no route context at all,
-        // and any Outlet that DOES execute in that frame reaches RouteChainRenderer with a null route
+        // and any Outlet that DOES execute in that frame finds no route
         // and throws — the app becomes a "Something went wrong" boundary, and the symptom (a missing
         // sidebar) names nothing.
         //

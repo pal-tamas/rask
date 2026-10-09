@@ -64,18 +64,16 @@ public partial class ActionableExceptionMessageTests : global::Rask.Core.RaskMar
     }
 
     [Fact]
-    public void Outlet_outside_a_router_uses_the_same_words_as_the_router_itself()
+    public void Outlet_outside_a_router_says_where_to_place_it()
     {
         // Two spellings for one condition meant searching the message found half the story, and which of
-        // them you hit depended only on whether there was a live context or merely no route in it.
-        var outlet = ReadSource("src", "Rask.Core", "Routing", "Outlet.cs");
-        var renderer = ReadSource("src", "Rask.Core", "Routing", "RouteChainRenderer.cs");
+        // them you hit depended only on whether there was a live context or merely no route in it. There is
+        // one throw site now, and it is the same sentence with a live render and without one.
+        var view = new StubComponent(() => Outlet);
 
-        const string Shared = "Place Outlet inside a Router render tree.";
-        Assert.Contains(Shared, outlet, StringComparison.Ordinal);
-        Assert.Contains(Shared, renderer, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "Outlet() must be called inside a Router render tree.", outlet, StringComparison.Ordinal);
+        var live = Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
+
+        Assert.Contains("Place Outlet inside a Router render tree.", live.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -86,25 +84,5 @@ public partial class ActionableExceptionMessageTests : global::Rask.Core.RaskMar
         var ex = Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
 
         Assert.Contains("DragDrop.Body(", ex.Message, StringComparison.Ordinal);
-    }
-
-    private static string ReadSource(params string[] parts) =>
-        File.ReadAllText(Path.Combine([LocateRepoRoot(), .. parts]));
-
-    private static string LocateRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
-            {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new InvalidOperationException(
-            $"Could not locate Rask.slnx walking up from {AppContext.BaseDirectory}");
     }
 }

@@ -4230,6 +4230,7 @@ Rask.Core.Routing.RouteState.Path.set -> void
 Rask.Core.Routing.RouteState.Query.get -> Rask.Core.Routing.IQueryCollection!
 Rask.Core.Routing.RouteState.Query.set -> void
 Rask.Core.Routing.RouteState.RouteState() -> void
+Rask.Core.Routing.RouteState.Title.get -> string?
 Rask.Core.Routing.RouteUrl
 Rask.Core.Routing.RouteUrl.Deconstruct(out string! Path, out string? QueryString, out System.Type? PageType) -> void
 Rask.Core.Routing.RouteUrl.Equals(Rask.Core.Routing.RouteUrl other) -> bool
@@ -7344,6 +7345,7 @@ virtual Rask.Core.Component.EnterChildrenScope() -> System.IDisposable?
 virtual Rask.Core.Component.HeadAssets.get -> Rask.Core.Component?
 virtual Rask.Core.Component.HtmlLang.get -> string?
 virtual Rask.Core.Component.OpaqueSubtree.get -> bool
+virtual Rask.Core.Component.PageTitle.get -> string?
 virtual Rask.Core.Component.Render() -> Rask.Core.Component?
 virtual Rask.Core.Component.RenderChildren() -> System.Collections.Generic.IEnumerable<Rask.Core.Component?>!
 virtual Rask.Core.Component.SelfClosing.get -> bool
