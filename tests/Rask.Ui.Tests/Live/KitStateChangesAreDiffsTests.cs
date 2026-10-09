@@ -126,22 +126,29 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task A_toast_is_answered_with_a_diff_where_its_outlet_is_the_last_child_and_the_whole_page_where_it_is_not(bool last)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task A_toast_arriving_replaced_and_leaving_is_a_diff_wherever_its_outlet_is_placed(bool last, bool grouped)
     {
         var toasts = new ServiceCollection().AddSingleton<IToaster, Toaster>().BuildServiceProvider();
+        Component Outlet() => grouped ? Ui.ToastGroup[Ui.Toast] : Ui.Toast;
         var page = Page.Render(
-            () => Div[Button.OnClick(() => Toast.Error("That name is taken."))["Save"], last ? null : Ui.Toast, Footer["after"], last ? Ui.Toast : null],
+            () => Div[Button.OnClick(() => Toast.Error("That name is taken."))["Save"], last ? null : Outlet(), Footer["after"], last ? Outlet() : null],
             toasts);
 
         await page.Click("Save");
+        await page.Click("Save");
+        var shown = page.FindAll("[data-ui-toast-dialog]").Count;
+        while (page.FindAll("[data-rask-dismiss]") is [var close, ..])
+        {
+            await page.Invoke(close.Attribute("data-rask-on-click")!);
+        }
 
-        // Ui.Toast draws nothing until there is a toast, so between two siblings its arrival moves what follows.
-        // Left as it is: a toast's root is a popover keyed by the toast, and what would hold its place is Flux's
-        // to decide (src/Rask.Ui/UiToast.Messages.cs:48).
-        Assert.Contains("That name is taken.", page.Html, StringComparison.Ordinal);
-        Assert.Equal(last, DiffGuardAttribute.FullPages().Count == 0);
+        Assert.Equal(grouped ? 2 : 1, shown);
+        Assert.False(page.Exists("[data-ui-toast-dialog]"));
+        Assert.Empty(DiffGuardAttribute.FullPages());
     }
 
     private sealed class Stay

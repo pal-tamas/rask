@@ -21,6 +21,20 @@ them until tagged releases begin.
   pick brings the button in. The same shape in `Ui.TimePicker` (placeholder against chosen time, the clear
   button) and in the data grid's group bar (the hint against the first chip) is keyed too.
 
+- **A toast arriving or leaving is answered with a diff, not the whole page.** `Ui.Toast` drew nothing until
+  there was a toast, so its popover came and went among the layout's children — and a child that arrives before
+  a sibling is a change by position, which the live diff answers with the whole document. Every save and delete
+  that says so in a toast cost a document twice: on a one-field form 33,648 bytes arriving and 31,296 leaving in
+  the reporting app (6,127 and 3,798 on the test page), where the replies are now 2,330 and 110 bytes whatever
+  the page weighs. The host — `<div popover="manual" data-ui-toast role="status">`, or `data-ui-toast-group`
+  inside a `Ui.ToastGroup` — is on the page from the first render now, closed and empty, as Flux's `<ui-toast>`
+  is; a toast is put into it and taken out. The toasts the host draws when an app places no `Ui.Toast` do the
+  same. **What changes for a page:** there is one more element where `Ui.Toast` is written, displayed `none`
+  until a toast shows — a rule that counts children (`space-y-*`, `:last-child`) sees it, so place `Ui.Toast`
+  beside the layout's content rather than between two spaced blocks. The host is no longer keyed by its toast;
+  each toast's dialog still is, so a toast that takes another's place is a new node with its own entrance and
+  its own countdown.
+
 - **A number being typed survives a reply that is the whole page.** A field bound to a number or a date sends
   on `change`, so while the reader is still in it the server has not heard what they typed. A reply that is a
   diff leaves such a field alone; a reply that is the whole page carries, for every bound field, the value the

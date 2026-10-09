@@ -36,7 +36,6 @@ internal sealed class DiffGuardAttribute : BeforeAfterTestAttribute
         // rows are the page's own children, which nothing keys.
         ["UiCommandTests"] = "src/Rask.Ui/UiCommandRows.cs:26",
         ["KitStateChangesAreDiffsTests.A_prop_change_the_gate_still_refuses_is_listed_until_it_is_fixed"] = "KitStateChangesAreDiffsTests.Refused",
-        ["KitStateChangesAreDiffsTests.A_toast_is_answered_with_a_diff_where_its_outlet_is_the_last_child_and_the_whole_page_where_it_is_not"] = "src/Rask.Ui/UiToast.Messages.cs:48",
     };
 
     [ModuleInitializer]
