@@ -57,13 +57,13 @@ public sealed partial class UiDataGrid<T, TKey>
     private Component ChooserBar(IReadOnlyList<UiColumn<T>> columns, DragDropContext ctx) =>
         Div.Class("relative")[
             Ui.Button.Sm.Icon(Ui.IconName.Bars3)
-                .OnClick(() => _chooserOpen = !_chooserOpen)["Columns"],
+                .OnClick(() => _chooserOpen = !_chooserOpen)[RaskStrings.Get(RaskString.DataGridColumns, "Columns")],
             !_chooserOpen
                 ? null
                 : Div
                     .Class("absolute z-10 mt-1 flex w-64 flex-col gap-1 rounded-box border "
                         + "border-base-300 bg-base-100 p-2 shadow-lg")
-                    .AriaLabel("Columns")
+                    .AriaLabel(RaskStrings.Get(RaskString.DataGridColumns, "Columns"))
                     .Role("group")[ChooserRows(columns, ctx)]
         ];
 
@@ -110,9 +110,9 @@ public sealed partial class UiDataGrid<T, TKey>
                         .Disabled(!column.CanHide),
                     column.Title ?? token
                 ],
-                MoveButton(column.CanReorder && ReorderEnabled && index > 0, "Move up",
+                MoveButton(column.CanReorder && ReorderEnabled && index > 0, RaskStrings.Get(RaskString.DataGridMoveUp, "Move up"),
                     Ui.IconName.ChevronUp, () => MoveColumnAsync(columns, token, -1)),
-                MoveButton(column.CanReorder && ReorderEnabled && index < order.Count - 1, "Move down",
+                MoveButton(column.CanReorder && ReorderEnabled && index < order.Count - 1, RaskStrings.Get(RaskString.DataGridMoveDown, "Move down"),
                     Ui.IconName.ChevronDown, () => MoveColumnAsync(columns, token, 1))
             ];
         }
@@ -122,14 +122,14 @@ public sealed partial class UiDataGrid<T, TKey>
         Div
             .Class("flex flex-wrap items-center gap-2 rounded-box border border-dashed "
                 + "border-base-300 p-2")
-            .AriaLabel("Grouping")
+            .AriaLabel(RaskStrings.Get(RaskString.DataGridGrouping, "Grouping"))
             .Role("group")[
             // The chips as a sequence rather than wrapped in a Fragment: Fragment is internal to
             // Rask.Core, so its entry is private protected and no other assembly can name it. The
             // enumerable indexer takes the sequence directly, which is what Fragment would have done.
             groups.Count == 0
                 ? [Span.Class("text-sm text-base-content/60")[
-                    "Group by a column with its header button."
+                    RaskStrings.Get(RaskString.DataGridGroupingHint, "Group by a column with its header button.")
                 ]]
                 : GroupChips(groups, ctx)
         ];
@@ -154,11 +154,11 @@ public sealed partial class UiDataGrid<T, TKey>
                 .OnDragEnd(ctx.DragEnd)[
                 Ui.Icon.Name(Ui.IconName.EllipsisVertical).Class("size-3 shrink-0 opacity-40"),
                 Span[column.Title ?? token],
-                MoveButton(index > 0, "Move group left", Ui.IconName.ArrowLeft,
+                MoveButton(index > 0, RaskStrings.Get(RaskString.DataGridMoveGroupLeft, "Move group left"), Ui.IconName.ArrowLeft,
                     () => MoveGroupAsync(token, -1)),
-                MoveButton(index < groups.Count - 1, "Move group right", Ui.IconName.ArrowRight,
+                MoveButton(index < groups.Count - 1, RaskStrings.Get(RaskString.DataGridMoveGroupRight, "Move group right"), Ui.IconName.ArrowRight,
                     () => MoveGroupAsync(token, 1)),
-                MoveButton(true, "Stop grouping by " + (column.Title ?? token), Ui.IconName.XMark,
+                MoveButton(true, RaskStrings.Get(RaskString.DataGridUngroup, "Stop grouping by {0}", column.Title ?? token), Ui.IconName.XMark,
                     () => UngroupAsync(token))
             ];
         }

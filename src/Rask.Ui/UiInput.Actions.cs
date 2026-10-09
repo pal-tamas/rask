@@ -24,7 +24,7 @@ public sealed partial class UiInput<T>
     // The runtime empties the field in the click (`data-rask-clear`), tells the page with a real `input` and
     // `change`, and leaves the focus in the field — which is what Flux's script does.
     private static Component ClearButton(string inputId) =>
-        ActionButton("Clear input", ("ui-clear-button", string.Empty), ("rask-clear", inputId))
+        ActionButton(RaskStrings.Get(RaskString.InputClear, "Clear input"), ("ui-clear-button", string.Empty), ("rask-clear", inputId))
             .Class(UiClass.Compose(UiInputLook.Action, UiInputLook.Clear))
             .TabIndex(-1)[
             Ui.Icon.Name(Ui.IconName.XMark).Mini
@@ -34,14 +34,14 @@ public sealed partial class UiInput<T>
     // ran a round trip later would no longer hold the gesture the clipboard asks for. The button then carries
     // `data-copied` for two seconds, which is what shows the tick.
     private static Component CopyButton(string inputId) =>
-        ActionButton("Copy to clipboard", ("rask-copy", inputId))
+        ActionButton(RaskStrings.Get(RaskString.InputCopy, "Copy to clipboard"), ("rask-copy", inputId))
             .Class(UiInputLook.Action)[
             Ui.Icon.Name(Ui.IconName.ClipboardDocumentCheck).Mini.Class(UiInputLook.Copied),
             Ui.Icon.Name(Ui.IconName.ClipboardDocument).Mini.Class(UiInputLook.NotCopied)
         ];
 
     private Component ViewButton() =>
-        ActionButton("Toggle password visibility", _viewing ? ("viewable-open", string.Empty) : null)
+        ActionButton(RaskStrings.Get(RaskString.InputTogglePassword, "Toggle password visibility"), _viewing ? ("viewable-open", string.Empty) : null)
             .Class(UiInputLook.Action)
             .OnClick(() => _viewing = !_viewing)[
             Ui.Icon.Name(Ui.IconName.EyeSlash).Mini.Class(_viewing ? null : "hidden"),

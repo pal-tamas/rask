@@ -270,25 +270,25 @@ public static class GuideCatalog
             SearchTitle = "Live server-rendered pages without hydration in C#",
             Description = "Server-rendered HTML with no hydration, a live session per page over a WebSocket or an automatic HTTP fallback, async data, status codes and redirects.",
         },
-        new("forms", "Forms & validation", "Two-way binding, Form.Model(m), inline/DataAnnotations/Fluent.", "Frontend")
+        new("forms", "Forms & validation", "Two-way binding, Form.Model(m), inline Validate rules.", "Frontend")
         {
             SearchTitle = "Forms and two-way data binding in C#",
             Description = "Bind inputs two-way with typed Bind expressions, build forms on an EditContext, track touched and modified fields, and show accessible validation messages.",
         },
-        new("forms-validation", "Forms — validation", "Inline, DataAnnotations, FluentValidation, and async validators.", "Frontend")
+        new("forms-validation", "Forms — validation", "Inline Validate rules, sync or async; attributes and FluentValidation too.", "Frontend")
         {
-            SearchTitle = "Form validation with DataAnnotations in C#",
-            Description = "Validate form input with inline rules, DataAnnotations and FluentValidation, including async validators, a validating indicator and first-error-wins.",
+            SearchTitle = "Form validation with inline rules in C#",
+            Description = "Validate a form with inline Validate rules on a field or the form, sync or async, kept in a value object. DataAnnotations and FluentValidation work too.",
         },
         new("forms-advanced", "Forms — advanced", "Nested/complex models, radio & checkbox groups, custom controls.", "Frontend")
         {
             SearchTitle = "Nested form models and custom form controls",
             Description = "Bind and validate nested models and collections, build radio and checkbox groups, keep form state across a redeploy, and write your own form controls in C#.",
         },
-        new("validation", "Validation", "Built in and on: attributes and AbstractValidator<T>, in forms and on requests.", "Frontend")
+        new("validation", "Validation", "Inline rules in a form; attributes and AbstractValidator<T> on requests too.", "Frontend")
         {
             SearchTitle = "Model validation for forms and HTTP requests",
-            Description = "Built-in .NET validation: DataAnnotations or FluentValidation rules run in the form as the user types, and again on the server before a request is handled.",
+            Description = "Built-in .NET validation: inline rules in a form, and DataAnnotations or FluentValidation rules that run again on the server before a request is handled.",
         },
         new("js-interop", "JavaScript interop", "Scoped CSS/TypeScript, element refs, IJSRuntime, typed APIs.", "Frontend")
         {

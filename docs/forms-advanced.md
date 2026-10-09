@@ -6,31 +6,36 @@ Nested/complex models, radio & checkbox groups, and building your own form contr
 
 ## Nested / complex models
 
-`Bind` and validation extend transparently through sub-objects and collections. The form's built-in
-validation covers the whole reachable graph — no per-level opt-in, and nothing declared. `FieldIdentifier` is **reference-based** (keyed off the
+`Bind` and validation extend transparently through sub-objects and collections: a nested field takes
+its `.Validate(…)` rule exactly as a top-level one does. `FieldIdentifier` is **reference-based** (keyed off the
 owner sub-instance, not a dotted path from the root), so removing or replacing a row drops its error
 state with it.
 
 ```csharp
 public sealed class CheckoutModel
 {
-    [Required] public string Name { get; set; } = "";
+    public string Name { get; set; } = "";
     public AddressModel Address { get; set; } = new();
     public List<LineItem> Items { get; set; } = new();
 }
 public sealed class AddressModel
 {
-    [Required] public string Street { get; set; } = "";
-    [Required, RegularExpression("^[A-Z]{2}$")] public string Country { get; set; } = "";
+    public string Street { get; set; } = "";
+    public string Country { get; set; } = "";
 }
 ```
 
 **Sub-object binding** uses the same `.Bind(() => …)` shape:
 
 ```csharp
-Input.Bind(() => _model.Address.Street),
+Input.Bind(() => _model.Address.Street)
+    .Validate(v => v.Length > 0 ? [] : ["Street is required."]),
 Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Address.Street),
 ```
+
+**Attributes on a nested model are also supported.** Where the models carry DataAnnotations — as the
+demos on this page do — the form's built-in pass covers the whole reachable graph, with no per-level
+opt-in and nothing declared.
 
 **Collection binding — `foreach` + per-item capture** (the canonical pattern). Each iteration closes
 over a distinct `item`, so each row's lambda targets its own instance:

@@ -3838,18 +3838,134 @@ Rask.Core.Globalization.RaskCultureOptions.UseQueryString.set -> void
 Rask.Core.Globalization.RaskCultureResolver
 Rask.Core.Globalization.RaskCultureServiceCollectionExtensions
 Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CalendarToday = 15 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CommandEmpty = 106 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConfirmLeaveLeave = 98 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConfirmLeaveStay = 97 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridCollapseGroup = 117 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridCollapseRow = 123 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridColumns = 107 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridEmpty = 120 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridExpand = 118 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridExpandGroup = 116 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridExpandRow = 122 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridGroupBy = 115 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridGrouping = 110 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridGroupingHint = 111 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridMoveDown = 109 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridMoveGroupLeft = 112 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridMoveGroupRight = 113 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridMoveUp = 108 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridSelectAll = 119 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridSelectRow = 121 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DataGridUngroup = 114 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerCancel = 19 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerConfirm = 18 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerDay = 21 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerDayPlaceholder = 24 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerMonth = 20 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerMonthPlaceholder = 23 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerPlaceholder = 16 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerRangePlaceholder = 17 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerYear = 22 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerYearPlaceholder = 25 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetAllTime = 52 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetCustom = 53 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetLast14Days = 37 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetLast30Days = 38 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetLast3Months = 39 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetLast6Months = 40 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetLast7Days = 30 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetLastMonth = 32 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetLastQuarter = 34 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetLastWeek = 29 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetLastYear = 36 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetNext14Days = 48 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetNext30Days = 49 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetNext3Months = 50 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetNext6Months = 51 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetNext7Days = 44 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetNextMonth = 45 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetNextQuarter = 46 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetNextWeek = 43 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetNextYear = 47 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetThisMonth = 31 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetThisQuarter = 33 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetThisWeek = 28 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetThisYear = 35 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetToday = 26 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetTomorrow = 42 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetYearToDate = 41 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DateRangePresetYesterday = 27 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DiffHandle = 124 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorAlign = 81 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorAlignCenter = 83 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorAlignLeft = 82 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorAlignRight = 84 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorBlockquote = 72 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorBold = 66 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorBullet = 70 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorCode = 73 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorHeading = 85 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorHeading1 = 87 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorHeading2 = 88 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorHeading3 = 89 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorHeadingText = 86 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorHighlight = 74 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorItalic = 67 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorLabel = 64 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorLink = 79 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorOrdered = 71 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorRedo = 78 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorStrike = 68 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorSubscript = 75 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorSuperscript = 76 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorToolbar = 65 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorUnderline = 69 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorUndo = 77 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.EditorUnlink = 80 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ErrorHeading = 9 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ErrorReload = 11 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ErrorTryAgain = 10 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FieldValidating = 126 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FileItemRemove = 127 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterReset = 125 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.InputChooseFile = 93 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.InputChooseFiles = 94 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.InputClear = 90 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.InputCopy = 91 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.InputNoFile = 95 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.InputTogglePassword = 92 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ModalClose = 96 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.NotFoundBackHome = 8 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.NotFoundBody = 7 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.NotFoundTitle = 6 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.OtpCharacter = 99 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.PaginationNext = 14 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.PaginationPrevious = 13 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.PaginationSummary = 12 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerClear = 5 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerHour = 2 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerMinute = 3 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerNextMonth = 1 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerPreviousMonth = 0 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerSecond = 4 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.RatingNone = 102 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.RatingValue = 103 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SelectClear = 58 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SelectEmpty = 55 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SelectLoading = 54 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SelectSearchClear = 57 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SelectSearchPlaceholder = 56 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SelectSelectedSuffix = 59 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SidebarSearch = 105 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SidebarToggle = 104 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SliderRangeEnd = 101 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SliderRangeStart = 100 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.TimePickerHourPlaceholder = 62 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.TimePickerMeridiem = 61 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.TimePickerMinutePlaceholder = 63 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.TimePickerPlaceholder = 60 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskStrings
 Rask.Core.Globalization.SessionCulture
 Rask.Core.Globalization.SessionCulture.Culture.get -> System.Globalization.CultureInfo!
@@ -7023,6 +7139,10 @@ static Rask.Core.Globalization.RaskCultureResolver.IsGlobalizationSupported.get 
 static Rask.Core.Globalization.RaskCultureResolver.TryResolve(string? name, out System.Globalization.CultureInfo! culture) -> bool
 static Rask.Core.Globalization.RaskCultureServiceCollectionExtensions.AddRaskCulture(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Core.Globalization.RaskCultureOptions!>? configure = null, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime = Microsoft.Extensions.DependencyInjection.ServiceLifetime.Scoped) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Core.Globalization.RaskStrings.Get(Rask.Core.Globalization.RaskString key, string! fallback) -> string!
+static Rask.Core.Globalization.RaskStrings.Get<T0, T1, T2>(Rask.Core.Globalization.RaskString key, string! fallback, T0 arg0, T1 arg1, T2 arg2) -> string!
+static Rask.Core.Globalization.RaskStrings.Get<T0, T1>(Rask.Core.Globalization.RaskString key, string! fallback, T0 arg0, T1 arg1) -> string!
+static Rask.Core.Globalization.RaskStrings.Get<T0>(Rask.Core.Globalization.RaskString key, string! fallback, T0 arg0) -> string!
+static Rask.Core.Globalization.RaskStrings.UseLibrarySource(Rask.Core.Globalization.IRaskStringSource! source) -> void
 static Rask.Core.Globalization.RaskStrings.UseSource(Rask.Core.Globalization.IRaskStringSource! source) -> void
 static Rask.Core.InputTypeExtensions.ToHtml(this Rask.Core.InputType type) -> string!
 static Rask.Core.Live.DevErrorInfo.From(System.Exception! ex, string! kind) -> Rask.Core.Live.DevErrorInfo?

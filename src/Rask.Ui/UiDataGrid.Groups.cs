@@ -125,7 +125,9 @@ public sealed partial class UiDataGrid<T, TKey>
         }
 
         return Ui.Button.Ghost.Xs.Icon(collapsed ? Ui.IconName.ChevronRight : Ui.IconName.ChevronDown)
-            .AriaLabel(collapsed ? "Expand group" : "Collapse group")
+            .AriaLabel(collapsed
+                ? RaskStrings.Get(RaskString.DataGridExpandGroup, "Expand group")
+                : RaskStrings.Get(RaskString.DataGridCollapseGroup, "Collapse group"))
             .OnClick(() => ToggleBand(path));
     }
 

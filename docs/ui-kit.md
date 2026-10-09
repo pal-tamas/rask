@@ -42,6 +42,11 @@ C# component framework that ships no script of its own:
 - **One vocabulary.** `Position` + `Align` place everything that floats, events are `On…`, `Kbd` shows a shortcut
   wherever one is shown, `Tone`/`Variant`/`Size` style everything.
 - **We style, you space.** Components bring padding, borders and colour — never an outer margin.
+- **Its own words are translatable.** The few texts the kit writes itself — a pager's "Showing 1 to 10 of 13
+  results", a select's "No results found", a date picker's "Select a date", the name of a close button — are
+  `RaskString` keys. The kit speaks English and Hungarian out of the box, in the languages your app lists in
+  `SupportedCultures`; a `Resources/RaskStrings.{culture}.json` in your app adds a language or changes a word
+  ([every key and its English](localization.md#translating-the-frameworks-own-text)).
 - **Simple first, composable after.** `Ui.Input.Label("Email").Description(…)` is one line; `Ui.Navlist` with
   `Ui.NavlistGroup`s and `Ui.NavlistItem`s, or a `Ui.Menu` with `Ui.MenuSubmenu`s, is there when one line is not enough.
 
@@ -952,8 +957,8 @@ Div.Class("flex items-center justify-between gap-4")[
 Either way the current page is not a control: it says `aria-current="page"`. On the first page Previous
 is not one either, and on the last page Next — each keeps its place and says `aria-disabled="true"`.
 
-The names are Flux's, exactly. A counted pager labels its arrows `&laquo; Previous` and `Next &raquo;` —
-the entity as text, which is what Flux's own page carries. The simple paginator's arrows carry no label,
+A counted pager labels its arrows `« Previous` and `Next »` — Laravel's translation, with the character
+a reader hears rather than the name of its entity. The simple paginator's arrows carry no label,
 and its spent arrow says nothing at all; a test finds them by position.
 
 **`ScrollTo`** brings something back into view when a page is chosen, for a pager at the foot of a long

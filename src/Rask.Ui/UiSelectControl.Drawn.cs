@@ -86,7 +86,7 @@ public abstract partial class UiSelectControl<T>
         if (picked.Count > 1)
         {
             return Div.Class(UiSelectLook.Picked)[
-                picked.Count.ToString(System.Globalization.CultureInfo.CurrentCulture) + " " + (SelectedSuffix ?? "selected")
+                picked.Count.ToString(System.Globalization.CultureInfo.CurrentCulture) + " " + (SelectedSuffix ?? RaskStrings.Get(RaskString.SelectSelectedSuffix, "selected"))
             ];
         }
 
@@ -243,7 +243,7 @@ public abstract partial class UiSelectControl<T>
             .Type(ButtonType.Button)
             .TabIndex(-1)
             .Class(UiInputLook.Action)
-            .Aria("label", "Clear selected")
+            .Aria("label", RaskStrings.Get(RaskString.SelectClear, "Clear selected"))
             .Data("ui-button", "")
             .OnClick(ClearAsync)[
             Ui.Icon.Name(Ui.IconName.XMark).Mini

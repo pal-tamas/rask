@@ -353,7 +353,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>, IUiFi
         ShowValidating == false || Bind is not { } bind
             ? null
             : Validation.Indicator
-                .Template(() => Ui.Loading.Text("Checking…").Size(Ui.Size.Xs).Class("label"))
+                .Template(() => Ui.Loading.Text(RaskStrings.Get(RaskString.FieldValidating, "Checking…")).Size(Ui.Size.Xs).Class("label"))
                 .For(bind);
 
     /// <summary>
