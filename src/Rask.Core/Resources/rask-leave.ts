@@ -10,6 +10,9 @@
 // `submit` event are saved; one typed after that submit left is not. Read when somebody asks, so there is no
 // observer, and a refused submit — which changes nothing — leaves the form unsaved.
 //
+// HOW IT ASKS. With `confirm`, unless the layout placed Ui.ConfirmLeave: then in that dialog, which is a
+// Ui.Modal, and the exit waits for the answer.
+//
 // WHO ASKS. A navigation the reader starts inside the app goes through `mayLeave` in rask-owned.ts, from both
 // hosts (a nav link, `__raskHost.navigate`); Back and Forward arrive here as `popstate`, ahead of the host;
 // closing the tab, a reload and a link out of the app are `beforeunload`, whose dialog is the browser's own.
@@ -74,14 +77,58 @@ function sameDocument(a: string, b: string): boolean {
     return a.split("#")[0] === b.split("#")[0];
 }
 
+// The kit's dialog (Ui.ConfirmLeave), when the layout placed one: its parts carry data-rask-leave.
+const PART = "data-rask-leave";
+
 if (page) {
     const doc = page;
 
-    const ask = function (): boolean {
-        const message = unsavedMessage(doc);
-        return message === null || window.confirm(message);
+    // THE QUESTION. Without Ui.ConfirmLeave it is `confirm`, answered before this returns. With it the
+    // question is a modal dialog in the page, which answers later: the exit is refused now, kept as `asked`,
+    // and run again — let through by `leaving` — if the reader presses the button that leaves. Every other
+    // way the dialog closes (its other button, the X, Escape, a press outside) is staying, and needs nothing.
+    let asked: (() => void) | null = null;
+    let leaving = false;
+
+    const dialogFor = function (message: string): HTMLDialogElement | null {
+        const text = doc.querySelector("[" + PART + "=message]");
+        const dialog = text ? text.closest("dialog") : null;
+        if (text && dialog) text.textContent = message;
+        return dialog;
+    };
+
+    const ask = function (again: () => void): boolean {
+        const message = leaving ? null : unsavedMessage(doc);
+        if (message === null) {
+            return true;
+        }
+        const dialog = dialogFor(message);
+        if (!dialog) {
+            return window.confirm(message);
+        }
+        asked = again;
+        // The platform's own call, which is what the dialog's invoker buttons make: rask-overlay.ts marks it
+        // open and dismisses it as it does any Ui.Modal, and the browser moves focus in and hands it back.
+        if (!dialog.open) dialog.showModal();
+        return false;
     };
     seam.leave = ask;
+
+    listen("click", function (e) {
+        const again = asked;
+        if (!again || !near(e.target, "[" + PART + "=go]")) {
+            return;
+        }
+        asked = null;
+        leaving = true;
+        try {
+            again();
+        } finally {
+            leaving = false;
+        }
+    });
+    // `close` does not bubble. Closed any other way, the exit that was asked about is forgotten.
+    listen("close", function () { asked = null; }, true);
 
     const unloading = function (e: BeforeUnloadEvent): void {
         if (unsavedMessage(doc) === null) {
@@ -129,9 +176,16 @@ if (page) {
     }, true);
 
     // Back and Forward. By the time `popstate` fires the URL has already moved, so staying means moving it
-    // back, and the move back fires a `popstate` of its own that nobody is to hear.
+    // back, and the move back fires a `popstate` of its own that nobody is to hear. With the dialog the
+    // history is moved back BEFORE the reader answers — staying is then nothing at all — and leaving makes
+    // the same move again, which `passing` lets through to the host.
     let returning = false;
+    let passing = false;
     const moved = function (e: Event): void {
+        if (passing) {
+            passing = false;
+            return; // the reader chose to leave: the host's listener is next
+        }
         if (returning) {
             returning = false;
             if (sameDocument(location.href, here)) {
@@ -139,11 +193,22 @@ if (page) {
             }
             return; // back where the reader was; or somewhere else, and asking twice would not help
         }
-        if (sameDocument(location.href, here) || ask()) {
-            return; // a fragment of this page, or the reader goes: the host's listener is next
+        if (sameDocument(location.href, here)) {
+            return; // a fragment of this page
+        }
+        // Only a browser that says which way the history went can make the move a second time; any other
+        // is asked with `confirm`, dialog or not.
+        const forth = navigation ? -back : 0;
+        const again = function (): void {
+            passing = true;
+            history.go(forth);
+        };
+        const message = unsavedMessage(doc);
+        if (message === null || (forth ? ask(again) : window.confirm(message))) {
+            return; // nothing to lose, or the reader goes
         }
         e.stopImmediatePropagation();
-        if (navigation && back) {
+        if (forth) {
             returning = true;
             history.go(back);
         } else {

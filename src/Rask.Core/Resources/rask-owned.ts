@@ -23,7 +23,7 @@ interface Seam {
     /** What happened while the hooks were on their way, oldest first; null when nothing is being kept. */
     missed: Event[] | null;
     /** Asks the reader about a guarded form's unsaved edits; false when they stay. Set by rask-leave.ts. */
-    leave?: () => boolean;
+    leave?: (again: () => void) => boolean;
 }
 
 const scope = globalThis as typeof globalThis & {__raskHookSeam?: Seam};
@@ -63,12 +63,14 @@ export function ownsChecked(el: Element): boolean {
 }
 
 /**
- * Whether a navigation the reader started inside the app may go ahead: false when a form guarded with
- * `data-rask-confirm-leave` holds unsaved edits and the reader chose to stay. Asked by both hosts, answered
+ * Whether a navigation the reader started inside the app may go ahead NOW: false when a form guarded with
+ * `data-rask-confirm-leave` holds unsaved edits and the reader stays — or has yet to answer. A dialog in the
+ * page cannot answer inside this call the way `confirm` does, so the caller hands over `again`, the same
+ * navigation, and it is run (and let through) if the reader chooses to leave. Asked by both hosts, answered
  * by rask-leave.ts — which is only there on a page that has such a form, so until then nothing is asked.
  */
-export function mayLeave(): boolean {
-    return !seam.leave || seam.leave();
+export function mayLeave(again: () => void): boolean {
+    return !seam.leave || seam.leave(again);
 }
 
 // ----- Shared helpers ---------------------------------------------------------------------------------

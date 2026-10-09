@@ -9,6 +9,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.ConfirmLeave` — the unsaved-changes question in a dialog of the app's own.** Placed once in a layout
+  (`Ui.ConfirmLeave.Stay("Nem").Leave("Igen")`, "Stay" / "Leave" when unset), it is where every form's
+  `ConfirmLeave("…")` asks, in place of the browser's `confirm`: a `Ui.Modal` with the form's message as its
+  heading, a ghost button that stays and a danger button that leaves. Stay, the close button, Escape and a
+  press outside keep the page, what was typed and the history as they were; Leave carries on with the
+  navigation that was asked for — the link, `__raskHost.navigate`, or the entry Back / Forward was going to.
+  It is rendered closed and opened in the browser, with no round trip. Without the element nothing changes:
+  `window.confirm`, as before, and closing the tab or reloading is the browser's own prompt either way. Not a
+  Flux component. The runtime's question became "may this go ahead now, and here is how to do it again"
+  (`mayLeave(again)`), since a dialog answers later than `confirm` does.
+
 - **`ConfirmLeave` — a form asks before it is left unsaved.**
   `Form.Model(m).OnSubmit(Save).ConfirmLeave("Leave without saving?")[ … ]`. From the first thing typed or
   changed in the form — decided in the browser, so a value that has not reached the server counts — a link

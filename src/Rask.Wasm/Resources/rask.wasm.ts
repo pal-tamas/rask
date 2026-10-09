@@ -652,7 +652,8 @@ document.addEventListener("click", (e) => {
 
 // One in-app navigation, whoever asked: a click on a nav link, or front-end code through the bridge.
 function navigate(url: URL, replace: boolean): void {
-    if (!mayLeave()) return; // a form with unsaved edits, and the reader stays (ConfirmLeave)
+    // A form with unsaved edits (ConfirmLeave): the reader stays, or is being asked and this runs again.
+    if (!mayLeave(() => navigate(url, replace))) return;
     // Stash the "#fragment" so applyNavScroll can scroll to the anchor once the new page commits
     // (the fragment is not sent to .NET).
     _pendingScrollHash = url.hash || "";
