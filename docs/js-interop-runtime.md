@@ -318,7 +318,7 @@ of the runtime itself.
 ### How the hooks load
 
 **A page that carries none of these attributes does not download them.** The hooks in the tables below are a
-script of their own, `rask-hooks.js` (45 kB, 14 kB gzipped), beside the runtime every page loads (`rask.js` on
+script of their own, `rask-hooks.js` (49 kB, 15 kB gzipped), beside the runtime every page loads (`rask.js` on
 the Server host, `rask.wasm.js` in a WebAssembly app). The runtime keeps only the list of attributes that ask
 for a hook, and fetches the script the first time the page carries one — at most once per document:
 

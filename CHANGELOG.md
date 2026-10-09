@@ -176,7 +176,7 @@ them until tagged releases begin.
   It is a hook module now (`rask-menu-keys.ts`, in `rask-hooks.js`), and the role is what asks for it, as a
   tablist's does: a page with a `[role=menu]` loads the hooks, in the first response on the Server host. No
   behaviour changed. `rask.js` 96,350 -> 93,559 bytes and `rask.wasm.js` 85,110 -> 82,328 (2.8 kB each, off
-  every page); `rask-hooks.js` carries it instead, 42,367 -> 45,272 with the lock and menu fixes below.
+  every page); `rask-hooks.js` carries it instead, 42,367 -> 48,853 with the lock fix and the menu's cursor below.
 - **A `Ui.Chart` is a third of the markup and a third of the work.** Every row used to carry its own strip, its
   own cursor and its own copy of the whole tooltip; there is one tooltip and one cursor now, and each part
   carries what it reads per row as one short line. Sixty charts of fifty points, with axes, a cursor and a
@@ -1505,7 +1505,7 @@ them until tagged releases begin.
   the page hears a row when it is pressed and the menu opening and closing. Measured on a live Server page,
   over one walk of twelve rows entered, three flyouts opened and closed and eight keys: 25 WebSocket frames sent
   before, **0 sent and 0 received** now (`UiMenuHookTests` asserts it, and that what the runtime wrote survives a
-  render the server sends meanwhile). A flyout is no longer shown by `:hover`, so it also closes under a pointer
+  render the server sends meanwhile). It costs the hooks bundle 3,581 bytes, on pages that have a menu. A flyout is no longer shown by `:hover`, so it also closes under a pointer
   still resting on its row once the arrows have moved on, as Flux's does.
 
   In the runtime: `data-rask-safe-area` with no value means the element right after the row (Flux's flyout has

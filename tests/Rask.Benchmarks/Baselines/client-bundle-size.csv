@@ -121,6 +121,10 @@
 # lock reading whether a scrollbar shows before it keeps a gutter, a hover-opened panel taking no focus, and a
 # menu's pointer leaving the focused row lit.
 #
+# Refreshed 2026-10-09 with a menu's CURSOR kept in the browser (data-rask-menu-cursor: the arrows, type-ahead,
+# the submenu keys, the lit row and the open flyouts, which were C# state and a round trip each):
+# rask-hooks.js 45,272 -> 48,853 (+3,581). The runtimes every page loads are unchanged by it.
+#
 # Refresh with:
 #   dotnet build src/Rask.Server -c Release -p:MinVerSkip=true
 #   dotnet build src/Rask.Wasm   -c Release -p:MinVerSkip=true
@@ -131,4 +135,4 @@
 bundle,bytes
 rask.js,93559
 rask.wasm.js,82328
-rask-hooks.js,45272
+rask-hooks.js,48853
