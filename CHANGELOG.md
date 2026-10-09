@@ -1255,6 +1255,14 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An aggregate that declares `Checks = Concurrency.None` can be updated.** The table was mapped without a
+  `Version`, but the save still asked the change tracker for it: `Product.Update(id, p => …)`, `Find` then
+  `Save()`, and any change to a child threw, because the model has no such property. The
+  interceptor now bumps the version, and marks a changed child's root, only where the column is mapped — so a
+  root that also declined its stamps is simply left alone. `GeneratedModelWrites.Update`/`Delete` called
+  directly with a version for such an aggregate is refused with a message naming the const, rather than
+  skipping a check the caller asked for.
+
 - **A Server page no longer raises `Rask: inRoot() was called before a host was installed`.** The runtime's
   own `<script>` is the last child of the render root, so an in-app navigation to a page with one top-level
   node more or fewer moved it, and the morph moved it by inserting the incoming tag — which ran `rask.js` a

@@ -68,7 +68,9 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
         foreach (var entry in context.ChangeTracker.Entries<IAggregate>())
         {
-            if (entry.State == EntityState.Modified)
+            // Only an aggregate that maps the token: one that declared Checks = Concurrency.None has no Version,
+            // and asking an entry for a property that is not mapped throws rather than no-ops.
+            if (entry.State == EntityState.Modified && entry.Metadata.FindProperty(Columns.Version) is not null)
             {
                 var version = entry.Property(Columns.Version);
                 version.CurrentValue = (int)(version.CurrentValue ?? 0) + 1;
@@ -204,8 +206,17 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 continue;
             }
 
-            root.Property(Columns.UpdatedAt).IsModified = true;
-            root.Property(Columns.Version).IsModified = true;
+            Touch(root, Columns.UpdatedAt);
+            Touch(root, Columns.Version);
+        }
+    }
+
+    // A root that declined its stamps or its version has nothing to mark: the child's own row is the whole write.
+    private static void Touch(EntityEntry root, string column)
+    {
+        if (root.Metadata.FindProperty(column) is not null)
+        {
+            root.Property(column).IsModified = true;
         }
     }
 

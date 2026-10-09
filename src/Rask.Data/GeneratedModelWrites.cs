@@ -295,6 +295,15 @@ public static class GeneratedModelWrites
             return;
         }
 
-        context.Entry(entity).Property(Columns.Version).OriginalValue = expected;
+        var entry = context.Entry(entity);
+
+        if (entry.Metadata.FindProperty(Columns.Version) is null)
+        {
+            throw new InvalidOperationException(
+                $"{entry.Metadata.ClrType.Name} declares Checks = Concurrency.None, so it has no Version to compare " +
+                $"{expected} with. Call the write without a version, or remove the const to keep the check.");
+        }
+
+        entry.Property(Columns.Version).OriginalValue = expected;
     }
 }
