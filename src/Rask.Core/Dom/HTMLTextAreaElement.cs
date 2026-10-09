@@ -97,11 +97,10 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
     // The rendered text content, resolved in WriteAttributes (bound/controlled) and emitted by
     // RenderChildren. Null leaves the plain Children content (indexer) in place.
     private string? _content;
+    private bool _saidInvalid;
 
     protected override void WriteAttributes(StringBuilder sb)
     {
-        base.WriteAttributes(sb);
-
         // Bound mode parses the expression up front so the auto-derived `name` lands in attribute order.
         ExpressionAccessor.Accessor? acc = null;
         EditContext? bindCtx = null;
@@ -112,11 +111,14 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             bindCtx = BindingHelpers.ResolveBindingContext(acc.Target);
             fid = acc.Field;
             _content = BindingHelpers.FormatValue(acc.Getter());
+            SayInvalid(bindCtx, fid, ref _saidInvalid);
         }
         else if (Value is not null)
         {
             _content = BindingHelpers.FormatValue(Value);
         }
+
+        base.WriteAttributes(sb);
 
         var name = Name ?? acc?.PropertyName;
         if (name is not null)
@@ -147,7 +149,12 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             return;
         }
 
-        // Plain / controlled.
+        WirePlain(sb, ctx);
+    }
+
+    // Plain / controlled.
+    private void WirePlain(StringBuilder sb, LiveRenderContext ctx)
+    {
         var input = OnInput.Handler;
         if (input is not null)
         {

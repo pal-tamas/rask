@@ -98,7 +98,26 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
-    public Task A_collapsed_rail_is_still_collapsed_after_a_reload_and_never_drawn_wide() => RunAsync(async () =>
+    public Task A_collapsed_rail_is_still_collapsed_after_a_reload_and_never_drawn_wide() =>
+        RunAsync(() => ReloadCollapsedAsync(holdHooksFor: TimeSpan.Zero));
+
+    [Fact]
+    public Task A_collapsed_rail_is_never_drawn_wide_however_late_the_behaviour_hooks_arrive() =>
+        RunAsync(() => ReloadCollapsedAsync(holdHooksFor: TimeSpan.FromSeconds(4)));
+
+    // Every frame the sidebar is painted in after a reload, with what could have made it wide: how far the
+    // document had got, whether the hooks bundle had run, whether the app had rendered over the prerendered
+    // page (the box is then another element), and whether the box was checked.
+    private const string FrameRecorder =
+        "window.__frames=[];(function f(){var s=document.querySelector('[data-ui-sidebar]');"
+        + "if(s){var b=document.getElementById('sidebar-rail');"
+        + "if(b&&!window.__box)window.__box=b;"
+        + "window.__frames.push(Math.round(s.getBoundingClientRect().width)+' '+document.readyState"
+        + "+(performance.getEntriesByType('resource').some(function(e){return e.name.indexOf('rask-hooks')>=0&&e.responseEnd>0})?' hooks':' no-hooks')"
+        + "+(b===window.__box?' prerendered-box':' app-box')+(b&&b.checked?' checked':' unchecked'));}"
+        + "requestAnimationFrame(f);})();";
+
+    private async Task ReloadCollapsedAsync(TimeSpan holdHooksFor)
     {
         // Reached from a page of the running app, so the runtime that stores the choice is there to hear it.
         await OpenAsync();
@@ -112,17 +131,39 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Page.WaitForFunctionAsync("() => localStorage.getItem('flux-sidebar-collapsed-desktop') === 'true'");
 
         // Every width the sidebar is painted at after the reload, from the first frame on: a flash would be a wide one.
-        await Page.AddInitScriptAsync(
-            "window.__widths=[];(function f(){var s=document.querySelector('[data-ui-sidebar]');"
-            + "if(s)window.__widths.push(Math.round(s.getBoundingClientRect().width));requestAnimationFrame(f);})();");
+        await Page.AddInitScriptAsync(FrameRecorder);
+        if (holdHooksFor > TimeSpan.Zero)
+        {
+            // A slow network for that one file: the app boots and renders long before its hooks are there.
+            await Page.RouteAsync("**/rask-hooks.js*", async route =>
+            {
+                await Task.Delay(holdHooksFor);
+                await route.ContinueAsync();
+            });
+        }
+
         await Page.ReloadAsync();
 
         await Expect(rail).ToBeCheckedAsync(new LocatorAssertionsToBeCheckedOptions { Timeout = 15_000 });
         await Expect(sidebar).ToHaveCSSAsync("width", "56px");
-        var widths = await Page.EvaluateAsync<int[]>("() => window.__widths");
-        Assert.NotEmpty(widths);
-        Assert.All(widths, width => Assert.Equal(56, width));
-    });
+        // Past the hooks' arrival, which is the last thing that could change the box.
+        await Page.WaitForFunctionAsync(
+            "() => window.__frames.some(f => f.includes(' hooks'))",
+            null, new PageWaitForFunctionOptions { Timeout = 30_000 });
+        await Page.WaitForTimeoutAsync(300);
+        var frames = await Page.EvaluateAsync<string[]>("() => window.__frames");
+        Assert.NotEmpty(frames);
+        var wide = frames.Select((frame, index) => (frame, index)).Where(f => !f.frame.StartsWith("56 ", StringComparison.Ordinal)).ToList();
+        Assert.True(
+            wide.Count == 0,
+            $"The rail was drawn wide in {wide.Count} of {frames.Length} frames after the reload. Each frame is "
+            + "\"width readyState hooks-bundle box checked\": a wide frame with 'prerendered-box unchecked' is the head "
+            + "script late (Ui.SidebarScript); one with 'app-box unchecked' is the app's own render putting an unchecked "
+            + "box over the restored one; 'no-hooks' says the hooks bundle had not run yet."
+            + Environment.NewLine + string.Join(Environment.NewLine, wide.Take(12).Select(f => $"  frame {f.index}: {f.frame}"))
+            + Environment.NewLine + "  first frames: " + string.Join(" | ", frames.Take(4))
+            + Environment.NewLine + "  last frame: " + frames[^1]);
+    }
 
     [Fact]
     public Task Headings_text_and_links_are_drawn_as_Flux_draws_them() => RunAsync(async () =>

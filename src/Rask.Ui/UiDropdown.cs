@@ -105,7 +105,7 @@ public sealed partial class UiDropdown : Component
     {
         var open = Open ?? _open;
         var parts = (Children ?? []).Where(child => child is not null).ToList();
-        var host = new UiPopupHost(PanelId, PanelStyle(), Open, Detail: null, ToggledAsync);
+        var host = new UiPopupHost(PanelId, PanelStyle(), Open, Detail: null, ToggledAsync, Hover == true);
 
         var root = Div
             // A part that owns the dropdown says how it lays out: its `hidden` must not meet a display of ours.

@@ -4,18 +4,14 @@ using Rask.Testing;
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The menu's keyboard cursor, its submenus and its checkable rows, driven through the real handlers.
+///     What the PAGE holds of an open menu, driven through the real handlers: that it is open, and what its
+///     checkable rows write.
 /// </summary>
 /// <remarks>
-///     <para>
-///     Every expectation here was read off Flux UI's live dropdown page, key by key: where focus is after
-///     opening, what each arrow does at an end, that Home and End do nothing, what Enter and Space each do on a
-///     submenu's row.
-///     </para>
-///     <para>
-///     <c>Test</c> dispatches in-process and re-renders, so none of this needs a browser. What does — the
-///     popover actually opening, focus following the cursor, the safe triangle — is the site's browser suite's.
-///     </para>
+///     Where the reader is in the menu — the lit row, the focused one, the open flyouts, every key and every
+///     move of the pointer — is not the page's state and sends it nothing: the runtime keeps it in the browser
+///     (<c>data-rask-menu-cursor</c>). That is held in a real browser, against what Flux UI's live dropdown
+///     did, by <c>UiMenuHookTests</c> on a live Server page and by the site's suite in WebAssembly.
 /// </remarks>
 public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
 {
@@ -47,187 +43,22 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         ];
     }
 
-    // The row carrying data-active, read back as its words: the row the cursor is on, and the one with the
-    // roving tab stop — which must be the same row, and the only one.
-    private static string Cursor(string html)
-    {
-        var rows = Regex.Matches(html, "<button[^>]*data-active=\"\"[^>]*>(.*?)</button>", RegexOptions.Singleline);
-        if (rows.Count == 0)
-        {
-            Assert.DoesNotContain("tabindex=\"0\"", html, StringComparison.Ordinal);
-            return "";
-        }
-
-        var row = Assert.Single(rows);
-        Assert.Contains("tabindex=\"0\"", row.Value, StringComparison.Ordinal);
-        return Regex.Replace(row.Groups[1].Value, "<[^>]+>", "").Trim();
-    }
-
     private static Task OpenAsync(Page page) =>
         page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
 
-    private static Task KeyAsync(Page page, string key) =>
-        page.On("[popover]").Raise("keydown", $"{{\"key\":\"{key}\"}}");
-
     [Fact]
-    public async Task Opening_leaves_the_cursor_nowhere_and_the_trigger_says_it_is_open()
+    public async Task Opening_writes_no_cursor_and_the_trigger_says_it_is_open()
     {
         var page = Page.Render(Menu());
 
         await OpenAsync(page);
 
-        Assert.Equal("", Cursor(page.Html));
+        // No row is lit and none is a tab stop in anything a render writes: both are the runtime's.
+        Assert.DoesNotContain("data-active=", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("tabindex=\"0\"", page.Html, StringComparison.Ordinal);
         Assert.Contains("aria-expanded=\"true\"", page.Html, StringComparison.Ordinal);
         Assert.Matches("<div[^>]*data-ui-dropdown=\"\"[^>]*data-open=\"\"", page.Html);
         Assert.Matches("<button[^>]*data-open=\"\"[^>]*popovertarget", page.Html);
-    }
-
-    [Theory]
-    [InlineData("ArrowDown")]
-    [InlineData("ArrowUp")]
-    public async Task Either_arrow_starts_at_the_first_row(string key)
-    {
-        var page = Page.Render(Menu());
-        await OpenAsync(page);
-
-        await KeyAsync(page, key);
-
-        Assert.Equal("Edit", Cursor(page.Html));
-    }
-
-    [Fact]
-    public async Task The_arrows_step_over_what_is_disabled_and_stop_at_the_ends()
-    {
-        var page = Page.Render(Menu());
-        await OpenAsync(page);
-        await KeyAsync(page, "ArrowDown");
-
-        await KeyAsync(page, "ArrowDown");
-        var afterDisabled = Cursor(page.Html);
-        await KeyAsync(page, "ArrowDown");
-        await KeyAsync(page, "ArrowDown");
-        await KeyAsync(page, "ArrowDown");
-        var atTheBottom = Cursor(page.Html);
-        await KeyAsync(page, "ArrowUp");
-        await KeyAsync(page, "ArrowUp");
-        await KeyAsync(page, "ArrowUp");
-        await KeyAsync(page, "ArrowUp");
-
-        // "Duplicate" is disabled: the cursor steps over it. And there is no wrapping.
-        Assert.Equal("Sort by", afterDisabled);
-        Assert.Equal("Delete", atTheBottom);
-        Assert.Equal("Edit", Cursor(page.Html));
-    }
-
-    [Theory]
-    [InlineData("Home")]
-    [InlineData("End")]
-    [InlineData("PageUp")]
-    [InlineData("PageDown")]
-    public async Task Home_End_and_the_page_keys_do_not_move_the_cursor(string key)
-    {
-        var page = Page.Render(Menu());
-        await OpenAsync(page);
-        await KeyAsync(page, "ArrowDown");
-        await KeyAsync(page, "ArrowDown");
-
-        await KeyAsync(page, key);
-
-        Assert.Equal("Sort by", Cursor(page.Html));
-    }
-
-    [Fact]
-    public async Task ArrowRight_opens_a_submenu_onto_its_first_row_and_ArrowLeft_closes_it()
-    {
-        var page = Page.Render(Menu());
-        await OpenAsync(page);
-        await KeyAsync(page, "ArrowDown");
-        await KeyAsync(page, "ArrowDown");
-
-        await KeyAsync(page, "ArrowRight");
-        var opened = page.Html;
-        await KeyAsync(page, "ArrowDown");
-        await KeyAsync(page, "ArrowDown");
-        var atItsEnd = Cursor(page.Html);
-        await KeyAsync(page, "ArrowLeft");
-
-        Assert.Matches("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", opened);
-        Assert.Equal("Name", Cursor(opened));
-        // Its own level, and no wrapping there either.
-        Assert.Equal("Date", atItsEnd);
-        Assert.DoesNotMatch("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", page.Html);
-        Assert.Equal("Sort by", Cursor(page.Html));
-    }
-
-    [Fact]
-    public async Task Enter_on_a_submenu_row_opens_it_onto_its_first_row()
-    {
-        var page = Page.Render(Menu());
-        await OpenAsync(page);
-        await KeyAsync(page, "ArrowDown");
-        await KeyAsync(page, "ArrowDown");
-
-        await KeyAsync(page, "Enter");
-
-        Assert.Matches("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", page.Html);
-        Assert.Equal("Name", Cursor(page.Html));
-    }
-
-    [Fact]
-    public async Task Space_on_a_submenu_row_opens_it_and_leaves_the_cursor_on_the_row()
-    {
-        var page = Page.Render(Menu());
-        await OpenAsync(page);
-        await KeyAsync(page, "ArrowDown");
-        await KeyAsync(page, "ArrowDown");
-
-        await KeyAsync(page, " ");
-
-        Assert.Matches("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", page.Html);
-        Assert.Equal("Sort by", Cursor(page.Html));
-    }
-
-    [Fact]
-    public async Task ArrowRight_on_an_ordinary_row_and_ArrowLeft_at_the_top_level_do_nothing()
-    {
-        var page = Page.Render(Menu());
-        await OpenAsync(page);
-        await KeyAsync(page, "ArrowDown");
-
-        await KeyAsync(page, "ArrowRight");
-        await KeyAsync(page, "ArrowLeft");
-
-        Assert.Equal("Edit", Cursor(page.Html));
-        Assert.DoesNotMatch("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", page.Html);
-    }
-
-    [Fact]
-    public async Task Typing_a_letter_jumps_to_the_row_that_starts_with_it()
-    {
-        var page = Page.Render(Menu());
-        await OpenAsync(page);
-
-        await KeyAsync(page, "d");
-        var first = Cursor(page.Html);
-        var other = Page.Render(Menu());
-        await OpenAsync(other);
-        await KeyAsync(other, "s");
-        await KeyAsync(other, "h");
-
-        // "Duplicate" starts with d too, and cannot be picked.
-        Assert.Equal("Delete", first);
-        Assert.Equal("Show archived", Cursor(other.Html));
-    }
-
-    [Fact]
-    public async Task A_modified_key_is_left_to_the_browser()
-    {
-        var page = Page.Render(Menu());
-        await OpenAsync(page);
-
-        await page.On("[popover]").Raise("keydown", "{\"key\":\"ArrowDown\",\"ctrlKey\":true}");
-
-        Assert.Equal("", Cursor(page.Html));
     }
 
     [Fact]
@@ -271,65 +102,6 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         Assert.Equal(["draft=True", "sort=date", "clicked"], picked);
         Assert.Matches("role=\"menuitemcheckbox\"[^>]*aria-checked=\"false\"", page.Html);
         Assert.Matches("<button id=\"" + Regex.Escape(date) + "\"[^>]*aria-checked=\"false\"", page.Html);
-    }
-
-    [Fact]
-    public async Task The_row_a_pointer_picks_is_where_the_cursor_is_from_then_on()
-    {
-        var log = new List<string>();
-        var page = Page.Render(Menu(log: log, keepOpen: true));
-        await OpenAsync(page);
-
-        await page.On("[role=\"menuitemcheckbox\"]").Click();
-        var onThePick = Cursor(page.Html);
-        await KeyAsync(page, "ArrowUp");
-
-        Assert.Equal("Show archived", onThePick);
-        Assert.Equal("Sort by", Cursor(page.Html));
-    }
-
-    [Fact]
-    public async Task A_tap_on_a_submenu_row_opens_it_and_a_second_tap_closes_it()
-    {
-        var page = Page.Render(Menu());
-        await OpenAsync(page);
-        var row = Regex.Match(page.Html, "data-ui-menu-submenu=\"\"[^>]*><button id=\"([^\"]+)\"").Groups[1].Value;
-
-        await page.On("#" + row).Click();
-        var opened = page.Html;
-        await page.On("#" + row).Click();
-
-        Assert.Matches("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", opened);
-        Assert.Equal("Sort by", Cursor(opened));
-        Assert.DoesNotMatch("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", page.Html);
-    }
-
-    [Fact]
-    public async Task Closing_forgets_the_cursor_and_shuts_every_submenu()
-    {
-        var page = Page.Render(Menu());
-        await OpenAsync(page);
-        await KeyAsync(page, "ArrowDown");
-        await KeyAsync(page, "ArrowDown");
-        await KeyAsync(page, "ArrowRight");
-
-        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"open\",\"newState\":\"closed\"}");
-
-        Assert.Equal("", Cursor(page.Html));
-        Assert.DoesNotContain("data-open", page.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("aria-expanded=\"true\"", page.Html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task ArrowDown_from_the_trigger_reaches_the_menu_before_it_reports_open_and_still_lands_on_the_first_row()
-    {
-        var page = Page.Render(Menu());
-
-        // The runtime clicks the trigger and hands the same key to the menu; the popover's toggle comes after.
-        await KeyAsync(page, "ArrowDown");
-        await OpenAsync(page);
-
-        Assert.Equal("Edit", Cursor(page.Html));
     }
 
     [Fact]

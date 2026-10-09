@@ -209,6 +209,13 @@ public sealed partial class EditContext : IDisposable
             }
         }
 
+        // A store's rules stay last: they are asked once everything written in the app has passed.
+        if (_asyncValidators is [.., StoreRuleValidator])
+        {
+            _asyncValidators.Insert(_asyncValidators.Count - 1, validator);
+            return;
+        }
+
         _asyncValidators.Add(validator);
     }
 

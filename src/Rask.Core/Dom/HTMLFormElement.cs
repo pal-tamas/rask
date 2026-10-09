@@ -275,6 +275,14 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
     // attribute message shadows a discovered one on the same field. Nothing here reorders anything.
     private void RegisterBuiltInValidators(EditContext ctx)
     {
+        // Above the switch, not under it: AutoValidate turns off the rules nobody wrote in the app, and a
+        // store's rule was written, on its index. Asked before anything is built, so a form over a model no
+        // store knows pays one lookup, and gains no validator to await.
+        if (RaskValidation.HasStoreRulesFor(typeof(TModel)) && !ctx.HasAsyncValidator(typeof(StoreRuleValidator)))
+        {
+            ctx.AddValidator(new StoreRuleValidator(ctx, typeof(TModel), LiveRenderContext.CurrentSync?.Services));
+        }
+
         if (!RaskValidation.AutoValidate || !AutoValidate)
         {
             return;
