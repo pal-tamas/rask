@@ -199,6 +199,76 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
     }
 
     [Fact]
+    public async Task A_menu_the_pointer_opens_takes_no_focus_though_it_asks_for_it_and_one_Enter_opens_does()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        // The checkbox is pressed, so it has focus: what the reader was on before the pointer wandered.
+        await page.CheckAsync("#collapsed");
+        await page.HoverAsync("#rail-trigger");
+        var shown = await session.ShownAsync("#rail-menu");
+        var underThePointer = await session.FocusAsync();
+        await page.Mouse.MoveAsync(900, 600);
+        await page.FocusAsync("#rail-trigger");
+        await page.Keyboard.PressAsync("Enter");
+
+        Assert.True(shown);
+        // Flux's rail menu, 2026-10-09: document.activeElement was the same element before and after.
+        Assert.Equal("collapsed", underThePointer);
+        Assert.Equal("rail-menu", await session.FocusAsync());
+        Assert.True(await page.EvaluateAsync<bool>("() => document.getElementById('rail-menu').hasAttribute('autofocus')"));
+    }
+
+    [Fact]
+    public async Task The_pointer_leaving_a_menu_darkens_the_row_it_lit_and_not_the_row_that_has_focus()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+        const string lit = "() => [...document.querySelectorAll('#menu > [data-active]')].map(r => r.id).join(',')";
+
+        await page.HoverAsync("#row-c");
+        await page.Mouse.MoveAsync(900, 600);
+        var pointers = await page.EvaluateAsync<string>(lit);
+        await page.HoverAsync("#row-c");
+        // The keyboard moves on while the pointer rests: a render lights its row, and focus is on it.
+        await page.EvaluateAsync("() => { document.getElementById('row-c').removeAttribute('data-active'); const d = document.getElementById('row-d'); d.setAttribute('data-active', ''); d.focus(); }");
+        await page.Mouse.MoveAsync(900, 600);
+
+        Assert.Equal(string.Empty, pointers);
+        // Flux: the pointer leaving took nothing from the row the arrows were on.
+        Assert.Equal("row-d", await page.EvaluateAsync<string>(lit));
+    }
+
+    [Fact]
+    public async Task Focus_follows_the_row_given_the_tab_stop_and_leaves_a_lit_row_that_says_it_is_the_pointers()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        const string settle = "() => new Promise(done => requestAnimationFrame(() => done()))";
+
+        await page.ClickAsync("#picker-open");
+        var opened = await session.FocusAsync();
+        // What a render writes for a row the pointer lit: lit, and still no tab stop.
+        await page.EvaluateAsync("() => document.getElementById('pick-a').setAttribute('data-active', '')");
+        await page.EvaluateAsync(settle);
+        var pointerLit = await session.FocusAsync();
+        // And for the row the keyboard arrives on: the tab stop.
+        await page.EvaluateAsync("() => document.getElementById('pick-a').setAttribute('tabindex', '0')");
+        await page.EvaluateAsync(settle);
+        var keyboards = await session.FocusAsync();
+        // A menu that keeps no roving tab stop at all is followed by data-active alone, as it always was.
+        await page.EvaluateAsync("() => document.getElementById('pick-c').setAttribute('data-active', '')");
+        await page.EvaluateAsync(settle);
+
+        Assert.Equal("picker", opened);
+        Assert.Equal("picker", pointerLit);
+        Assert.Equal("pick-a", keyboards);
+        Assert.Equal("pick-c", await session.FocusAsync());
+    }
+
+    [Fact]
     public async Task The_row_under_the_pointer_is_the_only_lit_row_and_none_is_when_the_pointer_leaves_the_menu()
     {
         await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
@@ -300,7 +370,13 @@ public sealed partial class PointerHookPage : Component
         <input id="collapsed" type="checkbox" style="position:fixed;left:400px;top:20px">
         <div id="rail" data-rask-hover="rail-menu" data-rask-hover-if="input:checked ~ *" style="position:fixed;left:400px;top:60px">
           <button id="rail-trigger" type="button" popovertarget="rail-menu">Rail item</button>
-          <div id="rail-menu" popover style="position:fixed;left:400px;top:100px">Menu</div>
+          <div id="rail-menu" popover role="menu" tabindex="-1" autofocus style="position:fixed;left:400px;top:100px">Menu</div>
+        </div>
+        <button id="picker-open" type="button" popovertarget="picker" aria-haspopup="true" style="position:fixed;left:600px;top:20px">Pick</button>
+        <div id="picker" popover role="menu" tabindex="-1" autofocus style="position:fixed;left:600px;top:60px;width:160px">
+          <button id="pick-a" type="button" role="menuitem" tabindex="-1">One</button>
+          <button id="pick-b" type="button" role="menuitem" tabindex="-1">Two</button>
+          <button id="pick-c" type="button" role="menuitem">Three</button>
         </div>
         <div id="menu" role="menu" tabindex="-1" data-rask-menu-pointer style="left:20px;top:320px">
           <button id="row-a" type="button" role="menuitem" data-active>New</button>

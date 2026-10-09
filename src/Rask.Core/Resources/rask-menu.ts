@@ -5,10 +5,13 @@
 // over a socket the second one trails the pointer by a round trip. Two attributes close the gap:
 //
 //   * data-rask-menu-pointer on the [role=menu]: the row the pointer is over gets data-active at once and
-//     every other row of that menu loses it; when the pointer leaves the menu, none has it. The page moves
-//     its own cursor from the row's pointerenter handler, as it would anyway, and its render then agrees
-//     with what is already on screen. One row is ever lit, and the arrows continue from it.
-//   * data-rask-safe-area="<flyout id>" on a row that opens a submenu: while that flyout is open, the
+//     every other row of that menu loses it; when the pointer leaves the menu, none has it — but the row
+//     that has FOCUS, which is the keyboard's. The page moves its own cursor from the row's pointerenter
+//     handler, as it would anyway, and its render then agrees with what is already on screen. One row is
+//     ever lit, and the arrows continue from it. Focus is not moved: on Flux UI the pointer lights a row and
+//     document.activeElement stays where it was.
+//   * data-rask-safe-area on a row that opens a submenu — ="<flyout id>", or with no value when the flyout
+//     is the element right after the row: while that flyout is open, the
 //     triangle between the pointer and the flyout's near edge belongs to the row. Without it the diagonal
 //     towards the flyout crosses the rows below, each one closes the submenu, and the flyout is gone
 //     before the pointer arrives. The corner follows the pointer along the row; past the row it stays
@@ -106,7 +109,10 @@ if (page) {
         const menu = near(e.target, POINTER);
         const to = (e as PointerEvent).relatedTarget;
         if (menu && !(to instanceof Node && menu.contains(to))) {
-            light(menu, null);
+            // What the pointer lit goes dark. The row the keyboard is on — the one with focus — stays lit:
+            // on Flux the pointer leaving takes nothing from the arrows.
+            const held = page!.activeElement;
+            light(menu, held && held.hasAttribute("data-active") && held.closest("[role=menu]") === menu ? held : null);
         }
         // The pointer left the row and its triangle: for the flyout, or for somewhere that is not towards it.
         const row = near(e.target, "[" + SAFE + "]");
@@ -120,8 +126,10 @@ if (page) {
         if (!row) {
             return;
         }
-        // Open is "has a box": a popover, a dialog or a plain element shown by a class all answer the same.
-        const flyout = named(row, SAFE);
+        // Named by id, or — written with no value — the element right after the row, which is where Flux UI's
+        // submenu keeps its flyout. Open is "has a box": a popover, a dialog or a plain element shown by a class
+        // all answer the same.
+        const flyout = row.getAttribute(SAFE) ? named(row, SAFE) : row.nextElementSibling;
         if (!flyout || !flyout.getClientRects().length) {
             drop();
             return;

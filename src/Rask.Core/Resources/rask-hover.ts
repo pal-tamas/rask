@@ -60,6 +60,21 @@ function crosses(root: Element, e: Event): boolean {
     return !(other instanceof Node && root.contains(other));
 }
 
+// A panel the pointer opens takes no focus: on Flux UI's rail the menu of a group opens under the pointer and
+// document.activeElement stays where it was (measured on its sidebar demo, 2026-10-09). A popover carrying
+// `autofocus` — a menu does, so that a press or the keyboard hands it the arrow keys — would take it as it
+// shows, so for the length of that one call it does not carry it.
+function showUnfocused(panel: HTMLElement | null): void {
+    const takes = !!panel && panel.hasAttribute("autofocus");
+    if (takes) {
+        panel!.removeAttribute("autofocus");
+    }
+    setShown(panel, true);
+    if (takes) {
+        panel!.setAttribute("autofocus", "");
+    }
+}
+
 function hoverable(root: Element): boolean {
     const condition = root.getAttribute("data-rask-hover-if");
     try {
@@ -80,7 +95,7 @@ if (page) {
         }
         const hover = near(e.target, "[" + HOVER + "]");
         if (hover && crosses(hover, e) && hoverable(hover)) {
-            setShown(named(hover, HOVER), true);
+            showUnfocused(named(hover, HOVER));
         }
     }, {capture: true, passive: true});
 

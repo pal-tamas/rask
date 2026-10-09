@@ -147,15 +147,39 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Danger_is_red_under_the_pointer_and_under_the_cursor()
+    public void Danger_is_red_where_the_row_is_lit_and_a_row_has_no_highlight_of_its_own_under_the_pointer()
     {
         var html = Html(Ui.Menu[Ui.MenuItem.Danger["Delete"], Ui.MenuItem["Edit"]]);
 
         var danger = Row(html, "Delete");
 
-        Assert.Contains("hover:text-red-600", danger, StringComparison.Ordinal);
+        // One highlight, Flux's: data-active, which the runtime writes for the pointer and the menu for the
+        // keyboard. A :hover beside it is a second lit row whenever the arrows move off the pointer's.
         Assert.Contains("data-active:text-red-600", danger, StringComparison.Ordinal);
+        Assert.DoesNotContain("hover:text-red-600", danger, StringComparison.Ordinal);
+        Assert.DoesNotContain("hover:bg-", Row(html, "Edit"), StringComparison.Ordinal);
+        Assert.Contains("data-active:bg-zinc-50", Row(html, "Edit"), StringComparison.Ordinal);
         Assert.DoesNotContain("text-red-600", Row(html, "Edit"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_menu_asks_the_runtime_for_its_pointer_and_for_the_page_lock_and_a_hover_menu_for_no_lock()
+    {
+        var pressed = Ui.Dropdown[Button["Options"], Ui.Menu[Ui.MenuItem["Edit"]]].ToHtml().AsText();
+        var hover = Ui.Dropdown.Hover()[Button["Options"], Ui.Menu[Ui.MenuItem["Edit"]]].ToHtml().AsText();
+        var links = Ui.Dropdown[Button["Go"], Ui.Navmenu[Ui.NavmenuItem.Href("/a")["A"]]].ToHtml().AsText();
+        var context = Ui.Context[Div["Area"], Ui.Menu[Ui.MenuItem["Copy"]]].ToHtml().AsText();
+
+        var menu = Regex.Match(pressed, "<div[^>]*role=\"menu\"[^>]*>").Value;
+        var hovered = Regex.Match(hover, "<div[^>]*role=\"menu\"[^>]*>").Value;
+
+        Assert.Contains(" data-rask-menu-pointer=\"\"", menu, StringComparison.Ordinal);
+        Assert.Contains(" data-rask-lock=\"\"", menu, StringComparison.Ordinal);
+        Assert.Contains(" data-rask-menu-pointer=\"\"", hovered, StringComparison.Ordinal);
+        // Flux locks nothing under a menu the pointer opened: a page with no pointer would take it from the trigger.
+        Assert.DoesNotContain("data-rask-lock", hovered, StringComparison.Ordinal);
+        Assert.Matches("<nav[^>]* data-rask-lock=\"\"", links);
+        Assert.Matches("<div[^>]*role=\"menu\"[^>]* data-rask-lock=\"\"|<div[^>]* data-rask-lock=\"\"[^>]*role=\"menu\"", context);
     }
 
     [Fact]
@@ -302,7 +326,10 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
         // As Flux writes it: the row says nothing about the flyout, and the flyout has no name and no id.
         Assert.DoesNotMatch(" aria-[a-z]+=", Regex.Match(row, "<button[^>]*>").Value);
         Assert.Contains("data-ui-menu-item-has-icon", row, StringComparison.Ordinal);
-        Assert.Matches("</button><div class=\"[^\"]*\" data-ui-menu=\"\" role=\"menu\" tabindex=\"-1\">", html);
+        // The runtime's safe area, with no value: the flyout is the element right after the row. And the
+        // flyout is a menu of its own to the pointer.
+        Assert.Contains(" data-rask-safe-area=\"\"", Regex.Match(row, "<button[^>]*>").Value, StringComparison.Ordinal);
+        Assert.Matches("</button><div class=\"[^\"]*\" data-ui-menu=\"\" data-rask-menu-pointer=\"\" role=\"menu\" tabindex=\"-1\">", html);
         // The flyout is shown by the stylesheet, not by the top layer: only the menu itself is a popover.
         Assert.Single(Regex.Matches(html, "popover=\"auto\""));
     }

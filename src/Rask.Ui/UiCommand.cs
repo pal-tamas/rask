@@ -82,7 +82,11 @@ public sealed partial class UiCommand : Component
             static _ => Task.CompletedTask,
             static _ => { },
             query: _query,
-            options: true);
+            options: true)
+        {
+            // One cursor here: the row it is on is the one a render marks.
+            Focus = active,
+        };
         _scope = scope;
 
         return

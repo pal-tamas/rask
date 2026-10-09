@@ -3,8 +3,9 @@
 // A menu's keyboard cursor is C#'s: its key handler decides which row the cursor is on and a render writes
 // `data-active` on that row. What C# cannot do is move focus, press a row or close a popover, so the rest lives
 // here:
-//   * FOCUS FOLLOWS THE CURSOR — the row that gains `data-active` is focused, so a screen reader follows the
-//     arrow keys row by row (roving focus, as Flux UI's menus have it);
+//   * FOCUS FOLLOWS THE CURSOR — the row that gains `data-active`, or the roving tab stop (tabindex="0"), is
+//     focused, so a screen reader follows the arrow keys row by row (roving focus, as Flux UI's menus have it);
+//     a lit row that says tabindex="-1" is the pointer's, and takes none;
 //   * the navigation keys move the cursor rather than scrolling the page behind it: the C# handler still receives
 //     every one — this only prevents the default;
 //   * Enter / Space press the row that has focus, so its own click handler, its link, or its checkbox runs
@@ -134,15 +135,22 @@ if (page) {
     }, true);
 
     if (typeof MutationObserver === "function") {
-        // Focus follows the cursor. Only inside an open menu, so a render of a closed one cannot steal focus.
+        // Focus follows the cursor. Only inside an open menu, so a render of a closed one cannot steal focus —
+        // and not onto a row that says tabindex="-1" while it is lit: that one the POINTER lit, and on Flux UI
+        // the pointer lights a row without taking focus from where the keyboard left it. The row a render gives
+        // the tab stop (tabindex="0") is the keyboard's, lit or not.
         new MutationObserver(function (records) {
             for (const record of records) {
                 const row = record.target;
-                if (row instanceof HTMLElement && row.hasAttribute("data-active") && row.matches(ITEM)
-                    && isShown(row.closest("[popover]")) && doc.activeElement !== row) {
+                if (!(row instanceof HTMLElement) || !row.matches(ITEM) || doc.activeElement === row) {
+                    continue;
+                }
+                const stop = row.getAttribute("tabindex");
+                if ((record.attributeName === "tabindex" ? stop === "0" : row.hasAttribute("data-active") && stop !== "-1")
+                    && isShown(row.closest("[popover]"))) {
                     row.focus();
                 }
             }
-        }).observe(doc.documentElement, {subtree: true, attributes: true, attributeFilter: ["data-active"]});
+        }).observe(doc.documentElement, {subtree: true, attributes: true, attributeFilter: ["data-active", "tabindex"]});
     }
 }

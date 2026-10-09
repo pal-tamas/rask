@@ -47,21 +47,31 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         ];
     }
 
-    // The row carrying data-active, read back as its words: the row the cursor is on, and the one with the
-    // roving tab stop — which must be the same row, and the only one.
+    // The row the keyboard is on, read back as its words: the one with the roving tab stop, which is lit — and
+    // the only row with a tab stop. (A submenu's row around it is lit too, and keeps tabindex -1.)
     private static string Cursor(string html)
     {
-        var rows = Regex.Matches(html, "<button[^>]*data-active=\"\"[^>]*>(.*?)</button>", RegexOptions.Singleline);
+        var rows = Regex.Matches(html, "<button[^>]*tabindex=\"0\"[^>]*>(.*?)</button>", RegexOptions.Singleline);
         if (rows.Count == 0)
         {
-            Assert.DoesNotContain("tabindex=\"0\"", html, StringComparison.Ordinal);
             return "";
         }
 
         var row = Assert.Single(rows);
-        Assert.Contains("tabindex=\"0\"", row.Value, StringComparison.Ordinal);
+        Assert.Contains("data-active=\"\"", row.Value, StringComparison.Ordinal);
         return Regex.Replace(row.Groups[1].Value, "<[^>]+>", "").Trim();
     }
+
+    // Every lit row, in document order: what the reader sees highlighted.
+    private static string Lit(string html) =>
+        string.Join('+', Regex.Matches(html, "<button[^>]*data-active=\"\"[^>]*>(.*?)</button>", RegexOptions.Singleline)
+            .Select(row => Regex.Replace(row.Groups[1].Value, "<[^>]+>", "").Trim()));
+
+    private static Task PointAsync(Page page, string words, string pointer = "mouse") =>
+        page.On($"[role^=\"menuitem\"]:has-text(\"{words}\")").Raise("pointerenter", $"{{\"pointerType\":\"{pointer}\"}}");
+
+    private static Task LeaveAsync(Page page) =>
+        page.On("[popover]").Raise("pointerleave", "{\"pointerType\":\"mouse\"}");
 
     private static Task OpenAsync(Page page) =>
         page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
@@ -302,6 +312,122 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         Assert.Matches("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", opened);
         Assert.Equal("Sort by", Cursor(opened));
         Assert.DoesNotMatch("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", page.Html);
+    }
+
+    [Fact]
+    public async Task The_pointer_lights_a_row_without_the_tab_stop_and_the_first_arrow_lands_on_that_row()
+    {
+        var page = Page.Render(Menu());
+        await OpenAsync(page);
+
+        await PointAsync(page, "Delete");
+        var pointed = page.Html;
+        await KeyAsync(page, "ArrowDown");
+
+        // Flux: the pointer lights the row and focus stays on the menu; the first arrow then takes that row.
+        Assert.Equal("Delete", Lit(pointed));
+        Assert.Equal("", Cursor(pointed));
+        Assert.Equal("Delete", Cursor(page.Html));
+    }
+
+    [Fact]
+    public async Task The_arrows_count_from_the_row_the_pointer_lit_while_the_keyboard_was_on_another()
+    {
+        var page = Page.Render(Menu());
+        await OpenAsync(page);
+        await KeyAsync(page, "ArrowDown");
+
+        await PointAsync(page, "Show archived");
+        var pointed = page.Html;
+        await KeyAsync(page, "ArrowDown");
+
+        // Lit where the pointer is, focused where the keyboard was: Flux's two places.
+        Assert.Equal("Show archived", Lit(pointed));
+        Assert.Matches("<button[^>]*tabindex=\"0\"[^>]*>(?:(?!</button>).)*Edit", pointed);
+        Assert.Equal("Delete", Cursor(page.Html));
+    }
+
+    [Fact]
+    public async Task The_pointer_leaving_darkens_the_row_it_lit_and_not_the_row_the_keyboard_is_on()
+    {
+        var page = Page.Render(Menu());
+        await OpenAsync(page);
+        await KeyAsync(page, "ArrowDown");
+
+        await LeaveAsync(page);
+        var keyboards = Lit(page.Html);
+        await PointAsync(page, "Delete");
+        await LeaveAsync(page);
+        var pointers = Lit(page.Html);
+        await KeyAsync(page, "ArrowDown");
+
+        Assert.Equal("Edit", keyboards);
+        Assert.Equal("", pointers);
+        // Where Flux's keys go dead; here they go on from the row that has focus.
+        Assert.Equal("Sort by", Cursor(page.Html));
+    }
+
+    [Fact]
+    public async Task A_submenu_the_pointer_rests_on_opens_stays_after_the_pointer_leaves_and_closes_on_another_row()
+    {
+        var page = Page.Render(Menu());
+        await OpenAsync(page);
+
+        await PointAsync(page, "Sort by");
+        var opened = page.Html;
+        await PointAsync(page, "Date");
+        var inside = page.Html;
+        await LeaveAsync(page);
+        var left = page.Html;
+        await PointAsync(page, "Delete");
+
+        Assert.Matches("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", opened);
+        Assert.Equal("Sort by", Lit(opened));
+        // In the flyout its own row is lit and the submenu's is not, as on Flux.
+        Assert.Equal("Date", Lit(inside));
+        Assert.Matches("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", left);
+        Assert.Equal("", Lit(left));
+        Assert.DoesNotMatch("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", page.Html);
+        Assert.Equal("Delete", Lit(page.Html));
+    }
+
+    [Fact]
+    public async Task A_press_on_a_submenu_row_the_pointer_opened_leaves_it_open_and_a_touch_never_hovers()
+    {
+        var page = Page.Render(Menu());
+        await OpenAsync(page);
+        var row = Regex.Match(page.Html, "data-ui-menu-submenu=\"\"[^>]*><button id=\"([^\"]+)\"").Groups[1].Value;
+
+        await PointAsync(page, "Sort by");
+        await page.On("#" + row).Click();
+        var pressed = page.Html;
+        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"open\",\"newState\":\"closed\"}");
+        await PointAsync(page, "Sort by", pointer: "touch");
+
+        Assert.Matches("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", pressed);
+        Assert.DoesNotMatch("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", page.Html);
+        Assert.Equal("", Lit(page.Html));
+    }
+
+    [Fact]
+    public async Task The_keyboard_inside_a_flyout_leaves_the_submenus_row_lit_and_the_pointer_on_another_row_brings_focus_out()
+    {
+        var page = Page.Render(Menu());
+        await OpenAsync(page);
+        await KeyAsync(page, "ArrowDown");
+        await KeyAsync(page, "ArrowDown");
+
+        await KeyAsync(page, "ArrowRight");
+        var inside = page.Html;
+        await PointAsync(page, "Delete");
+
+        // Flux: both lit while the arrows are in the flyout, and the tab stop on the flyout's row alone.
+        Assert.Equal("Sort by+Name", Lit(inside));
+        Assert.Equal("Name", Cursor(inside));
+        // The flyout is gone with the row that had focus in it: focus is on the row that opened it.
+        Assert.DoesNotMatch("<div[^>]*data-ui-menu-submenu=\"\"[^>]*data-open=\"\"", page.Html);
+        Assert.Equal("Delete", Lit(page.Html));
+        Assert.Matches("<button[^>]*tabindex=\"0\"[^>]*>(?:(?!</button>).)*Sort by", page.Html);
     }
 
     [Fact]

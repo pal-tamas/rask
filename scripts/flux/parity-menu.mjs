@@ -9,14 +9,23 @@
 //   * the popup: where it sits against its trigger (or the pointer), its box and every row's computed
 //     styles, pseudo-elements and glyphs;
 //   * each row hovered by a real pointer, pressed, and under the keyboard cursor;
+//   * the POINTER'S OWN WALK: which rows are lit (`data-active`) and where focus is with the pointer on each
+//     row, and after it has left the menu; and on the diagonal from a submenu's row to the far corner of its
+//     flyout, step by step, that the flyout is still showing and no row below was lit on the way;
 //   * the first submenu's flyout, opened by hovering its row: where it sits against the row, and its rows;
-//   * that Escape and a click outside close it, and where Escape leaves focus.
+//   * that Escape and a click outside close it, and where Escape leaves focus;
+//   * THE PAGE BEHIND, in a browser that shows its scrollbars, at 1920 x 1080 and 390 x 844: `scrollY` and the
+//     example's `x` and `width` before, while and after the menu is open, and the three declarations on
+//     `<html>`. (The browser the rest runs in hides its scrollbars, as every headless one does, and there
+//     the kit keeps no gutter: `scrollbar-gutter` is compared here, where there is a scrollbar to keep one for.)
 //
-// A Rask parity page is static HTML: the kit's sheet and no runtime. Everything above is the platform's and
-// works there — `popovertarget`, the top layer, light dismiss, `:hover`. What is C#'s is not on the page, and
-// is proved by the unit tests instead: which row each key moves the cursor to, `aria-expanded`, and focus
-// handed back after a click outside. So here a Rask row is put under the cursor the way a render does it —
-// `data-active`, and focus — and what is compared is how the row then LOOKS.
+// A Rask parity page is static HTML: the kit's sheet, and the runtime's behaviour hooks added as one script
+// (runtime.mjs) — the pointer's lit row, the safe area and the page lock are theirs, by attribute. Everything
+// else above is the platform's — `popovertarget`, the top layer, light dismiss. What is C#'s is not on the
+// page, and is proved by the unit tests and by UiMenuHookTests on a live page instead: which row each key
+// moves the cursor to, `aria-expanded`, a flyout held open after the pointer has left, and focus handed back
+// after a click outside. So here a Rask row is put under the cursor the way a render does it — `data-active`,
+// the tab stop, and focus — and what is compared is how the row then LOOKS.
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
 //         node scripts/flux/parity-menu.mjs dropdown
@@ -29,6 +38,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, root, STYLES } from './lib.mjs';
+import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
 const flag = name => args.includes(`--${name}`);
@@ -58,8 +68,9 @@ const IGNORED = new Set(['width', 'height']);
 const PLACED = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'transform', 'zIndex']);
 
 const INHERITED = ['color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'];
-// What the page behind an open menu is given.
-const LOCK = ['overflowY', 'pointerEvents', 'scrollbarGutter'];
+// What the page behind an open menu is given. The gutter is compared where there is one: measureBehind.
+const LOCK = ['overflowY', 'pointerEvents'];
+const VIEWPORTS = { '1920x1080': { width: 1920, height: 1080 }, '390x844': { width: 390, height: 844 } };
 
 const browser = await chromium().launch();
 const fluxFile = join(out, 'flux', slug, 'open.json');
@@ -68,11 +79,18 @@ if (existsSync(fluxFile) && !flag('refresh')) {
   flux = JSON.parse(await readFile(fluxFile, 'utf8'));
 } else {
   flux = await measureOpen(`https://fluxui.dev/components/${slug}`, 'data-flux-');
+  flux.behind = await measureBehind(`https://fluxui.dev/components/${slug}`, 'data-flux-');
   await mkdir(join(out, 'flux', slug), { recursive: true });
   await writeFile(fluxFile, JSON.stringify(flux));
 }
 
+if (!flux.behind) {
+  console.error(`flux parity: ${fluxFile} was measured before the page behind was — run with --refresh`);
+  process.exit(1);
+}
+
 const rask = await measureOpen(pathToFileURL(raskPage).href, 'data-ui-', flux);
+rask.behind = await measureBehind(pathToFileURL(raskPage).href, 'data-ui-');
 await browser.close();
 if (flag('dump')) {
   await writeFile(join(out, 'rask', `${slug}.open.json`), JSON.stringify(rask));
@@ -90,6 +108,15 @@ for (const scheme of ['light', 'dark']) {
     for (const d of diffs.slice(0, limit)) console.log(`       ${d}`);
     if (diffs.length > limit) console.log(`       … ${diffs.length - limit} more (--all)`);
   }
+}
+
+for (const [size, theirs] of Object.entries(flux.behind)) {
+  const mine = rask.behind[size];
+  const diffs = Object.keys(theirs).filter(key => JSON.stringify(theirs[key]) !== JSON.stringify(mine[key]))
+    .map(key => `${key}: ${JSON.stringify(theirs[key])} vs ${JSON.stringify(mine[key])}`);
+  failures += diffs.length ? 1 : 0;
+  console.log(`${diffs.length ? 'FAIL' : 'ok  '} the page behind, ${size}, scrollbars showing${diffs.length ? '' : ` — ${theirs.lock}; moved ${theirs.moved}`}`);
+  for (const d of diffs) console.log(`       ${d}`);
 }
 
 console.log(failures ? `\nflux parity (open): ${slug} differs in ${failures} example(s).` : `\nflux parity (open): ${slug} matches Flux.`);
@@ -110,6 +137,8 @@ async function measureOpen(url, prefix, like) {
       await document.fonts.ready;
     });
     if (like) {
+      // What Flux does in script the kit asks the runtime for: the lit row, the safe area, the page lock.
+      await withRuntime(page, 'rask-hooks.ts');
       // The same surroundings Flux's example had, as parity.mjs gives them: only the component differs.
       await page.evaluate(({ examples, INHERITED }) => {
         // Flux's page goes on below its last example. Without as much room here, the last menu would have
@@ -193,9 +222,19 @@ async function measureExample(page, cdp, index, prefix) {
     await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
   }
 
+  // The pointer's own walk: what is lit, and where focus is, with the pointer on each row and after it left.
+  example.pointer = [];
+  for (const row of example.rows) {
+    const box = await page.locator(`[data-pm-n="${row}"]`).boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+    await page.waitForTimeout(60);
+    example.pointer.push(await page.evaluate(lit, example.rows));
+  }
+
   // The keyboard cursor, a row at a time from the top.
-  await page.mouse.move(3, 3);
+  await page.mouse.move(3, 3, { steps: 3 });
   await page.waitForTimeout(60);
+  example.pointer.push(await page.evaluate(lit, example.rows));
   example.walk = [];
   for (let step = 0; step < example.rows.length; step++) {
     if (prefix === 'data-flux-') {
@@ -224,6 +263,19 @@ async function measureExample(page, cdp, index, prefix) {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.waitForTimeout(400);
     example.flyout = await page.evaluate(collectFlyout, { STYLES, row: example.submenu });
+
+    // The diagonal: from the middle of the row to the far corner of its flyout, across the rows below.
+    const far = await page.evaluate(row => {
+      const flyout = document.querySelector(`[data-pm-n="${row}"]`).parentElement.querySelector('[role=menu]').getBoundingClientRect();
+      return [flyout.x + 8, flyout.y + flyout.height - 6];
+    }, example.submenu);
+    const from = [box.x + box.width / 2, box.y + box.height / 2];
+    example.diagonal = [];
+    for (let step = 1; step <= 8; step++) {
+      await page.mouse.move(from[0] + (far[0] - from[0]) * step / 8, from[1] + (far[1] - from[1]) * step / 8);
+      await page.waitForTimeout(40);
+      example.diagonal.push(await page.evaluate(crossing, { row: example.submenu, rows: example.rows }));
+    }
   }
 
   // Leaving: Escape, then a click outside.
@@ -333,11 +385,35 @@ function cursor(row) {
   document.querySelectorAll('[data-pm-cursor]').forEach(el => {
     el.removeAttribute('data-active');
     el.removeAttribute('data-pm-cursor');
+    el.setAttribute('tabindex', '-1');
   });
   const el = document.querySelector(`[data-pm-n="${row}"]`);
   el.setAttribute('data-active', '');
+  el.setAttribute('tabindex', '0');
   el.setAttribute('data-pm-cursor', '');
   el.focus();
+}
+
+// Runs in the page. Which of the popup's own rows are lit, by position, and where focus is.
+function lit(rows) {
+  const panel = document.querySelector('[data-pm="panel"]');
+  const active = document.activeElement;
+  return {
+    lit: rows.map((row, i) => document.querySelector(`[data-pm-n="${row}"]`).hasAttribute('data-active') ? i : -1).filter(i => i >= 0),
+    focus: active === panel ? 'menu' : panel.contains(active) ? 'row' : 'elsewhere',
+  };
+}
+
+// Runs in the page. On the way from a submenu's row to its flyout: is the flyout still there, and which of the
+// popup's own rows are lit — the submenu's, until the pointer is inside the flyout, and never one it crossed.
+function crossing({ row, rows }) {
+  const trigger = document.querySelector(`[data-pm-n="${row}"]`);
+  const flyout = trigger.parentElement.querySelector('[role=menu]');
+  return {
+    flyout: flyout.getClientRects().length > 0,
+    lit: rows.map((id, i) => document.querySelector(`[data-pm-n="${id}"]`).hasAttribute('data-active') ? i : -1)
+      .filter(i => i >= 0 && rows[i] !== row),
+  };
 }
 
 // Runs in the page. The flyout a submenu row opened, measured from that row.
@@ -375,6 +451,61 @@ function unmark() {
   delete window.__pmBase;
 }
 
+// The page behind an open menu, in a browser that shows its scrollbars: where it is scrolled to and where the
+// first example sits, before, while and after its menu is open, and what <html> is given meanwhile.
+async function measureBehind(url, prefix) {
+  const shown = await chromium().launch({ ignoreDefaultArgs: ['--hide-scrollbars'] });
+  const sizes = {};
+  for (const [size, viewport] of Object.entries(VIEWPORTS)) {
+    const page = await shown.newPage({ viewport });
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
+    if (prefix === 'data-ui-') {
+      await withRuntime(page, 'rask-hooks.ts');
+      await page.evaluate(() => { document.body.style.paddingBottom = '100vh'; });
+    }
+
+    const kind = await page.evaluate(prefix => {
+      const host = document.querySelector(`[data-preview-wrapper] :is([${prefix}dropdown], [${prefix}context])`);
+      host.closest('[data-preview-wrapper]').setAttribute('data-pm', 'behind');
+      host.firstElementChild.setAttribute('data-pm', 'trigger');
+      host.firstElementChild.scrollIntoView({ block: 'center' });
+      return host.hasAttribute(`${prefix}context`) ? 'context' : 'dropdown';
+    }, prefix);
+    await page.waitForTimeout(200);
+    const place = () => page.evaluate(() => {
+      const box = document.querySelector('[data-pm="behind"]').getBoundingClientRect();
+      const html = getComputedStyle(document.documentElement);
+      return { at: [window.scrollY, box.x, box.width], scrollbar: window.innerWidth > document.documentElement.clientWidth,
+        lock: `${html.overflowY} | ${html.pointerEvents} | ${html.scrollbarGutter}` };
+    });
+    const before = await place();
+    const box = await page.locator('[data-pm="trigger"]').boundingBox();
+    const point = [Math.round(box.x + box.width / 2), Math.round(box.y + box.height / 2)];
+    await page.mouse.click(point[0], point[1], { button: kind === 'context' ? 'right' : 'left' });
+    if (kind === 'context' && prefix === 'data-ui-') {
+      await page.evaluate(([x, y]) => {
+        const area = document.querySelector('[data-pm="trigger"]').closest('[data-rask-contextmenu]');
+        document.documentElement.style.setProperty('--rask-context-x', x + 'px');
+        document.documentElement.style.setProperty('--rask-context-y', y + 'px');
+        document.getElementById(area.getAttribute('data-rask-contextmenu')).showPopover();
+      }, point);
+    }
+
+    await page.waitForTimeout(300);
+    const during = await place();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const after = await place();
+    const moved = step => step.at.map((value, i) => Math.round((value - before.at[i]) * 100) / 100).join(',');
+    sizes[size] = { scrollbar: before.scrollbar, lock: during.lock,
+      moved: `${moved(during)} then ${moved(after)}`, after: after.lock };
+    await page.close();
+  }
+
+  await shown.close();
+  return sizes;
+}
+
 // ---- comparing ------------------------------------------------------------------------------------
 
 function compareExample(theirs, mine) {
@@ -401,6 +532,11 @@ function compareExample(theirs, mine) {
   }
 
   say('the page behind', theirs.lock, mine.lock);
+  // A navigation menu's links are lit by :hover on both sides, and have no cursor.
+  // Where focus is under the pointer is compared with the menu's own focus: not on a context menu (above).
+  const lights = example => example.pointer?.map(step => (theirs.kind === 'context' ? step.lit : step));
+  say('the pointer lights', lights(theirs), lights(mine));
+  say('the diagonal to the flyout', theirs.diagonal, mine.diagonal);
   say('rows', theirs.rows.length, mine.rows.length);
   say('Escape', theirs.escape, mine.escape);
   // Only that it closed. Flux then puts focus back on the trigger from script; the browser's own light dismiss

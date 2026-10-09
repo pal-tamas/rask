@@ -114,7 +114,7 @@ public partial class UiContextTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(3, rows.Count);
         Assert.Matches("<button[^>]*disabled[^>]*>(?:(?!</button>).)*Duplicate", html);
-        Assert.Contains("hover:text-red-600", html, StringComparison.Ordinal);
+        Assert.Contains("data-active:text-red-600", html, StringComparison.Ordinal);
     }
 
     [Fact]

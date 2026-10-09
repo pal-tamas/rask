@@ -5,10 +5,11 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A pointer opens it by resting on the row, at once, and the kit's stylesheet gives the pointer a safe
-/// triangle: a wedge from the row to the flyout that still counts as the row, so moving diagonally toward the
-/// flyout — across the next row down — does not close it. The keyboard opens it with ArrowRight or Enter and
-/// closes it with ArrowLeft; a tap opens it on a touch screen.
+/// A pointer opens it by resting on the row, at once, and the runtime gives the pointer Flux's safe area
+/// (<c>data-rask-safe-area</c>): the triangle from the pointer to the flyout still counts as the row, so moving
+/// diagonally toward the flyout — across the next row down — does not close it. It stays open after the pointer
+/// has left the menu, and closes when another row is entered. The keyboard opens it with ArrowRight or Enter
+/// and closes it with ArrowLeft; a tap opens it on a touch screen.
 /// </para>
 /// <code>
 /// Ui.MenuSubmenu.Heading("Sort by")[
@@ -52,7 +53,8 @@ public sealed partial class UiMenuSubmenu : Component
 
         // No ARIA of its own, as Flux's submenu row has none: a `menuitem` beside the `menu` it opens.
         var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
-        var data = new Dictionary<string, string?>(StringComparer.Ordinal);
+        // No value: the flyout is the element right after the row, as in Flux, and needs no id (rask-menu.ts).
+        var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-safe-area"] = "" };
         if (Icon is not null)
         {
             data["ui-menu-item-has-icon"] = "";
@@ -79,12 +81,15 @@ public sealed partial class UiMenuSubmenu : Component
         ];
     }
 
-    private static readonly Dictionary<string, string?> Flyout = new(StringComparer.Ordinal) { ["ui-menu"] = "" };
+    // A menu of its own to the pointer: its rows are lit apart from the rows of the menu it flies out of.
+    private static readonly Dictionary<string, string?> Flyout =
+        new(StringComparer.Ordinal) { ["ui-menu"] = "", ["rask-menu-pointer"] = "" };
 
     private static readonly Dictionary<string, string?> KeepsOpen =
-        new(StringComparer.Ordinal) { ["ui-menu"] = "", ["rask-keep-open"] = "" };
+        new(StringComparer.Ordinal) { ["ui-menu"] = "", ["rask-menu-pointer"] = "", ["rask-keep-open"] = "" };
 
-    // `data-open` is what the stylesheet shows the flyout by when the keyboard or a tap opened it.
+    // `data-open` is what the stylesheet shows the flyout by once the pointer is no longer on it: opened by the
+    // keyboard or a tap, or by a pointer that has since left the menu.
     private static Dictionary<string, string?> Markers(bool open)
     {
         var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-menu-submenu"] = "" };

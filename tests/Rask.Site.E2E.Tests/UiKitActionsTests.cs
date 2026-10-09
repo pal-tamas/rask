@@ -208,6 +208,34 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
+    public Task The_pointer_lights_a_menu_row_without_taking_focus_and_the_arrows_go_on_from_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Options" }).ClickAsync();
+        var menu = scope.Locator("[data-ui-menu]:popover-open");
+        await Expect(menu).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+
+        // One highlight, Flux's data-active: the row under the pointer has it, and focus is still the menu's.
+        await scope.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Delete" }).HoverAsync();
+        await scope.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "New post" }).HoverAsync();
+        await Expect(menu.Locator("[data-active]")).ToHaveTextAsync("New post", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Expect(menu).ToBeFocusedAsync();
+
+        // The first arrow takes the row the pointer lit, and the next goes on from it.
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await WaitForCursorAsync(FocusedRowAsync, "New post");
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await WaitForCursorAsync(FocusedRowAsync, "Sort by");
+
+        // The pointer leaving takes nothing from the keyboard's row.
+        await Page.Mouse.MoveAsync(3, 3, new MouseMoveOptions { Steps = 4 });
+        await Expect(menu.Locator(":scope > [data-active], :scope > * > [data-active]")).ToHaveTextAsync("Sort by");
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToHaveCountAsync(0);
+    });
+
+    [Fact]
     public Task A_checkbox_row_closes_the_menu_unless_the_menu_or_the_row_keeps_it_open() => RunAsync(async () =>
     {
         await OpenAsync();

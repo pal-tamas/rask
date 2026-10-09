@@ -1304,6 +1304,35 @@ them until tagged releases begin.
   showing Flux shifts the same 15 px; the kit no longer does. Nested locks (a select inside a flyout), a
   `<dialog popover>` and the position after closing are held by `RuntimeHookLockTests`, in both browsers.
 
+- **`Ui.Menu` under a pointer is Flux's: one lit row, focus left alone, a flyout that survives the diagonal — and
+  a hover menu that takes no focus.** The runtime had the hooks and the menus did not use them: a row was
+  highlighted by `:hover` and, separately, by the keyboard's `data-active`, so a pointer resting on one row and
+  an arrow key moving to another lit two; the safe area to a submenu was a fixed CSS wedge; a flyout closed the
+  moment the pointer left the menu; and the page lock was a `:has()` rule in the kit's stylesheet, with the
+  gutter fault above. Measured on Flux's live dropdown, context and sidebar-demo pages and now the same here:
+  - a row is lit by `data-active` and nothing else, the moment the pointer enters it (`data-rask-menu-pointer`,
+    on the menu and on each flyout), and **focus does not move** — the first arrow then takes the row the
+    pointer is on, and later ones count from whichever row is lit; the keyboard's row stays lit when the
+    pointer leaves the menu, the pointer's does not;
+  - a submenu opens under the pointer, stays through the diagonal to it (`data-rask-safe-area` on its row — the
+    triangle follows the pointer, 8 steps across the rows below with none of them lit), stays after the pointer
+    has left the menu altogether (Flux's was still there 400 ms later) and closes when another row is entered;
+    while the arrows are inside a flyout its submenu's row stays lit;
+  - the page behind an open dropdown AND an open context menu is locked (`data-rask-lock` on the menu and on a
+    navigation menu: `overflow: hidden; pointer-events: none`, and the gutter where a scrollbar shows) — Flux
+    locks both; a menu the pointer opened (`Ui.Dropdown.Hover()`, a sidebar group in the rail) locks nothing;
+  - a menu the pointer opened takes no focus (`data-rask-hover`): on Flux's rail `document.activeElement` stays
+    where it was, and here the menu was taking it through its `autofocus`.
+
+  In the runtime: `data-rask-safe-area` with no value means the element right after the row (Flux's flyout has
+  no id); the pointer leaving a `data-rask-menu-pointer` menu no longer darkens the row that has focus; focus
+  follows the row a render gives `tabindex="0"`, and a lit row that says `tabindex="-1"` — the pointer's — takes
+  none. One thing is deliberately not Flux's: after the pointer has lit a row and left, Flux's arrow keys do
+  nothing until the pointer comes back; here they go on from the row that has focus. `scripts/flux/parity-menu.mjs`
+  now walks the pointer on both sides (lit rows and focus on every row, the diagonal step by step) and compares
+  the page behind in a browser that shows its scrollbars; `UiMenuHookTests` drives the real components on a live
+  Server page.
+
 - **Typing fast into a slow page no longer queues a render per key behind the reader — and `Ui.Autocomplete`
   no longer shows stale text, goes empty, or opens and closes for ever after it is left.** Every key typed into
   a text input over a list (`Ui.Autocomplete`, `Ui.Select.Combobox`, `Ui.Pillbox`'s input) was two round

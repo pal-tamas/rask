@@ -32,9 +32,10 @@ C# component framework that ships no script of its own:
 - **Use the browser.** A dialog is a modal `<dialog>` opened by an invoker command; a menu and a listbox
   are `[popover]`s; a sidebar is a checkbox drawer. The top layer, Escape, light-dismiss and focus
   return are the platform's, and they work before any runtime has booted.
-- **Use CSS.** The submenu's safe triangle is a clipped wedge, the scroll lock under a dialog is a `:has()`
-  rule, a button's spinner is a `[data-loading]` rule. Where something truly needs script — pressing a menu row,
-  marking a button that is waiting on its handler — the framework runtime does it, generically, for every
+- **Use CSS.** A submenu's flyout is shown by a `:hover` rule, a button's spinner is a `[data-loading]` rule.
+  Where something truly needs script — pressing a menu row, the triangle that follows the pointer to a flyout,
+  holding the page still behind a popup, marking a button that is waiting on its handler — the framework runtime
+  does it, generically, for every
   control, not the kit.
 - **Accessible by default.** Every field describes itself (`aria-describedby`, `aria-invalid`, `aria-required`),
   menus carry a keyboard cursor, the current navigation item says `aria-current="page"`, a waiting button says
@@ -1462,7 +1463,9 @@ Ui.Dropdown[
 **The browser owns the open state, C# owns the cursor.** The menu is a `[popover]` the trigger opens with
 `popovertarget`, so the browser opens and closes it — top layer, Escape, a click outside — with no runtime at
 all, and it is placed with CSS anchor positioning. While it is open the page behind does not scroll and does
-not take the pointer, so a click outside only closes it. What C# owns is the keyboard, which is Flux's key for
+not take the pointer, so a click outside only closes it (`data-rask-lock` on the menu — a dropdown's and a
+context menu's alike, as on Flux; a menu the pointer opened, `Hover()`, locks nothing and takes no focus). What
+C# owns is the keyboard, which is Flux's key for
 key: the menu opens with focus on it and no row chosen; ArrowDown or ArrowUp puts the cursor on the first row,
 and from there the arrows move it a row at a time, **stopping at the ends** and stepping over disabled rows;
 Home, End and the page keys are not menu keys; a letter jumps to the row that starts with it; ArrowRight or
@@ -1473,11 +1476,20 @@ moving focus to that row, pressing it, closing the popover after a pick or when 
 back to the trigger after a click outside.
 
 A pick closes the menu — a checkbox or a radio too, as in Flux. `KeepOpen` on the menu, a submenu, a radio
-group or a single row keeps it up, for the menu someone ticks several of. A submenu flies out beside its row the
-moment a pointer rests on it, and a pointer moving diagonally toward it — across the row below — does not close
-it: its row carries a CSS wedge to the flyout, Flux's **safe area** with no script. A tap opens it on a touch
-screen. Style the rows from `data-active` (the cursor), `data-checked`, and `data-open` on the dropdown, its
-trigger and an open submenu; a row under a pointer is `:hover`.
+group or a single row keeps it up, for the menu someone ticks several of.
+
+**The pointer is Flux's too, and there is one highlight.** A row is lit by `data-active` and by nothing else —
+no `:hover` — whether the pointer or the keyboard lit it. The runtime writes it the moment the pointer enters a
+row (`data-rask-menu-pointer`), on either host, and the menu's own state follows a round trip later; focus does
+not move, as on Flux, so the row the keyboard was on keeps the tab stop. The arrows then count from the lit
+row: with focus still on the menu the first arrow takes the row the pointer is on, and after that each goes on
+from whichever row is lit. When the pointer leaves the menu the row it lit goes dark and the keyboard's row
+stays lit. A submenu flies out beside its row the moment a pointer rests on it, stays while the pointer moves
+diagonally toward it — across the rows below — because the triangle between the pointer and the flyout still
+counts as the row (`data-rask-safe-area`, Flux's **safe area**), stays after the pointer has left the menu
+altogether, and closes when another row is entered. While the arrows are inside a flyout its submenu's row
+stays lit with the row they are on. A tap opens a submenu on a touch screen. Style the rows from `data-active`,
+`data-checked`, and `data-open` on the dropdown, its trigger and an open submenu.
 
 `Key` can go anywhere in a row's chain — `Ui.MenuCheckbox.Value(x).Key("k")` — and a generic one such as
 `Ui.MenuRadioGroup` takes one too (see [composition.md](composition.md)).

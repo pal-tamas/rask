@@ -31,8 +31,20 @@ internal sealed class UiMenuScope(
     /// <summary>Everything registered so far this render.</summary>
     internal IReadOnlyList<UiMenuEntry> Entries => _entries;
 
-    /// <summary>The ordinal the keyboard cursor is on, or -1.</summary>
+    /// <summary>The ordinal of the lit row — the keyboard cursor, or the row the pointer is on — or -1.</summary>
     internal int Active => active;
+
+    /// <summary>The ordinal of the row that has focus, which is the roving tab stop; -1 while the menu itself has it.</summary>
+    internal int Focus { get; init; } = -1;
+
+    /// <summary>The submenu rows around the keyboard's row: lit with it, as Flux leaves them.</summary>
+    internal IReadOnlySet<int>? Around { get; init; }
+
+    /// <summary>Tells the menu the pointer entered the row at an ordinal. Unset where rows are not lit by a pointer.</summary>
+    internal Action<int, PointerEvent>? PointAt { get; init; }
+
+    /// <summary>Whether the row at <paramref name="ordinal" /> carries <c>data-active</c>.</summary>
+    internal bool IsLit(int ordinal) => ordinal == active || Around?.Contains(ordinal) == true;
 
     /// <summary>Opens or closes the submenu at an ordinal — a click or a tap on its row.</summary>
     internal Func<int, Task> ToggleSub => toggleSub;

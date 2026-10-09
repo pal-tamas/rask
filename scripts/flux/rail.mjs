@@ -86,6 +86,12 @@ async function walk(side, scheme) {
   await page.mouse.move(400, button.y + button.height / 2); await settle(page);
   await page.mouse.move(button.x + button.width / 2, button.y + button.height / 2, { steps: 4 }); await settle(page);
   say('rail, pointer on the group', await showing(page));
+  // A menu the pointer opened takes no focus and locks nothing: Flux leaves both as they were.
+  say('focus and the page behind the group\'s menu', await page.evaluate(() => {
+    const html = getComputedStyle(document.documentElement);
+    const inMenu = [...document.querySelectorAll('[popover]')].some(p => p.matches(':popover-open') && p.contains(document.activeElement));
+    return `focus ${inMenu ? 'in the menu' : 'where it was'}, ${html.overflowY} ${html.pointerEvents}`;
+  }));
   say('the group button under the pointer', await look(page, `${group} > button`));
   say('the heading', await look(page, `${group} [data-${m}-menu-heading]`));
   say('row 0', await look(page, row, 0));
@@ -94,6 +100,7 @@ async function walk(side, scheme) {
   const second = await page.locator(row).nth(1).boundingBox();
   await page.mouse.move(second.x + 40, second.y + second.height / 2, { steps: 5 }); await settle(page);
   say('row 1 under the pointer', await look(page, row, 1));
+  say('the rows lit under the pointer', await page.locator(row).evaluateAll(rows => rows.map((r, i) => (r.hasAttribute('data-active') ? i : -1)).filter(i => i >= 0).join(',') || 'none'));
   say('pointer on row 1', await showing(page));
   await away(page);
   say('pointer gone', await showing(page));

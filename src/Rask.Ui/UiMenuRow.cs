@@ -4,9 +4,11 @@ namespace Rask;
 
 /// <summary>What every row of a <see cref="UiMenu" /> is made of, measured off Flux UI's open menus.</summary>
 /// <remarks>
-///     A row is highlighted two ways and both draw the same: <c>:hover</c>, which is the pointer's and needs no
-///     runtime, and <c>data-active</c>, which is where C#'s keyboard cursor is. Flux writes the one attribute for
-///     both, from script.
+///     A menu's row is highlighted one way, as Flux's is: <c>data-active</c>, written for the pointer and for the
+///     keyboard alike — by the runtime the moment the pointer enters a row (<c>data-rask-menu-pointer</c>), and by
+///     the menu's own render. There is no <c>:hover</c> on it: two highlights are two lit rows whenever the
+///     pointer rests on one and the arrows move to another. A navigation menu's link has no cursor, and keeps
+///     <c>:hover</c>.
 /// </remarks>
 internal static class UiMenuRow
 {
@@ -22,12 +24,15 @@ internal static class UiMenuRow
         "min-w-48 overflow-auto rounded-lg border border-zinc-200 bg-white p-[.3125rem] text-black shadow-xs "
         + "dark:border-zinc-600 dark:bg-zinc-700 dark:text-white";
 
-    /// <summary>A leading icon: quieter than the words until the row is under the pointer or the cursor.</summary>
+    /// <summary>A menu row's leading icon: quieter than the words until the row is lit.</summary>
     internal const string LeadingIcon = "me-2 " + Mark;
 
     // The check of a checkbox or radio row: the same ink, with no margin — its room is the 28px around it.
-    private const string Mark =
-        "text-zinc-400 group-hover/row:text-current group-data-active/row:text-current dark:text-white/60";
+    private const string Mark = "text-zinc-400 group-data-active/row:text-current dark:text-white/60";
+
+    // A navigation menu's link is lit by the pointer alone.
+    private const string LinkLeadingIcon =
+        "me-2 text-zinc-400 group-hover/row:text-current group-data-active/row:text-current dark:text-white/60";
 
     /// <summary>A trailing icon. It follows the pointer and not the cursor, as a submenu's chevron does in Flux.</summary>
     internal const string TrailingIcon = "ms-auto text-zinc-400 group-hover/row:text-current";
@@ -49,17 +54,20 @@ internal static class UiMenuRow
         + "disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 "
         + "text-zinc-800 dark:text-white";
 
-    private const string Plain =
-        Row + " hover:bg-zinc-50 data-active:bg-zinc-50 dark:hover:bg-zinc-600 dark:data-active:bg-zinc-600";
+    private const string Lit = " data-active:bg-zinc-50 dark:data-active:bg-zinc-600";
+
+    private const string LitDanger =
+        " data-active:bg-red-50 data-active:text-red-600 dark:data-active:bg-red-400/20 dark:data-active:text-red-400";
+
+    private const string Plain = Row + " hover:bg-zinc-50 dark:hover:bg-zinc-600" + Lit;
 
     private const string Danger =
-        Row + " hover:bg-red-50 hover:text-red-600 data-active:bg-red-50 data-active:text-red-600 "
-        + "dark:hover:bg-red-400/20 dark:hover:text-red-400 dark:data-active:bg-red-400/20 dark:data-active:text-red-400";
+        Row + " hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-400/20 dark:hover:text-red-400" + LitDanger;
 
     // A menu's row is focused by the cursor, and the highlight is how it shows: no ring on top of it.
-    private const string PlainItem = Plain + " focus:outline-hidden";
+    private const string PlainItem = Row + Lit + " focus:outline-hidden";
 
-    private const string DangerItem = Danger + " focus:outline-hidden";
+    private const string DangerItem = Row + LitDanger + " focus:outline-hidden";
 
     /// <summary>A menu row's own classes.</summary>
     internal static string Classes(Ui.MenuItemVariant? variant) =>
@@ -74,7 +82,7 @@ internal static class UiMenuRow
 
     /// <summary>A navigation menu row's icon: the same drawing under the mark Flux gives it there, <c>data-navmenu-icon</c>.</summary>
     internal static Component LinkIcon(Ui.IconName name, Ui.IconVariant? variant) =>
-        UiIcon.Marked(LinkMark, name, variant ?? Ui.IconVariant.Mini, LeadingIcon);
+        UiIcon.Marked(LinkMark, name, variant ?? Ui.IconVariant.Mini, LinkLeadingIcon);
 
     /// <summary>The icon at the end of a row.</summary>
     internal static Component IconTrailing(Ui.IconName name, Ui.IconVariant? variant) =>
@@ -145,14 +153,22 @@ internal static class UiMenuRow
         where T : Element
     {
         data[marker] = "";
-        var active = level is not null && ordinal == level.Scope.Active;
-        if (active)
+        if (level?.Scope.IsLit(ordinal) == true)
         {
             data["active"] = "";
         }
 
+        // The tab stop is the row that has FOCUS, which the pointer does not move: a row it lit keeps -1, and
+        // that is how the runtime tells it from the keyboard's (rask-menu-keys.ts).
+        var focused = level is not null && ordinal == level.Scope.Focus;
+
         // Chain steps, not property writes: a chain-built element renders what its chain was given.
-        element = element.Role(role).TabIndex(active ? 0 : -1).Aria(aria).Data(data);
+        element = element.Role(role).TabIndex(focused ? 0 : -1).Aria(aria).Data(data);
+        if (level?.Scope.PointAt is { } point)
+        {
+            element = element.OnPointerEnter(e => point(ordinal, e));
+        }
+
         return level is null ? element : element.Id(level.Scope.ItemId(ordinal));
     }
 
