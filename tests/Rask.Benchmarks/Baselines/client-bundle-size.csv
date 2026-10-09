@@ -1,6 +1,10 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-09 with the bound control that waits for the next action (rask-input.ts, shared: the
+# controls remembered, the one change frame both hosts and the flush send, the flush asked for by each host's
+# send instead of by every listener): rask.js 95,315 -> 95,825 (+510) and rask.wasm.js 84,080 -> 84,554 (+474).
+#
 # Refreshed 2026-10-09 with the events of one task leaving as one frame (rask-batch.ts, shared by both runtimes:
 # handler events held until the task ends and sent as one batch, anything else sent at once behind them), on top
 # of the menu keyboard moved into the hooks' bundle (94,829 / 83,579 / 48,853 on main): rask.js 94,829 -> 95,315
@@ -159,6 +163,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,95315
-rask.wasm.js,84080
+rask.js,95825
+rask.wasm.js,84554
 rask-hooks.js,48931

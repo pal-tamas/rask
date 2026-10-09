@@ -248,6 +248,57 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
         Assert.Equal(3, await SentAsync(page) - before);
     }
 
+    // The form two apps downstream lost values in: a text field, a multiple listbox over a list, two numbers,
+    // a native select and a checkbox, filled in without a pause and saved. Every reply is the whole page here,
+    // the worst case: each pick in the listbox, each tick and each choice is answered with one, over fields
+    // that hold text the server has not heard — left behind, or still being typed into.
+    [Fact]
+    public async Task A_form_filled_in_without_a_pause_reaches_the_handler_whole_though_every_reply_is_a_whole_page()
+    {
+        await using var session = await HookSession.OpenAsync<DeferredRangeFormPage>(
+            playwright, live: o => o.DiffMode = LiveDiffMode.DisabledFull);
+        var page = session.Page;
+        await Ready(page);
+
+        await page.GetByLabel("Name").FillAsync("Range one");
+        await page.ClickAsync("[data-ui-select-button]");
+        await Expect(page.Locator("[data-ui-select-button]")).ToHaveAttributeAsync("aria-expanded", "true");
+        await page.Locator("[data-ui-option]").Filter(new() { HasText = "Glock" }).ClickAsync();
+        await page.Locator("[data-ui-option]").Filter(new() { HasText = "Beretta" }).ClickAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await page.GetByLabel("Lanes").FillAsync("12");
+        await page.GetByLabel("Size").FillAsync("600");
+        await page.GetByLabel("Kind").SelectOptionAsync("outdoor");
+        await page.GetByLabel("Open to visitors").CheckAsync();
+        await page.ClickAsync("#save");
+
+        await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=Range one|Glock,Beretta|12|600|outdoor|True");
+    }
+
+    [Fact]
+    public async Task A_whole_page_reply_that_lands_while_a_number_is_being_typed_leaves_it_and_the_fields_already_left()
+    {
+        await using var session = await HookSession.OpenAsync<DeferredRangeFormPage>(
+            playwright, live: o => o.DiffMode = LiveDiffMode.DisabledFull);
+        var page = session.Page;
+        await Ready(page);
+
+        await page.ClickAsync("#later");
+        await page.GetByLabel("Name").FillAsync("Range two");
+        await page.GetByLabel("Lanes").FillAsync("8");
+        await page.GetByLabel("Size").PressSequentiallyAsync("45");
+        await Expect(page.Locator("#ticked")).ToHaveTextAsync("ticks=1");
+        var focused = await page.EvaluateAsync<string>("() => document.activeElement.getAttribute('name')");
+        await page.GetByLabel("Size").PressSequentiallyAsync("0");
+
+        Assert.Equal("Size", focused);
+        await Expect(page.GetByLabel("Name")).ToHaveValueAsync("Range two");
+        await Expect(page.GetByLabel("Lanes")).ToHaveValueAsync("8");
+        await Expect(page.GetByLabel("Size")).ToHaveValueAsync("450");
+        await page.ClickAsync("#save");
+        await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=Range two||8|450|indoor|False");
+    }
+
     // What the page said over the socket, counted in the page: Playwright's own frame events arrive on its own
     // schedule, and a count read "now" must be the count now. The events of one task leave as one batch
     // (rask-batch.ts), so both are kept: the things said, and the frames they left in.
@@ -399,4 +450,78 @@ public sealed partial class DeferredKitPage : Component
     }
 
     private void Save(Profile profile) => _saved = $"{profile.Name}|{profile.Notes}|{profile.Age}";
+}
+
+/// <summary>
+///     The form reported from downstream, drawn with the kit: text, a multiple listbox over a list, two numbers,
+///     a native select, a checkbox, and a render that comes later.
+/// </summary>
+public sealed partial class DeferredRangeFormPage : Component
+{
+    private static readonly string[] Pistols =
+    [
+        "Glock", "Beretta", "Walther", "Sig Sauer", "Colt", "Ruger", "Smith & Wesson", "Heckler & Koch", "CZ",
+        "Springfield", "Taurus", "Kimber", "Steyr",
+    ];
+
+    private readonly Range _form = new();
+    private string _saved = "";
+    private int _ticks;
+    private bool _ready;
+
+    protected override Component? HeadAssets => Markup.Title["deferred bind, the reported form"];
+
+    protected override string? HtmlLang => "en";
+
+    protected override Component? Render() =>
+    [
+        P.Id("saved")[$"saved={_saved}"],
+        P.Id("ticked")[$"ticks={_ticks}"],
+        P.Id("is-ready")[_ready ? "ready" : "loading"],
+        Button.Id("ready").OnClick(() => _ready = true)["ready"],
+        Button.Id("later").OnClick(TickLater)["later"],
+        Form.Model(_form).OnSubmit(Save).ConfirmLeave("Leave without saving?")[
+            Ui.Field[Ui.Label["Name"], Ui.Input.Bind(() => _form.Name)],
+            Ui.Field[
+                Ui.Label["Pistols"],
+                Ui.Select.Bind(() => _form.Ids).Listbox.Multiple().Placeholder("Choose…")[
+                    Pistols.Select(pistol => Ui.SelectOption.Key(pistol).Value(pistol)[pistol])
+                ]
+            ],
+            Ui.Field[Ui.Label["Lanes"], Ui.Input.Bind(() => _form.Lanes).Type(InputType.Number)],
+            Ui.Field[Ui.Label["Size"], Ui.Input.Bind(() => _form.Size).Type(InputType.Number)],
+            Ui.Field[
+                Ui.Label["Kind"],
+                Ui.Select.Bind(() => _form.Kind)[
+                    Ui.SelectOption.Value("indoor")["Indoor"], Ui.SelectOption.Value("outdoor")["Outdoor"]
+                ]
+            ],
+            Ui.Checkbox.Bind(() => _form.Open).Label("Open to visitors"),
+            Ui.Button.Primary.Submit.Id("save")["Save"]
+        ]
+    ];
+
+    private async Task TickLater()
+    {
+        await Task.Delay(400);
+        _ticks++;
+    }
+
+    private void Save() =>
+        _saved = $"{_form.Name}|{string.Join(',', _form.Ids)}|{_form.Lanes}|{_form.Size}|{_form.Kind}|{_form.Open}";
+
+    private sealed class Range
+    {
+        public string Name { get; set; } = "";
+
+        public List<string> Ids { get; set; } = [];
+
+        public int? Lanes { get; set; }
+
+        public int? Size { get; set; }
+
+        public string Kind { get; set; } = "indoor";
+
+        public bool Open { get; set; }
+    }
 }

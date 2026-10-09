@@ -134,8 +134,9 @@ them until tagged releases begin.
   `AfterBind` runs when the value is written. In a test, `page.Type(…).Into(…)`, `Pick` and `Check` keep
   the value and send it ahead of the next `Click`, as the browser does; `page.On(sel).Input(v)` needs a
   `.Live()` field, and `page.On(sel).Change(v)` is how a waiting field's value arrives. A ten-field form
-  typed into and saved used to send a frame a keystroke; it now sends ten changes and the submit when
-  Save is pressed. `data-rask-bind-on="action"` marks the control (`docs/js-interop-runtime.md`), the flush
+  typed into and saved used to send a frame a keystroke; it now sends one frame when Save is pressed —
+  the ten changes and the submit, answered with one render. `rask.js` and `rask.wasm.js` grow by 510
+  and 474 bytes (95,825 and 84,554). `data-rask-bind-on="action"` marks the control (`docs/js-interop-runtime.md`), the flush
   sits in the one `send` both runtimes have instead of in each listener, and controlled inputs
   (`.Value(x).OnInput(…)`) are untouched.
 
