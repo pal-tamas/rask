@@ -150,7 +150,11 @@ public static class ReadModelRegistry
             property.HasColumnType(columnType);
         }
 
-        if (source.GetValueConverter() is { } converter)
+        // A face that already holds the STORED value — the string of a one-value value object, which the write
+        // side keeps as `Email` and converts — reads the column as it is. Only a face that holds the model's
+        // own type (a strongly-typed id) converts the way the write side does.
+        if (source.GetValueConverter() is { } converter &&
+            (Nullable.GetUnderlyingType(property.Metadata.ClrType) ?? property.Metadata.ClrType) != converter.ProviderClrType)
         {
             property.HasConversion(converter);
         }
@@ -266,7 +270,12 @@ public static class ReadModelRegistry
         {
             if (current.FindComplexProperty(segments[i]) is not { } complex)
             {
-                return null;
+                // "Email.Value" over a one-value value object: the write side stores it as the scalar column
+                // `Email` itself, converted, so the value's column IS that property.
+                return i == segments.Length - 2 && current.FindProperty(segments[i]) is { } scalar &&
+                       scalar.GetValueConverter() is not null
+                    ? scalar
+                    : null;
             }
 
             current = complex.ComplexType;

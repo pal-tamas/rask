@@ -159,6 +159,7 @@ Rask.Data.Tenancy
 Rask.Data.Tenancy.PerTenant = 1 -> Rask.Data.Tenancy
 Rask.Data.Tenancy.Shared = 0 -> Rask.Data.Tenancy
 Rask.Data.Tenant
+Rask.Data.ValueObjectColumn
 Rask.Data.TestDatabase
 Rask.Data.TestDatabase.Context.get -> Rask.Data.RaskDbContext!
 Rask.Data.TestDatabase.DisposeAsync() -> System.Threading.Tasks.ValueTask
@@ -290,5 +291,6 @@ static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskTenant(this Microsof
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskTenant(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, long?>! resolve) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Data.ViolationMessageBuilderExtensions.IsUnique(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder! index, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder!
 static Rask.Data.ViolationMessageBuilderExtensions.IsUnique<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
+static Rask.Data.ValueObjectColumn.Map<TValueObject, TValue>(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder! property, System.Linq.Expressions.Expression<System.Func<TValueObject, TValue>!>! value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder!
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

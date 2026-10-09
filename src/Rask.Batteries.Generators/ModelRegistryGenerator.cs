@@ -692,10 +692,21 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
                     p.ColumnPrefix is null ? group.Key : p.ColumnPrefix + "_" + group.Key))
                 .ToList();
 
+            // A one-value type held by the entity itself IS its value's column: a converted scalar named after the
+            // property, which an index can name — `HasIndex(c => c.Email).IsUnique("…")` — where a complex
+            // property's column cannot. The column is the one the complex mapping produced, so nothing migrates.
+            if (depth == 0 && nested.Count == 0 && self.SingleValue is { } held)
+            {
+                source.Append(indent).Append("global::Rask.Data.ValueObjectColumn.Map(").Append(receiver)
+                    .Append(".Property(x => x.").Append(group.Key).Append("), (").Append(self.Types[0])
+                    .Append(" v) => v.").Append(held).AppendLine(");");
+                continue;
+            }
+
             source.Append(indent).Append(receiver).Append(".ComplexProperty(x => x.").Append(group.Key);
 
-            // A one-value type is still a complex type, but its one column takes the property's name — `Email`,
-            // not `Email_Value` — so the table reads as if the value were stored directly.
+            // Inside another value object a one-value type is still a complex type, but its one column takes the
+            // property's name — `Price_Currency`, not `Price_Currency_Value`.
             if (nested.Count == 0 && self.SingleValue is { } value)
             {
                 var column = self.ColumnPrefix is null ? group.Key : self.ColumnPrefix + "_" + group.Key;

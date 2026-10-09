@@ -12,6 +12,7 @@ namespace Rask.Data.Tests;
 /// the tool that would write that migration, for a string with a length, an int, a decimal with a precision,
 /// a DateOnly, a Guid and a nullable value object.
 /// </remarks>
+[Collection(DataDbCollection.Name)]
 public sealed class ValueObjectMappingDiffTests
 {
     [Fact]
