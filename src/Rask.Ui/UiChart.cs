@@ -6,7 +6,8 @@ namespace Rask;
 /// <remarks>
 /// <para>
 /// Assembled from parts, as Flux's is: a <see cref="UiChartSvg" /> holding the lines, bars and axes, and beside
-/// it a tooltip, a summary or a legend. Size it with a class, <c>aspect-3/1</c> or <c>h-64</c>.
+/// it a tooltip, a summary or a legend. Size it with a class, <c>aspect-3/1</c> or <c>h-64</c>: the drawing fills
+/// that box and is drawn again whenever the box changes.
 /// </para>
 /// <code>
 /// Ui.Chart.Value(visits).Class("aspect-3/1")[
@@ -20,13 +21,15 @@ namespace Rask;
 ///         Ui.ChartTooltipValue.Field((Visit v) =&gt; v.Visitors).Label("Visitors")]]
 /// </code>
 /// <para>
-/// Flux draws in the browser, from script. This is drawn in C#, with no script of its own: the scales, the
-/// ticks and every path are computed during the render, to the numbers Flux's own layout arrives at.
+/// Flux draws in the browser, from script. This is drawn in C#: the scales, the ticks and every path are
+/// computed during the render, to the numbers Flux's own layout arrives at. What follows the pointer — the
+/// cursor, the tooltip, a summary, a pie's active slice — is the runtime's plot hook, with no round trip.
 /// </para>
 /// </remarks>
 public sealed partial class UiChart : Component
 {
-    private static readonly UiPartMarker Marker = new("ui-chart");
+    // The second mark asks the runtime for its plot hook: the rows' places are the drawing's to state.
+    private static readonly UiPartMarker Marker = new UiPartMarker("ui-chart").And("rask-plot", "");
 
     /// <summary>The rows: <c>Ui.Chart.Value(rows)</c>, one point, bar or slice per row. Flux's <c>wire:model</c> and <c>:value</c>.</summary>
     public UiChartData? Value { get; set; }
@@ -37,16 +40,28 @@ public sealed partial class UiChart : Component
     public string? Class { get; set; }
 
     /// <inheritdoc />
-    protected override Component? Render()
+    protected override Component? Render() =>
+        Div.Class(UiClass.Compose("relative block", Class)).Data(Marker.With(null))[
+            Context.Provide(new UiChartScope(Value, Horizontal == true, Pie(Children)))[Children ?? []]
+        ];
+
+    // The pie is declared inside the drawing, and the tooltip beside it names the hovered slice's colour.
+    private static UiChartPie? Pie(IEnumerable<Component?>? parts)
     {
-        UiChartTooltip? tooltip = null;
-        foreach (var child in Children ?? [])
+        foreach (var part in parts ?? [])
         {
-            tooltip ??= child as UiChartTooltip;
+            var pie = part switch
+            {
+                UiChartPie found => found,
+                UiChartViewport or UiChartSvg => Pie(part.Children),
+                _ => null,
+            };
+            if (pie is not null)
+            {
+                return pie;
+            }
         }
 
-        return Div.Class(UiClass.Compose("relative block", Class)).Data(Marker.With(null))[
-            Context.Provide(new UiChartScope(Value, Horizontal == true, tooltip))[Children ?? []]
-        ];
+        return null;
     }
 }

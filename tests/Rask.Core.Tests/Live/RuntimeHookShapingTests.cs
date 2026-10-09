@@ -199,6 +199,20 @@ public sealed class RuntimeHookShapingTests
     }
 
     [Fact]
+    public void A_plots_text_reads_its_rows_line_and_a_box_half_a_pixel_off_is_the_box_the_field_says()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var plot = root.GetProperty("plot");
+
+        Assert.Equal(["a", "", "c", "", ""], plot.GetProperty("lines").EnumerateArray().Select(e => e.GetString()).ToArray());
+        Assert.Equal([true, true, false, true, false], plot.GetProperty("same").EnumerateArray().Select(e => e.GetBoolean()).ToArray());
+    }
+
+    [Fact]
     public void A_digit_no_second_could_follow_finishes_its_part_and_one_too_many_starts_the_part_again()
     {
         if (Run() is not { } root)

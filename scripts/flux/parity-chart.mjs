@@ -18,12 +18,18 @@
 //         dotnet test tests/Rask.Ui.Tests --filter FluxParityPages
 //         node scripts/flux/parity.mjs chart                # boxes and styles
 //         node scripts/flux/parity-chart.mjs [--all]        # geometry; exit code 1 over the tolerance
+//         node scripts/flux/parity-chart.mjs --pointer      # what follows the pointer, on the same pin
+//
+// `--pointer` walks a real pointer over every chart of the pinned load and of the Rask page (given the
+// runtime's hooks, runtime.mjs) and compares, step by step, what each shows: where the tooltip is and what it
+// says, where the cursor is, what a summary reads, which points and slices are marked active or inactive.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, measurePage, root } from './lib.mjs';
+import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
 const URL = 'https://fluxui.dev/components/chart';
@@ -31,6 +37,11 @@ const out = join(root, 'artifacts', 'flux-parity');
 const fluxDir = join(out, 'flux', 'chart');
 const dataFile = join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'Parity', 'ChartParity.data.json');
 const TOLERANCE = 0.05;   // px, on every number of every geometry attribute
+// Where the pointer goes, as shares of the drawing's box: across the plot, up and down it, and off it.
+const ACROSS = [[0.03, 0.5], [0.2, 0.5], [0.35, 0.5], [0.5, 0.5], [0.65, 0.5], [0.8, 0.5], [0.97, 0.5], [0.5, 0.2], [0.5, 0.75], [0.5, 0.97]];
+const ROUND = [[0.6, 0.3], [0.3, 0.7], [0.75, 0.6], [0.5, 0.5], [0.03, 0.03]];
+const NEAR = 1;   // px: a tooltip's box depends on its text's width, which the two pages round apart
+const limit = args.includes('--all') ? Infinity : 8;
 
 const browser = await chromium().launch();
 if (args.includes('--measure')) await measureFlux();
@@ -42,6 +53,13 @@ if (!existsSync(raskPage)) {
   process.exit(1);
 }
 
+if (args.includes('--pointer')) {
+  const failed = await pointerWalk();
+  await browser.close();
+  console.log(failed ? `\nflux chart parity: the pointer is followed differently in ${failed} step(s).` : '\nflux chart parity: the pointer is followed as Flux follows it.');
+  process.exit(failed ? 1 : 0);
+}
+
 const rask = {};
 await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', 'chart'), async (page, scheme) => {
   rask[scheme] = await page.evaluate(geometry, '[data-ui-chart]');
@@ -49,7 +67,6 @@ await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', 'char
 await browser.close();
 
 let failures = 0;
-const limit = args.includes('--all') ? Infinity : 8;
 for (const scheme of ['light', 'dark']) {
   flux[scheme].forEach((theirs, index) => {
     const mine = rask[scheme][index];
@@ -168,4 +185,109 @@ function numbers(value) {
   const shape = String(value).replace(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi, n => (values.push(Number(n)), '#'))
     .replace(/[\s,]+/g, ' ').replace(/ ?([a-zA-Z()]) ?/g, '$1').trim();
   return { shape, values };
+}
+
+// ---- The pointer walk ------------------------------------------------------------------------------------
+
+
+async function pointerWalk() {
+  const document = await readFile(join(fluxDir, 'document.html'), 'utf8');
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await context.route(URL, route => route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: document }));
+  const theirs = await context.newPage();
+  await theirs.goto(URL, { waitUntil: 'networkidle', timeout: 90000 });
+  await theirs.evaluate(() => document.fonts.ready);
+  // Drawn again once the fonts are in, as --measure does.
+  await theirs.setViewportSize({ width: 1180, height: 900 });
+  await theirs.waitForTimeout(400);
+  await theirs.setViewportSize({ width: 1280, height: 900 });
+  await theirs.waitForTimeout(400);
+  const ours = await context.newPage();
+  await ours.goto(pathToFileURL(raskPage).href, { waitUntil: 'networkidle' });
+  await ours.evaluate(() => document.fonts.ready);
+  await withRuntime(ours, 'rask-hooks.ts');
+
+  const count = await theirs.evaluate(() => document.querySelectorAll('[data-preview-wrapper] ui-chart').length);
+  let failed = 0;
+  for (let chart = 0; chart < count; chart++) {
+    const round = await theirs.evaluate(i => !!document.querySelectorAll('[data-preview-wrapper] ui-chart')[i].querySelector('template[name=pie], svg path[stroke-linejoin=round][stroke-width="3"]'), chart);
+    const differences = [];
+    for (const [fx, fy] of [...(round ? ROUND : ACROSS), [-0.2, -0.2]]) {
+      const [a, b] = await Promise.all([step(theirs, 'ui-chart', chart, fx, fy), step(ours, '[data-ui-chart]', chart, fx, fy)]);
+      const off = differing(a, b);
+      if (off.length) differences.push(`at ${fx},${fy}: ${off.join('; ')}`);
+    }
+
+    failed += differences.length;
+    console.log(`${differences.length ? 'FAIL' : 'ok  '} pointer chart ${chart}${differences.length ? ` — ${differences.length} step(s)` : ''}`);
+    for (const d of differences.slice(0, limit)) console.log(`       ${d}`.slice(0, 500));
+  }
+
+  await context.close();
+  return failed;
+}
+
+// Moves the pointer to a share of chart `index`'s drawing — in two moves, as a hand arrives — and reads the chart.
+async function step(page, selector, index, fx, fy) {
+  const box = await page.evaluate(({ selector, index }) => {
+    const chart = document.querySelectorAll(`[data-preview-wrapper] ${selector}`)[index];
+    chart.scrollIntoView({ block: 'center' });
+    const svg = [...chart.querySelectorAll('svg')].find(s => !s.closest('template')).getBoundingClientRect();
+    return { x: svg.left, y: svg.top, width: svg.width, height: svg.height };
+  }, { selector, index });
+  const x = Math.round(box.x + fx * box.width);
+  const y = Math.round(box.y + fy * box.height);
+  await page.mouse.move(x - 1, y);
+  await page.mouse.move(x, y);
+  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+  return page.evaluate(read, { selector, index });
+}
+
+// Runs in the page: what the chart shows now, in terms both pages have.
+function read({ selector, index }) {
+  const chart = document.querySelectorAll(`[data-preview-wrapper] ${selector}`)[index];
+  const frame = chart.getBoundingClientRect();
+  const svg = [...chart.querySelectorAll('svg')].find(s => !s.closest('template'));
+  const origin = svg.getBoundingClientRect();
+  const tooltip = chart.querySelector(':scope > [data-rask-plot-tooltip]')
+    ?? [...chart.children].find(e => e.tagName === 'DIV' && getComputedStyle(e).position === 'absolute' && !e.hasAttribute('data-ui-chart-hover') && !e.querySelector('svg'));
+  const tip = tooltip?.getBoundingClientRect();
+  const shown = tooltip ? getComputedStyle(tooltip).opacity === '1' : false;
+  // Flux's cursor is a path in the drawing; the kit's a box over it.
+  let cursor = null;
+  const path = [...svg.querySelectorAll('path[stroke-dasharray][opacity]')].find(p => !p.closest('template'));
+  const line = chart.querySelector('[data-rask-plot-area] > div');
+  if (line) {
+    const box = line.getBoundingClientRect();
+    cursor = getComputedStyle(line).display === 'none' ? null : [box.left - origin.left, box.top - origin.top, box.right - origin.left, box.bottom - origin.top];
+  } else if (path && Number(path.getAttribute('opacity')) > 0) {
+    const n = (path.getAttribute('d').match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi) ?? []).map(Number);
+    cursor = / h/.test(path.getAttribute('d'))
+      ? [n[0], n[1], n[0] + n[2], n[1] + n[3]]
+      : [n[0] - 0.5, Math.min(n[1], n[3]), n[0] + 0.5, Math.max(n[1], n[3])];
+  }
+
+  const mark = node => node.hasAttribute('data-active') ? 'A' : node.hasAttribute('data-inactive') ? 'i' : '.';
+  return {
+    tooltip: shown ? { at: [tip.left - frame.left, tip.top - frame.top], text: tooltip.innerText.replace(/\s+/g, ' ').trim() } : null,
+    cursor,
+    summary: [...chart.querySelectorAll('slot')].filter(s => !s.closest('template') && !tooltip?.contains(s)).map(s => s.textContent.trim()).join(' | '),
+    points: [...svg.querySelectorAll('circle')].filter(c => !c.closest('template')).map(mark).join(''),
+    slices: [...svg.querySelectorAll('g > path[stroke-linejoin]')].filter(p => !p.closest('template') && p.getAttribute('stroke-width') === '3').map(mark).join(''),
+  };
+}
+
+function differing(a, b) {
+  const off = [];
+  const close = (x, y) => x.length === y.length && x.every((v, k) => Math.abs(v - y[k]) <= NEAR);
+  if (!a.tooltip !== !b.tooltip) off.push(`tooltip ${a.tooltip ? 'shown' : 'hidden'} in Flux, ${b.tooltip ? 'shown' : 'hidden'} in Rask`);
+  else if (a.tooltip) {
+    if (a.tooltip.text !== b.tooltip.text) off.push(`tooltip says "${a.tooltip.text}" vs "${b.tooltip.text}"`);
+    if (!close(a.tooltip.at, b.tooltip.at)) off.push(`tooltip at ${a.tooltip.at.map(v => v.toFixed(1))} vs ${b.tooltip.at.map(v => v.toFixed(1))}`);
+  }
+
+  if (!a.cursor !== !b.cursor) off.push(`cursor ${a.cursor ? 'shown' : 'hidden'} in Flux, ${b.cursor ? 'shown' : 'hidden'} in Rask`);
+  else if (a.cursor && !close(a.cursor, b.cursor)) off.push(`cursor box ${a.cursor.map(v => v.toFixed(1))} vs ${b.cursor.map(v => v.toFixed(1))}`);
+  for (const what of ['summary', 'points', 'slices']) if (a[what] !== b[what]) off.push(`${what} "${a[what]}" vs "${b[what]}"`);
+  return off;
 }
