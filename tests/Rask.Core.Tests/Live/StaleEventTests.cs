@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Entries = RaskEntriesRask_Core_Tests;
 
 #pragma warning disable RASK014 // test-defined component subclasses have no generated factories
 #pragma warning disable RASK022 // one test is about rows that carry no key
@@ -448,6 +449,42 @@ public partial class StaleEventTests : global::Rask.Core.RaskMarkup
         Assert.Equal(0, version);
     }
 
+    // PINNED, NOT WANTED. Child components without a key are the same instances by position, so the second
+    // row's component is the second row's component whatever record it is handed: its handler is the same method
+    // of the same instance, and nothing about the handler moved. The event reaches the row that now sits second.
+    // Keying the rows (`.Key(row.Id)`) is what ties an instance to a record, and then this click runs nothing.
+    [Fact]
+    public async Task A_click_on_an_unkeyed_row_component_reaches_whichever_row_sits_in_its_place_now()
+    {
+        global::Rask.Core.Tests.Live.StaleRow.Picked.Clear();
+        var ids = new List<int> { 1, 2, 3 };
+        var view = new StubComponent(() => Div[ids.Select(id => (Component)Entries.StaleRow.Id(id))]);
+        var second = IdOn(Ship(view), "pick2");
+        ids.RemoveAt(0);
+        Ship(view);
+
+        var ran = await Send(view, second, version: 0);
+
+        Assert.True(ran);
+        Assert.Equal([3], global::Rask.Core.Tests.Live.StaleRow.Picked);
+    }
+
+    [Fact]
+    public async Task A_click_on_a_keyed_row_component_whose_row_moved_up_reaches_that_row()
+    {
+        global::Rask.Core.Tests.Live.StaleRow.Picked.Clear();
+        var ids = new List<int> { 1, 2, 3 };
+        var view = new StubComponent(() => Div[ids.Select(id => (Component)Entries.StaleRow.Id(id).Key(id))]);
+        var second = IdOn(Ship(view), "pick2");
+        ids.RemoveAt(0);
+        Ship(view);
+
+        var ran = await Send(view, second, version: 0);
+
+        Assert.True(ran);
+        Assert.Equal([2], global::Rask.Core.Tests.Live.StaleRow.Picked);
+    }
+
     private static void Noop()
     {
     }
@@ -455,4 +492,16 @@ public partial class StaleEventTests : global::Rask.Core.RaskMarkup
     private static void Other()
     {
     }
+}
+
+/// <summary>A row that is a component of its own: its handler is a method of the instance.</summary>
+public sealed partial class StaleRow : Component
+{
+    internal static readonly List<int> Picked = [];
+
+    public required int Id { get; set; }
+
+    protected override Component? Render() => Button.Class($"pick{Id}").OnClick(Pick)["pick"];
+
+    private void Pick() => Picked.Add(Id);
 }
