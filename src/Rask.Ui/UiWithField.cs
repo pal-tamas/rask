@@ -39,7 +39,7 @@ internal sealed class UiWithField
         (ControlId, _bound) = (control.ControlId, control.Bound);
         (_label, _description, _descriptionTrailing, _badge) = (props.Label, props.Description, props.DescriptionTrailing, props.Badge);
         (_error, _showValidation) = (props.Error, props.ShowValidation);
-        Invalid = props.Invalid || _error is not null || HasMessages(_bound);
+        Invalid = props.Invalid || _error is not null || FormCallsInvalid(_bound);
         Aria = BuildAria();
     }
 
@@ -52,7 +52,7 @@ internal sealed class UiWithField
     /// <summary><see cref="LabelId" /> while there is a label to point at — the control's own, or its field's.</summary>
     internal string? LabelledBy => _label is not null || ComposedAround() is not null ? LabelId : null;
 
-    /// <summary>Whether the control was called invalid, or its bound member holds a message.</summary>
+    /// <summary>Whether the control was called invalid, or the form calls its bound member invalid.</summary>
     internal bool Invalid { get; }
 
     /// <summary><c>aria-describedby</c> and <c>aria-invalid</c> for the control. Empty when there is neither.</summary>
@@ -146,10 +146,11 @@ internal sealed class UiWithField
             ? scope
             : null;
 
-    private static bool HasMessages(LambdaExpression? bound) =>
+    // A message of its own, or the mark of a failure whose message is under another field.
+    private static bool FormCallsInvalid(LambdaExpression? bound) =>
         bound is not null
         && EditContextScope.Current is { } form
-        && form.GetValidationMessages(ExpressionAccessor.Parse(bound).Field).Count > 0;
+        && form.IsInvalid(ExpressionAccessor.Parse(bound).Field);
 
     private readonly record struct Shorthand(
         string? Label,

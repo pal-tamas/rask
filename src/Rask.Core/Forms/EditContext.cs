@@ -262,6 +262,7 @@ public sealed partial class EditContext : IDisposable
     ///     on every call.</param>
     public void RegisterFieldValidator(FieldIdentifier field, Delegate? validate, Func<object?> valueGetter)
     {
+        _boundFields.Add(field);
         if (validate is null)
         {
             _fieldDelegates.Remove(field);
@@ -372,6 +373,7 @@ public sealed partial class EditContext : IDisposable
     public IReadOnlyList<string> GetValidationMessages(FieldIdentifier field)
     {
         MarkReader();
+        NoteMessagesRead(field);
         return _states.TryGetValue(field, out var s) ? s.Messages : Array.Empty<string>();
     }
 
@@ -384,6 +386,7 @@ public sealed partial class EditContext : IDisposable
         // Mark before returning the iterator: MarkReader() inside the yield body would only run on
         // first MoveNext (deferred), missing a render that enumerates lazily or not at all.
         MarkReader();
+        NoteFormMessagesRead();
         return Enumerate();
 
         IEnumerable<string> Enumerate()
@@ -403,6 +406,7 @@ public sealed partial class EditContext : IDisposable
     public IReadOnlyList<ValidationEntry> GetValidationEntries()
     {
         MarkReader();
+        NoteFormMessagesRead();
         var entries = new List<ValidationEntry>();
         foreach (var pair in _states)
             foreach (var m in pair.Value.Messages)
@@ -444,6 +448,7 @@ public sealed partial class EditContext : IDisposable
     {
         var s = GetOrCreate(field);
         s.Modified = true;
+        ClearFailuresNaming(field);
         FieldChanged?.Invoke(this, new FieldChangedEventArgs(field));
 
         // Re-render the binding's authoring component so its derived UI (including siblings outside the
@@ -475,6 +480,8 @@ public sealed partial class EditContext : IDisposable
             s.Messages.Clear();
             ValidationStateChanged?.Invoke(this, EventArgs.Empty);
         }
+
+        ClearFailuresNaming(field);
     }
 
     /// <summary>
@@ -483,7 +490,7 @@ public sealed partial class EditContext : IDisposable
     /// </summary>
     public void ClearAllMessages()
     {
-        var any = false;
+        var any = ClearFailures();
         foreach (var s in _states.Values.Where(s => s.Messages.Count > 0))
         {
             s.Messages.Clear();
