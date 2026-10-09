@@ -14,5 +14,7 @@ public sealed class DataDbCollectionGuardTests
             // Ambient values over a stub scope; it never builds a context.
             nameof(CurrentTests),
             // Reflection over annotations only; it never builds a context.
-            nameof(TrimmingContractTests));
+            nameof(TrimmingContractTests),
+            // Index builders over a bare ModelBuilder; it never builds a context.
+            nameof(UniqueWithAMessageTests));
 }

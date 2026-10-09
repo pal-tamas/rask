@@ -25,6 +25,62 @@ them until tagged releases begin.
   not as a fault. The app writes no `try`/`catch`. See
   [The database said no](docs/forms-validation.md#the-database-said-no).
 
+- **`IsUnique("message")` — a unique index says what breaking it means.**
+  `builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique("A destination with this name already
+  exists.")` — one step, beside EF Core's own `IsUnique()` / `IsUnique(false)`, which still bind as they did
+  (only a string is Rask's). A save that violates the index — `Save()`, `Create`, `Update`, plain
+  `SaveChangesAsync` — fails with a `RaskValidationException` carrying that message, the failure a validator
+  produces, in place of the provider's `DbUpdateException` (which stays as the `InnerException`). The message is
+  filed under the property the index is over when that is one property beside `TenantId`, and under the empty
+  key when it is several. It is a constant: the conflicting value is never appended. The violated index is
+  recognised from the provider's own error — SQLSTATE `23505` and the constraint name on PostgreSQL, error
+  `2601` / `2627` and the index name on SQL Server, the table and columns on SQLite — with no provider package
+  of Rask's needed. An index with no message keeps the provider's error. `RaskValidationException` gains a
+  constructor taking the errors and an inner exception. **Not yet done:** a `Form` still shows this as `f.Error`
+  rather than under the field.
+
+- **Rask.Data on a host wired by hand, in two calls: `AddRaskData<TContext>(o => …)` and `app.UseRaskData()`.**
+  A host built from `AddRask()` and `MapRask<TApp>()` rather than `RaskApp` had to register the context factory
+  with Rask's interceptors, the read context, a principal source and the request scope itself — and had no way
+  at all to give a live session's work a data scope, so a page's tenant-scoped read threw.
+  `builder.Services.AddRaskData<DomainContext>(o => o.UseSqlServer(connectionString))` (in `Rask.Server`; an
+  `(sp, o) => …` overload too) now registers all of it, the session scope included, with the mediator and the
+  query cache; `app.UseRaskData()`, placed after `UseAuthentication()`, adds the per-request scope and is the
+  `Db.Configure(app.Services)` such a host used to call. Neither opens a connection, creates or migrates
+  anything, registers `MigrateOnStart` or reads `Rask:Database`. `RaskApp` uses the same registrations, so the
+  two hosts cannot drift. `AddRaskData<TContext>()` with no argument is unchanged.
+
+- **`services.AddRaskTenant(sp => …)` — the app says where the tenant comes from (#1228).** One line returning
+  the tenant of the scope it is handed, as a `Guid?` or as a number (`int?` / `long?`):
+  `builder.Services.AddRaskTenant(sp => sp.GetRequiredService<ICurrentRequest>().TenantId)`. It replaces the
+  signed-in user's `rask:tenant` claim as the source — the claim stays the default for an app that registers
+  nothing — and is asked once per scope, the answer kept: as an HTTP request starts and as a live session
+  opens, for the session's whole life. `Current.Tenant`, every tenant filter and every insert stamp use it; an
+  explicit `Tenant.Use` / `Tenant.Across` still wins, so a job goes on running in the tenant its row recorded
+  — and there the resolver is not even asked. A user with no tenant claim works in the resolved tenant; one
+  whose claim names a different tenant is refused with a `ForbiddenException` when the tenant is read.
+  **When the resolver names no tenant**, a tenant-scoped table reads as *empty* — `Count()` is 0, `Find` is
+  null — and every write to one is refused with the new `MissingTenantException` (an
+  `InvalidOperationException`); it never reads every tenant's rows, and never the rows that belong to none.
+  Without a resolver nothing changes: a read with no tenant still throws. `Guid.AllBitsSet` is now reserved —
+  it is what `Tenant.Resolve()` hands a hand-written filter in that state — and `Tenant.Use` refuses it.
+
+- **A tenant-scoped table can number its tenants: the declared `TenantId` decides the column's type (#1227).**
+  `public int? TenantId { get; private set; }` — or `long?`, or `Guid?` as before — on an aggregate (or child)
+  with `Scope = Tenancy.PerTenant` makes the column, the query filter on both the write model and the read
+  face, and the insert stamp that type. An entity that declares nothing keeps today's shadow `Guid?`; any
+  other type is refused when the model is built, with the three that are accepted.
+  `Tenant.Use(42)` opens the tenant by its number. The framework still carries the tenant as a `Guid`
+  (`Current.Tenant`, every battery's own column), and a number travels inside it by a fixed rule — first eight
+  bytes zero, last eight the number, big-endian, so tenant 42 is `00000000-0000-0000-0000-00000000002a` — which
+  is what lets a job enqueued in tenant 42 run in tenant 42. A tenant that is not a number, or one too large
+  for an `int` column, met by a table that keeps a number is refused rather than compared.
+  **The filter's SQL changed shape for every tenant-scoped table**: it is now
+  `TenantId IS NOT NULL AND TenantId = @tenant`, so a row that belongs to no tenant can never be matched by a
+  read that names none. No schema change. With `Stamps = Timestamps.None`, `Checks = Concurrency.None` and
+  `ToTable` in `Configure`, this is what lets an app map aggregates over tables it already has, through a second
+  context deriving from `RaskDbContext` beside its own — [Mapping tables that already
+  exist](docs/data.md#mapping-tables-that-already-exist).
 - **The UI kit's own words are translatable, and it speaks Hungarian out of the box.** The Flux rebuild had
   written the kit's few fixed texts as English literals — the pager's "Showing 1 to 10 of 13 results" and its
   arrow names, a select's "No results found" / "Loading..." / "Clear selected", the date pickers' "Select a
@@ -120,6 +176,17 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: an index declared in `Configure` (or by `[Index]`) on a tenant-scoped entity becomes tenant-first
+  (#1233).** An app that has an entity with `Scope = Tenancy.PerTenant` and an index it declared in the
+  entity's static `Configure`, or with an `[Index]` attribute, **gets a schema change in its next migration**:
+  the index that does not name `TenantId` is dropped and recreated with `TenantId` in front —
+  `IX_Product_Sku (Sku)` becomes `IX_Product_TenantId_Sku (TenantId, Sku)`. For a **unique** index that changes
+  what the database enforces: the value was unique across every tenant, and is now unique within one. That is
+  what the docs always promised and what an index declared before the conventions already got; the fix is the
+  entry under *Fixed*. Nothing to change in code. To keep an index exactly as it is, name the tenant in it —
+  `builder.HasIndex(p => new { p.Sku, p.TenantId })` (or `"Sku", Columns.TenantId` for the shadow column):
+  an index that names `TenantId` anywhere is left as written. Run `rask db add` and read the migration before
+  applying it — on a large table recreating an index takes a lock.
 - **The docs lead with inline `.Validate(…)`; DataAnnotations and FluentValidation follow as "also supported".**
   No API changed and nothing is deprecated: only order, emphasis and examples. `docs/forms-validation.md` opens
   on a field's rule, then the form's rule for what spans fields, rules kept in a value object
@@ -1362,6 +1429,23 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A unique index declared in a tenant-scoped entity's `Configure` is unique within the tenant (#1233).**
+  The tenant prefix was applied with the conventions, which run before an entity's own `Configure`, so
+  `builder.HasIndex(p => p.Sku).IsUnique()` written there stayed unique across every tenant — tenant B could
+  not use a value tenant A held. An `[Index]` attribute had the same hole from the other side: EF Core put the
+  unprefixed index back as the model was finalized. The prefix now also runs after `Configure` and at
+  finalization, so every index that does not name `TenantId` gets it in front, wherever it was declared. An
+  index that already names `TenantId` — anywhere in it — is left exactly as written, which is what lets a
+  table that already exists keep `(Name, TenantId)` in that order. **This is a schema change for an app that
+  has such an index — see the BREAKING entry under *Changed*.**
+
+- **An aggregate that declares `Checks = Concurrency.None` can be updated.** The table was mapped without a
+  `Version`, but the save still asked the change tracker for it: `Product.Update(id, p => …)`, `Find` then
+  `Save()`, and any change to a child threw, because the model has no such property. The
+  interceptor now bumps the version, and marks a changed child's root, only where the column is mapped — so a
+  root that also declined its stamps is simply left alone. `GeneratedModelWrites.Update`/`Delete` called
+  directly with a version for such an aggregate is refused with a message naming the const, rather than
+  skipping a check the caller asked for.
 - **A `Ui.ChartBar` shorter than its corners is drawn as Flux draws it.** A bar's corner was held to the bar's
   whole length, where Flux holds it to HALF of it (and to half the bar's thickness): a bar under 16px tall with
   the default radius of 8 — or under 8px in a group, whose radius is 4 — had its shoulders 1 to 3px too low, the

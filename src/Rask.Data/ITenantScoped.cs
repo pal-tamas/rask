@@ -35,6 +35,12 @@ public interface ITenantScoped
     ///         rows. That distinction is the whole difference between <c>Tenant.Across()</c> working and
     ///         silently returning nothing.
     ///     </para>
+    ///     <para>
+    ///         In an app that registered a resolver (<c>AddRaskTenant</c>) which named no tenant, this is
+    ///         <see cref="Guid.AllBitsSet" /> rather than a throw: a value no row holds, which Rask's filter
+    ///         reads as "match nothing". A numbered tenant arrives as the <see cref="Guid" /> that carries it,
+    ///         and the filter of a table that keeps a number compares the number.
+    ///     </para>
     /// </remarks>
     Guid? CurrentTenant => Tenant.Resolve();
 }
