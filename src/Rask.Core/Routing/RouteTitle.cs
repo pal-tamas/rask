@@ -24,23 +24,23 @@ internal sealed class RouteTitle
     /// <returns>Whether a reader that already rendered in this walk now shows the old title.</returns>
     public bool Publish(string? value)
     {
-        if (string.Equals(_value, value, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
+        var changed = !string.Equals(_value, value, StringComparison.Ordinal);
         _value = value;
+
+        // Swept on every frame rather than only on a change: a reader that left must not be kept for as
+        // long as the title happens to stay the same. One or two entries, and nothing allocated.
         var stale = false;
         foreach (var (reader, ahead) in _readers)
         {
             if (reader.IsTornDown)
             {
                 _readers.Remove(reader);
-                continue;
             }
-
-            reader.MarkDirtyForFrame();
-            stale |= ahead;
+            else if (changed)
+            {
+                reader.MarkDirtyForFrame();
+                stale |= ahead;
+            }
         }
 
         return stale;
