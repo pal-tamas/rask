@@ -6,7 +6,7 @@ everything the server host and the browser host have in common.
 - **Components in C#** — `Component`, the element chain (`Div.Class("panel")[Span["hi"]]`), every HTML and
   SVG element, `Text`/`Raw`/`Fragment`.
 - **Routing** — `[Route]`, nested layouts, type-safe `Routes.X()` URLs.
-- **Forms** — two-way binding, validation, submit state.
+- **Forms** — two-way binding, inline `.Validate(…)` rules (sync or async), submit state.
 - **Typed browser APIs** — wrappers such as `IIndexedDb`, `IWebAuthn` and `IWebRtc` that work the same on
   both hosts; the rest of the browser comes from MDN in `Rask.Web`.
 - **Scoped CSS and TypeScript** — a `Counter.css` or `Counter.ts` beside `Counter.cs`, compiled by `dotnet build`.

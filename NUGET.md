@@ -128,7 +128,7 @@ dotnet add package Rask.SqlServer                     # SQL Server via UseRaskSq
 **UI and testing:**
 
 ```bash
-dotnet add package Rask.Validation.FluentValidation   # AbstractValidator<T>; DataAnnotations is built in
+dotnet add package Rask.Validation.FluentValidation   # optional: AbstractValidator<T>; inline .Validate(…) and DataAnnotations are built in
 dotnet add package Rask.Testing                       # render + drive components in unit tests
 ```
 

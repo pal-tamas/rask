@@ -49,6 +49,16 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The docs lead with inline `.Validate(…)`; DataAnnotations and FluentValidation follow as "also supported".**
+  No API changed and nothing is deprecated: only order, emphasis and examples. `docs/forms-validation.md` opens
+  on a field's rule, then the form's rule for what spans fields, rules kept in a value object
+  (`Ui.Input.Bind(() => m.Name).MaxLength(DestinationName.MaxLength).Validate(DestinationName.Validate)`, with a
+  live demo), and the async rule with its latest-value-wins note. A field's async rule runs on every change, so
+  the guide now says an expensive check belongs in the form's rule, on submit. The attribute and FluentValidation
+  sections keep their content under "Also supported", beside how an app that wants only its inline rules turns
+  the automatic validators off (`RaskValidation.AutoValidate = false`). `docs/forms.md`, `docs/validation.md`,
+  best practices, the home page card, the guide search copy, `llms.txt` and the package READMEs say the same.
+
 - **A collapsed `Ui.Sidebar` is Flux's rail: real tooltips, a menu per group, the navlist's count.** Measured on
   Flux's live `sidebar-collapsible` demo and built from its pieces. Every `Ui.SidebarItem` sits in a `Ui.Tooltip`
   to its right (`aria-describedby`, `data-rask-tooltip`) that is drawn only while the sidebar is a rail;
