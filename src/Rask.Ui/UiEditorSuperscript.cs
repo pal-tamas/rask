@@ -7,5 +7,5 @@ public sealed partial class UiEditorSuperscript : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("superscript", "Superscript", null, UiEditorIcons.Superscript());
+        UiEditorMarkup.Toggle("superscript", RaskStrings.Get(RaskString.EditorSuperscript, "Superscript"), null, UiEditorIcons.Superscript());
 }

@@ -14,6 +14,7 @@ public sealed partial class UiTimePicker<T>
     {
         var twelve = UiTimePickerLook.TwelveHour(Format, Culture);
         var opens = Dropdown != false && Disabled != true;
+        var hour = RaskStrings.Get(RaskString.PickerHour, "Hour");
 
         var box = Div
             .Class(UiClass.Compose(UiTimePickerLook.InputBox, UiTimePickerLook.BoxSize(Size ?? Ui.TimePickerSize.Base)))
@@ -28,11 +29,11 @@ public sealed partial class UiTimePicker<T>
         return box[
             Ui.Icon.Name(Ui.IconName.Clock).Mini.Class(UiTimePickerLook.InputIcon),
             Div.Class(UiTimePickerLook.Segments).Data(UiTimePickerLook.SegmentsMark).Attributes(("dir", "ltr"))[
-                Segment("hour", "Hour", "hh").Id(view.Field.ControlId).Aria(Named(view, "Hour")).Attributes(UiTimePickerLook.Numeric),
+                Segment("hour", hour, RaskStrings.Get(RaskString.TimePickerHourPlaceholder, "hh")).Id(view.Field.ControlId).Aria(Named(view, hour)).Attributes(UiTimePickerLook.Numeric),
                 ":",
-                Segment("minute", "Minute", "mm").Attributes(UiTimePickerLook.Numeric),
+                Segment("minute", RaskStrings.Get(RaskString.PickerMinute, "Minute"), RaskStrings.Get(RaskString.TimePickerMinutePlaceholder, "mm")).Attributes(UiTimePickerLook.Numeric),
                 twelve ? "\u00A0" : null,
-                twelve ? Segment("meridiem", "AM/PM", UiTimePickerLook.Period(false, Culture)) : null,
+                twelve ? Segment("meridiem", RaskStrings.Get(RaskString.TimePickerMeridiem, "AM/PM"), UiTimePickerLook.Period(false, Culture)) : null,
                 Whole(view)
             ],
             Span.Class("grow"),

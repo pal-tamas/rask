@@ -62,6 +62,9 @@ internal static class AggregateSave
         DbContext context, TEntity aggregate, CancellationToken cancellationToken)
         where TEntity : class, IAggregate
     {
+        // Before the row is looked for: with no tenant resolved it would only be reported as deleted.
+        Tenant.DemandForWrite(typeof(TEntity));
+
         var entry = context.Entry(aggregate);
 
         // Loaded through this very context: its own change tracking already knows what to write.

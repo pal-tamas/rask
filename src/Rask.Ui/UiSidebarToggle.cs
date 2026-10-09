@@ -29,7 +29,7 @@ public sealed partial class UiSidebarToggle : Component
             .Role("button")
             .TabIndex(0)
             .Attributes(("data-ui-sidebar-toggle", ""))
-            .Aria("label", "Toggle sidebar")[
+            .Aria("label", RaskStrings.Get(RaskString.SidebarToggle, "Toggle sidebar"))[
             Ui.Icon.Name(Icon ?? Ui.IconName.Bars2).Mini
         ];
 }

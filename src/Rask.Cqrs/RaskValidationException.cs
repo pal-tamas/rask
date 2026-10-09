@@ -45,6 +45,21 @@ public sealed class RaskValidationException : Exception
     }
 
     /// <summary>
+    ///     Creates the exception from the failures that caused it and the exception they were read from.
+    /// </summary>
+    /// <param name="errors">Every failure, in the order they were found.</param>
+    /// <param name="innerException">
+    ///     What actually failed — a database's refusal of a duplicate, say. It is for the log: only
+    ///     <see cref="Errors" /> is ever shown to the caller.
+    /// </param>
+    public RaskValidationException(IReadOnlyList<RequestValidationError> errors, Exception innerException)
+        : base(Describe(errors), innerException)
+    {
+        ArgumentNullException.ThrowIfNull(errors);
+        Errors = Group(errors);
+    }
+
+    /// <summary>
     ///     The failures, grouped by field. The empty key holds rules about the request as a whole.
     /// </summary>
     public IReadOnlyDictionary<string, string[]> Errors { get; }

@@ -7,5 +7,5 @@ public sealed partial class UiEditorRedo : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("redo", "Redo", "⌘+Shift+Z", UiEditorIcons.Redo());
+        UiEditorMarkup.Toggle("redo", RaskStrings.Get(RaskString.EditorRedo, "Redo"), "⌘+Shift+Z", UiEditorIcons.Redo());
 }

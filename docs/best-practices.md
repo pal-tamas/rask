@@ -139,12 +139,12 @@ mistake, the rule notes the ID.
   installs its own write-back, so `Value`/`Checked`/`OnInput`/`OnChange` are not offered on a bound
   chain (and `AfterBind` is not offered on a controlled one) — reach for `AfterBind` when you want a
   side effect on each bound write. See [forms §1](forms.md#1-two-way-binding).
-- **Wrap inputs in `HTMLFormElement<TModel>` and let it validate.** The form owns the `EditContext`
-  (touched/modified state + the validator pipeline) and registers the built-in passes itself, so
-  the model's attributes and the `AbstractValidator<T>` you wrote both cover the whole reachable
-  object graph — including nested sub-objects and collections — with nothing declared. Reach for an
-  inline `Validate:` lambda on top of that when a rule belongs to one field on one form. See
-  [validation.md](validation.md).
+- **Write the rule beside the field.** `Input.Bind(() => _model.Email).Validate(v => …)` returns the
+  messages that reject the value; a rule across fields goes on `Form.Model(m).Validate(m => …)`, and
+  either takes an `async` rule. The form owns the `EditContext` (touched/modified state + the validator
+  pipeline). A model that already carries DataAnnotations attributes or has an `AbstractValidator<T>`
+  is validated by those too, across the whole reachable object graph, with nothing declared. See
+  [forms — validation](forms-validation.md).
 - **Bind collections with `foreach` + per-item capture** — the canonical pattern. Each iteration
   closes over a distinct instance, so each row owns its validation state and `foreach` has no closure
   trap:
@@ -155,10 +155,11 @@ mistake, the rule notes the ID.
   Only reach for the indexer style (`() => _model.Items[i].Name`) when you need the row number or
   replace records rather than mutate them — and then copy the loop index into a per-iteration local.
   See [forms §7](forms-advanced.md#nested--complex-models).
-- **Reuse one validation rule across the form and the domain.** A value object that exposes its rule
-  as a `static IEnumerable<string> Validate(T value)` (the shape of an inline validator) can be
-  passed as a method group to `Input.Bind(() => _form.Price).Validate(Money.Validate)` *and* enforced inside the aggregate —
-  one source of truth. See [data access](data-access.md#how-the-sample-is-organised).
+- **Keep a field's simple rules in a value object.** Required, length and format belong to the value:
+  expose them as a `static IEnumerable<string> Validate(T value)` (the shape of an inline rule) and
+  name it from the field — `Input.Bind(() => _form.Price).Validate(Money.Validate)` — *and* enforce it
+  inside the aggregate. One source of truth. See
+  [rules in a value object](forms-validation.md#rules-in-a-value-object).
 
 ## Routing & lifecycle
 

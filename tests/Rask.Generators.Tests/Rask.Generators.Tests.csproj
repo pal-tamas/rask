@@ -78,6 +78,7 @@
        that starts reading a new file outside this project must add it here. -->
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\..\docs\diagnostics.md" />
+    <RaskTestReads Include="..\..\docs\localization.md" />
     <RaskTestReads Include="..\..\src\**\*.cs" />
     <RaskTestReads Include="..\..\src\**\*.targets" />
     <RaskTestReads Include="..\..\src\**\*.csproj" />

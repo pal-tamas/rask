@@ -8,6 +8,7 @@ namespace Rask.Core.Tests.Globalization;
 
 // The culture reaches a render because the walk ASKS the session for it, never because it flowed there.
 // These tests pin that down, including the case that rules out every propagation-based design.
+[Collection(CultureCollection.Name)]
 public partial class CultureFlowTests : global::Rask.Core.RaskMarkup, IDisposable
 {
     private static readonly CultureInfo Hungarian = CultureInfo.GetCultureInfo("hu-HU");

@@ -321,7 +321,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     private Component Footer(Func<T, Task> commit) =>
         Div.Class(Confirms ? UiDatePickerLook.Footer : UiDatePickerLook.FooterHidden)[
             Div.Class("inline")[
-                Ui.Button.Ghost.CommandFor(PopoverId).Command("hide-popover")["Cancel"]
+                Ui.Button.Ghost.CommandFor(PopoverId).Command("hide-popover")[RaskStrings.Get(RaskString.DatePickerCancel, "Cancel")]
             ],
             Div.Class("inline").Role("button").TabIndex(0).OnClick(() => _pending.Held ? commit(_pending.Value!) : Task.CompletedTask)[
                 Ui.Button.Primary.CommandFor(PopoverId).Command("hide-popover")[ConfirmLabel]
