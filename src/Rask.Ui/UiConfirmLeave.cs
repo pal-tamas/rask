@@ -41,7 +41,7 @@ public sealed partial class UiConfirmLeave : Component
             Div.Class("space-y-6")[
                 // Empty in every render and filled in the browser, so it is kept out of the morph's hands: a
                 // render that lands while the dialog is open would otherwise blank the question.
-                Ui.Heading.Level(2).Lg.Data(Part, "message").Attributes(("data-rask-opaque", null)),
+                Ui.Heading.Level(2).Lg.Class("pe-8").Data(Part, "message").Attributes(("data-rask-opaque", null)),
                 Div.Class("flex gap-2")[
                     Ui.Spacer,
                     Ui.ModalClose.Key("stay")[Ui.Button.Ghost[Stay ?? "Stay"]],
