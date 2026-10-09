@@ -352,6 +352,7 @@ as its heading:
 Ui.Main[Outlet],
 Ui.Toast,
 Ui.ConfirmLeave.Stay("Nem").Leave("Igen")   // the two buttons; "Stay" and "Leave" when unset
+Ui.ConfirmLeave.Heading("Unsaved changes")  // a short title over the form's question, as Flux titles a confirmation
 ```
 
 The forms do not change. `Stay`, the close button, Escape and a press outside the dialog all keep the reader

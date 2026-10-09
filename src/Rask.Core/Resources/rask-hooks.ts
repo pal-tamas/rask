@@ -28,6 +28,7 @@ import "./rask-leave.js";    // data-rask-confirm-leave
 import "./rask-persist.js";  // data-rask-persist, data-rask-uncheck-on-navigate
 import "./rask-carousel.js"; // data-rask-carousel
 import "./rask-scroll.js";   // data-rask-scroll-to
+import "./rask-tabs.js";     // role="tablist": the arrow keys
 
 // Last, when every hook is listening: what the reader did while this bundle was on its way.
 replayMissed();

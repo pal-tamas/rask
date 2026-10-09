@@ -32,6 +32,9 @@ public sealed partial class LogsPage(
     OpsOptions options,
     TimeProvider timeProvider) : PollingPanel, IDisposable
 {
+    // The level row's tab for "no minimum": a tab has a name, and the address has no level then.
+    private const string AllLevels = "all";
+
     private bool _subscribed;
     private LogPage _history = LogPage.Empty(1, 1);
     private IReadOnlyList<string> _storedCategories = [];
@@ -177,24 +180,27 @@ public sealed partial class LogsPage(
         ? $"{_history.TotalCount} stored entries, kept across restarts"
         : $"at most {options.LogBufferSize} entries, {options.LogMinimumLevel} and above, in memory only";
 
+    // A tab is a button, as Flux's is: the row's choice is part of the address, so choosing one goes there.
     private Component ModeTabs() =>
-        Ui.Tabs[
-            ModeTab(null, "Live"),
-            ModeTab("history", "History")
+        Ui.Tabs.Value(IsHistory ? "history" : "live").OnChange(ModeChangedAsync)[
+            Ui.Tab.Key("live").Name("live")["Live"],
+            Ui.Tab.Key("history").Name("history")["History"]
         ];
 
-    private UiTab ModeTab(string? view, string label) =>
-        Ui.Tab
-            .Key(label)
-            .Label(label)
-            .Href(Routes.LogsPage(View: view, Level: Level, Category: Category))
-            .Active(IsHistory == (view is not null));
+    private Task ModeChangedAsync(string view)
+    {
+        Go.To(Routes.LogsPage(
+            View: string.Equals(view, "history", StringComparison.Ordinal) ? "history" : null,
+            Level: Level,
+            Category: Category));
+        return Task.CompletedTask;
+    }
 
     // The grid's toolbar lays these out as one row from sm up and one control per line below it, which is
     // what three filters at 360px need: side by side, each is too narrow to show the value it is set to.
     private Component Filters() =>
         [
-            Ui.Tabs[
+            Ui.Tabs.Pills.Value(MinimumLevel?.ToString() ?? AllLevels).OnChange(LevelChangedAsync)[
                 LevelPill(null, "All"),
                 LevelPill(LogLevel.Information, "Info+"),
                 LevelPill(LogLevel.Warning, "Warning+"),
@@ -204,12 +210,14 @@ public sealed partial class LogsPage(
             IsHistory ? SearchBox() : null
         ];
 
-    private UiTab LevelPill(LogLevel? level, string label) =>
-        Ui.Tab
-            .Key(label)
-            .Label(label)
-            .Href(Link(level: level?.ToString(), category: Category))
-            .Active(MinimumLevel == level);
+    private static Component LevelPill(LogLevel? level, string label) =>
+        Ui.Tab.Key(label).Name(level?.ToString() ?? AllLevels)[label];
+
+    private Task LevelChangedAsync(string level)
+    {
+        Go.To(Link(level: string.Equals(level, AllLevels, StringComparison.Ordinal) ? null : level, category: Category));
+        return Task.CompletedTask;
+    }
 
     // A native select rather than a drawn list: a real application has dozens of logger categories, and the
     // platform's own picker is keyboard-navigable, needs no script and is the right control on a phone. Only

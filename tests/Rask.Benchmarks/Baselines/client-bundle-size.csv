@@ -1,6 +1,11 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-09 with the tablist's arrow keys (rask-tabs.ts, Flux's tabs — a hook module like the others,
+# so a page without a tablist does not download it): rask-hooks.js 39,346 -> 40,106 (+760). The loader's role
+# selector learned `[role=tablist]` beside `input[role=switch]`: rask.js 95,668 -> 95,683 and rask.wasm.js
+# 84,524 -> 84,539, +15 bytes each.
+#
 # Refreshed 2026-10-09 with the pager's scroll hook beside the leave dialog (rask-scroll.ts, data-rask-scroll-to — a
 # hook, so it is in rask-hooks.js; its name in the loader's attribute list is what the runtimes carry of it):
 # rask-hooks.js 39,103 -> 39,346 (+243), rask.js 95,658 -> 95,668 and rask.wasm.js 84,514 -> 84,524, +10 each.
@@ -95,6 +100,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,95668
-rask.wasm.js,84524
-rask-hooks.js,39346
+rask.js,95683
+rask.wasm.js,84539
+rask-hooks.js,40106

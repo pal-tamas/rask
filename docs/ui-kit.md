@@ -353,7 +353,7 @@ Not every component honours every member — daisyUI defines no `input-outline` 
 the markup looking as though it styled something.
 
 Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.ModalPosition`, `Ui.MaskShape`,
-`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`, `Ui.TabStyle`.
+`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`.
 
 ### One vocabulary for placing things
 
@@ -369,7 +369,6 @@ step:
 ```csharp
 Ui.Dropdown.Top.End[ trigger, Ui.Menu[ … ] ]
 Ui.Tooltip.Content("Copy").Right[ … ]   // Flux's own Ui.TooltipPosition / Ui.TooltipAlign — see Tooltips
-Ui.Tabs.Position(Ui.Position.Bottom)[ … ]
 Ui.Modal.Name("details").Flyout().Left[ … ]   // a flyout is placed against the viewport: Ui.ModalPosition
 ```
 
@@ -539,6 +538,62 @@ with its own tag inside, as `Ui.Button` does once it has a `Tooltip`. The two ot
 The kit pads a list's rows with a stylesheet rule on its `ui-list` marker, in the layer below your
 utilities. A `px-0` on a row therefore gets flush content. A `[&>li]:px-4` variant would have
 out-specified it.
+
+## Tabs
+
+`Ui.TabGroup`, `Ui.Tabs`, `Ui.Tab` and `Ui.TabPanel` are [Flux's tabs](https://fluxui.dev/components/tabs):
+the same four parts, the same props, drawn and behaving the same.
+
+```csharp
+Ui.TabGroup[
+    Ui.Tabs.Bind(() => Tab)[                       // or .Value(_tab).OnChange(t => _tab = t), or neither
+        Ui.Tab.Name("profile")["Profile"],
+        Ui.Tab.Name("account").Icon(Ui.IconName.Cog6Tooth)["Account"],
+        Ui.Tab.Name("billing")["Billing"]
+    ],
+    Ui.TabPanel.Name("profile")[ /* … */ ],
+    Ui.TabPanel.Name("account")[ /* … */ ],
+    Ui.TabPanel.Name("billing")[ /* … */ ]
+]
+```
+
+**The selected tab is the row's value** — the tab's `Name` — where Flux has `wire:model`. `Bind` two-way binds
+it to a property, `Value` with `OnChange` leaves it with the page, and with neither the row keeps track
+itself, starting on the tab that says `Selected()` or else the first one that is not disabled. A tab with no
+`Name` is known by its place in the row: `"0"`, `"1"`…
+
+`Bind` writes the property and redraws the row and its panels; like every bound control it does not redraw
+the page around them. A page that shows the selected name somewhere else takes it from `OnChange`, which
+runs in every mode.
+
+| Flux | Rask |
+|---|---|
+| `<flux:tabs variant="segmented" size="sm">` | `Ui.Tabs.Segmented.Size(Ui.TabsSize.Sm)` |
+| `<flux:tabs variant="pills">` | `Ui.Tabs.Pills` |
+| `<flux:tabs scrollable scrollable:fade scrollable:scrollbar="hide">` | `Ui.Tabs.Scrollable().ScrollableFade().ScrollableScrollbar(Ui.TabsScrollbar.Hide)` |
+| `<flux:tabs class="px-4">` | `Ui.Tabs.Class("px-4")` |
+| `<flux:tab icon="user" icon:trailing="chevron-down" icon:variant="solid">` | `Ui.Tab.Icon(Ui.IconName.User).IconTrailing(Ui.IconName.ChevronDown).IconVariant(Ui.IconVariant.Solid)` |
+| `<flux:tab selected>` · `disabled` · `:accent="false"` | `.Selected()` · `.Disabled()` · `.Accent(false)` |
+| `<flux:tab icon="plus" wire:click="addTab" action>` | `Ui.Tab.Icon(Ui.IconName.Plus).Action().OnClick(AddTab)` |
+| `<flux:tab.group findable>` | `Ui.TabGroup.Findable()` |
+
+A row needs no group: a segmented `List / Board / Timeline` on its own is a choice the page reads from
+`OnChange`. Inside a group, write the row before its panels — a panel learns which tab is selected from the
+row above it. Every panel is rendered and the ones not shown are `hidden`; in a `Findable()` group they are
+`hidden="until-found"` instead, so the browser's find-in-page reaches them and a match selects its tab. A
+panel has Flux's top padding (`pt-8`); another is said as Flux's own examples say it, `Class("pt-6!")`.
+
+A count beside a label is a child, like any other content: `Ui.Tab.Name("open")["Open", Ui.Badge["12"]]`.
+
+**The keyboard** is the runtime's, for every `role="tablist"` ([accessibility.md](accessibility.md#tabs)):
+ArrowRight/ArrowDown and ArrowLeft/ArrowUp move to the next and the previous tab, past a disabled one and
+around the ends, and **select as they go**. Only the selected tab is a tab stop, so Tab leaves the row for the
+panel. An `Action()` tab is an ordinary button in the row: a tab stop of its own, which the arrows pass over.
+Home and End are not handled, as Flux does not handle them.
+
+**A tab is not a link.** Flux's tab takes no `href`, and neither does this one: for full-page navigation
+Flux says to use the navbar. A row whose choice is part of the address reads it from `OnChange` and goes there —
+`Ui.Tabs.Value(view).OnChange(v => Go.To(Routes.LogsPage(View: v)))`.
 
 ## Tables
 
@@ -1238,7 +1293,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` `Ui.Swap` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
-| **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
+| **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
@@ -1342,11 +1397,13 @@ heading, a ghost button that stays and a danger button that leaves:
 ```csharp
 Ui.ConfirmLeave                              // "Stay" and "Leave"
 Ui.ConfirmLeave.Stay("Nem").Leave("Igen")    // your own words
+Ui.ConfirmLeave.Heading("Unsaved changes")   // a short title; the form's question is the sentence beneath it
 ```
 
 It is rendered closed and the runtime opens it, so the question appears without a round trip. The close
 button, Escape and a press outside mean stay. It is drawn as the confirmation above is — `min-w-[22rem]` —
-and, because its heading is a whole question of the form's own, with `pe-8` on it.
+and, because its heading may be a whole question of the form's own, with `pe-8` on it. `Heading("…")` gives
+it the shape Flux's confirmation has: a short title, the question under it.
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 
@@ -1430,35 +1487,8 @@ redraw through the live diff.
 **The browser owns it, and tells the page.** A `Ui.AccordionItem` is a `<details>`: it opens with no handler at
 all, and `Expanded` is only the state it starts in — see [Accordion](#accordion).
 
-**The markup owns it.** `Ui.Tab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
-survives a refresh and answers the back button.
-
-
-**And for a view with no URL, the same tab takes a `Name` instead.** Wrap the row in a `Ui.TabGroup` and give
-each tab a `Ui.TabPanel`:
-
-```csharp
-Ui.TabGroup.Selected(_pane).OnSelect(p => _pane = p)[
-    Ui.Tabs[
-        Ui.Tab.Label("Details").Name("details"),
-        Ui.Tab.Label("History").Name("history")
-    ],
-    Ui.TabPanel.Name("details")[ /* … */ ],
-    Ui.TabPanel.Name("history")[ /* … */ ]
-]
-```
-
-One component for both, because a reader sees one thing — what it is comes from what it is given. The
-`Ui.Tabs` inside the group is not ceremony: a `tablist` may contain only tabs, so the panels cannot be its
-siblings, and it is the structure Flux uses for the same reason. Leave `Selected` off and the group shows the
-first tab and keeps track itself.
-
-Inside a group the tab is a real `<button>`, not a link — there is nowhere for it to go, and an `href="#"` is
-one the browser follows, putting a stray fragment in the address bar and breaking the back button it was meant
-to protect. The keyboard is the tabs pattern: **ArrowLeft/ArrowRight move and show as they go**, Home and End
-jump to the ends, and they wrap. Only the selected tab is a tab stop, so Tab out of the row lands *in* the
-panel rather than walking every remaining tab. Every panel is rendered, with the ones not shown carrying
-`hidden`, so their content is still findable by the browser's own in-page search.
+**And one whose state is a value.** `Ui.Tabs` keeps its selected tab itself until the page binds it — see
+[Tabs](#tabs).
 
 **And one that lets you choose.** `Ui.Select` is the browser's own `<select>` by default, and the browser
 owns all of it: it works on a prerendered page and with scripting off, which is why it is the default.

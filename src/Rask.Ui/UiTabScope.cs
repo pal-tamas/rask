@@ -1,49 +1,62 @@
+using System.Globalization;
+
 namespace Rask;
 
 /// <summary>
-/// What a <see cref="UiTabGroup" /> tells the tabs and panels inside it, and what they tell it back.
+///     What a <see cref="UiTabs" /> tells the tabs inside it: how they are drawn, which one is selected, and
+///     how to select another.
 /// </summary>
 /// <remarks>
-/// <para>
-/// The same arrangement <see cref="UiMenuScope" /> uses, and for the same reason: the tabs are written by the
-/// CALLER, inside the group's children, so there is no call site at which the group could hand each one its id,
-/// its selected state or the panel it controls. Each tab REGISTERS as it renders, in document order, and the
-/// tablist's key handler walks that list.
-/// </para>
-/// <para>
-/// Rebuilt on every render of the group and filled by that same render walk, so the list the next arrow key
-/// reads is the list on screen.
-/// </para>
+///     The tabs are written by the CALLER, inside the tablist's children, so there is no call site at which
+///     the tablist could hand each one its state. Each tab asks as it renders, in document order, and is
+///     told its name and whether it is the selected one.
 /// </remarks>
-internal sealed class UiTabScope(string prefix, string? selected, Func<string, Task> select)
+internal sealed class UiTabScope(
+    Ui.TabsVariant variant,
+    Ui.TabsSize size,
+    string? chosen,
+    bool flagged,
+    Func<string, Task> select)
 {
-    private readonly List<string> _names = [];
+    private int _count;
+    private string? _shown;
 
-    /// <summary>Every tab registered so far this render, in document order.</summary>
-    internal IReadOnlyList<string> Names => _names;
+    internal Ui.TabsVariant Variant => variant;
 
-    /// <summary>
-    ///     Which tab is shown. Unset, it is the FIRST tab to register — a group that opens with nothing shown is
-    ///     a set of panels with no way in, and a page should not have to repeat its own first tab's name to avoid
-    ///     that.
-    /// </summary>
-    internal string? Selected => selected ?? (_names.Count != 0 ? _names[0] : null);
+    internal Ui.TabsSize Size => size;
 
-    /// <summary>Shows a tab: the group's own callback, which is what writes the page's state.</summary>
+    /// <summary>Selects a tab by name: the tablist's own handler, which writes the page's state.</summary>
     internal Func<string, Task> Select => select;
 
-    /// <summary>The element id of a tab, which its panel's <c>aria-labelledby</c> names.</summary>
-    internal string TabId(string name) => prefix + "-tab-" + name;
+    /// <summary>The selected tab's name, as far as the tabs rendered so far say.</summary>
+    internal string? Selected => chosen ?? _shown;
 
-    /// <summary>The element id of a panel, which its tab's <c>aria-controls</c> names.</summary>
-    internal string PanelId(string name) => prefix + "-panel-" + name;
-
-    /// <summary>Takes a place in document order for a tab rendering now.</summary>
-    internal void Register(string name)
+    /// <summary>
+    ///     Takes a tab's place in the row and answers what it is called and whether it is selected.
+    /// </summary>
+    /// <param name="name">The tab's own name; a tab without one is known by its place, <c>"0"</c>, <c>"1"</c>…</param>
+    /// <param name="selected">The tab's own <c>Selected</c>, which counts until a tab has been chosen.</param>
+    /// <param name="first">
+    ///     Whether this tab may be the one shown when nothing says which is: a disabled tab may not.
+    /// </param>
+    internal (string Name, bool Selected) Place(string? name, bool selected, bool first)
     {
-        if (!_names.Contains(name))
+        var known = name ?? _count.ToString(CultureInfo.InvariantCulture);
+        _count++;
+
+        if (chosen is not null)
         {
-            _names.Add(name);
+            return (known, string.Equals(chosen, known, StringComparison.Ordinal));
         }
+
+        // A tab that says it is selected is. Otherwise the first tab is — unless a later one in this row
+        // says so, which is what `flagged` reports before any of them has rendered.
+        var shown = _shown is null && (selected || (!flagged && first));
+        if (shown)
+        {
+            _shown = known;
+        }
+
+        return (known, shown);
     }
 }
