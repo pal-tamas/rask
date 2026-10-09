@@ -103,7 +103,7 @@ public sealed partial class EditContext
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         state.Cts = cts;
 
-        ClearMessages(field);
+        ClearRuleMessages(field);
 
         var hasFieldDelegate = _fieldDelegates.TryGetValue(field, out var fieldReg);
         var fieldDelegateIsAsync = hasFieldDelegate && DelegateValidator.IsAsync(fieldReg.Validate);

@@ -69,7 +69,7 @@ git push origin HEAD:main
   runs them.
 - **A red `main` publishes nothing, and neither does a scoped green.** `nightly.yml` and `pages.yml` run
   only from a commit `full.yml` passed: it runs behind every push, so a site change is live about twenty
-  minutes later and a package on `nightly.yml`'s next hourly run.
+  minutes later and a package is on nuget.org about as soon.
 
 If the push is rejected as non-fast-forward, someone landed first: `git fetch origin main` and redo
 step 2 — never `--force` `main`.
