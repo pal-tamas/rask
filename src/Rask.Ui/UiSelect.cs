@@ -68,7 +68,7 @@ public sealed partial class UiSelect<T> : UiSelectControl<T>, IFormControl<T>
     private protected override Component NativeSelect(UiWithField field, string look, IReadOnlyList<Component?> options)
     {
         var select = Bind is { } bind
-            ? Select.Bind(bind).Validate(Validate).AfterBind(AfterBind)
+            ? Select.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live()
             : Select.Value(Value).OnChange(OnChange);
 
         return select

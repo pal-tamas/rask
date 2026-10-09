@@ -104,7 +104,7 @@ public static class BindingHelpers
 
     // Whether an <input> of this type is typed into, so that `.Blur()` and `.Debounce(…)` have a keystroke to
     // wait after. A checkbox, a radio, a file, a range and a colour are chosen, not typed: they commit on
-    // `change` whatever the chain says.
+    // `change` — with the next action, or as they are chosen once the chain names any timing step.
     internal static bool IsTypedInto(string? inputType) =>
         inputType is not ("checkbox" or "radio" or "file" or "range" or "color" or "hidden"
             or "button" or "submit" or "reset" or "image");
@@ -261,7 +261,7 @@ public static class BindingHelpers
             }
         };
 
-    // What a waiting field (`.Blur()`, `.Debounce(…)`) hears of the typing: its first keystroke, and only
+    // What a field that is not sent at every keystroke hears of the typing: its first keystroke, and only
     // while a message shows under it. The message is about a value the reader is already correcting, so it
     // goes; no rule runs. Null — no handler, no attribute — for a field with nothing to clear.
     internal static Action? ClearOnEditHandler(EditContext? ctx, FieldIdentifier fid) =>

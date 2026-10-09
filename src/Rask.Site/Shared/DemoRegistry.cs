@@ -40,19 +40,20 @@ public static partial class DemoRegistry
                 .Result(BindingManualDemo),
             ["binding-typed"] = () => CodeSample
                 .Files(["BindingTypedDemo.cs"])
-                .Notes("Bind reads the expression — the property name becomes the input name, the property "
-                + "type picks the input type, and string fields update on every keystroke. One call "
-                + "replaces Value + OnInput + parsing.")
+                .Notes("Bind reads the expression — the property name becomes the input name and the property "
+                + "type picks the input type. A bound field waits for the next action. Live writes it as "
+                + "you type, so the greeting follows. One call replaces Value + OnInput + parsing.")
                 .Result(BindingTypedDemo),
             ["binding-multi"] = () => CodeSample
                 .Files(["BindingMultiDemo.cs"])
-                .Notes("The same Bind helper picks the right input type from the property's CLR type and "
-                + "wires immediate (string) or change-deferred (everything else) update timing.")
+                .Notes("The same Bind helper picks the right input type from the property's CLR type. The "
+                + "typed fields are Live, so the readout follows them. The checkbox and the select write "
+                + "as they are chosen.")
                 .Result(BindingMultiDemo),
             ["binding-textarea"] = () => CodeSample
                 .Files(["BindingTextareaDemo.cs"])
-                .Notes("Textareas always stream — a bound Textarea writes the model on OnInput, every keystroke, so "
-                + "the echo updates without blur or submit.")
+                .Notes("A Textarea binds as an input does. Live writes the model as you type, after a short "
+                + "pause, so the echo updates without blur or submit.")
                 .Result(BindingTextareaDemo),
 
             // --- Forms guide: validation ---
@@ -68,13 +69,13 @@ public static partial class DemoRegistry
                 .Result(ValueObjectValidateDemo),
             ["validation-bind-timing"] = () => CodeSample
                 .Files(["BindTimingDemo.cs", "DestinationName.cs", "ItineraryModel.cs"])
-                .Notes("Debounce binds and validates once typing pauses, Blur on leaving the field. The second "
-                + "Validate is asked only about a value the first accepted.")
+                .Notes("A bound field waits for the next action. Live sends it as you type, Blur when you leave "
+                + "it. Watch what the model holds while you fill in each one, then press Save.")
                 .Result(BindTimingDemo),
             ["validation-fields"] = () => CodeSample
                 .Files(["ValidationFieldsDemo.cs"])
                 .Notes("Also supported: DataAnnotations attributes on the model, with a Validation.Message under "
-                + "each input — the message appears once the field is touched and clears when it becomes valid.")
+                + "each input — the message appears on submit and clears at the first keystroke of the correction.")
                 .Result(ValidationFieldsDemo),
             ["validation-fluent"] = () => CodeSample
                 .Files(["FluentValidationDemo.cs", "OrderModel.cs", "OrderValidator.cs"])

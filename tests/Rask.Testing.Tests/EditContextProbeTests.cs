@@ -50,7 +50,7 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
 
         Assert.False(captured!.IsModified(name));
 
-        await page.On("input").Input("Ada");
+        await page.On("input").Change("Ada");
 
         // The point of the probe: this is a fact about the form that reading Html could never tell you.
         Assert.True(captured!.IsModified(name));

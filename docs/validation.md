@@ -165,7 +165,7 @@ public sealed class NewOrderValidator : AbstractValidator<NewOrder>
 }
 ```
 
-That validator now runs in three places: in a `Form.Model(newOrder)` as the user types, on a `NewOrder`
+That validator now runs in three places: in a `Form.Model(newOrder)` as each field's value arrives and on submit, on a `NewOrder`
 command when it is dispatched, and on both of these:
 
 ```csharp

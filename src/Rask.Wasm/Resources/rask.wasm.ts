@@ -13,11 +13,8 @@ import { applyDiff, applyFrameInvokes, type DiffOp } from "../../Rask.Core/Resou
 import {
     closestFrom,
     morph,
-    raskChangeFrameValue,
-    raskChangeFrameValues,
-    raskNotePendingFormState,
 } from "../../Rask.Core/Resources/rask-morph.js";
-import { changeSent, flushInputsNow } from "../../Rask.Core/Resources/rask-input.js";
+import { changeFrame, changeSent, sendTypedFirst, waitsForAction } from "../../Rask.Core/Resources/rask-input.js";
 import {
     preloadNewHeadStylesheets,
     waitForUnappliedHeadCss,
@@ -575,6 +572,9 @@ async function send(payload: unknown): Promise<void> {
         holdEarlyCallback(earlyCallbacks, payload);
         return;
     }
+    // What the reader typed or chose and has not been sent goes first, whatever this is: a click, a submit,
+    // a key, a navigation, an event a behaviour hook raised (rask-input.ts).
+    sendTypedFirst(payload);
     if (!dotnetExports) {
         console.warn("[Rask] send: dotnetExports not set");
         return;
@@ -657,14 +657,12 @@ function navigate(url: URL, replace: boolean): void {
     // Stash the "#fragment" so applyNavScroll can scroll to the anchor once the new page commits
     // (the fragment is not sent to .NET).
     _pendingScrollHash = url.hash || "";
-    flushInputsNow();
     send(replace
         ? {type: "navigate", path: stripBase(url.pathname), query: url.search, replace: true}
         : {type: "navigate", path: stripBase(url.pathname), query: url.search});
 }
 
 window.addEventListener("popstate", () => {
-    flushInputsNow();
     send({type: "navigate", path: stripBase(location.pathname), query: location.search, replace: true});
 });
 
@@ -672,7 +670,6 @@ document.addEventListener("click", (e) => {
     const t = handlerClick(e);
     if (!t) return;
     const waiting = loadingTarget(t);
-    flushInputsNow();
     // The dispatch promise resolves once the handler AND its render are done, which is exactly how long
     // the control has been waiting.
     const ticket = waiting ? beginLoading(waiting) : null;
@@ -684,10 +681,6 @@ document.addEventListener("click", (e) => {
 document.addEventListener("change", (e) => {
     const t = closestFrom(e.target, "[data-rask-on-change], [data-rask-on-files]");
     if (!t || !inRoot(t)) return;
-    // Flush before processing — if the same element (or a sibling) has a pending
-    // coalesced input, the server needs to see it BEFORE the change-triggered
-    // validator / handler runs, otherwise the validator reads stale model state.
-    flushInputsNow();
     const asInput = t.tagName === "INPUT" ? t as HTMLInputElement : null;
     if (asInput && asInput.type === "file" && asInput.hasAttribute("data-rask-on-files")) {
         const files = asInput.files;
@@ -698,31 +691,10 @@ document.addEventListener("change", (e) => {
         send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas}).finally(upload.end);
         return;
     }
-    if (t.hasAttribute("data-rask-on-change") && !changeSent(t)) {
-        // What the frame reports, from the shared module (rask-morph.js) rather than computed here —
-        // the hosts each carried their own copy and drifted, which is how <select> ended up with no
-        // lagging-frame guard. `values` is null for everything except a <select multiple>, whose
-        // `.value` is only its FIRST selected option.
-        // The three tags a change frame can come from; raskChangeFrameValue reads `.value` and
-        // `.checked`, neither of which is on the base HTMLElement.
-        const field = t as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-        const changeVal = raskChangeFrameValue(field);
-        const changeVals = raskChangeFrameValues(field);
-        // Record what a lagging re-render would have to carry to be stale — the pre-edit value, the
-        // pre-click checked (whole radio group), the pre-pick selected (whole select) — so the apply
-        // paths can tell "the frame that predates the user's action" from "the server's authoritative
-        // answer to it". Shared with the Server runtime, in rask-morph.js.
-        raskNotePendingFormState(t);
-        const changeFrame: {
-            id: string | null;
-            type: string;
-            value: string;
-            values?: string[];
-        } = {
-            id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal
-        };
-        if (changeVals !== null) changeFrame.values = changeVals;
-        send(changeFrame);
+    // A control that waits for the next action is not sent by its own change (rask-input.ts). The
+    // frame, and what a lagging render must not write back over it, come from there for both hosts.
+    if (t.hasAttribute("data-rask-on-change") && !waitsForAction(t) && !changeSent(t)) {
+        send(changeFrame(t));
     }
 });
 
@@ -733,7 +705,6 @@ document.addEventListener("submit", (e) => {
     // The form's own button waits, not the form. Mirrors rask.ts.
     const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
     if (isVisiblyLoading(submitter)) return;
-    flushInputsNow();
     const fileInputs = t.querySelectorAll<HTMLInputElement>('input[type="file"][name]');
     const fileFields: Record<string, unknown> = {};
     for (const input of fileInputs) {

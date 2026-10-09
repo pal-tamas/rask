@@ -1168,8 +1168,8 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
         // Two-way binding: typed bind echo (the per-type / nullable / clear-to-null matrix is unit-
-        // tested in Rask.Core.Tests/Forms — here we prove the live round trip for a text + a
-        // change-only checkbox). The typed-bind demo's Name input is the first on the page (section 1).
+        // tested in Rask.Core.Tests/Forms — here we prove the live round trip for a text field that is
+        // Live + a checkbox). The typed-bind demo's Name input is the first on the page (section 1).
         await Page.Locator("input[name=Name]").First.FillAsync("Ada");
         await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Hello," }))
             .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
@@ -1227,7 +1227,7 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#fc-select-bound-out")).ToContainTextAsync("htmx",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Input — bound streams per keystroke into a readout outside the Form.
+        // Input — bound and Live: written as it is typed, into a readout outside the Form.
         await Page.Locator("#fc-input-bound").FillAsync("neo");
         await Expect(Page.Locator("#fc-input-bound-out")).ToContainTextAsync("neo",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
@@ -1281,21 +1281,25 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Forms — validation", "Forms — validation", "main .markdown-body h1");
         await AssertGuideDemosAsync(14, "forms-validation");
 
-        // The rule the page leads with: a value object's Validate, named from the field. The message is the
-        // value object's own, and a name it accepts reaches the submit handler.
+        // The rule the page leads with: a value object's Validate, named from the field. A plain bound field
+        // says nothing until Save: the message is the value object's own, it goes at the first key of the
+        // correction, and a name it accepts reaches the submit handler.
         var destination = Page.Locator("form:has(#v-vo-name)");
         await destination.Locator("#v-vo-name").FillAsync("9 lives");
-        await destination.Locator("#v-vo-name").BlurAsync();
+        await destination.Locator("button[type=submit]").ClickAsync();
         await Expect(destination.GetByText("A name starts with a letter."))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(destination.Locator("#v-vo-name")).ToHaveAttributeAsync("maxlength", "255");
         await destination.Locator("#v-vo-name").FillAsync("Lisbon");
+        await Expect(destination.GetByText("A name starts with a letter."))
+            .ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
         await destination.Locator("button[type=submit]").ClickAsync();
         await Expect(Page.GetByText("Saved: Lisbon"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // The store says no: the field has no rule, the save handler throws a failure that names it. The
-        // message lands under the field, the reader stays, a correction clears it and the next save lands.
+        // message lands under the field, the reader stays, the first key of a correction clears it and the
+        // next save lands.
         const string refusal = "A route with this name already exists.";
         var route = Page.Locator("form:has(#v13-name)");
         await route.Locator("#v13-name").FillAsync("Budapest – Wien");
@@ -1309,30 +1313,33 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.GetByText("Saved: Wien – Graz"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // Bind timing: the debounced field says nothing to the model while it is typed into and binds at the
-        // pause; its second rule — the lookup — answers for a name the value object accepted; the message goes
-        // at the first key of the correction; and Enter saves what was typed without waiting for the pause.
+        // Bind timing: the plain field says nothing until Save — the model does not hold it while the live field
+        // beside it is read back at its pause; the live field's second rule — the lookup — answers for a name the
+        // value object accepted; the message goes at the first key of the correction; the notes are checked on
+        // leaving them; and Enter saves what was typed into all three.
         var itinerary = Page.Locator("form:has(#bt-name)");
-        await itinerary.Locator("#bt-name").PressSequentiallyAsync("Atlantis");
-        await Expect(itinerary.Locator("#bt-model")).ToHaveTextAsync("The model holds “Atlantis”.", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-        await Expect(itinerary.GetByText("“Atlantis” is already taken."))
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await itinerary.Locator("#bt-name").PressAsync("Backspace");
-        await Expect(itinerary.GetByText("“Atlantis” is already taken."))
-            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        await itinerary.Locator("#bt-name").FillAsync("Lisbon");
         await itinerary.Locator("#bt-notes").PressSequentiallyAsync("A long weekend by the river, with far too many pastries.");
         await itinerary.Locator("#bt-name").FocusAsync();
         await Expect(itinerary.GetByText("Keep the notes under 40 characters."))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await itinerary.Locator("#bt-notes").FillAsync("A long weekend.");
+        await itinerary.Locator("#bt-name").PressSequentiallyAsync("Atlantis");
+        await Expect(itinerary.Locator("#bt-model")).ToHaveTextAsync("The model holds “”, “Atlantis” and “A long weekend.”.", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(itinerary.GetByText("“Atlantis” is already taken."))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await itinerary.Locator("#bt-name").PressAsync("Backspace");
+        await Expect(itinerary.GetByText("“Atlantis” is already taken."))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await itinerary.Locator("#bt-traveller").PressSequentiallyAsync("Ada");
         await itinerary.Locator("#bt-name").FillAsync("Porto");
+        await Expect(itinerary.Locator("#bt-model")).ToHaveTextAsync("The model holds “Ada”, “Porto” and “A long weekend.”.", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
         await itinerary.Locator("#bt-name").PressAsync("Enter");
-        await Expect(Page.GetByText("Saved: Porto"))
+        await Expect(Page.GetByText("Saved: Porto, for Ada"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;
-        // the async validator answers "taken". (Attribute-specific messages and the latest-wins
+        // the async validator answers "taken" as the name is typed — its field is Live, so nothing is
+        // pressed and the field is not left. (Attribute-specific messages and the latest-wins
         // cancellation are unit-tested in Rask.Validation.DataAnnotations.Tests.)
         await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
         await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
@@ -1342,7 +1349,6 @@ public abstract partial class SharedSmokeTests
         // has no "Checking…" line while a rule runs, and neither has the kit's any more.
         var asyncForm = Page.Locator("form:has(#v3-username)");
         await asyncForm.Locator("#v3-username").FillAsync("admin");
-        await asyncForm.Locator("#v3-username").BlurAsync();
         await Expect(asyncForm.GetByText("is already taken"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     }

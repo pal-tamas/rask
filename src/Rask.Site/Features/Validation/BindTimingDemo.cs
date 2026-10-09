@@ -9,19 +9,25 @@ public sealed partial class BindTimingDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnSubmit(m => _saved = $"Saved: {m.Name}").Class("flex flex-col gap-3")[
-            Ui.Input.Bind(() => _model.Name).Label("Destination")
-                .Id("bt-name")
-                .Description("Checked when you stop typing.")
-                .Debounce(300.Milliseconds)
-                .Validate(DestinationName.Validate)
-                .Validate(NameIsFree),
-            Ui.Textarea.Bind(() => _model.Notes).Label("Notes")
-                .Id("bt-notes")
-                .Description("Checked when you leave the field.")
-                .Blur()
-                .Validate(notes => notes.Length <= 40 ? [] : ["Keep the notes under 40 characters."]),
-            Ui.Text.Id("bt-model")[$"The model holds “{_model.Name}”."],
+        Form.Model(_model).OnSubmit(m => _saved = $"Saved: {m.Name}, for {m.Traveller}").Class("flex flex-col gap-4")[
+            Div.Class("grid gap-4 md:grid-cols-3")[
+                Ui.Input.Bind(() => _model.Traveller).Label("Traveller")
+                    .Id("bt-traveller")
+                    .Description("Sent and checked with Save.")
+                    .Validate(name => name.Length > 0 ? [] : ["Who is travelling?"]),
+                Ui.Input.Bind(() => _model.Name).Label("Destination")
+                    .Id("bt-name")
+                    .Description("Sent and checked as you type.")
+                    .Live()
+                    .Validate(DestinationName.Validate)
+                    .Validate(NameIsFree),
+                Ui.Textarea.Bind(() => _model.Notes).Label("Notes")
+                    .Id("bt-notes")
+                    .Description("Sent and checked when you leave it.")
+                    .Blur()
+                    .Validate(notes => notes.Length <= 40 ? [] : ["Keep the notes under 40 characters."])
+            ],
+            Ui.Text.Id("bt-model")[$"The model holds “{_model.Traveller}”, “{_model.Name}” and “{_model.Notes}”."],
             Div[
                 Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit["Save"]
             ]

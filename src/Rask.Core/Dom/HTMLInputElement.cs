@@ -94,12 +94,28 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     public Callback<T> AfterBind { get; set; }
 
     /// <summary>
-    ///     Binds when the reader leaves the field rather than on every keystroke, and validates then:
+    ///     Writes the model as the reader types, after a 150 ms pause, and validates then:
+    ///     <c>Input.Bind(() =&gt; m.Title).Live()</c>. Without it a bound field says nothing until the next
+    ///     action — a press on a button, a submit, Enter — and its value travels with that.
+    /// </summary>
+    /// <remarks>
+    ///     Bound mode. On a control that is chosen rather than typed into — a checkbox, a radio, a range, a
+    ///     colour — it writes the model as the choice is made, with no pause. <see cref="Debounce" /> names a
+    ///     pause of your own for a field that is typed into.
+    /// </remarks>
+    public bool? Live
+    {
+        get => _timing.Live;
+        set => _timing.Live = value;
+    }
+
+    /// <summary>
+    ///     Binds when the reader leaves the field, and validates then:
     ///     <c>Input.Bind(() =&gt; m.Name).Blur()</c>. Nothing is sent while they type.
     /// </summary>
     /// <remarks>
     ///     Bound mode, and a field that is typed into: a checkbox, a radio, a file or a range commits as it
-    ///     always did.
+    ///     is chosen.
     /// </remarks>
     public bool? Blur
     {
@@ -108,14 +124,13 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     }
 
     /// <summary>
-    ///     Binds once typing has paused for this long, and validates then:
+    ///     Binds as the reader types, once typing has paused for this long, and validates then:
     ///     <c>Input.Bind(() =&gt; m.Name).Debounce(300.Milliseconds)</c>. The pause is kept in the browser, so
-    ///     the keystrokes before it cost nothing; Enter, a press on a button and leaving the field do not
-    ///     wait for it.
+    ///     the keystrokes before it cost nothing. <see cref="TimeSpan.Zero" /> sends every keystroke.
     /// </summary>
     /// <remarks>
     ///     Bound mode, and a field that is typed into: a checkbox, a radio, a file or a range commits as it
-    ///     always did.
+    ///     is chosen.
     /// </remarks>
     public TimeSpan? Debounce
     {
@@ -226,7 +241,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         }
     }
 
-    // Bound: write the model on input (immediate for string) / change, validate.
+    // Bound: a checkbox writes the model as it is ticked, a typed field when its timing says, the rest as chosen.
     private void WireBound(
         StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor acc, EditContext? bindCtx,
         bool isCheckbox, bool typedInto)
@@ -236,26 +251,26 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
         if (isCheckbox)
         {
-            AppendAttr(sb, "data-rask-on-change",
-                ctx.RegisterHandler(BindingHelpers.BoolSetHandler(acc, bindCtx, fid, afterBind)));
+            WriteChosenBind(sb, ctx, !_timing.WaitsForAction, BindingHelpers.BoolSetHandler(acc, bindCtx, fid, afterBind), bindCtx, fid);
             return;
         }
 
-        if (typedInto && _timing.Waits)
+        if (typedInto)
         {
-            WriteWaitingBind(sb, ctx, _timing, acc, bindCtx, afterBind);
+            WriteTypedBind(sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)));
             return;
         }
 
-        var immediate = BindingHelpers.IsImmediateUpdateType(typeof(T));
-        if (immediate)
+        // A radio carrying the group's value, a range, a colour: chosen, not typed. Sent as it is dragged or
+        // picked only when the chain says `.Live()` and the model holds the text of it.
+        if (!_timing.WaitsForAction && BindingHelpers.IsImmediateUpdateType(typeof(T)))
         {
-            AppendAttr(sb, "data-rask-on-input",
-                ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, fid, false, afterBind)));
+            WriteKeystrokeBind(sb, ctx, acc, bindCtx, afterBind);
+            return;
         }
 
-        AppendAttr(sb, "data-rask-on-change",
-            ctx.RegisterHandler(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, !immediate, afterBind)));
+        WriteChosenBind(sb, ctx, !_timing.WaitsForAction,
+            BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind), bindCtx, fid);
     }
 
     // Plain / controlled.

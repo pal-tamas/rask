@@ -4835,7 +4835,14 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-form .flex .flex-col .gap-3
+form .flex .flex-col .gap-4
+div .gap-4 .grid .md:grid-cols-3
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
 label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
 div .dark:text-white/60 .text-sm .text-zinc-500

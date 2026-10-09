@@ -184,7 +184,7 @@ public sealed partial class UiCheckbox : Component, IUiFormControl
         // Bind and Value are the two openings of Core's input, and both hand back an input to finish.
         if (Bind is { } bind && _group is null)
         {
-            return Finish(Input.Bind(ExpressionAccessor.NonNullable(bind)).Validate(Validate).AfterBind(AfterBind), field);
+            return Finish(Input.Bind(ExpressionAccessor.NonNullable(bind)).Validate(Validate).AfterBind(AfterBind).Live(), field);
         }
 
         return Finish(

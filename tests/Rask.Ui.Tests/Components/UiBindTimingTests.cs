@@ -3,8 +3,10 @@ using Page = Rask.Testing.Page;
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     <c>.Blur()</c> and <c>.Debounce(…)</c> on the kit's input and textarea — Flux's <c>wire:model.blur</c> and
-///     <c>wire:model.live.debounce</c> — reach the element Core draws, with the rules written beside them.
+///     When the kit's input and textarea speak: at the next action unless they say otherwise (Flux's
+///     <c>wire:model</c>), and <c>.Live()</c>, <c>.Debounce(…)</c> and <c>.Blur()</c> — <c>wire:model.live</c>,
+///     <c>wire:model.live.debounce</c> and <c>wire:model.blur</c> — reach the element Core draws, with the rules
+///     written beside them.
 /// </summary>
 public partial class UiBindTimingTests : global::Rask.Core.RaskMarkup
 {
@@ -44,15 +46,73 @@ public partial class UiBindTimingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void An_input_with_neither_step_stays_live()
+    public void An_input_and_a_textarea_with_no_step_wait_for_the_next_action()
     {
         var m = new Trip();
 
-        var page = Page.Render(() => Form.Model(m)[Ui.Input.Bind(() => m.Name).Label("Name")]);
+        var input = Page.Render(() => Form.Model(m)[Ui.Input.Bind(() => m.Name).Label("Name")]).Find("input");
+        var textarea = Page.Render(() => Form.Model(m)[Ui.Textarea.Bind(() => m.Notes)]).Find("textarea");
 
-        Assert.Null(page.Find("input").Attribute("data-rask-debounce"));
-        Assert.Null(page.Find("input").Attribute("data-rask-bind-on"));
-        Assert.NotNull(page.Find("input").Attribute("data-rask-on-input"));
+        Assert.All([input, textarea], field =>
+        {
+            Assert.NotNull(field.Attribute("data-rask-on-change"));
+            Assert.Equal("action", field.Attribute("data-rask-bind-on"));
+            Assert.Null(field.Attribute("data-rask-on-input"));
+            Assert.Null(field.Attribute("data-rask-debounce"));
+        });
+    }
+
+    [Fact]
+    public void A_live_input_and_a_live_textarea_are_sent_as_they_are_typed_after_150_milliseconds()
+    {
+        var m = new Trip();
+
+        var input = Page.Render(() => Form.Model(m)[Ui.Input.Bind(() => m.Name).Label("Name").Live()]).Find("input");
+        var textarea = Page.Render(() => Form.Model(m)[Ui.Textarea.Bind(() => m.Notes).Live()]).Find("textarea");
+
+        Assert.All([input, textarea], field =>
+        {
+            Assert.NotNull(field.Attribute("data-rask-on-input"));
+            Assert.Equal("150", field.Attribute("data-rask-debounce"));
+            Assert.Null(field.Attribute("data-rask-on-change"));
+            Assert.Null(field.Attribute("data-rask-bind-on"));
+        });
+    }
+
+    [Fact]
+    public void A_live_field_that_names_its_own_pause_carries_that_pause()
+    {
+        var m = new Trip();
+
+        var input = Page.Render(() => Form.Model(m)[
+            Ui.Input.Bind(() => m.Name).Label("Name").Live().Debounce(300.Milliseconds)
+        ]).Find("input");
+        var textarea = Page.Render(() => Form.Model(m)[
+            Ui.Textarea.Bind(() => m.Notes).Live().Debounce(300.Milliseconds)
+        ]).Find("textarea");
+
+        Assert.Equal("300", input.Attribute("data-rask-debounce"));
+        Assert.Equal("300", textarea.Attribute("data-rask-debounce"));
+    }
+
+    [Fact]
+    public void A_pause_of_zero_sends_every_keystroke_of_an_input_and_a_textarea()
+    {
+        var m = new Trip();
+
+        var input = Page.Render(() => Form.Model(m)[
+            Ui.Input.Bind(() => m.Name).Label("Name").Debounce(TimeSpan.Zero)
+        ]).Find("input");
+        var textarea = Page.Render(() => Form.Model(m)[
+            Ui.Textarea.Bind(() => m.Notes).Debounce(TimeSpan.Zero)
+        ]).Find("textarea");
+
+        Assert.All([input, textarea], field =>
+        {
+            Assert.NotNull(field.Attribute("data-rask-on-input"));
+            Assert.Null(field.Attribute("data-rask-debounce"));
+            Assert.Null(field.Attribute("data-rask-bind-on"));
+        });
     }
 
     [Fact]

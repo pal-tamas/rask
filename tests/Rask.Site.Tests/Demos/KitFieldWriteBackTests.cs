@@ -3,7 +3,8 @@ using Rask.Site.Tests.Infrastructure;
 namespace Rask.Site.Tests.Demos;
 
 /// <summary>
-///     A bound kit field writes what was typed back to the model — inside a <c>Form</c> and outside one.
+///     A bound kit field writes what was typed back to the model when it arrives — inside a <c>Form</c> and
+///     outside one.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -56,7 +57,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
         var host = new RawHost();
         var page = Page.Render(host, TestServices.Default());
 
-        var id = Handler(page.Render(), "data-rask-on-input");
+        var id = Handler(page.Render(), "data-rask-on-change");
         await page.Invoke(id, "{\"value\":\"hopper\"}");
 
         Assert.Equal("hopper", host.Data.Name);
@@ -68,7 +69,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
         var host = new BareHost();
         var page = Page.Render(host, TestServices.Default());
 
-        var id = Handler(page.Render(), "data-rask-on-input");
+        var id = Handler(page.Render(), "data-rask-on-change");
         await page.Invoke(id, "{\"value\":\"ada\"}");
 
         Assert.Equal("ada", host.Data.Name);
@@ -80,7 +81,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
         var host = new FormHost();
         var page = Page.Render(host, TestServices.Default());
 
-        var id = Handler(page.Render(), "data-rask-on-input");
+        var id = Handler(page.Render(), "data-rask-on-change");
         await page.Invoke(id, "{\"value\":\"grace\"}");
 
         Assert.Equal("grace", host.Data.Name);

@@ -86,6 +86,13 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
     /// <summary>Runs after a successful bind, once the model has the new value.</summary>
     public Callback<T> AfterBind { get; set; }
 
+    /// <summary>
+    ///     Writes the model as soon as an option is picked, and validates then:
+    ///     <c>Select.Bind(() =&gt; m.Country).Live()</c>. Without it a bound select says nothing until the next
+    ///     action — a press on a button, a submit — and its value travels with that.
+    /// </summary>
+    public bool? Live { get; set; }
+
 
     protected override IDisposable? EnterChildrenScope()
     {
@@ -267,7 +274,7 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
         var handler = Multiple is true && BindingHelpers.IsBindableSelectionType<T>()
             ? BindingHelpers.MultiSelectSetHandler<T>(acc, bindCtx, fid, afterBind)
             : (Delegate)BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind);
-        AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(handler));
+        WriteChosenBind(sb, ctx, Live is true, handler, bindCtx, fid);
     }
 
     // The values-shaped change handler, or null when none was wired. Handed over as the caller's own

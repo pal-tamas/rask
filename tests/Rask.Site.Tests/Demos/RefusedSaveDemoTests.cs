@@ -15,7 +15,7 @@ public sealed partial class RefusedSaveDemoTests : global::Rask.Core.RaskMarkup
     {
         var page = Page.Render(() => RefusedSaveDemo, TestServices.Default());
 
-        await page.On("#v13-name").Input("Budapest – Wien");
+        await page.On("#v13-name").Change("Budapest – Wien");
         await page.On("form").Submit();
 
         Assert.Contains(Refusal, page.TextOf("#v13-name-error"), StringComparison.Ordinal);
@@ -35,14 +35,15 @@ public sealed partial class RefusedSaveDemoTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Changing_the_name_takes_the_refusal_away_and_the_next_save_goes_through()
+    public async Task The_first_keystroke_of_a_new_name_takes_the_refusal_away_and_the_next_save_goes_through()
     {
         var page = Page.Render(() => RefusedSaveDemo, TestServices.Default());
-        await page.On("#v13-name").Input("Budapest – Wien");
+        await page.On("#v13-name").Change("Budapest – Wien");
         await page.On("form").Submit();
 
-        await page.On("#v13-name").Input("Wien – Graz");
+        await page.On("#v13-name").Raise("edit");
         var corrected = page.Html;
+        await page.On("#v13-name").Change("Wien – Graz");
         await page.On("form").Submit();
 
         Assert.DoesNotContain(Refusal, corrected, StringComparison.Ordinal);

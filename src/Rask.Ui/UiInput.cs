@@ -126,7 +126,18 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     public Callback<T> AfterBind { get; set; }
 
     /// <summary>
-    ///     Binds when the reader leaves the field rather than on every keystroke, and validates then:
+    ///     Writes the model as the reader types, after a 150 ms pause, and validates then:
+    ///     <c>Ui.Input.Bind(() =&gt; m.Title).Live()</c>. Flux's <c>wire:model.live</c>. Without it a bound
+    ///     field says nothing until the next action, and its value travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live
+    {
+        get => _timing.Live;
+        set => _timing.Live = value;
+    }
+
+    /// <summary>
+    ///     Binds when the reader leaves the field, and validates then:
     ///     <c>Ui.Input.Bind(() =&gt; m.Name).Blur()</c>. Flux's <c>wire:model.blur</c>.
     /// </summary>
     public bool? Blur
@@ -136,9 +147,9 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     }
 
     /// <summary>
-    ///     Binds once typing has paused for this long, and validates then:
+    ///     Binds as the reader types, once typing has paused for this long, and validates then:
     ///     <c>Ui.Input.Bind(() =&gt; m.Name).Debounce(300.Milliseconds)</c>. Flux's
-    ///     <c>wire:model.live.debounce.300ms</c>; Enter, a button and leaving the field do not wait for it.
+    ///     <c>wire:model.live.debounce.300ms</c>.
     /// </summary>
     public TimeSpan? Debounce
     {
@@ -241,7 +252,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     {
         // Bind and Value are the two openings of Core's input, and both hand back the same element.
         var input = Bind is { } bind
-            ? Input.Bind(bind).Validate(Validate).AfterBind(Committed).Blur(Blur).Debounce(Debounce)
+            ? Input.Bind(bind).Validate(Validate).AfterBind(Committed).Live(Live).Blur(Blur).Debounce(Debounce)
             : Input.Value(Masked(Value)).OnChange(Changed);
 
         if (Host is { } host)

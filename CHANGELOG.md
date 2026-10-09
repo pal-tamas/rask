@@ -71,6 +71,32 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: a bound control waits for the next action, as Livewire's `wire:model` does; `.Live()` types
+  through.** `Input.Bind(() => m.Name)` used to write the model on every keystroke (a number or a date on
+  leaving the field, a checkbox or a select as it was chosen) and validate then. Now typing into a bound
+  control, choosing in it and leaving it send nothing and run no rule: the value travels with the next
+  action — a press on a button, a submit, Enter, a key a handler hears, another control's change that is
+  sent, a navigation, any event a kit component raises — first, in the order the controls were last touched,
+  so no handler reads a model that has not heard what was entered. **The fix for a control you read while
+  the reader is still in the form — a greeting, a counter, a total, a select that fills another, a filter —
+  is `.Live()`**: as it is typed, 150 ms after the last key (Livewire's `wire:model.live`), at once for a
+  checkbox, a radio, a select or a range. `.Live().Debounce(300.Milliseconds)` names the pause,
+  `.Debounce(x)` alone still works and implies live, `.Debounce(TimeSpan.Zero)` sends every keystroke
+  (it used to mean "no step"), and `.Blur()` keeps its meaning. This is Core's binding — `Input`,
+  `Textarea` and `Select` — and `Ui.Input` / `Ui.Textarea`, which forward to it; the kit's chosen controls
+  (`Ui.Checkbox`, `Ui.Switch`, `Ui.Select`, the groups and pickers, `Ui.Slider`) still write as they are
+  chosen and follow in a later release. A plain form therefore shows no message while it is typed into:
+  the messages come with Save, and each goes at the first key of its correction. A render the server
+  starts (a timer, a push) sees the model as of the last action and leaves what the reader has typed,
+  ticked or picked since where it is. The unsaved-changes guard still counts the first keystroke.
+  `AfterBind` runs when the value is written. In a test, `page.Type(…).Into(…)`, `Pick` and `Check` keep
+  the value and send it ahead of the next `Click`, as the browser does; `page.On(sel).Input(v)` needs a
+  `.Live()` field, and `page.On(sel).Change(v)` is how a waiting field's value arrives. A ten-field form
+  typed into and saved used to send a frame a keystroke; it now sends ten changes and the submit when
+  Save is pressed. `data-rask-bind-on="action"` marks the control (`docs/js-interop-runtime.md`), the flush
+  sits in the one `send` both runtimes have instead of in each listener, and controlled inputs
+  (`.Value(x).OnInput(…)`) are untouched.
+
 - **A second `.Validate(…)` adds a rule; it no longer replaces the first. Behaviour change.**
   `Input.Bind(() => m.Name).Validate(a).Validate(b)` used to keep only `b`, silently: a control holds one
   `Validator<T>?` and the edit context one rule per field. The step now composes them — `a` runs, then `b`

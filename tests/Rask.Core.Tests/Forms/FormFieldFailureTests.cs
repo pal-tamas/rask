@@ -180,6 +180,19 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task The_first_keystroke_in_one_field_of_a_failure_clears_it_from_every_field_it_names()
+    {
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Year", "Number"])));
+        await page.Submit();
+
+        await page.StartEditing("number");
+
+        Assert.Empty(page.Messages(page.Model, "Number"));
+        Assert.Empty(page.Messages(page.Model, "Year"));
+        Assert.DoesNotContain(Taken, page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Editing_a_marked_field_clears_the_message_it_was_marked_for()
     {
         var page = new InvoicePage(new RefusedException(new FieldFailure(Booked, ["Driver"], ["From", "To"])));
@@ -339,6 +352,19 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
             Html = _view.RenderAsLiveRoot();
         }
 
+        // The first keystroke in a field: all a field that waits for the next action says of the typing.
+        internal async Task StartEditing(string id)
+        {
+            var tag = Html.Substring(Html.IndexOf($"<input id=\"{id}\"", StringComparison.Ordinal));
+            var handler = EditHandlerOf().Match(tag[..tag.IndexOf('>', StringComparison.Ordinal)]);
+            using var payload = JsonDocument.Parse("{\"type\":\"edit\"}");
+
+            await _view.TryInvokeHandlerAsync(handler.Groups[1].Value, payload.RootElement);
+
+            Html = _view.RenderAsLiveRoot();
+        }
+
+        // What was typed into a field arriving, as it does ahead of the next action.
         internal async Task Type(string id, string value)
         {
             var handler = HandlerOf().Match(Html.Substring(Html.IndexOf($"<input id=\"{id}\"", StringComparison.Ordinal)));
@@ -375,7 +401,10 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
             return Thrown is null ? Task.CompletedTask : Task.FromException(Thrown);
         }
 
-        [GeneratedRegex("data-rask-on-input=\"([^\"]+)\"")]
+        [GeneratedRegex("data-rask-on-change=\"([^\"]+)\"")]
         private static partial Regex HandlerOf();
+
+        [GeneratedRegex("data-rask-on-edit=\"([^\"]+)\"")]
+        private static partial Regex EditHandlerOf();
     }
 }

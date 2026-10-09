@@ -80,12 +80,19 @@ public partial class UiInputTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Typing_into_a_bound_input_writes_the_model()
+    public async Task What_is_typed_into_a_bound_input_reaches_the_model_with_the_next_action()
     {
         var model = new Account();
-        var page = Page.Render(() => Form.Model(model)[Ui.Input.Bind(() => model.Phone).Label("Phone")]);
-
+        var page = Page.Render(() => Form.Model(model)[
+            Ui.Input.Bind(() => model.Phone).Label("Phone"),
+            Button.OnClick(() => { })["Save"]
+        ]);
         await page.Type("0612345").Into("Phone");
+        var beforeTheClick = model.Phone;
+
+        await page.Click("Save");
+
+        Assert.Equal("", beforeTheClick);
 
         Assert.Equal("0612345", model.Phone);
     }
@@ -367,7 +374,7 @@ public partial class UiInputTests : global::Rask.Core.RaskMarkup
         var model = new Account();
         var page = Page.Render(() => Form.Model(model)[Ui.Input.Bind(() => model.Phone).Label("Phone").Mask("(999) 999-9999")]);
 
-        await page.Type("7161234567").Into("Phone");
+        await page.On("input").Change("7161234567");
 
         Assert.Equal("(716) 123-4567", model.Phone);
     }

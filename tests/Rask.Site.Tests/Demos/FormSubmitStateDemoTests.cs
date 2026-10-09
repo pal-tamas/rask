@@ -22,7 +22,7 @@ namespace Rask.Site.Tests.Demos;
 public sealed partial class FormSubmitStateDemoTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task Typing_into_the_bound_field_reaches_the_model()
+    public async Task What_was_typed_into_the_bound_field_reaches_the_model_when_it_arrives()
     {
         var page = Page.Render(() => FormSubmitStateDemo, TestServices.Default());
         var html = page.Render();
@@ -31,7 +31,7 @@ public sealed partial class FormSubmitStateDemoTests : global::Rask.Core.RaskMar
         Assert.Contains("id=\"fss-input\"", html, StringComparison.Ordinal);
         Assert.Contains("Username", html, StringComparison.Ordinal);
 
-        var id = HandlerIn(html, "id=\"fss-input\"", "data-rask-on-input");
+        var id = HandlerIn(html, "id=\"fss-input\"", "data-rask-on-change");
         await page.Invoke(id, $"{{\"value\":\"ada\"}}");
 
         // The model took it. Rendering again is what proves the write-back landed rather than the handler
@@ -50,7 +50,7 @@ public sealed partial class FormSubmitStateDemoTests : global::Rask.Core.RaskMar
         var html = page.Render();
         Assert.Contains("(nothing yet)", html, StringComparison.Ordinal);
 
-        await page.Invoke(HandlerIn(html, "id=\"fss-input\"", "data-rask-on-input"), "{\"value\":\"ada\"}");
+        await page.Invoke(HandlerIn(html, "id=\"fss-input\"", "data-rask-on-change"), "{\"value\":\"ada\"}");
         await page.On("form").Submit("{\"form\":{\"Username\":\"ada\"}}");
 
         page.Patience = TimeSpan.FromSeconds(10);

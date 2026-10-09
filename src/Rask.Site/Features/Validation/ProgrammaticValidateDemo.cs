@@ -21,9 +21,9 @@ public sealed partial class ProgrammaticValidateDemo : Component, IDisposable
     protected override Component? Render() =>
     [
         Form.Model(_model).OnSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("flex flex-col gap-3")[
-            // The kit field shows "Checking…" while SlowTitleValidator runs, whether a keystroke or the
-            // button below started it; IsValidatingAny is what holds Save back until it settles.
-            Ui.Input.Bind(() => _model.Title).Label("Title").Id("v6-title"),
+            // The kit field shows "Checking…" while SlowTitleValidator runs, whether typing (the field is
+            // Live) or the button below started it. IsValidatingAny holds Save back until it settles.
+            Ui.Input.Bind(() => _model.Title).Live().Label("Title").Id("v6-title"),
             Div.Class("flex gap-2 flex-wrap items-center")[
                 Ui.Button.Icon(Ui.IconName.MagnifyingGlass).Id("v6-validate-now").OnClick(ValidateNow)["Validate now"],
                 Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit.Id("v6-submit").Disabled(_ctx.IsValidatingAny)["Save"]

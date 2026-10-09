@@ -13,13 +13,13 @@ namespace Rask.Core.Tests.Forms;
 public partial class AfterBindTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task A_string_inputs_AfterBind_fires_on_every_keystroke_with_the_new_value()
+    public async Task AfterBind_of_a_string_input_sent_at_every_keystroke_fires_on_each_with_the_new_value()
     {
         var m = new TextModel { Name = "" };
         var observed = new List<string>();
 
         var page = Page.Render(() => Form.Model(m)[
-            Input.Bind(() => m.Name).AfterBind(v => observed.Add(v))
+            Input.Bind(() => m.Name).Debounce(TimeSpan.Zero).AfterBind(v => observed.Add(v))
         ]);
 
         await page.On("input").Input("A");
@@ -152,7 +152,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
                 })
         ]);
 
-        await page.On("input").Input("x");
+        await page.On("input").Change("x");
 
         Assert.Equal(new[] { "async" }, order);
     }
@@ -202,7 +202,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_textareas_AfterBind_fires_on_input_with_the_new_value()
+    public async Task A_textareas_AfterBind_fires_on_change_with_the_new_value()
     {
         var m = new TextModel { Name = "" };
         string? captured = null;
@@ -211,7 +211,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
             Textarea.Bind(() => m.Name).AfterBind(v => captured = v)
         ]);
 
-        await page.On("textarea").Input("hello");
+        await page.On("textarea").Change("hello");
 
         Assert.Equal("hello", captured);
         Assert.Equal("hello", m.Name);
@@ -239,7 +239,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_string_inputs_AfterBind_still_fires_when_the_same_value_is_retyped()
     {
-        // StringSetHandler always calls TrySetTyped + AfterBind for valid strings — even when
+        // The bind handler always calls TrySetTyped + AfterBind for valid strings — even when
         // the user retypes the same value. This pins that observable behavior so a future
         // refactor doesn't silently introduce equality short-circuiting that would suppress
         // legitimate dependent-state recomputation.
@@ -250,8 +250,8 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
             Input.Bind(() => m.Name).AfterBind(_ => fires++)
         ]);
 
-        await page.On("input").Input("x");
-        await page.On("input").Input("x");
+        await page.On("input").Change("x");
+        await page.On("input").Change("x");
 
         Assert.Equal(2, fires);
     }

@@ -586,7 +586,7 @@ settable copy of every mapped property, and:
   starts from the same values a `Product` would;
 - **`product.ToModel()`** copies a row into a model for an edit form, `Version` included;
 - **the aggregate's validation attributes are copied onto it**, so `Form.Model(…)` checks input by the aggregate's
-  own rules as the user types, and EF Core reads the same attributes for the column;
+  own rules in the form, and EF Core reads the same attributes for the column;
 - **`Product.Create(model)` and `Product.Update(id, model)` check them again on the server** before writing, and
   throw `ValidationException` with nothing written — a posted form cannot skip the rules.
 

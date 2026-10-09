@@ -59,7 +59,7 @@ Two rules shape the class, and the build enforces both:
   aggregate needs a domain way to be created, it gets a static factory; chapter 7 gives `Order` one.
 
 `[Required, MaxLength(200)]` is read twice: EF Core makes the column `NOT NULL` and 200 characters, and the
-form checks it as the user types. `[Range]` is only for the form. `InStock`'s `= true` is the default a new
+form checks it when it is saved. `[Range]` is only for the form. `InStock`'s `= true` is the default a new
 product starts with, on the create form too.
 
 **Reading needs nothing more.** The build generates a **read face** beside the aggregate —

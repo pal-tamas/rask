@@ -350,16 +350,15 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         // No OnChange anywhere in this section: every one of these writes back through Bind. The
         // markup assertions in Rask.Ui.Tests can only see what a control DRAWS — this is the half that
-        // proves the write-back reaches the model over a live session.
+        // proves the write-back reaches the model over a live session. The two typed fields are Live, so
+        // each is written as it is typed, with nothing pressed and the field not left.
         await scope.Locator("input[type='email']").FillAsync("ada@example.com");
-        await scope.Locator("input[type='email']").BlurAsync();
         await Expect(state).ToContainTextAsync("ada@example.com");
 
         // T comes off the model, so a bound int is a number field with nothing said at the call site.
         var seats = scope.Locator("input[type='number']");
         await Expect(seats).ToHaveCountAsync(1);
         await seats.FillAsync("4");
-        await seats.BlurAsync();
         await Expect(state).ToContainTextAsync("4 seats");
 
         // The input is out of sight inside its label; the box is what a reader presses.

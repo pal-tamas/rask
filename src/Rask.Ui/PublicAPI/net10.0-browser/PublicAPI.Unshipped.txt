@@ -9268,3 +9268,11 @@ static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiCardHeader! __b) -> Rask.UiCardHe
 ~override Rask.UiTextareaRows.ToString() -> string
 ~override Rask.UiTimeRange.Equals(object obj) -> bool
 ~override Rask.UiTimeRange.ToString() -> string
+Rask.UiInput<T>.Live.get -> bool?
+Rask.UiInput<T>.Live.set -> void
+Rask.UiTextarea<T>.Live.get -> bool?
+Rask.UiTextarea<T>.Live.set -> void
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiTextarea<T>! __b, bool? value) -> Rask.UiTextarea<T>!

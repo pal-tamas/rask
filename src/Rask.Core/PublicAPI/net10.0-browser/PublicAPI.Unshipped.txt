@@ -19245,3 +19245,15 @@ static RaskBuilderSettersRask_Core.AriaValueMax<T>(this T! __b, double? value) -
 static RaskBuilderSettersRask_Core.AriaValueMin<T>(this T! __b, double? value) -> T!
 static RaskBuilderSettersRask_Core.AriaValueNow<T>(this T! __b, double? value) -> T!
 static RaskBuilderSettersRask_Core.AriaValueText<T>(this T! __b, string? value) -> T!
+Rask.Core.HTMLInputElement<T>.Live.get -> bool?
+Rask.Core.HTMLInputElement<T>.Live.set -> void
+Rask.Core.HTMLSelectElement<T>.Live.get -> bool?
+Rask.Core.HTMLSelectElement<T>.Live.set -> void
+Rask.Core.HTMLTextAreaElement<T>.Live.get -> bool?
+Rask.Core.HTMLTextAreaElement<T>.Live.set -> void
+static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLInputElement<T>! __b, bool? value) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLSelectElement<T>! __b) -> Rask.Core.HTMLSelectElement<T>!
+static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLSelectElement<T>! __b, bool? value) -> Rask.Core.HTMLSelectElement<T>!
+static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLTextAreaElement<T>! __b) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!

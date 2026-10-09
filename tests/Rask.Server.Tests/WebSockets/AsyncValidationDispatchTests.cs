@@ -11,7 +11,7 @@ public class AsyncValidationDispatchTests
     // serialises with the other DiffMode-touching test classes.
 
     // Mirrors the failing E2E test Validation_AsyncDemo_ShowsCheckingThenTakenMessage:
-    // OnInput "admin" then OnChange (blur). The async validator delays 20ms and then adds
+    // "admin" arrives on the field's OnChange. The async validator delays 20ms and then adds
     // "Already taken.". The post-handler render emitted after the OnChange must contain
     // that message and must not still contain the in-flight "Checking..." indicator.
     [Fact]
@@ -21,19 +21,12 @@ public class AsyncValidationDispatchTests
         var initial = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
         var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
-        var inputId = MarkupAssert.Attr(initialHtml, "data-rask-on-input");
         var changeId = MarkupAssert.Attr(initialHtml, "data-rask-on-change");
-        Assert.NotNull(inputId);
         Assert.NotNull(changeId);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId);
-
-        await ws.SendJsonAsync(new { id = inputId, value = "admin" }, ct: TestContext.Current.CancellationToken);
-        // OnInput is synchronous (the field isn't touched yet, so StringSetHandler
-        // doesn't trigger validation); whatever it renders is read past here.
-        await ws.SettledAsync();
 
         await ws.SendJsonAsync(new { id = changeId, value = "admin" }, ct: TestContext.Current.CancellationToken);
 

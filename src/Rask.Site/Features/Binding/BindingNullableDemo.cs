@@ -14,12 +14,12 @@ public sealed partial class BindingNullableDemo : Component
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            Ui.Input.Bind(() => _model.OptionalAge).Label("Optional age (int?)")
+            Ui.Input.Bind(() => _model.OptionalAge).Live().Label("Optional age (int?)")
                 .Id("bind-null-age")
                 .Description("Leave it empty for null.")
         ],
         Div.Class("mb-3")[
-            Ui.Input.Bind(() => _model.StartDate).Label("Optional start date (DateOnly?)")
+            Ui.Input.Bind(() => _model.StartDate).Live().Label("Optional start date (DateOnly?)")
                 .Id("bind-null-start")
         ],
         Div.Class("mb-3")[
@@ -32,7 +32,7 @@ public sealed partial class BindingNullableDemo : Component
             ]
         ],
         Div.Class("mb-3")[
-            Ui.Input.Bind(() => _model.Nickname).Label("Nickname (string?)")
+            Ui.Input.Bind(() => _model.Nickname).Live().Label("Nickname (string?)")
                 .Id("bind-null-nick")
                 .Description("Clear it for null.")
         ],

@@ -12,7 +12,7 @@ to add.
 - **Async rules work like sync ones.** Each validator is wrapped as an `IAsyncFieldValidator`, so a
   `MustAsync` uniqueness check runs per field; a validator with constructor dependencies is resolved from
   the scope.
-- Per-keystroke validation of a root-model field runs only that property's rules; submit runs every rule.
+- Validating one root-model field, when its value arrives, runs only that property's rules; submit runs every rule.
 - A validator in a referenced class library is registered explicitly:
   `RaskValidators.Register(typeof(Order), _ => new OrderValidator());`
 

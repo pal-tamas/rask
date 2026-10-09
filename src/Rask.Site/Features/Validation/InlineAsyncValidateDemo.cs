@@ -7,8 +7,9 @@ public sealed partial class InlineAsyncValidateDemo : Component
     // Showcases the async Validate overload: a method group or a bare `async m => …` lambda binds
     // the asynchronous rule on the Input and on the Form alike — no cast, no …Async sibling. The
     // field's token is Current.Cancellation.
-    // The 250ms delay drives the latest-wins cancellation path (rapid typing supersedes the
-    // prior in-flight run), and the kit field shows "Checking…" for the pending state on its own.
+    // The field is Live, so the rule runs as the code is typed. The 250ms delay drives the
+    // latest-wins cancellation path (typing on supersedes the run in flight), and the kit field
+    // shows "Checking…" for the pending state on its own.
     private static readonly HashSet<string> TakenCodes =
         new(StringComparer.OrdinalIgnoreCase) { "BAD-001", "DEAD-BEEF", "RESERVED" };
 
@@ -47,7 +48,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
                     ? ["Code is required."]
                     : [];
             })[
-            Ui.Input.Bind(() => _model.Code).Label("Promo code")
+            Ui.Input.Bind(() => _model.Code).Live().Label("Promo code")
                 .Id("v10-code")
                 .Validate(CheckCodeAsync),
             Validation.Summary.Template(SummaryAlert),

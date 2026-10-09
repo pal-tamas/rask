@@ -70,7 +70,7 @@ is in markup — a component is built through its chain, never with `new` (RASK0
   var model = new OrderModel();
   var page = Page.Render(() => Form.Model(model)[Input.Bind(() => model.Name)]);
 
-  await page.On("input").Input("Ada");   // the next render rebuilds the form from `model`
+  await page.On("input").Change("Ada");  // the next render rebuilds the form from `model`
   ```
 
   Returning `null` renders nothing, and drives the component it stops returning through its unmount path.
@@ -234,7 +234,7 @@ var page = Page.Render(() => Form.Model(model)[
     Test.EditContextProbe(c => ctx = c)
 ]);
 
-await page.On("input").Input("Ada");
+await page.On("input").Change("Ada");
 Assert.True(ctx!.IsModified(new FieldIdentifier(model, nameof(model.Name))));
 ```
 
@@ -266,7 +266,7 @@ public async Task An_admin_adds_a_product()
     await page.Type("Tea").Into("Name");
     await page.Pick("Green").From("Category");
     await page.Check("In stock");
-    await page.Click("Save");
+    await page.Click("Save");           // what was typed, picked and ticked goes first, as in a browser
 
     page.Shows("Saved");
     page.IsAt("/products");
@@ -450,11 +450,12 @@ var p = new Person { Name = "Ada", Age = 30 };
 var view = new StubComponent(() => Form.Model(p)[Input.Bind(() => p.Name)]);
 var html = view.RenderAsLiveRoot();
 
-var inputId = MarkupAssert.Attr(html, "data-rask-on-input");
-Assert.NotNull(inputId);
+// A bound control writes through its `change` handler unless it says .Live() (then `-on-input`).
+var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
+Assert.NotNull(changeId);
 
 using var doc = JsonDocument.Parse("{\"value\":\"Bea\"}");
-var ok = await view.TryInvokeHandlerAsync(inputId!, doc.RootElement);
+var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
 Assert.True(ok);
 Assert.Equal("Bea", p.Name);   // bound model was updated
@@ -476,8 +477,9 @@ shape these examples use — makes no claim, so it dispatches on the id alone as
 
 ## 5. Forms and validation
 
-Form tests follow the same render-then-invoke loop. Mirror the browser's input→change ordering when
-testing per-keystroke vs blur behaviour:
+Form tests follow the same render-then-invoke loop. A bound control's value arrives as a `change`, as it
+does from a browser ahead of the next action; `page.Type(…).Into(…)` keeps it until the next `page.Click(…)`
+for you:
 
 ```csharp
 [Fact]
@@ -514,8 +516,6 @@ ctx.AddValidator(new RejectIfEqualsValidator("admin", "Already taken."));
 var view = new StubComponent(() => Form.Model(model).Context(ctx)[Input.Bind(() => model.Username)]);
 var html = view.RenderAsLiveRoot();
 
-using var inputDoc  = JsonDocument.Parse("{\"value\":\"admin\"}");
-await view.TryInvokeHandlerAsync(MarkupAssert.Attr(html, "data-rask-on-input")!,  inputDoc.RootElement);
 using var changeDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
 await view.TryInvokeHandlerAsync(MarkupAssert.Attr(html, "data-rask-on-change")!, changeDoc.RootElement);
 

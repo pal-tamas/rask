@@ -108,7 +108,7 @@ public sealed partial class UiSwitch : Component, IFormControl<bool>, IUiFormCon
         // Bind and Value are the two openings of Core's input. Unbound it is an input over no value at all,
         // so a plain form posts the browser's "on" rather than a bool's "False".
         Component input = Bind is { } bind
-            ? Finish(Input.Bind(bind).Validate(Validate).AfterBind(AfterBind), field)
+            ? Finish(Input.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(), field)
             : Finish(Input.Value((string?)null).Type(InputType.Checkbox).Checked(Value).OnChange(Changed), field);
 
         // RaskMarkup.Label, qualified: this type's Label property hides the chain entry of the same name.

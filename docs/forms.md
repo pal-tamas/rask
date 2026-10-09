@@ -31,9 +31,12 @@ P[$"Echo: {_typed}"]
 The ergonomic path is a `Bind` expression — one call replaces `Value` + `OnInput` + parsing:
 
 ```csharp
-Input.Bind(() => _model.Name).Placeholder("Your name")
+Input.Bind(() => _model.Name).Live().Placeholder("Your name")
 P[$"Hello, {_model.Name}!"]
 ```
+
+`.Live()` is there because the page reads the name back while it is typed. A bound field that is only read
+when the form is saved does not need it — see [bind timing](#bind-timing).
 
 <!-- demo:binding-typed -->
 
@@ -50,45 +53,70 @@ derives everything from the bound property:
   `Button`, `Submit`, `Reset`, `Image`. The *string-only* family (`Text`/`Search`/`Tel`/`Url`/`Email`/
   `Password`) only makes sense on an `HTMLInputElement<string>`; setting one on a non-string bound input is
   [RASK025](diagnostics.md#rask025).
-- **Update timing** — `string` fields update on every keystroke (`OnInput`); every other type
-  updates on `OnChange` (blur). `Textarea(() => …)` always streams on `OnInput`. A keystroke is not a
-  promise of one call each: on WASM, what is typed while the handler and render of an earlier value are
-  still running is sent as ONE value when they finish — or at once, ahead of any key, click or `change`
-  that follows — so a slow page hears `"Atlantis"` rather than eight values queued behind the reader.
-  A field that should not bind on every keystroke says when it does: [`.Blur()` or
-  `.Debounce(…)`](#bind-timing).
+- **Update timing** — a bound control says nothing until the next action, and its value travels with
+  that: see [bind timing](#bind-timing).
 
 ### Bind timing
 
-A bound `Input` or `Textarea` is **live**: a `string` field writes the model on every keystroke. Two
-steps after `Bind` make it wait instead — the ones Livewire writes `wire:model.blur` and
-`wire:model.live.debounce.300ms`:
+**A bound control waits for the next action.** Typing into it, choosing in it and leaving it send nothing,
+run no rule and render nothing. When the reader presses a button, submits, or does anything else the page
+hears, everything they entered is sent first, in order, and then the action. This is how Livewire's
+`wire:model` works, and Flux's forms with it.
+
+Three steps after `Bind` say otherwise:
 
 ```csharp
-Ui.Input.Bind(() => _m.Name).Validate(CheckName)                  // live: binds on every keystroke
-Ui.Input.Bind(() => _m.Name).Blur().Validate(CheckName)           // binds and validates on leaving the field
-Ui.Input.Bind(() => _m.Name).Debounce(300.Milliseconds)           // binds and validates once typing pauses
-    .Validate(DestinationName.Validate)
-    .Validate(NameIsFree)
+Input.Bind(() => _m.Name)                                    // waits: the value travels with the next action
+Input.Bind(() => _m.Title).Live()                            // as it is typed, after a 150 ms pause
+Input.Bind(() => _m.Code).Live().Debounce(300.Milliseconds)  // a pause of your own
+Input.Bind(() => _m.Notes).Blur()                            // on leaving the field
+Select.Bind(() => _m.Country).Live()                         // as soon as it is picked
 ```
 
-- **Nothing is sent while the reader types.** The pause is counted in the browser, so the keystrokes
-  before it cost no round trip and no render. At the pause — or on leaving a `.Blur()` field — one
-  message writes the value and runs the rules.
-- **Nothing that follows waits for the pause.** Enter, a press on a button, a key your handler hears
-  and a navigation all send the typed value first, so Save never saves the text from before.
-- **A message goes as soon as the reader starts correcting it**, not at the next pause, and no rule
-  runs for that.
+| Step | Livewire | Writes the model and runs the rules |
+| --- | --- | --- |
+| *(none)* | `wire:model` | with the next action |
+| `.Live()` | `wire:model.live` | as the reader types, 150 ms after the last key; at once for a checkbox, a radio, a select, a range |
+| `.Debounce(300.Milliseconds)` | `wire:model.live.debounce.300ms` | as the reader types, after that pause. Implies `.Live()`; `TimeSpan.Zero` sends every keystroke |
+| `.Blur()` | `wire:model.live.blur` (`.blur` before v4) | on leaving the field |
+
+**Say `.Live()` on a control you read while the reader is still in the form**: a greeting that echoes a
+name, a character count, a total, a select that fills a second select, a checkbox that shows a section, a
+filter. A control you only read in the submit handler needs nothing.
+
+- **An action** is anything that reaches your code: a press on a button or a link with a handler, a
+  submit, Enter in a field, a key an `OnKeyDown` hears, another control's `.Live()` or `.Blur()` change, a
+  navigation, an event a kit component raises (a tab, a menu item, a dragged row). Each is preceded by the
+  values that waited, so a handler never reads a model that has not heard what was typed.
+- **A render the server starts** — a timer, a push, a handler that finishes later — cannot ask the browser
+  first. It sees the model as of the last action, and it does not take back what the reader has entered
+  since: the text stays in the field, the box stays ticked, and both still travel with the next action.
+- **Validation follows the value.** A field that waits shows no message while it is typed into or left;
+  its rules run when its value arrives, and all of them on submit. `.Live()`, `.Debounce(…)` and `.Blur()`
+  fields validate when they write.
+- **A message goes as soon as the reader starts correcting it** — at the first key, and no rule runs for
+  that. This is the one thing a waiting field sends while it is typed into: a message with no value in
+  it, once, and only while a message shows.
 - **The unsaved-changes guard** ([`ConfirmLeave`](#ask-before-leaving-unsaved-changes)) counts the first
   keystroke, sent or not.
 - **A rule still running when Save is pressed is not saved past**: the submit runs every rule again and
   waits for the answers.
+- **`AfterBind`** runs when the value is written — with the action for a control that waits.
 
-The steps are on `Input`, `Textarea`, `Ui.Input` and `Ui.Textarea`, for any field that is typed into —
-text, number, date. A checkbox, a radio, a file, a range and a colour are chosen rather than typed: there
-the steps do nothing. One thing defeats a pause, by sending the value early: an `OnKeyDown` or `OnKeyUp`
-on the field that hears every key. Give it [`data-rask-keys`](js-interop-runtime.md#keys-and-focus) and it
-hears only the keys it acts on.
+`.Live()` is on every bound control of Core: `Input`, `Textarea`, `Select`. `.Debounce(…)` and `.Blur()`
+are on `Input`, `Textarea`, `Ui.Input` and `Ui.Textarea`, for a field that is typed into — text, number,
+date. A checkbox, a radio, a range and a colour are chosen rather than typed: with either step they
+simply write as they are chosen. A file input's files travel with the submit, as in any form; `OnFiles`
+is an event of its own and is not bound. One thing defeats a pause, by sending the value early: an
+`OnKeyDown` or `OnKeyUp` on the field that hears every key. Give it
+[`data-rask-keys`](js-interop-runtime.md#keys-and-focus) and it hears only the keys it acts on.
+
+The kit's `Ui.Input` and `Ui.Textarea` forward all three steps to Core's. The kit's chosen controls —
+`Ui.Checkbox`, `Ui.Switch`, `Ui.Select`, the groups, the pickers, `Ui.Slider` — still write as they are
+chosen; they take the same default in a later release.
+
+A controlled input is not bound and none of this applies to it: `Input.Value(_filter).OnInput(v => _filter = v)`
+hears every keystroke, as before.
 
 ### The two modes are exclusive
 
@@ -206,9 +234,10 @@ custom route/query param types are registered automatically by the generator.
 ### Binding lifecycle
 
 Each change handler runs in order: write the value, `NotifyFieldChanged`, run `AfterBind`
-(if supplied, only when a write actually happened), `NotifyFieldTouched` (on
-change/blur), then re-validate the field. `string` inputs stay quiet until the field is touched,
-then re-validate on every keystroke so a correction clears the message without a blur.
+(if supplied, only when a write actually happened), `NotifyFieldTouched`, then re-validate the field.
+When that happens is the control's [bind timing](#bind-timing): with the next action unless the chain
+says `.Live()`, `.Debounce(…)` or `.Blur()`. A text field sent at every keystroke
+(`.Debounce(TimeSpan.Zero)`) stays quiet until it is touched, then re-validates on every keystroke.
 
 `AfterBind` fires **after** the new value is written and before validators run — handy for dependent
 fields (pick a country, repopulate the city dropdown in the same render):
@@ -497,8 +526,8 @@ Validation.Summary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field]
 ### Controls at a glance
 
 Every input works in two shapes — **controlled** (`Value` + `OnChange`, the parent owns the value) and
-**bound** (`.Bind(() => model.X)`, two-way). A derived readout rendered *outside* the control updates
-live either way. The matrix below covers text, textarea and select; the [UI kit](ui-kit.md)'s controls
+**bound** (`.Bind(() => model.X)`, two-way). A readout rendered *outside* the control follows a
+controlled one at every change, and a bound one that says `.Live()`. The matrix below covers text, textarea and select; the [UI kit](ui-kit.md)'s controls
 take the same two shapes, since they implement the same `IFormControl<T>`.
 
 <!-- demo:form-controls-input -->

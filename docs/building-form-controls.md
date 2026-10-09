@@ -203,11 +203,15 @@ re-implementing it. Call them **through the interface** (`((IFormControl<T>)this
 `RegisterValidator` is safe (and required) to call **every render** — passing the collapsed validator each
 time also clears a stale rule when the consumer drops `Validate`.
 
-**`.Blur()` and `.Debounce(…)` are not part of `IFormControl<T>`.** They belong to a field that is typed
-into, so they are properties of `Input<T>` and `Textarea<T>` (and of `Ui.Input` / `Ui.Textarea`, which
-forward them); `Ui.Slider.Bind(…).Blur()` does not compile. A control of yours that wraps a core `Input`
-offers them by declaring `bool? Blur` and `TimeSpan? Debounce` and passing both on —
-`Input.Bind(bind).Validate(Validate).Blur(Blur).Debounce(Debounce)` — as the kit's input does.
+**Bind timing lives in Core.** A bound Core control waits for the next action unless its chain says
+`.Live()`, `.Debounce(…)` or `.Blur()` ([bind timing](forms.md#bind-timing)); a control of yours that wraps
+one only passes the steps on. `.Live()` is on `Input<T>`, `Textarea<T>` and `Select<T>`. `.Blur()` and
+`.Debounce(…)` belong to a field that is typed into, so they are on `Input<T>` and `Textarea<T>` alone,
+and `Ui.Slider.Bind(…).Blur()` does not compile. None of the three is part of `IFormControl<T>`. A control
+that wraps a core `Input` offers them by declaring `bool? Live`, `bool? Blur` and `TimeSpan? Debounce` and
+passing all three on, in this order —
+`Input.Bind(bind).Validate(Validate).Live(Live).Blur(Blur).Debounce(Debounce)` — as the kit's input does.
+A control that must write as it is chosen says `.Live()` on the Core control inside it.
 
 ---
 

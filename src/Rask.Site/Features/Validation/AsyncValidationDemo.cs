@@ -19,9 +19,10 @@ public sealed partial class AsyncValidationDemo : Component, IDisposable
     protected override Component? Render() =>
     [
         Form.Model(_model).OnSubmit(m => _submission = $"Signed up: {m.Username}").Context(_ctx).Class("flex flex-col gap-3")[
-            // A bound kit field shows "Checking…" while the async validator is out, then the message it
-            // records — no Validation.Indicator or Validation.Message to place beside it.
-            Ui.Input.Bind(() => _model.Username).Label("Username").Id("v3-username"),
+            // Live, so the name is checked as it is typed. A bound kit field shows "Checking…" while the
+            // async validator is out, then the message it records — no Validation.Indicator or
+            // Validation.Message to place beside it.
+            Ui.Input.Bind(() => _model.Username).Live().Label("Username").Id("v3-username"),
             Div[
                 Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit["Sign up"]
             ]

@@ -28,17 +28,17 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task An_input_event_updates_a_bound_string_field()
+    public async Task A_change_event_updates_a_bound_string_field()
     {
         var p = new Person { Name = "Ada", Age = 30 };
         var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
         ]);
 
-        var inputId = page.HandlerId("input");
-        Assert.NotNull(inputId);
+        var changeId = page.HandlerId("change");
+        Assert.NotNull(changeId);
 
-        var ok = await page.TryInvoke(inputId!, "{\"value\":\"Bea\"}");
+        var ok = await page.TryInvoke(changeId!, "{\"value\":\"Bea\"}");
 
         Assert.True(ok);
         Assert.Equal("Bea", p.Name);
@@ -402,10 +402,10 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, Nickname = "Bea" };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Nickname)]);
 
-        var inputId = page.HandlerId("input");
-        Assert.NotNull(inputId);
+        var changeId = page.HandlerId("change");
+        Assert.NotNull(changeId);
 
-        var ok = await page.TryInvoke(inputId!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(changeId!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.Nickname);
@@ -421,10 +421,10 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30 };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Name)]);
 
-        var inputId = page.HandlerId("input");
-        Assert.NotNull(inputId);
+        var changeId = page.HandlerId("change");
+        Assert.NotNull(changeId);
 
-        var ok = await page.TryInvoke(inputId!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(changeId!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Equal("", p.Name);

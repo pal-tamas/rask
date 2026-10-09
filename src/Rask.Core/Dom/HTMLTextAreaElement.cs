@@ -63,8 +63,18 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
     public Callback<T> AfterBind { get; set; }
 
     /// <summary>
-    ///     Binds when the reader leaves the textarea rather than on every keystroke, and validates then.
-    ///     Nothing is sent while they type.
+    ///     Writes the model as the reader types, after a 150 ms pause, and validates then:
+    ///     <c>Textarea.Bind(() =&gt; m.Notes).Live()</c>. Without it a bound textarea says nothing until the
+    ///     next action — a press on a button, a submit — and its value travels with that.
+    /// </summary>
+    public bool? Live
+    {
+        get => _timing.Live;
+        set => _timing.Live = value;
+    }
+
+    /// <summary>
+    ///     Binds when the reader leaves the textarea, and validates then. Nothing is sent while they type.
     /// </summary>
     public bool? Blur
     {
@@ -73,9 +83,9 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
     }
 
     /// <summary>
-    ///     Binds once typing has paused for this long, and validates then:
-    ///     <c>Textarea.Bind(() =&gt; m.Notes).Debounce(300.Milliseconds)</c>. The pause is kept in the browser:
-    ///     a press on a button and leaving the textarea do not wait for it.
+    ///     Binds as the reader types, once typing has paused for this long, and validates then:
+    ///     <c>Textarea.Bind(() =&gt; m.Notes).Debounce(300.Milliseconds)</c>. The pause is kept in the browser.
+    ///     <see cref="TimeSpan.Zero" /> sends every keystroke.
     /// </summary>
     public TimeSpan? Debounce
     {
@@ -105,12 +115,10 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
         // Bound mode parses the expression up front so the auto-derived `name` lands in attribute order.
         ExpressionAccessor.Accessor? acc = null;
         EditContext? bindCtx = null;
-        var fid = default(FieldIdentifier);
         if (Bind is not null)
         {
             acc = ExpressionAccessor.Parse(Bind);
             bindCtx = BindingHelpers.ResolveBindingContext(acc.Target);
-            fid = acc.Field;
             _content = BindingHelpers.FormatValue(acc.Getter());
         }
         else if (Value is not null)
@@ -131,19 +139,10 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
 
         if (acc is not null)
         {
-            // Bound: write the model on input, touch + revalidate on change.
+            // Bound: the model is written when the field's timing says (Component.BindTiming.cs).
             var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
-            if (_timing.Waits)
-            {
-                WriteWaitingBind(sb, ctx, _timing, acc, bindCtx, afterBind);
-                return;
-            }
-
-            AppendAttr(sb, "data-rask-on-input",
-                ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, fid, false, afterBind)));
-            AppendAttr(sb, "data-rask-on-change",
-                ctx.RegisterHandler(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, false)));
+            WriteTypedBind(sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)));
             return;
         }
 

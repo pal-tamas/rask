@@ -15,13 +15,13 @@ public sealed partial class BindingMultiDemo : Component
             Ui.Checkbox.Bind(() => _model.Subscribe).Id("bind-subscribe").Label("Subscribe to the newsletter")
         ],
         Div.Class("mb-3")[
-            Ui.Input.Bind(() => _model.Age).Label("Age")
+            Ui.Input.Bind(() => _model.Age).Live().Label("Age")
                 .Id("bind-age")
                 .Min("0")
                 .Max("120")
         ],
         Div.Class("mb-3")[
-            Ui.Input.Bind(() => _model.StartDate).Label("Start date")
+            Ui.Input.Bind(() => _model.StartDate).Live().Label("Start date")
                 .Id("bind-start")
         ],
         Div.Class("mb-3")[

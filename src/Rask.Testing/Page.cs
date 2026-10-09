@@ -305,8 +305,17 @@ public partial class Page : IRenderHandle
 
         // Resolved per call, not captured: a handler re-renders, and the node from the previous render is
         // then stale. Re-resolving means `var save = page.On("#save")` keeps working across renders.
-        private Task<string> Dispatch(string domEvent, string? jsonPayload) =>
-            page.Invoke(page.HandlerIdFor(selector, domEvent), jsonPayload);
+        // What page.Type(…) left waiting goes first, as it does in a browser — except ahead of the field's own
+        // `input`, `change` and `edit`, which are how a test says exactly what a field sent.
+        private async Task<string> Dispatch(string domEvent, string? jsonPayload)
+        {
+            if (domEvent is not ("input" or "change" or "edit"))
+            {
+                await page.SendWhatWaits().ConfigureAwait(false);
+            }
+
+            return await page.Invoke(page.HandlerIdFor(selector, domEvent), jsonPayload).ConfigureAwait(false);
+        }
 
         private static string JsonValuePayload(string value) =>
             "{\"value\":" + System.Text.Json.JsonSerializer.Serialize(value) + "}";

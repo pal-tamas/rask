@@ -4,9 +4,9 @@
 // Imported for its effect, FIRST: rask-input.ts adds its listeners while it is being imported, so the
 // globals have to be there before the import below it is evaluated.
 
-type Heard = (e: { target: unknown; isComposing?: boolean }) => void;
+type Heard = (e: { target: unknown; isComposing?: boolean; [field: string]: unknown }) => void;
 
-/** The document's listeners, by event type. */
+/** The document's listeners, by event type. A type several modules hear runs them in the order they asked. */
 export const listeners: Record<string, Heard> = {};
 
 const frames: (() => void)[] = [];
@@ -31,8 +31,14 @@ export function elapse(ms: number): void {
 /** A field as rask-input reads one: its handlers as attributes, and what it says. */
 export class StubField {
     value = "";
+    checked = false;
     isConnected = true;
     tagName = "INPUT";
+
+    /** The control's `type` as the property reads it: its attribute, or none. */
+    get type(): string {
+        return this.attributes.type ?? "";
+    }
 
     constructor(private readonly attributes: Record<string, string>) {
     }
@@ -59,8 +65,13 @@ export class StubField {
 const page = globalThis as unknown as Record<string, unknown>;
 page.window = globalThis;
 page.Element = StubField;
+page.Node = StubField;
 page.document = {
-    addEventListener(type: string, heard: Heard) { listeners[type] = heard; },
+    addEventListener(type: string, heard: Heard) {
+        const earlier = listeners[type];
+        listeners[type] = earlier ? function (e) { earlier(e); heard(e); } : heard;
+    },
+    querySelectorAll() { return []; },
 };
 page.requestAnimationFrame = function (run: () => void) { return frames.push(run); };
 page.cancelAnimationFrame = function () { frames.length = 0; };

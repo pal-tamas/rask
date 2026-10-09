@@ -54,14 +54,14 @@ public class FormChildrenFunctionIdentityTests
     {
         var signup = new SignupPage();
         var page = Page.Render(signup);
-        var typedInto = page.HandlerIdFor("#name", "input");
+        var typedInto = page.HandlerIdFor("#name", "change");
 
         await page.On("#tick").Click();
         await page.On("#tick").Click();
         var landed = await page.TryInvoke(typedInto, "{\"value\":\"ada\"}");
 
-        Assert.True(landed, "the field's input handler went stale when a sibling re-rendered");
+        Assert.True(landed, "the field's bind handler went stale when a sibling re-rendered");
         Assert.Equal("ada", signup.Model.Name);
-        Assert.Equal(typedInto, page.HandlerIdFor("#name", "input"));
+        Assert.Equal(typedInto, page.HandlerIdFor("#name", "change"));
     }
 }

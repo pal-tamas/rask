@@ -5,7 +5,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Core.Tests.Forms;
 
-// Pins that per-keystroke / on-blur validation fires for nested-model bindings (e.g.
+// Pins that validation — as the value arrives, and per keystroke where a field asks for it — fires for nested-model bindings (e.g.
 // Input.Bind(() => model.Address.Street)) the same way it does for root-model bindings.
 //
 // The contract: Form.Model (and Form.Context) eagerly walk the model graph at setter time
@@ -42,16 +42,17 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task An_inline_Validate_on_a_nested_field_re_validates_on_each_keystroke_after_a_touch()
+    public async Task An_inline_Validate_on_a_nested_field_sent_at_every_keystroke_re_validates_on_each_after_a_touch()
     {
-        // Mirrors the "fire on every keystroke once touched" contract for root-model strings:
-        // after the first OnChange (blur) touches the field and runs validation, subsequent
+        // Mirrors the "fire on every keystroke once touched" contract a root-model string sent at every
+        // keystroke has: after the first OnChange (blur) touches the field and runs validation, subsequent
         // OnInput events re-validate so a correction clears the message without another blur.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
         var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address.Street)
+                .Debounce(TimeSpan.Zero)
                 .Validate(v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
             Test.EditContextProbe(ctx => captured = ctx)
@@ -177,10 +178,10 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task An_async_Validate_on_a_nested_field_surfaces_its_message_after_typing_then_blur()
+    public async Task An_async_Validate_on_a_nested_field_sent_at_every_keystroke_surfaces_its_message_after_typing_then_blur()
     {
-        // Mirrors the live showcase NestedAsyncWithLiveTotalsDemo exactly: an async Validate:
-        // delegate on a nested string field that delays past a regex pre-check. The browser-side
+        // An async Validate: delegate on a nested string field that delays past a regex pre-check, the
+        // field sent at every keystroke. The browser-side
         // flow is `input * N` (OnInput per keystroke, no validation because not yet touched) then
         // `change` once on blur (touches + validates async). The async validator awaits 300ms and
         // returns the undeliverable message; the post-handler re-render must include the message.
@@ -190,6 +191,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Address.PostalCode)
+                .Debounce(TimeSpan.Zero)
                 .Validate(async v =>
                 {
                     if (string.IsNullOrWhiteSpace(v))
@@ -231,16 +233,16 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_keystroke_on_a_touched_nested_field_clears_the_async_error_message()
+    public async Task A_keystroke_on_a_touched_nested_field_sent_at_every_keystroke_clears_the_async_error_message()
     {
-        // Establishes the post-touch keystroke flow that the showcase relies on: after the async
+        // The post-touch keystroke flow of a field sent at every keystroke: after the async
         // validator's first message lands, typing a corrected value must clear the message via
-        // OnInput re-validation. Same shape as the live demo "type 99999, see error; type 12345,
-        // see error clear after async settles".
+        // OnInput re-validation — "type 99999, see error; type 12345, see error clear after async settles".
         var m = new StorefrontModel { Address = new StorefrontAddress { PostalCode = "" } };
 
         var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Address.PostalCode)
+                .Debounce(TimeSpan.Zero)
                 .Validate(async v =>
                 {
                     if (string.IsNullOrWhiteSpace(v))
@@ -304,15 +306,15 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
                 })
         ]);
 
-        // Two inputs → two on-input handlers, in document order.
-        var inputIds = page.HandlerIds("input");
-        var nameInputId = inputIds[0];
-        var postalInputId = inputIds[1];
-        Assert.NotNull(postalInputId);
+        // Two inputs → two on-change handlers, in document order.
+        var changeIds = page.HandlerIds("change");
+        var nameChangeId = changeIds[0];
+        var postalChangeId = changeIds[1];
+        Assert.NotNull(postalChangeId);
 
-        await page.Invoke(nameInputId!, "{\"value\":\"Ada\"}");
+        await page.Invoke(nameChangeId!, "{\"value\":\"Ada\"}");
 
-        await page.Invoke(postalInputId!, "{\"value\":\"12345\"}");
+        await page.Invoke(postalChangeId!, "{\"value\":\"12345\"}");
 
         var submitId = page.HandlerId("submit");
         await page.Invoke(submitId!, "{}");
@@ -352,10 +354,10 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_keystroke_after_blur_on_a_nested_field_clears_the_message_in_the_html()
+    public async Task The_first_keystroke_after_a_refused_value_on_a_nested_field_clears_the_message_in_the_html()
     {
-        // After the first blur touches the field and produces a message, a keystroke that
-        // makes the value valid must clear the message in the next render's HTML.
+        // After a refused value produces a message, the first keystroke of the correction — all a field
+        // that waits for the next action hears of the typing — must clear it in the next render's HTML.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
         var page = Page.Render(() => Form.Model(p)[
@@ -373,9 +375,9 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("too short", page.Render());
 
-        var inputId = page.HandlerId("input");
+        var editId = page.HandlerId("edit");
 
-        await page.Invoke(inputId!, "{\"value\":\"Oak\"}");
+        await page.Invoke(editId!, "{\"type\":\"edit\"}");
 
         var afterKeystroke = page.Render();
 

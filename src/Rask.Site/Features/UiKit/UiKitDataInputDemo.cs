@@ -323,10 +323,10 @@ public sealed partial class UiKitDataInputDemo : Component
             Div.Data(Testid("ui-bound")).Class("space-y-3")[
                 Form.Model(_signup)[
                     Div.Class("grid gap-3 sm:grid-cols-2")[
-                        Ui.Input.Bind(() => _signup.Email).Label("Email").Type(InputType.Email)
+                        Ui.Input.Bind(() => _signup.Email).Live().Label("Email").Type(InputType.Email)
                             .Description("For example, you@example.com."),
                         // T is the model's, so this is a number field with nothing said here.
-                        Ui.Input.Bind(() => _signup.Seats).Label("Seats")
+                        Ui.Input.Bind(() => _signup.Seats).Live().Label("Seats")
                     ],
                     Div.Class("mt-3 flex flex-wrap items-center gap-4")[
                         Ui.Checkbox.Bind(() => _signup.Agreed).Label("I agree to the terms"),
