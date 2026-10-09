@@ -118,6 +118,26 @@ public sealed class LiveRenderContext : IDisposable
 
     internal RouteRenderState? Route { get; set; }
 
+    /// <summary>Publishes the title the pages of this walk declared.</summary>
+    /// <remarks>
+    ///     A page is mounted where its layout places the Outlet, so its title is only known once the walk has
+    ///     passed the page — after every component above it has rendered. It is collected as the walk goes
+    ///     and settled here, when the walk ends. The title belongs to the FIRST router of the walk, which is
+    ///     the outermost route: reached through <see cref="Route" /> rather than kept in a field of its own,
+    ///     because this object is allocated by every render of every app and only a routed one has a title.
+    /// </remarks>
+    /// <returns>Whether a component rendered with the old title, so the tree has to be walked again.</returns>
+    internal bool SettleRouteTitle()
+    {
+        var route = Route;
+        while (route?.Outer is { } outer)
+        {
+            route = outer;
+        }
+
+        return route?.Title?.Settle() == true;
+    }
+
     // The render engine, forwarded from the owning session (the render handle) and surfaced to components via
     // Component.HostEngine. Constant for the session → safe to read from Render() without the render-cache
     // ambient-state opt-out.
