@@ -20,10 +20,12 @@ internal sealed class UiChartDrawing(UiChartPlot plot, UiChartParts parts, UiCha
     private const string CursorLine = "text-zinc-500 dark:text-zinc-300";
     private const string PointRing = "stroke-white dark:stroke-zinc-900";
 
-    private readonly StringBuilder _svg = new(4096);
+    private StringBuilder _svg = null!;
 
-    internal string Write()
+    /// <summary>Writes the chart's nodes into <paramref name="svg" />, between the tags its caller writes.</summary>
+    internal void Write(StringBuilder svg)
     {
+        _svg = svg;
         var x = parts.X;
         var y = parts.Y;
         if (x?.Tick is { } bottom)
@@ -59,7 +61,6 @@ internal sealed class UiChartDrawing(UiChartPlot plot, UiChartParts parts, UiCha
         }
 
         Cursor(Ui.ChartCursorType.Line);
-        return _svg.ToString();
     }
 
     // The x axis's labels hang under the plot: the rows' names on an upright chart, the values on one lying down.
@@ -324,7 +325,7 @@ internal sealed class UiChartDrawing(UiChartPlot plot, UiChartParts parts, UiCha
             var (x, y) = plot.Horizontal ? (plot.Value(value), plot.Index(plot.Units[row])) : (plot.Index(plot.Units[row]), plot.Value(value));
             _svg.Append("<circle r=\"").Number(point.R ?? 4).Append("\" fill=\"currentColor\" stroke-width=\"").Number(point.StrokeWidth ?? 1).Append('"');
             Class(PointRing, point.Class);
-            _svg.Append(" cx=\"").Number(x).Append("\" cy=\"").Number(y).Append("\"></circle>");
+            _svg.Append(" cx=\"").Number(x).Append("\" cy=\"").Number(y).Append("\" data-rask-plot-row=\"").Append(row).Append("\"></circle>");
         }
 
         _svg.Append("</g>");

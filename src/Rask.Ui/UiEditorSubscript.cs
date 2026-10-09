@@ -7,5 +7,5 @@ public sealed partial class UiEditorSubscript : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("subscript", "Subscript", null, UiEditorIcons.Subscript());
+        UiEditorMarkup.Toggle("subscript", RaskStrings.Get(RaskString.EditorSubscript, "Subscript"), null, UiEditorIcons.Subscript());
 }

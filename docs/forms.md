@@ -1,17 +1,18 @@
 # Forms & validation
 
-Rask binds inputs two-way with a strongly-typed `Bind` expression, routes submit through
-validators you opt into, and tracks per-field state (touched / modified / messages / in-flight
-validation) on an `EditContext`. The same component code runs server-rendered or on WASM.
+Rask binds inputs two-way with a strongly-typed `Bind` expression, validates each field by the rule
+written beside it — `.Validate(…)` — and tracks per-field state (touched / modified / messages /
+in-flight validation) on an `EditContext`. The same component code runs server-rendered or on WASM.
 
-This guide builds up in layers: binding → forms → inline validation → DataAnnotations →
-FluentValidation → async → nested models → radio/checkbox groups.
+This guide builds up in layers: binding → forms → inline validation, sync and async → nested models →
+radio/checkbox groups. DataAnnotations and FluentValidation are supported too, for a model that already
+carries them.
 
 For the analyzer IDs referenced here (`RASK001`, `RASK022`, …) see [diagnostics.md](diagnostics.md).
 
 ## On this page
 
-- [Validation](forms-validation.md) — inline, DataAnnotations, FluentValidation, async.
+- [Validation](forms-validation.md) — inline `.Validate(…)` on a field or the form, async rules, rules in a value object; then DataAnnotations and FluentValidation.
 - [Nested models & control groups](forms-advanced.md) — complex models, radio/checkbox groups, custom controls.
 
 ---
@@ -266,8 +267,17 @@ Form.Model(_model).OnSubmit(m => Console.WriteLine(m.Username))[
 ]
 ```
 
-Submit runs the full validator pipeline (`Validate`), marks every registered field touched,
-then routes:
+A field's rule is a step on its input — the value in, the messages that reject it out:
+
+```csharp
+Input.Bind(() => _model.Username)
+    .Validate(v => v.Length >= 3 ? [] : ["At least 3 characters."])
+```
+
+A rule across fields goes on the form the same way, and either can be `async`: see
+[validation](forms-validation.md).
+
+Submit runs every rule, marks every registered field touched, then routes:
 
 - valid → `OnSubmit` (or, if unset, `OnAnySubmit` with the raw `FormData`),
 - invalid → `OnInvalidSubmit`.

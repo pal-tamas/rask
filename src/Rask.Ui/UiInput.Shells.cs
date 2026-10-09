@@ -6,8 +6,6 @@ namespace Rask;
 // The two forms that are not a text box: the input drawn as a button, and the file input.
 public sealed partial class UiInput<T>
 {
-    private const string NoFile = "No file chosen";
-
     private string? _chosen;
 
     // Flux marks this one with nothing — no data-flux-input — so neither does this.
@@ -41,9 +39,9 @@ public sealed partial class UiInput<T>
                 .Attributes(UiInputLook.FileMarks)
                 .Class("sr-only"),
             Div.Class(UiInputLook.FileButton).Data("ui-button", "").Aria("hidden", "true")[
-                Multiple == true ? "Choose files" : "Choose file"
+                Multiple == true ? RaskStrings.Get(RaskString.InputChooseFiles, "Choose files") : RaskStrings.Get(RaskString.InputChooseFile, "Choose file")
             ],
-            Div.Class(UiInputLook.FileName).Aria("hidden", "true")[_chosen ?? NoFile]
+            Div.Class(UiInputLook.FileName).Aria("hidden", "true")[_chosen ?? RaskStrings.Get(RaskString.InputNoFile, "No file chosen")]
         ];
 
     private async Task Chosen(IReadOnlyList<IRaskFile> files)

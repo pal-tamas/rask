@@ -7,5 +7,5 @@ public sealed partial class UiEditorCode : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("code", "Code", null, UiEditorIcons.Code());
+        UiEditorMarkup.Toggle("code", RaskStrings.Get(RaskString.EditorCode, "Code"), null, UiEditorIcons.Code());
 }

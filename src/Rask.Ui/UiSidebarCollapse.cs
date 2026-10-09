@@ -37,7 +37,7 @@ public sealed partial class UiSidebarCollapse : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var name = Tooltip ?? "Toggle sidebar";
+        var name = Tooltip ?? RaskStrings.Get(RaskString.SidebarToggle, "Toggle sidebar");
         return Div.Class(UiClass.Compose(Root, InsetClass(Inset), Class)).Attributes(("data-ui-sidebar-collapse", ""))[
             // Flux's button sits in its tooltip, which is its name. Two here, as the control is two labels:
             // each is shown at the widths its checkbox means something.
