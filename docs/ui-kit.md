@@ -1370,6 +1370,7 @@ heading, a ghost button that stays and a danger button that leaves:
 ```csharp
 Ui.ConfirmLeave                              // "Stay" and "Leave"
 Ui.ConfirmLeave.Stay("Nem").Leave("Igen")    // your own words
+Ui.ConfirmLeave.Heading("Unsaved changes")   // a short title; the form's question is the sentence beneath it
 ```
 
 It is rendered closed and the runtime opens it, so the question appears without a round trip. The close

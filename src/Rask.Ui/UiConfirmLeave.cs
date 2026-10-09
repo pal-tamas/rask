@@ -35,14 +35,18 @@ public sealed partial class UiConfirmLeave : Component
     /// <summary>The label of the button that leaves, dropping what was typed. "Leave" when unset.</summary>
     public string? Leave { get; set; }
 
+    /// <summary>
+    ///     A short title above the form's question, as Flux titles a confirmation ("Delete project?" over a
+    ///     sentence). Unset, the question itself is the title.
+    /// </summary>
+    public string? Heading { get; set; }
+
     /// <inheritdoc />
     protected override Component? Render() =>
         // As wide as Flux draws its confirmation, so the close button sits in the corner and not beside the question.
         Ui.Modal.Name(DialogId).Class("min-w-[22rem]")[
             Div.Class("space-y-6")[
-                // Empty in every render and filled in the browser, so it is kept out of the morph's hands: a
-                // render that lands while the dialog is open would otherwise blank the question.
-                Ui.Heading.Level(2).Lg.Class("pe-8").Data(Part, "message").Attributes(("data-rask-opaque", null)),
+                Question(),
                 Div.Class("flex gap-2")[
                     Ui.Spacer,
                     Ui.ModalClose.Key("stay")[Ui.Button.Ghost[Stay ?? "Stay"]],
@@ -50,4 +54,13 @@ public sealed partial class UiConfirmLeave : Component
                 ]
             ]
         ];
+
+    // The question is empty in every render and filled in the browser, so it is kept out of the morph's hands: a
+    // render that lands while the dialog is open would otherwise blank it.
+    private Component Question() => Heading is { } heading
+        ? Div[
+            Ui.Heading.Level(2).Lg.Class("pe-8")[heading],
+            Ui.Text.Class("mt-2").Data(Part, "message").Attributes(("data-rask-opaque", null))
+        ]
+        : Ui.Heading.Level(2).Lg.Class("pe-8").Data(Part, "message").Attributes(("data-rask-opaque", null));
 }
