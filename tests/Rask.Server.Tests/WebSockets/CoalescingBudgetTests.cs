@@ -14,9 +14,7 @@ public class CoalescingBudgetTests
         await using var fixture = await ConnectedSession.Connect<RerenderChainApp>();
 
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/next", query = "" }, ct: TestContext.Current.CancellationToken);
-        while (await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500)) is not null)
-        {
-        }
+        await fixture.Ws.SettledAsync();
 
         var root = Assert.IsType<RootErrorBoundary>(fixture.Session.View);
         var app = Assert.IsType<RerenderChainApp>(root.Inner);

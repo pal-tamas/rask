@@ -11,6 +11,7 @@ namespace Rask.Core.Routing;
 public sealed class Router : Component
 {
     private readonly RouteState _state;
+    private readonly RoutePageInstances _pages;
     private IReadOnlyList<RouteLeaf> _leaves = Array.Empty<RouteLeaf>();
     private IReadOnlyList<Route>? _routes;
 
@@ -30,7 +31,14 @@ public sealed class Router : Component
     private IReadOnlyDictionary<string, string?>? _matchedValues;
     private bool _matched;
 
-    public Router(RouteState state) => _state = state;
+    // Whether this router is the one the page's title is read from — see RouteRenderState.NamesThePage.
+    private bool _namesThePage;
+
+    public Router(RouteState state)
+    {
+        _state = state;
+        _pages = new RoutePageInstances(this);
+    }
 
     // Settable from the auto-generated factory. A null assignment resolves to the session's route
     // table (RouteState.CurrentTable) so `Router()` (the zero-arg call shape) Just Works — the
@@ -88,6 +96,11 @@ public sealed class Router : Component
     protected override Task OnUnmount()
     {
         _state.Changed -= StateHasChanged;
+        if (_namesThePage)
+        {
+            _state.TitleSource.Publish(null);
+        }
+
         return Task.CompletedTask;
     }
 
@@ -104,19 +117,41 @@ public sealed class Router : Component
             _matchedValues = values;
         }
 
+        // The first router of a walk names the page; one rendered inside a page of another does not. A path
+        // nothing matches has no title, and saying so is what replaces the title of the page before it.
+        var ctx = LiveRenderContext.Current;
+        var outer = ctx?.Route;
+        _namesThePage = ctx is not null && outer is null;
+        if (_namesThePage)
+        {
+            _state.TitleSource.BeginWalk();
+        }
+
         if (!_matched)
         {
+            if (_namesThePage)
+            {
+                ctx!.Route = RouteRenderState.Unmatched(path, _state.TitleSource);
+            }
+
             return new Fragment();
         }
 
-        var ctx = LiveRenderContext.Current
-                  ?? throw new InvalidOperationException(
-                      "Router must render under a Rask live root — start the app with RaskApp.Create(args).Run<App>(), or MapRask<TApp>() on a hand-wired host.");
+        if (ctx is null)
+        {
+            throw new InvalidOperationException(
+                "Router must render under a Rask live root — start the app with RaskApp.Create(args).Run<App>(), or MapRask<TApp>() on a hand-wired host.");
+        }
 
         // A fresh RouteRenderState per frame even on a memoised match: its Cursor is per-frame walk
         // state, and the Query is read now rather than when the path last changed — `?page=2` moves
         // without the path moving.
-        ctx.Route = new RouteRenderState(path, _matchedChain!, _matchedValues!, _state.Query);
+        ctx.Route = new RouteRenderState(path, _matchedChain!, _matchedValues!, _state.Query)
+        {
+            Title = _namesThePage ? _state.TitleSource : null,
+            Pages = _pages,
+            Outer = outer,
+        };
         return RouteChainRenderer.RenderChainEntry(ctx);
     }
 }

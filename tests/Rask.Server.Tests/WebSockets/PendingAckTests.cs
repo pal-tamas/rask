@@ -64,14 +64,12 @@ public class PendingAckTests
         // Opt-in: a seq-less client gets the render frame and nothing else — the exact
         // pre-feature contract, so existing dedup/ordering behaviour is untouched.
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        var render = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var render = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(render);
-        Assert.Contains("count=1", render!);
-        Assert.False(IsAck(render!));
+        Assert.Contains("count=1", render);
+        Assert.False(IsAck(render));
 
-        var trailing = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
-        Assert.Null(trailing);
+        Assert.Empty(await ws.SettledAsync());
     }
 
     [Fact]
@@ -121,11 +119,9 @@ public class PendingAckTests
         // seq from the client and the server must not ack it even if a seq is present.
         await ws.SendJsonAsync(new { type = "navigate", path = "/other", query = "", seq = 1 }, ct: TestContext.Current.CancellationToken);
 
-        string? frame;
-        while ((frame = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500))) is not null)
-        {
-            Assert.False(IsAck(frame), "navigate must not produce an ack frame");
-        }
+        var frames = await ws.SettledAsync();
+
+        Assert.DoesNotContain(frames, IsAck);
     }
 
     // Connects, sends hello, and drains any hello-time recovery frame so each test starts
@@ -139,7 +135,7 @@ public class PendingAckTests
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(300));
+        await ws.SettledAsync();
         return (ws, handlerId);
     }
 
@@ -150,9 +146,8 @@ public class PendingAckTests
         var renders = new List<string>();
         while (true)
         {
-            var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            Assert.NotNull(text);
-            using var doc = JsonDocument.Parse(text!);
+            var text = await ws.ReceiveTextAsync();
+            using var doc = JsonDocument.Parse(text);
             var root = doc.RootElement;
             if (root.TryGetProperty("type", out var tp)
                 && tp.ValueKind == JsonValueKind.String
@@ -161,7 +156,7 @@ public class PendingAckTests
                 return (renders, root.GetProperty("seq").GetInt64());
             }
 
-            renders.Add(text!);
+            renders.Add(text);
         }
     }
 

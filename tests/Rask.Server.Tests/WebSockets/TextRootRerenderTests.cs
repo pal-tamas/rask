@@ -71,10 +71,9 @@ public class TextRootRerenderTests
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, TestContext.Current.CancellationToken);
 
         await ws.SendJsonAsync(new { type = "hello", session = MarkupAssert.SessionId(html) }, ct: TestContext.Current.CancellationToken);
-        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        var frame = await ws.ReceiveTextAsync();
 
         Assert.Contains(TextStep + "</div>", html);
-        Assert.NotNull(frame);
         Assert.Equal(4, OpAt(frame, TextCrumbPath).Kind);
         Assert.Equal("Orders", OpAt(frame, TextCrumbPath).Value);
     }
@@ -112,9 +111,7 @@ public class TextRootRerenderTests
         var sessionId = MarkupAssert.SessionId(html);
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, TestContext.Current.CancellationToken);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(5));
-        await host.Store.Get(sessionId)!.LastHandlerTask;
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(300));
+        await ws.SettledAsync();
         return (ws, html);
     }
 
@@ -123,9 +120,7 @@ public class TextRootRerenderTests
         var handler = Regex.Match(html, $"id=\"{buttonId}\" data-rask-on-click=\"([^\"]+)\"").Groups[1].Value;
         Assert.NotEqual(string.Empty, handler);
         await ws.SendJsonAsync(new { id = handler }, ct: TestContext.Current.CancellationToken);
-        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
-        Assert.NotNull(frame);
-        return frame;
+        return await ws.ReceiveTextAsync();
     }
 
     private static (int Kind, string? Value) OpAt(string frame, int[] path)

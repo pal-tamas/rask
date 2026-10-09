@@ -1698,6 +1698,14 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
         await AssertNoGlobalCrashAsync();
 
+        // The routing guide's nested layout shows its child's PageTitle as a crumb: the layout reads what
+        // the page declares, two levels under the showcase's own layout.
+        await Page.GotoAsync(Docs + "/routing-demo/nested/profile");
+        await Expect(Page.Locator("#routing-demo-crumbs")).ToHaveTextAsync("Routing demo › Profile",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("main h1")).ToHaveTextAsync("Profile");
+        await AssertNoGlobalCrashAsync();
+
         if (opts.DeepLink)
         {
             // Refresh on a deep CodeSample route must re-render the page (not the RootErrorBoundary)

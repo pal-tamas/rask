@@ -66,23 +66,21 @@ public sealed class ErrorPageResponseTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.SendJsonAsync(new { id = throwingId }, ct: TestContext.Current.CancellationToken);
-        var faulted = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var faulted = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(faulted);
         Assert.Contains("Try again", faulted, StringComparison.Ordinal);
 
         // Click it. Its id comes from the fallback render, so read it from the faulted payload.
-        var retryId = Regex.Match(faulted!, "data-rask-on-click=\\\\?\"(h\\d+)\\\\?\"[^>]*>Try again")
+        var retryId = Regex.Match(faulted, "data-rask-on-click=\\\\?\"(h\\d+)\\\\?\"[^>]*>Try again")
             .Groups[1].Value;
         Assert.NotEmpty(retryId);
 
         await ws.SendJsonAsync(new { id = retryId }, ct: TestContext.Current.CancellationToken);
-        var recovered = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var recovered = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(recovered);
         Assert.Contains("count=", recovered, StringComparison.Ordinal);
         Assert.DoesNotContain("Something went wrong", recovered, StringComparison.Ordinal);
     }

@@ -59,6 +59,7 @@ public sealed class CultureResumeTests
         using (var first = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None))
         {
             await first.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
+            await first.AttachedAsync(host, sessionId);
             var session = host.Store.Get(sessionId)!;
             session.Services.GetRequiredService<IPersistentState>().Persist("counter", 41);
             await session.View.StateHasChangedAsync();
@@ -87,46 +88,22 @@ public sealed class CultureResumeTests
         return html[start..html.IndexOf('"', start)];
     }
 
-    private static async Task<string> ReadResumeAsync(WebSocket ws)
+    private static async Task<string> ReadResumeAsync(WebSocket ws) =>
+        StringField(
+            await ws.ReceiveUntilAsync(
+                frame => StringField(frame, "resume") is not null, "a render payload carrying a resume record"),
+            "resume")!;
+
+    private static async Task<string> ReadHtmlAsync(WebSocket ws) =>
+        StringField(
+            await ws.ReceiveUntilAsync(frame => StringField(frame, "html") is not null, "a rebuild frame carrying html"),
+            "html")!;
+
+    private static string? StringField(string frame, string name)
     {
-        for (var i = 0; i < 8; i++)
-        {
-            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            if (frame is null)
-            {
-                break;
-            }
-
-            using var doc = JsonDocument.Parse(frame);
-            if (doc.RootElement.TryGetProperty("resume", out var resume)
-                && resume.ValueKind == JsonValueKind.String)
-            {
-                return resume.GetString()!;
-            }
-        }
-
-        Assert.Fail("expected a render payload carrying a resume record");
-        return string.Empty;
-    }
-
-    private static async Task<string> ReadHtmlAsync(WebSocket ws)
-    {
-        for (var i = 0; i < 8; i++)
-        {
-            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            if (frame is null)
-            {
-                break;
-            }
-
-            using var doc = JsonDocument.Parse(frame);
-            if (doc.RootElement.TryGetProperty("html", out var html) && html.ValueKind == JsonValueKind.String)
-            {
-                return html.GetString()!;
-            }
-        }
-
-        Assert.Fail("expected a rebuild frame carrying html");
-        return string.Empty;
+        using var doc = JsonDocument.Parse(frame);
+        return doc.RootElement.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
     }
 }

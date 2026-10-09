@@ -15,6 +15,9 @@ public sealed partial class DrainGateApp : Component
 {
     public static TaskCompletionSource Gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    // Set when the handler has reached the gate: it is running, inside its dispatch, and going nowhere.
+    public static TaskCompletionSource Parked = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     public int Counter;
 
     protected override Component? HeadAssets => Markup.Title["drain"];
@@ -26,6 +29,7 @@ public sealed partial class DrainGateApp : Component
         Button
             .OnClick(async () =>
         {
+            Parked.TrySetResult();
             await Gate.Task;
             Counter++;
         })["hang"]

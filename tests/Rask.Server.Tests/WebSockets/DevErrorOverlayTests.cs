@@ -85,17 +85,16 @@ public sealed class DevErrorOverlayTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.SendJsonAsync(new { id = handlers[0] }, ct: TestContext.Current.CancellationToken);   // throw
-        var faulted = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var faulted = await ws.ReceiveTextAsync();
 
-        Assert.Contains("\"devError\"", faulted!, StringComparison.Ordinal);
+        Assert.Contains("\"devError\"", faulted, StringComparison.Ordinal);
 
         await ws.SendJsonAsync(new { id = handlers[1] }, ct: TestContext.Current.CancellationToken);   // bump — an ordinary click
-        var next = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var next = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(next);
         Assert.DoesNotContain("devError", next, StringComparison.Ordinal);
     }
 
@@ -110,11 +109,10 @@ public sealed class DevErrorOverlayTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.SendJsonAsync(new { id = throwingId });
-        var payload = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-        Assert.NotNull(payload);
-        return payload!;
+        var payload = await ws.ReceiveTextAsync();
+        return payload;
     }
 }
