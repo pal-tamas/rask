@@ -7,8 +7,16 @@ namespace Rask;
 internal static class UiChartPaths
 {
     /// <summary>A coordinate as the shortest text that reads back as the same number, as JavaScript writes one.</summary>
-    internal static StringBuilder Number(this StringBuilder path, double value) =>
-        path.Append((value == 0 ? 0 : value).ToString("R", CultureInfo.InvariantCulture));
+    /// <remarks>Written straight into the path: a chart is thousands of numbers, and a string for each was most of what drawing one allocated.</remarks>
+    internal static StringBuilder Number(this StringBuilder path, double value)
+    {
+        Span<char> text = stackalloc char[32];
+        // Zero has no sign here, and the default format IS the shortest text that reads back.
+        var unsigned = value == 0 ? 0 : value;
+        return unsigned.TryFormat(text, out var written, default, CultureInfo.InvariantCulture)
+            ? path.Append(text[..written])
+            : path.Append(unsigned.ToString(CultureInfo.InvariantCulture));
+    }
 
     private static StringBuilder Point(this StringBuilder path, double x, double y, char separator = ',') =>
         path.Number(x).Append(separator).Number(y);

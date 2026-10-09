@@ -145,8 +145,9 @@ public sealed partial class ChartParity : FluxParity
                 Ui.ChartAxis.Y.Format(new() { UseGrouping = true }).TickPrefix("$")[Ui.ChartAxisGrid, Ui.ChartAxisTick],
                 Ui.ChartCursor.Type(Ui.ChartCursorType.Area)
             ],
+            // Flux writes a heading with no format as the row holds it, and its rows hold the date as text.
             Ui.ChartTooltip[
-                Ui.ChartTooltipHeading.Field((Row r) => r.Date),
+                Ui.ChartTooltipHeading.Field((Row r) => r.Name),
                 Ui.ChartTooltipValue.Field((Row r) => r.A).Label("Revenue").Format(new() { UseGrouping = true }).Prefix("$")
             ]
         ]);

@@ -49,7 +49,7 @@ internal static class UiChartPieDrawing
 
             svg.Append("\" d=\"");
             UiChartPaths.Sector(svg, width / 2, height / 2, outer, inner, pie.Radius ?? 0, from, turned / total * Math.Tau);
-            svg.Append("\"></path>");
+            svg.Append("\" data-rask-plot-row=\"").Append(row).Append("\"></path>");
         }
 
         svg.Append("</g>");

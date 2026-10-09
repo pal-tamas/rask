@@ -293,16 +293,75 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         Assert.NotEqual("none", stroke);
         Assert.DoesNotContain("0, 0, 0", stroke, StringComparison.Ordinal);
 
-        // A strip per row lies over the drawing; the pointer in one shows that row's tooltip, in CSS.
-        var strips = chart.Locator("[data-ui-chart-hover] > div");
-        await Expect(strips).ToHaveCountAsync(16);
-        var seventh = strips.Nth(6);
-        await Expect(seventh.Locator("div").Last).ToBeHiddenAsync();
+        // Drawn for the box it has: the browser measured it and the chart was drawn again in its units.
+        const string drawnForItsBox = "c => { const s = c.querySelector('svg'), v = s.getAttribute('viewBox').split(' ').map(Number), b = s.getBoundingClientRect(); return Math.abs(v[2] - b.width) < 0.5 && Math.abs(v[3] - b.height) < 0.5; }";
+        await Page.WaitForFunctionAsync("() => (" + drawnForItsBox + ")(document.querySelector('[data-testid=ui-chart] [data-ui-chart]'))");
 
-        await seventh.HoverAsync();
+        // One tooltip and one cursor for all sixteen rows, unseen until the pointer is over the plot.
+        var tooltip = chart.Locator("[data-rask-plot-tooltip]");
+        var cursor = chart.Locator("[data-rask-plot-area] > div");
+        await Expect(tooltip).ToHaveCountAsync(1);
+        await Expect(tooltip).ToHaveCSSAsync("opacity", "0");
+        await Expect(cursor).ToBeHiddenAsync();
 
-        await Expect(seventh).ToContainTextAsync("Visitors");
-        await Expect(seventh).ToContainTextAsync("300");
+        // The seventh of sixteen rows is six fifteenths of the way across the plot area.
+        var area = (await chart.Locator("[data-rask-plot-area]").BoundingBoxAsync())!;
+        await Page.Mouse.MoveAsync((float)(area.X + (area.Width * 6 / 15) + 2), (float)(area.Y + (area.Height / 2)));
+
+        await Expect(tooltip).ToHaveCSSAsync("opacity", "1");
+        await Expect(tooltip).ToContainTextAsync("Visitors");
+        await Expect(tooltip).ToContainTextAsync("300");
+        await Expect(cursor).ToBeVisibleAsync();
+        var line = (await cursor.BoundingBoxAsync())!;
+        Assert.InRange(line.X + (line.Width / 2), area.X + (area.Width * 6 / 15) - 1, area.X + (area.Width * 6 / 15) + 1);
+
+        await Page.Mouse.MoveAsync((float)area.X - 30, (float)area.Y - 30);
+
+        await Expect(tooltip).ToHaveCSSAsync("opacity", "0");
+        await Expect(cursor).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task A_chart_is_drawn_again_for_its_box_when_the_window_is_narrowed_to_a_phone() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var chart = Page.Locator("[data-testid=ui-chart] [data-ui-chart]").First;
+        await chart.ScrollIntoViewIfNeededAsync();
+        const string widths = "() => { const s = document.querySelector('[data-testid=ui-chart] [data-ui-chart] svg'); return [Number(s.getAttribute('viewBox').split(' ')[2]), s.getBoundingClientRect().width]; }";
+        await Page.WaitForFunctionAsync("() => { const [drawn, box] = (" + widths + ")(); return Math.abs(drawn - box) < 0.5; }");
+        var wide = await Page.EvaluateAsync<double[]>(widths);
+
+        await Page.SetViewportSizeAsync(390, 800);
+        await Page.WaitForFunctionAsync("was => { const [drawn, box] = (" + widths + ")(); return box < was && Math.abs(drawn - box) < 0.5; }", wide[1]);
+        var label = await chart.Locator("svg text").First.EvaluateAsync<string>("t => getComputedStyle(t).fontSize + ' ' + t.getBoundingClientRect().height.toFixed(0)");
+
+        // Its labels are 12px text there too: a drawing scaled down from the wide one would have shrunk them.
+        Assert.StartsWith("12px 1", label, StringComparison.Ordinal);
+    });
+
+    [Fact]
+    public Task A_pies_hovered_slice_is_marked_and_a_summary_reads_the_row_under_the_pointer() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var charts = Page.Locator("[data-testid=ui-chart] [data-ui-chart]");
+        var pie = charts.Filter(new LocatorFilterOptions { Has = Page.Locator("svg path[data-rask-plot-row]") }).First;
+        var summary = charts.Filter(new LocatorFilterOptions { Has = Page.Locator("slot") }).First;
+        await pie.ScrollIntoViewIfNeededAsync();
+
+        var box = (await pie.Locator("svg").BoundingBoxAsync())!;
+        await Page.Mouse.MoveAsync((float)(box.X + (box.Width * 0.6)), (float)(box.Y + (box.Height * 0.3)));
+
+        await Expect(pie.Locator("svg path[data-active]")).ToHaveCountAsync(1);
+        await Expect(pie.Locator("svg path[data-inactive]")).ToHaveCountAsync(2);
+
+        await summary.ScrollIntoViewIfNeededAsync();
+        var today = summary.Locator("slot").First;
+        await Expect(today).ToHaveTextAsync("$3,239.00");
+        var plot = (await summary.Locator("[data-rask-plot-area]").BoundingBoxAsync())!;
+        await Page.Mouse.MoveAsync((float)plot.X + 2, (float)(plot.Y + (plot.Height / 2)));
+
+        await Expect(today).ToHaveTextAsync("$299.00");
+        await Expect(pie.Locator("svg path[data-active]")).ToHaveCountAsync(0);
     });
 
     [Fact]

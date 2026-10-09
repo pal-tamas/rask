@@ -125,6 +125,24 @@ public sealed class RuntimeHookGestureTests(PlaywrightFixture playwright) : ICla
     }
 
     [Fact]
+    public async Task A_measured_element_whose_field_the_page_writes_over_tells_the_page_its_box_again()
+    {
+        await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);
+        var page = session.Page;
+        await page.WaitForFunctionAsync("() => document.getElementById('box-size').value === '300 100'");
+        await page.EvaluateAsync(Record, "box-size");
+
+        // What a host taking over a prerendered page does: it writes the size it rendered, which is not the box.
+        await page.EvaluateAsync("() => { document.getElementById('box-size').setAttribute('value', '600 200'); }");
+        await page.WaitForFunctionAsync("() => document.getElementById('box-size').value === '300 100'");
+        await page.EvaluateAsync("() => { document.getElementById('box-size').setAttribute('value', '300.2 100'); }");
+        await page.WaitForTimeoutAsync(100);
+
+        // Told once: a size within half a pixel of the box is the box, and nothing is said about it.
+        Assert.Equal("input:300 100 | change:300 100", await page.EvaluateAsync<string>("() => window.heard.join(' | ')"));
+    }
+
+    [Fact]
     public async Task A_control_is_hidden_where_the_global_it_requires_is_missing_and_shown_where_it_is_there()
     {
         await using var session = await HookSession.OpenAsync<GestureHookPage>(playwright);

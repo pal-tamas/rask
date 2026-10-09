@@ -354,10 +354,17 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - The `.alert-*` contrast corrections stay in `ui.css` for the templates' hand-written `alert alert-*`.
 - The Dashboard's queue tiles lost their icon and hover (Flux's card has no link or icon props, and the
   Dashboard may not write classes): rebuilt on Flux pieces later.
-- Chart: what needs a pointer hook in the runtime (a `pointermove` that re-renders with the hovered row) and has
-  none today — the summary following the pointer, a pie's tooltip and its `data-active` / `data-inactive`, the
-  tooltip following the pointer vertically, and re-measuring on resize (`Ui.ChartSvg.Width/Height` state the
-  box instead). A pie's default hues go in palette order; Flux hashes the slice's id, by a rule not derived.
+- Chart (pointer and size wired 2026-10-09; `parity-chart.mjs --pointer` walks both pages). Measured on Flux and
+  built: the active region is the PLOT box; the tooltip sits 15px from the row and the pointer and flips at the
+  DRAWING's right / bottom edge (not the chart root's — the slice-colours example has a legend beside it); Flux
+  measures the tooltip BEFORE writing the new row's text, so the hook does too; an area cursor covers the row's
+  whole band, whatever the bar's `width`; a heading with no `format` shows the field as the row holds it (a
+  string in Flux's rows — the parity page reads the same string; a C# date reads as the reader's short date).
+  Flux redraws in the frame its box changes; the kit after 100 ms of no change (a round trip per frame per
+  chart on a Server page otherwise), scaled by its `viewBox` meanwhile. `Ui.ChartSvg.Width/Height` are the box
+  drawn for BEFORE the browser has measured — a `Translations` row each; whether they stay is the owner's call (asked 2026-10-09).
+  The area cursor is a dashed CSS border at 10% where Flux strokes a path `4,4`. A pie's default hues go in
+  palette order; Flux hashes the slice's id, by a rule not derived.
   Not built for want of an example to measure: `scale` on an axis, `tick-start="min"` / `tick-end="max"`, an X
   axis on top, the look of `axis.mark` and `zero-line` (drawn, unverified), smooth curves on a horizontal chart.
 - Modal: `Ui.Modal`, `Ui.ModalTrigger`, `Ui.ModalClose`; `Ui.Drawer` and the daisy modal are gone (the command
@@ -602,7 +609,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Color picker eyedropper | button rendered `hidden` with `data-rask-requires="EyeDropper"` | shown only where the API exists (Flux hides it, it does not disable it) |
 | File upload / dropzone | `data-rask-loading` on the element around the `Input.Type(File).OnFiles(…)` (WIRED: `Ui.FileUpload`'s root, which is where Flux writes `data-loading`); CSS from `in-data-loading:`, `width: var(--rask-progress)` and `content: var(--rask-progress-as-string)` — the kit hands the pair on as `--ui-file-upload-progress*` in `ui.css` | Flux's `data-loading` + percent pair; real upload progress on Server, bytes read on WASM |
 | Date picker `type="input"`, Time picker typed trigger | group `data-rask-segments`; each part `Input.Of<string>()` with `data-rask-segment="month|day|year|hour|minute|meridiem"`, a `placeholder`, NO `value`, NO handler, in the locale's order; ONE `Input.Type(Hidden)` inside bound to `yyyy-mm-dd` / `HH:mm` / both joined by `T` | every key of Flux's typed date and time; one committed value. NOT covered: keeping a click on a part from reaching a handler on the surrounding trigger — put the parts beside the element that opens the popover, not inside it |
-| Chart | root `data-rask-plot="<each row's x, 0–1>"`; the plot box `data-rask-plot-area`; every row's cursor / points / summary rendered once with `data-rask-plot-row="<i>"` and shown on `[data-active]`; tooltip `data-rask-plot-tooltip="<gap px>"`, `position:absolute; left:0; top:0`; for the real size, the container `data-rask-measure` with ONE bound `Input.Type(Hidden)` (`"<w> <h>"`) | active row, cursor and tooltip follow the pointer with no round trip; the chart redraws at its own box |
+| Chart (WIRED 2026-10-09) | root `data-rask-plot` (bare); over the drawing ONE layer that is `data-rask-measure` (its bound `Input.Type(Hidden)` rendered with the size DRAWN, `"<w> <h>"`) and `data-rask-plot-frame`, holding the plot box `data-rask-plot-area="<each row's place, 0–1>"` (`data-rask-plot-axis="y"` on a horizontal chart) with ONE cursor placed by `--rask-plot-at`; every part that reads a row rendered once with `data-rask-plot-text` (a line per row); points, slices and a pie's per-slice dots `data-rask-plot-row="<i>"`; tooltip `data-rask-plot-tooltip="15"`, `opacity-0 data-active:opacity-100` | active row, cursor, tooltip, summary and a pie's slice follow the pointer with no round trip; the chart is drawn again at its own box, once per settled size |
 | OTP | group `data-rask-otp` (`="alpha"`, `="alphanumeric"`); cells rendered with NO `value`, NO handler, NO re-keying; ONE `Input.Type(Hidden)` inside, bound to the string | every key of Flux's otp input, fast typing included |
 | Toast | `data-rask-dismiss-hold="pointer"` beside `data-rask-dismiss-after` | focus no longer holds the countdown |
 | ToastGroup | `data-rask-dismiss-scope` on the group (wired). `data-rask-stack` on the parent of the stacked toasts, newest LAST; no rendered `--ui-toast-index` / anchor names in `style`; CSS from `--rask-stack-index` / `-height` / `-offset` / `-front`, the rule that cuts the card written under `[data-rask-stack]:not([data-rask-measuring])` (hook ready since round two, NOT wired — see below) | one pointer holds them all; the 350 ms glide |
