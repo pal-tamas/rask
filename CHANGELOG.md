@@ -7,6 +7,26 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: a one-value value object is stored as a converted scalar column, so it can be indexed and made
+  unique.** `public Email Email { get; private set; }` with `record Email(string Value)` used to be an EF Core
+  complex type whose one column was named after the property, and EF Core has no index over a complex type's
+  column — `builder.HasIndex(c => new { c.Email, c.TenantId })` threw as the model was built. It is now an
+  ordinary scalar column with a conversion, so `HasIndex(…).IsUnique("…")`, `HasMaxLength`, `HasPrecision` and
+  the rest go on `builder.Property(c => c.Email)`, and the unique rule's failure names the field `Email`.
+  **No migration:** the column is the same — name, type, nullability, length, precision — and EF Core's own
+  migration differ reports nothing between the two mappings on SQLite, SQL Server and PostgreSQL (pinned by a
+  test for a string with a length, an int, a decimal with a precision, a `DateOnly`, a `Guid` and a nullable
+  value object). Only the column ORDER of a table created from scratch changes. **What an existing app has to
+  change:** (1) a `Configure` that reached the column through `builder.ComplexProperty(c => c.Email)` now
+  configures `builder.Property(c => c.Email)`; (2) a query on the AGGREGATE that reads inside the value —
+  `db.Set<Customer>().Where(c => c.Email.Value.Contains("a"))` — no longer translates: compare whole values
+  (`c.Email == new Email("…")`) or query the read face, where `Email` is the string it always was. Read faces,
+  form models and the generated writes are unchanged. A value object with several values stays a complex type,
+  and so does a one-value value object nested inside one. The value object is rebuilt through a constructor
+  taking its value or a parameterless constructor and its property, either of which may be private.
+
 ### Fixed
 
 - **The edit form works on an aggregate that declares `Checks = Concurrency.None`.** Its generated form model
@@ -130,6 +150,33 @@ them until tagged releases begin.
 
 ### Added
 
+- **`RaskValidationException` names its fields, so a form shows a rejection where it can be corrected.** It
+  implements `IFieldFailures`: a request a validator rejected, and a save a unique index refused
+  (`IsUnique("…")`), now land under the form's fields with nothing in the submit handler, where they used to be
+  `f.Error`. A new constructor takes `IReadOnlyList<FieldFailure>` (and an optional inner exception) and keeps a
+  failure over several fields whole; `Errors` — the wire shape — is filled from it, the message under each
+  field. `Failures` is never empty: an exception built from a message alone carries that message as a failure
+  about the submission as a whole. **A unique index over several columns changed shape:** it used to be one
+  entry under the empty key in `Errors`, and is now one failure whose `Fields` are every property of the index
+  in index order (the tenant aside) with the index's name as `Source`, and `Errors` holds the message under
+  each of those names. A validator's failures over a request that is a form's model are placed the same way
+  — its field names are already the model's property paths. Over remote dispatch the client's
+  `RemoteDispatchException` for a 400 with field errors is `IFieldFailures` too, rebuilt from the `errors`
+  dictionary — one failure per distinct message over every field that carries it; which fields were only
+  marked, what found the failure, and whether two fields shared one rule or two rules shared a text do not
+  survive the wire. `RemoteDispatchException` is no longer `sealed` to allow that; a test that asserts its
+  exact type on a rejection needs `ThrowsAnyAsync`.
+
+- **On a schema Rask did not create, a declared unique rule is checked before the save.** A host wired with
+  `AddRaskData<TContext>(o => …)` creates no index, so one the model declares with `IsUnique("…")` may not be in
+  the database. Each such rule a save touches is now asked as a query first — through the context's own
+  filters, so within the tenant — and a duplicate is refused with the same failure the index's violation
+  produces. A NULL in an index column is not checked; an index filter that only says its own columns are `NOT
+  NULL` counts as none, and an index with any other filter is skipped; two rows of one save that collide are
+  refused; a row does not collide with itself. The check and the save share one transaction (the caller's, or
+  one opened for the save — except on a context whose execution strategy retries). It is a check, not a lock:
+  two simultaneous saves can both pass, and only a real index closes that. `RaskApp` and a context wired with
+  the parameterless `AddRaskData<TContext>()` are unchanged.
 - **A rule the store owns is checked as the field is committed, with no step on the field or the form.**
   A data layer announces a model's rules with `RaskValidation.RegisterStoreRules(typeof(Model), services =>
   rules)` (`IStoreRules.Check(model, field, cancellationToken)` hands back `FieldFailure`s), and a form over
@@ -210,14 +257,13 @@ them until tagged releases begin.
   exists.")` — one step, beside EF Core's own `IsUnique()` / `IsUnique(false)`, which still bind as they did
   (only a string is Rask's). A save that violates the index — `Save()`, `Create`, `Update`, plain
   `SaveChangesAsync` — fails with a `RaskValidationException` carrying that message, the failure a validator
-  produces, in place of the provider's `DbUpdateException` (which stays as the `InnerException`). The message is
-  filed under the property the index is over when that is one property beside `TenantId`, and under the empty
-  key when it is several. It is a constant: the conflicting value is never appended. The violated index is
+  produces, in place of the provider's `DbUpdateException` (which stays as the `InnerException`). It is ONE
+  failure over every property the index names, `TenantId` aside (`Errors` repeats the message under each). The
+  message is a constant: the conflicting value is never appended. The violated index is
   recognised from the provider's own error — SQLSTATE `23505` and the constraint name on PostgreSQL, error
   `2601` / `2627` and the index name on SQL Server, the table and columns on SQLite — with no provider package
   of Rask's needed. An index with no message keeps the provider's error. `RaskValidationException` gains a
-  constructor taking the errors and an inner exception. **Not yet done:** a `Form` still shows this as `f.Error`
-  rather than under the field.
+  constructor taking the errors and an inner exception. A `Form` shows the message under the field, with nothing in its submit handler.
 
 - **Rask.Data on a host wired by hand, in two calls: `AddRaskData<TContext>(o => …)` and `app.UseRaskData()`.**
   A host built from `AddRask()` and `MapRask<TApp>()` rather than `RaskApp` had to register the context factory
@@ -288,9 +334,8 @@ them until tagged releases begin.
   it first appears, 100 ms after its box stops changing (a window resized, a phone turned), and when a hidden
   chart is shown at another size; a hidden chart keeps its drawing, as Flux's. Its 12px labels are 12px at 390
   wide and at 1920, and the ticks that fit are worked out again, where the SVG used to be scaled as a whole
-  from the stated size. `Ui.ChartSvg.Width(…).Height(…)` are now the box drawn for BEFORE the browser has
-  measured (600 × 200 unstated): a chart stated within half a pixel of its real box is drawn once and sends
-  nothing. Flux's own first paint is an empty box; the kit's is the drawing, scaled until the size arrives.
+  from the stated size. There is no size to state (see **BREAKING** under Changed): the first paint is an empty
+  box of the right size, as Flux's own is, and the drawing arrives with the measurement.
   *Pointer.* The cursor, the tooltip, every `Ui.ChartSummaryValue`, the active `Ui.ChartPoint`s and a pie's
   slices follow the pointer in the browser, with no round trip: the tooltip sits 15px from the row and the
   pointer and flips at the drawing's right and bottom edges (it used to rest at 40% of the height); a summary
@@ -332,6 +377,25 @@ them until tagged releases begin.
 
 ### Performance
 
+- **Events that arrive together are answered with one render.** Every client event used to be its own
+  dispatch, handler, walk of the page, diff and patch — so sixty charts measured by one `ResizeObserver` callback
+  were sixty renders of a page that needed one. Both client runtimes now hold the handler events a browser task
+  produces until that task ends and send them as ONE frame (`{"type":"batch","events":[…]}`, one WebSocket
+  message, one POST on the HTTP fallback, one JSExport call on WASM); the session runs their handlers in the
+  order the events happened, each seeing the state the one before it left, and renders once. An event alone in
+  its task is the frame it always was, byte for byte, and a navigation or an interop reply still goes at once,
+  behind whatever was waiting. What a handler can observe is unchanged: before each event of a batch the session
+  asks whether a render made now would rebuild that handler — its component, or one above it, is dirty — and if
+  so renders first, exactly as before. So events landing in different components (charts, rows, cells) are one
+  render, and events landing in the same component are rendered between, as they were; a handler that navigates,
+  signs in, awaits or throws into a boundary is still rendered at once. A page of sixty unsized 50-point charts
+  on a Server host: 60 frames out and 60 patches back → 1 and 1; plotted at its real size 1.06–3.46 s after
+  navigation (median 1.92 s) → 0.20–1.33 s (median 0.43 s), five runs each on a machine at load 80–110; the
+  same page in a WASM app (Debug, interpreted): 2.09 s → 0.58 s, sixty local renders → one. A batch
+  carries at most 256 events; its events count against `MaxInboundFramesPerSecond`, and it is one dispatch to
+  `MaxPendingHandlers`. A single live update still allocates 2,504 B (the exact gate), the wire-byte baselines
+  are unmoved. `docs/architecture/live-rendering-runtime.md` has the rules.
+
 - **A menu's keyboard left the runtime every page downloads.** What a `role="menu"` needs from script — the
   navigation keys not scrolling the page, Enter and Space pressing the focused row, ArrowDown on a closed menu
   button opening it, a pick closing the popover, Tab out closing it, focus handed back to the trigger, focus
@@ -364,6 +428,23 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.ChartSvg.Width` and `Ui.ChartSvg.Height` are removed — a chart takes its size from its
+  container alone, exactly as Flux's does.** Flux's `chart.svg` has no size: the element fills the box its class
+  gives it and is drawn by script once that box is known. The kit's two props said what box to draw for before
+  the browser had measured, which was a second, competing answer to "how big is this chart" — a stated size that
+  was not the real one drew a chart whose labels were scaled until the measurement corrected it. Now the first
+  render draws nothing (the measured layer and its empty field, in a box the chart's class already sizes, so
+  nothing moves when the drawing arrives), and the chart is drawn when its box comes back — which, since the
+  events of one browser task are answered with one render (Performance, above), is one render for every chart on
+  the page. Measured on Flux's live page 2026-10-09: its chart element is laid out and empty from 635 ms and
+  drawn at 1,010 ms. Migration: delete the two steps, and give the chart's box a size in CSS if it had none
+  (`.Class("aspect-3/1")`, `h-64`, or a `Ui.ChartViewport` with one).
+  `Ui.ChartSvg.Width(606).Height(202)[…]` → `Ui.ChartSvg[…]`. A page prerendered for a WebAssembly app shows the
+  empty boxes until the runtime has started; a chart whose part reads the wrong row type now says so when it is
+  first drawn rather than when it is first rendered. In a test, `page.On("[data-rask-measure] input").Input("606 202")`
+  is the browser's measurement. The measuring hook now also follows a measured element that a render replaces
+  (the first drawing does): it measures whatever stands in its place, where it used to go on watching the element
+  that had left the page, and a chart drawn once was then never drawn again for a new box.
 - **A routed page keeps its instance when its layout re-creates the `Outlet` around it.** An `Outlet` is a
   positional child of its layout, and the page went with it: a layout that rendered one sibling more ahead of
   the outlet — a breadcrumb that appears once there is something to show — got a new `Outlet` and with it a

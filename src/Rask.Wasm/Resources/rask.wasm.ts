@@ -25,6 +25,7 @@ import { showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
 import { setHost } from "../../Rask.Core/Resources/rask-host.js";
+import { eventBatch, isHandlerEvent } from "../../Rask.Core/Resources/rask-batch.js";
 import {
     beginLoading,
     endLoading,
@@ -564,17 +565,32 @@ function applyFullReply(reply: RaskFrameReply): unknown {
 // steady-typing user fires `send` ~60×/sec via the rAF input-coalescing path.
 const _sendEncoder = new TextEncoder();
 
-async function send(payload: unknown): Promise<void> {
+// The events one task produces cross into .NET as one call (rask-batch.ts), answered with a single render.
+// Anything else goes at once, behind what was waiting, so nothing overtakes an earlier event.
+const events = eventBatch(dispatch);
+
+function send(payload: unknown): Promise<void> {
+    if (earlyCallbacks && isIslandCallback(payload)) {
+        holdEarlyCallback(earlyCallbacks, payload);
+        return Promise.resolve();
+    }
+    // What the reader typed or chose and has not been sent goes first, whatever this is: a click, a submit,
+    // a key, a navigation, an event a behaviour hook raised (rask-input.ts). It joins the call this event
+    // crosses into .NET in, ahead of it.
+    sendTypedFirst(payload);
+    if (isHandlerEvent(payload)) {
+        // An event from before .NET exists is dropped NOW, not held for a task in which it might arrive:
+        // its id is the prerendered page's, and the live page's may name another handler (#973).
+        return dotnetExports ? events.add(payload) : dispatch(payload);
+    }
+    events.flush();
+    return dispatch(payload);
+}
+
+async function dispatch(payload: unknown): Promise<void> {
     // Deliberately not traced. `payload` carries the event's value — everything the user types — and
     // this runs ~60×/sec via the rAF coalescing path, so a log here writes form input to the console
     // of every production build. Debug a dispatch with a breakpoint, not by shipping one.
-    if (earlyCallbacks && isIslandCallback(payload)) {
-        holdEarlyCallback(earlyCallbacks, payload);
-        return;
-    }
-    // What the reader typed or chose and has not been sent goes first, whatever this is: a click, a submit,
-    // a key, a navigation, an event a behaviour hook raised (rask-input.ts).
-    sendTypedFirst(payload);
     if (!dotnetExports) {
         console.warn("[Rask] send: dotnetExports not set");
         return;
@@ -601,8 +617,8 @@ async function send(payload: unknown): Promise<void> {
 // Install the host contract before anything can dispatch. Both are hoisted function declarations,
 // so this runs before the listeners below are bound.
 //
-// `send` is async and the contract's is void-returning, which is deliberate: a caller in a shared
-// module has nothing useful to do with the promise, and the Server host's send is synchronous.
+// `send` answers with a promise where the Server host's answers with nothing: the promise is this host
+// saying when .NET has handled the event and its render is on the page (rask-host.ts).
 //
 // Not optional and not merely tidy: the shared modules call send/inRoot through this indirection,
 // and rask-host.ts's default throws rather than silently dropping events. Leaving the import

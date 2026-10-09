@@ -39,6 +39,7 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
         await Ready(page);
 
         var before = await SentAsync(page);
+        var framesBefore = await FramesAsync(page);
         await page.Locator("#name").PressSequentiallyAsync("Ada");
         await page.Locator("#notes").PressSequentiallyAsync("Two lines");
         await page.Locator("#age").PressSequentiallyAsync("36");
@@ -51,8 +52,9 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
         await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=Ada|Two lines|36");
         Assert.Equal(0, whileTyping);
         Assert.Equal("name=|notes=|age=", modelWhileTyping);
-        // One change a field, in the order they were typed into, then the submit.
+        // One change a field, in the order they were typed into, then the submit: four things said, in one frame.
         Assert.Equal(4, await SentAsync(page) - before);
+        Assert.Equal(1, await FramesAsync(page) - framesBefore);
     }
 
     [Theory]
@@ -246,16 +248,25 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
         Assert.Equal(3, await SentAsync(page) - before);
     }
 
-    // The socket's outgoing frames, counted in the page: Playwright's own frame events arrive on its own
-    // schedule, and a count read "now" must be the count now.
+    // What the page said over the socket, counted in the page: Playwright's own frame events arrive on its own
+    // schedule, and a count read "now" must be the count now. The events of one task leave as one batch
+    // (rask-batch.ts), so both are kept: the things said, and the frames they left in.
     private static Task CountFrames(IPage page) => page.AddInitScriptAsync(
         """
         window.__sent = 0;
+        window.__frames = 0;
         const send = WebSocket.prototype.send;
-        WebSocket.prototype.send = function (data) { window.__sent++; return send.call(this, data); };
+        WebSocket.prototype.send = function (data) {
+            const frame = JSON.parse(data);
+            window.__sent += frame.type === "batch" ? frame.events.length : 1;
+            window.__frames++;
+            return send.call(this, data);
+        };
         """);
 
     private static Task<int> SentAsync(IPage page) => page.EvaluateAsync<int>("() => window.__sent");
+
+    private static Task<int> FramesAsync(IPage page) => page.EvaluateAsync<int>("() => window.__frames");
 
     // The page is live once a press reaches the server and comes back.
     private static async Task Ready(IPage page)

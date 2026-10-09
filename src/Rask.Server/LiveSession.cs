@@ -212,6 +212,26 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     internal void DecrementPendingHandlers() => Interlocked.Decrement(ref _pendingHandlers);
 
+    // The events batch frames carried in the current one-second window. A batch is ONE frame to the transport's
+    // rate cap, so its events are counted here against the same number. Written by whichever request is reading
+    // this session's frames — one at a time for a socket, and for a browser's POSTs, which it sends one at a time.
+    private long _batchWindowStart;
+    private int _batchedEventsInWindow;
+
+    /// <summary>Whether <paramref name="count" /> more batched events fit this second's allowance.</summary>
+    internal bool AdmitBatchedEvents(int count, int maxPerSecond)
+    {
+        var now = Environment.TickCount64;
+        if (now - _batchWindowStart >= 1000)
+        {
+            _batchWindowStart = now;
+            _batchedEventsInWindow = 0;
+        }
+
+        _batchedEventsInWindow += count;
+        return _batchedEventsInWindow <= maxPerSecond;
+    }
+
     // Aggregate bytes of the cloned payloads currently queued — the memory companion to the count
     // above, so the receive loop can bound the queue's footprint, not just its length.
     private long _pendingHandlerBytes;

@@ -70,6 +70,8 @@
     <!-- The host asks the app's tenant resolver as a request starts and as a live session opens
          (ResolvedTenant.Capture), which is a moment only the host knows and no app should have to name. -->
     <InternalsVisibleTo Include="Rask.Server"/>
+    <!-- The provider suite asks a declared unique rule as a query on a real SQL Server, with the index dropped. -->
+    <InternalsVisibleTo Include="Rask.Providers.E2E.Tests"/>
   </ItemGroup>
 
   <!-- Ship the global `using Rask.Data;` to downstream consumers (mirrors Rask.Cqrs). -->

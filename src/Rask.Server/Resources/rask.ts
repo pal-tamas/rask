@@ -27,6 +27,7 @@ import { pollDevStatus, showDevError } from "../../Rask.Core/Resources/rask-deve
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
 import { setHost, standDown } from "../../Rask.Core/Resources/rask-host.js";
+import { eventBatch, isHandlerEvent } from "../../Rask.Core/Resources/rask-batch.js";
 import {
     beginLoading,
     endAllLoading,
@@ -1514,15 +1515,30 @@ import {
     // events are still to come. Assets a morph adds are picked up after it.
     invokeGate.scanHeadAssets();
 
+    // The events one task produces leave as one frame (rask-batch.ts), which the server answers with a single
+    // render. Anything else goes at once, behind what was waiting, so nothing overtakes an earlier event.
+    const events = eventBatch(transmit);
+
     function send(payload: unknown): void {
         if (suppressEvents) return;
         // What the reader typed or chose and has not been sent goes first, whatever this is: a click, a
-        // submit, a key, a navigation, an event a behaviour hook raised (rask-input.ts).
+        // submit, a key, a navigation, an event a behaviour hook raised (rask-input.ts). It joins the frame
+        // this event leaves in, ahead of it.
         sendTypedFirst(payload);
+        // Stamped now, not when the frame leaves: the caller reads the seq as soon as this returns.
         stampSeq(payload as Record<string, unknown>);
-        const msg = JSON.stringify(payload);
+        if (isHandlerEvent(payload)) {
+            void events.add(payload);
+            return;
+        }
+        events.flush();
+        transmit(payload);
+    }
+
+    function transmit(frame: unknown): void {
+        const msg = JSON.stringify(frame);
         const devtools = window.__raskDevtoolsHook;
-        if (devtools) devtools.send(payload, new TextEncoder().encode(msg).length);
+        if (devtools) devtools.send(frame, new TextEncoder().encode(msg).length);
         if (open && conn && conn.isOpen) conn.send(msg);
         else queue.push(msg);
     }

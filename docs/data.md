@@ -1257,10 +1257,14 @@ A save that violates the index then fails the way a [validator's rule](validatio
 whose text names tables and holds the conflicting value. Every save through the context does this:
 `Save()`, `Create`, `Update`, and plain `SaveChangesAsync`.
 
-| The index is over | `Errors` key | Meaning |
+It carries ONE failure for the index (`Failures`, the shape a form reads): the message, over every property the
+index names in index order — `TenantId` aside, which is never a field — and the index's name as its source.
+`Errors`, the shape that crosses the wire, repeats the message under each of those fields.
+
+| The index is over | `Failures` | `Errors` |
 |---|---|---|
-| one property (beside `TenantId`, which does not count) | that property's name — `"Name"` | the message belongs under that field |
-| several properties | `""` | a rule about the row as a whole |
+| `(Name, TenantId)` | one, over `Name` | `"Name"` |
+| `(Year, Number)` | one, over `Year` and `Number` | `"Year"` and `"Number"`, the same message under both |
 
 - **The message is a constant, and stays one.** It is shown to whoever sent the value, and nothing is appended
   to it — not the value, and not which row it collided with.
@@ -1273,15 +1277,40 @@ whose text names tables and holds the conflicting value. Every save through the 
   database has to be the one in the model — EF Core's `IX_{Table}_{Columns}`, or say `HasDatabaseName("…")`.
 - The original exception is the `InnerException`, for the log.
 
-Over [remote dispatch](validation.md#a-rejected-request) this is the same 400 with field errors a validator produces. **In
-a `Form` it reaches the page as `f.Error` today**, like any other failure of the submit handler — the form does
-not yet file it under the field by itself.
+**In a `Form` the message appears under the field** — under each of them, for an index over several — with
+nothing written in the submit handler: the exception names its fields (`IFieldFailures`), and a form shows
+such a failure where it can be corrected instead of failing the submit. Over
+[remote dispatch](validation.md#a-rejected-request) it is the same 400 with field errors a validator produces,
+and the client's exception names its fields too, rebuilt from that dictionary: one failure per distinct
+message, over every field that carries it.
+
+#### When the index may not be there
+
+On a database Rask did not create — [a table that already exists](#mapping-tables-that-already-exist) — an
+index the model declares is a claim about somebody else's schema, and the table may not have it. A host wired
+with `AddRaskData<TContext>(o => …)` therefore asks every rule declared with `IsUnique("…")` as a **query**
+before each save, and refuses the save with the same failure:
+
+- through the context's own filters, so a tenant-scoped table is asked about this tenant's rows only
+- a NULL in one of the index's columns is not checked, as a database does not let NULLs collide
+- an index filter that only says its own columns are `NOT NULL` counts as no filter; an index with any other
+  filter is skipped, because its condition is SQL that Rask will not guess at
+- two rows of one save that break a rule between them are refused too
+- the row being saved does not collide with itself
+
+The check and the save share one transaction — the caller's when there is one, otherwise one opened for the
+save (not on a context whose execution strategy retries, which refuses a transaction it did not start; there
+the check runs just before the save). **It is a check, not a lock:** two saves at the same instant can both
+pass it, and only a real unique index closes that. Where the index does exist the database still has the last
+word, reported the same way. An index declared with plain `IsUnique()` has no message to fail with and is not
+checked.
 
 ## Value objects
 
 A value object needs **no marker and no base class**. Any composite an entity holds that is not itself an
-entity (a record, a struct or a plain class) is a value object, mapped as an EF Core **complex type**: its
-properties become columns on the owning row.
+entity (a record, a struct or a plain class) is a value object, and its values become columns on the owning
+row: one that holds a single value is that value's column, and one that holds several is an EF Core **complex
+type**.
 
 ```csharp
 public sealed record Money(decimal Amount, string Currency);
@@ -1298,10 +1327,42 @@ public sealed class Customer : Aggregate<Guid>
 form model carries it as its value, `string? Email`. A value object with several values is prefixed by the
 property, and a form model carries it as a nested model.
 
+That one column is an ordinary scalar column with a conversion — the value object goes in and out through its
+one value — so everything a column can have, it can have, configured on the property itself:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Customer> builder)
+{
+    builder.Property(c => c.Email).HasMaxLength(255);
+    builder.HasIndex(c => new { c.Email, c.TenantId }).IsUnique("This address is already registered.");
+}
+```
+
+The unique rule's failure names the field `Email` — the form's own name for it — not `Email.Value`. The value
+object is rebuilt through the constructor that takes its value, or, for the private shape, a parameterless
+constructor and its property; both may be private.
+
+**What it costs: a query on the aggregate cannot reach inside the value.**
+
+```csharp
+// on the read face — where queries belong — the value IS the primitive, and everything translates
+await Customer.Where(c => c.Email.StartsWith("ada@")).OrderBy(c => c.Email);
+
+// on the write model (plain EF Core over the aggregate): comparing the whole value translates…
+await db.Set<Customer>().Where(c => c.Email == new Email("ada@example.com")).ToListAsync(ct);
+
+// …and member access does not: "could not be translated"
+await db.Set<Customer>().Where(c => c.Email.Value.Contains("ada")).ToListAsync(ct);
+```
+
+Before, when a one-value value object was a complex type, the last line translated and no index could name the
+column. Filter and sort on the read face, or compare whole values. This applies to a one-value value object the
+**entity** holds; one nested inside a larger value object (`Price.Currency`) is still part of that complex type.
+
 What is **not** a value object: a type EF Core maps as a column on its own (`string`, `DateTime`, `Guid`, an
 enum, anything from `System` or `Microsoft`), a collection, an abstract or generic type, and an `Entity<TId>`.
 
-**A complex type, not an owned entity**, and the distinction is the point. An owned entity is a row
+**A value object with several values is a complex type, not an owned entity**, and the distinction is the point. An owned entity is a row
 with hidden identity: tracked separately, nullable in ways a value has no business being, and quietly
 producing a join. A complex type is part of the row, which is what a value object *is*, and it is why `Money` can
 be held by two aggregates without either owning it.

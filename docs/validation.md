@@ -103,7 +103,9 @@ request wants the whole list rather than one problem per round trip.
 ## A rejected request
 
 In process, a failure reaches the caller as a `RaskValidationException` whose `Errors` are grouped by
-field, with the empty key holding rules about the request as a whole.
+field, with the empty key holding rules about the request as a whole. It also names its fields for a form
+(`IFieldFailures`): let it out of a `Form`'s submit handler and each message is shown under the field it is
+about, when the form's model is the request — the field names are the request's property paths.
 
 Over [remote dispatch](cqrs.md#remote-dispatch--a-client-and-a-server-raskcqrsclient--raskcqrsserver)
 it becomes **400** `application/problem+json`:
