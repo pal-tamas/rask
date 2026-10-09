@@ -246,11 +246,11 @@ public abstract partial class Component
         IServiceProvider? services,
         IRenderHandle? handle) where T : Component
     {
-        var key = (typeof(T), Live.ChildPositions++);
+        var key = NextChildSlot(typeof(T));
         Live.LastChildSlot = key;
         T instance;
-        // A type this parent identifies by Key is NOT identified by its ordinal among all the children
-        // (#685): recycling the instance that happens to sit at this ordinal would hand a brand-new key
+        // A type this parent identifies by Key is NOT identified by its ordinal among the children of the
+        // type (#685): recycling the instance that happens to sit at this ordinal would hand a brand-new key
         // whichever item used to be here, state and all. It gets the instance the next UNKEYED child of
         // the type held, which is right if no Key step follows and is given back if one does (#1215).
         if (Live.KeyedTypes is not null && Live.KeyedTypes.TryGetValue(typeof(T), out var siblings))
@@ -275,7 +275,7 @@ public abstract partial class Component
             // set by the `[...]` indexer AFTER the factory returns — and a childless element
             // (no indexer) never sets it. Reset it here so a reused instance can't inherit the
             // previous occupant's children. Without this, a structural move that shifts the
-            // positional cache onto a former-parent instance (e.g. an empty drop-zone div lands
+            // per-type order onto a former-parent instance (e.g. an empty drop-zone div lands
             // on an old card's slot) keeps that parent's subtree wired in, producing a cyclic
             // tree and a stack overflow when serialized. The indexer overwrites this for any
             // element that does declare children.
@@ -301,7 +301,7 @@ public abstract partial class Component
         IServiceProvider? services,
         IRenderHandle? handle)
     {
-        var key = (type, Live.ChildPositions++);
+        var key = NextChildSlot(type);
         Component instance;
         if (Live.PreviousChildren is not null && Live.PreviousChildren.TryGetValue(key, out var prev) &&
             prev.GetType() == type)
@@ -326,6 +326,17 @@ public abstract partial class Component
 
         (Live.Children ??= new Dictionary<(Type, int), Component>())[key] = instance;
         return instance;
+    }
+
+    // Where a child without a Key is filed, and found again on the next render: it is the n-th child OF ITS
+    // TYPE this component writes, wherever in the tree each one ends up. A child of another type coming or
+    // going ahead of it therefore leaves it alone; one of its own type moves it along — see ChildOrdinals.
+    // ChildPositions goes on counting them all, which is how the walk knows that an entry was built.
+    private (Type Type, int Ordinal) NextChildSlot(Type type)
+    {
+        var live = Live;
+        live.ChildPositions++;
+        return (type, ChildOrdinals.Next(ref live.ChildTypeCounts, type));
     }
 
     private T NewChild<T>(Func<IServiceProvider, T> factory, IServiceProvider? services) where T : Component
