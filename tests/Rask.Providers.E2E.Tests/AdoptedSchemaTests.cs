@@ -25,11 +25,11 @@ public sealed class Destination : Aggregate<int>
 
     public int? TenantId { get; private set; }
 
-    public string Name { get; private set; } = "";
+    public DestinationName Name { get; private set; } = new("");
 
-    public static Destination Named(string name) => new() { Name = name };
+    public static Destination Named(string name) => new() { Name = new DestinationName(name) };
 
-    public void Rename(string name) => Name = name;
+    public void Rename(string name) => Name = new DestinationName(name);
 
     public static void Configure(EntityTypeBuilder<Destination> builder)
     {
@@ -38,6 +38,9 @@ public sealed class Destination : Aggregate<int>
         builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique(NameTaken).HasFilter("[TenantId] IS NOT NULL");
     }
 }
+
+/// <summary>The name as the domain holds it: one value, stored as the <c>Name</c> column it always was.</summary>
+public sealed record DestinationName(string Value);
 
 /// <summary>The context an adopting app adds beside its own: Rask's model over the tables that are there.</summary>
 public sealed class AdoptedDomainContext(DbContextOptions<AdoptedDomainContext> options) : RaskDbContext(options);
