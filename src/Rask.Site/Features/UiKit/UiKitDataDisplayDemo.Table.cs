@@ -44,7 +44,7 @@ public sealed partial class UiKitDataDisplayDemo
         Ui.Table
             .Key("sorted")
             .Id("ui-orders")
-            .Paginate(Ui.Pagination.Pages((OrderBook.Length + PageSize - 1) / PageSize).Current(_page).OnPage(page => { _page = page; }).Class("mt-3 self-end"))[
+            .Paginate(Ui.Pagination.Paginator(new UiPaginator { Page = _page, PerPage = PageSize, Total = OrderBook.Length }).OnPage(page => { _page = page; }))[
             Ui.TableColumns[
                 Ui.TableColumn["Customer"],
                 SortableColumn("date", "Date"),

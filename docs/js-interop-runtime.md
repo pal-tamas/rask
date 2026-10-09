@@ -318,7 +318,7 @@ of the runtime itself.
 ### How the hooks load
 
 **A page that carries none of these attributes does not download them.** The hooks in the tables below are a
-script of their own, `rask-hooks.js` (39 kB, 13 kB gzipped), beside the runtime every page loads (`rask.js` on
+script of their own, `rask-hooks.js` (40 kB, 13 kB gzipped), beside the runtime every page loads (`rask.js` on
 the Server host, `rask.wasm.js` in a WebAssembly app). The runtime keeps only the list of attributes that ask
 for a hook, and fetches the script the first time the page carries one — at most once per document:
 
@@ -336,8 +336,8 @@ your own origin, with the runtime's nonce when its `<script>` has one. Under a C
 hooks need what the runtime already needs — `script-src 'self'`, or the nonce — and no inline script.
 
 Any element counts, whoever wrote it: your own markup, a `Raw` fragment, a node a script of yours inserted.
-Besides the `data-rask-*` names, four of the platform's own ask for a hook, because a hook improves them
-unasked: `popover`, `commandfor`, `aria-activedescendant` and `role="switch"` on a checkbox.
+Besides the `data-rask-*` names, five of the platform's own ask for a hook, because a hook improves them
+unasked: `popover`, `commandfor`, `aria-activedescendant`, `role="switch"` on a checkbox and `role="tablist"`.
 
 ### Pointer-opened popovers
 
@@ -391,6 +391,7 @@ unasked: `popover`, `commandfor`, `aria-activedescendant` and `role="switch"` on
 | `data-rask-keys="ArrowDown ArrowUp Enter Escape Tab"` | an element with `OnKeyDown` or `OnKeyUp` | The handler hears only the listed keys (`KeyboardEvent.key`, a space between); no other is sent. A combobox acts on five keys, and without the list every letter typed into it is a round trip and a render of its own ahead of the `input` that follows. Not a hook: the runtime's own key listener reads it. |
 | `data-rask-listbox-button` | a `button[role=combobox]` | The list `Enter ArrowUp ArrowDown`, while `aria-expanded` is not `true`: Enter does not press it and the arrows do not scroll the page. |
 | `data-rask-roving` | a `[role=radiogroup]` of `[role=radio]` elements that are not native radios | ArrowDown / ArrowRight focus the next radio and ArrowUp / ArrowLeft the one before, wrapping at both ends; the radio focused is clicked, so your `OnClick` selects it; `tabindex` moves with it (`0` on the focused one, `-1` on the rest). Space clicks the focused one. Disabled radios are skipped. |
+| `role="tablist"` | an element holding `button[role=tab]`s | ArrowRight / ArrowDown focus the next tab and ArrowLeft / ArrowUp the one before, past a `disabled` tab and around the ends; the tab arrived at is clicked, so your `OnClick` selects it, and the page does not scroll. From a button in the row that is not a tab the arrows start at the `aria-selected="true"` one. Home and End are left to the page. Only buttons take part. |
 | `data-rask-focus-follows` + `data-rask-focus-target` | a container, and the one element in it that should hold focus | When a render moves the target mark — or replaces the element that carried it — while focus is ON that element, the new target is focused. Focus anywhere else is never taken. A render that leaves no target in that container lets focus fall where the browser drops it — another container's target is never taken, so two calendars on a page keep to themselves. |
 | `aria-activedescendant` | a `[role=combobox]` or `[role=listbox]` | When it changes, the option it names is scrolled into view inside its nearest scrolling ancestor, by the least movement; the page never scrolls. (A `[role=tree]` has its own rule, which also handles virtualized rows.) |
 | `data-rask-press-keeps-focus` | any element | A mouse press on it or inside it does not move focus. |
@@ -430,6 +431,12 @@ unasked: `popover`, `commandfor`, `aria-activedescendant` and `role="switch"` on
 | `data-advance="page"`, `data-wrap="rewind"`, `data-scroll="instant"` | the root | Move by the slides in view; go back to the first from the end; do not animate. |
 | `data-autoplay="<ms>"` | the root | Advances on that interval and rewinds at the end; stops under the pointer and never starts under `prefers-reduced-motion`. |
 | `data-rask-carousel-controls` + `data-name` | an element outside the root | Its wrappers and indicators drive the root with the same `data-name`. |
+
+### Scrolling
+
+| Attribute | On | What the runtime does |
+| --- | --- | --- |
+| `data-rask-scroll-to="<selector>"` | an element holding buttons or links — a pager | A press on a `<button>` or an `<a>` inside it brings the first element the selector matches into view (`"body"` for the top of the document, `"#orders"` for a table). The press is not stopped: the handler or the link runs after it. A press elsewhere in the element, and a value that is no selector, scroll nothing. |
 
 **A hook that writes an attribute holds it against the morph** (`rask-owned.ts`): `data-open`, `data-copied`, a tooltip's
 `aria-expanded` and a carousel's `disabled` are not what the page rendered, and a re-render neither strips them

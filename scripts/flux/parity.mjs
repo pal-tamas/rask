@@ -137,6 +137,8 @@ const NATIVE = {
   // its engine does what Flux's elements script. `ui-menu` is the stand-in of the one example that puts a
   // dropdown menu in a toolbar.
   'ui-editor': 'div', 'ui-editor-content': 'div', 'ui-toolbar': 'div', 'ui-menu': 'div',
+  // A <label> opens the file input inside it when clicked, where <ui-file-upload> does it with script.
+  'ui-file-upload': 'label',
   // The calendar: its month steps and its today shortcut are real buttons.
   'ui-calendar': 'div', 'ui-calendar-months': 'div', 'ui-calendar-month': 'div', 'ui-calendar-year': 'div',
   'ui-calendar-previous': 'button', 'ui-calendar-next': 'button', 'ui-calendar-today': 'button',
@@ -146,6 +148,10 @@ const NATIVE = {
   'ui-date-picker-select': 'div',
   // The time picker: the list of times is a popover the browser opens.
   'ui-time-picker': 'div', 'ui-time-picker-trigger': 'div', 'ui-selected-time': 'div', 'ui-time-picker-options': 'div',
+  // The slider and the one-time code: a box around native inputs.
+  'ui-slider': 'div', 'ui-otp': 'div',
+  // The tabs: a role="tablist" of buttons, with the runtime's arrow keys (rask-tabs.ts).
+  'ui-tab-group': 'div', 'ui-tabs': 'div', 'ui-tabs-scroll-area': 'div',
 };
 // Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
 // holds the native <input> that is: one child Flux has no node for, and nothing drawn.
@@ -153,6 +159,11 @@ const HOLDS_INPUT = new Set(['ui-checkbox', 'ui-radio', 'ui-switch']);
 // …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
 // opens the file input inside it when clicked, where Flux's <div> calls input.click().
 const NATIVE_PART = { 'input-file': 'label' };
+// …and a part whose native control IS the component on the Rask side: Flux hides an <input type="range"> in
+// each slider thumb for the keyboard and moves the thumb by script; Rask.Ui lays that input, invisible,
+// over the track the thumb travels, and the browser drags it. Tag and place in the tree are compared; its
+// box and look are the platform's.
+const NATIVE_CONTROL = { 'slider-thumb': 'input' };
 // The <button> Flux scripts to open a <ui-disclosure> is a <details>' own <summary>.
 // A <ui-radio> that is a choice among buttons, not a form's radio (a date picker's preset), is a real
 // <button role="radio">, which the runtime's roving group walks.
@@ -171,6 +182,11 @@ const EXTRA = ['data-ui-chart-hover'];
 // floats beside, like every other node's.
 const PLACEMENT = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft']);
 const placed = (a, b) => 'popover' in b.attrs && a.style.position === 'absolute' && b.style.position === 'fixed';
+// A group whose parts are the browser's while they are typed into (docs/js-interop-runtime.md, rask-bound.ts)
+// holds ONE <input type="hidden"> that the page binds. Flux's custom element carries its value itself and
+// has no such node, so that field is no child here.
+const BOUND = ['data-rask-otp'];
+const boundField = (parent, c) => c.tag === 'input' && c.attrs.type === 'hidden' && BOUND.some(name => name in parent.attrs);
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
 const snapshot = JSON.parse(await readFile(join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json'), 'utf8'));
 const OWN = new Set([slug, ...(snapshot.pages.find(p => p.slug === slug)?.parts ?? [])
@@ -264,6 +280,7 @@ function mark(node, prefix) {
 //   "width" / "height"   that dimension is random on Flux's page (`rand()` in the docs), here and below it.
 function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') {
   const skip = b.attrs['data-parity-skip'];
+  if (isNativeControl(theirs, a) && a.tag === b.tag) return;
   const standIn = skip === '' || foreign(a);
   const own = !standIn && skip !== 'self';
   if (skip === 'width' || skip === 'height') free = skip;
@@ -297,7 +314,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
   const stray = (c, n) => c.tag === 'template' || (c.tag === 'path' && !['svg', 'g', 'defs', 'clippath', 'mask', 'symbol'].includes(n.tag));
   const kids = (example, n) => example.nodes.filter(c => c.parent === n.id && !stray(c, n) && !EXTRA.some(name => name in c.attrs));
   const ca = kids(theirs, a);
-  const cb = kids(mine, b).filter(c => !(HOLDS_INPUT.has(a.tag) && c.tag === 'input'));
+  const cb = kids(mine, b).filter(c => !(HOLDS_INPUT.has(a.tag) && c.tag === 'input') && !boundField(b, c));
   if (ca.length !== cb.length) {
     diffs.push(`${where}: children <${ca.map(c => c.tag).join(' ')}> vs <${cb.map(c => c.tag).join(' ')}>`);
     return;
@@ -333,6 +350,11 @@ function compareLook(theirs, a, mine, b, where, diffs) {
       if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
     }
   }
+}
+
+function isNativeControl(example, node) {
+  const parent = example.nodes.find(n => n.id === node.parent);
+  return !!parent && NATIVE_CONTROL[mark(parent, 'data-flux-')] === node.tag;
 }
 
 function measured(example) {

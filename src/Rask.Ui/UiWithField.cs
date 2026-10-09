@@ -31,14 +31,15 @@ internal sealed class UiWithField
     private readonly string? _description;
     private readonly string? _descriptionTrailing;
     private readonly string? _badge;
+    private readonly string? _error;
     private readonly bool _showValidation;
 
     private UiWithField(IUiFieldControl control, Shorthand props)
     {
         (ControlId, _bound) = (control.ControlId, control.Bound);
         (_label, _description, _descriptionTrailing, _badge) = (props.Label, props.Description, props.DescriptionTrailing, props.Badge);
-        _showValidation = props.ShowValidation;
-        Invalid = props.Invalid || HasMessages(_bound);
+        (_error, _showValidation) = (props.Error, props.ShowValidation);
+        Invalid = props.Invalid || _error is not null || HasMessages(_bound);
         Aria = BuildAria();
     }
 
@@ -48,13 +49,16 @@ internal sealed class UiWithField
     /// <summary>The label's id, for a control a <c>&lt;label for&gt;</c> cannot name: <c>aria-labelledby</c>.</summary>
     internal string LabelId => UiFieldId.Label(ControlId);
 
+    /// <summary><see cref="LabelId" /> while there is a label to point at — the control's own, or its field's.</summary>
+    internal string? LabelledBy => _label is not null || ComposedAround() is not null ? LabelId : null;
+
     /// <summary>Whether the control was called invalid, or its bound member holds a message.</summary>
     internal bool Invalid { get; }
 
     /// <summary><c>aria-describedby</c> and <c>aria-invalid</c> for the control. Empty when there is neither.</summary>
     internal IReadOnlyDictionary<string, string?> Aria { get; }
 
-    private bool Wraps => _label is not null || _description is not null || _descriptionTrailing is not null;
+    private bool Wraps => _label is not null || _description is not null || _descriptionTrailing is not null || _error is not null;
 
     private string TrailingId => UiFieldId.Description(ControlId) + "-trailing";
 
@@ -66,6 +70,7 @@ internal sealed class UiWithField
             control.Description,
             control.DescriptionTrailing,
             control.Badge,
+            null,
             control.Invalid == true,
             control.ShowValidation != false));
 
@@ -76,14 +81,16 @@ internal sealed class UiWithField
     /// <param name="descriptionTrailing">Flux's <c>description:trailing</c>, under the control.</param>
     /// <param name="badge">Flux's <c>badge</c>, beside the label.</param>
     /// <param name="invalid">Flux's <c>invalid</c>, for a control with no binding to ask.</param>
+    /// <param name="error">Flux's <c>error</c>: a message the call site states, for a control bound to nothing.</param>
     internal static UiWithField For(
         IUiFieldControl control,
         string? label = null,
         string? description = null,
         string? descriptionTrailing = null,
         string? badge = null,
-        bool invalid = false) =>
-        new(control, new Shorthand(label, description, descriptionTrailing, badge, invalid, true));
+        bool invalid = false,
+        string? error = null) =>
+        new(control, new Shorthand(label, description, descriptionTrailing, badge, error, invalid, true));
 
     /// <summary>The control inside its field, or alone when it was given nothing to draw one with.</summary>
     /// <param name="control">The control's own markup, carrying <see cref="ControlId" />.</param>
@@ -99,7 +106,7 @@ internal sealed class UiWithField
         var label = _label is null ? null : Ui.Label.Id(LabelId).For(ControlId).Badge(_badge)[_label];
         var description = _description is null ? null : Ui.Description.Id(UiFieldId.Description(ControlId))[_description];
         var trailing = _descriptionTrailing is null ? null : Ui.Description.Id(TrailingId)[_descriptionTrailing];
-        var error = _showValidation ? Ui.Error.Id(UiFieldId.Error(ControlId)).For(_bound) : null;
+        var error = _showValidation ? Ui.Error.Id(UiFieldId.Error(ControlId)).For(_bound).Message(_error) : null;
         var field = Ui.Field.Variant(variant);
 
         return controlFirst
@@ -149,6 +156,7 @@ internal sealed class UiWithField
         string? Description,
         string? DescriptionTrailing,
         string? Badge,
+        string? Error,
         bool Invalid,
         bool ShowValidation);
 }

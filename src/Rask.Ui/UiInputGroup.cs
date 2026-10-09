@@ -20,8 +20,11 @@ namespace Rask;
 public sealed partial class UiInputGroup : Component, IUiFieldControl
 {
     // A target is the bordered element: the <input> inside its wrapper, or a direct child that is one.
-    private const string Look =
-        "flex w-full [&>[data-ui-input]]:grow "
+    private const string Look = "flex w-full " + Fuse;
+
+    /// <summary>Joins the bordered elements of a row into one box: inner corners square, one line between two.</summary>
+    internal const string Fuse =
+        "[&>[data-ui-input]]:grow "
         + "[&>[data-ui-input]:not(:first-child)_[data-ui-group-target]]:rounded-s-none "
         + "[&>[data-ui-input]:not(:first-child)_[data-ui-group-target]]:border-s-0 "
         + "[&>[data-ui-input]:not(:last-child)_[data-ui-group-target]]:rounded-e-none "

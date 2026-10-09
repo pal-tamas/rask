@@ -57,58 +57,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string FileInputTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "file-input-neutral",
-        Ui.Tone.Primary => "file-input-primary",
-        Ui.Tone.Secondary => "file-input-secondary",
-        Ui.Tone.Accent => "file-input-accent",
-        Ui.Tone.Info => "file-input-info",
-        Ui.Tone.Success => "file-input-success",
-        Ui.Tone.Warning => "file-input-warning",
-        Ui.Tone.Error => "file-input-error",
-        _ => "",
-    };
-
-    internal static string FileInputVariant(Ui.Variant value) => value switch
-    {
-        Ui.Variant.Ghost => "file-input-ghost",
-        _ => "",
-    };
-
-    internal static string FileInputSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "file-input-xs",
-        Ui.Size.Sm => "file-input-sm",
-        Ui.Size.Md => "file-input-md",
-        Ui.Size.Lg => "file-input-lg",
-        Ui.Size.Xl => "file-input-xl",
-        _ => "",
-    };
-
-    internal static string RangeTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "range-neutral",
-        Ui.Tone.Primary => "range-primary",
-        Ui.Tone.Secondary => "range-secondary",
-        Ui.Tone.Accent => "range-accent",
-        Ui.Tone.Info => "range-info",
-        Ui.Tone.Success => "range-success",
-        Ui.Tone.Warning => "range-warning",
-        Ui.Tone.Error => "range-error",
-        _ => "",
-    };
-
-    internal static string RangeSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "range-xs",
-        Ui.Size.Sm => "range-sm",
-        Ui.Size.Md => "range-md",
-        Ui.Size.Lg => "range-lg",
-        Ui.Size.Xl => "range-xl",
-        _ => "",
-    };
-
     internal static string LoadingSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "loading-xs",
@@ -152,16 +100,6 @@ internal static class UiClassNames
         Ui.Tone.Success => "step-success",
         Ui.Tone.Warning => "step-warning",
         Ui.Tone.Error => "step-error",
-        _ => "",
-    };
-
-    internal static string TabsSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "tabs-xs",
-        Ui.Size.Sm => "tabs-sm",
-        Ui.Size.Md => "tabs-md",
-        Ui.Size.Lg => "tabs-lg",
-        Ui.Size.Xl => "tabs-xl",
         _ => "",
     };
 
@@ -272,26 +210,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string TabsStyle(Ui.TabStyle value) => value switch
-    {
-        Ui.TabStyle.Box => "tabs-box",
-        Ui.TabStyle.Border => "tabs-border",
-        Ui.TabStyle.Lift => "tabs-lift",
-        _ => "",
-    };
-
-    /// <summary>Where a row of tabs sits against its panel.</summary>
-    /// <remarks>
-    ///     A row of tabs sits above or below its panel and nowhere else, so the horizontal members of
-    ///     <see cref="Ui.Position" /> return nothing rather than a class daisyUI never defined.
-    /// </remarks>
-    internal static string TabsPosition(Ui.Position value) => value switch
-    {
-        Ui.Position.Top => "tabs-top",
-        Ui.Position.Bottom => "tabs-bottom",
-        _ => "",
-    };
-
     internal static string MaskShape(Ui.MaskShape value) => value switch
     {
         Ui.MaskShape.Squircle => "mask-squircle",
@@ -310,29 +228,6 @@ internal static class UiClassNames
         Ui.MaskShape.Half1 => "mask-half-1",
         Ui.MaskShape.Half2 => "mask-half-2",
         _ => "mask-circle",
-    };
-
-    internal static string OtpTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "otp-neutral",
-        Ui.Tone.Primary => "otp-primary",
-        Ui.Tone.Secondary => "otp-secondary",
-        Ui.Tone.Accent => "otp-accent",
-        Ui.Tone.Info => "otp-info",
-        Ui.Tone.Success => "otp-success",
-        Ui.Tone.Warning => "otp-warning",
-        Ui.Tone.Error => "otp-error",
-        _ => "",
-    };
-
-    internal static string OtpSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "otp-xs",
-        Ui.Size.Sm => "otp-sm",
-        Ui.Size.Md => "otp-md",
-        Ui.Size.Lg => "otp-lg",
-        Ui.Size.Xl => "otp-xl",
-        _ => "",
     };
 
     internal static string LoadingShape(Ui.LoadingShape value) => value switch

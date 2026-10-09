@@ -83,11 +83,11 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain(" checked", Switch(alerts: false));
 
     [Fact]
-    public void A_bound_range_draws_the_model()
+    public void A_bound_slider_draws_the_model()
     {
         var model = new Profile { Volume = 40 };
 
-        Assert.Contains("value=\"40\"", Ui.Range.Bind(() => model.Volume).Label("Volume").ToHtml());
+        Assert.Contains("value=\"40\"", Ui.Slider.Bind(() => model.Volume).ToHtml());
     }
 
     [Fact]
@@ -118,21 +118,12 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     {
         var model = new Profile { Code = "1234" };
 
-        Assert.Contains("value=\"1234\"",
-            Ui.Otp.Bind(() => model.Code).Length(6).Label("Verification code").ToHtml());
-    }
+        var html = Ui.Otp.Bind(() => model.Code).Length(6).Label("Verification code").ToHtml();
 
-    [Fact]
-    public void A_bound_file_input_still_renders_no_value()
-    {
-        // The one control whose bound mode is write-only: a browser refuses to have a file input's
-        // value set, so binding fills the model from the reader's choice and never the other way. A
-        // `value` attribute here would be markup the browser drops.
-        var model = new Profile { Avatar = "portrait.png" };
-        var html = Ui.FileInput.Bind(() => model.Avatar).Label("Avatar").ToHtml();
-
-        Assert.DoesNotContain("value=", html);
-        Assert.DoesNotContain("portrait.png", html);
+        // The code is the one hidden field's; the runtime shares it out over the cells, which carry no value.
+        Assert.Contains("type=\"hidden\"", html, StringComparison.Ordinal);
+        Assert.Equal(1, Occurrences(html, "value=\"1234\""));
+        Assert.Equal(1, Occurrences(html, " value="));
     }
 
     [Fact]
@@ -292,7 +283,6 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
 
         public string Code { get; set; } = "";
 
-        public string Avatar { get; set; } = "";
 
         public string? Tag { get; set; }
 

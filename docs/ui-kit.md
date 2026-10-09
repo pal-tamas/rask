@@ -333,10 +333,10 @@ A selected toggle is `.AriaPressed(AriaPressed.True)` on the variant that reads 
 ## The three axes
 
 On the components daisyUI still draws, colour, fill and size are independent and compose, so a small
-error-toned range needs no member of its own:
+error-toned status dot needs no member of its own:
 
 ```csharp
-Ui.Range.Bind(() => settings.Volume).Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
+Ui.StatusDot.Label("Offline").Tone(Ui.Tone.Error).Size(Ui.Size.Sm)
 ```
 
 | Enum | Members |
@@ -353,7 +353,7 @@ Not every component honours every member — daisyUI defines no `input-outline` 
 the markup looking as though it styled something.
 
 Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.ModalPosition`, `Ui.MaskShape`,
-`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`, `Ui.TabStyle`.
+`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`.
 
 ### One vocabulary for placing things
 
@@ -369,7 +369,6 @@ step:
 ```csharp
 Ui.Dropdown.Top.End[ trigger, Ui.Menu[ … ] ]
 Ui.Tooltip.Content("Copy").Right[ … ]   // Flux's own Ui.TooltipPosition / Ui.TooltipAlign — see Tooltips
-Ui.Tabs.Position(Ui.Position.Bottom)[ … ]
 Ui.Modal.Name("details").Flyout().Left[ … ]   // a flyout is placed against the viewport: Ui.ModalPosition
 ```
 
@@ -540,13 +539,69 @@ The kit pads a list's rows with a stylesheet rule on its `ui-list` marker, in th
 utilities. A `px-0` on a row therefore gets flush content. A `[&>li]:px-4` variant would have
 out-specified it.
 
+## Tabs
+
+`Ui.TabGroup`, `Ui.Tabs`, `Ui.Tab` and `Ui.TabPanel` are [Flux's tabs](https://fluxui.dev/components/tabs):
+the same four parts, the same props, drawn and behaving the same.
+
+```csharp
+Ui.TabGroup[
+    Ui.Tabs.Bind(() => Tab)[                       // or .Value(_tab).OnChange(t => _tab = t), or neither
+        Ui.Tab.Name("profile")["Profile"],
+        Ui.Tab.Name("account").Icon(Ui.IconName.Cog6Tooth)["Account"],
+        Ui.Tab.Name("billing")["Billing"]
+    ],
+    Ui.TabPanel.Name("profile")[ /* … */ ],
+    Ui.TabPanel.Name("account")[ /* … */ ],
+    Ui.TabPanel.Name("billing")[ /* … */ ]
+]
+```
+
+**The selected tab is the row's value** — the tab's `Name` — where Flux has `wire:model`. `Bind` two-way binds
+it to a property, `Value` with `OnChange` leaves it with the page, and with neither the row keeps track
+itself, starting on the tab that says `Selected()` or else the first one that is not disabled. A tab with no
+`Name` is known by its place in the row: `"0"`, `"1"`…
+
+`Bind` writes the property and redraws the row and its panels; like every bound control it does not redraw
+the page around them. A page that shows the selected name somewhere else takes it from `OnChange`, which
+runs in every mode.
+
+| Flux | Rask |
+|---|---|
+| `<flux:tabs variant="segmented" size="sm">` | `Ui.Tabs.Segmented.Size(Ui.TabsSize.Sm)` |
+| `<flux:tabs variant="pills">` | `Ui.Tabs.Pills` |
+| `<flux:tabs scrollable scrollable:fade scrollable:scrollbar="hide">` | `Ui.Tabs.Scrollable().ScrollableFade().ScrollableScrollbar(Ui.TabsScrollbar.Hide)` |
+| `<flux:tabs class="px-4">` | `Ui.Tabs.Class("px-4")` |
+| `<flux:tab icon="user" icon:trailing="chevron-down" icon:variant="solid">` | `Ui.Tab.Icon(Ui.IconName.User).IconTrailing(Ui.IconName.ChevronDown).IconVariant(Ui.IconVariant.Solid)` |
+| `<flux:tab selected>` · `disabled` · `:accent="false"` | `.Selected()` · `.Disabled()` · `.Accent(false)` |
+| `<flux:tab icon="plus" wire:click="addTab" action>` | `Ui.Tab.Icon(Ui.IconName.Plus).Action().OnClick(AddTab)` |
+| `<flux:tab.group findable>` | `Ui.TabGroup.Findable()` |
+
+A row needs no group: a segmented `List / Board / Timeline` on its own is a choice the page reads from
+`OnChange`. Inside a group, write the row before its panels — a panel learns which tab is selected from the
+row above it. Every panel is rendered and the ones not shown are `hidden`; in a `Findable()` group they are
+`hidden="until-found"` instead, so the browser's find-in-page reaches them and a match selects its tab. A
+panel has Flux's top padding (`pt-8`); another is said as Flux's own examples say it, `Class("pt-6!")`.
+
+A count beside a label is a child, like any other content: `Ui.Tab.Name("open")["Open", Ui.Badge["12"]]`.
+
+**The keyboard** is the runtime's, for every `role="tablist"` ([accessibility.md](accessibility.md#tabs)):
+ArrowRight/ArrowDown and ArrowLeft/ArrowUp move to the next and the previous tab, past a disabled one and
+around the ends, and **select as they go**. Only the selected tab is a tab stop, so Tab leaves the row for the
+panel. An `Action()` tab is an ordinary button in the row: a tab stop of its own, which the arrows pass over.
+Home and End are not handled, as Flux does not handle them.
+
+**A tab is not a link.** Flux's tab takes no `href`, and neither does this one: for full-page navigation
+Flux says to use the navbar. A row whose choice is part of the address reads it from `OnChange` and goes there —
+`Ui.Tabs.Value(view).OnChange(v => Go.To(Routes.LogsPage(View: v)))`.
+
 ## Tables
 
 `Ui.Table` is [Flux's table](https://fluxui.dev/components/table), part for part: `Ui.TableColumns` holds a
 `Ui.TableColumn` per heading, and `Ui.TableRows` holds a `Ui.TableRow` of `Ui.TableCell`s per record.
 
 ```csharp
-Ui.Table.Paginate(Ui.Pagination.Pages(pages).Current(page).OnPage(Go))[
+Ui.Table.Paginate(Ui.Pagination.Paginator(new UiPaginator { Page = page, PerPage = 10, Total = total }).OnPage(Go))[
     Ui.TableColumns[
         Ui.TableColumn["Customer"],
         Ui.TableColumn.Sortable().Sorted(sortBy == "date").Direction(direction).OnSort(() => Sort("date"))["Date"],
@@ -815,6 +870,151 @@ what the element does.) `subscript`, `superscript` and `highlight` are held to F
 Not measured, because no example on Flux's page shows these buttons: the icons of `subscript`,
 `superscript`, `highlight` and `code` (drawn from Lucide, as Flux draws its other non-Heroicon toolbar
 icons), their tooltips' shortcut hints, and the exact red of an `Invalid` editor.
+
+## Pagination
+
+`Ui.Pagination` is Flux UI's `flux:pagination`. Flux hands it a Laravel paginator; Rask hands it a
+`UiPaginator`, which is what a paginator knows: the page being shown (counted from one), how many
+results a page holds, and how many there are in all.
+
+```csharp
+Ui.Pagination
+    .Paginator(new UiPaginator { Page = _page, PerPage = 15, Total = orders.Total })
+    .OnPage(page => _page = page)
+```
+
+It draws a summary — "Showing 16 to 30 of 240 results" — and the pager: Previous, Next and the pages
+between them. Below fourteen pages every page is numbered. From fourteen it numbers the first two, the
+last two and the current page with three either side, and writes `...` where pages are left out; within
+seven pages of either end the window holds ten pages from that end instead, so the pager does not shrink
+as you approach it. The numbers need room: the pager measures its **own** width (a container query, not
+the viewport), and under 640px draws Previous and Next alone, as 32px targets on a phone.
+
+**The simple paginator.** Leave `Total` out for a list too large to count. There is no summary and no
+numbers, only Previous and Next, and `HasMore` says whether Next leads anywhere:
+
+```csharp
+Ui.Pagination
+    .Paginator(new UiPaginator { Page = _page, PerPage = 15, HasMore = rows.Count > 15 })
+    .OnPage(page => _page = page)
+```
+
+**Buttons or links.** With `OnPage` each page is a `<button>` that reports the page chosen. With `Href`
+each is a link to where that page lives — shareable, bookmarkable, working before the runtime boots —
+and `OnPage` is not called:
+
+```csharp
+Ui.Pagination
+    .Paginator(new UiPaginator { Page = Page ?? 1, PerPage = 25, Total = total })
+    .Href(page => Routes.LogsPage(Page: page))
+```
+
+That is how the page goes in the **query string**. A generated route (`Routes.LogsPage(…)`, or one `with
+{ QueryString = $"?page={page}" }`) is an in-app link and takes the app's path base, so it is right
+wherever the app is mounted. A string — `.Href(page => $"/logs?page={page}")` — is an ordinary `<a>`
+written exactly as given, with no path base added: the rule every linking component of the kit follows.
+
+**Paging on the server.** The pager pages nothing itself: ask the store for one page and for the count,
+and hand it the three numbers.
+
+```csharp
+var total = await Orders.Count();
+var rows = await Orders.OrderBy(o => o.Date).Skip((page - 1) * PerPage).Take(PerPage).ToList();
+
+Ui.Pagination.Paginator(new UiPaginator { Page = page, PerPage = PerPage, Total = total }).OnPage(Load)
+```
+
+**Under a table.** `Ui.Table.Paginate(…)` takes the pager and draws it where Flux does — under the rows,
+outside the scroll area, full width with its rule above — and it keeps its height when the box scrolls:
+
+```csharp
+Ui.Table.Paginate(Ui.Pagination.Paginator(orders).ScrollTo("#orders").OnPage(Load)).Id("orders")[ … ]
+```
+
+**Rows per page.** Flux's pagination has no page-size prop, so the kit has none: the size is the
+paginator's `PerPage`, and the choice is a `Ui.Select` of your own beside the pager. Go back to the first
+page when it changes — the page you were on may not exist any more.
+
+```csharp
+Div.Class("flex items-center justify-between gap-4")[
+    Ui.Select.Value(_perPage).OnChange(size => { _perPage = size; _page = 1; }).Sm.Class("w-24")[
+        Ui.SelectOption.Value(10)["10"],
+        Ui.SelectOption.Value(25)["25"],
+        Ui.SelectOption.Value(50)["50"]
+    ],
+    Ui.Pagination
+        .Paginator(new UiPaginator { Page = _page, PerPage = _perPage, Total = total })
+        .OnPage(page => _page = page)
+        .Class("flex-1")
+]
+```
+
+Either way the current page is not a control: it says `aria-current="page"`. On the first page Previous
+is not one either, and on the last page Next — each keeps its place and says `aria-disabled="true"`.
+
+The names are Flux's, exactly. A counted pager labels its arrows `&laquo; Previous` and `Next &raquo;` —
+the entity as text, which is what Flux's own page carries. The simple paginator's arrows carry no label,
+and its spent arrow says nothing at all; a test finds them by position.
+
+**`ScrollTo`** brings something back into view when a page is chosen, for a pager at the foot of a long
+table: `.ScrollTo("body")` for the top of the document, `.ScrollTo("#orders")` for the table. It is a
+CSS selector, written as `data-rask-scroll-to` for the runtime, which scrolls on a press of any button
+or link inside the pager.
+
+## Timeline
+
+`Ui.Timeline` is Flux UI's `flux:timeline`: events or steps in order, with a line drawn between their
+indicators. Each `Ui.TimelineItem` holds a `Ui.TimelineIndicator` — an icon, a number, a word — and a
+`Ui.TimelineContent` beside it.
+
+```csharp
+Ui.Timeline[
+    Ui.TimelineItem[
+        Ui.TimelineIndicator[Ui.Icon.Name(Ui.IconName.Eye).Micro],
+        Ui.TimelineContent["curtisss requested a review · 4 days ago"]
+    ],
+    Ui.TimelineItem[
+        Ui.TimelineIndicator.Color(Ui.Color.Green)[Ui.Icon.Name(Ui.IconName.Check).Micro],
+        Ui.TimelineContent["james_rob approved these changes"]
+    ]
+]
+```
+
+| | |
+| --- | --- |
+| `Ui.Timeline.Horizontal()` | Across the page: indicators in a row, the content under each. |
+| `Ui.Timeline.Lg` | 48px indicators on a 2px line with wider gaps, for numbered steps. `Ui.TimelineItem.Lg` enlarges one indicator. |
+| `.Start` `.Baseline` `.Center` `.End` | Where the content sits beside its indicator (`Ui.TimelineAlign`; centre by default). On the timeline for every item, on an item for itself. |
+| `Ui.TimelineItem.Complete` `.Current` `.Incomplete` | Progress (`Ui.TimelineStatus`): a filled indicator and a dark line on to the next item; a dark ring; a faint ring with the content dimmed. `Ui.TimelineIndicator.Status(…)` overrides the item's for the indicator alone. |
+| `Ui.TimelineIndicator.Color(Ui.Color.Red)` | A coloured circle, in any of the seventeen hues. A status is drawn instead of a colour. |
+| `Ui.TimelineIndicator.Bare` | No circle and no size: a larger icon standing on its own. |
+
+**A block instead of an indicator.** `Ui.TimelineBlock` makes an item of a card or a callout, spanning
+the timeline's width with the line running into it and out again. Inside one, `Ui.TimelineSubgrid` puts
+its first child back in the indicators' column and its second in the content's — a comment thread whose
+avatars line up with the events around it:
+
+```csharp
+Ui.TimelineItem[
+    Ui.TimelineBlock.Class("rounded-xl border overflow-hidden")[
+        Ui.TimelineSubgrid.Class("p-3")[avatar, comment],
+        Ui.TimelineSubgrid.Class("p-3")[avatar, replyBox]
+    ]
+]
+```
+
+**Baseline alignment** lines the content's first line up with the indicator's text. An indicator
+holding an icon has no text, so every indicator carries a hidden, empty first line
+(`data-ui-timeline-baseline`) to stand in for it. Give that line the content's font size when it is not
+the default: `Ui.TimelineItem.Baseline.Class("[&_[data-ui-timeline-baseline]]:text-2xl")`.
+
+**Spacing** is two CSS variables on the timeline: `--ui-timeline-item-gap` between items and
+`--ui-timeline-content-gap` between an indicator and its content — Flux's `--flux-timeline-item-gap` and
+`--flux-timeline-content-gap`:
+
+```csharp
+Ui.Timeline.Class("[--ui-timeline-item-gap:3rem] [--ui-timeline-content-gap:1rem]")[ … ]
+```
 
 ## Buttons and links that go somewhere
 
@@ -1092,15 +1292,15 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` `Ui.Swap` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
-| **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
+| **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Range` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
 | **Chrome** | `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
-| **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
+| **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `UiPaginator`, `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
 
 ## Who owns the state
 
@@ -1152,6 +1352,33 @@ dismissal raises `cancel` before `close`, in every browser, and all four combina
 work — `Escapable(false)` alone still closes on a click outside. While a modal is open the page behind it
 does not scroll, and keeps its scrollbar's gutter so it does not shift sideways.
 
+**How wide it is.** A modal with no width of its own is as wide as what it holds, between Flux's two
+defaults — at least 20rem, at most 36rem (a side flyout: at least 25rem from `md`). A width handed to `Class`
+replaces them: `md:w-96` for a form, and for a confirmation `min-w-[22rem]`, which is what Flux's own example
+writes — a short question over two buttons is a narrow box without it.
+
+```csharp
+Ui.Modal.Name("delete-project").Class("min-w-[22rem]")[
+    Div.Class("space-y-6")[
+        Div[
+            Ui.Heading.Lg["Delete project?"],                                   // short: it shares its line with the close button
+            Ui.Text.Class("mt-2")["This action cannot be reversed."]            // the sentence goes under it
+        ],
+        Div.Class("flex gap-2")[
+            Ui.Spacer,
+            Ui.ModalClose[Ui.Button.Ghost["Cancel"]],
+            Ui.Button.Danger.OnClick(Delete)["Delete project"]
+        ]
+    ]
+]
+```
+
+The close button is 32px, 16px in from the top and from the end edge, at every width. The heading keeps no
+room for it, in Flux as here: the panel's padding is 24px, so a first line that fills the panel — and a
+one-line question the modal hugs always does — ends 24px under the button. Flux's examples avoid that the
+way the one above does: a short heading, the sentence in a `Ui.Text` under it. Where the heading IS the
+sentence, `Ui.Heading.Class("pe-8")` keeps it clear of the button.
+
 Where Flux controls a modal from PHP (`Flux::modal('confirm')->show()`), a Rask page owns the state instead:
 `Ui.Modal.Open(_confirming).OnClose(() => _confirming = false)[ … ]`, which is Rask's `wire:model`. It is
 the same modal: the dialog says `data-rask-modal-open` and the runtime shows and closes it to match, so it is
@@ -1170,10 +1397,13 @@ heading, a ghost button that stays and a danger button that leaves:
 ```csharp
 Ui.ConfirmLeave                              // "Stay" and "Leave"
 Ui.ConfirmLeave.Stay("Nem").Leave("Igen")    // your own words
+Ui.ConfirmLeave.Heading("Unsaved changes")   // a short title; the form's question is the sentence beneath it
 ```
 
 It is rendered closed and the runtime opens it, so the question appears without a round trip. The close
-button, Escape and a press outside mean stay.
+button, Escape and a press outside mean stay. It is drawn as the confirmation above is — `min-w-[22rem]` —
+and, because its heading may be a whole question of the form's own, with `pe-8` on it. `Heading("…")` gives
+it the shape Flux's confirmation has: a short title, the question under it.
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 
@@ -1257,35 +1487,8 @@ redraw through the live diff.
 **The browser owns it, and tells the page.** A `Ui.AccordionItem` is a `<details>`: it opens with no handler at
 all, and `Expanded` is only the state it starts in — see [Accordion](#accordion).
 
-**The markup owns it.** `Ui.Tab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
-survives a refresh and answers the back button.
-
-
-**And for a view with no URL, the same tab takes a `Name` instead.** Wrap the row in a `Ui.TabGroup` and give
-each tab a `Ui.TabPanel`:
-
-```csharp
-Ui.TabGroup.Selected(_pane).OnSelect(p => _pane = p)[
-    Ui.Tabs[
-        Ui.Tab.Label("Details").Name("details"),
-        Ui.Tab.Label("History").Name("history")
-    ],
-    Ui.TabPanel.Name("details")[ /* … */ ],
-    Ui.TabPanel.Name("history")[ /* … */ ]
-]
-```
-
-One component for both, because a reader sees one thing — what it is comes from what it is given. The
-`Ui.Tabs` inside the group is not ceremony: a `tablist` may contain only tabs, so the panels cannot be its
-siblings, and it is the structure Flux uses for the same reason. Leave `Selected` off and the group shows the
-first tab and keeps track itself.
-
-Inside a group the tab is a real `<button>`, not a link — there is nowhere for it to go, and an `href="#"` is
-one the browser follows, putting a stray fragment in the address bar and breaking the back button it was meant
-to protect. The keyboard is the tabs pattern: **ArrowLeft/ArrowRight move and show as they go**, Home and End
-jump to the ends, and they wrap. Only the selected tab is a tab stop, so Tab out of the row lands *in* the
-panel rather than walking every remaining tab. Every panel is rendered, with the ones not shown carrying
-`hidden`, so their content is still findable by the browser's own in-page search.
+**And one whose state is a value.** `Ui.Tabs` keeps its selected tab itself until the page binds it — see
+[Tabs](#tabs).
 
 **And one that lets you choose.** `Ui.Select` is the browser's own `<select>` by default, and the browser
 owns all of it: it works on a prerendered page and with scripting off, which is why it is the default.
@@ -1966,9 +2169,11 @@ Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]           
   a click on the label, a radio group's arrow keys (they move AND choose, wrapping at the ends; Tab enters at the
   chosen radio) and the form post (`name` + `value`) are the browser's. A switch is
   `<input type="checkbox" role="switch">`, which the runtime flips on Enter as well as Space, as Flux's does.
-- **What Flux forwards to the control** goes through `Attributes`, onto the `<input>`:
-  `Ui.Radio.Value("editor").Label("Editor").Attributes(("name", "role"))`,
-  `Ui.Checkbox.Attributes(("aria-label", "Select row"))`. A radio group names its radios after its own id.
+- **What Flux forwards to the control** lands on the `<input>`. `name` has a typed step on all three and on the
+  radio group — `Ui.Checkbox.Value("push").Name("notify")`, `Ui.Switch.Bind(() => m.Alerts).Name("alerts")`,
+  `Ui.RadioGroup.Bind(() => m.Role).Name("role")[…]` — and anything else goes through `Attributes`:
+  `Ui.Checkbox.Attributes(("aria-label", "Select row"))`. A radio group names its radios after its own id
+  unless `Name` says otherwise; a `Name` on one radio replaces the group's for that radio.
 - **Validation.** A bound checkbox, switch or group is invalid on its own while its form holds a message for
   the member: `aria-invalid`, `data-invalid`, `aria-describedby` naming the field's `Ui.Error`, which `Label`
   draws with it. `Invalid()` says so by hand. Flux's pages show no invalid checkbox to measure; the unticked box
@@ -1978,6 +2183,88 @@ Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]           
   `Options`, `OptionDescription`, `OptionDisabled`, `Layout` (`Ui.ChoiceLayout`), `CheckAll` / `CheckAllLabel`,
   `Hint`, `Error`, `Badge` and `AccessibleLabel`.
 
+**`Ui.Slider` is Flux UI's slider.** Same props, same look, same markers
+([fluxui.dev/components/slider](https://fluxui.dev/components/slider)), over Rask's binding:
+
+```csharp
+Ui.Slider.Bind(() => m.Amount).Min(0).Max(100).Step(10)                  // int, long, float, double or decimal
+Ui.Slider.Bind(() => m.Amount).Max(1000).Step(1).BigStep(100)            // Shift+Arrow and Page Up / Down move by 100
+Ui.Field[Ui.Label["Corner radius"], Ui.Slider.Bind(() => m.Radius)]      // a label is the field's, as in Flux
+Ui.Slider.Bind(() => m.Price).Range().Max(990).Step(10).MinStepsBetween(10)       // two thumbs: int[] Price = [200, 800]
+Ui.Slider.Value(level).Min(1).Max(5).OnChange(v => { level = v; })[
+    Ui.SliderTick.Value(1)["Low"], Ui.SliderTick.Value(3)["Mid"], Ui.SliderTick.Value(5)["High"]
+]
+Ui.Slider.Value(level).Min(1).Max(5).Inside.TrackClass("h-5").ThumbClass("size-6")[   // dots on the track
+    Ui.SliderTick.Value(1).Dot, Ui.SliderTick.Value(2).Dot, Ui.SliderTick.Value(3).Dot
+]
+```
+
+- **The value follows the thumb.** The bound member (or `OnChange`) gets every step while the thumb is dragged,
+  which is what lets a label beside it show the number; a controlled slider draws the `Value` it was given, so
+  keep it in state.
+- **A range is the same slider over an array of two** — `int[]`, `double[]`, `decimal[]` — and every change
+  writes a NEW array. The thumbs do not cross, `MinStepsBetween` keeps them that many steps apart, and a press
+  on the track moves the nearer one.
+- **The browser does the moving.** Each thumb holds a real `<input type="range">`, invisible and laid over the
+  stretch of track that thumb can reach: dragging, a press on the track, the arrow keys, Page Up / Page Down (a
+  tenth of the track) and Home / End are native. A range's two inputs say `aria-valuetext="200 start range"` /
+  `"800 end range"` and carry their neighbour as their own `max` / `min`.
+- **`BigStep`** is Flux's `big-step`: how far Shift with an arrow key moves the thumb, and Page Up / Page Down
+  with it. It is the one thing a range input cannot do alone, so the input carries `data-rask-big-step` and
+  the [runtime](js-interop-runtime.md#behaviour-hooks-data-rask-) steps it. Unset, Shift changes nothing and
+  the Page keys stay the browser's — which is what Flux's slider does too.
+- **A label is the field's.** Flux's slider takes no `label` of its own, and neither does this one: put it in a
+  `Ui.Field` with a `Ui.Label` (and a `Ui.Description`), and every thumb is named by that label
+  (`aria-labelledby`) and described by the rest. A bound slider outside a field still shows its own message.
+- **Ticks** are `Ui.SliderTick.Value(n)` children: a line, a `.Dot`, or whatever you put inside. They sit under
+  the track, or on it with `.Inside` (`TickPosition`). Each carries `data-active` while the fill reaches it and
+  `data-current` while a thumb is on it, and pressing one moves the thumb there.
+- **`TrackClass` and `ThumbClass`** style the two parts. A `size-6` or `size-[22px]` in `ThumbClass` is also
+  where the fill and the ticks learn the thumb's size (`--ui-slider-thumb`, 1rem unless set).
+- **Gone with daisyUI's range:** `Ui.Range` itself, `Tone`, `Size`, `Vertical` and `Label`.
+
+**`Ui.Otp` is Flux UI's OTP input.** One real text input per character
+([fluxui.dev/components/otp-input](https://fluxui.dev/components/otp-input)), and the code they spell bound as one
+`string`:
+
+```csharp
+Ui.Otp.Bind(() => m.Code).Length(6).Label("OTP Code")
+Ui.Otp.Bind(() => m.Code).Length(6).OnComplete(code => Verify(code))      // where Flux's submit="auto" submits
+Ui.Otp.Bind(() => m.Key).Length(10).Alphanumeric.Autocomplete("off").Label("License key")
+Ui.Otp.Bind(() => m.Pin).Length(4).Private().Label("PIN Code")
+Ui.Otp.Bind(() => m.Code)[
+    Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput],
+    Ui.OtpSeparator,
+    Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput]
+]
+```
+
+- **`Length` draws the cells**, or place `Ui.OtpInput`, `Ui.OtpSeparator` and `Ui.OtpGroup` yourself and they are
+  counted (`Length` is then ignored). A group joins its cells into one box.
+- **The keys are Flux's, key for key.** A character moves on to the next cell and typing over a filled cell
+  replaces it; Backspace deletes and steps back, Delete closes the row up from where it is; the arrow keys
+  walk the cells and stop at the first empty one, and a press past it lands on it; a pasted code — or the one
+  the phone offers — fills the cells from the first, keeping only what the `Mode` takes. Typing as fast as a
+  keyboard allows loses nothing: no key waits for a round trip.
+- **How.** The cells are the browser's while they are typed into. The group carries `data-rask-otp` and the
+  [runtime](js-interop-runtime.md#behaviour-hooks-data-rask-) moves between them inside the key's own event; the
+  cells are rendered with no `value` and no handler, and ONE `<input type="hidden">` inside the group carries
+  the code. That field is what `Bind` / `Value` + `OnChange` see, and `Name` is its `name`, so a plain form
+  posts the code once. Set the bound string yourself — clear a wrong code — and the cells follow.
+- **The code has no gaps** and holds only what the `Mode` takes — digits, or `.Alphanumeric` / `.Alpha` with
+  letters upper-cased in the value, as Flux's are. (A cell goes on showing a letter in the case it was typed
+  in, where Flux's shows the capital: the runtime's hook does not change case yet.)
+- **`OnComplete`** runs with the code each time its last cell is filled, bound or controlled. It stands where
+  Flux's `submit="auto"` submits the form: submit, verify or navigate from it. The form itself is not
+  submitted for you.
+- **Markup is Flux's:** a `role="group"` named by the field's label, each cell named "Character 2 of 6", one tab
+  stop (the first empty cell), `autocomplete="one-time-code"` on the first cell (`Autocomplete("off")` to stop
+  the browser offering a code), `inputmode="numeric"` for digits, `type="password"` with `Private()`.
+  `Label` and `DescriptionTrailing` are the ones Flux's examples set; an invalid code is the bound member's
+  message (every cell is marked), and `Disabled()` disables every cell.
+- **Gone with daisyUI's `otp`:** the single input drawn as several, `Joined` (now `Ui.OtpGroup`), `Tone`, `Size`,
+  `Hint` (now `DescriptionTrailing`), `Badge` and `AccessibleLabel`; `Length` is no longer required.
+
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two
 sources of truth for one field, and the compiler enforces it — both live on the control's entry, so
@@ -1986,19 +2273,19 @@ of them says anything about `T`. Bound mode drives the surrounding `Form`'s vali
 `Validate`, `AfterBind`, and the `aria-invalid`/`aria-describedby` display — and controlled mode leaves
 the value with the parent. See [building form controls](building-form-controls.md).
 
-**The controls still on daisyUI share one field shape.** `Ui.Otp`,
-`Ui.FileInput` and the rest all take the same members from
-`UiFormField<T>`, until each is rebuilt on Flux as `Ui.Input`, `Ui.Textarea`, `Ui.Select`, the checkbox, the radio and the switch have been: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
+**The controls drawn on daisyUI shared one field shape.** `UiFormField<T>` still gives a control built on it the
+same members, and none of the kit's own is left on it now that `Ui.Input`, `Ui.Textarea`, `Ui.Select`, the
+checkbox, the radio, the switch, the slider, the OTP input and the file upload are rebuilt on Flux: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
 without one, an invisible `AccessibleLabel`; a `Hint` and a controlled `Error` under it; an `Id`, derived from the
 bound member or the label when you give none; and `aria-describedby`, `aria-invalid` and `aria-required` worked out
 from those and from the bound member's `[Required]` and messages. `Label` is never a required step, so write it
-anywhere after the opening — `Ui.Otp.Value(code).Length(6).Label("Verification code").Hint("Sent to your phone")`.
+anywhere after the opening — `Ui.Select.Value(plan).Options(plans).Label("Plan").Hint("Change it any time")`.
 
 **Generic where the value type varies, concrete where it does not.** `UiInput<T>`, `UiTextarea<T>`,
-`UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `Ui.Input` even
+`UiSlider<T>`, `UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `Ui.Input` even
 takes its `type` attribute from `T`, so a bound `int` is a number field with nothing said at the call
 site. `UiRadioGroup<T>` and `UiCheckboxGroup<T>` are generic over what a choice holds. The rest are closed over
-the one type they can have: `Ui.Checkbox` and `Ui.Switch` over `bool`, `Ui.Range` over `double`, `Ui.Rating` over `int`, `Ui.Otp` and `Ui.FileInput` over `string`,
+the one type they can have: `Ui.Checkbox` and `Ui.Switch` over `bool`, `Ui.Rating` over `int`, `Ui.Otp` over `string`,
 `Ui.Calendar` and `Ui.DatePicker` over `DateOnly`, a collection of days or a `UiDateRange`. A checkbox's value is a `bool` and nothing else; a type parameter there
 would have exactly one legal argument.
 
@@ -2010,30 +2297,66 @@ would have exactly one legal argument.
 | `UiRadioGroup<T>` | the value of the chosen `Ui.Radio` |
 | `UiCheckboxGroup<T>` | the ELEMENT type — it binds an `ICollection<T>` of the ticked checkboxes' values |
 | `Ui.Checkbox` `Ui.Switch` | on or off |
-| `Ui.Range` `Ui.Rating` `Ui.Calendar` | the position, the star count, the day |
-| `Ui.Otp` | the code — `OnComplete` fires on the transition into a full one, in both modes |
-| `Ui.FileInput` | the chosen file's name, **write-only** — a browser refuses to have a file input's value set, so binding fills the model and never the box. The bytes come through `OnFiles`. |
+| `UiSlider<T>` | the number under the thumb, or an array of the two under a range's thumbs |
+| `Ui.Rating` `Ui.Calendar` | the star count, the day |
+| `Ui.Otp` | the code — `OnComplete` runs each time its last cell is filled, in both modes |
 
 
-**A file drop area is the same file input.** `Ui.FileInput.Dropzone()` draws Flux UI's large area in place
-of the compact box, with `Title` (the `Label` by default) and `Text` for what is accepted:
+**File upload is Flux UI's** ([fluxui.dev/components/file-upload](https://fluxui.dev/components/file-upload)):
+`Ui.FileUpload` around a `Ui.FileUploadDropzone`, and a `Ui.FileItem` per file with a `Ui.FileItemRemove` in its
+`Actions`. Where Flux binds a Livewire property, the files come to the page through `OnFiles` — the same upload
+a plain file input uses — and the page draws the list from its own state:
 
 ```csharp
-Ui.FileInput.Value("").Label("Receipts")
-    .Dropzone()
-    .Title("Drop receipts here, or click to choose")
-    .Text("PDF or JPG, several at once")
-    .Accept(".pdf,.jpg")
-    .Multiple()
-    .OnFiles(files => _receipts.AddRange(files.Select(f => f.Name)))
+Ui.FileUpload.Label("Upload files").Multiple().OnFiles(Keep)[
+    Ui.FileUploadDropzone.Heading("Drop files here or click to browse").Text("JPG, PNG, GIF up to 10MB")
+],
+Div.Class("mt-4 flex flex-col gap-2")[
+    _photos.Select((photo, index) =>
+        Ui.FileItem.Key(photo.Name).Heading(photo.Name).Size(photo.Size).Image(photo.Url)
+            .Actions(Ui.FileItemRemove.AriaLabel("Remove file: " + photo.Name).OnClick(() => _photos.RemoveAt(index))))
+]
 ```
 
-The native input is stretched invisibly over the whole area, so a click anywhere opens the picker and a file
-dropped anywhere lands in the input — the browser already turns a drop on a file input into a chosen file, so no
-script decides where a drop goes and it works before the runtime boots. The one thing CSS cannot say is "a file is
-being dragged over this", so the runtime sets `data-dragging` on the nearest `[data-rask-dropzone]` while a drag
-carrying files is over it, and the area styles itself from that. `Text` is the input's `aria-describedby`, ahead of
-any `Hint` or validation message. The heading is the area's caption, so a dropzone draws no legend over it.
+Write the remove handler where the list is, as above: a handler re-renders the component it closes over, and
+one built in a static helper that closed over the list alone would remove the file and redraw nothing.
+
+| | Takes |
+|---|---|
+| `Ui.FileUpload` | `Name`, `Multiple()`, `Label`, `Description`, `Error` (a message, which also marks the input invalid), `Disabled()`, and Rask's `OnFiles`; `Accept` is the input's own attribute. Its children are the dropzone, or any markup of your own (an avatar to click). |
+| `Ui.FileUploadDropzone` | `Heading`, `Text`, `Icon` (`CloudArrowUp` by default), `Inline()` for the compact row, `WithProgress()` for a bar in place of `Text` while files upload. |
+| `Ui.FileItem` | `Heading`, `Text` (written from `Size` when unset: `162400` → `159 KB`), `Image` (a preview's address), `Size` in bytes, `Icon` (`Document` by default), `Invalid()`, and the `Actions` slot. |
+| `Ui.FileItemRemove` | `OnClick`, and `AriaLabel` ("Remove file" by default — name the file in a list of several). It removes nothing itself. |
+
+`Ui.FileUpload` is a `<label>` around a real `<input type="file">`, so a click anywhere opens the picker and the
+input keeps the keyboard (Space and Enter open it) with no script; the focus ring is drawn on the dropzone. While
+files are dragged over it the runtime writes `data-dragging` on it (the existing `data-rask-dropzone` hook) and the
+input is laid over the whole area, so the drop is the browser's own. From the moment files are chosen until
+`OnFiles` has rendered, the runtime writes `data-loading` on the upload (its `data-rask-loading` hook, which the
+upload asks for) and the dropzone shows a spinner — or, with `WithProgress()`, a bar as wide as
+`--ui-file-upload-progress` with `--ui-file-upload-progress-as-string` beside it: Flux's attribute, and its two
+variables under the kit's prefix, filled from the runtime's `--rask-progress` pair and `0%` at rest. On the
+Server host that is the upload request's own progress. In a WebAssembly app nothing is sent, so it is how much
+of the files your handler has read through `OpenReadStream`, and stays at `0%` for one that never opens them.
+In markup of your own, `in-data-dragging:` and `in-data-loading:` style the two states.
+
+A preview of a file that was only just chosen is the page's to make: read the picture in `OnFiles` and hand
+`Ui.FileItem.Image` a `data:` address (or the address it was stored under). Take the type from the browser only
+for the few an `<img>` draws, and cap the size:
+
+```csharp
+await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+using var bytes = new MemoryStream();
+await stream.CopyToAsync(bytes);
+var preview = $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes.ToArray())}";
+```
+
+The field's label is a `<label for>` like every other field's, so a click on it opens the picker — as a click
+on Flux's label does — and the input is named by it through `aria-labelledby`, as Flux's is, so the words of
+the dropzone are not read out as part of its name.
+
+`Ui.FileInput` and its `Dropzone()` mode are gone. A plain file field is the input, as on Flux's page —
+`Ui.Input.Of<string>().Type(InputType.File).Label("Logo").OnFiles(…)`.
 
 **A field with no value yet opens on its type alone**: `Ui.Input.Of<string>().Label("Search")`. A form
 control's openings are its mode pins, so a required step like `Label` never gets to pin `T` — without

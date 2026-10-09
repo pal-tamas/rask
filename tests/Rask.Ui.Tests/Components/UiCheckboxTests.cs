@@ -136,7 +136,7 @@ public partial class UiCheckboxTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_value_is_what_a_plain_form_posts_and_none_leaves_the_browsers_own()
     {
-        var valued = Ui.Checkbox.Value("push").Attributes(("name", "notify")).ToHtml();
+        var valued = Ui.Checkbox.Value("push").Name("notify").ToHtml();
         var bare = Ui.Checkbox.ToHtml();
 
         Assert.Contains("name=\"notify\"", valued, StringComparison.Ordinal);

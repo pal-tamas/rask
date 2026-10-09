@@ -1,80 +1,54 @@
+using System.Globalization;
+
 namespace Rask;
 
 /// <summary>
-/// Tabs over panels in one page: the state, the keyboard and the ARIA that ties a tab to what it shows.
+///     Flux's <c>flux:tab.group</c>: a <see cref="UiTabs" /> and the <see cref="UiTabPanel" />s it switches
+///     between.
 /// </summary>
 /// <remarks>
-/// <para>
-/// Flux UI's tab group. Put a <see cref="UiTabs" /> inside it holding <see cref="UiTab" />s with a
-/// <see cref="UiTab.Name" />, then a <see cref="UiTabPanel" /> per name:
-/// </para>
-/// <code>
-/// Ui.TabGroup.Selected(_tab).OnSelect(t => _tab = t)[
-///     Ui.Tabs[
-///         Ui.Tab.Label("Details").Name("details"),
-///         Ui.Tab.Label("History").Name("history")
-///     ],
-///     Ui.TabPanel.Name("details")[ /* … */ ],
-///     Ui.TabPanel.Name("history")[ /* … */ ]
-/// ]
-/// </code>
-/// <para>
-/// The <see cref="UiTabs" /> is not ceremony: a <c>tablist</c> may contain only tabs, so the panels cannot be
-/// its siblings — and it is the same structure Flux uses, for the same reason.
-/// </para>
-/// <para>
-/// <b>Reach for links first.</b> A <see cref="UiTab" /> with an <c>Href</c> is a real URL: bookmarkable,
-/// survives a refresh, answers the back button and works before the runtime boots. This is for the views that
-/// genuinely have no URL — a detail panel beside a record, a settings pane — where an address would be
-/// inventing state the page does not have.
-/// </para>
-/// <para>
-/// The keyboard is the tabs pattern: ArrowLeft/ArrowRight move and SHOW as they go, Home and End jump to the
-/// ends, and Tab leaves the tablist for the panel rather than walking every tab. Only the selected tab is a tab
-/// stop, which is what makes that last part true.
-/// </para>
+///     <para>
+///     The group ties each tab to the panel of the same <c>Name</c> — <c>aria-controls</c> one way,
+///     <c>aria-labelledby</c> the other — and shows the selected tab's panel. Which tab is selected is the
+///     tablist's to say: bind it there (<c>Ui.Tabs.Bind(() =&gt; Tab)</c>), or leave it alone and the row
+///     keeps track itself.
+///     </para>
+///     <code>
+///     Ui.TabGroup[
+///         Ui.Tabs[
+///             Ui.Tab.Name("profile")["Profile"],
+///             Ui.Tab.Name("account")["Account"]
+///         ],
+///         Ui.TabPanel.Name("profile")[ /* … */ ],
+///         Ui.TabPanel.Name("account")[ /* … */ ]
+///     ]
+///     </code>
+///     <para>
+///     Write the tablist before the panels: a panel learns which tab is selected from the row above it.
+///     </para>
 /// </remarks>
 public sealed partial class UiTabGroup : Component
 {
-    // Per instance, so two groups on one page cannot collide on tab and panel ids — aria-controls and
-    // aria-labelledby name them across the gap between a tab and what it shows.
-    private static int _instances;
+    private static readonly UiPartMarker Marker = new("ui-tab-group");
 
-    private readonly int _instance = Interlocked.Increment(ref _instances);
-
-    private string? _selected;
+    // Per instance, so two groups on one page cannot collide on the ids a tab and its panel name each other by.
+    private readonly string _prefix = "ui-tabs-" + UiInstanceCounter.Next().ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
-    ///     Which tab is shown, by <see cref="UiTab.Name" />. Unset, the group shows the first tab and keeps track
-    ///     itself.
+    ///     Lets the browser's find-in-page reach the panels that are not shown; a match selects its tab.
     /// </summary>
-    public string? Selected { get; set; }
-
-    /// <summary>Runs when a tab is chosen, with the name of the tab now shown.</summary>
-    public Callback<string> OnSelect { get; set; }
+    public bool? Findable { get; set; }
 
     public string? Class { get; set; }
 
-    // The registered tabs are a FIELD, which the render cache cannot see.
+    // The scope is rebuilt, and filled by the tablist, on every render — which the render cache cannot see.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
     /// <inheritdoc />
-    protected override Component? Render()
-    {
-        var prefix = "uitg-" + _instance.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        var scope = new UiTabScope(prefix, Selected ?? _selected, SelectAsync);
-
-        return Div.Class(UiClass.Compose("flex flex-col gap-4", Class))[
-            Context.Provide(scope)[Children ?? []]
+    protected override Component? Render() =>
+        // The arrow, not the text caret, over the whole group: a tab row is chrome, as Flux draws it.
+        Div.Class(UiClass.Compose("cursor-default", Class)).Data(Marker.With(null))[
+            Context.Provide(new UiTabGroupScope(_prefix, Findable == true))[Children ?? []]
         ];
-    }
-
-    private async Task SelectAsync(string name)
-    {
-        // Uncontrolled: the group remembers it itself, so a page that does not care about the tab does not have
-        // to hold a field for it. Controlled: Selected is the answer and this only reports the ask.
-        _selected = name;
-        await OnSelect.Invoke(name).ConfigureAwait(false);
-    }
 }

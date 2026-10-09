@@ -12,7 +12,8 @@ them until tagged releases begin.
 - **`Ui.ConfirmLeave` — the unsaved-changes question in a dialog of the app's own.** Placed once in a layout
   (`Ui.ConfirmLeave.Stay("Nem").Leave("Igen")`, "Stay" / "Leave" when unset), it is where every form's
   `ConfirmLeave("…")` asks, in place of the browser's `confirm`: a `Ui.Modal` with the form's message as its
-  heading, a ghost button that stays and a danger button that leaves. Stay, the close button, Escape and a
+  heading — or, given `.Heading("Unsaved changes")`, that short title with the message as the sentence beneath
+  it, the way Flux titles a confirmation — a ghost button that stays and a danger button that leaves. Stay, the close button, Escape and a
   press outside keep the page, what was typed and the history as they were; Leave carries on with the
   navigation that was asked for — the link, `__raskHost.navigate`, or the entry Back / Forward was going to.
   It is rendered closed and opened in the browser, with no round trip. Without the element nothing changes:
@@ -525,11 +526,73 @@ them until tagged releases begin.
   `Error`, `Badge`, `AccessibleLabel` and floating label. `Id` on a checkbox, radio or switch lands on the
   `<input>`, which is no longer the element a pointer hits: a browser test presses the label
   (`label:has(> #id)`). A switch's input says `role="switch"`, and the runtime flips it on Enter as Flux's
-  does. What Flux forwards to the control goes through `Attributes` on a checkbox, radio or switch
-  (`.Attributes(("name", "role"))`, `("aria-label", "Select row")`) and lands on the `<input>`; there is no
-  `Name` step, and a radio group names its radios after its own id. ARIA is Flux's, read from its live page: an
+  does. What Flux forwards to the control lands on the `<input>` of a checkbox, radio or switch: `Name` is a typed
+  step on all three and on the radio group (`Ui.Checkbox.Value("push").Name("notify")`), and the rest goes
+  through `Attributes` (`("aria-label", "Select row")`). A radio group names its radios after its own id unless
+  its `Name` says otherwise, and a `Name` on one radio replaces the group's. ARIA is Flux's, read from its live page: an
   indeterminate checkbox is marked `data-indeterminate` and says nothing more (no `aria-checked="mixed"`).
   A control with no id, binding or label gets an id of its own (`f-field-<n>`), as the input does.
+- **BREAKING: `Ui.Slider` and `Ui.Otp` are Flux's; `Ui.Range` is gone.** Flux UI's `flux:slider`
+  (+ `flux:slider.tick`) and `flux:otp` (+ `.input`, `.separator`, `.group`): the same props, look and
+  `data-ui-*` markers, over Rask's binding, measured against its docs in light and dark. Neither is drawn
+  with daisyUI any more, and daisyUI's `range` and `otp` are out of the kit's sheet.
+  ```csharp
+  Ui.Range.Bind(() => m.Volume).Label("Volume").Min(0).Max(100).Step(5)        // was — over double only
+  Ui.Field[Ui.Label["Volume"],
+      Ui.Slider.Bind(() => m.Volume).Min(0).Max(100).Step(5)]                  // now — int, long, float, double or decimal
+  Ui.Range.Value(v).Label("Volume").Tone(Ui.Tone.Accent).Size(Ui.Size.Sm).Vertical()   // was
+  Ui.Slider.Value(v).TrackClass("h-1").ThumbClass("size-3")                            // now — Flux has no tone, size or vertical
+  Ui.Otp.Bind(() => m.Code).Length(6).Label("Code").Hint("Sent to your phone").Joined()     // was — one input drawn as six
+  Ui.Otp.Bind(() => m.Code).Label("Code").DescriptionTrailing("Sent to your phone")[        // now — a text input per character
+      Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput, Ui.OtpInput]]
+  ```
+  **Slider.** New: a range over an array of two (`Ui.Slider.Bind(() => m.Price).Range()` with `int[] Price`,
+  replaced by a new array on every change), `MinStepsBetween`, `BigStep` (Flux's `big-step`: Shift with an arrow
+  key, and Page Up / Page Down, move by it — `data-rask-big-step` on the range input, stepped by the runtime),
+  `Ui.SliderTick` children (a line, `.Dot`, or a label; `TickPosition` `.Inside` draws them on the track;
+  pressing one moves the nearer thumb), `TrackClass`, `ThumbClass` and `Disabled()`. It takes no `Label` of its
+  own, as Flux's does not: a `Ui.Field` with a `Ui.Label` around it names every thumb (`aria-labelledby`). The
+  value now follows the thumb WHILE it moves (`OnChange` / the bound member on every step, not on release).
+  Each thumb holds a real `<input type="range">` laid over the track it can reach, so dragging, a press on the
+  track, the arrow keys, Page Up / Page Down and Home / End are the browser's own.
+  **OTP.** New: `Mode` (`.Alphanumeric`, `.Alpha`; letters upper-cased in the value), `Private()`,
+  `Autocomplete`, `Name`, `Disabled()`, and `Ui.OtpInput` / `Ui.OtpSeparator` / `Ui.OtpGroup` to lay the cells
+  out. `Length` is optional (placed cells are counted), `OnComplete` runs every time the last cell is filled
+  (where Flux's `submit="auto"` submits the form), and `Joined`, `Tone`, `Size`, `Hint`, `Description`, `Badge`,
+  `Invalid` and `AccessibleLabel` are gone — an invalid code is the bound member's message. The cells are real
+  text inputs named "Character 2 of 6" with one tab stop, as Flux's are, and every key is Flux's: a character
+  moves on, typing over a filled cell replaces it, Backspace steps back, the arrows stop at the first empty
+  cell, a pasted code fills from the first. The group carries `data-rask-otp`, the cells are rendered with no
+  value and no handler, and one hidden field inside the group carries the code — that is what binds, so fast
+  typing drops nothing.
+- **BREAKING: `Ui.FileUpload` is Flux's file upload, with its dropzone and items; `Ui.FileInput` is gone.**
+  Flux UI's `flux:file-upload`, `flux:file-upload.dropzone`, `flux:file-item` and `flux:file-item.remove`: the
+  same props, look, states and `data-ui-*` markers, held to its docs page by `scripts/flux/parity.mjs file-upload`.
+  The files reach the page through `OnFiles`, Rask's upload, where Flux binds a Livewire property; the page keeps
+  what it wants of them and draws a `Ui.FileItem` for each.
+  ```csharp
+  Ui.FileInput.Value("").Label("Receipts").Dropzone()                                  // was
+      .Title("Drop receipts here").Text("PDF or JPG").Multiple().OnFiles(Keep)
+  Ui.FileUpload.Label("Receipts").Multiple().OnFiles(Keep)[                            // now
+      Ui.FileUploadDropzone.Heading("Drop receipts here").Text("PDF or JPG")
+  ]
+
+  Ui.FileInput.Value("").Label("Avatar").OnFiles(Keep)                                 // was
+  Ui.Input.Of<string>().Type(InputType.File).Label("Avatar").OnFiles(Keep)             // now
+
+  Ui.FileItem.Heading(file.Name).Size(file.Size)                                       // new
+      .Actions(Ui.FileItemRemove.OnClick(() => _files.Remove(file)))
+  ```
+  New with it: `Inline()` and `WithProgress()` on the dropzone, `Error` on the upload, markup of your own in
+  place of the dropzone (an avatar to click), and the file list. The upload is a `<label>` around the real
+  input: a click opens the picker and the input keeps the keyboard with no script; while files are dragged over
+  it the input is laid over the whole area, so the drop is the browser's own. Removed with no replacement:
+  binding the chosen file's NAME to a model (`Bind`, `Value`), `Tone`, `Variant`, `Size`, `Hint`, `Badge` and
+  `AccessibleLabel` on a file control. An upload in flight is the runtime's to report (`data-rask-loading`,
+  which the upload writes): from the moment files are chosen until `OnFiles` has rendered the upload carries
+  `data-loading`, the dropzone's icon gives way to a spinner, and with `WithProgress()` the bar is as wide as
+  the part that has gone — the request's own progress on the Server host, what the handler has read through
+  `OpenReadStream` in a WebAssembly app (`0%` for a handler that never opens the files).
 - **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
   `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
   `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the
@@ -581,6 +644,8 @@ them until tagged releases begin.
   - `Ui.Label.Text("€").Trailing("per month")[input]` — daisyUI's caption inside a control's frame — is
     gone; `Ui.Label` is now the control's NAME (`Ui.Label["Email"]`, `Badge`, a `Trailing` slot). For the
     old look write the daisyUI markup: `Label.Class("label")[Span["€"], input, Span["per month"]]`.
+  `Ui.Input`, `Ui.Select` and the other controls are unchanged and still draw their own label, `Hint` and
+  message; each takes Flux's `Label`/`Description` field as it is rebuilt.
 - **BREAKING: UI kit — `Ui.Heading`, `Ui.Text` and `Ui.Link` are Flux UI's, and `Ui.Subheading` is gone.**
   Same names, props and look as [fluxui.dev](https://fluxui.dev/components/heading)'s `flux:heading`,
   `flux:text` and `flux:link`, measured against its docs in light and dark; none of the three is drawn
@@ -908,7 +973,110 @@ them until tagged releases begin.
   Ui.Drawer.Position(Ui.Position.Right)   →   Ui.Modal.Flyout()        // Right is the default
   ```
   `Ui.Sidebar` still slides on daisyUI's drawer and is unchanged.
+- **BREAKING: `Ui.Tabs` is Flux's tabs, with its group and panels.** `Ui.TabGroup`, `Ui.Tabs`, `Ui.Tab` and
+  `Ui.TabPanel` now mirror [`flux:tab.group`, `flux:tabs`, `flux:tab` and
+  `flux:tab.panel`](https://fluxui.dev/components/tabs) — every documented prop, the same markup, the same
+  pixels in light and dark, the same keys — and the daisyUI drawings are gone. A tab's label is its
+  children, and the selected tab is the ROW's value rather than the group's:
+  ```csharp
+  // was
+  Ui.TabGroup.Selected(_pane).OnSelect(p => _pane = p)[
+      Ui.Tabs.Style(Ui.TabStyle.Border)[
+          Ui.Tab.Label("Details").Name("details").Icon(Ui.IconName.BookOpen),
+          Ui.Tab.Label("History").Name("history").Count("4")
+      ],
+      Ui.TabPanel.Name("details")[ … ], Ui.TabPanel.Name("history")[ … ]
+  ]
+  // now
+  Ui.TabGroup[
+      Ui.Tabs.Value(_pane).OnChange(p => _pane = p)[          // or .Bind(() => Pane), or neither
+          Ui.Tab.Name("details").Icon(Ui.IconName.BookOpen)["Details"],
+          Ui.Tab.Name("history")["History", Ui.Badge["4"]]
+      ],
+      Ui.TabPanel.Name("details")[ … ], Ui.TabPanel.Name("history")[ … ]
+  ]
+  ```
+  - `Ui.Tab.Label("x")` → `Ui.Tab["x"]`; `.Active(b)` → `.Selected(b)`; `.Count("4")` / `.Alarm()` → a
+    badge child (`Ui.Badge.Sm["4"]`, `Ui.Badge.Sm.Solid.Color(Ui.Color.Red)["3"]`).
+  - `Ui.Tab.Href` is removed: Flux's tab takes no `href` and says to use the navbar for full-page
+    navigation. A row whose choice is part of the address reads it and goes there —
+    `Ui.Tabs.Value(view).OnChange(v => Go.To(Routes.LogsPage(View: v)))[Ui.Tab.Name("live")["Live"], …]`
+    — which is what the console's log page now does for both of its rows.
+  - `Ui.TabGroup.Selected(x).OnSelect(f)` → `Ui.Tabs.Value(x).OnChange(f)` on the row inside it, or
+    `Ui.Tabs.Bind(() => Property)`. With neither, the row keeps track itself.
+  - `Ui.TabStyle` is removed with `Ui.Tabs.Style`: `Box` → `.Segmented`, `Border` and `Default` → the default
+    row, `Lift` has no Flux counterpart; `.Pills` is new. `Ui.Tabs.Size` takes `Ui.TabsSize` (`Base`, `Sm`)
+    in place of `Ui.Size`, and `Ui.Tabs.Position` is removed — Flux's tabs sit above their panels.
+  - New, from Flux: `Ui.Tabs.Scrollable()`, `.ScrollableFade()`, `.ScrollableScrollbar(Ui.TabsScrollbar.Hide)`;
+    `Ui.Tab.IconTrailing`, `.IconVariant`, `.Selected()`, `.Accent(false)`, `.Action().OnClick(…)`;
+    `Ui.TabPanel.Selected()`; `Ui.TabGroup.Findable()` (`hidden="until-found"`, and a find-in-page match
+    selects its tab).
+  - The markers are `data-ui-tab-group`, `data-ui-tabs`, `data-ui-tab`, `data-ui-tab-panel` and
+    `data-selected`; `.tabs`, `.tab` and `.tab-active` are no longer written. The row no longer forces a
+    44px touch height or scrolls by itself — ask with `Scrollable()`. A panel has Flux's `pt-8`; another
+    top padding is said the way Flux's examples say it, `Class("pt-6!")`.
+  - **The keyboard moved into the runtime and changed to Flux's.** Any `role="tablist"` of
+    `<button role="tab">` now gets ArrowRight/ArrowDown and ArrowLeft/ArrowUp from a behaviour hook
+    (`rask-tabs.ts`, in `rask-hooks.js` — a page with a tablist loads it, as one with a switch does): they move
+    FOCUS as well as the selection (the C# handler moved only the selection), pass over disabled tabs
+    (they used to land on them) and wrap. Home and End are no longer handled, as Flux does not handle
+    them.
 
+  Ui.Input.Bind(() => m.Email).Label("Email").Hint("We never share it.")                         // was
+  Ui.Input.Bind(() => m.Email).Label("Email").Description("We never share it.")                  // now
+
+  Ui.Input.Value(v).Tone(Ui.Tone.Error).Error("Not an email.")                                   // was
+  Ui.Field[Ui.Input.Value(v).Invalid(), Ui.Error.Message("Not an email.")]                       // now
+
+  Ui.Input.Value(v).Size(Ui.Size.Sm).Variant(Ui.Variant.Ghost)                                   // was
+  Ui.Input.Value(v).Sm.Filled                                                                    // now
+
+  Ui.Textarea.Bind(() => m.Notes).AutoSize(true).Resize(Ui.Resize.None)                          // was
+  Ui.Textarea.Bind(() => m.Notes).Rows(UiTextareaRows.Auto).None                                 // now
+  ```
+  Removed with no replacement: floating labels (`Floating`), `AccessibleLabel`, `Badge` on an input,
+  `ShowValidating` and its "Checking…" line, the message a bound control with no label used to draw, and
+  `aria-required` from `[Required]`. `Ui.Resize` is `Ui.TextareaResize`; a textarea is four rows by default
+  (was three). Flux's `copyable` and `mask:dynamic` need script in the page and are not built.
+- **BREAKING: `Ui.Pagination` is Flux's pagination, and takes a paginator.** It was a joined row of
+  daisyUI buttons told a page count; it is now `flux:pagination` — a summary ("Showing 16 to 30 of 240
+  results"), Previous and Next, and the pages numbered once the pager has 640px to itself. What Flux
+  reads from a Laravel paginator it reads from a `UiPaginator`:
+  ```csharp
+  Ui.Pagination.Pages(16).Current(2).OnPage(Load)                                              // was
+  Ui.Pagination.Paginator(new UiPaginator { Page = 2, PerPage = 15, Total = 240 }).OnPage(Load)   // now
+  ```
+  `Pages` and `Current` are gone. `OnPage` and `Href` are unchanged and still count pages from one;
+  a page link follows the kit's link rule now — a generated route is an in-app link under the app's
+  path base, a string an ordinary `<a>` written as given.
+  A paginator with no `Total` is Flux's simple paginator — Previous and Next only, with `HasMore` saying
+  whether Next leads anywhere. The window of numbered pages is Laravel's (every page below fourteen; from
+  there the first two, the last two and three either side of the current one) where it was seven items.
+  The current page is a `<div aria-current="page">`, where the button form used to write a disabled
+  button and the link form a `<span>`; a gap is `...` with `aria-disabled`, not a hidden `…`. The ARIA
+  is Flux's own: a counted pager labels its arrows `&laquo; Previous` and `Next &raquo;` (the entity as
+  text, which is what Flux's page says) and a spent one says `aria-disabled="true"`; the simple pager's
+  arrows carry no label and its spent one says nothing — find them by position, not by name. New:
+  `ScrollTo("body")` / `ScrollTo("#orders")` scrolls that selector into view when a page is chosen,
+  through a new generic runtime hook, `data-rask-scroll-to` (one of the hooks loaded on demand). `Ui.DataGrid` draws this pager under its
+  rows: its "N rows" caption is now the pager's own summary ("Showing 1 to 25 of N results").
+- **BREAKING: `Ui.Timeline` is Flux's timeline, with its five parts.** It was daisyUI's `timeline` class on
+  a `<ul>` and left the items to the caller; it is now `flux:timeline` — `Ui.TimelineItem`,
+  `Ui.TimelineIndicator`, `Ui.TimelineContent`, `Ui.TimelineBlock` and `Ui.TimelineSubgrid` — drawing the
+  indicators and the line between them:
+  ```csharp
+  Ui.Timeline.Vertical()[Li[…]]                                                           // was
+  Ui.Timeline[Ui.TimelineItem[Ui.TimelineIndicator["1"], Ui.TimelineContent["Submit"]]]   // now
+  ```
+  Vertical is the default and `Vertical` is gone; `Ui.Timeline.Horizontal()` is the other direction, where
+  the old default was horizontal. Also `Lg`, `Start`/`Baseline`/`Center`/`End` (on a timeline or one
+  item), `Ui.TimelineItem.Complete`/`Current`/`Incomplete`, and on an indicator `Color(Ui.Color.…)`,
+  `Bare` and its own `Status`. Spacing is `--ui-timeline-item-gap` and `--ui-timeline-content-gap`.
+- **`Ui.Text` is regular weight wherever it stands.** Inline in a `Ui.Heading`, or in a
+  `Ui.CalloutHeading`, it took the heading's medium weight; Flux's is 400 there (measured on its timeline
+  page). A weight the call site hands it still wins: `Ui.Text.Inline().Class("font-medium")`.
+- **A pager under a `Ui.Table` keeps its height** when the table's box is given one to scroll within
+  (`ContainerClass("max-h-80")`), as Flux's does.
 - **BREAKING: the kit's navigation is Flux's — navbar, navlist, brand, profile, breadcrumbs and avatar.**
   Eleven components take Flux UI's names, props, markup and look, measured against fluxui.dev example for
   example in light and dark, and replace thirteen daisyUI-drawn ones. A link's words are its children now,
@@ -1119,6 +1287,11 @@ them until tagged releases begin.
   — so the three pages of the Products slice stopped at CS1929. The `Rask.Ui` package readme marked its input
   invalid with a `Tone` the Flux input does not have; it is `.Invalid(…)`.
 
+- **A chosen file can be read in a WebAssembly app** (#1200). `IRaskFile.OpenReadStream` stopped the runtime on
+  its first read there — the chunk came back as the `Uint8Array` it is, through an import declared to return a
+  string ("Value is not a String"). It crosses as bytes now, with no base64 in between. The site's file-upload
+  demo reads a chosen picture for its preview and a file of any kind to the end, and its progress bar is that
+  reading; both are browser tests.
 - **Three behaviour hooks, found by driving the calendar and the pickers against Flux's pages.**
   `data-rask-focus-follows` follows a target that a render took out of the page inside the container it was in —
   it was looked for across the whole document, so a paging key in one calendar handed the focus to another

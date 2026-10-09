@@ -23,8 +23,8 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         foreach (var id in new[]
                  {
-                     "ui-text-controls", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-checkbox", "ui-radio", "ui-switch", "ui-range", "ui-otp", "ui-filter",
-                     "ui-calendar", "ui-date-picker", "ui-time-picker", "ui-dropzone", "ui-bound", "ui-mask",
+                     "ui-text-controls", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-checkbox", "ui-radio", "ui-switch", "ui-slider", "ui-slider-ticks", "ui-slider-range", "ui-rating", "ui-otp", "ui-otp-layout", "ui-filter",
+                     "ui-calendar", "ui-date-picker", "ui-time-picker", "ui-file-upload", "ui-bound", "ui-mask",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -154,24 +154,149 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task The_one_time_code_is_a_single_field_that_takes_a_pasted_code() => RunAsync(async () =>
+    public Task The_one_time_code_is_a_cell_per_character_that_spells_one_code() => RunAsync(async () =>
     {
         await OpenAsync();
 
-        var scope = Page.Locator("[data-testid='ui-otp']");
-        var field = scope.Locator("input.otp");
+        var cells = OtpCells(0);
+        var state = Page.Locator("[data-testid='ui-otp-state']");
 
-        // One input, not six. This is what makes a pasted or autofilled code land correctly instead of
-        // dropping the whole string into the first box.
-        await Expect(scope.Locator("input")).ToHaveCountAsync(1);
+        // Flux's shape: a real text input per character, each named by its place, one of them a tab stop.
+        await Expect(cells).ToHaveCountAsync(6);
+        await Expect(cells.Nth(0)).ToHaveAccessibleNameAsync("Character 1 of 6");
+        await Expect(cells.Nth(0)).ToHaveAttributeAsync("autocomplete", "one-time-code");
+        await Expect(cells.Nth(0)).ToHaveAttributeAsync("tabindex", "0");
+        await Expect(cells.Nth(1)).ToHaveAttributeAsync("tabindex", "-1");
 
-        // Named by its visible label and described by its hint, like every other kit field (#1117).
-        await Expect(scope.GetByLabel("Verification code")).ToHaveCountAsync(1);
-        await Expect(field).ToHaveAccessibleDescriptionAsync("Six digits, sent to your phone.");
+        // A character moves on to the next cell, and the code reaches C#.
+        await cells.Nth(0).ClickAsync();
+        await Page.Keyboard.PressAsync("1");
+        await Expect(cells.Nth(1)).ToBeFocusedAsync();
+        await Expect(state).ToContainTextAsync("1 of 6 entered");
+        await Expect(cells.Nth(1)).ToHaveAttributeAsync("tabindex", "0");
 
-        await field.FillAsync("123456");
-        await field.BlurAsync();
-        await Expect(Page.Locator("[data-testid='ui-otp-state']")).ToContainTextAsync("Code complete");
+        // A letter is refused by a numeric code; the rest typed with no pause between keys lands a cell each.
+        await Page.Keyboard.PressAsync("a");
+        await Page.Keyboard.TypeAsync("23456");
+        await Expect(state).ToContainTextAsync("Code complete: 123456.");
+        Assert.Equal("1 2 3 4 5 6", await OtpTextAsync(0));
+    });
+
+    [Fact]
+    public Task Typing_over_a_cell_replaces_it_and_backspace_walks_back_through_the_code() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var cells = OtpCells(0);
+        var state = Page.Locator("[data-testid='ui-otp-state']");
+        await cells.Nth(0).ClickAsync();
+        await Page.Keyboard.TypeAsync("123");
+
+        // ArrowLeft selects the cell before, so the next key replaces its character and moves on.
+        await Page.Keyboard.PressAsync("ArrowLeft");
+        await Page.Keyboard.PressAsync("ArrowLeft");
+        await Page.Keyboard.PressAsync("9");
+        Assert.Equal("1 9 3 _ _ _", await OtpTextAsync(0));
+        await Expect(cells.Nth(2)).ToBeFocusedAsync();
+        await Expect(state).ToContainTextAsync("3 of 6 entered");
+
+        // A press past the first empty cell lands on it; ArrowRight stops there too.
+        await cells.Nth(5).ClickAsync();
+        await Expect(cells.Nth(3)).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(cells.Nth(3)).ToBeFocusedAsync();
+
+        // Backspace in an empty cell only steps back; in a filled one it deletes and steps back.
+        await Page.Keyboard.PressAsync("Backspace");
+        Assert.Equal("1 9 3 _ _ _", await OtpTextAsync(0));
+        await Page.Keyboard.PressAsync("Backspace");
+        Assert.Equal("1 9 _ _ _ _", await OtpTextAsync(0));
+        await Expect(state).ToContainTextAsync("2 of 6 entered");
+
+        // Delete closes the code up from where it is.
+        await cells.Nth(0).ClickAsync();
+        await Page.Keyboard.PressAsync("Delete");
+        Assert.Equal("9 _ _ _ _ _", await OtpTextAsync(0));
+        await Expect(state).ToContainTextAsync("1 of 6 entered");
+    });
+
+    [Fact]
+    public Task A_pasted_code_fills_the_cells_from_the_first_and_reaches_CSharp() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var cells = OtpCells(0);
+        var state = Page.Locator("[data-testid='ui-otp-state']");
+        await cells.Nth(0).ClickAsync();
+        await Page.Keyboard.TypeAsync("12");
+
+        await Page.EvaluateAsync(
+            """
+            () => {
+                const data = new DataTransfer();
+                data.setData('text/plain', '98-76 54zz');
+                document.activeElement.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+            }
+            """);
+
+        Assert.Equal("9 8 7 6 5 4", await OtpTextAsync(0));
+        await Expect(state).ToContainTextAsync("Code complete: 987654.");
+    });
+
+    [Fact]
+    public Task Letters_reach_CSharp_upper_cased_and_a_code_set_in_CSharp_fills_the_cells() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        // The licence key arrives from C# ("L49R4"): the runtime shares it out over the cells.
+        var license = OtpCells(3);
+        await Expect(license.Nth(0)).ToHaveValueAsync("L");
+        await Expect(license.Nth(4)).ToHaveValueAsync("4");
+        await Expect(license.Nth(5)).ToHaveValueAsync(string.Empty);
+
+        await license.Nth(9).ClickAsync();
+        await Page.Keyboard.TypeAsync("ab");
+        await Expect(Page.Locator("[data-testid='ui-otp-license']")).ToHaveTextAsync("Key: L49R4AB");
+
+        // "Resend code" empties the string in C#, and the cells follow it.
+        var form = OtpCells(1);
+        await form.Nth(0).ClickAsync();
+        await Page.Keyboard.TypeAsync("4321");
+        await Expect(form.Nth(3)).ToHaveValueAsync("1");
+        await Page.Locator("[data-testid='ui-otp-resend']").ClickAsync();
+        await Expect(form.Nth(0)).ToHaveValueAsync(string.Empty);
+        await Expect(form.Nth(3)).ToHaveValueAsync(string.Empty);
+    });
+
+    [Fact]
+    public Task A_complete_one_time_code_runs_its_completion_handler() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var verified = Page.Locator("[data-testid='ui-otp-verified']");
+
+        await Expect(verified).ToContainTextAsync("Fill every cell");
+        await OtpCells(2).Nth(0).ClickAsync();
+        await Page.Keyboard.TypeAsync("654321");
+
+        await Expect(verified).ToContainTextAsync("Verifying 654321");
+    });
+
+    [Fact]
+    public Task One_time_code_cells_join_into_groups_around_a_separator() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var grouped = Page.Locator("[data-testid='ui-otp-layout'] [data-ui-otp]").Nth(2);
+
+        await Expect(grouped.Locator("[data-ui-input-group]")).ToHaveCountAsync(2);
+        await Expect(grouped.Locator("input[data-ui-otp-input]")).ToHaveCountAsync(6);
+        await Expect(grouped.Locator("[data-ui-text]")).ToHaveTextAsync("—");
+
+        // Joined: a middle cell of a group has no left border and square corners.
+        var middle = grouped.Locator("input[data-ui-otp-input]").Nth(1);
+        Assert.Equal("0px", await middle.EvaluateAsync<string>("e => getComputedStyle(e).borderLeftWidth"));
+        Assert.Equal("0px", await middle.EvaluateAsync<string>("e => getComputedStyle(e).borderTopLeftRadius"));
     });
 
     [Fact]
@@ -339,18 +464,125 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task The_range_reports_its_value() => RunAsync(async () =>
+    public Task The_slider_follows_the_keyboard_and_reports_its_value() => RunAsync(async () =>
     {
         await OpenAsync();
 
-        var scope = Page.Locator("[data-testid='ui-range']");
+        var value = Page.Locator("[data-testid='ui-slider-value']");
+        var slider = Page.Locator("[data-testid='ui-slider'] [data-ui-field]").First.Locator("[data-ui-slider]");
+        var input = slider.Locator("input[type='range']");
 
-        await Expect(scope).ToContainTextAsync("Volume: 40");
+        await Expect(value).ToHaveTextAsync("50");
 
-        // A slider that draws a value and reports nothing is one you can push and cannot read; Ui.Range
-        // had no OnChange at all before this.
-        await scope.Locator("input[type='range']").FillAsync("75");
-        await Expect(scope).ToContainTextAsync("Volume: 75");
+        // The control is a native range input, so the keys are the browser's: an arrow is one step, Page Up a
+        // tenth of the track, Home and End the two ends. Each reaches C# and comes back as the drawn value.
+        await input.FocusAsync();
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(value).ToHaveTextAsync("51");
+        await Page.Keyboard.PressAsync("PageUp");
+        await Expect(value).ToHaveTextAsync("61");
+        await Page.Keyboard.PressAsync("Home");
+        await Expect(value).ToHaveTextAsync("0");
+        await Page.Keyboard.PressAsync("End");
+        await Expect(value).ToHaveTextAsync("100");
+    });
+
+    [Fact]
+    public Task Shift_with_an_arrow_and_the_page_keys_move_the_slider_by_its_big_step() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var value = Page.Locator("[data-testid='ui-slider-big']");
+        var input = Page.Locator("[data-testid='ui-slider'] [data-ui-field]:has([data-testid='ui-slider-big']) input[type='range']");
+        await Expect(value).ToHaveTextAsync("500");
+        await input.FocusAsync();
+
+        // Flux's numbers, on its own "Big steps" example (step 1, big-step 100, 0 to 1000).
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(value).ToHaveTextAsync("501");
+        await Page.Keyboard.PressAsync("Shift+ArrowRight");
+        await Expect(value).ToHaveTextAsync("601");
+        await Page.Keyboard.PressAsync("Shift+ArrowUp");
+        await Expect(value).ToHaveTextAsync("701");
+        await Page.Keyboard.PressAsync("Shift+ArrowLeft");
+        await Expect(value).ToHaveTextAsync("601");
+        await Page.Keyboard.PressAsync("PageDown");
+        await Expect(value).ToHaveTextAsync("501");
+        await Page.Keyboard.PressAsync("PageUp");
+        await Expect(value).ToHaveTextAsync("601");
+        await Page.Keyboard.PressAsync("End");
+        await Page.Keyboard.PressAsync("Shift+ArrowRight");
+        await Expect(value).ToHaveTextAsync("1000");
+    });
+
+    [Fact]
+    public Task Pressing_the_track_moves_the_thumb_under_the_pointer_and_dragging_carries_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var value = Page.Locator("[data-testid='ui-slider-value']");
+        var slider = Page.Locator("[data-testid='ui-slider'] [data-ui-field]").First.Locator("[data-ui-slider]");
+        var thumb = slider.Locator("[data-ui-slider-thumb]");
+        await slider.ScrollIntoViewIfNeededAsync();
+        var box = (await slider.BoundingBoxAsync())!;
+        var middle = box.Y + (box.Height / 2);
+
+        // A quarter of the way along: the value under the pointer, counted between the thumb's two resting ends.
+        await Page.Mouse.ClickAsync(box.X + (box.Width * 0.25f), middle);
+        var expected = (int)Math.Round(((box.Width * 0.25) - 8) / (box.Width - 16) * 100, MidpointRounding.AwayFromZero);
+        await Expect(value).ToHaveTextAsync(expected.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        // The drawn thumb is where the value is: centred on the pointer, to the pixel the step allows.
+        var drawn = (await thumb.BoundingBoxAsync())!;
+        Assert.InRange(drawn.X + (drawn.Width / 2) - (box.X + (box.Width * 0.25f)), -2, 2);
+
+        await Page.Mouse.MoveAsync(box.X + (box.Width * 0.25f), middle);
+        await Page.Mouse.DownAsync();
+        await Page.Mouse.MoveAsync(box.X + box.Width - 1, middle, new MouseMoveOptions { Steps = 6 });
+        await Page.Mouse.UpAsync();
+        await Expect(value).ToHaveTextAsync("100");
+    });
+
+    [Fact]
+    public Task Pressing_a_tick_moves_the_thumb_to_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var slider = Page.Locator("[data-testid='ui-slider-ticks'] [data-ui-slider]").Last;
+        var input = slider.Locator("input[type='range']");
+
+        await Expect(input).ToHaveValueAsync("3");
+        await slider.Locator("[data-ui-slider-tick]", new LocatorLocatorOptions { HasText = "High" }).ClickAsync();
+
+        await Expect(input).ToHaveValueAsync("5");
+        await Expect(slider.Locator("[data-ui-slider-tick][data-current]")).ToHaveTextAsync("High");
+    });
+
+    [Fact]
+    public Task A_range_slider_moves_the_nearer_thumb_and_the_thumbs_do_not_cross() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var price = Page.Locator("[data-testid='ui-slider-price']");
+        var slider = Page.Locator("[data-testid='ui-slider-range'] [data-ui-field] [data-ui-slider]");
+        var thumbs = slider.Locator("input[type='range']");
+        await slider.ScrollIntoViewIfNeededAsync();
+        var box = (await slider.BoundingBoxAsync())!;
+        var middle = box.Y + (box.Height / 2);
+
+        await Expect(price).ToHaveTextAsync("$200 – $800");
+        await Expect(thumbs).ToHaveCountAsync(2);
+
+        // A press near the left end is the first thumb's; one near the right end, the second's.
+        await Page.Mouse.ClickAsync(box.X + 1, middle);
+        await Expect(price).ToHaveTextAsync("$0 – $800");
+        await Page.Mouse.ClickAsync(box.X + box.Width - 1, middle);
+        await Expect(price).ToHaveTextAsync("$0 – $990");
+
+        // End on the first thumb stops ten steps short of the second: MinStepsBetween(10) at a step of 10.
+        await thumbs.First.FocusAsync();
+        await Page.Keyboard.PressAsync("End");
+        await Expect(price).ToHaveTextAsync("$890 – $990");
     });
 
     [Fact]
@@ -877,52 +1109,227 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
             new PageWaitForFunctionOptions { Timeout = 15_000 });
 
     [Fact]
-    public Task The_drop_area_is_the_native_input_and_lights_up_under_a_dragged_file() => RunAsync(async () =>
+    public Task A_file_upload_takes_chosen_files_lists_them_and_removes_one() => RunAsync(async () =>
     {
         await OpenAsync();
+        var basic = Page.Locator("[data-testid='ui-upload-basic']");
+        var upload = basic.Locator("[data-ui-file-upload]");
+        await upload.ScrollIntoViewIfNeededAsync();
 
-        var zone = Page.Locator("[data-testid='ui-dropzone'] [data-rask-dropzone]");
-        await Expect(zone).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await zone.ScrollIntoViewIfNeededAsync();
-
-        // No script routes a drop: the input IS the area. What is under the middle of the area — and under a
-        // corner of it — is the file input itself, so a real click or a real drop lands there.
-        var hits = await zone.EvaluateAsync<string[]>(
-            @"z => { const r = z.getBoundingClientRect();
-                     return [[r.left + r.width / 2, r.top + r.height / 2], [r.left + 4, r.top + 4]]
-                       .map(([x, y]) => { const el = document.elementFromPoint(x, y);
-                                          return el ? el.tagName + ':' + el.getAttribute('type') : 'none'; }); }");
-        Assert.All(hits, hit => Assert.Equal("INPUT:file", hit));
-
-        // A chosen file reaches C# through OnFiles, same as the compact box.
-        await zone.Locator("input[type=file]").SetInputFilesAsync(new[]
+        // A click anywhere on the area opens the picker: the area is a <label> around the input.
+        var chooser = await Page.RunAndWaitForFileChooserAsync(
+            () => upload.Locator("[data-ui-file-upload-dropzone]").ClickAsync());
+        Assert.True(chooser.IsMultiple);
+        await chooser.SetFilesAsync(new[]
         {
-            new FilePayload { Name = "march.pdf", MimeType = "application/pdf", Buffer = [1, 2, 3] },
-            new FilePayload { Name = "april.jpg", MimeType = "image/jpeg", Buffer = [4, 5, 6] },
+            new FilePayload { Name = "march.png", MimeType = "image/png", Buffer = [1, 2, 3] },
+            new FilePayload { Name = "april.jpg", MimeType = "image/jpeg", Buffer = new byte[2048] },
         });
-        await Expect(Page.Locator("[data-testid='ui-dropzone-state']")).ToHaveTextAsync(
-            "Chosen: march.pdf, april.jpg", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
 
-        // The highlight is the runtime's: counted across the children a drag crosses, and only for FILES.
-        await Page.EvaluateAsync(
-            @"() => { const zone = document.querySelector('[data-testid=ui-dropzone] [data-rask-dropzone]');
-                      const input = zone.querySelector('input');
-                      const files = new DataTransfer(); files.items.add(new File(['x'], 'x.pdf'));
-                      const fire = (type, el, dt) => el.dispatchEvent(new DragEvent(type, {bubbles: true, dataTransfer: dt}));
-                      window.__dz = [];
-                      fire('dragenter', zone, files); fire('dragenter', input, files);
-                      window.__dz.push(zone.hasAttribute('data-dragging'));
-                      fire('dragleave', zone, files);
-                      window.__dz.push(zone.hasAttribute('data-dragging'));
-                      fire('dragleave', input, files);
-                      window.__dz.push(zone.hasAttribute('data-dragging'));
-                      const text = new DataTransfer(); text.setData('text/plain', 'row');
-                      fire('dragenter', input, text);
-                      window.__dz.push(zone.hasAttribute('data-dragging')); }");
-        var marks = await Page.EvaluateAsync<bool[]>("() => window.__dz");
-        // In; still in after crossing out of one child; out once the last one is left; never for a text drag.
-        Assert.Equal(new[] { true, true, false, false }, marks);
+        // OnFiles handed the page both; it drew an item for each under the one that was there, with its size.
+        var items = basic.Locator("[data-ui-file-item]");
+        await Expect(items).ToHaveCountAsync(3, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(items.Nth(0)).ToContainTextAsync("159 KB");
+        await Expect(items.Nth(0).Locator("[data-slot='image'] img")).ToBeVisibleAsync();
+        await Expect(items.Nth(1)).ToContainTextAsync("march.png");
+        await Expect(items.Nth(1)).ToContainTextAsync("3 B");
+        await Expect(items.Nth(2)).ToContainTextAsync("2 KB");
+
+        await basic.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Remove file: march.png" })
+            .ClickAsync();
+        await Expect(items).ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(items.Nth(1)).ToContainTextAsync("april.jpg");
     });
+
+    [Fact]
+    public Task A_file_upload_is_reached_by_keyboard_and_rings_its_dropzone() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var upload = Page.Locator("[data-testid='ui-upload-inline'] [data-ui-file-upload]");
+        await upload.ScrollIntoViewIfNeededAsync();
+
+        // The real input holds the focus, out of sight; the ring is drawn on the dropzone beside it.
+        await upload.Locator("input[type=file]").FocusAsync();
+        await Page.Keyboard.PressAsync("Shift+Tab");
+        await Page.Keyboard.PressAsync("Tab");
+        await Expect(upload.Locator("input[type=file]")).ToBeFocusedAsync();
+        var outline = await upload.Locator("[data-ui-file-upload-dropzone]")
+            .EvaluateAsync<string>("z => getComputedStyle(z).outlineStyle");
+        Assert.Equal("auto", outline);
+
+        var chooser = await Page.RunAndWaitForFileChooserAsync(() => Page.Keyboard.PressAsync("Space"));
+        Assert.True(chooser.IsMultiple);
+    });
+
+    [Fact]
+    public Task A_file_dragged_over_an_upload_marks_it_and_puts_the_input_under_the_pointer() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var upload = Page.Locator("[data-testid='ui-upload-inline'] [data-ui-file-upload]");
+        await upload.ScrollIntoViewIfNeededAsync();
+
+        // At rest what is under the pointer is the dropzone; the input is a pixel, out of sight.
+        Assert.NotEqual("INPUT", await UnderTheMiddleOf(upload));
+        var dropzone = upload.Locator("[data-ui-file-upload-dropzone]");
+        var atRest = await dropzone.EvaluateAsync<string[]>("z => [getComputedStyle(z).backgroundColor, getComputedStyle(z).borderTopColor]");
+
+        // The runtime marks the area for a drag carrying FILES, and the input is then laid over all of it —
+        // so the browser's own drop puts the files in it, and no script routes them.
+        await upload.EvaluateAsync(
+            @"zone => { const files = new DataTransfer(); files.items.add(new File(['x'], 'x.pdf'));
+                        zone.querySelector('[data-ui-file-upload-dropzone]')
+                            .dispatchEvent(new DragEvent('dragenter', {bubbles: true, dataTransfer: files})); }");
+        await Expect(upload).ToHaveAttributeAsync("data-dragging", "");
+        Assert.Equal("INPUT", await UnderTheMiddleOf(upload));
+
+        // And it looks dragged over: the dropzone's fill and border darken, in the app's ONE sheet.
+        await dropzone.EvaluateAsync("z => Promise.all(z.getAnimations().map(a => a.finished))");
+        var draggedOver = await dropzone.EvaluateAsync<string[]>("z => [getComputedStyle(z).backgroundColor, getComputedStyle(z).borderTopColor]");
+        Assert.NotEqual(atRest[0], draggedOver[0]);
+        Assert.NotEqual(atRest[1], draggedOver[1]);
+
+        await upload.EvaluateAsync(
+            @"zone => { const files = new DataTransfer(); files.items.add(new File(['x'], 'x.pdf'));
+                        zone.querySelector('[data-ui-file-upload-dropzone]')
+                            .dispatchEvent(new DragEvent('dragleave', {bubbles: true, dataTransfer: files})); }");
+        Assert.Null(await upload.GetAttributeAsync("data-dragging"));
+
+        // A row of a sortable list dragged across is not an offer to upload it.
+        await upload.EvaluateAsync(
+            @"zone => { const text = new DataTransfer(); text.setData('text/plain', 'row');
+                        zone.dispatchEvent(new DragEvent('dragenter', {bubbles: true, dataTransfer: text})); }");
+        Assert.Null(await upload.GetAttributeAsync("data-dragging"));
+    });
+
+    [Fact]
+    public Task A_dropped_file_reaches_the_page_like_a_chosen_one() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var inline = Page.Locator("[data-testid='ui-upload-inline']");
+        var upload = inline.Locator("[data-ui-file-upload]");
+        await upload.ScrollIntoViewIfNeededAsync();
+        var path = Path.Combine(Path.GetTempPath(), $"rask-drop-{Guid.NewGuid():N}.txt");
+        await File.WriteAllTextAsync(path, "hello");
+
+        try
+        {
+            // The browser's own drag pipeline, not a synthetic event: only that fills an input on a drop.
+            var box = (await upload.BoundingBoxAsync())!;
+            var (edgeX, edgeY) = (box.X + 6, box.Y + 6);
+            var (midX, midY) = (box.X + (box.Width / 2), box.Y + (box.Height / 2));
+            var cdp = await Page.Context.NewCDPSessionAsync(Page);
+            foreach (var (type, x, y) in new[]
+                     {
+                         ("dragEnter", edgeX, edgeY), ("dragOver", edgeX, edgeY), ("dragOver", midX, midY),
+                         ("drop", midX, midY),
+                     })
+            {
+                await cdp.SendAsync("Input.dispatchDragEvent", new Dictionary<string, object>
+                {
+                    ["type"] = type,
+                    ["x"] = x,
+                    ["y"] = y,
+                    ["data"] = new Dictionary<string, object>
+                    {
+                        ["items"] = Array.Empty<object>(),
+                        ["files"] = new[] { path },
+                        ["dragOperationsMask"] = 1,
+                    },
+                });
+            }
+
+            await Expect(inline.Locator("[data-ui-file-item]")).ToContainTextAsync(
+                Path.GetFileName(path), new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+            Assert.Null(await upload.GetAttributeAsync("data-dragging"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    });
+
+    [Fact]
+    public Task A_disabled_upload_opens_nothing_and_a_custom_one_takes_a_file_all_the_same() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var disabled = Page.Locator("[data-testid='ui-upload-disabled'] [data-ui-file-upload]");
+        await disabled.ScrollIntoViewIfNeededAsync();
+
+        await Expect(disabled.Locator("input[type=file]")).ToBeDisabledAsync();
+        Assert.Equal("none", await disabled.Locator("[data-ui-file-upload-dropzone]")
+            .EvaluateAsync<string>("z => getComputedStyle(z).pointerEvents"));
+
+        // Markup of the page's own in place of the dropzone: the same input behind it.
+        var custom = Page.Locator("[data-testid='ui-upload-custom']");
+        await custom.Locator("input[type=file]").SetInputFilesAsync(
+            new FilePayload { Name = "me.png", MimeType = "image/png", Buffer = [1, 2, 3] });
+        await Expect(custom).ToContainTextAsync(
+            "Chosen: me.png", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+    });
+
+    [Fact]
+    public Task A_chosen_picture_is_read_in_the_browser_and_shown_as_its_own_preview() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var basic = Page.Locator("[data-testid='ui-upload-basic']");
+        await basic.Locator("[data-ui-file-upload]").ScrollIntoViewIfNeededAsync();
+
+        // A real picture, one pixel square: the page reads its bytes through OpenReadStream (#1200).
+        await basic.Locator("input[type=file]").SetInputFilesAsync(
+            new FilePayload { Name = "dot.png", MimeType = "image/png", Buffer = Convert.FromBase64String(OnePixelPng) });
+
+        var preview = basic.Locator("[data-ui-file-item]").Nth(1).Locator("[data-slot='image'] img");
+        await Expect(preview).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        Assert.Equal("data:image/png;base64," + OnePixelPng, await preview.GetAttributeAsync("src"));
+        await Expect(preview).ToHaveJSPropertyAsync("naturalWidth", 1);
+    });
+
+    [Fact]
+    public Task An_upload_says_how_far_its_files_have_been_read_and_rests_once_the_page_has_them() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var progress = Page.Locator("[data-testid='ui-upload-progress']");
+        var upload = progress.Locator("[data-ui-file-upload]");
+        await upload.ScrollIntoViewIfNeededAsync();
+        var atRest = await upload.EvaluateAsync<string>("u => getComputedStyle(u).getPropertyValue('--ui-file-upload-progress')");
+        await upload.EvaluateAsync(
+            @"u => { window.seen = [];
+                     const note = () => window.seen.push((u.hasAttribute('data-loading') ? 'loading' : 'idle') + ' '
+                         + u.style.getPropertyValue('--rask-progress') + ' '
+                         + getComputedStyle(u.querySelector('[data-ui-file-upload-dropzone]')).getPropertyValue('--ui-file-upload-progress'));
+                     new MutationObserver(note).observe(u, { attributes: true }); }");
+
+        // Some two dozen reads of 64 kB: enough to be seen part-way, and short on a busy machine.
+        await upload.Locator("input[type=file]").SetInputFilesAsync(
+            new FilePayload { Name = "film.bin", MimeType = "application/octet-stream", Buffer = new byte[1_500_000] });
+        await Expect(progress.Locator("[data-ui-file-item]")).ToContainTextAsync(
+            "film.bin", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        await Expect(upload).Not.ToHaveAttributeAsync("data-loading", "");
+        var seen = await Page.EvaluateAsync<string[]>("() => window.seen");
+
+        // Marked at once, at nothing; then what the handler has read, which the dropzone's bar takes its width from.
+        Assert.Equal("0%", atRest.Trim());
+        Assert.Contains("loading 0% 0%", seen);
+        Assert.Contains("loading 100% 100%", seen);
+        Assert.Contains(seen, s => Between(s) is > 0 and < 100);
+        Assert.Equal(string.Empty, await upload.EvaluateAsync<string>("u => u.style.getPropertyValue('--rask-progress')"));
+    });
+
+    // A 1 × 1 PNG.
+    private const string OnePixelPng =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    // The whole percent of a note the observer took while loading, or -1.
+    private static int Between(string note)
+    {
+        var parts = note.Split(' ');
+        return parts is ["loading", var percent, ..] && int.TryParse(percent.TrimEnd('%'), out var value) ? value : -1;
+    }
+
+    private static Task<string> UnderTheMiddleOf(ILocator area) =>
+        area.EvaluateAsync<string>(
+            @"a => { const r = a.getBoundingClientRect();
+                     return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2).tagName; }");
 
     private async Task OpenAsync()
     {
@@ -934,4 +1341,12 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Expect(Page.Locator("main h1")).ToContainTextAsync("Data input",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     }
+
+    private ILocator OtpCells(int example) =>
+        Page.Locator("[data-testid='ui-otp'] [data-ui-otp]").Nth(example).Locator("input[data-ui-otp-input]");
+
+    // The cells as text, an underscore for an empty one: "1 9 3 _ _ _".
+    private Task<string> OtpTextAsync(int example) =>
+        Page.Locator("[data-testid='ui-otp'] [data-ui-otp]").Nth(example).EvaluateAsync<string>(
+            "group => [...group.querySelectorAll('input[data-ui-otp-input]')].map(cell => cell.value || '_').join(' ')");
 }

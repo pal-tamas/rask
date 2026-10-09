@@ -69,7 +69,7 @@ public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMa
 
         // The two lowest in stock, in order, and nothing else: SQLite ordered and sliced them.
         Assert.Equal(["Bolt", "Cog"], Names(html));
-        Assert.Contains("4 rows", html, StringComparison.Ordinal);
+        Assert.Contains("of 4 results", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -91,9 +91,9 @@ public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMa
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        await page.On(".join button:has-text(\"2\")").Click();
+        await page.On("[data-ui-pagination] button:has-text(\"2\")").Click();
         Assert.Equal(["Bolt", "Cog"], Names(page.Html));
-        Assert.Contains("5 rows", page.Html, StringComparison.Ordinal);
+        Assert.Contains("of 5 results", page.Html, StringComparison.Ordinal);
     }
 
     // The first body cell of each row, in the order they are rendered.

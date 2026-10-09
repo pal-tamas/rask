@@ -49,6 +49,7 @@ internal static class HookBundleTag
         "data-rask-confirm-leave",
         "data-rask-persist", "data-rask-uncheck-on-navigate",
         "data-rask-carousel", "data-rask-carousel-controls",
+        "data-rask-scroll-to",
     ];
 
     // An attribute follows a space. The search finds where one of the names STARTS; whether it is that name and
@@ -93,8 +94,9 @@ internal static class HookBundleTag
             var name = length < 0 ? rest : rest[..length];
             html = rest[name.Length..];
 
-            // A role asks for a hook only when it is the switch role, which Enter toggles.
-            if (Names.Contains(name) && (!name.SequenceEqual("role") || html.StartsWith("=\"switch\"", StringComparison.Ordinal)))
+            // A role asks for a hook only when it is the switch role, which Enter toggles, or a tablist,
+            // whose tabs the arrow keys walk.
+            if (Names.Contains(name) && (!name.SequenceEqual("role") || IsHookedRole(html)))
             {
                 return true;
             }
@@ -102,6 +104,9 @@ internal static class HookBundleTag
 
         return false;
     }
+
+    private static bool IsHookedRole(ReadOnlySpan<char> afterName) =>
+        afterName.StartsWith("=\"switch\"", StringComparison.Ordinal) || afterName.StartsWith("=\"tablist\"", StringComparison.Ordinal);
 
     private static readonly SearchValues<char> NameCharacters = SearchValues.Create("abcdefghijklmnopqrstuvwxyz-");
 }

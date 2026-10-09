@@ -47,7 +47,7 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
     // place; a string is an ordinary link, and gets neither the path base nor the runtime's interception.
     public static TheoryData<string> LinkingComponents => [
         "Ui.Stat", "Ui.NavbarItem", "Ui.NavlistItem", "Ui.Brand", "Ui.Avatar", "Ui.BreadcrumbsItem",
-        "Ui.SidebarItem", "Ui.SidebarBrand", "Ui.MenuItem"
+        "Ui.SidebarItem", "Ui.SidebarBrand", "Ui.MenuItem", "Ui.Pagination"
     ];
 
     [Theory]
@@ -91,6 +91,7 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
         "Ui.SidebarItem" => Ui.SidebarItem.Href(href)["Status"].ToHtml(),
         "Ui.SidebarBrand" => Ui.SidebarBrand.Name("Status").Href(href).ToHtml(),
         "Ui.MenuItem" => Ui.MenuItem.Href(href)["Status"].ToHtml(),
+        "Ui.Pagination" => Ui.Pagination.Paginator(new UiPaginator { Page = 1, PerPage = 5, Total = 10 }).Href(_ => href).ToHtml(),
         _ => throw new ArgumentOutOfRangeException(nameof(component)),
     };
 

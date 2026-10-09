@@ -3,9 +3,18 @@
 #
 # Refreshed 2026-10-09 with typing that waits for .NET: what is typed into a field whose last value is still
 # unanswered is held and sent as one value (rask-input.ts), and a key handler hears only the keys its element
-# lists (`data-rask-keys`, rask-events.ts): rask.js 95,658 -> 96,096 and rask.wasm.js 84,514 -> 84,948, +438 and
+# lists (`data-rask-keys`, rask-events.ts): rask.js 95,683 -> 96,121 and rask.wasm.js 84,539 -> 84,973, +438 and
 # +434. `data-rask-clear-keys`, the key that empties a field in the browser, is a hook: rask-hooks.js
-# 39,103 -> 39,281 (+178).
+# 40,106 -> 40,284 (+178).
+#
+# Refreshed 2026-10-09 with the tablist's arrow keys (rask-tabs.ts, Flux's tabs — a hook module like the others,
+# so a page without a tablist does not download it): rask-hooks.js 39,346 -> 40,106 (+760). The loader's role
+# selector learned `[role=tablist]` beside `input[role=switch]`: rask.js 95,668 -> 95,683 and rask.wasm.js
+# 84,524 -> 84,539, +15 bytes each.
+#
+# Refreshed 2026-10-09 with the pager's scroll hook beside the leave dialog (rask-scroll.ts, data-rask-scroll-to — a
+# hook, so it is in rask-hooks.js; its name in the loader's attribute list is what the runtimes carry of it):
+# rask-hooks.js 39,103 -> 39,346 (+243), rask.js 95,658 -> 95,668 and rask.wasm.js 84,514 -> 84,524, +10 each.
 #
 # Refreshed 2026-10-09 with Ui.ConfirmLeave, the dialog a guarded form asks in: rask-hooks.js 38,621 -> 39,103
 # (+482: the dialog found and opened, the exit kept and made again on Leave, and Back / Forward moved back before
@@ -97,6 +106,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,96096
-rask.wasm.js,84948
-rask-hooks.js,39281
+rask.js,96121
+rask.wasm.js,84973
+rask-hooks.js,40284

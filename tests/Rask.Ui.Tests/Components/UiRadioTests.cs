@@ -76,14 +76,35 @@ public partial class UiRadioTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_name_forwarded_to_a_radio_is_the_one_it_posts_under()
+    public void A_name_on_a_radio_replaces_its_groups_and_is_written_once()
     {
         var html = Page.Render(() => Ui.RadioGroup.Value("editor").Label("Role")[
-            Ui.Radio.Value("editor").Label("Editor").Attributes(("name", "role"))
+            Ui.Radio.Value("editor").Label("Editor").Name("role")
         ]).Html;
 
         Assert.Equal(1, Occurrences(html, "name=\"role\""));
         Assert.DoesNotContain("name=\"f-role\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_group_s_name_is_what_every_radio_posts_under()
+    {
+        var html = Page.Render(() => Ui.RadioGroup.Value("pro").Id("f-plan").Name("plan")[
+            Ui.Radio.Value("free").Label("Free"),
+            Ui.Radio.Value("pro").Label("Pro")
+        ]).Html;
+
+        Assert.Equal(2, Occurrences(html, "name=\"plan\""));
+        Assert.DoesNotContain("name=\"f-plan\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_name_among_the_forwarded_attributes_wins_and_is_written_once()
+    {
+        var html = Ui.Radio.Value("editor").Label("Editor").Name("role").Attributes(("name", "duty")).ToHtml();
+
+        Assert.Equal(1, Occurrences(html, "name=\""));
+        Assert.Contains("name=\"duty\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
