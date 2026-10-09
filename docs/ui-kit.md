@@ -1359,7 +1359,8 @@ dialog holding a draft can throw it away when the user backs out and keep it whe
 closes it; the close button and a `Ui.ModalClose` are not dismissals. Both are the dialog's own events: a
 dismissal raises `cancel` before `close`, in every browser, and all four combinations of the two switches
 work — `Escapable(false)` alone still closes on a click outside. While a modal is open the page behind it
-does not scroll, and keeps its scrollbar's gutter so it does not shift sideways.
+does not scroll, and keeps its scrollbar's gutter — where a scrollbar is showing — so it neither shifts
+sideways nor moves from where it was scrolled to.
 
 **How wide it is.** A modal with no width of its own is as wide as what it holds, between Flux's two
 defaults — at least 20rem, at most 36rem (a side flyout: at least 25rem from `md`). A width handed to `Class`

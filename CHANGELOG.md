@@ -1281,6 +1281,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An open select, date picker, dropdown or modal no longer moves the page it is locked over.** The lock
+  (`data-rask-lock`) wrote Flux's `scrollbar-gutter: stable` on `<html>` every time, and that reserves a
+  scrollbar's 15 px whether or not a scrollbar was taking any. On a page that showed none — one too short to
+  scroll, and every page in a browser run with its scrollbars hidden, which is every headless one — the page
+  narrowed by 15 px for as long as the overlay was open: centred content slid 7.5 px, text wrapped again, and
+  scroll anchoring moved `window.scrollY` by the lines that added above the reader's place (20 px a line; 540 px
+  on a 390 px wide page of text). The width a scrollbar takes is now read as the lock goes on, and the gutter is
+  kept (`data-rask-gutter` on `<html>`) only where there was one. Measured on Flux's live dropdown, context,
+  popover, date picker and modal at 1920 × 1080 and 390 × 844: with a scrollbar showing, `scrollY`, the
+  content's `x` and its `width` are the same before, during and after, and `<html>` carries `overflow: hidden;
+  pointer-events: none; scrollbar-gutter: stable` — which is what the kit does there, unchanged. With none
+  showing Flux shifts the same 15 px; the kit no longer does. Nested locks (a select inside a flyout), a
+  `<dialog popover>` and the position after closing are held by `RuntimeHookLockTests`, in both browsers.
+
 - **Typing fast into a slow page no longer queues a render per key behind the reader — and `Ui.Autocomplete`
   no longer shows stale text, goes empty, or opens and closes for ever after it is left.** Every key typed into
   a text input over a list (`Ui.Autocomplete`, `Ui.Select.Combobox`, `Ui.Pillbox`'s input) was two round

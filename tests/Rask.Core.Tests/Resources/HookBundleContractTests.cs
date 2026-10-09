@@ -41,6 +41,7 @@ public partial class HookBundleContractTests
         ["data-rask-dismiss-after"] = "the runtime's own countdown (rask-dom.ts); a data-rask-dismiss-scope holds it",
         ["data-rask-measuring"] = "written by the stack hook",
         ["data-rask-locked"] = "written by the lock hook",
+        ["data-rask-gutter"] = "written by the lock hook",
         ["data-rask-managed"] = "the morph's own mark",
         ["data-rask-saved"] = "on a data-rask-confirm-leave",
         ["data-rask-leave"] = "the parts of Ui.ConfirmLeave's dialog, which a data-rask-confirm-leave asks in",
