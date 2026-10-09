@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Live;
+using Rask.Cqrs;
 using Rask.Data;
 using Rask.Server.Tests.Infrastructure;
 
@@ -27,12 +28,14 @@ public sealed class Terminal : Aggregate<int>
 
     public string Name { get; private set; } = "";
 
+    public const string NameTaken = "A terminal with this name already exists.";
+
     public static Terminal Named(string name) => new() { Name = name };
 
     public static void Configure(EntityTypeBuilder<Terminal> builder)
     {
         builder.ToTable("Terminals");
-        builder.HasIndex(t => new { t.Name, t.TenantId }).IsUnique();
+        builder.HasIndex(t => new { t.Name, t.TenantId }).IsUnique(NameTaken);
     }
 }
 
@@ -197,6 +200,40 @@ public sealed class HandWiredDataHostTests : IDisposable
     }
 
     [Fact]
+    public async Task A_declared_unique_rule_refuses_a_duplicate_even_when_the_table_has_no_such_index()
+    {
+        using var host = await StartAsync();
+        await using (var legacy = await host.Services.GetRequiredService<IDbContextFactory<LegacyTerminalContext>>()
+                         .CreateDbContextAsync(TestContext.Current.CancellationToken))
+        {
+            // The table somebody else created never got the index the aggregate declares.
+            await legacy.Database.ExecuteSqlAsync(
+                $"DROP INDEX \"IX_Terminals_Name_TenantId\"", TestContext.Current.CancellationToken);
+        }
+
+        var sameTenant = await GetAsync(host, "/api/terminals/add?name=Budapest", tenant: 7);
+        var otherTenant = await GetAsync(host, "/api/terminals/add?name=Budapest", tenant: 8);
+
+        // No inner exception: the database had nothing to refuse it with. The check did.
+        Assert.Equal($"refused|{Terminal.NameTaken}|Name|True", sameTenant);
+        Assert.Equal("saved", otherTenant);
+    }
+
+    [Fact]
+    public async Task The_check_runs_after_the_tenant_is_stamped_and_before_a_violation_is_translated()
+    {
+        using var host = await StartAsync();
+
+        var order = host.Services.GetServices<Microsoft.EntityFrameworkCore.Diagnostics.ISaveChangesInterceptor>()
+            .Select(interceptor => interceptor.GetType().Name)
+            .ToList();
+
+        Assert.True(order.IndexOf("AuditingInterceptor") < order.IndexOf("DeclaredRuleCheckInterceptor"));
+        Assert.True(order.IndexOf("DeclaredRuleCheckInterceptor") < order.IndexOf("UniqueViolationInterceptor"));
+        Assert.Equal("UniqueViolationInterceptor", order[^1]);
+    }
+
+    [Fact]
     public void UseRaskData_without_AddRaskData_says_which_call_is_missing()
     {
         var builder = WebApplication.CreateBuilder();
@@ -242,8 +279,17 @@ public sealed class HandWiredDataHostTests : IDisposable
 
                 app.Map("/api/terminals/add", add => add.Run(static async context =>
                 {
-                    await Terminal.Named(context.Request.Query["name"]!).Save();
-                    await context.Response.WriteAsync("saved");
+                    try
+                    {
+                        await Terminal.Named(context.Request.Query["name"]!).Save();
+                        await context.Response.WriteAsync("saved");
+                    }
+                    catch (RaskValidationException refused)
+                    {
+                        var failure = refused.Failures.Single();
+                        await context.Response.WriteAsync(
+                            $"refused|{failure.Message}|{string.Join(',', failure.Fields)}|{refused.InnerException is null}");
+                    }
                 }));
                 app.Map("/api/terminals", list => list.Run(static async context =>
                     await context.Response.WriteAsync(string.Join(',', await Terminal.OrderBy(t => t.Name).Select(t => t.Name)))));
