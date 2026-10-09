@@ -138,7 +138,10 @@ internal sealed class UniqueStoreRules<[DynamicallyAccessedMembers(DataTrimming.
                 : null;
         }
 
-        return valueOf(model, property.Name) is { } value ? InPropertyType(property, value) : null;
+        // A text field nobody has typed into holds "", the entity's own default: not filled in, like a null.
+        return valueOf(model, property.Name) is { } value and not ""
+            ? InPropertyType(property, value)
+            : null;
     }
 
     // A one-value value object is its value on the form and itself in the model: the column's own converter

@@ -133,9 +133,11 @@ public sealed class StoreRulesBeforeTheSaveTests : IDisposable
         await SaveAsync(Acme, Contact.Named("Ada"));
         _queries.Count = 0;
 
-        var failures = await CheckAsync(Acme, new ContactModel { Name = null, Code = null }, null);
+        var untouched = await CheckAsync(Acme, new ContactModel(), null);
+        var emptied = await CheckAsync(Acme, new ContactModel { Name = null, Code = null }, null);
 
-        Assert.Empty(failures);
+        Assert.Empty(untouched);
+        Assert.Empty(emptied);
         Assert.Equal(0, _queries.Count);
     }
 
