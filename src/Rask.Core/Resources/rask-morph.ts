@@ -32,6 +32,10 @@ export function reviveScript(node: Node): Node {
     // claim than the check that actually guards the branch.
     const source = node as HTMLScriptElement;
 
+    // The runtime's own tag goes back as it was parsed, which is to say without running: it runs a document
+    // once, and a second copy would bind every shared listener again.
+    if (runtimeSrc !== null && srcPath(source) === runtimeSrc) return node;
+
     const s = document.createElement("script");
     for (const a of source.attributes) s.setAttribute(a.name, a.value);
     if (s.src) {
@@ -42,6 +46,27 @@ export function reviveScript(node: Node): Node {
     }
     s.text = source.textContent ?? "";
     return s;
+}
+
+// The runtime's own <script>, by its `src` without the `?v=`: a deploy changes the version, not which script
+// it is. The server writes the attribute the same way into every page, so the text is compared as written.
+let runtimeSrc: string | null = null;
+
+/**
+ * Names the runtime's own `<script>`, the one tag a morph puts back without running it.
+ *
+ * The Server host's tag is the last child of the render root, so its place among its siblings changes with
+ * the page: a navigation to a page with one top-level node more or fewer pairs it against something else,
+ * and the walk then inserts the incoming tag as a new node. Revived like any other script, that ran the whole
+ * runtime again in the same document on every such navigation: the copy declined to boot, but its shared
+ * modules had already bound their listeners, with no host behind them.
+ */
+export function keepRuntimeScript(script: HTMLScriptElement): void {
+    runtimeSrc = srcPath(script);
+}
+
+function srcPath(script: HTMLScriptElement): string {
+    return (script.getAttribute("src") || "").split("?")[0];
 }
 
 import {ignoresFormattingText, isElement, isFormattingText} from "./rask-dom-path.js";
