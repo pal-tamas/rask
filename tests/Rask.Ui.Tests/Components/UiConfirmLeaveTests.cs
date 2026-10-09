@@ -63,6 +63,18 @@ public partial class UiConfirmLeaveTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_heading_titles_the_dialog_and_the_question_becomes_the_sentence_beneath_it()
+    {
+        var html = Ui.ConfirmLeave.Heading("Unsaved changes").ToHtml();
+
+        var title = Tag(html, "<h2");
+
+        Assert.Contains(title + "Unsaved changes</h2>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-leave=\"message\"", title, StringComparison.Ordinal);
+        Assert.Matches("<p[^>]*data-rask-leave=\"message\"[^>]*data-rask-opaque[^>]*></p>", html);
+    }
+
+    [Fact]
     public void With_no_labels_the_buttons_read_Stay_and_Leave()
     {
         var html = Ui.ConfirmLeave.ToHtml();

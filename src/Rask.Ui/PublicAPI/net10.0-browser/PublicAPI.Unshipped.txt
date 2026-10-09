@@ -1263,6 +1263,8 @@ Rask.UiCommand.Shortcut.get -> string?
 Rask.UiCommand.Shortcut.set -> void
 Rask.UiCommand.UiCommand() -> void
 Rask.UiConfirmLeave
+Rask.UiConfirmLeave.Heading.get -> string?
+Rask.UiConfirmLeave.Heading.set -> void
 Rask.UiConfirmLeave.Leave.get -> string?
 Rask.UiConfirmLeave.Leave.set -> void
 Rask.UiConfirmLeave.Stay.get -> string?
@@ -4687,6 +4689,7 @@ static RaskBuilderSettersRask_Ui.get_TopStart(Rask.UiToastGroup! __b) -> Rask.Ui
 static RaskBuilderSettersRask_Ui.get_Zinc(Rask.UiTimelineIndicator! __b) -> Rask.UiTimelineIndicator!
 static RaskBuilderSettersRask_Ui.Gutter(this Rask.UiChartSvg! __b, string? value) -> Rask.UiChartSvg!
 static RaskBuilderSettersRask_Ui.Header(this Rask.UiKanbanCard! __b, Rask.Core.Component? value) -> Rask.UiKanbanCard!
+static RaskBuilderSettersRask_Ui.Heading(this Rask.UiConfirmLeave! __b, string? value) -> Rask.UiConfirmLeave!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiFileItem! __b, string? value) -> Rask.UiFileItem!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiFileUploadDropzone! __b, string? value) -> Rask.UiFileUploadDropzone!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiKanbanCard! __b, string? value) -> Rask.UiKanbanCard!
