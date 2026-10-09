@@ -9,6 +9,54 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A pick in a multiple `Ui.Select` is answered with a diff, not the whole page.** The listbox button says one
+  of three things — the placeholder, the one picked option, "N selected" — and each was a different element in
+  the same place: a `<span>`, a `<div>` holding the option, a `<div>` holding text. The live diff patches a node
+  in place only when it can tell which node stayed, so 0→1, 1→2 and 2→1 were each answered with the whole
+  document (85 KB on the reporting app's form, 30 KB on the test page) where the reply is now 1,018 / 246 / 971
+  bytes. Each of the three is keyed, as are the button, the list and the clear slot around them, the rows of
+  the list (an option without a `Key` by its place, the empty and create rows by name), a pillbox's clear button
+  and chevron, and a combobox's. The rendered elements are the ones Flux stamps, unchanged. `Clearable` on a
+  listbox writes its button after the list it is laid over, so the rows keep the handler ids they had when a
+  pick brings the button in. The same shape in `Ui.TimePicker` (placeholder against chosen time, the clear
+  button) and in the data grid's group bar (the hint against the first chip) is keyed too.
+
+- **A toast arriving or leaving is answered with a diff, not the whole page.** `Ui.Toast` drew nothing until
+  there was a toast, so its popover came and went among the layout's children — and a child that arrives before
+  a sibling is a change by position, which the live diff answers with the whole document. Every save and delete
+  that says so in a toast cost a document twice: on a one-field form 33,648 bytes arriving and 31,296 leaving in
+  the reporting app (6,127 and 3,798 on the test page), where the replies are now 2,330 and 110 bytes whatever
+  the page weighs. The host — `<div popover="manual" data-ui-toast role="status">`, or `data-ui-toast-group`
+  inside a `Ui.ToastGroup` — is on the page from the first render now, closed and empty, as Flux's `<ui-toast>`
+  is; a toast is put into it and taken out. The toasts the host draws when an app places no `Ui.Toast` do the
+  same. **What changes for a page:** there is one more element where `Ui.Toast` is written, displayed `none`
+  until a toast shows — a rule that counts children (`space-y-*`, `:last-child`) sees it, so place `Ui.Toast`
+  beside the layout's content rather than between two spaced blocks. The host is no longer keyed by its toast;
+  each toast's dialog still is, so a toast that takes another's place is a new node with its own entrance and
+  its own countdown.
+
+- **A number being typed survives a reply that is the whole page.** A field bound to a number or a date sends
+  on `change`, so while the reader is still in it the server has not heard what they typed. A reply that is a
+  diff leaves such a field alone; a reply that is the whole page carries, for every bound field, the value the
+  server knew when it rendered — and the morph wrote that over the digits being typed. The field then held what
+  it held when it was entered, so leaving it raised no `change` either: nothing was sent, and the save had no
+  number. The morph now leaves a focused change-only field alone when the render carries the value it had
+  already rendered for it (it has nothing newer than the reader); a value the server did change still wins. A
+  field that sends each keystroke was already kept while focused.
+- **A page reached by `Go()` from a handler loads under its own lifetime, not the handler's.** The documented
+  save — `await thing.Save(); Routes.ListPage().Go();` — mounted the list inside the handler's turn, where the
+  ambient cancellation (`Current.Cancellation`, what every read with no token uses) was still the SAVING
+  component's. The navigation unmounted that component, so the list's reads were cancelled under it: the page
+  stayed on its placeholder, or showed "Something went wrong" when the provider reported the cancellation as a
+  failure. A render now sets the handler's cancellation aside, so every component it mounts or updates answers
+  to its own lifetime — a child opened by a click included, on both hosts. The handler itself is unchanged:
+  code after a `Go()` that unmounted its component still finds that component's token cancelled.
+
+- **A failure from a page the visitor has left is logged, not shown.** A lifecycle hook that faulted after its
+  component was unmounted tripped the error boundary above it — which by then held the page the visitor had
+  gone to. Leaving cancels a load, and a provider may report that as a failure of its own (EF's execution
+  strategy does), so walking away from a slow page could replace the next one with an error page.
+
 - **A handler still running when a shutdown gives up on it is no longer reported as having thrown.** A
   shutdown that outlasts `ShutdownDrainTimeout` disposes the session with its handler still in flight. When
   the handler returned, the render that follows it reached for the session's disposed services, and the
@@ -20,6 +68,17 @@ them until tagged releases begin.
   then encoded, so the markup said `aria-label="&amp;laquo; Previous"` and a screen reader read out
   "&laquo; Previous". It is the character now, encoded once. `RaskString.PaginationPrevious` /
   `PaginationNext` carry it, and the kit's Hungarian says `« Előző` / `Következő »`.
+
+### Changed
+
+- **A second `.Validate(…)` adds a rule; it no longer replaces the first. Behaviour change.**
+  `Input.Bind(() => m.Name).Validate(a).Validate(b)` used to keep only `b`, silently: a control holds one
+  `Validator<T>?` and the edit context one rule per field. The step now composes them — `a` runs, then `b`
+  only if `a` let the value through, synchronous and asynchronous rules mixed in any order — on every form
+  control, the kit's and your own, and on `Form`. Two plain rules stay one plain rule, so a field with
+  nothing awaited keeps the synchronous path. RASK044 ("chain sets the same property twice") reported the
+  old shape as a mistake and no longer reports a repeated `Validate`; a chain that built without that
+  warning means what it meant. `.Validate(null)` adds nothing.
 
 ### Added
 
@@ -51,6 +110,15 @@ them until tagged releases begin.
   two simultaneous saves can both pass, and only a real index closes that. `RaskApp` and a context wired with
   the parameterless `AddRaskData<TContext>()` are unchanged.
 
+- **A reply that goes out as the whole page says why, in Development.** When the live diff cannot carry a
+  render the session answers with the whole document — tens of kilobytes where a diff is a few hundred bytes —
+  and until now only the devtools' wire tab showed that it had, never which node it gave up on. In Development
+  the `Rask.Live` logger now says, at Information: `Rask live: a reply went out as the whole page (85618 chars)
+  instead of a diff: RemoveSubtree at /1/1/0/1/0/1/1/0/0/0 is by position, replaced by <div class="truncate
+  min-w-0" …>. A child that comes and goes before its siblings, or changes element, is patched in place only
+  when it and its siblings each carry a Key…` — or that the diff was no smaller than the page, or that raw
+  markup sits at the document's own level. Nothing is formatted outside Development, and a reply that ships as a
+  diff never reaches the code.
 - **A save the store refuses is shown under the field it is about.** A submit handler that throws an
   exception implementing `IFieldFailures` (new, in `Rask.Wire`) no longer fails the submit: each
   `FieldFailure`'s message appears under the bound fields it names, drawn exactly as a rule's message, and
@@ -63,6 +131,20 @@ them until tagged releases begin.
   component, so inside a component the bare name means that member and no longer your component's chain entry
   (CS1929 at each call site). Rename or delete your `PageTitle` component and state
   `protected override string? PageTitle => …` on the routed page instead.
+- **A bound field can wait: `.Blur()` and `.Debounce(300.Milliseconds)`.** A text field binds on every
+  keystroke, which is still the default. After `Bind`, `.Blur()` binds and validates on leaving the field
+  and `.Debounce(…)` once typing has paused — Livewire's `wire:model.blur` and
+  `wire:model.live.debounce.300ms` — on `Input`, `Textarea`, `Ui.Input` and `Ui.Textarea`, for any field
+  that is typed into (the steps do nothing on a checkbox, radio, file, range or colour). The pause is
+  counted in the browser, so the keystrokes before it send nothing; at the pause one message writes the
+  value and runs every rule. Enter, a press on a button, a key a handler hears, a navigation and leaving
+  the field send the typed value first, a `change` the browser fires for a value already sent is not sent
+  twice, and no pause is counted while a character is being composed. A message under a waiting field goes
+  at the first keystroke of the correction rather than at the next pause, the unsaved-changes guard still
+  counts that first keystroke, and a render that lands while a `.Blur()` field is being typed into leaves
+  its text alone. Three attributes carry it (`data-rask-debounce`, `data-rask-bind-on`,
+  `data-rask-on-edit`; `docs/js-interop-runtime.md`), read by the core runtime: `rask.js` and `rask.wasm.js`
+  grow by 1,059 and 1,057 bytes (97,409 and 86,167).
 
 - **A page declares its title, and its layout shows it in the first HTML (#1239).** A routed page overrides
   `protected override string? PageTitle => _relation is { } r ? $"Edit {r.Name}" : null;`, and the layout around

@@ -40,7 +40,8 @@ internal sealed class LiveServerHost : IAsyncDisposable
     /// <summary>How many WebSocket upgrades a browser has asked for.</summary>
     public int WebSocketAttempts => Volatile.Read(ref _webSocketAttempts);
 
-    public static async Task<LiveServerHost> StartAsync<TApp>(bool blockWebSockets, bool staticFiles = false)
+    public static async Task<LiveServerHost> StartAsync<TApp>(
+        bool blockWebSockets, bool staticFiles = false, Action<Rask.Core.Live.RaskLiveOptions>? live = null)
         where TApp : Component
     {
         // The wwwroot the build copied beside the tests: what a web project serves from its own folder.
@@ -52,7 +53,7 @@ internal sealed class LiveServerHost : IAsyncDisposable
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
         builder.Services.AddRouting();
-        builder.Services.AddRask(configureServer: o => o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200));
+        builder.Services.AddRask(live, o => o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200));
 
         var app = builder.Build();
         var host = new LiveServerHost(app);

@@ -48,7 +48,8 @@ You declare those five properties (plus your own display props), implement `Rend
 emits a **chain** whose entry step chooses the mode:
 
 - **bound** — `MyControl.Bind(() => model.Field)`, where `.Validate(…)` takes either rule shape with no
-  cast;
+  cast, and a second `.Validate(…)` adds a rule after the first rather than replacing it (the step
+  composes them; your `Validate` property still holds one `Validator<T>`);
 - **controlled** — `MyControl.Value(v).OnChange(…)`, or `MyControl.Of<T>()` when there is no value yet.
 
 Either opening hands back the control itself (`MyControl<T>`), so every later step is an ordinary setter
@@ -201,6 +202,12 @@ re-implementing it. Call them **through the interface** (`((IFormControl<T>)this
 
 `RegisterValidator` is safe (and required) to call **every render** — passing the collapsed validator each
 time also clears a stale rule when the consumer drops `Validate`.
+
+**`.Blur()` and `.Debounce(…)` are not part of `IFormControl<T>`.** They belong to a field that is typed
+into, so they are properties of `Input<T>` and `Textarea<T>` (and of `Ui.Input` / `Ui.Textarea`, which
+forward them); `Ui.Slider.Bind(…).Blur()` does not compile. A control of yours that wraps a core `Input`
+offers them by declaring `bool? Blur` and `TimeSpan? Debounce` and passing both on —
+`Input.Bind(bind).Validate(Validate).Blur(Blur).Debounce(Debounce)` — as the kit's input does.
 
 ---
 

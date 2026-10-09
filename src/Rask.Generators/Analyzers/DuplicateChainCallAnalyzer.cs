@@ -79,6 +79,7 @@ public sealed class DuplicateChainCallAnalyzer : DiagnosticAnalyzer
             // A step or setter takes the component and hands it back; anything else in the chain — the
             // children indexer, a cast, the entry itself — is not a write and does not count.
             if ((current.Instance is not null || current.TargetMethod.IsExtensionMethod)
+                && !AddsARule(current.TargetMethod)
                 && !seen.Add(current.TargetMethod.Name))
             {
                 duplicates.Add(current.TargetMethod.Name);
@@ -89,6 +90,33 @@ public sealed class DuplicateChainCallAnalyzer : DiagnosticAnalyzer
         {
             context.ReportDiagnostic(Diagnostic.Create(Rask044, operation.Syntax.GetLocation(), name));
         }
+    }
+
+    // `.Validate(a).Validate(b)` is the one step that adds to what the chain wrote instead of replacing it:
+    // a runs, then b if a let the value through. Told by what the step takes — the rule's carrier, or one of
+    // the two delegate shapes the carrier holds — so a control's own Validate is covered with the built-ins.
+    private static bool AddsARule(IMethodSymbol step)
+    {
+        if (step.Parameters.Length == 0)
+        {
+            return false;
+        }
+
+        var taken = step.Parameters[step.Parameters.Length - 1].Type;
+        if (taken is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable)
+        {
+            taken = nullable.TypeArguments[0];
+        }
+
+        var home = taken.ContainingNamespace?.ToDisplayString();
+
+        return taken.MetadataName switch
+        {
+            "Validator`1" => string.Equals(home, "Rask.Core", StringComparison.Ordinal),
+            "Validate`1" => string.Equals(home, "Rask.Core.Forms", StringComparison.Ordinal),
+            "Func`2" => string.Equals(step.Name, "Validate", StringComparison.Ordinal),
+            _ => false,
+        };
     }
 
     // The next link DOWN the chain: a setter's receiver is the invocation that produced it, whether it

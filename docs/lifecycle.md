@@ -298,6 +298,15 @@ The framework cancels the token **before** disposing the subtree, so awaits unwi
 before `Dispose` runs and the unmount hooks fire. Cooperation is required: the framework only *signals* the token — it
 doesn't abort blocking calls. Thread the token through anything you want cancelled.
 
+**Each component answers to its own lifetime, whoever caused it to mount.** A call that passes no token —
+`await Product.Count()`, `Cache.Remember(…)` — is cancelled with the work in progress: in `OnMount` and
+`OnUpdated` that is the hook's own component, in an event handler the component the handler belongs to. A page
+reached by `Go()` from a handler mounts during that handler's turn and still loads under its own lifetime, not
+under the saving page's, which the navigation has just ended. The handler keeps its own component's: code after a
+`Go()` that unmounted it finds the token cancelled, so finish the work before navigating. Leaving a page while its
+load is in flight shows nothing — the cancellation is silent, and a failure a data provider raises because of it
+is logged, never displayed on the page the visitor went to.
+
 Mount the probe to start a 2.5-second `Task.Delay` inside `OnMount`; click **Unmount** before it settles to
 cancel — the probe records what happened into the log:
 

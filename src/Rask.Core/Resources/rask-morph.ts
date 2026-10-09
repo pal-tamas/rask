@@ -555,6 +555,12 @@ export function morph(fromNode: Node, toNode: Node): void {
     const from = fromNode as Element;
     const to = toNode as Element;
 
+    // Read before the attributes below are brought up to date: what the server had last rendered for a field
+    // is how a render that knows nothing new about it is told from one that does (see the value sync below).
+    // A textarea's is its text, as the sync reads the new one.
+    const valueBefore = from.tagName === "INPUT" ? from.getAttribute("value")
+        : from.tagName === "TEXTAREA" ? from.getAttribute("value") ?? from.textContent : null;
+
     const fa = from.attributes, ta = to.attributes;
     // Reverse walk: removeAttribute mutates the live `fa` NamedNodeMap, so iterate
     // by index from the end to keep the unvisited slots stable.
@@ -583,7 +589,10 @@ export function morph(fromNode: Node, toNode: Node): void {
         // radio) commit at change time; the rendered value is canonical and must
         // win, otherwise Chromium leaves a focused date input's dirty value flag
         // stale and the first picker change appears to be dropped.
-        const streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input");
+        // A field bound on blur (data-rask-bind-on) streams nothing and is typed into all the same: the
+        // rendered value is the model's, which has not heard a letter of it yet.
+        const streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input")
+            || from.hasAttribute("data-rask-bind-on") || to.hasAttribute("data-rask-bind-on");
         if (!streaming || document.activeElement !== from) {
             let newVal = to.getAttribute("value");
             if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;
@@ -595,7 +604,16 @@ export function morph(fromNode: Node, toNode: Node): void {
             // raskShouldSuppressValue runs first so it can clear a confirmed echo even when from.value
             // already equals newVal; a still-pending user edit (incoming !== the committed value) is
             // left untouched.
-            if (newVal !== null && !raskShouldSuppressValue(from, newVal) && fromField.value !== newVal) {
+            //
+            // WHAT THE READER IS TYPING IS NOT THE RENDER'S TO TAKE BACK. A change-only field says nothing until
+            // it is left, so while it has focus the server cannot have heard what is in it. A render carrying
+            // the value it had ALREADY rendered for the field therefore knows nothing newer than the reader does
+            // — every whole-page reply is one, for every field the event behind it did not touch — and writing
+            // that value back wipes the digits being typed. It also leaves the field holding what it held when
+            // it was entered, so leaving it raises no `change`: nothing is ever sent. A value the server DID
+            // change (newVal !== valueBefore) still wins, as before.
+            const untold = document.activeElement === from && newVal === valueBefore;
+            if (newVal !== null && !raskShouldSuppressValue(from, newVal) && !untold && fromField.value !== newVal) {
                 fromField.value = newVal;
             }
             // raskShouldSuppressChecked runs first (like the value guard) so a confirmed echo can

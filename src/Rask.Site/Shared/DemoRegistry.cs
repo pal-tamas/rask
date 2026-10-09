@@ -66,6 +66,11 @@ public static partial class DemoRegistry
                 .Notes("The rules live in a value object and the field's Validate names them — required, length "
                 + "and format in one place, shared with the domain.")
                 .Result(ValueObjectValidateDemo),
+            ["validation-bind-timing"] = () => CodeSample
+                .Files(["BindTimingDemo.cs", "DestinationName.cs", "ItineraryModel.cs"])
+                .Notes("Debounce binds and validates once typing pauses, Blur on leaving the field. The second "
+                + "Validate is asked only about a value the first accepted.")
+                .Result(BindTimingDemo),
             ["validation-fields"] = () => CodeSample
                 .Files(["ValidationFieldsDemo.cs"])
                 .Notes("Also supported: DataAnnotations attributes on the model, with a Validation.Message under "

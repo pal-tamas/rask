@@ -416,10 +416,13 @@ public class BuilderSetterEmissionTests
         // itself, and one per shape a rule can take. Both shapes are asserted, because a step that
         // emitted only the synchronous one would compile, pass every other test, and simply have no way
         // to say `.Validate(async v => …)`.
+        //
+        // And each ADDS to the rule the chain already wrote (BuilderRuntime.Then) where every other step
+        // replaces: `.Validate(a).Validate(b)` is a, then b.
         Assert.Contains(
             "Validate(this global::Demo.Widget __b, "
             + "global::Rask.Core.Validator<int>? value) "
-            + "{ var __c = __b; __c.Validate = value; "
+            + "{ var __c = __b; __c.Validate = global::Rask.Core.BuilderRuntime.Then<int>(__c.Validate, value); "
             + "return __b; }",
             output,
             StringComparison.Ordinal);
@@ -429,7 +432,8 @@ public class BuilderSetterEmissionTests
                 "Validate(this global::Demo.Widget __b, "
                 + shape + "? value) "
                 + "{ var __c = __b; global::Rask.Core.BuilderRuntime.MarkCallbacks(__c); "
-                + "__c.Validate = value is null ? null : new global::Rask.Core.Validator<int>(value); "
+                + "__c.Validate = global::Rask.Core.BuilderRuntime.Then<int>(__c.Validate, "
+                + "value is null ? null : new global::Rask.Core.Validator<int>(value)); "
                 + "return __b; }",
                 output,
                 StringComparison.Ordinal);
