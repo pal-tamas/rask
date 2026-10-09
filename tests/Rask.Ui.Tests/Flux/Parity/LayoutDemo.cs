@@ -26,7 +26,9 @@ internal sealed partial class LayoutDemo : global::Rask.Core.RaskMarkup
         + ".dark .dark\\:bg-zinc-900,.dark.dark\\:bg-zinc-900{background-color:oklch(21% .006 285.885)}"
         + ".dark.dark\\:bg-zinc-800{background-color:oklch(27.4% .006 286.033)}"
         + ".border-r{border-right-width:1px}.border-b{border-bottom-width:1px}"
-        + ".border-zinc-200{border-color:oklch(92% .004 286.32)}.dark .dark\\:border-zinc-700{border-color:oklch(37% .013 285.805)}"
+        // The edge is the sidebar's and the header's, for the same reason: the kit's menu says `border-zinc-200`
+        // with a `dark:` of its own, and a group's menu in the rail was edged in the light colour in dark.
+        + ":where([data-ui-sidebar],[data-ui-header]).border-zinc-200{border-color:oklch(92% .004 286.32)}.dark .dark\\:border-zinc-700{border-color:oklch(37% .013 285.805)}"
         + ".block\\!{display:block!important}.w-full{width:100%}"
         + "@media (min-width:64rem){.lg\\:hidden{display:none!important}.lg\\:ms-0{margin-inline-start:0}.lg\\:mt-0{margin-top:0}"
         + ".lg\\:bg-zinc-50{background-color:oklch(98.5% 0 0)}"

@@ -30,13 +30,14 @@ const sides = {
 const browser = await chromium().launch();
 let failed = 0;
 
-// Every popover showing: its words, its box and its ground. One that is open and not drawn has no box.
+// Every popover showing: its words, its box, its ground and its edge. One that is open and not drawn has no box.
 const showing = page => page.evaluate(() => [...document.querySelectorAll('[popover]')].filter(p => p.matches(':popover-open')).map(p => {
   const box = p.getBoundingClientRect();
   const style = getComputedStyle(p);
   const drawn = style.display !== 'none';
   return [p.getAttribute('role') ?? 'menu', drawn ? [box.x, box.y, box.width, box.height].map(Math.round).join(',') : 'not drawn',
-    drawn ? `${style.backgroundColor} ${style.color}` : ''].join(' ').replaceAll(' none)', ' 0)');
+    // The colour of an edge 0px wide is nobody's: not said.
+    drawn ? `${style.backgroundColor} ${style.color} ${style.borderTopWidth}${style.borderTopWidth === '0px' ? '' : ` ${style.borderTopColor}`}` : ''].join(' ').replaceAll(' none)', ' 0)');
 }).sort());
 
 const look = (page, selector, index = 0) => page.locator(selector).nth(index).evaluate(node => {
