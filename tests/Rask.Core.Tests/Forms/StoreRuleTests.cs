@@ -175,6 +175,58 @@ public partial class StoreRuleTests : global::Rask.Core.RaskMarkup
         Assert.True(form.IsInvalid(new FieldIdentifier(trip, "To")));
     }
 
+    // Core's own controls say so themselves: no kit component is on this page.
+    [Fact]
+    public async Task A_plain_bound_input_is_aria_invalid_while_it_holds_a_message_or_is_only_marked()
+    {
+        var trip = new Trip();
+        trip.Store.Answer = (_, _) => [new FieldFailure(Booked, ["Driver"], ["From", "To"])];
+        var (page, _) = Filled(trip);
+        var before = page.FindAll("[aria-invalid]").Count;
+
+        await page.On("#to").Change("2026-11-02");
+        var held = page.FindAll("input[aria-invalid=\"true\"]").Select(input => input.Id).ToArray();
+        await page.On("#from").Raise("edit", """{"type":"edit"}""");
+
+        Assert.Equal(0, before);
+        Assert.Equal(["driver", "from", "to"], held);
+        Assert.Empty(page.FindAll("[aria-invalid]"));
+    }
+
+    [Fact]
+    public async Task A_plain_bound_select_and_textarea_are_aria_invalid_while_their_rule_fails_and_no_longer_after()
+    {
+        var trip = new Trip();
+        var page = Page.Render(() => Form.Model(trip)[
+            Select.Bind(() => trip.Driver).Id("driver").Validate(v => v == "Bea" ? ["Not Bea."] : [])[
+                Option.Value("Ada")["Ada"], Option.Value("Bea")["Bea"]],
+            Textarea.Bind(() => trip.Name).Id("notes").Blur().Validate(AtLeastThree)
+        ]);
+
+        await page.On("#driver").Change("Bea");
+        await page.On("#notes").Change("Bu");
+        var held = page.FindAll("[aria-invalid=\"true\"]").Count;
+        await page.On("#driver").Change("Ada");
+        await page.On("#notes").Change("Buda");
+
+        Assert.Equal(2, held);
+        Assert.Empty(page.FindAll("[aria-invalid]"));
+    }
+
+    [Fact]
+    public async Task An_aria_invalid_the_author_wrote_on_a_bound_input_is_left_as_written()
+    {
+        var trip = new Trip();
+        var page = Page.Render(() => Form.Model(trip)[
+            Input.Bind(() => trip.Name).Id("name").Blur().AriaInvalid(AriaInvalid.Spelling).Validate(AtLeastThree)
+        ]);
+
+        await page.On("#name").Change("Bu");
+        await page.On("#name").Change("Buda");
+
+        Assert.True(page.Exists("#name[aria-invalid=\"spelling\"]"));
+    }
+
     [Fact]
     public async Task A_field_of_a_nested_object_and_of_a_row_is_named_by_its_path()
     {

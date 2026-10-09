@@ -21,6 +21,7 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
 
     // Set in WriteAttributes (bound/controlled); a plain select leaves _bound false and skips marking.
     private bool _bound;
+    private bool _saidInvalid;
     private string _selectedValue = "";
 
     // Non-null only for a multi-select bound to a collection, where the render has to mark every picked
@@ -203,10 +204,14 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
 
     protected override void WriteAttributes(StringBuilder sb)
     {
-        base.WriteAttributes(sb);
-
         var acc = Bind is not null ? ExpressionAccessor.Parse(Bind) : null;
         var bindCtx = acc is not null ? BindingHelpers.ResolveBindingContext(acc.Target) : null;
+        if (acc is not null)
+        {
+            SayInvalid(bindCtx, acc.Field, ref _saidInvalid);
+        }
+
+        base.WriteAttributes(sb);
         CaptureSelection(acc);
 
         var name = Name ?? acc?.PropertyName;

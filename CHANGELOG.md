@@ -61,6 +61,9 @@ them until tagged releases begin.
   typeof(Model), property => rule)` makes a field bound to that property run the rule first, on the field's
   own bind timing and on submit; the steps the field writes run after it, for a value it accepted. Neither
   kind is switched off by `RaskValidation.AutoValidate = false`; a model nobody registered is untouched.
+- **A bound `Input`, `Select` and `Textarea` say `aria-invalid="true"` themselves** while the form holds a
+  message for their field, or a failure told under another field marks it — so a form written with no kit
+  component shows a marked field too. An `aria-invalid` written on the control is left as written.
 - **A field's check stops with the field.** `EditContext.ValidateField` and `Validate` called with no token
   are now linked to `Current.Cancellation`, so an asynchronous rule in flight is cancelled when its control
   goes away or the handler times out, not only when a later edit supersedes it.

@@ -79,12 +79,16 @@ out. Every form that edits a destination's name asks the same question, the cons
 
 A model whose data layer has registered its properties' rules needs no step at all: the field runs the
 rule its property's type carries, first, and the steps written on the field run after it, only for a
-value it accepted.
+value it accepted. It runs when a written step would — whenever the field's value is written to the
+model, and on submit.
 
 ```csharp
-Ui.Input.Bind(() => _model.Name)          // DestinationName.Validate runs, on this field's own timing
+Input.Bind(() => _model.Name)             // DestinationName.Validate runs, on this field's own timing
     .Validate(NotOnTheBlocklist)          // then this, for a name the first rule accepted
 ```
+
+This belongs to the form and the bound field, so a plain `Input`, `Select` or `Textarea` has it exactly
+as `Ui.Input` does.
 
 A model written by hand names its rule from the field, as above. The registration is
 `RaskValidation.RegisterFieldRules(typeof(DestinationModel), property => …)`, made once per model type
@@ -177,11 +181,11 @@ Form.Model(_destination).OnSubmit(Save)[
 ]
 ```
 
-The store is asked when a field is **committed** — on change for a field that binds live, at the pause of
-`.Debounce(…)`, on leaving a `.Blur()` field — and once more on submit, for the whole model. It is never
-asked on a keystroke of a live field, and never about a value one of the field's own rules rejects; on
-submit it is asked only once every rule on the form has passed, so a known duplicate does not reach the
-save.
+The store is asked when a field is **committed** — its value written to the model at a moment the reader
+stopped: a change, the pause of `.Debounce(…)`, leaving a `.Blur()` field — and once more on submit, for
+the whole model. It is never asked about a value still being typed into a field that writes every
+keystroke, and never about a value one of the field's own rules rejects; on submit it is asked only once
+every rule on the form has passed, so a known duplicate does not reach the save.
 
 What it says is shown exactly as a refused save is: under each field the failure names, the `Marked`
 ones only turned invalid, gone from all of them at the first keystroke of a correction. A value the store
@@ -195,6 +199,10 @@ A store announces its rules for a model with `RaskValidation.RegisterStoreRules(
 services => rules)`, where `rules` is an `IStoreRules`: one method, given the model and the path of the
 committed field (`null` on submit), handing back `FieldFailure`s. A model no store registered is not
 asked about, and its form awaits nothing extra.
+
+None of this needs the kit. The form and its bound fields do it, a plain `Input`, `Select` or `Textarea`
+with `Validation.Message` beside it shows it, and a bound control says `aria-invalid="true"` by itself
+while its field holds a message or is marked by one told under another field.
 
 ### When the rules run
 
