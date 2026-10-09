@@ -4478,6 +4478,7 @@ const Rask.Core.Diagnostics.DevTools.PropsDescriber.MaxLength = 256 -> int
 const Rask.Core.Diagnostics.DevTools.PropsDescriber.Redacted = "••••" -> string!
 const Rask.Core.Forms.EditContext.DefaultValidatingStickyMs = 200 -> int
 const Rask.Core.Live.QuiescentRender.DefaultMaxWaves = 16 -> int
+const Rask.Core.Live.QuiescentRender.MaxRequestedWaves = 2 -> int
 const Rask.Core.ScopedAssets.ScopedAssetRegistry.HashHexLength = 12 -> int
 override Rask.Core.Authentication.AuthInstruction.Equals(object? obj) -> bool
 override Rask.Core.Authentication.AuthInstruction.GetHashCode() -> int
@@ -7174,7 +7175,7 @@ static Rask.Core.Live.PrerenderPlan.operator !=(Rask.Core.Live.PrerenderPlan? le
 static Rask.Core.Live.PrerenderPlan.operator ==(Rask.Core.Live.PrerenderPlan? left, Rask.Core.Live.PrerenderPlan? right) -> bool
 static Rask.Core.Live.PrerenderResult.operator !=(Rask.Core.Live.PrerenderResult left, Rask.Core.Live.PrerenderResult right) -> bool
 static Rask.Core.Live.PrerenderResult.operator ==(Rask.Core.Live.PrerenderResult left, Rask.Core.Live.PrerenderResult right) -> bool
-static Rask.Core.Live.QuiescentRender.Run(System.Func<bool, string!>! renderWave, System.TimeSpan budget, System.Func<bool>? isBlocked = null, int maxWaves = 16, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Core.Live.QuiescentRenderResult>!
+static Rask.Core.Live.QuiescentRender.Run(System.Func<bool, string!>! renderWave, System.TimeSpan budget, System.Func<bool>? isBlocked = null, int maxWaves = 16, System.Func<bool>? renderRequested = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Core.Live.QuiescentRenderResult>!
 static Rask.Core.Live.QuiescentRenderResult.operator !=(Rask.Core.Live.QuiescentRenderResult left, Rask.Core.Live.QuiescentRenderResult right) -> bool
 static Rask.Core.Live.QuiescentRenderResult.operator ==(Rask.Core.Live.QuiescentRenderResult left, Rask.Core.Live.QuiescentRenderResult right) -> bool
 static Rask.Core.Live.RaskPath.Normalize(string? value) -> string!

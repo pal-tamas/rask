@@ -109,8 +109,8 @@ Div[
 **A typo is a compile error.** `Strings.Greetng(...)` is CS0117 and the wrong number of arguments is
 CS1501 — at the call site, before anything runs. Nothing renders a bare key to a user.
 
-> `Text[Strings.Greeting(name)]` renders **nothing**. `Text` displays its `Value`, not its children —
-> write `P[Strings.Greeting(name)]`, a bare child, or `Text.Value(...)`.
+> A string is text wherever a child goes: `P[Strings.Greeting(name)]`, a bare child, `Text.Value(...)` and
+> `Text[Strings.Greeting(name)]` all render the same encoded words.
 
 ### Placeholders
 
