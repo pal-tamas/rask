@@ -102,6 +102,7 @@ public abstract partial class Component
     // a component that never mounted has no unmount counterpart, symmetric with Mount.
     internal Task RaiseUnmount()
     {
+        ForgetHandlerSlots();
         if (_live is not { HasInitialized: true })
         {
             return Task.CompletedTask;

@@ -52,8 +52,8 @@ public abstract partial class Component
         if (!ReferenceEquals(slotState.MintedUnder, rootState))
         {
             slotState.MintedUnder = rootState;
-            slotState.Slot0Id = null;
-            slotState.RestIds = null;
+            slotState.Slot0 = default;
+            slotState.Rest = null;
             slotState.Stamp = 0;
         }
 
@@ -63,13 +63,25 @@ public abstract partial class Component
         // its own slots.
         if (slotState.Stamp != rootState.Generation)
         {
-            slotState.Stamp = rootState.Generation;
-            slotState.LocalCount = 0;
+            BeginSlotRun(slotComponent, slotState, rootState);
         }
 
-        var id = SlotId(slotState, rootState, slotState.LocalCount++);
+        var index = slotState.LocalCount++;
+        ref var slot = ref SlotAt(slotState, index);
+        var id = slot.Id ??= MintSlotId(rootState, slotComponent, index);
+        Settle(ref slot, handler, rootState);
         map[id] = (dispatchOwner, handler);
         return id;
+    }
+
+    private static void BeginSlotRun(Component slotComponent, HandlerState slotState, HandlerState rootState)
+    {
+        slotState.Stamp = rootState.Generation;
+        slotState.LocalCount = 0;
+        if (slotState.Forgotten)
+        {
+            RememberHandlerSlots(slotComponent, slotState, rootState);
+        }
     }
 
     /// <summary>
@@ -94,45 +106,51 @@ public abstract partial class Component
     // numbers get, and only a brand-new slot past the interned table costs a one-off string.
     //
     // WITHIN one component a slot is still reused: a component that renders [Cancel, Delete] while
-    // editing and [Delete] otherwise gives Delete slot 0 — Cancel's — once editing ends, so an
-    // in-flight click on Cancel can land on Delete. That is unchanged from the page-wide counter this
-    // replaced (which reassigned far more aggressively), and HandlerFrameShape.Accepts is what narrows
-    // it: a frame can only run a handler it can actually feed. Closing it completely would mean keying
-    // slots on something stabler than emission order, which is a separate change.
+    // editing and [Delete] otherwise gives Delete slot 0 — Cancel's — once editing ends. An event says
+    // which page it was read from, and the slot remembers since when it has held the handler it holds,
+    // so a click on Cancel that arrives late finds no Cancel and runs nothing — Component.StaleEvents.
     //
-    // Slot 0 is a scalar, so the common single-handler component never allocates an array; slots 1..
+    // Slot 0 is a field, so the common single-handler component never allocates an array; slots 1..
     // share one geometrically grown array, allocated only when a second handler appears.
-    private static string SlotId(HandlerState slotState, HandlerState rootState, int slot)
+    private static ref HandlerSlot SlotAt(HandlerState slotState, int slot)
     {
         if (slot == 0)
         {
-            return slotState.Slot0Id ??= HandlerId(rootState.NextNumber++);
+            return ref slotState.Slot0;
         }
 
         var index = slot - 1;
-        var rest = slotState.RestIds;
+        var rest = slotState.Rest;
         if (rest is null || index >= rest.Length)
         {
             // Double (or jump straight to the needed size) so a component registering many handlers
-            // pays O(n) total array allocation, not O(n²). New entries default to null = unassigned.
-            var grown = new string[Math.Max(index + 1, Math.Max(2, (rest?.Length ?? 0) * 2))];
+            // pays O(n) total array allocation, not O(n²). New entries default to unassigned.
+            var grown = new HandlerSlot[Math.Max(index + 1, Math.Max(2, (rest?.Length ?? 0) * 2))];
             if (rest is { Length: > 0 })
             {
                 Array.Copy(rest, grown, rest.Length);
             }
 
-            slotState.RestIds = rest = grown;
+            slotState.Rest = rest = grown;
         }
 
-        return rest[index] ??= HandlerId(rootState.NextNumber++);
+        return ref rest[index];
+    }
+
+    // A new id, and where it lives: an event that outlived its render is traced back to its slot through this.
+    private static string MintSlotId(HandlerState rootState, Component slotComponent, int slot)
+    {
+        var id = HandlerId(rootState.NextNumber++);
+        (rootState.Slots ??= new Dictionary<string, (Component, int)>(StringComparer.Ordinal))[id] = (slotComponent, slot);
+        return id;
     }
 
     // The id already issued for a slot, or null when that slot has never been reached. Capture and
     // replay read through this so neither can mint a number as a side effect.
     private static string? IssuedSlotId(HandlerState state, int slot) => slot switch
     {
-        0 => state.Slot0Id,
-        _ when state.RestIds is { } rest && slot - 1 < rest.Length => rest[slot - 1],
+        0 => state.Slot0.Id,
+        _ when state.Rest is { } rest && slot - 1 < rest.Length => rest[slot - 1].Id,
         _ => null,
     };
 
@@ -188,7 +206,7 @@ public abstract partial class Component
         CancellationToken dispatchToken)
     {
         // Resolved before the invoke: a render the handler triggers rebuilds the handler map.
-        if (Live.Handlers is null || !Live.Handlers.TryGetValue(id, out var entry))
+        if (!TryFindHandler(id, payload, out var entry))
         {
             return await TryInvokeHandlerCoreAsync(id, payload, services, dispatchToken).ConfigureAwait(false);
         }
@@ -215,7 +233,7 @@ public abstract partial class Component
     private async ValueTask<bool> TryInvokeHandlerCoreAsync(
         string id, JsonElement payload, IServiceProvider? services, CancellationToken dispatchToken)
     {
-        if (Live.Handlers is null || !Live.Handlers.TryGetValue(id, out var entry))
+        if (!TryFindHandler(id, payload, out var entry))
         {
             return false;
         }
@@ -557,6 +575,15 @@ public abstract partial class Component
         /// <summary>A walk since the last page was sent put a different handler in a slot.</summary>
         public bool Moved;
 
+        /// <summary>
+        ///     The last <see cref="Version" /> whose walk compares closures as it registers them: an event has just
+        ///     arrived from an older page, so more are likely on their way.
+        /// </summary>
+        public int EagerThrough;
+
+        /// <summary>Every id this root has minted, and the component and slot it belongs to.</summary>
+        public Dictionary<string, (Component Component, int Slot)>? Slots;
+
         // ---- a component that renders handlers ----
 
         /// <summary>
@@ -565,6 +592,9 @@ public abstract partial class Component
         ///     different root re-mints, because ids from one root's sequence mean nothing in another's.
         /// </summary>
         public HandlerState? MintedUnder;
+
+        /// <summary>The component was unmounted, and the root no longer knows its ids — see <c>ForgetHandlerSlots</c>.</summary>
+        public bool Forgotten;
 
         /// <summary>The generation in which <see cref="LocalCount" /> was last reset.</summary>
         public long Stamp;
@@ -576,12 +606,31 @@ public abstract partial class Component
         ///     The id for slot 0 — a scalar, so the common single-handler component never allocates an
         ///     array. Minted on first use and then held for the component's lifetime.
         /// </summary>
-        public string? Slot0Id;
+        public HandlerSlot Slot0;
 
         /// <summary>
-        ///     Ids for slots 1.. (index <c>i</c> → slot <c>i+1</c>), grown geometrically and allocated
-        ///     only when a second handler appears. A null entry is a slot never yet reached.
+        ///     Slots 1.. (index <c>i</c> → slot <c>i+1</c>), grown geometrically and allocated
+        ///     only when a second handler appears. An entry with no id is a slot never yet reached.
         /// </summary>
-        public string[]? RestIds;
+        public HandlerSlot[]? Rest;
+    }
+
+    /// <summary>One of a component's handler slots: its id, and what it has held.</summary>
+    private struct HandlerSlot
+    {
+        /// <summary>Minted on first use and then held for the component's lifetime.</summary>
+        public string? Id;
+
+        /// <summary>The handler the last walk that reached this slot put in it.</summary>
+        public Delegate? Handler;
+
+        /// <summary>The handler it held before <see cref="Since" />, when that was a different one.</summary>
+        public Delegate? Before;
+
+        /// <summary>The page version from which the slot has held <see cref="Handler" />, or one the same as it.</summary>
+        public int Since;
+
+        /// <summary>The page version from which it held <see cref="Before" />.</summary>
+        public int BeforeSince;
     }
 }
