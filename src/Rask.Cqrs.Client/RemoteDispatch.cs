@@ -693,8 +693,21 @@ internal sealed class RemoteDispatch(
             }
         }
 
-        return new RemoteDispatchException(
-            $"'{contract.Name}' failed on the server: {(int)response.StatusCode} {problem.Title ?? response.ReasonPhrase}.")
+        var message = $"'{contract.Name}' failed on the server: {(int)response.StatusCode} {problem.Title ?? response.ReasonPhrase}.";
+
+        // A rejection that names fields is the one failure a form can show where it can be corrected.
+        if (problem.Errors is { Count: > 0 } rejected)
+        {
+            return new RejectedRemoteDispatchException(message, rejected)
+            {
+                MessageName = contract.Name,
+                StatusCode = (int)response.StatusCode,
+                ProblemType = problem.Type,
+                Detail = problem.Detail,
+            };
+        }
+
+        return new RemoteDispatchException(message)
         {
             MessageName = contract.Name,
             StatusCode = (int)response.StatusCode,

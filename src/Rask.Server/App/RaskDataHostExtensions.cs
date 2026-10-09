@@ -85,6 +85,10 @@ public static class RaskDataHostExtensions
         DataHostSeams.Add(services);
         services.AddRaskData<TContext>();
 
+        // This host does not create the schema, so an index the model declares may not be in the database. Every
+        // declared unique rule is therefore asked as a query before a save, and refuses it the same way.
+        services.AddDeclaredRuleChecks();
+
         services.AddDbContextFactory<TContext>((sp, options) =>
         {
             configure(sp, options);

@@ -128,13 +128,50 @@ public sealed class RemoteDispatchTests
                 "application/problem+json"),
         };
 
-        var error = await Assert.ThrowsAsync<RemoteDispatchException>(
+        var error = await Assert.ThrowsAnyAsync<RemoteDispatchException>(
             () => Dispatcher(Handler(response)).Query(new GetThing(1), TestContext.Current.CancellationToken));
 
         Assert.Equal(400, error.StatusCode);
         Assert.Null(error.ProblemType);
         Assert.Equal("name is taken", error.Detail);
         Assert.Equal(["taken"], error.Errors!["Name"]);
+    }
+
+    [Fact]
+    public async Task A_rejection_names_its_fields_so_a_form_can_place_it()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent(
+                """{"title":"Validation failed","errors":{"Year":["That invoice number is taken."],"Number":["That invoice number is taken.","Number must be positive."],"":["The request is wrong."]}}""",
+                Encoding.UTF8,
+                "application/problem+json"),
+        };
+
+        var error = await Assert.ThrowsAnyAsync<RemoteDispatchException>(
+            () => Dispatcher(Handler(response)).Query(new GetThing(1), TestContext.Current.CancellationToken));
+
+        // One failure per distinct message, over every field that carries it — the most the dictionary allows.
+        var failures = Assert.IsAssignableFrom<Rask.Wire.IFieldFailures>(error).Failures;
+        Assert.Equal(
+            [("That invoice number is taken.", "Year,Number"), ("Number must be positive.", "Number"), ("The request is wrong.", "")],
+            failures.Select(f => (f.Message, string.Join(',', f.Fields))));
+        Assert.All(failures, f => Assert.Null(f.Marked));
+        Assert.Equal(["That invoice number is taken."], error.Errors!["Year"]);
+    }
+
+    [Fact]
+    public async Task A_failure_that_names_no_field_is_not_one_a_form_would_take_for_a_rejection()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("""{"title":"Handler failed"}""", Encoding.UTF8, "application/problem+json"),
+        };
+
+        var error = await Assert.ThrowsAsync<RemoteDispatchException>(
+            () => Dispatcher(Handler(response)).Query(new GetThing(1), TestContext.Current.CancellationToken));
+
+        Assert.IsNotAssignableFrom<Rask.Wire.IFieldFailures>(error);
     }
 
     [Fact]
