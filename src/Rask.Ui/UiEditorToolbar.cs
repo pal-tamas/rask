@@ -34,10 +34,10 @@ public sealed partial class UiEditorToolbar : Component
                 + "dark:border-white/10 dark:bg-white/[6%]",
                 Class))
             .Role("toolbar")
-            .Aria("label", "Formatting");
+            .Aria("label", RaskStrings.Get(RaskString.EditorToolbar, "Formatting"));
         if (Context.Get<UiEditorScope>() is { } editor)
         {
-            bar = bar.Aria(new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Formatting", ["controls"] = editor.InputId });
+            bar = bar.Aria(new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = RaskStrings.Get(RaskString.EditorToolbar, "Formatting"), ["controls"] = editor.InputId });
         }
 
         return bar[

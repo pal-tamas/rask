@@ -213,7 +213,10 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
         var names = new Dictionary<string, string?>(field.Aria, StringComparer.Ordinal);
         if (range)
         {
-            names["valuetext"] = UiSliderScale.Text(live.Values[thumb]) + (thumb == 0 ? " start range" : " end range");
+            var value = UiSliderScale.Text(live.Values[thumb]);
+            names["valuetext"] = thumb == 0
+                ? RaskStrings.Get(RaskString.SliderRangeStart, "{0} start range", value)
+                : RaskStrings.Get(RaskString.SliderRangeEnd, "{0} end range", value);
         }
 
         if (field.LabelledBy is { } label)

@@ -7,5 +7,5 @@ public sealed partial class UiEditorOrdered : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("ordered", "Ordered list", null, UiEditorIcons.Ordered());
+        UiEditorMarkup.Toggle("ordered", RaskStrings.Get(RaskString.EditorOrdered, "Ordered list"), null, UiEditorIcons.Ordered());
 }

@@ -8,6 +8,9 @@
     <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTfm)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- Resources/RaskStrings.hu.json: the kit's own Hungarian for the fixed text it renders, registered a
+         layer under an app's catalog. Every key the kit reads has an entry (KitSpeaksHungarianTests). -->
+    <RaskStringsLibrary>true</RaskStringsLibrary>
     <IsAotCompatible Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">true</IsAotCompatible>
     <IsPackable>true</IsPackable>
     <!--

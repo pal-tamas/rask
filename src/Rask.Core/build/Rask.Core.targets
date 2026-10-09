@@ -60,6 +60,9 @@
     <!-- The language a catalog's keys are DEFINED in, and whose text is used when a translation is
          missing. Falls back to $(NeutralLanguage) and then to "en". -->
     <CompilerVisibleProperty Include="RaskNeutralLanguage"/>
+    <!-- A LIBRARY's Resources/RaskStrings.{culture}.json translates the framework texts it renders (the UI
+         kit's Hungarian) one layer under the app's own catalog, which keeps the last word. -->
+    <CompilerVisibleProperty Include="RaskStringsLibrary"/>
     <!-- The generated catalog class lands in the app's own namespace. -->
     <CompilerVisibleProperty Include="RootNamespace"/>
     <!-- The oldest browsers the app supports, `safari >= 16; firefox >= 115`: RASK098 reports a web API member MDN

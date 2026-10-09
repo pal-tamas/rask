@@ -10,10 +10,10 @@ public sealed partial class UiEditorHeading : Component
     protected override Component? Render() =>
         UiEditorMarkup.Select(
             "heading",
-            "Styles",
+            RaskStrings.Get(RaskString.EditorHeading, "Styles"),
             labelled: true,
-            ("paragraph", "Text", UiEditorIcons.Paragraph),
-            ("heading1", "Heading 1", () => UiEditorIcons.Hero(Ui.IconName.H1)),
-            ("heading2", "Heading 2", () => UiEditorIcons.Hero(Ui.IconName.H2)),
-            ("heading3", "Heading 3", () => UiEditorIcons.Hero(Ui.IconName.H3)));
+            ("paragraph", RaskStrings.Get(RaskString.EditorHeadingText, "Text"), UiEditorIcons.Paragraph),
+            ("heading1", RaskStrings.Get(RaskString.EditorHeading1, "Heading 1"), () => UiEditorIcons.Hero(Ui.IconName.H1)),
+            ("heading2", RaskStrings.Get(RaskString.EditorHeading2, "Heading 2"), () => UiEditorIcons.Hero(Ui.IconName.H2)),
+            ("heading3", RaskStrings.Get(RaskString.EditorHeading3, "Heading 3"), () => UiEditorIcons.Hero(Ui.IconName.H3)));
 }

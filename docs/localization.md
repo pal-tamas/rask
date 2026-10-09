@@ -310,16 +310,221 @@ not throw, and formats dates in English.
 
 ## Translating the framework's own text
 
-The picker chrome, the not-found page and the error page are translated the same way, with a reserved
-catalog whose keys are `RaskString` members:
+Rask draws a little text of its own — the pager's "Showing 1 to 10 of 13 results", a select's "No results
+found", a date picker's "Select a date", the names a screen reader hears for a close button. Every one of
+them is a `RaskString` key with its English beside it in the code, and is looked up in this order:
+
+1. **your app's** `Resources/RaskStrings.{culture}.json`, if it has the key
+2. **the UI kit's own** translation — `Rask.Ui` ships **Hungarian** (`hu`) beside its English
+3. the English
+
+So an app that lists `hu` in `SupportedCultures` gets a Hungarian pager, select, date picker, editor toolbar
+and data grid with no catalog of its own, and a language switch repaints them like any other text. The kit's
+translations apply only to the languages your app says it ships — an app with no `SupportedCultures` keeps
+the English whatever the server's or the browser's language is. Month and weekday names, dates and numbers
+are not in any catalog: they come from the culture.
+
+### Adding a language, or changing a word
+
+The reserved catalog is an ordinary JSON file whose keys are `RaskString` members. Write the keys you want
+and leave the rest: anything you have not translated falls through to the kit's own translation, then to
+the English.
 
 ```jsonc
-// Resources/RaskStrings.hu.json
-{ "PickerClear": "Törlés", "PickerPreviousMonth": "Előző hónap" }
+// Resources/RaskStrings.hu.json — the kit already speaks Hungarian. This overrides two of its words.
+{
+  "ConfirmLeaveStay": "Nem",
+  "ConfirmLeaveLeave": "Igen"
+}
 ```
 
-No neutral file: the framework's English lives in its own code, so anything you have not translated
-keeps it. A misspelled key is a build error listing the valid names.
+```jsonc
+// Resources/RaskStrings.de.json — a language the kit does not ship: the pager and the form controls.
+{
+  "PaginationSummary": "{0}–{1} von {2} Ergebnissen",
+  "PaginationPrevious": "« Zurück",
+  "PaginationNext": "Weiter »",
+
+  "SelectEmpty": "Keine Ergebnisse",
+  "SelectLoading": "Wird geladen…",
+  "SelectSearchPlaceholder": "Suchen…",
+  "SelectSearchClear": "Suche leeren",
+  "SelectClear": "Auswahl aufheben",
+  "SelectSelectedSuffix": "ausgewählt",
+
+  "DatePickerPlaceholder": "Datum wählen",
+  "DatePickerRangePlaceholder": "Zeitraum wählen",
+  "DatePickerConfirm": "Übernehmen",
+  "DatePickerCancel": "Abbrechen",
+  "CalendarToday": "Heute",
+  "PickerPreviousMonth": "Vorheriger Monat",
+  "PickerNextMonth": "Nächster Monat",
+
+  "TimePickerPlaceholder": "Uhrzeit wählen",
+  "PickerClear": "Löschen",
+
+  "InputClear": "Eingabe löschen",
+  "InputCopy": "In die Zwischenablage kopieren",
+  "InputTogglePassword": "Passwort ein- oder ausblenden",
+  "InputChooseFile": "Datei auswählen",
+  "InputChooseFiles": "Dateien auswählen",
+  "InputNoFile": "Keine Datei ausgewählt",
+
+  "ModalClose": "Dialog schließen"
+}
+```
+
+No neutral file: the framework's English lives in its own code. A misspelled key is a build error (RASK051)
+listing the valid names.
+
+**A text that carries values numbers them** — `{0}`, `{1}`, `{2}` — so a translation puts them in its own
+order, and may give one a .NET format: the Hungarian pager is `"{2} találatból {0}–{1}."`, and
+`"{2:N0}"` would group the total's thousands. The values are written in the visitor's culture. Asking for a
+value the text does not carry (`{3}` in the pager's summary), or naming one (`{total}`), is a build error
+too. There are no plural forms here: none of these texts changes with its number in English, and a count
+stands before a singular in Hungarian.
+
+The kit's own Hungarian is the same kind of file, `src/Rask.Ui/Resources/RaskStrings.hu.json`, compiled by
+the same generator. A component library of your own ships translations for the framework texts it draws the
+same way — the file, and `<RaskStringsLibrary>true</RaskStringsLibrary>` in its project, which registers
+them a layer under the app's catalog instead of in its place.
+
+### Every key
+
+What each key says in English, and where it is drawn. A component's own props still win where it has them —
+`Ui.Select.Empty("…")`, `Ui.DatePicker.Placeholder("…")`, `Ui.ConfirmLeave.Stay("…")`: the catalog is what
+they say when you set nothing.
+
+| Key | Where | English |
+|---|---|---|
+| `PickerPreviousMonth` | Calendar | `Previous month` |
+| `PickerNextMonth` | Calendar | `Next month` |
+| `PickerHour` | Time picker | `Hour` |
+| `PickerMinute` | Time picker | `Minute` |
+| `PickerSecond` | — (nothing reads it today) | `Second` |
+| `PickerClear` | Time picker | `Clear` |
+| `NotFoundTitle` | Not-found page | `Page not found` |
+| `NotFoundBody` | Not-found page | `No route is registered for ` |
+| `NotFoundBackHome` | Not-found page | `Back to home` |
+| `ErrorHeading` | Error page | `Something went wrong` |
+| `ErrorTryAgain` | Error page | `Try again` |
+| `ErrorReload` | Error page | `Reload this page` |
+| `PaginationSummary` | Pagination | `Showing {0} to {1} of {2} results` |
+| `PaginationPrevious` | Pagination | `« Previous` |
+| `PaginationNext` | Pagination | `Next »` |
+| `CalendarToday` | Calendar | `Today` |
+| `DatePickerPlaceholder` | Date picker | `Select a date` |
+| `DatePickerRangePlaceholder` | Date picker | `Select a date range` |
+| `DatePickerConfirm` | Date picker | `Select date` |
+| `DatePickerCancel` | Date picker | `Cancel` |
+| `DatePickerMonth` | Date picker | `Month` |
+| `DatePickerDay` | Date picker | `Day` |
+| `DatePickerYear` | Date picker | `Year` |
+| `DatePickerMonthPlaceholder` | Date picker | `mm` |
+| `DatePickerDayPlaceholder` | Date picker | `dd` |
+| `DatePickerYearPlaceholder` | Date picker | `yyyy` |
+| `DateRangePresetToday` | Date picker | `Today` |
+| `DateRangePresetYesterday` | Date picker | `Yesterday` |
+| `DateRangePresetThisWeek` | Date picker | `This Week` |
+| `DateRangePresetLastWeek` | Date picker | `Last Week` |
+| `DateRangePresetLast7Days` | Date picker | `Last 7 Days` |
+| `DateRangePresetThisMonth` | Date picker | `This Month` |
+| `DateRangePresetLastMonth` | Date picker | `Last Month` |
+| `DateRangePresetThisQuarter` | Date picker | `This Quarter` |
+| `DateRangePresetLastQuarter` | Date picker | `Last Quarter` |
+| `DateRangePresetThisYear` | Date picker | `This Year` |
+| `DateRangePresetLastYear` | Date picker | `Last Year` |
+| `DateRangePresetLast14Days` | Date picker | `Last 14 Days` |
+| `DateRangePresetLast30Days` | Date picker | `Last 30 Days` |
+| `DateRangePresetLast3Months` | Date picker | `Last 3 Months` |
+| `DateRangePresetLast6Months` | Date picker | `Last 6 Months` |
+| `DateRangePresetYearToDate` | Date picker | `Year to Date` |
+| `DateRangePresetTomorrow` | Date picker | `Tomorrow` |
+| `DateRangePresetNextWeek` | Date picker | `Next Week` |
+| `DateRangePresetNext7Days` | Date picker | `Next 7 Days` |
+| `DateRangePresetNextMonth` | Date picker | `Next Month` |
+| `DateRangePresetNextQuarter` | Date picker | `Next Quarter` |
+| `DateRangePresetNextYear` | Date picker | `Next Year` |
+| `DateRangePresetNext14Days` | Date picker | `Next 14 Days` |
+| `DateRangePresetNext30Days` | Date picker | `Next 30 Days` |
+| `DateRangePresetNext3Months` | Date picker | `Next 3 Months` |
+| `DateRangePresetNext6Months` | Date picker | `Next 6 Months` |
+| `DateRangePresetAllTime` | Date picker | `All Time` |
+| `DateRangePresetCustom` | Date picker | `Custom` |
+| `SelectLoading` | Select | `Loading...` |
+| `SelectEmpty` | Select | `No results found` |
+| `SelectSearchPlaceholder` | Select | `Search...` |
+| `SelectSearchClear` | Select | `Clear command input` |
+| `SelectClear` | Select | `Clear selected` |
+| `SelectSelectedSuffix` | Select | `selected` |
+| `TimePickerPlaceholder` | Time picker | `Select a time` |
+| `TimePickerMeridiem` | Time picker | `AM/PM` |
+| `TimePickerHourPlaceholder` | Time picker | `hh` |
+| `TimePickerMinutePlaceholder` | Time picker | `mm` |
+| `EditorLabel` | Editor | `Rich text editor` |
+| `EditorToolbar` | Editor | `Formatting` |
+| `EditorBold` | Editor | `Bold` |
+| `EditorItalic` | Editor | `Italic` |
+| `EditorStrike` | Editor | `Strikethrough` |
+| `EditorUnderline` | Editor | `Underline` |
+| `EditorBullet` | Editor | `Bullet list` |
+| `EditorOrdered` | Editor | `Ordered list` |
+| `EditorBlockquote` | Editor | `Blockquote` |
+| `EditorCode` | Editor | `Code` |
+| `EditorHighlight` | Editor | `Highlight` |
+| `EditorSubscript` | Editor | `Subscript` |
+| `EditorSuperscript` | Editor | `Superscript` |
+| `EditorUndo` | Editor | `Undo` |
+| `EditorRedo` | Editor | `Redo` |
+| `EditorLink` | Editor | `Insert link` |
+| `EditorUnlink` | Editor | `Unlink` |
+| `EditorAlign` | Editor | `Align` |
+| `EditorAlignLeft` | Editor | `Left` |
+| `EditorAlignCenter` | Editor | `Center` |
+| `EditorAlignRight` | Editor | `Right` |
+| `EditorHeading` | Editor | `Styles` |
+| `EditorHeadingText` | Editor | `Text` |
+| `EditorHeading1` | Editor | `Heading 1` |
+| `EditorHeading2` | Editor | `Heading 2` |
+| `EditorHeading3` | Editor | `Heading 3` |
+| `InputClear` | Input | `Clear input` |
+| `InputCopy` | Input | `Copy to clipboard` |
+| `InputTogglePassword` | Input | `Toggle password visibility` |
+| `InputChooseFile` | Input | `Choose file` |
+| `InputChooseFiles` | Input | `Choose files` |
+| `InputNoFile` | Input | `No file chosen` |
+| `ModalClose` | Modal | `Close modal` |
+| `ConfirmLeaveStay` | Confirm leave | `Stay` |
+| `ConfirmLeaveLeave` | Confirm leave | `Leave` |
+| `OtpCharacter` | OTP input | `Character {0} of {1}` |
+| `SliderRangeStart` | Slider | `{0} start range` |
+| `SliderRangeEnd` | Slider | `{0} end range` |
+| `RatingNone` | Rating | `No rating` |
+| `RatingValue` | Rating | `{0} of {1}` |
+| `SidebarToggle` | Sidebar | `Toggle sidebar` |
+| `SidebarSearch` | Sidebar | `Search` |
+| `CommandEmpty` | Command | `No results` |
+| `DataGridColumns` | Data grid | `Columns` |
+| `DataGridMoveUp` | Data grid | `Move up` |
+| `DataGridMoveDown` | Data grid | `Move down` |
+| `DataGridGrouping` | Data grid | `Grouping` |
+| `DataGridGroupingHint` | Data grid | `Group by a column with its header button.` |
+| `DataGridMoveGroupLeft` | Data grid | `Move group left` |
+| `DataGridMoveGroupRight` | Data grid | `Move group right` |
+| `DataGridUngroup` | Data grid | `Stop grouping by {0}` |
+| `DataGridGroupBy` | Data grid | `Group by {0}` |
+| `DataGridExpandGroup` | Data grid | `Expand group` |
+| `DataGridCollapseGroup` | Data grid | `Collapse group` |
+| `DataGridExpand` | Data grid | `Expand` |
+| `DataGridSelectAll` | Data grid | `Select all rows on this page` |
+| `DataGridEmpty` | Data grid | `Nothing to show.` |
+| `DataGridSelectRow` | Data grid | `Select row` |
+| `DataGridExpandRow` | Data grid | `Expand row` |
+| `DataGridCollapseRow` | Data grid | `Collapse row` |
+| `DiffHandle` | Diff | `Compare` |
+| `FilterReset` | Filter | `All` |
+| `FieldValidating` | Form field | `Checking…` |
+| `FileItemRemove` | File upload | `Remove file` |
 
 ## Docker
 

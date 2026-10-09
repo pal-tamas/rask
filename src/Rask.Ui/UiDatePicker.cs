@@ -18,9 +18,9 @@ public sealed partial class UiDatePicker : UiDatePickerControl<DateOnly>
 {
     private protected override Ui.DatePickerMode Bound => Ui.DatePickerMode.Single;
 
-    private protected override string DefaultPlaceholder => "Select a date";
+    private protected override string DefaultPlaceholder => RaskStrings.Get(RaskString.DatePickerPlaceholder, "Select a date");
 
-    private protected override string ConfirmLabel => "Select date";
+    private protected override string ConfirmLabel => RaskStrings.Get(RaskString.DatePickerConfirm, "Select date");
 
     private protected override UiCalendarPicks Picks(DateOnly current, Func<DateOnly, Task> choose) =>
         new UiCalendarSinglePick(current, choose);

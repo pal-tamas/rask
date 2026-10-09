@@ -42,7 +42,7 @@ public sealed partial class UiSidebarSearch : Component
                 .Placeholder(Placeholder)
                 .OnInput(OnInput)
                 .Class(Class)
-                .Attributes(("data-ui-sidebar-search", null), ("aria-label", Placeholder ?? "Search"));
+                .Attributes(("data-ui-sidebar-search", null), ("aria-label", Placeholder ?? RaskStrings.Get(RaskString.SidebarSearch, "Search")));
         }
 
         var button = Button.Type(ButtonType.Button).Class(UiClass.Compose(Root, Class))

@@ -7,5 +7,5 @@ public sealed partial class UiEditorHighlight : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("highlight", "Highlight", null, UiEditorIcons.Highlight());
+        UiEditorMarkup.Toggle("highlight", RaskStrings.Get(RaskString.EditorHighlight, "Highlight"), null, UiEditorIcons.Highlight());
 }
