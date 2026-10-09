@@ -71,16 +71,9 @@ internal static class PageRender
             }
         }
 
-        if (navigator.TryConsumeHistory(out var redirectUrl, out _))
+        if (RedirectOf(navigator, html) is { } redirect)
         {
-            return new PageRenderResult(
-                PageRenderKind.Redirect,
-                html,
-                // Sanitized here even though NavigateTo takes a local path by contract: this value reaches
-                // a Location header, and a header is exactly where an unchecked path becomes an open
-                // redirect.
-                LiveOptions.PathBase + LocalUrl.Sanitize(redirectUrl),
-                StatusCodes.Status302Found);
+            return redirect;
         }
 
         var notFoundMounted = input.NotFoundPage is { } notFound && session.LastRenderMounted(notFound);
@@ -90,6 +83,32 @@ internal static class PageRender
             html,
             RedirectLocation: null,
             PageStatus.Of(session.LastRenderFaulted, pageResponse.Status, notFoundMounted));
+    }
+
+    // Where the page sent the reader as it rendered, as the response that takes them there; null when it stayed.
+    private static PageRenderResult? RedirectOf(Navigator navigator, string html)
+    {
+        // A page of this site outside the app (Go.Out): the address as the app wrote it, with no path base in
+        // front. It was checked for being local where it was given, and again here, where it becomes a header.
+        if (navigator.TryConsumeExit(out var exit))
+        {
+            return new PageRenderResult(
+                PageRenderKind.Redirect, html, LocalUrl.Sanitize(exit), StatusCodes.Status302Found);
+        }
+
+        if (!navigator.TryConsumeHistory(out var redirectUrl, out _))
+        {
+            return null;
+        }
+
+        return new PageRenderResult(
+            PageRenderKind.Redirect,
+            html,
+            // Sanitized here even though NavigateTo takes a local path by contract: this value reaches
+            // a Location header, and a header is exactly where an unchecked path becomes an open
+            // redirect.
+            LiveOptions.PathBase + LocalUrl.Sanitize(redirectUrl),
+            StatusCodes.Status302Found);
     }
 
     // Identity, route and language, all BEFORE the first wave — so the page is built for this visitor

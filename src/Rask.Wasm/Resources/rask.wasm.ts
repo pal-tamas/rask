@@ -372,6 +372,19 @@ export function pushHistory(url: string, replace: boolean): void {
     else window.history.pushState({rask: true}, "", target);
 }
 
+// Go.Out: a page of this site the app does not render, loaded as a page. Its address is used as written, and only
+// ever on this origin. The app sent the reader there, as a handler's Go.To does, so the unsaved-changes guard is
+// not asked.
+export function leaveTo(url: string): void {
+    const target = new URL(url, location.origin);
+    if (target.origin !== location.origin) return;
+    // A form that no longer says it is guarded guards nothing (rask-leave.ts).
+    document.querySelectorAll("form[data-rask-confirm-leave]").forEach(function (form) {
+        form.removeAttribute("data-rask-confirm-leave");
+    });
+    location.assign(target.href);
+}
+
 function inRoot(el: Node | null): boolean {
     return !!root && !!el && root.contains(el);
 }
