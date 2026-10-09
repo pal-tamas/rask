@@ -304,6 +304,11 @@ state: a synchronous one returns before there is a frame to paint.
 
 <!-- demo:form-submit-state -->
 
+A handler that throws leaves the exception on the same value's `Error` for the page to show
+(`f => [ f.Error is null ? null : … ]`). One that names the fields
+it is about — the store refusing a duplicate — is shown [under those fields](forms-validation.md#the-database-said-no)
+and is not an error at all.
+
 The fixed-list forms are untouched and still bind exactly as before:
 
 ```csharp

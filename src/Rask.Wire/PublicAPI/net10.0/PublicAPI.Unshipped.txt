@@ -3,6 +3,9 @@ override Rask.Length.GetHashCode() -> int
 override Rask.Length.ToString() -> string!
 override Rask.Percentage.GetHashCode() -> int
 override Rask.Percentage.ToString() -> string!
+override Rask.Wire.FieldFailure.Equals(object? obj) -> bool
+override Rask.Wire.FieldFailure.GetHashCode() -> int
+override Rask.Wire.FieldFailure.ToString() -> string!
 Rask.Length
 Rask.Length.Equals(Rask.Length other) -> bool
 Rask.Length.Length() -> void
@@ -93,6 +96,19 @@ Rask.Wire.CurrentUser.Id.get -> string?
 Rask.Wire.CurrentUser.Id.init -> void
 Rask.Wire.CurrentUser.Roles.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Rask.Wire.CurrentUser.Roles.init -> void
+Rask.Wire.FieldFailure
+Rask.Wire.FieldFailure.<Clone>$() -> Rask.Wire.FieldFailure!
+Rask.Wire.FieldFailure.Deconstruct(out string! Message, out System.Collections.Generic.IReadOnlyList<string!>! Fields, out System.Collections.Generic.IReadOnlyList<string!>? Marked, out string? Source) -> void
+Rask.Wire.FieldFailure.Equals(Rask.Wire.FieldFailure? other) -> bool
+Rask.Wire.FieldFailure.FieldFailure(string! Message, System.Collections.Generic.IReadOnlyList<string!>! Fields, System.Collections.Generic.IReadOnlyList<string!>? Marked = null, string? Source = null) -> void
+Rask.Wire.FieldFailure.Fields.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Wire.FieldFailure.Fields.init -> void
+Rask.Wire.FieldFailure.Marked.get -> System.Collections.Generic.IReadOnlyList<string!>?
+Rask.Wire.FieldFailure.Marked.init -> void
+Rask.Wire.FieldFailure.Message.get -> string!
+Rask.Wire.FieldFailure.Message.init -> void
+Rask.Wire.FieldFailure.Source.get -> string?
+Rask.Wire.FieldFailure.Source.init -> void
 Rask.Wire.FileDownload
 Rask.Wire.FileDownload.ContentType.get -> string!
 Rask.Wire.FileDownload.FileName.get -> string!
@@ -106,6 +122,8 @@ Rask.Wire.ForgotPasswordRequest.Email.get -> string!
 Rask.Wire.ForgotPasswordRequest.Email.init -> void
 Rask.Wire.ForgotPasswordRequest.Equals(Rask.Wire.ForgotPasswordRequest? other) -> bool
 Rask.Wire.ForgotPasswordRequest.ForgotPasswordRequest(string! Email) -> void
+Rask.Wire.IFieldFailures
+Rask.Wire.IFieldFailures.Failures.get -> System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!
 Rask.Wire.LoginRequest
 Rask.Wire.LoginRequest.<Clone>$() -> Rask.Wire.LoginRequest!
 Rask.Wire.LoginRequest.Deconstruct(out string! Email, out string! Password, out bool Remember) -> void
@@ -219,6 +237,8 @@ static Rask.Wire.ConfirmEmailRequest.operator !=(Rask.Wire.ConfirmEmailRequest? 
 static Rask.Wire.ConfirmEmailRequest.operator ==(Rask.Wire.ConfirmEmailRequest? left, Rask.Wire.ConfirmEmailRequest? right) -> bool
 static Rask.Wire.CurrentUser.operator !=(Rask.Wire.CurrentUser? left, Rask.Wire.CurrentUser? right) -> bool
 static Rask.Wire.CurrentUser.operator ==(Rask.Wire.CurrentUser? left, Rask.Wire.CurrentUser? right) -> bool
+static Rask.Wire.FieldFailure.operator !=(Rask.Wire.FieldFailure? left, Rask.Wire.FieldFailure? right) -> bool
+static Rask.Wire.FieldFailure.operator ==(Rask.Wire.FieldFailure? left, Rask.Wire.FieldFailure? right) -> bool
 static Rask.Wire.FileDownload.FromBytes(string! fileName, string? contentType, byte[]! bytes) -> Rask.Wire.FileDownload!
 static Rask.Wire.FileDownload.FromStream(string! fileName, string? contentType, System.IO.Stream! stream, long? length = null) -> Rask.Wire.FileDownload!
 static Rask.Wire.ForgotPasswordRequest.operator !=(Rask.Wire.ForgotPasswordRequest? left, Rask.Wire.ForgotPasswordRequest? right) -> bool
