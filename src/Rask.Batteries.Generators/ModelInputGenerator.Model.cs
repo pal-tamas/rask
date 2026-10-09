@@ -392,7 +392,8 @@ public sealed partial class ModelInputGenerator
             valueObject.Constructor.DeclaredAccessibility == Accessibility.Public,
             valueObject.Type.IsValueType,
             valueObject.SingleValue,
-            new EquatableArray<ValueObjectMember>(members));
+            new EquatableArray<ValueObjectMember>(members),
+            RuleOf(valueObject));
 
         converted[valueObject] = shape;
         return shape;

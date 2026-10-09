@@ -9,7 +9,19 @@ using Rask.Cqrs;
 namespace Rask.Data.Tests;
 
 /// <summary>A one-value value object the usual way: a positional record.</summary>
-public sealed record ContactName(string Value);
+public sealed record ContactName(string Value)
+{
+    public const string TooShort = "A name has at least two characters.";
+
+    // The rule, where the value is: found by its shape, with no interface to implement.
+    public static IEnumerable<string> Validate(string value)
+    {
+        if (value.Trim().Length < 2)
+        {
+            yield return TooShort;
+        }
+    }
+}
 
 /// <summary>The shape RASK084 asks for: nothing public to set, built through a private constructor.</summary>
 public sealed class ContactCode
@@ -22,7 +34,13 @@ public sealed class ContactCode
 }
 
 /// <summary>A one-value value object that is a struct.</summary>
-public readonly record struct ContactRank(int Value);
+public readonly record struct ContactRank(int Value)
+{
+    public const string Negative = "A rank is not negative.";
+
+    public static ValueTask<IEnumerable<string>> Validate(int value) =>
+        ValueTask.FromResult<IEnumerable<string>>(value < 0 ? [Negative] : []);
+}
 
 /// <summary>An adopted table whose name is a value object — and is what the unique rule is over.</summary>
 public sealed class Contact : Aggregate<int>
@@ -274,6 +292,81 @@ public sealed class ValueObjectColumnTests : IDisposable
 
             Assert.Equal(["Adeline"], await Contact.Select(c => c.Name));
         }
+    }
+
+    [Fact]
+    public async Task A_model_filled_from_a_row_remembers_which_row_and_a_new_model_remembers_none()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveAsync(Acme, Contact.Named("Ada"));
+
+        ContactModel filled;
+        using (Tenant.Use(Acme))
+        {
+            filled = (await Contact.Model(id, cancellationToken: TestContext.Current.CancellationToken))!;
+        }
+
+        Assert.Equal(id, filled.__Key);
+        Assert.Null(new ContactModel().__Key);
+    }
+
+    [Fact]
+    public void The_row_a_model_was_filled_from_is_not_a_field_a_form_could_bind_or_a_client_could_post()
+    {
+        var key = typeof(ContactModel).GetProperty("__Key", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+        var publicNames = typeof(ContactModel).GetProperties().Select(p => p.Name);
+
+        Assert.NotNull(key);
+        Assert.DoesNotContain("__Key", publicNames);
+    }
+
+    [Theory]
+    [InlineData("Name", typeof(Rask.Core.Forms.Validate<string>))]
+    [InlineData("Rank", typeof(Func<int?, ValueTask<IEnumerable<string>>>))]
+    public void A_value_objects_rule_is_one_kept_delegate_of_the_fields_own_type_handed_back_every_time(string property, Type shape)
+    {
+        var ruleOf = RuleOfContactModel();
+
+        var first = ruleOf(property);
+        var second = ruleOf(property);
+
+        Assert.IsType(shape, first);
+        Assert.Same(first, second);
+    }
+
+    [Fact]
+    public void A_property_whose_type_states_no_rule_has_none()
+    {
+        var ruleOf = RuleOfContactModel();
+
+        var code = ruleOf("Code");
+        var unknown = ruleOf("Nothing");
+
+        Assert.Null(code);
+        Assert.Null(unknown);
+    }
+
+    [Fact]
+    public void The_rule_is_asked_about_a_value_that_is_there_and_says_nothing_about_an_empty_field()
+    {
+        var rule = (Rask.Core.Forms.Validate<string>)RuleOfContactModel()("Name")!;
+
+        var tooShort = rule("a").ToList();
+        var fine = rule("Ada").ToList();
+        var empty = rule(null!).ToList();
+
+        Assert.Equal([ContactName.TooShort], tooShort);
+        Assert.Empty(fine);
+        Assert.Empty(empty);
+    }
+
+    // The generated switch itself, reached the only way a file-local class can be: by its name.
+    private static Func<string, Delegate?> RuleOfContactModel()
+    {
+        var rules = typeof(ContactModel).Assembly.GetTypes().Single(t => t.Name.EndsWith("__ContactModelRules", StringComparison.Ordinal));
+        var method = rules.GetMethod("Root_RuleOf", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        return method.CreateDelegate<Func<string, Delegate?>>();
     }
 
     private static List<string> ColumnsOf(DbContext context) =>

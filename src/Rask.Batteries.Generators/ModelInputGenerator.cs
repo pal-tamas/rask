@@ -236,7 +236,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool PublicConstructor,
         bool IsValueType,
         bool SingleValue,
-        EquatableArray<ValueObjectMember> Members);
+        EquatableArray<ValueObjectMember> Members,
+        ValueRule Rule = ValueRule.None);
 
     private sealed record ValueObjectMember(
         string Name,
