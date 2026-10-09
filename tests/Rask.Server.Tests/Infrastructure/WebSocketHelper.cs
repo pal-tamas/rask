@@ -35,6 +35,16 @@ internal static class WebSocketHelper
             () => session.HasOpenTransport, "the server attaches the socket");
     }
 
+    /// <summary>
+    ///     <see cref="AttachedAsync(WebSocket, RaskTestHost, string)" /> for a caller that still names a timeout.
+    ///     The number is not honoured below the hang ceiling: two seconds for an attach is what failed on a busy
+    ///     runner. Drop the argument when next in that file.
+    /// </summary>
+    public static Task AttachedAsync(this WebSocket ws, RaskTestHost host, string sessionId, TimeSpan timeout) =>
+        timeout > LiveFrames.HangCeiling
+            ? throw new ArgumentOutOfRangeException(nameof(timeout), "an attach is not something to wait this long for")
+            : ws.AttachedAsync(host, sessionId);
+
     /// <summary>The next frame; fails the test when none comes. See <see cref="LiveFrames.NextAsync" />.</summary>
     public static Task<string> ReceiveTextAsync(this WebSocket ws) => LiveFrames.NextAsync(ws.TryReceiveTextAsync);
 
