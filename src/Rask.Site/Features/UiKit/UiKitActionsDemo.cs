@@ -405,10 +405,8 @@ public sealed partial class UiKitActionsDemo : Component
             + "apart from a close.",
             Div.Data(Testid("ui-modal-state"))[
                 Ui.Button.Danger.OnClick(() => { _confirming = true; })["Delete order"],
-                // Keyed, as every modal on this page is: once one child of a type carries a Key its parent stops
-                // reusing that type by position, and an unkeyed one would be a new instance on every render.
+                // The one modal on this page without a Key: it keeps its instance by being the only unkeyed one.
                 Ui.Modal
-                    .Key("m-state")
                     .Open(_confirming)
                     .OnCancel(() => { _lastAction = "dismissed the dialog"; })
                     .OnClose(() => { _confirming = false; })[

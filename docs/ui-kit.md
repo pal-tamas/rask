@@ -1113,7 +1113,7 @@ protected override Component? Render() =>
 | `flux:main` | `Ui.Main` | `Container`; `Inset` — a bordered, rounded panel that fills the viewport and scrolls inside from `lg` up |
 | `flux:sidebar` | `Ui.Sidebar` | `Sticky`, `Collapsible` (`Never` · `Mobile` · `Always`), `Breakpoint` (`Lg` by default) |
 | `flux:sidebar.header` · `.brand` · `.collapse` | `Ui.SidebarHeader` · `Ui.SidebarBrand` · `Ui.SidebarCollapse` | `Href`, `Logo`, `LogoDark`, `Name` · `Inset`, `Tooltip` |
-| `flux:sidebar.search` | `Ui.SidebarSearch` | `Placeholder`; a button (`OnClick`) as Flux draws it, a real field once given `OnInput` |
+| `flux:sidebar.search` | `Ui.SidebarSearch` | `Placeholder`; a button as Flux draws it, Flux's filled `Ui.Input` with a lens once given `OnInput` |
 | `flux:sidebar.nav` · `.item` · `.group` | `Ui.SidebarNav` · `Ui.SidebarItem` · `Ui.SidebarGroup` | `Href`, `Icon`, `Badge`, `Current`, `Tooltip` · `Heading`, `Expandable`, `Expanded`, `Icon` |
 | `flux:sidebar.spacer` · `.profile` · `.toggle` | `Ui.SidebarSpacer` · `Ui.SidebarProfile` · `Ui.SidebarToggle` | `Avatar`, `Name` · `Icon`, `Inset` |
 
@@ -1147,23 +1147,32 @@ Inside a sidebar the list is the sidebar's own (`Ui.SidebarNav`); anywhere else:
   `Ui.SidebarCollapse` — or a click anywhere on the rail — narrows it to a 56px rail of icons and widens it
   again. The labels carry `role="button"` and a tab stop, and the runtime presses them on Enter and Space.
 - **`Ui.SidebarItem` is a `NavLink` underneath**, so the current page is worked out from the route
-  (`aria-current="page"`) unless `Current` states it. Its children are its label. In the rail it is its icon — the label stays for a screen reader, and
-  `Tooltip` names it on hover.
+  (`aria-current="page"`) unless `Current` states it. Its children are its label, and `Badge` is the count Flux's
+  navlist draws at its end. In the rail it is its icon: the label stays for a screen reader, the count is dropped,
+  and the item's **tooltip** — a real `Ui.Tooltip`, to the right of the icon — says the label (or `Tooltip`). Every
+  item sits in that tooltip, as Flux's does, and it is drawn only while the sidebar is a rail. `Ui.SidebarCollapse`
+  is named by its tooltip at every width ("Toggle sidebar" unless `Tooltip` says otherwise), and
+  `Ui.SidebarSearch` shows its placeholder the same way in the rail.
 - **`Ui.SidebarGroup`** is a heading over its items, or with `Expandable` a native `<details>` — it folds with no
-  round trip and says whether it is open; `Expanded`/`OnToggle` hand that to C#. In the rail a group shows its
-  `Icon` alone, and one without an icon is not shown.
+  round trip and says whether it is open; `Expanded`/`OnToggle` hand that to C#. Flux neither animates nor
+  remembers a fold, and neither does the kit. In the rail a group is its `Icon`, and its items are a **menu
+  beside it** — Flux's `flux:dropdown position="right" align="start" hover`: it opens while the pointer is on the
+  icon or the menu (only while the sidebar IS a rail), on a press, and from the keyboard (Enter, Space or
+  ArrowDown on the icon, the arrows through the rows, Escape back to the icon, Tab onwards). The rows are the
+  group's own items, so they are written once. A group without an icon is not shown in the rail.
 - **`Ui.Main` is a `<div>`, as Flux writes it.** Put a `<main>` inside it (`Ui.Main[Main[Outlet]]`) for the
   landmark a screen reader jumps to and where Rask puts focus after a navigation.
 - **One sidebar a page.** The controls find it by fixed ids (`sidebar-open`, `sidebar-rail`), as Flux's find it
   by a page-wide event.
 - **The two states are the reader's, and the runtime keeps them as Flux's script does.** Neither is a prop,
-  as neither is in Flux. A sidebar slid over the page is put away when the app navigates
-  (`data-rask-uncheck-on-navigate` on its checkbox), and the rail is remembered across visits in `localStorage`
+  as neither is in Flux. A sidebar slid over the page is put away when the app navigates, or when the row of
+  the page already open is pressed (`data-rask-uncheck-on-navigate` on its checkbox), and the rail is remembered across visits in `localStorage`
   under Flux's own key, `flux-sidebar-collapsed-desktop` (`data-rask-persist`); `Persist(false)` is Flux's
   `persist="false"`. A Server page restores the rail before its first paint. A WebAssembly app's runtime loads
   after the prerendered page is on screen, so it adds **`Ui.SidebarScript`** to its `HeadAssets`, beside
   `Ui.AppearanceScript`: a few lines that check the box as the parser reaches it, so a narrow sidebar never
-  opens wide and snaps shut.
+  opens wide and snaps shut. The same script records a press on the collapse control made before the hooks have
+  loaded, so that press is kept too.
 - **`Ui.SidebarProfile`** draws the kit's avatar (`Ui.Avatar.Sm`: the picture, or the initials of `Name`), and a
   dropdown makes it the trigger of the account menu: `Ui.Dropdown.Top.Start[Ui.SidebarProfile.Name("Ada"), Ui.Menu[…]]`.
 - **`Ui.Spacer`** is `flex: 1`: it pushes what follows it to the far end of a row or a column.
@@ -1390,9 +1399,8 @@ the same modal: the dialog says `data-rask-modal-open` and the runtime shows and
 in the top layer behind the same backdrop, Escape and a click outside run `OnCancel` then `OnClose`, and focus
 returns when it closes. `OnClose` is where the page hears that the reader closed it — set the field there, or
 the page goes on saying it is open. A modal with neither a `Name` nor `Open` is open for as long as the page
-renders it. Where one modal on a page has a `Key`, give every modal there one: a parent that identifies a
-type by key no longer reuses the unkeyed ones by position, and a modal rebuilt on every render loses the
-`close` that follows a `cancel`. `Ui.Drawer` is gone: a panel that slides in from an edge is a flyout.
+renders it. A modal without a `Key` beside keyed ones is fine: it keeps its instance by its order among the
+unkeyed modals of the page. `Ui.Drawer` is gone: a panel that slides in from an edge is a flyout.
 
 `Ui.ConfirmLeave` is the one modal here that is not Flux's: the dialog a form's
 [`ConfirmLeave("…")`](forms.md#ask-before-leaving-unsaved-changes) asks in, in place of the browser's `confirm`.
@@ -1442,7 +1450,7 @@ Ui.Dropdown[
 
 | Flux | Rask.Ui | |
 | --- | --- | --- |
-| `flux:dropdown` | `Ui.Dropdown` | `Position` (`.Bottom` `.Top` `.Right` `.Left`), `Align` (`.Start` `.Center` `.End`), `Gap`, `Offset`; `Open` + `OnToggle` to own the state |
+| `flux:dropdown` | `Ui.Dropdown` | `Position` (`.Bottom` `.Top` `.Right` `.Left`), `Align` (`.Start` `.Center` `.End`), `Gap`, `Offset`; `Hover()` opens it under the pointer (`data-rask-hover`); `Open` + `OnToggle` to own the state |
 | `flux:menu` | `Ui.Menu` | `KeepOpen` |
 | `flux:menu.item` | `Ui.MenuItem` | `Icon`, `IconTrailing`, `IconVariant`, `Kbd`, `Suffix`, `Variant` (`.Danger`), `Disabled`, `KeepOpen`; `OnClick`, `Href` |
 | `flux:menu.submenu` | `Ui.MenuSubmenu` | `Heading`, `Icon`, `IconTrailing`, `IconVariant`, `KeepOpen` |
@@ -1452,7 +1460,7 @@ Ui.Dropdown[
 | `flux:menu.checkbox.group` | `Ui.MenuCheckboxGroup` | each checkbox binds its own flag |
 | `flux:menu.radio.group` | `Ui.MenuRadioGroup` | `Bind` or `Value` + `OnChange`, `KeepOpen` |
 | `flux:menu.radio` | `Ui.MenuRadio` | `Value` (the value it stands for in its group), `Checked` (outside one), `Disabled`, `KeepOpen` |
-| `flux:navmenu`, `flux:navmenu.item` | `Ui.Navmenu`, `Ui.NavmenuItem` | `Href`, `Icon`, `Variant` — links, with no menu roles and no cursor |
+| `flux:navmenu`, `flux:navmenu.item` | `Ui.Navmenu`, `Ui.NavmenuItem` | `Href`, `Icon`, `Variant` — links, with no menu roles and no cursor; without an `Href` a `<button>` with `OnClick`; a string `Href` is a plain `<a>`, a generated route navigates in the app |
 | `flux:context` | `Ui.Context` | `Position`, `Gap`, `Offset`, `Target`, `Detail`, `Disabled`; `Open` + `OnToggle` |
 
 **The browser owns the open state, C# owns the cursor.** The menu is a `[popover]` the trigger opens with

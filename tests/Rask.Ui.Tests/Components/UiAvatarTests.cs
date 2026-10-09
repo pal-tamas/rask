@@ -167,4 +167,14 @@ public partial class UiAvatarTests : global::Rask.Core.RaskMarkup
         Assert.Contains("*:ring-4", html, StringComparison.Ordinal);
         Assert.Contains("*:ring-zinc-100", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_group_rings_its_smallest_avatars_half_as_wide()
+    {
+        var html = Ui.AvatarGroup[Ui.Avatar.Xs.Name("Ada Lovelace")].ToHtml();
+
+        Assert.Contains("*:ring-4", html, StringComparison.Ordinal);
+        Assert.Contains("*:data-[size=xs]:ring-2", html, StringComparison.Ordinal);
+        Assert.Contains("data-size=\"xs\"", html, StringComparison.Ordinal);
+    }
 }

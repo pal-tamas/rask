@@ -393,7 +393,7 @@ public sealed class LiveRenderContext : IDisposable
         {
             // The folding props this entry may leave behind. Recorded against the PARENT so the drain
             // at the end of its Render() knows which slots are its own — see BuilderRuntime.
-            BuilderRuntime.PushSlot(parent, child, pendingReset, pending, copy, parent.LastChildSlotInternal);
+            BuilderRuntime.PushSlot(parent, child, pendingReset, pending, copy, parent.LastChildSlotInternal, factory);
         }
 
         return child;

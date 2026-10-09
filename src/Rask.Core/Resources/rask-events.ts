@@ -124,6 +124,11 @@ document.addEventListener("dragend", function (e) {
 function raskSendKey(e: KeyboardEvent, attr: string, type: string): void {
     var t = closestFrom(e.target, "[" + attr + "]");
     if (!t || !inRoot(t)) { return; }
+    // data-rask-keys="ArrowDown ArrowUp Enter Escape Tab": the only keys this element's handler hears, by
+    // KeyboardEvent.key. A combobox acts on five; every letter typed into it was otherwise a round trip and a
+    // render that changed nothing, ahead of the `input` that does.
+    var keys = t.getAttribute("data-rask-keys");
+    if (keys !== null && keys.split(" ").indexOf(e.key) < 0) { return; }
     flushInputsNow();
     send(Object.assign(raskDomPayload(e, type), {id: t.getAttribute(attr), type: type}));
 }

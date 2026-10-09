@@ -17,8 +17,11 @@
 export interface RaskHost {
     /**
      * Ships an event payload to .NET. Over a WebSocket on the Server host; through JSExport on WASM.
+     *
+     * A host that knows when .NET has answered — the handler ran and its render is on the page — hands back
+     * a promise of that. WASM does; the Server's socket hands back nothing.
      */
-    send(payload: unknown): void;
+    send(payload: unknown): unknown;
 
     /**
      * Whether an element is inside the live render root.
@@ -67,9 +70,9 @@ export function standDown(): void {
     };
 }
 
-/** Ships an event payload to .NET. */
-export function send(payload: unknown): void {
-    host.send(payload);
+/** Ships an event payload to .NET, and hands back the host's promise of the answer where it makes one. */
+export function send(payload: unknown): unknown {
+    return host.send(payload);
 }
 
 /** Whether an element is inside the live render root. */

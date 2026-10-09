@@ -78,6 +78,32 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A collapsed `Ui.Sidebar` is Flux's rail: real tooltips, a menu per group, the navlist's count.** Measured on
+  Flux's live `sidebar-collapsible` demo and built from its pieces. Every `Ui.SidebarItem` sits in a `Ui.Tooltip`
+  to its right (`aria-describedby`, `data-rask-tooltip`) that is drawn only while the sidebar is a rail;
+  `Ui.SidebarCollapse` is named by its tooltip (`aria-labelledby`) at every width and `Ui.SidebarSearch` shows
+  its placeholder in one — the `title` attributes they wrote are gone, and so is the one on
+  `Ui.SidebarProfile`, which Flux gives no tooltip. An item's `Badge` is Flux's navlist count
+  (`data-ui-navlist-badge`). A `Ui.SidebarGroup` with an `Icon` used to widen the sidebar when its icon was
+  pressed in the rail; it now opens its items as a menu beside the icon — `Ui.Dropdown` to the right, `Ui.Menu`
+  with the heading, the group's own items as its rows (`role="menuitem"`) — under the pointer
+  (`data-rask-hover`, only while the sidebar is a rail: `data-rask-hover-if`), on a press, and from the keyboard.
+  A `Ui.SidebarSearch` given `OnInput` is Flux's filled `Ui.Input` with a lens. Markup changed; no call site
+  has to.
+- **A `Ui.NavmenuItem` without an `Href` is a `<button>`**, as Flux's is, and `OnClick` is what it does —
+  `Href` is no longer required. `Ui.Navmenu[Ui.NavmenuItem.OnClick(Open)["Client"]]` is how a breadcrumb's
+  folded-away steps are written.
+- **`Ui.Dropdown.Hover()`** — Flux's `hover` prop: the menu opens while the pointer is over the trigger or the
+  menu and closes over neither, with no page lock (a menu opened that way no longer takes the pointer from the
+  page behind it).
+- **The allocation gate measures with tiered compilation and PGO off, and its budget is the exact count.** With
+  tiered PGO on, the JIT re-compiles the hot methods while the measured window is running, so one binary read
+  2,397 to 2,514 B per live update of the 20-row page depending on the run; with PGO off alone it read 2,504 B,
+  and 2,505 on a loaded machine when the re-compile still landed inside the window.
+  `scripts/run-benchmarks-local.sh` now sets `DOTNET_TieredCompilation=0 DOTNET_TieredPGO=0` on that one
+  process, where it reads 2,504 B every time, and `Baselines/allocation-budget.csv` is 2,504 (was 2,444, a
+  tiered-PGO reading). The +5% allowance stays.
+
 - **BREAKING: `TenantId` is the entity's own column, no longer a property of `Entity<TId>`.** A
   `Tenancy.PerTenant` table keeps the same `TenantId` column, filter, stamp and index prefix; the column is a
   shadow one unless the entity declares it. Migration: declare `public Guid? TenantId { get; private set; }` on
@@ -1284,6 +1310,59 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Typing fast into a slow page no longer queues a render per key behind the reader — and `Ui.Autocomplete`
+  no longer shows stale text, goes empty, or opens and closes for ever after it is left.** Every key typed into
+  a text input over a list (`Ui.Autocomplete`, `Ui.Select.Combobox`, `Ui.Pillbox`'s input) was two round
+  trips and two renders: the `keydown`, which changed nothing, and the `input`. On a page that renders slower
+  than a key they queued: eight letters and a Tab on the published site's data-input page were 18 renders, the
+  field's answer four seconds behind the reader, and each stale render was written into the field once it was
+  left — the letters again one by one, then EMPTY (Tab's render, drawn before the input's own `change` had
+  arrived), then the text. The site's end-to-end test timed out in that window on a loaded runner. Four changes:
+  - **What is typed while .NET still owes the field an answer is held, and only the latest value is sent** —
+    when the answer arrives, or at once ahead of any key, click or `change` that follows. WASM only: the
+    Server's socket does not say when it has answered, and sends every value as before. An `OnInput` handler
+    now hears `"Atlantis"` where it heard eight values, exactly as it does for a paste.
+  - **`data-rask-keys="ArrowDown ArrowUp Enter Escape Tab"`** on an element with a key handler: the handler
+    hears only the listed keys. The three controls carry it.
+  - **`data-rask-clear-keys="Escape"`** on a field: that key empties it in the browser, at the key. The
+    autocomplete's Escape (and the pillbox input's Escape and Tab) emptied the input from the C# handler, a
+    round trip later — text typed straight after Escape was wiped, or was appended to the text Escape should
+    have removed (`Tex`, Escape, `Atlantis` gave `TexAtlantis`; Flux gives `Atlantis`, and so does Rask now).
+  - **`Ui.Autocomplete`'s Tab hands the page what was typed** in its own handler, and a late `toggle` of an
+    opening no longer opens the list: the echo of a render's own `showPopover` arrived after Tab had shut
+    the list, opened it, and that opening's echo shut it — every 230 ms, for as long as the page was up.
+- **A sidebar slid over a phone is put away when the page already open is chosen.** The overlay closed only on
+  a navigation (`data-rask-uncheck-on-navigate`), and a tap on the row of the page the reader is on navigates
+  nowhere: the sidebar and its backdrop stayed over the page and took every tap. The hook now unchecks the box
+  on a plain press on a link to the current page too (same path and query), a generated route and a string
+  `href` alike. A link with a fragment moves within the page and leaves it open, as Flux's does.
+- **A press on the sidebar's collapse control before the hooks have loaded is kept.** In a WebAssembly app the
+  hook that stores the rail (`data-rask-persist`) arrives after the prerendered page can already be pressed; a
+  press in that gap changed the box and stored nothing, and the hook, arriving, put the sidebar back to what the
+  last visit had left. `Ui.SidebarScript` — the head script that restores the rail before first paint — now
+  records the change too, under the same key and in the same words.
+- **Grouped `Xs` avatars are ringed 2px**, as Flux rings them (measured in its kanban card); every other
+  size keeps the 4px ring.
+- **A `Ui.NavmenuItem` given a string is an ordinary link.** It was always a `NavLink`, so a string `Href` was
+  routed inside the app and given the deploy's path base; like every other kit link, only a generated route is
+  now (#1070), and the plain link carries no click handler, which would keep the browser from following it. A menu opened from greyed text (a breadcrumb) is black on white — white on zinc-700 in dark —
+  as Flux's is, where it took the grey of what it hung from.
+- **A component without a `Key` beside keyed ones of its type keeps its instance, and a key repeated in two
+  lists no longer mixes their rows (#1215).** Once one child of a type carried a `Key`, its parent rebuilt every
+  UNKEYED child of that type on each render: a `Ui.Modal.Open(_confirming)` beside keyed modals got a new id and
+  new handler ids every time, so the `close` that follows a `cancel` reached nothing and `OnClose` never ran; an
+  unkeyed `Ui.Toast` in a keyed group remounted on every render. Unkeyed children of a keyed type are now
+  identified by their order among themselves, whatever the keyed ones around them do — so "key every sibling
+  or none" is no longer a rule to follow. And two components of one type written by ONE component with the
+  same key under DIFFERENT elements — the same menu rows in two menus, the same order in a "recent" and a
+  "pinned" list — claimed one instance on the next render, so the first showed the second's props. Each now
+  keeps an instance of its own with its own values. A component's key is scoped to the component that writes
+  it and the child's type (not to the element it sits under — `Render()` runs the `Key` step before that
+  element has its children), so repeats are told apart by the order they are written in and reported once as
+  a `Rask.Live` warning naming the component, the type and the key; give the lists distinct keys
+  (`Key($"pinned-{id}")`) where the rows hold state. `docs/composition.md` says so now; it used to promise
+  "unique among siblings" for components too. Nothing changes for a list whose keys are unique, and a live
+  update of the 20-row benchmark page allocates what it did (2,504 B with tiered PGO off, before and after).
 - **A Server page no longer raises `Rask: inRoot() was called before a host was installed`.** The runtime's
   own `<script>` is the last child of the render root, so an in-app navigation to a page with one top-level
   node more or fewer moved it, and the morph moved it by inserting the incoming tag — which ran `rask.js` a
@@ -1412,6 +1491,11 @@ them until tagged releases begin.
   Spectre switched interaction off behind it.
 
 ### Removed
+
+- **BREAKING: `Ui.Navlist.Variant` and `Ui.NavlistVariant` are gone.** Flux's public reference gives
+  `flux:navlist` no `variant`, so the kit has none: the outlined rows it drew are what `Ui.SidebarNav` and
+  `Ui.SidebarItem` draw. Replace `Ui.Navlist.Variant(Ui.NavlistVariant.Outline)[Ui.NavlistItem…]` with
+  `Ui.SidebarNav[Ui.SidebarItem…]` inside a `Ui.Sidebar`, or drop the step.
 
 - **BREAKING: what the kit had added to Flux's components is gone.** A `Rask.Ui` component that mirrors a
   Flux UI one carries Flux's props, values and attributes and no others, and a test now holds every built
