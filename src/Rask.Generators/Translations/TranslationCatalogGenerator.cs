@@ -39,25 +39,147 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
     // analyzer cannot depend on the runtime assembly it generates code for. FrameworkStringsCatalogTests
     // asserts the two lists stay identical, so adding a RaskString member without updating this fails
     // there rather than silently making that string untranslatable.
-    private static readonly string[] _frameworkStringKeys =
+    //
+    // Beside each name, how many values its text carries: {0} up to that many, so a translation that asks
+    // for one more is a build error here rather than English on the page.
+    private static readonly (string Key, int Values)[] _frameworkStrings =
     [
-        "PickerPreviousMonth",
-        "PickerNextMonth",
-        "PickerHour",
-        "PickerMinute",
-        "PickerSecond",
-        "PickerClear",
-        "NotFoundTitle",
-        "NotFoundBody",
-        "NotFoundBackHome",
-        "ErrorHeading",
-        "ErrorTryAgain",
-        "ErrorReload",
+        ("PickerPreviousMonth", 0),
+        ("PickerNextMonth", 0),
+        ("PickerHour", 0),
+        ("PickerMinute", 0),
+        ("PickerSecond", 0),
+        ("PickerClear", 0),
+        ("NotFoundTitle", 0),
+        ("NotFoundBody", 0),
+        ("NotFoundBackHome", 0),
+        ("ErrorHeading", 0),
+        ("ErrorTryAgain", 0),
+        ("ErrorReload", 0),
+        ("PaginationSummary", 3),
+        ("PaginationPrevious", 0),
+        ("PaginationNext", 0),
+        ("CalendarToday", 0),
+        ("DatePickerPlaceholder", 0),
+        ("DatePickerRangePlaceholder", 0),
+        ("DatePickerConfirm", 0),
+        ("DatePickerCancel", 0),
+        ("DatePickerMonth", 0),
+        ("DatePickerDay", 0),
+        ("DatePickerYear", 0),
+        ("DatePickerMonthPlaceholder", 0),
+        ("DatePickerDayPlaceholder", 0),
+        ("DatePickerYearPlaceholder", 0),
+        ("DateRangePresetToday", 0),
+        ("DateRangePresetYesterday", 0),
+        ("DateRangePresetThisWeek", 0),
+        ("DateRangePresetLastWeek", 0),
+        ("DateRangePresetLast7Days", 0),
+        ("DateRangePresetThisMonth", 0),
+        ("DateRangePresetLastMonth", 0),
+        ("DateRangePresetThisQuarter", 0),
+        ("DateRangePresetLastQuarter", 0),
+        ("DateRangePresetThisYear", 0),
+        ("DateRangePresetLastYear", 0),
+        ("DateRangePresetLast14Days", 0),
+        ("DateRangePresetLast30Days", 0),
+        ("DateRangePresetLast3Months", 0),
+        ("DateRangePresetLast6Months", 0),
+        ("DateRangePresetYearToDate", 0),
+        ("DateRangePresetTomorrow", 0),
+        ("DateRangePresetNextWeek", 0),
+        ("DateRangePresetNext7Days", 0),
+        ("DateRangePresetNextMonth", 0),
+        ("DateRangePresetNextQuarter", 0),
+        ("DateRangePresetNextYear", 0),
+        ("DateRangePresetNext14Days", 0),
+        ("DateRangePresetNext30Days", 0),
+        ("DateRangePresetNext3Months", 0),
+        ("DateRangePresetNext6Months", 0),
+        ("DateRangePresetAllTime", 0),
+        ("DateRangePresetCustom", 0),
+        ("SelectLoading", 0),
+        ("SelectEmpty", 0),
+        ("SelectSearchPlaceholder", 0),
+        ("SelectSearchClear", 0),
+        ("SelectClear", 0),
+        ("SelectSelectedSuffix", 0),
+        ("TimePickerPlaceholder", 0),
+        ("TimePickerMeridiem", 0),
+        ("TimePickerHourPlaceholder", 0),
+        ("TimePickerMinutePlaceholder", 0),
+        ("EditorLabel", 0),
+        ("EditorToolbar", 0),
+        ("EditorBold", 0),
+        ("EditorItalic", 0),
+        ("EditorStrike", 0),
+        ("EditorUnderline", 0),
+        ("EditorBullet", 0),
+        ("EditorOrdered", 0),
+        ("EditorBlockquote", 0),
+        ("EditorCode", 0),
+        ("EditorHighlight", 0),
+        ("EditorSubscript", 0),
+        ("EditorSuperscript", 0),
+        ("EditorUndo", 0),
+        ("EditorRedo", 0),
+        ("EditorLink", 0),
+        ("EditorUnlink", 0),
+        ("EditorAlign", 0),
+        ("EditorAlignLeft", 0),
+        ("EditorAlignCenter", 0),
+        ("EditorAlignRight", 0),
+        ("EditorHeading", 0),
+        ("EditorHeadingText", 0),
+        ("EditorHeading1", 0),
+        ("EditorHeading2", 0),
+        ("EditorHeading3", 0),
+        ("InputClear", 0),
+        ("InputCopy", 0),
+        ("InputTogglePassword", 0),
+        ("InputChooseFile", 0),
+        ("InputChooseFiles", 0),
+        ("InputNoFile", 0),
+        ("ModalClose", 0),
+        ("ConfirmLeaveStay", 0),
+        ("ConfirmLeaveLeave", 0),
+        ("OtpCharacter", 2),
+        ("SliderRangeStart", 1),
+        ("SliderRangeEnd", 1),
+        ("RatingNone", 0),
+        ("RatingValue", 2),
+        ("SidebarToggle", 0),
+        ("SidebarSearch", 0),
+        ("CommandEmpty", 0),
+        ("DataGridColumns", 0),
+        ("DataGridMoveUp", 0),
+        ("DataGridMoveDown", 0),
+        ("DataGridGrouping", 0),
+        ("DataGridGroupingHint", 0),
+        ("DataGridMoveGroupLeft", 0),
+        ("DataGridMoveGroupRight", 0),
+        ("DataGridUngroup", 1),
+        ("DataGridGroupBy", 1),
+        ("DataGridExpandGroup", 0),
+        ("DataGridCollapseGroup", 0),
+        ("DataGridExpand", 0),
+        ("DataGridSelectAll", 0),
+        ("DataGridEmpty", 0),
+        ("DataGridSelectRow", 0),
+        ("DataGridExpandRow", 0),
+        ("DataGridCollapseRow", 0),
+        ("DiffHandle", 0),
+        ("FilterReset", 0),
+        ("FieldValidating", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>
-    internal static System.Collections.Generic.IReadOnlyList<string> FrameworkStringKeysForTests =>
-        _frameworkStringKeys;
+    internal static System.Collections.Generic.IReadOnlyList<string> FrameworkStringKeysForTests { get; } =
+        _frameworkStrings.Select(static s => s.Key).ToArray();
+
+    /// <summary>Test seam: how many values the text of <paramref name="key" /> carries.</summary>
+    internal static int FrameworkStringValuesForTests(string key) =>
+        _frameworkStrings.First(s => string.Equals(s.Key, key, System.StringComparison.Ordinal)).Values;
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -70,19 +192,22 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         {
             p.GlobalOptions.TryGetValue("build_property.RaskNeutralLanguage", out var neutral);
             p.GlobalOptions.TryGetValue("build_property.RootNamespace", out var ns);
+            p.GlobalOptions.TryGetValue("build_property.RaskStringsLibrary", out var library);
             return (Neutral: string.IsNullOrWhiteSpace(neutral) ? DefaultNeutral : neutral!.Trim(),
-                Namespace: string.IsNullOrWhiteSpace(ns) ? "Rask.Generated" : ns!.Trim());
+                Namespace: string.IsNullOrWhiteSpace(ns) ? "Rask.Generated" : ns!.Trim(),
+                Library: string.Equals(library?.Trim(), "true", System.StringComparison.OrdinalIgnoreCase));
         });
 
         context.RegisterSourceOutput(files.Combine(options), static (spc, pair) =>
-            Emit(spc, pair.Left, pair.Right.Neutral, pair.Right.Namespace));
+            Emit(spc, pair.Left, pair.Right.Neutral, pair.Right.Namespace, pair.Right.Library));
     }
 
     private static void Emit(
         SourceProductionContext spc,
         ImmutableArray<(string Path, string Text)> files,
         string neutral,
-        string rootNamespace)
+        string rootNamespace,
+        bool library)
     {
         var families = new Dictionary<string, List<Catalog>>(System.StringComparer.Ordinal);
 
@@ -122,7 +247,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         {
             if (string.Equals(family, ReservedFamily, System.StringComparison.Ordinal))
             {
-                EmitFrameworkStrings(spc, families[family], rootNamespace);
+                EmitFrameworkStrings(spc, families[family], rootNamespace, library);
                 continue;
             }
 
@@ -320,10 +445,12 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
     /// <remarks>
     ///     No neutral catalog is required or wanted here: the framework's English lives as a literal at
     ///     each call site, which is what makes a missing framework string impossible. An app supplies
-    ///     only the languages it has, and only the keys it has translated.
+    ///     only the languages it has, and only the keys it has translated. A library
+    ///     (<c>RaskStringsLibrary</c>) registers the same source one layer down, where an app's own
+    ///     catalog still has the last word.
     /// </remarks>
     private static void EmitFrameworkStrings(
-        SourceProductionContext spc, List<Catalog> catalogs, string rootNamespace)
+        SourceProductionContext spc, List<Catalog> catalogs, string rootNamespace, bool library)
     {
         var ordered = catalogs
             .OrderBy(c => c.CultureTag, System.StringComparer.OrdinalIgnoreCase)
@@ -338,15 +465,18 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         sb.AppendLine("// <auto-generated />");
         sb.AppendLine("#nullable enable");
         sb.AppendLine();
-        sb.AppendLine($"namespace {rootNamespace};");
+        // A library's root namespace may be a type somewhere else — Rask.Ui is, beside the kit's own
+        // `Ui` class in `Rask` — so its source lives where nothing of the kind can be.
+        sb.AppendLine($"namespace {(library ? "Rask.Generated" : rootNamespace)};");
         sb.AppendLine();
-        sb.AppendLine("/// <summary>This app's translations of the text Rask itself renders.</summary>");
+        sb.AppendLine("/// <summary>This assembly's translations of the text Rask itself renders.</summary>");
         sb.AppendLine("internal sealed class __RaskFrameworkStrings : global::Rask.Core.Globalization.IRaskStringSource");
         sb.AppendLine("{");
         sb.AppendLine("    public string? Get(global::Rask.Core.Globalization.RaskString key, string cultureTag)");
         sb.AppendLine("    {");
-        sb.AppendLine("        // Walks hu-HU -> hu, then gives up so the caller uses the framework's English.");
-        sb.AppendLine("        var tag = cultureTag;");
+        sb.AppendLine("        // Walks hu-HU -> hu, then gives up so the caller uses the framework's English. Over a span,");
+        sb.AppendLine("        // so a language this has no catalog for costs no allocation on the way to saying so.");
+        sb.AppendLine("        var tag = global::System.MemoryExtensions.AsSpan(cultureTag);");
         sb.AppendLine("        while (tag.Length > 0)");
         sb.AppendLine("        {");
         sb.AppendLine("            switch (tag)");
@@ -356,9 +486,9 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
 
         sb.AppendLine("            }");
         sb.AppendLine();
-        sb.AppendLine("            var cut = tag.LastIndexOf('-');");
+        sb.AppendLine("            var cut = global::System.MemoryExtensions.LastIndexOf(tag, '-');");
         sb.AppendLine("            if (cut <= 0) break;");
-        sb.AppendLine("            tag = tag.Substring(0, cut);");
+        sb.AppendLine("            tag = tag.Slice(0, cut);");
         sb.AppendLine("        }");
         sb.AppendLine();
         sb.AppendLine("        return null;");
@@ -368,7 +498,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         sb.AppendLine("    // app drops in rather than wiring it up — and it works identically on Server and WASM.");
         sb.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         sb.AppendLine("    internal static void Init() =>");
-        sb.AppendLine("        global::Rask.Core.Globalization.RaskStrings.UseSource(new __RaskFrameworkStrings());");
+        sb.AppendLine($"        global::Rask.Core.Globalization.RaskStrings.{(library ? "UseLibrarySource" : "UseSource")}(new __RaskFrameworkStrings());");
         sb.AppendLine("}");
 
         spc.AddSource("RaskStrings.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
@@ -390,18 +520,74 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
                     return false;
                 }
 
-                if (System.Array.IndexOf(_frameworkStringKeys, key) < 0)
+                var known = System.Array.FindIndex(_frameworkStrings, s => string.Equals(s.Key, key, System.StringComparison.Ordinal));
+                if (known < 0)
                 {
                     Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
                         catalog.Entries[key].Line, catalog.Entries[key].Column, name,
                         $"'{key}' is not one of the framework's own strings — valid names are "
-                        + string.Join(", ", _frameworkStringKeys));
+                        + string.Join(", ", FrameworkStringKeysForTests));
+                    return false;
+                }
+
+                var values = _frameworkStrings[known].Values;
+                if (values > 0 && FrameworkValuesDefect(catalog.Entries[key].Value, values) is { } defect)
+                {
+                    Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
+                        catalog.Entries[key].Line, catalog.Entries[key].Column, name, $"'{key}' has {defect}");
                     return false;
                 }
             }
         }
 
         return true;
+    }
+
+    // What is wrong with a text that carries values, or null. Its places are numbered — {0}, {1:N0} — because
+    // the names belong to the framework's call site, which a catalog cannot see. A text with no values is
+    // never read this way: its braces are just braces.
+    private static string? FrameworkValuesDefect(string text, int values)
+    {
+        var i = 0;
+        while (i < text.Length)
+        {
+            var c = text[i];
+            if (c is not ('{' or '}'))
+            {
+                i++;
+                continue;
+            }
+
+            if (i + 1 < text.Length && text[i + 1] == c)
+            {
+                i += 2;
+                continue;
+            }
+
+            var close = c == '{' ? text.IndexOf('}', i + 1) : -1;
+            if (close < 0)
+            {
+                return $"a stray '{c}' — write '{c}{c}' for a literal brace";
+            }
+
+            var place = text.Substring(i + 1, close - i - 1).Split(':', ',')[0].Trim();
+            if (place.Length == 0 || !place.All(static d => d is >= '0' and <= '9'))
+            {
+                return $"the placeholder '{{{place}}}' — this text numbers its values, {Places(values)}";
+            }
+
+            if (place.Length > 2 || int.Parse(place, System.Globalization.CultureInfo.InvariantCulture) >= values)
+            {
+                return $"the placeholder '{{{place}}}', a value the text does not carry — it has {Places(values)}";
+            }
+
+            i = close + 1;
+        }
+
+        return null;
+
+        static string Places(int count) =>
+            string.Join(", ", Enumerable.Range(0, count).Select(static n => "{" + n + "}"));
     }
 
     private static void AppendFrameworkCases(StringBuilder sb, List<Catalog> ordered)
