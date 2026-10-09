@@ -13,18 +13,10 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiNavlistItem : Component
 {
-    // The tinted row, then the outlined pill a navlist marked `outline` draws instead: keyed on the navlist's
-    // own marker, so the variant is said once, on the list.
     private const string Base =
         "relative my-px flex h-8 items-center gap-3 rounded-lg px-3 text-zinc-500 hover:bg-zinc-800/[4%] "
         + "hover:text-zinc-800 dark:text-white/80 dark:hover:bg-white/[7%] dark:hover:text-white "
-        + "aria-[current=page]:bg-zinc-800/[4%] dark:aria-[current=page]:bg-white/[7%] "
-        + "[[data-ui-navlist=outline]_&]:border [[data-ui-navlist=outline]_&]:border-transparent "
-        + "[[data-ui-navlist=outline]_&]:hover:bg-zinc-800/5 dark:[[data-ui-navlist=outline]_&]:hover:bg-white/[7%] "
-        + "[[data-ui-navlist=outline]_&]:aria-[current=page]:border-zinc-200 "
-        + "[[data-ui-navlist=outline]_&]:aria-[current=page]:bg-white "
-        + "dark:[[data-ui-navlist=outline]_&]:aria-[current=page]:border-transparent "
-        + "dark:[[data-ui-navlist=outline]_&]:aria-[current=page]:bg-white/[7%]";
+        + "aria-[current=page]:bg-zinc-800/[4%] dark:aria-[current=page]:bg-white/[7%]";
 
     private const string AccentCurrent =
         "aria-[current=page]:text-fx-accent-content hover:aria-[current=page]:text-fx-accent-content";
@@ -66,8 +58,7 @@ public sealed partial class UiNavlistItem : Component
         Component?[] content =
         [
             Icon is { } icon ? Div.Class("relative")[Ui.Icon.Name(icon).Class("size-4")] : null,
-            // ui-rail-hide: a collapsed sidebar keeps the icon and drops the words.
-            Div.Class("ui-rail-hide flex-1 whitespace-nowrap text-sm leading-none font-medium")
+            Div.Class("flex-1 whitespace-nowrap text-sm leading-none font-medium")
                 .Attributes(("data-content", null))[Children ?? []],
             Badge is { } badge ? UiNavItemMarkup.Badge(badge, BadgeColor, BadgeVariant, "", marked: true) : null,
         ];

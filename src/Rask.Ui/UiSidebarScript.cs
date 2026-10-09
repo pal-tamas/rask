@@ -13,16 +13,26 @@ namespace Rask;
 ///     </para>
 ///     <para>
 ///     Add it to <c>HeadAssets</c>, beside <see cref="UiAppearanceScript" />. It takes no handler and keeps no
-///     state of its own: the runtime's hook stays the one writer.
+///     state of its own. It also records a press on the collapse control made before the runtime's hook has
+///     loaded, under the same key and in the same words, so that press is kept too.
 ///     </para>
 /// </remarks>
 public sealed partial class UiSidebarScript : Component
 {
-    // The checkbox does not exist while the head is parsed, so the script waits for the parser to write it —
-    // an observer's callback runs before the browser paints what was just parsed.
+    // Two halves, each written once.
+    //
+    // RECORD: the runtime's hook is what stores a change, and in a WebAssembly app it arrives after the page
+    // can already be pressed. A press in that gap would change the box and store nothing — and the hook,
+    // arriving, would put the box back to what the last visit left. So this listens too, from the first
+    // byte, and writes the same key the same way; when the hook is there both write the same value.
+    //
+    // RESTORE: the checkbox does not exist while the head is parsed, so the script waits for the parser to
+    // write it — an observer's callback runs before the browser paints what was just parsed.
     internal const string Js =
-        "(function(){try{if(localStorage.getItem('" + UiSidebarState.RailKey + "')!=='true')return;}catch(e){return;}"
-        + "var s='[data-rask-persist=\"" + UiSidebarState.RailKey + "\"]';"
+        "(function(){var s='[data-rask-persist=\"" + UiSidebarState.RailKey + "\"]';"
+        + "document.addEventListener('change',function(e){var b=e.target;if(!b||!b.matches||!b.matches(s))return;"
+        + "try{localStorage.setItem('" + UiSidebarState.RailKey + "',b.checked?'true':'false');}catch(x){}},true);"
+        + "try{if(localStorage.getItem('" + UiSidebarState.RailKey + "')!=='true')return;}catch(e){return;}"
         + "function set(){var b=document.querySelector(s);if(b)b.checked=true;return !!b;}"
         + "if(set())return;"
         + "var o=new MutationObserver(function(){if(set())o.disconnect();});"

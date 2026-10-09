@@ -39,7 +39,7 @@ public sealed partial class UiBrand : Component
         [
             Mark(),
             Name is { } name
-                ? Div.Class("ui-rail-hide truncate text-sm font-medium text-zinc-800 dark:text-zinc-100")[name]
+                ? Div.Class("truncate text-sm font-medium text-zinc-800 dark:text-zinc-100")[name]
                 : null,
         ];
 

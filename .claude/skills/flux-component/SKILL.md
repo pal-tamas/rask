@@ -192,7 +192,7 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker slider otp-input pagination timeline tabs` today, plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker slider otp-input pagination timeline tabs navbar brand profile breadcrumbs avatar layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
 `parity-pillbox.mjs`, `parity-editor.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
@@ -401,9 +401,10 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   Flux's. `Ui.Command` draws its rows the old way through `UiCommandRows` until it is rebuilt.
   The generic hooks in the table above EXIST and the menu components do NOT write them yet: no
   `data-rask-menu-pointer` (a row is lit by `:hover` AND `data-active`, so two can be lit at once), no
-  `data-rask-safe-area` (the safe triangle is the CSS wedge in `ui.css`), no `data-rask-hover` (so
-  `flux:dropdown/hover` stays in `NotTranslated`), no `data-rask-lock` (the page lock is the `:root:has(…)`
-  rule in `ui.css`). The menu block in `rask-dom.ts` stays beside them: its focusout / toggle handlers are
+  `data-rask-safe-area` (the safe triangle is the CSS wedge in `ui.css`), no `data-rask-lock` (the page lock is the `:root:has(…)`
+  rule in `ui.css`, which leaves out a menu under a `[data-rask-hover]` root: a locked page takes the pointer
+  from the trigger and the menu shuts under it). `Ui.Dropdown.Hover()` is Flux's `hover` and writes
+  `data-rask-hover` (2026-10-08). The menu block in `rask-dom.ts` stays beside them: its focusout / toggle handlers are
   idempotent with the hooks'. Wiring them is the next step, and then that CSS and the block's overlap go.
   The context hook keeps the pointer's position in a constructable stylesheet (`:root{--rask-context-x/-y}`),
   not in `<html>`'s style attribute, which the WASM host's takeover morph of a prerendered page strips.
@@ -553,6 +554,54 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   ja-JP: Flux's button reads `2026年10月20日`, which is what the kit writes (measured; the earlier note of a
   `2026/01/20` difference did not reproduce). A typed part is EMPTY in server-rendered markup until the hooks
   run and fill it from the hidden field.
+
+## Sidebar, header and navigation (merged 2026-10-08; the rail on the follow-up)
+- **Two checkboxes, no script.** `Ui.Sidebar` holds `#sidebar-open` (slid over the page; `data-rask-uncheck-on-navigate`)
+  and `#sidebar-rail` (narrowed; `data-rask-persist="flux-sidebar-collapsed-desktop"`), and every control is a
+  `<label for>` with `role="button"`. The states are the variants `sidebar-desktop:` / `sidebar-rail:` /
+  `sidebar-open:` (`ui.css`), which weigh more than a plain utility on purpose. `Ui.SidebarScript` in a WASM
+  app's head restores the rail before first paint AND records a press made before the hook bundle has arrived.
+- **`IUiTrigger`** (`UiInvoked`): a kit part that DRAWS the button a dropdown opens from (`Ui.Profile`,
+  `Ui.SidebarProfile`, `Ui.NavbarItem`) is no element, so `Ui.Dropdown` tells it the panel id and it wires its
+  own button (`UiInvoker.Decorate`). A dropdown a part owns outright takes the internal step
+  `UiDropdown.OwnedBy(marker, hoverIf)` (the rail group's) and that part gives its button the dropdown's
+  `AnchorName`, so the menu sits against the button and not the row around it.
+- **The rail, measured on `fluxui.dev/demo/sidebar-collapsible`** and held by `node scripts/flux/rail.mjs`
+  (36 steps, light and dark; then an application's menu, `long-menu.html` from `LayoutDemo.LongMenu`):
+  every `Ui.SidebarItem` sits in a `Ui.Tooltip` (`right`, wrapper `block min-w-0`, `aria-describedby`) whose
+  content OPENS whenever the pointer is there and is DRAWN only in the rail and never inside a menu
+  (`UiSidebarItem.RailTooltip`); the collapse control's tooltip is its name (`aria-labelledby`) and shows at
+  every width; the search button's shows its placeholder; the profile has none. The count is Flux's
+  `data-flux-navlist-badge` span, not `flux:badge`. A group with an icon is, in the rail, Flux's
+  `flux:dropdown position="right" align="start" hover` around a `flux:menu` whose one `menu.group` (heading =
+  the group's) holds THE SAME items again, each `role="menuitem"`: `UiSidebarItem` reads `UiMenuLevel` from
+  context and registers as a row, so the group places its children twice (once in the `<details>`, once in the
+  menu) — the item's look in a menu is `in-data-ui-menu:` utilities, and every rail-only utility is
+  `sidebar-rail:not-in-data-ui-menu:` because the menu is INSIDE the collapsed sidebar. Flux gives the rail
+  button no accessible name (its heading span is `display:none`); the kit writes the same. Flux neither
+  animates nor remembers a group's fold. Leaving the icon for anywhere but the menu closes it at once, on both
+  (no delay, no safe area): move straight across the 5px gap.
+- **Layout parity:** `parity.mjs layouts/<slug>` → `measureLayouts` (`lib.mjs`: `VIEWS` × states `rail` / `open`,
+  put there by pressing `CONTROLS`), one document per demo from a `FluxLayoutParity`. `LayoutDemo.Utilities`
+  are the demos' own classes, unlayered: never a bare `.bg-white{}` there — the kit's menu says `bg-white` and
+  lost its dark ground to it. A demo the class yields that Flux has not (`long-menu`) is written and never
+  compared.
+- **Links:** only a generated route is a `NavLink`; a string `Href` is a plain `<a>` (#1070,
+  `UiRoutePathBaseTests`). `Ui.NavmenuItem` without `Href` is a `<button>` (`OnClick`), its icon carries
+  Flux's `data-navmenu-icon`. A menu's ink is stated (`text-black dark:text-white`), never inherited.
+- **Removed as not Flux's:** `Ui.Navlist.Variant` (no page documents it; the profile page's outlined list is
+  the docs' own decor and a box on `ProfileParity`), the `title` attributes, the `ui-rail-hide` classes.
+- **Open:** the second press on a hover-opened rail button closes Flux's menu and not the kit's (`rask-hover.ts`
+  swallows every such click); Enter on the rail button puts Flux's cursor on the first row, the kit's menu
+  opens with none (ArrowDown takes it there); a hover-opened menu takes focus (`autofocus`), Flux's does not.
+  `Ui.SidebarSearch` as a FIELD (`OnInput`) is the kit's translation — Flux's is only ever a button — drawn as
+  Flux's filled input; in the rail it is unmeasured. A plain (non-expandable) group in the rail, a `current`
+  item inside the rail menu and an item without an icon in the rail have no live example. Neither Flux nor
+  the kit scrolls the current item into view, and the whole sidebar scrolls (header and profile with it): an
+  app that wants them pinned gives `Ui.SidebarNav` `min-h-0 flex-1 overflow-y-auto`, as the Site does.
+  `flux:navmenu.separator` and `flux:navmenu.item indent` (the profile page's first menu) are not built.
+  `SiteHeader` is still a raw `<header>` (its own height, padding and z-order would each need a `!` over
+  `Ui.Header`'s), and the templates still write daisyUI's `navbar`.
 
 ## Runtime hooks that exist (Flux does it in script; the component writes the attribute)
 The kit ships no script but the editor's (`UiEditor.ts`, which only loads the engine). Rask's RUNTIME carries generic hooks keyed on attributes

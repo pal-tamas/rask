@@ -79,6 +79,19 @@ public partial class UiSidebarTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_head_script_records_a_change_made_before_the_hook_has_loaded()
+    {
+        var html = Ui.SidebarScript.ToHtml();
+
+        Assert.Contains("addEventListener('change'", html, StringComparison.Ordinal);
+        Assert.Contains(
+            "localStorage.setItem('flux-sidebar-collapsed-desktop',b.checked?'true':'false')", html, StringComparison.Ordinal);
+        Assert.True(
+            html.IndexOf("addEventListener('change'", StringComparison.Ordinal) < html.IndexOf("localStorage.getItem", StringComparison.Ordinal),
+            "the listener has to be added before the script returns for a reader with nothing stored.");
+    }
+
+    [Fact]
     public void A_dropdown_makes_the_sidebar_profile_the_button_that_opens_its_menu()
     {
         var html = Ui.Dropdown[Ui.SidebarProfile.Name("Ada"), Ui.Menu[Ui.MenuItem["Sign out"]]].ToHtml();
@@ -114,7 +127,20 @@ public partial class UiSidebarTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("for=\"sidebar-open\"", html, StringComparison.Ordinal);
         Assert.Contains("for=\"sidebar-rail\"", html, StringComparison.Ordinal);
-        Assert.Equal(2, html.Split("aria-label=\"Hide\"").Length - 1);
+        Assert.DoesNotContain("aria-label=", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_collapse_control_is_named_by_a_tooltip_shown_beside_it()
+    {
+        var html = Ui.SidebarCollapse.ToHtml();
+
+        Assert.Equal(2, html.Split("data-rask-tooltip=").Length - 1);
+        Assert.Equal(2, html.Split("role=\"button\"").Length - 1);
+        Assert.Equal(2, html.Split("aria-labelledby=\"ui-tooltip-").Length - 1);
+        Assert.Equal(2, html.Split(">Toggle sidebar<").Length - 1);
+        Assert.Contains("[position-area:right]", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("title=", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -153,8 +179,113 @@ public partial class UiSidebarTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.SidebarItem.Href("/inbox").Icon(Ui.IconName.Inbox).Tooltip("Inbox")["Inbox"].ToHtml();
 
-        Assert.Contains("sidebar-rail:sr-only", html, StringComparison.Ordinal);
-        Assert.Contains("title=\"Inbox\"", html, StringComparison.Ordinal);
+        Assert.Contains("sidebar-rail:not-in-data-ui-menu:sr-only", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("title=", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_item_sits_in_a_tooltip_that_says_its_label_beside_the_rail()
+    {
+        var html = Ui.SidebarItem.Href("/inbox").Icon(Ui.IconName.Inbox)["Inbox"].ToHtml();
+
+        Assert.StartsWith("<div class=\"block min-w-0\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-ui-tooltip", html, StringComparison.Ordinal);
+        Assert.Matches("data-rask-tooltip=\"ui-tooltip-\\d+\"", html);
+        Assert.Matches("<a[^>]* aria-describedby=\"ui-tooltip-\\d+\"", html);
+        Assert.Matches("<div[^>]* popover=\"manual\"[^>]* role=\"tooltip\"[^>]*>Inbox</div>", html);
+        Assert.Contains("[position-area:right]", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_items_tooltip_is_drawn_only_in_the_rail_and_never_in_a_menu()
+    {
+        var html = Ui.SidebarItem.Href("/inbox")["Inbox"].ToHtml();
+
+        Assert.Contains("hidden sidebar-rail:not-in-data-ui-menu:open:block", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_tooltip_of_its_own_replaces_the_label_in_the_bubble()
+    {
+        var html = Ui.SidebarItem.Href("/inbox").Tooltip("Your inbox")["Inbox"].ToHtml();
+
+        Assert.Contains(">Your inbox</div>", html, StringComparison.Ordinal);
+        Assert.Contains(">Inbox</div>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_items_badge_is_the_navlist_badge_which_the_rail_drops()
+    {
+        var html = Ui.SidebarItem.Href("/inbox").Badge("12")["Inbox"].ToHtml();
+
+        Assert.Matches("<span[^>]* data-ui-navlist-badge[^>]*>12</span>", html);
+        Assert.Contains("sidebar-rail:not-in-data-ui-menu:hidden", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-ui-seam", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_group_with_an_icon_opens_its_items_as_a_menu_beside_the_rail()
+    {
+        var html = Ui.SidebarGroup.Expandable(true).Heading("Favorites").Icon(Ui.IconName.Star)[
+            Ui.SidebarItem.Href("/a")["Android app"],
+            Ui.SidebarItem.Href("/b")["Brand guidelines"]
+        ].ToHtml();
+
+        Assert.Matches("data-ui-dropdown[^>]* data-ui-sidebar-group-dropdown", html);
+        Assert.Matches("<button[^>]* aria-haspopup=\"true\"[^>]* aria-expanded=\"false\"[^>]* aria-controls=\"uidd-\\d+-panel\"", html);
+        Assert.Matches("<div[^>]* popover=\"auto\"[^>]* role=\"menu\"", html);
+        Assert.Contains("data-ui-menu-heading", html, StringComparison.Ordinal);
+        Assert.Equal(2, html.Split("role=\"menuitem\"").Length - 1);
+        Assert.Equal(2, html.Split(">Android app</div></a>").Length - 1);
+    }
+
+    [Fact]
+    public void A_groups_menu_opens_under_the_pointer_only_while_the_sidebar_is_a_rail()
+    {
+        var html = Ui.SidebarGroup.Expandable(true).Heading("Favorites").Icon(Ui.IconName.Star)[Div].ToHtml();
+
+        Assert.Matches("data-rask-hover=\"uidd-\\d+-panel\"", html);
+        Assert.Contains(
+            "data-rask-hover-if=\"[data-ui-sidebar]:has(&gt; [data-ui-sidebar-rail]:checked) *\"", html, StringComparison.Ordinal);
+        Assert.Contains("hidden sidebar-rail:flex", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_item_inside_a_groups_menu_is_a_row_of_that_menu_and_outside_it_a_plain_link()
+    {
+        var html = Ui.SidebarGroup.Expandable(true).Heading("Favorites").Icon(Ui.IconName.Star)[
+            Ui.SidebarItem.Href("/a")["Android app"]
+        ].ToHtml();
+        var menu = html[html.IndexOf("role=\"menu\"", StringComparison.Ordinal)..];
+        var disclosure = html[..html.IndexOf("data-ui-dropdown", StringComparison.Ordinal)];
+
+        Assert.Matches("<a[^>]* role=\"menuitem\"[^>]* tabindex=\"-1\"", menu);
+        Assert.Matches("<a[^>]* id=\"uidd-\\d+-panel-mi-0\"", menu);
+        Assert.Contains("data-ui-sidebar-item", menu, StringComparison.Ordinal);
+        Assert.Contains("data-ui-sidebar-item", disclosure, StringComparison.Ordinal);
+        Assert.DoesNotContain("role=\"menuitem\"", disclosure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_search_button_sits_in_a_tooltip_that_says_its_placeholder()
+    {
+        var html = Ui.SidebarSearch.Placeholder("Search...").ToHtml();
+
+        Assert.Matches("<button[^>]* aria-describedby=\"ui-tooltip-\\d+\"", html);
+        Assert.Matches("role=\"tooltip\"[^>]*>Search...</div>", html);
+        Assert.DoesNotContain("data-ui-seam", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_search_that_is_a_field_is_the_filled_input_with_a_lens()
+    {
+        var html = Ui.SidebarSearch.Placeholder("Filter").Value("ab").OnInput(_ => { }).ToHtml();
+
+        Assert.Contains("data-ui-input", html, StringComparison.Ordinal);
+        Assert.Contains("bg-zinc-800/5", html, StringComparison.Ordinal);
+        Assert.Contains("data-ui-sidebar-search", html, StringComparison.Ordinal);
+        Assert.Contains("placeholder=\"Filter\"", html, StringComparison.Ordinal);
+        Assert.Contains("<svg", html, StringComparison.Ordinal);
     }
 
     [Fact]

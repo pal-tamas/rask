@@ -42,10 +42,14 @@ public sealed partial class BreadcrumbsParity : FluxParity
         yield return ("with-ellipsis-dropdown", Row(Ui.Breadcrumbs[
             Ui.BreadcrumbsItem.Href("#").Icon(Ui.IconName.Home),
             Ui.BreadcrumbsItem[
-                // Still a stand-in, and the dropdown's to close: Flux's rows here have no `href` and are
-                // <button>s, where Ui.NavmenuItem requires one and is a link; and Flux's panel takes the
-                // browser's own popover colour inside the grey crumb, where the kit's inherits the crumb's.
-                NavigationStandIns.Skipped("dropdown", "display:inline-flex;width:32px;height:32px;vertical-align:top")
+                Ui.Dropdown[
+                    Ui.Button.Ghost.Sm.Icon(Ui.IconName.EllipsisHorizontal),
+                    Ui.Navmenu[
+                        Ui.NavmenuItem["Client"],
+                        Ui.NavmenuItem.Icon(Ui.IconName.ArrowTurnDownRight)["Team"],
+                        Ui.NavmenuItem.Icon(Ui.IconName.ArrowTurnDownRight)["User"]
+                    ]
+                ]
             ],
             Ui.BreadcrumbsItem["Post"]
         ]));

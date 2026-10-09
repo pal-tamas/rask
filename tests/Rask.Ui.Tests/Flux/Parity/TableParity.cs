@@ -6,8 +6,8 @@ namespace Rask.UiTests.Flux.Parity;
 /// <remarks>
 ///     <para>
 ///     A table's cells hold OTHER Flux components — avatars, badges, a row menu — and its page sets it in a
-///     card and under a pager. The card, its heading and text, the pager and every button are the real ones.
-///     The avatar, the badge and the dropdown around a row's button are not rebuilt yet, so each is a plain box
+///     card and under a pager. The card, its heading and text, the pager, every button and the avatars are the
+///     real ones. The dropdown around a row's button is not rebuilt yet, so it is a plain box
 ///     marked <c>data-parity-skip</c>: the comparison holds it to the room it takes and looks no further.
 ///     Everything that is the table's own is compared whole.
 ///     </para>
@@ -223,9 +223,8 @@ public sealed partial class TableParity : FluxParity
     private static Component Frame(int width, Component example) =>
         Div.Style($"width:{width}px;margin:0 auto")[Style[Raw.Value(AppUtilities)], example];
 
-    // flux:avatar size="xs": a stand-in.
-    private static Component Avatar() =>
-        Div.Style("width:24px;height:24px;flex-shrink:0;border-radius:4px;background:#e4e4e7").Attributes(("data-parity-skip", ""));
+    // <flux:avatar size="xs" src="…">: whose face it is comes from the docs page's own data.
+    private static Component Avatar() => Ui.Avatar.Xs.Src(NavigationStandIns.Caleb);
 
     // flux:badge size="sm", in the colour Flux's page gives each status.
     private static Component Badge(string status) =>
