@@ -351,6 +351,11 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             catch (Exception ex)
 #pragma warning restore CA1031
             {
+                if (ShowsUnderItsFields(ex, ctx))
+                {
+                    return;
+                }
+
                 // Held for the children to render — `f.Error` — INSTEAD of leaving the handler to fault.
                 // A save that fails is an ordinary thing for a form to show, and a page that says nothing
                 // about it is the one bug this cannot fix.
@@ -372,6 +377,24 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
                 StateHasChanged();
             }
         };
+
+    // A failure that names its fields — the database refusing a duplicate — is drawn under them like a
+    // rule's message: no fault, no f.Error. The submit stays a failure only when some failure in it has
+    // nowhere on the page to be read.
+    private bool ShowsUnderItsFields(Exception thrown, EditContext ctx)
+    {
+        if (FieldFailurePlacement.Find(thrown) is not { } failures || !FieldFailurePlacement.Place(ctx, failures))
+        {
+            return false;
+        }
+
+        var sources = failures.Failures.Select(failure => failure.Source ?? string.Join('+', failure.Fields));
+        RaskDiagnostics.Report(
+            RaskLogLevel.Information,
+            "Rask.Forms",
+            $"A form submit on {GetType().Name} was refused: {string.Join(", ", sources)}");
+        return true;
+    }
 
     private ValueTask RunSubmitHandler(bool isValid, EditContext ctx, FormData formData)
     {
