@@ -11,7 +11,7 @@ namespace Rask.Core.Routing;
 public sealed class Router : Component
 {
     private readonly RouteState _state;
-    private readonly RouteChainPages _pages = new();
+    private readonly RoutePageInstances _pages;
     private IReadOnlyList<RouteLeaf> _leaves = Array.Empty<RouteLeaf>();
     private IReadOnlyList<Route>? _routes;
 
@@ -22,7 +22,7 @@ public sealed class Router : Component
     // `Routes` reassignment, so the answer is worth keeping. Same spirit as the `Routes` setter's
     // reference cache just below, which already refuses to re-flatten the same tree.
     //
-    // The results are safe to share across frames because nothing mutates them: RouteChainPages reads
+    // The results are safe to share across frames because nothing mutates them: RouteChainRenderer reads
     // Chain by index and hands Values to PageBinder, which also only reads. The per-frame part of the
     // state is RouteRenderState — its Cursor, and the Query, both of which are still taken fresh below.
     private IReadOnlyList<RouteLeaf>? _matchedLeaves;
@@ -31,11 +31,14 @@ public sealed class Router : Component
     private IReadOnlyDictionary<string, string?>? _matchedValues;
     private bool _matched;
 
-    // Whether this router is the one that says what the page is called. A router rendered inside a page
-    // of another one — a demo, an embedded section — shows pages of its own and leaves the title alone.
-    private bool _ownsTitle;
+    // Whether this router is the one the page's title is read from — see RouteRenderState.NamesThePage.
+    private bool _namesThePage;
 
-    public Router(RouteState state) => _state = state;
+    public Router(RouteState state)
+    {
+        _state = state;
+        _pages = new RoutePageInstances(this);
+    }
 
     // Settable from the auto-generated factory. A null assignment resolves to the session's route
     // table (RouteState.CurrentTable) so `Router()` (the zero-arg call shape) Just Works — the
@@ -67,18 +70,14 @@ public sealed class Router : Component
     // Render() publishes ctx.Route — per-FRAME state that the whole subtree below reads and that
     // exists only for as long as this frame's walk. The render cache breaks that: a Router whose
     // props and state are both clean is skipped, ctx.Route is never assigned, and any descendant
-    // that does render (a fresh Outlet, say) finds no route and throws "requires an active route
-    // context" — the whole page becomes an error boundary.
+    // that does render (a fresh Outlet, say) reaches RouteChainRenderer with a null route and
+    // throws "requires an active route context" — the whole page becomes an error boundary.
     //
     // The same reasoning covers Outlet, which advances RouteRenderState.Cursor: the cursor is
     // frame-global and positional, so the chain is only coherent if EVERY participant in the walk
     // runs on EVERY frame. Half a cached chain hands a page the wrong chain index.
     //
-    // And it covers the title: a page's PageTitle is read here on every frame, because this is the
-    // only place a title that follows the page's own state — a record renamed in place — can be
-    // noticed before the layout that shows it is walked.
-    //
-    // This is cheap to pay: Render() here is a route match plus a bind per page, and the page
+    // This is cheap to pay: Render() here is a route match plus a chain entry, and the page
     // components the chain resolves to are still cached normally — the expensive half is untouched.
     //
     // Not new to the chain surface, but only reachable there: the generated factory used to
@@ -97,9 +96,9 @@ public sealed class Router : Component
     protected override Task OnUnmount()
     {
         _state.Changed -= StateHasChanged;
-        if (_ownsTitle)
+        if (_namesThePage)
         {
-            _state.PublishTitle(null);
+            _state.TitleSource.Publish(null);
         }
 
         return Task.CompletedTask;
@@ -118,12 +117,12 @@ public sealed class Router : Component
             _matchedValues = values;
         }
 
+        // Claimed before the match is looked at: a path nothing matches has no title, and that has to
+        // replace the title of the page before it.
         var ctx = LiveRenderContext.Current;
-        _ownsTitle = ctx?.Route is null;
+        _namesThePage = ctx?.ClaimRouteTitle(_state.TitleSource) == true;
         if (!_matched)
         {
-            _pages.Clear();
-            PublishTitle(ctx, null);
             return new Fragment();
         }
 
@@ -136,23 +135,11 @@ public sealed class Router : Component
         // A fresh RouteRenderState per frame even on a memoised match: its Cursor is per-frame walk
         // state, and the Query is read now rather than when the path last changed — `?page=2` moves
         // without the path moving.
-        var route = new RouteRenderState(path, _matchedChain!, _matchedValues!, _state.Query);
-        ctx.Route = route;
-
-        // The whole chain is mounted HERE, before the outermost layout is walked: every page's OnMount
-        // and OnUpdated have run up to their first await by the time the title is read, so a layout that
-        // shows it renders the page's name the first time, not a frame later (#1239).
-        _pages.Mount(this, ctx, route);
-        route.Pages = _pages.Pages;
-        PublishTitle(ctx, _pages.Title());
-        return route.NextPage();
-    }
-
-    private void PublishTitle(LiveRenderContext? ctx, string? title)
-    {
-        if (_ownsTitle && _state.PublishTitle(title) && ctx is not null)
+        ctx.Route = new RouteRenderState(path, _matchedChain!, _matchedValues!, _state.Query)
         {
-            ctx.WalkAgain = true;
-        }
+            Title = _namesThePage ? _state.TitleSource : null,
+            Pages = _pages,
+        };
+        return RouteChainRenderer.RenderChainEntry(ctx);
     }
 }

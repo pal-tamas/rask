@@ -18,7 +18,7 @@ internal sealed partial class TestRoot(Func<Component?> factory) : Component
         }
 
         // Adopt and mount the child, exactly as the framework's own two wrapper roots do for theirs
-        // (RootErrorBoundary for the App, RouteChainPages for a page). RenderAsLiveRootCore fires
+        // (RootErrorBoundary for the App, RouteChainRenderer for a page). RenderAsLiveRootCore fires
         // the lifecycle on the ROOT only — which here is this forwarding wrapper, not the component
         // under test — so a component handed to Render() as an object rendered forever without
         // OnMount ever running, leaving anything that loads asynchronously stuck on

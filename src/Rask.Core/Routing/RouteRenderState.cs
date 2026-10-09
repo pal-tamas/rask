@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Routing;
 
 internal sealed class RouteRenderState
@@ -18,12 +16,15 @@ internal sealed class RouteRenderState
     public IReadOnlyList<Type> Chain { get; }
     public IReadOnlyDictionary<string, string?> Values { get; }
     public IQueryCollection Query { get; }
-
-    /// <summary>The chain's mounted pages, layout first: what the router and each <see cref="Outlet" /> place in turn.</summary>
-    public Component[] Pages { get; set; } = [];
-
     public int Cursor { get; set; }
 
-    /// <summary>The next page of the chain, or nothing once the leaf has been placed.</summary>
-    public Component NextPage() => Cursor < Pages.Length ? Pages[Cursor++] : new Fragment();
+    /// <summary>
+    ///     Where this route's pages offer their title, or <c>null</c> when they do not name the page: only the
+    ///     first router of a walk does. A router rendered inside a page of another one shows pages of its own
+    ///     and leaves the title alone.
+    /// </summary>
+    public RouteTitle? Title { get; init; }
+
+    /// <summary>The router's page instances, by place in the chain.</summary>
+    public required RoutePageInstances Pages { get; init; }
 }

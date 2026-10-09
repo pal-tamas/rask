@@ -34,10 +34,10 @@ public abstract partial class Component
             return html;
         }
 
-        // A component ahead of the router rendered with the title of the page before this one (see
-        // LiveRenderContext.WalkAgain). Walked once more and no further: the title is settled now, and a
-        // page whose title differs every time it is read must not hold the frame back for ever.
-        // Publish-only, so nothing that has just had its OnRendered gets it twice.
+        // The page's title changed, and a layout that shows it had already rendered when the walk reached
+        // the page (see LiveRenderContext.SettleRouteTitle). Walked once more and no further: the title is
+        // settled now, and a page whose title differs every time it is read must not hold the frame back
+        // for ever. Publish-only, so nothing that has just had its OnRendered gets it twice.
         FrameSinkScope.Current?.Reset();
         return WalkAsLiveRoot(services, publishOnly: true, sink, out _);
     }
@@ -73,7 +73,7 @@ public abstract partial class Component
         RaiseLifecycleBeforeRender(false);
 
         var html = SerializePage(sink);
-        walkAgain = ctx.WalkAgain;
+        walkAgain = ctx.SettleRouteTitle();
         NotifyTreeRendered(publishOnly, Live.AliveNow, Live.AlivePrev);
         DisposeDeparted(Live.AlivePrev, Live.AliveNow, Live.ParentMap);
 

@@ -88,8 +88,8 @@ public sealed class RouteState
     /// </remarks>
     internal Func<IReadOnlyList<Route>>? Table { get; set; }
 
-    /// <summary>Takes the title the router read off the route's pages; see <see cref="RouteTitle.Publish" />.</summary>
-    internal bool PublishTitle(string? title) => _title.Publish(title);
+    /// <summary>The title as the pages of each walk declare it; the router and the render root drive it.</summary>
+    internal RouteTitle TitleSource => _title;
 
     /// <summary>The table to resolve against now: the session's application, or the whole registry.</summary>
     internal IReadOnlyList<Route> CurrentTable => Table?.Invoke() ?? RouteRegistry.BuildTree();

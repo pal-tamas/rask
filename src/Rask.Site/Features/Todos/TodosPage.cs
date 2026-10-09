@@ -46,7 +46,7 @@ public sealed partial class TodosPage : Component
 
     // Fires on first render, on any [RouteParam] change, AND on URL-path change for the
     // same cached page instance (the framework OR's path change into propsChanged inside
-    // RouteChainPages). Bare re-renders triggered by event handlers don't refire it,
+    // RouteChainRenderer). Bare re-renders triggered by event handlers don't refire it,
     // so typing in the dialog input won't clobber what the user just typed.
     protected override async Task OnUpdated() => _form.Title = EditingItem?.Title ?? "";
 

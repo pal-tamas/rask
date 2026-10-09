@@ -6,8 +6,12 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Tests.Routing;
 
-// A page declares its title and the layout above it reads it through RouteState — in the SAME render,
+// A page declares its title and the layout above it reads it through RouteState — in the SAME render call,
 // which is the whole point (#1239): the first HTML carries the crumb, and nothing flashes empty.
+//
+// The page is mounted where its layout places the Outlet, as it always was, so the layout has rendered by
+// the time the title is known. When the title CHANGED, the root walks once more inside the same call — one
+// more render of whatever read it — and when it did not, nothing renders again.
 public partial class PageTitleTests : global::Rask.Core.RaskMarkup
 {
     private static readonly List<string> Log = [];
@@ -36,7 +40,23 @@ public partial class PageTitleTests : global::Rask.Core.RaskMarkup
         var html = view.RenderAsLiveRoot(sp);
 
         Assert.Equal("<div><nav>Static</nav><span>static</span></div>", html);
-        Assert.Equal(1, TitleLayout.Renders);
+    }
+
+    [Fact]
+    public void A_title_that_changed_costs_the_layout_one_more_render_and_the_page_none()
+    {
+        var (view, state, sp) = BuildView(Under<TitleLayout>(Route.To<CountingPage>("counted")));
+        CountingPage.Mounts = 0;
+        CountingPage.Renders = 0;
+        CountingPage.Rendered = 0;
+        state.Path = "/counted";
+
+        view.RenderAsLiveRoot(sp);
+
+        Assert.Equal(2, TitleLayout.Renders);
+        Assert.Equal(1, CountingPage.Mounts);
+        Assert.Equal(1, CountingPage.Renders);
+        Assert.Equal(1, CountingPage.Rendered);
     }
 
     [Fact]
@@ -208,7 +228,7 @@ public partial class PageTitleTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Page_hooks_run_in_chain_order_before_the_layout_renders()
+    public void A_page_is_mounted_where_its_layout_places_the_outlet_after_the_layout_has_rendered()
     {
         var (view, state, sp) = BuildView(Under<LoggingLayout>(Route.To<LoggingPage>("logged")));
         state.Path = "/logged";
@@ -217,9 +237,9 @@ public partial class PageTitleTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(
             [
-                "layout.OnMount", "layout.OnUpdated", "page.OnMount", "page.OnUpdated",
-                "layout.Render", "page.Render",
-                "page.OnFirstRender", "page.OnRendered", "layout.OnFirstRender", "layout.OnRendered",
+                "layout.OnMount", "layout.OnUpdated", "layout.Render",
+                "page.OnMount", "page.OnUpdated", "page.Render",
+                "layout.OnFirstRender", "layout.OnRendered", "page.OnFirstRender", "page.OnRendered",
             ],
             Log);
     }
@@ -262,22 +282,96 @@ public partial class PageTitleTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_page_whose_layout_does_not_render_the_outlet_is_mounted_once_and_kept()
+    public void A_page_whose_layout_does_not_place_the_outlet_is_neither_constructed_nor_mounted()
     {
+        // The security half of the render order: a layout that withholds its Outlet — behind an Authorize,
+        // behind a condition — keeps the page's constructor and its hooks from running at all.
         var (view, state, sp) = BuildView(Under<GatedLayout>(Route.To<CountingPage>("counted")));
+        CountingPage.Constructed = 0;
         CountingPage.Mounts = 0;
         GatedLayout.Open = false;
         state.Path = "/counted";
+
         var closed = view.RenderAsLiveRoot(sp);
+        view.RenderAsLiveRoot(sp);
+
+        Assert.Equal("<div>closed</div>", closed);
+        Assert.Equal(0, CountingPage.Constructed);
+        Assert.Equal(0, CountingPage.Mounts);
+        Assert.Null(state.Title);
+    }
+
+    [Fact]
+    public void A_page_behind_an_outlet_its_layout_opens_later_mounts_then_and_names_the_route()
+    {
+        var (view, state, sp) = BuildView(Under<GatedLayout>(Route.To<CountingPage>("counted")));
+        CountingPage.Constructed = 0;
+        CountingPage.Mounts = 0;
+        GatedLayout.Open = false;
+        state.Path = "/counted";
         view.RenderAsLiveRoot(sp);
 
         GatedLayout.Open = true;
         GatedLayout.Captured!.StateHasChanged();
         var open = view.RenderAsLiveRoot(sp);
 
-        Assert.Equal("<div>closed</div>", closed);
         Assert.Equal("<div><span>counted</span></div>", open);
+        Assert.Equal(1, CountingPage.Constructed);
         Assert.Equal(1, CountingPage.Mounts);
+        Assert.Equal("Counted", state.Title);
+    }
+
+    [Fact]
+    public void A_crumb_that_appears_ahead_of_the_outlet_keeps_the_page_it_is_named_after()
+    {
+        // The layout renders one sibling more ahead of its Outlet once the page has a title, which gives it
+        // a NEW outlet. A page that went with its outlet would be constructed again, lose what it loaded,
+        // lose its title, and take the crumb away with it.
+        var (view, state, sp) = BuildView(Under<CrumbAheadLayout>(Route.To<CountingPage>("counted")));
+        CountingPage.Constructed = 0;
+        CountingPage.Mounts = 0;
+        state.Path = "/counted";
+
+        var html = view.RenderAsLiveRoot(sp);
+        var again = view.RenderAsLiveRoot(sp);
+
+        Assert.Equal("<div><b>Counted</b><span>counted</span></div>", html);
+        Assert.Equal(html, again);
+        Assert.Equal(1, CountingPage.Constructed);
+        Assert.Equal(1, CountingPage.Mounts);
+    }
+
+    [Fact]
+    public void A_value_the_layout_provides_is_in_scope_in_the_pages_OnMount()
+    {
+        var (view, state, sp) = BuildView(Under<ProvidingLayout>(Route.To<ContextReadingPage>("reads")));
+        state.Path = "/reads";
+
+        var html = view.RenderAsLiveRoot(sp);
+
+        Assert.Equal("<div><span>mounted with from-layout</span></div>", html);
+    }
+
+    [Fact]
+    public void An_error_boundary_around_the_outlet_catches_a_route_value_that_will_not_bind()
+    {
+        var (view, state, sp) = BuildView(Under<GuardingLayout>(Route.To<NumberedPage>("n/{id}")));
+        state.Path = "/n/not-a-number";
+
+        var html = view.RenderAsLiveRoot(sp);
+
+        Assert.StartsWith("<div>layout:<p>caught RouteBindException</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_error_boundary_around_the_outlet_catches_a_page_whose_constructor_throws()
+    {
+        var (view, state, sp) = BuildView(Under<GuardingLayout>(Route.To<UnconstructiblePage>("broken")));
+        state.Path = "/broken";
+
+        var html = view.RenderAsLiveRoot(sp);
+
+        Assert.StartsWith("<div>layout:<p>caught InvalidOperationException</p>", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -292,7 +386,7 @@ public partial class PageTitleTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("<div><nav>Outer</nav><i><span>static</span></i></div>", html);
         Assert.Equal("Outer", state.Title);
-        Assert.Equal(1, TitleLayout.Renders);
+        Assert.Equal(2, TitleLayout.Renders);
     }
 
     [Fact]
@@ -435,8 +529,12 @@ public partial class PageTitleTests : global::Rask.Core.RaskMarkup
     [SkipFactory]
     public sealed class CountingPage : Component
     {
+        public static int Constructed;
         public static int Mounts;
+        public static int Renders;
         public static int Rendered;
+
+        public CountingPage() => Constructed++;
 
         protected override string? PageTitle => "Counted";
 
@@ -452,7 +550,60 @@ public partial class PageTitleTests : global::Rask.Core.RaskMarkup
             return Task.CompletedTask;
         }
 
-        protected override Component? Render() => Span["counted"];
+        protected override Component? Render()
+        {
+            Renders++;
+            return Span["counted"];
+        }
+    }
+
+    [SkipFactory]
+    public sealed class CrumbAheadLayout(RouteState route) : Component
+    {
+        protected override Component? Render() => Div[route.Title is { } title ? B[title] : null, Outlet];
+    }
+
+    [SkipFactory]
+    public sealed class ProvidingLayout : Component
+    {
+        protected override Component? Render() => Context.Provide("from-layout")[Div[Outlet]];
+    }
+
+    [SkipFactory]
+    public sealed class ContextReadingPage : Component
+    {
+        private string? _seen;
+
+        protected override Task OnMount()
+        {
+            _seen = Context.Get<string>();
+            return Task.CompletedTask;
+        }
+
+        protected override Component? Render() => Span[$"mounted with {_seen}"];
+    }
+
+    [SkipFactory]
+    public sealed class GuardingLayout : Component
+    {
+        protected override Component? Render() =>
+            Div["layout:", ErrorBoundary.Fallback((ex, _) => P[$"caught {ex.GetType().Name}"])[Outlet]];
+    }
+
+    [SkipFactory]
+    public sealed class NumberedPage : Component
+    {
+        [RouteParam] public int Id { get; set; }
+
+        protected override Component? Render() => Span[Id];
+    }
+
+    [SkipFactory]
+    public sealed class UnconstructiblePage : Component
+    {
+        public UnconstructiblePage() => throw new InvalidOperationException("no such page");
+
+        protected override Component? Render() => Span["never"];
     }
 
     [SkipFactory]

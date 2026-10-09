@@ -88,7 +88,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         // Two routes pointing at the same page type with no [RouteParam] differences
         // (e.g., `/todos` ↔ `/todos/new`). PageBinder.Bind alone would report propsChanged
         // = false on the second navigation, so the render cache would hand back the prior
-        // result and Updated would never refire. RouteChainPages's per-instance
+        // result and Updated would never refire. RouteChainRenderer's per-instance
         // path snapshot is what forces both the cache invalidation and the lifecycle hook.
         var routes = new[] { Route.To<MultiUrlPage>("/m/a"), Route.To<MultiUrlPage>("/m/b") };
         var (view, state, sp) = BuildView(routes);

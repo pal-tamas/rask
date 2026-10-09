@@ -14,10 +14,10 @@ public sealed class Outlet : Component
     // Unmount can't re-resolve RouteState from the render scope.
     private RouteState? _route;
 
-    // Render() advances RouteRenderState.Cursor, which is frame-global: each Outlet places the next
-    // page of the chain — already mounted by the Router — in walk order. A cached Outlet does not
-    // advance it, so the next one to render reads a cursor short by one and pulls the WRONG page — its
-    // own parent, nested inside itself. Router carries the matching note and the rest of the reasoning.
+    // Render() advances RouteRenderState.Cursor, which is frame-global: each Outlet takes the next
+    // link of the chain in walk order. A cached Outlet does not advance it, so the next one to
+    // render reads a cursor short by one and pulls the WRONG page — its own parent, nested inside
+    // itself. Router carries the matching note and the rest of the reasoning.
     protected override bool BypassRenderCache => true;
 
     protected override Task OnMount()
@@ -48,12 +48,14 @@ public sealed class Outlet : Component
 
     protected override Component? Render()
     {
-        // One message for both ways of being outside a router — no live render at all, or one in which no
-        // Router has rendered — because the difference is not one the reader can act on.
-        var route = LiveRenderContext.Current?.Route
-                    ?? throw new InvalidOperationException(
-                        "Outlet and Router rendering require an active route context. " +
-                        "Place Outlet inside a Router render tree.");
-        return route.NextPage();
+        // Same condition as RouteChainRenderer.RenderChainEntry, and deliberately the same words: which
+        // of the two you hit depends only on whether there is a live render context or merely no route
+        // in it, which is not a distinction the reader can act on. Two spellings for one problem meant
+        // searching for the message found half the story.
+        var ctx = LiveRenderContext.Current
+                  ?? throw new InvalidOperationException(
+                      "Outlet and Router rendering require an active route context. " +
+                      "Place Outlet inside a Router render tree.");
+        return RouteChainRenderer.RenderChainEntry(ctx);
     }
 }
