@@ -19,8 +19,9 @@ internal sealed partial class LayoutDemo : global::Rask.Core.RaskMarkup
     public const string Utilities =
         "body.min-h-screen{min-height:100vh}body.min-h-dvh{min-height:100dvh}.antialiased{-webkit-font-smoothing:antialiased}"
         // On the body and the header only, which is where the demos write it: the kit's menu says `bg-white` too,
-        // and an unlayered rule for every `.bg-white` would beat its `dark:` ground.
-        + ":is(body,[data-ui-header]).bg-white{background-color:#fff}.bg-zinc-50{background-color:oklch(98.5% 0 0)}"
+        // and an unlayered rule for every `.bg-white` would beat its `dark:` ground. In `:where()`, so it weighs
+        // what a utility weighs and the header's `lg:bg-zinc-50` after it still wins.
+        + ":where(body,[data-ui-header]).bg-white{background-color:#fff}.bg-zinc-50{background-color:oklch(98.5% 0 0)}"
         + ".dark .dark\\:bg-zinc-800{background-color:oklch(27.4% .006 286.033)}"
         + ".dark .dark\\:bg-zinc-900,.dark.dark\\:bg-zinc-900{background-color:oklch(21% .006 285.885)}"
         + ".dark.dark\\:bg-zinc-800{background-color:oklch(27.4% .006 286.033)}"
