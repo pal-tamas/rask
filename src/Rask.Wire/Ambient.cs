@@ -75,11 +75,25 @@ public static class Ambient
     }
 
     /// <summary>Makes <paramref name="token" /> the work in progress's cancellation until the scope is disposed.</summary>
+    /// <remarks>
+    ///     <see cref="CancellationToken.None" /> sets the enclosing work's aside: a render entered from a handler
+    ///     does it, so what it mounts is cancelled with itself and not with the handler's component.
+    /// </remarks>
     public static TokenScope Enter(CancellationToken token)
     {
         var previous = PushedToken.Value;
-        PushedToken.Value = token;
+        Push(previous, token);
         return new TokenScope(previous);
+    }
+
+    // The flow stores the token boxed, so writing the value it already holds would allocate for nothing —
+    // and a render sets the token aside on every pass, nearly always with none pushed.
+    private static void Push(CancellationToken current, CancellationToken token)
+    {
+        if (current != token)
+        {
+            PushedToken.Value = token;
+        }
     }
 
     /// <summary>Restores the services that were in scope before. A struct, so entering allocates nothing.</summary>
@@ -101,6 +115,6 @@ public static class Ambient
         internal TokenScope(CancellationToken previous) => _previous = previous;
 
         /// <inheritdoc />
-        public void Dispose() => PushedToken.Value = _previous;
+        public void Dispose() => Push(PushedToken.Value, _previous);
     }
 }
