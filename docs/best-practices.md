@@ -253,7 +253,9 @@ mistake, the rule notes the ID.
 ## Performance & memory
 
 - **Key your lists — it's a performance rule too.** Keyed insert/remove/move ship as small *trusted*
-  diff ops that preserve DOM identity; keyless structural changes fall back to a full-HTML morph. See
+  diff ops that preserve DOM identity. Without keys only an append, a truncation, or ONE child (or run of
+  children) coming or going among siblings that still match is a diff; a child that changes element, or
+  several changing apart from each other, fall back to a full-HTML morph. See
   [architecture → keyed reconciliation](architecture/live-rendering-codec.md#keyed-reconciliation-trusted-structural-ops).
 - **Treat `Key` as identity, not a reactive signal.** Changing a key mounts a fresh instance; it
   doesn't refire `OnUpdated`.

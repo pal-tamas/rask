@@ -242,8 +242,8 @@ public static partial class FrameDiffer
         // pairs, so levelHadReplace is final here.
         var nested = path.Count >= 1;
         if (nested && (levelHadReplace || oi < oldEnd || ni < newEnd)
-                   && TryDiffOneRun(oldFrames, oldStart, oldEnd, newFrames, newStart, newEnd, output, newHtml, scratch,
-                       opCountAtEntry, levelHadReplace))
+                   && TryDiffOneRun(Level.Of(oldFrames, oldStart, oldEnd), Level.Of(newFrames, newStart, newEnd), output,
+                       newHtml, scratch, opCountAtEntry, levelHadReplace))
         {
             return;
         }

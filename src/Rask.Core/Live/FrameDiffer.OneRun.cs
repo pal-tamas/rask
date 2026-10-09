@@ -19,23 +19,15 @@ public static partial class FrameDiffer
     private const string HandlerAttributePrefix = "data-rask-on-";
 
     private static bool TryDiffOneRun(
-        ReadOnlySpan<RenderFrame> oldFrames, int oldStart, int oldEnd,
-        ReadOnlySpan<RenderFrame> newFrames, int newStart, int newEnd,
-        List<EditOp> output,
-        ReadOnlySpan<char> newHtml,
-        DiffScratch scratch,
+        Level old, Level current, List<EditOp> output, ReadOnlySpan<char> newHtml, DiffScratch scratch,
         int opCountAtEntry, bool levelHadReplace)
     {
-        var oldCount = DomNodeCount(oldFrames, oldStart, oldEnd);
-        var newCount = DomNodeCount(newFrames, newStart, newEnd);
-        var paired = Math.Min(oldCount, newCount);
-        if (oldCount == newCount || paired == 0)
+        var paired = Math.Min(old.Count, current.Count);
+        if (old.Count == current.Count || paired == 0)
         {
             return false;
         }
 
-        var old = new Level(oldFrames, oldStart, oldEnd, oldCount);
-        var current = new Level(newFrames, newStart, newEnd, newCount);
         if (!TryPlaceRun(old, current, out var run))
         {
             return false;
@@ -48,7 +40,7 @@ public static partial class FrameDiffer
             return false;
         }
 
-        if (InsideForeignContent(newFrames, scratch.Path))
+        if (InsideForeignContent(current.Frames, scratch.Path))
         {
             return false;
         }
@@ -138,28 +130,36 @@ public static partial class FrameDiffer
             return last;
         }
 
-        var inserting = current.Count > old.Count;
-        var length = Math.Abs(current.Count - old.Count);
-        Span<byte> behindRun = stackalloc byte[positions];
+        // Scored from the last position leftwards, so the walk's own position is the one to beat and a tie
+        // keeps the rightmost. When every sibling is already paired with its exact self there, nothing can.
+        Span<byte> beforeRun = stackalloc byte[positions];
         var score = 0;
         for (var j = first; j < last; j++)
         {
-            var similarity = inserting
-                ? Similarity(old.Frames, oldAt[j], current.Frames, newAt[j + length])
-                : Similarity(old.Frames, oldAt[j + length], current.Frames, newAt[j]);
-            behindRun[j - first] = (byte)similarity;
+            var similarity = Similarity(old.Frames, oldAt[j], current.Frames, newAt[j]);
+            beforeRun[j - first] = (byte)similarity;
             score += similarity;
         }
 
-        var best = score;
-        var at = first;
-        for (var j = first; j < last; j++)
+        if (score == 2 * positions)
         {
-            score += Similarity(old.Frames, oldAt[j], current.Frames, newAt[j]) - behindRun[j - first];
-            if (score >= best)
+            return last;
+        }
+
+        var inserting = current.Count > old.Count;
+        var length = Math.Abs(current.Count - old.Count);
+        var best = score;
+        var at = last;
+        for (var j = last - 1; j >= first; j--)
+        {
+            var afterRun = inserting
+                ? Similarity(old.Frames, oldAt[j], current.Frames, newAt[j + length])
+                : Similarity(old.Frames, oldAt[j + length], current.Frames, newAt[j]);
+            score += afterRun - beforeRun[j - first];
+            if (score > best)
             {
                 best = score;
-                at = j + 1;
+                at = j;
             }
         }
 
@@ -281,6 +281,10 @@ public static partial class FrameDiffer
     // One side of a sibling level: its frames, and how many of them are children.
     private readonly ref struct Level(ReadOnlySpan<RenderFrame> frames, int start, int end, int count)
     {
+        public static Level Of(ReadOnlySpan<RenderFrame> frames, int start, int end) =>
+            new(frames, start, end, DomNodeCount(frames, start, end));
+
+
         public ReadOnlySpan<RenderFrame> Frames { get; } = frames;
 
         public int Start { get; } = start;

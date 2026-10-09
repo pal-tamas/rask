@@ -55,12 +55,19 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
             Ui.AutocompleteItem.Key("al")["Alabama"], Ui.AutocompleteItem.Key("ak")["Alaska"]
         ],
         ["progress value"] = on => Ui.Progress.Value(on ? 80 : 0),
+        // An icon that goes in before words or content: one child arriving among siblings that still match,
+        // which the differ answers with an insert of that child and nothing else.
+        ["badge icon"] = on => Ui.Badge.Icon(on ? Ui.IconName.Check : null)["New"],
+        ["callout icon"] = on => Ui.Callout.Icon(on ? Ui.IconName.Check : null).Heading("Saved"),
+        ["navlist item icon"] = on => Ui.Navlist[Ui.NavlistItem.Href("/").Icon(on ? Ui.IconName.Check : null)["Inbox"]],
     };
 
     /// <summary>
-    ///     Prop changes the gate still answers with the whole page, and where each changes shape. Each is a node
-    ///     that goes in BEFORE content the page wrote, which is text and cannot carry a key — so the fix is a
-    ///     different shape, and for a Flux component that is a parity decision, not a patch.
+    ///     Prop changes the gate still answers with the whole page, and where each changes shape. Each puts one
+    ///     node in the PLACE of another — bare words become a <c>&lt;span&gt;</c>, initials become an icon, a
+    ///     control becomes a field around it — which is not a child that comes or goes: the differ cannot tell
+    ///     which node stayed. So the fix is a different shape, and for a Flux component that is a parity
+    ///     decision, not a patch.
     /// </summary>
     private static readonly Dictionary<string, (Func<bool, Component> Draw, string Where)> Refused = new(StringComparer.Ordinal)
     {
@@ -70,12 +77,6 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
             "src/Rask.Ui/UiButton.cs:319 — bare words become a <span> beside the icon"),
         ["button kbd"] = (on => Ui.Button.Kbd(on ? "S" : null)["Save"],
             "src/Rask.Ui/UiButton.cs:318 — bare words become a <span> beside the keys"),
-        ["badge icon"] = (on => Ui.Badge.Icon(on ? Ui.IconName.Check : null)["New"],
-            "src/Rask.Ui/UiBadge.cs:100 — the icon goes in before the words, which are text"),
-        ["callout icon"] = (on => Ui.Callout.Icon(on ? Ui.IconName.Check : null).Heading("Saved"),
-            "src/Rask.Ui/UiCallout.cs:133 — the icon goes in before the content"),
-        ["navlist item icon"] = (on => Ui.Navlist[Ui.NavlistItem.Href("/").Icon(on ? Ui.IconName.Check : null)["Inbox"]],
-            "src/Rask.Ui/UiNavlistItem.cs:60 — the icon goes in before the words"),
         ["avatar icon for a name"] = (on => on ? Ui.Avatar.Icon(Ui.IconName.Check) : Ui.Avatar.Name("Ada Lovelace"),
             "src/Rask.Ui/UiAvatar.cs:172 — an <svg> in place of the initials' <span>"),
         ["input label and description"] = (on => Ui.Input.Value("a").Label(on ? "Name" : null).Description(on ? "As on the card." : null),

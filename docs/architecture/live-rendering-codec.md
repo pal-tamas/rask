@@ -218,6 +218,36 @@ fall back to full HTML**; only **keyed/trusted** ops ship as diff. The
 `SessionRenderCache.TryComputeDiff` overload surfaces `usedKeyedPath` so the session
 knows whether the diff touched the keyed branch.
 
+### Without keys: a tail, or one run among matching siblings
+
+Two positional changes are trusted too, both only **below the document's own level** (there the
+client's raw `childNodes[slot]` and the server's frame count agree):
+
+- **A tail** — children appended to, or cut from, the end of a level nothing was replaced in.
+- **One run** — a child, or several side by side, that comes or goes among siblings that still pair
+  up: `saved ? Ui.Callout[…] : null` above a form, an error text under a field, an icon in front
+  of a badge's words. After the positional walk met a tag mismatch or was left with a tail,
+  `FrameDiffer` (`Live/FrameDiffer.OneRun.cs`) counts the children on both sides and takes the
+  longest front and back they share — a pair needs the same kind and tag, the same `data-rask-key`
+  (or none on both), and equal raw markup. When front + back cover the shorter side, the longer
+  side's extra children are one contiguous run: the level's ops are rolled back and written again
+  as the pairs before the run, trusted inserts or removes for the run, then the pairs after it at
+  the slots they have once the run is in or out — the order the client applies them in. A node that
+  stayed is never touched, so it keeps its focus, its caret and what was typed into it.
+
+Among same-tag siblings the run fits at several positions. It stays at the last of them — where
+the positional walk would put it — unless another position scores **strictly** higher, the score
+being how many siblings stay paired with what they already were (the same subtree, handler ids
+aside, counts 2; the same element with the same attributes of its own counts 1). Handler ids are
+left out because a handler that comes or goes above renumbers the ones below it; those new ids
+reach the page as ordinary `SetAttribute` ops on the shifted siblings.
+
+Still answered with the whole page: an element in place of another (`cond ? A : B`, text in place
+of an element), two children arriving apart from each other, any structural change at the
+document's own level, and a run inside `<svg>`/`<math>` (the client parses an insert in a
+`<template>`, where an SVG child read on its own is an unknown HTML element). A level beside raw
+markup is still one `MorphSubtree` of its parent. Give such children a `.Key(…)`.
+
 ### Minimal moves via LIS
 
 When a keyed list reorders, the keyed branch (`DiffKeyedSiblings` in
