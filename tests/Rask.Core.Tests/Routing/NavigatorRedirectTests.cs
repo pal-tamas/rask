@@ -229,6 +229,51 @@ public sealed partial class NavigatorRedirectTests
         Assert.Throws<InvalidOperationException>(() => nav.NavigateTo("/list"));
     }
 
+    [Theory]
+    [InlineData("//evil.example")]
+    [InlineData("https://evil.example/")]
+    [InlineData("/\\evil.example")]
+    [InlineData("\\evil.example")]
+    [InlineData("evil.example")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("/tenants\r\nSet-Cookie: x=1")]
+    [InlineData("")]
+    public void Going_out_refuses_an_address_that_could_lead_off_the_site(string address)
+    {
+        var nav = new Navigator(new RouteState());
+        using var handler = nav.EnterHandler();
+
+        var refused = Assert.Throws<ArgumentException>(() => nav.NavigateOut(address));
+
+        Assert.Contains("Go.Out takes a path on this site", refused.Message);
+        Assert.False(nav.TryConsumeExit(out _));
+    }
+
+    [Fact]
+    public void Going_out_keeps_the_address_as_written_and_leaves_the_route_where_it_is()
+    {
+        var state = new RouteState { Path = "/here" };
+        var nav = new Navigator(state);
+
+        using (nav.EnterHandler())
+        {
+            nav.NavigateOut("/tenants?tab=open");
+        }
+
+        Assert.True(nav.TryConsumeExit(out var url));
+        Assert.Equal("/tenants?tab=open", url);
+        Assert.Equal("/here", state.Path);
+        Assert.False(nav.TryConsumeHistory(out _, out _));
+    }
+
+    [Fact]
+    public void Going_out_with_no_session_handling_anything_throws()
+    {
+        var nav = new Navigator(new RouteState());
+
+        Assert.Throws<InvalidOperationException>(() => nav.NavigateOut("/tenants"));
+    }
+
     // Stands in for the session: it keeps what it is handed, for the test to run as the session's own turn.
     private sealed class Session : IRenderHandle
     {

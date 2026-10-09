@@ -529,6 +529,36 @@ the page a sign-in returns to, a session rebuilt after a deploy — on the Serve
   redirects`, shown by the page's error boundary — two pages that send the reader to each other end there
   rather than for ever. Give one of them a condition under which it shows itself.
 
+### Leaving the app — `Go.Out`
+
+An app mapped under a path base (`app.MapRask<App>(pathBase: "/new")`) owns the addresses under it, and
+`Go.To("/tenants")` means `/new/tenants`. To send the reader to a page of the same site that the app does
+**not** render — the old application it runs beside — say so:
+
+```csharp
+protected override Task OnMount()
+{
+    if (!_partner.IsChosen)
+    {
+        Go.Out("/tenants");                    // the old application's page, not /new/tenants
+    }
+
+    return Task.CompletedTask;
+}
+```
+
+The address is used as written, and the browser loads it as a page: a `302` on a first request, a full-page
+navigation from a handler or a lifecycle hook (before or after an `await`, as
+[above](#redirecting-from-a-lifecycle-hook)), on the Server host and in WebAssembly. The app sent the reader
+there, as a handler's `Go.To` does, so a form with [`ConfirmLeave`](forms.md) is not asked about.
+
+**Only a path on this site.** `Go.Out` takes what the app wrote: one `/` and then the path. Another site, a
+scheme (`https:`, `javascript:`), `//host`, `/\host` and anything with a control character throw
+`ArgumentException` — the rule of `LocalUrl.Sanitize`, applied where the address is given and again where it
+is sent. Never hand it a value that arrived from outside (a `returnUrl` from the query string) without
+passing it through `LocalUrl.Sanitize` first. A plain link out needs none of this: a string `Href` is a
+plain `<a>` and already leaves.
+
 **Route-level authorization.** Put `[Authorize]` (optionally `[Authorize(Roles = "admin")]`) or `[AllowAnonymous]` on
 a page component; the `RouteAuthorizationGuard` enforces it before the page renders. The session is a cookie and
 `Rask.Auth` owns that scheme; roles and policies are ASP.NET's own `AddAuthorization`. Full flows on Server and

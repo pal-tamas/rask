@@ -20,6 +20,7 @@ internal sealed partial class RedirectStubApp(RouteState route) : Component
             new Route(typeof(RedirectStubItem), "item/{Id}"),
             new Route(typeof(RedirectStubLate), "late"),
             new Route(typeof(RedirectStubGated), "gated"),
+            new Route(typeof(RedirectStubOut), "out"),
         ]),
     ];
 
@@ -37,6 +38,7 @@ internal sealed partial class RedirectStubLayout(RouteState route) : Component
             Span.Id("crumb")[$"crumb:{route.Title}"],
             Button.Id("to-moved").OnClick(() => { Go.To("/rs/moved"); })["to moved"],
             Button.Id("to-late").OnClick(() => { Go.To("/rs/late"); })["to late"],
+            Button.Id("out").OnClick(() => Go.Out("/tenants"))["out"],
             Outlet];
 }
 
@@ -160,4 +162,16 @@ internal sealed partial class RedirectStubGated : Component
     }
 
     protected override Component? Render() => P["gated-content"];
+}
+
+// Sends the reader to a page of the site this app does not render, as it mounts.
+internal sealed partial class RedirectStubOut : Component
+{
+    protected override Task OnMount()
+    {
+        Go.Out("/old/partners");
+        return Task.CompletedTask;
+    }
+
+    protected override Component? Render() => P["out-content"];
 }

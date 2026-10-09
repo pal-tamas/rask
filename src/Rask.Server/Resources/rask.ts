@@ -450,8 +450,16 @@ import {
         if (data.type === "location" && typeof data.url === "string") {
             // Only ever a page on this host: the frame names a path here, and nothing it carries may take the
             // visitor to another site or run as script (a javascript: URL has an opaque origin, so it fails too).
-            const target = new URL(prependBase(data.url), location.href);
+            // `outside` is a page of this site the app does not render (Go.Out): its address is used as written.
+            const target = new URL(data.outside ? data.url : prependBase(data.url), location.href);
             if (target.origin !== location.origin) return;
+            // The server sent the reader there, as a handler's Go.To does, so the unsaved-changes guard is not
+            // asked: a form that no longer says it is guarded guards nothing (rask-leave.ts).
+            if (data.outside) {
+                document.querySelectorAll("form[data-rask-confirm-leave]").forEach(function (form) {
+                    form.removeAttribute("data-rask-confirm-leave");
+                });
+            }
             if (data.replace) location.replace(target.href); else location.assign(target.href);
             return;
         }

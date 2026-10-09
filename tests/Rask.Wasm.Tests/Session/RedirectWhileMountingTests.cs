@@ -156,6 +156,31 @@ public sealed class RedirectWhileMountingTests() : ResettingTestBase(LiveDiffMod
         Assert.Contains("start-content", Html(settled), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_handler_that_goes_out_asks_the_browser_for_a_full_page_navigation_to_the_address_as_written()
+    {
+        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode);
+        services.GetRequiredService<RouteState>().Path = "/rs/start";
+        var handler = Regex.Match(
+            Html(await session.InitialRenderAsync()), "id=\"out\"[^>]*data-rask-on-click=\"([^\"]+)\"",
+            RegexOptions.None, TimeSpan.FromSeconds(1));
+
+        await session.DispatchAsync(Utf8($$"""{"id":"{{handler.Groups[1].Value}}","type":"click"}"""));
+
+        Assert.Equal("/tenants", JSInterop.LastLeftTo);
+        Assert.Equal("/rs/start", services.GetRequiredService<RouteState>().Path);
+    }
+
+    [Fact]
+    public async Task A_link_to_a_page_that_goes_out_as_it_mounts_asks_the_browser_for_a_full_page_navigation()
+    {
+        var session = await OpenAt("/rs/start");
+
+        await Navigate(session, "/rs/out");
+
+        Assert.Equal("/old/partners", JSInterop.LastLeftTo);
+    }
+
     private static Task Lands(WasmLiveSession session) =>
         WaitFor.True(
             () => Encoding.UTF8.GetString(session.LastSentFrame).Contains("home-content", StringComparison.Ordinal),

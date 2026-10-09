@@ -2769,7 +2769,7 @@ public static partial class RaskEndpointExtensions
         // The path came from the client's navigate frame or the app's own navigation; either way it must stay on
         // this origin once the client hands it to location.
         var url = LocalUrl.Sanitize(QueryString.Build(routeState.Path, routeState.Query));
-        await session.SendOutOfBandAsync(LocationFrame(url, replace)).ConfigureAwait(false);
+        await session.SendOutOfBandAsync(LocationFrame(url, replace, outside: false)).ConfigureAwait(false);
 
         // The browser is leaving this page. The route change asked for a render in scope; drained after the dispatch, it
         // would paint the other application's URL into this one's tree on its way out.
@@ -2777,7 +2777,22 @@ public static partial class RaskEndpointExtensions
         return true;
     }
 
-    private static byte[] LocationFrame(string url, bool replace)
+    // Sends the browser to a page of this site the app does not render (Go.Out): the address as written, loaded
+    // as a page. Nothing more is rendered for this one — the reader is on their way out of it.
+    private static async Task<bool> LeaveTheApplicationAsync(LiveSession session, Navigator navigator)
+    {
+        if (!navigator.TryConsumeExit(out var exit))
+        {
+            return false;
+        }
+
+        await session.SendOutOfBandAsync(LocationFrame(LocalUrl.Sanitize(exit), replace: false, outside: true))
+            .ConfigureAwait(false);
+        session.DiscardPendingRender();
+        return true;
+    }
+
+    private static byte[] LocationFrame(string url, bool replace, bool outside)
     {
         var buffer = new ArrayBufferWriter<byte>(64 + url.Length);
         using (var writer = new Utf8JsonWriter(buffer))
@@ -2786,6 +2801,11 @@ public static partial class RaskEndpointExtensions
             writer.WriteString("type"u8, "location"u8);
             writer.WriteString("url"u8, url);
             writer.WriteBoolean("replace"u8, replace);
+            if (outside)
+            {
+                writer.WriteBoolean("outside"u8, true);
+            }
+
             writer.WriteEndObject();
         }
 
@@ -2999,6 +3019,10 @@ public static partial class RaskEndpointExtensions
             {
                 await EnforceAuthAndRenderAsync(session, url, replace: true).ConfigureAwait(false);
             }
+            else
+            {
+                await LeaveTheApplicationAsync(session, navigator).ConfigureAwait(false);
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException && !session.IsDisposed)
         {
@@ -3086,6 +3110,12 @@ public static partial class RaskEndpointExtensions
         bool replace,
         AuthInstruction? auth = null)
     {
+        var navigator = session.Services.GetRequiredService<Navigator>();
+        if (auth is null && await LeaveTheApplicationAsync(session, navigator).ConfigureAwait(false))
+        {
+            return;
+        }
+
         // When emitting an auth instruction, skip route auth re-eval: the cookie hasn't
         // landed yet on this WS, so the SessionUserProvider still holds the pre-SignIn
         // principal. The post-reconnect render does the real check with the new identity.
@@ -3108,7 +3138,11 @@ public static partial class RaskEndpointExtensions
 
         // A page that navigated as it mounted had its frame withheld: its destination is rendered instead, under
         // that route's own guard, and is the address the reader gets — the live form of the first request's 302.
-        var navigator = session.Services.GetRequiredService<Navigator>();
+        if (auth is null && await LeaveTheApplicationAsync(session, navigator).ConfigureAwait(false))
+        {
+            return;
+        }
+
         if (auth is null && navigator.TryConsumeRedirect(out var redirectUrl, out var redirectReplace))
         {
             await EnforceAuthAndRenderAsync(session, redirectUrl, historyUrl is null ? redirectReplace : replace)

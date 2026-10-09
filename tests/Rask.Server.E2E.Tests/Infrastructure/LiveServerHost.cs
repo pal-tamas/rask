@@ -45,7 +45,7 @@ internal sealed class LiveServerHost : IAsyncDisposable
 
     public static async Task<LiveServerHost> StartAsync<TApp>(
         bool blockWebSockets, bool staticFiles = false, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
-        bool cookieSignIn = false)
+        bool cookieSignIn = false, string pathBase = "", Action<WebApplication>? beside = null)
         where TApp : Component
     {
         // The wwwroot the build copied beside the tests: what a web project serves from its own folder.
@@ -96,7 +96,9 @@ internal sealed class LiveServerHost : IAsyncDisposable
         }
 
         app.UseWebSockets();
-        app.MapRask<TApp>();
+        // What the host serves beside the app: the pages of an older application, outside the app's path base.
+        beside?.Invoke(app);
+        app.MapRask<TApp>(pathBase: pathBase);
         await app.StartAsync();
 
         var address = app.Services.GetRequiredService<IServer>().Features
@@ -109,5 +111,8 @@ internal sealed class LiveServerHost : IAsyncDisposable
     {
         await _app.StopAsync();
         await _app.DisposeAsync();
+
+        // The path base is one value for the whole process: a host mapped under one must not leave it behind.
+        Rask.Core.Live.LiveOptions.PathBase = string.Empty;
     }
 }

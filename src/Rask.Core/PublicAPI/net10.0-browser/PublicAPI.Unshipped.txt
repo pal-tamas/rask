@@ -17832,6 +17832,7 @@ Rask.Core.GoTo.Replacing() -> void
 Rask.Core.Routing.RouteUrl.Go() -> Rask.Core.GoTo!
 static Rask.Core.Download.File(string! filename, System.IO.Stream! stream, string? contentType = null) -> void
 static Rask.Core.Download.File(string! filename, byte[]! bytes, string? contentType = null) -> void
+static Rask.Core.Go.Out(string! path) -> void
 static Rask.Core.Go.To(Rask.Core.Routing.RouteUrl url) -> Rask.Core.GoTo!
 static Rask.Core.Go.To(string! path) -> Rask.Core.GoTo!
 static Rask.Core.Go.To(string! path, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string?>>! query) -> Rask.Core.GoTo!

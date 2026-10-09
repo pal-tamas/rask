@@ -25,6 +25,7 @@ public sealed partial class RedirectLayout(RouteState route, IPersistentState st
             Button.Id("to-moved").OnClick(() => { Routes.RedirectMovedPage().Go(); })["to moved"],
             Button.Id("to-ping").OnClick(() => { Routes.RedirectPingPage().Go(); })["to ping"],
             Button.Id("to-late").OnClick(() => { Routes.RedirectLatePage().Go(); })["to late"],
+            Button.Id("out").OnClick(() => Go.Out("/tenants"))["out"],
             Button.Id("save-then-late").OnClick(SaveThenGo)["save"],
             Outlet];
 
@@ -322,4 +323,32 @@ public sealed partial class RedirectVaultUnchosenPage : Component
     }
 
     protected override Component? Render() => P["unchosen-content"];
+}
+
+// Sends the reader to a page of the site this app does not render, as it mounts.
+[Route("out")]
+[ParentRoute(typeof(RedirectLayout))]
+public sealed partial class RedirectOutPage : Component
+{
+    protected override Task OnMount()
+    {
+        Go.Out("/tenants");
+        return Task.CompletedTask;
+    }
+
+    protected override Component? Render() => P["out-content"];
+}
+
+// The same, after a load.
+[Route("late-out")]
+[ParentRoute(typeof(RedirectLayout))]
+public sealed partial class RedirectLateOutPage : Component
+{
+    protected override async Task OnMount()
+    {
+        await Task.Yield();
+        Go.Out("/tenants");
+    }
+
+    protected override Component? Render() => P["late-out-content"];
 }

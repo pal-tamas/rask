@@ -188,6 +188,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
             navigate();
             if (!navigator.TryConsumeHistory(out var url, out _))
             {
+                if (navigator.TryConsumeExit(out var exit))
+                {
+                    JSInterop.LeaveTo(LocalUrl.Sanitize(exit));
+                }
+
                 return;
             }
 
@@ -452,8 +457,9 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // updates the body. We commit the final render once, after the loop. Each rebuild
         // overwrites _htmlBuffers.Current, so it holds the final render when the loop settles.
         _pendingRenderInScope = false;
-        await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
         var budget = 2;
+        FollowRedirect(ref historyUrl, ref replace, ref budget);
+        await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
         while (FollowRedirect(ref historyUrl, ref replace, ref budget) || (_pendingRenderInScope && budget-- > 0))
         {
             _pendingRenderInScope = false;
@@ -488,6 +494,13 @@ internal sealed class WasmLiveSession : LiveSessionBase
     private bool FollowRedirect(ref string? historyUrl, ref bool replace, ref int budget)
     {
         _navigator ??= Services.GetRequiredService<Navigator>();
+
+        // Go.Out: the reader leaves for a page of this site the app does not render, and nothing follows.
+        if (_navigator.TryConsumeExit(out var exit))
+        {
+            JSInterop.LeaveTo(LocalUrl.Sanitize(exit));
+        }
+
         if (!_navigator.TryConsumeRedirect(out var url, out var redirectReplace))
         {
             return false;

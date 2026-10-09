@@ -48,6 +48,21 @@ public static class Go
         return new GoTo(navigator);
     }
 
+    /// <summary>
+    ///     Leaves the app for <paramref name="path" />, a page of this site that the app does not render — one the
+    ///     app's path base does not cover: <c>Go.Out("/tenants")</c> from an app mapped under <c>/new</c>.
+    /// </summary>
+    /// <remarks>
+    ///     The address is used as written, with no path base in front of it, and the browser loads it as a page:
+    ///     a <c>302</c> on the first request, a full-page navigation from a handler or a lifecycle hook. Only a
+    ///     path on this site is taken — another site, a scheme, <c>//</c> and <c>/\</c> are refused — so pass what
+    ///     the app wrote, never a value from the query string that <see cref="LocalUrl.Sanitize" /> has not seen.
+    /// </remarks>
+    /// <param name="path">A path on this site, starting with one <c>/</c>: <c>"/tenants"</c>.</param>
+    /// <exception cref="ArgumentException"><paramref name="path" /> could lead off this site.</exception>
+    /// <exception cref="InvalidOperationException">Called with no session handling an event or mounting a page.</exception>
+    public static void Out(string path) => Navigator.RequireCurrent().NavigateOut(path);
+
     /// <summary>Stays on this page with <paramref name="key" /> set in its query; a <c>null</c> value removes it.</summary>
     /// <param name="key">The query parameter, matched without regard to case.</param>
     /// <param name="value">Its new value.</param>

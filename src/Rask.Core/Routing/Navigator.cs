@@ -37,6 +37,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     private bool _dirty;
     private bool _inHandler;
     private bool _inInitialRender;
+    private string? _exit;
     private bool _handedOverInWalk;
     private bool _redirected;
     private int _redirects;
@@ -134,6 +135,34 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
         routeState.Query = BuildCollection(query);
         _replace = replace;
         Navigated();
+    }
+
+    /// <summary>
+    ///     Leaves the app for <paramref name="path" />, a page of this site the app does not render: the address
+    ///     is used as written, with no path base in front of it, and the browser loads it as a page.
+    /// </summary>
+    /// <param name="path">A path on this site, starting with one <c>/</c>.</param>
+    /// <exception cref="ArgumentException"><paramref name="path" /> could lead off this site.</exception>
+    /// <exception cref="InvalidOperationException">Called with no session handling an event or mounting a page.</exception>
+    public void NavigateOut(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        if (!string.Equals(LocalUrl.Sanitize(path), path, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Go.Out takes a path on this site, as the app wrote it: one '/' and then the path, like " +
+                $"\"/tenants\". '{path}' could lead somewhere else (another site, a scheme, '//' or '/\\'), so it is " +
+                "refused. A value that arrived from outside — a returnUrl — goes through LocalUrl.Sanitize first.",
+                nameof(path));
+        }
+
+        if (HandedToTheSession(() => NavigateOut(path)))
+        {
+            return;
+        }
+
+        EnsureInHandler();
+        _exit = path;
     }
 
     /// <summary>
@@ -302,6 +331,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     internal IDisposable EnterInitialRender()
     {
         _dirty = false;
+        _exit = null;
         _redirected = false;
         _redirects = 0;
         _replace = false;
@@ -319,6 +349,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
         // pending nav (and _replace flag) into the next one, while still allowing the caller to
         // consume the navigation after the scope disposes.
         _dirty = false;
+        _exit = null;
         _handedOverInWalk = false;
         _redirected = false;
         _redirects = 0;
@@ -354,10 +385,22 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     ///     Only while the dispatch that rendered it is still open: a redirect its host never took — the handler
     ///     threw first — must not hold back the renders that come after it.
     /// </remarks>
-    internal bool RedirectPending => (_redirected && (_inHandler || _inInitialRender)) || _handedOverInWalk;
+    internal bool RedirectPending =>
+        ((_redirected || _exit is not null) && (_inHandler || _inInitialRender)) || _handedOverInWalk;
 
     /// <summary>Whether a navigation has been made that no host has taken yet.</summary>
-    internal bool NavigationPending => _dirty;
+    internal bool NavigationPending => _dirty || _exit is not null;
+
+    /// <summary>
+    ///     Takes the address outside the app the reader was sent to, for the host to load as a page: a
+    ///     <c>302</c> on the first request, a full-page navigation in an open session.
+    /// </summary>
+    internal bool TryConsumeExit(out string url)
+    {
+        url = _exit ?? string.Empty;
+        _exit = null;
+        return url.Length > 0;
+    }
 
     /// <summary>
     ///     Takes the navigation a page made while it was being rendered, for the host to render its destination

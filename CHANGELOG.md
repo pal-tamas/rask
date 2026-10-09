@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`Go.Out("/tenants")` leaves the app for a page of the same site it does not render.** An app mapped under a
+  path base (`MapRask<App>(pathBase: "/new")`) could not send the reader to the old application beside it from
+  code: `Go.To("/tenants")` always meant `/new/tenants`. `Go.Out` uses the address as written — a `302` on a first
+  request, a full-page navigation from a handler or a lifecycle hook, on both hosts — and takes only a path on
+  this site: another site, a scheme, `//host` and `/\host` throw `ArgumentException`
+  ([Leaving the app](docs/routing.md#leaving-the-app--goout)).
+
 ### Fixed
 
 - **A page that redirects from `OnMount` or `OnUpdated` lands on its destination, however it was reached.** A
