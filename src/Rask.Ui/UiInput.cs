@@ -125,6 +125,29 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<T> AfterBind { get; set; }
 
+    /// <summary>
+    ///     Binds when the reader leaves the field rather than on every keystroke, and validates then:
+    ///     <c>Ui.Input.Bind(() =&gt; m.Name).Blur()</c>. Flux's <c>wire:model.blur</c>.
+    /// </summary>
+    public bool? Blur
+    {
+        get => _timing.Blur;
+        set => _timing.Blur = value;
+    }
+
+    /// <summary>
+    ///     Binds once typing has paused for this long, and validates then:
+    ///     <c>Ui.Input.Bind(() =&gt; m.Name).Debounce(300.Milliseconds)</c>. Flux's
+    ///     <c>wire:model.live.debounce.300ms</c>; Enter, a button and leaving the field do not wait for it.
+    /// </summary>
+    public TimeSpan? Debounce
+    {
+        get => _timing.Debounce;
+        set => _timing.Debounce = value;
+    }
+
+    private BindTiming _timing;
+
     /// <summary>Runs on every keystroke with the raw text, which is often not yet a valid <typeparamref name="T" />.</summary>
     public Callback<string> OnInput { get; set; }
 
@@ -218,7 +241,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     {
         // Bind and Value are the two openings of Core's input, and both hand back the same element.
         var input = Bind is { } bind
-            ? Input.Bind(bind).Validate(Validate).AfterBind(Committed)
+            ? Input.Bind(bind).Validate(Validate).AfterBind(Committed).Blur(Blur).Debounce(Debounce)
             : Input.Value(Masked(Value)).OnChange(Changed);
 
         if (Host is { } host)

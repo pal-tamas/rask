@@ -62,6 +62,29 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
     /// <summary>Runs after a successful bind, once the model has the new value.</summary>
     public Callback<T> AfterBind { get; set; }
 
+    /// <summary>
+    ///     Binds when the reader leaves the textarea rather than on every keystroke, and validates then.
+    ///     Nothing is sent while they type.
+    /// </summary>
+    public bool? Blur
+    {
+        get => _timing.Blur;
+        set => _timing.Blur = value;
+    }
+
+    /// <summary>
+    ///     Binds once typing has paused for this long, and validates then:
+    ///     <c>Textarea.Bind(() =&gt; m.Notes).Debounce(300.Milliseconds)</c>. The pause is kept in the browser;
+    ///     a press on a button and leaving the textarea do not wait for it.
+    /// </summary>
+    public TimeSpan? Debounce
+    {
+        get => _timing.Debounce;
+        set => _timing.Debounce = value;
+    }
+
+    private BindTiming _timing;
+
 
     // IFormControl<T> — controlled mode.
 
@@ -111,6 +134,12 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             // Bound: write the model on input, touch + revalidate on change.
             var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
+            if (_timing.Waits)
+            {
+                WriteWaitingBind(sb, ctx, _timing, acc, bindCtx, afterBind);
+                return;
+            }
+
             AppendAttr(sb, "data-rask-on-input",
                 ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, fid, false, afterBind)));
             AppendAttr(sb, "data-rask-on-change",
