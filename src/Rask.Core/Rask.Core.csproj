@@ -42,6 +42,8 @@
          (RenderAsLiveRoot / TryInvokeHandlerAsync) into a supported public testing API. -->
     <InternalsVisibleTo Include="Rask.Testing"/>
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
+    <!-- For LiveDiffGate: the kit's guard test asks the gate itself whether a state change ships as a diff. -->
+    <InternalsVisibleTo Include="Rask.Ui.Tests"/>
     <InternalsVisibleTo Include="Rask.Server"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>
     <!-- Same surface as Rask.Server.Tests; a separate assembly so MetadataUpdaterSupport can be on. -->

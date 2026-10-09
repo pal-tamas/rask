@@ -145,9 +145,11 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
         return field.Wrap(
             Div.Class(UiClass.Compose(clears ? UiTimePickerLook.RootClearable : UiTimePickerLook.Root, Class))
                 .Data(UiTimePickerLook.RootMarks)[
-                Div.Class("inline")[Typed ? TypedTrigger(view) : ButtonTrigger(view, cursor)],
-                clears ? ClearButton(view) : null,
-                Options(view, cursor)
+                // Keyed, so the clear button coming and going is an insert or a removal the live diff ships — and
+                // written after the list it is laid over, so the times keep the handlers they had.
+                Div.Key("trigger").Class("inline")[Typed ? TypedTrigger(view) : ButtonTrigger(view, cursor)],
+                Options(view, cursor),
+                clears ? ClearButton(view) : null
             ]);
     }
 
@@ -179,8 +181,9 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
             Ui.Icon.Name(Ui.IconName.Clock).Mini.Class(UiTimePickerLook.ButtonIcon),
             Div.Class(UiTimePickerLook.Selected)[
                 view.Chosen.Count == 0
-                    ? Span.Class(UiTimePickerLook.Placeholder).Data("ui-time-picker-placeholder", null)[Placeholder ?? RaskStrings.Get(RaskString.TimePickerPlaceholder, "Select a time")]
-                    : Div.Attributes(("dir", "auto"))[string.Join(", ", view.Chosen.Select(Written))]
+                    // One or the other, each under its key: a span against a div is no change the live diff can patch.
+                    ? Span.Key("placeholder").Class(UiTimePickerLook.Placeholder).Data("ui-time-picker-placeholder", null)[Placeholder ?? RaskStrings.Get(RaskString.TimePickerPlaceholder, "Select a time")]
+                    : Div.Key("chosen").Attributes(("dir", "auto"))[string.Join(", ", view.Chosen.Select(Written))]
             ],
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiTimePickerLook.ButtonChevron)
         ];
@@ -191,6 +194,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
         // A typed trigger with its list taken away keeps the element, as Flux does, and nothing can open it.
         var listed = !Typed || Dropdown != false;
         var list = Div
+            .Key("list")
             .Id(ListId)
             .Popover(Popover.Auto)
             .TabIndex(-1)
@@ -268,6 +272,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
 
     private Component ClearButton(View view) =>
         Button
+            .Key("clear")
             .Type(ButtonType.Button)
             .Class(UiTimePickerLook.Clear)
             .Aria("label", RaskStrings.Get(RaskString.PickerClear, "Clear"))

@@ -1,6 +1,11 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-09 with the morph leaving alone a change-only field the reader is typing into, when the
+# render carries the value it had already rendered for it (rask-morph.ts, shared, so both runtimes carry it —
+# the value read before the attributes are synced, and the one comparison): rask.js 97,409 -> 97,583 (+174)
+# and rask.wasm.js 86,167 -> 86,324 (+157). rask-hooks.js is unchanged at 42,367.
+#
 # Refreshed 2026-10-09 with a bound field that waits (`.Debounce(…)` / `.Blur()`, rask-input.ts — the CORE bundle,
 # because what it has to get ahead of is the runtimes' own submit, click, key and navigation): rask.js
 # 96,350 -> 97,409 (+1,059) and rask.wasm.js 85,110 -> 86,167 (+1,057). A timer per paused field and the flush that
@@ -130,6 +135,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,97409
-rask.wasm.js,86167
+rask.js,97583
+rask.wasm.js,86324
 rask-hooks.js,42367

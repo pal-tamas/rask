@@ -31,6 +31,40 @@ them until tagged releases begin.
   one-value value object it emits `.Property(v => v.Value).HasColumnName("…")` — an extension method — and
   relied on the app importing `Microsoft.EntityFrameworkCore` somewhere, failing with CS1061 where none did.
   The generated file now brings the namespace itself. It was the only extension call in the generated files.
+- **A pick in a multiple `Ui.Select` is answered with a diff, not the whole page.** The listbox button says one
+  of three things — the placeholder, the one picked option, "N selected" — and each was a different element in
+  the same place: a `<span>`, a `<div>` holding the option, a `<div>` holding text. The live diff patches a node
+  in place only when it can tell which node stayed, so 0→1, 1→2 and 2→1 were each answered with the whole
+  document (85 KB on the reporting app's form, 30 KB on the test page) where the reply is now 1,018 / 246 / 971
+  bytes. Each of the three is keyed, as are the button, the list and the clear slot around them, the rows of
+  the list (an option without a `Key` by its place, the empty and create rows by name), a pillbox's clear button
+  and chevron, and a combobox's. The rendered elements are the ones Flux stamps, unchanged. `Clearable` on a
+  listbox writes its button after the list it is laid over, so the rows keep the handler ids they had when a
+  pick brings the button in. The same shape in `Ui.TimePicker` (placeholder against chosen time, the clear
+  button) and in the data grid's group bar (the hint against the first chip) is keyed too.
+
+- **A toast arriving or leaving is answered with a diff, not the whole page.** `Ui.Toast` drew nothing until
+  there was a toast, so its popover came and went among the layout's children — and a child that arrives before
+  a sibling is a change by position, which the live diff answers with the whole document. Every save and delete
+  that says so in a toast cost a document twice: on a one-field form 33,648 bytes arriving and 31,296 leaving in
+  the reporting app (6,127 and 3,798 on the test page), where the replies are now 2,330 and 110 bytes whatever
+  the page weighs. The host — `<div popover="manual" data-ui-toast role="status">`, or `data-ui-toast-group`
+  inside a `Ui.ToastGroup` — is on the page from the first render now, closed and empty, as Flux's `<ui-toast>`
+  is; a toast is put into it and taken out. The toasts the host draws when an app places no `Ui.Toast` do the
+  same. **What changes for a page:** there is one more element where `Ui.Toast` is written, displayed `none`
+  until a toast shows — a rule that counts children (`space-y-*`, `:last-child`) sees it, so place `Ui.Toast`
+  beside the layout's content rather than between two spaced blocks. The host is no longer keyed by its toast;
+  each toast's dialog still is, so a toast that takes another's place is a new node with its own entrance and
+  its own countdown.
+
+- **A number being typed survives a reply that is the whole page.** A field bound to a number or a date sends
+  on `change`, so while the reader is still in it the server has not heard what they typed. A reply that is a
+  diff leaves such a field alone; a reply that is the whole page carries, for every bound field, the value the
+  server knew when it rendered — and the morph wrote that over the digits being typed. The field then held what
+  it held when it was entered, so leaving it raised no `change` either: nothing was sent, and the save had no
+  number. The morph now leaves a focused change-only field alone when the render carries the value it had
+  already rendered for it (it has nothing newer than the reader); a value the server did change still wins. A
+  field that sends each keystroke was already kept while focused.
 - **A page reached by `Go()` from a handler loads under its own lifetime, not the handler's.** The documented
   save — `await thing.Save(); Routes.ListPage().Go();` — mounted the list inside the handler's turn, where the
   ambient cancellation (`Current.Cancellation`, what every read with no token uses) was still the SAVING
@@ -70,6 +104,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **A reply that goes out as the whole page says why, in Development.** When the live diff cannot carry a
+  render the session answers with the whole document — tens of kilobytes where a diff is a few hundred bytes —
+  and until now only the devtools' wire tab showed that it had, never which node it gave up on. In Development
+  the `Rask.Live` logger now says, at Information: `Rask live: a reply went out as the whole page (85618 chars)
+  instead of a diff: RemoveSubtree at /1/1/0/1/0/1/1/0/0/0 is by position, replaced by <div class="truncate
+  min-w-0" …>. A child that comes and goes before its siblings, or changes element, is patched in place only
+  when it and its siblings each carry a Key…` — or that the diff was no smaller than the page, or that raw
+  markup sits at the document's own level. Nothing is formatted outside Development, and a reply that ships as a
+  diff never reaches the code.
 - **A save the store refuses is shown under the field it is about.** A submit handler that throws an
   exception implementing `IFieldFailures` (new, in `Rask.Wire`) no longer fails the submit: each
   `FieldFailure`'s message appears under the bound fields it names, drawn exactly as a rule's message, and
