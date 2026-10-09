@@ -3093,7 +3093,6 @@ Rask.Core.Css.ScrollSnapTypeKeywords.Block.get -> Rask.Core.Css
 Rask.Core.Css.ScrollSnapTypeKeywords.Both.get -> Rask.Core.Css
 Rask.Core.Css.ScrollSnapTypeKeywords.Inline.get -> Rask.Core.Css
 Rask.Core.Css.ScrollSnapTypeKeywords.None.get -> Rask.Core.Css
-Rask.Core.Css.ScrollSnapTypeKeywords.Pair.get -> Rask.Core.Css
 Rask.Core.Css.ScrollSnapTypeKeywords.ScrollSnapTypeKeywords() -> void
 Rask.Core.Css.ScrollSnapTypeKeywords.X.get -> Rask.Core.Css
 Rask.Core.Css.ScrollSnapTypeKeywords.Y.get -> Rask.Core.Css
@@ -3979,6 +3978,7 @@ Rask.Core.HTMLInputElement<T>.Blur.get -> bool?
 Rask.Core.HTMLInputElement<T>.Blur.set -> void
 Rask.Core.HTMLInputElement<T>.Debounce.get -> System.TimeSpan?
 Rask.Core.HTMLInputElement<T>.Debounce.set -> void
+Rask.Core.HTMLTextAreaElement.Wrap.get -> string?
 Rask.Core.HTMLTextAreaElement<T>.Blur.get -> bool?
 Rask.Core.HTMLTextAreaElement<T>.Blur.set -> void
 Rask.Core.HTMLTextAreaElement<T>.Debounce.get -> System.TimeSpan?
@@ -7459,6 +7459,7 @@ static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_Valid
 static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_ValidationSummary(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_VirtualizeModel(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Routing_Router(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Core.Wrap<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, string? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskEntriesRask_Core.Authorize.get -> Rask.Core.Components.Authorize!
 static RaskEntriesRask_Core.DefaultNotFoundPage.get -> Rask.Core.Components.DefaultNotFoundPage!
 static RaskEntriesRask_Core.Doctype.get -> Rask.Core.Components.Doctype!
@@ -18058,7 +18059,6 @@ Rask.Core.HTMLScriptElement.FetchPriority.get -> Rask.Core.FetchPriority?
 Rask.Core.HTMLScriptElement.ReferrerPolicy.get -> Rask.Core.ReferrerPolicy?
 Rask.Core.HTMLTableCellElement.Scope.get -> Rask.Core.ThScope?
 Rask.Core.HTMLTemplateElement.ShadowRootMode.get -> Rask.Core.ShadowRootMode?
-Rask.Core.HTMLTextAreaElement.Wrap.get -> Rask.Core.TextareaWrap?
 Rask.Core.HTMLTrackElement.Kind.get -> Rask.Core.TrackKind?
 Rask.Core.InputMode
 Rask.Core.InputMode.Decimal = 520654156 -> Rask.Core.InputMode
@@ -18114,9 +18114,6 @@ Rask.Core.SelectionMode.Start = 1697318111 -> Rask.Core.SelectionMode
 Rask.Core.ShadowRootMode
 Rask.Core.ShadowRootMode.Closed = -336703291 -> Rask.Core.ShadowRootMode
 Rask.Core.ShadowRootMode.Open = -748763959 -> Rask.Core.ShadowRootMode
-Rask.Core.TextareaWrap
-Rask.Core.TextareaWrap.Hard = -456959012 -> Rask.Core.TextareaWrap
-Rask.Core.TextareaWrap.Soft = -196492107 -> Rask.Core.TextareaWrap
 Rask.Core.ThScope
 Rask.Core.ThScope.Col = -225586063 -> Rask.Core.ThScope
 Rask.Core.ThScope.Colgroup = 150307336 -> Rask.Core.ThScope
@@ -18352,7 +18349,6 @@ static RaskBuilderSettersRask_Core.Scope(this Rask.Core.HTMLTableCellElement! __
 static RaskBuilderSettersRask_Core.ShadowRootMode(this Rask.Core.HTMLTemplateElement! __b, Rask.Core.ShadowRootMode? value) -> Rask.Core.HTMLTemplateElement!
 static RaskBuilderSettersRask_Core.Shape(this Rask.Core.HTMLAreaElement! __b, Rask.Core.AreaShape? value) -> Rask.Core.HTMLAreaElement!
 static RaskBuilderSettersRask_Core.Type(this Rask.Core.HTMLButtonElement! __b, Rask.Core.ButtonType? value) -> Rask.Core.HTMLButtonElement!
-static RaskBuilderSettersRask_Core.Wrap<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, Rask.Core.TextareaWrap? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAnchorElement! __b) -> Rask.Core.HTMLAnchorElement!
 static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAnchorElement! __b, bool? value) -> Rask.Core.HTMLAnchorElement!
 static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAreaElement! __b) -> Rask.Core.HTMLAreaElement!
