@@ -8,6 +8,7 @@ public abstract partial class UiSelectControl<T>
     private Component Popup(View view)
     {
         var popup = Div
+            .Key("list")
             .Id(PanelId)
             .Popover(Popover.Auto)
             .Class(UiClass.Compose(UiListboxLook.Popup, HasSearchField ? UiListboxLook.Column : UiListboxLook.Scrolls, PillPopupLook(), OptionsClass))
@@ -52,6 +53,9 @@ public abstract partial class UiSelectControl<T>
         return marks;
     }
 
+    // Every row the control writes is keyed — the options by their own key or their place, the rest by name — so
+    // an option created while the list is open, or a heading whose group empties, is a keyed change the live diff
+    // ships. Only a list that holds something of the page's own (a separator) is still walked by position.
     private IEnumerable<Component?> Rows(View view)
     {
         if (Searches)
@@ -75,7 +79,7 @@ public abstract partial class UiSelectControl<T>
 
             if (block.Group is { } group && block.Rows.Any(row => view.Shown[row.Index]))
             {
-                yield return Div.Class(UiListboxLook.GroupHeading).Role("presentation")[group.Label];
+                yield return Div.Key("ui:group:" + block.Rows[0].Index.ToString(System.Globalization.CultureInfo.InvariantCulture)).Class(UiListboxLook.GroupHeading).Role("presentation")[group.Label];
             }
 
             foreach (var row in block.Rows)
@@ -95,7 +99,7 @@ public abstract partial class UiSelectControl<T>
         var off = row.Option.Disabled == true;
         var picked = view.IsPicked(row);
         var item = Div
-            .Key(row.Option.Key)
+            .Key(row.Option.Key ?? "ui:option:" + row.Index.ToString(System.Globalization.CultureInfo.InvariantCulture))
             .Id(UiSelectNav.OptId(Prefixed, row.Index))
             .Role("option")
             .Class(UiClass.Compose(RowLook(row.Option), row.Option.Class))
@@ -144,7 +148,7 @@ public abstract partial class UiSelectControl<T>
         var slot = view.Parts.Empty;
         var marks = RowMarks("data-ui-listbox-empty", picked: false, active: false, hidden: view.AnyShown || view.CreateShown);
 
-        return Div.Class(UiClass.Compose(UiListboxLook.Empty, slot?.Class)).Attributes(marks)[
+        return Div.Key("ui:empty").Class(UiClass.Compose(UiListboxLook.Empty, slot?.Class)).Attributes(marks)[
             _busy ? [slot?.WhenLoading ?? RaskStrings.Get(RaskString.SelectLoading, "Loading...")] : slot?.Children ?? [Empty ?? RaskStrings.Get(RaskString.SelectEmpty, "No results found")]
         ];
     }
@@ -159,6 +163,7 @@ public abstract partial class UiSelectControl<T>
         }
 
         return Div
+            .Key("ui:create")
             .Id(UiSelectNav.OptId(Prefixed, index))
             .Class(UiClass.Compose(UiListboxLook.Create, create.Class))
             .Attributes(marks)

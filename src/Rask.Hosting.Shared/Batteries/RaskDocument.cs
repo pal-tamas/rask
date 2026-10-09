@@ -32,7 +32,9 @@ internal static class RaskDocument
                     messages, dismiss, Top(toasts.Position), Align(toasts.Position)),
             toasts.Duration,
             // The kit's toast counts down in the browser, where the countdown waits for the pointer.
-            toastsTimeThemselves: kit);
+            toastsTimeThemselves: kit,
+            // …and keeps its host on the page with no toast showing, so one arriving is a diff.
+            toastsKeepTheirPlace: kit);
 
     private static string? Metadata(Assembly app, string key) =>
         app.GetCustomAttributes<AssemblyMetadataAttribute>()

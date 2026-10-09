@@ -59,6 +59,12 @@ public sealed partial class ToastOutlet : Component
     // pauses under the pointer), so the outlet starts no timer of its own beside it.
     internal bool TemplateTimes { get; set; }
 
+    // The template is asked for its markup with no toast to show as well, so what it draws keeps its place in the
+    // page: a toast arriving or leaving is then a change INSIDE an element the live diff can patch. An outlet that
+    // renders nothing until there is a toast moves every sibling after it when one arrives, and a change by position
+    // is answered with the whole document. The kit's template does this (Ui.Toast), as Flux's <ui-toast> does.
+    internal bool TemplateKeepsItsPlace { get; set; }
+
     // The one the host mounts for an app that mounts none (see RootErrorBoundary): it steps aside for the app's own.
     internal bool BuiltIn { get; init; }
 
@@ -125,7 +131,7 @@ public sealed partial class ToastOutlet : Component
         {
             if (_messages.Count == 0)
             {
-                return null;
+                return TemplateKeepsItsPlace ? Template([], Dismiss) : null;
             }
 
             Refresh();
