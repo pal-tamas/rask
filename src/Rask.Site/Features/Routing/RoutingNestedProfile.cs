@@ -15,7 +15,7 @@ public sealed partial class RoutingNestedProfile : Component
         Meta.Name("robots").Content("noindex, follow"),
     ];
 
-    // What this page is called. The layout above shows it, and reads it before it renders.
+    // What this page is called. The layout above shows it, in the first HTML already.
     protected override string? PageTitle => "Profile";
 
     protected override Component? Render() =>

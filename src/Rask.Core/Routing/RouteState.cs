@@ -63,8 +63,8 @@ public sealed class RouteState
     ///     declares none: <c>route.Title is { } t ? Ui.BreadcrumbsItem[t] : null</c>.
     /// </summary>
     /// <remarks>
-    ///     Already the new page's when its layout renders, so the first HTML carries it. A component that reads
-    ///     it while rendering renders again when it changes, and not otherwise. A page with no title of its
+    ///     A component that reads it while rendering renders again when it changes — in the same render, so
+    ///     the first HTML and a navigation's frame already carry the new one — and not otherwise. A page with no title of its
     ///     own takes the nearest layout's above it. A change does not raise <see cref="Changed" />.
     /// </remarks>
     public string? Title => _title.Read();

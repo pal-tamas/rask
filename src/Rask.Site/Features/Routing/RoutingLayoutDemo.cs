@@ -13,7 +13,7 @@ public sealed partial class RoutingLayoutDemo(RouteState route) : Component
 {
     protected override Component? Render() =>
         Div[
-            // The child's PageTitle, already there when this layout renders.
+            // The child's PageTitle: this layout renders once more when it changes.
             Nav.Id("routing-demo-crumbs")["Routing demo", route.Title is { } title ? Span[" › ", title] : null],
             Main[Outlet]   // children render here
         ];

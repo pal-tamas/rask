@@ -9,22 +9,25 @@ them until tagged releases begin.
 
 ### Added
 
-- **A page declares its title, and its layout reads it before it renders (#1239).** A routed page overrides
+- **A page declares its title, and its layout shows it in the first HTML (#1239).** A routed page overrides
   `protected override string? PageTitle => _relation is { } r ? $"Edit {r.Name}" : null;`, and the layout around
   it reads the injected `RouteState`'s `route.Title` — the last breadcrumb
   (`route.Title is { } t ? Ui.BreadcrumbsItem[t] : null`) and its one `HeadAssets` line
   (`Title[route.Title is { } t ? $"{t} | Acme" : "Acme"]`; Rask writes no `<title>` of its own). The first HTML
   already carries it — a direct load shows the crumb and the tab title with no script, where a page that told
   its layout through a shared service served an empty crumb and filled it a frame later — and a navigation
-  changes the page, the crumb and `<title>` in one frame. The title is read again on every render, so one built
-  from a route parameter follows the URL on the reused page, one built from data loaded in `OnMount` /
-  `OnUpdated` appears with the data (the initial `GET` waits for it within the usual budget, and a build-time
-  prerender bakes it), and a rename on the page moves the crumb and the tab with the heading. Only components
-  that read `route.Title` render again, and only when it differs: a page that re-renders with the same title
-  costs its layout nothing. `null`, the default, is a page with no title; with nested `[ParentRoute]` layouts
-  the deepest page that declares one wins, and a leaf that declares none takes the nearest layout's. It may be
-  read above the `Router` as well — an `App` writing `<title>` in its own `HeadAssets` — where Rask walks the
-  tree once more when the title changed, so that frame is right too. `docs/routing.md` has the section.
+  changes the page, the crumb and `<title>` in one frame. Nothing about when a page is created moved: it is
+  mounted where its layout places the `Outlet`, after the layout has rendered, and when its title turns out to
+  have changed the components that read `route.Title` render once more before anything is sent. So the layout
+  renders one more time when the title changes — a navigation to a page called something else, a rename — and
+  never when it does not; the page is not rendered again and its hooks do not re-run. The title is read on every
+  render, so one built from a route parameter follows the URL on the reused page, one built from data loaded in
+  `OnMount` / `OnUpdated` appears with the data (the initial `GET` waits for it within the usual budget, and a
+  build-time prerender bakes it), and a rename on the page moves the crumb and the tab with the heading. On a
+  navigation in an open page a title loaded after a real `await` is `null` for the frame that shows the page's
+  placeholder. `null`, the default, is a page with no title; with nested `[ParentRoute]` layouts the deepest
+  page that declares one wins, and a leaf that declares none takes the nearest layout's. It may be read above
+  the `Router` as well — an `App` writing `<title>` in its own `HeadAssets`. `docs/routing.md` has the section.
 - **`Ui.Chart` fills its container and follows the pointer, as Flux's does.** Two things Flux's chart does in
   script and the kit's did not do at all, both done by the runtime's plot hook with the chart still drawn in C#.
   *Size.* The drawing is measured in the browser (`data-rask-measure`) and drawn again for the box it has — when
@@ -99,18 +102,13 @@ them until tagged releases begin.
 
 ### Changed
 
-- **The router mounts every page of the route before the outermost layout renders.** `OnMount` / `OnUpdated` of
-  a page in a layout's `Outlet` used to run when the layout's render reached the outlet; they now run — up to
-  their first `await`, as ever — before the layout's `Render()`:
-  `layout.OnMount → layout.OnUpdated → page.OnMount → page.OnUpdated → layout.Render → page.Render`. It is what
-  lets the layout read the page's title in the render that first shows the page. Three things follow, and none
-  of them touches an app that gates pages with `[Authorize]` (checked before any page is constructed) and
-  reads the signed-in user in `OnMount` (already the session's): a page is mounted even in a render where its
-  layout does not place the `Outlet`, and is kept rather than created again; a value a layout provides with
-  `Context.Provide` is in scope in the page's `Render()` but not yet in its hooks; and a route value that will
-  not bind throws from the router rather than from the outlet, so an `ErrorBoundary` a layout wraps around its
-  `Outlet` no longer catches it — the one around the router does. Which instance a page keeps and the order
-  pages unmount in (a page before its layout) are unchanged. `docs/lifecycle.md` has the order.
+- **A routed page keeps its instance when its layout re-creates the `Outlet` around it.** An `Outlet` is a
+  positional child of its layout, and the page went with it: a layout that rendered one sibling more ahead of
+  the outlet — a breadcrumb that appears once there is something to show — got a new `Outlet` and with it a
+  new page, constructed and mounted from scratch, its loaded data gone. The router now remembers the page by
+  its place in the route, so it stays as long as the same type is at that place under the same layouts. When
+  and where a page is created is unchanged: where the layout places the `Outlet`, after the layout has
+  rendered, and not at all when the layout withholds it.
 - **A collapsed `Ui.Sidebar` is Flux's rail: real tooltips, a menu per group, the navlist's count.** Measured on
   Flux's live `sidebar-collapsible` demo and built from its pieces. Every `Ui.SidebarItem` sits in a `Ui.Tooltip`
   to its right (`aria-describedby`, `data-rask-tooltip`) that is drawn only while the sidebar is a rail;

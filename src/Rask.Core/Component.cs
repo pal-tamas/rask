@@ -294,9 +294,9 @@ public abstract partial class Component : RaskMarkup
     ///     <c>protected override string? PageTitle =&gt; _order is { } o ? $"Order {o.Number}" : null;</c>
     /// </summary>
     /// <remarks>
-    ///     The layout reads it as <see cref="Routing.RouteState.Title" />, and it is already there when the layout
-    ///     renders: the router mounts the page first, so the first HTML carries it. Read again on every
-    ///     render, so a title built from loaded data follows the data. <c>null</c>, the default, is a page with
+    ///     The layout reads it as <see cref="Routing.RouteState.Title" />, and the first HTML carries it: when
+    ///     the title turns out to have changed, whatever showed it renders once more before anything is
+    ///     sent. Read again on every render, so a title built from loaded data follows the data. <c>null</c>, the default, is a page with
     ///     no title of its own — the nearest layout above it that declares one stands in, and with none the
     ///     layout shows nothing. Only read on a component a route renders.
     /// </remarks>

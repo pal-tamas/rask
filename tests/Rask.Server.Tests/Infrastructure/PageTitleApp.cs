@@ -12,7 +12,7 @@ public sealed partial class PageTitleApp : Component
 }
 
 // The same pages under an App that writes the <title> ITSELF, above the router — where every scaffolded
-// App has its HeadAssets. It renders before the router has mounted anything.
+// App has its HeadAssets.
 public sealed partial class PageTitleShellApp(RouteState route) : Component
 {
     protected override Component? HeadAssets => Title[route.Title is { } t ? $"{t} | Shell" : "Shell"];

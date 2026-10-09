@@ -294,25 +294,27 @@ public sealed partial class AppLayout(RouteState route) : Component
 There is nothing to register, no shared service for the page to write into, and no event for the layout to
 subscribe to.
 
-**The first HTML already carries it.** The router mounts the page *before* the layout renders, so the title is
-there the first time the layout asks — a direct load shows the crumb and the tab title with no script at all,
-and a navigation changes the page, the crumb and `<title>` in one frame. Rask does not write `<title>` for
-you: the layout's one `HeadAssets` line does, in whatever words the app wants around it.
+**The first HTML already carries it.** A page is mounted where its layout places the `Outlet`, so the layout
+has rendered by the time the page's title is known. When the title turns out to have changed, Rask renders
+whatever read it once more before anything is sent: a direct load shows the crumb and the tab title with no
+script at all, and a navigation changes the page, the crumb and `<title>` in one frame. Rask does not write
+`<title>` for you: the layout's one `HeadAssets` line does, in whatever words the app wants around it.
 
 - **It follows the page's data.** The title is read again on every render, so one built from a record loaded in
   `OnMount` / `OnUpdated` appears as soon as the record does, and a rename on the page — no navigation — moves the
   crumb and the tab in the same frame as the heading.
-- **Only readers re-render, and only on a change.** A component that read `route.Title` while rendering renders
-  again when the title differs, and not otherwise: a page that re-renders with the same title costs its layout
-  nothing. That holds for a small component inside the layout's header as much as for the layout itself.
+- **The layout renders once more when the title changes, and never otherwise.** A component that read
+  `route.Title` while rendering renders again when the title differs — a navigation to a page called something
+  else, a rename — and a page that re-renders with the same title costs its layout nothing. The page itself is
+  not rendered again, and none of its hooks re-run. That holds for a small component inside the layout's header
+  as much as for the layout itself, and reading the title from the smallest component that shows it keeps
+  that extra render small.
 - **`null` is a page with no title.** The layout decides what that looks like — above, no crumb and the bare
   site name.
 - **The deepest page that declares one wins.** With layouts nested through `[ParentRoute]`, the leaf's title is
   the one read; a leaf that declares none takes the title of the nearest layout above it that does.
-- **It can be read above the `Router` too** — an `App` whose own `HeadAssets` writes the `<title>`. That
-  component has rendered before the router has mounted anything, so when the title turns out to have changed
-  Rask walks the tree once more before the frame goes out. It is right in the first HTML either way; a layout
-  that reads it costs nothing extra, so prefer the layout.
+- **It can be read above the `Router` too** — an `App` whose own `HeadAssets` writes the `<title>` — on the
+  same terms.
 
 Two things to know:
 
@@ -321,11 +323,11 @@ Two things to know:
   A *navigation* in an open page paints the new page's placeholder first, exactly as the page itself does — and
   during that one frame the title is `null`. Declare a fallback (`_relation?.Name ?? "Relation"`) where an empty
   crumb would be wrong.
-- **The page mounts before its layout renders.** `OnMount` / `OnUpdated` of every page in the chain run, up to
-  their first `await`, before the outermost layout's `Render()` — see [Lifecycle](lifecycle.md#routed-pages). A
-  page is therefore mounted even when its layout does not place the `Outlet` this render, and a `Context` value
-  the layout provides is not yet in scope inside the page's *hooks* (it is in the page's `Render()`). Gate a
-  whole page with `[Authorize]`, which is checked before any page is constructed.
+- **The page keeps its place.** A layout that renders a breadcrumb only once there is a title changes shape
+  around its `Outlet` when the title arrives. The page is remembered by its place in the route, not by the
+  outlet that shows it, so it is not created again and what it loaded stays loaded. Nothing else about a routed
+  page's life changed: it is constructed and mounted where the layout places the `Outlet` and only there, so a
+  layout that withholds it (`Authorize.Role("admin")[Outlet]`) keeps the page's hooks from running.
 
 ## Programmatic navigation — `Go`
 

@@ -5,7 +5,7 @@ namespace Rask.Wasm.Tests.Infrastructure;
 
 // An app that shows its page's title in BOTH places a real one does: the document <title>, written by the
 // App itself above the router (where a scaffolded App has its HeadAssets), and a crumb in the layout the
-// router renders. The first is read before the router has mounted the page; the second after.
+// router renders. Both have rendered by the time the walk reaches the page that names itself.
 internal sealed partial class PageTitleStubApp(RouteState route) : Component
 {
     private static readonly IReadOnlyList<Route> _routes =
