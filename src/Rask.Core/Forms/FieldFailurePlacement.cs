@@ -3,9 +3,10 @@ using Rask.Wire;
 
 namespace Rask.Core.Forms;
 
-// Puts what a submit handler threw onto the form: each failure's message under the bound fields it names,
-// the rest of its fields marked. A failure about no field on this form goes where the form's own messages
-// are drawn, and when nothing draws those it is left for the form's error.
+// Puts what a submit handler threw, or what a store's rules found before it, onto the form: each failure's
+// message under the bound fields it names, the rest of its fields marked. A failure about no field on this
+// form goes where the form's own messages are drawn, and when nothing draws those it is left for the form's
+// error.
 internal static class FieldFailurePlacement
 {
     /// <summary>The field failures <paramref name="thrown" /> carries, looking through the wrappers a call adds.</summary>
@@ -18,18 +19,21 @@ internal static class FieldFailurePlacement
     };
 
     /// <summary>Places every failure it can, and says whether each one has somewhere its message is read.</summary>
-    internal static bool Place(EditContext form, IFieldFailures failures)
+    internal static bool Place(EditContext form, IFieldFailures failures) => Place(form, failures.Failures, null);
+
+    /// <summary>The same for what a check found before the save, remembered against the field whose commit asked.</summary>
+    internal static bool Place(EditContext form, IReadOnlyList<FieldFailure> failures, FieldIdentifier? checkedFor)
     {
         var allShown = true;
-        foreach (var failure in failures.Failures)
+        foreach (var failure in failures)
         {
-            allShown &= Place(form, failure);
+            allShown &= Place(form, failure, checkedFor);
         }
 
         return allShown;
     }
 
-    private static bool Place(EditContext form, FieldFailure failure)
+    private static bool Place(EditContext form, FieldFailure failure, FieldIdentifier? checkedFor)
     {
         var under = Bound(form, failure.Fields ?? []);
         var marked = Bound(form, failure.Marked ?? []);
@@ -38,7 +42,7 @@ internal static class FieldFailurePlacement
             under = [form.FormSlot];
         }
 
-        form.AddFailure(failure.Message, under, marked);
+        form.AddFailure(failure.Message, under, marked, checkedFor);
         return under.Length > 0;
     }
 

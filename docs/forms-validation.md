@@ -77,6 +77,20 @@ out. Every form that edits a destination's name asks the same question, the cons
 
 <!-- demo:validation-value-object -->
 
+A model whose data layer has registered its properties' rules needs no step at all: the field runs the
+rule its property's type carries, first, and the steps written on the field run after it, only for a
+value it accepted.
+
+```csharp
+Ui.Input.Bind(() => _model.Name)          // DestinationName.Validate runs, on this field's own timing
+    .Validate(NotOnTheBlocklist)          // then this, for a name the first rule accepted
+```
+
+A model written by hand names its rule from the field, as above. The registration is
+`RaskValidation.RegisterFieldRules(typeof(DestinationModel), property => …)`, made once per model type
+by the layer that generates the model; it is keyed by the type that declares the property, so a nested
+object and a row of a collection bring their own.
+
 ### An async rule
 
 A rule that has to ask something is the same step with an `async` lambda or method. There is no second
@@ -150,6 +164,37 @@ exception is the `f.Error` of `Form.Model(m)[f => [ … ]]`, and it is reported.
 It is not logged as an error: the reader was told, and nothing is broken.
 
 <!-- demo:validation-refused-save -->
+
+#### …and it is checked before you save
+
+A model whose store has registered its rules is asked while the form is filled in, with no step on the
+field and none on the form:
+
+```csharp
+Form.Model(_destination).OnSubmit(Save)[
+    Ui.Input.Bind(() => _destination.Name).Debounce(300.Milliseconds),   // no unique step
+    Ui.Button.Submit["Save"]
+]
+```
+
+The store is asked when a field is **committed** — on change for a field that binds live, at the pause of
+`.Debounce(…)`, on leaving a `.Blur()` field — and once more on submit, for the whole model. It is never
+asked on a keystroke of a live field, and never about a value one of the field's own rules rejects; on
+submit it is asked only once every rule on the form has passed, so a known duplicate does not reach the
+save.
+
+What it says is shown exactly as a refused save is: under each field the failure names, the `Marked`
+ones only turned invalid, gone from all of them at the first keystroke of a correction. A value the store
+has already answered for is not asked about again until some field changes.
+
+The save can still be refused — someone else took the name in between — and that is shown the same way.
+If the store cannot be asked, the form says nothing and the save decides; the failed check is logged as a
+warning.
+
+A store announces its rules for a model with `RaskValidation.RegisterStoreRules(typeof(DestinationModel),
+services => rules)`, where `rules` is an `IStoreRules`: one method, given the model and the path of the
+committed field (`null` on submit), handing back `FieldFailure`s. A model no store registered is not
+asked about, and its form awaits nothing extra.
 
 ### When the rules run
 
@@ -295,7 +340,9 @@ app.Configure(c => c.Validation.Off());       // the same switch, from a RaskApp
 Form.Model(_model).AutoValidate(false)[ … ]   // this form only
 ```
 
-Inline `.Validate(…)` rules keep running: the switch only stops what was never written in the form.
+Inline `.Validate(…)` rules keep running: the switch only stops what was never written in the app. A rule
+a property's type carries and a rule the store owns were written — on the type, on the index — so they
+keep running too.
 It is one switch for the app, so it also stops the same two passes on a
 [dispatched request](validation.md#requests). The global off wins — a form cannot opt back in.
 
