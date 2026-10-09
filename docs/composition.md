@@ -66,6 +66,17 @@ Div.Class("panel")[
 > on every render, however the keyed ones come, go or reorder around it. Key the ones that are items
 > of a list; leave the fixed ones alone.
 >
+> **Without a key, a component is the *n*-th of its type that its owner writes.** The owner is the
+> component whose `Render()` builds it: one sequence per type for the whole `Render()`, in the order it
+> is written, whichever element each child ends up under (`UiInput<string>` and `UiInput<int>` are two
+> types). A callout, an element, or a component of *another* type that comes or goes ahead of it
+> therefore leaves it alone — its fields, what it loaded in `OnMount`, whether it is open. A child of
+> its *own* type coming or going ahead of it does not: every later one of that type moves one place,
+> and takes over the instance — and the state — of its neighbour. Nothing but a `Key` can tell those
+> apart, so key a component that is written conditionally ahead of others of its type, just as you
+> key the rows of a list. The same holds for a repeated key, and for the unkeyed children beside keyed
+> ones: among themselves they are told apart by order alone.
+>
 > `Key` is available before a component's *required* steps too, generic ones included
 > (`Ui.Select.Key(id).Value(v)`), so a row can say which item it is first. An element is re-specified
 > in full every render, so its instance carries nothing and `Div.Class("line").Key(i)` never claims one.
@@ -177,8 +188,9 @@ public sealed partial class Counter : Component
 }
 ```
 
-The instance persists across renders (Rask reconciles it by `(type, sibling-position)` or by an
-explicit `Key`), so the field survives. The `OnClick` lambda captures `this`, so after it runs the
+The instance persists across renders (Rask reconciles it by its type and its order among the children
+of that type its owner writes, or by an explicit `Key` — see
+[children](#children--fragments)), so the field survives. The `OnClick` lambda captures `this`, so after it runs the
 framework re-renders this component **automatically — no `StateHasChanged()`** (the same auto-wrap
 that powers [callbacks](composition-callbacks-context.md#callbacks-child--parent)). You only call `StateHasChanged()` when the
 mutation happens *off* the event-dispatch path (e.g. a background poll loop — see

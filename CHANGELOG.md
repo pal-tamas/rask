@@ -29,6 +29,18 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A child that comes or goes no longer remounts the components written after it.** A component without a
+  `Key` was identified by its place among ALL the children its owner's `Render()` writes, elements included, so
+  `Div[saved ? Ui.Callout["Saved"] : null, OrderList, EditForm]` built a new `OrderList` and a new `EditForm`
+  every time the callout appeared or went: their fields reset, `OnMount` ran again — the list reloaded, the form
+  lost what its C# state held, an open modal forgot it was open — and `OnUnmount` ran for components that never
+  left the screen. A component is now the *n*-th **of its type** its owner writes, so only a child of the same
+  type coming or going ahead of it moves it; that case still needs a `Key`, as a list's rows always did
+  (`docs/composition.md`). **For an existing app:** components after a conditional sibling keep their state and
+  mount once. One that RELIED on being rebuilt when a sibling appeared — a form that reset itself because a
+  banner showed — now keeps what it had: reset it explicitly, or give it a `Key` that changes when it should
+  start over. Nothing changes for keyed components, for the unkeyed ones beside them, or for a routed page.
+
 - **The edit form works on an aggregate that declares `Checks = Concurrency.None`.** Its generated form model
   still carried `Version`, `X.Model(id)` filled it with 0, and `X.Update(id, model)` then refused every edit
   with *"declares Checks = Concurrency.None, so it has no Version to compare 0 with"*. The model of an

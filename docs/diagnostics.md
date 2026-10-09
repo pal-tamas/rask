@@ -359,7 +359,9 @@ rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appe
 A Rask component appears in a sibling-list context (a `.Select`/`.SelectMany` projection, or `.Add`
 in a loop) without a `Key`. Keyless items reconcile **by position**, which loses focus and input state
 and emits untrusted structural diffs on insert/remove/move — and for a component, position also
-decides which instance is reused, so the row's own state follows the slot rather than the item.
+decides which instance is reused, so the row's own state follows the slot rather than the item. That
+position is its order among the components of its type the same `Render()` writes: a row inserted at the
+top hands every row below it the state of the row above.
 
 Both chain spellings are recognised — `Li[…]` and `Li.Class("c")[…]`. The chain went unreported until
 #704, when the only surface this checked was a factory call: the check matched a method named after the
