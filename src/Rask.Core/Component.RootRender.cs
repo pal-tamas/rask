@@ -28,6 +28,11 @@ public abstract partial class Component
     // written into it instead and null is returned (the caller reads sink.Current).
     private string? RenderAsLiveRootCore(IServiceProvider? services, bool publishOnly, RenderedHtmlBuffers? sink)
     {
+        // A render inside a handler's turn would otherwise mount and update components under the handler's
+        // cancellation — its OWNER's lifetime, which this very render ends when it navigates away. Set aside,
+        // each hook falls back to its own component's (LifecycleSyncContext), as it does outside a handler.
+        using var ownLifetimes = Ambient.Enter(CancellationToken.None);
+        using var ownDispatch = DispatchEventTokenScope.Suspend();
         using var ctx = BeginRootRender(services, out var previousEditContexts);
 
         // Pooled per-frame scratch buffers held on the root component. RenderAsLiveRootCore

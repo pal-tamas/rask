@@ -9,6 +9,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A page reached by `Go()` from a handler loads under its own lifetime, not the handler's.** The documented
+  save — `await thing.Save(); Routes.ListPage().Go();` — mounted the list inside the handler's turn, where the
+  ambient cancellation (`Current.Cancellation`, what every read with no token uses) was still the SAVING
+  component's. The navigation unmounted that component, so the list's reads were cancelled under it: the page
+  stayed on its placeholder, or showed "Something went wrong" when the provider reported the cancellation as a
+  failure. A render now sets the handler's cancellation aside, so every component it mounts or updates answers
+  to its own lifetime — a child opened by a click included, on both hosts. The handler itself is unchanged:
+  code after a `Go()` that unmounted its component still finds that component's token cancelled.
+
+- **A failure from a page the visitor has left is logged, not shown.** A lifecycle hook that faulted after its
+  component was unmounted tripped the error boundary above it — which by then held the page the visitor had
+  gone to. Leaving cancels a load, and a provider may report that as a failure of its own (EF's execution
+  strategy does), so walking away from a slow page could replace the next one with an error page.
+
 - **A handler still running when a shutdown gives up on it is no longer reported as having thrown.** A
   shutdown that outlasts `ShutdownDrainTimeout` disposes the session with its handler still in flight. When
   the handler returned, the render that follows it reached for the session's disposed services, and the
