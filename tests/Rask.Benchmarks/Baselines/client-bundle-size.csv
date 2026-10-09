@@ -7,6 +7,10 @@
 # +434. `data-rask-clear-keys`, the key that empties a field in the browser, is a hook: rask-hooks.js
 # 40,106 -> 40,284 (+178).
 #
+# Refreshed 2026-10-09 with the drawer put away by a press on a link to the page already open
+# (data-rask-uncheck-on-navigate in rask-persist.ts: one click listener that reads the link's address beside the
+# navigation it already heard): rask-hooks.js 40,106 -> 40,491 (+385), 40,669 with both. The runtimes are unchanged by it.
+#
 # Refreshed 2026-10-09 with the runtime running a document once: the morph puts the runtime's own <script> back
 # without running it (keepRuntimeScript in rask-morph.ts, shared, so both runtimes carry the check), a second copy
 # of the Server runtime stands its host down (standDown in rask-host.ts), and the hook loader keeps a place it
@@ -114,4 +118,4 @@
 bundle,bytes
 rask.js,96350
 rask.wasm.js,85110
-rask-hooks.js,40284
+rask-hooks.js,40669

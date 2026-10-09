@@ -121,6 +121,26 @@ public sealed class RuntimeHookStateTests(PlaywrightFixture playwright) : IClass
         Assert.True(afterQuery);
         Assert.False(await page.IsCheckedAsync("#drawer"));
     }
+
+    [Fact]
+    public async Task A_drawer_checkbox_is_unchecked_by_a_press_on_a_link_to_the_page_already_open_and_not_by_a_fragment()
+    {
+        await using var session = await HookSession.OpenAsync<StateHookPage>(playwright);
+        var page = session.Page;
+        // Two links the page keeps the click of, as a host that routes them does: one to this page, one within it.
+        await page.EvaluateAsync(
+            "() => { for (const [id, href] of [['here', location.pathname + location.search], ['within', '#']]) {"
+            + " const a = document.createElement('a'); a.id = id; a.href = href; a.textContent = id;"
+            + " a.addEventListener('click', e => e.preventDefault()); document.body.append(a); } }");
+
+        await page.CheckAsync("#drawer");
+        await page.ClickAsync("#within");
+        var afterFragment = await page.IsCheckedAsync("#drawer");
+        await page.ClickAsync("#here");
+
+        Assert.True(afterFragment);
+        Assert.False(await page.IsCheckedAsync("#drawer"));
+    }
 }
 
 /// <summary>A group of two toasts the page owns, and two checkboxes it does not.</summary>

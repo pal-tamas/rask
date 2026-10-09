@@ -51,9 +51,8 @@ internal static class UiNavItemMarkup
     /// <summary>The count or word at an item's end, in Flux's badge colours. Zinc when no colour is named.</summary>
     internal static Component Badge(Component badge, Ui.Color? color, Ui.NavBadgeVariant? variant, string place, bool marked)
     {
-        // ui-rail-hide: a collapsed sidebar keeps the icon and drops the words and the count.
         var span = Markup.Span.Class(
-            "ui-rail-hide min-w-5 rounded-sm px-1 py-0.5 text-center text-xs font-medium",
+            "min-w-5 rounded-sm px-1 py-0.5 text-center text-xs font-medium",
             place,
             variant == Ui.NavBadgeVariant.Outline
                 ? UiNavColors.BadgeOutline(color ?? Ui.Color.Zinc)

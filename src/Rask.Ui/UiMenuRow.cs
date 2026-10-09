@@ -14,9 +14,13 @@ internal static class UiMenuRow
     internal const string Panel = Box + " focus:outline-hidden";
 
     /// <summary>The same box around a <see cref="UiNavmenu" />, whose links keep the browser's focus ring.</summary>
+    /// <remarks>
+    ///     Its ink is stated, as a popover's is by the browser: measured on Flux, a menu opened from a greyed
+    ///     breadcrumb is black on white (white on zinc-700 in dark), not the grey of the crumb it hangs from.
+    /// </remarks>
     internal const string Box =
-        "min-w-48 overflow-auto rounded-lg border border-zinc-200 bg-white p-[.3125rem] text-inherit shadow-xs "
-        + "dark:border-zinc-600 dark:bg-zinc-700";
+        "min-w-48 overflow-auto rounded-lg border border-zinc-200 bg-white p-[.3125rem] text-black shadow-xs "
+        + "dark:border-zinc-600 dark:bg-zinc-700 dark:text-white";
 
     /// <summary>A leading icon: quieter than the words until the row is under the pointer or the cursor.</summary>
     internal const string LeadingIcon = "me-2 " + Mark;
@@ -30,6 +34,8 @@ internal static class UiMenuRow
 
     // Flux's `data-flux-menu-item-icon`, beside the icon's own marks: a row's leading icon and its check.
     private static readonly Dictionary<string, string?> ItemIcon = UiIcon.MarksWith("data-ui-menu-item-icon");
+
+    private static readonly Dictionary<string, string?> LinkMark = UiIcon.MarksWith("data-navmenu-icon");
 
     private const string ChevronLtr = TrailingIcon + " rtl:hidden";
 
@@ -66,9 +72,9 @@ internal static class UiMenuRow
     internal static Component Icon(Ui.IconName name, Ui.IconVariant? variant) =>
         UiIcon.Marked(ItemIcon, name, variant ?? Ui.IconVariant.Mini, LeadingIcon);
 
-    /// <summary>A navigation menu link's icon: the same drawing, without the menu item's mark, as Flux writes it.</summary>
+    /// <summary>A navigation menu row's icon: the same drawing under the mark Flux gives it there, <c>data-navmenu-icon</c>.</summary>
     internal static Component LinkIcon(Ui.IconName name, Ui.IconVariant? variant) =>
-        Ui.Icon.Name(name).Variant(variant ?? Ui.IconVariant.Mini).Class(LeadingIcon);
+        UiIcon.Marked(LinkMark, name, variant ?? Ui.IconVariant.Mini, LeadingIcon);
 
     /// <summary>The icon at the end of a row.</summary>
     internal static Component IconTrailing(Ui.IconName name, Ui.IconVariant? variant) =>
