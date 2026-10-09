@@ -67,6 +67,13 @@ them until tagged releases begin.
 - **`Ui.Dropdown.Hover()`** — Flux's `hover` prop: the menu opens while the pointer is over the trigger or the
   menu and closes over neither, with no page lock (a menu opened that way no longer takes the pointer from the
   page behind it).
+- **The allocation gate measures with tiered compilation and PGO off, and its budget is the exact count.** With
+  tiered PGO on, the JIT re-compiles the hot methods while the measured window is running, so one binary read
+  2,397 to 2,514 B per live update of the 20-row page depending on the run; with PGO off alone it read 2,504 B,
+  and 2,505 on a loaded machine when the re-compile still landed inside the window.
+  `scripts/run-benchmarks-local.sh` now sets `DOTNET_TieredCompilation=0 DOTNET_TieredPGO=0` on that one
+  process, where it reads 2,504 B every time, and `Baselines/allocation-budget.csv` is 2,504 (was 2,444, a
+  tiered-PGO reading). The +5% allowance stays.
 
 - **BREAKING: `TenantId` is the entity's own column, no longer a property of `Entity<TId>`.** A
   `Tenancy.PerTenant` table keeps the same `TenantId` column, filter, stamp and index prefix; the column is a
@@ -1311,6 +1318,22 @@ them until tagged releases begin.
   routed inside the app and given the deploy's path base; like every other kit link, only a generated route is
   now (#1070), and the plain link carries no click handler, which would keep the browser from following it. A menu opened from greyed text (a breadcrumb) is black on white — white on zinc-700 in dark —
   as Flux's is, where it took the grey of what it hung from.
+- **A component without a `Key` beside keyed ones of its type keeps its instance, and a key repeated in two
+  lists no longer mixes their rows (#1215).** Once one child of a type carried a `Key`, its parent rebuilt every
+  UNKEYED child of that type on each render: a `Ui.Modal.Open(_confirming)` beside keyed modals got a new id and
+  new handler ids every time, so the `close` that follows a `cancel` reached nothing and `OnClose` never ran; an
+  unkeyed `Ui.Toast` in a keyed group remounted on every render. Unkeyed children of a keyed type are now
+  identified by their order among themselves, whatever the keyed ones around them do — so "key every sibling
+  or none" is no longer a rule to follow. And two components of one type written by ONE component with the
+  same key under DIFFERENT elements — the same menu rows in two menus, the same order in a "recent" and a
+  "pinned" list — claimed one instance on the next render, so the first showed the second's props. Each now
+  keeps an instance of its own with its own values. A component's key is scoped to the component that writes
+  it and the child's type (not to the element it sits under — `Render()` runs the `Key` step before that
+  element has its children), so repeats are told apart by the order they are written in and reported once as
+  a `Rask.Live` warning naming the component, the type and the key; give the lists distinct keys
+  (`Key($"pinned-{id}")`) where the rows hold state. `docs/composition.md` says so now; it used to promise
+  "unique among siblings" for components too. Nothing changes for a list whose keys are unique, and a live
+  update of the 20-row benchmark page allocates what it did (2,504 B with tiered PGO off, before and after).
 - **A Server page no longer raises `Rask: inRoot() was called before a host was installed`.** The runtime's
   own `<script>` is the last child of the render root, so an in-app navigation to a page with one top-level
   node more or fewer moved it, and the morph moved it by inserting the incoming tag — which ran `rask.js` a
