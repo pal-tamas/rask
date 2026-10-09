@@ -336,8 +336,9 @@ your own origin, with the runtime's nonce when its `<script>` has one. Under a C
 hooks need what the runtime already needs — `script-src 'self'`, or the nonce — and no inline script.
 
 Any element counts, whoever wrote it: your own markup, a `Raw` fragment, a node a script of yours inserted.
-Besides the `data-rask-*` names, five of the platform's own ask for a hook, because a hook improves them
-unasked: `popover`, `commandfor`, `aria-activedescendant`, `role="switch"` on a checkbox and `role="tablist"`.
+Besides the `data-rask-*` names, six of the platform's own ask for a hook, because a hook improves them
+unasked: `popover`, `commandfor`, `aria-activedescendant`, `role="switch"` on a checkbox, `role="tablist"` and
+`role="menu"`.
 
 ### What a hook module may import
 
@@ -382,6 +383,8 @@ that arrives some other way stands down: its listeners answer nothing and send n
 
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
+| `role="menu"` | an element holding `[role=menuitem]` / `menuitemcheckbox` / `menuitemradio` rows | The navigation keys (arrows, Home, End, Page keys, Space, Enter) do not scroll the page — your key handler still receives every one. A row that gains `data-active` inside an open popover is focused. Enter and Space click the focused row, or the one `aria-activedescendant` names, unless it opens a submenu. ArrowDown on a closed `[popovertarget][aria-haspopup]` button opens its menu and hands the menu the key. A click on a row closes the popover the menu is in; Tab out of it closes it; and a popover that closes with focus nowhere hands it to its button. |
+| `data-rask-keep-open` | a row, or anything around it up to the menu | A click on the row leaves the popover open. |
 | `data-rask-menu-pointer` | a `[role=menu]` | The row under the pointer gets `data-active` at once and every other row of that menu loses it; none has it once the pointer leaves the menu. Move your own cursor from the row's `OnPointerEnter` and the render agrees with what is already on screen. |
 | `data-rask-safe-area="<flyout id>"` | a row that opens a submenu | While the flyout is showing, the triangle between the pointer and the flyout's near edge belongs to the row, so the diagonal towards the flyout does not touch the rows it crosses. |
 

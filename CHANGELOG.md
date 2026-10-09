@@ -35,6 +35,15 @@ them until tagged releases begin.
 
 ### Performance
 
+- **A menu's keyboard left the runtime every page downloads.** What a `role="menu"` needs from script — the
+  navigation keys not scrolling the page, Enter and Space pressing the focused row, ArrowDown on a closed menu
+  button opening it, a pick closing the popover, Tab out closing it, focus handed back to the trigger, focus
+  following `data-active` — was a block of `rask-dom.ts`, in every app's bundle whether or not it has a menu.
+  It is a hook module now (`rask-menu-keys.ts`, in `rask-hooks.js`), and the role is what asks for it, as a
+  tablist's does: a page with a `[role=menu]` loads the hooks, in the first response on the Server host. No
+  behaviour changed. `rask.js` 96,350 -> 93,559 bytes and `rask.wasm.js` 85,110 -> 82,328 (2.8 kB each, off
+  every page); `rask-hooks.js` carries it instead.
+
 - **The behaviour hooks load on demand; the runtime every page downloads is a quarter smaller.** Everything an
   element asks of the runtime by carrying an attribute (`data-rask-tooltip`, `data-rask-otp`, `data-rask-modal-open`
   … — `docs/js-interop-runtime.md`) had grown `rask.js` from 90 kB to 130 kB and `rask.wasm.js` from 79 kB to
