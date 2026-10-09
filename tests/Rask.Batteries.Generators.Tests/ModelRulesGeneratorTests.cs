@@ -134,6 +134,7 @@ public class ModelRulesGeneratorTests
 
     [Theory]
     [InlineData("builder.HasIndex(p => p.Title).IsUnique();")]
+    [InlineData("builder.HasIndex(p => p.Title).IsUnique(true);")]
     [InlineData("builder.HasIndex(p => p.Title);")]
     [InlineData("builder.ToTable(\"Notes\");")]
     public void An_aggregate_with_no_unique_rule_that_carries_a_message_gives_its_forms_nothing_to_wait_for(string configure)

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Rask.Generators.Shared;
 
@@ -193,7 +194,12 @@ public sealed partial class ModelInputGenerator
             .SelectMany(reference => reference.GetSyntax(cancellationToken).DescendantNodes())
             .OfType<InvocationExpressionSyntax>()
             .Any(static call =>
-                call is { ArgumentList.Arguments.Count: > 0, Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: "IsUnique" } });
+                call is { ArgumentList.Arguments.Count: > 0, Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: "IsUnique" } } &&
+                !IsFlag(call.ArgumentList.Arguments[0].Expression));
+
+    // EF Core's own IsUnique(false) / IsUnique(true): a flag, not a message.
+    private static bool IsFlag(ExpressionSyntax argument) =>
+        argument.IsKind(SyntaxKind.TrueLiteralExpression) || argument.IsKind(SyntaxKind.FalseLiteralExpression);
 
     // The model's values by the ENTITY's property names, read through the typed properties, and the key of the
     // row it was filled from. Both are static, so announcing them builds nothing per form.
