@@ -45,7 +45,7 @@ A form control is either **bound** to a model expression or **controlled** by a 
 at the first step:
 
 ```csharp
-Input.Bind(() => _form.Name).Validate(ProductName.Check).Id("name")   // bound
+Input.Bind(() => _form.Name).Validate(ProductName.Validate).Id("name")   // bound
 Input.Value(_text).OnChange(v => _text = v)                           // controlled
 ```
 
