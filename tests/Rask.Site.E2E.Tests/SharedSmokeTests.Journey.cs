@@ -1299,7 +1299,7 @@ public abstract partial class SharedSmokeTests
         // at the first key of the correction; and Enter saves what was typed without waiting for the pause.
         var itinerary = Page.Locator("form:has(#bt-name)");
         await itinerary.Locator("#bt-name").PressSequentiallyAsync("Atlantis");
-        await Expect(itinerary.Locator("#bt-model")).ToHaveTextAsync("The model holds “Atlantis”.", text);
+        await Expect(itinerary.Locator("#bt-model")).ToHaveTextAsync("The model holds “Atlantis”.", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
         await Expect(itinerary.GetByText("“Atlantis” is already taken."))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await itinerary.Locator("#bt-name").PressAsync("Backspace");

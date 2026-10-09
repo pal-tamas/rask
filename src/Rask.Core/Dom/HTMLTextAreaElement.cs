@@ -74,7 +74,7 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
 
     /// <summary>
     ///     Binds once typing has paused for this long, and validates then:
-    ///     <c>Textarea.Bind(() =&gt; m.Notes).Debounce(300.Milliseconds)</c>. The pause is kept in the browser;
+    ///     <c>Textarea.Bind(() =&gt; m.Notes).Debounce(300.Milliseconds)</c>. The pause is kept in the browser:
     ///     a press on a button and leaving the textarea do not wait for it.
     /// </summary>
     public TimeSpan? Debounce

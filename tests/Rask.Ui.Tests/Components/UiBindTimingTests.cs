@@ -97,6 +97,20 @@ public partial class UiBindTimingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_masked_input_that_waits_still_lays_the_value_into_its_pattern()
+    {
+        var m = new Trip();
+        var page = Page.Render(() => Form.Model(m)[
+            Ui.Input.Bind(() => m.Name).Label("Phone").Mask("(999) 999-9999").Debounce(300.Milliseconds)
+        ]);
+
+        await page.On("input").Input("5551234567");
+
+        Assert.Equal("(555) 123-4567", m.Name);
+        Assert.Equal("(999) 999-9999", page.Find("input").Attribute("data-rask-mask"));
+    }
+
+    [Fact]
     public async Task Two_rules_on_a_kit_input_run_in_order_and_stop_at_the_first_that_rejects()
     {
         var m = new Trip();
