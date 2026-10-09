@@ -259,7 +259,9 @@ internal static class GeneratedModelShape
 
         // The one framework column a form carries: the aggregate's Version, read into the model and sent back so a
         // stale save is refused. CreatedAt, UpdatedAt and DeletedAt are the framework's and never on the model.
-        if (VersionProperty(entity) is { } version)
+        // An aggregate that declined the check — Checks = Concurrency.None — has no Version column, so its model
+        // carries none and a save compares none.
+        if (AggregateShape.HasVersion(entity) && VersionProperty(entity) is { } version)
         {
             members.Add(new ModelMember(version, ModelMemberRole.Version, null, null));
         }

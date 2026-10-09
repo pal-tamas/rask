@@ -234,7 +234,7 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(
             () => [Button.OnClick(() => Toast.Success("Saved").Heading("Order 42"))["Save"], Ui.Toast.TopEnd.Invert()],
             Session());
-        Assert.DoesNotContain("data-ui-toast", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-ui-toast-dialog", page.Html, StringComparison.Ordinal);
 
         await page.Click("Save");
 
@@ -253,7 +253,22 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
 
         await page.On("[data-rask-dismiss]").Click();
 
-        Assert.DoesNotContain("data-ui-toast", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-ui-toast-dialog", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void With_no_toast_the_host_is_on_the_page_closed_empty_and_without_a_class_to_lay_it_out()
+    {
+        var page = Page.Render(() => [Ui.Toast.TopEnd, Ui.ToastGroup[Ui.Toast]], Session());
+
+        var (single, group) = (page.Find("[data-ui-toast]"), page.Find("[data-ui-toast-group]"));
+
+        // As Flux's <ui-toast> is: there before any toast, so one arriving is a change inside it.
+        Assert.Equal("<div popover=\"manual\" data-ui-toast data-position=\"top end\" data-rask-popover-open=\"false\" role=\"status\"></div>", page.Html[..page.Html.IndexOf("<div popover=\"manual\" data-ui-toast-group", StringComparison.Ordinal)]);
+        Assert.Equal("false", group.Attribute("data-rask-popover-open"));
+        // `flex` on a closed popover would lay a transparent box over the whole page.
+        Assert.Null(single.Attribute("class"));
+        Assert.Null(group.Attribute("class"));
     }
 
     [Fact]

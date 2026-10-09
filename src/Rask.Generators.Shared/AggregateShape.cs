@@ -67,6 +67,47 @@ internal static class AggregateShape
         return false;
     }
 
+    /// <summary>
+    ///     What a <c>public const</c> of one of Rask.Data's choice enums says on <paramref name="symbol" /> —
+    ///     <c>Stamps</c>, <c>Checks</c>, <c>Deletes</c>, <c>Scope</c> — or <c>null</c> when the entity does not say.
+    /// </summary>
+    /// <remarks>
+    ///     Read at compile time, because a const is inlined at every use site and the field itself can be trimmed —
+    ///     a runtime reflection read would find nothing in a trimmed publish and quietly fall back to the default,
+    ///     so an app would carry different columns in debug and in release.
+    /// </remarks>
+    public static int? ConstOf(INamedTypeSymbol symbol, string name, string enumName)
+    {
+        foreach (var field in symbol.GetMembers(name).OfType<IFieldSymbol>())
+        {
+            if (field is { IsConst: true, ConstantValue: int value } &&
+                field.Type is INamedTypeSymbol type && IsRaskDataType(type) &&
+                string.Equals(type.Name, enumName, StringComparison.Ordinal))
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Whether the table has <c>CreatedAt</c>: it does unless <c>Stamps</c> leaves <c>Created</c> out.</summary>
+    public static bool StampsCreated(INamedTypeSymbol entity) => (StampsOf(entity) & 1) != 0;
+
+    /// <summary>Whether the table has <c>UpdatedAt</c>: it does unless <c>Stamps</c> leaves <c>Updated</c> out.</summary>
+    public static bool StampsUpdated(INamedTypeSymbol entity) => (StampsOf(entity) & 2) != 0;
+
+    /// <summary>Whether the aggregate has a <c>Version</c>: it does unless it declares <c>Checks = Concurrency.None</c>.</summary>
+    public static bool HasVersion(INamedTypeSymbol entity) =>
+        IsAggregate(entity) && ConstOf(entity, "Checks", "Concurrency") != 0;
+
+    /// <summary>Whether the aggregate has a <c>DeletedAt</c>: only when it declares <c>Deletes = Deletion.Soft</c>.</summary>
+    public static bool SoftDeletes(INamedTypeSymbol entity) =>
+        IsAggregate(entity) && ConstOf(entity, "Deletes", "Deletion") == 1;
+
+    // Timestamps.All when the entity does not say.
+    private static int StampsOf(INamedTypeSymbol entity) => ConstOf(entity, "Stamps", "Timestamps") ?? 3;
+
     /// <summary>A type that becomes a table: concrete, non-static, non-generic, and an entity.</summary>
     public static bool IsMappedEntity(INamedTypeSymbol symbol) =>
         symbol is { IsAbstract: false, IsStatic: false, IsGenericType: false } && IsEntity(symbol);

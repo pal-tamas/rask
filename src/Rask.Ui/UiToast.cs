@@ -49,6 +49,8 @@ public sealed partial class UiToast : Component
         var outlet = ToastOutlet.Template((messages, dismiss) => Draw(messages, dismiss, look));
         // Each toast carries its own countdown for the browser to run, where it can wait for the pointer.
         outlet.TemplateTimes = true;
+        // The host stays on the page with no toast in it: see Draw.
+        outlet.TemplateKeepsItsPlace = true;
         return outlet;
     }
 }

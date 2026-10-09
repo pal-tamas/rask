@@ -27,8 +27,23 @@ public sealed partial class UiToast
         return Draw(messages, dismiss, new UiToastLook(options.Position, false, null, options.Duration, null));
     }
 
-    internal static Rask.Core.Component Draw(IReadOnlyList<ToastMessage> messages, Action<int> dismiss, UiToastLook look) =>
-        look.Stack is { } stack ? Stacked(messages, dismiss, look, stack) : Single(messages, dismiss, look);
+    // THE HOST IS ALWAYS ON THE PAGE, closed and empty while there is nothing to show — as Flux's <ui-toast> is
+    // (measured on fluxui.dev/components/toast: `popover="manual"`, `role="status"`, not open, one <template>
+    // inside; a toast is stamped into it and taken out again). So a toast arriving, leaving or taking another's
+    // place is a change INSIDE an element: its dialogs are keyed, and the live diff ships each as an insert or a
+    // removal. Drawn only while a toast showed, the host itself came and went among the layout's children, and a
+    // change by position is answered with the whole document — on every save and every delete that says so.
+    internal static Rask.Core.Component Draw(IReadOnlyList<ToastMessage> messages, Action<int> dismiss, UiToastLook look)
+    {
+        if (messages.Count == 0)
+        {
+            // No classes: `flex` on a closed popover would lay a transparent box over the whole page.
+            return Div.Popover(Rask.Core.Popover.Manual)
+                .Data(Marks(look.Stack is null ? "ui-toast" : "ui-toast-group", look.Position, expanded: false, open: false)).Role("status");
+        }
+
+        return look.Stack is { } stack ? Stacked(messages, dismiss, look, stack) : Single(messages, dismiss, look);
+    }
 
     // One at a time: the newest takes the place of the one showing, and dismissing it takes those with it.
     private static Rask.Core.Component Single(IReadOnlyList<ToastMessage> messages, Action<int> dismiss, UiToastLook look)
@@ -42,9 +57,8 @@ public sealed partial class UiToast
             }
         }
 
-        // Keyed by the toast: a new one is a new popover, so it is shown again and comes up over whatever
-        // opened since, and its entrance plays.
-        return Div.Key(newest.Id).Popover(Rask.Core.Popover.Manual).Class(Host, "max-w-sm", Corner(look.Position))
+        // The dialog is keyed by the toast: a new one is a new node, so its entrance plays and its countdown is its own.
+        return Div.Popover(Rask.Core.Popover.Manual).Class(Host, "max-w-sm", Corner(look.Position))
             .Data(Marks("ui-toast", look.Position, expanded: false)).Role("status")[
                 Dialog(newest, Close, look, ahead: null, behind: 0)
             ];
@@ -74,13 +88,14 @@ public sealed partial class UiToast
     }
 
     // The part's marker, then what Flux's custom element carries as attributes, as data-*.
-    private static Dictionary<string, string?> Marks(string marker, Ui.ToastPosition position, bool expanded)
+    private static Dictionary<string, string?> Marks(string marker, Ui.ToastPosition position, bool expanded, bool open = true)
     {
         var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             [marker] = null,
             ["position"] = Name(position),
-            ["rask-popover-open"] = "true",
+            // The runtime shows the popover when this turns true and hides it when it turns false.
+            ["rask-popover-open"] = open ? "true" : "false",
         };
         if (expanded)
         {
