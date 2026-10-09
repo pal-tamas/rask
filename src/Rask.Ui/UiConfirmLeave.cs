@@ -44,8 +44,8 @@ public sealed partial class UiConfirmLeave : Component
                 Ui.Heading.Level(2).Lg.Class("pe-8").Data(Part, "message").Attributes(("data-rask-opaque", null)),
                 Div.Class("flex gap-2")[
                     Ui.Spacer,
-                    Ui.ModalClose.Key("stay")[Ui.Button.Ghost[Stay ?? "Stay"]],
-                    Ui.ModalClose.Key("leave")[Ui.Button.Danger.Data(Part, "go")[Leave ?? "Leave"]]
+                    Ui.ModalClose.Key("stay")[Ui.Button.Ghost[Stay ?? RaskStrings.Get(RaskString.ConfirmLeaveStay, "Stay")]],
+                    Ui.ModalClose.Key("leave")[Ui.Button.Danger.Data(Part, "go")[Leave ?? RaskStrings.Get(RaskString.ConfirmLeaveLeave, "Leave")]]
                 ]
             ]
         ];

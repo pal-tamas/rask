@@ -39,7 +39,7 @@ public sealed partial class UiSidebarSearch : Component
                 Input.Value(Value ?? string.Empty)
                     .Type(InputType.Search)
                     .Placeholder(Placeholder ?? "")
-                    .Aria("label", Placeholder ?? "Search")
+                    .Aria("label", Placeholder ?? RaskStrings.Get(RaskString.SidebarSearch, "Search"))
                     .Class(
                         "min-w-0 flex-1 bg-transparent font-medium outline-none placeholder:text-zinc-400 "
                         + "sidebar-rail:hidden dark:placeholder:text-white/40")

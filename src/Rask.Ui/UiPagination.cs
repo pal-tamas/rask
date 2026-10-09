@@ -107,9 +107,8 @@ public sealed partial class UiPagination : Component
             : root.Class(Uncounted, Class)[Div, Div.Class(Box)[Previous(), Next()]];
     }
 
-    private static string Showing(UiPaginator paginator) => string.Create(
-        CultureInfo.InvariantCulture,
-        $"Showing {paginator.From} to {paginator.To} of {paginator.Total} results");
+    private static string Showing(UiPaginator paginator) => RaskStrings.Get(
+        RaskString.PaginationSummary, "Showing {0} to {1} of {2} results", paginator.From, paginator.To, paginator.Total);
 
     private IEnumerable<Component> Pages(int last)
     {
@@ -127,10 +126,10 @@ public sealed partial class UiPagination : Component
     }
 
     private Component Previous() =>
-        Step("previous", "&laquo; Previous", Paginator.OnFirstPage ? null : Paginator.Current - 1, Ui.IconName.ChevronLeft, Ui.IconName.ChevronRight);
+        Step("previous", RaskStrings.Get(RaskString.PaginationPrevious, "&laquo; Previous"), Paginator.OnFirstPage ? null : Paginator.Current - 1, Ui.IconName.ChevronLeft, Ui.IconName.ChevronRight);
 
     private Component Next() =>
-        Step("next", "Next &raquo;", Paginator.OnLastPage ? null : Paginator.Current + 1, Ui.IconName.ChevronRight, Ui.IconName.ChevronLeft);
+        Step("next", RaskStrings.Get(RaskString.PaginationNext, "Next &raquo;"), Paginator.OnLastPage ? null : Paginator.Current + 1, Ui.IconName.ChevronRight, Ui.IconName.ChevronLeft);
 
     // A step with nowhere to go is not a control: it keeps its place. A counted pager names its steps and
     // says aria-disabled on a spent one; the simple one says neither. Both are Flux's live DOM, down to the

@@ -7,5 +7,5 @@ public sealed partial class UiEditorBlockquote : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("blockquote", "Blockquote", "⌘+Shift+B", UiEditorIcons.Blockquote());
+        UiEditorMarkup.Toggle("blockquote", RaskStrings.Get(RaskString.EditorBlockquote, "Blockquote"), "⌘+Shift+B", UiEditorIcons.Blockquote());
 }

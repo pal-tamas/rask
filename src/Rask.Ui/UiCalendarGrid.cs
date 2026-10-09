@@ -113,7 +113,9 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             ? options.Min is { } min && view.AddDays(-1) < min
             : options.Max is { } max && months[^1].AddMonths(1) > max;
 
-        var label = by < 0 ? "Previous month" : "Next month";
+        var label = by < 0
+            ? RaskStrings.Get(RaskString.PickerPreviousMonth, "Previous month")
+            : RaskStrings.Get(RaskString.PickerNextMonth, "Next month");
 
         return Button
             .Key(by < 0 ? "previous" : "next")
@@ -143,7 +145,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             .Key("today")
             .Type(ButtonType.Button)
             .Class(UiCalendarLook.Step)
-            .Aria("label", "Today")
+            .Aria("label", RaskStrings.Get(RaskString.CalendarToday, "Today"))
             .OnClick(async () =>
             {
                 if (here)

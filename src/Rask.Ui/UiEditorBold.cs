@@ -7,5 +7,5 @@ public sealed partial class UiEditorBold : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiEditorMarkup.Toggle("bold", "Bold", "⌘B", UiEditorIcons.Hero(Ui.IconName.Bold));
+        UiEditorMarkup.Toggle("bold", RaskStrings.Get(RaskString.EditorBold, "Bold"), "⌘B", UiEditorIcons.Hero(Ui.IconName.Bold));
 }

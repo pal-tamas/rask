@@ -22,9 +22,9 @@ public sealed partial class UiDatePickerRange : UiDatePickerControl<UiDateRange>
 
     private protected override int DefaultMonths => 2;
 
-    private protected override string DefaultPlaceholder => "Select a date range";
+    private protected override string DefaultPlaceholder => RaskStrings.Get(RaskString.DatePickerRangePlaceholder, "Select a date range");
 
-    private protected override string ConfirmLabel => "Select date";
+    private protected override string ConfirmLabel => RaskStrings.Get(RaskString.DatePickerConfirm, "Select date");
 
     private protected override UiCalendarPicks Picks(UiDateRange current, Func<UiDateRange, Task> choose) =>
         new UiCalendarRangePick(current, State, MinRange, MaxRange, choose);

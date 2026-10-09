@@ -32,7 +32,7 @@ public sealed partial class UiSidebarCollapse : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var name = Tooltip ?? "Toggle sidebar";
+        var name = Tooltip ?? RaskStrings.Get(RaskString.SidebarToggle, "Toggle sidebar");
         return Div.Class(UiClass.Compose(Root, InsetClass(Inset), Class)).Attributes(("data-ui-sidebar-collapse", ""))[
             // Seam: Flux wraps the button in its tooltip. Ui.Tooltip goes here when it lands; `title` until then.
             Div.Class("flex").Attributes(("data-ui-seam", "tooltip"))[
