@@ -40,6 +40,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             return;
         }
 
+        RefuseTenantWritesForNobody(context);
         RefuseUnassignedKeys(context);
         TouchRootsOfChangedChildren(context);
 
@@ -68,10 +69,33 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
         foreach (var entry in context.ChangeTracker.Entries<IAggregate>())
         {
-            if (entry.State == EntityState.Modified)
+            // Only an aggregate that maps the token: one that declared Checks = Concurrency.None has no Version,
+            // and asking an entry for a property that is not mapped throws rather than no-ops.
+            if (entry.State == EntityState.Modified && entry.Metadata.FindProperty(Columns.Version) is not null)
             {
                 var version = entry.Property(Columns.Version);
                 version.CurrentValue = (int)(version.CurrentValue ?? 0) + 1;
+            }
+        }
+    }
+
+    // An app that registered a tenant resolver reads a tenant-scoped table as EMPTY when the resolver named no
+    // tenant, and that is only safe if the same work cannot write one: an insert would store a row for nobody,
+    // and an update or a delete could only be of a row loaded under some other tenant. Every kind of write is
+    // refused, whether or not the row already carries a TenantId — the work has no tenant to act for.
+    private static void RefuseTenantWritesForNobody(DbContext context)
+    {
+        if (!Tenant.IsUnresolved)
+        {
+            return;
+        }
+
+        foreach (var entry in context.ChangeTracker.Entries<IEntity>())
+        {
+            if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted &&
+                ConventionRegistry.ScopeFor(entry.Metadata.ClrType) == Tenancy.PerTenant)
+            {
+                throw MissingTenantException.ForWrite(entry.Metadata.ClrType.Name);
             }
         }
     }
@@ -114,17 +138,18 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
         // Already set deliberately — a cross-tenant tool creating a row on somebody's behalf inside
         // Tenant.Across(), or a test — is left alone.
-        if (property.CurrentValue is Guid existing && existing != Guid.Empty)
+        if (property.CurrentValue is { } existing && !Equals(existing, Guid.Empty))
         {
             return;
         }
 
+        // In the column's own type: a table whose tenants are numbered is stamped with the number.
         property.CurrentValue = Tenant.IsAcrossTenants
             ? throw new InvalidOperationException(
                 $"'{entry.Metadata.ClrType.Name}' is tenant-scoped and is being inserted inside " +
                 "Tenant.Across(), which says which tenant it belongs to for nobody. Set TenantId on the row, " +
                 "or open Tenant.Use(id) around the insert.")
-            : Current.RequiredTenant;
+            : TenantColumn.ValueFor(Current.RequiredTenant, property.Metadata.ClrType, entry.Metadata.ClrType.Name);
     }
 
     // A row does not move between tenants. The query filter already stops you LOADING another tenant's row,
@@ -204,8 +229,17 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 continue;
             }
 
-            root.Property(Columns.UpdatedAt).IsModified = true;
-            root.Property(Columns.Version).IsModified = true;
+            Touch(root, Columns.UpdatedAt);
+            Touch(root, Columns.Version);
+        }
+    }
+
+    // A root that declined its stamps or its version has nothing to mark: the child's own row is the whole write.
+    private static void Touch(EntityEntry root, string column)
+    {
+        if (root.Metadata.FindProperty(column) is not null)
+        {
+            root.Property(column).IsModified = true;
         }
     }
 

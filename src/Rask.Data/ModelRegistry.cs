@@ -76,6 +76,10 @@ public static class ModelRegistry
             contribution.ConfigureConventions(configurationBuilder);
         }
 
+        // An [Index] attribute's index is put back by EF Core as the model is finalized, after anything
+        // OnModelCreating did to it — so the tenant prefix has one more pass there. See TenantIndexes.
+        configurationBuilder.Conventions.Add(static _ => new TenantIndexes.Convention());
+
         return configurationBuilder;
     }
 
@@ -87,6 +91,7 @@ public static class ModelRegistry
     ///     The order is the point. Conventions land on entities that exist, and an entity's own
     ///     <c>Configure</c> runs <b>last</b> so it can overrule a convention — replace the soft-delete
     ///     query filter, drop the concurrency token — rather than being quietly overwritten by one.
+    ///     The one thing that follows it is the tenant prefix on the indexes <c>Configure</c> declared.
     /// </remarks>
     public static ModelBuilder Apply(ModelBuilder modelBuilder) => Apply(modelBuilder, context: null);
 
@@ -118,6 +123,10 @@ public static class ModelRegistry
         {
             contribution.ApplyConfigurations(modelBuilder);
         }
+
+        // Once more, for what Configure declared: the conventions ran before it, so an index it added has not
+        // been given its tenant, and a unique one would hold across every tenant.
+        TenantIndexes.Prefix(modelBuilder.Model);
 
         return modelBuilder;
     }

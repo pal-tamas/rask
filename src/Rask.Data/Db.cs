@@ -150,6 +150,39 @@ public static class Db
         return new ScopeBinding(scope);
     }
 
+    /// <summary>
+    ///     <see cref="UseScope" /> as the host opens it — around an HTTP request, around a live session's work —
+    ///     which also asks the application's tenant resolver there and then.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The resolver is asked once per scope and the answer kept (<see cref="ResolvedTenant" />), so this
+    ///         costs a lookup after the first call. Asking EARLY is the point: a live session's scope outlives
+    ///         the request that opened it, and the first work it does — its initial render — is the moment the
+    ///         request the resolver wants to read is certainly still there.
+    ///     </para>
+    ///     <para>
+    ///         Internal, and not what <see cref="UseScope" /> does for everybody: a background job opens a scope
+    ///         too, runs in the tenant its row recorded, and must not have a resolver written for requests
+    ///         called — and possibly fail — on its behalf.
+    ///     </para>
+    /// </remarks>
+    internal static IDisposable OpenScope(IServiceProvider scope)
+    {
+        var binding = UseScope(scope);
+
+        try
+        {
+            ResolvedTenant.Capture(scope);
+            return binding;
+        }
+        catch
+        {
+            binding.Dispose();
+            throw;
+        }
+    }
+
     /// <summary>The scope <see cref="UseScope" /> opened — the live session's — or null outside one.</summary>
     internal static IServiceProvider? ScopeServices => AmbientScope.Value;
 

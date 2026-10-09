@@ -11,8 +11,8 @@
 
   "CalendarToday": "Ma",
 
-  "DatePickerPlaceholder": "Válassz dátumot",
-  "DatePickerRangePlaceholder": "Válassz időszakot",
+  "DatePickerPlaceholder": "Válasszon dátumot",
+  "DatePickerRangePlaceholder": "Válasszon időszakot",
   "DatePickerConfirm": "Kiválasztás",
   "DatePickerCancel": "Mégse",
   "DatePickerMonth": "Hónap",
@@ -58,7 +58,7 @@
   "SelectClear": "Kiválasztás törlése",
   "SelectSelectedSuffix": "kiválasztva",
 
-  "TimePickerPlaceholder": "Válassz időpontot",
+  "TimePickerPlaceholder": "Válasszon időpontot",
   "TimePickerMeridiem": "de./du.",
   "TimePickerHourPlaceholder": "óó",
   "TimePickerMinutePlaceholder": "pp",
@@ -119,7 +119,7 @@
   "DataGridMoveUp": "Mozgatás fel",
   "DataGridMoveDown": "Mozgatás le",
   "DataGridGrouping": "Csoportosítás",
-  "DataGridGroupingHint": "Csoportosíts egy oszlop szerint a fejlécében lévő gombbal.",
+  "DataGridGroupingHint": "Csoportosítson egy oszlop szerint a fejlécében lévő gombbal.",
   "DataGridMoveGroupLeft": "Csoport mozgatása balra",
   "DataGridMoveGroupRight": "Csoport mozgatása jobbra",
   "DataGridUngroup": "Csoportosítás megszüntetése: {0}",

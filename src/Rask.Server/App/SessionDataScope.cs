@@ -24,5 +24,9 @@ namespace Rask;
 internal sealed class SessionDataScope : ISessionWorkScope
 {
     /// <inheritdoc />
-    public IDisposable? Enter(IServiceProvider sessionServices) => Db.UseScope(sessionServices);
+    /// <remarks>
+    ///     The first entry is the session's initial render, inside the request that opened it — which is when an
+    ///     app's tenant resolver (<c>AddRaskTenant</c>) is asked, and its answer kept for the session's life.
+    /// </remarks>
+    public IDisposable? Enter(IServiceProvider sessionServices) => Db.OpenScope(sessionServices);
 }
