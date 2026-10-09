@@ -196,6 +196,11 @@ public static class Db
     internal static ClaimsPrincipal? PrincipalFromScope() =>
         AmbientScope.Value?.GetService<IPrincipalSource>()?.Current;
 
+    /// <summary>Whether <see cref="CreateContext" /> has anything to build a context from.</summary>
+    internal static bool HasContext =>
+        _factory is not null ||
+        (AmbientScope.Value ?? Ambient.Services)?.GetService<AmbientContextBinding>() is not null;
+
     /// <summary>A fresh context the caller owns and disposes.</summary>
     /// <exception cref="InvalidOperationException">The model surface has not been configured.</exception>
     internal static DbContext CreateContext()

@@ -10,10 +10,11 @@ description: Add a new RASK0xx compile-time diagnostic to the Rask Roslyn genera
 already taken on a branch base that was ahead of the checkout it was picked against. Run the grep, and
 run it again before you merge.
 
-At the last edit the highest allocated here was RASK101 (an authorization attribute the CQRS generators cannot
+At the last edit the highest allocated here was RASK102 (a value object's `Validate` that is not the shape of a
+rule, in `Rask.Batteries.Generators`; RASK101 an authorization attribute the CQRS generators cannot
 read, in `Rask.Batteries.Generators`; RASK100 a `[BlazorParameter]` naming no hosted parameter;
 RASK098/099 the browser-targets analyzer, RASK097 the route-helper name collision, all in `Rask.Generators`),
-so the next free is **RASK102** — and note this line once said RASK092 while
+so the next free is **RASK103** — and note this line once said RASK092 while
 RASK092–094 were already taken, once said RASK087 while
 RASK087–091 were already taken, once said RASK076 while RASK076 was already taken, and the form model's ids
 were first written as RASK077–081 while package islands held RASK077–080 on main, which is the staleness it

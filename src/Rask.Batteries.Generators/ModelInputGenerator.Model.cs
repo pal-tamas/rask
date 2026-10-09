@@ -86,7 +86,8 @@ public sealed partial class ModelInputGenerator
                 shape.ValueCollections.Select(c => ToValueCollection(c, converted))),
             WritesOf(symbol, out var declaresWrites),
             declaresWrites,
-            DeletableOf(symbol));
+            DeletableOf(symbol),
+            ConfiguresUniqueRule(symbol, cancellationToken));
     }
 
     /// <summary>
@@ -392,7 +393,9 @@ public sealed partial class ModelInputGenerator
             valueObject.Constructor.DeclaredAccessibility == Accessibility.Public,
             valueObject.Type.IsValueType,
             valueObject.SingleValue,
-            new EquatableArray<ValueObjectMember>(members));
+            new EquatableArray<ValueObjectMember>(members),
+            RuleOf(valueObject),
+            new EquatableArray<RuleMiss>(RuleMissesOf(valueObject)));
 
         converted[valueObject] = shape;
         return shape;

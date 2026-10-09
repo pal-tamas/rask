@@ -51,7 +51,7 @@ a `[DynamicallyAccessedMembers]` annotation or a justified `[UnconditionalSuppre
 | Path | What lives there |
 |------|------------------|
 | `src/Rask.Core/` | Rendering, live diff codec, routing, lifecycle, scoped CSS/JS, primitives. |
-| `src/Rask.Generators/` | Roslyn chain/route generators and analyzers (RASK001–101; see [docs/diagnostics.md](../docs/diagnostics.md)). |
+| `src/Rask.Generators/` | Roslyn chain/route generators and analyzers (RASK001–102; see [docs/diagnostics.md](../docs/diagnostics.md)). |
 | `src/Rask.Server/`, `src/Rask.Wasm/`, `src/Rask.Spa.Hosting/` | The host packages. |
 | `src/Rask.Cli/` | The `rask` CLI — scaffolds every project via `rask new` (server, wasm). |
 | `src/Rask.Site` | The app published to rask.sh: landing page, guides and every runnable demo. |
@@ -67,7 +67,7 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   behaviour MDN cannot know. Tests assert the exact attribute order — preserve it.
 - **Markup is a chain** — `Div.Class("panel")[Span["hi"]]`. Don't `new` a `Component` outside
   `Rask.Core` (RASK014).
-- Diagnostics RASK001–101 are documented in [docs/diagnostics.md](../docs/diagnostics.md);
+- Diagnostics RASK001–102 are documented in [docs/diagnostics.md](../docs/diagnostics.md);
   the analyzer descriptors are the source of truth.
 
 ## Commits & pull requests
