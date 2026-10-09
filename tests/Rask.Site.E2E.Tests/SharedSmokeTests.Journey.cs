@@ -1279,7 +1279,7 @@ public abstract partial class SharedSmokeTests
         // controls themselves; docs/building-form-controls.md is the path for building one back.
         // ---- validation subpage (docs/forms-validation.md) ----
         await SideAsync("Forms — validation", "Forms — validation", "main .markdown-body h1");
-        await AssertGuideDemosAsync(12, "forms-validation");
+        await AssertGuideDemosAsync(13, "forms-validation");
 
         // The rule the page leads with: a value object's Validate, named from the field. The message is the
         // value object's own, and a name it accepts reaches the submit handler.
@@ -1292,6 +1292,28 @@ public abstract partial class SharedSmokeTests
         await destination.Locator("#v-vo-name").FillAsync("Lisbon");
         await destination.Locator("button[type=submit]").ClickAsync();
         await Expect(Page.GetByText("Saved: Lisbon"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Bind timing: the debounced field says nothing to the model while it is typed into and binds at the
+        // pause; its second rule — the lookup — answers for a name the value object accepted; the message goes
+        // at the first key of the correction; and Enter saves what was typed without waiting for the pause.
+        var itinerary = Page.Locator("form:has(#bt-name)");
+        await itinerary.Locator("#bt-name").PressSequentiallyAsync("Atlantis");
+        await Expect(itinerary.Locator("#bt-model")).ToHaveTextAsync("The model holds “Atlantis”.", text);
+        await Expect(itinerary.GetByText("“Atlantis” is already taken."))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await itinerary.Locator("#bt-name").PressAsync("Backspace");
+        await Expect(itinerary.GetByText("“Atlantis” is already taken."))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await itinerary.Locator("#bt-name").FillAsync("Lisbon");
+        await itinerary.Locator("#bt-notes").PressSequentiallyAsync("A long weekend by the river, with far too many pastries.");
+        await itinerary.Locator("#bt-name").FocusAsync();
+        await Expect(itinerary.GetByText("Keep the notes under 40 characters."))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await itinerary.Locator("#bt-notes").FillAsync("A long weekend.");
+        await itinerary.Locator("#bt-name").FillAsync("Porto");
+        await itinerary.Locator("#bt-name").PressAsync("Enter");
+        await Expect(Page.GetByText("Saved: Porto"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;

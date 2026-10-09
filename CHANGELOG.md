@@ -14,7 +14,33 @@ them until tagged releases begin.
   "&laquo; Previous". It is the character now, encoded once. `RaskString.PaginationPrevious` /
   `PaginationNext` carry it, and the kit's Hungarian says `« Előző` / `Következő »`.
 
+### Changed
+
+- **A second `.Validate(…)` adds a rule; it no longer replaces the first. Behaviour change.**
+  `Input.Bind(() => m.Name).Validate(a).Validate(b)` used to keep only `b`, silently: a control holds one
+  `Validator<T>?` and the edit context one rule per field. The step now composes them — `a` runs, then `b`
+  only if `a` let the value through, synchronous and asynchronous rules mixed in any order — on every form
+  control, the kit's and your own, and on `Form`. Two plain rules stay one plain rule, so a field with
+  nothing awaited keeps the synchronous path. RASK044 ("chain sets the same property twice") reported the
+  old shape as a mistake and no longer reports a repeated `Validate`; a chain that built without that
+  warning means what it meant. `.Validate(null)` adds nothing.
+
 ### Added
+
+- **A bound field can wait: `.Blur()` and `.Debounce(300.Milliseconds)`.** A text field binds on every
+  keystroke, which is still the default. After `Bind`, `.Blur()` binds and validates on leaving the field
+  and `.Debounce(…)` once typing has paused — Livewire's `wire:model.blur` and
+  `wire:model.live.debounce.300ms` — on `Input`, `Textarea`, `Ui.Input` and `Ui.Textarea`, for any field
+  that is typed into (the steps do nothing on a checkbox, radio, file, range or colour). The pause is
+  counted in the browser, so the keystrokes before it send nothing; at the pause one message writes the
+  value and runs every rule. Enter, a press on a button, a key a handler hears, a navigation and leaving
+  the field send the typed value first, a `change` the browser fires for a value already sent is not sent
+  twice, and no pause is counted while a character is being composed. A message under a waiting field goes
+  at the first keystroke of the correction rather than at the next pause, the unsaved-changes guard still
+  counts that first keystroke, and a render that lands while a `.Blur()` field is being typed into leaves
+  its text alone. Three attributes carry it (`data-rask-debounce`, `data-rask-bind-on`,
+  `data-rask-on-edit`; `docs/js-interop-runtime.md`), read by the core runtime: `rask.js` and `rask.wasm.js`
+  grow by 1,059 and 1,057 bytes (97,409 and 86,167).
 
 - **The UI kit's own words are translatable, and it speaks Hungarian out of the box.** The Flux rebuild had
   written the kit's few fixed texts as English literals — the pager's "Showing 1 to 10 of 13 results" and its

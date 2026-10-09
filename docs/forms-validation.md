@@ -17,6 +17,15 @@ Input.Bind(() => _model.Email)
 There is no package to add and nothing to register. The rule runs when the field changes, once the
 reader has touched it, and again on submit.
 
+**A second `.Validate(…)` adds a rule.** They run in the order written, and a rule is not asked about a
+value an earlier one rejected:
+
+```csharp
+Input.Bind(() => _model.Name)
+    .Validate(DestinationName.Validate)   // required, length, format
+    .Validate(NameIsFree)                 // then, only if the first let the value through
+```
+
 ### A rule across fields
 
 A rule that no single field owns goes on the form. It runs on submit, and its messages belong to the
@@ -82,8 +91,10 @@ Ui.Input.Bind(() => _model.Code).Validate(async code =>
 `Current.Cancellation`, which anything awaited inside the rule picks up, so an answer for an older
 value never lands on a newer one.
 
-A field's async rule runs on every change. Keep it to a check that is cheap to repeat. An expensive
-one belongs in the form's rule, which runs once, on submit:
+A field's async rule runs on every change — for a live text field, every keystroke once it is touched.
+`.Debounce(…)` or `.Blur()` makes that once per pause, or once on leaving the field (see
+[When the rules run](#when-the-rules-run)). A check too expensive even for that belongs in the form's
+rule, which runs once, on submit:
 
 ```csharp
 Form.Model(_model).OnSubmit(Redeem).Validate(async m =>
@@ -94,6 +105,28 @@ Form.Model(_model).OnSubmit(Redeem).Validate(async m =>
 
 A form's check is a convenience for the reader, never the control: check again where the data is
 written.
+
+### When the rules run
+
+A text field binds on every keystroke, and its rules run with it once the reader has touched the field.
+`.Debounce(…)` and `.Blur()` move both to the moment the reader stops:
+
+```csharp
+Ui.Input.Bind(() => _model.Name).Label("Destination")
+    .Debounce(300.Milliseconds)
+    .Validate(DestinationName.Validate)   // runs at the pause
+    .Validate(NameIsFree),                // a lookup: only for a name the first rule accepted
+Ui.Textarea.Bind(() => _model.Notes).Label("Notes")
+    .Blur()                               // runs on leaving the field
+    .Validate(notes => notes.Length <= 40 ? [] : ["Keep the notes under 40 characters."])
+```
+
+Both rules of the first field answer in the one round trip the pause makes. The message under a field
+goes the moment the reader starts correcting it, Enter and Save send what was typed before they submit,
+and a lookup still running when Save is pressed is run again and waited for. The steps themselves are
+described under [Bind timing](forms.md#bind-timing).
+
+<!-- demo:validation-bind-timing -->
 
 ---
 
