@@ -30,6 +30,7 @@ own ("blazor", "react"). Map every new page to one:
 | PWA in C#, browser API (Geolocation, WebUSB, …) in C# | `pwa`, `apis/*` |
 | full-stack .NET web framework, C# full-stack framework, one C# codebase for UI + data + auth + jobs + deploy | `/`, `getting-started` |
 | multi-tenant .NET app, tenant isolation EF Core | `multi-tenancy` |
+| show a database unique-constraint / duplicate-key error under the form field in C#, EF Core unique index validation message | `forms-validation` (#the-database-said-no) |
 | unsaved changes warning / confirm before leaving a form in a C# web app | `forms` (#ask-before-leaving-unsaved-changes) |
 | full-text search EF Core, SQLite FTS5 / PostgreSQL tsvector / in the browser | `full-text-search` |
 | .NET One Person Framework (the philosophy guide) | `one-person-framework` |

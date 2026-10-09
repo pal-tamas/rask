@@ -95,6 +95,51 @@ Form.Model(_model).OnSubmit(Redeem).Validate(async m =>
 A form's check is a convenience for the reader, never the control: check again where the data is
 written.
 
+### The database said no
+
+Some rules only the store can check: a name that must be unique, a booking that must not overlap
+another. When the submit handler throws an exception that names the fields it is about, the form shows
+each message under its field. The reader stays on the page, and the handler has no `try`/`catch`:
+
+```csharp
+Form.Model(_model).OnSubmit(Save)[
+    Ui.Input.Bind(() => _model.Name).Label("Route"),
+    Ui.Button.Submit["Save"]
+]
+
+Task Save(RouteModel route) => Route.Create(route);   // "A route with this name already exists." under Name
+```
+
+The message is drawn exactly as a rule's message is, and it goes away when the reader changes the field.
+A failure over several fields — a unique pair of year and number — shows under each of them, and changing
+any one clears it from all. The next submit validates again from the start.
+
+Any exception can do this by implementing `IFieldFailures`. A failure is a message and the fields it
+is shown under, named as the form's model names them (`Name`, `Price.Amount`, `Lines[2].ValidFrom`):
+
+```csharp
+public sealed class RouteNameTaken() : Exception("The route name is taken."), IFieldFailures
+{
+    public IReadOnlyList<FieldFailure> Failures { get; } =
+        [new("A route with this name already exists.", [nameof(RouteModel.Name)])];
+}
+```
+
+`Marked` names fields that turn invalid without a message of their own. An overlapping booking says so
+under the driver and marks the two dates:
+
+```csharp
+new FieldFailure("This driver is already booked then.", ["DriverId"], Marked: ["ValidFrom", "ValidTo"])
+```
+
+A failure that names no field on this form shows where the form's own messages do, in
+`Validation.Summary`. With nothing on the page to show it, the submit fails as any other does: the
+exception is the `f.Error` of `Form.Model(m)[f => [ … ]]`, and it is reported.
+
+It is not logged as an error: the reader was told, and nothing is broken.
+
+<!-- demo:validation-refused-save -->
+
 ---
 
 ## Also supported: DataAnnotations

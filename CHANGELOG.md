@@ -16,6 +16,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **A save the store refuses is shown under the field it is about.** A submit handler that throws an
+  exception implementing `IFieldFailures` (new, in `Rask.Wire`) no longer fails the submit: each
+  `FieldFailure`'s message appears under the bound fields it names, drawn exactly as a rule's message, and
+  the reader stays on the page. A failure over several fields shows under each and clears from all when
+  any one is edited; `Marked` fields turn invalid without a message. A failure naming no field on the form
+  goes to `Validation.Summary`, and to `f.Error` when nothing would show it. It is logged at information,
+  not as a fault. The app writes no `try`/`catch`. See
+  [The database said no](docs/forms-validation.md#the-database-said-no).
+
 - **The UI kit's own words are translatable, and it speaks Hungarian out of the box.** The Flux rebuild had
   written the kit's few fixed texts as English literals — the pager's "Showing 1 to 10 of 13 results" and its
   arrow names, a select's "No results found" / "Loading..." / "Clear selected", the date pickers' "Select a
