@@ -9,6 +9,21 @@ them until tagged releases begin.
 
 ### Added
 
+- **`services.AddRaskTenant(sp => …)` — the app says where the tenant comes from (#1228).** One line returning
+  the tenant of the scope it is handed, as a `Guid?` or as a number (`int?` / `long?`):
+  `builder.Services.AddRaskTenant(sp => sp.GetRequiredService<ICurrentRequest>().TenantId)`. It replaces the
+  signed-in user's `rask:tenant` claim as the source — the claim stays the default for an app that registers
+  nothing — and is asked once per scope, the answer kept: as an HTTP request starts and as a live session
+  opens, for the session's whole life. `Current.Tenant`, every tenant filter and every insert stamp use it; an
+  explicit `Tenant.Use` / `Tenant.Across` still wins and the resolver is then not asked at all, so a job goes
+  on running in the tenant its row recorded. A user with no tenant claim works in the resolved tenant; one
+  whose claim names a different tenant is refused with a `ForbiddenException` when the tenant is read.
+  **When the resolver names no tenant**, a tenant-scoped table reads as *empty* — `Count()` is 0, `Find` is
+  null — and every write to one is refused with the new `MissingTenantException` (an
+  `InvalidOperationException`); it never reads every tenant's rows, and never the rows that belong to none.
+  Without a resolver nothing changes: a read with no tenant still throws. `Guid.AllBitsSet` is now reserved —
+  it is what `Tenant.Resolve()` hands a hand-written filter in that state — and `Tenant.Use` refuses it.
+
 - **A tenant-scoped table can number its tenants: the declared `TenantId` decides the column's type (#1227).**
   `public int? TenantId { get; private set; }` — or `long?`, or `Guid?` as before — on an aggregate (or child)
   with `Scope = Tenancy.PerTenant` makes the column, the query filter on both the write model and the read

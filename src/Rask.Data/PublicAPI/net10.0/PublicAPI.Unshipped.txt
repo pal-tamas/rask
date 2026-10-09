@@ -63,6 +63,10 @@ Rask.Data.ITenantScoped
 Rask.Data.ITenantScoped.CurrentTenant.get -> System.Guid?
 Rask.Data.JsonIndexBuilderExtensions
 Rask.Data.ModelBuilderExtensions
+Rask.Data.MissingTenantException
+Rask.Data.MissingTenantException.MissingTenantException() -> void
+Rask.Data.MissingTenantException.MissingTenantException(string! message) -> void
+Rask.Data.MissingTenantException.MissingTenantException(string! message, System.Exception? innerException) -> void
 Rask.Data.ModelQuery<TEntity>
 Rask.Data.ModelQuery<TEntity>.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.AsQueryable() -> System.Linq.IQueryable<TEntity!>!
@@ -281,5 +285,7 @@ Rask.Data.Projection<TEntity, TResult>.GetAwaiter() -> System.Runtime.CompilerSe
 Rask.Data.ModelQuery<TEntity>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.Collections.Generic.List<TEntity!>!>
 Rask.Data.Projection<TEntity, TResult>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.Collections.Generic.List<TResult>!>
 Rask.Data.DomainEventInterceptor.DomainEventInterceptor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory) -> void
+static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskTenant(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, System.Guid?>! resolve) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskTenant(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, long?>! resolve) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

@@ -89,8 +89,15 @@ internal static class TenantColumn
 
     /// <summary>What an insert into <paramref name="table" /> is stamped with for <paramref name="tenant" />.</summary>
     /// <exception cref="InvalidOperationException">The column keeps a number and the tenant is not one.</exception>
+    /// <exception cref="MissingTenantException"><paramref name="tenant" /> is the value that stands for no tenant.</exception>
     internal static object ValueFor(Guid tenant, Type column, string table)
     {
+        // The value a read with no tenant compares against is not a tenant, so it is never written as one.
+        if (tenant == Tenant.Nobody)
+        {
+            throw MissingTenantException.ForWrite(table);
+        }
+
         if (column == typeof(int?))
         {
             return Int32(tenant, table);
@@ -105,14 +112,19 @@ internal static class TenantColumn
     internal static Guid? CurrentGuid(ITenantScoped scope, string table)
     {
         _ = table;
-        return scope.CurrentTenant;
+        return Named(scope);
     }
 
     internal static int? CurrentInt32(ITenantScoped scope, string table) =>
-        scope.CurrentTenant is { } tenant ? Int32(tenant, table) : null;
+        Named(scope) is { } tenant ? Int32(tenant, table) : null;
 
     internal static long? CurrentInt64(ITenantScoped scope, string table) =>
-        scope.CurrentTenant is { } tenant ? Int64(tenant, table) : null;
+        Named(scope) is { } tenant ? Int64(tenant, table) : null;
+
+    // Null for "nobody" as well as for "unrestricted". The first is what makes a read with no resolved tenant
+    // empty: the filter then asks for `TenantId IS NOT NULL AND TenantId IS NULL`, which no row satisfies.
+    private static Guid? Named(ITenantScoped scope) =>
+        scope.CurrentTenant is { } tenant && tenant != Tenant.Nobody ? tenant : null;
 
     private static (MethodInfo Stored, MethodInfo Current) ReadersFor(Type column)
     {
@@ -134,7 +146,8 @@ internal static class TenantColumn
 
     private static InvalidOperationException NotANumber(Guid tenant, string table, string kind) =>
         new($"The tenant in flight is {tenant}, and '{table}' keeps its tenant as {kind}, which that is not. " +
-            "Say which tenant by its number — Tenant.Use(42) — wherever this table is read or written.");
+            "Say which tenant by its number — Tenant.Use(42), or a number returned to services.AddRaskTenant(sp => …) — " +
+            "wherever this table is read or written.");
 
     private static Type Supported(Type? declared, Type entity)
     {

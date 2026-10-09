@@ -86,12 +86,20 @@ public static class CurrentUser
         ///         claim of <c>Current.Principal</c>.
         ///     </para>
         ///     <para>
+        ///         An app that registered a resolver — <c>services.AddRaskTenant(sp =&gt; …)</c> — has replaced the
+        ///         claim as the source: the answer is what the resolver named for this request or session, asked
+        ///         once and kept. An explicit scope still comes first.
+        ///     </para>
+        ///     <para>
         ///         Null inside <see cref="Rask.Data.Tenant.Across" />: work that deliberately spans tenants is not
         ///         done on behalf of any one of them, so a row it records should not claim otherwise.
         ///     </para>
         /// </remarks>
+        /// <exception cref="Rask.Cqrs.ForbiddenException">
+        ///     A resolver is registered and the signed-in user's claim names a different tenant than it did.
+        /// </exception>
         public static Guid? Tenant =>
-            Data.Tenant.IsAcrossTenants ? null : Data.Tenant.Explicit ?? ClaimedGuid(Data.Tenant.ClaimType);
+            Data.Tenant.IsAcrossTenants ? null : Data.Tenant.Explicit ?? Data.Tenant.FromScope();
 
         /// <summary>The tenant the work in flight belongs to, or a thrown exception when there is none.</summary>
         /// <exception cref="InvalidOperationException">
@@ -116,7 +124,7 @@ public static class CurrentUser
         public static IDisposable UseUser(Guid? userId) => new Scope(new UserScope(userId));
     }
 
-    private static Guid? ClaimedGuid(string claimType) =>
+    internal static Guid? ClaimedGuid(string claimType) =>
         Guid.TryParse(Current.Principal?.FindFirst(claimType)?.Value, out var id) ? id : null;
 
     private sealed record UserScope(Guid? UserId);

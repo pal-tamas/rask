@@ -40,6 +40,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             return;
         }
 
+        RefuseTenantWritesForNobody(context);
         RefuseUnassignedKeys(context);
         TouchRootsOfChangedChildren(context);
 
@@ -74,6 +75,27 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             {
                 var version = entry.Property(Columns.Version);
                 version.CurrentValue = (int)(version.CurrentValue ?? 0) + 1;
+            }
+        }
+    }
+
+    // An app that registered a tenant resolver reads a tenant-scoped table as EMPTY when the resolver named no
+    // tenant, and that is only safe if the same work cannot write one: an insert would store a row for nobody,
+    // and an update or a delete could only be of a row loaded under some other tenant. Every kind of write is
+    // refused, whether or not the row already carries a TenantId — the work has no tenant to act for.
+    private static void RefuseTenantWritesForNobody(DbContext context)
+    {
+        if (!Tenant.IsUnresolved)
+        {
+            return;
+        }
+
+        foreach (var entry in context.ChangeTracker.Entries<IEntity>())
+        {
+            if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted &&
+                ConventionRegistry.ScopeFor(entry.Metadata.ClrType) == Tenancy.PerTenant)
+            {
+                throw MissingTenantException.ForWrite(entry.Metadata.ClrType.Name);
             }
         }
     }

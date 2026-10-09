@@ -358,7 +358,8 @@ public sealed partial class RaskApp
                     principal.Request = context;
                 }
 
-                using (Db.UseScope(context.RequestServices))
+                // OpenScope, so an app's tenant resolver (AddRaskTenant) is asked here, as the request starts.
+                using (Db.OpenScope(context.RequestServices))
                 using (Ambient.Enter(context.RequestAborted))
                 {
                     await next(context).ConfigureAwait(false);

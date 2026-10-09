@@ -268,6 +268,42 @@ public sealed class NumberedTenantTests : IDisposable
     }
 
     [Fact]
+    public async Task A_batch_update_and_a_batch_delete_touch_only_the_tenants_own_rows()
+    {
+        await using var database = await StartDatabaseAsync();
+        var theirs = await SaveAsync(Acme, "Budapest");
+        await SaveAsync(Globex, "Vienna");
+
+        using (Tenant.Use(Globex))
+        {
+            await database.Context.Set<Destination>()
+                .ExecuteUpdateAsync(s => s.SetProperty(d => d.Name, d => d.Name + "!"), TestContext.Current.CancellationToken);
+            await database.Context.Set<Destination>().ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal("Budapest", await StoredNameAsync(database, theirs));
+    }
+
+    [Fact]
+    public async Task Sql_composed_over_the_set_is_filtered_like_any_other_read()
+    {
+        await using var database = await StartDatabaseAsync();
+        await SaveAsync(Acme, "Budapest");
+        await SaveAsync(Globex, "Vienna");
+
+        List<string> names;
+        using (Tenant.Use(Globex))
+        {
+            names = await database.Context.Set<Destination>()
+                .FromSql($"SELECT * FROM Destinations")
+                .Select(d => d.Name)
+                .ToListAsync(TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(["Vienna"], names);
+    }
+
+    [Fact]
     public async Task Saving_a_copy_found_in_one_tenant_while_in_another_writes_nothing()
     {
         await using var database = await StartDatabaseAsync();

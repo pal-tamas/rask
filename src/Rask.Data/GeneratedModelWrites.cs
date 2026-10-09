@@ -273,6 +273,9 @@ public static class GeneratedModelWrites
     private static async Task<TEntity> LoadAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(DbContext context, object key, CancellationToken cancellationToken)
         where TEntity : class, IAggregate
     {
+        // Before the load, which would only report the row missing: with no tenant resolved every row is.
+        Tenant.DemandForWrite(typeof(TEntity));
+
         var entity = await context.Set<TEntity>().FindAsync([key], cancellationToken).ConfigureAwait(false)
                      ?? throw new KeyNotFoundException(
                          $"There is no {typeof(TEntity).Name} with key '{key}' — it was never created, or it has " +
