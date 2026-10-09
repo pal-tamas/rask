@@ -3,10 +3,16 @@
 #
 # Refreshed 2026-10-09 with the events of one task leaving as one frame (rask-batch.ts, shared by both runtimes:
 # handler events held until the task ends and sent as one batch, anything else sent at once behind them), on top
-# of the bound field that waits: rask.js 97,409 -> 97,895 (+486) and rask.wasm.js 86,167 -> 86,668
-# (+501). And with the chart that draws nothing until it is measured: its first drawing puts the SVG in
-# beside the measured layer, a render that replaces the layer's element, so the measuring hook now watches
-# whatever stands where a watched element was (rask-plot.ts): rask-hooks.js 42,367 -> 42,445 (+78).
+# of the bound field that waits and the morph that leaves a typed-into field alone: rask.js 97,583 -> 98,069
+# (+486) and rask.wasm.js 86,324 -> 86,825 (+501). And with the chart that draws nothing until it
+# is measured: its first drawing puts the SVG in beside the measured layer, a render that replaces the layer's
+# element, so the measuring hook now watches whatever stands where a watched element was (rask-plot.ts):
+# rask-hooks.js 42,367 -> 42,445 (+78).
+#
+# Refreshed 2026-10-09 with the morph leaving alone a change-only field the reader is typing into, when the
+# render carries the value it had already rendered for it (rask-morph.ts, shared, so both runtimes carry it —
+# the value read before the attributes are synced, and the one comparison): rask.js 97,409 -> 97,583 (+174)
+# and rask.wasm.js 86,167 -> 86,324 (+157). rask-hooks.js is unchanged at 42,367.
 #
 # Refreshed 2026-10-09 with a bound field that waits (`.Debounce(…)` / `.Blur()`, rask-input.ts — the CORE bundle,
 # because what it has to get ahead of is the runtimes' own submit, click, key and navigation): rask.js
@@ -137,6 +143,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,97895
-rask.wasm.js,86668
+rask.js,98069
+rask.wasm.js,86825
 rask-hooks.js,42445

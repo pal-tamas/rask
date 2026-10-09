@@ -93,19 +93,8 @@ public sealed partial class ModelInputGenerator
     ///     False when the aggregate declares <c>public const Deletion Deletes = Deletion.None</c> — a row that is
     ///     corrected by a new one or retired by a state change, never removed, and so gets no <c>Delete</c>.
     /// </summary>
-    private static bool DeletableOf(INamedTypeSymbol symbol)
-    {
-        foreach (var field in symbol.GetMembers("Deletes").OfType<IFieldSymbol>())
-        {
-            if (field is { IsConst: true, ConstantValue: int value } &&
-                field.Type is { Name: "Deletion", ContainingNamespace: { Name: "Data", ContainingNamespace: { Name: "Rask", ContainingNamespace.IsGlobalNamespace: true } } })
-            {
-                return value != NoDeletion;
-            }
-        }
-
-        return true;
-    }
+    private static bool DeletableOf(INamedTypeSymbol symbol) =>
+        AggregateShape.ConstOf(symbol, "Deletes", "Deletion") != NoDeletion;
 
     /// <summary>
     ///     What <c>public const ModelWrites Writes</c> says, or <see cref="AllWrites" /> when the aggregate

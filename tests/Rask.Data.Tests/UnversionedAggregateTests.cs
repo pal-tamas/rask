@@ -95,6 +95,34 @@ public sealed class UnversionedAggregateTests : IDisposable
     }
 
     [Fact]
+    public async Task The_edit_form_loads_a_model_and_saves_it_with_no_version_to_carry()
+    {
+        await using var database = await StartDatabaseAsync();
+        var depot = await SavedAsync("north");
+        var model = (await Depot.Model(depot.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+
+        model.Name = "south";
+        await Depot.Update(depot.Id, model, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal("south", (await database.Load<Depot>(depot.Id, TestContext.Current.CancellationToken))!.Name);
+        Assert.Null(typeof(DepotModel).GetProperty("Version"));
+    }
+
+    [Theory]
+    [InlineData("CreatedAt")]
+    [InlineData("UpdatedAt")]
+    [InlineData("Version")]
+    [InlineData("DeletedAt")]
+    public void The_read_face_has_no_column_the_table_does_not(string column)
+    {
+        var face = typeof(DepotRead);
+
+        var property = face.GetProperty(column);
+
+        Assert.Null(property);
+    }
+
+    [Fact]
     public async Task Find_then_Save_writes_the_change_twice_over()
     {
         await using var database = await StartDatabaseAsync();

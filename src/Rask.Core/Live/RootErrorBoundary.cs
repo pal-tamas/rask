@@ -152,6 +152,7 @@ internal sealed class RootErrorBoundary : Component
         outlet.Template = defaults.Toasts!;
         outlet.AutoDismissAfter = defaults.ToastDuration;
         outlet.TemplateTimes = defaults.ToastsTimeThemselves;
+        outlet.TemplateKeepsItsPlace = defaults.ToastsKeepTheirPlace;
         return outlet;
     }
 

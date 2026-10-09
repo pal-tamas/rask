@@ -14,8 +14,12 @@ internal sealed class RaskDocumentDefaults(
     IReadOnlyDictionary<string, string?>? htmlAttributes,
     Func<IReadOnlyList<Messaging.ToastMessage>, Action<int>, Component>? toasts = null,
     TimeSpan? toastDuration = null,
-    bool toastsTimeThemselves = false)
+    bool toastsTimeThemselves = false,
+    bool toastsKeepTheirPlace = false)
 {
+    // The template draws its host with no toast to show too, so a toast arriving is a change inside it (the kit's does).
+    public bool ToastsKeepTheirPlace { get; } = toastsKeepTheirPlace;
+
     // The template writes each toast's countdown for the browser to run, so the outlet starts none (the kit's does).
     public bool ToastsTimeThemselves { get; } = toastsTimeThemselves;
 

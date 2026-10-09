@@ -21,7 +21,11 @@ internal static class LiveDiffGate
     // EditOpKind.MorphSubtree is NOT listed here: it's a trusted, path-scoped morph (the Raw-tainted
     // fallback shrunk from a full-document morph to one parent's children), always safe to ship as a
     // diff — a morph handles arbitrary node counts and preserves keyed / focus / IDL state.
-    internal static bool DiffOpsAreClientSupported(List<EditOp> ops)
+    internal static bool DiffOpsAreClientSupported(List<EditOp> ops) => FirstRefused(ops) < 0;
+
+    // The first op the rule above refuses, or -1 when the diff can ship. The index is what lets a refusal be
+    // explained (FullPageReply) by the same rule that made it.
+    internal static int FirstRefused(List<EditOp> ops)
     {
         for (var i = 0; i < ops.Count; i++)
         {
@@ -32,11 +36,11 @@ internal static class LiveDiffGate
                  || op.Kind == EditOpKind.PermutationBatch)
                 && !op.Trusted)
             {
-                return false;
+                return i;
             }
         }
 
-        return true;
+        return -1;
     }
 
     // True when the <head> region (prefix through the closing </head>) of the freshly

@@ -9,11 +9,16 @@ public abstract partial class UiSelectControl<T>
     {
         var view = Read(field, parts);
 
+        // Every child is keyed: the clear slot comes and goes between the trigger and the list, and the posted
+        // values change in number. Keyed, each of those is an insert or a removal the live diff ships. By
+        // position the slot would be patched into the list and the pick answered with the whole page.
         List<Component?> children =
         [
             Trigger(view),
-            Clears(view) && !IsCombobox && Pills is null ? Div.Class(UiSelectLook.ClearSlot)[ClearButton()] : null,
             Popup(view),
+            // After the list, where it is laid over the button's end all the same: its handler is then numbered
+            // after the rows', and a pick that brings the button in leaves every row wired as it was.
+            Clears(view) && !IsCombobox && Pills is null ? Div.Key("clear").Class(UiSelectLook.ClearSlot)[ClearButton()] : null,
             .. PostedValues(view),
         ];
 
@@ -45,6 +50,8 @@ public abstract partial class UiSelectControl<T>
         return marks;
     }
 
+    private const string TriggerKey = "trigger";
+
     private bool IsOff(Parts parts) => Disabled == true || parts.Button?.Disabled == true;
 
     private bool Clears(View view) =>
@@ -58,6 +65,7 @@ public abstract partial class UiSelectControl<T>
         var slot = view.Parts.Button;
 
         return Button
+            .Key(TriggerKey)
             .Id(view.Field.ControlId)
             .Type(ButtonType.Button)
             .Role("combobox")
@@ -72,7 +80,9 @@ public abstract partial class UiSelectControl<T>
         ];
     }
 
-    // What the button says: the placeholder, the one picked option as its row draws it, or a count.
+    // What the button says: the placeholder, the one picked option as its row draws it, or a count. One of the
+    // three at a time, as Flux stamps them — and each under its own key, so going from one to another is a keyed
+    // swap the live diff ships. Unkeyed, a span against a div is a change it answers with the whole page.
     private Component? PickedContent(View view, string? placeholder)
     {
         var picked = view.PickedRows.ToList();
@@ -80,19 +90,19 @@ public abstract partial class UiSelectControl<T>
         {
             return placeholder is null
                 ? null
-                : Span.Class(UiSelectLook.Placeholder).Data("ui-select-placeholder", "")[placeholder];
+                : Span.Key("placeholder").Class(UiSelectLook.Placeholder).Data("ui-select-placeholder", "")[placeholder];
         }
 
         if (picked.Count > 1)
         {
-            return Div.Class(UiSelectLook.Picked)[
+            return Div.Key("count").Class(UiSelectLook.Picked)[
                 picked.Count.ToString(System.Globalization.CultureInfo.CurrentCulture) + " " + (SelectedSuffix ?? RaskStrings.Get(RaskString.SelectSelectedSuffix, "selected"))
             ];
         }
 
         var option = picked[0].Option;
 
-        return Div.Class(UiSelectLook.Picked).Data("value", option.FormValue)[
+        return Div.Key("option:" + option.FormValue).Class(UiSelectLook.Picked).Data("value", option.FormValue)[
             UiListboxRow.Content(option, option.SelectedLabel, inList: false)
         ];
     }
@@ -104,7 +114,7 @@ public abstract partial class UiSelectControl<T>
         var slot = view.Parts.Input;
         var size = UiSelectLook.InputSize(slot?.Size ?? Height);
 
-        return Div.Class(UiInputLook.Root).Attributes(InputBoxMarks())[
+        return Div.Key(TriggerKey).Class(UiInputLook.Root).Attributes(InputBoxMarks())[
             Input
                 .Value(_typing ? view.Search : PickedWords(view))
                 .Id(view.Field.ControlId)
@@ -126,10 +136,12 @@ public abstract partial class UiSelectControl<T>
                 .OnBlur(OnInputBlur)
                 .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: true))
                 .OnKeyDown(e => OnInputKeyAsync(e, view)),
+            // Keyed, all three: the clear button comes and goes before the chevron, and is no chevron to patch into one.
             Div.Class(UiInputLook.Trailing)[
                 Clears(view) ? ClearButton() : null,
-                Filter == false ? Ui.Icon.Name(Ui.IconName.Loading).Class(UiSelectLook.InputBusy) : null,
+                Filter == false ? Ui.Icon.Key("busy").Name(Ui.IconName.Loading).Class(UiSelectLook.InputBusy) : null,
                 Button
+                    .Key("chevron")
                     .Type(ButtonType.Button)
                     .TabIndex(-1)
                     .Disabled(Disabled == true)
@@ -240,6 +252,7 @@ public abstract partial class UiSelectControl<T>
     // Out of the tab order, as the input's own clear button is: Backspace and Escape reach the same end.
     private Component ClearButton() =>
         Button
+            .Key("clear")
             .Type(ButtonType.Button)
             .TabIndex(-1)
             .Class(UiInputLook.Action)
@@ -253,6 +266,6 @@ public abstract partial class UiSelectControl<T>
     private IEnumerable<Component?> PostedValues(View view) =>
         Name is { } name
             ? view.PickedRows.Select(row => row.Option.FormValue).DefaultIfEmpty(string.Empty)
-                .Select(value => Input.Value(value).Type(InputType.Hidden).Name(name))
+                .Select(value => Input.Value(value).Key("posted:" + value).Type(InputType.Hidden).Name(name))
             : [];
 }

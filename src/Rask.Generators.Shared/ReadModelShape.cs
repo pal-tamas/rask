@@ -354,8 +354,8 @@ internal static class ReadModelShape
         }
     }
 
-    // Id and the timestamps for every entity; Version and DeletedAt only for a root, which is the only thing
-    // that has them.
+    // Id for every entity, and the framework columns its consts leave it: the timestamps unless Stamps declines
+    // them, Version on a root unless Checks declines it, DeletedAt on a root that asked for soft delete.
     private static void AddFrameworkColumns(INamedTypeSymbol entity, List<ReadMember> members)
     {
         if (AggregateShape.TryGetIdType(entity, out var idType) && idType is not null)
@@ -363,16 +363,27 @@ internal static class ReadModelShape
             members.Insert(0, new ReadMember("Id", "Id", "Id", TypeOf(idType), false, IsReferenceType(idType)));
         }
 
-        members.Add(new ReadMember("CreatedAt", "CreatedAt", "CreatedAt", "global::System.DateTime", false, false));
-        members.Add(new ReadMember("UpdatedAt", "UpdatedAt", "UpdatedAt", "global::System.DateTime", false, false));
-
-        if (!AggregateShape.IsAggregate(entity))
+        // Only the columns the table has. A face that showed one the consts ruled out would compile —
+        // OrderBy(d => d.CreatedAt) — and fail at the first query, on a column that was never there.
+        if (AggregateShape.StampsCreated(entity))
         {
-            return;
+            members.Add(new ReadMember("CreatedAt", "CreatedAt", "CreatedAt", "global::System.DateTime", false, false));
         }
 
-        members.Add(new ReadMember("Version", "Version", "Version", "int", false, false));
-        members.Add(new ReadMember("DeletedAt", "DeletedAt", "DeletedAt", "global::System.DateTime", true, false));
+        if (AggregateShape.StampsUpdated(entity))
+        {
+            members.Add(new ReadMember("UpdatedAt", "UpdatedAt", "UpdatedAt", "global::System.DateTime", false, false));
+        }
+
+        if (AggregateShape.HasVersion(entity))
+        {
+            members.Add(new ReadMember("Version", "Version", "Version", "int", false, false));
+        }
+
+        if (AggregateShape.SoftDeletes(entity))
+        {
+            members.Add(new ReadMember("DeletedAt", "DeletedAt", "DeletedAt", "global::System.DateTime", true, false));
+        }
     }
 
     // Derived first, so a property re-declared lower down hides the base one, and stopping at Rask's own

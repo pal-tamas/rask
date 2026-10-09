@@ -586,7 +586,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         // Ship the diff when it carries DOM ops, OR when it carries none but a navigation or a
         // head change must still flow (a query-only nav pushes the URL; a head-only change ships
         // the head fragment). Zero ops + no history + unchanged head means nothing to send.
-        if (renderCache.TryComputeDiff(_diffOps, commitCache, html.Span)
+        var compared = renderCache.TryComputeDiff(_diffOps, commitCache, html.Span);
+        var diffBytes = 0;
+        if (compared
             && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
             && LiveDiffGate.DiffOpsAreClientSupported(_diffOps)
             && !renderCache.LastDiffForcedFullHtml)
@@ -617,7 +619,14 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
                 return true;
             }
 
+            diffBytes = _writeBuffer.WrittenCount;
             _writeBuffer.ResetWrittenCount();
+        }
+
+        // The whole page goes out instead. In Development, say why: nothing else names the node the differ gave up on.
+        if (compared && LiveOptions.IsDevelopment == true)
+        {
+            FullPageReply.Report(_diffOps, renderCache.LastDiffForcedFullHtml, diffBytes, html.Span);
         }
 
         return false;
