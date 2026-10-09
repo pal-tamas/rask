@@ -25,6 +25,7 @@ own ("blazor", "react"). Map every new page to one:
 | file uploads ASP.NET Core to disk / S3 / Azure Blob, presigned URLs without the AWS SDK | `file-storage` |
 | Tailwind CSS .NET without npm | `tailwind` |
 | accessible C# UI components, keyboard menus / modal / sidebar layout for ASP.NET Core or WebAssembly | `ui-kit` |
+| table columns jump when paging or sorting, fixed column widths with Tailwind `table-fixed`, truncate a table cell with an ellipsis | `ui-kit` (#columns-that-stay-put) |
 | inspect a running C# web app, component tree / render counts / interaction timing / errors / network devtools for .NET | `devtools` |
 | Web Push from ASP.NET Core, VAPID | `webpush` |
 | PWA in C#, browser API (Geolocation, WebUSB, …) in C# | `pwa`, `apis/*` |

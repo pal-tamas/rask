@@ -647,8 +647,47 @@ others have scrolled under it; that is a CSS scroll timeline, so a browser witho
 **`Bleed()` needs to know the gutter.** It reads `--ui-bleed`, 1.5rem unless the box says otherwise:
 `Div.Class("p-4 [--ui-bleed:1rem]")[Ui.Table.Bleed()[…]]`.
 
-A cell pads itself 12px at zero specificity, so `py-0` or `px-6` on a cell wins. A cell does not wrap;
-write `whitespace-normal` on one that should. `colspan` and `scope` go through `.Attributes(("colspan", "3"))`.
+**A class of yours wins.** What the table writes by default — a cell's padding, text size, colour and
+alignment, the table's `min-w-full`, `table-fixed` and `whitespace-nowrap` — weighs nothing in the cascade, so
+`py-0`, `ps-10` on a first cell, `text-xs`, `whitespace-normal` or `min-w-160` does what it says wherever
+Tailwind sorts it. `colspan` and `scope` go through `.Attributes(("colspan", "3"))`.
+
+### Columns that stay put
+
+A table sizes its columns to what is in them — Flux's does too — so they shift when a page, a sort or a
+filter brings other values. Give the table a width and each column but one a width, and nothing moves:
+
+```csharp
+Ui.Table.Class("w-full min-w-160").Paginate(pager)[
+    Ui.TableColumns[
+        Ui.TableColumn.Class("w-40").Sortable().Sorted(by == "plate").Direction(direction).OnSort(() => Sort("plate"))["Plate"],
+        Ui.TableColumn["Job"],                          // no width: takes the rest
+        Ui.TableColumn.Class("w-36")["Date"],
+        Ui.TableColumn.Class("w-24")[""]                // actions
+    ],
+    Ui.TableRows[
+        jobs.Select(job => Ui.TableRow.Key(job.Id)[
+            Ui.TableCell.Class("truncate")[job.Plate],
+            Ui.TableCell.Class("truncate").Title(job.Name)[job.Name],
+            Ui.TableCell[job.Date],
+            Ui.TableCell.Class("py-0")[Ui.Button.Sm.Ghost["Open"]]
+        ])
+    ]
+]
+```
+
+- **`w-full` is what turns the widths on.** The table is `table-fixed` already, but a browser lays a table out
+  by its content until the table itself has a width, and `min-w-full` is not one. With `w-full` the columns
+  come from the heading row alone: the same to the pixel on every page, in every sort order, and with no rows.
+- **One column has no width** and takes what is left. Leave out more than one and they share it equally.
+- **`truncate` on the cell** cuts a long value with an ellipsis where its column ends; `.Title(text)` puts the
+  whole of it in the browser's tooltip. A heading's chevron changes nothing: a sorted column is as wide as an
+  unsorted one.
+- **`min-w-160` is for the phone.** When the widths add up to more than the screen, the column without one
+  would get nothing. With a minimum (40rem here: the three widths plus 15rem for the rest) the table keeps
+  its columns and scrolls sideways inside its own box — the scroll area `Ui.Table` always renders — and the
+  page does not. `ContainerClass` (Flux's `container:class`) is for a height, `max-h-80`; sideways needs nothing.
+- `Sticky()` and `Bleed()` work as before. A sticky column takes its width like any other.
 
 `Strong` and `Desc` are also HTML tags, and a tag's entry hides a step of the same name: those two
 values are passed as `Variant(Ui.TableCellVariant.Strong)` and `Direction(Ui.TableColumnDirection.Desc)`.
