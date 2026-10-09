@@ -24,10 +24,22 @@ public sealed class SelectPickKeepsTypingTests(PlaywrightFixture playwright) : I
     private static ILocator Option(IPage page, string name) =>
         page.Locator("[data-ui-option]").Filter(new() { HasText = name });
 
-    private async Task<(HookSession Session, SocketFrames Frames)> OpenAsync()
+    // Waits for the page to have HEARD that the list is open before anything is pressed in it. Escape pressed
+    // before the reply to the opening lands is another matter, and not this suite's: that reply says "open", the
+    // runtime opens the list the reader has just closed, and the two toggles chase each other (reported).
+    private static async Task OpenListAsync(IPage page)
+    {
+        await page.ClickAsync(Trigger);
+        await Expect(page.Locator(Trigger)).ToHaveAttributeAsync("aria-expanded", "true");
+    }
+
+    private Task<(HookSession Session, SocketFrames Frames)> OpenAsync() => OpenAsync<PistolFormPage>();
+
+    private async Task<(HookSession Session, SocketFrames Frames)> OpenAsync<TPage>()
+        where TPage : Component
     {
         SocketFrames? frames = null;
-        var session = await HookSession.OpenAsync<PistolFormPage>(playwright, beforeLoad: page =>
+        var session = await HookSession.OpenAsync<TPage>(playwright, beforeLoad: page =>
         {
             frames = SocketFrames.Of(page);
             return Task.CompletedTask;
@@ -46,7 +58,7 @@ public sealed class SelectPickKeepsTypingTests(PlaywrightFixture playwright) : I
         await page.GetByLabel("Name").FillAsync("Range one");
         frames.Clear();
 
-        await page.ClickAsync(Trigger);
+        await OpenListAsync(page);
         await Option(page, "Glock").ClickAsync();
         await Option(page, "Beretta").ClickAsync();
         await Option(page, "Beretta").ClickAsync();
@@ -66,7 +78,7 @@ public sealed class SelectPickKeepsTypingTests(PlaywrightFixture playwright) : I
         await using var _ = session;
         var page = session.Page;
         await page.GetByLabel("Name").FillAsync("taken");
-        await page.ClickAsync(Trigger);
+        await OpenListAsync(page);
         await Option(page, "Glock").ClickAsync();
         await page.Keyboard.PressAsync("Escape");
         await page.GetByLabel("Size").FillAsync("600");
@@ -78,11 +90,44 @@ public sealed class SelectPickKeepsTypingTests(PlaywrightFixture playwright) : I
         await Expect(page.Locator("#saved")).ToHaveTextAsync("");
         Assert.True(frames.FullPages.Count == 0, "The refusal was answered with the whole document:" + Environment.NewLine + frames.Trace());
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_second_refusal_while_the_first_toast_is_up_shows_for_its_own_five_seconds(bool toastLast)
+    {
+        var (session, _) = toastLast ? await OpenAsync<PistolFormPage>() : await OpenAsync<PistolFormToastBeforeFooterPage>();
+        await using var closing = session;
+        var page = session.Page;
+        await page.GetByLabel("Name").FillAsync("taken");
+        await OpenListAsync(page);
+        await Option(page, "Glock").ClickAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await page.GetByLabel("Size").FillAsync("600");
+        await page.ClickAsync("#save");
+        await Expect(page.Locator("[data-ui-toast]")).ToContainTextAsync("That name is taken.");
+
+        await page.WaitForTimeoutAsync(3_500);
+        await page.ClickAsync("#save");
+        await page.Mouse.MoveAsync(5, 5);
+        await page.WaitForTimeoutAsync(3_000);
+
+        // 6.5 s after the first toast, 3 s after the second: the first one's time is up, the second's is not.
+        await Expect(page.Locator("[data-ui-toast]")).ToContainTextAsync("That name is taken.", new() { Timeout = 500 });
+    }
+}
+
+/// <summary>The same form in a layout that places its toasts before the footer, where a toast arriving moves a sibling.</summary>
+public sealed partial class PistolFormToastBeforeFooterPage : PistolFormPage
+{
+    protected override bool ToastLast => false;
 }
 
 /// <summary>The reported form: a name, a multiple listbox, a number, each validated beside itself, and a save that can refuse.</summary>
-public sealed partial class PistolFormPage : Component
+public partial class PistolFormPage : Component
 {
+    protected virtual bool ToastLast => true;
+
     private static readonly string[] Pistols =
     [
         "Glock", "Beretta", "Walther", "Sig Sauer", "Colt", "Ruger", "Smith & Wesson", "Heckler & Koch", "CZ",
@@ -122,8 +167,9 @@ public sealed partial class PistolFormPage : Component
             ],
             P.Id("saved")[_saved]
         ],
+        ToastLast ? null : Ui.Toast,
         Footer[P.Id("ready")["ready"]],
-        Ui.Toast
+        ToastLast ? Ui.Toast : null
     ];
 
     private void Save()

@@ -1,6 +1,11 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-09 with the morph leaving alone a change-only field the reader is typing into, when the
+# render carries the value it had already rendered for it (rask-morph.ts, shared, so both runtimes carry it —
+# the value read before the attributes are synced, and the one comparison): rask.js 96,350 -> 96,524 (+174)
+# and rask.wasm.js 85,110 -> 85,267 (+157). rask-hooks.js is unchanged at 42,367.
+#
 # Refreshed 2026-10-09 with the chart following its container and the pointer (rask-plot.ts — a hook module, so
 # only a page with a chart downloads it): rask-hooks.js 40,669 -> 42,367 (+1,698). A part's text for every row
 # (data-rask-plot-text), rows that run down the area, a plot of shapes for a pie with data-inactive on the other
@@ -123,6 +128,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,96350
-rask.wasm.js,85110
+rask.js,96524
+rask.wasm.js,85267
 rask-hooks.js,42367

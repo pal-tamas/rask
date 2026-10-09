@@ -21,6 +21,15 @@ them until tagged releases begin.
   pick brings the button in. The same shape in `Ui.TimePicker` (placeholder against chosen time, the clear
   button) and in the data grid's group bar (the hint against the first chip) is keyed too.
 
+- **A number being typed survives a reply that is the whole page.** A field bound to a number or a date sends
+  on `change`, so while the reader is still in it the server has not heard what they typed. A reply that is a
+  diff leaves such a field alone; a reply that is the whole page carries, for every bound field, the value the
+  server knew when it rendered — and the morph wrote that over the digits being typed. The field then held what
+  it held when it was entered, so leaving it raised no `change` either: nothing was sent, and the save had no
+  number. The morph now leaves a focused change-only field alone when the render carries the value it had
+  already rendered for it (it has nothing newer than the reader); a value the server did change still wins. A
+  field that sends each keystroke was already kept while focused.
+
 - **A pager's arrows are named `« Previous` and `Next »`.** The label was written as the entity's name and
   then encoded, so the markup said `aria-label="&amp;laquo; Previous"` and a screen reader read out
   "&laquo; Previous". It is the character now, encoded once. `RaskString.PaginationPrevious` /
