@@ -7,8 +7,10 @@ namespace Rask.Core;
 ///     changed query, <c>Go.With("page", "2")</c>. A typed route goes on its own: <c>Routes.ProductPage(42).Go()</c>.
 /// </summary>
 /// <remarks>
-///     It works only while a handler runs — the URL is pushed into the browser's history after the handler
-///     returns — and throws, saying so, anywhere else: in <c>Render()</c>, or on the initial request.
+///     It works while a handler runs — the URL is pushed into the browser's history after the handler
+///     returns — and in a page's <c>OnMount</c> or <c>OnUpdated</c> before the first <c>await</c>, where it is a
+///     redirect: the reader lands on the destination and sees nothing of the page that sent them on. Anywhere
+///     else it throws, saying so.
 /// </remarks>
 public static class Go
 {

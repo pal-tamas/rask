@@ -2948,6 +2948,9 @@ public static partial class RaskEndpointExtensions
             {
                 // A navigation mounts a page just as a handler does, so an ended sign-in must stop it too.
                 await RevalidateUserAsync(session, ct).ConfigureAwait(false);
+
+                // And the page it mounts may send the reader on, as it may from a handler or the first request.
+                using var navigating = session.Services.GetRequiredService<Navigator>().EnterHandler();
                 await EnforceAuthAndRenderAsync(session, fullUrl, replace).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -3056,6 +3059,15 @@ public static partial class RaskEndpointExtensions
         }
 
         await session.RenderAndSendCoalescingAsync(historyUrl, replace, auth).ConfigureAwait(false);
+
+        // A page that navigated as it mounted had its frame withheld: its destination is rendered instead, under
+        // that route's own guard, and is the address the reader gets — the live form of the first request's 302.
+        var navigator = session.Services.GetRequiredService<Navigator>();
+        if (auth is null && navigator.TryConsumeRedirect(out var redirectUrl, out var redirectReplace))
+        {
+            await EnforceAuthAndRenderAsync(session, redirectUrl, historyUrl is null ? redirectReplace : replace)
+                .ConfigureAwait(false);
+        }
     }
 
     // Points the session's route at the guard's redirect when its principal may not see the page it is on,

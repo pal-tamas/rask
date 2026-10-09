@@ -505,6 +505,16 @@ That costs one response rather than a whole page the client immediately navigate
 crawler and a cache both understand it where a client-side hop is neither. Called from a background
 render — neither a handler nor the initial render — it still throws.
 
+**Redirecting from a lifecycle hook.** The same `Go()` means the same thing when the page is reached in an
+open session — by a `NavLink`, by Back, or by `Go()` from a handler — on the Server host and in WebAssembly:
+called in `OnMount` or `OnUpdated` **before the first `await`**, it sends the reader on. They get one frame,
+the destination's, with its address and its title, and see nothing of the page that redirected; that page
+takes no place in the history, so Back is the page the link was clicked on. The destination passes its own
+`[Authorize]` guard first, a chain of redirects is followed to its end, and the eleventh page in a row to
+redirect is refused with `Too many redirects` — two pages that send the reader to each other end in an
+error, not a hang. After an `await` the page is already on screen and `Go()` throws: decide before it, or
+show the reader something to click.
+
 **Route-level authorization.** Put `[Authorize]` (optionally `[Authorize(Roles = "admin")]`) or `[AllowAnonymous]` on
 a page component; the `RouteAuthorizationGuard` enforces it before the page renders. The session is a cookie and
 `Rask.Auth` owns that scheme; roles and policies are ASP.NET's own `AddAuthorization`. Full flows on Server and

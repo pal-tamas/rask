@@ -9,6 +9,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A page that redirects as it mounts lands on its destination when reached by a link.** A page that calls
+  `Go()` in `OnMount` or `OnUpdated` — "no partner chosen, go to the partner list" — answered a first request
+  with a `302`, but a `NavLink` to it threw `InvalidOperationException: Navigation can only run from event
+  handlers` and showed the error page, on the Server host and in WebAssembly alike. Reached by `Go()` from a
+  handler it flashed its own content and then showed the destination under the wrong address. It now means one
+  thing wherever a page is mounted: the reader gets ONE frame — the destination, with its address and its title —
+  and nothing of the page that sent them on, which takes no place in the history (Back is the page the link was
+  clicked on). The destination passes its own route guard first; a chain is followed to its end; and the
+  eleventh page in a row to redirect is refused with `Too many redirects`, so two pages that send the reader to
+  each other end in an error instead of holding the session. A first request is no longer rendered past the
+  page that redirected, which had constructed and mounted an `[Authorize]` destination for an anonymous
+  visitor before the `302` was sent. **Changed with it:** `Go()` after an `await` in a lifecycle hook of a page
+  that is already on screen now always throws (and says to decide before the first await); reached through a
+  handler it used to swap the content and leave the address — and the route guard — behind.
 - **A page reached by `Go()` from a handler loads under its own lifetime, not the handler's.** The documented
   save — `await thing.Save(); Routes.ListPage().Go();` — mounted the list inside the handler's turn, where the
   ambient cancellation (`Current.Cancellation`, what every read with no token uses) was still the SAVING

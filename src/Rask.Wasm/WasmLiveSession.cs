@@ -176,7 +176,9 @@ internal sealed class WasmLiveSession : LiveSessionBase
             // lands after the walk materialised the HTML (OnRendered onwards) — the spinner then
             // stayed on screen forever. Every other render path already coalesces; this one was
             // the exception (#972).
-            await BuildPayloadCoalescingRerendersAsync(null, false).ConfigureAwait(false);
+            // The first page may send the reader on as it mounts; the address then changes in place.
+            using var navigating = Services.GetRequiredService<Navigator>().EnterHandler();
+            await BuildPayloadCoalescingRerendersAsync(null, true).ConfigureAwait(false);
             if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
             {
                 return Array.Empty<byte>();
@@ -344,6 +346,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
             try
             {
+                // The page a navigation mounts may send the reader on, as it may from a handler.
+                using var navigating = Services.GetRequiredService<Navigator>().EnterHandler();
                 await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
                 // Navigation always flows — force the send even when the rendered output is unchanged.
                 if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
@@ -400,7 +404,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         _pendingRenderInScope = false;
         await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
         var budget = 2;
-        while (_pendingRenderInScope && budget-- > 0)
+        while (FollowRedirect(ref historyUrl, ref replace, ref budget) || (_pendingRenderInScope && budget-- > 0))
         {
             _pendingRenderInScope = false;
             await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
@@ -428,6 +432,24 @@ internal sealed class WasmLiveSession : LiveSessionBase
             _pendingRenderInScope = false;
         }
     }
+
+    // A page that navigated as it mounted or updated: the payload just built is of a page the reader is not to
+    // see, so the next build is of its destination and carries that address. The navigator stops a loop.
+    private bool FollowRedirect(ref string? historyUrl, ref bool replace, ref int budget)
+    {
+        _navigator ??= Services.GetRequiredService<Navigator>();
+        if (!_navigator.TryConsumeRedirect(out var url, out var redirectReplace))
+        {
+            return false;
+        }
+
+        replace = replace || (historyUrl is null && redirectReplace);
+        historyUrl = url;
+        budget = 2;
+        return true;
+    }
+
+    private Navigator? _navigator;
 
     // commitCache=false defers the render-cache rotation to the caller (the coalescing loop),
     // so intermediate rebuilds diff against the stable last-sent baseline instead of against

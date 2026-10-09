@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Primitives;
+using Rask.Core.Live;
 
 namespace Rask.Core.Routing;
 
@@ -29,9 +30,14 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     // so whichever navigator a dispatch entered is that dispatch's own.
     private static readonly AsyncLocal<Navigator?> _current = new();
 
+    /// <summary>How many pages in a row may each send the reader on as they mount before it is a loop.</summary>
+    internal const int MaxRedirects = 10;
+
     private bool _dirty;
     private bool _inHandler;
     private bool _inInitialRender;
+    private bool _redirected;
+    private int _redirects;
     private bool _replace;
 
     /// <summary>
@@ -64,13 +70,13 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void NavigateTo(RouteUrl url, bool replace = false)
     {
-        EnsureInHandler();
+        BeforeNavigating();
         routeState.Path = url.Path;
         routeState.Query = string.IsNullOrEmpty(url.QueryString)
             ? QueryCollection.Empty
             : QueryString.Parse(url.QueryString);
         _replace = replace;
-        _dirty = true;
+        Navigated();
     }
 
     /// <summary>
@@ -82,12 +88,12 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void NavigateTo(string path, bool replace = false)
     {
-        EnsureInHandler();
+        BeforeNavigating();
         ArgumentNullException.ThrowIfNull(path);
         routeState.Path = path;
         routeState.Query = QueryCollection.Empty;
         _replace = replace;
-        _dirty = true;
+        Navigated();
     }
 
     /// <summary>
@@ -101,13 +107,13 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void NavigateTo(string path, IEnumerable<KeyValuePair<string, string?>> query, bool replace = false)
     {
-        EnsureInHandler();
+        BeforeNavigating();
         ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(query);
         routeState.Path = path;
         routeState.Query = BuildCollection(query);
         _replace = replace;
-        _dirty = true;
+        Navigated();
     }
 
     /// <summary>
@@ -120,7 +126,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void SetQuery(string key, string? value)
     {
-        EnsureInHandler();
+        BeforeNavigating();
         ArgumentNullException.ThrowIfNull(key);
         var dict = ToDictionary(routeState.Query);
         if (value is null)
@@ -133,7 +139,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
         }
 
         routeState.Query = new QueryCollection(dict);
-        _dirty = true;
+        Navigated();
     }
 
     /// <summary>
@@ -144,7 +150,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void SetQuery(params KeyValuePair<string, string?>[] values)
     {
-        EnsureInHandler();
+        BeforeNavigating();
         ArgumentNullException.ThrowIfNull(values);
         var dict = ToDictionary(routeState.Query);
         foreach (var kv in values)
@@ -160,7 +166,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
         }
 
         routeState.Query = new QueryCollection(dict);
-        _dirty = true;
+        Navigated();
     }
 
     /// <summary>Removes a single query parameter from the current path. Missing keys are a no-op.</summary>
@@ -168,21 +174,21 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void RemoveQuery(string key)
     {
-        EnsureInHandler();
+        BeforeNavigating();
         ArgumentNullException.ThrowIfNull(key);
         var dict = ToDictionary(routeState.Query);
         dict.Remove(key);
         routeState.Query = new QueryCollection(dict);
-        _dirty = true;
+        Navigated();
     }
 
     /// <summary>Removes all query parameters from the current path, keeping the path.</summary>
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void ClearQuery()
     {
-        EnsureInHandler();
+        BeforeNavigating();
         routeState.Query = QueryCollection.Empty;
-        _dirty = true;
+        Navigated();
     }
 
     /// <summary>
@@ -250,6 +256,8 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     internal IDisposable EnterInitialRender()
     {
         _dirty = false;
+        _redirected = false;
+        _redirects = 0;
         _replace = false;
         _inInitialRender = true;
         var previous = _current.Value;
@@ -265,6 +273,8 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
         // pending nav (and _replace flag) into the next one, while still allowing the caller to
         // consume the navigation after the scope disposes.
         _dirty = false;
+        _redirected = false;
+        _redirects = 0;
         _replace = false;
         _inHandler = true;
         var previous = _current.Value;
@@ -284,8 +294,75 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
         url = BuildUrl(routeState);
         replace = _replace;
         _dirty = false;
+        _redirected = false;
         _replace = false;
         return true;
+    }
+
+    /// <summary>
+    ///     Whether a page navigated while it was being rendered — from <c>OnMount</c>, <c>OnUpdated</c> or
+    ///     <c>Render</c> — so what was just rendered is a page the reader is not to see.
+    /// </summary>
+    /// <remarks>
+    ///     Only while the dispatch that rendered it is still open: a redirect its host never took — the handler
+    ///     threw first — must not hold back the renders that come after it.
+    /// </remarks>
+    internal bool RedirectPending => _redirected && (_inHandler || _inInitialRender);
+
+    /// <summary>Whether a navigation has been made that no host has taken yet.</summary>
+    internal bool NavigationPending => _dirty;
+
+    /// <summary>
+    ///     Takes the navigation a page made while it was being rendered, for the host to render its destination
+    ///     instead: the live counterpart of the <c>302</c> the first request answers.
+    /// </summary>
+    /// <remarks>
+    ///     Counted, so that the eleventh page in a row to redirect throws where it navigates rather than have two
+    ///     pages that send the reader to each other hold the session for ever.
+    /// </remarks>
+    internal bool TryConsumeRedirect(out string url, out bool replace)
+    {
+        if (!_redirected)
+        {
+            url = string.Empty;
+            replace = false;
+            return false;
+        }
+
+        _redirects++;
+        return TryConsumeHistory(out url, out replace);
+    }
+
+    // The walk itself, on the thread running it: where Render and the synchronous part of a hook are. A hook's
+    // continuation still carries the walk's context after an await, but is no longer inside it.
+    private static bool InRenderWalk =>
+        LiveRenderContext.CurrentSync is { } walk && ReferenceEquals(walk, LiveRenderContext.Current);
+
+    private void Navigated()
+    {
+        _dirty = true;
+        _redirected |= InRenderWalk;
+    }
+
+    private void BeforeNavigating()
+    {
+        EnsureInHandler();
+        var inWalk = InRenderWalk;
+        if (!inWalk && !_inInitialRender && LiveRenderContext.Current is not null)
+        {
+            throw new InvalidOperationException(
+                "A lifecycle hook navigated after an await, when its page was already on screen. Decide before the " +
+                "first await (OnMount and OnUpdated may call Go() there, and the reader lands on the destination " +
+                "without seeing this page), or navigate from an event handler. See docs/routing.md.");
+        }
+
+        if (inWalk && _redirects >= MaxRedirects)
+        {
+            throw new InvalidOperationException(
+                $"Too many redirects: {MaxRedirects} pages in a row each sent the reader on as they mounted, and " +
+                $"'{routeState.Path}' is doing it again. Two pages that redirect to each other never settle — " +
+                "see docs/routing.md.");
+        }
     }
 
     private void EnsureInHandler()
@@ -346,6 +423,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
         public void Dispose()
         {
             nav._inHandler = false;
+            nav._inInitialRender = false;
             _current.Value = previous;
         }
     }
