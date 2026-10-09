@@ -198,7 +198,8 @@ if (page) {
     listen("keydown", function (e) {
         const field = e.target as Element;
         const keys = isField(field) ? field.getAttribute("data-rask-clear-keys") : null;
-        if (keys !== null && keys.split(" ").indexOf((e as KeyboardEvent).key) >= 0 && (field as Field).value !== "") {
+        // Not while a character is being composed: there Escape gives up the composition, not the text.
+        if (keys !== null && !e.isComposing && keys.split(" ").indexOf(e.key) >= 0 && (field as Field).value !== "") {
             (field as Field).value = "";
         }
     });

@@ -36,7 +36,9 @@ let inputRaf = 0;
 // (flushInputsNow). Only for a host that says when it has answered (rask-host.ts); the Server's socket
 // does not, and every value is sent as before.
 const unanswered = new Map<ValueElement, number>();
-const held = new Set<ValueElement>();
+// What each held field said when it was last typed into. Kept, not read back when it is sent: the answer to
+// an older value may have been written into a field already left, and that is not what was typed.
+const held = new Map<ValueElement, string>();
 
 function answered(el: ValueElement): void {
     const left = (unanswered.get(el) || 1) - 1;
@@ -45,14 +47,18 @@ function answered(el: ValueElement): void {
         return;
     }
     unanswered.delete(el);
-    if (held.delete(el)) dispatchInput(el);
+    const value = held.get(el);
+    if (value !== undefined) {
+        held.delete(el);
+        dispatchInput(el, value);
+    }
 }
 
-function dispatchInput(el: ValueElement): void {
+function dispatchInput(el: ValueElement, value: string): void {
     if (!el.isConnected) return;
     const id = el.getAttribute("data-rask-on-input");
     if (!id) return;
-    const answer = send({ id, type: "input", value: el.value });
+    const answer = send({ id, type: "input", value });
     if (answer instanceof Promise) {
         unanswered.set(el, (unanswered.get(el) || 0) + 1);
         const done = () => answered(el);
@@ -61,8 +67,8 @@ function dispatchInput(el: ValueElement): void {
 }
 
 function sendInput(el: ValueElement): void {
-    if (unanswered.has(el)) held.add(el);
-    else dispatchInput(el);
+    if (unanswered.has(el)) held.set(el, el.value);
+    else dispatchInput(el, el.value);
 }
 
 function flushInputs(): void {
@@ -81,7 +87,7 @@ export function flushInputsNow(): void {
         // What follows — a key, a click, the change — must find the page knowing what was typed.
         const waiting = Array.from(held);
         held.clear();
-        waiting.forEach(dispatchInput);
+        waiting.forEach(function (entry) { dispatchInput(entry[0], entry[1]); });
     }
 }
 

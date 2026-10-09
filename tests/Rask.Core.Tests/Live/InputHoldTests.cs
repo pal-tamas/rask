@@ -67,6 +67,21 @@ public sealed class InputHoldTests
         Assert.Equal(["A"], gone);
     }
 
+    // A field with no change handler says nothing when it is left, so the render that answers its first
+    // letter is written into it while the rest is still held. Read back then, the rest would be lost.
+    [Fact]
+    public void What_was_typed_is_sent_even_when_a_late_render_has_written_over_it()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var sent = Sent(root, "overwritten");
+
+        Assert.Equal(["A", "Atlantis"], sent);
+    }
+
     [Fact]
     public void A_field_sent_once_a_frame_is_held_the_same_way()
     {

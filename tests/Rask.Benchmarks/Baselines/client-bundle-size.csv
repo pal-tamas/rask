@@ -3,9 +3,9 @@
 #
 # Refreshed 2026-10-09 with typing that waits for .NET: what is typed into a field whose last value is still
 # unanswered is held and sent as one value (rask-input.ts), and a key handler hears only the keys its element
-# lists (`data-rask-keys`, rask-events.ts): rask.js 95,658 -> 96,029 and rask.wasm.js 84,514 -> 84,884, +371 and
-# +370. `data-rask-clear-keys`, the key that empties a field in the browser, is a hook: rask-hooks.js
-# 39,103 -> 39,265 (+162).
+# lists (`data-rask-keys`, rask-events.ts): rask.js 95,658 -> 96,096 and rask.wasm.js 84,514 -> 84,948, +438 and
+# +434. `data-rask-clear-keys`, the key that empties a field in the browser, is a hook: rask-hooks.js
+# 39,103 -> 39,281 (+178).
 #
 # Refreshed 2026-10-09 with Ui.ConfirmLeave, the dialog a guarded form asks in: rask-hooks.js 38,621 -> 39,103
 # (+482: the dialog found and opened, the exit kept and made again on Leave, and Back / Forward moved back before
@@ -97,6 +97,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,96029
-rask.wasm.js,84884
-rask-hooks.js,39265
+rask.js,96096
+rask.wasm.js,84948
+rask-hooks.js,39281

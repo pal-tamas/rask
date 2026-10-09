@@ -69,6 +69,14 @@ field.isConnected = false;
 await answer();
 const gone = sent.slice();
 
+// The answer to "A" is written into a field already left, over what was typed since. What was typed is sent.
+field = start();
+type(field, "A");
+type(field, "Atlantis");
+field.value = "A";
+await answer();
+const overwritten = sent.slice();
+
 // A field with no change handler is sent once a frame, and held the same way.
 field = start();
 const framed = new StubField({"data-rask-on-input": "h3"});
@@ -99,6 +107,7 @@ process.stdout.write(JSON.stringify({
     oneOfTwoAnswered,
     bothAnswered,
     gone,
+    overwritten,
     beforeFrame,
     firstFrame,
     heldAcrossFrame,
