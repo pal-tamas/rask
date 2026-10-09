@@ -123,6 +123,8 @@ public static partial class BuilderRuntime
     // Non-folding props (delegates, Key) skip all of this: they are reset eagerly by the
     // entry, because they never participate in the fold and so cannot disturb it.
 
+    // Create: builds another instance of Target's type, for the Key step that finds the entry handed it one
+    // an unkeyed sibling holds (#1215) — see Component.ClaimKeyedChild.
     // Copy: replays the steps already written on Target onto the instance a Key step claims instead of it
     // (#1118) — see ClaimKey. Null for an element, which keeps positional identity and is never claimed.
     // Mutable for Written, which clears a pending bit where the slot sits.
@@ -132,7 +134,8 @@ public static partial class BuilderRuntime
         Action<Component, ulong> Reset,
         ulong PendingMask,
         Action<Component, Component, ulong>? Copy,
-        (Type Type, int Ordinal) ChildSlot);
+        (Type Type, int Ordinal) ChildSlot,
+        Func<IServiceProvider, Component> Create);
 
     // Thread-static rather than a field on the component or its LiveState: LiveState is allocated per
     // node on a mounted page, where one extra reference costs ~56 KB per 1,000 rows (see the note on
@@ -148,8 +151,10 @@ public static partial class BuilderRuntime
         Action<Component, ulong> reset,
         ulong pending,
         Action<Component, Component, ulong>? copy,
-        (Type Type, int Ordinal) childSlot)
-        => (_slots ??= new List<EntrySlot>()).Add(new EntrySlot(parent, target, reset, pending, copy, childSlot));
+        (Type Type, int Ordinal) childSlot,
+        Func<IServiceProvider, Component> create)
+        => (_slots ??= new List<EntrySlot>()).Add(
+            new EntrySlot(parent, target, reset, pending, copy, childSlot, create));
 
     // Scratch for the deferred commit's snapshot of a parent's child map (Component.CommitEach). Same
     // discipline and the same reasons as the slot stack above: per-thread so it costs no field on
@@ -235,7 +240,7 @@ public static partial class BuilderRuntime
                 continue;
             }
 
-            var chosen = slot.Parent.ClaimKeyedChild(target, key, slot.ChildSlot);
+            var chosen = slot.Parent.ClaimKeyedChild(target, key, slot.ChildSlot, slot.Create);
             if (!ReferenceEquals(chosen, target))
             {
                 // The steps written BEFORE Key landed on the instance being discarded (#1118): replay them

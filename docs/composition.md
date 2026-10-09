@@ -44,6 +44,28 @@ Div.Class("panel")[
 > TodoRow.Item(item).Key(item.Id)   // the same thing
 > ```
 >
+> **A component's key names one component of its type in the component that writes it** — a wider
+> scope than an element's, which is its siblings. `Render()` builds a child, and runs its `Key` step,
+> before the element it will sit under has been given its children, so the parent cannot ask "the same
+> list?"; it asks "the same key, on the same type, written by me?". Two lists of the same row type in
+> one component therefore need keys that differ between the lists as well:
+>
+> ```csharp
+> Ul[recent.Select(o => OrderRow.Key($"recent-{o.Id}").Order(o))],
+> Ol[pinned.Select(o => OrderRow.Key($"pinned-{o.Id}").Order(o))]
+> ```
+>
+> A key written twice still gives each row an instance of its own and its own values — they are told
+> apart by the order they are written in, so the state one holds moves to the other when the first
+> stops being written. Rask reports it once, as a `Rask.Live` warning naming the component, the row
+> type and the key. Keys in different components never meet: a row keyed `"a"` in a page and one keyed
+> `"a"` in a component that page renders are two rows.
+>
+> **Children of the same type without a key keep their instance too**, by their order among the
+> unkeyed ones: `Ui.Modal.Open(_confirming)` beside any number of keyed `Ui.Modal`s is the same modal
+> on every render, however the keyed ones come, go or reorder around it. Key the ones that are items
+> of a list; leave the fixed ones alone.
+>
 > `Key` is available before a component's *required* steps too, generic ones included
 > (`Ui.Select.Key(id).Value(v)`), so a row can say which item it is first. An element is re-specified
 > in full every render, so its instance carries nothing and `Div.Class("line").Key(i)` never claims one.

@@ -132,6 +132,16 @@ public abstract partial class Component
             (_live.PreviousKeyedChildren, _live.KeyedChildren) = (_live.KeyedChildren, _live.PreviousKeyedChildren);
             _live.KeyedChildren.Clear();
         }
+
+        if (_live?.KeyedTypes is { } keyedTypes)
+        {
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
+            foreach (var siblings in keyedTypes.Values)
+#pragma warning restore S3267
+            {
+                siblings.Rotate();
+            }
+        }
     }
 
     // HtmlSerializer wraps every user-component serialization in an EnterParentScope so

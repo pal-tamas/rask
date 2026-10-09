@@ -241,69 +241,6 @@ public abstract partial class Component
 
     internal void MarkAdoptedByWalkInternal() => Live.AdoptedByWalk = true;
 
-    /// <summary>
-    ///     Settles which instance a keyed child actually is, replacing the one position handed us.
-    /// </summary>
-    /// <remarks>
-    ///     Called by the <c>Key</c> chain step, on the PARENT, immediately after the entry that built
-    ///     <paramref name="provisional" />. `Key` has always been the diff codec's reconciliation identity
-    ///     (<c>data-rask-key</c>); until #685 it was not the parent's, so a keyed row's own state — private
-    ///     fields, a <c>OnMount</c> subscription — followed its POSITION instead of its item.
-    ///     <para>
-    ///         The instance the entry handed over is a fresh one (<see cref="GetOrCreateChild{T}" /> stops
-    ///         recycling by ordinal once a type is keyed), so claiming an earlier instance discards it.
-    ///         That is the cost of correctness here and it is confined to keyed children: an unkeyed tree
-    ///         never reaches this method.
-    ///     </para>
-    /// </remarks>
-    internal T ClaimKeyedChild<T>(T provisional, object key, (Type Type, int Ordinal) slot) where T : Component
-    {
-        // The instance's OWN type, not T. `Row[body].Key(id)` reaches here through the generic Key over
-        // Component — the indexer hands back Component — and filing that claim under typeof(Component) would
-        // key it apart from every other Row, leave Row recycled by position, and miss the slot below.
-        var type = provisional.GetType();
-
-        // From now on this parent identifies the type by key rather than by position — see LiveState.KeyedTypes.
-        var keyedTypes = Live.KeyedTypes ??= new Dictionary<Type, Component?>();
-        keyedTypes.TryAdd(type, null);
-
-        var mapKey = (type, key);
-        var chosen = provisional;
-        if (Live.PreviousKeyedChildren is not null
-            && Live.PreviousKeyedChildren.TryGetValue(mapKey, out var prev)
-            && prev is T kept
-            && !ReferenceEquals(kept, provisional))
-        {
-            chosen = kept;
-            // The provisional instance's children, which is what GetOrCreateChild's "a childless render must not
-            // inherit the last one's subtree" wants: null when the indexer comes after Key, as it usually does,
-            // and the subtree it already wrote when Key comes after the indexer (#1118).
-            chosen.Children = provisional.Children;
-            chosen.RenderHandle ??= provisional.RenderHandle;
-
-            // Set aside for the next entry of this type. A spare is handed out as new, so only an instance
-            // that never ran may become one.
-            if (!provisional.HasInitializedInternal)
-            {
-                provisional.Children = null;
-                keyedTypes[type] = provisional;
-            }
-        }
-
-        (Live.KeyedChildren ??= new Dictionary<(Type, object), Component>())[mapKey] = chosen;
-
-        // Re-file this frame's positional slot onto whichever instance the key settled on, so the
-        // alive-set walk sees the child that is actually rendered here. The slot the ENTRY filed, not the
-        // parent's last one: with Key free to come last (#1118), a step's argument can build another child
-        // in between — `Row.Badge(Span["b"]).Key(id)` — and the last slot is then the Span's.
-        if (Live.Children is not null && slot.Type == type)
-        {
-            Live.Children[slot] = chosen;
-        }
-
-        return chosen;
-    }
-
     internal T GetOrCreateChild<T>(
         Func<IServiceProvider, T> factory,
         IServiceProvider? services,
@@ -312,24 +249,22 @@ public abstract partial class Component
         var key = (typeof(T), Live.ChildPositions++);
         Live.LastChildSlot = key;
         T instance;
-        // A type this parent identifies by Key is NOT identified by position (#685): recycling the
-        // instance that happens to sit at this ordinal would hand a brand-new key whichever item used
-        // to be here, state and all. Create, and let the Key step that follows claim the right one.
-        if (Live.KeyedTypes is not null && Live.KeyedTypes.TryGetValue(typeof(T), out var spare))
+        // A type this parent identifies by Key is NOT identified by its ordinal among all the children
+        // (#685): recycling the instance that happens to sit at this ordinal would hand a brand-new key
+        // whichever item used to be here, state and all. It gets the instance the next UNKEYED child of
+        // the type held, which is right if no Key step follows and is given back if one does (#1215).
+        if (Live.KeyedTypes is not null && Live.KeyedTypes.TryGetValue(typeof(T), out var siblings))
         {
-            if (spare is T unused)
+            if (siblings.NextHeld() is T held)
             {
-                // Taken, not shared: if no Key step follows, this instance IS the child from here on.
-                Live.KeyedTypes[typeof(T)] = null;
-                instance = unused;
+                instance = held;
+                instance.Children = null;
             }
             else
             {
-                instance = factory(services!);
-                if (instance is Forms.IFormControl newControl)
-                {
-                    Forms.BindingConsumerRegistry.Record(newControl, this);
-                }
+                instance = siblings.Spare as T ?? NewChild(factory, services);
+                siblings.Spare = null;
+                siblings.Hold(instance);
             }
         }
         else if (Live.PreviousChildren is not null && Live.PreviousChildren.TryGetValue(key, out var prev) &&
@@ -352,17 +287,7 @@ public abstract partial class Component
             // possibly null. The generated factory closure for non-DI components ignores
             // the parameter, so null is fine; DI-ctor closures (ActivatorUtilities) will
             // surface their own NRE if asked to resolve against a null provider.
-            instance = factory(services!);
-
-            // `this` is the creating parent (CurrentParent when the factory ran) — the provider whose
-            // Render() authored this control. A form control records it once at creation so a bound
-            // two-way write outside a Form can re-render the provider's derived UI (see
-            // Forms/BindingConsumerRegistry). The creator is stable across frames, so a reused instance
-            // keeps its entry — no work on the steady-state render path.
-            if (instance is Forms.IFormControl fc)
-            {
-                Forms.BindingConsumerRegistry.Record(fc, this);
-            }
+            instance = NewChild(factory, services);
         }
 
         instance.RenderHandle ??= handle;
@@ -400,6 +325,23 @@ public abstract partial class Component
         instance.RenderHandle ??= handle;
 
         (Live.Children ??= new Dictionary<(Type, int), Component>())[key] = instance;
+        return instance;
+    }
+
+    private T NewChild<T>(Func<IServiceProvider, T> factory, IServiceProvider? services) where T : Component
+    {
+        var instance = factory(services!);
+
+        // `this` is the creating parent (CurrentParent when the factory ran) — the provider whose
+        // Render() authored this control. A form control records it once at creation so a bound
+        // two-way write outside a Form can re-render the provider's derived UI (see
+        // Forms/BindingConsumerRegistry). The creator is stable across frames, so a reused instance
+        // keeps its entry — no work on the steady-state render path.
+        if (instance is Forms.IFormControl control)
+        {
+            Forms.BindingConsumerRegistry.Record(control, this);
+        }
+
         return instance;
     }
 }

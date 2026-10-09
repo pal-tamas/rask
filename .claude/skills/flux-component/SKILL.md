@@ -665,8 +665,7 @@ restart). The earlier note here said otherwise.
 
 Known and open: two toasts whose countdowns end in the same frame press two dismiss buttons at once, and the
 second press can carry a handler id the first render retired — give stacked toasts distinct durations or key
-the handler. An unkeyed `Ui.Toast` inside a keyed `Ui.ToastGroup`, chosen by a `switch` among keyed call
-sites, was remounted on every parent render (see "Key every sibling of a type, or none"). The built-in toast shows one at a time, as Flux's.
+the handler. The built-in toast shows one at a time, as Flux's.
 
 Wired (2026-10-07): `Ui.Modal` writes `data-rask-modal` (all four values), `data-rask-lock="scroll"` and, with
 `Open` or without a `Name`, `data-rask-modal-open`; its trigger and close buttons are `command` / `commandfor`
@@ -749,14 +748,12 @@ An entry built during a render (`Div`, `Ui.Button`) is a positional slot of the 
 came back as a spinner box, only when one particular test ran first. `DemoMarkupGoldenTests
 .No_site_component_keeps_a_component_in_a_static_field` guards the Site; the same holds anywhere.
 
-## Key every sibling of a type, or none
-Once ONE child of a type carries a `Key`, its parent stops reusing that type by position
-(`Component.ClaimKeyedChild`, `LiveState.KeyedTypes`), so every UNKEYED child of the same type in that parent
-is a new instance on every render: its fields restart, its handler ids are minted again. Seen on the site's
-actions demo — an unkeyed state-driven `Ui.Modal` beside keyed ones got a new `ui-modal-<n>` id each render,
-and the `close` that follows a `cancel` carried a handler id the render in between had retired, so `OnClose`
-never ran and the page went on saying the dialog was open. This is also the toast remount noted above as
-unexplained. In a demo (or an app): key all of them.
+## Keys: a component's key is scoped to the component that writes it
+A child WITHOUT a `Key` beside keyed ones of its type keeps its instance, by its order among the unkeyed ones
+(#1215) — there is no need to key every sibling. A component's `Key` names one component of its type among
+everything its owner writes, NOT among the children of one element: the same rows written into two menus of
+one demo need keys that differ per menu (`Key($"{menu}-{row}")`). A repeat still gets an instance and values
+of its own, told apart by order, and is reported once as a `Rask.Live` warning (`docs/composition.md`).
 
 - File upload (2026-10-08): `Ui.FileUpload` is a `<label>` around the real, `sr-only` input, and writes
   `data-rask-dropzone` and `data-rask-loading` on itself. Its states are the plain idiom (`in-data-dragging:`,
