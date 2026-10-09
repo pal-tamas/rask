@@ -1,6 +1,10 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-09 with the drawer put away by a press on a link to the page already open
+# (data-rask-uncheck-on-navigate in rask-persist.ts: one click listener that reads the link's address beside the
+# navigation it already heard): rask-hooks.js 40,106 -> 40,491 (+385). The runtimes are unchanged.
+#
 # Refreshed 2026-10-09 with the runtime running a document once: the morph puts the runtime's own <script> back
 # without running it (keepRuntimeScript in rask-morph.ts, shared, so both runtimes carry the check), a second copy
 # of the Server runtime stands its host down (standDown in rask-host.ts), and the hook loader keeps a place it
@@ -108,4 +112,4 @@
 bundle,bytes
 rask.js,95912
 rask.wasm.js,84676
-rask-hooks.js,40106
+rask-hooks.js,40491
