@@ -126,6 +126,9 @@ default because its message is written for an operator and routinely names table
 credentials; a validation message is the opposite — it was authored to be shown to whoever sent the
 request.
 
+Inside a form nobody catches it. A submit handler that throws an exception carrying field failures
+leaves each message [under its field](forms-validation.md#the-database-said-no).
+
 ### The browser checks first
 
 On a WebAssembly client the request is validated **before** it is sent, so an invalid command costs a

@@ -23,6 +23,19 @@ them until tagged releases begin.
 
 ### Added
 
+- **A save the store refuses is shown under the field it is about.** A submit handler that throws an
+  exception implementing `IFieldFailures` (new, in `Rask.Wire`) no longer fails the submit: each
+  `FieldFailure`'s message appears under the bound fields it names, drawn exactly as a rule's message, and
+  the reader stays on the page. A failure over several fields shows under each and clears from all when
+  any one is edited; `Marked` fields turn invalid without a message. A failure naming no field on the form
+  goes to `Validation.Summary`, and to `f.Error` when nothing would show it. It is logged at information,
+  not as a fault. The app writes no `try`/`catch`. See
+  [The database said no](docs/forms-validation.md#the-database-said-no).
+- **BREAKING for an app that has its own component named `PageTitle`.** `PageTitle` is now a member of every
+  component, so inside a component the bare name means that member and no longer your component's chain entry
+  (CS1929 at each call site). Rename or delete your `PageTitle` component and state
+  `protected override string? PageTitle => …` on the routed page instead.
+
 - **A page declares its title, and its layout shows it in the first HTML (#1239).** A routed page overrides
   `protected override string? PageTitle => _relation is { } r ? $"Edit {r.Name}" : null;`, and the layout around
   it reads the injected `RouteState`'s `route.Title` — the last breadcrumb

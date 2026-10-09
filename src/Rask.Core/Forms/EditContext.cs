@@ -39,7 +39,7 @@ public sealed partial class EditContext : IDisposable
     // validator). A two-way write re-renders this consumer so derived UI it owns — even a sibling of the
     // Form, outside the control's own re-render scope — refreshes with no StateHasChanged. Mirrors the
     // controlled-mode AutoCallback owner-rerender, for bound mode.
-    private readonly Dictionary<FieldIdentifier, Component> _bindingOwners = new();
+    private readonly Dictionary<FieldIdentifier, Component?> _bindingOwners = new();
     private Delegate? _formDelegate;
 
     // What a validator that throws leaves on its field: a crashed rule must not crash the form.
@@ -372,6 +372,7 @@ public sealed partial class EditContext : IDisposable
     public IReadOnlyList<string> GetValidationMessages(FieldIdentifier field)
     {
         MarkReader();
+        NoteMessagesRead(field);
         return _states.TryGetValue(field, out var s) ? s.Messages : Array.Empty<string>();
     }
 
@@ -384,6 +385,7 @@ public sealed partial class EditContext : IDisposable
         // Mark before returning the iterator: MarkReader() inside the yield body would only run on
         // first MoveNext (deferred), missing a render that enumerates lazily or not at all.
         MarkReader();
+        NoteFormMessagesRead();
         return Enumerate();
 
         IEnumerable<string> Enumerate()
@@ -403,6 +405,7 @@ public sealed partial class EditContext : IDisposable
     public IReadOnlyList<ValidationEntry> GetValidationEntries()
     {
         MarkReader();
+        NoteFormMessagesRead();
         var entries = new List<ValidationEntry>();
         foreach (var pair in _states)
             foreach (var m in pair.Value.Messages)
@@ -425,14 +428,9 @@ public sealed partial class EditContext : IDisposable
     }
 
     // Records the consumer that owns a field's bind expression so a write can re-render it. Idempotent per
-    // render; null owners (bindings closed over a non-component root) are ignored.
-    internal void TrackBindingOwner(FieldIdentifier field, Component? owner)
-    {
-        if (owner is not null)
-        {
-            _bindingOwners[field] = owner;
-        }
-    }
+    // render. A binding closed over a non-component root has no owner to re-render and is recorded all the
+    // same: being here is what says a control on the form is bound to the field (IsBound).
+    internal void TrackBindingOwner(FieldIdentifier field, Component? owner) => _bindingOwners[field] = owner;
 
     /// <summary>
     ///     Records that a field's value changed: marks it modified, raises <see cref="FieldChanged" />, and
@@ -444,6 +442,7 @@ public sealed partial class EditContext : IDisposable
     {
         var s = GetOrCreate(field);
         s.Modified = true;
+        ClearFailuresNaming(field);
         FieldChanged?.Invoke(this, new FieldChangedEventArgs(field));
 
         // Re-render the binding's authoring component so its derived UI (including siblings outside the
@@ -451,7 +450,7 @@ public sealed partial class EditContext : IDisposable
         // controlled-OnChange consumer re-render. The control already re-renders itself; this covers the host.
         if (_bindingOwners.TryGetValue(field, out var owner))
         {
-            owner.StateHasChanged();
+            owner?.StateHasChanged();
         }
     }
 
@@ -475,6 +474,8 @@ public sealed partial class EditContext : IDisposable
             s.Messages.Clear();
             ValidationStateChanged?.Invoke(this, EventArgs.Empty);
         }
+
+        ClearFailuresNaming(field);
     }
 
     /// <summary>
@@ -483,7 +484,7 @@ public sealed partial class EditContext : IDisposable
     /// </summary>
     public void ClearAllMessages()
     {
-        var any = false;
+        var any = ClearFailures();
         foreach (var s in _states.Values.Where(s => s.Messages.Count > 0))
         {
             s.Messages.Clear();
