@@ -10,7 +10,8 @@ public sealed partial class RefusedSaveDemo : Component
     [
         Form.Model(_model).OnSubmit(Save).Class("flex flex-col gap-3")[
             Ui.Input.Bind(() => _model.Name).Label("Route").Description("Budapest – Wien is already saved.")
-                .Id("v13-name"),
+                .Id("v13-name")
+                .Validate(name => string.IsNullOrWhiteSpace(name) ? ["A route needs a name."] : []),
             Div[
                 Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit["Save"]
             ]

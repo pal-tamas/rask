@@ -24,6 +24,17 @@ public sealed partial class RefusedSaveDemoTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task An_empty_name_is_stopped_by_the_fields_own_rule_and_drawn_the_same_way()
+    {
+        var page = Page.Render(() => RefusedSaveDemo, TestServices.Default());
+
+        await page.On("form").Submit();
+
+        Assert.Contains("A route needs a name.", page.TextOf("#v13-name-error"), StringComparison.Ordinal);
+        Assert.Equal("true", page.Find("#v13-name").Attribute("aria-invalid"));
+    }
+
+    [Fact]
     public async Task Changing_the_name_takes_the_refusal_away_and_the_next_save_goes_through()
     {
         var page = Page.Render(() => RefusedSaveDemo, TestServices.Default());

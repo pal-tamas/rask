@@ -42,6 +42,25 @@ public sealed class FieldFailureTests(PlaywrightFixture playwright) : IClassFixt
     }
 
     [Fact]
+    public async Task A_save_refused_from_the_keyboard_keeps_its_message_when_the_reader_only_leaves_the_field()
+    {
+        await using var session = await HookSession.OpenAsync<RefusedSavePage>(playwright);
+        var page = session.Page;
+
+        await page.Locator("#number").PressSequentiallyAsync("42");
+        await page.Keyboard.PressAsync("Enter");
+        await Expect(page.Locator("#number-error")).ToContainTextAsync(Taken);
+        await page.Keyboard.PressAsync("Tab");
+        await page.ClickAsync("#saved");
+        await page.ClickAsync("#year");
+        await page.ClickAsync("#saved");
+
+        await Expect(page.Locator("#number-error")).ToContainTextAsync(Taken);
+        await Expect(page.Locator("#year-error")).ToContainTextAsync(Taken);
+        await Expect(page.Locator("#year")).ToHaveAttributeAsync("aria-invalid", "true");
+    }
+
+    [Fact]
     public async Task A_refused_save_inside_a_modal_leaves_it_open_with_the_message_under_the_field()
     {
         await using var session = await HookSession.OpenAsync<RefusedSavePage>(playwright);
