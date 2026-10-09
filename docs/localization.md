@@ -378,7 +378,7 @@ No neutral file: the framework's English lives in its own code. A misspelled key
 listing the valid names.
 
 **A text that carries values numbers them** — `{0}`, `{1}`, `{2}` — so a translation puts them in its own
-order, and may give one a .NET format: the Hungarian pager is `"{0}–{1}. találat, összesen {2}"`, and
+order, and may give one a .NET format: the Hungarian pager is `"{2} találatból {0}–{1}."`, and
 `"{2:N0}"` would group the total's thousands. The values are written in the visitor's culture. Asking for a
 value the text does not carry (`{3}` in the pager's summary), or naming one (`{total}`), is a build error
 too. There are no plural forms here: none of these texts changes with its number in English, and a count

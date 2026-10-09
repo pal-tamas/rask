@@ -5,7 +5,7 @@
   "PickerMinute": "Perc",
   "PickerClear": "Törlés",
 
-  "PaginationSummary": "{0}–{1}. találat, összesen {2}",
+  "PaginationSummary": "{2} találatból {0}–{1}.",
   "PaginationPrevious": "« Előző",
   "PaginationNext": "Következő »",
 
@@ -63,7 +63,7 @@
   "TimePickerHourPlaceholder": "óó",
   "TimePickerMinutePlaceholder": "pp",
 
-  "EditorLabel": "Formázott szöveg módosítása",
+  "EditorLabel": "Formázott szövegszerkesztő",
   "EditorToolbar": "Formázás",
   "EditorBold": "Félkövér",
   "EditorItalic": "Dőlt",

@@ -16,7 +16,7 @@ namespace Rask.Core.Globalization;
 ///     </para>
 ///     <code>
 ///     // Resources/RaskStrings.hu.json
-///     { "PickerClear": "Törlés", "PaginationSummary": "{0}–{1} megjelenítése, összesen {2}" }
+///     { "PickerClear": "Törlés", "PaginationSummary": "{2} találatból {0}–{1}." }
 ///     </code>
 ///     <para>
 ///         A text that carries values numbers them — <c>{0}</c>, <c>{1}</c> — so a translation can put them

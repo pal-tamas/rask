@@ -30,7 +30,7 @@ them until tagged releases begin.
   whatever its machine speaks. A component's own props (`Empty`, `Placeholder`, `Stay`) are said as given.
 - **A framework text can carry values.** `RaskStrings.Get(key, "Showing {0} to {1} of {2} results", from, to,
   total)` — one, two or three values, unboxed. A translation numbers them in its own order
-  (`"{0}–{1}. találat, összesen {2}"`) and may format one (`{2:N0}`), written in the visitor's culture; the
+  (`"{2} találatból {0}–{1}."`) and may format one (`{2:N0}`), written in the visitor's culture; the
   generator refuses a place the text does not carry and a named one (RASK051), and at runtime a hand-written
   source that gets it wrong is passed over for the English rather than throwing.
 - **A library ships translations of the framework texts it draws.** `<RaskStringsLibrary>true</RaskStringsLibrary>`
