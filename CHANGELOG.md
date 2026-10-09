@@ -28,6 +28,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **A reply that goes out as the whole page says why, in Development.** When the live diff cannot carry a
+  render the session answers with the whole document — tens of kilobytes where a diff is a few hundred bytes —
+  and until now only the devtools' wire tab showed that it had, never which node it gave up on. In Development
+  the `Rask.Live` logger now says, at Information: `Rask live: a reply went out as the whole page (85618 chars)
+  instead of a diff: RemoveSubtree at /1/1/0/1/0/1/1/0/0/0 is by position, replaced by <div class="truncate
+  min-w-0" …>. A child that comes and goes before its siblings, or changes element, is patched in place only
+  when it and its siblings each carry a Key…` — or that the diff was no smaller than the page, or that raw
+  markup sits at the document's own level. Nothing is formatted outside Development, and a reply that ships as a
+  diff never reaches the code.
+
 - **`IsUnique("message")` — a unique index says what breaking it means.**
   `builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique("A destination with this name already
   exists.")` — one step, beside EF Core's own `IsUnique()` / `IsUnique(false)`, which still bind as they did
