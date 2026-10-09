@@ -318,6 +318,20 @@ public abstract partial class Component
             return;
         }
 
+        // A component that has left the page has nothing to show an error on, and its boundary now holds the
+        // page the visitor went to. Leaving cancels its load, and a provider may report that cancellation as a
+        // failure of its own (EF's execution strategy does), so this is ordinary: recorded, never displayed.
+        if (comp.IsTornDown)
+        {
+            RaskDevToolsHook.Active?.ComponentFaulted(comp, actual, ErrorSource.Lifecycle, caught: false);
+            RaskDiagnostics.Report(
+                RaskLogLevel.Information,
+                "Rask.Lifecycle",
+                $"Rask lifecycle hook on {comp.GetType().Name} faulted after it left the page",
+                actual);
+            return;
+        }
+
         // Prefer the boundary: it'll re-render with the fallback. Fall back to a diagnostics
         // report only when there is no ancestor boundary, so a faulting hook is never silent.
         var boundary = comp.Boundary;

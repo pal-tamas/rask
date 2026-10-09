@@ -62,8 +62,27 @@ public sealed class WholePageReplyKeepsTypingTests(PlaywrightFixture playwright)
         var shown = await page.GetByLabel("Size").InputValueAsync();
         await page.ClickAsync("#save");
 
-        await Expect(page.Locator("#saved")).ToHaveTextAsync("|600");
+        await Expect(page.Locator("#saved")).ToHaveTextAsync("|600|");
         Assert.Equal("600", shown);
+    }
+
+    [Fact]
+    public async Task Two_numbers_filled_one_after_the_other_while_a_whole_page_reply_is_on_its_way_both_reach_the_save()
+    {
+        var (session, frames) = await OpenAsync();
+        await using var _ = session;
+        var page = session.Page;
+
+        // The reported journey: a press, and at once the next two fields, nothing waited for.
+        await page.ClickAsync("#swap");
+        await page.GetByLabel("Size").FillAsync("600");
+        await page.GetByLabel("Count").FillAsync("100");
+        await WholePageLandedAsync(page, frames);
+        await page.ClickAsync("#save");
+
+        await Expect(page.Locator("#saved")).ToHaveTextAsync("|600|100");
+        await Expect(page.GetByLabel("Size")).ToHaveValueAsync("600");
+        await Expect(page.GetByLabel("Count")).ToHaveValueAsync("100");
     }
 
     [Fact]
@@ -81,7 +100,7 @@ public sealed class WholePageReplyKeepsTypingTests(PlaywrightFixture playwright)
         await page.Keyboard.TypeAsync(" east");
         await page.ClickAsync("#save");
 
-        await Expect(page.Locator("#saved")).ToHaveTextAsync("Range one east|");
+        await Expect(page.Locator("#saved")).ToHaveTextAsync("Range one east||");
         Assert.True(focused);
     }
 
@@ -117,9 +136,10 @@ public sealed partial class SlowWholePagePage : Component
         Section[_swapped ? Div.Id("shape")["div"] : Span.Id("shape")["span"], P["after"]],
         Button.Id("swap").OnClick(SwapSlowly)["swap"],
         Button.Id("fill").OnClick(FillSlowly)["fill"],
-        Form.Model(_form).OnSubmit(() => _saved = $"{_form.Name}|{_form.Size}")[
+        Form.Model(_form).OnSubmit(() => _saved = $"{_form.Name}|{_form.Size}|{_form.Count}")[
             Ui.Field[Ui.Label["Name"], Ui.Input.Bind(() => _form.Name)],
             Ui.Field[Ui.Label["Size"], Ui.Input.Bind(() => _form.Size).Type(InputType.Number)],
+            Ui.Field[Ui.Label["Count"], Ui.Input.Bind(() => _form.Count).Type(InputType.Number)],
             Ui.Button.Submit.Id("save")["Save"]
         ],
         P.Id("saved")[_saved],
@@ -144,5 +164,7 @@ public sealed partial class SlowWholePagePage : Component
         public string Name { get; set; } = string.Empty;
 
         public int? Size { get; set; }
+
+        public int? Count { get; set; }
     }
 }

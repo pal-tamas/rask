@@ -589,7 +589,10 @@ export function morph(fromNode: Node, toNode: Node): void {
         // radio) commit at change time; the rendered value is canonical and must
         // win, otherwise Chromium leaves a focused date input's dirty value flag
         // stale and the first picker change appears to be dropped.
-        const streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input");
+        // A field bound on blur (data-rask-bind-on) streams nothing and is typed into all the same: the
+        // rendered value is the model's, which has not heard a letter of it yet.
+        const streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input")
+            || from.hasAttribute("data-rask-bind-on") || to.hasAttribute("data-rask-bind-on");
         if (!streaming || document.activeElement !== from) {
             let newVal = to.getAttribute("value");
             if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;

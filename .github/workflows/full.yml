@@ -6,7 +6,7 @@ name: full
 # take minutes. This is the other half of the bargain: everything, unscoped. One run at a time, and one
 # waiting behind it — the newest push — so a burst of pushes costs two runs, not one each. pages.yml
 # deploys from a commit THIS workflow passed, never from a scoped run; nightly.yml packs the newest
-# such commit on its own hourly clock.
+# such commit as each run here ends.
 #
 # A red run here with green pushes on top of it means exactly that: something a scoped run does not
 # cover is broken on main. Fix it forward; `gh run list --workflow full --branch main` is where to look.
