@@ -41,6 +41,17 @@ public partial class UiConfirmLeaveTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_question_keeps_clear_of_the_close_button_in_the_corner()
+    {
+        var html = Ui.ConfirmLeave.ToHtml();
+
+        var heading = Tag(html, "<h2");
+
+        // A question that fills the first line would otherwise run under the X.
+        Assert.Contains("pe-8", heading, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void With_no_labels_the_buttons_read_Stay_and_Leave()
     {
         var html = Ui.ConfirmLeave.ToHtml();
