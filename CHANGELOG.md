@@ -9,6 +9,23 @@ them until tagged releases begin.
 
 ### Added
 
+- **A page declares its title, and its layout reads it before it renders (#1239).** A routed page overrides
+  `protected override string? PageTitle => _relation is { } r ? $"Edit {r.Name}" : null;`, and the layout around
+  it reads the injected `RouteState`'s `route.Title` — the last breadcrumb
+  (`route.Title is { } t ? Ui.BreadcrumbsItem[t] : null`) and its one `HeadAssets` line
+  (`Title[route.Title is { } t ? $"{t} | Acme" : "Acme"]`; Rask writes no `<title>` of its own). The first HTML
+  already carries it — a direct load shows the crumb and the tab title with no script, where a page that told
+  its layout through a shared service served an empty crumb and filled it a frame later — and a navigation
+  changes the page, the crumb and `<title>` in one frame. The title is read again on every render, so one built
+  from a route parameter follows the URL on the reused page, one built from data loaded in `OnMount` /
+  `OnUpdated` appears with the data (the initial `GET` waits for it within the usual budget, and a build-time
+  prerender bakes it), and a rename on the page moves the crumb and the tab with the heading. Only components
+  that read `route.Title` render again, and only when it differs: a page that re-renders with the same title
+  costs its layout nothing. `null`, the default, is a page with no title; with nested `[ParentRoute]` layouts
+  the deepest page that declares one wins, and a leaf that declares none takes the nearest layout's. It may be
+  read above the `Router` as well — an `App` writing `<title>` in its own `HeadAssets` — where Rask walks the
+  tree once more when the title changed, so that frame is right too. `docs/routing.md` has the section.
+
 - **`Ui.ConfirmLeave` — the unsaved-changes question in a dialog of the app's own.** Placed once in a layout
   (`Ui.ConfirmLeave.Stay("Nem").Leave("Igen")`, "Stay" / "Leave" when unset), it is where every form's
   `ConfirmLeave("…")` asks, in place of the browser's `confirm`: a `Ui.Modal` with the form's message as its
@@ -48,6 +65,19 @@ them until tagged releases begin.
   eight unfiltered ones ran. The client-bundle-size gate tracks the third file too.
 
 ### Changed
+
+- **The router mounts every page of the route before the outermost layout renders.** `OnMount` / `OnUpdated` of
+  a page in a layout's `Outlet` used to run when the layout's render reached the outlet; they now run — up to
+  their first `await`, as ever — before the layout's `Render()`:
+  `layout.OnMount → layout.OnUpdated → page.OnMount → page.OnUpdated → layout.Render → page.Render`. It is what
+  lets the layout read the page's title in the render that first shows the page. Three things follow, and none
+  of them touches an app that gates pages with `[Authorize]` (checked before any page is constructed) and
+  reads the signed-in user in `OnMount` (already the session's): a page is mounted even in a render where its
+  layout does not place the `Outlet`, and is kept rather than created again; a value a layout provides with
+  `Context.Provide` is in scope in the page's `Render()` but not yet in its hooks; and a route value that will
+  not bind throws from the router rather than from the outlet, so an `ErrorBoundary` a layout wraps around its
+  `Outlet` no longer catches it — the one around the router does. Which instance a page keeps and the order
+  pages unmount in (a page before its layout) are unchanged. `docs/lifecycle.md` has the order.
 
 - **BREAKING: `TenantId` is the entity's own column, no longer a property of `Entity<TId>`.** A
   `Tenancy.PerTenant` table keeps the same `TenantId` column, filter, stamp and index prefix; the column is a

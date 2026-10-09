@@ -121,6 +121,24 @@ the component but does **not** re-fire `OnUpdated` — nothing the component is 
 reconciliation identity, not a reactive prop, so a key change doesn't fire `OnUpdated` either; it mounts a fresh
 instance.)
 
+### Routed pages
+
+The pages of a route — a layout and the page in its `Outlet`, however deep the `[ParentRoute]` chain — are mounted
+by the `Router`, all of them, **before the outermost layout renders**:
+
+```
+layout.OnMount → layout.OnUpdated → page.OnMount → page.OnUpdated → layout.Render → page.Render
+```
+
+That is what lets a layout show [the page's title](routing.md#a-pages-title--pagetitle-and-routetitle) in the very
+render that first shows the page. Everything else is as for any component: the hooks run up to their first `await`
+and the rest lands later, a page keeps its instance while the same type stays at its place in the chain under the
+same layouts, and on the way out a page unmounts before the layout around it.
+
+Two consequences of the order. A page is mounted even in a render where its layout does not place the `Outlet`
+(a layout that shows a notice instead), and it stays mounted rather than being created again each time. And a
+value a layout provides with `Context.Provide` is in scope in the page's `Render()`, not yet in the page's hooks.
+
 ### Do not run an unbounded loop in `OnMount`
 
 The first render waits on the task a lifecycle hook hands back. That is right for *load the data this page

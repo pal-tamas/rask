@@ -9,11 +9,12 @@ namespace Rask.Site.Features;
 // with the real showcase routes — this is exactly how ShowcaseLayout hosts every page.
 [Route("routing-demo/nested")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed partial class RoutingLayoutDemo : Component
+public sealed partial class RoutingLayoutDemo(RouteState route) : Component
 {
     protected override Component? Render() =>
         Div[
-            Nav["sidebar"],
+            // The child's PageTitle, already there when this layout renders.
+            Nav.Id("routing-demo-crumbs")["Routing demo", route.Title is { } title ? Span[" › ", title] : null],
             Main[Outlet]   // children render here
         ];
 }

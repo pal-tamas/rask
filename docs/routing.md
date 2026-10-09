@@ -252,6 +252,81 @@ way: every page declares `[ParentRoute(typeof(ShowcaseLayout))]` and the layout 
 `Outlet` must be called inside a `Router` render tree (it throws otherwise). A `[ParentRoute]` cycle raises
 [RASK007](diagnostics.md#rask007).
 
+### A page's title — `PageTitle` and `route.Title`
+
+A layout usually shows what the page inside it is called: the last breadcrumb, the heading of a header bar, the
+browser tab. The page **declares** it, and the layout **reads** it:
+
+```csharp
+[Route("/relations/{Id}")]
+[ParentRoute(typeof(AppLayout))]
+public sealed partial class RelationEditPage : Component
+{
+    private Relation? _relation;
+
+    [RouteParam] public int Id { get; set; }
+
+    protected override async Task OnUpdated() => _relation = await Relation.Find(Id);
+
+    protected override string? PageTitle => _relation is { } r ? $"Edit {r.Name}" : null;
+
+    protected override Component? Render() =>
+        _relation is null ? Ui.Callout["No such relation"] : [Ui.Heading[PageTitle], /* the form */];
+}
+
+[Route("/")]
+public sealed partial class AppLayout(RouteState route) : Component
+{
+    protected override Component? HeadAssets => Title[route.Title is { } t ? $"{t} | Acme" : "Acme"];
+
+    protected override Component? Render() =>
+    [
+        Ui.Breadcrumbs[
+            Ui.BreadcrumbsItem.Href(Routes.HomePage()).Icon(Ui.IconName.Home),
+            route.Title is { } t ? Ui.BreadcrumbsItem[t] : null
+        ],
+        Main[Outlet],
+    ];
+}
+```
+
+`PageTitle` is a member of every component and `null` by default; `route.Title` is the injected `RouteState`'s.
+There is nothing to register, no shared service for the page to write into, and no event for the layout to
+subscribe to.
+
+**The first HTML already carries it.** The router mounts the page *before* the layout renders, so the title is
+there the first time the layout asks — a direct load shows the crumb and the tab title with no script at all,
+and a navigation changes the page, the crumb and `<title>` in one frame. Rask does not write `<title>` for
+you: the layout's one `HeadAssets` line does, in whatever words the app wants around it.
+
+- **It follows the page's data.** The title is read again on every render, so one built from a record loaded in
+  `OnMount` / `OnUpdated` appears as soon as the record does, and a rename on the page — no navigation — moves the
+  crumb and the tab in the same frame as the heading.
+- **Only readers re-render, and only on a change.** A component that read `route.Title` while rendering renders
+  again when the title differs, and not otherwise: a page that re-renders with the same title costs its layout
+  nothing. That holds for a small component inside the layout's header as much as for the layout itself.
+- **`null` is a page with no title.** The layout decides what that looks like — above, no crumb and the bare
+  site name.
+- **The deepest page that declares one wins.** With layouts nested through `[ParentRoute]`, the leaf's title is
+  the one read; a leaf that declares none takes the title of the nearest layout above it that does.
+- **It can be read above the `Router` too** — an `App` whose own `HeadAssets` writes the `<title>`. That
+  component has rendered before the router has mounted anything, so when the title turns out to have changed
+  Rask walks the tree once more before the frame goes out. It is right in the first HTML either way; a layout
+  that reads it costs nothing extra, so prefer the layout.
+
+Two things to know:
+
+- **A title loaded after a real `await` arrives with the data.** The initial `GET` waits for it (see
+  [the first response](render-modes.md#the-initial-get-waits-for-your-data)), so the served document is complete.
+  A *navigation* in an open page paints the new page's placeholder first, exactly as the page itself does — and
+  during that one frame the title is `null`. Declare a fallback (`_relation?.Name ?? "Relation"`) where an empty
+  crumb would be wrong.
+- **The page mounts before its layout renders.** `OnMount` / `OnUpdated` of every page in the chain run, up to
+  their first `await`, before the outermost layout's `Render()` — see [Lifecycle](lifecycle.md#routed-pages). A
+  page is therefore mounted even when its layout does not place the `Outlet` this render, and a `Context` value
+  the layout provides is not yet in scope inside the page's *hooks* (it is in the page's `Render()`). Gate a
+  whole page with `[Authorize]`, which is checked before any page is constructed.
+
 ## Programmatic navigation — `Go`
 
 `Go` moves the user from code, with nothing injected — a typed route goes on its own (`Routes.UserPage(42).Go()`),
@@ -348,6 +423,7 @@ public sealed partial class CurrentLocation(RouteState route) : Component
 
 - `route.Path` — the current path, always starting with `/` (defaults to `"/"`).
 - `route.Query` — the parsed query string as an `IQueryCollection` (defaults to empty).
+- `route.Title` — what the current page calls itself, or `null`; see [A page's title](#a-pages-title--pagetitle-and-routetitle).
 
 Mutate `RouteState` through `Go`, not by setting `Path`/`Query` directly, so browser history stays in sync.
 
