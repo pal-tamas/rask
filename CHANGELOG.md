@@ -16,9 +16,11 @@ them until tagged releases begin.
 
 ### Added
 
-- **`HasViolationMessage` — a unique index says what breaking it means.**
-  `builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique().HasViolationMessage("A destination with this
-  name already exists.")`. A save that violates the index — `Save()`, `Create`, `Update`, plain
+- **`IsUnique("message")` — a unique index says what breaking it means.**
+  `builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique("A destination with this name already
+  exists.")` — one step, beside EF Core's own `IsUnique()` / `IsUnique(false)`, which still bind as they did
+  (only a string is Rask's). `.IsUnique().HasViolationMessage("…")` is the same thing in two, for an index made
+  unique elsewhere. A save that violates the index — `Save()`, `Create`, `Update`, plain
   `SaveChangesAsync` — fails with a `RaskValidationException` carrying that message, the failure a validator
   produces, in place of the provider's `DbUpdateException` (which stays as the `InnerException`). The message is
   filed under the property the index is over when that is one property beside `TenantId`, and under the empty

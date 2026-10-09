@@ -51,13 +51,13 @@ public sealed class Lane : Aggregate<int>
     public static void Configure(EntityTypeBuilder<Lane> builder)
     {
         // Names the tenant, one column of its own: the message belongs under that field.
-        builder.HasIndex(l => new { l.Name, l.TenantId }).IsUnique().HasViolationMessage(NameTaken);
+        builder.HasIndex(l => new { l.Name, l.TenantId }).IsUnique(NameTaken);
 
         // Does not name the tenant, so Rask puts it in front — and the message has to survive that.
-        builder.HasIndex(l => l.Code).IsUnique().HasViolationMessage(CodeTaken);
+        builder.HasIndex(l => l.Code).IsUnique(CodeTaken);
 
         // Two columns of its own: a rule about the row, not about either field.
-        builder.HasIndex(l => new { l.Origin, l.Target }).IsUnique().HasViolationMessage(RouteTaken);
+        builder.HasIndex(l => new { l.Origin, l.Target }).IsUnique(RouteTaken);
 
         // No message: the provider's error, as it always was.
         builder.HasIndex(l => l.Slug).IsUnique();
@@ -75,6 +75,7 @@ public sealed class Badge : Aggregate<int>
 
     public static Badge Numbered(string serial) => new() { Serial = serial };
 
+    // The two-step spelling, kept: IsUnique(message) is this and IsUnique() in one.
     public static void Configure(EntityTypeBuilder<Badge> builder) =>
         builder.HasIndex(b => b.Serial).IsUnique().HasViolationMessage(SerialTaken);
 }

@@ -32,14 +32,14 @@ public sealed class SubscriberDbContext(DbContextOptions<SubscriberDbContext> op
         modelBuilder.Entity<Subscriber>(b =>
         {
             b.ToTable("Subscriber", Schema);
-            b.HasIndex(s => s.Email).IsUnique().HasViolationMessage(Subscriber.EmailTaken);
-            b.HasIndex(s => new { s.Room, s.Seat }).IsUnique().HasViolationMessage(Subscriber.SeatTaken);
+            b.HasIndex(s => s.Email).IsUnique(Subscriber.EmailTaken);
+            b.HasIndex(s => new { s.Room, s.Seat }).IsUnique(Subscriber.SeatTaken);
             b.HasIndex(s => s.Nickname).IsUnique();
         });
 }
 
 /// <summary>
-/// <c>HasViolationMessage</c> on PostgreSQL: the violated index is the constraint SQLSTATE 23505 names.
+/// A unique index's message on PostgreSQL: the violated index is the constraint SQLSTATE 23505 names.
 /// </summary>
 [Collection(PostgresCollection.Name)]
 public sealed class PostgresViolationMessageTests
@@ -112,7 +112,7 @@ public sealed class PostgresViolationMessageTests
 }
 
 /// <summary>
-/// <c>HasViolationMessage</c> on SQL Server, on a plain entity in a database of its own: the violated index is
+/// A unique index's message on SQL Server, on a plain entity in a database of its own: the violated index is
 /// the one error 2601 names.
 /// </summary>
 [Collection(SqlServerCollection.Name)]

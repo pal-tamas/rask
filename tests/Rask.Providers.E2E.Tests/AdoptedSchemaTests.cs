@@ -35,7 +35,7 @@ public sealed class Destination : Aggregate<int>
     {
         builder.ToTable("Destinations");
         builder.Property(d => d.Name).IsRequired().HasMaxLength(255);
-        builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique().HasViolationMessage(NameTaken);
+        builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique(NameTaken);
     }
 }
 

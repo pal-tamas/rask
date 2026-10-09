@@ -1242,8 +1242,7 @@ A unique index is a rule, and the database is the only place that can enforce it
 breaking it means, on the index:
 
 ```csharp
-builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique()
-    .HasViolationMessage("A destination with this name already exists.");
+builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique("A destination with this name already exists.");
 
 await Destination.Named(model.Name).Save();   // nothing else at the call site
 ```
@@ -1260,7 +1259,9 @@ whose text names tables and holds the conflicting value. Every save through the 
 
 - **The message is a constant, and stays one.** It is shown to whoever sent the value, and nothing is appended
   to it — not the value, and not which row it collided with.
-- **An index with no message keeps the provider's error**, exactly as before.
+- **An index with no message keeps the provider's error**, exactly as before. `IsUnique()` and `IsUnique(false)`
+  are still EF Core's own; only a string is Rask's. `IsUnique("…")` is `IsUnique().HasViolationMessage("…")` in
+  one step, and the longer form is there for an index made unique somewhere else.
 - **The index is recognised by the provider's own error**, not by the text of a message a server may
   translate: SQLSTATE `23505` and the constraint name on PostgreSQL, error `2601` / `2627` and the index name on
   SQL Server, and on SQLite — which names no index — the table and columns it lists. It needs no provider

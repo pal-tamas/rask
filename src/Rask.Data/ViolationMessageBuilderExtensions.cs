@@ -7,8 +7,7 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     <code>
-/// builder.HasIndex(d =&gt; new { d.Name, d.TenantId }).IsUnique()
-///     .HasViolationMessage("A destination with this name already exists.");
+/// builder.HasIndex(d =&gt; new { d.Name, d.TenantId }).IsUnique("A destination with this name already exists.");
 ///
 /// await Destination.Named(model.Name).Save();   // nothing else at the call site
 ///     </code>
@@ -29,10 +28,37 @@ namespace Rask.Data;
 /// </remarks>
 public static class ViolationMessageBuilderExtensions
 {
-    /// <summary>Sets the message a save that violates this unique index fails with.</summary>
+    /// <summary>Makes the index unique, and says what a save that violates it fails with.</summary>
+    /// <param name="index">The index.</param>
+    /// <param name="message">What to tell the person whose value collided. Shown as written.</param>
+    /// <returns>The same builder.</returns>
+    /// <remarks>
+    ///     EF Core's own <c>IsUnique()</c> and <c>IsUnique(false)</c> are untouched: only a string binds here.
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="message" /> is null, empty or white space.</exception>
+    public static IndexBuilder IsUnique(this IndexBuilder index, string message) =>
+        index.HasViolationMessage(message).IsUnique();
+
+    /// <summary>Makes the index unique, and says what a save that violates it fails with.</summary>
+    /// <typeparam name="TEntity">The entity the index is on.</typeparam>
+    /// <param name="index">The index.</param>
+    /// <param name="message">What to tell the person whose value collided. Shown as written.</param>
+    /// <returns>The same builder.</returns>
+    /// <remarks>
+    ///     EF Core's own <c>IsUnique()</c> and <c>IsUnique(false)</c> are untouched: only a string binds here.
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="message" /> is null, empty or white space.</exception>
+    public static IndexBuilder<TEntity> IsUnique<TEntity>(this IndexBuilder<TEntity> index, string message) =>
+        index.HasViolationMessage(message).IsUnique();
+
+    /// <summary>
+    ///     Sets the message a save that violates this unique index fails with — the second half of
+    ///     <see cref="IsUnique(IndexBuilder, string)" />, for an index made unique somewhere else.
+    /// </summary>
     /// <param name="index">The index — a unique one; on any other the message is never used.</param>
     /// <param name="message">What to tell the person whose value collided. Shown as written.</param>
     /// <returns>The same builder.</returns>
+    /// <exception cref="ArgumentException"><paramref name="message" /> is null, empty or white space.</exception>
     public static IndexBuilder HasViolationMessage(this IndexBuilder index, string message)
     {
         ArgumentNullException.ThrowIfNull(index);
@@ -42,11 +68,15 @@ public static class ViolationMessageBuilderExtensions
         return index;
     }
 
-    /// <summary>Sets the message a save that violates this unique index fails with.</summary>
+    /// <summary>
+    ///     Sets the message a save that violates this unique index fails with — the second half of
+    ///     <see cref="IsUnique{TEntity}(IndexBuilder{TEntity}, string)" />, for an index made unique somewhere else.
+    /// </summary>
     /// <typeparam name="TEntity">The entity the index is on.</typeparam>
     /// <param name="index">The index — a unique one; on any other the message is never used.</param>
     /// <param name="message">What to tell the person whose value collided. Shown as written.</param>
     /// <returns>The same builder.</returns>
+    /// <exception cref="ArgumentException"><paramref name="message" /> is null, empty or white space.</exception>
     public static IndexBuilder<TEntity> HasViolationMessage<TEntity>(this IndexBuilder<TEntity> index, string message)
     {
         HasViolationMessage((IndexBuilder)index, message);
