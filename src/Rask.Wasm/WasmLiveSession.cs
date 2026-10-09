@@ -129,6 +129,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
             await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly)
                 .ConfigureAwait(false);
 
+            // A page that sent the reader on as it mounted here is not shown: its destination's frame follows.
+            if ((_navigator ??= Services.GetRequiredService<Navigator>()).RedirectPending)
+            {
+                return;
+            }
+
             // Noop publish-render guard: an auto-publish triggered by a completed
             // OnRendered that didn't mutate any tracked state produces the
             // same HTML. Sending it forces the JS side to morph identical HTML,
@@ -159,6 +165,50 @@ internal sealed class WasmLiveSession : LiveSessionBase
     }
 
     private void OnUserChanged(object? sender, EventArgs e) => _ = RequestRender();
+
+    // A navigation a lifecycle hook asked for with no dispatch waiting for it — after an await, or as its page
+    // mounted in a render nothing dispatched. Made the way a link's is, replacing the address of the page that asked.
+    protected override bool TryNavigateCore(Action navigate)
+    {
+        _ = NavigateFromHookAsync(navigate);
+        return true;
+    }
+
+    private async Task NavigateFromHookAsync(Action navigate)
+    {
+        // Never inline: the hook asking may be inside the very render this navigation has to wait for.
+        await Task.Yield();
+        using var work = EnterWorkScope();
+        await _lock.WaitAsync().ConfigureAwait(false);
+        InHandlerScope = true;
+        try
+        {
+            var navigator = Services.GetRequiredService<Navigator>();
+            using var navigating = navigator.EnterHandler();
+            navigate();
+            if (!navigator.TryConsumeHistory(out var url, out _))
+            {
+                return;
+            }
+
+            await BuildPayloadCoalescingRerendersAsync(url, true).ConfigureAwait(false);
+            if (await TryEmitFrameAsync(true).ConfigureAwait(false))
+            {
+                _htmlBuffers.Commit();
+            }
+        }
+        catch (Exception ex)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error, "Rask.Wasm", "Rask WASM navigation from a lifecycle hook threw", ex);
+        }
+        finally
+        {
+            InHandlerScope = false;
+            _lock.Release();
+            _ = DrainRenderRequestedAfterScope();
+        }
+    }
 
     public async Task<byte[]> InitialRenderAsync()
     {

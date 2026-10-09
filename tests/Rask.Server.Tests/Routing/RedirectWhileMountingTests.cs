@@ -136,22 +136,6 @@ public sealed class RedirectWhileMountingTests
         Assert.DoesNotContain(frames, f => f.Contains("unchosen-content", StringComparison.Ordinal));
     }
 
-    [Fact]
-    public async Task A_page_that_navigates_after_an_await_is_refused_and_stays_where_it_is()
-    {
-        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
-
-        await redirects.Send(new { type = "navigate", path = "/redirect/late", query = "" });
-        var landing = await redirects.Ws.ReceiveNavigationToAsync("/redirect/late");
-        var refused = landing.Contains("late-content refused", StringComparison.Ordinal)
-            ? landing
-            : await redirects.Ws.ReceiveUntilAsync(
-                f => f.Contains("late-content refused", StringComparison.Ordinal), "the page saying it was refused");
-
-        Assert.Contains("late-content", landing);
-        Assert.DoesNotContain("home-content", refused);
-    }
-
     [Theory]
     [InlineData("/redirect/moved", Home)]
     [InlineData("/redirect/text", "/redirect/home?from=text")]

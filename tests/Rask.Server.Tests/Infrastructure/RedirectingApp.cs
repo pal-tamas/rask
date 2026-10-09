@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Rask.Core;
+using Rask.Core.Live;
 using Rask.Core.Routing;
 
 namespace Rask.Server.Tests.Infrastructure;
@@ -12,16 +13,27 @@ public sealed partial class RedirectingApp : Component
 }
 
 [Route("/redirect")]
-public sealed partial class RedirectLayout(RouteState route) : Component
+public sealed partial class RedirectLayout(RouteState route, IPersistentState state) : Component
 {
     protected override Component? HeadAssets => Title[route.Title ?? "untitled"];
 
     protected override Component? Render() =>
         Div[
             Span.Id("crumb")[$"crumb:{route.Title}"],
+            Span.Id("kept")[$"kept:{(state.TryGet<int>("kept", out var kept) ? kept : 0)}"],
+            Button.Id("keep").OnClick(() => state.Persist("kept", 1))["keep"],
             Button.Id("to-moved").OnClick(() => { Routes.RedirectMovedPage().Go(); })["to moved"],
             Button.Id("to-ping").OnClick(() => { Routes.RedirectPingPage().Go(); })["to ping"],
+            Button.Id("to-late").OnClick(() => { Routes.RedirectLatePage().Go(); })["to late"],
+            Button.Id("save-then-late").OnClick(SaveThenGo)["save"],
             Outlet];
+
+    // The documented save, landing on a page that loads and then sends the reader on.
+    private static async Task SaveThenGo()
+    {
+        await Task.Delay(1).ConfigureAwait(false);
+        Routes.RedirectLatePage().Go();
+    }
 }
 
 [Route("start")]
@@ -143,28 +155,127 @@ public sealed partial class RedirectTextPage : Component
     protected override Component? Render() => P["text-content"];
 }
 
-// Redirects after a real await, where navigation is no longer legal.
+// Loads, finds nothing, and sends the reader on: "record not found, back to the list".
 [Route("late")]
 [ParentRoute(typeof(RedirectLayout))]
 public sealed partial class RedirectLatePage : Component
 {
-    private string _said = "waiting";
-
     protected override async Task OnMount()
     {
         await Task.Yield();
+        Routes.RedirectHomePage().Go();
+    }
+
+    protected override Component? Render() => P["late-content"];
+}
+
+// The same, with a load that takes as long as the test says.
+[Route("gated")]
+[ParentRoute(typeof(RedirectLayout))]
+public sealed partial class RedirectGatedPage : Component
+{
+    protected override async Task OnMount()
+    {
+        await RedirectGate.Opened;
         try
         {
             Routes.RedirectHomePage().Go();
-            _said = "went";
         }
-        catch (InvalidOperationException)
+        finally
         {
-            _said = "refused";
+            RedirectGate.Asked();
         }
     }
 
-    protected override Component? Render() => P[$"late-content {_said}"];
+    protected override Component? Render() => P["gated-content"];
+}
+
+// What the gated page's load waits for, and the moment after it has asked to go.
+public static class RedirectGate
+{
+    private static TaskCompletionSource _opened = New();
+    private static TaskCompletionSource _asked = New();
+
+    public static Task Opened => _opened.Task;
+
+    public static Task HasAsked => _asked.Task;
+
+    public static void Reset()
+    {
+        _opened = New();
+        _asked = New();
+    }
+
+    public static void Open() => _opened.TrySetResult();
+
+    public static void Asked() => _asked.TrySetResult();
+
+    private static TaskCompletionSource New() => new(TaskCreationOptions.RunContinuationsAsynchronously);
+}
+
+// Loads, then sends the reader into the guarded layout.
+[Route("late-vault")]
+[ParentRoute(typeof(RedirectLayout))]
+public sealed partial class RedirectLateVaultPage : Component
+{
+    protected override async Task OnMount()
+    {
+        await Task.Yield();
+        Routes.RedirectVaultPage().Go();
+    }
+
+    protected override Component? Render() => P["late-vault-content"];
+}
+
+// Two pages that each load and then send the reader to the other.
+[Route("slow-ping")]
+[ParentRoute(typeof(RedirectLayout))]
+public sealed partial class RedirectSlowPingPage : Component
+{
+    protected override async Task OnMount()
+    {
+        await Task.Yield();
+        Routes.RedirectSlowPongPage().Go();
+    }
+
+    protected override Component? Render() => P["slow-ping-content"];
+}
+
+[Route("slow-pong")]
+[ParentRoute(typeof(RedirectLayout))]
+public sealed partial class RedirectSlowPongPage : Component
+{
+    protected override async Task OnMount()
+    {
+        await Task.Yield();
+        Routes.RedirectSlowPingPage().Go();
+    }
+
+    protected override Component? Render() => P["slow-pong-content"];
+}
+
+// What the session has chosen to work with; a session rebuilt after a restart has chosen nothing.
+public sealed class RedirectChoice
+{
+    public bool Chosen { get; set; }
+}
+
+// Needs a choice, and sends a reader who has made none to where one is made.
+[Route("work")]
+[ParentRoute(typeof(RedirectLayout))]
+public sealed partial class RedirectWorkPage(RedirectChoice choice) : Component
+{
+    protected override Task OnMount()
+    {
+        if (!choice.Chosen)
+        {
+            Routes.RedirectHomePage().Go();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    protected override Component? Render() => P["work-content"];
 }
 
 // Redirects into a page under a layout only a signed-in reader may open.

@@ -1,5 +1,6 @@
 #pragma warning disable RASK014 // the tests render the very instance they hand to the root
 
+using Rask.Core.Live;
 using Rask.Core.Routing;
 
 namespace Rask.Core.Tests.Routing;
@@ -97,28 +98,100 @@ public sealed partial class NavigatorRedirectTests
     }
 
     [Fact]
-    public async Task A_hook_that_navigates_after_an_await_is_refused_even_while_the_handler_is_still_running()
+    public async Task A_hook_that_navigates_after_an_await_hands_the_navigation_to_its_session()
     {
-        var nav = new Navigator(new RouteState());
-        var resumed = new TaskCompletionSource<Exception?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var state = new RouteState();
+        var nav = new Navigator(state);
+        var session = new Session();
+        var resumed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var page = new Redirecting
         {
+            RenderHandle = session,
             Later = async () =>
             {
                 await Task.Yield();
-                resumed.SetResult(Record.Exception(() => nav.NavigateTo("/list")));
+                nav.NavigateTo("/list");
+                resumed.SetResult();
             },
         };
-
-        Exception? refused;
         using (nav.EnterHandler())
         {
             page.RenderAsLiveRoot();
-            refused = await resumed.Task;
         }
 
-        Assert.Contains("after an await", Assert.IsType<InvalidOperationException>(refused).Message);
+        await resumed.Task;
+        var movedBeforeTheSessionsTurn = state.Path;
+        using (nav.EnterHandler())
+        {
+            session.Handed.Single()();
+        }
+
+        Assert.Equal("/", movedBeforeTheSessionsTurn);
+        Assert.True(nav.TryConsumeHistory(out var url, out var replace));
+        Assert.Equal("/list", url);
+        Assert.True(replace);
+    }
+
+    [Fact]
+    public void A_page_that_navigates_as_it_mounts_with_no_dispatch_behind_it_is_withheld_and_handed_to_its_session()
+    {
+        var state = new RouteState();
+        var nav = new Navigator(state);
+        var session = new Session();
+        var page = new Redirecting { RenderHandle = session, Hook = () => nav.NavigateTo("/list") };
+
+        page.RenderAsLiveRoot();
+        var withheld = nav.RedirectPending;
+        using var turn = nav.EnterHandler();
+        session.Handed.Single()();
+
+        Assert.True(withheld);
+        Assert.False(nav.RedirectPending);
+        Assert.Equal("/list", state.Path);
+    }
+
+    [Fact]
+    public void A_navigation_handed_over_by_a_page_that_has_since_left_is_dropped()
+    {
+        var state = new RouteState();
+        var nav = new Navigator(state);
+        var session = new Session();
+        var page = new Redirecting { RenderHandle = session, Hook = () => nav.NavigateTo("/list") };
+        page.RenderAsLiveRoot();
+
+        ComponentLifecycle.DisposeComponentTree(page);
+        using var turn = nav.EnterHandler();
+        session.Handed.Single()();
+
+        Assert.Equal("/", state.Path);
         Assert.False(nav.TryConsumeHistory(out _, out _));
+    }
+
+    [Fact]
+    public void Navigations_handed_over_one_after_another_count_toward_the_limit_of_redirects()
+    {
+        var nav = new Navigator(new RouteState());
+        var session = new Session();
+        InvalidOperationException? refused = null;
+
+        for (var hop = 0; hop <= Navigator.MaxRedirects && refused is null; hop++)
+        {
+            var page = new Redirecting
+            {
+                RenderHandle = session,
+                Hook = () => refused = Record.Exception(() => nav.NavigateTo("/next")) as InvalidOperationException,
+            };
+            page.RenderAsLiveRoot();
+            if (refused is null)
+            {
+                using var turn = nav.EnterHandler();
+                session.Handed[^1]();
+                nav.TryConsumeHistory(out _, out _);
+            }
+        }
+
+        Assert.StartsWith("Too many redirects", refused?.Message);
+        Assert.Equal(Navigator.MaxRedirects, session.Handed.Count);
     }
 
     [Fact]
@@ -154,6 +227,20 @@ public sealed partial class NavigatorRedirectTests
         nav.EnterInitialRender().Dispose();
 
         Assert.Throws<InvalidOperationException>(() => nav.NavigateTo("/list"));
+    }
+
+    // Stands in for the session: it keeps what it is handed, for the test to run as the session's own turn.
+    private sealed class Session : IRenderHandle
+    {
+        public List<Action> Handed { get; } = [];
+
+        public Task RequestRender() => Task.CompletedTask;
+
+        bool IRenderHandle.TryNavigate(Action navigate)
+        {
+            Handed.Add(navigate);
+            return true;
+        }
     }
 
     private sealed partial class Redirecting : Component

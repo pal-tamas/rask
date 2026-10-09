@@ -19,6 +19,7 @@ internal sealed partial class RedirectStubApp(RouteState route) : Component
             new Route(typeof(RedirectStubPong), "pong"),
             new Route(typeof(RedirectStubItem), "item/{Id}"),
             new Route(typeof(RedirectStubLate), "late"),
+            new Route(typeof(RedirectStubGated), "gated"),
         ]),
     ];
 
@@ -35,6 +36,7 @@ internal sealed partial class RedirectStubLayout(RouteState route) : Component
         Div[
             Span.Id("crumb")[$"crumb:{route.Title}"],
             Button.Id("to-moved").OnClick(() => { Go.To("/rs/moved"); })["to moved"],
+            Button.Id("to-late").OnClick(() => { Go.To("/rs/late"); })["to late"],
             Outlet];
 }
 
@@ -125,23 +127,37 @@ internal sealed partial class RedirectStubItem(RouteState route) : Component
     }
 }
 
+// Loads, finds nothing, and sends the reader on.
 internal sealed partial class RedirectStubLate : Component
 {
-    private string _said = "waiting";
-
     protected override async Task OnMount()
     {
         await Task.Yield();
+        Go.To("/rs/home");
+    }
+
+    protected override Component? Render() => P["late-content"];
+}
+
+// The same, with a load that ends when the test says, and a note of the moment after it asked to go.
+internal sealed partial class RedirectStubGated : Component
+{
+    public static TaskCompletionSource Opened { get; set; } = new();
+
+    public static TaskCompletionSource Asked { get; set; } = new();
+
+    protected override async Task OnMount()
+    {
+        await Opened.Task;
         try
         {
             Go.To("/rs/home");
-            _said = "went";
         }
-        catch (InvalidOperationException)
+        finally
         {
-            _said = "refused";
+            Asked.TrySetResult();
         }
     }
 
-    protected override Component? Render() => P[$"late-content {_said}"];
+    protected override Component? Render() => P["gated-content"];
 }

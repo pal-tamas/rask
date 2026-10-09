@@ -95,18 +95,71 @@ public sealed class RedirectWhileMountingTests() : ResettingTestBase(LiveDiffMod
     }
 
     [Fact]
-    public async Task A_page_that_navigates_after_an_await_is_refused_and_stays_where_it_is()
+    public async Task A_link_to_a_page_that_loads_and_then_redirects_lands_on_its_destination_replacing_its_address()
     {
         var session = await OpenAt("/rs/start");
 
-        var frame = await Navigate(session, "/rs/late");
-        await WaitFor.True(
-            () => Encoding.UTF8.GetString(session.LastSentFrame).Contains("late-content refused", StringComparison.Ordinal),
-            "the page saying its navigation was refused");
+        var loading = await Navigate(session, "/rs/late");
+        await Lands(session);
 
-        Assert.Equal(("/rs/late", "push"), History(frame));
-        Assert.DoesNotContain("home-content", Encoding.UTF8.GetString(session.LastSentFrame), StringComparison.Ordinal);
+        Assert.Equal(("/rs/late", "push"), History(loading));
+        Assert.Equal(("/rs/home", "replace"), History(session.LastSentFrame.ToArray()));
+        Assert.Contains(">Home</title>", Html(session.LastSentFrame.ToArray()), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task A_handler_that_goes_to_a_page_that_loads_and_then_redirects_lands_on_its_destination()
+    {
+        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode);
+        services.GetRequiredService<RouteState>().Path = "/rs/start";
+        var handler = Regex.Match(
+            Html(await session.InitialRenderAsync()), "id=\"to-late\"[^>]*data-rask-on-click=\"([^\"]+)\"",
+            RegexOptions.None, TimeSpan.FromSeconds(1));
+
+        await session.DispatchAsync(Utf8($$"""{"id":"{{handler.Groups[1].Value}}","type":"click"}"""));
+        await Lands(session);
+
+        Assert.Equal(("/rs/home", "replace"), History(session.LastSentFrame.ToArray()));
+    }
+
+    [Fact]
+    public async Task A_first_load_of_a_page_that_loads_and_then_redirects_shows_its_destination_once_loaded()
+    {
+        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode);
+        services.GetRequiredService<RouteState>().Path = "/rs/late";
+
+        var first = await session.InitialRenderAsync();
+        await Lands(session);
+
+        Assert.Contains("late-content", Html(first), StringComparison.Ordinal);
+        Assert.Equal(("/rs/home", "replace"), History(session.LastSentFrame.ToArray()));
+    }
+
+    [Fact]
+    public async Task A_page_the_reader_has_left_by_the_time_its_load_ends_sends_them_nowhere()
+    {
+        RedirectStubGated.Opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        RedirectStubGated.Asked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode);
+        var route = services.GetRequiredService<RouteState>();
+        route.Path = "/rs/start";
+        await session.InitialRenderAsync();
+        await Navigate(session, "/rs/gated");
+        var back = await Navigate(session, "/rs/start");
+
+        RedirectStubGated.Opened.SetResult();
+        await RedirectStubGated.Asked.Task;
+        var settled = await Navigate(session, "/rs/start");
+
+        Assert.Contains("start-content", Html(back), StringComparison.Ordinal);
+        Assert.Equal("/rs/start", route.Path);
+        Assert.Contains("start-content", Html(settled), StringComparison.Ordinal);
+    }
+
+    private static Task Lands(WasmLiveSession session) =>
+        WaitFor.True(
+            () => Encoding.UTF8.GetString(session.LastSentFrame).Contains("home-content", StringComparison.Ordinal),
+            "the destination in the frame the page was last sent");
 
     private async Task<WasmLiveSession> OpenAt(string path)
     {

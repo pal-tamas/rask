@@ -2967,6 +2967,52 @@ public static partial class RaskEndpointExtensions
         }
     }
 
+    /// <summary>
+    ///     Makes the navigation a lifecycle hook asked for when no dispatch was waiting for it: the route moves under
+    ///     the session's lock, and the destination is rendered behind its guard in place of the page that asked.
+    /// </summary>
+    internal static async Task NavigateFromHookAsync(LiveSession session, Action navigate)
+    {
+        if (session.IsDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            await session.Lock.WaitAsync().ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
+        session.InHandlerScope = true;
+        try
+        {
+            using var work = session.EnterWorkScope();
+            var navigator = session.Services.GetRequiredService<Navigator>();
+            using var navigating = navigator.EnterHandler();
+            await RevalidateUserAsync(session, CancellationToken.None).ConfigureAwait(false);
+            navigate();
+            if (navigator.TryConsumeHistory(out var url, out _))
+            {
+                await EnforceAuthAndRenderAsync(session, url, replace: true).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && !session.IsDisposed)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error, "Rask.Live", "Rask Live navigation from a lifecycle hook threw", ex);
+        }
+        finally
+        {
+            session.InHandlerScope = false;
+            ReleaseDispatchLock(session);
+            _ = session.DrainRenderRequestedAfterScope();
+        }
+    }
+
     // Evaluates the route guard for the session's current route + principal. Returns true when the
     // route resolves and the guard allows it, or when no route resolves (nothing to gate — e.g. a
     // NotFound page); false when the guard would challenge/forbid. Used to gate handler dispatch.

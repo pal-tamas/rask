@@ -9,20 +9,24 @@ them until tagged releases begin.
 
 ### Fixed
 
-- **A page that redirects as it mounts lands on its destination when reached by a link.** A page that calls
-  `Go()` in `OnMount` or `OnUpdated` — "no partner chosen, go to the partner list" — answered a first request
-  with a `302`, but a `NavLink` to it threw `InvalidOperationException: Navigation can only run from event
-  handlers` and showed the error page, on the Server host and in WebAssembly alike. Reached by `Go()` from a
+- **A page that redirects from `OnMount` or `OnUpdated` lands on its destination, however it was reached.** A
+  page that calls `Go()` as it mounts — "no partner chosen, go to the partner list", "record not found, back
+  to the list" — answered a first request with a `302`, but a `NavLink` to it threw `InvalidOperationException:
+  Navigation can only run from event handlers` and showed the error page, on the Server host and in WebAssembly
+  alike; so did the page a sign-in returns to, and a session rebuilt after a deploy. Reached by `Go()` from a
   handler it flashed its own content and then showed the destination under the wrong address. It now means one
-  thing wherever a page is mounted: the reader gets ONE frame — the destination, with its address and its title —
-  and nothing of the page that sent them on, which takes no place in the history (Back is the page the link was
-  clicked on). The destination passes its own route guard first; a chain is followed to its end; and the
-  eleventh page in a row to redirect is refused with `Too many redirects`, so two pages that send the reader to
-  each other end in an error instead of holding the session. A first request is no longer rendered past the
-  page that redirected, which had constructed and mounted an `[Authorize]` destination for an anonymous
-  visitor before the `302` was sent. **Changed with it:** `Go()` after an `await` in a lifecycle hook of a page
-  that is already on screen now always throws (and says to decide before the first await); reached through a
-  handler it used to swap the content and leave the address — and the route guard — behind.
+  thing wherever a page is mounted. **Before the first `await`** the reader gets ONE frame — the destination,
+  with its address and its title — and nothing of the page that sent them on. **After an `await`** (the page
+  loaded first) its placeholder was on screen and the destination then replaces it; a first request still
+  waiting for the load is still a `302`, and a load that outlasts it redirects over the connection. Either way
+  the destination passes its own route guard first, the page that redirected takes no place in the history
+  (Back is the page the reader was on before), a `Go()` from a page the reader has already left is dropped,
+  and the eleventh page in a row to redirect is refused with `Too many redirects`, so two pages that send the
+  reader to each other end in an error instead of holding the session. A first request is no longer rendered
+  past the page that redirected, which had constructed and mounted an `[Authorize]` destination for an
+  anonymous visitor before the `302` was sent. See
+  [Redirecting from a lifecycle hook](docs/routing.md#redirecting-from-a-lifecycle-hook).
+
 - **The edit form works on an aggregate that declares `Checks = Concurrency.None`.** Its generated form model
   still carried `Version`, `X.Model(id)` filled it with 0, and `X.Update(id, model)` then refused every edit
   with *"declares Checks = Concurrency.None, so it has no Version to compare 0 with"*. The model of an

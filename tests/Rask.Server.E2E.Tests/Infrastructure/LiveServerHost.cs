@@ -33,6 +33,9 @@ internal sealed class LiveServerHost : IAsyncDisposable
     private readonly WebApplication _app;
     private int _webSocketAttempts;
 
+    /// <summary>The scheme a host started with <c>cookieSignIn</c> signs its readers in under.</summary>
+    public const string CookieScheme = "Cookies";
+
     private LiveServerHost(WebApplication app) => _app = app;
 
     public string BaseUrl { get; private set; } = string.Empty;
@@ -41,7 +44,8 @@ internal sealed class LiveServerHost : IAsyncDisposable
     public int WebSocketAttempts => Volatile.Read(ref _webSocketAttempts);
 
     public static async Task<LiveServerHost> StartAsync<TApp>(
-        bool blockWebSockets, bool staticFiles = false, Action<Rask.Core.Live.RaskLiveOptions>? live = null)
+        bool blockWebSockets, bool staticFiles = false, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
+        bool cookieSignIn = false)
         where TApp : Component
     {
         // The wwwroot the build copied beside the tests: what a web project serves from its own folder.
@@ -54,6 +58,12 @@ internal sealed class LiveServerHost : IAsyncDisposable
         builder.Logging.ClearProviders();
         builder.Services.AddRouting();
         builder.Services.AddRask(live, o => o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200));
+
+        if (cookieSignIn)
+        {
+            builder.Services.AddAuthentication(CookieScheme).AddCookie(CookieScheme);
+            builder.Services.AddAuthorization();
+        }
 
         var app = builder.Build();
         var host = new LiveServerHost(app);
@@ -79,6 +89,12 @@ internal sealed class LiveServerHost : IAsyncDisposable
         }
 
         app.UseRouting();
+        if (cookieSignIn)
+        {
+            app.UseAuthentication();
+            app.UseAuthorization();
+        }
+
         app.UseWebSockets();
         app.MapRask<TApp>();
         await app.StartAsync();

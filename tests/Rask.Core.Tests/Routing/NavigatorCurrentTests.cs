@@ -49,7 +49,7 @@ public class NavigatorCurrentTests
 
         // Same guidance the instance methods give, so `SomePage.Go()` misused during Render() reports
         // the real problem rather than a NullReferenceException.
-        Assert.Contains("event handlers", ex.Message);
+        Assert.Contains("event handler", ex.Message);
     }
 
     [Fact]

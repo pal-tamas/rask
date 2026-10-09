@@ -11,14 +11,25 @@ using Rask.Server.Authentication;
 namespace Rask.Server.Tests.Infrastructure;
 
 // An open connection to RedirectingApp: a navigation or a click, and every frame the server sent for it.
-internal sealed class RedirectingSession(RaskTestHost host, WebSocket ws, string html) : IAsyncDisposable
+internal sealed class RedirectingSession(RaskTestHost host, WebSocket ws, string html, string sessionId) : IAsyncDisposable
 {
     public WebSocket Ws => ws;
 
-    public static RaskTestHost Host(LiveDiffMode diffMode) =>
+    public RaskTestHost Server => host;
+
+    /// <summary>The page as the first request was answered.</summary>
+    public string FirstHtml => html;
+
+    /// <summary>The server's side of this connection: its services, and the route it is on.</summary>
+    public LiveSession Session => host.Store.Get(sessionId)!;
+
+    /// <param name="diffMode">The wire shape the host's sessions render with.</param>
+    /// <param name="quiescence">How long a first request waits for a page's load; the host's default when null.</param>
+    public static RaskTestHost Host(LiveDiffMode diffMode, TimeSpan? quiescence = null) =>
         RaskTestHost.Create<RedirectingApp>(
             services =>
             {
+                services.AddScoped<RedirectChoice>();
                 services.AddAuthentication("TestCookie").AddCookie("TestCookie", o =>
                 {
                     o.Cookie.Name = "TestCookie";
@@ -31,12 +42,19 @@ internal sealed class RedirectingSession(RaskTestHost host, WebSocket ws, string
                 app.UseAuthentication();
                 app.UseAuthorization();
             },
+            configureServer: quiescence is { } budget ? o => o.QuiescenceTimeout = budget : null,
             diffMode: diffMode);
 
+    /// <param name="path">The page the first request asks for.</param>
+    /// <param name="diffMode">The wire shape the session renders with.</param>
+    /// <param name="signedInAs">The name the reader is signed in under; anonymous when null.</param>
+    /// <param name="quiescence">How long the first request waits for the page's load.</param>
+    /// <param name="hello">False leaves the socket open but unattached, for a test that says hello itself.</param>
     public static async Task<RedirectingSession> Open(
-        string path, LiveDiffMode diffMode = LiveDiffMode.Auto, string? signedInAs = null)
+        string path, LiveDiffMode diffMode = LiveDiffMode.Auto, string? signedInAs = null,
+        TimeSpan? quiescence = null, bool hello = true)
     {
-        var host = Host(diffMode);
+        var host = Host(diffMode, quiescence);
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         if (signedInAs is not null)
         {
@@ -48,10 +66,17 @@ internal sealed class RedirectingSession(RaskTestHost host, WebSocket ws, string
         var html = await (await host.Http.SendAsync(request)).Content.ReadAsStringAsync();
         var sessionId = MarkupAssert.SessionId(html);
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        await ws.AttachedAsync(host, sessionId);
-        return new RedirectingSession(host, ws, html);
+        var session = new RedirectingSession(host, ws, html, sessionId);
+        if (hello)
+        {
+            await session.Hello();
+            await ws.AttachedAsync(host, sessionId);
+        }
+
+        return session;
     }
+
+    public Task Hello() => ws.SendJsonAsync(new { type = "hello", session = sessionId });
 
     public Task Send(object frame) => ws.SendJsonAsync(frame);
 
@@ -64,11 +89,17 @@ internal sealed class RedirectingSession(RaskTestHost host, WebSocket ws, string
 
     public async Task<List<string>> Click(string buttonId)
     {
+        await Press(buttonId);
+        return await ws.SettledAsync();
+    }
+
+    /// <summary>Clicks without waiting for what the click leads to.</summary>
+    public Task Press(string buttonId)
+    {
         var handler = Regex.Match(
             html, $"id=\"{Regex.Escape(buttonId)}\"[^>]*data-rask-on-click=\"([^\"]+)\"",
             RegexOptions.None, TimeSpan.FromSeconds(1));
-        await ws.SendJsonAsync(new { id = handler.Groups[1].Value, type = "click" });
-        return await ws.SettledAsync();
+        return ws.SendJsonAsync(new { id = handler.Groups[1].Value, type = "click" });
     }
 
     private static async Task<string> SignIn(RaskTestHost host, string name)

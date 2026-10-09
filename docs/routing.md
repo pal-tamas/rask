@@ -102,8 +102,9 @@ Button.OnClick(() => UserPage.Go(42))["View user"];
 ```
 
 `Go` hands back a step that overwrites the current history entry instead of pushing a new one
-(`UserPage.Go(42).Replacing()`). Like [`Go.To`](#programmatic-navigation--go), it may only be called **from an
-event handler**.
+(`UserPage.Go(42).Replacing()`). Like [`Go.To`](#programmatic-navigation--go), it is called from an
+event handler, or from a page's lifecycle hook to
+[send the reader on](#redirecting-from-a-lifecycle-hook).
 
 > **`NavLink`, not `A`, for anywhere in your own app — and never a `target` on one.** The runtime intercepts
 > clicks on `a[data-rask-nav]`, which `NavLink` writes — as do the kit's `Ui.Button.Href` and `Ui.Link.Href`
@@ -350,10 +351,10 @@ public sealed partial class ProductsPage : Component
 }
 ```
 
-**Event-handler only.** `Go.To`, `Go.With` and `Go.Without` throw `InvalidOperationException` if called outside an event
-handler — calling it during `Render()` or the initial GET would mid-render the page out from under itself. Navigate
-from button clicks, form submits, or lifecycle hooks that ran in response to an event. Navigation that must happen on
-load belongs in a redirect/route, not in `Render()`.
+**Where it works.** In an event handler — a click, a submit — and in a page's `OnMount` / `OnUpdated`, where it
+is a redirect ([below](#redirecting-from-a-lifecycle-hook)). Anywhere no session is handling something for a
+reader — a background task, a component rendered with no host — `Go.To`, `Go.With` and `Go.Without` throw
+`InvalidOperationException`, and the message says where to call them instead.
 
 `Go` changes the session's `RouteState`; after the handler returns, the live runtime pushes (or replaces) the
 resulting URL into browser history.
@@ -488,32 +489,45 @@ paths, so it stays `200`. And a page that matches a real route but finds no data
 is not a routing fact at all: say so with `IPageResponse.SetStatus(404)`, described in
 [Live pages](render-modes.md#status-codes).
 
-**Redirecting on load.** `Go.To` works during a page's initial render, and the Server
-host turns it into a real `302` before rendering a body:
+### Redirecting from a lifecycle hook
+
+A page that decides the reader belongs elsewhere says so with the `Go()` it would call from a handler:
 
 ```csharp
 protected override async Task OnMount()
 {
     if (!_tenant.IsProvisioned)
     {
-        Go.To("/onboarding");
+        Go.To("/onboarding");                  // before the first await
+        return;
+    }
+
+    _record = await Record.Find(Id);
+    if (_record is null)
+    {
+        Routes.RecordListPage().Go();          // after it: record not found, back to the list
     }
 }
 ```
 
-That costs one response rather than a whole page the client immediately navigates away from, and a
-crawler and a cache both understand it where a client-side hop is neither. Called from a background
-render — neither a handler nor the initial render — it still throws.
+It means the same however the page was reached — its address typed, a `NavLink`, Back, `Go()` from a handler,
+the page a sign-in returns to, a session rebuilt after a deploy — on the Server host and in WebAssembly:
 
-**Redirecting from a lifecycle hook.** The same `Go()` means the same thing when the page is reached in an
-open session — by a `NavLink`, by Back, or by `Go()` from a handler — on the Server host and in WebAssembly:
-called in `OnMount` or `OnUpdated` **before the first `await`**, it sends the reader on. They get one frame,
-the destination's, with its address and its title, and see nothing of the page that redirected; that page
-takes no place in the history, so Back is the page the link was clicked on. The destination passes its own
-`[Authorize]` guard first, a chain of redirects is followed to its end, and the eleventh page in a row to
-redirect is refused with `Too many redirects` — two pages that send the reader to each other end in an
-error, not a hang. After an `await` the page is already on screen and `Go()` throws: decide before it, or
-show the reader something to click.
+- **Before the first `await`** (and in `OnUpdated`, when a parameter changes on a page that stays mounted) the
+  reader sees nothing of the page that redirected. A first request is answered with a real `302`, which a
+  crawler and a cache understand; in an open session they get one frame, the destination's, with its address
+  and its title.
+- **After an `await`** the page's placeholder was on screen while it loaded, and the destination then takes its
+  place. A first request that is still waiting for the load (`Rask:Server:QuiescenceTimeout`) is still answered
+  with the `302`; a load that outlasts it redirects over the connection.
+- **Back never returns to the page that redirected.** It takes no place in the history — the destination
+  replaces it — so Back is the page the reader was on before.
+- **The destination is guarded.** Its `[Authorize]` runs before it is built, exactly as for a link.
+- **A page the reader has already left sends them nowhere**: a `Go()` from a hook of an unmounted component is
+  dropped.
+- **Ten in a row is the limit.** The eleventh page to redirect gets `InvalidOperationException: Too many
+  redirects`, shown by the page's error boundary — two pages that send the reader to each other end there
+  rather than for ever. Give one of them a condition under which it shows itself.
 
 **Route-level authorization.** Put `[Authorize]` (optionally `[Authorize(Roles = "admin")]`) or `[AllowAnonymous]` on
 a page component; the `RouteAuthorizationGuard` enforces it before the page renders. The session is a cookie and

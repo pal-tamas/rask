@@ -419,6 +419,21 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             await Started(work).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         });
 
+    // A navigation a lifecycle hook asked for with no dispatch waiting for it — after an await, or as its page
+    // mounted on a reconnect. Queued like a link the reader clicked, so it runs behind what they did before it.
+    protected override bool TryNavigateCore(Action navigate)
+    {
+        EnqueueOnHandlerChain(async previous =>
+        {
+            // Never inline: the hook asking may be inside the very render this navigation has to wait for.
+            await Task.Yield();
+            await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await RaskEndpointExtensions.NavigateFromHookAsync(this, navigate)
+                .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        });
+        return true;
+    }
+
     // The work's task, with a synchronous throw carried in it like an asynchronous one.
     private static Task Started(Func<Task> work)
     {
@@ -880,6 +895,33 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     private Navigator? _navigator;
 
+    // Whether a connection is open to send to. An address that could not be sent is kept, and the first render
+    // that can be sent carries it, replacing the one the browser holds.
+    private bool HasSomeoneToTell(ref string? historyUrl, ref bool replace)
+    {
+        if (Volatile.Read(ref _transport) is not { IsOpen: true })
+        {
+            _undeliveredAddress = historyUrl ?? _undeliveredAddress;
+            return false;
+        }
+
+        if (_undeliveredAddress is { } undelivered)
+        {
+            _undeliveredAddress = null;
+            if (historyUrl is null)
+            {
+                historyUrl = undelivered;
+                replace = true;
+            }
+        }
+
+        return true;
+    }
+
+    // The address of a navigation made while no connection was attached — a page whose load outlasted the first
+    // response and then sent the reader on. Only the session's own dispatches write it, one at a time.
+    private string? _undeliveredAddress;
+
     /// <summary>
     ///     Whether the page just rendered navigated as it mounted or updated. Its frame is withheld — the reader
     ///     sees nothing of a page that sent them on — and the dispatch renders the destination instead.
@@ -889,7 +931,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     internal async Task RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
         bool publishOnly = false)
     {
-        if (Volatile.Read(ref _transport) is not { IsOpen: true })
+        if (!HasSomeoneToTell(ref historyUrl, ref replace))
         {
             return;
         }

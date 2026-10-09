@@ -38,6 +38,20 @@ public sealed class RedirectLoopTests
         Assert.Contains(reported.Errors, e => e.StartsWith("Too many redirects", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task Two_pages_that_each_load_and_then_redirect_to_the_other_are_stopped_with_an_error_the_reader_sees()
+    {
+        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
+
+        await redirects.Send(new { type = "navigate", path = "/redirect/slow-ping", query = "" });
+        var stopped = await redirects.Ws.ReceiveUntilAsync(
+            f => f.Contains("Too many redirects", StringComparison.Ordinal), "the frame that shows the loop was refused");
+        var after = await redirects.Ws.SettledAsync();
+
+        Assert.Null(LiveFrames.HistoryUrl(stopped));
+        Assert.DoesNotContain(after, f => LiveFrames.HistoryUrl(f) is not null);
+    }
+
     // The process-wide sink, swapped for the life of one test: the collection keeps two of these apart.
     private sealed class CapturedDiagnostics : IDisposable
     {
