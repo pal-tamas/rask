@@ -203,10 +203,14 @@ public static class ReadModelRegistry
                     "declared ': DbContext, ITenantScoped'.");
             }
 
-            builder.Property<Guid?>(Columns.TenantId);
+            // In the write side's type, which is the column's: a face that compared an int column with a Guid
+            // would match nothing on one provider and fail on another.
+            var column = write is null ? TenantColumn.TypeFor(mapping.WriteType) : TenantColumn.TypeFor(write);
+
+            builder.Property(column, Columns.TenantId);
             builder.HasQueryFilter(
                 ModelBuilderExtensions.TenantFilter,
-                ModelBuilderExtensions.BuildTenantFilter(mapping.ReadType, context));
+                TenantColumn.BuildFilter(mapping.ReadType, column, context));
         }
     }
 

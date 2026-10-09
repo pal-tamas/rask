@@ -351,19 +351,7 @@ public sealed partial class RaskApp
         // read or a factory is a static call. After authentication, so the principal it hands over is real.
         if (app.Services.GetService<IServiceProviderIsService>()?.IsService(typeof(IPrincipalSource)) == true)
         {
-            app.Use(static async (context, next) =>
-            {
-                if (context.RequestServices.GetService<ClaimsPrincipalSource>() is { } principal)
-                {
-                    principal.Request = context;
-                }
-
-                using (Db.UseScope(context.RequestServices))
-                using (Ambient.Enter(context.RequestAborted))
-                {
-                    await next(context).ConfigureAwait(false);
-                }
-            });
+            DataHostSeams.UseRequestScope(app);
         }
     }
 

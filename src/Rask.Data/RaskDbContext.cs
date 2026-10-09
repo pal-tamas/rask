@@ -48,7 +48,7 @@ public class RaskDbContext : DbContext, ITenantScoped
 
     /// <inheritdoc />
     /// <remarks>
-    ///     An explicit <see cref="Tenant.Use" /> or <see cref="Tenant.Across" /> wins; otherwise the tenant
+    ///     An explicit <see cref="Tenant.Use(Guid)" /> or <see cref="Tenant.Across" /> wins; otherwise the tenant
     ///     is the one on the signed-in principal, which is what makes a page filter correctly without
     ///     anything being passed to it.
     /// </remarks>
