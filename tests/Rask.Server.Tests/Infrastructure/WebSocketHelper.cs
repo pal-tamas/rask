@@ -18,19 +18,43 @@ internal static class WebSocketHelper
     /// <remarks>
     ///     A hello is answered with nothing unless a render is owed, so draining a frame after it waited out its
     ///     whole timeout — 2 s a test, about half this suite's time — and only incidentally left the attach done.
-    ///     This waits for the attach itself. A session the store does not know keeps the old drain.
+    ///     This waits for the attach itself, for as long as it takes short of a hang: a caller that named its own
+    ///     two seconds failed on a busy runner, where an attach is slow and nothing is wrong. A session the store
+    ///     does not know is answered and closed, and that answer is what the old drain read.
     /// </remarks>
-    public static async Task AttachedAsync(this WebSocket ws, RaskTestHost host, string sessionId, TimeSpan timeout)
+    public static async Task AttachedAsync(this WebSocket ws, RaskTestHost host, string sessionId)
     {
         if (host.Store.Peek(sessionId) is not { } session)
         {
-            _ = await ws.TryReceiveTextAsync(timeout);
+            _ = await ws.TryReceiveTextAsync(LiveFrames.HangCeiling);
             return;
         }
 
         // Qualified: this file is linked into test projects that do not import Rask.TestSupport globally.
-        await Rask.TestSupport.WaitFor.True(() => session.HasOpenTransport, timeout, "the server attaches the socket");
+        await Rask.TestSupport.WaitFor.True(
+            () => session.HasOpenTransport, LiveFrames.HangCeiling, "the server attaches the socket");
     }
+
+    /// <summary>The next frame; fails the test when none comes. See <see cref="LiveFrames.NextAsync" />.</summary>
+    public static Task<string> ReceiveTextAsync(this WebSocket ws) => LiveFrames.NextAsync(ws.TryReceiveTextAsync);
+
+    /// <summary>
+    ///     The first frame <paramref name="isIt" /> accepts; fails the test, naming <paramref name="what" />, when
+    ///     none comes. See <see cref="LiveFrames.UntilAsync" />.
+    /// </summary>
+    public static Task<string> ReceiveUntilAsync(this WebSocket ws, Func<string, bool> isIt, string what) =>
+        LiveFrames.UntilAsync(ws.TryReceiveTextAsync, isIt, what);
+
+    /// <summary>The frame that moves the browser's address to <paramref name="url" />.</summary>
+    public static Task<string> ReceiveNavigationToAsync(this WebSocket ws, string url) =>
+        ws.ReceiveUntilAsync(frame => LiveFrames.HistoryUrl(frame) == url, $"the frame that moves the address to {url}");
+
+    /// <summary>
+    ///     Returns once the server has finished everything this socket sent it, with the frames that produced.
+    ///     See <see cref="LiveFrames.SettledAsync" /> for what that rests on and where it cannot be used.
+    /// </summary>
+    public static Task<List<string>> SettledAsync(this WebSocket ws) =>
+        LiveFrames.SettledAsync(payload => ws.SendJsonAsync(payload), ws.TryReceiveTextAsync);
 
     public static async Task<string?> TryReceiveTextAsync(this WebSocket ws, TimeSpan timeout)
     {
@@ -102,45 +126,6 @@ internal static class WebSocketHelper
     }
 
     /// <summary>
-    ///     Receives frames until one satisfies <paramref name="predicate" />, and returns it (null if the budget
-    ///     runs out first). Frames that do not match are skipped.
-    /// </summary>
-    /// <remarks>
-    ///     For an assertion about a PARTICULAR frame rather than about the next one. A live session may push a
-    ///     render the test did not ask for — a catch-up on attach, or the intermediate paint an async handler
-    ///     emits while it is still awaiting — and which of those exist depends on timing, so "the first frame
-    ///     after my message" is not a property the dispatcher promises. A test that assumes it passes on an idle
-    ///     machine and reports the wrong thing on a loaded one: #1120 read a pre-trip document and blamed a
-    ///     missing error boundary.
-    ///     Ordering IS promised where it matters, and this preserves the assertions that rest on it: frames stay
-    ///     in order, so a match here is still the first frame that qualifies.
-    /// </remarks>
-    public static async Task<string?> ReceiveUntilAsync(
-        this WebSocket ws, Func<string, bool> predicate, TimeSpan budget)
-    {
-        var deadline = DateTime.UtcNow + budget;
-        while (true)
-        {
-            var remaining = deadline - DateTime.UtcNow;
-            if (remaining <= TimeSpan.Zero)
-            {
-                return null;
-            }
-
-            var text = await ws.TryReceiveTextAsync(remaining);
-            if (text is null)
-            {
-                return null;
-            }
-
-            if (predicate(text))
-            {
-                return text;
-            }
-        }
-    }
-
-    /// <summary>
     ///     Receives until the peer's close frame arrives and returns its status and reason, or
     ///     <c>null</c> if the socket was aborted instead (no close frame — a <see cref="WebSocketException" />
     ///     out of the receive) or nothing arrived in time. The distinction is the whole point: a graceful
@@ -184,6 +169,6 @@ internal static class WebSocketHelper
     public static async Task CloseAndAwaitServerCleanupAsync(this WebSocket ws)
     {
         await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
-        Assert.NotNull(await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(5)));
+        Assert.NotNull(await ws.TryReceiveCloseAsync(LiveFrames.HangCeiling));
     }
 }

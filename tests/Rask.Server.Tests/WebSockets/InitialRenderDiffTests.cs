@@ -24,18 +24,17 @@ public class InitialRenderDiffTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         // The VERY FIRST interaction: bump the counter (count=0 -> count=1, a pure text-node
         // change). With the GET-seeded frame baseline this ships a diff, not full HTML.
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var frame = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(frame);
-        using var doc = JsonDocument.Parse(frame!);
+        using var doc = JsonDocument.Parse(frame);
         Assert.Equal("diff", doc.RootElement.GetProperty("kind").GetString());
         Assert.False(doc.RootElement.TryGetProperty("html", out _),
-            $"First interaction must not ship full HTML. Got: {frame![..Math.Min(300, frame!.Length)]}");
+            $"First interaction must not ship full HTML. Got: {frame[..Math.Min(300, frame.Length)]}");
         Assert.NotEmpty(doc.RootElement.GetProperty("ops").EnumerateArray());
     }
 }

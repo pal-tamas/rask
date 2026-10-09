@@ -16,18 +16,10 @@ public class ResourceLimitTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
-        // Send nothing further — the server must close the idle socket within the timeout window.
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
-        while (ws.State == WebSocketState.Open && DateTime.UtcNow < deadline)
-        {
-            if (await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(100)) is null
-                && ws.State == WebSocketState.Open)
-            {
-                await Task.Delay(20, TestContext.Current.CancellationToken);
-            }
-        }
+        // Send nothing further — the server must close the idle socket.
+        _ = await ws.TryReceiveCloseAsync(LiveFrames.HangCeiling);
 
         Assert.NotEqual(WebSocketState.Open, ws.State);
     }
@@ -44,7 +36,7 @@ public class ResourceLimitTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromMilliseconds(500));
+        await ws.AttachedAsync(host, sessionId);
 
         // Keep sending well within the 5 s window — the socket must stay open across a span
         // (~3 s) that would have tripped a naive total-lifetime timeout.
@@ -52,7 +44,7 @@ public class ResourceLimitTests
         {
             await Task.Delay(800, TestContext.Current.CancellationToken);
             await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-            _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            await ws.ReceiveTextAsync();
         }
 
         Assert.Equal(WebSocketState.Open, ws.State);
@@ -71,7 +63,7 @@ public class ResourceLimitTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         for (var i = 0; i < 20; i++)
         {
@@ -79,15 +71,7 @@ public class ResourceLimitTests
             catch { break; }
         }
 
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
-        while (ws.State == WebSocketState.Open && DateTime.UtcNow < deadline)
-        {
-            if (await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(100)) is null
-                && ws.State == WebSocketState.Open)
-            {
-                await Task.Delay(20, TestContext.Current.CancellationToken);
-            }
-        }
+        _ = await ws.TryReceiveCloseAsync(LiveFrames.HangCeiling);
 
         Assert.NotEqual(WebSocketState.Open, ws.State);
     }

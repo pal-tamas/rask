@@ -45,7 +45,7 @@ public class ShutdownDrainTests
 
         await host.StopAsync();
 
-        Assert.Equal(LivePayload.ServerShutdownJson, await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2)));
+        Assert.Equal(LivePayload.ServerShutdownJson, await ws.ReceiveTextAsync());
     }
 
     [Fact]
@@ -77,8 +77,8 @@ public class ShutdownDrainTests
 
         await host.StopAsync();
 
-        Assert.Equal(LivePayload.ServerShutdownJson, await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2)));
-        Assert.Equal("server-shutdown", await ws.TryReceiveCloseReasonAsync(TimeSpan.FromSeconds(2)));
+        Assert.Equal(LivePayload.ServerShutdownJson, await ws.ReceiveTextAsync());
+        Assert.Equal("server-shutdown", await ws.TryReceiveCloseReasonAsync(LiveFrames.HangCeiling));
     }
 
     [Fact]
@@ -101,11 +101,11 @@ public class ShutdownDrainTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         var session = host.Store.Get(sessionId)!;
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        await WaitForAsync(() => session.PendingHandlers > 0, TimeSpan.FromSeconds(2));
+        await WaitForAsync(() => session.PendingHandlers > 0, LiveFrames.HangCeiling);
 
         var stop = host.StopAsync();
 
@@ -151,11 +151,11 @@ public class ShutdownDrainTests
 
             using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-            await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+            await ws.AttachedAsync(host, sessionId);
             await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
 
             var session = host.Store.Get(sessionId)!;
-            await WaitForAsync(() => session.PendingHandlers > 0, TimeSpan.FromSeconds(2));
+            await WaitForAsync(() => session.PendingHandlers > 0, LiveFrames.HangCeiling);
 
             var started = Environment.TickCount64;
             await host.StopAsync();
@@ -305,7 +305,7 @@ public class ShutdownDrainTests
     {
         var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
         var connection = await LiveTestConnection.OpenAsync(host, transport, sessionId);
-        await WaitForAsync(() => host.Store.ConnectedCount > 0, TimeSpan.FromSeconds(2));
+        await WaitForAsync(() => host.Store.ConnectedCount > 0, LiveFrames.HangCeiling);
         return connection;
     }
 
@@ -314,7 +314,7 @@ public class ShutdownDrainTests
         var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        await WaitForAsync(() => host.Store.ConnectedCount > 0, TimeSpan.FromSeconds(2));
+        await WaitForAsync(() => host.Store.ConnectedCount > 0, LiveFrames.HangCeiling);
         return ws;
     }
 

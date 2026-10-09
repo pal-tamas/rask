@@ -71,7 +71,6 @@ public class HelloOwnershipTests
 
         var frame = await HelloAsync(host, sessionId, jar.Cookie);
 
-        Assert.NotNull(frame);
         Assert.Contains("user=anon", frame);
     }
 
@@ -119,9 +118,8 @@ public class HelloOwnershipTests
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = aliceSession, resume = malloryToken }, ct: TestContext.Current.CancellationToken);
 
-        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        var frame = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(frame);
         using var doc = JsonDocument.Parse(frame);
         Assert.True(doc.RootElement.TryGetProperty("html", out var html), frame);
         Assert.Contains("user=mallory", html.GetString());
@@ -142,7 +140,6 @@ public class HelloOwnershipTests
 
         var frame = await HelloAsync(host, sessionId, jar.Cookie);
 
-        Assert.NotNull(frame);
         Assert.Contains("user=alice", frame);
     }
 
@@ -189,17 +186,10 @@ public class HelloOwnershipTests
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
         await ws.SendJsonAsync(new { id = match.Groups[1].Value });
 
-        string? ticket = null;
-        for (var i = 0; i < 8 && ticket is null; i++)
-        {
-            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
-            Assert.NotNull(frame);
-            using var doc = JsonDocument.Parse(frame);
-            if (doc.RootElement.TryGetProperty("auth", out var auth))
-            {
-                ticket = auth.GetProperty("ticket").GetString();
-            }
-        }
+        var handoff = await ws.ReceiveUntilAsync(
+            frame => frame.Contains("\"ticket\"", StringComparison.Ordinal), "the frame that hands over the ticket");
+        using var doc = JsonDocument.Parse(handoff);
+        var ticket = doc.RootElement.GetProperty("auth").GetProperty("ticket").GetString();
 
         Assert.NotNull(ticket);
         await ws.CloseAndAwaitServerCleanupAsync();
@@ -217,8 +207,8 @@ public class HelloOwnershipTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    // Connects with the given cookie (or none) and sends a hello; returns the first text frame, if any.
-    private static async Task<string?> HelloAsync(RaskTestHost host, string sessionId, string? cookie)
+    // Connects with the given cookie (or none) and sends a hello; returns the frame that answers it.
+    private static async Task<string> HelloAsync(RaskTestHost host, string sessionId, string? cookie)
     {
         host.WebSockets.ConfigureRequest = req =>
         {
@@ -229,12 +219,11 @@ public class HelloOwnershipTests
         };
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        return await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        return await ws.ReceiveTextAsync();
     }
 
-    private static void AssertSessionUnknown(string? reply)
+    private static void AssertSessionUnknown(string reply)
     {
-        Assert.NotNull(reply);
         using var doc = JsonDocument.Parse(reply);
         Assert.Equal("session", doc.RootElement.GetProperty("type").GetString());
         Assert.Equal("unknown", doc.RootElement.GetProperty("status").GetString());
@@ -263,8 +252,7 @@ public class HelloOwnershipTests
 
         using var second = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await second.SendJsonAsync(new { type = "hello", session = sessionId });
-        var frame = await second.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
-        Assert.NotNull(frame);
+        var frame = await second.ReceiveTextAsync();
         using var doc = JsonDocument.Parse(frame);
         var token = doc.RootElement.GetProperty("resume").GetString();
         Assert.NotNull(token);

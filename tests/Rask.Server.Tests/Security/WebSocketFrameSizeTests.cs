@@ -61,13 +61,13 @@ public class WebSocketFrameSizeTests
         var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
         var padding = new string('x', 100 * 1024);
 
         await ws.SendJsonAsync(new { id = handlerId, padding }, ct: TestContext.Current.CancellationToken);
-        var first = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var first = await ws.ReceiveTextAsync();
         await ws.SendJsonAsync(new { id = handlerId, padding }, ct: TestContext.Current.CancellationToken);
-        var second = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var second = await ws.ReceiveTextAsync();
 
         Assert.Contains("count=1", first, StringComparison.Ordinal);
         Assert.Contains("count=2", second, StringComparison.Ordinal);

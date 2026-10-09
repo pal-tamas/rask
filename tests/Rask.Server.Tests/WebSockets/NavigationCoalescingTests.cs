@@ -31,10 +31,9 @@ public class NavigationCoalescingTests
         // Expect a single coalesced frame carrying the navigation target. Pre-fix
         // an earlier history-less frame would arrive first because the eager
         // in-scope render emitted it before EnforceAuthAndRenderAsync ran.
-        var first = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var first = await fixture.Ws.ReceiveTextAsync();
 
-        Assert.NotNull(first);
-        using (var doc = JsonDocument.Parse(first!))
+        using (var doc = JsonDocument.Parse(first))
         {
             Assert.True(doc.RootElement.TryGetProperty("history", out var history),
                 "First (only) post-nav frame must carry history.url — pre-fix this " +
@@ -44,13 +43,11 @@ public class NavigationCoalescingTests
             Assert.Equal("push", history.GetProperty("action").GetString());
         }
 
-        // No further outbound frames within the coalescing budget — every
-        // in-handler StateHasChanged folded into the single send above. A pre-fix
-        // run sees a second frame here (the EnforceAuthAndRenderAsync emission
-        // that follows the eager in-scope render).
-        var second = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500));
-
-        Assert.Null(second);
+        // No further outbound frame from this navigation — every in-handler
+        // StateHasChanged folded into the single send above. A pre-fix run sees
+        // a second frame here (the EnforceAuthAndRenderAsync emission that
+        // follows the eager in-scope render).
+        Assert.Empty(await fixture.Ws.SettledAsync());
 
         // Sanity: route state actually advanced — the RouteState.Changed
         // subscriber on the App ran during this dispatch.
@@ -71,16 +68,12 @@ public class NavigationCoalescingTests
 
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" }, ct: TestContext.Current.CancellationToken);
 
-        // Drain every frame until the receive window closes. The last frame
-        // must still carry history.url even if internal rebuilds ran.
-        string? lastFrame = null;
-        while (await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500)) is { } frame)
-        {
-            lastFrame = frame;
-        }
+        // Every frame the navigation produced. The last one must still carry
+        // history.url even if internal rebuilds ran.
+        var frames = await fixture.Ws.SettledAsync();
 
-        Assert.NotNull(lastFrame);
-        using var doc = JsonDocument.Parse(lastFrame!);
+        Assert.NotEmpty(frames);
+        using var doc = JsonDocument.Parse(frames[^1]);
         Assert.True(doc.RootElement.TryGetProperty("history", out var history));
         Assert.Equal("/destination", history.GetProperty("url").GetString());
     }

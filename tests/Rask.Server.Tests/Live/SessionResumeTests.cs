@@ -64,9 +64,11 @@ public sealed class SessionResumeTests
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.AttachedAsync(host, sessionId);
 
         // Declaring state and asking for a render is what an event handler does; the record rides the
-        // frame that comes back.
+        // frame that comes back. Asked only once the socket is attached: a render requested in the instant
+        // a hello attaches is not this test's subject.
         var session = host.Store.Get(sessionId)!;
         session.Services.GetRequiredService<IPersistentState>().Persist(StateKey, seed);
         await session.View.StateHasChangedAsync();
@@ -80,49 +82,18 @@ public sealed class SessionResumeTests
     /// <summary>Reads the rebuild frame: the rendered html and the record for the session it created.</summary>
     private static async Task<(string Html, string Resume)> ReadRebuildAsync(ILiveTestConnection ws)
     {
-        for (var i = 0; i < 8; i++)
-        {
-            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            if (frame is null)
-            {
-                break;
-            }
-
-            using var doc = JsonDocument.Parse(frame);
-            if (doc.RootElement.TryGetProperty("html", out var html)
-                && html.ValueKind == JsonValueKind.String
-                && doc.RootElement.TryGetProperty("resume", out var resume)
-                && resume.ValueKind == JsonValueKind.String)
-            {
-                return (html.GetString()!, resume.GetString()!);
-            }
-        }
-
-        Assert.Fail("expected a rebuild frame carrying both html and a resume record");
-        return (string.Empty, string.Empty);
+        var frame = await ws.ReceiveUntilAsync(
+            f => StringField(f, "html") is not null && StringField(f, "resume") is not null,
+            "a rebuild frame carrying both html and a resume record");
+        return (StringField(frame, "html")!, StringField(frame, "resume")!);
     }
 
     /// <summary>Reads frames until one carries a resume record.</summary>
     private static async Task<string> ReadResumeAsync(WebSocket ws)
     {
-        for (var i = 0; i < 8; i++)
-        {
-            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            if (frame is null)
-            {
-                break;
-            }
-
-            using var doc = JsonDocument.Parse(frame);
-            if (doc.RootElement.TryGetProperty("resume", out var resume)
-                && resume.ValueKind == JsonValueKind.String)
-            {
-                return resume.GetString()!;
-            }
-        }
-
-        Assert.Fail("expected a render payload carrying a resume record");
-        return string.Empty;
+        var frame = await ws.ReceiveUntilAsync(
+            f => StringField(f, "resume") is not null, "a render payload carrying a resume record");
+        return StringField(frame, "resume")!;
     }
 
     [Theory]
@@ -214,22 +185,10 @@ public sealed class SessionResumeTests
 
         await ws.SendJsonAsync(new { type = "navigate", path = "/orders/9", query = "" });
 
-        string? moved = null;
-        for (var i = 0; i < 8 && moved is null; i++)
-        {
-            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            if (frame is null)
-            {
-                break;
-            }
+        var moved = await ws.ReceiveUntilAsync(
+            frame => frame.Contains("/orders/9", StringComparison.Ordinal), "the frame that moves the tab to /orders/9");
 
-            if (frame.Contains("/orders/9", StringComparison.Ordinal))
-            {
-                moved = frame;
-            }
-        }
-
-        Assert.NotNull(moved);
+        Assert.Contains("/orders/9", moved, StringComparison.Ordinal);
         Assert.True(ws.IsOpen);
     }
 
@@ -248,7 +207,7 @@ public sealed class SessionResumeTests
 
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
-        Assert.Null(await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500)));
+        Assert.Empty(await ws.SettledAsync());
         Assert.True(ws.IsOpen);
     }
 
@@ -262,6 +221,7 @@ public sealed class SessionResumeTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
+        await ws.AttachedAsync(host, sessionId);
 
         var session = host.Store.Get(sessionId)!;
         session.Services.GetRequiredService<IPersistentState>().Persist(StateKey, 1);
@@ -272,11 +232,9 @@ public sealed class SessionResumeTests
         // route change at all is not.
         await session.View.StateHasChangedAsync();
 
-        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500));
-        if (frame is not null)
-        {
-            Assert.DoesNotContain("\"resume\"", frame, StringComparison.Ordinal);
-        }
+        var frames = await ws.SettledAsync();
+
+        Assert.DoesNotContain(frames, frame => frame.Contains("\"resume\"", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -329,7 +287,6 @@ public sealed class SessionResumeTests
         Assert.Equal(1, host.Store.Count);
     }
 
-
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
     public async Task Without_a_record_an_unknown_session_still_reloads(LiveTransportKind transport)
@@ -340,9 +297,8 @@ public sealed class SessionResumeTests
 
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
-        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var frame = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(frame);
         Assert.Contains("\"status\":\"unknown\"", frame, StringComparison.Ordinal);
     }
 
@@ -356,9 +312,8 @@ public sealed class SessionResumeTests
 
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId, "not-a-real-record");
 
-        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var frame = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(frame);
         Assert.Contains("\"status\":\"unknown\"", frame, StringComparison.Ordinal);
         Assert.Equal(0, host.Store.Count);
     }
@@ -382,9 +337,8 @@ public sealed class SessionResumeTests
 
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId, token);
 
-        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var frame = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(frame);
         Assert.Contains("\"status\":\"unknown\"", frame, StringComparison.Ordinal);
         Assert.Equal(1, host.Store.Count);
     }
@@ -409,9 +363,8 @@ public sealed class SessionResumeTests
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
-        var reply = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var reply = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(reply);
         Assert.Contains("\"status\":\"unknown\"", reply, StringComparison.Ordinal);
     }
 
@@ -425,7 +378,6 @@ public sealed class SessionResumeTests
         start += marker.Length;
         return html[start..html.IndexOf('"', start)];
     }
-
 
     /// <summary>
     /// Reads frames until one carries rendered html (the rebuild), skipping resume/ack frames, and returns
@@ -454,22 +406,16 @@ public sealed class SessionResumeTests
 
     private static async Task<string> ReadFrameWithHtmlAsync(ILiveTestConnection ws)
     {
-        for (var i = 0; i < 8; i++)
-        {
-            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            if (frame is null)
-            {
-                break;
-            }
+        var frame = await ws.ReceiveUntilAsync(f => StringField(f, "html") is not null, "a rendered frame");
+        return StringField(frame, "html")!;
+    }
 
-            using var doc = JsonDocument.Parse(frame);
-            if (doc.RootElement.TryGetProperty("html", out var html) && html.ValueKind == JsonValueKind.String)
-            {
-                return html.GetString()!;
-            }
-        }
-
-        Assert.Fail("expected a rendered frame on the socket");
-        return string.Empty;
+    // A top-level string of a frame, or null when the frame has none by that name.
+    private static string? StringField(string frame, string name)
+    {
+        using var doc = JsonDocument.Parse(frame);
+        return doc.RootElement.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
     }
 }

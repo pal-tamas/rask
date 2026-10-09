@@ -42,6 +42,28 @@ internal interface ILiveTestConnection : IAsyncDisposable
     Task<string?> TryReceiveCloseReasonAsync(TimeSpan timeout);
 }
 
+/// <summary>The waits of <see cref="LiveFrames" />, for a connection over either transport.</summary>
+internal static class LiveTestConnectionFrames
+{
+    /// <summary>The next frame; fails the test when none comes.</summary>
+    public static Task<string> ReceiveTextAsync(this ILiveTestConnection connection) =>
+        LiveFrames.NextAsync(connection.TryReceiveTextAsync);
+
+    /// <summary>
+    ///     The first frame <paramref name="isIt" /> accepts; fails the test, naming <paramref name="what" />, when
+    ///     none comes.
+    /// </summary>
+    public static Task<string> ReceiveUntilAsync(
+        this ILiveTestConnection connection, Func<string, bool> isIt, string what) =>
+        LiveFrames.UntilAsync(connection.TryReceiveTextAsync, isIt, what);
+
+    /// <summary>
+    ///     Returns once the server has finished everything this connection sent it, with the frames that produced.
+    /// </summary>
+    public static Task<List<string>> SettledAsync(this ILiveTestConnection connection) =>
+        LiveFrames.SettledAsync(connection.SendJsonAsync, connection.TryReceiveTextAsync);
+}
+
 internal static class LiveTestConnection
 {
     /// <summary>Both transports, for <c>[MemberData]</c>.</summary>

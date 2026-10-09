@@ -54,7 +54,7 @@ internal sealed class ConnectedSession : IAsyncDisposable
         var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync());
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
         var session = host.Store.Get(sessionId)!;
         return new ConnectedSession(host, ws, session);
     }

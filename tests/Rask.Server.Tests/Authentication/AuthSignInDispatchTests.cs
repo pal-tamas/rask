@@ -23,13 +23,12 @@ public class AuthSignInDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.SendJsonAsync(new { id = signInHandlerId }, ct: TestContext.Current.CancellationToken);
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var text = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(text);
-        using var doc = JsonDocument.Parse(text!);
+        using var doc = JsonDocument.Parse(text);
         Assert.True(doc.RootElement.TryGetProperty("auth", out var authEl));
         Assert.Equal(JsonValueKind.String, authEl.GetProperty("ticket").ValueKind);
         Assert.Equal("/dashboard", authEl.GetProperty("returnUrl").GetString());
@@ -54,14 +53,12 @@ public class AuthSignInDispatchTests
         using (var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None))
         {
             await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-            _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            await ws.AttachedAsync(host, sessionId);
 
             await ws.SendJsonAsync(new { id = signInHandlerId }, ct: TestContext.Current.CancellationToken);
-            var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            var text = await ws.ReceiveTextAsync();
 
-            Assert.NotNull(text);
-
-            using var doc = JsonDocument.Parse(text!);
+            using var doc = JsonDocument.Parse(text);
             var ticket = doc.RootElement.GetProperty("auth").GetProperty("ticket").GetString();
 
             // Simulate the JS fetch hitting /_rask/auth/redeem; a real browser shares
@@ -91,9 +88,7 @@ public class AuthSignInDispatchTests
 
         using var ws2 = await wsClient.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        var afterReconnect = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-
-        Assert.NotNull(afterReconnect);
+        var afterReconnect = await ws2.ReceiveTextAsync();
 
         // The reconnect render reflects the redeemed identity. Payload may be either a
         // full-HTML (`kind:"html"`) or a diff (`kind:"diff"` with the new text in an
@@ -102,7 +97,7 @@ public class AuthSignInDispatchTests
         // (The returnUrl navigation to `/dashboard` is applied on THIS reconnect, after the
         // principal is re-seeded, so both `user=alice` and `path=/dashboard` flip here; the
         // identity is the load-bearing assertion for this test.)
-        Assert.Contains("user=alice", afterReconnect!);
+        Assert.Contains("user=alice", afterReconnect);
     }
 
     [Fact]
@@ -116,16 +111,22 @@ public class AuthSignInDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.SendJsonAsync(new { id = signInHandlerId }, ct: TestContext.Current.CancellationToken);
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.ReceiveTextAsync();
+        var session = host.Store.Get(sessionId)!;
+        await WaitFor.True(
+            () => session.SuppressEventsUntilReconnect, LiveFrames.HangCeiling, "the handoff suppresses further events");
 
-        // Now the session is in suppressed mode. A second click should produce no payload.
+        // Now the session is in suppressed mode. A second click should produce no payload. A suppressed
+        // frame is dropped unread, so nothing the server does says it has seen this one: the wait is a
+        // window, and a slow machine can only make it pass for less reason, never fail.
         await ws.SendJsonAsync(new { id = signInHandlerId }, ct: TestContext.Current.CancellationToken);
         var second = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
 
         Assert.Null(second);
+        Assert.Equal(0, session.PendingHandlers);
     }
 
     private static RaskTestHost CreateHost() =>
