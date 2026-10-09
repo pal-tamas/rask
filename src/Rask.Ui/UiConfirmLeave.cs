@@ -37,7 +37,8 @@ public sealed partial class UiConfirmLeave : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Ui.Modal.Name(DialogId)[
+        // As wide as Flux draws its confirmation, so the close button sits in the corner and not beside the question.
+        Ui.Modal.Name(DialogId).Class("min-w-[22rem]")[
             Div.Class("space-y-6")[
                 // Empty in every render and filled in the browser, so it is kept out of the morph's hands: a
                 // render that lands while the dialog is open would otherwise blank the question.
