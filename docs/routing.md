@@ -294,6 +294,14 @@ public sealed partial class AppLayout(RouteState route) : Component
 There is nothing to register, no shared service for the page to write into, and no event for the layout to
 subscribe to.
 
+**Only the routed page is asked.** A component the page renders — a form shared between a "new" and an "edit"
+page, say — cannot name the page. So the routed page owns the load that names it: load the record in the page's
+`OnUpdated`, state `PageTitle` there, and hand the record down to the form as a prop. A page whose record is
+missing answers `null`: the tab shows the layout's fallback and the trail ends at the list.
+
+**If your app already has a component called `PageTitle`,** rename it: inside a component the bare name now
+means this member, not your component's chain entry.
+
 **The first HTML already carries it.** A page is mounted where its layout places the `Outlet`, so the layout
 has rendered by the time the page's title is known. When the title turns out to have changed, Rask renders
 whatever read it once more before anything is sent: a direct load shows the crumb and the tab title with no
