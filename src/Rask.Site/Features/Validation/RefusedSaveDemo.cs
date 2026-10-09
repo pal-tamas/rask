@@ -26,7 +26,7 @@ public sealed partial class RefusedSaveDemo : Component
         await Task.Delay(150);
         if (!_routes.Add(route.Name))
         {
-            throw new RouteNameTaken();
+            throw new RouteNameTakenException();
         }
 
         _saved = $"Saved: {route.Name}";

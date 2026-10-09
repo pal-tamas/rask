@@ -118,7 +118,7 @@ Any exception can do this by implementing `IFieldFailures`. A failure is a messa
 is shown under, named as the form's model names them (`Name`, `Price.Amount`, `Lines[2].ValidFrom`):
 
 ```csharp
-public sealed class RouteNameTaken() : Exception("The route name is taken."), IFieldFailures
+public sealed class RouteNameTakenException() : Exception("The route name is taken."), IFieldFailures
 {
     public IReadOnlyList<FieldFailure> Failures { get; } =
         [new("A route with this name already exists.", [nameof(RouteModel.Name)])];

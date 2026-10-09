@@ -1279,7 +1279,7 @@ public abstract partial class SharedSmokeTests
         // controls themselves; docs/building-form-controls.md is the path for building one back.
         // ---- validation subpage (docs/forms-validation.md) ----
         await SideAsync("Forms — validation", "Forms — validation", "main .markdown-body h1");
-        await AssertGuideDemosAsync(12, "forms-validation");
+        await AssertGuideDemosAsync(13, "forms-validation");
 
         // The rule the page leads with: a value object's Validate, named from the field. The message is the
         // value object's own, and a name it accepts reaches the submit handler.
@@ -1292,6 +1292,21 @@ public abstract partial class SharedSmokeTests
         await destination.Locator("#v-vo-name").FillAsync("Lisbon");
         await destination.Locator("button[type=submit]").ClickAsync();
         await Expect(Page.GetByText("Saved: Lisbon"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // The store says no: the field has no rule, the save handler throws a failure that names it. The
+        // message lands under the field, the reader stays, a correction clears it and the next save lands.
+        const string refusal = "A route with this name already exists.";
+        var route = Page.Locator("form:has(#v13-name)");
+        await route.Locator("#v13-name").FillAsync("Budapest – Wien");
+        await route.Locator("button[type=submit]").ClickAsync();
+        await Expect(route.GetByText(refusal))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(route.Locator("#v13-name")).ToHaveAttributeAsync("aria-invalid", "true");
+        await route.Locator("#v13-name").FillAsync("Wien – Graz");
+        await Expect(route.GetByText(refusal)).ToBeHiddenAsync();
+        await route.Locator("button[type=submit]").ClickAsync();
+        await Expect(Page.GetByText("Saved: Wien – Graz"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;

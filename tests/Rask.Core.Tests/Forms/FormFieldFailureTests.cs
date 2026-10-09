@@ -20,7 +20,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_failure_naming_one_field_shows_its_message_under_that_field()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure(Taken, ["Number"])));
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Number"])));
 
         await page.Submit();
 
@@ -32,7 +32,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_failure_under_a_field_is_neither_the_forms_error_nor_a_submit_still_running()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure(Taken, ["Number"])));
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Number"])));
 
         await page.Submit();
 
@@ -43,7 +43,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_failure_naming_two_fields_shows_its_message_under_both()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure(Taken, ["Year", "Number"])));
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Year", "Number"])));
 
         await page.Submit();
 
@@ -54,7 +54,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_range_failure_is_told_under_one_field_and_only_marks_its_bounds()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure(Booked, ["Driver"], ["From", "To"])));
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Booked, ["Driver"], ["From", "To"])));
 
         await page.Submit();
 
@@ -69,7 +69,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_failure_on_a_nested_path_lands_on_the_nested_objects_field()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure("Too much.", ["Price.Amount"])));
+        var page = new InvoicePage(new RefusedException(new FieldFailure("Too much.", ["Price.Amount"])));
 
         await page.Submit();
 
@@ -79,7 +79,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_failure_on_a_row_of_a_collection_lands_on_that_rows_field()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure(Booked, ["Lines[2].From"], ["Lines[2].To"])));
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Booked, ["Lines[2].From"], ["Lines[2].To"])));
 
         await page.Submit();
 
@@ -91,7 +91,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_failure_over_several_rows_is_told_under_each_rows_field()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure(Booked, ["Lines[0].From", "Lines[2].From"])));
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Booked, ["Lines[0].From", "Lines[2].From"])));
 
         await page.Submit();
 
@@ -102,7 +102,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_failure_naming_no_field_on_the_form_goes_to_its_summary()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure("Closed for the year.", ["Period"])), summary: true);
+        var page = new InvoicePage(new RefusedException(new FieldFailure("Closed for the year.", ["Period"])), summary: true);
 
         await page.Submit();
 
@@ -113,7 +113,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_failure_about_the_whole_submission_goes_to_the_forms_summary()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure("Closed for the year.", [])), summary: true);
+        var page = new InvoicePage(new RefusedException(new FieldFailure("Closed for the year.", [])), summary: true);
 
         await page.Submit();
 
@@ -123,7 +123,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_failure_nothing_on_the_page_would_show_stays_the_forms_error()
     {
-        var refused = new Refused(new FieldFailure("Closed for the year.", ["Period"]));
+        var refused = new RefusedException(new FieldFailure("Closed for the year.", ["Period"]));
         var page = new InvoicePage(refused);
 
         var reported = await Reported(page.Submit);
@@ -135,7 +135,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_failure_inside_an_aggregate_is_still_shown_under_its_field()
     {
-        var page = new InvoicePage(new AggregateException(new Refused(new FieldFailure(Taken, ["Number"]))));
+        var page = new InvoicePage(new AggregateException(new RefusedException(new FieldFailure(Taken, ["Number"]))));
 
         await page.Submit();
 
@@ -147,7 +147,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     public async Task A_failure_thrown_through_a_reflected_call_is_still_shown_under_its_field()
     {
         var page = new InvoicePage(
-            new TargetInvocationException(new Refused(new FieldFailure(Taken, ["Number"]))));
+            new TargetInvocationException(new RefusedException(new FieldFailure(Taken, ["Number"]))));
 
         await page.Submit();
 
@@ -169,7 +169,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Editing_one_field_of_a_failure_clears_it_from_every_field_it_names()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure(Taken, ["Year", "Number"])));
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Year", "Number"])));
         await page.Submit();
 
         await page.Type("number", "43");
@@ -182,7 +182,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Editing_a_marked_field_clears_the_message_it_was_marked_for()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure(Booked, ["Driver"], ["From", "To"])));
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Booked, ["Driver"], ["From", "To"])));
         await page.Submit();
 
         await page.Type("to", "2026-11-02");
@@ -194,7 +194,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Editing_a_field_the_failure_does_not_name_leaves_it_in_place()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure(Taken, ["Year", "Number"])));
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Year", "Number"])));
         await page.Submit();
 
         await page.Type("driver", "Bea");
@@ -203,9 +203,33 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task Validating_a_field_again_without_changing_it_keeps_what_the_store_said()
+    {
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Year", "Number"])));
+        await page.Submit();
+
+        var valid = await page.Form.ValidateField(new FieldIdentifier(page.Model, "Number"), TestContext.Current.CancellationToken);
+
+        Assert.False(valid);
+        Assert.Equal([Taken], page.Messages(page.Model, "Number"));
+        Assert.Equal([Taken], page.Messages(page.Model, "Year"));
+    }
+
+    [Fact]
+    public async Task Clearing_one_field_by_hand_clears_the_failure_from_every_field_it_names()
+    {
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Year", "Number"])));
+        await page.Submit();
+
+        page.Form.ClearMessages(new FieldIdentifier(page.Model, "Number"));
+
+        Assert.Empty(page.Messages(page.Model, "Year"));
+    }
+
+    [Fact]
     public async Task The_next_submit_validates_afresh_and_goes_through()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure(Taken, ["Year", "Number"])));
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Year", "Number"])));
         await page.Submit();
 
         page.Thrown = null;
@@ -219,7 +243,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_failure_shown_under_its_field_is_logged_as_information_with_its_source()
     {
-        var page = new InvoicePage(new Refused(new FieldFailure(Taken, ["Year", "Number"], Source: "IX_Invoice_Number")));
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Year", "Number"], Source: "IX_Invoice_Number")));
 
         var reported = await Reported(page.Submit);
 
@@ -246,7 +270,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
         return captured;
     }
 
-    private sealed class Refused(params FieldFailure[] failures) : Exception("refused"), IFieldFailures
+    private sealed class RefusedException(params FieldFailure[] failures) : Exception("refused"), IFieldFailures
     {
         public IReadOnlyList<FieldFailure> Failures => failures;
     }
@@ -343,7 +367,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
                     Summary ? Validation.Summary.Template(entries => Ul[entries.Select(e => (Component)Li.Key(e.Message)[e.Message])]) : null,
                 ];
             }
-            ];
+        ];
 
         private Task Save(Invoice invoice)
         {

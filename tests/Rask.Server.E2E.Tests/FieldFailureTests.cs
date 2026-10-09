@@ -99,7 +99,7 @@ public sealed partial class RefusedSavePage : Component
         await Task.Delay(20);
         if (invoice is { Year: "2026", Number: "42" })
         {
-            throw new Refused(new FieldFailure("That invoice number is taken.", ["Year", "Number"], Source: "IX_Invoice_Year_Number"));
+            throw new RefusedException(new FieldFailure("That invoice number is taken.", ["Year", "Number"], Source: "IX_Invoice_Year_Number"));
         }
 
         _saved = $"{invoice.Year}/{invoice.Number}";
@@ -109,7 +109,7 @@ public sealed partial class RefusedSavePage : Component
     {
         if (string.Equals(renaming.Name, "Budapest", StringComparison.Ordinal))
         {
-            throw new Refused(new FieldFailure("That name is in use.", ["Name"]));
+            throw new RefusedException(new FieldFailure("That name is in use.", ["Name"]));
         }
 
         _renamed = renaming.Name;
@@ -127,7 +127,7 @@ public sealed partial class RefusedSavePage : Component
         public string Name { get; set; } = "";
     }
 
-    private sealed class Refused(params FieldFailure[] failures) : Exception("refused"), IFieldFailures
+    private sealed class RefusedException(params FieldFailure[] failures) : Exception("refused"), IFieldFailures
     {
         public IReadOnlyList<FieldFailure> Failures => failures;
     }

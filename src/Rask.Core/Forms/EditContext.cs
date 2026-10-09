@@ -39,7 +39,7 @@ public sealed partial class EditContext : IDisposable
     // validator). A two-way write re-renders this consumer so derived UI it owns — even a sibling of the
     // Form, outside the control's own re-render scope — refreshes with no StateHasChanged. Mirrors the
     // controlled-mode AutoCallback owner-rerender, for bound mode.
-    private readonly Dictionary<FieldIdentifier, Component> _bindingOwners = new();
+    private readonly Dictionary<FieldIdentifier, Component?> _bindingOwners = new();
     private Delegate? _formDelegate;
 
     // What a validator that throws leaves on its field: a crashed rule must not crash the form.
@@ -262,7 +262,6 @@ public sealed partial class EditContext : IDisposable
     ///     on every call.</param>
     public void RegisterFieldValidator(FieldIdentifier field, Delegate? validate, Func<object?> valueGetter)
     {
-        _boundFields.Add(field);
         if (validate is null)
         {
             _fieldDelegates.Remove(field);
@@ -429,14 +428,9 @@ public sealed partial class EditContext : IDisposable
     }
 
     // Records the consumer that owns a field's bind expression so a write can re-render it. Idempotent per
-    // render; null owners (bindings closed over a non-component root) are ignored.
-    internal void TrackBindingOwner(FieldIdentifier field, Component? owner)
-    {
-        if (owner is not null)
-        {
-            _bindingOwners[field] = owner;
-        }
-    }
+    // render. A binding closed over a non-component root has no owner to re-render and is recorded all the
+    // same: being here is what says a control on the form is bound to the field (IsBound).
+    internal void TrackBindingOwner(FieldIdentifier field, Component? owner) => _bindingOwners[field] = owner;
 
     /// <summary>
     ///     Records that a field's value changed: marks it modified, raises <see cref="FieldChanged" />, and
@@ -456,7 +450,7 @@ public sealed partial class EditContext : IDisposable
         // controlled-OnChange consumer re-render. The control already re-renders itself; this covers the host.
         if (_bindingOwners.TryGetValue(field, out var owner))
         {
-            owner.StateHasChanged();
+            owner?.StateHasChanged();
         }
     }
 

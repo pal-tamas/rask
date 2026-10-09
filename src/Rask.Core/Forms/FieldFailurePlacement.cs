@@ -31,7 +31,7 @@ internal static class FieldFailurePlacement
 
     private static bool Place(EditContext form, FieldFailure failure)
     {
-        var under = Bound(form, failure.Fields);
+        var under = Bound(form, failure.Fields ?? []);
         var marked = Bound(form, failure.Marked ?? []);
         if (under.Length == 0 && form.ShowsFormMessages)
         {

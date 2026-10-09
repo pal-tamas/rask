@@ -18,7 +18,7 @@ public partial class UiFieldFailureTests : global::Rask.Core.RaskMarkup
         var (ruled, thrown) = (new Trip(), new Trip());
         var byRule = Page.Render(() => Booking(ruled, rules: true, thrown: null));
         var byHandler = Page.Render(() => Booking(thrown, rules: false,
-            new Refused(new FieldFailure(Said, ["Name", "Country", "Leaves", "Notes"]))));
+            new RefusedException(new FieldFailure(Said, ["Name", "Country", "Leaves", "Notes"]))));
 
         await byRule.On("form").Submit();
         await byHandler.On("form").Submit();
@@ -32,7 +32,7 @@ public partial class UiFieldFailureTests : global::Rask.Core.RaskMarkup
     {
         var trip = new Trip();
         var page = Page.Render(() => Booking(trip, rules: false,
-            new Refused(new FieldFailure(Said, ["Country"], ["Leaves"]))));
+            new RefusedException(new FieldFailure(Said, ["Country"], ["Leaves"]))));
 
         await page.On("form").Submit();
 
@@ -65,7 +65,7 @@ public partial class UiFieldFailureTests : global::Rask.Core.RaskMarkup
         ];
     }
 
-    private sealed class Refused(params FieldFailure[] failures) : Exception("refused"), IFieldFailures
+    private sealed class RefusedException(params FieldFailure[] failures) : Exception("refused"), IFieldFailures
     {
         public IReadOnlyList<FieldFailure> Failures => failures;
     }

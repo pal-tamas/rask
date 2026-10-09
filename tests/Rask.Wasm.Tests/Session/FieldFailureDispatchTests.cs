@@ -60,7 +60,7 @@ internal sealed partial class RefusingApp : Component
     private void Save(Place place)
     {
         _saves++;
-        throw new Refused(new FieldFailure("That name is in use.", [nameof(Place.Name)]));
+        throw new RefusedException(new FieldFailure("That name is in use.", [nameof(Place.Name)]));
     }
 
     private sealed class Place
@@ -68,7 +68,7 @@ internal sealed partial class RefusingApp : Component
         public string Name { get; set; } = "Budapest";
     }
 
-    private sealed class Refused(params FieldFailure[] failures) : Exception("refused"), IFieldFailures
+    private sealed class RefusedException(params FieldFailure[] failures) : Exception("refused"), IFieldFailures
     {
         public IReadOnlyList<FieldFailure> Failures => failures;
     }

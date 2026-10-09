@@ -153,7 +153,7 @@ public static partial class DemoRegistry
             // --- Forms guide: the remaining validation demos (their standalone /validation page folded in). ---
             ["validation-summary"] = () => CodeSample.Files(["ValidationSummaryDemo.cs"]).Result(ValidationSummaryDemo),
             ["validation-inline-async"] = () => CodeSample.Files(["InlineAsyncValidateDemo.cs", "PromoModel.cs"]).Result(InlineAsyncValidateDemo),
-            ["validation-refused-save"] = () => CodeSample.Files(["RefusedSaveDemo.cs", "RouteNameTaken.cs", "RouteModel.cs"]).Result(RefusedSaveDemo),
+            ["validation-refused-save"] = () => CodeSample.Files(["RefusedSaveDemo.cs", "RouteNameTakenException.cs", "RouteModel.cs"]).Result(RefusedSaveDemo),
             ["validation-custom-attribute"] = () => CodeSample.Files(["CustomAttributeDemo.cs", "CustomAttributeModel.cs", "StrongPasswordAttribute.cs", "MatchesPropertyAttribute.cs", "NotBannedAttribute.cs"]).Result(CustomAttributeDemo),
             ["validation-validatable-object"] = () => CodeSample.Files(["ValidatableObjectDemo.cs", "BookingModel.cs"]).Result(ValidatableObjectDemo),
             ["validation-fluent-async"] = () => CodeSample.Files(["FluentValidationAsyncDemo.cs", "TicketModel.cs", "TicketValidator.cs"]).Result(FluentValidationAsyncDemo),
