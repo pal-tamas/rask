@@ -75,7 +75,7 @@ internal static class UiChartPaths
     {
         var top = Math.Min(value, baseline);
         var height = Math.Abs(baseline - value);
-        var r = Math.Min(radius, Math.Min(width / 2, height));
+        var r = Corner(radius, width, height);
         if (r <= 0)
         {
             path.Append('M').Point(x, top).Append(" h").Number(width).Append(" v").Number(height)
@@ -93,21 +93,35 @@ internal static class UiChartPaths
         }
     }
 
-    /// <summary>A bar lying on its side, from <paramref name="baseline" /> out to <paramref name="value" />.</summary>
+    /// <summary>
+    /// A bar lying on its side, from <paramref name="baseline" /> out to <paramref name="value" />. One that runs
+    /// back from the baseline is rounded at its left end.
+    /// </summary>
     internal static void HorizontalBar(StringBuilder path, double y, double height, double value, double baseline, double radius)
     {
         var width = Math.Abs(value - baseline);
-        var r = Math.Min(radius, Math.Min(height / 2, width));
-        if (r <= 0 || value < baseline)
+        var r = Corner(radius, height, width);
+        if (r <= 0)
         {
             path.Append('M').Point(Math.Min(value, baseline), y).Append(" h").Number(width).Append(" v").Number(height)
                 .Append(" h-").Number(width).Append(" v-").Number(height);
-            return;
         }
-
-        path.Append('M').Point(baseline, y).Append('H').Number(value - r).Arc(r, value, y + r).Append('V').Number(y + height - r)
-            .Arc(r, value - r, y + height).Append('H').Number(baseline).Append('V').Number(y).Append('Z');
+        else if (value >= baseline)
+        {
+            path.Append('M').Point(baseline, y).Append('H').Number(value - r).Arc(r, value, y + r).Append('V').Number(y + height - r)
+                .Arc(r, value - r, y + height).Append('H').Number(baseline).Append('V').Number(y).Append('Z');
+        }
+        else
+        {
+            path.Append('M').Point(value, y + r).Arc(r, value + r, y).Append('H').Number(baseline).Append('V').Number(y + height)
+                .Append('H').Number(value + r).Arc(r, value, y + height - r).Append('V').Number(y + r).Append('Z');
+        }
     }
+
+    // Two corners share the value end, so each takes at most half of it — and at most half the bar's own
+    // length, which is what keeps a bar shorter than its corners a half disc and not a shape that folds back.
+    private static double Corner(double radius, double thickness, double length) =>
+        Math.Min(radius, Math.Min(thickness / 2, length / 2));
 
     /// <summary>
     /// One slice of a pie or a donut, clockwise from <paramref name="from" /> to <paramref name="to" /> (radians

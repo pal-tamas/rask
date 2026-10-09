@@ -1255,6 +1255,15 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A `Ui.ChartBar` shorter than its corners is drawn as Flux draws it.** A bar's corner was held to the bar's
+  whole length, where Flux holds it to HALF of it (and to half the bar's thickness): a bar under 16px tall with
+  the default radius of 8 — or under 8px in a group, whose radius is 4 — had its shoulders 1 to 3px too low, the
+  arcs meeting in a point instead of a half disc. A bar lying on its side that runs back from the baseline (a
+  negative value on a `Horizontal()` chart) was square at both ends; it is rounded at its left end now, as
+  Flux's. Found on the random rows Flux's docs draw (three loads in six had such a bar) and held by
+  `UiChartTests.Bars.json`: those loads, and rows handed to Flux's live chart for short, empty and negative bars
+  alone, grouped, stacked and horizontal.
+
 - **A Server page no longer raises `Rask: inRoot() was called before a host was installed`.** The runtime's
   own `<script>` is the last child of the render root, so an in-app navigation to a page with one top-level
   node more or fewer moved it, and the morph moved it by inserting the incoming tag — which ran `rask.js` a
