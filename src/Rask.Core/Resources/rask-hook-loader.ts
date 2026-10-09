@@ -80,6 +80,9 @@ function keep(e: Event): void {
 }
 
 function reserve(target: EventTarget, type: string): void {
+    if (seam.reserved[type]) {
+        return; // a second copy of the runtime in one document: the place is kept, and the hooks may be in it
+    }
     const place: ((e: Event) => void)[] = seam.reserved[type] = [];
     target.addEventListener(type, function (e) {
         for (let i = 0; i < place.length; i++) {

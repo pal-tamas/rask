@@ -1276,6 +1276,17 @@ them until tagged releases begin.
   - **`Ui.Autocomplete`'s Tab hands the page what was typed** in its own handler, and a late `toggle` of an
     opening no longer opens the list: the echo of a render's own `showPopover` arrived after Tab had shut
     the list, opened it, and that opening's echo shut it — every 230 ms, for as long as the page was up.
+- **A Server page no longer raises `Rask: inRoot() was called before a host was installed`.** The runtime's
+  own `<script>` is the last child of the render root, so an in-app navigation to a page with one top-level
+  node more or fewer moved it, and the morph moved it by inserting the incoming tag — which ran `rask.js` a
+  second time in the same document. That copy declined to boot, but its shared modules had already bound their
+  document listeners with no host behind them, so from then on every keystroke in a field with `OnInput`, every
+  `OnKeyDown`, `OnFocus`, `OnClose` and the like threw an uncaught error — once per copy, one more copy per such
+  navigation — while the page went on working, which is why nothing showed. The morph now puts the runtime's
+  tag back without running it, and a copy that reaches a document some other way stands down: its listeners
+  answer nothing and send nothing. Nothing to change in an app. The Server browser suites fail on any error a
+  page does not catch from now on, and a contract test keeps the behaviour hooks' bundle from carrying a second
+  copy of a runtime module (`docs/js-interop-runtime.md`, "What a hook module may import").
 
 - **`Ui.SidebarItem` and `Ui.MenuItem` follow a string `Href` out of the app.** Every other kit link writes a
   string as an ordinary link (#1070); these two always wrote a `NavLink`, so under a path base

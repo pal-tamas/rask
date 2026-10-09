@@ -3,9 +3,15 @@
 #
 # Refreshed 2026-10-09 with typing that waits for .NET: what is typed into a field whose last value is still
 # unanswered is held and sent as one value (rask-input.ts), and a key handler hears only the keys its element
-# lists (`data-rask-keys`, rask-events.ts): rask.js 95,683 -> 96,121 and rask.wasm.js 84,539 -> 84,973, +438 and
+# lists (`data-rask-keys`, rask-events.ts): rask.js 95,912 -> 96,350 and rask.wasm.js 84,676 -> 85,110, +438 and
 # +434. `data-rask-clear-keys`, the key that empties a field in the browser, is a hook: rask-hooks.js
 # 40,106 -> 40,284 (+178).
+#
+# Refreshed 2026-10-09 with the runtime running a document once: the morph puts the runtime's own <script> back
+# without running it (keepRuntimeScript in rask-morph.ts, shared, so both runtimes carry the check), a second copy
+# of the Server runtime stands its host down (standDown in rask-host.ts), and the hook loader keeps a place it
+# already reserved: rask.js 95,683 -> 95,912 (+229) and rask.wasm.js 84,539 -> 84,676 (+137). rask-hooks.js is
+# unchanged at 40,106: it never carried a copy of rask-host.ts, which is what the fix had been expected to remove.
 #
 # Refreshed 2026-10-09 with the tablist's arrow keys (rask-tabs.ts, Flux's tabs — a hook module like the others,
 # so a page without a tablist does not download it): rask-hooks.js 39,346 -> 40,106 (+760). The loader's role
@@ -106,6 +112,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,96121
-rask.wasm.js,84973
+rask.js,96350
+rask.wasm.js,85110
 rask-hooks.js,40284
