@@ -9,6 +9,19 @@ them until tagged releases begin.
 
 ### Added
 
+- **`HasViolationMessage` — a unique index says what breaking it means.**
+  `builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique().HasViolationMessage("A destination with this
+  name already exists.")`. A save that violates the index — `Save()`, `Create`, `Update`, plain
+  `SaveChangesAsync` — fails with a `RaskValidationException` carrying that message, the failure a validator
+  produces, in place of the provider's `DbUpdateException` (which stays as the `InnerException`). The message is
+  filed under the property the index is over when that is one property beside `TenantId`, and under the empty
+  key when it is several. It is a constant: the conflicting value is never appended. The violated index is
+  recognised from the provider's own error — SQLSTATE `23505` and the constraint name on PostgreSQL, error
+  `2601` / `2627` and the index name on SQL Server, the table and columns on SQLite — with no provider package
+  of Rask's needed. An index with no message keeps the provider's error. `RaskValidationException` gains a
+  constructor taking the errors and an inner exception. **Not yet done:** a `Form` still shows this as `f.Error`
+  rather than under the field.
+
 - **Rask.Data on a host wired by hand, in two calls: `AddRaskData<TContext>(o => …)` and `app.UseRaskData()`.**
   A host built from `AddRask()` and `MapRask<TApp>()` rather than `RaskApp` had to register the context factory
   with Rask's interceptors, the read context, a principal source and the request scope itself — and had no way

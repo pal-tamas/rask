@@ -60,6 +60,12 @@ internal static class TenantIndexes
                 replacement.IsUnique = true;
             }
 
+            // What the index was told about itself travels with it: the message a violation is reported with.
+            if (index.FindAnnotation(UniqueViolation.Annotation)?.Value is { } message)
+            {
+                replacement.SetAnnotation(UniqueViolation.Annotation, message);
+            }
+
             entityType.RemoveIndex(index);
         }
     }

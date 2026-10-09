@@ -1236,6 +1236,42 @@ table, an index declared here that does not name `TenantId` gets it in front.
 The method is matched by signature, so a near miss (an instance method, a private one, the wrong
 builder type) is reported as [RASK072](diagnostics.md#rask072) rather than silently not called.
 
+### What a unique index's violation says
+
+A unique index is a rule, and the database is the only place that can enforce it without a race. Say what
+breaking it means, on the index:
+
+```csharp
+builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique()
+    .HasViolationMessage("A destination with this name already exists.");
+
+await Destination.Named(model.Name).Save();   // nothing else at the call site
+```
+
+A save that violates the index then fails the way a [validator's rule](validation.md#rejected) does — a
+`RaskValidationException` whose `Errors` carry the message — instead of as the provider's `DbUpdateException`,
+whose text names tables and holds the conflicting value. Every save through the context does this:
+`Save()`, `Create`, `Update`, and plain `SaveChangesAsync`.
+
+| The index is over | `Errors` key | Meaning |
+|---|---|---|
+| one property (beside `TenantId`, which does not count) | that property's name — `"Name"` | the message belongs under that field |
+| several properties | `""` | a rule about the row as a whole |
+
+- **The message is a constant, and stays one.** It is shown to whoever sent the value, and nothing is appended
+  to it — not the value, and not which row it collided with.
+- **An index with no message keeps the provider's error**, exactly as before.
+- **The index is recognised by the provider's own error**, not by the text of a message a server may
+  translate: SQLSTATE `23505` and the constraint name on PostgreSQL, error `2601` / `2627` and the index name on
+  SQL Server, and on SQLite — which names no index — the table and columns it lists. It needs no provider
+  package of Rask's: a plain `UseSqlServer` works. On a table that already exists the index's name in the
+  database has to be the one in the model — EF Core's `IX_{Table}_{Columns}`, or say `HasDatabaseName("…")`.
+- The original exception is the `InnerException`, for the log.
+
+Over [remote dispatch](validation.md#rejected) this is the same 400 with field errors a validator produces. **In
+a `Form` it reaches the page as `f.Error` today**, like any other failure of the submit handler — the form does
+not yet file it under the field by itself.
+
 ## Value objects
 
 A value object needs **no marker and no base class**. Any composite an entity holds that is not itself an
