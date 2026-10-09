@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text.RegularExpressions;
+using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Diagnostics;
 using Rask.Server.Tests.Infrastructure;
@@ -21,7 +22,7 @@ public sealed class FullPageReplyReasonTests
         var reason = Assert.Single(said.Reasons);
 
         Assert.Contains("\"html\":\"<!DOCTYPE", said.Frame, StringComparison.Ordinal);
-        Assert.Equal(RaskLogLevel.Information, reason.Level);
+        Assert.Equal(RaskLogLevel.Warning, reason.Level);
         Assert.Contains("went out as the whole page", reason.Message, StringComparison.Ordinal);
         Assert.Contains("is by position, replaced by <div id=\"picked\">Glock</div>", reason.Message, StringComparison.Ordinal);
     }
@@ -38,9 +39,47 @@ public sealed class FullPageReplyReasonTests
         Assert.Empty(reasons);
     }
 
-    private static async Task<(string Frame, List<RaskDiagnosticEvent> Reasons)> SwapAsync(RaskTestHost host)
+    [Fact]
+    public async Task A_development_host_mapped_through_endpoint_routing_under_a_path_base_names_the_node_too()
     {
-        var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
+        using var host = RaskTestHost.Create<ShapeSwitchApp>(environment: "Development", pathBase: "/uj", endpointRouting: true);
+        var said = await SwapAsync(host, "/uj/");
+
+        var reason = Assert.Single(said.Reasons);
+
+        Assert.Contains("\"html\":\"<!DOCTYPE", said.Frame, StringComparison.Ordinal);
+        Assert.Equal(RaskLogLevel.Warning, reason.Level);
+        Assert.Contains("is by position, replaced by <div id=\"picked\">Glock</div>", reason.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_production_host_mapped_through_endpoint_routing_says_nothing()
+    {
+        using var host = RaskTestHost.Create<ShapeSwitchApp>(environment: "Production", pathBase: "/uj", endpointRouting: true);
+        var said = await SwapAsync(host, "/uj/");
+
+        var reasons = said.Reasons;
+
+        Assert.Contains("\"html\":\"<!DOCTYPE", said.Frame, StringComparison.Ordinal);
+        Assert.Empty(reasons);
+    }
+
+    [Fact]
+    public async Task A_press_that_only_calls_script_is_answered_with_a_diff_that_carries_the_call()
+    {
+        using var host = RaskTestHost.Create<ScriptOnlyApp>(environment: "Development");
+        var said = await SwapAsync(host);
+
+        var frame = said.Frame;
+
+        Assert.StartsWith("{\"kind\":\"diff\",\"ops\":[]", frame, StringComparison.Ordinal);
+        Assert.Contains("\"identifier\":\"test.noop\"", frame, StringComparison.Ordinal);
+        Assert.Empty(said.Reasons);
+    }
+
+    private static async Task<(string Frame, List<RaskDiagnosticEvent> Reasons)> SwapAsync(RaskTestHost host, string path = "/")
+    {
+        var html = await host.Http.GetStringAsync(path, TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(html);
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, TestContext.Current.CancellationToken);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
@@ -54,8 +93,7 @@ public sealed class FullPageReplyReasonTests
         try
         {
             await ws.SendJsonAsync(new { id = handler }, ct: TestContext.Current.CancellationToken);
-            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
-            Assert.NotNull(frame);
+            var frame = await ws.ReceiveUntilAsync(static frame => !frame.StartsWith("{\"type\":\"ack\"", StringComparison.Ordinal), "the reply to the press");
 
             return (frame, [.. captured.Where(e => string.Equals(e.Category, "Rask.Live", StringComparison.Ordinal))]);
         }
@@ -80,4 +118,15 @@ public sealed partial class ShapeSwitchApp : Component
             _picked ? Div.Id("picked")["Glock"] : Span.Id("placeholder")["Choose…"],
             Button.Id("swap").OnClick(() => _picked = true)["swap"]
         ];
+}
+
+/// <summary>A button whose press calls script and changes nothing on the page.</summary>
+public sealed partial class ScriptOnlyApp(IJSRuntime js) : Component
+{
+    protected override Component? HeadAssets => Title["script-only"];
+
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() =>
+        Main[Button.Id("swap").OnClick(() => { _ = js.InvokeVoidAsync("test.noop"); })["call"]];
 }

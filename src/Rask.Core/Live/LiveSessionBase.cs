@@ -502,6 +502,13 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         var usedDiff = diffCache is not null
                        && TryWriteDiff(diffCache, html, jsInvokes, historyUrl, replace, commitCache, resume, devError);
 
+        // A render with a sign-in handoff or a download never reaches the differ, so the branch that names a
+        // refused diff never sees it. In Development it is named here: no whole page goes out unexplained.
+        if (diffCache is null && frameWriter is not null && LiveOptions.IsDevelopment == true)
+        {
+            FullPageReply.ReportOutOfBand(auth is not null, html.Length);
+        }
+
         if (!usedDiff)
         {
             // Full-HTML path (first render, structural change, out-of-band side effect, size fallback):
@@ -530,13 +537,14 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     {
         _diffOps ??= new List<EditOp>();
         var headChanged = _htmlBuffers.HasPrevious && !LiveDiffGate.HeadUnchanged(html.Span, _htmlBuffers.PreviousSpan);
-        // Ship the diff when it carries DOM ops, OR when it carries none but a navigation or a
-        // head change must still flow (a query-only nav pushes the URL; a head-only change ships
-        // the head fragment). Zero ops + no history + unchanged head means nothing to send.
+        // Ship the diff when it carries DOM ops, OR when it carries none but a navigation, a head
+        // change or a script call must still flow (a query-only nav pushes the URL; a head-only change
+        // ships the head fragment; a handler that only called script changed nothing else, and the call
+        // used to cost the whole page). Zero ops and none of those means nothing to send.
         var compared = renderCache.TryComputeDiff(_diffOps, commitCache, html.Span);
         var diffBytes = 0;
         if (compared
-            && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
+            && (_diffOps.Count > 0 || historyUrl is not null || headChanged || jsInvokes is not null)
             && LiveDiffGate.DiffOpsAreClientSupported(_diffOps)
             && !renderCache.LastDiffForcedFullHtml)
         {
@@ -571,9 +579,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         // The whole page goes out instead. In Development, say why: nothing else names the node the differ gave up on.
-        if (compared && LiveOptions.IsDevelopment == true)
+        if (LiveOptions.IsDevelopment == true)
         {
-            FullPageReply.Report(_diffOps, renderCache.LastDiffForcedFullHtml, diffBytes, html.Span);
+            FullPageReply.Report(compared, _diffOps, renderCache.LastDiffForcedFullHtml, diffBytes, html.Span);
         }
 
         return false;

@@ -96,4 +96,29 @@ public partial class FullPageReplyTests : global::Rask.Core.RaskMarkup
         Assert.NotEmpty(ops);
         Assert.Null(reason);
     }
+
+    [Theory]
+    [InlineData(true, "sign-in handoff")]
+    [InlineData(false, "file download")]
+    public void A_render_that_never_reaches_the_differ_names_what_it_carries(bool signIn, string carried)
+    {
+        var reason = FullPageReply.OutOfBand(signIn);
+
+        var whole = reason.Contains("travels with a whole page", StringComparison.Ordinal);
+
+        Assert.Contains(carried, reason, StringComparison.Ordinal);
+        Assert.True(whole);
+    }
+
+    [Fact]
+    public void A_render_with_nothing_to_compare_with_and_one_with_nothing_to_patch_each_have_words_of_their_own()
+    {
+        var first = FullPageReply.NoEarlierRender;
+
+        var unchanged = FullPageReply.NothingToPatch;
+
+        Assert.Contains("no earlier render", first, StringComparison.Ordinal);
+        Assert.Contains("no change in the tree", unchanged, StringComparison.Ordinal);
+        Assert.NotEqual(first, unchanged);
+    }
 }
