@@ -28,10 +28,9 @@ public class RaskJSRuntimeTests
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         // First frame after hello: server re-renders and ships the pending jsInvoke.
-        var first = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var first = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(first);
-        using (var doc = JsonDocument.Parse(first!))
+        using (var doc = JsonDocument.Parse(first))
         {
             Assert.True(doc.RootElement.TryGetProperty("jsInvokes", out var jsInvokes),
                 "expected jsInvokes array on first post-hello frame, got: " + first);
@@ -49,7 +48,7 @@ public class RaskJSRuntimeTests
         }
 
         // Wait for the TCS to be completed by the await-continuation in the component.
-        var observed = await JsRoundTripApp.LastResult.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var observed = await JsRoundTripApp.LastResult.Task.WaitAsync(LiveFrames.HangCeiling, TestContext.Current.CancellationToken);
         Assert.Equal("stored-value", observed);
     }
 
@@ -62,16 +61,15 @@ public class RaskJSRuntimeTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        var first = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-        Assert.NotNull(first);
+        var first = await ws.ReceiveTextAsync();
 
-        using var doc = JsonDocument.Parse(first!);
+        using var doc = JsonDocument.Parse(first);
         var invoke = doc.RootElement.GetProperty("jsInvokes")[0];
         var taskId = invoke.GetProperty("id").GetInt64();
 
         await ws.SendJsonAsync(new { type = "jsResult", id = taskId, success = false, error = "TypeError: nope" }, ct: TestContext.Current.CancellationToken);
 
-        var ex = await JsErrorApp.Caught.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var ex = await JsErrorApp.Caught.Task.WaitAsync(LiveFrames.HangCeiling, TestContext.Current.CancellationToken);
         Assert.IsType<JSException>(ex);
         Assert.Contains("TypeError: nope", ex.Message);
     }
@@ -103,10 +101,9 @@ public class RaskJSRuntimeTests
         await ws.SendJsonAsync(new { id = clickId, type = "click" }, ct: TestContext.Current.CancellationToken);
 
         // We expect the next frame to carry a jsInvokes entry for sessionStorage.setItem.
-        var clickFrame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var clickFrame = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(clickFrame);
-        using var doc = JsonDocument.Parse(clickFrame!);
+        using var doc = JsonDocument.Parse(clickFrame);
         Assert.True(doc.RootElement.TryGetProperty("jsInvokes", out var jsInvokes),
             "expected jsInvokes on click frame, got: " + clickFrame);
 
@@ -118,7 +115,7 @@ public class RaskJSRuntimeTests
 
         // The handler completes, sets _status, and re-renders. Awaiting on a TCS sidesteps
         // having to poll for the post-completion render frame.
-        await JsClickApp.Completed.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        await JsClickApp.Completed.Task.WaitAsync(LiveFrames.HangCeiling, TestContext.Current.CancellationToken);
         Assert.Equal("done", JsClickApp.LastStatus);
     }
 
@@ -142,14 +139,13 @@ public class RaskJSRuntimeTests
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         // First post-hello frame: server renders, Rendered fires, queues one jsInvoke.
-        var first = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var first = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(first);
         // First frame typically carries 2 jsInvokes — one from the HTTP GET render
         // (firstRender=true) and one from the post-hello re-render (firstRender=false),
         // because Rendered runs unconditionally. Reply to all of them.
         long[] taskIds;
-        using (var doc = JsonDocument.Parse(first!))
+        using (var doc = JsonDocument.Parse(first))
         {
             var jsInvokes = doc.RootElement.GetProperty("jsInvokes");
             taskIds = new long[jsInvokes.GetArrayLength()];

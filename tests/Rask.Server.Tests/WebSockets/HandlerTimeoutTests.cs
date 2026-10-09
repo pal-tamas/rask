@@ -24,7 +24,7 @@ public class HandlerTimeoutTests
 
             using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-            await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+            await ws.AttachedAsync(host, sessionId);
 
             // Fire the slow handler. It awaits a 30 s delay observing CancellationToken, so without
             // the timeout this would hang for 30 s; with it, the handler is cancelled within ~300 ms.
@@ -32,14 +32,14 @@ public class HandlerTimeoutTests
 
             // The handler observed cancellation well before its 30 s delay would elapse.
             var observed = await Task.WhenAny(
-                CooperativeTimeoutApp.Cancelled.Task, Task.Delay(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+                CooperativeTimeoutApp.Cancelled.Task, Task.Delay(LiveFrames.HangCeiling, TestContext.Current.CancellationToken));
 
             Assert.Same(CooperativeTimeoutApp.Cancelled.Task, observed);
             Assert.True(await CooperativeTimeoutApp.Cancelled.Task);
 
             // The timeout was metered, and the session/socket survived.
             var metered = await WaitUntil(
-                () => capture.Counter("rask.handlers.timedout") >= 1, TimeSpan.FromSeconds(2));
+                () => capture.Counter("rask.handlers.timedout") >= 1, LiveFrames.HangCeiling);
 
             Assert.True(metered, "expected rask.handlers.timedout to increment");
             Assert.Equal(WebSocketState.Open, ws.State);

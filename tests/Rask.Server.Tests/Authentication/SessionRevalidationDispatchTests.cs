@@ -31,7 +31,7 @@ public class SessionRevalidationDispatchTests
         using var socket = ws;
 
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.SettledAsync();
 
         Assert.Equal(1, counter.Count);
 
@@ -40,11 +40,10 @@ public class SessionRevalidationDispatchTests
         host.Store.Get(sessionId)!.LastUserRevalidation = 0;
 
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        var afterEnd = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var afterEnd = await ws.ReceiveTextAsync();
 
         Assert.Equal(1, counter.Count);
-        Assert.NotNull(afterEnd);
-        Assert.Contains("/login", afterEnd!);
+        Assert.Contains("/login", afterEnd);
         Assert.NotEqual(true, host.Store.Get(sessionId)!.Services.GetRequiredService<SessionUserProvider>()
             .Current.Identity?.IsAuthenticated);
     }
@@ -62,10 +61,9 @@ public class SessionRevalidationDispatchTests
 
         await ws.SendJsonAsync(
             new { type = "navigate", path = "/m2/protected" }, ct: TestContext.Current.CancellationToken);
-        var afterEnd = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var afterEnd = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(afterEnd);
-        Assert.Contains("/login", afterEnd!);
+        Assert.Contains("/login", afterEnd);
         Assert.NotEqual(true, host.Store.Get(sessionId)!.Services.GetRequiredService<SessionUserProvider>()
             .Current.Identity?.IsAuthenticated);
     }
@@ -82,7 +80,7 @@ public class SessionRevalidationDispatchTests
         for (var i = 0; i < 5; i++)
         {
             await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-            _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            await ws.SettledAsync();
         }
 
         // The first dispatch checks; the rest fall inside the 30-second window.
@@ -102,7 +100,7 @@ public class SessionRevalidationDispatchTests
         host.Store.Get(sessionId)!.LastUserRevalidation = 0;
 
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.SettledAsync();
 
         Assert.True(host.Store.Get(sessionId)!.Services.GetRequiredService<SessionUserProvider>()
             .Current.IsInRole("editor"));
@@ -129,7 +127,7 @@ public class SessionRevalidationDispatchTests
         host.WebSockets.ConfigureRequest = req => req.Headers["Cookie"] = cookie;
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         return (ws, sessionId, handler);
     }

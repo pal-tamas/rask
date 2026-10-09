@@ -113,22 +113,11 @@ public sealed class AppliedFrameReachesTheBrowserTests : IDisposable
     private static async Task<List<string>> ReadUntilHotReloadAsync(ConnectedSession session)
     {
         var frames = new List<string>();
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
-
-        while (DateTime.UtcNow < deadline)
+        do
         {
-            var frame = await session.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(3));
-            if (frame is null)
-            {
-                continue;
-            }
-
-            frames.Add(frame);
-            if (frame.Contains("\"type\":\"hotReload\"", StringComparison.Ordinal))
-            {
-                break;
-            }
+            frames.Add(await session.Ws.ReceiveTextAsync());
         }
+        while (!frames[^1].Contains("\"type\":\"hotReload\"", StringComparison.Ordinal));
 
         return frames;
     }

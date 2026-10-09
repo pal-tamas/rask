@@ -9,6 +9,25 @@ namespace Rask.TestSupport;
 public static class WaitFor
 {
     /// <summary>
+    /// How long a wait for something that is on its way may run before the test calls it a hang.
+    /// </summary>
+    /// <remarks>
+    /// Not a budget for the work. A wait ends the moment its condition holds, so this costs a passing run
+    /// nothing; it is paid in full only by a test that was going to fail. A ceiling near the usual time is
+    /// the other thing: a runner with every core taken spends seconds on what an idle machine does in a
+    /// millisecond, and a two-second ceiling then fails tests that are right.
+    /// </remarks>
+    public static readonly TimeSpan HangCeiling = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Polls <paramref name="condition"/> until it holds, and <b>throws</b> if it has not by
+    /// <see cref="HangCeiling"/>. The form to reach for: name the condition, not a number of seconds.
+    /// </summary>
+    /// <param name="condition">Polled every 15 ms until true.</param>
+    /// <param name="reason">What the caller was waiting for, quoted in the exception.</param>
+    public static Task True(Func<bool> condition, string? reason = null) => True(condition, HangCeiling, reason);
+
+    /// <summary>
     /// Polls <paramref name="condition"/> until it holds, and <b>throws</b> if it never does within
     /// <paramref name="timeout"/>.
     /// </summary>
@@ -20,7 +39,9 @@ public static class WaitFor
     /// the timeout back into a silent success.
     /// </remarks>
     /// <param name="condition">Polled every 15 ms until true.</param>
-    /// <param name="timeout">How long to keep polling before giving up.</param>
+    /// <param name="timeout">
+    /// How long to keep polling before giving up. Pass one only when the time IS the subject of the test.
+    /// </param>
     /// <param name="reason">What the caller was waiting for, quoted in the exception.</param>
     public static async Task True(Func<bool> condition, TimeSpan timeout, string? reason = null)
     {

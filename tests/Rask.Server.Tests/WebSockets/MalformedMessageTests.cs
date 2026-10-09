@@ -60,10 +60,9 @@ public class MalformedMessageTests
 
         // A valid handler frame after the bad one must still dispatch and render.
         await ws.SendJsonAsync(new { id = handlerId });
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var text = await ws.ReceiveTextAsync();
 
-        Assert.NotNull(text);
-        using var doc = JsonDocument.Parse(text!);
+        using var doc = JsonDocument.Parse(text);
         Assert.Contains("count=1", doc.RootElement.GetProperty("html").GetString()!);
         Assert.True(ws.IsOpen);
         Assert.Equal(1, host.Store.Count);
@@ -84,9 +83,9 @@ public class MalformedMessageTests
         // Field present but the wrong JSON type (a number where a string is expected).
         await ws.SendRawAsync($"{{\"{field}\":123}}");
 
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+        var frames = await ws.SettledAsync();
 
-        Assert.Null(text);
+        Assert.Empty(frames);
         Assert.True(ws.IsOpen);
         Assert.Equal(1, host.Store.Count);
     }
@@ -109,9 +108,8 @@ public class MalformedMessageTests
         }
 
         await ws.SendJsonAsync(new { id = handlerId });
-        var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.ReceiveTextAsync();
 
-        Assert.NotNull(text);
         Assert.True(ws.IsOpen);
         Assert.Equal(1, host.Store.Count);
     }

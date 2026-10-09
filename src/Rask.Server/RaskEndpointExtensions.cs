@@ -2507,15 +2507,28 @@ public static partial class RaskEndpointExtensions
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                ReportHandlerFaulted(metrics, activity, handlerId ?? activityName, ex);
+                ReportHandlerFaulted(session, metrics, activity, handlerId ?? activityName, ex);
             }
         }
         finally
         {
             session.InHandlerScope = false;
-            session.Lock.Release();
+            ReleaseDispatchLock(session);
             _ = session.DrainRenderRequestedAfterScope();
             metrics?.RecordHandlerDuration(Stopwatch.GetElapsedTime(dispatchStart).TotalMilliseconds);
+        }
+    }
+
+    private static void ReleaseDispatchLock(LiveSession session)
+    {
+        try
+        {
+            session.Lock.Release();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposing a session disposes this lock while the handler that holds it is still running. By
+            // then nobody is left to wait on it, so there is nothing to hand it back to.
         }
     }
 
@@ -2641,8 +2654,17 @@ public static partial class RaskEndpointExtensions
             $"Rask Live handler '{handler}' cancelled after HandlerTimeout ({handlerTimeout})");
     }
 
-    private static void ReportHandlerFaulted(RaskMetrics? metrics, Activity? activity, string handler, Exception ex)
+    private static void ReportHandlerFaulted(
+        LiveSession session, RaskMetrics? metrics, Activity? activity, string handler, Exception ex)
     {
+        // A shutdown that outlasts its drain budget disposes a session whose handler is still running. The
+        // handler then returns into a session with no services left to render with: it did not throw, and there
+        // is nobody to send a render to.
+        if (ex is ObjectDisposedException && session.IsDisposed)
+        {
+            return;
+        }
+
         metrics?.HandlerFaulted();
         activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
         RaskDiagnostics.Report(RaskLogLevel.Error, "Rask.Live", $"Rask Live handler '{handler}' threw", ex);

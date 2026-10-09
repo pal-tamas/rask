@@ -32,15 +32,12 @@ public class SocketLifecycleTests
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
 
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
-        while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
+        await WaitFor.True(
+            () => host.Store.Count == 0, "the session is removed once its grace period ends");
 
         Assert.Equal(0, host.Store.Count);
     }
@@ -54,15 +51,14 @@ public class SocketLifecycleTests
 
         var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws1.AttachedAsync(host, sessionId);
         await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
 
         // Reconnect well inside the grace window.
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        var rerender = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var rerender = await ws2.ReceiveTextAsync();
 
-        Assert.NotNull(rerender);
         Assert.Contains("count=", rerender);
         Assert.Equal(1, host.Store.Count);
     }
@@ -76,22 +72,18 @@ public class SocketLifecycleTests
 
         var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws1.AttachedAsync(host, sessionId);
         await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
 
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
-        while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
+        await WaitFor.True(
+            () => host.Store.Count == 0, "the session is removed once its grace period ends");
 
         Assert.Equal(0, host.Store.Count);
 
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        var reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var reply = await ws2.ReceiveTextAsync();
 
-        Assert.NotNull(reply);
         Assert.Contains("\"status\":\"unknown\"", reply);
     }
 
@@ -106,18 +98,18 @@ public class SocketLifecycleTests
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws1.AttachedAsync(host, sessionId);
 
-        // Open ws2 with the same session id while ws1 is still attached.
+        // Open ws2 with the same session id while ws1 is still attached. A reconnect always emits a
+        // frame, so reading it proves ws2 is the attached one.
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        _ = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws2.ReceiveTextAsync();
 
         // ws2 is authoritative now; a handler invocation should render to ws2.
         await ws2.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        var ws2Reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var ws2Reply = await ws2.ReceiveTextAsync();
 
-        Assert.NotNull(ws2Reply);
         Assert.Contains("count=1", ws2Reply);
     }
 
@@ -135,13 +127,13 @@ public class SocketLifecycleTests
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
+        await WaitFor.True(() => host.Store.ConnectedCount == 1);
 
         // A reconnect always emits a frame, so receiving one proves ws2 is attached.
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
-        Assert.NotNull(await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(5)));
+        await ws2.ReceiveTextAsync();
 
         // Only now does the first socket's loop finish.
         await ws1.CloseAndAwaitServerCleanupAsync();
@@ -154,9 +146,8 @@ public class SocketLifecycleTests
 
         // And ws2 still receives renders.
         await ws2.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        var reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        var reply = await ws2.ReceiveTextAsync();
 
-        Assert.NotNull(reply);
         Assert.Contains("count=1", reply);
 
         // Its own close is the one that counts.
@@ -177,11 +168,11 @@ public class SocketLifecycleTests
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
+        await WaitFor.True(() => host.Store.ConnectedCount == 1);
 
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        Assert.NotNull(await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(5)));
+        await ws2.ReceiveTextAsync();
 
         // The replaced socket clicks: had it dispatched, the render would arrive on ws2, the attached one.
         await ws1.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
@@ -191,8 +182,7 @@ public class SocketLifecycleTests
         // The attached socket's click is the first one that counts.
         await ws2.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
 
-        var reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
-        Assert.NotNull(reply);
+        var reply = await ws2.ReceiveTextAsync();
         Assert.Contains("count=1", reply);
         Assert.Equal(WebSocketState.Open, ws1.State);
     }
@@ -206,16 +196,13 @@ public class SocketLifecycleTests
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.CloseAsync(WebSocketCloseStatus.PolicyViolation, "policy-violation-bye",
             CancellationToken.None);
 
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
-        while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
+        await WaitFor.True(
+            () => host.Store.Count == 0, "the session is removed once its grace period ends");
 
         Assert.Equal(0, host.Store.Count);
     }
