@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A handler still running when a shutdown gives up on it is no longer reported as having thrown.** A
+  shutdown that outlasts `ShutdownDrainTimeout` disposes the session with its handler still in flight. When
+  the handler returned, the render that follows it reached for the session's disposed services, and the
+  `ObjectDisposedException` was logged as `Rask Live handler 'h0' threw` and counted in
+  `rask.handlers.faulted`; releasing the session's disposed lock then threw a second one out of the dispatch.
+  Both are gone: there is nothing left to render to, and the handler did nothing wrong.
+
 - **A pager's arrows are named `« Previous` and `Next »`.** The label was written as the entity's name and
   then encoded, so the markup said `aria-label="&amp;laquo; Previous"` and a screen reader read out
   "&laquo; Previous". It is the character now, encoded once. `RaskString.PaginationPrevious` /

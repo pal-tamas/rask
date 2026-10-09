@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Server.Diagnostics;
+using Rask.Server.Tests.Diagnostics;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
@@ -169,6 +170,34 @@ public class ShutdownDrainTests
         {
             DrainGateApp.Gate.TrySetResult();
         }
+    }
+
+    // A handler still running when the drain gives up outlives its session. What it did is done; the render
+    // that would follow it has no session left to render, and that is not the handler throwing.
+    [Fact]
+    public async Task A_handler_that_outlives_the_drain_is_not_reported_as_having_thrown()
+    {
+        DrainGateApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        DrainGateApp.Parked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var host = RaskTestHost.Create<DrainGateApp>(
+            configureServer: o => o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200));
+        using var faults = MeterCapture.For(host.Store.Metrics!.Meter);
+        var html = await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken);
+        var sessionId = MarkupAssert.SessionId(html);
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
+        await ws.AttachedAsync(host, sessionId);
+        await ws.SendJsonAsync(new { id = MarkupAssert.FirstHandlerId(html) }, ct: TestContext.Current.CancellationToken);
+        await DrainGateApp.Parked.Task.WaitAsync(LiveFrames.HangCeiling, TestContext.Current.CancellationToken);
+        var session = host.Store.Get(sessionId)!;
+        var dispatch = session.LastHandlerTask;
+
+        await host.StopAsync();
+        DrainGateApp.Gate.TrySetResult();
+        await dispatch.WaitAsync(LiveFrames.HangCeiling, TestContext.Current.CancellationToken);
+
+        Assert.True(session.IsDisposed);
+        Assert.Equal(0, faults.Counter("rask.handlers.faulted"));
     }
 
     /// <summary>
