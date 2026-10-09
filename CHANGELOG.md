@@ -352,6 +352,19 @@ them until tagged releases begin.
 
 ### Performance
 
+- **A child that comes or goes among siblings that still match is answered with a diff, not the whole page.**
+  `saved ? Ui.Callout[…] : null` above a form, an error text under a field, an icon in front of a badge's
+  words, a row added at the top of an unkeyed list: the differ paired children by slot, so everything after
+  the child looked replaced and the reply fell back to the whole document — tens of kilobytes, morphed by
+  position, which rebuilt the very field the reader was typing in. When the two renders of a nested level
+  differ by ONE contiguous run of children, that run now ships as inserts or removes and the siblings around
+  it are diffed as the pairs they are: a node that stayed is not touched, so it keeps its focus, its caret
+  and what was typed into it. Among same-tag siblings the run goes where the positional walk would put it
+  unless another place leaves strictly more siblings paired with what they already were. Unchanged: an
+  element in place of another (`cond ? A : B`), two children arriving apart from each other, anything at the
+  document's own level and anything inside `<svg>`/`<math>` are still answered with the whole page; a level
+  beside raw markup is still one morph of its parent. No new op and no client change.
+
 - **A menu's keyboard left the runtime every page downloads.** What a `role="menu"` needs from script — the
   navigation keys not scrolling the page, Enter and Space pressing the focused row, ArrowDown on a closed menu
   button opening it, a pick closing the popover, Tab out closing it, focus handed back to the trigger, focus

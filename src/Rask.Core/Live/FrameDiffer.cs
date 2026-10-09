@@ -11,7 +11,7 @@ namespace Rask.Core.Live;
 ///     <c>RenderTreeDiffBuilder</c>; simpler because we don't carry sequence numbers
 ///     from a compile-time source mapping.
 /// </summary>
-public static class FrameDiffer
+public static partial class FrameDiffer
 {
     // Above this many surviving keyed children the move loop swaps its O(n) List&lt;int&gt; `live` for
     // the O(log n) order-statistics PositionIndex, so a large full/near-full reversal stays O(n log n)
@@ -208,6 +208,7 @@ public static class FrameDiffer
         // tag-mismatch replace appears (that's the mid-list-divergence case); the top level (path empty,
         // where the WASM shell's comment nodes live) is also excluded.
         var levelHadReplace = false;
+        var opCountAtEntry = output.Count;
 
         while (oi < oldEnd && ni < newEnd)
         {
@@ -239,7 +240,15 @@ public static class FrameDiffer
         // Tail append/truncate is safe to ship as a trusted diff at a nested, replace-free level (see
         // the levelHadReplace note above). Only reachable once the main walk has consumed all matched
         // pairs, so levelHadReplace is final here.
-        var trustedTail = !levelHadReplace && path.Count >= 1;
+        var nested = path.Count >= 1;
+        if (nested && (levelHadReplace || oi < oldEnd || ni < newEnd)
+                   && TryDiffOneRun(oldFrames, oldStart, oldEnd, newFrames, newStart, newEnd, output, newHtml, scratch,
+                       opCountAtEntry, levelHadReplace))
+        {
+            return;
+        }
+
+        var trustedTail = !levelHadReplace && nested;
         EmitTail(oldFrames, oi, oldEnd, newFrames, ni, newEnd, domSlot, trustedTail, output, newHtml, path);
     }
 
