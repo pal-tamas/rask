@@ -26,6 +26,14 @@ public interface IRenderHandle
     internal void RunInOrder(Func<Task> work) => _ = work();
 
     /// <summary>
+    ///     Makes a navigation a lifecycle hook asked for when no dispatch was waiting for it, in turn with the
+    ///     session's event handlers: <paramref name="navigate" /> moves the route, and the session renders the
+    ///     destination behind its guard and replaces the address.
+    /// </summary>
+    /// <returns><c>false</c> when this handle has no session to do it in.</returns>
+    internal bool TryNavigate(Action navigate) => false;
+
+    /// <summary>
     ///     Records a development fault to paint <em>over</em> the app, reported by
     ///     <c>RootErrorBoundary</c> during the render walk that follows it.
     /// </summary>

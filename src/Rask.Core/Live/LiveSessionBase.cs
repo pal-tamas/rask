@@ -82,6 +82,11 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // A single-threaded host (WASM) has nothing to order against; the Server session queues on its handler chain.
     protected virtual void RunInOrderCore(Func<Task> work) => _ = work();
 
+    bool IRenderHandle.TryNavigate(Action navigate) => TryNavigateCore(navigate);
+
+    // Each host makes the navigation the way it makes one a link asked for; a session with no host cannot.
+    protected virtual bool TryNavigateCore(Action navigate) => false;
+
     // How Rask DevTools names this session in its feed. Null on a host that has only one session per
     // process (WASM); the Server session answers with its id. A virtual rather than a type test in the
     // devtools, so that package needs no reference to Rask.Server.

@@ -50,10 +50,32 @@ public class AuthDeferredNavDispatchTests
         Assert.Equal("/forbidden", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
     }
 
+    // The landing page of a sign-in is mounted by the reconnect, with no handler behind it. "No partner chosen,
+    // go to the partner list" has to work there too, and show nothing of the page that sent the reader on.
+    [Fact]
+    public async Task A_sign_in_return_url_whose_page_redirects_as_it_mounts_lands_on_its_destination()
+    {
+        using var host = CreateHost();
+        List<string> frames = [];
+
+        await SignInThenReconnectAsync(
+            host, "to-work",
+            frame =>
+            {
+                frames.Add(frame);
+                return LiveFrames.HistoryUrl(frame) == "/partners";
+            });
+
+        using var doc = JsonDocument.Parse(frames[^1]);
+        Assert.Equal("replace", doc.RootElement.GetProperty("history").GetProperty("action").GetString());
+        Assert.Contains("partners-for-alice", frames[^1]);
+        Assert.DoesNotContain(frames, f => f.Contains("work-for-nobody", StringComparison.Ordinal));
+    }
+
     // Clicks a sign-in button on /start, redeems the ticket, and reconnects carrying the new cookie. Returns the
     // frame that carried the ticket and the first frame after the reconnect.
     private static async Task<(string Handoff, string AfterReconnect)> SignInThenReconnectAsync(
-        RaskTestHost host, string button)
+        RaskTestHost host, string button, Func<string, bool>? until = null)
     {
         var ct = TestContext.Current.CancellationToken;
         var initial = await host.Http.GetAsync("/start", ct);
@@ -92,7 +114,9 @@ public class AuthDeferredNavDispatchTests
 
         using var ws2 = await wsClient.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: ct);
-        var afterReconnect = await ws2.ReceiveTextAsync();
+        var afterReconnect = until is null
+            ? await ws2.ReceiveTextAsync()
+            : await ws2.ReceiveUntilAsync(until, "the frame the reconnect was to lead to");
 
         return (handoff, afterReconnect);
     }
