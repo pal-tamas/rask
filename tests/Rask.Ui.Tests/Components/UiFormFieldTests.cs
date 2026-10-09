@@ -15,8 +15,9 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     public void An_unlabelled_control_is_still_the_bare_control() =>
         Assert.DoesNotContain(
             "<label",
-            Ui.FileInput.Value("").ToHtml(),
+            Ui.Otp.Value("").Length(6).ToHtml(),
             StringComparison.Ordinal);
+
     [Fact]
     public void The_id_reaches_the_control_itself()
     {
@@ -25,7 +26,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         // fails somewhere else entirely. Id was exactly that for one commit.
         Assert.Contains(
             "id=\"country\"",
-            Ui.FileInput.Value("").Label("Country").Id("country").ToHtml(),
+            Ui.Otp.Value("").Length(6).Label("Country").Id("country").ToHtml(),
             StringComparison.Ordinal);
 
         // The two controls that are not UiFormFields and draw their own markup had no Id at all, which
@@ -37,7 +38,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains(
             "id=\"avatar\"",
-            Ui.FileInput.Value("").Label("Avatar").Id("avatar").ToHtml(),
+            Ui.FileUpload.Label("Avatar").Id("avatar").ToHtml(),
             StringComparison.Ordinal);
     }
 }
