@@ -1462,14 +1462,28 @@ them until tagged releases begin.
   - a menu the pointer opened takes no focus (`data-rask-hover`): on Flux's rail `document.activeElement` stays
     where it was, and here the menu was taking it through its `autofocus`.
 
+  **And none of it is the page's state: an open menu sends the server nothing while the reader moves about it.**
+  The cursor was C#'s — every arrow key a round trip and a render, and with the pointer wired the same way a
+  glide down a twelve-row menu would have been twelve more. The runtime keeps it now
+  (`data-rask-menu-cursor` on the menu, `rask-menu.ts` / `rask-menu-keys.ts`): the lit row, the focused row and
+  its tab stop, and the open flyouts (`data-open` on the submenu) are written in the browser and held against the
+  next render, exactly as Flux keeps them in script. `Ui.Menu` has no key handler and no cursor, a row has no
+  pointer handler, a submenu's row no click handler, and a `Ui.MenuItem` with no `OnClick` no handler at all;
+  the page hears a row when it is pressed and the menu opening and closing. Measured on a live Server page,
+  over one walk of twelve rows entered, three flyouts opened and closed and eight keys: 25 WebSocket frames sent
+  before, **0 sent and 0 received** now (`UiMenuHookTests` asserts it, and that what the runtime wrote survives a
+  render the server sends meanwhile). A flyout is no longer shown by `:hover`, so it also closes under a pointer
+  still resting on its row once the arrows have moved on, as Flux's does.
+
   In the runtime: `data-rask-safe-area` with no value means the element right after the row (Flux's flyout has
-  no id); the pointer leaving a `data-rask-menu-pointer` menu no longer darkens the row that has focus; focus
-  follows the row a render gives `tabindex="0"`, and a lit row that says `tabindex="-1"` — the pointer's — takes
-  none. One thing is deliberately not Flux's: after the pointer has lit a row and left, Flux's arrow keys do
-  nothing until the pointer comes back; here they go on from the row that has focus. `scripts/flux/parity-menu.mjs`
-  now walks the pointer on both sides (lit rows and focus on every row, the diagonal step by step) and compares
-  the page behind in a browser that shows its scrollbars; `UiMenuHookTests` drives the real components on a live
-  Server page.
+  no id); the pointer leaving a `data-rask-menu-pointer` menu no longer darkens the row that has focus, and a
+  pointer moving about inside its row no longer takes the light back from the keyboard; focus follows the row
+  given `tabindex="0"`, and a lit row that says `tabindex="-1"` — the pointer's — takes none. One thing is
+  deliberately not Flux's: after the pointer has lit a row and left, Flux's arrow keys do nothing until the
+  pointer comes back; here they go on from the row that has focus. `scripts/flux/parity-menu.mjs` now drives
+  both pages with the same pointer and the same keys (lit rows and focus on every row, the pointer and the
+  arrows together, the diagonal step by step) and compares the page behind in a browser that shows its
+  scrollbars.
 - **A unique index declared in a tenant-scoped entity's `Configure` is unique within the tenant (#1233).**
   The tenant prefix was applied with the conventions, which run before an entity's own `Configure`, so
   `builder.HasIndex(p => p.Sku).IsUnique()` written there stayed unique across every tenant — tenant B could

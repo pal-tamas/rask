@@ -101,23 +101,22 @@ public sealed partial class UiMenuItem : Component
                 return UiMenuRow.Decorate(plain, level, ordinal, "menuitem", "ui-menu-item", aria, data)[content];
             }
 
-            var link = NavLink.Href(href).ActiveClass("").Class(classes).OnClick(() => PickAsync(level, ordinal));
+            var link = NavLink.Href(href).ActiveClass("").Class(classes);
+            if (OnClick.HasValue)
+            {
+                link = link.OnClick(OnClick);
+            }
+
             return UiMenuRow.Decorate(link, level, ordinal, "menuitem", "ui-menu-item", aria, data)[content];
         }
 
         var button = Button.Type(ButtonType.Button).Class(classes).Disabled(disabled);
-        if (!disabled)
+        // Nothing to run, nothing to send: the runtime closes the menu on a pick by itself.
+        if (!disabled && OnClick.HasValue)
         {
-            button = button.OnClick(() => PickAsync(level, ordinal));
+            button = button.OnClick(OnClick);
         }
 
         return UiMenuRow.Decorate(button, level, ordinal, "menuitem", "ui-menu-item", aria, data)[content];
-    }
-
-    // The row a pointer picks is where the cursor is from then on, which matters in a menu that stays open.
-    private async Task PickAsync(UiMenuLevel? level, int ordinal)
-    {
-        level?.Scope.MoveTo(ordinal);
-        await OnClick.Invoke().ConfigureAwait(false);
     }
 }

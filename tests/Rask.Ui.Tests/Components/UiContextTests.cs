@@ -118,17 +118,15 @@ public partial class UiContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task The_area_says_it_is_open_while_the_menu_is_up_and_the_keys_work_as_in_a_dropdown()
+    public async Task The_area_says_it_is_open_while_the_menu_is_up_and_its_menu_is_the_one_a_dropdown_takes()
     {
         var page = Page.Render(Menu());
 
         await page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
-        await page.On("[popover]").Raise("keydown", "{\"key\":\"ArrowDown\"}");
-        await page.On("[popover]").Raise("keydown", "{\"key\":\"ArrowDown\"}");
 
         Assert.Matches("<div[^>]*data-ui-context=\"\"[^>]*data-open=\"\"", page.Html);
-        // Over the disabled row, onto the last.
-        Assert.Matches("<button[^>]*data-active=\"\"[^>]*>(?:(?!</button>).)*Delete", page.Html);
+        // The same menu, so the same cursor: the runtime's, in the browser.
+        Assert.Matches("<div[^>]*role=\"menu\"[^>]* data-rask-menu-cursor=\"\"|<div[^>]* data-rask-menu-cursor=\"\"[^>]*role=\"menu\"", page.Html);
     }
 
     [Fact]

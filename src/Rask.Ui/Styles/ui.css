@@ -996,13 +996,14 @@
   A GROUP draws a line above and below itself, and drops the one that would double up or lead nowhere — above
   the first thing in the menu or another group, below the last.
 
-  A SUBMENU's flyout sits beside its row, overlapping the menu's padding. A pointer opens it by resting on the
-  row — shown here at once, on :hover — and the menu then writes `data-open`, as it does for the keyboard and a
-  tap, which is what keeps the flyout up after the pointer has left the menu. Entering any other row closes it:
-  here at once, and in the menu's state a round trip later. It is `position: fixed` so the menu's own scrolling
-  cannot clip it, placed by anchor positioning against its row. The diagonal toward the flyout, across the rows
-  below, is Flux's safe area and the runtime's (`data-rask-safe-area` on the row): a triangle that follows the
-  pointer, which no rule here can draw.
+  A SUBMENU's flyout sits beside its row, overlapping the menu's padding, and is shown by `data-open` on the
+  element that holds them both — which the RUNTIME writes, in the browser (`data-rask-menu-cursor`): when the
+  pointer rests on the row, for the keyboard and for a tap, and it takes it away when another row is entered.
+  Not `:hover`: a flyout stays open after the pointer has left the menu, and closes under a pointer that is
+  still resting on its row once the arrows have moved on, and a rule cannot say either. It is
+  `position: fixed` so the menu's own scrolling cannot clip it, placed by anchor positioning against its row.
+  The diagonal toward the flyout, across the rows below, is Flux's safe area and the runtime's too
+  (`data-rask-safe-area` on the row): a triangle that follows the pointer.
 */
 @layer rask {
   [data-indent] {
@@ -1041,18 +1042,8 @@
     position-try-fallbacks: flip-inline;
   }
 
-  [data-ui-menu-submenu]:is(:hover, [data-open]) > [data-ui-menu] {
+  [data-ui-menu-submenu][data-open] > [data-ui-menu] {
     display: block;
-  }
-
-  /* Another ROW under the pointer — a separator or a heading is not one, and on Flux closes nothing. */
-  [data-ui-menu]:has(
-      > :is([role^="menuitem"], [data-ui-menu-submenu]):hover,
-      > :not([data-ui-menu-submenu]) > :is([role^="menuitem"], [data-ui-menu-submenu]):hover
-    )
-    > [data-ui-menu-submenu][data-open]:not(:hover)
-    > [data-ui-menu] {
-    display: none;
   }
 }
 

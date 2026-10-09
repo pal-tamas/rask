@@ -174,7 +174,13 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
         var hovered = Regex.Match(hover, "<div[^>]*role=\"menu\"[^>]*>").Value;
 
         Assert.Contains(" data-rask-menu-pointer=\"\"", menu, StringComparison.Ordinal);
+        Assert.Contains(" data-rask-menu-cursor=\"\"", menu, StringComparison.Ordinal);
         Assert.Contains(" data-rask-lock=\"\"", menu, StringComparison.Ordinal);
+        // Where the reader is in the menu is the runtime's, in the browser: no key handler, and no row tells
+        // the page that the pointer came.
+        Assert.DoesNotContain("data-rask-on-keydown", pressed, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-pointerenter", pressed, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-mouseenter", pressed, StringComparison.Ordinal);
         Assert.Contains(" data-rask-menu-pointer=\"\"", hovered, StringComparison.Ordinal);
         // Flux locks nothing under a menu the pointer opened: a page with no pointer would take it from the trigger.
         Assert.DoesNotContain("data-rask-lock", hovered, StringComparison.Ordinal);

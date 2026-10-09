@@ -12,6 +12,9 @@
 //   * the POINTER'S OWN WALK: which rows are lit (`data-active`) and where focus is with the pointer on each
 //     row, and after it has left the menu; and on the diagonal from a submenu's row to the far corner of its
 //     flyout, step by step, that the flyout is still showing and no row below was lit on the way;
+//   * THE POINTER AND THE KEYS TOGETHER: the pointer lights a row, the first arrow lands on it, the next goes
+//     on, the pointer lights another while focus stays, the arrow after counts from the lit row, and the
+//     keyboard's row stays lit when the pointer leaves — lit rows and the focused row after every step;
 //   * the first submenu's flyout, opened by hovering its row: where it sits against the row, and its rows;
 //   * that Escape and a click outside close it, and where Escape leaves focus;
 //   * THE PAGE BEHIND, in a browser that shows its scrollbars, at 1920 x 1080 and 390 x 844: `scrollY` and the
@@ -20,12 +23,10 @@
 //     the kit keeps no gutter: `scrollbar-gutter` is compared here, where there is a scrollbar to keep one for.)
 //
 // A Rask parity page is static HTML: the kit's sheet, and the runtime's behaviour hooks added as one script
-// (runtime.mjs) — the pointer's lit row, the safe area and the page lock are theirs, by attribute. Everything
-// else above is the platform's — `popovertarget`, the top layer, light dismiss. What is C#'s is not on the
-// page, and is proved by the unit tests and by UiMenuHookTests on a live page instead: which row each key
-// moves the cursor to, `aria-expanded`, a flyout held open after the pointer has left, and focus handed back
-// after a click outside. So here a Rask row is put under the cursor the way a render does it — `data-active`,
-// the tab stop, and focus — and what is compared is how the row then LOOKS.
+// (runtime.mjs) — the cursor, the pointer's lit row, the open flyout, the safe area and the page lock are
+// theirs, by attribute, and none of it is C#'s. Everything else above is the platform's — `popovertarget`, the
+// top layer, light dismiss. So the same keys and the same pointer drive both pages. What IS the page's is not
+// here and is proved by the unit tests: `aria-expanded`, and what a press on a row runs.
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
 //         node scripts/flux/parity-menu.mjs dropdown
@@ -237,12 +238,9 @@ async function measureExample(page, cdp, index, prefix) {
   example.pointer.push(await page.evaluate(lit, example.rows));
   example.walk = [];
   for (let step = 0; step < example.rows.length; step++) {
-    if (prefix === 'data-flux-') {
-      await page.keyboard.press('ArrowDown');
-    } else if (example.nodes[0].attrs.role === 'menu') {
-      // A navigation menu has no cursor on either side: its links are reached with Tab.
-      await page.evaluate(cursor, example.rows[step]);
-    }
+    // The same key on both sides: the kit's cursor is the runtime's (data-rask-menu-cursor), in the browser, as
+    // Flux's is its script's. A navigation menu has no cursor on either: its links are reached with Tab.
+    await page.keyboard.press('ArrowDown');
 
     await page.waitForTimeout(60);
     const at = await page.evaluate(() => document.activeElement?.getAttribute('data-pm-n') ?? null);
@@ -252,10 +250,30 @@ async function measureExample(page, cdp, index, prefix) {
     }
   }
 
-  await page.evaluate(() => document.querySelectorAll('[data-pm-cursor]').forEach(el => {
-    el.removeAttribute('data-active');
-    el.removeAttribute('data-pm-cursor');
-  }));
+  // The pointer and the keys together, on a menu that takes focus and has rows to spare: the pointer lights the
+  // second row and the first arrow lands ON it; the next goes on; the pointer lights the first row while focus
+  // stays, and the arrow after that counts from the lit row; the pointer leaves and the keyboard's row stays lit.
+  if (parts.kind === 'dropdown' && example.focus === 'menu' && example.rows.length >= 3) {
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+    await open();
+    const over = async index => {
+      const box = await page.locator(`[data-pm-n="${example.rows[index]}"]`).boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+    };
+    const steps = [() => over(1), () => page.keyboard.press('ArrowDown'), () => page.keyboard.press('ArrowDown'), () => over(0),
+      () => page.keyboard.press('ArrowDown'), () => page.mouse.move(3, 3, { steps: 3 })];
+    example.together = [];
+    for (const step of steps) {
+      await step();
+      await page.waitForTimeout(80);
+      example.together.push(await page.evaluate(where, example.rows));
+    }
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+    await open();
+  }
 
   // The first submenu, opened the way a pointer opens it.
   if (example.submenu !== null) {
@@ -380,20 +398,6 @@ function diff({ STYLES }) {
   return changed;
 }
 
-// Runs in the page, on a Rask parity page: puts the cursor on a row the way a render of the menu does.
-function cursor(row) {
-  document.querySelectorAll('[data-pm-cursor]').forEach(el => {
-    el.removeAttribute('data-active');
-    el.removeAttribute('data-pm-cursor');
-    el.setAttribute('tabindex', '-1');
-  });
-  const el = document.querySelector(`[data-pm-n="${row}"]`);
-  el.setAttribute('data-active', '');
-  el.setAttribute('tabindex', '0');
-  el.setAttribute('data-pm-cursor', '');
-  el.focus();
-}
-
 // Runs in the page. Which of the popup's own rows are lit, by position, and where focus is.
 function lit(rows) {
   const panel = document.querySelector('[data-pm="panel"]');
@@ -401,6 +405,15 @@ function lit(rows) {
   return {
     lit: rows.map((row, i) => document.querySelector(`[data-pm-n="${row}"]`).hasAttribute('data-active') ? i : -1).filter(i => i >= 0),
     focus: active === panel ? 'menu' : panel.contains(active) ? 'row' : 'elsewhere',
+  };
+}
+
+// Runs in the page. The lit rows and the focused row, by position among the popup's own rows.
+function where(rows) {
+  const at = el => rows.findIndex(row => document.querySelector(`[data-pm-n="${row}"]`) === el);
+  return {
+    lit: rows.map((row, i) => (document.querySelector(`[data-pm-n="${row}"]`).hasAttribute('data-active') ? i : -1)).filter(i => i >= 0),
+    focus: at(document.activeElement),
   };
 }
 
@@ -537,6 +550,7 @@ function compareExample(theirs, mine) {
   const lights = example => example.pointer?.map(step => (theirs.kind === 'context' ? step.lit : step));
   say('the pointer lights', lights(theirs), lights(mine));
   say('the diagonal to the flyout', theirs.diagonal, mine.diagonal);
+  say('the pointer and the keys together', theirs.together, mine.together);
   say('rows', theirs.rows.length, mine.rows.length);
   say('Escape', theirs.escape, mine.escape);
   // Only that it closed. Flux then puts focus back on the trigger from script; the browser's own light dismiss

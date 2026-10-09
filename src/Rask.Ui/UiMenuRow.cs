@@ -5,8 +5,8 @@ namespace Rask;
 /// <summary>What every row of a <see cref="UiMenu" /> is made of, measured off Flux UI's open menus.</summary>
 /// <remarks>
 ///     A menu's row is highlighted one way, as Flux's is: <c>data-active</c>, written for the pointer and for the
-///     keyboard alike — by the runtime the moment the pointer enters a row (<c>data-rask-menu-pointer</c>), and by
-///     the menu's own render. There is no <c>:hover</c> on it: two highlights are two lit rows whenever the
+///     keyboard alike by the runtime, in the browser (<c>data-rask-menu-pointer</c>, <c>data-rask-menu-cursor</c>)
+///     — never by a render. There is no <c>:hover</c> on it: two highlights are two lit rows whenever the
 ///     pointer rests on one and the arrows move to another. A navigation menu's link has no cursor, and keeps
 ///     <c>:hover</c>.
 /// </remarks>
@@ -153,22 +153,17 @@ internal static class UiMenuRow
         where T : Element
     {
         data[marker] = "";
-        if (level?.Scope.IsLit(ordinal) == true)
+
+        // Only where the PAGE keeps the cursor. A menu's rows are all rendered unlit, with no tab stop: which one
+        // is lit and which has focus is the runtime's, written and held in the browser (rask-menu.ts).
+        var active = level is not null && ordinal == level.Scope.Active;
+        if (active)
         {
             data["active"] = "";
         }
 
-        // The tab stop is the row that has FOCUS, which the pointer does not move: a row it lit keeps -1, and
-        // that is how the runtime tells it from the keyboard's (rask-menu-keys.ts).
-        var focused = level is not null && ordinal == level.Scope.Focus;
-
         // Chain steps, not property writes: a chain-built element renders what its chain was given.
-        element = element.Role(role).TabIndex(focused ? 0 : -1).Aria(aria).Data(data);
-        if (level?.Scope.PointAt is { } point)
-        {
-            element = element.OnPointerEnter(e => point(ordinal, e));
-        }
-
+        element = element.Role(role).TabIndex(active ? 0 : -1).Aria(aria).Data(data);
         return level is null ? element : element.Id(level.Scope.ItemId(ordinal));
     }
 

@@ -23,9 +23,101 @@
 // (rask-hook-loader.ts), and a page with no menu does not download this.
 
 import {isShown, listen, near, page, setShown} from "./rask-owned.js";
+import {cursorOf, flyoutOf, isOff, isOpen, kept, land, ROW as ITEM, rowOf, rowsOf, setOpen} from "./rask-menu.js";
 
 const CONTAIN = [" ", "Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"];
-const ITEM = "[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio]";
+
+// ----- The cursor of a menu the runtime keeps (data-rask-menu-cursor) ------------------------------------
+// Flux UI's menu, key for key (measured on its live dropdown): with focus still on the menu either arrow lands
+// on the row the pointer lit, or on the first; from a row the arrows count from the LIT row — which the pointer
+// may have moved — a row at a time, stopping at the ends and stepping over what is disabled; Home, End and the
+// page keys are not menu keys; ArrowRight or Enter on a submenu's row opens it onto its first row, Space opens
+// it and stays, ArrowLeft closes the flyout the cursor is in; a letter jumps to the row that starts with it.
+// One thing is not Flux's: after the pointer has lit a row and left, Flux's keys do nothing; here they go on
+// from the row that has focus.
+
+const TYPE_AHEAD_MS = 500;
+let typed = "";
+let typedAt = 0;
+
+/** The row `dir` (1 or -1) from `from` that is not off; `from` itself when there is none that way. */
+export function stepFrom(off: readonly boolean[], from: number, dir: 1 | -1): number {
+    for (let i = from + dir; i >= 0 && i < off.length; i += dir) {
+        if (!off[i]) {
+            return i;
+        }
+    }
+    return from;
+}
+
+/**
+ * Type-ahead: the index the letters typed so far land on, or -1. `texts` holds null for a row that is off.
+ * One letter looks from the row after the cursor, and the same letter again goes on to the next that starts
+ * with it; several different letters are a prefix, looked for from the cursor itself.
+ */
+export function typeAhead(buffer: string, key: string, cursor: number, texts: readonly (string | null)[]): number {
+    let repeated = true;
+    for (let i = 1; i < buffer.length; i++) {
+        repeated = repeated && buffer[i] === buffer[0];
+    }
+    const needle = (repeated ? key : buffer).toLocaleLowerCase();
+    const start = needle.length === 1 ? cursor + 1 : cursor;
+    for (let i = 0; i < texts.length; i++) {
+        const at = (((start + i) % texts.length) + texts.length) % texts.length;
+        const text = texts[at];
+        if (text !== null && text.toLocaleLowerCase().indexOf(needle) === 0) {
+            return at;
+        }
+    }
+    return -1;
+}
+
+// Answers a key for a kept menu. True when the key was the cursor's.
+function cursorKey(root: HTMLElement, target: HTMLElement, key: string): boolean {
+    const onRow = target.matches(ITEM);
+    const at = cursorOf(root) || (onRow ? target : null);
+    const level = at ? at.closest("[role=menu]") || root : root;
+    const rows = rowsOf(level);
+    const off = rows.map(isOff);
+    const index = at ? rows.indexOf(at) : -1;
+    const flyout = at && !isOff(at) ? flyoutOf(at) : null;
+
+    if (key === "ArrowDown" || key === "ArrowUp") {
+        const to = !onRow ? (at || rows[stepFrom(off, -1, 1)]) : rows[stepFrom(off, index, key === "ArrowDown" ? 1 : -1)];
+        if (to) {
+            land(root, to);
+        }
+        return true;
+    }
+    if (flyout && at && (key === "ArrowRight" || key === "Enter" || key === " ")) {
+        const inside = rowsOf(flyout);
+        const first = key === " " ? undefined : inside[stepFrom(inside.map(isOff), -1, 1)];
+        // Shown before focus goes into it; and landing on the row itself shuts its flyout, so it opens after.
+        setOpen(at, true);
+        land(root, first || at);
+        setOpen(at, true);
+        return true;
+    }
+    if (key === "ArrowLeft" && at && level !== root) {
+        // Landing on the row that opened it closes the flyout: the row is not inside it.
+        const opener = rowOf(level);
+        if (opener) {
+            land(root, opener);
+        }
+        return true;
+    }
+    if (key.length === 1 && key !== " ") {
+        const now = Date.now();
+        typed = now - typedAt > TYPE_AHEAD_MS ? key : typed + key;
+        typedAt = now;
+        const hit = typeAhead(typed, key, index, rows.map(function (row, i) { return off[i] ? null : (row.textContent || "").trim(); }));
+        if (hit >= 0) {
+            land(root, rows[hit]);
+        }
+        return true;
+    }
+    return false;
+}
 
 // A row that opens a submenu: it says so (aria-haspopup="menu"), or — as Flux UI's rows do, which carry no
 // ARIA of their own — the menu it opens is the element right after it.
@@ -55,6 +147,13 @@ if (page) {
         }
 
         const menu = menuOf(t);
+        const root = kept(menu);
+        if (root && cursorKey(root, t, e.key)) {
+            if (CONTAIN.indexOf(e.key) >= 0) {
+                e.preventDefault();
+            }
+            return;
+        }
         if (menu && CONTAIN.indexOf(e.key) >= 0) {
             e.preventDefault();
             if (e.key === "Enter" || e.key === " ") {
@@ -89,6 +188,14 @@ if (page) {
 
     listen("click", function (e) {
         const row = near(e.target, ITEM);
+        const root = kept(row);
+        if (row && root && !isOff(row)) {
+            // A press puts the cursor on its row. On a submenu's row a tap, which has no hover, opens the flyout
+            // and the next one closes it; a press from a pointer that was resting there leaves it open.
+            const toggles = (e as PointerEvent).pointerType === "touch" && isOpen(row);
+            land(root, row);
+            setOpen(row, !toggles);
+        }
         if (!row || opensSubmenu(row) || row.getAttribute("aria-disabled") === "true"
             || row.closest("[data-rask-keep-open]")) {
             return;

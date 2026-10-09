@@ -10,8 +10,8 @@ namespace Rask.Server.E2E.Tests;
 
 /// <summary>
 ///     <c>Ui.Dropdown</c>, <c>Ui.Menu</c> and <c>Ui.Context</c> on a live SERVER page, under a pointer and a
-///     keyboard: the attributes the kit writes, the hooks that act on them, and the cursor C# keeps a round trip
-///     behind.
+///     keyboard: the attributes the kit writes and the hooks that act on them — in the browser, with nothing
+///     sent over the socket while the reader moves about an open menu.
 /// </summary>
 /// <remarks>
 ///     Every expectation is what Flux UI's live dropdown, context and sidebar-demo pages did on 2026-10-09, read
@@ -176,6 +176,103 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
         Assert.Equal("options", await session.FocusAsync());
     }
 
+    [Fact]
+    public async Task The_arrows_step_over_a_disabled_row_and_stop_at_the_ends_a_letter_jumps_and_Enter_picks()
+    {
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        const string focused = "() => document.activeElement.textContent.trim()";
+        var walked = new List<string>();
+
+        await page.ClickAsync("#more");
+        foreach (var key in (string[])["ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown", "End", "Home", "PageUp", "ArrowUp", "ArrowUp", "ArrowUp", "d", "s"])
+        {
+            if (key is "s")
+            {
+                // Letters typed within half a second are one prefix: "ds" is nobody's.
+                await page.WaitForTimeoutAsync(650);
+            }
+
+            await page.Keyboard.PressAsync(key);
+            walked.Add(await page.EvaluateAsync<string>(focused));
+        }
+
+        await page.Keyboard.PressAsync("Enter");
+
+        // Flux, key for key: over "Duplicate", no wrapping at either end, and Home, End and the page keys are not
+        // menu keys. `d` passes the disabled row that starts with it.
+        Assert.Equal(["Edit", "Share", "Delete", "Delete", "Delete", "Delete", "Delete", "Share", "Edit", "Edit", "Delete", "Share"], walked);
+        await Expect(page.Locator("#picked")).ToHaveTextAsync("picked share");
+        await Expect(page.Locator("[data-testid='more'] [popover]")).ToBeHiddenAsync();
+        Assert.Equal("more", await session.FocusAsync());
+    }
+
+    [Fact]
+    public async Task A_pointer_gliding_over_every_row_and_flyout_and_the_arrow_keys_send_the_server_nothing()
+    {
+        var sent = 0;
+        var received = 0;
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, beforeLoad: page =>
+        {
+            page.WebSocket += (_, socket) =>
+            {
+                socket.FrameSent += (_, _) => Interlocked.Increment(ref sent);
+                socket.FrameReceived += (_, _) => Interlocked.Increment(ref received);
+            };
+            return Task.CompletedTask;
+        });
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await page.ClickAsync("#options");
+        await SeeAsync(page, " | MENU | ");
+        // The toggle the page hears has gone and its answer has come: from here on the socket is watched.
+        await page.WaitForTimeoutAsync(300);
+        var (sentBefore, receivedBefore) = (Volatile.Read(ref sent), Volatile.Read(ref received));
+
+        foreach (var row in (string[])["New post", "Sort by", "Filter", "Delete", "Filter", "Draft", "Published", "Sort by", "Name", "Date", "Popularity", "New post"])
+        {
+            await OverAsync(page, row);
+        }
+
+        await SeeAsync(page, "New post | MENU | ");
+        foreach (var key in (string[])["ArrowDown", "ArrowDown", "ArrowRight", "ArrowDown", "ArrowLeft", "ArrowDown", "f", "ArrowUp"])
+        {
+            await page.Keyboard.PressAsync(key);
+        }
+
+        await SeeAsync(page, "Sort by | Sort by | ");
+        await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 4 });
+        await page.WaitForTimeoutAsync(300);
+
+        // Twelve rows entered, three flyouts opened and closed, eight keys: not one frame either way.
+        Assert.Equal(0, Volatile.Read(ref sent) - sentBefore);
+        Assert.Equal(0, Volatile.Read(ref received) - receivedBefore);
+    }
+
+    [Fact]
+    public async Task What_the_pointer_and_the_keys_wrote_survives_a_render_the_server_sends_meanwhile()
+    {
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await page.ClickAsync("#options");
+        await page.Keyboard.PressAsync("ArrowDown");
+        await OverAsync(page, "Sort by");
+        await OverAsync(page, "Date");
+        await SeeAsync(page, "Date | New post | Sort by");
+
+        // A press the page hears, on a row that keeps the menu open: it renders the menu again, words and all.
+        await page.EvaluateAsync("() => document.getElementById('tick').click()");
+        await Expect(page.Locator("#tick")).ToHaveTextAsync("Ticked 1");
+        await page.EvaluateAsync("() => document.getElementById('tick').click()");
+        await Expect(page.Locator("#tick")).ToHaveTextAsync("Ticked 2");
+
+        // The lit row, the tab stop and the open flyout are the runtime's, and the render left them alone.
+        Assert.Equal("Date | New post | Sort by", await page.EvaluateAsync<string>(State));
+        Assert.Equal("0", await page.Locator("[data-testid='menu'] [role=menuitem]").First.GetAttributeAsync("tabindex"));
+    }
+
     private static ILocator Row(IPage page, string words) =>
         page.Locator("[data-testid='menu'] [role^=menuitem]").Filter(new LocatorFilterOptions { HasTextString = words }).First;
 
@@ -212,9 +309,14 @@ public sealed partial class MenuHookPage : Component
 
     protected override string? HtmlLang => "en";
 
+    private int _ticks;
+    private string _picked = "nothing";
+
     protected override Component? Render() =>
     [
         Button.Id("before")["Before"],
+        // Outside the menu, and pressed from script while the menu is open: a render the menu did not ask for.
+        Button.Id("tick").OnClick(() => _ticks++)[$"Ticked {_ticks}"],
         Div.Data("testid", "menu")[
             Ui.Dropdown[
                 Button.Id("options")["Options"],
@@ -223,6 +325,18 @@ public sealed partial class MenuHookPage : Component
                     Ui.MenuSubmenu.Heading("Sort by")[Ui.MenuItem["Name"], Ui.MenuItem["Date"], Ui.MenuItem["Popularity"]],
                     Ui.MenuSubmenu.Heading("Filter")[Ui.MenuItem["Draft"], Ui.MenuItem["Published"]],
                     Ui.MenuItem.Danger["Delete"]
+                ]
+            ]
+        ],
+        P.Id("picked")[$"picked {_picked}"],
+        Div.Data("testid", "more")[
+            Ui.Dropdown[
+                Button.Id("more")["More"],
+                Ui.Menu[
+                    Ui.MenuItem.OnClick(() => _picked = "edit")["Edit"],
+                    Ui.MenuItem.Disabled(true)["Duplicate"],
+                    Ui.MenuItem.OnClick(() => _picked = "share")["Share"],
+                    Ui.MenuItem.Danger.OnClick(() => _picked = "delete")["Delete"]
                 ]
             ]
         ],
