@@ -1385,9 +1385,8 @@ the same modal: the dialog says `data-rask-modal-open` and the runtime shows and
 in the top layer behind the same backdrop, Escape and a click outside run `OnCancel` then `OnClose`, and focus
 returns when it closes. `OnClose` is where the page hears that the reader closed it — set the field there, or
 the page goes on saying it is open. A modal with neither a `Name` nor `Open` is open for as long as the page
-renders it. Where one modal on a page has a `Key`, give every modal there one: a parent that identifies a
-type by key no longer reuses the unkeyed ones by position, and a modal rebuilt on every render loses the
-`close` that follows a `cancel`. `Ui.Drawer` is gone: a panel that slides in from an edge is a flyout.
+renders it. A modal without a `Key` beside keyed ones is fine: it keeps its instance by its order among the
+unkeyed modals of the page. `Ui.Drawer` is gone: a panel that slides in from an edge is a flyout.
 
 `Ui.ConfirmLeave` is the one modal here that is not Flux's: the dialog a form's
 [`ConfirmLeave("…")`](forms.md#ask-before-leaving-unsaved-changes) asks in, in place of the browser's `confirm`.
