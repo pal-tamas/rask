@@ -61,11 +61,7 @@ public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
             .Disabled(disabled);
         if (!disabled)
         {
-            button = button.OnClick(() =>
-            {
-                level?.Scope.MoveTo(ordinal);
-                return UiFormCommit.CommitAsync<bool>(this, accessor, context, !current);
-            });
+            button = button.OnClick(() => UiFormCommit.CommitAsync<bool>(this, accessor, context, !current));
         }
 
         var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["checked"] = current ? "true" : "false" };

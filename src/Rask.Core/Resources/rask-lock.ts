@@ -6,6 +6,14 @@
 // These are the three declarations Flux UI puts on <html> under an open select, dropdown and popover
 // (overflow: hidden; pointer-events: none; scrollbar-gutter: stable), and the two it puts there under a modal.
 //
+// THE GUTTER IS KEPT ONLY WHERE THERE WAS ONE. `scrollbar-gutter: stable` reserves a scrollbar's width whether
+// or not a scrollbar was taking any: on a page too short to scroll, and in a browser run with its scrollbars
+// hidden (every headless one), it narrows the page by 15 px that were in use. The text wraps again, what is
+// above the reader's place grows by a line or two, and scroll anchoring moves window.scrollY to follow — the
+// jump of a line's height measured under an open select, date picker and modal. So the width the scrollbar
+// takes is read as the lock goes on, and the gutter is asked for (data-rask-gutter on <html>) only when that
+// is more than nothing. Where a scrollbar shows, the declarations are Flux's; where none does, nothing moves.
+//
 // COUNTED by asking, not by keeping score: every time something that could change the answer happens — a
 // toggle or close event, or a node leaving the page while locked — the open [data-rask-lock] elements are
 // counted again. A render that removes an open panel, a navigation that replaces the page and two menus
@@ -21,7 +29,10 @@ import {disown, isShown, listen, own, page} from "./rask-owned.js";
 const LOCK = "data-rask-lock";
 const LOCKED = "data-rask-locked";
 
-const RULES = "html[" + LOCKED + "]{overflow:hidden;scrollbar-gutter:stable}"
+const GUTTER = "data-rask-gutter";
+
+const RULES = "html[" + LOCKED + "]{overflow:hidden}"
+    + "html[" + GUTTER + "]{scrollbar-gutter:stable}"
     + "html[" + LOCKED + "=all]{pointer-events:none}"
     + "[" + LOCK + "]{pointer-events:auto}";
 
@@ -33,12 +44,26 @@ function isOpen(el: Element): boolean {
     return (el instanceof HTMLDialogElement && el.open) || isShown(el);
 }
 
+function mark(root: Element, name: string, value: string | null): void {
+    if (value === null) {
+        root.removeAttribute(name);
+        disown(root, name);
+    } else {
+        own(root, name);
+        root.setAttribute(name, value);
+    }
+}
+
 function apply(doc: Document, state: string): void {
     if (state === locked) {
         return;
     }
-    locked = state;
     const root = doc.documentElement;
+    const view = doc.defaultView;
+    // Asked as the lock goes on, while the page is still as the reader has it: the window is wider than what
+    // the page is laid out in exactly when a scrollbar takes room beside it. Kept until the lock lets go.
+    const gutter = !!state && (locked ? root.hasAttribute(GUTTER) : !!view && view.innerWidth > root.clientWidth);
+    locked = state;
     const adopted = (doc as Document & { adoptedStyleSheets?: CSSStyleSheet[] }).adoptedStyleSheets;
     if (!sheet && adopted && typeof CSSStyleSheet === "function") {
         try {
@@ -50,16 +75,11 @@ function apply(doc: Document, state: string): void {
             // no constructable stylesheets here: the inline path below
         }
     }
-    if (state) {
-        own(root, LOCKED);
-        root.setAttribute(LOCKED, state);
-    } else {
-        root.removeAttribute(LOCKED);
-        disown(root, LOCKED);
-    }
+    mark(root, LOCKED, state || null);
+    mark(root, GUTTER, gutter ? "" : null);
     if (!sheet) {
         root.style.overflow = state ? "hidden" : "";
-        root.style.setProperty("scrollbar-gutter", state ? "stable" : "");
+        root.style.setProperty("scrollbar-gutter", gutter ? "stable" : "");
         root.style.pointerEvents = state === "all" ? "none" : "";
     }
 }

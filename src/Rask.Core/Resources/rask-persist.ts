@@ -6,7 +6,9 @@
 //   * data-rask-persist="<key>": the box is checked or not as the reader last left it, read from
 //     localStorage[key] ("true" / "false") the moment the box arrives and written on every change. Flux UI's
 //     sidebar keeps its collapsed state the same way (flux-sidebar-collapsed-desktop). From then on the state
-//     is not a render's to reset — the server never knew it — so the morph leaves `checked` alone on that box.
+//     is not a render's to reset — the server never knew it — so the morph leaves `checked` alone on that box
+//     (and does from the first render, before this module has arrived: ownsChecked in rask-owned.ts asks the
+//     attribute itself).
 //     This runs when the runtime does, which on a server-rendered page is before the first paint in practice
 //     and in a WebAssembly app is after the app has booted: a page that must not flash on a cold load restores
 //     the same key from a script of its own in <head>, and this then agrees with it.

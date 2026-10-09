@@ -236,6 +236,54 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         }
     }
 
+    // The switch stops the rules nobody wrote in the app. A property's own rule and a store's were written —
+    // on the type, on the index — and stay on.
+    [Fact]
+    public async Task The_global_AutoValidate_false_leaves_a_propertys_own_rule_and_the_stores_rules_on()
+    {
+        RaskValidation.RegisterFieldRules(typeof(Registered), Registered.RuleOf);
+        RaskValidation.RegisterStoreRules(typeof(Registered), _ => new RegisteredStore());
+        var m = new Registered();
+        EditContext? ctx = null;
+
+        RaskValidation.AutoValidate = false;
+        try
+        {
+            var page = Page.Render(() => Form.Model(m)[
+                Input.Bind(() => m.Name).Id("name").Blur(),
+                Input.Bind(() => m.Code).Id("code").Blur(),
+                Test.EditContextProbe(c => ctx = c)
+            ]);
+
+            await page.On("#name").Change("");
+            await page.On("#code").Change("X1");
+
+            Assert.Equal(["Name is required."], ctx!.GetValidationMessages(new FieldIdentifier(m, "Name")));
+            Assert.Equal(["That code is taken."], ctx.GetValidationMessages(new FieldIdentifier(m, "Code")));
+        }
+        finally
+        {
+            RaskValidation.AutoValidate = true;
+        }
+    }
+
+    private sealed class Registered
+    {
+        private static readonly Validate<string> NameRule = value => value.Length == 0 ? ["Name is required."] : [];
+
+        public string Name { get; set; } = "Ada";
+
+        public string Code { get; set; } = "";
+
+        internal static Delegate? RuleOf(string property) => property == nameof(Name) ? NameRule : null;
+    }
+
+    private sealed class RegisteredStore : IStoreRules
+    {
+        public ValueTask<IReadOnlyList<Rask.Wire.FieldFailure>> Check(object model, string? field, CancellationToken cancellationToken) =>
+            new(field == "Code" ? [new Rask.Wire.FieldFailure("That code is taken.", ["Code"])] : []);
+    }
+
     private sealed class BookingModel : IValidatableObject
     {
         [Required(ErrorMessage = "Name is required.")]
