@@ -47,5 +47,8 @@ Form.Model(_model).OnSubmit(m => _submission = "Ordered")[
 
 Depends on FluentValidation 12.x.
 
+A form needs none of this for its own rules: `Input.Bind(…).Validate(v => …)` is built in. Reach for this
+package when the rules already exist as `AbstractValidator<T>`, or must also run on a request.
+
 Guides: [Validation](https://rask.sh/docs/guides/validation) ·
 [Forms — validation](https://rask.sh/docs/guides/forms-validation)

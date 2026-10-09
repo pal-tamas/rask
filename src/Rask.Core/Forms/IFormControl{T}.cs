@@ -60,7 +60,8 @@ public interface IFormControl<T> : IFormControl
     ///         validator — since no single field owns them.
     ///     </para>
     ///     <para>
-    ///         An asynchronous rule runs per change, so debounce anything expensive, and let the value
+    ///         An asynchronous rule runs on every change, and the latest value wins. Keep it cheap: an
+    ///         expensive check belongs in the form's own rule, which runs once, on submit. Let the value
     ///         through rather than blocking the form if the check itself fails. Client-side validation is a
     ///         convenience, never a control: always validate again on the server.
     ///     </para>

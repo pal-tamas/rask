@@ -154,7 +154,9 @@ the runtime follows it without reloading the page. See [the UI kit](../ui-kit.md
 
 Nothing in that form mentions validation, and the attributes on `Product` are still enforced: `Form.Model(m)`
 validates its model on its own, with no package to add and nothing to declare, and the save only runs for a
-valid one. See [forms](../forms.md) and [validation](../validation.md).
+valid one. Those attributes are on the aggregate because they shape its table too. A rule that is only the
+form's is written beside the field — `Ui.Input.Bind(…).Validate(v => …)` — see
+[forms — validation](../forms-validation.md) and [validation](../validation.md).
 
 The save goes through a **command**: `QueryClient.Command()` hands back the same command every render, and
 sending work through it is what the page reads its state from. `IsPending` greys the button while the row is

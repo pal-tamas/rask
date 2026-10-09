@@ -34,6 +34,57 @@ public class QuiescentRenderTests
     }
 
     [Fact]
+    public async Task A_render_asked_for_during_a_wave_earns_one_more_wave()
+    {
+        // A page that names itself to its layout as it mounts: nothing is pending, yet the layout the wave
+        // rendered a moment earlier is already out of date.
+        QuiescenceScope.ResetSyncForTests();
+        var asked = false;
+        var renders = 0;
+
+        var result = await QuiescentRender.Run(
+            _ =>
+            {
+                asked = renders++ == 0;
+                return asked ? "stale" : "current";
+            },
+            TimeSpan.FromSeconds(5), renderRequested: () => asked, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal("current", result.Html);
+        Assert.False(result.TimedOut);
+        Assert.Equal(1, result.Waves);
+    }
+
+    [Fact]
+    public async Task A_page_that_asks_for_a_render_on_every_wave_is_cut_off_without_timing_out()
+    {
+        QuiescenceScope.ResetSyncForTests();
+        var renders = 0;
+
+        var result = await QuiescentRender.Run(
+            _ => $"render {++renders}",
+            TimeSpan.FromSeconds(5), renderRequested: () => true, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(1 + QuiescentRender.MaxRequestedWaves, renders);
+        Assert.Equal(QuiescentRender.MaxRequestedWaves, result.Waves);
+        Assert.False(result.TimedOut);
+    }
+
+    [Fact]
+    public async Task A_wave_nobody_asked_to_repeat_is_the_only_one()
+    {
+        QuiescenceScope.ResetSyncForTests();
+        var renders = 0;
+
+        var result = await QuiescentRender.Run(
+            _ => $"render {++renders}",
+            TimeSpan.FromSeconds(5), renderRequested: () => false, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal("render 1", result.Html);
+        Assert.Equal(0, result.Waves);
+    }
+
+    [Fact]
     public async Task The_first_wave_is_not_publish_only_and_every_later_one_is()
     {
         // Honouring this is what stops each wave re-firing OnRendered on everything the previous wave

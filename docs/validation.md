@@ -1,29 +1,44 @@
 # Validation
 
-Validation is built in. Put `[Required]` on a model, or write an `AbstractValidator<T>` for it, and
-the rules run — in a form as the user types, and again on the server before a dispatched request
-reaches its handler. There is no package to add for DataAnnotations and nothing to declare anywhere.
+Validation is built in. In a form, write the rule beside the field:
 
-> Included in [`Rask.Server`](../README.md) and [`Rask.Wasm`](../README.md) — nothing to install. It is **on**; an app that does
-> without it says so:
+```csharp
+Input.Bind(() => _model.Email)
+    .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."])
+```
+
+That is the whole of it for a form — a rule on a field, a rule on the form for what spans fields,
+either of them `async`, the simple ones kept in a value object. See
+[forms — validation](forms-validation.md).
+
+A rule that must also hold where no form is — on a dispatched request, on a posted HTTP body — lives on
+the type instead: `[Required]` and its relatives, or an `AbstractValidator<T>`. Those are also
+supported in a form, and they run with nothing declared.
+
+> Included in [`Rask.Server`](../README.md) and [`Rask.Wasm`](../README.md) — nothing to install. The
+> automatic validators are **on**; an app that writes its rules inline and wants only those says so:
 >
 > ```csharp
-> app.Configure(c => c.Validation.Off());
+> app.Configure(c => c.Validation.Off());   // or RaskValidation.AutoValidate = false; on any host
 > ```
+>
+> Inline `.Validate(…)` rules keep running either way.
 
 ## Where it runs
 
 | Where | What runs | Guide |
 | --- | --- | --- |
-| A `Form.Model(m)` | The model's DataAnnotations attributes, then the `AbstractValidator<T>` for it | [forms-validation.md](forms-validation.md) |
+| A `Form.Model(m)` | The inline `.Validate(…)` rules, then the model's DataAnnotations attributes, then the `AbstractValidator<T>` for it | [forms-validation.md](forms-validation.md) |
 | A dispatched query or command | The request's attributes, then its `AbstractValidator<T>`, then any `IRequestValidator<T>` you registered | below |
 | A controller action or a minimal API endpoint | The bound body's attributes, then the `AbstractValidator<T>` for it — asynchronous rules included | [HTTP endpoints](#http-endpoints) |
 
-All three share one validator: an `AbstractValidator<Order>` validates a `Form.Model(order)` while the user
+All three share a rule written on the type: an `AbstractValidator<Order>` validates a `Form.Model(order)` while the user
 types, an `Order` command when it is dispatched, **and** an `Order` posted to `/api/orders`. Write the
 rules once.
 
-## The two sources
+## Also supported: rules on the type
+
+Two sources, both optional, both run by a form, a dispatch and an endpoint alike.
 
 **DataAnnotations** lives in `Rask`, the core every host depends on, so it costs no reference
 at all. It covers `[Required]`, `[Range]`, `[StringLength]`, `[EmailAddress]`,
@@ -219,7 +234,7 @@ catch (ApiException ex) when (ex.Errors is { } errors)
 
 ## See also
 
-- [forms-validation.md](forms-validation.md) — inline, per-field, async, and the validating indicator.
+- [forms-validation.md](forms-validation.md) — inline `.Validate(…)` rules, value-object rules, async, and the validating indicator.
 - [forms.md](forms.md) — binding and the `EditContext`.
 - [cqrs.md](cqrs.md) — dispatch, pipeline behaviors, remote errors.
 - [diagnostics.md](diagnostics.md#raskval001) — RASKVAL001, RASKVAL002.

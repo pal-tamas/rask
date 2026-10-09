@@ -199,7 +199,7 @@ public sealed partial class UiModal : Component
     // Flux's own button, as Flux draws its corner: subtle, small, the mini cross — and a shade lighter at
     // rest in light mode than a subtle button is, which only important utilities can say over the button's own.
     private static UiButton CloseButton(string id) =>
-        Ui.Button.Subtle.Sm.Icon(Ui.IconName.XMark).IconVariant(Ui.IconVariant.Mini).AriaLabel("Close modal")
+        Ui.Button.Subtle.Sm.Icon(Ui.IconName.XMark).IconVariant(Ui.IconVariant.Mini).AriaLabel(RaskStrings.Get(RaskString.ModalClose, "Close modal"))
             .Class("text-zinc-400! hover:text-zinc-800! dark:text-zinc-500! dark:hover:text-white!")
             .Attributes(UiModalInvoker.Closes(id));
 

@@ -130,9 +130,9 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
     {
         var (name, kind, placeholder) = part switch
         {
-            'M' => ("Month", "month", "mm"),
-            'd' => ("Day", "day", "dd"),
-            _ => ("Year", "year", "yyyy"),
+            'M' => (RaskStrings.Get(RaskString.DatePickerMonth, "Month"), "month", RaskStrings.Get(RaskString.DatePickerMonthPlaceholder, "mm")),
+            'd' => (RaskStrings.Get(RaskString.DatePickerDay, "Day"), "day", RaskStrings.Get(RaskString.DatePickerDayPlaceholder, "dd")),
+            _ => (RaskStrings.Get(RaskString.DatePickerYear, "Year"), "year", RaskStrings.Get(RaskString.DatePickerYearPlaceholder, "yyyy")),
         };
 
         return Input.Of<string>()

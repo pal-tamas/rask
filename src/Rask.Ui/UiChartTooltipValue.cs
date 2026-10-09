@@ -27,19 +27,25 @@ public sealed partial class UiChartTooltipValue : Component, IUiChartField, IUiC
     private const string Look = "flex items-center gap-2 p-2 text-xs text-zinc-500 dark:text-zinc-300";
     private const string Name = "text-zinc-800 dark:text-white";
 
-    /// <inheritdoc />
-    protected override Component? Render() => Div.Class(UiClass.Compose(Look, Class))[
-        Children ?? [],
-        Div.Class(Name)[Label],
-        Div.Class("grow"),
-        Div[Prefix + Suffix]
-    ];
+    private readonly UiChartLines _labels = new();
+    private readonly UiChartLines _values = new();
 
-    /// <summary>The row as it reads for one row of data; <paramref name="hue" /> colours an indicator inside it.</summary>
-    internal Component For(UiChartData data, int row, Ui.Color? hue) => Div.Class(UiClass.Compose(Look, Class))[
-        Context.Provide(new UiChartHue(hue))[Children ?? []],
-        Div.Class(Name)[LabelField is null ? Label : LabelField.Text(data, row)],
-        Div.Class("grow"),
-        Div[Prefix + UiChartWriting.Value(Field, Format, data, row) + Suffix]
-    ];
+    // What it reads is the chart's rows, which arrive through the context rather than as a prop of its own.
+    /// <inheritdoc />
+    protected override bool BypassRenderCache => true;
+
+    // At rest the number is missing, as Flux's: the plot hook writes the hovered row's line into each part.
+    /// <inheritdoc />
+    protected override Component? Render()
+    {
+        var data = Context.Get<UiChartScope>()?.Data;
+        return Div.Class(UiClass.Compose(Look, Class))[
+            Children ?? [],
+            LabelField is { } label
+                ? Div.Class(Name).Data(_labels.Of(data, label, format: null, asText: true))
+                : Div.Class(Name)[Label],
+            Div.Class("grow"),
+            Div.Data(_values.Of(data, Field, Format, Prefix, Suffix))[Prefix + Suffix]
+        ];
+    }
 }

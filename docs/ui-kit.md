@@ -42,6 +42,11 @@ C# component framework that ships no script of its own:
 - **One vocabulary.** `Position` + `Align` place everything that floats, events are `On…`, `Kbd` shows a shortcut
   wherever one is shown, `Tone`/`Variant`/`Size` style everything.
 - **We style, you space.** Components bring padding, borders and colour — never an outer margin.
+- **Its own words are translatable.** The few texts the kit writes itself — a pager's "Showing 1 to 10 of 13
+  results", a select's "No results found", a date picker's "Select a date", the name of a close button — are
+  `RaskString` keys. The kit speaks English and Hungarian out of the box, in the languages your app lists in
+  `SupportedCultures`; a `Resources/RaskStrings.{culture}.json` in your app adds a language or changes a word
+  ([every key and its English](localization.md#translating-the-frameworks-own-text)).
 - **Simple first, composable after.** `Ui.Input.Label("Email").Description(…)` is one line; `Ui.Navlist` with
   `Ui.NavlistGroup`s and `Ui.NavlistItem`s, or a `Ui.Menu` with `Ui.MenuSubmenu`s, is there when one line is not enough.
 
@@ -952,8 +957,8 @@ Div.Class("flex items-center justify-between gap-4")[
 Either way the current page is not a control: it says `aria-current="page"`. On the first page Previous
 is not one either, and on the last page Next — each keeps its place and says `aria-disabled="true"`.
 
-The names are Flux's, exactly. A counted pager labels its arrows `&laquo; Previous` and `Next &raquo;` —
-the entity as text, which is what Flux's own page carries. The simple paginator's arrows carry no label,
+A counted pager labels its arrows `« Previous` and `Next »` — Laravel's translation, with the character
+a reader hears rather than the name of its entity. The simple paginator's arrows carry no label,
 and its spent arrow says nothing at all; a test finds them by position.
 
 **`ScrollTo`** brings something back into view when a page is chosen, for a pager at the foot of a long
@@ -1980,9 +1985,11 @@ keys inside it. `Ui.Popover` is the same machinery — a `[popover]` the browser
 dismisses on Escape and on a click outside, placed with the same `Position`/`Align` — with `role="dialog"` and
 ordinary Tab movement inside.
 
-**`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No script and no chart library: the scales, the ticks
-and every path are computed during the render, to the numbers Flux's own layout arrives at
-(`scripts/flux/parity-chart.mjs` compares the two drawings' geometry).
+**`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No chart library: the scales, the ticks and every
+path are computed during the render, to the numbers Flux's own layout arrives at, for the box the chart has in
+the browser (`scripts/flux/parity-chart.mjs` compares the two drawings' geometry, and with `--pointer` what each
+does under a pointer). What Flux's own script does after that — measuring, following the pointer — is the
+runtime's plot hook, by attribute.
 
 ```csharp
 Ui.Chart.Value(visits).Class("aspect-3/1")[
@@ -2015,9 +2022,17 @@ Ui.Chart.Value(visits).Class("aspect-3/1")[
   `Position(Ui.Position.Right)` are Flux's. A time axis ticks at the pace of its rows and writes itself for its
   reach (`9:17 AM`, `9 AM`, `Tue 9 AM`, `Mar 10`, `Mar`, `2026`). Labels that would touch give way as Flux's do:
   dates drop every other one, names turn 45°.
-- **Size.** Flux measures its element in the browser and draws again when it changes. A chart drawn in C# is told
-  its box — `Ui.ChartSvg.Width(606).Height(202)`, 600 × 200 unless stated — and the SVG then scales as a whole.
-  State the size it is usually shown at, so its 12px labels are 12px there.
+- **Size.** As Flux's, the chart fills the box its class gives it (`aspect-3/1`, `h-64`) and is drawn FOR that
+  box: the browser measures the drawing (the runtime's `data-rask-measure` hook) and the chart is drawn again in
+  its units — when it first appears, 100 ms after its box stops changing (a window resized, a phone turned), and
+  when a hidden chart is shown at a new size; a hidden chart keeps its drawing. Its 12px labels are 12px at
+  every width, and the ticks that fit are worked out again. On a Server page that is one round trip per chart
+  whose size was not already right; in WebAssembly it never leaves the browser.
+  The FIRST render happens before anything is measured, so it is drawn for 600 × 200 and scaled as a whole
+  until the size arrives (Flux's own first paint is an empty box: it draws from script). Where the size is known,
+  say it — `Ui.ChartSvg.Width(313).Height(104)` — and the first drawing is already the right one: a box within
+  half a pixel of the stated one is never reported, so nothing is drawn twice and nothing is sent. A page of
+  sixty charts should state it.
 - **Format.** Flux's `:format` is the options of `Intl.NumberFormat` / `Intl.DateTimeFormat`; `UiChartFormat`
   carries them under Intl's names, written with .NET formatting in the reader's culture:
   `new() { Style = Ui.ChartFormatStyle.Currency, Currency = "USD" }`,
@@ -2029,10 +2044,17 @@ Ui.Chart.Value(visits).Class("aspect-3/1")[
   `currencySign`, `signDisplay`, `unitDisplay`, significant-digit and integer-digit limits, `roundingMode`,
   `timeZone`, `timeZoneName`, `era`, `fractionalSecondDigits`, `dayPeriod`, `hourCycle`, `calendar`,
   `numberingSystem`. A date's parts are written in the order English writes them.
-- **Under the pointer.** Flux follows the pointer in script. Here every row has a strip over the drawing,
-  reaching halfway to its neighbours, that carries the row's own cursor and tooltip and shows them on `:hover`
-  — so the nearest row answers, as in Flux, with no script. A summary shows the latest row and does not follow
-  the pointer; a pie has no tooltip. Both need a pointer hook in the runtime.
+- **Under the pointer.** Everything Flux's chart does under the pointer, done in the browser by the runtime's
+  plot hook — no handler, no round trip per move. The row nearest the pointer along the index axis is the active
+  one while the pointer is inside the plot: ONE cursor moves to it (a dashed line; `Ui.ChartCursorType.Area`
+  covers the row's band), ONE tooltip moves beside it — 15px from the row and from the pointer, flipped to the
+  other side where it would pass the drawing's right or bottom edge — and its heading and values, and every
+  `Ui.ChartSummaryValue`, read that row; a summary goes back to the latest row when the pointer leaves. The
+  row's `Ui.ChartPoint`s carry `data-active`. On a pie the slice under the pointer carries `data-active` and
+  the others `data-inactive` (`.Class("transition-opacity data-inactive:opacity-40")`), the tooltip follows the
+  pointer and a `Ui.ChartTooltipIndicator` takes the slice's colour. Each part is rendered ONCE with what it
+  reads for every row (`data-rask-plot-text`), so fifty rows cost fifty short lines, not fifty tooltips.
+  `node scripts/flux/parity-chart.mjs --pointer` walks a pointer over Flux's page and the kit's and compares.
 - **Labels are measured in Inter.** Flux sizes a chart's gutters by measuring its tick labels in the browser.
   The kit carries Inter's advance widths and kerning (`UiChartInter`, generated by
   `scripts/flux/inter-metrics.mjs`) and adds them up as Chromium does. In another face the labels still fit;

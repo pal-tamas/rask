@@ -73,7 +73,7 @@ public sealed partial class UiFilter<T> : Component, IFormControl<T>
                 .Type(InputType.Radio)
                 .Name(Group)
                 .Class("btn btn-square filter-reset")
-                .Aria("label", ResetLabel ?? "All"),
+                .Aria("label", ResetLabel ?? RaskStrings.Get(RaskString.FilterReset, "All")),
             Options.Select(option =>
             {
                 var (value, text) = option;

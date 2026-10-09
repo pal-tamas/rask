@@ -7,6 +7,13 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A pager's arrows are named `« Previous` and `Next »`.** The label was written as the entity's name and
+  then encoded, so the markup said `aria-label="&amp;laquo; Previous"` and a screen reader read out
+  "&laquo; Previous". It is the character now, encoded once. `RaskString.PaginationPrevious` /
+  `PaginationNext` carry it, and the kit's Hungarian says `« Előző` / `Következő »`.
+
 ### Added
 
 - **`HasViolationMessage` — a unique index says what breaking it means.**
@@ -64,6 +71,50 @@ them until tagged releases begin.
   `ToTable` in `Configure`, this is what lets an app map aggregates over tables it already has, through a second
   context deriving from `RaskDbContext` beside its own — [Mapping tables that already
   exist](docs/data.md#mapping-tables-that-already-exist).
+- **The UI kit's own words are translatable, and it speaks Hungarian out of the box.** The Flux rebuild had
+  written the kit's few fixed texts as English literals — the pager's "Showing 1 to 10 of 13 results" and its
+  arrow names, a select's "No results found" / "Loading..." / "Clear selected", the date pickers' "Select a
+  date", "Cancel" and range presets, the calendar's "Today", the editor's tooltips, an input's "Clear input",
+  "Close modal", the leave dialog's "Stay" / "Leave", the names a screen reader hears in the one-time code,
+  the slider, the rating, the sidebar and the data grid. Each is a `RaskString` key now (116 new ones;
+  `docs/localization.md` lists every key with its English), read as
+  `RaskStrings.Get(RaskString.SelectEmpty, "No results found")`. `Rask.Ui` ships `Resources/RaskStrings.hu.json`
+  for all of them, so an app that lists `hu` in `SupportedCultures` draws a Hungarian kit with no catalog of
+  its own; the app's `Resources/RaskStrings.{culture}.json` still wins key by key, and adds any other
+  language. English output is byte-for-byte what it was, and an app that lists no languages stays English
+  whatever its machine speaks. A component's own props (`Empty`, `Placeholder`, `Stay`) are said as given.
+- **A framework text can carry values.** `RaskStrings.Get(key, "Showing {0} to {1} of {2} results", from, to,
+  total)` — one, two or three values, unboxed. A translation numbers them in its own order
+  (`"{2} találatból {0}–{1}."`) and may format one (`{2:N0}`), written in the visitor's culture; the
+  generator refuses a place the text does not carry and a named one (RASK051), and at runtime a hand-written
+  source that gets it wrong is passed over for the English rather than throwing.
+- **A library ships translations of the framework texts it draws.** `<RaskStringsLibrary>true</RaskStringsLibrary>`
+  compiles its `Resources/RaskStrings.{culture}.json` into a source registered with
+  `RaskStrings.UseLibrarySource`, a layer under the app's. The generated lookup walks `hu-HU` → `hu` over a
+  span, so a language with no catalog costs no allocation.
+- **`Ui.Chart` fills its container and follows the pointer, as Flux's does.** Two things Flux's chart does in
+  script and the kit's did not do at all, both done by the runtime's plot hook with the chart still drawn in C#.
+  *Size.* The drawing is measured in the browser (`data-rask-measure`) and drawn again for the box it has — when
+  it first appears, 100 ms after its box stops changing (a window resized, a phone turned), and when a hidden
+  chart is shown at another size; a hidden chart keeps its drawing, as Flux's. Its 12px labels are 12px at 390
+  wide and at 1920, and the ticks that fit are worked out again, where the SVG used to be scaled as a whole
+  from the stated size. `Ui.ChartSvg.Width(…).Height(…)` are now the box drawn for BEFORE the browser has
+  measured (600 × 200 unstated): a chart stated within half a pixel of its real box is drawn once and sends
+  nothing. Flux's own first paint is an empty box; the kit's is the drawing, scaled until the size arrives.
+  *Pointer.* The cursor, the tooltip, every `Ui.ChartSummaryValue`, the active `Ui.ChartPoint`s and a pie's
+  slices follow the pointer in the browser, with no round trip: the tooltip sits 15px from the row and the
+  pointer and flips at the drawing's right and bottom edges (it used to rest at 40% of the height); a summary
+  reads the hovered row and goes back to the latest; a horizontal chart's rows are followed down the page; an
+  area cursor covers the row's band; a pie's hovered slice carries `data-active` and the others `data-inactive`
+  (`.Class("transition-opacity data-inactive:opacity-40")`), its tooltip follows the pointer and a
+  `Ui.ChartTooltipIndicator` takes the slice's colour — a pie had no tooltip before. Every step of a pointer
+  walked over Flux's live page and the kit's agrees (`node scripts/flux/parity-chart.mjs --pointer`, 22 charts).
+  No call site changes. The hook gained what that needed (`docs/js-interop-runtime.md`): `data-rask-plot-text`
+  (a part's text for every row, a line each), `data-rask-plot-frame`, `data-rask-plot-axis="y"`, the rows'
+  places on the area itself, `--rask-plot-at` / `--rask-plot-y`, a plot of shapes for a root with no area, a
+  tooltip placed from wherever it rests; and `data-rask-measure` now waits for a box to settle, says nothing for
+  a hidden element or a half-pixel difference, and tells a page its box again when a render writes another size
+  over it — a prerendered WASM page measured before its host arrived used to keep the size it was rendered at.
 
 - **`Ui.ConfirmLeave` — the unsaved-changes question in a dialog of the app's own.** Placed once in a layout
   (`Ui.ConfirmLeave.Stay("Nem").Leave("Igen")`, "Stay" / "Leave" when unset), it is where every form's
@@ -91,6 +142,16 @@ them until tagged releases begin.
 
 ### Performance
 
+- **A `Ui.Chart` is a third of the markup and a third of the work.** Every row used to carry its own strip, its
+  own cursor and its own copy of the whole tooltip; there is one tooltip and one cursor now, and each part
+  carries what it reads per row as one short line. Sixty charts of fifty points, with axes, a cursor and a
+  tooltip: 4,124,077 → 1,379,357 bytes of HTML (−67%), 27.4 → 9.8 ms to render (warm median, Release) and
+  48.7 → 12.7 MB allocated per render — the numbers of a path are written straight into it instead of through a
+  string each. A drawing is also kept by the chart that made it and reused while its rows, its parts and its
+  box are the same ones: a part that reads the chart's context is rendered on every walk of the page, so sixty
+  charts were each drawn again whenever one of them was measured (3.0–4.8 s for a page of sixty to settle on a
+  Server host before, 0.6–0.9 s after; nothing at all when their sizes are stated).
+
 - **The behaviour hooks load on demand; the runtime every page downloads is a quarter smaller.** Everything an
   element asks of the runtime by carrying an attribute (`data-rask-tooltip`, `data-rask-otp`, `data-rask-modal-open`
   … — `docs/js-interop-runtime.md`) had grown `rask.js` from 90 kB to 130 kB and `rask.wasm.js` from 79 kB to
@@ -116,6 +177,16 @@ them until tagged releases begin.
   `builder.HasIndex(p => new { p.Sku, p.TenantId })` (or `"Sku", Columns.TenantId` for the shadow column):
   an index that names `TenantId` anywhere is left as written. Run `rask db add` and read the migration before
   applying it — on a large table recreating an index takes a lock.
+- **The docs lead with inline `.Validate(…)`; DataAnnotations and FluentValidation follow as "also supported".**
+  No API changed and nothing is deprecated: only order, emphasis and examples. `docs/forms-validation.md` opens
+  on a field's rule, then the form's rule for what spans fields, rules kept in a value object
+  (`Ui.Input.Bind(() => m.Name).MaxLength(DestinationName.MaxLength).Validate(DestinationName.Validate)`, with a
+  live demo), and the async rule with its latest-value-wins note. A field's async rule runs on every change, so
+  the guide now says an expensive check belongs in the form's rule, on submit. The attribute and FluentValidation
+  sections keep their content under "Also supported", beside how an app that wants only its inline rules turns
+  the automatic validators off (`RaskValidation.AutoValidate = false`). `docs/forms.md`, `docs/validation.md`,
+  best practices, the home page card, the guide search copy, `llms.txt` and the package READMEs say the same.
+
 - **A collapsed `Ui.Sidebar` is Flux's rail: real tooltips, a menu per group, the navlist's count.** Measured on
   Flux's live `sidebar-collapsible` demo and built from its pieces. Every `Ui.SidebarItem` sits in a `Ui.Tooltip`
   to its right (`aria-describedby`, `data-rask-tooltip`) that is drawn only while the sidebar is a rail;
@@ -1365,6 +1436,14 @@ them until tagged releases begin.
   root that also declined its stamps is simply left alone. `GeneratedModelWrites.Update`/`Delete` called
   directly with a version for such an aggregate is refused with a message naming the const, rather than
   skipping a check the caller asked for.
+- **A `Ui.ChartBar` shorter than its corners is drawn as Flux draws it.** A bar's corner was held to the bar's
+  whole length, where Flux holds it to HALF of it (and to half the bar's thickness): a bar under 16px tall with
+  the default radius of 8 — or under 8px in a group, whose radius is 4 — had its shoulders 1 to 3px too low, the
+  arcs meeting in a point instead of a half disc. A bar lying on its side that runs back from the baseline (a
+  negative value on a `Horizontal()` chart) was square at both ends; it is rounded at its left end now, as
+  Flux's. Found on the random rows Flux's docs draw (three loads in six had such a bar) and held by
+  `UiChartTests.Bars.json`: those loads, and rows handed to Flux's live chart for short, empty and negative bars
+  alone, grouped, stacked and horizontal.
 
 - **Typing fast into a slow page no longer queues a render per key behind the reader — and `Ui.Autocomplete`
   no longer shows stale text, goes empty, or opens and closes for ever after it is left.** Every key typed into
@@ -1419,6 +1498,23 @@ them until tagged releases begin.
   (`Key($"pinned-{id}")`) where the rows hold state. `docs/composition.md` says so now; it used to promise
   "unique among siblings" for components too. Nothing changes for a list whose keys are unique, and a live
   update of the 20-row benchmark page allocates what it did (2,504 B with tiered PGO off, before and after).
+- **`Text["…"]` renders its words, so a component whose root is bare text is patched when it re-renders.**
+  `Text` wrote its `Value` and dropped whatever the `[...]` indexer handed it, so `Text[heading.Text]` — the
+  spelling every other tag takes — rendered nothing at all. A leaf written `Render() => Text[heading.Text]`
+  therefore left its parent's element empty for ever, however often it called `StateHasChanged()`, while the
+  same leaf with `Span[…]` was patched; that read as "a text root cannot be patched" (#1238). It can, and
+  always could when spelled `Text.Value(…)` or as a bare string: the text node is inserted into, updated in
+  and removed from the element that holds the component. `Text` now renders its value and then its children,
+  on both hosts. Nothing changes for a `Text` given no children.
+
+- **A Server page's first response carries a render asked for while it was being rendered.** A page that
+  tells its layout something as it mounts — a title for a breadcrumb, `layout.StateHasChanged()` from
+  `OnMount` or `OnUpdated` — does so after the layout was walked. The live session always followed up, but the
+  initial `GET` served the first pass and left the correction to the socket's catch-up frame, so the layout
+  appeared one render behind for a moment, and stayed that way for a crawler. The response now renders once
+  more when that happens (at most twice per request; `QuiescentRender.Run` takes it as `renderRequested`).
+  WASM's first frame already did. See `docs/lifecycle.md#asking-another-component-to-render-from-a-hook`.
+
 - **A Server page no longer raises `Rask: inRoot() was called before a host was installed`.** The runtime's
   own `<script>` is the last child of the render root, so an in-app navigation to a page with one top-level
   node more or fewer moved it, and the morph moved it by inserting the incoming tag — which ran `rask.js` a

@@ -162,7 +162,7 @@ public sealed partial class UiCommand : Component
                     .Class("ui-command-list menu max-h-80 w-full flex-nowrap overflow-y-auto p-2")[
                     Context.Provide(new UiMenuLevel(scope, -1))[Children ?? []],
                     Li.Class("ui-command-empty px-3 py-6 text-center text-sm opacity-60").Role("presentation")[
-                        EmptyText ?? "No results"
+                        EmptyText ?? RaskStrings.Get(RaskString.CommandEmpty, "No results")
                     ]
                 ]
             ],

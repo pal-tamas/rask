@@ -78,7 +78,7 @@ public sealed partial class UiRating : Component, IFormControl<int>
                 .Type(InputType.Radio)
                 .Name(Group)
                 .Class("rating-hidden")
-                .Aria("label", "No rating"),
+                .Aria("label", RaskStrings.Get(RaskString.RatingNone, "No rating")),
             Enumerable.Range(1, max).Select(star =>
                 Input
                     .Value(star.ToString(CultureInfo.InvariantCulture))
@@ -88,9 +88,7 @@ public sealed partial class UiRating : Component, IFormControl<int>
                     .Type(InputType.Radio)
                     .Name(Group)
                     .Class("mask mask-star-2")
-                    .Aria(
-                        "label",
-                        $"{star.ToString(CultureInfo.InvariantCulture)} of " + max.ToString(CultureInfo.InvariantCulture)))
+                    .Aria("label", RaskStrings.Get(RaskString.RatingValue, "{0} of {1}", star, max)))
         ];
     }
 }

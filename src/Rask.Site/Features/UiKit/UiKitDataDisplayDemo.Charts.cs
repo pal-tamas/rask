@@ -59,8 +59,10 @@ public sealed partial class UiKitDataDisplayDemo
         Section(
             "Chart",
             "Flux's chart, part by part: a Ui.ChartSvg holding lines, areas, points, bars and axes, with a tooltip, "
-            + "a summary or a legend beside it. Drawn as SVG during the render, with no script and no chart library — "
-            + "the scales, the ticks and every path are computed in C#. Hover a row for its values.",
+            + "a summary or a legend beside it. Drawn as SVG during the render, with no chart library — the scales, "
+            + "the ticks and every path are computed in C#, for the box the chart turns out to have: resize the "
+            + "window and it is drawn again. Move the pointer over one: the cursor, the tooltip, the summary and a "
+            + "pie's slice follow it in the browser, with no round trip.",
             Div.Data(Testid("ui-chart")).Class("grid gap-10 lg:grid-cols-2")[
                 Example("Line", LineChart()),
                 Example("Line with points", PointChart()),
