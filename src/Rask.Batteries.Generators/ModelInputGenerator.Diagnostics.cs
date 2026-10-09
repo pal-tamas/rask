@@ -100,6 +100,35 @@ public sealed partial class ModelInputGenerator
                      + "reported rather than obeyed.",
         helpLinkUri: DiagnosticHelp.Link("RASK091"));
 
+    internal static readonly DiagnosticDescriptor Rask102 = new(
+        "RASK102",
+        "A value object's Validate is not the shape of a rule, so no form runs it",
+        "'{0}' on value object '{1}' is not run by any form because {2} — a rule is "
+        + "'public static IEnumerable<string> Validate({3} value)', or the same returning "
+        + "ValueTask<IEnumerable<string>> or Task<IEnumerable<string>>",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Warning,
+        true,
+        description: "A value object that holds one value states its rule by convention: a public static, "
+                     + "non-generic Validate taking exactly the value it holds and returning the messages. A form "
+                     + "bound to the aggregate's generated model then runs it with nothing written on the field. "
+                     + "A Validate of any other shape is not run, and a rule that never runs looks exactly like "
+                     + "one that ran and passed.",
+        helpLinkUri: DiagnosticHelp.Link("RASK102"));
+
+    // Once per method, however many aggregates hold the value object.
+    private static void ReportRuleMisses(SourceProductionContext context, Entity entity, HashSet<RuleMiss> reported)
+    {
+        var held = entity.Members.Select(static m => m.ValueObject)
+            .Concat(entity.ValueObjects.SelectMany(static v => v.Members.Select(static m => m.ValueObject)));
+
+        foreach (var miss in held.Where(static v => v is not null).SelectMany(static v => v!.RuleMisses).Where(reported.Add))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Rask102, miss.Location?.ToLocation(), miss.Signature, miss.ValueObject, miss.Reason, miss.Held));
+        }
+    }
+
     private static void ReportShapeProblems(SourceProductionContext context, Entity entity)
     {
         if (!entity.Constructible)

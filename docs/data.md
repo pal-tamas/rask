@@ -924,11 +924,14 @@ Form.Model(_destination).OnSubmit(d => Destination.Create(d))[   // _destination
 **The value object's own rule.** A value object that holds ONE value and has a `public static Validate` taking
 exactly that value and returning the messages — `IEnumerable<string>`, or a `ValueTask`/`Task` of it — is asked by
 the field that holds it, before any `.Validate(…)` written on the field, which then runs only for a value it
-accepted. There is no interface and no attribute. A `Validate` of any other shape is not a rule and is left
-alone, and so is one on a value object of several values. An empty field is not put to it — that is
+accepted. There is no interface and no attribute. A `Validate` of any other shape is not a rule, and the build
+says so ([RASK102](diagnostics.md#rask102)) rather than let it look like a rule that passed; one on a value
+object of several values is left alone. An empty field is not put to it — that is
 `[Required]`'s to say, which the model already carries for a column that cannot be null.
 
-**The aggregate's unique rules.** Every index its `Configure` declares with a message — `IsUnique("…")` — is
+**The aggregate's unique rules.** **Write the `IsUnique("…")` in the aggregate's own `Configure`**: an index
+declared in a helper method or an `IEntityTypeConfiguration` is enforced at save but not asked beforehand, and
+so is one without a message. Every index `Configure` declares with a message is
 asked of the database [when a bound field is committed and again on submit](forms-validation.md#the-database-said-no),
 and the message shows under the field, or under each field of an index over several:
 
@@ -937,8 +940,9 @@ and the message shows under the field, or under each field of an index over seve
 - an edit form does not collide with **the row it was filled from**: the model remembers its key from
   `Destination.Model(id)` / `ToModel()`. It is not a field — nothing binds or posts it — and it only decides
   which row this courtesy check leaves out; the save takes its id beside the model and is checked on its own
-- a field not filled in yet — `null`, or a text field still `""` — asks nothing, so an index over two fields is
-  asked once both hold a value, and once for the pair, not once per field
+- **an unfilled field is not asked** — `null`, or a text field still `""` — so an index over two fields is
+  asked once both hold a value, and once for the pair, not once per field. A genuine empty-string duplicate is
+  caught by the save
 - the same indexes are asked as [by the save on an adopted table](#when-the-index-may-not-be-there): an index
   filter other than its own columns being `NOT NULL` is skipped
 - on every host that has Rask.Data, whoever created the schema

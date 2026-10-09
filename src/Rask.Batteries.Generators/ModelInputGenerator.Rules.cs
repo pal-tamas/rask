@@ -63,29 +63,99 @@ public sealed partial class ModelInputGenerator
 
         var held = valueObject.Members[0].Property.Type;
 
+        var rule = valueObject.Type.GetMembers("Validate").OfType<IMethodSymbol>()
+            .FirstOrDefault(method => WhyNotARule(method, held) is null);
+
+        if (rule is null)
+        {
+            return ValueRule.None;
+        }
+
+        return IsMessages(rule.ReturnType) ? ValueRule.Sync : ValueRule.Async;
+    }
+
+    /// <summary>
+    ///     The <c>Validate</c> methods of a one-value value object that has NO rule, each with why it is not
+    ///     one — what RASK102 says. Empty once any of them qualifies: the others are then ordinary overloads.
+    /// </summary>
+    /// <remarks>
+    ///     A method that implements an interface or overrides a base member is somebody else's contract —
+    ///     <c>IValidatableObject.Validate</c> — and is never taken for an attempt at the rule.
+    /// </remarks>
+    private static IEnumerable<RuleMiss> RuleMissesOf(ModelValueObject valueObject)
+    {
+        if (!valueObject.SingleValue || RuleOf(valueObject) != ValueRule.None)
+        {
+            yield break;
+        }
+
+        var held = valueObject.Members[0].Property.Type;
+
         foreach (var method in valueObject.Type.GetMembers("Validate").OfType<IMethodSymbol>())
         {
-            if (method is not { IsStatic: true, DeclaredAccessibility: Accessibility.Public, Parameters.Length: 1, IsGenericMethod: false } ||
-                !SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, held))
+            if (method.MethodKind != MethodKind.Ordinary || method.IsOverride || ImplementsAContract(method) ||
+                WhyNotARule(method, held) is not { } reason)
             {
                 continue;
             }
 
-            if (IsMessages(method.ReturnType))
-            {
-                return ValueRule.Sync;
-            }
+            yield return new RuleMiss(
+                method.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat),
+                valueObject.Type.Name,
+                reason,
+                held.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                SymbolLocation.From(method));
+        }
+    }
 
-            if (method.ReturnType is INamedTypeSymbol { Name: "ValueTask" or "Task", TypeArguments.Length: 1 } awaited &&
-                string.Equals(awaited.ContainingNamespace.ToDisplayString(), "System.Threading.Tasks", System.StringComparison.Ordinal) &&
-                IsMessages(awaited.TypeArguments[0]))
-            {
-                return ValueRule.Async;
-            }
+    // Null when the method IS a rule; otherwise the first thing about it that is not.
+    private static string? WhyNotARule(IMethodSymbol method, ITypeSymbol held)
+    {
+        if (method.DeclaredAccessibility != Accessibility.Public)
+        {
+            return "it is not public";
         }
 
-        return ValueRule.None;
+        if (!method.IsStatic)
+        {
+            return "it is not static";
+        }
+
+        if (method.IsGenericMethod)
+        {
+            return "it is generic";
+        }
+
+        if (method.Parameters.Length != 1)
+        {
+            return $"it takes {method.Parameters.Length} parameters, not the one value";
+        }
+
+        if (!SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, held))
+        {
+            return $"its parameter is '{method.Parameters[0].Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}', "
+                   + $"not the '{held.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}' it holds";
+        }
+
+        return IsMessages(method.ReturnType) || IsAwaitedMessages(method.ReturnType)
+            ? null
+            : $"it returns '{method.ReturnType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}', not the messages";
     }
+
+    private static bool IsAwaitedMessages(ITypeSymbol type) =>
+        type is INamedTypeSymbol { Name: "ValueTask" or "Task", TypeArguments.Length: 1 } awaited &&
+        string.Equals(awaited.ContainingNamespace.ToDisplayString(), "System.Threading.Tasks", System.StringComparison.Ordinal) &&
+        IsMessages(awaited.TypeArguments[0]);
+
+    private static bool ImplementsAContract(IMethodSymbol method) =>
+        method.ExplicitInterfaceImplementations.Length > 0 ||
+        method.ContainingType.AllInterfaces
+            .SelectMany(static contract => contract.GetMembers("Validate"))
+            .Any(member => SymbolEqualityComparer.Default.Equals(
+                method.ContainingType.FindImplementationForInterfaceMember(member), method));
+
+    /// <summary>A <c>Validate</c> that looks meant as a value object's rule and is not one.</summary>
+    private sealed record RuleMiss(string Signature, string ValueObject, string Reason, string Held, SymbolLocation? Location);
 
     private static bool IsMessages(ITypeSymbol type) =>
         type is INamedTypeSymbol { Name: "IEnumerable", TypeArguments.Length: 1 } sequence &&

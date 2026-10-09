@@ -104,6 +104,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
                 .SelectMany(static e => e.Children.Select(static c => c.ChildTypeName)),
             StringComparer.Ordinal);
 
+        var reportedMisses = new HashSet<RuleMiss>();
+
         foreach (var candidate in entities)
         {
             // A child's form surface is the ROOT's, always — its own const is reported by RASK091 and then
@@ -130,6 +132,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             }
 
             ReportShapeProblems(context, entity);
+            ReportRuleMisses(context, entity, reportedMisses);
             entity = entity with
             {
                 AnnouncesFieldRules = seams.FieldRules,
@@ -244,7 +247,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool IsValueType,
         bool SingleValue,
         EquatableArray<ValueObjectMember> Members,
-        ValueRule Rule = ValueRule.None);
+        ValueRule Rule = ValueRule.None,
+        EquatableArray<RuleMiss> RuleMisses = default);
 
     private sealed record ValueObjectMember(
         string Name,

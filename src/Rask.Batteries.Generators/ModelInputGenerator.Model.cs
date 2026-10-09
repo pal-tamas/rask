@@ -394,7 +394,8 @@ public sealed partial class ModelInputGenerator
             valueObject.Type.IsValueType,
             valueObject.SingleValue,
             new EquatableArray<ValueObjectMember>(members),
-            RuleOf(valueObject));
+            RuleOf(valueObject),
+            new EquatableArray<RuleMiss>(RuleMissesOf(valueObject)));
 
         converted[valueObject] = shape;
         return shape;

@@ -9,6 +9,14 @@ them until tagged releases begin.
 
 ### Added
 
+- **RASK102: a value object's `Validate` that is not the shape of a rule is a build warning.** A one-value
+  value object an aggregate holds, with a `Validate` and none that qualifies (not public, not static, generic,
+  not exactly one parameter of the held value's type, or not returning the messages), is reported on the method
+  with what is wrong and the signature that would qualify — a rule that never runs looks exactly like one that
+  passed. Not reported: a `Validate` implementing an interface or overriding a base member, a value object of
+  several values, and any other type. **For an existing app** that builds warnings-as-errors and has such a
+  method: give it the signature, rename it, or silence it at that site.
+
 - **A form bound to a Rask.Data aggregate's generated model asks the aggregate's rules by itself.** Two kinds,
   with no step on the field and none on the form. (1) A value object that holds one value and has a
   `public static Validate` taking that value and returning the messages (`IEnumerable<string>`, or a

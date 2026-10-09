@@ -126,6 +126,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK099](#rask099) | Warning | A `<RaskBrowserTargets>` entry is not `<browser> >= <version>` |
 | [RASK100](#rask100) | Error | `[BlazorParameter]` names a parameter the hosted component does not declare |
 | [RASK101](#rask101) | Error | An authorization attribute on a handler or event is not one Rask reads |
+| [RASK102](#rask102) | Warning | A value object's `Validate` is not the shape of a rule, so no form runs it |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2186,6 +2187,49 @@ public sealed class Order : Aggregate<Guid>
     public const ModelWrites Writes = ModelWrites.None;   // ✓ the order takes no form — nor do its lines
 }
 ```
+
+---
+
+## RASK102
+
+**A value object's `Validate` is not the shape of a rule, so no form runs it** · Warning
+
+A value object that holds one value states its rule by convention, and a form bound to the aggregate's
+generated model [runs it with nothing written on the field](data.md#what-a-form-over-the-model-asks-by-itself).
+The convention is exact:
+
+```csharp
+public static IEnumerable<string> Validate(string value)     // the value it holds, the messages out
+// or returning ValueTask<IEnumerable<string>> / Task<IEnumerable<string>>
+```
+
+A `Validate` of any other shape is not run — and a rule that never runs looks exactly like one that ran and
+passed. So a one-value value object an aggregate holds, with a `Validate` and none that qualifies, is reported
+on that method, with what is wrong and the signature that would qualify:
+
+```csharp
+public sealed record DestinationName(string Value)
+{
+    public static string Validate(string value) => …;   // ⚠ RASK102: it returns 'string', not the messages
+}
+```
+
+> 'DestinationName.Validate(string)' on value object 'DestinationName' is not run by any form because it
+> returns 'string', not the messages — a rule is 'public static IEnumerable<string> Validate(string value)', or
+> the same returning ValueTask<IEnumerable<string>> or Task<IEnumerable<string>>
+
+What it names: not `public`, not `static`, generic, more or fewer than one parameter, a parameter that is not
+exactly the held value's type (`Validate(DestinationName value)` included), or a return type that is not the
+messages.
+
+**Not reported:** a value object that already has a rule of the right shape, whatever overloads sit beside it;
+a `Validate` that implements an interface (`IValidatableObject`) or overrides a base member; a value object of
+several values; and any type that is not a value object held by an aggregate.
+
+**Fix:** give it the signature above. If the method is something else, rename it — or keep it and silence the
+warning at that site with a reason.
+
+A project that does not build warnings-as-errors still builds: it shows this warning and the rule is not run.
 
 ---
 
