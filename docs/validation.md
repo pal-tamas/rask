@@ -25,6 +25,9 @@ supported in a form, and they run with nothing declared.
 > Inline `.Validate(…)` rules keep running either way, and so do the two kinds a data layer registers for
 > its models: the rule a property's type carries, and the rule the store owns — a unique index, a range
 > that must not overlap — which a form [checks before the save](forms-validation.md#the-database-said-no).
+> Rask.Data registers both for every aggregate's generated model: a one-value value object's static
+> `Validate`, and each unique index declared with `IsUnique("…")`
+> ([data — what a form over the model asks by itself](data.md#what-a-form-over-the-model-asks-by-itself)).
 
 ## Where it runs
 

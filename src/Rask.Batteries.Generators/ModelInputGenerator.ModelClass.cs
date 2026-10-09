@@ -63,6 +63,11 @@ public sealed partial class ModelInputGenerator
         Keep(s, formModel, accessorMark);
 
         s.AppendLine("}");
+
+        var rulesMark = s.Length;
+        AppendFieldRules(s, entity);
+        Keep(s, formModel, rulesMark);
+
         return s.ToString();
     }
 
@@ -86,6 +91,7 @@ public sealed partial class ModelInputGenerator
         s.Append(entity.Accessibility).Append(" sealed partial class ").AppendLine(modelName);
         s.AppendLine("{");
         AppendModelConstructors(s, entity);
+        AppendSelfKey(s, entity);
         AppendModelLists(s, entity);
         AppendModelMembers(s, entity);
 
@@ -283,6 +289,11 @@ public sealed partial class ModelInputGenerator
         s.AppendLine("        {");
         s.Append("            var model = new ").Append(modelType).AppendLine(entity.Constructible ? "(blank: true);" : "();");
         s.AppendLine("            __Fill(model, entity);");
+        if (HasSelfKey(entity))
+        {
+            s.AppendLine("            model.__Key = entity.Id;");
+        }
+
         s.AppendLine("            return model;");
         s.AppendLine("        }");
         s.AppendLine("    }");
