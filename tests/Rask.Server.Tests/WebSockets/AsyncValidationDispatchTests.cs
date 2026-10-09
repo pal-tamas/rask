@@ -28,13 +28,12 @@ public class AsyncValidationDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        // Discard the recovery render the dispatcher emits right after socket attach.
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         await ws.SendJsonAsync(new { id = inputId, value = "admin" }, ct: TestContext.Current.CancellationToken);
         // OnInput is synchronous (the field isn't touched yet, so StringSetHandler
-        // doesn't trigger validation); a single post-handler frame should land.
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        // doesn't trigger validation); whatever it renders is read past here.
+        await ws.SettledAsync();
 
         await ws.SendJsonAsync(new { id = changeId, value = "admin" }, ct: TestContext.Current.CancellationToken);
 
@@ -43,9 +42,8 @@ public class AsyncValidationDispatchTests
         // indicator clearing. What the page settles on is what the user sees.
         var verdict = await ws.ReceiveUntilAsync(
             f => f.Contains("Already taken.", StringComparison.Ordinal) && !f.Contains("Checking...", StringComparison.Ordinal),
-            TimeSpan.FromSeconds(5));
+            "the frame that carries the settled verdict");
 
-        Assert.NotNull(verdict);
         var html = JsonDocument.Parse(verdict).RootElement.GetProperty("html").GetString()!;
         Assert.Contains("Already taken.", html);
         Assert.DoesNotContain("Checking...", html);

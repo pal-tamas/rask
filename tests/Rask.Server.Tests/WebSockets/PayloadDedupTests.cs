@@ -15,20 +15,19 @@ public class PayloadDedupTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        // Drain the recovery render that fires on hello.
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
 
         // Trigger the no-op handler. Render output is identical to the recovery render, so the
         // server must suppress the frame.
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        var afterFirstClick = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+        var afterFirstClick = await ws.SettledAsync();
 
-        Assert.Null(afterFirstClick);
+        Assert.Empty(afterFirstClick);
 
         // Second click — also a no-op, also suppressed.
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        var afterSecondClick = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+        var afterSecondClick = await ws.SettledAsync();
 
-        Assert.Null(afterSecondClick);
+        Assert.Empty(afterSecondClick);
     }
 }

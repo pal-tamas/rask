@@ -16,7 +16,7 @@ public sealed partial class DisposableTimerProbeTests : global::Rask.Core.RaskMa
 
         mounted = false;
         page.Render();
-        await WaitFor.True(() => log.Contains("disposed"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => log.Contains("disposed"));
 
         Assert.Contains(log.Snapshot(), e => e.StartsWith("#1 disposed"));
     }
@@ -33,7 +33,7 @@ public sealed partial class DisposableTimerProbeTests : global::Rask.Core.RaskMa
 
         mounted = false;
         page.Render();
-        await WaitFor.True(() => log.Contains("ticker stopped"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => log.Contains("ticker stopped"));
 
         Assert.Contains(log.Snapshot(), e => e.StartsWith("#2 ticker stopped after"));
     }
@@ -50,7 +50,7 @@ public sealed partial class DisposableTimerProbeTests : global::Rask.Core.RaskMa
 
         mounted = false;
         page.Render();
-        await WaitFor.True(() => log.Contains("async-disposed"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => log.Contains("async-disposed"));
 
         Assert.Contains(log.Snapshot(), e => e.StartsWith("#3 async-disposed"));
     }

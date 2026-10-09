@@ -328,6 +328,38 @@ public class WasmPrerenderTests : IDisposable
     }
 
     [Fact]
+    public async Task A_baked_page_carries_its_title_in_the_layouts_crumb_and_in_the_document_title()
+    {
+        // #1239 for a site that is baked rather than served: the layout reads the page's title in the
+        // render that writes the file, and the title here is loaded after an await, as a guide's is.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+
+        RouteRegistry.Replace(nameof(A_baked_page_carries_its_title_in_the_layouts_crumb_and_in_the_document_title), [
+            new RouteRegistration(typeof(TitledLayout), "/baked-titles", null),
+            new RouteRegistration(typeof(TitledGuide), "guide", typeof(TitledLayout)),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        try
+        {
+            await WasmPrerender.RunAsync<RoutedApp>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            var guide = await File.ReadAllTextAsync(
+                Path.Combine(dir, "baked-titles", "guide", "index.html"), TestContext.Current.CancellationToken);
+
+            Assert.Contains(">Getting started | Docs</title>", guide, StringComparison.Ordinal);
+            Assert.Contains("<nav>Getting started</nav>", guide, StringComparison.Ordinal);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Fact]
     public async Task A_route_that_was_not_written_stays_out_of_the_sitemap()
     {
         // The claim that makes the sitemap worth having: it is built from what reached disk, not from
@@ -937,6 +969,33 @@ public class WasmPrerenderTests : IDisposable
     private sealed class Home : Component
     {
         protected override Component? Render() => Div["home-page"];
+    }
+
+    private sealed class RoutedApp : Component
+    {
+        protected override Component? Render() => Router;
+    }
+
+    private sealed class TitledLayout(RouteState route) : Component
+    {
+        protected override Component? HeadAssets => Title[route.Title is { } t ? $"{t} | Docs" : "Docs"];
+
+        protected override Component? Render() => Div[Nav[route.Title], Outlet];
+    }
+
+    private sealed class TitledGuide : Component
+    {
+        private string? _title;
+
+        protected override string? PageTitle => _title;
+
+        protected override async Task OnMount()
+        {
+            await Task.Delay(20);
+            _title = "Getting started";
+        }
+
+        protected override Component? Render() => P["guide"];
     }
 
     // A page that contributes to <head>, which is what the merge duplicates. A component with no head

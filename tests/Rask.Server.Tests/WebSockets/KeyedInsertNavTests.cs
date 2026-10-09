@@ -27,52 +27,38 @@ public class KeyedInsertNavTests
 
         // Seed the diff baseline (first interaction ships full HTML).
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/list", query = "" }, ct: TestContext.Current.CancellationToken);
-        _ = await DrainAll(fixture.Ws);
+        await fixture.Ws.ReceiveNavigationToAsync("/list");
 
         // Navigate: the RouteState.Changed handler inserts the keyed item — the keyed
         // InsertSubtree rides this navigation diff.
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path, query = "" }, ct: TestContext.Current.CancellationToken);
-        var frames = await DrainAll(fixture.Ws);
+        var frame = await fixture.Ws.ReceiveUntilAsync(
+            f => FindInsertSubtree(f) is not null, "the diff that inserts the keyed row");
 
-        var insert = FindInsertSubtree(frames);
+        var insert = FindInsertSubtree(frame);
 
-        Assert.NotNull(insert);
         // The fragment must be the complete, correctly-sliced <li> — not garbled bytes.
         Assert.Equal($"<li class=\"line\" data-rask-key=\"{key}\">item {key}</li>", insert);
     }
 
-    // Walk every shipped diff frame; return the HTML payload of the first InsertSubtree op
-    // (EditOpKind value 4 → [kind, path, html, domCount]).
-    private static string? FindInsertSubtree(List<string> frames)
+    // The HTML payload of a diff frame's first InsertSubtree op (EditOpKind value 4 →
+    // [kind, path, html, domCount]); null for a frame that inserts nothing.
+    private static string? FindInsertSubtree(string frame)
     {
-        foreach (var frame in frames)
+        using var doc = JsonDocument.Parse(frame);
+        if (!doc.RootElement.TryGetProperty("ops", out var ops))
         {
-            using var doc = JsonDocument.Parse(frame);
-            if (!doc.RootElement.TryGetProperty("ops", out var ops))
-            {
-                continue;
-            }
+            return null;
+        }
 
-            foreach (var op in ops.EnumerateArray())
+        foreach (var op in ops.EnumerateArray())
+        {
+            if (op.GetArrayLength() >= 3 && op[0].GetInt32() == 4)
             {
-                if (op.GetArrayLength() >= 3 && op[0].GetInt32() == 4)
-                {
-                    return op[2].GetString();
-                }
+                return op[2].GetString();
             }
         }
 
         return null;
-    }
-
-    private static async Task<List<string>> DrainAll(WebSocket ws)
-    {
-        var all = new List<string>();
-        while (await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500)) is { } frame)
-        {
-            all.Add(frame);
-        }
-
-        return all;
     }
 }
