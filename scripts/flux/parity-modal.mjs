@@ -14,13 +14,20 @@
 // wire:model, which Flux's page does not show): the script changes data-rask-modal-open, as a render would,
 // and the dialog that opens is held to the one Flux's trigger opened, and closed every way again.
 //
+// Last, the confirmation as an app writes it, which Flux's page does not show either: a question for a heading,
+// no text under it, two buttons — with the example's min-w-[22rem] and as a BARE modal, without it. The script
+// makes each case on Flux's page (CONFIRM, below) and holds artifacts/flux-parity/rask/modal-confirm.html to
+// it: the open dialog in light and dark, then at 1280 and at 390 wide how wide it is, where the close button
+// sits against its corner and how near the first line of the heading comes to that button. Ui.ConfirmLeave, on
+// the same page, is not Flux's: its close button is held to Flux's corner and its question clear of it.
+//
 // What Flux does in script the kit asks the runtime for (data-rask-modal, data-rask-modal-open,
 // data-rask-lock), so both Rask pages get the runtime's hooks (runtime.mjs). Flux's page has Flux's script.
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
 //         node scripts/flux/parity-modal.mjs [--refresh] [--all]
 //
-// Flux's side is cached in artifacts/flux-parity/flux/modal/open.json; --refresh measures it again.
+// Flux's side is cached in artifacts/flux-parity/flux/modal/open.json and confirm.json; --refresh measures it again.
 // Exit code 1 on any difference.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -35,7 +42,8 @@ const limit = args.includes('--all') ? Infinity : 12;
 const out = join(root, 'artifacts', 'flux-parity');
 const raskPage = join(out, 'rask', 'modal.html');
 const statePage = join(out, 'rask', 'modal-state.html');
-for (const page of [raskPage, statePage]) {
+const confirmPage = join(out, 'rask', 'modal-confirm.html');
+for (const page of [raskPage, statePage, confirmPage]) {
   if (existsSync(page)) continue;
   console.error(`flux parity: ${page} is missing — run: dotnet test tests/Rask.Ui.Tests --filter FluxParityPages`);
   process.exit(1);
@@ -67,6 +75,18 @@ const STATE_ONLY = {
   'closed by the reader, then the page says open again': 'open, data-open; events: none; focus on nothing (body); page overflow hidden',
 };
 
+// The cases of ModalConfirmParity, in its order. `bare` drops the width Flux's example hands the modal.
+const QUESTION = 'Biztos elhagyod mentés nélkül az oldalt?';
+const LONG = 'Biztos elhagyod mentés nélkül az oldalt, és eldobod, amit eddig beírtál az űrlapba?';
+const CONFIRM = [
+  { name: 'a bare modal asking a question', bare: true, heading: QUESTION },
+  { name: 'a bare modal under a short heading', bare: true, heading: 'Delete project?' },
+  { name: 'a confirmation asking a question', heading: QUESTION },
+  { name: 'a bare modal asking a long question', bare: true, heading: LONG },
+  { name: 'a confirmation asking a long question', heading: LONG },
+];
+const WIDTHS = [1280, 390];
+
 const browser = await chromium().launch();
 const fluxFile = join(out, 'flux', 'modal', 'open.json');
 let flux;
@@ -78,8 +98,20 @@ if (existsSync(fluxFile) && !args.includes('--refresh')) {
   await writeFile(fluxFile, JSON.stringify(flux));
 }
 
+const confirmation = flux.loaded.light.findIndex(example => example.section === 'confirmation');
+const fluxConfirmFile = join(out, 'flux', 'modal', 'confirm.json');
+let fluxConfirm;
+if (existsSync(fluxConfirmFile) && !args.includes('--refresh')) {
+  fluxConfirm = JSON.parse(await readFile(fluxConfirmFile, 'utf8'));
+} else {
+  fluxConfirm = await observeConfirm('https://fluxui.dev/components/modal', join(out, 'flux', 'modal'));
+  await writeFile(fluxConfirmFile, JSON.stringify(fluxConfirm));
+}
+
 const rask = await observe(pathToFileURL(raskPage).href, join(out, 'rask', 'modal'), flux);
 const state = await observeState(pathToFileURL(statePage).href, join(out, 'rask', 'modal-state'), flux);
+const confirm = await observeConfirm(pathToFileURL(confirmPage).href, join(out, 'rask', 'modal-confirm'), flux);
+const leave = await observeLeave(pathToFileURL(confirmPage).href, join(out, 'rask', 'modal-confirm'));
 await browser.close();
 
 let failures = 0;
@@ -121,6 +153,27 @@ flux.behaviour.forEach((theirs, i) => report(`behaviour ${name(i)}, the page's s
   ...compareFacts(untriggered(theirs, state.behaviour[i]), unfocused(state.behaviour[i])),
   ...compareFacts(STATE_ONLY, state.only[i]),
 ]));
+
+CONFIRM.forEach(({ name: asked }, k) => {
+  for (const scheme of SCHEMES) {
+    const a = fluxConfirm.open[scheme][k];
+    const b = confirm.open[scheme][k];
+    report(`${scheme} ${asked}, open`, [...compareOpen(a.example, b.example), ...compareFacts(a.facts, b.facts)]);
+  }
+
+  for (const width of WIDTHS) report(`${width}px ${asked}, its corner`, compareCorner(fluxConfirm.corner[width][k], confirm.corner[width][k]));
+});
+// The leave dialog is a confirmation: Flux's corner and Flux's width. Its own: the question clear of the button.
+const asConfirmation = CONFIRM.findIndex(c => !c.bare);
+const CLEAR = 'the first line is clear of the close button';
+for (const width of WIDTHS) {
+  for (const [asked, mine] of Object.entries(leave[width])) {
+    const theirs = fluxConfirm.corner[width][asConfirmation];
+    report(`${width}px the leave dialog asking ${asked}`, compareCorner(
+      { 'close button': theirs['close button'], 'min-width | max-width': theirs['min-width | max-width'], [CLEAR]: true },
+      { 'close button': mine['close button'], 'min-width | max-width': mine['min-width | max-width'], [CLEAR]: mine['first line ends before the close button'] >= 0 }));
+  }
+}
 
 for (const note of accepted) console.log(`accepted: ${note}`);
 console.log(failures ? `\nflux parity: modal differs in ${failures} check(s).` : '\nflux parity: modal matches Flux, loaded and open.');
@@ -172,6 +225,104 @@ async function observeState(url, shots, like) {
 
   await page.context().close();
   return { open, behaviour, only };
+}
+
+// Every case of CONFIRM, for one side. On Flux's page each is made from the confirmation example; the Rask
+// page is written with one example per case, and is dressed as that Flux example is.
+async function observeConfirm(url, shots, like) {
+  const at = k => (like ? k : confirmation);
+  const prepare = (k, page, scheme) => (like ? dressAs(page, like.loaded[scheme][confirmation]) : page.evaluate(ask, { i: confirmation, ...CONFIRM[k] }));
+  const open = { light: [], dark: [] };
+  const corner = Object.fromEntries(WIDTHS.map(width => [width, []]));
+  for (const k of CONFIRM.keys()) {
+    const facts = {};
+    const schemes = await measurePage(browser, url, join(shots, `confirm-${k}`), async (page, scheme) => {
+      await prepare(k, page, scheme);
+      await press(page, at(k));
+      facts[scheme] = await page.evaluate(openFacts, { i: at(k), LAYER });
+      await page.screenshot({ path: join(shots, `confirm-${k}-${scheme}.png`) });
+    });
+    for (const scheme of SCHEMES) open[scheme].push({ example: schemes[scheme][at(k)], facts: facts[scheme] });
+
+    for (const width of WIDTHS) {
+      const page = await sized(url, width);
+      await prepare(k, page, 'light');
+      await press(page, at(k));
+      corner[width].push(await page.evaluate(cornerFacts, at(k)));
+      await page.screenshot({ path: join(shots, `confirm-${k}-${width}.png`) });
+      await page.context().close();
+    }
+  }
+
+  return { open, corner };
+}
+
+// Ui.ConfirmLeave, the last example of the confirm page: closed in every render and opened in the browser
+// with the asking form's message, which is all this does.
+async function observeLeave(url, shots) {
+  const facts = Object.fromEntries(WIDTHS.map(width => [width, {}]));
+  for (const width of WIDTHS) {
+    for (const [asked, question] of [['a question', QUESTION], ['a long question', LONG]]) {
+      const page = await sized(url, width);
+      await dressAs(page, flux.loaded.light[confirmation]);
+      await page.evaluate(({ i, question }) => {
+        const dialog = document.querySelectorAll('[data-preview-wrapper]')[i].querySelector('dialog');
+        dialog.querySelector('[data-rask-leave="message"]').textContent = question;
+        dialog.showModal();
+      }, { i: CONFIRM.length, question });
+      await settled(page, CONFIRM.length, true);
+      facts[width][asked] = await page.evaluate(cornerFacts, CONFIRM.length);
+      await page.screenshot({ path: join(shots, `leave-${width}-${asked.replaceAll(' ', '-')}.png`) });
+      await page.context().close();
+    }
+  }
+
+  return facts;
+}
+
+// One light page of a given width, with its fonts in: a phone's is where a modal meets the viewport's edges.
+async function sized(url, width) {
+  const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: 'light' });
+  const page = await context.newPage();
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
+  await page.evaluate(() => document.fonts.ready);
+  return page;
+}
+
+// Every example of a Rask page given the text one Flux example inherits from the docs page, and the runtime.
+async function dressAs(page, example) {
+  await page.evaluate(({ style, INHERITED }) => {
+    for (const wrapper of document.querySelectorAll('[data-preview-wrapper]')) for (const key of INHERITED) wrapper.style[key] = style[key];
+  }, { style: example.nodes[0].style, INHERITED });
+  await withRuntime(page, HOOKS);
+}
+
+// Runs in Flux's page. Its confirmation, turned into the one a case names: the width its example hands the
+// modal taken off for a bare one, the question in the heading, and no text under it.
+function ask({ i, bare, heading }) {
+  const dialog = document.querySelectorAll('[data-preview-wrapper]')[i].querySelector('dialog');
+  if (bare) dialog.classList.remove(...[...dialog.classList].filter(name => /^min-w-\[22rem\]!?$/.test(name)));
+  dialog.querySelector('[data-flux-heading]').textContent = heading;
+  dialog.querySelector('[data-flux-text]').remove();
+}
+
+// Runs in the page. An open dialog's width, its close button against its corner, and its heading against that button.
+function cornerFacts(i) {
+  const fix = v => Math.round(v * 10) / 10;
+  const dialog = document.querySelectorAll('[data-preview-wrapper]')[i].querySelector('dialog');
+  const box = dialog.getBoundingClientRect();
+  const own = getComputedStyle(dialog);
+  const close = [...dialog.querySelectorAll('[data-flux-modal-close] button, [data-ui-modal-close] button')].pop().getBoundingClientRect();
+  const range = document.createRange();
+  range.selectNodeContents(dialog.querySelector('[data-flux-heading], [data-ui-heading]'));
+  const lines = [...range.getClientRects()];
+  return {
+    'dialog size': `${fix(box.width)}x${fix(box.height)}`,
+    'min-width | max-width': `${own.minWidth} | ${own.maxWidth}`,
+    'close button': `${fix(close.width)}x${fix(close.height)}, ${fix(close.top - box.top)} from the top edge, ${fix(box.right - close.right)} from the right edge`,
+    'heading lines': new Set(lines.map(line => Math.round(line.top))).size,
+    'first line ends before the close button': fix(close.left - lines[0].right),
+  };
 }
 
 // Each example measured with its own dialog open, in both schemes, and what no node of its tree states.
@@ -413,6 +564,18 @@ function compareFacts(theirs, mine) {
   return [...new Set([...Object.keys(theirs), ...Object.keys(mine ?? {})])]
     .filter(key => !same(String(theirs[key]), String(mine?.[key])))
     .map(key => `${key}: ${theirs[key] ?? '(absent)'} vs ${mine?.[key] ?? '(absent)'}`);
+}
+
+// Lengths to the 0.6px a box is held to everywhere else.
+function compareCorner(theirs, mine) {
+  const NUMBER = /-?\d+(\.\d+)?/g;
+  const near = (x, y) => {
+    const [a, b] = [x, y].map(v => (String(v).match(NUMBER) ?? []).map(Number));
+    return String(x).replace(NUMBER, '#') === String(y).replace(NUMBER, '#') && a.every((n, i) => Math.abs(n - b[i]) <= 0.6);
+  };
+  return Object.keys(theirs)
+    .filter(key => !near(theirs[key], mine?.[key]))
+    .map(key => `${key}: ${theirs[key]} vs ${mine?.[key] ?? '(absent)'}`);
 }
 
 // The open dialog, compared from the dialog down: where the page happens to put the element that holds it
