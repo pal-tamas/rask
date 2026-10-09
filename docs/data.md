@@ -1248,7 +1248,7 @@ builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique()
 await Destination.Named(model.Name).Save();   // nothing else at the call site
 ```
 
-A save that violates the index then fails the way a [validator's rule](validation.md#rejected) does — a
+A save that violates the index then fails the way a [validator's rule](validation.md#a-rejected-request) does — a
 `RaskValidationException` whose `Errors` carry the message — instead of as the provider's `DbUpdateException`,
 whose text names tables and holds the conflicting value. Every save through the context does this:
 `Save()`, `Create`, `Update`, and plain `SaveChangesAsync`.
@@ -1268,7 +1268,7 @@ whose text names tables and holds the conflicting value. Every save through the 
   database has to be the one in the model — EF Core's `IX_{Table}_{Columns}`, or say `HasDatabaseName("…")`.
 - The original exception is the `InnerException`, for the log.
 
-Over [remote dispatch](validation.md#rejected) this is the same 400 with field errors a validator produces. **In
+Over [remote dispatch](validation.md#a-rejected-request) this is the same 400 with field errors a validator produces. **In
 a `Form` it reaches the page as `f.Error` today**, like any other failure of the submit handler — the form does
 not yet file it under the field by itself.
 
