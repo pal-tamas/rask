@@ -25,6 +25,19 @@ internal sealed class RouteRenderState
     /// </summary>
     public RouteTitle? Title { get; init; }
 
-    /// <summary>The router's page instances, by place in the chain.</summary>
-    public required RoutePageInstances Pages { get; init; }
+    /// <summary>
+    ///     The router's page instances, by place in the chain — or <c>null</c> for a path nothing matched,
+    ///     which has no pages and is here only to say that the page has no title.
+    /// </summary>
+    public RoutePageInstances? Pages { get; init; }
+
+    /// <summary>The route of the router this one is rendered inside, when there is one.</summary>
+    public RouteRenderState? Outer { get; init; }
+
+    /// <summary>The state of a walk whose first router matched nothing.</summary>
+    public static RouteRenderState Unmatched(string path, RouteTitle title) =>
+        new(path, [], System.Collections.ObjectModel.ReadOnlyDictionary<string, string?>.Empty, QueryCollection.Empty)
+        {
+            Title = title,
+        };
 }

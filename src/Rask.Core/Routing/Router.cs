@@ -117,12 +117,23 @@ public sealed class Router : Component
             _matchedValues = values;
         }
 
-        // Claimed before the match is looked at: a path nothing matches has no title, and that has to
-        // replace the title of the page before it.
+        // The first router of a walk names the page; one rendered inside a page of another does not. A path
+        // nothing matches has no title, and saying so is what replaces the title of the page before it.
         var ctx = LiveRenderContext.Current;
-        _namesThePage = ctx?.ClaimRouteTitle(_state.TitleSource) == true;
+        var outer = ctx?.Route;
+        _namesThePage = ctx is not null && outer is null;
+        if (_namesThePage)
+        {
+            _state.TitleSource.BeginWalk();
+        }
+
         if (!_matched)
         {
+            if (_namesThePage)
+            {
+                ctx!.Route = RouteRenderState.Unmatched(path, _state.TitleSource);
+            }
+
             return new Fragment();
         }
 
@@ -139,6 +150,7 @@ public sealed class Router : Component
         {
             Title = _namesThePage ? _state.TitleSource : null,
             Pages = _pages,
+            Outer = outer,
         };
         return RouteChainRenderer.RenderChainEntry(ctx);
     }

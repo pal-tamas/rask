@@ -118,28 +118,25 @@ public sealed class LiveRenderContext : IDisposable
 
     internal RouteRenderState? Route { get; set; }
 
-    // The route whose pages name this walk, claimed by the first router to render. A page is mounted where
-    // its layout places the Outlet, so its title is only known once the walk has passed the page — after
-    // every component above it has rendered. It is collected as the walk goes and settled when the walk
-    // ends, and the root walks once more when a component showed the old one.
-    private Routing.RouteTitle? _routeTitle;
-
-    /// <summary>Makes <paramref name="title" /> the one this walk collects, unless a router already claimed it.</summary>
-    internal bool ClaimRouteTitle(Routing.RouteTitle title)
+    /// <summary>Publishes the title the pages of this walk declared.</summary>
+    /// <remarks>
+    ///     A page is mounted where its layout places the Outlet, so its title is only known once the walk has
+    ///     passed the page — after every component above it has rendered. It is collected as the walk goes
+    ///     and settled here, when the walk ends. The title belongs to the FIRST router of the walk, which is
+    ///     the outermost route: reached through <see cref="Route" /> rather than kept in a field of its own,
+    ///     because this object is allocated by every render of every app and only a routed one has a title.
+    /// </remarks>
+    /// <returns>Whether a component rendered with the old title, so the tree has to be walked again.</returns>
+    internal bool SettleRouteTitle()
     {
-        if (_routeTitle is not null)
+        var route = Route;
+        while (route?.Outer is { } outer)
         {
-            return false;
+            route = outer;
         }
 
-        _routeTitle = title;
-        title.BeginWalk();
-        return true;
+        return route?.Title?.Settle() == true;
     }
-
-    /// <summary>Publishes the title this walk collected.</summary>
-    /// <returns>Whether a component rendered with the old title, so the tree has to be walked again.</returns>
-    internal bool SettleRouteTitle() => _routeTitle?.Settle() == true;
 
     // The render engine, forwarded from the owning session (the render handle) and surfaced to components via
     // Component.HostEngine. Constant for the session → safe to read from Render() without the render-cache

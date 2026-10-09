@@ -23,8 +23,9 @@ internal static class RouteChainRenderer
                         "page, so ActivatorUtilities.CreateInstance and PageBinder property reflection are safe.")]
     public static Component RenderChainEntry(LiveRenderContext ctx)
     {
-        var route = ctx.Route
-                    ?? throw new InvalidOperationException(
+        var route = ctx.Route is { Pages: not null } matched
+            ? matched
+            : throw new InvalidOperationException(
                         "Outlet and Router rendering require an active route context. " +
                         "Place Outlet inside a Router render tree.");
 
@@ -37,7 +38,7 @@ internal static class RouteChainRenderer
         // its Outlet keeps the page from being constructed. The instance itself is the router's to
         // remember (RoutePageInstances), so it outlives an outlet its layout re-creates.
         var index = route.Cursor++;
-        var page = route.Pages.At(index, route.Chain[index], route.Chain.Count, ctx);
+        var page = route.Pages!.At(index, route.Chain[index], route.Chain.Count, ctx);
         var propsChanged = PageBinder.Bind(page, route.Values, route.Query);
         if (_lastPath.TryGetValue(page, out var snapshot))
         {
