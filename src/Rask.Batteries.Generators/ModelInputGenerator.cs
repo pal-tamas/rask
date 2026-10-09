@@ -71,12 +71,12 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             .Select(static (entity, _) => entity!);
 
         context.RegisterSourceOutput(
-            entities.Collect().Combine(ReadFacesOnly.Of(context)),
+            entities.Collect().Combine(ReadFacesOnly.Of(context)).Combine(FormSeams(context)),
             static (spc, pair) =>
             {
-                if (!pair.Right)
+                if (!pair.Left.Right)
                 {
-                    Emit(spc, pair.Left);
+                    Emit(spc, pair.Left.Left, pair.Right);
                 }
             });
     }
@@ -85,7 +85,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
 
     // ---- emit -----------------------------------------------------------------------------------
 
-    private static void Emit(SourceProductionContext context, ImmutableArray<Entity> candidates)
+    private static void Emit(SourceProductionContext context, ImmutableArray<Entity> candidates, Seams seams)
     {
         if (candidates.IsDefaultOrEmpty)
         {
@@ -130,6 +130,11 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             }
 
             ReportShapeProblems(context, entity);
+            entity = entity with
+            {
+                AnnouncesFieldRules = seams.FieldRules,
+                DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
+            };
 
             var hint = entity.FullyQualifiedName.Replace("global::", "") + ModelSuffix + ".g.cs";
             context.AddSource(hint, SourceText.From(Render(entity), Encoding.UTF8));
@@ -178,7 +183,9 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<ValueCollectionShape> ValueCollections,
         int Writes,
         bool DeclaresWrites,
-        bool Deletable)
+        bool Deletable,
+        bool DeclaresUniqueRules = false,
+        bool AnnouncesFieldRules = true)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,

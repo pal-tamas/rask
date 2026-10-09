@@ -86,7 +86,8 @@ public sealed partial class ModelInputGenerator
                 shape.ValueCollections.Select(c => ToValueCollection(c, converted))),
             WritesOf(symbol, out var declaresWrites),
             declaresWrites,
-            DeletableOf(symbol));
+            DeletableOf(symbol),
+            ConfiguresUniqueRule(symbol, cancellationToken));
     }
 
     /// <summary>
