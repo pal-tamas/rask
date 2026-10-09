@@ -28,8 +28,8 @@ already there. It runs the format check, the warnings-as-errors build, the unit 
 E2E journeys, the CLI build and the template gate on every push to `main` and on every pull request,
 and a red `main` is fixed forward. See [development-workflow.md](development-workflow.md#ci).
 
-**What a red run does stop is publishing.** `pages.yml` triggers on `full`'s (the whole run's) completion and `nightly.yml`
-hourly, and both publish only from a commit it passed; `release.yml` runs every gate, the release-only
+**What a red run does stop is publishing.** `pages.yml` and `nightly.yml` trigger on `full`'s (the whole run's) completion,
+and both publish only from a commit it passed; `release.yml` runs every gate, the release-only
 ones included, before it packs. That is in the workflows, not in a branch setting, so it needs
 nothing configured here.
 
@@ -64,7 +64,7 @@ JSON
 
 Only ever require a check that actually runs on every PR. A required check that is skipped — by a path
 filter, or because its workflow was deleted — blocks the branch for ever with no way to satisfy it.
-The gate jobs are named by `gates.yml`'s matrix (`build`, `unit 1/2`, `format src`, `browser E2E 1/4`, …); requiring one
+The gate jobs are named by `gates.yml`'s matrix (`build`, `unit 1/2`, `format src`, `browser E2E 1/5`, …); requiring one
 means keeping that name in step with the list there.
 
 The reviews-and-restrictions half, set once (example):

@@ -60,10 +60,16 @@ public interface IFormControl<T> : IFormControl
     ///         validator — since no single field owns them.
     ///     </para>
     ///     <para>
-    ///         An asynchronous rule runs on every change, and the latest value wins. Keep it cheap: an
-    ///         expensive check belongs in the form's own rule, which runs once, on submit. Let the value
+    ///         An asynchronous rule runs on every change, and the latest value wins. On an input or a
+    ///         textarea <c>.Debounce(300.Milliseconds)</c> or <c>.Blur()</c> makes a change the pause in
+    ///         typing or the leaving of the field, not the keystroke; a check too expensive even for that
+    ///         belongs in the form's own rule, which runs once, on submit. Let the value
     ///         through rather than blocking the form if the check itself fails. Client-side validation is a
     ///         convenience, never a control: always validate again on the server.
+    ///     </para>
+    ///     <para>
+    ///         A second <c>.Validate(…)</c> on the chain adds a rule: they run in the order written, and a
+    ///         rule is not asked about a value an earlier one rejected.
     ///     </para>
     /// </summary>
     Validator<T>? Validate { get; set; }

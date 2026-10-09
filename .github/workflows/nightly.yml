@@ -5,12 +5,18 @@ name: nightly
 # prerelease on nuget.org. Stable releases (no -prerelease suffix) still come only from tagging
 # via release.yml.
 #
-# Hourly, and only the newest commit full.yml — the whole push set — has passed on main, once. Own work
-# lands on main ungated and a push is gated by a SCOPED run (ci.yml), so the whole run is the door a red
-# commit stops at. It does NOT follow each of those runs the way pages.yml does: full.yml runs behind
-# every push now, a deploy replaces the one before it, and a version on nuget.org is there for good.
+# Runs AFTER full.yml — the whole push set — and packs the newest commit it has passed on main, once.
+# Own work lands on main ungated and a push is gated by a SCOPED run (ci.yml), so the whole run is the
+# door a red commit stops at. It follows that run and not a clock: Actions started the hourly schedule
+# this used to wait for every four to seven hours (2026-10-08/09), which is how long a fix sat green
+# and unpublished. The whole run is one at a time, so this is a version every twenty minutes at most.
+# The schedule stays as the backstop for a completion event that never arrives.
 # workflow_dispatch publishes whatever main holds, verdict or not.
 on:
+  workflow_run:
+    workflows: [full]
+    types: [completed]
+    branches: [main]
   schedule:
     - cron: '17 * * * *'   # hourly, off the hour
   workflow_dispatch:
@@ -21,12 +27,13 @@ permissions:
 
 concurrency:
   group: nightly
-  cancel-in-progress: true
+  cancel-in-progress: false   # a publish in progress finishes: half a version's packages is worse than a late one
 
 jobs:
   # The commit to publish: the newest one the whole run passed, unless the rolling "nightly" release was
   # already cut from it. Empty publishes nothing.
   pick:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     permissions:
       actions: read    # the last green whole run

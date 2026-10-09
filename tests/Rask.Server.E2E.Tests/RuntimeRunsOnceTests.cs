@@ -98,6 +98,9 @@ public sealed class RuntimeRunsOnceTests(PlaywrightFixture playwright) : IClassF
         var page = session.Page;
 
         await page.ClickAsync("#list");
+        // The field is on both pages, and its handler is another one once the rows are above it: typed into
+        // before the navigation has landed, the letter is sent to a handler that is no longer there.
+        await Expect(page.Locator("#row-0")).ToBeVisibleAsync();
         await page.FillAsync("#field", "a");
         await page.HoverAsync("#row-0 [data-testid=edit]");
         await session.HooksLoadedAsync();

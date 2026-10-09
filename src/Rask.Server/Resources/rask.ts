@@ -22,7 +22,7 @@ import {
     raskNotePendingValue,
     raskRadioGroup,
 } from "../../Rask.Core/Resources/rask-morph.js";
-import { flushInputsNow } from "../../Rask.Core/Resources/rask-input.js";
+import { changeSent, flushInputsNow } from "../../Rask.Core/Resources/rask-input.js";
 import {
     preloadNewHeadStylesheets,
     waitForUnappliedHeadCss,
@@ -1644,7 +1644,7 @@ import {
             });
             return;
         }
-        if (t.hasAttribute("data-rask-on-change")) {
+        if (t.hasAttribute("data-rask-on-change") && !changeSent(t)) {
             // Mark the field user-edited and capture what the server had rendered for it, BEFORE the
             // dispatch below causes an echo that rewrites the attributes that base is read from. Only
             // a change-only control (checkbox, radio, date, number) reaches this without rask-input.js

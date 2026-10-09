@@ -1,6 +1,13 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-09 with a bound field that waits (`.Debounce(…)` / `.Blur()`, rask-input.ts — the CORE bundle,
+# because what it has to get ahead of is the runtimes' own submit, click, key and navigation): rask.js
+# 96,350 -> 97,409 (+1,059) and rask.wasm.js 85,110 -> 86,167 (+1,057). A timer per paused field and the flush that
+# empties it, the fields bound on blur sent as the change they are ahead of what follows, the check that keeps
+# the browser's own `change` from saying it twice, `compositionend`, the first-edit report (data-rask-on-edit),
+# and one more attribute in the morph's "is this field being typed into". rask-hooks.js is unchanged at 42,367.
+#
 # Refreshed 2026-10-09 with the chart following its container and the pointer (rask-plot.ts — a hook module, so
 # only a page with a chart downloads it): rask-hooks.js 40,669 -> 42,367 (+1,698). A part's text for every row
 # (data-rask-plot-text), rows that run down the area, a plot of shapes for a pie with data-inactive on the other
@@ -125,6 +132,10 @@
 # the submenu keys, the lit row and the open flyouts, which were C# state and a round trip each):
 # rask-hooks.js 45,272 -> 48,853 (+3,581). The runtimes every page loads are unchanged by it.
 #
+# Refreshed 2026-10-09 on top of the bind timing (main at 97,409 / 86,167 / 42,367), with the three changes above
+# and the runtime leaving a data-rask-persist box's checked alone before the hooks arrive (ownsChecked in
+# rask-owned.ts, +37 bytes in each runtime): rask.js 94,655, rask.wasm.js 83,422, rask-hooks.js 48,853.
+#
 # Refresh with:
 #   dotnet build src/Rask.Server -c Release -p:MinVerSkip=true
 #   dotnet build src/Rask.Wasm   -c Release -p:MinVerSkip=true
@@ -133,6 +144,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,93559
-rask.wasm.js,82328
+rask.js,94655
+rask.wasm.js,83422
 rask-hooks.js,48853

@@ -51,6 +51,15 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
         Assert.Contains("maxlength=\"255\"", html);
     }
 
+    [Fact]
+    public void BindTimingDemo_debounces_the_name_and_binds_the_notes_on_blur()
+    {
+        var html = new LiveHost(() => BindTimingDemo, TestServices.Default()).RenderAsLiveRoot();
+
+        Assert.Matches("<input[^>]*id=\"bt-name\"[^>]*data-rask-debounce=\"300\"", html);
+        Assert.Matches("<textarea[^>]*id=\"bt-notes\"[^>]*data-rask-bind-on=\"blur\"", html);
+    }
+
     [Theory]
     [InlineData("", "A destination needs a name.")]
     [InlineData("9 lives", "A name starts with a letter.")]
