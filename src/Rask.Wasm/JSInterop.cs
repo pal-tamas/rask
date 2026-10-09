@@ -205,8 +205,11 @@ internal static partial class JSInterop
     [JSImport("pushHistory", ModuleName)]
     public static partial void PushHistory(string url, bool replace);
 
+    // The chunk crosses as the Uint8Array it is, which a promise can only hand over as `any`: declared
+    // Task<string>, the first read of any file stopped the runtime ("Value is not a String", #1200).
     [JSImport("readFileChunk", ModuleName)]
-    public static partial Task<string> ReadFileChunkBase64Async(string @ref, int offset, int length);
+    [return: JSMarshalAs<JSType.Promise<JSType.Any>>]
+    private static partial Task<object?> ReadFileChunkImport(string @ref, int offset, int length);
 
     /// <summary>
     ///     Ship an IJSRuntime call to JS for dispatch. The id and target-instance values
@@ -229,11 +232,8 @@ internal static partial class JSInterop
     [JSImport("endDotNetInvoke", ModuleName)]
     public static partial void EndDotNetInvokeImport(string resultJson);
 
-    public static async Task<byte[]> ReadFileChunkAsync(string @ref, int offset, int length)
-    {
-        var b64 = await ReadFileChunkBase64Async(@ref, offset, length).ConfigureAwait(false);
-        return string.IsNullOrEmpty(b64) ? Array.Empty<byte>() : Convert.FromBase64String(b64);
-    }
+    public static async Task<byte[]> ReadFileChunkAsync(string @ref, int offset, int length) =>
+        await ReadFileChunkImport(@ref, offset, length).ConfigureAwait(false) as byte[] ?? [];
 #else
     // Non-browser stubs. Used by the test project so the pure-logic code paths can be exercised
     // without a JS runtime. None of the non-browser stubs perform real interop.
