@@ -43,7 +43,21 @@ public sealed class EventBatchTests
 
         var frame = Assert.Single(root.GetProperty("alone").EnumerateArray());
 
-        Assert.Equal("""{"id":"h1","type":"click"}""", frame.GetRawText());
+        Assert.Equal("""{"id":"h1","type":"click","v":0}""", frame.GetRawText());
+    }
+
+    [Fact]
+    public void Every_event_names_the_page_that_was_on_screen_when_it_happened()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var frame = Assert.Single(root.GetProperty("pagesNamed").EnumerateArray());
+
+        var pages = frame.GetProperty("events").EnumerateArray().Select(e => e.GetProperty("v").GetInt32()).ToArray();
+        Assert.Equal([3, 3, 4], pages);
     }
 
     [Fact]

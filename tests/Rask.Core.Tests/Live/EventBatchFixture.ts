@@ -7,7 +7,7 @@
 import {listeners, StubField} from "./stub-events.js";
 import {setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
 import {flushInputsNow} from "../../../src/Rask.Core/Resources/rask-input.js";
-import {eventBatch, isHandlerEvent, MAX_BATCH} from "../../../src/Rask.Core/Resources/rask-batch.js";
+import {eventBatch, isHandlerEvent, MAX_BATCH, pageApplied} from "../../../src/Rask.Core/Resources/rask-batch.js";
 
 let frames: unknown[] = [];
 let owed: (() => void)[] = [];
@@ -147,7 +147,21 @@ send({id: "h5", type: "submit", form: {}});
 await taskEnds();
 const typedThenSubmitted = frames.slice();
 
+// Every event says which page it was read from: the number the last page put on screen carried. A page that
+// carries none is the same page as far as handlers go. Events of one task read after different pages say so.
+start();
+pageApplied({v: 3});
+send(click(1));
+pageApplied({});
+send(click(2));
+pageApplied({v: 4});
+send(click(3));
+await taskEnds();
+pageApplied({v: 0});
+const pagesNamed = frames.slice();
+
 process.stdout.write(JSON.stringify({
+    pagesNamed,
     editThenInput,
     typedThenSubmitted,
     duringTask,
