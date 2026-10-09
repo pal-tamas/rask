@@ -15,4 +15,7 @@ internal static class UiSidebarState
 
     /// <summary>Where the rail is remembered: the <c>localStorage</c> key Flux's own script keeps it under.</summary>
     public const string RailKey = "flux-sidebar-collapsed-desktop";
+
+    /// <summary>What an element inside a sidebar matches while that sidebar is narrowed to its rail.</summary>
+    public const string WhileRail = "[data-ui-sidebar]:has(> [data-ui-sidebar-rail]:checked) *";
 }

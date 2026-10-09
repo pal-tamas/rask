@@ -24,8 +24,33 @@ internal sealed class UiInputHost
     /// <summary>What a key pressed in the input does to the list.</summary>
     internal required Func<KeyboardEvent, Task> OnKeyDown { get; init; }
 
+    /// <summary>
+    ///     The keys <see cref="OnKeyDown" /> acts on, by <c>KeyboardEvent.key</c> with a space between. The
+    ///     runtime sends no other: a letter typed is the input's <c>input</c>, not a second round trip.
+    /// </summary>
+    internal required string Keys { get; init; }
+
+    /// <summary>
+    ///     The keys that empty the input, in the browser and at the key: emptied from the handler a round trip
+    ///     later, it would lose what was typed since.
+    /// </summary>
+    internal string? ClearKeys { get; init; }
+
     /// <summary>What a click in the input does to the list.</summary>
     internal required Action OnClick { get; init; }
+
+    /// <summary>The input's marks with what the runtime is asked for over them: which keys to send, which empty it.</summary>
+    /// <param name="input">What marks the input as Flux's.</param>
+    internal Dictionary<string, string?> MarksOver(IReadOnlyDictionary<string, string?> input)
+    {
+        var marks = new Dictionary<string, string?>(input, StringComparer.Ordinal) { ["data-rask-keys"] = Keys };
+        if (ClearKeys is not null)
+        {
+            marks["data-rask-clear-keys"] = ClearKeys;
+        }
+
+        return marks;
+    }
 
     /// <summary>The field's ARIA with the combobox's over it.</summary>
     /// <param name="field">What the field says of the input: invalid, described by.</param>

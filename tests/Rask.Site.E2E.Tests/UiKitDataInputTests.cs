@@ -756,6 +756,25 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Expect(state).ToContainTextAsync("State: Atlantis.");
     });
 
+    // No wait between the keys: the page is still answering "Tex" when Escape and the next text arrive. Escape
+    // used to empty the input from its handler, a round trip late, and this ended as "TexAtlantis".
+    [Fact]
+    public Task Text_typed_straight_after_Escape_is_all_the_autocomplete_holds() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var input = Page.Locator("#ui-autocomplete-state");
+
+        await input.ClickAsync();
+        await Page.Keyboard.TypeAsync("Tex");
+        await Page.Keyboard.PressAsync("Escape");
+        await Page.Keyboard.TypeAsync("Atlantis");
+        await Page.Keyboard.PressAsync("Tab");
+
+        await Expect(input).ToHaveValueAsync("Atlantis");
+        await Expect(Page.Locator("[data-testid='ui-autocomplete-value']")).ToContainTextAsync("State: Atlantis.");
+        await Expect(input).ToHaveAttributeAsync("aria-expanded", "false");
+    });
+
     [Fact]
     public Task The_pillbox_shows_each_pick_as_a_pill_and_takes_it_off_again() => RunAsync(async () =>
     {

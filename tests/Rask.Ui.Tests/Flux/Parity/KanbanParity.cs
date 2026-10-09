@@ -10,9 +10,8 @@ namespace Rask.UiTests.Flux.Parity;
 ///     but the first board's is filled with skeletons rather than cards.
 ///     </para>
 ///     <para>
-///     The buttons, badges, icons, headings and skeletons are the real ones. Flux's dropdown and avatar are
-///     not rebuilt yet: the dropdown is a marked wrapper around the real button with its hidden menu as a box,
-///     and each avatar is a box of the measured size.
+///     The buttons, badges, icons, headings, skeletons and avatars are the real ones. The dropdown is still a
+///     marked wrapper around the real button with its hidden menu as a box.
 ///     </para>
 /// </remarks>
 public sealed partial class KanbanParity : FluxParity
@@ -23,6 +22,7 @@ public sealed partial class KanbanParity : FluxParity
         + ".parity-row{display:flex;align-items:center;gap:4px}.parity-input{width:100%;outline-style:none}"
         + ".parity-pull{margin-inline-end:-6px}.parity-tags{display:flex;gap:8px}"
         + ".parity-zinc-400{color:var(--color-zinc-400)}"
+        + ".parity-card-ring>*:where(.dark,.dark *){--tw-ring-color:oklch(37% .013 285.805)}"
         // `dark:ring-1 dark:ring-zinc-700`, which the page gives the footer example's placeholders only.
         + ".dark .parity-ringed{box-shadow:0 0 #0000,0 0 #0000,0 0 #0000,0 0 0 1px var(--color-zinc-700),0 0 #0000}</style>";
 
@@ -105,16 +105,19 @@ public sealed partial class KanbanParity : FluxParity
                 Ui.Badge.Sm.Color(Ui.Color.Red)["Bug"]
             ]);
 
-    // flux:avatar.group of four: stand-ins of the measured size, each lapping the one before by 8px.
+    // <flux:avatar.group> of three faces and a count, each `circle size="xs"`.
     private static Component CardFooter() =>
         Ui.KanbanCard.As(Ui.KanbanCardAs.Button).Heading(CardTitle).Footer([
             Ui.Icon.Name(Ui.IconName.Bars3BottomLeft).Variant(Ui.IconVariant.Micro).Class("parity-zinc-400"),
-            Div.Style("display:flex")[Avatar(first: true), Avatar(), Avatar(), Avatar()]
+            // In dark Flux rings these in the card's own ground (zinc-700), where a group's ring is zinc-900:
+            // whose rule that is was not found, so the page states it, as an app on another ground would.
+            Ui.AvatarGroup.Class("parity-card-ring")[
+                Ui.Avatar.Circle().Xs.Src(NavigationStandIns.Caleb),
+                Ui.Avatar.Circle().Xs.Src(NavigationStandIns.Hugo),
+                Ui.Avatar.Circle().Xs.Src(NavigationStandIns.Josh),
+                Ui.Avatar.Circle().Xs["3+"]
+            ]
         ]);
-
-    private static Component Avatar(bool first = false) =>
-        Div.Style(first ? "width:24px;height:24px;flex-shrink:0" : "width:24px;height:24px;flex-shrink:0;margin-left:-8px")
-            .Attributes(("data-ui-avatar", ""), ("data-parity-skip", ""));
 
     private static Component Planned(Component card) =>
         Ui.KanbanColumn[

@@ -35,7 +35,7 @@ internal static class HookBundleTag
         "popover", "commandfor", "data-rask-modal", "data-rask-modal-open",
         "data-rask-lock",
         "data-rask-menu-pointer", "data-rask-safe-area",
-        "data-rask-copy", "data-rask-clear", "data-rask-focus", "data-rask-mask", "data-rask-mask-money",
+        "data-rask-copy", "data-rask-clear", "data-rask-clear-keys", "data-rask-focus", "data-rask-mask", "data-rask-mask-money",
         "data-rask-big-step", "role",
         "data-rask-contain-keys", "data-rask-listbox-button", "data-rask-roving",
         "data-rask-focus-follows", "data-rask-press-keeps-focus", "aria-activedescendant",

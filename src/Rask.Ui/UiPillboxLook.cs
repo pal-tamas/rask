@@ -78,6 +78,8 @@ internal static class UiPillboxLook
     private static readonly Dictionary<string, string?> SearchInput = new(StringComparer.Ordinal)
     {
         ["data-ui-pillbox-input"] = null,
+        ["data-rask-keys"] = UiListKeys.Pills,
+        ["data-rask-clear-keys"] = UiListKeys.PillsClear,
     };
 
     /// <summary>The padding and corners of the trigger at each size.</summary>

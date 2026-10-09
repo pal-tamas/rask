@@ -91,6 +91,41 @@ public sealed class RuntimeHookFieldTests(PlaywrightFixture playwright) : IClass
         Assert.Equal("name", await session.FocusAsync());
     }
 
+    // A combobox acts on five keys. Every letter typed into one used to be a round trip and a render of its
+    // own, ahead of the `input` that says what the letter did.
+    [Fact]
+    public async Task A_field_that_lists_its_keys_sends_the_page_no_other()
+    {
+        await using var session = await HookSession.OpenAsync<FieldHookPage>(playwright);
+        var page = session.Page;
+
+        await page.FocusAsync("#listed");
+        await page.Keyboard.TypeAsync("ab");
+        await page.Keyboard.PressAsync("Enter");
+
+        await Expect(page.Locator("#keys")).ToHaveTextAsync("keys=Enter listed=ab");
+    }
+
+    // The slow path, forced: the key and the read share one task, so no handler of the page's has run between
+    // them. Emptied from that handler instead, a round trip later, the field lost what was typed since.
+    [Fact]
+    public async Task A_key_a_field_names_to_clear_it_empties_it_at_the_key_and_what_is_typed_next_stays()
+    {
+        await using var session = await HookSession.OpenAsync<FieldHookPage>(playwright);
+        var page = session.Page;
+        await page.FocusAsync("#listed");
+        await page.Keyboard.TypeAsync("Tex");
+        await Expect(page.Locator("#keys")).ToHaveTextAsync("keys= listed=Tex");
+
+        var atTheKey = await page.EvaluateAsync<string>(
+            "() => { const f = document.getElementById('listed'); f.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})); return f.value; }");
+        await page.Keyboard.TypeAsync("Atlantis");
+
+        Assert.Equal(string.Empty, atTheKey);
+        await Expect(page.Locator("#keys")).ToHaveTextAsync("keys=Escape listed=Atlantis");
+        Assert.Equal("Atlantis", await page.InputValueAsync("#listed"));
+    }
+
     [Fact]
     public async Task A_masked_field_shapes_what_is_typed_and_the_page_receives_the_shaped_value()
     {
@@ -346,6 +381,8 @@ public sealed partial class FieldHookPage : Component
     private string _name = string.Empty;
     private string _phone = string.Empty;
     private string _code = string.Empty;
+    private string _listed = string.Empty;
+    private string _keys = string.Empty;
 
     protected override Component? HeadAssets => Markup.Title["field hooks"];
 
@@ -358,6 +395,13 @@ public sealed partial class FieldHookPage : Component
         P.Id("code")[$"code={_code}"],
         Input.Value(_name).Id("name").OnInput(v => _name = v ?? string.Empty),
         Button.Id("clear").Data("rask-clear", "name")["Clear"],
+        P.Id("keys")[$"keys={_keys} listed={_listed}"],
+        Input
+            .Value(_listed)
+            .Id("listed")
+            .Attributes(("data-rask-keys", "Enter Escape"), ("data-rask-clear-keys", "Escape"))
+            .OnInput(v => _listed = v ?? string.Empty)
+            .OnKeyDown(e => _keys += e.Key),
         Input.Value(_phone).Id("phone").Data("rask-mask", "(999) 999-9999").OnInput(v => _phone = v ?? string.Empty),
         Div.Id("otp").Data("rask-otp", "numeric")[
             Input.Value(_code).Type(InputType.Hidden).OnInput(v => _code = v ?? string.Empty),

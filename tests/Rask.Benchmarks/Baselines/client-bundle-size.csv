@@ -2,11 +2,21 @@
 # only a page that carries a hooked attribute downloads.
 #
 # Refreshed 2026-10-09 with the chart following its container and the pointer (rask-plot.ts — a hook module, so
-# only a page with a chart downloads it): rask-hooks.js 40,106 -> 41,804 (+1,698). A part's text for every row
+# only a page with a chart downloads it): rask-hooks.js 40,669 -> 42,367 (+1,698). A part's text for every row
 # (data-rask-plot-text), rows that run down the area, a plot of shapes for a pie with data-inactive on the other
 # slices, a tooltip kept inside the drawing from wherever it rests; and a measured box that waits to settle, says
 # nothing while hidden or half a pixel off, and tells the page again when a render writes another size over it.
-# rask.js and rask.wasm.js are unchanged at 95,912 and 84,676: no new attribute is a reason to load the bundle.
+# rask.js and rask.wasm.js are unchanged at 96,350 and 85,110: no new attribute is a reason to load the bundle.
+#
+# Refreshed 2026-10-09 with typing that waits for .NET: what is typed into a field whose last value is still
+# unanswered is held and sent as one value (rask-input.ts), and a key handler hears only the keys its element
+# lists (`data-rask-keys`, rask-events.ts): rask.js 95,912 -> 96,350 and rask.wasm.js 84,676 -> 85,110, +438 and
+# +434. `data-rask-clear-keys`, the key that empties a field in the browser, is a hook: rask-hooks.js
+# 40,106 -> 40,284 (+178).
+#
+# Refreshed 2026-10-09 with the drawer put away by a press on a link to the page already open
+# (data-rask-uncheck-on-navigate in rask-persist.ts: one click listener that reads the link's address beside the
+# navigation it already heard): rask-hooks.js 40,106 -> 40,491 (+385), 40,669 with both. The runtimes are unchanged by it.
 #
 # Refreshed 2026-10-09 with the runtime running a document once: the morph puts the runtime's own <script> back
 # without running it (keepRuntimeScript in rask-morph.ts, shared, so both runtimes carry the check), a second copy
@@ -113,6 +123,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,95912
-rask.wasm.js,84676
-rask-hooks.js,41804
+rask.js,96350
+rask.wasm.js,85110
+rask-hooks.js,42367
