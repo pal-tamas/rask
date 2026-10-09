@@ -524,6 +524,7 @@ they say when you set nothing.
 | `DiffHandle` | Diff | `Compare` |
 | `FilterReset` | Filter | `All` |
 | `FieldValidating` | Form field | `Checking…` |
+| `FileItemRemove` | File upload | `Remove file` |
 
 `&laquo; Previous` and `Next &raquo;` are written exactly so — Flux UI's pager names its arrows with the
 unresolved entity, and the kit mirrors it. A translation is free to write `«`.

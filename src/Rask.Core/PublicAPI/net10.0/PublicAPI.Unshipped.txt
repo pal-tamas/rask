@@ -3928,6 +3928,7 @@ Rask.Core.Globalization.RaskString.ErrorHeading = 9 -> Rask.Core.Globalization.R
 Rask.Core.Globalization.RaskString.ErrorReload = 11 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ErrorTryAgain = 10 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.FieldValidating = 126 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FileItemRemove = 127 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.FilterReset = 125 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.InputChooseFile = 93 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.InputChooseFiles = 94 -> Rask.Core.Globalization.RaskString

@@ -171,6 +171,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("DiffHandle", 0),
         ("FilterReset", 0),
         ("FieldValidating", 0),
+        ("FileItemRemove", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

@@ -403,4 +403,7 @@ public enum RaskString
 
     /// <summary>What a field says while its value is being checked.</summary>
     FieldValidating,
+
+    /// <summary>The accessible name of the control that removes a file from an upload's list.</summary>
+    FileItemRemove,
 }

@@ -62,6 +62,7 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     [InlineData("editor", "Formázott szöveg módosítása", "Rich text editor")]
     [InlineData("input", "Mező törlése", "Clear input")]
     [InlineData("modal", "Ablak bezárása", "Close modal")]
+    [InlineData("file-upload", "Fájl eltávolítása", "Remove file")]
     [InlineData("otp-input", "1. karakter, összesen 6", "Character 1 of 6")]
     [InlineData("slider", ", a tartomány eleje", " start range")]
     public void The_kit_speaks_hungarian_wherever_flux_writes_its_own_text(string page, string hungarian, string english)

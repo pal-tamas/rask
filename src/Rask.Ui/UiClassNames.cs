@@ -57,35 +57,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string FileInputTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "file-input-neutral",
-        Ui.Tone.Primary => "file-input-primary",
-        Ui.Tone.Secondary => "file-input-secondary",
-        Ui.Tone.Accent => "file-input-accent",
-        Ui.Tone.Info => "file-input-info",
-        Ui.Tone.Success => "file-input-success",
-        Ui.Tone.Warning => "file-input-warning",
-        Ui.Tone.Error => "file-input-error",
-        _ => "",
-    };
-
-    internal static string FileInputVariant(Ui.Variant value) => value switch
-    {
-        Ui.Variant.Ghost => "file-input-ghost",
-        _ => "",
-    };
-
-    internal static string FileInputSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "file-input-xs",
-        Ui.Size.Sm => "file-input-sm",
-        Ui.Size.Md => "file-input-md",
-        Ui.Size.Lg => "file-input-lg",
-        Ui.Size.Xl => "file-input-xl",
-        _ => "",
-    };
-
     internal static string LoadingSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "loading-xs",

@@ -135,5 +135,7 @@
 
   "DiffHandle": "Összehasonlítás",
   "FilterReset": "Összes",
-  "FieldValidating": "Ellenőrzés…"
+  "FieldValidating": "Ellenőrzés…",
+
+  "FileItemRemove": "Fájl eltávolítása"
 }
