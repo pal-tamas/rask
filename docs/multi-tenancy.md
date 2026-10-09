@@ -140,11 +140,25 @@ arrived without the request that opened it. `Current.Tenant`, every filter and e
 | a signed-in user whose claim names **another** tenant | refused: reading the tenant throws `ForbiddenException` |
 | the resolver returns `null` | [no tenant](#when-the-resolver-names-no-tenant): reads are empty, writes are refused |
 
+**What `sp` is.** Under a Rask host — `RaskApp`, or a host wired by hand with
+[`AddRaskData<TContext>(o => …)` and `app.UseRaskData()`](data.md#a-second-context-beside-the-one-you-have):
+
+| The work | `sp` | When it is asked |
+|---|---|---|
+| an HTTP request — an endpoint, a controller, the GET that renders a page | that request's `RequestServices` | as the request reaches `UseRaskData()`, after authentication |
+| a live session — a page's handlers, its re-renders | the **session's** own scope, which lives as long as the page is open | once, on the session's first render, which runs inside the request that opened the page; never again |
+
+So a resolver that goes through a **singleton** reading `IHttpContextAccessor` — the shape most apps already
+have for "which customer is this request for" — works for both: when the session is asked, the request that
+opened it is still in flight, and what it answers then is kept for every later message on the socket, whatever
+that socket's own request looks like. The signed-in user is there too, in both: `Current.Principal` is
+`HttpContext.User` for a request and the user the session was opened by for a session.
+
 Three things to know when writing one:
 
-- **A live session's scope is not a request's.** It is a DI scope of its own, opened inside the request that
-  started the session, so read the request through `IHttpContextAccessor` rather than through a scoped object
-  a middleware filled in — that object is a different instance there.
+- **A live session's scope is not a request's.** A *scoped* object a middleware filled in for the request is a
+  different, empty instance in the session's scope — read the request through `IHttpContextAccessor`, or
+  resolve a singleton that does.
 - **It also runs for background work that recorded no tenant** — a recurring job the host scheduled — where
   there is no request. Return `null` then; do not assume one.
 - **It must not read the tenant it is being asked for.** Resolve it from the request, or from a table that is

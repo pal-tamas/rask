@@ -9,6 +9,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask.Data on a host wired by hand, in two calls: `AddRaskData<TContext>(o => …)` and `app.UseRaskData()`.**
+  A host built from `AddRask()` and `MapRask<TApp>()` rather than `RaskApp` had to register the context factory
+  with Rask's interceptors, the read context, a principal source and the request scope itself — and had no way
+  at all to give a live session's work a data scope, so a page's tenant-scoped read threw.
+  `builder.Services.AddRaskData<DomainContext>(o => o.UseSqlServer(connectionString))` (in `Rask.Server`; an
+  `(sp, o) => …` overload too) now registers all of it, the session scope included, with the mediator and the
+  query cache; `app.UseRaskData()`, placed after `UseAuthentication()`, adds the per-request scope and is the
+  `Db.Configure(app.Services)` such a host used to call. Neither opens a connection, creates or migrates
+  anything, registers `MigrateOnStart` or reads `Rask:Database`. `RaskApp` uses the same registrations, so the
+  two hosts cannot drift. `AddRaskData<TContext>()` with no argument is unchanged.
+
 - **`services.AddRaskTenant(sp => …)` — the app says where the tenant comes from (#1228).** One line returning
   the tenant of the scope it is handed, as a `Guid?` or as a number (`int?` / `long?`):
   `builder.Services.AddRaskTenant(sp => sp.GetRequiredService<ICurrentRequest>().TenantId)`. It replaces the
@@ -80,6 +91,18 @@ them until tagged releases begin.
   eight unfiltered ones ran. The client-bundle-size gate tracks the third file too.
 
 ### Changed
+
+- **BREAKING: an index declared in `Configure` (or by `[Index]`) on a tenant-scoped entity becomes tenant-first
+  (#1233).** An app that has an entity with `Scope = Tenancy.PerTenant` and an index it declared in the
+  entity's static `Configure`, or with an `[Index]` attribute, **gets a schema change in its next migration**:
+  the index that does not name `TenantId` is dropped and recreated with `TenantId` in front —
+  `IX_Product_Sku (Sku)` becomes `IX_Product_TenantId_Sku (TenantId, Sku)`. For a **unique** index that changes
+  what the database enforces: the value was unique across every tenant, and is now unique within one. That is
+  what the docs always promised and what an index declared before the conventions already got; the fix is the
+  entry under *Fixed*. Nothing to change in code. To keep an index exactly as it is, name the tenant in it —
+  `builder.HasIndex(p => new { p.Sku, p.TenantId })` (or `"Sku", Columns.TenantId` for the shadow column):
+  an index that names `TenantId` anywhere is left as written. Run `rask db add` and read the migration before
+  applying it — on a large table recreating an index takes a lock.
 
 - **BREAKING: `TenantId` is the entity's own column, no longer a property of `Entity<TId>`.** A
   `Tenancy.PerTenant` table keeps the same `TenantId` column, filter, stamp and index prefix; the column is a
@@ -1294,8 +1317,8 @@ them until tagged releases begin.
   unprefixed index back as the model was finalized. The prefix now also runs after `Configure` and at
   finalization, so every index that does not name `TenantId` gets it in front, wherever it was declared. An
   index that already names `TenantId` — anywhere in it — is left exactly as written, which is what lets a
-  table that already exists keep `(Name, TenantId)` in that order. **An app with such an index gets a
-  migration** that replaces `IX_T_Sku` with `IX_T_TenantId_Sku`.
+  table that already exists keep `(Name, TenantId)` in that order. **This is a schema change for an app that
+  has such an index — see the BREAKING entry under *Changed*.**
 
 - **An aggregate that declares `Checks = Concurrency.None` can be updated.** The table was mapped without a
   `Version`, but the save still asked the change tracker for it: `Product.Update(id, p => …)`, `Find` then

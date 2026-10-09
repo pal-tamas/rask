@@ -1456,32 +1456,34 @@ over the same tables — and nothing has to make an aggregate live inside the ol
 public sealed class DomainContext(DbContextOptions<DomainContext> options) : RaskDbContext(options);
 ```
 
-```csharp
-builder.Services.AddRaskCqrs();
-builder.Services.AddRaskData<DomainContext>();                       // the context Destination.Where(…) opens
-builder.Services.AddDbContextFactory<DomainContext>((sp, o) => o
-    .UseSqlServer(connectionString)                                  // the same database as the legacy context
-    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));    // the tenant stamp lives here
-builder.Services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlServer(connectionString));
+On a host you wire yourself — `AddRask()` and `MapRask<TApp>()` rather than `RaskApp` — that is two calls from
+`Rask.Server`:
 
+```csharp
+builder.Services.AddRask();
+builder.Services.AddRaskData<DomainContext>(o =>
+    o.UseSqlServer(configuration.GetConnectionString("Default")));   // the same database as the legacy context
 builder.Services.AddRaskTenant(sp => sp.GetRequiredService<ICurrentRequest>().TenantId);
 
 var app = builder.Build();
-Db.Configure(app.Services);
+app.UseAuthentication();
+app.UseRaskData();                       // after authentication, before the endpoints
+app.MapRask<App>(pathBase: "/new");
 ```
 
-Then make each request's services ambient, after authentication, exactly as
-[above](#wiring-when-rask-is-not-hosting) — that scope is where the tenant resolver is found and called:
+`AddRaskData<TContext>(o => …)` registers what a `RaskApp` wires for data and a hand-wired host otherwise goes
+without: the context factory with Rask's interceptors on it (the tenant stamp lives there), the read context on
+the same database, who is signed in — for an HTTP request and for a live session — the scope a live page's
+work runs in, and the mediator and query cache a save refreshes. An `(sp, o) => …` overload hands the callback
+the app's services. `app.UseRaskData()` makes each request's services ambient and points the model surface at
+the context — the `Db.Configure(app.Services)` a host used to call.
 
-```csharp
-app.Use(async (context, next) =>
-{
-    using (Db.UseScope(context.RequestServices))
-    {
-        await next(context);
-    }
-});
-```
+**Neither creates, migrates or checks anything.** No connection is opened until the first read, no
+`MigrateOnStart` is registered, and `Rask:Database` is not read: the database is the one the callback names.
+
+Without ASP.NET — a worker, a console app — the [wiring above](#wiring-when-rask-is-not-hosting) is the same
+thing by hand: `AddRaskData<DomainContext>()`, the two context factories, `Db.Configure`, and `Db.UseScope`
+around each unit of work.
 
 ```csharp
 await Destination.Named("Budapest").Save();                  // TenantId stamped with the resolved tenant
