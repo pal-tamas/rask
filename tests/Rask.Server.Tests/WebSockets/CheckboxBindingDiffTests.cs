@@ -36,8 +36,17 @@ public class CheckboxBindingDiffTests
             Assert.True(frame.Contains($"S={expectedEcho}", StringComparison.Ordinal), $"{label}: {frame}");
         }
 
+        // The model already holds the reported state, so nothing on the page changes: the per-render script
+        // call is all there is to send, and it rides a diff with no ops. It used to cost the whole document.
+        async Task AssertUnchangedAsync(string sentValue, string label)
+        {
+            await ws.SendJsonAsync(new { id = changeId, type = "change", value = sentValue });
+            var frame = await ws.ReceiveTextAsync();
+            Assert.True(frame.StartsWith("{\"kind\":\"diff\",\"ops\":[],\"jsInvokes\":", StringComparison.Ordinal), $"{label}: {frame}");
+        }
+
         await AssertEchoAsync("true", "True", "click 1");
-        await AssertEchoAsync("true", "True", "click 1 repeated (idempotent)");
+        await AssertUnchangedAsync("true", "click 1 repeated (idempotent)");
         await AssertEchoAsync("false", "False", "click 2");
         await AssertEchoAsync("true", "True", "click 3");
         await AssertEchoAsync("false", "False", "click 4");

@@ -13,17 +13,17 @@ namespace Rask;
 /// changes, as Flux's is. A chart that is hidden keeps the drawing it had.
 /// </para>
 /// <para>
-/// The FIRST render happens before any browser has measured anything. <see cref="Width" /> and
-/// <see cref="Height" /> say what box to draw for until then — 600 by 200 unless stated — and the SVG is scaled
-/// as a whole to the real one meanwhile. Stated as the size the chart is usually shown at, the first drawing is
-/// already the right one and nothing is drawn twice.
+/// The FIRST render happens before any browser has measured anything, and draws nothing: an empty box of the
+/// size its container gives it, as Flux's first paint is, with the field its measured size comes back in. There
+/// is no size to state. Every chart of a page is measured in one browser task, and the events of one task are
+/// answered with one render.
 /// </para>
 /// </remarks>
 public sealed partial class UiChartSvg : Component
 {
     private static readonly UiChartData Nothing = new UiChartRows<double>([]);
 
-    // The box the browser measured, once it has: it outranks the stated one from then on.
+    // The box the browser measured, once it has. Nothing is drawn before.
     private (double Width, double Height)? _measured;
 
     // The last drawing and what it was drawn from. A part that reads the chart's context is rendered on every
@@ -52,12 +52,6 @@ public sealed partial class UiChartSvg : Component
     /// </summary>
     public string? Gutter { get; set; }
 
-    /// <summary>The width the chart is drawn for until the browser has measured it, in pixels. 600 unless this says otherwise.</summary>
-    public double? Width { get; set; }
-
-    /// <summary>The height the chart is drawn for until the browser has measured it, in pixels. 200 unless this says otherwise.</summary>
-    public double? Height { get; set; }
-
     public string? Class { get; set; }
 
     // What it draws is the chart's rows, which arrive through the context rather than as a prop of its own.
@@ -70,7 +64,13 @@ public sealed partial class UiChartSvg : Component
         var scope = Context.Get<UiChartScope>();
         var data = scope?.Data ?? Nothing;
         var horizontal = scope?.Horizontal == true;
-        var (width, height) = _measured ?? (Width ?? 600, Height ?? 200);
+        if (_measured is not { } box)
+        {
+            // No box yet, so no drawing: an empty field is no box, and the hook answers it with the real one.
+            return UiChartHover.Over(string.Empty, Measured, null);
+        }
+
+        var (width, height) = box;
         if (_drawn?.IsOf(Children, data, horizontal, width, height, Gutter, Class) != true)
         {
             _drawn = Draw(data, horizontal, width, height);

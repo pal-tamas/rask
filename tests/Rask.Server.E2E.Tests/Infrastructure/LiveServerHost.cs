@@ -33,6 +33,9 @@ internal sealed class LiveServerHost : IAsyncDisposable
     private readonly WebApplication _app;
     private int _webSocketAttempts;
 
+    /// <summary>The scheme a host started with <c>cookieSignIn</c> signs its readers in under.</summary>
+    public const string CookieScheme = "Cookies";
+
     private LiveServerHost(WebApplication app) => _app = app;
 
     public string BaseUrl { get; private set; } = string.Empty;
@@ -42,7 +45,8 @@ internal sealed class LiveServerHost : IAsyncDisposable
 
     public static async Task<LiveServerHost> StartAsync<TApp>(
         bool blockWebSockets, bool staticFiles = false, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
-        string pathBase = "", string? environment = null)
+        bool cookieSignIn = false, string pathBase = "", Action<WebApplication>? beside = null,
+        string? environment = null, bool endpointRouting = false)
         where TApp : Component
     {
         // The wwwroot the build copied beside the tests: what a web project serves from its own folder.
@@ -56,6 +60,12 @@ internal sealed class LiveServerHost : IAsyncDisposable
         builder.Logging.ClearProviders();
         builder.Services.AddRouting();
         builder.Services.AddRask(live, o => o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200));
+
+        if (cookieSignIn)
+        {
+            builder.Services.AddAuthentication(CookieScheme).AddCookie(CookieScheme);
+            builder.Services.AddAuthorization();
+        }
 
         var app = builder.Build();
         var host = new LiveServerHost(app);
@@ -81,15 +91,23 @@ internal sealed class LiveServerHost : IAsyncDisposable
         }
 
         app.UseRouting();
+        if (cookieSignIn)
+        {
+            app.UseAuthentication();
+            app.UseAuthorization();
+        }
+
         app.UseWebSockets();
-        // The endpoint-routing overload when the app has a path base: what a host that composes its own pipeline calls.
-        if (pathBase.Length > 0)
+        // What the host serves beside the app: the pages of an older application, outside the app's path base.
+        beside?.Invoke(app);
+        // The endpoint-routing overload is what a host that composes its own pipeline calls: no WebApplication.
+        if (endpointRouting)
         {
             ((Microsoft.AspNetCore.Routing.IEndpointRouteBuilder)app).MapRask<TApp>(pathBase: pathBase);
         }
         else
         {
-            app.MapRask<TApp>();
+            app.MapRask<TApp>(pathBase: pathBase);
         }
 
         await app.StartAsync();
@@ -104,5 +122,8 @@ internal sealed class LiveServerHost : IAsyncDisposable
     {
         await _app.StopAsync();
         await _app.DisposeAsync();
+
+        // The path base is one value for the whole process: a host mapped under one must not leave it behind.
+        Rask.Core.Live.LiveOptions.PathBase = string.Empty;
     }
 }

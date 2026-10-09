@@ -205,6 +205,10 @@ internal static partial class JSInterop
     [JSImport("pushHistory", ModuleName)]
     public static partial void PushHistory(string url, bool replace);
 
+    /// <summary>Loads a page of this site the app does not render (<c>Go.Out</c>), leaving the app.</summary>
+    [JSImport("leaveTo", ModuleName)]
+    public static partial void LeaveTo(string url);
+
     // The chunk crosses as the Uint8Array it is, which a promise can only hand over as `any`: declared
     // Task<string>, the first read of any file stopped the runtime ("Value is not a String", #1200).
     [JSImport("readFileChunk", ModuleName)]
@@ -261,10 +265,12 @@ internal static partial class JSInterop
         return _session?.DispatchAsync(json, copyFrame: false) ?? Task.CompletedTask;
     }
 
-    public static void ApplyRender(Span<byte> payload)
-    {
-        // No page to apply the frame to.
-    }
+    /// <summary>Where a test collects the frames a session pushed; nothing is kept while it is null.</summary>
+    internal static List<string>? AppliedFrames { get; set; }
+
+    // No page to apply the frame to.
+    public static void ApplyRender(Span<byte> payload) =>
+        AppliedFrames?.Add(System.Text.Encoding.UTF8.GetString(payload));
 
 #pragma warning disable S3400 // each stub mirrors a browser [JSImport] method, which a constant cannot stand in for
     public static string GetLocation() => "/";
@@ -280,6 +286,11 @@ internal static partial class JSInterop
     {
         // No history to push onto.
     }
+
+    /// <summary>The last address <c>Go.Out</c> sent the page to, so the non-browser tests can assert it.</summary>
+    public static string? LastLeftTo { get; private set; }
+
+    public static void LeaveTo(string url) => LastLeftTo = url;
 
     /// <summary>Counts the indicator calls so the non-browser tests can assert the bridge fired.</summary>
     public static int HotReloadAppliedCount { get; private set; }

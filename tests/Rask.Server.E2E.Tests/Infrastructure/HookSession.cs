@@ -45,15 +45,21 @@ internal sealed class HookSession : IAsyncDisposable
     /// <param name="path">The path the browser opens.</param>
     /// <param name="browser">A browser launched some other way than the fixture's — one that shows its scrollbars.</param>
     /// <param name="live">The app's live options: a suite that needs every render sent whole says so here.</param>
-    /// <param name="pathBase">The prefix the app is mapped under, through the endpoint-routing overload.</param>
+    /// <param name="cookieSignIn">Whether the app signs readers in with a cookie, so a page can be guarded.</param>
+    /// <param name="pathBase">The prefix the app is mapped under; <paramref name="path" /> includes it.</param>
+    /// <param name="beside">Maps what the host serves beside the app, outside its path base.</param>
     /// <param name="environment">The host's environment; whatever the process says when null.</param>
+    /// <param name="endpointRouting">True to map the app through the endpoint-routing overload, as a host that composes its own pipeline does.</param>
     public static async Task<HookSession> OpenAsync<TPage>(
         PlaywrightFixture playwright, BrowserNewContextOptions? options = null, Func<IPage, Task>? beforeLoad = null,
         string path = "/", IBrowser? browser = null, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
-        string pathBase = "", string? environment = null)
+        bool cookieSignIn = false, string pathBase = "", Action<Microsoft.AspNetCore.Builder.WebApplication>? beside = null,
+        string? environment = null, bool endpointRouting = false)
         where TPage : Component
     {
-        var host = await LiveServerHost.StartAsync<TPage>(blockWebSockets: false, live: live, pathBase: pathBase, environment: environment);
+        var host = await LiveServerHost.StartAsync<TPage>(
+            blockWebSockets: false, live: live, cookieSignIn: cookieSignIn, pathBase: pathBase, beside: beside,
+            environment: environment, endpointRouting: endpointRouting);
         var context = await (browser ?? playwright.Browser).NewContextAsync(options ?? new() { ViewportSize = new() { Width = 1000, Height = 700 } });
         var page = await context.NewPageAsync();
         var pageErrors = new ConcurrentQueue<string>();

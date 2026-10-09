@@ -11,6 +11,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The two mappings of a one-value value object, compared by EF's migration differ on every provider. -->
+    <Compile Include="..\Rask.Data.Tests\ValueObjectMappingShapes.cs" Link="ValueObjectMappingShapes.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

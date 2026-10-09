@@ -174,23 +174,56 @@ public class ModelRegistryGeneratorTests
     }
 
     [Fact]
-    public void A_one_value_value_object_maps_in_an_app_that_imports_nothing_itself()
+    public void A_one_value_value_object_inside_another_maps_in_an_app_that_imports_nothing_itself()
     {
-        // The registry names the value's column with HasColumnName, an extension method. The app below has no
-        // implicit usings and never imports EF Core, so the generated file has to bring the namespace itself.
+        // Inside a value object the registry names the value's column with HasColumnName, an extension method.
+        // The app below has no implicit usings and never imports EF Core, so the generated file has to bring
+        // the namespace itself.
         var run = Run("""
             namespace Shop;
-            public sealed record Email(string Value);
+            public sealed record Currency(string Value);
+            public sealed class Money
+            {
+                private Money() { }
+                public decimal Amount { get; private set; }
+                public Currency Currency { get; private set; } = null!;
+            }
             public sealed class Customer : global::Rask.Data.Aggregate<global::System.Guid>
             {
                 private Customer() { }
-                public Email Contact { get; private set; } = null!;
+                public Money Limit { get; private set; } = null!;
             }
             """);
 
         var registry = run.GeneratedSource("__RaskModelRegistry");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains(".Property(v => v.Value).HasColumnName(\"Contact\")", registry, StringComparison.Ordinal);
+        Assert.Contains(".Property(v => v.Value).HasColumnName(\"Limit_Currency\")", registry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_one_value_value_object_the_entity_holds_is_a_converted_scalar_and_a_larger_one_stays_complex()
+    {
+        var run = Run("""
+            namespace Shop;
+            public sealed record Email(string Value);
+            public sealed record Money(decimal Amount, string Currency);
+            public sealed class Customer : global::Rask.Data.Aggregate<global::System.Guid>
+            {
+                private Customer() { }
+                public Email Contact { get; private set; } = null!;
+                public Email? Backup { get; private set; }
+                public Money Limit { get; private set; } = null!;
+            }
+            """);
+
+        var registry = run.GeneratedSource("__RaskModelRegistry");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("global::Rask.Data.ValueObjectColumn.Map(", registry, StringComparison.Ordinal);
+        Assert.Contains("Property(x => x.Contact), (global::Shop.Email v) => v.Value);", registry, StringComparison.Ordinal);
+        Assert.Contains("Property(x => x.Backup), (global::Shop.Email v) => v.Value);", registry, StringComparison.Ordinal);
+        Assert.Contains(".ComplexProperty(x => x.Limit", registry, StringComparison.Ordinal);
+        Assert.DoesNotContain(".ComplexProperty(x => x.Contact", registry, StringComparison.Ordinal);
     }
 }

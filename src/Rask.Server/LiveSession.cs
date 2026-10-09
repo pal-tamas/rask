@@ -212,6 +212,26 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     internal void DecrementPendingHandlers() => Interlocked.Decrement(ref _pendingHandlers);
 
+    // The events batch frames carried in the current one-second window. A batch is ONE frame to the transport's
+    // rate cap, so its events are counted here against the same number. Written by whichever request is reading
+    // this session's frames — one at a time for a socket, and for a browser's POSTs, which it sends one at a time.
+    private long _batchWindowStart;
+    private int _batchedEventsInWindow;
+
+    /// <summary>Whether <paramref name="count" /> more batched events fit this second's allowance.</summary>
+    internal bool AdmitBatchedEvents(int count, int maxPerSecond)
+    {
+        var now = Environment.TickCount64;
+        if (now - _batchWindowStart >= 1000)
+        {
+            _batchWindowStart = now;
+            _batchedEventsInWindow = 0;
+        }
+
+        _batchedEventsInWindow += count;
+        return _batchedEventsInWindow <= maxPerSecond;
+    }
+
     // Aggregate bytes of the cloned payloads currently queued — the memory companion to the count
     // above, so the receive loop can bound the queue's footprint, not just its length.
     private long _pendingHandlerBytes;
@@ -419,6 +439,21 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             await Started(work).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         });
 
+    // A navigation a lifecycle hook asked for with no dispatch waiting for it — after an await, or as its page
+    // mounted on a reconnect. Queued like a link the reader clicked, so it runs behind what they did before it.
+    protected override bool TryNavigateCore(Action navigate)
+    {
+        EnqueueOnHandlerChain(async previous =>
+        {
+            // Never inline: the hook asking may be inside the very render this navigation has to wait for.
+            await Task.Yield();
+            await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await RaskEndpointExtensions.NavigateFromHookAsync(this, navigate)
+                .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        });
+        return true;
+    }
+
     // The work's task, with a synchronous throw carried in it like an asynchronous one.
     private static Task Started(Func<Task> work)
     {
@@ -530,8 +565,20 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
         // The waves themselves are host-agnostic and live in Core, so a build-time prerender of an app
         // with no server at all runs the same loop. What is server-specific is the two arguments below.
+        // A page that navigated is not rendered again: the response is a redirect, and its destination is the
+        // next request's to render, behind that route's own guard.
+        var navigator = _navigator ??= Services.GetRequiredService<Navigator>();
+        var served = string.Empty;
         var result = await QuiescentRender.Run(
-            RenderRootWave,
+            publishOnly =>
+            {
+                if (!navigator.NavigationPending)
+                {
+                    served = RenderRootWave(publishOnly);
+                }
+
+                return served;
+            },
             budget,
             // Work blocked on JavaScript cannot finish here, so waiting for it only burns the
             // budget. A JS call made during a render queues onto a frame, and during the GET there
@@ -866,10 +913,45 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
     }
 
+    private Navigator? _navigator;
+
+    // Whether a connection is open to send to. An address that could not be sent is kept, and the first render
+    // that can be sent carries it, replacing the one the browser holds.
+    private bool HasSomeoneToTell(ref string? historyUrl, ref bool replace)
+    {
+        if (Volatile.Read(ref _transport) is not { IsOpen: true })
+        {
+            _undeliveredAddress = historyUrl ?? _undeliveredAddress;
+            return false;
+        }
+
+        if (_undeliveredAddress is { } undelivered)
+        {
+            _undeliveredAddress = null;
+            if (historyUrl is null)
+            {
+                historyUrl = undelivered;
+                replace = true;
+            }
+        }
+
+        return true;
+    }
+
+    // The address of a navigation made while no connection was attached — a page whose load outlasted the first
+    // response and then sent the reader on. Only the session's own dispatches write it, one at a time.
+    private string? _undeliveredAddress;
+
+    /// <summary>
+    ///     Whether the page just rendered navigated as it mounted or updated. Its frame is withheld — the reader
+    ///     sees nothing of a page that sent them on — and the dispatch renders the destination instead.
+    /// </summary>
+    private bool RedirectPending => (_navigator ??= Services.GetRequiredService<Navigator>()).RedirectPending;
+
     internal async Task RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
         bool publishOnly = false)
     {
-        if (Volatile.Read(ref _transport) is not { IsOpen: true })
+        if (!HasSomeoneToTell(ref historyUrl, ref replace))
         {
             return;
         }
@@ -883,6 +965,11 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
             // Render + decide diff-vs-full + write the frame — shared with the WASM host (LiveSessionBase).
             var html = RenderTreeToHtml(publishOnly, out var frameWriter);
+            if (auth is null && RedirectPending)
+            {
+                return;
+            }
+
             var download = ConsumeDownload();
             var jsInvokes = JsInvokes.Drain();
 
@@ -1011,6 +1098,13 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     {
         _pendingRenderInScope = false;
         await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
+        if (auth is null && RedirectPending)
+        {
+            // The route moving asked for a render of its own; the caller's render of the destination is it.
+            _pendingRenderInScope = false;
+            return;
+        }
+
         var budget = 2;
         while (_pendingRenderInScope && budget-- > 0)
         {

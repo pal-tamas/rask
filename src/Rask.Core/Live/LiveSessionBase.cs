@@ -82,6 +82,11 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // A single-threaded host (WASM) has nothing to order against; the Server session queues on its handler chain.
     protected virtual void RunInOrderCore(Func<Task> work) => _ = work();
 
+    bool IRenderHandle.TryNavigate(Action navigate) => TryNavigateCore(navigate);
+
+    // Each host makes the navigation the way it makes one a link asked for; a session with no host cannot.
+    protected virtual bool TryNavigateCore(Action navigate) => false;
+
     // How Rask DevTools names this session in its feed. Null on a host that has only one session per
     // process (WASM); the Server session answers with its id. A virtual rather than a type test in the
     // devtools, so that package needs no reference to Rask.Server.
@@ -329,6 +334,58 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         return RequestPublishRender();
     }
 
+    /// <summary>
+    ///     Set while a batch of events is being handled and one of them has changed the page without rendering it:
+    ///     the render after the batch's last event is the one that shows it. Cleared by any walk of the tree.
+    /// </summary>
+    internal bool RenderOwed { get; private set; }
+
+    /// <summary>Leaves a handler's render to the one after its batch's last event.</summary>
+    /// <remarks>
+    ///     A <c>StateHasChanged</c> the handler made asked for a render of its own once the scope ends. That render
+    ///     is the owed one, so the request is taken back rather than answered twice.
+    /// </remarks>
+    internal void OweRender()
+    {
+        RenderOwed = true;
+        _pendingRenderInScope = false;
+    }
+
+    /// <summary>Ends a batch: nothing is owed past it, even where its last render was handed to another page.</summary>
+    internal void EndBatch() => RenderOwed = false;
+
+    // The tree as last rendered, child to parent. Built for the first event of a batch that asks, and dropped by
+    // the next walk, which is the only thing that changes it.
+    private Dictionary<Component, Component>? _parents;
+    private bool _parentsMapped;
+
+    /// <summary>
+    ///     Whether the handler <paramref name="id" /> names may run ahead of the render its batch owes — see
+    ///     <see cref="Component.HandlerOutlivesRender" />. When it may not, the host renders first.
+    /// </summary>
+    internal bool HandlerOutlivesRender(string id)
+    {
+        _parents ??= new Dictionary<Component, Component>(ReferenceEqualityComparer.Instance);
+        if (!_parentsMapped)
+        {
+            View.MapParents(_parents);
+            _parentsMapped = true;
+        }
+
+        return View.HandlerOutlivesRender(id, _parents);
+    }
+
+    // A walk shows everything the handlers before it did, and may mount or remove anything.
+    private void RenderOwedIsThisWalk()
+    {
+        RenderOwed = false;
+        if (_parentsMapped)
+        {
+            _parents!.Clear();
+            _parentsMapped = false;
+        }
+    }
+
     Task IRenderHandle.RenderInScopeAsync() => RenderInScopeCoreAsync();
 
     protected abstract Task RequestRenderInternalAsync(bool publishOnly);
@@ -387,6 +444,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     protected ReadOnlyMemory<char> RenderTreeToHtml(bool publishOnly, out FrameWriter? frameWriter)
     {
         OnBeforeRenderWalk();
+        RenderOwedIsThisWalk();
         RaskDevToolsHook.Active?.WalkStarted(this, publishOnly);
         frameWriter = null;
         FrameSinkScope.Popper popper = default;

@@ -31,6 +31,7 @@ import { pollDevStatus, showDevError } from "../../Rask.Core/Resources/rask-deve
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
 import { setHost, standDown } from "../../Rask.Core/Resources/rask-host.js";
+import { eventBatch, isHandlerEvent } from "../../Rask.Core/Resources/rask-batch.js";
 import {
     beginLoading,
     endAllLoading,
@@ -450,8 +451,16 @@ import {
         if (data.type === "location" && typeof data.url === "string") {
             // Only ever a page on this host: the frame names a path here, and nothing it carries may take the
             // visitor to another site or run as script (a javascript: URL has an opaque origin, so it fails too).
-            const target = new URL(prependBase(data.url), location.href);
+            // `outside` is a page of this site the app does not render (Go.Out): its address is used as written.
+            const target = new URL(data.outside ? data.url : prependBase(data.url), location.href);
             if (target.origin !== location.origin) return;
+            // The server sent the reader there, as a handler's Go.To does, so the unsaved-changes guard is not
+            // asked: a form that no longer says it is guarded guards nothing (rask-leave.ts).
+            if (data.outside) {
+                document.querySelectorAll("form[data-rask-confirm-leave]").forEach(function (form) {
+                    form.removeAttribute("data-rask-confirm-leave");
+                });
+            }
             if (data.replace) location.replace(target.href); else location.assign(target.href);
             return;
         }
@@ -1512,12 +1521,26 @@ import {
     // events are still to come. Assets a morph adds are picked up after it.
     invokeGate.scanHeadAssets();
 
+    // The events one task produces leave as one frame (rask-batch.ts), which the server answers with a single
+    // render. Anything else goes at once, behind what was waiting, so nothing overtakes an earlier event.
+    const events = eventBatch(transmit);
+
     function send(payload: unknown): void {
         if (suppressEvents) return;
+        // Stamped now, not when the frame leaves: the caller reads the seq as soon as this returns.
         stampSeq(payload as Record<string, unknown>);
-        const msg = JSON.stringify(payload);
+        if (isHandlerEvent(payload)) {
+            void events.add(payload);
+            return;
+        }
+        events.flush();
+        transmit(payload);
+    }
+
+    function transmit(frame: unknown): void {
+        const msg = JSON.stringify(frame);
         const devtools = window.__raskDevtoolsHook;
-        if (devtools) devtools.send(payload, new TextEncoder().encode(msg).length);
+        if (devtools) devtools.send(frame, new TextEncoder().encode(msg).length);
         if (open && conn && conn.isOpen) conn.send(msg);
         else queue.push(msg);
     }

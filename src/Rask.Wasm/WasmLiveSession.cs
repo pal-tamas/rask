@@ -129,6 +129,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
             await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly)
                 .ConfigureAwait(false);
 
+            // A page that sent the reader on as it mounted here is not shown: its destination's frame follows.
+            if ((_navigator ??= Services.GetRequiredService<Navigator>()).RedirectPending)
+            {
+                return;
+            }
+
             // Noop publish-render guard: an auto-publish triggered by a completed
             // OnRendered that didn't mutate any tracked state produces the
             // same HTML. Sending it forces the JS side to morph identical HTML,
@@ -160,6 +166,55 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
     private void OnUserChanged(object? sender, EventArgs e) => _ = RequestRender();
 
+    // A navigation a lifecycle hook asked for with no dispatch waiting for it — after an await, or as its page
+    // mounted in a render nothing dispatched. Made the way a link's is, replacing the address of the page that asked.
+    protected override bool TryNavigateCore(Action navigate)
+    {
+        _ = NavigateFromHookAsync(navigate);
+        return true;
+    }
+
+    private async Task NavigateFromHookAsync(Action navigate)
+    {
+        // Never inline: the hook asking may be inside the very render this navigation has to wait for.
+        await Task.Yield();
+        using var work = EnterWorkScope();
+        await _lock.WaitAsync().ConfigureAwait(false);
+        InHandlerScope = true;
+        try
+        {
+            var navigator = Services.GetRequiredService<Navigator>();
+            using var navigating = navigator.EnterHandler();
+            navigate();
+            if (!navigator.TryConsumeHistory(out var url, out _))
+            {
+                if (navigator.TryConsumeExit(out var exit))
+                {
+                    JSInterop.LeaveTo(LocalUrl.Sanitize(exit));
+                }
+
+                return;
+            }
+
+            await BuildPayloadCoalescingRerendersAsync(url, true).ConfigureAwait(false);
+            if (await TryEmitFrameAsync(true).ConfigureAwait(false))
+            {
+                _htmlBuffers.Commit();
+            }
+        }
+        catch (Exception ex)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error, "Rask.Wasm", "Rask WASM navigation from a lifecycle hook threw", ex);
+        }
+        finally
+        {
+            InHandlerScope = false;
+            _lock.Release();
+            _ = DrainRenderRequestedAfterScope();
+        }
+    }
+
     public async Task<byte[]> InitialRenderAsync()
     {
         using var work = EnterWorkScope();
@@ -176,7 +231,9 @@ internal sealed class WasmLiveSession : LiveSessionBase
             // lands after the walk materialised the HTML (OnRendered onwards) — the spinner then
             // stayed on screen forever. Every other render path already coalesces; this one was
             // the exception (#972).
-            await BuildPayloadCoalescingRerendersAsync(null, false).ConfigureAwait(false);
+            // The first page may send the reader on as it mounts; the address then changes in place.
+            using var navigating = Services.GetRequiredService<Navigator>().EnterHandler();
+            await BuildPayloadCoalescingRerendersAsync(null, true).ConfigureAwait(false);
             if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
             {
                 return Array.Empty<byte>();
@@ -240,6 +297,13 @@ internal sealed class WasmLiveSession : LiveSessionBase
             return HandleNavigateAsync(root, copyFrame);
         }
 
+        if (string.Equals(type, "batch", StringComparison.Ordinal))
+        {
+            return root.TryGetProperty("events", out var events) && events.ValueKind == JsonValueKind.Array
+                ? DispatchBatchAsync(events, copyFrame)
+                : NoFrame;
+        }
+
         var handlerId = root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
             ? idEl.GetString()
             : null;
@@ -262,47 +326,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         InHandlerScope = true;
         try
         {
-            var navigator = Services.GetRequiredService<Navigator>();
-            try
-            {
-                using (navigator.EnterHandler())
-                {
-                    if (!await View.TryInvokeHandlerAsync(handlerId, root, Services).ConfigureAwait(false))
-                    {
-                        return Array.Empty<byte>();
-                    }
-
-                    string? historyUrl = null;
-                    var historyReplace = false;
-                    if (navigator.TryConsumeHistory(out var url, out var replace))
-                    {
-                        historyUrl = url;
-                        historyReplace = replace;
-                    }
-
-                    await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace)
-                        .ConfigureAwait(false);
-                    // EmitFrame pushes the frame (zero-copy) unless it's byte-identical to the last
-                    // sent one; force the send when a navigation URL must flow even if the rendered
-                    // output is unchanged. No send → no-op (empty byte array to the test seam).
-                    if (!await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false))
-                    {
-                        return Array.Empty<byte>();
-                    }
-
-                    _htmlBuffers.Commit();
-                    return copyFrame ? _lastSentBuffer!.WrittenSpan.ToArray() : SentWithoutCopy;
-                }
-            }
-            catch (Exception ex)
-            {
-                RaskDiagnostics.Report(
-                    RaskLogLevel.Error,
-                    "Rask.Wasm",
-                    $"Rask WASM handler '{handlerId}' threw",
-                    ex);
-                return Array.Empty<byte>();
-            }
+            return await RunHandlerAsync(handlerId, root, copyFrame, deferRender: false).ConfigureAwait(false);
         }
         finally
         {
@@ -310,6 +334,143 @@ internal sealed class WasmLiveSession : LiveSessionBase
             _lock.Release();
             _ = DrainRenderRequestedAfterScope();
         }
+    }
+
+    // The events one browser task produced, in one call: every handler runs in the order its event happened,
+    // each seeing what the one before left, and the page is rendered ONCE after the last. The lock is held from
+    // the first to that render, so no other dispatch runs between two of them — and the caller's promise, which
+    // is what holds typed text back (rask-input.ts), resolves only when the render that answers them is applied.
+    private async Task<byte[]> DispatchBatchAsync(JsonElement events, bool copyFrame)
+    {
+        // No more than the client ever sends are run: a longer batch did not come from it.
+        var remaining = Math.Min(EventBatch.MaxEvents, EventBatch.CountEvents(events));
+        if (remaining == 0)
+        {
+            return Array.Empty<byte>();
+        }
+
+        using var work = EnterWorkScope();
+        await _lock.WaitAsync().ConfigureAwait(false);
+        InHandlerScope = true;
+        try
+        {
+            var sent = Array.Empty<byte>();
+            foreach (var e in events.EnumerateArray())
+            {
+                if (remaining == 0)
+                {
+                    break;
+                }
+
+                if (EventBatch.HandlerIdOf(e) is not { } handlerId)
+                {
+                    continue;
+                }
+
+                var last = --remaining == 0;
+
+                // A render made now would rebuild this handler — an earlier event of the batch dirtied its
+                // component or one above it — so the page is rendered first and the handler that runs is the one
+                // that render registers, exactly as when each event was a call of its own.
+                if (RenderOwed && !HandlerOutlivesRender(handlerId))
+                {
+                    sent = Latest(sent, await RenderOwedAsync(copyFrame).ConfigureAwait(false));
+                }
+
+                sent = Latest(sent, await RunHandlerAsync(handlerId, e, copyFrame, deferRender: !last).ConfigureAwait(false));
+
+                // The last handler ran nothing, or threw: what the ones before it changed is still to be shown.
+                if (last && RenderOwed)
+                {
+                    sent = Latest(sent, await RenderOwedAsync(copyFrame).ConfigureAwait(false));
+                }
+            }
+
+            return sent;
+        }
+        finally
+        {
+            EndBatch();
+            InHandlerScope = false;
+            _lock.Release();
+            _ = DrainRenderRequestedAfterScope();
+        }
+    }
+
+    // The frame a batch answers with is the last one it sent; a step that sent none leaves the one before it.
+    private static byte[] Latest(byte[] sent, byte[] frame) =>
+        frame.Length > 0 || ReferenceEquals(frame, SentWithoutCopy) ? frame : sent;
+
+    // The render a batch owes, made on its own: between two of its events, or after a last one that rendered
+    // nothing. A fault in it is reported, and the batch goes on.
+    private async Task<byte[]> RenderOwedAsync(bool copyFrame)
+    {
+        try
+        {
+            return await RenderAndEmitAsync(null, false, copyFrame).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            RaskDiagnostics.Report(RaskLogLevel.Error, "Rask.Wasm", "Rask WASM batch render threw", ex);
+            return Array.Empty<byte>();
+        }
+    }
+
+    // One handler and the render that answers it, under the lock its caller holds. deferRender: more of a batch
+    // follows, so a handler that sends the browser nowhere leaves its render to the one the batch makes later.
+    private async Task<byte[]> RunHandlerAsync(string handlerId, JsonElement root, bool copyFrame, bool deferRender)
+    {
+        var navigator = Services.GetRequiredService<Navigator>();
+        try
+        {
+            using (navigator.EnterHandler())
+            {
+                if (!await View.TryInvokeHandlerAsync(handlerId, root, Services).ConfigureAwait(false))
+                {
+                    return Array.Empty<byte>();
+                }
+
+                string? historyUrl = null;
+                var historyReplace = false;
+                if (navigator.TryConsumeHistory(out var url, out var replace))
+                {
+                    historyUrl = url;
+                    historyReplace = replace;
+                }
+
+                if (deferRender && historyUrl is null)
+                {
+                    OweRender();
+                    return Array.Empty<byte>();
+                }
+
+                return await RenderAndEmitAsync(historyUrl, historyReplace, copyFrame).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error,
+                "Rask.Wasm",
+                $"Rask WASM handler '{handlerId}' threw",
+                ex);
+            return Array.Empty<byte>();
+        }
+    }
+
+    private async Task<byte[]> RenderAndEmitAsync(string? historyUrl, bool historyReplace, bool copyFrame)
+    {
+        await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
+        // EmitFrame pushes the frame (zero-copy) unless it's byte-identical to the last
+        // sent one; force the send when a navigation URL must flow even if the rendered
+        // output is unchanged. No send → no-op (empty byte array to the test seam).
+        if (!await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false))
+        {
+            return Array.Empty<byte>();
+        }
+
+        _htmlBuffers.Commit();
+        return copyFrame ? _lastSentBuffer!.WrittenSpan.ToArray() : SentWithoutCopy;
     }
 
     private async Task<byte[]> HandleNavigateAsync(JsonElement root, bool copyFrame)
@@ -344,6 +505,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
             try
             {
+                // The page a navigation mounts may send the reader on, as it may from a handler.
+                using var navigating = Services.GetRequiredService<Navigator>().EnterHandler();
                 await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
                 // Navigation always flows — force the send even when the rendered output is unchanged.
                 if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
@@ -398,9 +561,10 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // updates the body. We commit the final render once, after the loop. Each rebuild
         // overwrites _htmlBuffers.Current, so it holds the final render when the loop settles.
         _pendingRenderInScope = false;
-        await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
         var budget = 2;
-        while (_pendingRenderInScope && budget-- > 0)
+        FollowRedirect(ref historyUrl, ref replace, ref budget);
+        await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
+        while (FollowRedirect(ref historyUrl, ref replace, ref budget) || (_pendingRenderInScope && budget-- > 0))
         {
             _pendingRenderInScope = false;
             await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
@@ -428,6 +592,31 @@ internal sealed class WasmLiveSession : LiveSessionBase
             _pendingRenderInScope = false;
         }
     }
+
+    // A page that navigated as it mounted or updated: the payload just built is of a page the reader is not to
+    // see, so the next build is of its destination and carries that address. The navigator stops a loop.
+    private bool FollowRedirect(ref string? historyUrl, ref bool replace, ref int budget)
+    {
+        _navigator ??= Services.GetRequiredService<Navigator>();
+
+        // Go.Out: the reader leaves for a page of this site the app does not render, and nothing follows.
+        if (_navigator.TryConsumeExit(out var exit))
+        {
+            JSInterop.LeaveTo(LocalUrl.Sanitize(exit));
+        }
+
+        if (!_navigator.TryConsumeRedirect(out var url, out var redirectReplace))
+        {
+            return false;
+        }
+
+        replace = replace || (historyUrl is null && redirectReplace);
+        historyUrl = url;
+        budget = 2;
+        return true;
+    }
+
+    private Navigator? _navigator;
 
     // commitCache=false defers the render-cache rotation to the caller (the coalescing loop),
     // so intermediate rebuilds diff against the stable last-sent baseline instead of against

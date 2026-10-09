@@ -297,6 +297,14 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         const string drawnForItsBox = "c => { const s = c.querySelector('svg'), v = s.getAttribute('viewBox').split(' ').map(Number), b = s.getBoundingClientRect(); return Math.abs(v[2] - b.width) < 0.5 && Math.abs(v[3] - b.height) < 0.5; }";
         await Page.WaitForFunctionAsync("() => (" + drawnForItsBox + ")(document.querySelector('[data-testid=ui-chart] [data-ui-chart]'))");
 
+        // And so is every other drawing on the page: none is given a size, each is measured, and all of them are
+        // drawn — the line charts, the bars, the pies in their viewports and the sparklines alike.
+        await Page.WaitForFunctionAsync(
+            "() => { const layers = [...document.querySelectorAll('[data-testid=ui-chart] [data-rask-measure]')]; "
+            + "return layers.length > 8 && layers.every(l => { const s = l.parentElement.querySelector('svg'); "
+            + "if (!s) return false; const v = s.getAttribute('viewBox').split(' ').map(Number), b = s.getBoundingClientRect(); "
+            + "return Math.abs(v[2] - b.width) < 0.5 && Math.abs(v[3] - b.height) < 0.5; }); }");
+
         // One tooltip and one cursor for all sixteen rows, unseen until the pointer is over the plot.
         var tooltip = chart.Locator("[data-rask-plot-tooltip]");
         var cursor = chart.Locator("[data-rask-plot-area] > div");

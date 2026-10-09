@@ -15,6 +15,7 @@ namespace Rask.Server.E2E.Tests;
 ///     page still measured 98 KB a pick on a build with that fix, so this suite is its shape and its host: a
 ///     multiple listbox bound to a list of ids between other bound fields, each with an error slot.
 /// </remarks>
+[Collection(PathBaseCollection.Name)]
 public sealed class FormBoundSelectPickTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
     private const string Trigger = "[data-ui-select-button]";
@@ -26,7 +27,7 @@ public sealed class FormBoundSelectPickTests(PlaywrightFixture playwright) : ICl
     {
         SocketFrames? frames = null;
         var session = await HookSession.OpenAsync<RangeFormApp>(
-            playwright, path: "/uj/ranges/" + page, pathBase: "/uj", environment: "Development",
+            playwright, path: "/uj/ranges/" + page, pathBase: "/uj", environment: "Development", endpointRouting: true,
             beforeLoad: async opened =>
             {
                 frames = SocketFrames.Of(opened);

@@ -4,6 +4,9 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
 {
     private readonly Component _component;
 
+    /// <summary>The component whose hook runs under this context.</summary>
+    internal Component Component => _component;
+
     // The quiescence pass this hook belongs to, CAPTURED BY THE RENDER WALK that started it —
     // never resolved from inside Post.
     //
