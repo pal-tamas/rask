@@ -1,6 +1,11 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-09 with Ui.ConfirmLeave, the dialog a guarded form asks in: rask-hooks.js 38,621 -> 39,103
+# (+482: the dialog found and opened, the exit kept and made again on Leave, and Back / Forward moved back before
+# the answer). The runtimes hand the guard the navigation to make again, `mayLeave(() => navigate(url, replace))`:
+# rask.js 95,645 -> 95,658 and rask.wasm.js 84,501 -> 84,514, +13 bytes each.
+#
 # Refreshed 2026-10-08 with the unsaved-changes guard (`Form.Model(m).ConfirmLeave("…")`, rask-leave.ts — a hook,
 # so it is in rask-hooks.js): rask-hooks.js 37,263 -> 38,621 (+1,358; the 37,124 recorded below had already
 # drifted by 139 bytes, inside the tolerance). What the runtimes carry of it is the attribute's name in the
@@ -86,6 +91,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,95645
-rask.wasm.js,84501
-rask-hooks.js,38621
+rask.js,95658
+rask.wasm.js,84514
+rask-hooks.js,39103

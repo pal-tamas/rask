@@ -4,8 +4,8 @@ namespace Rask.Site.Features;
 // typed, a link to another page, the Back button and closing the tab all ask first, and staying keeps the
 // page exactly as it was. Saving ends it — until the next edit.
 //
-// The question is asked in the dialog this site's layout places once (`Ui.ConfirmLeave`, in ShowcaseLayout);
-// an app without one gets the browser's own `confirm`.
+// The question is asked in the dialog this site's layout places once, a Ui.ConfirmLeave in ShowcaseLayout.
+// An app without one gets the browser's own confirm.
 public sealed partial class FormConfirmLeaveDemo : Component
 {
     private readonly Model _model = new();
