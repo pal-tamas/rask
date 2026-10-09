@@ -90,6 +90,12 @@ Input.Bind(() => _model.Name)             // DestinationName.Validate runs, on t
 This belongs to the form and the bound field, so a plain `Input`, `Select` or `Textarea` has it exactly
 as `Ui.Input` does.
 
+**A [Rask.Data](data.md#what-a-form-over-the-model-asks-by-itself) aggregate's model is such a model.**
+A value object that holds one value and has a public static `Validate` taking that value — the
+`DestinationName` above — is asked by every field bound to it on the aggregate's generated model
+(`DestinationModel.Name`), with nothing written on the field. An empty field is not put to it: that is
+`[Required]`'s to say.
+
 A model written by hand names its rule from the field, as above. The registration is
 `RaskValidation.RegisterFieldRules(typeof(DestinationModel), property => …)`, made once per model type
 by the layer that generates the model; it is keyed by the type that declares the property, so a nested
@@ -194,6 +200,12 @@ has already answered for is not asked about again until some field changes.
 The save can still be refused — someone else took the name in between — and that is shown the same way.
 If the store cannot be asked, the form says nothing and the save decides; the failed check is logged as a
 warning.
+
+**Rask.Data registers them for an aggregate's generated model**: every unique index its `Configure`
+declares with a message, `IsUnique("…")`, is asked this way by a form bound to `DestinationModel` — for
+the current tenant's rows only, and leaving out the row an edit form was filled from. A model written by
+hand is not asked about; its save still is. See
+[what a form over the model asks by itself](data.md#what-a-form-over-the-model-asks-by-itself).
 
 A store announces its rules for a model with `RaskValidation.RegisterStoreRules(typeof(DestinationModel),
 services => rules)`, where `rules` is an `IStoreRules`: one method, given the model and the path of the
