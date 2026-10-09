@@ -584,6 +584,34 @@ them until tagged releases begin.
   cell, a pasted code fills from the first. The group carries `data-rask-otp`, the cells are rendered with no
   value and no handler, and one hidden field inside the group carries the code — that is what binds, so fast
   typing drops nothing.
+- **BREAKING: `Ui.FileUpload` is Flux's file upload, with its dropzone and items; `Ui.FileInput` is gone.**
+  Flux UI's `flux:file-upload`, `flux:file-upload.dropzone`, `flux:file-item` and `flux:file-item.remove`: the
+  same props, look, states and `data-ui-*` markers, held to its docs page by `scripts/flux/parity.mjs file-upload`.
+  The files reach the page through `OnFiles`, Rask's upload, where Flux binds a Livewire property; the page keeps
+  what it wants of them and draws a `Ui.FileItem` for each.
+  ```csharp
+  Ui.FileInput.Value("").Label("Receipts").Dropzone()                                  // was
+      .Title("Drop receipts here").Text("PDF or JPG").Multiple().OnFiles(Keep)
+  Ui.FileUpload.Label("Receipts").Multiple().OnFiles(Keep)[                            // now
+      Ui.FileUploadDropzone.Heading("Drop receipts here").Text("PDF or JPG")
+  ]
+
+  Ui.FileInput.Value("").Label("Avatar").OnFiles(Keep)                                 // was
+  Ui.Input.Of<string>().Type(InputType.File).Label("Avatar").OnFiles(Keep)             // now
+
+  Ui.FileItem.Heading(file.Name).Size(file.Size)                                       // new
+      .Actions(Ui.FileItemRemove.OnClick(() => _files.Remove(file)))
+  ```
+  New with it: `Inline()` and `WithProgress()` on the dropzone, `Error` on the upload, markup of your own in
+  place of the dropzone (an avatar to click), and the file list. The upload is a `<label>` around the real
+  input: a click opens the picker and the input keeps the keyboard with no script; while files are dragged over
+  it the input is laid over the whole area, so the drop is the browser's own. Removed with no replacement:
+  binding the chosen file's NAME to a model (`Bind`, `Value`), `Tone`, `Variant`, `Size`, `Hint`, `Badge` and
+  `AccessibleLabel` on a file control. An upload in flight is the runtime's to report (`data-rask-loading`,
+  which the upload writes): from the moment files are chosen until `OnFiles` has rendered the upload carries
+  `data-loading`, the dropzone's icon gives way to a spinner, and with `WithProgress()` the bar is as wide as
+  the part that has gone — the request's own progress on the Server host, what the handler has read through
+  `OpenReadStream` in a WebAssembly app (`0%` for a handler that never opens the files).
 - **BREAKING: `Ui.Input` and `Ui.Textarea` are Flux's, with input groups; `Ui.Search` is gone.** Flux UI's
   `flux:input`, `flux:input.group` (+ `.prefix`, `.suffix`) and `flux:textarea`: the same props, look and
   `data-ui-*` markers, over Rask's binding (`Bind` / `Value` / `Of<T>()`, typed `T`, validation through the
@@ -1272,6 +1300,11 @@ them until tagged releases begin.
   — so the three pages of the Products slice stopped at CS1929. The `Rask.Ui` package readme marked its input
   invalid with a `Tone` the Flux input does not have; it is `.Invalid(…)`.
 
+- **A chosen file can be read in a WebAssembly app** (#1200). `IRaskFile.OpenReadStream` stopped the runtime on
+  its first read there — the chunk came back as the `Uint8Array` it is, through an import declared to return a
+  string ("Value is not a String"). It crosses as bytes now, with no base64 in between. The site's file-upload
+  demo reads a chosen picture for its preview and a file of any kind to the end, and its progress bar is that
+  reading; both are browser tests.
 - **Three behaviour hooks, found by driving the calendar and the pickers against Flux's pages.**
   `data-rask-focus-follows` follows a target that a render took out of the page inside the container it was in —
   it was looked for across the whole document, so a paging key in one calendar handed the focus to another

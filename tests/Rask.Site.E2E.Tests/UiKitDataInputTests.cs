@@ -24,7 +24,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         foreach (var id in new[]
                  {
                      "ui-text-controls", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-checkbox", "ui-radio", "ui-switch", "ui-slider", "ui-slider-ticks", "ui-slider-range", "ui-rating", "ui-otp", "ui-otp-layout", "ui-filter",
-                     "ui-calendar", "ui-date-picker", "ui-time-picker", "ui-dropzone", "ui-bound", "ui-mask",
+                     "ui-calendar", "ui-date-picker", "ui-time-picker", "ui-file-upload", "ui-bound", "ui-mask",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -1090,52 +1090,227 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
             new PageWaitForFunctionOptions { Timeout = 15_000 });
 
     [Fact]
-    public Task The_drop_area_is_the_native_input_and_lights_up_under_a_dragged_file() => RunAsync(async () =>
+    public Task A_file_upload_takes_chosen_files_lists_them_and_removes_one() => RunAsync(async () =>
     {
         await OpenAsync();
+        var basic = Page.Locator("[data-testid='ui-upload-basic']");
+        var upload = basic.Locator("[data-ui-file-upload]");
+        await upload.ScrollIntoViewIfNeededAsync();
 
-        var zone = Page.Locator("[data-testid='ui-dropzone'] [data-rask-dropzone]");
-        await Expect(zone).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await zone.ScrollIntoViewIfNeededAsync();
-
-        // No script routes a drop: the input IS the area. What is under the middle of the area — and under a
-        // corner of it — is the file input itself, so a real click or a real drop lands there.
-        var hits = await zone.EvaluateAsync<string[]>(
-            @"z => { const r = z.getBoundingClientRect();
-                     return [[r.left + r.width / 2, r.top + r.height / 2], [r.left + 4, r.top + 4]]
-                       .map(([x, y]) => { const el = document.elementFromPoint(x, y);
-                                          return el ? el.tagName + ':' + el.getAttribute('type') : 'none'; }); }");
-        Assert.All(hits, hit => Assert.Equal("INPUT:file", hit));
-
-        // A chosen file reaches C# through OnFiles, same as the compact box.
-        await zone.Locator("input[type=file]").SetInputFilesAsync(new[]
+        // A click anywhere on the area opens the picker: the area is a <label> around the input.
+        var chooser = await Page.RunAndWaitForFileChooserAsync(
+            () => upload.Locator("[data-ui-file-upload-dropzone]").ClickAsync());
+        Assert.True(chooser.IsMultiple);
+        await chooser.SetFilesAsync(new[]
         {
-            new FilePayload { Name = "march.pdf", MimeType = "application/pdf", Buffer = [1, 2, 3] },
-            new FilePayload { Name = "april.jpg", MimeType = "image/jpeg", Buffer = [4, 5, 6] },
+            new FilePayload { Name = "march.png", MimeType = "image/png", Buffer = [1, 2, 3] },
+            new FilePayload { Name = "april.jpg", MimeType = "image/jpeg", Buffer = new byte[2048] },
         });
-        await Expect(Page.Locator("[data-testid='ui-dropzone-state']")).ToHaveTextAsync(
-            "Chosen: march.pdf, april.jpg", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
 
-        // The highlight is the runtime's: counted across the children a drag crosses, and only for FILES.
-        await Page.EvaluateAsync(
-            @"() => { const zone = document.querySelector('[data-testid=ui-dropzone] [data-rask-dropzone]');
-                      const input = zone.querySelector('input');
-                      const files = new DataTransfer(); files.items.add(new File(['x'], 'x.pdf'));
-                      const fire = (type, el, dt) => el.dispatchEvent(new DragEvent(type, {bubbles: true, dataTransfer: dt}));
-                      window.__dz = [];
-                      fire('dragenter', zone, files); fire('dragenter', input, files);
-                      window.__dz.push(zone.hasAttribute('data-dragging'));
-                      fire('dragleave', zone, files);
-                      window.__dz.push(zone.hasAttribute('data-dragging'));
-                      fire('dragleave', input, files);
-                      window.__dz.push(zone.hasAttribute('data-dragging'));
-                      const text = new DataTransfer(); text.setData('text/plain', 'row');
-                      fire('dragenter', input, text);
-                      window.__dz.push(zone.hasAttribute('data-dragging')); }");
-        var marks = await Page.EvaluateAsync<bool[]>("() => window.__dz");
-        // In; still in after crossing out of one child; out once the last one is left; never for a text drag.
-        Assert.Equal(new[] { true, true, false, false }, marks);
+        // OnFiles handed the page both; it drew an item for each under the one that was there, with its size.
+        var items = basic.Locator("[data-ui-file-item]");
+        await Expect(items).ToHaveCountAsync(3, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(items.Nth(0)).ToContainTextAsync("159 KB");
+        await Expect(items.Nth(0).Locator("[data-slot='image'] img")).ToBeVisibleAsync();
+        await Expect(items.Nth(1)).ToContainTextAsync("march.png");
+        await Expect(items.Nth(1)).ToContainTextAsync("3 B");
+        await Expect(items.Nth(2)).ToContainTextAsync("2 KB");
+
+        await basic.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Remove file: march.png" })
+            .ClickAsync();
+        await Expect(items).ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(items.Nth(1)).ToContainTextAsync("april.jpg");
     });
+
+    [Fact]
+    public Task A_file_upload_is_reached_by_keyboard_and_rings_its_dropzone() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var upload = Page.Locator("[data-testid='ui-upload-inline'] [data-ui-file-upload]");
+        await upload.ScrollIntoViewIfNeededAsync();
+
+        // The real input holds the focus, out of sight; the ring is drawn on the dropzone beside it.
+        await upload.Locator("input[type=file]").FocusAsync();
+        await Page.Keyboard.PressAsync("Shift+Tab");
+        await Page.Keyboard.PressAsync("Tab");
+        await Expect(upload.Locator("input[type=file]")).ToBeFocusedAsync();
+        var outline = await upload.Locator("[data-ui-file-upload-dropzone]")
+            .EvaluateAsync<string>("z => getComputedStyle(z).outlineStyle");
+        Assert.Equal("auto", outline);
+
+        var chooser = await Page.RunAndWaitForFileChooserAsync(() => Page.Keyboard.PressAsync("Space"));
+        Assert.True(chooser.IsMultiple);
+    });
+
+    [Fact]
+    public Task A_file_dragged_over_an_upload_marks_it_and_puts_the_input_under_the_pointer() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var upload = Page.Locator("[data-testid='ui-upload-inline'] [data-ui-file-upload]");
+        await upload.ScrollIntoViewIfNeededAsync();
+
+        // At rest what is under the pointer is the dropzone; the input is a pixel, out of sight.
+        Assert.NotEqual("INPUT", await UnderTheMiddleOf(upload));
+        var dropzone = upload.Locator("[data-ui-file-upload-dropzone]");
+        var atRest = await dropzone.EvaluateAsync<string[]>("z => [getComputedStyle(z).backgroundColor, getComputedStyle(z).borderTopColor]");
+
+        // The runtime marks the area for a drag carrying FILES, and the input is then laid over all of it —
+        // so the browser's own drop puts the files in it, and no script routes them.
+        await upload.EvaluateAsync(
+            @"zone => { const files = new DataTransfer(); files.items.add(new File(['x'], 'x.pdf'));
+                        zone.querySelector('[data-ui-file-upload-dropzone]')
+                            .dispatchEvent(new DragEvent('dragenter', {bubbles: true, dataTransfer: files})); }");
+        await Expect(upload).ToHaveAttributeAsync("data-dragging", "");
+        Assert.Equal("INPUT", await UnderTheMiddleOf(upload));
+
+        // And it looks dragged over: the dropzone's fill and border darken, in the app's ONE sheet.
+        await dropzone.EvaluateAsync("z => Promise.all(z.getAnimations().map(a => a.finished))");
+        var draggedOver = await dropzone.EvaluateAsync<string[]>("z => [getComputedStyle(z).backgroundColor, getComputedStyle(z).borderTopColor]");
+        Assert.NotEqual(atRest[0], draggedOver[0]);
+        Assert.NotEqual(atRest[1], draggedOver[1]);
+
+        await upload.EvaluateAsync(
+            @"zone => { const files = new DataTransfer(); files.items.add(new File(['x'], 'x.pdf'));
+                        zone.querySelector('[data-ui-file-upload-dropzone]')
+                            .dispatchEvent(new DragEvent('dragleave', {bubbles: true, dataTransfer: files})); }");
+        Assert.Null(await upload.GetAttributeAsync("data-dragging"));
+
+        // A row of a sortable list dragged across is not an offer to upload it.
+        await upload.EvaluateAsync(
+            @"zone => { const text = new DataTransfer(); text.setData('text/plain', 'row');
+                        zone.dispatchEvent(new DragEvent('dragenter', {bubbles: true, dataTransfer: text})); }");
+        Assert.Null(await upload.GetAttributeAsync("data-dragging"));
+    });
+
+    [Fact]
+    public Task A_dropped_file_reaches_the_page_like_a_chosen_one() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var inline = Page.Locator("[data-testid='ui-upload-inline']");
+        var upload = inline.Locator("[data-ui-file-upload]");
+        await upload.ScrollIntoViewIfNeededAsync();
+        var path = Path.Combine(Path.GetTempPath(), $"rask-drop-{Guid.NewGuid():N}.txt");
+        await File.WriteAllTextAsync(path, "hello");
+
+        try
+        {
+            // The browser's own drag pipeline, not a synthetic event: only that fills an input on a drop.
+            var box = (await upload.BoundingBoxAsync())!;
+            var (edgeX, edgeY) = (box.X + 6, box.Y + 6);
+            var (midX, midY) = (box.X + (box.Width / 2), box.Y + (box.Height / 2));
+            var cdp = await Page.Context.NewCDPSessionAsync(Page);
+            foreach (var (type, x, y) in new[]
+                     {
+                         ("dragEnter", edgeX, edgeY), ("dragOver", edgeX, edgeY), ("dragOver", midX, midY),
+                         ("drop", midX, midY),
+                     })
+            {
+                await cdp.SendAsync("Input.dispatchDragEvent", new Dictionary<string, object>
+                {
+                    ["type"] = type,
+                    ["x"] = x,
+                    ["y"] = y,
+                    ["data"] = new Dictionary<string, object>
+                    {
+                        ["items"] = Array.Empty<object>(),
+                        ["files"] = new[] { path },
+                        ["dragOperationsMask"] = 1,
+                    },
+                });
+            }
+
+            await Expect(inline.Locator("[data-ui-file-item]")).ToContainTextAsync(
+                Path.GetFileName(path), new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+            Assert.Null(await upload.GetAttributeAsync("data-dragging"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    });
+
+    [Fact]
+    public Task A_disabled_upload_opens_nothing_and_a_custom_one_takes_a_file_all_the_same() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var disabled = Page.Locator("[data-testid='ui-upload-disabled'] [data-ui-file-upload]");
+        await disabled.ScrollIntoViewIfNeededAsync();
+
+        await Expect(disabled.Locator("input[type=file]")).ToBeDisabledAsync();
+        Assert.Equal("none", await disabled.Locator("[data-ui-file-upload-dropzone]")
+            .EvaluateAsync<string>("z => getComputedStyle(z).pointerEvents"));
+
+        // Markup of the page's own in place of the dropzone: the same input behind it.
+        var custom = Page.Locator("[data-testid='ui-upload-custom']");
+        await custom.Locator("input[type=file]").SetInputFilesAsync(
+            new FilePayload { Name = "me.png", MimeType = "image/png", Buffer = [1, 2, 3] });
+        await Expect(custom).ToContainTextAsync(
+            "Chosen: me.png", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+    });
+
+    [Fact]
+    public Task A_chosen_picture_is_read_in_the_browser_and_shown_as_its_own_preview() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var basic = Page.Locator("[data-testid='ui-upload-basic']");
+        await basic.Locator("[data-ui-file-upload]").ScrollIntoViewIfNeededAsync();
+
+        // A real picture, one pixel square: the page reads its bytes through OpenReadStream (#1200).
+        await basic.Locator("input[type=file]").SetInputFilesAsync(
+            new FilePayload { Name = "dot.png", MimeType = "image/png", Buffer = Convert.FromBase64String(OnePixelPng) });
+
+        var preview = basic.Locator("[data-ui-file-item]").Nth(1).Locator("[data-slot='image'] img");
+        await Expect(preview).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        Assert.Equal("data:image/png;base64," + OnePixelPng, await preview.GetAttributeAsync("src"));
+        await Expect(preview).ToHaveJSPropertyAsync("naturalWidth", 1);
+    });
+
+    [Fact]
+    public Task An_upload_says_how_far_its_files_have_been_read_and_rests_once_the_page_has_them() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var progress = Page.Locator("[data-testid='ui-upload-progress']");
+        var upload = progress.Locator("[data-ui-file-upload]");
+        await upload.ScrollIntoViewIfNeededAsync();
+        var atRest = await upload.EvaluateAsync<string>("u => getComputedStyle(u).getPropertyValue('--ui-file-upload-progress')");
+        await upload.EvaluateAsync(
+            @"u => { window.seen = [];
+                     const note = () => window.seen.push((u.hasAttribute('data-loading') ? 'loading' : 'idle') + ' '
+                         + u.style.getPropertyValue('--rask-progress') + ' '
+                         + getComputedStyle(u.querySelector('[data-ui-file-upload-dropzone]')).getPropertyValue('--ui-file-upload-progress'));
+                     new MutationObserver(note).observe(u, { attributes: true }); }");
+
+        // Some two dozen reads of 64 kB: enough to be seen part-way, and short on a busy machine.
+        await upload.Locator("input[type=file]").SetInputFilesAsync(
+            new FilePayload { Name = "film.bin", MimeType = "application/octet-stream", Buffer = new byte[1_500_000] });
+        await Expect(progress.Locator("[data-ui-file-item]")).ToContainTextAsync(
+            "film.bin", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        await Expect(upload).Not.ToHaveAttributeAsync("data-loading", "");
+        var seen = await Page.EvaluateAsync<string[]>("() => window.seen");
+
+        // Marked at once, at nothing; then what the handler has read, which the dropzone's bar takes its width from.
+        Assert.Equal("0%", atRest.Trim());
+        Assert.Contains("loading 0% 0%", seen);
+        Assert.Contains("loading 100% 100%", seen);
+        Assert.Contains(seen, s => Between(s) is > 0 and < 100);
+        Assert.Equal(string.Empty, await upload.EvaluateAsync<string>("u => u.style.getPropertyValue('--rask-progress')"));
+    });
+
+    // A 1 × 1 PNG.
+    private const string OnePixelPng =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    // The whole percent of a note the observer took while loading, or -1.
+    private static int Between(string note)
+    {
+        var parts = note.Split(' ');
+        return parts is ["loading", var percent, ..] && int.TryParse(percent.TrimEnd('%'), out var value) ? value : -1;
+    }
+
+    private static Task<string> UnderTheMiddleOf(ILocator area) =>
+        area.EvaluateAsync<string>(
+            @"a => { const r = a.getBoundingClientRect();
+                     return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2).tagName; }");
 
     private async Task OpenAsync()
     {

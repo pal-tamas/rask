@@ -1192,6 +1192,26 @@
 }
 
 /*
+  Ui.FileUpload. Flux focuses the dropzone itself (a scripted tabindex) and the browser rings it. Here the
+  real input holds the focus, out of sight, so the same ring is drawn on what the reader sees: the dropzone,
+  or whatever markup stands in its place. A rule rather than a utility because that markup is the call
+  site's and carries no class of the kit's.
+
+  How far an upload has got is the runtime's to say (`data-rask-loading`, rask-upload.ts): the two variables Flux's dropzone
+  reads are handed on under the kit's names, and say `0%` at rest as Flux's own do.
+*/
+@layer rask {
+  [data-ui-file-upload] {
+    --ui-file-upload-progress: var(--rask-progress, 0%);
+    --ui-file-upload-progress-as-string: var(--rask-progress-as-string, '0%');
+  }
+
+  [data-ui-file-upload] > input:focus-visible ~ * {
+    outline: auto 1px -webkit-focus-ring-color;
+  }
+}
+
+/*
   A HAND-WRITTEN daisy button waiting on its own handler (the runtime's rask-loading.ts). Ui.Button is
   Flux's and draws its own spinner with utilities; this is for the `btn` the templates and the kit's
   remaining daisy-drawn components still write, and it goes when the last of them does.

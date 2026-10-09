@@ -35,6 +35,9 @@ is not compared, and another component placed in the layout is compared as a box
 
 Behaviour is measured too: open the page, use the component with keyboard and pointer (Playwright via
 `scripts/flux/lib.mjs`'s `chromium()`), and write down what each key does before implementing it.
+A state no example shows (dragging, uploading, invalid) is read by writing Flux's attribute on the LIVE node
+(`el.setAttribute('data-dragging', '')`) and diffing computed styles; when that changes nothing, the state is
+decided on the server and cannot be measured — say so in the component, never guess silently.
 
 ## 2. Write the component
 **Nothing beyond Flux** — the owner, 2026-10-07: *"ne csináljunk ilyen kiegészítéseket"*. A component carries
@@ -192,7 +195,7 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker slider otp-input pagination timeline tabs navbar brand profile breadcrumbs avatar layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
 `parity-pillbox.mjs`, `parity-editor.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
@@ -646,8 +649,8 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | any popover invoker | `aria-expanded="false"` beside `popovertarget` / `commandfor` / `data-rask-toggle` | mirrored from the popover's `toggle` event; never added for you |
 | Color picker area / hue / alpha, a custom slider | surface `data-rask-drag="x y"` (tracks: `"x"`), `data-rask-drag-inset="<half the thumb>"` when Flux keeps the thumb inside, `touch-action:none`, ONE `Input.Type(Hidden)` inside bound with `OnInput` (live) / `OnChange` (settled) to `"x y"` fractions; thumb CSS from `--rask-drag-x` / `--rask-drag-y`; NO pointer handlers in C# | the thumb under the pointer every frame; one event per frame and one on release |
 | Color picker eyedropper | button rendered `hidden` with `data-rask-requires="EyeDropper"` | shown only where the API exists (Flux hides it, it does not disable it) |
-| File upload / dropzone | `data-rask-loading` on the dropzone around the `Input.Type(File).OnFiles(…)`; CSS from `[data-loading]`, `width: var(--rask-progress)` and `content: var(--rask-progress-as-string)` | Flux's `data-loading` + percent pair; real upload progress on Server, bytes read on WASM |
-| Date picker `type="input"`, Time picker typed trigger | group `data-rask-segments`; each part `Input.Of<string>()` with `data-rask-segment="month|day|year|hour|minute|meridiem"`, a `placeholder`, NO `value`, NO handler, in the locale's order; ONE `Input.Type(Hidden)` inside bound to `yyyy-mm-dd` / `HH:mm` / both joined by `T` | every key of Flux's typed date and time; one committed value. The parts may sit INSIDE the element that opens the popover when that element opens it by `data-rask-toggle`: the toggle leaves a press in a field to the field (a C# `OnClick` on the trigger would not) |
+| File upload / dropzone | `data-rask-loading` on the element around the `Input.Type(File).OnFiles(…)` (WIRED: `Ui.FileUpload`'s root, which is where Flux writes `data-loading`); CSS from `in-data-loading:`, `width: var(--rask-progress)` and `content: var(--rask-progress-as-string)` — the kit hands the pair on as `--ui-file-upload-progress*` in `ui.css` | Flux's `data-loading` + percent pair; real upload progress on Server, bytes read on WASM |
+| Date picker `type="input"`, Time picker typed trigger | group `data-rask-segments`; each part `Input.Of<string>()` with `data-rask-segment="month|day|year|hour|minute|meridiem"`, a `placeholder`, NO `value`, NO handler, in the locale's order; ONE `Input.Type(Hidden)` inside bound to `yyyy-mm-dd` / `HH:mm` / both joined by `T` | every key of Flux's typed date and time; one committed value. NOT covered: keeping a click on a part from reaching a handler on the surrounding trigger — put the parts beside the element that opens the popover, not inside it |
 | Chart | root `data-rask-plot="<each row's x, 0–1>"`; the plot box `data-rask-plot-area`; every row's cursor / points / summary rendered once with `data-rask-plot-row="<i>"` and shown on `[data-active]`; tooltip `data-rask-plot-tooltip="<gap px>"`, `position:absolute; left:0; top:0`; for the real size, the container `data-rask-measure` with ONE bound `Input.Type(Hidden)` (`"<w> <h>"`) | active row, cursor and tooltip follow the pointer with no round trip; the chart redraws at its own box |
 | OTP | group `data-rask-otp` (`="alpha"`, `="alphanumeric"`); cells rendered with NO `value`, NO handler, NO re-keying; ONE `Input.Type(Hidden)` inside, bound to the string | every key of Flux's otp input, fast typing included |
 | Toast | `data-rask-dismiss-hold="pointer"` beside `data-rask-dismiss-after` | focus no longer holds the countdown |
@@ -754,6 +757,19 @@ actions demo — an unkeyed state-driven `Ui.Modal` beside keyed ones got a new 
 and the `close` that follows a `cancel` carried a handler id the render in between had retired, so `OnClose`
 never ran and the page went on saying the dialog was open. This is also the toast remount noted above as
 unexplained. In a demo (or an app): key all of them.
+
+- File upload (2026-10-08): `Ui.FileUpload` is a `<label>` around the real, `sr-only` input, and writes
+  `data-rask-dropzone` and `data-rask-loading` on itself. Its states are the plain idiom (`in-data-dragging:`,
+  `in-data-loading:`), which holds now that an app has ONE sheet. Read on Flux's live page, with a real pointer:
+  a click on the field label OPENS the picker (three of three enabled examples; the label is `aria-hidden` with
+  an id and no `for`, the input says `aria-labelledby` and `tabindex="-1"`, and the dropzone is the tab stop).
+  So the label stays the kit's `<label for>` and the input says `aria-labelledby`; the input keeps the keyboard
+  where Flux's dropzone does, and the ring is drawn on the dropzone by one rule in `ui.css`. Pinned on the Server
+  host by `tests/Rask.Server.E2E.Tests/UiFileUploadHookTests.cs` (the request slowed, so the bar is seen at
+  points between nothing and everything) and on WASM by the site's `UiKitDataInputTests`. Unmeasured, no example
+  on Flux's page: an `invalid` file item (it takes the invalid input's border), sizes beyond KB (`UiFileSize`
+  follows the reference's B / KB / MB / GB), the icon of a two-line item with no image. The site's demo reads a
+  chosen picture for its preview, which Flux's page does on the server.
 
 ## Merging a component branch
 `git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped

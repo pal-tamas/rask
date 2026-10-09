@@ -49,6 +49,25 @@ Server, via JS chunked reads on WASM. The same component code runs unchanged on 
 
 <!-- demo:data-upload -->
 
+The kit draws the same input two ways, both reporting through `OnFiles`. A plain file field is
+`Ui.Input.Of<string>().Type(InputType.File).Label("Logo")`. An area to drop files on is
+[`Ui.FileUpload`](ui-kit.md) — Flux UI's file upload — with a `Ui.FileItem` for each file the page kept:
+
+```csharp
+Ui.FileUpload.Label("Upload files").Multiple().OnFiles(Keep)[
+    Ui.FileUploadDropzone.Heading("Drop files here or click to browse").Text("JPG, PNG, GIF up to 10MB")
+],
+_photos.Select((photo, index) =>
+    Ui.FileItem.Key(photo.Name).Heading(photo.Name).Size(photo.Size)
+        .Actions(Ui.FileItemRemove.OnClick(() => _photos.RemoveAt(index))))
+```
+
+A dropped file takes the same road as a chosen one: the drop lands in the input, and the input uploads. While
+it does, the upload carries `data-loading` and the dropzone shows a spinner, or with `WithProgress()` a bar: the
+request's own progress on the Server host, and in a WebAssembly app — where nothing is sent — how much of the
+files the handler has read through `OpenReadStream`
+([the `data-rask-loading` hook](js-interop-runtime.md#behaviour-hooks-data-rask-)).
+
 > A `IRaskFile` is only valid while the handler is on the stack — read whatever you need (bytes, metadata)
 > before returning. The mutating handler lives inside the component so its field updates re-render the right
 > subtree.
