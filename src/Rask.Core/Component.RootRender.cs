@@ -33,6 +33,23 @@ public abstract partial class Component
         // each hook falls back to its own component's (LifecycleSyncContext), as it does outside a handler.
         using var ownLifetimes = Ambient.Enter(CancellationToken.None);
         using var ownDispatch = DispatchEventTokenScope.Suspend();
+        var html = WalkAsLiveRoot(services, publishOnly, sink, out var walkAgain);
+        if (!walkAgain)
+        {
+            return html;
+        }
+
+        // The page's title changed, and a layout that shows it had already rendered when the walk reached
+        // the page (see LiveRenderContext.SettleRouteTitle). Walked once more and no further: the title is
+        // settled now, and a page whose title differs every time it is read must not hold the frame back
+        // for ever. Publish-only, so nothing that has just had its OnRendered gets it twice.
+        FrameSinkScope.Current?.Reset();
+        return WalkAsLiveRoot(services, publishOnly: true, sink, out _);
+    }
+
+    private string? WalkAsLiveRoot(
+        IServiceProvider? services, bool publishOnly, RenderedHtmlBuffers? sink, out bool walkAgain)
+    {
         using var ctx = BeginRootRender(services, out var previousEditContexts);
 
         // Pooled per-frame scratch buffers held on the root component. RenderAsLiveRootCore
@@ -61,6 +78,7 @@ public abstract partial class Component
         RaiseLifecycleBeforeRender(false);
 
         var html = SerializePage(sink);
+        walkAgain = ctx.SettleRouteTitle();
         NotifyTreeRendered(publishOnly, Live.AliveNow, Live.AlivePrev);
         DisposeDeparted(Live.AlivePrev, Live.AliveNow, Live.ParentMap);
 

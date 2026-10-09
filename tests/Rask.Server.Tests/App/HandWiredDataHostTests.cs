@@ -145,13 +145,13 @@ public sealed class HandWiredDataHostTests : IDisposable
         host.WebSockets.ConfigureRequest = request => request.Headers[UserHeader] = Alice.ToString();
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
         await ws.SendJsonAsync(new { id = MarkupAssert.FirstHandlerId(opened) }, ct: TestContext.Current.CancellationToken);
-        var after = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        var after = await ws.ReceiveUntilAsync(
+            frame => !frame.Contains("names=unread", StringComparison.Ordinal), "the render after the rows were read");
 
         Assert.Contains("tenant=00000000-0000-0000-0000-000000000007", opened, StringComparison.Ordinal);
         Assert.Contains($"user={Alice}", opened, StringComparison.Ordinal);
-        Assert.NotNull(after);
         using var frame = JsonDocument.Parse(after);
         var html = frame.RootElement.GetProperty("html").GetString()!;
         Assert.Contains("names=Budapest,Szeged<", html, StringComparison.Ordinal);
@@ -168,12 +168,12 @@ public sealed class HandWiredDataHostTests : IDisposable
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId);
         await ws.SendJsonAsync(new { id = MarkupAssert.FirstHandlerId(opened) }, ct: TestContext.Current.CancellationToken);
-        var after = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        var after = await ws.ReceiveUntilAsync(
+            frame => !frame.Contains("names=unread", StringComparison.Ordinal), "the render after the rows were read");
 
         Assert.Contains("tenant=none", opened, StringComparison.Ordinal);
-        Assert.NotNull(after);
         using var frame = JsonDocument.Parse(after);
         Assert.Contains("names=<", frame.RootElement.GetProperty("html").GetString()!, StringComparison.Ordinal);
     }

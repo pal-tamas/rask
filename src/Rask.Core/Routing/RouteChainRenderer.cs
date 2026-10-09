@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.Live;
 
@@ -24,8 +23,9 @@ internal static class RouteChainRenderer
                         "page, so ActivatorUtilities.CreateInstance and PageBinder property reflection are safe.")]
     public static Component RenderChainEntry(LiveRenderContext ctx)
     {
-        var route = ctx.Route
-                    ?? throw new InvalidOperationException(
+        var route = ctx.Route is { Pages: not null } matched
+            ? matched
+            : throw new InvalidOperationException(
                         "Outlet and Router rendering require an active route context. " +
                         "Place Outlet inside a Router render tree.");
 
@@ -34,8 +34,11 @@ internal static class RouteChainRenderer
             return new Fragment();
         }
 
-        var type = route.Chain[route.Cursor++];
-        var page = ctx.GetOrCreate(type, sp => (Component)ActivatorUtilities.CreateInstance(sp, type));
+        // Created HERE, where the layout placed the outlet, and nowhere earlier: a layout that withholds
+        // its Outlet keeps the page from being constructed. The instance itself is the router's to
+        // remember (RoutePageInstances), so it outlives an outlet its layout re-creates.
+        var index = route.Cursor++;
+        var page = route.Pages!.At(index, route.Chain[index], route.Chain.Count, ctx);
         var propsChanged = PageBinder.Bind(page, route.Values, route.Query);
         if (_lastPath.TryGetValue(page, out var snapshot))
         {
@@ -51,6 +54,14 @@ internal static class RouteChainRenderer
         }
 
         LiveRenderContext.NotifyParameters(page, propsChanged);
+
+        // Read on every frame, after the hooks: a title built from the page's own state follows it. The
+        // chain is walked layout first, so the deepest page that declares one is the last to write.
+        if (route.Title is { } routeTitle && page.PageTitleInternal is { } title)
+        {
+            routeTitle.Offer(title);
+        }
+
         return page;
     }
 

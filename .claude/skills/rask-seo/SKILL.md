@@ -31,6 +31,7 @@ own ("blazor", "react"). Map every new page to one:
 | full-stack .NET web framework, C# full-stack framework, one C# codebase for UI + data + auth + jobs + deploy | `/`, `getting-started` |
 | multi-tenant .NET app, tenant isolation EF Core | `multi-tenancy` |
 | unsaved changes warning / confirm before leaving a form in a C# web app | `forms` (#ask-before-leaving-unsaved-changes) |
+| page title in a layout's breadcrumb / dynamic document title per route in a C# web app, no flash on first load | `routing` (#a-pages-title--pagetitle-and-routetitle) |
 | full-text search EF Core, SQLite FTS5 / PostgreSQL tsvector / in the browser | `full-text-search` |
 | .NET One Person Framework (the philosophy guide) | `one-person-framework` |
 | live server pages when a proxy blocks WebSockets, SSE fallback | `render-modes` |
