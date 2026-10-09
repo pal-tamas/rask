@@ -9,6 +9,7 @@
 import { applyDiff, applyFrameInvokes, type DiffOp } from "../../Rask.Core/Resources/rask-dom.js";
 import {
     closestFrom,
+    keepRuntimeScript,
     morph,
     raskChangeFrameValue,
     raskChangeFrameValues,
@@ -29,7 +30,7 @@ import {
 import { pollDevStatus, showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
-import { setHost } from "../../Rask.Core/Resources/rask-host.js";
+import { setHost, standDown } from "../../Rask.Core/Resources/rask-host.js";
 import {
     beginLoading,
     endAllLoading,
@@ -69,11 +70,22 @@ import {
     // toggle opens then immediately closes). Bail if we have already booted this document; a real full
     // page load resets window, so this only dedupes spurious in-document re-execution, never a
     // legitimately fresh page.
-    if (window.__raskBooted) return;
+    //
+    // The shared modules were read before this line and have bound their listeners already. standDown() is
+    // what makes those answer nothing, where they used to throw "inRoot() was called before a host was
+    // installed" at every keystroke for the rest of the document's life. The morph no longer runs this
+    // script a second time (keepRuntimeScript, below), so this is for a copy that arrives some other way.
+    if (window.__raskBooted) {
+        standDown();
+        return;
+    }
     window.__raskBooted = true;
 
     let root = document.querySelector("[data-rask-root]");
-    if (!root) return;
+    if (!root) {
+        standDown();
+        return;
+    }
 
     // Development-only affordances gate on this. The server stamps data-rask-dev onto <body> only
     // when the app is in Development AND running under `dotnet watch`, so in production the flag is
@@ -1567,6 +1579,9 @@ import {
     // sibling keeps this script's `?v=`, which names both of them, and its nonce.
     const self = document.currentScript as HTMLScriptElement | null;
     if (self && self.src) {
+        // This tag is a child of the render root, so a navigation to a page with more or fewer top-level
+        // nodes moves it — and a morph moves a node by putting it back, which for a script means running it.
+        keepRuntimeScript(self);
         loadHooksOnDemand(self.src.replace(/rask\.js(?=\?|$)/, "rask-hooks.js"), self.nonce);
     }
 
