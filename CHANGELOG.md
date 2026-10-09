@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A pick in a multiple `Ui.Select` is answered with a diff, not the whole page.** The listbox button says one
+  of three things — the placeholder, the one picked option, "N selected" — and each was a different element in
+  the same place: a `<span>`, a `<div>` holding the option, a `<div>` holding text. The live diff patches a node
+  in place only when it can tell which node stayed, so 0→1, 1→2 and 2→1 were each answered with the whole
+  document (85 KB on the reporting app's form, 30 KB on the test page) where the reply is now 1,018 / 246 / 971
+  bytes. Each of the three is keyed, as are the button, the list and the clear slot around them, the rows of
+  the list (an option without a `Key` by its place, the empty and create rows by name), a pillbox's clear button
+  and chevron, and a combobox's. The rendered elements are the ones Flux stamps, unchanged. `Clearable` on a
+  listbox writes its button after the list it is laid over, so the rows keep the handler ids they had when a
+  pick brings the button in. The same shape in `Ui.TimePicker` (placeholder against chosen time, the clear
+  button) and in the data grid's group bar (the hint against the first chip) is keyed too.
+
 - **A pager's arrows are named `« Previous` and `Next »`.** The label was written as the entity's name and
   then encoded, so the markup said `aria-label="&amp;laquo; Previous"` and a screen reader read out
   "&laquo; Previous". It is the character now, encoded once. `RaskString.PaginationPrevious` /

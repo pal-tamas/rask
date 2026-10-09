@@ -34,6 +34,7 @@ public abstract partial class UiSelectControl<T>
         var plain = !Searches;
         var pills = PillRows(view);
         var trigger = Div
+            .Key(TriggerKey)
             .TabIndex(PillsCombobox || off ? -1 : 0)
             .Role(plain ? "combobox" : "button")
             .Class(UiClass.Compose(UiPillboxLook.Trigger, UiPillboxLook.TriggerSize(IsSmall(slot)), PillsCombobox ? UiPillboxLook.TriggerWithInput : "cursor-default", slot?.Class))
@@ -49,8 +50,9 @@ public abstract partial class UiSelectControl<T>
             trigger = trigger.OnClick(OnPillTriggerClickAsync).OnKeyDown(e => OnButtonKeyAsync(e, view));
         }
 
+        // Keyed, all three: the clear button comes and goes between the pills and the chevron.
         return trigger[
-            Div.Class(UiPillboxLook.Selected)[
+            Div.Key("picked").Class(UiPillboxLook.Selected)[
                 PillsCombobox ? null : Div.Class(UiPillboxLook.Contents)[PillPlaceholder(pills.Count, slot?.Placeholder ?? Placeholder)],
                 Div.Class(UiPillboxLook.Pills)[
                     Div.Class(UiPillboxLook.Contents)[
@@ -61,10 +63,10 @@ public abstract partial class UiSelectControl<T>
             ],
             Clears(view) ? ClearButton() : null,
             PillsCombobox
-                ? Button.Type(ButtonType.Button).TabIndex(-1).Class(UiPillboxLook.InputChevron).Data("ui-button", "")[
+                ? Button.Key("chevron").Type(ButtonType.Button).TabIndex(-1).Class(UiPillboxLook.InputChevron).Data("ui-button", "")[
                     Ui.Icon.Name(Ui.IconName.ChevronUpDown).Mini.Class(UiPillboxLook.InputChevronIcon)
                 ]
-                : Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiClass.Compose(UiPillboxLook.Chevron, UiPillboxLook.ChevronSize(IsSmall(slot))))
+                : Ui.Icon.Key("chevron").Name(Ui.IconName.ChevronDown).Mini.Class(UiClass.Compose(UiPillboxLook.Chevron, UiPillboxLook.ChevronSize(IsSmall(slot))))
         ];
     }
 

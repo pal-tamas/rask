@@ -128,7 +128,8 @@ public sealed partial class UiDataGrid<T, TKey>
             // Rask.Core, so its entry is private protected and no other assembly can name it. The
             // enumerable indexer takes the sequence directly, which is what Fragment would have done.
             groups.Count == 0
-                ? [Span.Class("text-sm text-base-content/60")[
+                // Keyed as the chips are: the hint giving way to the first chip is then a keyed swap the live diff ships.
+                ? [Span.Key("ui:hint").Class("text-sm text-base-content/60")[
                     RaskStrings.Get(RaskString.DataGridGroupingHint, "Group by a column with its header button.")
                 ]]
                 : GroupChips(groups, ctx)

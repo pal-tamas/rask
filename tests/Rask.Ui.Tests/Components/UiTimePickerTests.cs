@@ -76,7 +76,7 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
         await page.On("[data-time=\"09:30\"]").Click();
 
         Assert.Equal(new TimeOnly(9, 30), model.At);
-        Assert.Contains("<div dir=\"auto\">9:30 AM</div>", page.Html, StringComparison.Ordinal);
+        Assert.Equal("9:30 AM", page.TextOf("[data-ui-time-picker-button] [dir=\"auto\"]"));
         Assert.DoesNotContain("Select a time", page.Html, StringComparison.Ordinal);
         Assert.Equal(1, Regex.Count(page.Html, "aria-selected=\"true\""));
     }
@@ -382,7 +382,7 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.TimePicker.Of<TimeOnly?>().Placeholder("Pick a slot").ToHtml();
 
-        var placeholder = Regex.Match(html, "data-ui-time-picker-placeholder>([^<]+)<").Groups[1].Value;
+        var placeholder = Regex.Match(html, "data-ui-time-picker-placeholder[^>]*>([^<]+)<").Groups[1].Value;
 
         Assert.Equal("Pick a slot", placeholder);
     }
