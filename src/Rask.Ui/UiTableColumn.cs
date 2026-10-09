@@ -12,7 +12,8 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiTableColumn : UiElement, IUiHost
 {
-    private const string Base = "border-b border-zinc-800/10 text-start text-sm font-medium text-zinc-800 dark:border-white/20 dark:text-white";
+    private const string Base = "border-b border-zinc-800/10 font-medium dark:border-white/20 "
+        + "[:where(&)]:text-start [:where(&)]:text-sm [:where(&)]:text-zinc-800 dark:[:where(&)]:text-white";
 
     // The whole heading cell is the hover target, as it is the click target.
     private const string SortGroup = "group/sortable";

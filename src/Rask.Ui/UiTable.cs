@@ -16,12 +16,19 @@ namespace Rask;
 /// </para>
 /// <para>
 /// A cell does not wrap, so a long value widens its column; write <c>whitespace-normal</c> on the cell that
-/// should.
+/// should. Columns follow their content until the table has a width: <c>.Class("w-full")</c> and a width on
+/// every <see cref="UiTableColumn" /> but one hold them still across pages and sort orders.
+/// </para>
+/// <para>
+/// The defaults an app lays a table out with — its minimum width, layout, wrapping and colour — are written at
+/// zero specificity, so a class of the call site's wins wherever the stylesheet sorts it.
 /// </para>
 /// </remarks>
 public sealed partial class UiTable : UiElement, IUiHost
 {
-    private const string Base = "isolate min-w-full table-fixed border-separate border-spacing-0 whitespace-nowrap text-zinc-800";
+    private const string Base =
+        "isolate border-separate border-spacing-0 "
+        + "[:where(&)]:min-w-full [:where(&)]:table-fixed [:where(&)]:whitespace-nowrap [:where(&)]:text-zinc-800";
 
     // The pager under the rows keeps its height when the box is given one to scroll within, as Flux's does.
     private const string Container = "flex flex-col *:data-ui-pagination:shrink-0";

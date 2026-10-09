@@ -11,7 +11,7 @@ public sealed partial class UiTableCell : UiElement
 {
     // Every row but the first draws the line above it.
     private const string Base =
-        "border-zinc-800/10 text-sm dark:border-white/20 [[data-ui-row]:not(:first-child)>&]:border-t";
+        "border-zinc-800/10 [:where(&)]:text-sm dark:border-white/20 [[data-ui-row]:not(:first-child)>&]:border-t";
 
     private static readonly UiPartMarker Marker = new("ui-cell");
 
@@ -41,14 +41,14 @@ public sealed partial class UiTableCell : UiElement
 
     private static string Tone(Ui.TableCellVariant? variant) => variant switch
     {
-        Ui.TableCellVariant.Strong => "font-medium text-zinc-800 dark:text-white",
-        _ => "text-zinc-500 dark:text-zinc-300",
+        Ui.TableCellVariant.Strong => "font-medium [:where(&)]:text-zinc-800 dark:[:where(&)]:text-white",
+        _ => "[:where(&)]:text-zinc-500 dark:[:where(&)]:text-zinc-300",
     };
 
     private static string Alignment(Ui.Align? align) => align switch
     {
-        Ui.Align.Center => "text-center",
-        Ui.Align.End => "text-end",
+        Ui.Align.Center => "[:where(&)]:text-center",
+        Ui.Align.End => "[:where(&)]:text-end",
         _ => "",
     };
 }

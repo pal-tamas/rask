@@ -29,6 +29,15 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A class an app writes on a table part wins over the table's default.** `Ui.TableCell.Class("ps-10")` on a
+  first cell did nothing — `first:ps-0` outweighed it — and `min-w-…`, `table-auto`, `whitespace-normal`,
+  `text-…` on `Ui.Table`, `Ui.TableColumn` or `Ui.TableCell` won or lost by where Tailwind happened to sort
+  them. Every default of the table family (cell padding with its first/last and bleed edges, text size, colour
+  in light and dark, alignment, the table's `min-w-full`, `table-fixed`, `whitespace-nowrap`) is now written at
+  zero specificity; the look is unchanged (`parity.mjs table`, `pagination`: matches Flux). A new guard,
+  `AnAppsClassWinsTests`, resolves the cascade from an app's one compiled sheet for every kit component that
+  takes a `Class` and lists the 130 where a default still decides — there, write Tailwind's `!` (`p-0!`).
+
 - **The edit form works on an aggregate that declares `Checks = Concurrency.None`.** Its generated form model
   still carried `Version`, `X.Model(id)` filled it with 0, and `X.Update(id, model)` then refused every edit
   with *"declares Checks = Concurrency.None, so it has no Version to compare 0 with"*. The model of an
@@ -123,6 +132,13 @@ them until tagged releases begin.
   warning means what it meant. `.Validate(null)` adds nothing.
 
 ### Added
+
+- **Table columns that stay put: the recipe, documented and proven.** A table sizes its columns to their
+  content (Flux's own demo moves 180.9 → 187.0 → 176.4 px from page to page), so they jump on paging and
+  sorting. `Ui.Table.Class("w-full min-w-160")`, a width on every `Ui.TableColumn` but one and
+  `Ui.TableCell.Class("truncate").Title(text)` hold every column to the pixel across pages, sort orders and an
+  empty list, at 1920 and at 390 px, where the table scrolls inside its own box. No new prop: classes only.
+  `docs/ui-kit.md` (Tables → Columns that stay put), a live demo on `/docs/ui/data-display`, and a browser test.
 
 - **`RaskValidationException` names its fields, so a form shows a rejection where it can be corrected.** It
   implements `IFieldFailures`: a request a validator rejected, and a save a unique index refused
