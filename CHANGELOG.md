@@ -7,6 +7,14 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`Go.Out("/tenants")` leaves the app for a page of the same site it does not render.** An app mapped under a
+  path base (`MapRask<App>(pathBase: "/new")`) could not send the reader to the old application beside it from
+  code: `Go.To("/tenants")` always meant `/new/tenants`. `Go.Out` uses the address as written — a `302` on a first
+  request, a full-page navigation from a handler or a lifecycle hook, on both hosts — and takes only a path on
+  this site: another site, a scheme, `//host` and `/\host` throw `ArgumentException`
+  ([Leaving the app](docs/routing.md#leaving-the-app--goout)).
 ### Changed
 
 - **BREAKING: a one-value value object is stored as a converted scalar column, so it can be indexed and made
@@ -52,6 +60,23 @@ them until tagged releases begin.
   as an `InvalidOperationException`; from a handler it replaced the page the visitor had gone to with the
   error fallback. It is logged at Information (`Rask.Handler`), as the same fault from a lifecycle hook
   already was. A fault that carries no cancellation still reaches the boundary.
+- **A page that redirects from `OnMount` or `OnUpdated` lands on its destination, however it was reached.** A
+  page that calls `Go()` as it mounts — "no partner chosen, go to the partner list", "record not found, back
+  to the list" — answered a first request with a `302`, but a `NavLink` to it threw `InvalidOperationException:
+  Navigation can only run from event handlers` and showed the error page, on the Server host and in WebAssembly
+  alike; so did the page a sign-in returns to, and a session rebuilt after a deploy. Reached by `Go()` from a
+  handler it flashed its own content and then showed the destination under the wrong address. It now means one
+  thing wherever a page is mounted. **Before the first `await`** the reader gets ONE frame — the destination,
+  with its address and its title — and nothing of the page that sent them on. **After an `await`** (the page
+  loaded first) its placeholder was on screen and the destination then replaces it; a first request still
+  waiting for the load is still a `302`, and a load that outlasts it redirects over the connection. Either way
+  the destination passes its own route guard first, the page that redirected takes no place in the history
+  (Back is the page the reader was on before), a `Go()` from a page the reader has already left is dropped,
+  and the eleventh page in a row to redirect is refused with `Too many redirects`, so two pages that send the
+  reader to each other end in an error instead of holding the session. A first request is no longer rendered
+  past the page that redirected, which had constructed and mounted an `[Authorize]` destination for an
+  anonymous visitor before the `302` was sent. See
+  [Redirecting from a lifecycle hook](docs/routing.md#redirecting-from-a-lifecycle-hook).
 
 - **The edit form works on an aggregate that declares `Checks = Concurrency.None`.** Its generated form model
   still carried `Version`, `X.Model(id)` filled it with 0, and `X.Update(id, model)` then refused every edit

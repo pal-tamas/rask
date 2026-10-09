@@ -129,6 +129,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
             await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly)
                 .ConfigureAwait(false);
 
+            // A page that sent the reader on as it mounted here is not shown: its destination's frame follows.
+            if ((_navigator ??= Services.GetRequiredService<Navigator>()).RedirectPending)
+            {
+                return;
+            }
+
             // Noop publish-render guard: an auto-publish triggered by a completed
             // OnRendered that didn't mutate any tracked state produces the
             // same HTML. Sending it forces the JS side to morph identical HTML,
@@ -160,6 +166,55 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
     private void OnUserChanged(object? sender, EventArgs e) => _ = RequestRender();
 
+    // A navigation a lifecycle hook asked for with no dispatch waiting for it — after an await, or as its page
+    // mounted in a render nothing dispatched. Made the way a link's is, replacing the address of the page that asked.
+    protected override bool TryNavigateCore(Action navigate)
+    {
+        _ = NavigateFromHookAsync(navigate);
+        return true;
+    }
+
+    private async Task NavigateFromHookAsync(Action navigate)
+    {
+        // Never inline: the hook asking may be inside the very render this navigation has to wait for.
+        await Task.Yield();
+        using var work = EnterWorkScope();
+        await _lock.WaitAsync().ConfigureAwait(false);
+        InHandlerScope = true;
+        try
+        {
+            var navigator = Services.GetRequiredService<Navigator>();
+            using var navigating = navigator.EnterHandler();
+            navigate();
+            if (!navigator.TryConsumeHistory(out var url, out _))
+            {
+                if (navigator.TryConsumeExit(out var exit))
+                {
+                    JSInterop.LeaveTo(LocalUrl.Sanitize(exit));
+                }
+
+                return;
+            }
+
+            await BuildPayloadCoalescingRerendersAsync(url, true).ConfigureAwait(false);
+            if (await TryEmitFrameAsync(true).ConfigureAwait(false))
+            {
+                _htmlBuffers.Commit();
+            }
+        }
+        catch (Exception ex)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error, "Rask.Wasm", "Rask WASM navigation from a lifecycle hook threw", ex);
+        }
+        finally
+        {
+            InHandlerScope = false;
+            _lock.Release();
+            _ = DrainRenderRequestedAfterScope();
+        }
+    }
+
     public async Task<byte[]> InitialRenderAsync()
     {
         using var work = EnterWorkScope();
@@ -176,7 +231,9 @@ internal sealed class WasmLiveSession : LiveSessionBase
             // lands after the walk materialised the HTML (OnRendered onwards) — the spinner then
             // stayed on screen forever. Every other render path already coalesces; this one was
             // the exception (#972).
-            await BuildPayloadCoalescingRerendersAsync(null, false).ConfigureAwait(false);
+            // The first page may send the reader on as it mounts; the address then changes in place.
+            using var navigating = Services.GetRequiredService<Navigator>().EnterHandler();
+            await BuildPayloadCoalescingRerendersAsync(null, true).ConfigureAwait(false);
             if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
             {
                 return Array.Empty<byte>();
@@ -448,6 +505,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
             try
             {
+                // The page a navigation mounts may send the reader on, as it may from a handler.
+                using var navigating = Services.GetRequiredService<Navigator>().EnterHandler();
                 await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
                 // Navigation always flows — force the send even when the rendered output is unchanged.
                 if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
@@ -502,9 +561,10 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // updates the body. We commit the final render once, after the loop. Each rebuild
         // overwrites _htmlBuffers.Current, so it holds the final render when the loop settles.
         _pendingRenderInScope = false;
-        await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
         var budget = 2;
-        while (_pendingRenderInScope && budget-- > 0)
+        FollowRedirect(ref historyUrl, ref replace, ref budget);
+        await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
+        while (FollowRedirect(ref historyUrl, ref replace, ref budget) || (_pendingRenderInScope && budget-- > 0))
         {
             _pendingRenderInScope = false;
             await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
@@ -532,6 +592,31 @@ internal sealed class WasmLiveSession : LiveSessionBase
             _pendingRenderInScope = false;
         }
     }
+
+    // A page that navigated as it mounted or updated: the payload just built is of a page the reader is not to
+    // see, so the next build is of its destination and carries that address. The navigator stops a loop.
+    private bool FollowRedirect(ref string? historyUrl, ref bool replace, ref int budget)
+    {
+        _navigator ??= Services.GetRequiredService<Navigator>();
+
+        // Go.Out: the reader leaves for a page of this site the app does not render, and nothing follows.
+        if (_navigator.TryConsumeExit(out var exit))
+        {
+            JSInterop.LeaveTo(LocalUrl.Sanitize(exit));
+        }
+
+        if (!_navigator.TryConsumeRedirect(out var url, out var redirectReplace))
+        {
+            return false;
+        }
+
+        replace = replace || (historyUrl is null && redirectReplace);
+        historyUrl = url;
+        budget = 2;
+        return true;
+    }
+
+    private Navigator? _navigator;
 
     // commitCache=false defers the render-cache rotation to the caller (the coalescing loop),
     // so intermediate rebuilds diff against the stable last-sent baseline instead of against
