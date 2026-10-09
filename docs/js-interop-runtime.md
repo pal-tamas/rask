@@ -339,6 +339,23 @@ Any element counts, whoever wrote it: your own markup, a `Raw` fragment, a node 
 Besides the `data-rask-*` names, five of the platform's own ask for a hook, because a hook improves them
 unasked: `popover`, `commandfor`, `aria-activedescendant`, `role="switch"` on a checkbox and `role="tablist"`.
 
+### What a hook module may import
+
+For whoever adds a hook to the runtime: a hook module imports **other hook modules, `rask-bound.ts` and
+`rask-owned.ts`, and nothing else**. The hooks are bundled apart from the runtime, and a bundle gets its *own
+copy* of every module it imports. A hook that imported `rask-host.ts` to ask `inRoot()` would be asking a copy
+no host was ever installed in; one that imported `rask-morph.ts` or `rask-loading.ts` would read dirty fields
+and loading buttons nobody recorded there. What the two bundles must agree on hangs off one object on the
+global, `__raskHookSeam`, declared in `rask-owned.ts` — the only module both carry, which itself imports
+nothing. Something new a hook needs from the runtime goes on that seam.
+`HookBundleContractTests` fails for a second module in both bundles.
+
+The runtime itself **runs a document once**. Its shared modules bind their document listeners as the script is
+read, so a second copy in the same document — the Server host's tag is a child of the render root, and a
+navigation to a page with more or fewer top-level nodes puts it back — is never run by the morph, and a copy
+that arrives some other way stands down: its listeners answer nothing and send nothing
+(`standDown` in `rask-host.ts`).
+
 ### Pointer-opened popovers
 
 | Attribute | On | What the runtime does |

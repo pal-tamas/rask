@@ -49,6 +49,24 @@ export function setHost(h: RaskHost): void {
     host = h;
 }
 
+/**
+ * For a copy of the runtime that is NOT going to run this document: another copy already does (its
+ * `<script>` reached the page a second time), or the page has no render root.
+ *
+ * The shared modules bound their document listeners when this copy was read, before it could know, and a
+ * listener cannot be taken back. So they are answered "not yours" and nothing is sent: the copy that runs
+ * the page has listeners of its own for the same events, and one that also dispatched from here would send
+ * every event twice. Not the wiring bug the default above reports, which stays loud.
+ */
+export function standDown(): void {
+    host = {
+        send() {},
+        inRoot() {
+            return false;
+        },
+    };
+}
+
 /** Ships an event payload to .NET. */
 export function send(payload: unknown): void {
     host.send(payload);

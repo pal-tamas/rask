@@ -103,6 +103,37 @@ public partial class HookBundleContractTests
         Assert.DoesNotContain(reached, module => hooks.Contains(module!) || string.Equals(module, "rask-hooks.ts", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("src/Rask.Server/Resources/rask.ts")]
+    [InlineData("src/Rask.Wasm/Resources/rask.wasm.ts")]
+    public void The_only_module_the_hooks_bundle_and_a_runtime_both_carry_is_the_one_that_shares_through_the_seam(string entry)
+    {
+        var runtime = Reachable(Path.Combine(_repoRoot, entry));
+
+        var inBoth = Reachable(Path.Combine(_resources, "rask-hooks.ts")).Intersect(runtime, StringComparer.Ordinal)
+            .Select(Path.GetFileName).ToList();
+
+        Assert.True(
+            inBoth is ["rask-owned.ts"],
+            "Each bundle gets its OWN copy of a module both import, so whatever that module keeps — the installed "
+            + "host (rask-host.ts), dirty fields (rask-morph.ts), what is loading (rask-loading.ts), the socket — "
+            + "exists twice, and the hooks' copy is the one nobody set up. A hook module imports hook modules, "
+            + "rask-bound.ts and rask-owned.ts only; what it needs from the runtime goes on the seam in "
+            + "rask-owned.ts (docs/js-interop-runtime.md, \"What a hook module may import\"). In both bundles: "
+            + string.Join(", ", inBoth));
+    }
+
+    [Fact]
+    public void The_module_both_bundles_carry_imports_nothing_that_could_follow_it_into_the_other_bundle()
+    {
+        var owned = Path.Combine(_resources, "rask-owned.ts");
+
+        var reached = Reachable(owned).Select(Path.GetFileName).ToList();
+
+        Assert.Equal(["rask-owned.ts"], reached);
+        Assert.Contains("__raskHookSeam", File.ReadAllText(owned), StringComparison.Ordinal);
+    }
+
     // The modules rask-hooks.ts imports for their side effects: the hooks, and nothing else.
     private static List<string> HookModules() =>
         [.. SideEffectImport().Matches(File.ReadAllText(Path.Combine(_resources, "rask-hooks.ts")))

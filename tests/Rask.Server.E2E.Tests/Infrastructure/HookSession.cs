@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Playwright;
 using Rask.Core;
 using Rask.Site.E2E.Tests.Infrastructure;
@@ -11,18 +12,28 @@ namespace Rask.Server.E2E.Tests.Infrastructure;
 ///     What the runtime-hook suites share. The hooks are keyed on attributes, so the page under test is the
 ///     attributes written out by hand: going through a kit component would prove the kit as well, which only
 ///     <c>UiModalHookTests</c> sets out to do.
+///     <para>
+///         An error the page did not catch fails the journey that raised it, whatever that journey was looking at:
+///         closing the session throws with every one of them. A runtime that throws in a listener usually breaks
+///         nothing a test would see, which is how one went unnoticed.
+///     </para>
 /// </remarks>
 internal sealed class HookSession : IAsyncDisposable
 {
     private readonly LiveServerHost _host;
     private readonly IBrowserContext _context;
+    private readonly ConcurrentQueue<string> _pageErrors;
 
-    private HookSession(LiveServerHost host, IBrowserContext context, IPage page)
+    private HookSession(LiveServerHost host, IBrowserContext context, IPage page, ConcurrentQueue<string> pageErrors)
     {
         _host = host;
         _context = context;
+        _pageErrors = pageErrors;
         Page = page;
     }
+
+    /// <summary>Every error the page has raised and not caught, oldest first.</summary>
+    public IReadOnlyCollection<string> PageErrors => _pageErrors;
 
     public IPage Page { get; }
 
@@ -31,20 +42,24 @@ internal sealed class HookSession : IAsyncDisposable
     /// <param name="playwright">The browser.</param>
     /// <param name="options">The context's options; a 1000 × 700 viewport when null.</param>
     /// <param name="beforeLoad">What to do to the page before it loads anything: an init script, a route.</param>
+    /// <param name="path">The path the browser opens.</param>
     public static async Task<HookSession> OpenAsync<TPage>(
-        PlaywrightFixture playwright, BrowserNewContextOptions? options = null, Func<IPage, Task>? beforeLoad = null)
+        PlaywrightFixture playwright, BrowserNewContextOptions? options = null, Func<IPage, Task>? beforeLoad = null,
+        string path = "/")
         where TPage : Component
     {
         var host = await LiveServerHost.StartAsync<TPage>(blockWebSockets: false);
         var context = await playwright.Browser.NewContextAsync(options ?? new() { ViewportSize = new() { Width = 1000, Height = 700 } });
         var page = await context.NewPageAsync();
+        var pageErrors = new ConcurrentQueue<string>();
+        page.PageError += (_, error) => pageErrors.Enqueue(error);
         if (beforeLoad is not null)
         {
             await beforeLoad(page);
         }
 
-        await page.GotoAsync(host.BaseUrl + "/");
-        return new HookSession(host, context, page);
+        await page.GotoAsync(host.BaseUrl + path);
+        return new HookSession(host, context, page, pageErrors);
     }
 
     /// <summary>How many times this page has asked the network for the behaviour hooks' bundle.</summary>
@@ -75,5 +90,8 @@ internal sealed class HookSession : IAsyncDisposable
     {
         await _context.DisposeAsync();
         await _host.DisposeAsync();
+        Assert.True(
+            _pageErrors.IsEmpty,
+            "The page raised an error nothing caught:" + Environment.NewLine + string.Join(Environment.NewLine, _pageErrors));
     }
 }
