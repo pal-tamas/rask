@@ -3,7 +3,8 @@ namespace Rask;
 /// <summary>Flux's <c>flux:sidebar.group</c>: <see cref="UiSidebarItem" />s under a heading, which can fold away.</summary>
 /// <remarks>
 /// Expandable, it is a native <c>&lt;details&gt;</c>: it opens and closes with no script, and says which it is.
-/// Narrowed to the rail a group shows its <see cref="Icon" /> alone — one without an icon is not shown.
+/// Narrowed to the rail a group is its <see cref="Icon" />, and its items are the menu that opens beside it —
+/// under the pointer, on a press, from the keyboard. One without an icon is not shown there.
 /// </remarks>
 public sealed partial class UiSidebarGroup : Component
 {
@@ -11,6 +12,12 @@ public sealed partial class UiSidebarGroup : Component
         "my-px flex h-10 w-full min-w-0 cursor-default text-center list-none items-center rounded-lg border border-transparent text-zinc-500 "
         + "hover:bg-zinc-800/5 hover:text-zinc-800 sidebar-desktop:h-8 dark:text-white/80 dark:hover:bg-white/[7%] "
         + "dark:hover:text-white [&::-webkit-details-marker]:hidden";
+
+    // The same row as a square around its icon: the button the rail's menu opens from.
+    private const string RailRow =
+        "my-px flex h-8 w-10 cursor-default items-center justify-center gap-3 rounded-lg border border-transparent "
+        + "px-3 text-center text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 dark:text-white/80 "
+        + "dark:hover:bg-white/[7%] dark:hover:text-white";
 
     private const string Label = "block truncate text-sm font-medium";
 
@@ -68,7 +75,7 @@ public sealed partial class UiSidebarGroup : Component
                     Div.Class("flex flex-col")[Children ?? []]
                 ]
             ],
-            Icon is { } mark ? RailButton(mark) : null
+            Icon is { } mark ? RailMenu(mark) : null
         ];
     }
 
@@ -78,21 +85,26 @@ public sealed partial class UiSidebarGroup : Component
         Ui.Icon.Name(Ui.IconName.ChevronRight).Class("size-3 group-open/disclosure:hidden")
     ];
 
-    // Seam: in the rail Flux opens the group's items as a menu beside its icon. Ui.Dropdown and Ui.Menu go here
-    // when they land; until then the icon widens the sidebar, which is where the items are.
-    private Component RailButton(Ui.IconName icon) =>
-        Div.Class("hidden sidebar-rail:flex").Attributes(("data-ui-sidebar-group-dropdown", ""), ("data-ui-seam", "dropdown"))[
-            RaskMarkup.Label
-                .For(UiSidebarState.Rail)
-                .Class(
-                    "my-px flex h-8 w-10 cursor-default items-center justify-center gap-3 rounded-lg border border-transparent "
-                    + "px-3 text-center text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 dark:text-white/80 "
-                    + "dark:hover:bg-white/[7%] dark:hover:text-white")
-                .Role("button")
-                .TabIndex(0)
-                .Title(Heading ?? "")
-                .Aria("label", Heading ?? "")[
-                Div.Class("relative")[Ui.Icon.Name(icon).Class("size-4")]
-            ]
+    // Narrowed to the rail the group is its icon, and its items are a menu beside it: Flux's dropdown, opened
+    // by the pointer resting on the icon (only while the sidebar IS a rail), by a press, and by the keyboard.
+    // The items are the ones the disclosure holds, each a row of the menu here.
+    private Component RailMenu(Ui.IconName icon)
+    {
+        var dropdown = Ui.Dropdown
+            .Position(Ui.DropdownPosition.Right)
+            .Align(Ui.DropdownAlign.Start)
+            .Hover(true)
+            .Class("hidden sidebar-rail:flex")
+            .OwnedBy("ui-sidebar-group-dropdown", UiSidebarState.WhileRail);
+
+        return dropdown[
+            // The menu sits beside the button, not beside the row that holds it.
+            Button.Type(ButtonType.Button).Class(RailRow).Style("anchor-name:" + dropdown.AnchorName)[
+                Div.Class("relative")[Ui.Icon.Name(icon).Class("size-4")],
+                // As Flux writes it: the heading is in the button and not drawn, so the button has no name.
+                Span.Class("hidden")[Heading ?? ""]
+            ],
+            Ui.Menu[Ui.MenuGroup.Heading(Heading)[Children ?? []]]
         ];
+    }
 }

@@ -39,7 +39,7 @@ public sealed partial class UiNavlistGroup : Component
     private Component Titled() =>
         Div.Class("block", Class)[
             Heading is { } heading
-                ? Div.Class("ui-rail-hide mb-[2px] px-3 py-2")[
+                ? Div.Class("mb-[2px] px-3 py-2")[
                     Div.Class("text-sm leading-none font-medium text-zinc-400")[heading]
                 ]
                 : null,
@@ -63,7 +63,7 @@ public sealed partial class UiNavlistGroup : Component
                     Ui.Icon.Name(Ui.IconName.ChevronDown).Class("hidden size-3 group-open/disclosure:block"),
                     Ui.Icon.Name(Ui.IconName.ChevronRight).Class("block size-3 group-open/disclosure:hidden rtl:rotate-180")
                 ],
-                Span.Class("ui-rail-hide text-sm leading-none font-medium")[Heading ?? ""]
+                Span.Class("text-sm leading-none font-medium")[Heading ?? ""]
             ],
             Div.Class("relative ps-7")[
                 Div.Class("absolute inset-y-[3px] start-0 ms-4 mb-[2px] w-px bg-zinc-200 dark:bg-white/30"),

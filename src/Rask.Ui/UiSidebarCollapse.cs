@@ -11,6 +11,11 @@ public sealed partial class UiSidebarCollapse : Component
         "flex h-8 shrink-0 items-center justify-center "
         + "sidebar-rail:absolute sidebar-rail:opacity-0 sidebar-rail:group-hover/sidebar:opacity-100";
 
+    private const string Pressable =
+        "relative flex size-10 cursor-default items-center justify-center gap-2 rounded-lg text-center text-sm font-medium "
+        + "whitespace-nowrap text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
+        + "dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-white";
+
     /// <summary>Pulls the control into its container's padding on that side. Flux's <c>inset</c>.</summary>
     public Ui.Position? Inset { get; set; }
 
@@ -34,22 +39,17 @@ public sealed partial class UiSidebarCollapse : Component
     {
         var name = Tooltip ?? "Toggle sidebar";
         return Div.Class(UiClass.Compose(Root, InsetClass(Inset), Class)).Attributes(("data-ui-sidebar-collapse", ""))[
-            // Seam: Flux wraps the button in its tooltip. Ui.Tooltip goes here when it lands; `title` until then.
-            Div.Class("flex").Attributes(("data-ui-seam", "tooltip"))[
-                Press(UiSidebarState.Open, name,
-                    "relative flex size-10 cursor-default items-center justify-center gap-2 rounded-lg text-center text-sm font-medium "
-                    + "whitespace-nowrap text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 sidebar-desktop:hidden "
-                    + "dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-white"),
-                Press(UiSidebarState.Rail, name,
-                    "relative hidden size-10 cursor-default items-center justify-center gap-2 rounded-lg text-center text-sm font-medium "
-                    + "whitespace-nowrap text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 sidebar-desktop:flex sidebar-rail:cursor-e-resize "
-                    + "dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-white")
-            ]
+            // Flux's button sits in its tooltip, which is its name. Two here, as the control is two labels:
+            // each is shown at the widths its checkbox means something.
+            Press(UiSidebarState.Open, name, "flex sidebar-desktop:hidden", ""),
+            Press(UiSidebarState.Rail, name, "hidden sidebar-desktop:flex", "sidebar-rail:cursor-e-resize")
         ];
     }
 
-    private static Component Press(string checkbox, string name, string classes) =>
-        RaskMarkup.Label.For(checkbox).Class(classes).Role("button").TabIndex(0).Title(name).Aria("label", name)[Glyph()];
+    private static Component Press(string checkbox, string name, string shown, string cursor) =>
+        Ui.Tooltip.Content(name).Position(Ui.TooltipPosition.Right).Class(shown)[
+            RaskMarkup.Label.For(checkbox).Class(UiClass.Compose(Pressable, cursor)).Role("button").TabIndex(0)[Glyph()]
+        ];
 
     // A panel with its side column marked: drawn here, because Heroicons has no such glyph.
     private static Component Glyph() =>
