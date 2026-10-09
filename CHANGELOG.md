@@ -1334,6 +1334,23 @@ them until tagged releases begin.
   (`Key($"pinned-{id}")`) where the rows hold state. `docs/composition.md` says so now; it used to promise
   "unique among siblings" for components too. Nothing changes for a list whose keys are unique, and a live
   update of the 20-row benchmark page allocates what it did (2,504 B with tiered PGO off, before and after).
+- **`Text["…"]` renders its words, so a component whose root is bare text is patched when it re-renders.**
+  `Text` wrote its `Value` and dropped whatever the `[...]` indexer handed it, so `Text[heading.Text]` — the
+  spelling every other tag takes — rendered nothing at all. A leaf written `Render() => Text[heading.Text]`
+  therefore left its parent's element empty for ever, however often it called `StateHasChanged()`, while the
+  same leaf with `Span[…]` was patched; that read as "a text root cannot be patched" (#1238). It can, and
+  always could when spelled `Text.Value(…)` or as a bare string: the text node is inserted into, updated in
+  and removed from the element that holds the component. `Text` now renders its value and then its children,
+  on both hosts. Nothing changes for a `Text` given no children.
+
+- **A Server page's first response carries a render asked for while it was being rendered.** A page that
+  tells its layout something as it mounts — a title for a breadcrumb, `layout.StateHasChanged()` from
+  `OnMount` or `OnUpdated` — does so after the layout was walked. The live session always followed up, but the
+  initial `GET` served the first pass and left the correction to the socket's catch-up frame, so the layout
+  appeared one render behind for a moment, and stayed that way for a crawler. The response now renders once
+  more when that happens (at most twice per request; `QuiescentRender.Run` takes it as `renderRequested`).
+  WASM's first frame already did. See `docs/lifecycle.md#asking-another-component-to-render-from-a-hook`.
+
 - **A Server page no longer raises `Rask: inRoot() was called before a host was installed`.** The runtime's
   own `<script>` is the last child of the render root, so an in-app navigation to a page with one top-level
   node more or fewer moved it, and the morph moved it by inserting the incoming tag — which ran `rask.js` a

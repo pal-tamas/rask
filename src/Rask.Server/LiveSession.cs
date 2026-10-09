@@ -64,6 +64,10 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // across threads or a dropped render goes unrecovered.
     private volatile bool _renderRequestedWhileDetached;
 
+    // The same request, as the initial GET's waves see it: cleared when a wave starts, so what is left after
+    // one is a render asked for while it ran.
+    private volatile bool _renderRequestedInWave;
+
     // The connection this session writes its frames to: a WebSocket today, and whatever else a client
     // negotiated tomorrow. Published with Volatile.Write so AttachTransport's "publish the transport last"
     // carries release semantics — the preceding _renderRequestedWhileDetached / _forceResend writes are
@@ -353,6 +357,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         if (_disposed || Volatile.Read(ref _transport) is not { IsOpen: true })
         {
             _renderRequestedWhileDetached = true;
+            _renderRequestedInWave = true;
             return;
         }
 
@@ -535,6 +540,10 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             // this shape, and it is idiomatic enough to appear in the framework's own auth sample.
             // Stopping there costs nothing: the page's live session finishes the load.
             isBlocked: () => JsInvokes.HasPending,
+            // A StateHasChanged raised while a wave walks the tree — a page naming itself to the layout
+            // above it as it mounts — lands on a component that wave has already rendered. Without another
+            // wave the response is one render behind, and only the socket's catch-up frame corrects it.
+            renderRequested: () => _renderRequestedInWave,
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var html = result.Html;
@@ -550,6 +559,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // deferred rotation.
     private string RenderRootWave(bool publishOnly)
     {
+        // Whatever asked before this wave is answered by it; only a request made while it runs is news.
+        _renderRequestedInWave = false;
+
         // The served render is this session's first walk, and the one a devtools panel opened before any interaction has
         // to show — it reaches the page through the GET rather than through RenderTreeToHtml, which says so for the rest.
         RaskDevToolsHook.Active?.WalkStarted(this, publishOnly);

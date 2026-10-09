@@ -27,6 +27,13 @@ public static class QuiescentRender
     public const int DefaultMaxWaves = 16;
 
     /// <summary>
+    ///     How many waves a render asked for from inside a wave can earn. One settles a page that changes its
+    ///     layout as it mounts; the second covers what that render mounted in turn. A component that asks
+    ///     again on every render would otherwise cost the whole wave cap on every request.
+    /// </summary>
+    public const int MaxRequestedWaves = 2;
+
+    /// <summary>
     ///     Drives <paramref name="renderWave" /> until nothing is pending, the budget expires, or
     ///     <paramref name="maxWaves" /> is reached.
     /// </summary>
@@ -49,6 +56,13 @@ public static class QuiescentRender
     ///     nothing is ever considered blocked.
     /// </param>
     /// <param name="maxWaves">Wave cap. Defaults to <see cref="DefaultMaxWaves" />.</param>
+    /// <param name="renderRequested">
+    ///     Asked after a wave that left no work pending: did something ask for a render while it ran? A page
+    ///     that names itself to its layout as it mounts does — the layout was rendered a moment earlier, so
+    ///     the markup in hand is one render behind it. Such a wave is followed by another, at most
+    ///     <see cref="MaxRequestedWaves" /> times, and never counts as timed out. Omitted, only pending work
+    ///     earns another wave.
+    /// </param>
     /// <param name="cancellationToken">
     ///     Abandons the render. A wait in progress stops at once and <see cref="OperationCanceledException" />
     ///     is thrown rather than a result returned: markup that stopped because its caller went away is
@@ -63,6 +77,7 @@ public static class QuiescentRender
         TimeSpan budget,
         Func<bool>? isBlocked = null,
         int maxWaves = DefaultMaxWaves,
+        Func<bool>? renderRequested = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(renderWave);
@@ -73,28 +88,21 @@ public static class QuiescentRender
 
         var deadline = DateTime.UtcNow + budget;
         var waves = 0;
+        var requestedWaves = 0;
 
-        while (quiescence.TrySnapshotPending(out var batch))
+        while (true)
         {
-            if (isBlocked?.Invoke() == true)
+            if (quiescence.TrySnapshotPending(out var batch))
             {
-                break;
+                if (isBlocked?.Invoke() == true
+                    || !await Settled(batch, quiescence, deadline, waves < maxWaves, cancellationToken).ConfigureAwait(false))
+                {
+                    break;
+                }
             }
-
-            var remaining = deadline - DateTime.UtcNow;
-            if (remaining <= TimeSpan.Zero || waves >= maxWaves)
+            else if (requestedWaves++ >= MaxRequestedWaves || waves >= maxWaves || renderRequested?.Invoke() != true)
             {
-                quiescence.MarkTimedOut();
-                break;
-            }
-
-            try
-            {
-                await Task.WhenAll(batch).WaitAsync(remaining, cancellationToken).ConfigureAwait(false);
-            }
-            catch (TimeoutException)
-            {
-                quiescence.MarkTimedOut();
+                // Nothing to wait for, and nothing the last wave mounted asked it to run again.
                 break;
             }
 
@@ -103,5 +111,28 @@ public static class QuiescentRender
         }
 
         return new QuiescentRenderResult(html, quiescence.TimedOut, waves);
+    }
+
+    // Waits for one wave's work. False, with the scope marked timed out, when the budget or the wave cap is spent.
+    private static async Task<bool> Settled(
+        Task[] batch, QuiescenceScope quiescence, DateTime deadline, bool wavesLeft, CancellationToken cancellationToken)
+    {
+        var remaining = deadline - DateTime.UtcNow;
+        if (remaining <= TimeSpan.Zero || !wavesLeft)
+        {
+            quiescence.MarkTimedOut();
+            return false;
+        }
+
+        try
+        {
+            await Task.WhenAll(batch).WaitAsync(remaining, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (TimeoutException)
+        {
+            quiescence.MarkTimedOut();
+            return false;
+        }
     }
 }
