@@ -15,9 +15,8 @@ them until tagged releases begin.
   it first appears, 100 ms after its box stops changing (a window resized, a phone turned), and when a hidden
   chart is shown at another size; a hidden chart keeps its drawing, as Flux's. Its 12px labels are 12px at 390
   wide and at 1920, and the ticks that fit are worked out again, where the SVG used to be scaled as a whole
-  from the stated size. `Ui.ChartSvg.Width(…).Height(…)` are now the box drawn for BEFORE the browser has
-  measured (600 × 200 unstated): a chart stated within half a pixel of its real box is drawn once and sends
-  nothing. Flux's own first paint is an empty box; the kit's is the drawing, scaled until the size arrives.
+  from the stated size. There is no size to state (see **BREAKING** under Changed): the first paint is an empty
+  box of the right size, as Flux's own is, and the drawing arrives with the measurement.
   *Pointer.* The cursor, the tooltip, every `Ui.ChartSummaryValue`, the active `Ui.ChartPoint`s and a pie's
   slices follow the pointer in the browser, with no round trip: the tooltip sits 15px from the row and the
   pointer and flips at the drawing's right and bottom edges (it used to rest at 40% of the height); a summary
@@ -101,6 +100,22 @@ them until tagged releases begin.
   eight unfiltered ones ran. The client-bundle-size gate tracks the third file too.
 
 ### Changed
+
+- **BREAKING: `Ui.ChartSvg.Width` and `Ui.ChartSvg.Height` are removed — a chart takes its size from its
+  container alone, exactly as Flux's does.** Flux's `chart.svg` has no size: the element fills the box its class
+  gives it and is drawn by script once that box is known. The kit's two props said what box to draw for before
+  the browser had measured, which was a second, competing answer to "how big is this chart" — a stated size that
+  was not the real one drew a chart whose labels were scaled until the measurement corrected it. Now the first
+  render draws nothing (the measured layer and its empty field, in a box the chart's class already sizes, so
+  nothing moves when the drawing arrives), and the chart is drawn when its box comes back — which, since the
+  events of one browser task are answered with one render (Performance, above), is one render for every chart on
+  the page. Measured on Flux's live page 2026-10-09: its chart element is laid out and empty from 635 ms and
+  drawn at 1,010 ms. Migration: delete the two steps, and give the chart's box a size in CSS if it had none
+  (`.Class("aspect-3/1")`, `h-64`, or a `Ui.ChartViewport` with one).
+  `Ui.ChartSvg.Width(606).Height(202)[…]` → `Ui.ChartSvg[…]`. A page prerendered for a WebAssembly app shows the
+  empty boxes until the runtime has started; a chart whose part reads the wrong row type now says so when it is
+  first drawn rather than when it is first rendered. In a test, `page.On("[data-rask-measure] input").Input("606 202")`
+  is the browser's measurement.
 
 - **A collapsed `Ui.Sidebar` is Flux's rail: real tooltips, a menu per group, the navlist's count.** Measured on
   Flux's live `sidebar-collapsible` demo and built from its pieces. Every `Ui.SidebarItem` sits in a `Ui.Tooltip`

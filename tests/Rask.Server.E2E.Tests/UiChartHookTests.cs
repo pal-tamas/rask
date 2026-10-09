@@ -57,19 +57,24 @@ public sealed class UiChartHookTests(PlaywrightFixture playwright) : IClassFixtu
     }
 
     [Fact]
-    public async Task A_chart_stated_at_the_size_it_turns_out_to_have_tells_the_page_nothing()
+    public async Task Every_chart_tells_the_page_its_box_once_and_all_of_them_in_one_frame()
     {
         var heard = new List<string>();
+        var frames = 0;
         await using var session = await HookSession.OpenAsync<ChartHookPage>(playwright, beforeLoad: page =>
-            page.AddInitScriptAsync("window.sized = []; document.addEventListener('input', e => window.sized.push(e.target.closest('[id]').id + ':' + e.target.value), true);"));
+        {
+            page.WebSocket += (_, socket) => socket.FrameSent += (_, frame) => frames += frame.Text?.Contains("\"input\"", StringComparison.Ordinal) == true ? 1 : 0;
+            return page.AddInitScriptAsync("window.sized = []; document.addEventListener('input', e => window.sized.push(e.target.closest('[id]').id + ':' + e.target.value), true);");
+        });
         var page = session.Page;
 
         await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg').getAttribute('viewBox') === '0 0 400 133.33'");
         heard.AddRange(await page.EvaluateAsync<string[]>("() => window.sized"));
 
-        // The fluid chart was drawn for 600 by 200 and measured at 400 wide; the stated one was already right.
-        Assert.Equal(["fluid:400 133.33"], heard);
-        Assert.Equal("0 0 200 100", await page.EvaluateAsync<string>("() => document.querySelector('#stated svg').getAttribute('viewBox')"));
+        // No chart is drawn before it is measured, so each says its box — once, and the three of them together.
+        Assert.Equal(["fluid:400 133.33", "boxed:200 100", "pie:200 200"], heard);
+        Assert.Equal("0 0 200 100", await page.EvaluateAsync<string>("() => document.querySelector('#boxed svg').getAttribute('viewBox')"));
+        Assert.Equal(1, frames);
     }
 
     [Fact]
@@ -106,6 +111,7 @@ public sealed class UiChartHookTests(PlaywrightFixture playwright) : IClassFixtu
     {
         await using var session = await HookSession.OpenAsync<ChartHookPage>(playwright);
         var page = session.Page;
+        await page.WaitForFunctionAsync("() => document.querySelector('#pie svg')?.getAttribute('viewBox') === '0 0 200 200'");
         await session.HooksLoadedAsync();
         const string read = "() => { const c = document.querySelector('#pie [data-ui-chart]'), t = c.querySelector('[data-rask-plot-tooltip]'); return [[...c.querySelectorAll('svg path')].map(p => p.hasAttribute('data-active') ? 'A' : p.hasAttribute('data-inactive') ? 'i' : '.').join(''), t.hasAttribute('data-active') ? t.innerText.replace(/\\s+/g, ' ').trim() : '-', [...t.querySelectorAll('[data-rask-plot-row]')].map(d => d.hasAttribute('data-active') ? 'A' : '.').join('')].join(' | '); }";
 
@@ -122,7 +128,7 @@ public sealed class UiChartHookTests(PlaywrightFixture playwright) : IClassFixtu
     }
 }
 
-/// <summary>A chart that fills its container, one stated at its real size, and a pie.</summary>
+/// <summary>A chart that fills a container of a given width, one in a box of a given size, and a pie.</summary>
 public sealed partial class ChartHookPage : Component
 {
     private sealed record Day(string Name, int Sold);
@@ -152,12 +158,12 @@ public sealed partial class ChartHookPage : Component
                 Ui.ChartTooltip[Ui.ChartTooltipHeading.Field((Day d) => d.Name), Ui.ChartTooltipValue.Field((Day d) => d.Sold)]
             ]
         ],
-        Div.Id("stated").Style("position:absolute;left:500px;top:20px;width:200px;height:100px")[
-            Ui.Chart.Value(Week).Class("size-full")[Ui.ChartSvg.Width(200).Height(100)[Ui.ChartLine.Field((Day d) => d.Sold)]]
+        Div.Id("boxed").Style("position:absolute;left:500px;top:20px;width:200px;height:100px")[
+            Ui.Chart.Value(Week).Class("size-full")[Ui.ChartSvg[Ui.ChartLine.Field((Day d) => d.Sold)]]
         ],
         Div.Id("pie").Style("position:absolute;left:20px;top:300px;width:200px")[
             Ui.Chart.Value(Week).Class("square")[
-                Ui.ChartSvg.Width(200).Height(200)[Ui.ChartPie.Field((Day d) => d.Sold).LabelField((Day d) => d.Name)],
+                Ui.ChartSvg[Ui.ChartPie.Field((Day d) => d.Sold).LabelField((Day d) => d.Name)],
                 Ui.ChartTooltip[Ui.ChartTooltipValue.Field((Day d) => d.Sold).LabelField((Day d) => d.Name)[Ui.ChartTooltipIndicator]]
             ]
         ]
