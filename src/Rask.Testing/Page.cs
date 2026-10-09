@@ -55,7 +55,7 @@ public partial class Page : IRenderHandle
         lock (_renderLock)
         {
             _renderRequested = false;
-            Html = _root.RenderAsLiveRoot(_services);
+            Html = Walk();
 
             // Drain renders the walk itself asked for — a lifecycle hook calling StateHasChanged
             // synchronously, which is legal and which a live session answers with one coalesced render
@@ -63,12 +63,39 @@ public partial class Page : IRenderHandle
             for (var i = 0; i < MaxQueuedRenders && _renderRequested; i++)
             {
                 _renderRequested = false;
-                Html = _root.RenderAsLiveRoot(_services);
+                Html = Walk();
             }
 
             _renderRequested = false;
             return Html;
         }
+    }
+
+    /// <summary>
+    ///     Watches every page's renders the way a live session does: handed the frames of each walk and then its
+    ///     markup. Rask's own kit tests set it, to hold every state change they drive to a diff. Unset, a
+    ///     render writes no frames at all.
+    /// </summary>
+    internal static Func<IRenderWatch>? Watching { get; set; }
+
+    private readonly IRenderWatch? _watch = Watching?.Invoke();
+
+    private string Walk()
+    {
+        if (_watch is null)
+        {
+            return _root.RenderAsLiveRoot(_services);
+        }
+
+        string html;
+        using (FrameSinkScope.Push(_watch.Frames()))
+        {
+            html = _root.RenderAsLiveRoot(_services);
+        }
+
+        _watch.Rendered(html);
+
+        return html;
     }
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(5);
