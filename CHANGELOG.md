@@ -1255,6 +1255,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A unique index declared in a tenant-scoped entity's `Configure` is unique within the tenant (#1233).**
+  The tenant prefix was applied with the conventions, which run before an entity's own `Configure`, so
+  `builder.HasIndex(p => p.Sku).IsUnique()` written there stayed unique across every tenant — tenant B could
+  not use a value tenant A held. An `[Index]` attribute had the same hole from the other side: EF Core put the
+  unprefixed index back as the model was finalized. The prefix now also runs after `Configure` and at
+  finalization, so every index that does not name `TenantId` gets it in front, wherever it was declared. An
+  index that already names `TenantId` — anywhere in it — is left exactly as written, which is what lets a
+  table that already exists keep `(Name, TenantId)` in that order. **An app with such an index gets a
+  migration** that replaces `IX_T_Sku` with `IX_T_TenantId_Sku`.
+
 - **An aggregate that declares `Checks = Concurrency.None` can be updated.** The table was mapped without a
   `Version`, but the save still asked the change tracker for it: `Product.Update(id, p => …)`, `Find` then
   `Save()`, and any change to a child threw, because the model has no such property. The

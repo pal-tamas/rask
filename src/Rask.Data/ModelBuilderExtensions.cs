@@ -242,7 +242,7 @@ public static class ModelBuilderExtensions
             builder.Property<Guid?>(Columns.TenantId);
             builder.HasQueryFilter(TenantFilter, BuildTenantFilter(clrType, context));
 
-            PrefixIndexesWithTenant(builder);
+            TenantIndexes.Prefix(builder.Metadata);
         }
 #pragma warning restore S3267
     }
@@ -266,30 +266,6 @@ public static class ModelBuilderExtensions
 
         return Expression.Lambda(
             Expression.OrElse(unrestricted, Expression.Equal(stored, current)), entity);
-    }
-
-    // Every index gains TenantId at the FRONT: uniqueness then means "within this tenant", and the filtered
-    // query can use the index rather than scanning and discarding.
-    private static void PrefixIndexesWithTenant(EntityTypeBuilder builder)
-    {
-        foreach (var index in builder.Metadata.GetIndexes().ToList())
-        {
-            var names = index.Properties.Select(static p => p.Name).ToList();
-
-            if (names.Contains(Columns.TenantId, StringComparer.Ordinal))
-            {
-                continue;
-            }
-
-            var replacement = builder.HasIndex([Columns.TenantId, .. names]);
-
-            if (index.IsUnique)
-            {
-                replacement.IsUnique();
-            }
-
-            builder.Metadata.RemoveIndex(index.Properties);
-        }
     }
 
     /// <summary>
