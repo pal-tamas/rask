@@ -81,12 +81,12 @@ public sealed class EditorOnServerTests(PlaywrightFixture playwright) : IClassFi
         await using var host = await LiveServerHost.StartAsync<EditorPage>(blockWebSockets: false);
         await using var context = await playwright.Browser.NewContextAsync();
         var page = await context.NewPageAsync();
-        var errors = new List<string>();
+        var errors = new System.Collections.Concurrent.ConcurrentQueue<string>();
         page.Console += (_, message) =>
         {
             if (message.Type == "error")
             {
-                errors.Add(message.Text);
+                errors.Enqueue(message.Text);
             }
         };
         await page.GotoAsync(host.BaseUrl + "/");
@@ -97,8 +97,14 @@ public sealed class EditorOnServerTests(PlaywrightFixture playwright) : IClassFi
 
         await Expect(page.Locator("#ticks")).ToHaveTextAsync("ticks=1", new() { Timeout = 15_000 });
         Assert.Null(await area.GetAttributeAsync("contenteditable"));
-        // The one place an app learns why: the console names the file its host is not serving.
-        Assert.Contains(errors, error => error.Contains("wwwroot/js/rask-ui-editor.js", StringComparison.Ordinal));
+        // The one place an app learns why: the console names the file its host is not serving. The message is
+        // the browser's to deliver, after the import that failed: on a loaded machine the page is live first.
+        for (var waited = 0; errors.IsEmpty && waited < 15_000; waited += 50)
+        {
+            await Task.Delay(50, TestContext.Current.CancellationToken);
+        }
+
+        Assert.Contains(errors.ToArray(), error => error.Contains("wwwroot/js/rask-ui-editor.js", StringComparison.Ordinal));
     }
 }
 

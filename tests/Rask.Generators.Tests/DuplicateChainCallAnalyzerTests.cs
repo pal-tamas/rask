@@ -59,6 +59,55 @@ public class DuplicateChainCallAnalyzerTests
         Assert.Equal("RASK044", d.Id);
     }
 
+    // The one step that adds: `.Validate(a).Validate(b)` runs a, then b if a let the value through.
+    [Fact]
+    public async Task A_chain_that_adds_a_second_rule_is_not_reported() =>
+        Assert.Empty(await AnalyzeAsync("""
+            namespace Demo
+            {
+                public sealed class Draft { public string Name { get; set; } = ""; }
+
+                public sealed partial class Page : Rask.Core.Component
+                {
+                    private readonly Draft _m = new();
+
+                    protected override Rask.Core.Component? Render() =>
+                        Input.Bind(() => _m.Name)
+                            .Validate(v => v.Length < 3 ? new[] { "Too short." } : System.Array.Empty<string>())
+                            .Validate(async v =>
+                            {
+                                await System.Threading.Tasks.Task.Yield();
+                                return System.Array.Empty<string>();
+                            });
+                }
+            }
+            """));
+
+    [Fact]
+    public async Task A_property_written_twice_beside_two_rules_is_still_reported()
+    {
+        var d = Assert.Single(await AnalyzeAsync("""
+            namespace Demo
+            {
+                public sealed class Draft { public string Name { get; set; } = ""; }
+
+                public sealed partial class Page : Rask.Core.Component
+                {
+                    private readonly Draft _m = new();
+
+                    protected override Rask.Core.Component? Render() =>
+                        Input.Bind(() => _m.Name)
+                            .Validate(v => System.Array.Empty<string>())
+                            .Id("a")
+                            .Validate(v => System.Array.Empty<string>())
+                            .Id("b");
+                }
+            }
+            """));
+
+        Assert.Contains("'Id'", d.GetMessage(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task A_chain_that_sets_each_property_once_is_not_reported() =>
         Assert.Empty(await AnalyzeAsync("""

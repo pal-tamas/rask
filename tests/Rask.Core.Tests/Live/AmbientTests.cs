@@ -52,6 +52,52 @@ public sealed partial class AmbientTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_render_sets_the_work_in_progresss_token_aside_and_puts_it_back()
+    {
+        using var handler = new CancellationTokenSource();
+        var duringRender = handler.Token;
+        var view = new StubComponent(() =>
+        {
+            duringRender = Ambient.CancellationToken;
+            return Div["x"];
+        });
+        using var _ = Ambient.Enter(handler.Token);
+
+        view.RenderAsLiveRoot();
+
+        Assert.False(duringRender.CanBeCanceled);
+        Assert.Equal(handler.Token, Ambient.CancellationToken);
+    }
+
+    [Fact]
+    public void A_render_that_throws_still_puts_the_work_in_progresss_token_back()
+    {
+        using var handler = new CancellationTokenSource();
+        var view = new StubComponent(() => throw new InvalidOperationException("render failed"));
+        using var _ = Ambient.Enter(handler.Token);
+
+        var thrown = Record.Exception(() => view.RenderAsLiveRoot());
+
+        Assert.IsType<InvalidOperationException>(thrown);
+        Assert.Equal(handler.Token, Ambient.CancellationToken);
+    }
+
+    [Fact]
+    public void Entering_the_token_already_in_scope_allocates_nothing_and_leaves_it_in_scope()
+    {
+        using var work = new CancellationTokenSource();
+        using var outer = Ambient.Enter(work.Token);
+        Ambient.Enter(work.Token).Dispose();   // warm: the first call JITs
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        Ambient.Enter(work.Token).Dispose();
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(0, allocated);
+        Assert.Equal(work.Token, Ambient.CancellationToken);
+    }
+
+    [Fact]
     public void A_token_the_caller_passed_wins_over_the_ambient_one()
     {
         using var ambient = new CancellationTokenSource();

@@ -382,7 +382,7 @@ public sealed partial class ComponentFactoryGenerator
                 .Append(self).Append(" __b, ").Append(paramType)
                 .Append(" value) where T : ").Append(receiver);
             sb.Append(" { var __c = __b; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
-                .Append(" = ").Append(assigned).AppendLine("; return __b; }");
+                .Append(" = ").Append(AddedRule(typeFqn, name, assigned)).AppendLine("; return __b; }");
             EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility,
                 generic: true);
             EmitCarrierOverloads(sb, setterName, name, typeFqn, receiver, wrap, pendingBit, visibility,
@@ -397,7 +397,7 @@ public sealed partial class ComponentFactoryGenerator
             .Append("(this ").Append(target).Append(" __b, ").Append(paramType).Append(" value)")
             .Append(constraints);
         sb.Append(" { var __c = __b; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
-            .Append(" = ").Append(assigned).AppendLine("; return __b; }");
+            .Append(" = ").Append(AddedRule(typeFqn, name, assigned)).AppendLine("; return __b; }");
         EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility,
             generic: false, typeParameters, constraints);
         EmitCarrierOverloads(sb, setterName, name, typeFqn, receiver, wrap, pendingBit, visibility,
@@ -540,6 +540,15 @@ public sealed partial class ComponentFactoryGenerator
 
         return track;
     }
+
+    // `.Validate(a).Validate(b)` runs a, then b if a let the value through: the one step that adds to what
+    // an earlier step wrote, where every other replaces it. A rule is non-folding, so the entry has already
+    // put it back to nothing and each render composes from empty (BuilderRuntime.Then).
+    private static string AddedRule(string typeFqn, string property, string value) =>
+        typeFqn.StartsWith(ValidatorFqn + "<", StringComparison.Ordinal) && typeFqn.EndsWith("?", StringComparison.Ordinal)
+            ? "global::Rask.Core.BuilderRuntime.Then<" + typeFqn.Substring(ValidatorFqn.Length + 1, typeFqn.Length - ValidatorFqn.Length - 3)
+              + ">(__c." + EscapeIdentifier(property) + ", " + value + ")"
+            : value;
 
     private const string CallbackFqn = "global::Rask.Core.Callback";
 
@@ -736,9 +745,9 @@ public sealed partial class ComponentFactoryGenerator
             // cannot render without — is a non-nullable struct, and `default` is its unset value.
             var empty = typeFqn.EndsWith("?", StringComparison.Ordinal) ? "null" : "default";
 
+            var wrapped = "value is null ? " + empty + " : new " + carrier + "(" + value + ")";
             sb.Append(" { var __c = __b; ").Append(track).Append("__c.").Append(prop)
-                .Append(" = value is null ? ").Append(empty).Append(" : new ").Append(carrier)
-                .AppendLine("(" + value + "); return __b; }");
+                .Append(" = ").Append(AddedRule(typeFqn, propertyName, wrapped)).AppendLine("; return __b; }");
         }
     }
 

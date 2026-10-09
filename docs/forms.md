@@ -55,6 +55,40 @@ derives everything from the bound property:
   promise of one call each: on WASM, what is typed while the handler and render of an earlier value are
   still running is sent as ONE value when they finish — or at once, ahead of any key, click or `change`
   that follows — so a slow page hears `"Atlantis"` rather than eight values queued behind the reader.
+  A field that should not bind on every keystroke says when it does: [`.Blur()` or
+  `.Debounce(…)`](#bind-timing).
+
+### Bind timing
+
+A bound `Input` or `Textarea` is **live**: a `string` field writes the model on every keystroke. Two
+steps after `Bind` make it wait instead — the ones Livewire writes `wire:model.blur` and
+`wire:model.live.debounce.300ms`:
+
+```csharp
+Ui.Input.Bind(() => _m.Name).Validate(CheckName)                  // live: binds on every keystroke
+Ui.Input.Bind(() => _m.Name).Blur().Validate(CheckName)           // binds and validates on leaving the field
+Ui.Input.Bind(() => _m.Name).Debounce(300.Milliseconds)           // binds and validates once typing pauses
+    .Validate(DestinationName.Validate)
+    .Validate(NameIsFree)
+```
+
+- **Nothing is sent while the reader types.** The pause is counted in the browser, so the keystrokes
+  before it cost no round trip and no render. At the pause — or on leaving a `.Blur()` field — one
+  message writes the value and runs the rules.
+- **Nothing that follows waits for the pause.** Enter, a press on a button, a key your handler hears
+  and a navigation all send the typed value first, so Save never saves the text from before.
+- **A message goes as soon as the reader starts correcting it**, not at the next pause, and no rule
+  runs for that.
+- **The unsaved-changes guard** ([`ConfirmLeave`](#ask-before-leaving-unsaved-changes)) counts the first
+  keystroke, sent or not.
+- **A rule still running when Save is pressed is not saved past**: the submit runs every rule again and
+  waits for the answers.
+
+The steps are on `Input`, `Textarea`, `Ui.Input` and `Ui.Textarea`, for any field that is typed into —
+text, number, date. A checkbox, a radio, a file, a range and a colour are chosen rather than typed: there
+the steps do nothing. One thing defeats a pause, by sending the value early: an `OnKeyDown` or `OnKeyUp`
+on the field that hears every key. Give it [`data-rask-keys`](js-interop-runtime.md#keys-and-focus) and it
+hears only the keys it acts on.
 
 ### The two modes are exclusive
 
