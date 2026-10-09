@@ -1488,6 +1488,18 @@ them until tagged releases begin.
   showing Flux shifts the same 15 px; the kit no longer does. Nested locks (a select inside a flyout), a
   `<dialog popover>` and the position after closing are held by `RuntimeHookLockTests`, in both browsers.
 
+- **A collapsed sidebar no longer flashes wide after a reload in a WebAssembly app.** `Ui.SidebarScript` restores
+  the rail's checkbox before the first paint, and the behaviour hooks (`data-rask-persist`) hold it from then
+  on — but the hooks are a bundle that arrives on its own time, and until it did nothing told the runtime the
+  box was the reader's. An app whose first render landed in that gap put the box back to the unchecked one it
+  had rendered: traced frame by frame, the prerendered box was checked and the sidebar 56 px from the first
+  frame, then unchecked and 256 px for 2 to 12 frames with the hooks not yet loaded, then right again. The
+  runtime every page loads now leaves a `data-rask-persist` box's `checked` alone itself (`ownsChecked` in
+  `rask-owned.ts`), so the head script is sufficient on its own and the hook only stores changes. 3 failures in
+  15 runs before, 0 in 30 after (60 reloads, half of them with the hooks bundle held back four seconds), on a
+  machine at a load average of 40. The site test's failure message now prints each wide frame with what could
+  have made it so — the document's state, whether the hooks had run, whether the app had replaced the box.
+
 - **`Ui.Menu` under a pointer is Flux's: one lit row, focus left alone, a flyout that survives the diagonal — and
   a hover menu that takes no focus.** The runtime had the hooks and the menus did not use them: a row was
   highlighted by `:hover` and, separately, by the keyboard's `data-active`, so a pointer resting on one row and
