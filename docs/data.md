@@ -902,6 +902,55 @@ generated one stays reachable as `ProductModelExtensions.Create(…)` for an ove
   form binds `() => _product.Price!.Amount` like any [nested model](forms-advanced.md), however `Money` is declared.
   A one-value value object (`record Email(string Value)`) is carried as its value: `string? Email`.
 
+### What a form over the model asks by itself
+
+A form bound to an aggregate's generated model runs two kinds of rule with nothing written on the form:
+
+```csharp
+public sealed record DestinationName(string Value)
+{
+    public static IEnumerable<string> Validate(string value) =>       // found by its shape
+        value.Trim().Length < 2 ? ["A name has at least two characters."] : [];
+}
+
+builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique("A destination with this name already exists.");
+
+Form.Model(_destination).OnSubmit(d => Destination.Create(d))[   // _destination is a DestinationModel
+    Ui.Input.Bind(() => _destination.Name),                      // both rules, no step
+    Ui.Button.Submit["Save"]
+]
+```
+
+**The value object's own rule.** A value object that holds ONE value and has a `public static Validate` taking
+exactly that value and returning the messages — `IEnumerable<string>`, or a `ValueTask`/`Task` of it — is asked by
+the field that holds it, before any `.Validate(…)` written on the field, which then runs only for a value it
+accepted. There is no interface and no attribute. A `Validate` of any other shape is not a rule and is left
+alone, and so is one on a value object of several values. An empty field is not put to it — that is
+`[Required]`'s to say, which the model already carries for a column that cannot be null.
+
+**The aggregate's unique rules.** Every index its `Configure` declares with a message — `IsUnique("…")` — is
+asked of the database [when a bound field is committed and again on submit](forms-validation.md#the-database-said-no),
+and the message shows under the field, or under each field of an index over several:
+
+- for the **current tenant's rows only**: the tenant is the one in flight, never the form's to say, and with no
+  tenant — or inside `Tenant.Across()` — the rule is left to the save
+- an edit form does not collide with **the row it was filled from**: the model remembers its key from
+  `Destination.Model(id)` / `ToModel()`. It is not a field — nothing binds or posts it — and it only decides
+  which row this courtesy check leaves out; the save takes its id beside the model and is checked on its own
+- a field not filled in yet — `null`, or a text field still `""` — asks nothing, so an index over two fields is
+  asked once both hold a value, and once for the pair, not once per field
+- the same indexes are asked as [by the save on an adopted table](#when-the-index-may-not-be-there): an index
+  filter other than its own columns being `NOT NULL` is skipped
+- on every host that has Rask.Data, whoever created the schema
+
+It is a courtesy, never the rule: two people can pass it at the same moment, and the save — the index itself,
+or the declared rule asked again in the save's transaction — still refuses the second, shown the same way.
+
+Both belong to the **generated** model. A model you write by hand gets neither — name the rule on the field
+(`.Validate(DestinationName.Validate)`) and let the save report the index. An index declared somewhere other
+than the aggregate's own `Configure`, and one on a row inside an aggregate, are enforced by the save and not
+asked beforehand.
+
 A `partial class ProductModel` of your own merges into the generated one, which is the way to add members,
 `IValidatableObject` or display helpers. The build says when it cannot generate: a **hand-written, non-`partial`
 `ProductModel`** beside a `Product` is an error ([RASK082](diagnostics.md#rask082)), and an aggregate **declared

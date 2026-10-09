@@ -7,6 +7,24 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **A form bound to a Rask.Data aggregate's generated model asks the aggregate's rules by itself.** Two kinds,
+  with no step on the field and none on the form. (1) A value object that holds one value and has a
+  `public static Validate` taking that value and returning the messages (`IEnumerable<string>`, or a
+  `ValueTask`/`Task` of it) is asked by the field that holds it, before any `.Validate(…)` written there. No
+  interface, no attribute; any other shape of `Validate` is left alone. (2) Every unique index the aggregate's
+  `Configure` declares with a message — `IsUnique("…")` — is asked of the database when a bound field is
+  committed and again on submit, and the message shows under the field (under each, for an index over several)
+  before the save is tried: for the current tenant's rows only, leaving out the row an edit form was filled
+  from, once per pair of values for an index over two fields, and on every host that has Rask.Data. It is a
+  courtesy and never the rule — the save still refuses a duplicate, the same way. A model written by hand gets
+  neither. **For an existing app:** a form over `XModel` whose aggregate declares `IsUnique("…")` now waits for
+  a query when such a field is committed, and a field holding a one-value value object with such a `Validate`
+  now shows its messages. The
+  generated model gains an `internal` `__Key` (the row it was filled from), which is not a field and is never
+  posted. See `docs/data.md` — *What a form over the model asks by itself*.
+
 ### Changed
 
 - **BREAKING: a one-value value object is stored as a converted scalar column, so it can be indexed and made
