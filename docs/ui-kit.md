@@ -2044,13 +2044,15 @@ Ui.Chart.Value(visits).Class("aspect-3/1")[
   box: the browser measures the drawing (the runtime's `data-rask-measure` hook) and the chart is drawn again in
   its units — when it first appears, 100 ms after its box stops changing (a window resized, a phone turned), and
   when a hidden chart is shown at a new size; a hidden chart keeps its drawing. Its 12px labels are 12px at
-  every width, and the ticks that fit are worked out again. On a Server page that is one round trip per chart
-  whose size was not already right; in WebAssembly it never leaves the browser.
-  The FIRST render happens before anything is measured, so it is drawn for 600 × 200 and scaled as a whole
-  until the size arrives (Flux's own first paint is an empty box: it draws from script). Where the size is known,
-  say it — `Ui.ChartSvg.Width(313).Height(104)` — and the first drawing is already the right one: a box within
-  half a pixel of the stated one is never reported, so nothing is drawn twice and nothing is sent. A page of
-  sixty charts should state it.
+  every width, and the ticks that fit are worked out again. There is no size to state: the box is the
+  container's, exactly as Flux's.
+  The FIRST render happens before anything is measured, so it draws nothing — an empty box of the size its
+  class gives it, as Flux's own first paint is (measured on its live page: the element is laid out and empty
+  until its script draws, some 350 ms later) — and the drawing arrives with the measurement. Every chart on a
+  page is measured in the same browser task, and the events of one task are answered with ONE render
+  (`docs/architecture/live-rendering-runtime.md`): a Server page of sixty charts is one frame out and one patch
+  back; in WebAssembly it never leaves the browser. A page that is prerendered for a WebAssembly app shows the
+  empty boxes until the runtime has started.
 - **Format.** Flux's `:format` is the options of `Intl.NumberFormat` / `Intl.DateTimeFormat`; `UiChartFormat`
   carries them under Intl's names, written with .NET formatting in the reader's culture:
   `new() { Style = Ui.ChartFormatStyle.Currency, Currency = "USD" }`,

@@ -292,8 +292,6 @@ public sealed class FluxConformanceTests
         ["flux:button/Command"] = "the <button>'s own `command`, which Flux forwards",
         ["flux:button/CommandFor"] = "the <button>'s own `commandfor`, which Flux forwards",
         ["flux:chart.svg/Gutter"] = "`gutter`, which Flux documents under \"Chart padding\" and not in the reference",
-        ["flux:chart.svg/Width"] = "the box Flux measures off its element in the browser, by script; a chart drawn in C# is told what to draw for until the browser has measured it",
-        ["flux:chart.svg/Height"] = "as Width",
         ["flux:chart.line/StrokeDasharray"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.point/R"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.point/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
