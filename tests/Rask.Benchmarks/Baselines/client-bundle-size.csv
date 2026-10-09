@@ -1,6 +1,13 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-09 with the chart following its container and the pointer (rask-plot.ts — a hook module, so
+# only a page with a chart downloads it): rask-hooks.js 40,669 -> 42,367 (+1,698). A part's text for every row
+# (data-rask-plot-text), rows that run down the area, a plot of shapes for a pie with data-inactive on the other
+# slices, a tooltip kept inside the drawing from wherever it rests; and a measured box that waits to settle, says
+# nothing while hidden or half a pixel off, and tells the page again when a render writes another size over it.
+# rask.js and rask.wasm.js are unchanged at 96,350 and 85,110: no new attribute is a reason to load the bundle.
+#
 # Refreshed 2026-10-09 with typing that waits for .NET: what is typed into a field whose last value is still
 # unanswered is held and sent as one value (rask-input.ts), and a key handler hears only the keys its element
 # lists (`data-rask-keys`, rask-events.ts): rask.js 95,912 -> 96,350 and rask.wasm.js 84,676 -> 85,110, +438 and
@@ -118,4 +125,4 @@
 bundle,bytes
 rask.js,96350
 rask.wasm.js,85110
-rask-hooks.js,40669
+rask-hooks.js,42367

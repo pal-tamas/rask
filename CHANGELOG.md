@@ -37,6 +37,29 @@ them until tagged releases begin.
   compiles its `Resources/RaskStrings.{culture}.json` into a source registered with
   `RaskStrings.UseLibrarySource`, a layer under the app's. The generated lookup walks `hu-HU` → `hu` over a
   span, so a language with no catalog costs no allocation.
+- **`Ui.Chart` fills its container and follows the pointer, as Flux's does.** Two things Flux's chart does in
+  script and the kit's did not do at all, both done by the runtime's plot hook with the chart still drawn in C#.
+  *Size.* The drawing is measured in the browser (`data-rask-measure`) and drawn again for the box it has — when
+  it first appears, 100 ms after its box stops changing (a window resized, a phone turned), and when a hidden
+  chart is shown at another size; a hidden chart keeps its drawing, as Flux's. Its 12px labels are 12px at 390
+  wide and at 1920, and the ticks that fit are worked out again, where the SVG used to be scaled as a whole
+  from the stated size. `Ui.ChartSvg.Width(…).Height(…)` are now the box drawn for BEFORE the browser has
+  measured (600 × 200 unstated): a chart stated within half a pixel of its real box is drawn once and sends
+  nothing. Flux's own first paint is an empty box; the kit's is the drawing, scaled until the size arrives.
+  *Pointer.* The cursor, the tooltip, every `Ui.ChartSummaryValue`, the active `Ui.ChartPoint`s and a pie's
+  slices follow the pointer in the browser, with no round trip: the tooltip sits 15px from the row and the
+  pointer and flips at the drawing's right and bottom edges (it used to rest at 40% of the height); a summary
+  reads the hovered row and goes back to the latest; a horizontal chart's rows are followed down the page; an
+  area cursor covers the row's band; a pie's hovered slice carries `data-active` and the others `data-inactive`
+  (`.Class("transition-opacity data-inactive:opacity-40")`), its tooltip follows the pointer and a
+  `Ui.ChartTooltipIndicator` takes the slice's colour — a pie had no tooltip before. Every step of a pointer
+  walked over Flux's live page and the kit's agrees (`node scripts/flux/parity-chart.mjs --pointer`, 22 charts).
+  No call site changes. The hook gained what that needed (`docs/js-interop-runtime.md`): `data-rask-plot-text`
+  (a part's text for every row, a line each), `data-rask-plot-frame`, `data-rask-plot-axis="y"`, the rows'
+  places on the area itself, `--rask-plot-at` / `--rask-plot-y`, a plot of shapes for a root with no area, a
+  tooltip placed from wherever it rests; and `data-rask-measure` now waits for a box to settle, says nothing for
+  a hidden element or a half-pixel difference, and tells a page its box again when a render writes another size
+  over it — a prerendered WASM page measured before its host arrived used to keep the size it was rendered at.
 
 - **`Ui.ConfirmLeave` — the unsaved-changes question in a dialog of the app's own.** Placed once in a layout
   (`Ui.ConfirmLeave.Stay("Nem").Leave("Igen")`, "Stay" / "Leave" when unset), it is where every form's
@@ -63,6 +86,16 @@ them until tagged releases begin.
   `rask.js` +64 bytes, `rask.wasm.js` +62. See `docs/forms.md#ask-before-leaving-unsaved-changes`.
 
 ### Performance
+
+- **A `Ui.Chart` is a third of the markup and a third of the work.** Every row used to carry its own strip, its
+  own cursor and its own copy of the whole tooltip; there is one tooltip and one cursor now, and each part
+  carries what it reads per row as one short line. Sixty charts of fifty points, with axes, a cursor and a
+  tooltip: 4,124,077 → 1,379,357 bytes of HTML (−67%), 27.4 → 9.8 ms to render (warm median, Release) and
+  48.7 → 12.7 MB allocated per render — the numbers of a path are written straight into it instead of through a
+  string each. A drawing is also kept by the chart that made it and reused while its rows, its parts and its
+  box are the same ones: a part that reads the chart's context is rendered on every walk of the page, so sixty
+  charts were each drawn again whenever one of them was measured (3.0–4.8 s for a page of sixty to settle on a
+  Server host before, 0.6–0.9 s after; nothing at all when their sizes are stated).
 
 - **The behaviour hooks load on demand; the runtime every page downloads is a quarter smaller.** Everything an
   element asks of the runtime by carrying an attribute (`data-rask-tooltip`, `data-rask-otp`, `data-rask-modal-open`
@@ -1309,6 +1342,15 @@ them until tagged releases begin.
   gone.
 
 ### Fixed
+
+- **A `Ui.ChartBar` shorter than its corners is drawn as Flux draws it.** A bar's corner was held to the bar's
+  whole length, where Flux holds it to HALF of it (and to half the bar's thickness): a bar under 16px tall with
+  the default radius of 8 — or under 8px in a group, whose radius is 4 — had its shoulders 1 to 3px too low, the
+  arcs meeting in a point instead of a half disc. A bar lying on its side that runs back from the baseline (a
+  negative value on a `Horizontal()` chart) was square at both ends; it is rounded at its left end now, as
+  Flux's. Found on the random rows Flux's docs draw (three loads in six had such a bar) and held by
+  `UiChartTests.Bars.json`: those loads, and rows handed to Flux's live chart for short, empty and negative bars
+  alone, grouped, stacked and horizontal.
 
 - **Typing fast into a slow page no longer queues a render per key behind the reader — and `Ui.Autocomplete`
   no longer shows stale text, goes empty, or opens and closes for ever after it is left.** Every key typed into

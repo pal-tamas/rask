@@ -15,7 +15,7 @@ import {scrollBy} from "../../../src/Rask.Core/Resources/rask-focus.js";
 import {dragFraction, dragText} from "../../../src/Rask.Core/Resources/rask-drag.js";
 import {provides} from "../../../src/Rask.Core/Resources/rask-requires.js";
 import {daysIn, pastedDate, pivotYear, segmentDigit, yearDigit} from "../../../src/Rask.Core/Resources/rask-segments.js";
-import {beside, nearestRow, sizeText} from "../../../src/Rask.Core/Resources/rask-plot.js";
+import {beside, lineOf, nearestRow, sameBox, sizeText} from "../../../src/Rask.Core/Resources/rask-plot.js";
 import {progressOf} from "../../../src/Rask.Core/Resources/rask-upload.js";
 
 const phone = "(999) 999-9999";
@@ -81,6 +81,10 @@ console.log(JSON.stringify({
         // An 80 px box 10 px from a point, in a 400 px frame: after it while it fits, before it when it would not.
         beside: [beside(50, 80, 10, 400), beside(310, 80, 10, 400), beside(311, 80, 10, 400)],
         size: sizeText(300.004, 99.996),
+        // A text's lines, a row each: a row's own, an empty one, a row past the last, and no row.
+        lines: [lineOf("a\n\nc", 0), lineOf("a\n\nc", 1), lineOf("a\n\nc", 2), lineOf("a\n\nc", 3), lineOf("a\n\nc", -1)],
+        // A field that says 313.33 by 104.44: the same box to a hundredth, to under half a pixel, and not.
+        same: [sameBox("313.33 104.44", 313.34, 104.44), sameBox("313.33 104.44", 313.8, 104.44), sameBox("313.33 104.44", 313.83, 104.44), sameBox("313.33 104.44", 313.33, 104), sameBox("", 313.33, 104.44)],
     },
     segments: {
         // A first digit: 3 can only be March and is done; 1 waits. A second digit: 12 is done, and 13 starts again at 3.

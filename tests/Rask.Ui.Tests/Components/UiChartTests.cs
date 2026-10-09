@@ -244,33 +244,97 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void The_chart_is_marked_and_its_tooltip_rests_in_the_document_unseen()
+    public void The_chart_asks_for_the_plot_hook_and_its_one_tooltip_rests_in_the_document_unseen()
     {
         var html = Intro();
 
-        Assert.StartsWith("<div class=\"relative block\" data-ui-chart>", html, StringComparison.Ordinal);
-        Assert.Matches("<div class=\"pointer-events-none absolute flex [^\"]* opacity-0\">", html);
+        var tooltips = Regex.Count(html, "data-rask-plot-tooltip");
+
+        Assert.StartsWith("<div class=\"relative block\" data-ui-chart data-rask-plot=\"\">", html, StringComparison.Ordinal);
+        Assert.Equal(1, tooltips);
+        Assert.Matches("<div class=\"pointer-events-none absolute flex [^\"]* opacity-0 [^\"]*data-active:opacity-100[^\"]*\" data-rask-plot-tooltip=\"15\">", html);
         Assert.Contains("<path fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" stroke-dasharray=\"4,4\" class=\"text-zinc-500 dark:text-zinc-300\" opacity=\"0\">", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Every_row_has_a_strip_over_the_drawing_that_carries_its_cursor_and_its_tooltip()
+    public void The_plot_area_says_where_every_row_is_and_holds_the_one_cursor_the_hook_moves()
     {
         var html = Intro();
 
-        var strips = Regex.Matches(html, "class=\"group/row absolute\"").Count;
+        var area = Regex.Match(html, "<div class=\"absolute\" style=\"([^\"]*)\" data-rask-plot-area=\"([^\"]*)\">(.*?)</div></div>");
+        var places = area.Groups[2].Value.Split(' ');
 
-        Assert.Equal(16, strips);
-        Assert.Contains("data-ui-chart-hover", html, StringComparison.Ordinal);
-        Assert.Matches("9/28/2026</div><div[^>]*><div[^>]*>Visitors</div><div class=\"grow\"></div><div>300</div>", html);
+        // The plot of the 606 by 202 box, in shares of it: in from the left by the widest label, 15.5 down, to 598 and 167.
+        Assert.Equal("left:7.024%;top:7.673%;width:91.656%;height:75%", area.Groups[1].Value);
+        Assert.Equal(16, places.Length);
+        Assert.Equal(["0", "0.06667", "1"], [places[0], places[1], places[^1]]);
+        Assert.Equal(1, Regex.Count(area.Groups[3].Value, "<div"));
+        Assert.Contains("in-data-active:block", area.Groups[3].Value, StringComparison.Ordinal);
+        Assert.Contains("style=\"left:calc(var(--rask-plot-at, 0) * 100%)\"", area.Groups[3].Value, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_chart_with_no_cursor_and_no_tooltip_carries_no_strips()
+    public void A_tooltip_part_carries_what_it_reads_for_every_row_and_nothing_at_rest()
     {
-        var html = Bare(Ui.ChartLine);
+        var html = Intro();
 
-        Assert.DoesNotContain("data-ui-chart-hover", html, StringComparison.Ordinal);
+        var heading = Regex.Match(html, "border-b [^>]* data-rask-plot-text=\"([^\"]*)\"></div>").Groups[1].Value.Split("&#xA;");
+        var value = Regex.Match(html, "<div class=\"grow\"></div><div data-rask-plot-text=\"([^\"]*)\"></div>").Groups[1].Value.Split("&#xA;");
+
+        Assert.Equal(16, heading.Length);
+        Assert.Equal(["9/22/2026", "9/28/2026", "10/7/2026"], [heading[0], heading[6], heading[^1]]);
+        Assert.Equal(["171", "300", "267"], [value[0], value[6], value[^1]]);
+    }
+
+    [Fact]
+    public void An_area_cursor_is_as_wide_as_a_rows_band_and_a_horizontal_chart_runs_its_rows_down()
+    {
+        var upright = InEnglish(() => Ui.Chart.Value(Visits)[
+            Ui.ChartSvg.Width(606).Height(202)[Ui.ChartBar.Field((Visit v) => v.Visitors).Width("85%"), Ui.ChartCursor.Type(Ui.ChartCursorType.Area)]].ToHtml());
+        var lying = InEnglish(() => Ui.Chart.Horizontal().Value(Visits)[
+            Ui.ChartSvg.Width(606).Height(202)[Ui.ChartBar.Field((Visit v) => v.Visitors), Ui.ChartCursor]].ToHtml());
+
+        var places = Regex.Match(upright, "data-rask-plot-area=\"([^\"]*)\"").Groups[1].Value.Split(' ');
+
+        // Sixteen bands: the cursor covers a whole one, whatever the bar fills, centred on the row in its middle.
+        Assert.Contains("style=\"left:calc(var(--rask-plot-at, 0) * 100%);width:6.25%\"", upright, StringComparison.Ordinal);
+        Assert.Equal(["0.03125", "0.96875"], [places[0], places[^1]]);
+        Assert.DoesNotContain("data-rask-plot-axis", upright, StringComparison.Ordinal);
+        Assert.Contains("data-rask-plot-axis=\"y\"", lying, StringComparison.Ordinal);
+        Assert.Contains("style=\"top:calc(var(--rask-plot-at, 0) * 100%)\"", lying, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Every_drawing_is_measured_and_says_the_size_it_was_drawn_at()
+    {
+        var stated = Bare(Ui.ChartLine);
+        var unstated = InEnglish(() => Ui.Chart.Value([0, 10, 20])[Ui.ChartSvg[Ui.ChartLine]].ToHtml());
+        var pie = InEnglish(() => Ui.Chart.Value([1, 2])[Ui.ChartSvg.Width(180.671875).Height(180.671875)[Ui.ChartPie]].ToHtml());
+
+        var layers = new[] { stated, unstated, pie }.Select(html => Regex.Match(html, "data-ui-chart-hover data-rask-measure=\"\" data-rask-plot-frame=\"\"><input type=\"hidden\" value=\"([^\"]*)\"").Groups[1].Value).ToArray();
+
+        // What the runtime's hook would write for the same box, so a chart drawn at its real size is not drawn twice.
+        Assert.Equal(["200 100", "600 200", "180.67 180.67"], layers);
+        Assert.Contains("viewBox=\"0 0 600 200\"", unstated, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-plot-area", pie, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Points_and_slices_name_their_row_and_a_pies_tooltip_has_a_dot_per_slice()
+    {
+        var points = Bare(Ui.ChartPoint);
+        var pie = InEnglish(() => Ui.Chart.Value(Visits.Take(3).ToArray())[
+            Ui.ChartSvg.Width(200).Height(200)[Ui.ChartPie.Field((Visit v) => v.Visitors).LabelField((Visit v) => v.Day)],
+            Ui.ChartTooltip[Ui.ChartTooltipValue.Field((Visit v) => v.Visitors).LabelField((Visit v) => v.Day)[Ui.ChartTooltipIndicator]]].ToHtml());
+
+        var slices = Regex.Matches(pie, "<path [^>]*data-rask-plot-row=\"(\\d)\"></path>").Select(match => match.Groups[1].Value);
+        var dots = Regex.Matches(pie, "<div class=\"size-2.5 rounded-full hidden data-active:block (bg-[a-z]+-500)\" data-ui-chart-hover data-rask-plot-row=\"(\\d)\"").Select(match => match.Groups[1].Value + match.Groups[2].Value);
+
+        Assert.Equal(3, Regex.Count(points, "<circle [^>]*data-rask-plot-row=\"[012]\"></circle>"));
+        Assert.Equal(["0", "1", "2"], slices);
+        Assert.Equal(["bg-sky-5000", "bg-lime-5001", "bg-orange-5002"], dots);
+        Assert.Contains("<div class=\"size-2.5 rounded-full in-data-active:hidden\" data-rask-key=\"-1\"></div>", pie, StringComparison.Ordinal);
+        Assert.Contains("data-rask-plot-text=\"9/22/2026&#xA;9/23/2026&#xA;9/24/2026\"", pie, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -282,8 +346,8 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
         var latest = InEnglish(() => Ui.Chart.Value(Visits)[Ui.ChartSummary[Revenue()]].ToHtml());
         var none = InEnglish(() => Ui.Chart.Value(Array.Empty<Visit>())[Ui.ChartSummary[Revenue()]].ToHtml());
 
-        Assert.Contains("<span><slot>$2,803.50</slot></span>", latest, StringComparison.Ordinal);
-        Assert.Contains("<span><slot>n/a</slot></span>", none, StringComparison.Ordinal);
+        Assert.Matches("<span><slot data-rask-plot-text=\"\\$1,795\\.50&#xA;[^\"]*&#xA;\\$2,803\\.50\">\\$2,803\\.50</slot></span>", latest);
+        Assert.Contains("<span><slot data-rask-plot-text=\"\">n/a</slot></span>", none, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -15,10 +15,14 @@ public sealed partial class UiChartTooltipHeading : Component, IUiChartField
         "flex items-center justify-between border-b border-zinc-200 bg-zinc-50 p-2 text-xs font-medium text-zinc-800 "
         + "dark:border-zinc-500 dark:bg-zinc-600 dark:text-zinc-100";
 
-    /// <inheritdoc />
-    protected override Component? Render() => Div.Class(UiClass.Compose(Look, Class));
+    private readonly UiChartLines _lines = new();
 
-    /// <summary>The heading as it reads for one row.</summary>
-    internal Component For(UiChartData data, int row) =>
-        Div.Class(UiClass.Compose(Look, Class))[UiChartWriting.Value(Field, Format, data, row)];
+    // What it reads is the chart's rows, which arrive through the context rather than as a prop of its own.
+    /// <inheritdoc />
+    protected override bool BypassRenderCache => true;
+
+    // Empty at rest, as Flux's: the plot hook writes the hovered row's line into it.
+    /// <inheritdoc />
+    protected override Component? Render() =>
+        Div.Class(UiClass.Compose(Look, Class)).Data(_lines.Of(Context.Get<UiChartScope>()?.Data, Field, Format));
 }

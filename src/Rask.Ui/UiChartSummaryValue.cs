@@ -15,6 +15,8 @@ public sealed partial class UiChartSummaryValue : Component, IUiChartField
     /// <summary>How the value is written.</summary>
     public UiChartFormat? Format { get; set; }
 
+    private readonly UiChartLines _lines = new();
+
     // What it shows is one of the chart's rows, which arrive through the context rather than as a prop of its own.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
@@ -24,6 +26,9 @@ public sealed partial class UiChartSummaryValue : Component, IUiChartField
     {
         var data = Context.Get<UiChartScope>()?.Data;
         // Flux's markup: a <span> holding a <slot>, which outside a shadow tree simply shows what is in it.
-        return Span[Slot[data is null || data.Count == 0 ? Fallback : UiChartWriting.Value(Field, Format, data, data.Count - 1)]];
+        // At rest it reads the latest row; under the pointer the plot hook shows the hovered row's line instead.
+        return Span[
+            Slot.Data(_lines.Of(data, Field, Format))[
+                data is null || data.Count == 0 ? Fallback : UiChartWriting.Value(Field, Format, data, data.Count - 1)]];
     }
 }
