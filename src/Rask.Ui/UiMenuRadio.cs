@@ -53,7 +53,6 @@ public sealed partial class UiMenuRadio : Component
         {
             button = button.OnClick(async () =>
             {
-                level?.Scope.MoveTo(ordinal);
                 if (group is not null)
                 {
                     await group.Choose(Value).ConfigureAwait(false);

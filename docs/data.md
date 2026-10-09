@@ -689,6 +689,11 @@ public sealed class Reading : Aggregate<Guid>
 }
 ```
 
+What the table does not carry, the generated types do not either. A `Reading` like the one above has no
+`Version` on its form model — `Reading.Update(id, model)` compares none — and its read face has `CreatedAt`
+and nothing else of the framework's: `Reading.OrderBy(r => r.UpdatedAt)` is a compile error, not a query that
+fails. `DeletedAt` is on a read face only for an aggregate that declares `Deletes = Deletion.Soft`.
+
 ### Announcing a save
 
 A save already refreshes the screen of the session that made it — that is `IDataChanges`, and it costs nothing and

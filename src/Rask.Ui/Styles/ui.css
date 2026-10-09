@@ -986,7 +986,9 @@
   Ui.Menu (Flux's flux:menu), for what a utility cannot say: a :has() chain, anchor positioning, the top layer.
 
   THE PAGE BEHIND AN OPEN MENU does not scroll and does not take the pointer, as Flux leaves it: a click outside
-  closes the menu and does nothing else, so it cannot also press whatever happened to be under it.
+  closes the menu and does nothing else, so it cannot also press whatever happened to be under it. That is the
+  runtime's lock (`data-rask-lock` on the menu), not a rule here: a rule cannot know whether a scrollbar is
+  showing, and reserving a gutter where none was moved the page.
 
   A ROW WITH NO ICON, in a menu where another row has one, keeps the icon's room, so every row's words start at
   the same place. Only rows of the same menu count: a submenu's checkboxes do not indent its parent.
@@ -994,33 +996,16 @@
   A GROUP draws a line above and below itself, and drops the one that would double up or lead nowhere — above
   the first thing in the menu or another group, below the last.
 
-  A SUBMENU's flyout sits beside its row, overlapping the menu's padding. A pointer opens it by resting on the
-  row and the keyboard by the menu writing `data-open`; resting on any other row closes one the keyboard opened.
-  It is `position: fixed` so the menu's own scrolling cannot clip it, placed by anchor positioning against its
-  row. The row carries a WEDGE while its flyout is open — its ::after, clipped to a triangle from the middle of
-  the row to the flyout's edge — so a diagonal move toward the flyout that crosses the next row down does not
-  close it: Flux's safe area, which it works out in script from the pointer's path. There is no hover on a touch
-  screen, so there the wedge is off and a tap opens the flyout.
+  A SUBMENU's flyout sits beside its row, overlapping the menu's padding, and is shown by `data-open` on the
+  element that holds them both — which the RUNTIME writes, in the browser (`data-rask-menu-cursor`): when the
+  pointer rests on the row, for the keyboard and for a tap, and it takes it away when another row is entered.
+  Not `:hover`: a flyout stays open after the pointer has left the menu, and closes under a pointer that is
+  still resting on its row once the arrows have moved on, and a rule cannot say either. It is
+  `position: fixed` so the menu's own scrolling cannot clip it, placed by anchor positioning against its row.
+  The diagonal toward the flyout, across the rows below, is Flux's safe area and the runtime's too
+  (`data-rask-safe-area` on the row): a triangle that follows the pointer.
 */
 @layer rask {
-  /*
-    Not for a menu the pointer opens (a dropdown with `hover`, the menu of a sidebar group in the rail): a
-    page that took no pointer would take it from the trigger too, and the menu would close under it. Flux
-    locks nothing there either.
-  */
-  :root:has(
-      [data-ui-menu]:popover-open:not([data-rask-hover] > *),
-      [data-ui-navmenu]:popover-open:not([data-rask-hover] > *)
-    ) {
-    overflow: hidden;
-    pointer-events: none;
-    scrollbar-gutter: stable;
-  }
-
-  :is([data-ui-menu], [data-ui-navmenu]):popover-open {
-    pointer-events: auto;
-  }
-
   [data-indent] {
     display: none;
   }
@@ -1057,29 +1042,8 @@
     position-try-fallbacks: flip-inline;
   }
 
-  [data-ui-menu-submenu]:is(:hover, [data-open]) > [data-ui-menu] {
+  [data-ui-menu-submenu][data-open] > [data-ui-menu] {
     display: block;
-  }
-
-  [data-ui-menu]:has(> :hover) > [data-ui-menu-submenu][data-open]:not(:hover) > [data-ui-menu] {
-    display: none;
-  }
-
-  @media (hover: hover) {
-    [data-ui-menu-submenu]:hover > [role="menuitem"]::after {
-      content: "";
-      position: fixed;
-      position-anchor: --ui-menu-submenu;
-      inset-block-start: anchor(start);
-      inset-inline-start: calc(anchor(end) - 3.5625rem);
-      inline-size: 3.25rem;
-      block-size: 12rem;
-      clip-path: polygon(100% 0, 100% 100%, 0 1rem);
-    }
-
-    [dir="rtl"] [data-ui-menu-submenu]:hover > [role="menuitem"]::after {
-      clip-path: polygon(0 0, 0 100%, 100% 1rem);
-    }
   }
 }
 

@@ -23,8 +23,6 @@ Rask.Outbox.OutboxMessageRead.ClaimToken.get -> System.Guid?
 Rask.Outbox.OutboxMessageRead.ClaimToken.init -> void
 Rask.Outbox.OutboxMessageRead.ClaimedUntil.get -> System.DateTime?
 Rask.Outbox.OutboxMessageRead.ClaimedUntil.init -> void
-Rask.Outbox.OutboxMessageRead.CreatedAt.get -> System.DateTime
-Rask.Outbox.OutboxMessageRead.CreatedAt.init -> void
 Rask.Outbox.OutboxMessageRead.Error.get -> string?
 Rask.Outbox.OutboxMessageRead.Error.init -> void
 Rask.Outbox.OutboxMessageRead.Id.get -> long

@@ -318,7 +318,7 @@ of the runtime itself.
 ### How the hooks load
 
 **A page that carries none of these attributes does not download them.** The hooks in the tables below are a
-script of their own, `rask-hooks.js` (40 kB, 13 kB gzipped), beside the runtime every page loads (`rask.js` on
+script of their own, `rask-hooks.js` (49 kB, 15 kB gzipped), beside the runtime every page loads (`rask.js` on
 the Server host, `rask.wasm.js` in a WebAssembly app). The runtime keeps only the list of attributes that ask
 for a hook, and fetches the script the first time the page carries one — at most once per document:
 
@@ -336,8 +336,9 @@ your own origin, with the runtime's nonce when its `<script>` has one. Under a C
 hooks need what the runtime already needs — `script-src 'self'`, or the nonce — and no inline script.
 
 Any element counts, whoever wrote it: your own markup, a `Raw` fragment, a node a script of yours inserted.
-Besides the `data-rask-*` names, five of the platform's own ask for a hook, because a hook improves them
-unasked: `popover`, `commandfor`, `aria-activedescendant`, `role="switch"` on a checkbox and `role="tablist"`.
+Besides the `data-rask-*` names, six of the platform's own ask for a hook, because a hook improves them
+unasked: `popover`, `commandfor`, `aria-activedescendant`, `role="switch"` on a checkbox, `role="tablist"` and
+`role="menu"`.
 
 ### What a hook module may import
 
@@ -361,7 +362,7 @@ that arrives some other way stands down: its listeners answer nothing and send n
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
 | `data-rask-tooltip="<popover id>"` | the element wrapping a trigger and its `popover="manual"` bubble | Shows the bubble in the pointer's own task when it enters the wrapper and hides it when it leaves; shows it on keyboard focus (`:focus-visible`) and keeps it while that focus lasts; Escape hides it; a press on the trigger hides it until the pointer has left and come back. The element inside carrying `aria-expanded` has it kept true or false. Any element can be the trigger — the bubble reaches the top layer. A touch never hovers. |
-| `data-rask-hover="<popover id>"` | the element wrapping a trigger and its panel | Opens the panel while the pointer is over the wrapper (trigger or panel) and closes it over neither — the pixels between them included. A press on the trigger's own `popovertarget` button leaves it open; Enter opens it the platform's way; focus alone does not. |
+| `data-rask-hover="<popover id>"` | the element wrapping a trigger and its panel | Opens the panel while the pointer is over the wrapper (trigger or panel) and closes it over neither — the pixels between them included. A press on the trigger's own `popovertarget` button leaves it open; Enter opens it the platform's way; focus alone does not. A panel the pointer opened takes no focus, even one that carries `autofocus`: focus stays where it was. |
 | `data-rask-hover-if="<selector>"` | the same element | The hover opens only while the element matches the selector — a rail item that opens its menu only while the sidebar is collapsed: `"input:checked ~ *"`. |
 | `aria-expanded` on the trigger inside a `data-rask-tooltip` | an interactive tooltip (one whose bubble holds links or buttons) | Mirrored while the bubble shows. It also marks the tooltip as interactive: when focus drops to nothing (`blur()`, the window losing focus) the bubble stays, until a press outside it. A tooltip without it closes. |
 
@@ -376,14 +377,17 @@ that arrives some other way stands down: its listeners answer nothing and send n
 | `command` / `commandfor` | a `<button>` | Where the engine has no invoker commands: `show-modal`, `close`, `request-close`, and the popover three. |
 | `data-rask-toggle="<popover id>"` | any element that is not a `<button popovertarget>` | A click on it toggles that popover — unless the click is in a text field, a `<select>` or an editable element inside it, which takes it for itself — and so do Enter and Space while it — or something inside it that is not a control of its own — has focus (Space does not scroll). A `popover="manual"` it opened is closed by Escape, by a press outside both, and by focus moving outside both; a press inside the popover leaves it open. A `popover="auto"` gets those from the platform, and a click on its toggle closes it rather than reopening it. Focus is yours: give the element a `tabindex` and a `role`. Do not also write `popovertarget`. |
 | `aria-expanded` *(rewritten)* | an element that invokes a popover (`popovertarget`, `commandfor`, `data-rask-toggle`) and already carries `aria-expanded` | `"true"` while that popover shows and `"false"` when it does not, however it was opened or closed. Never added where the render did not write it; once written, a render no longer overwrites it. |
-| `data-rask-lock` \| `data-rask-lock="scroll"` | a popover or dialog | While it is open `<html>` does not scroll, keeps its scrollbar gutter and — unless `"scroll"` — takes no pointer; the overlay itself stays usable. Counted, so two open overlays, one removed by a render, and a navigation all end unlocked. |
+| `data-rask-lock` \| `data-rask-lock="scroll"` | a popover or dialog | While it is open `<html>` does not scroll, keeps its scrollbar's gutter where a scrollbar was showing (`data-rask-gutter`, written; none is reserved where none was, so the page stays exactly as wide and scrolled exactly as far as it was) and — unless `"scroll"` — takes no pointer; the overlay itself stays usable. Counted, so two open overlays, one removed by a render, and a navigation all end unlocked. |
 
 ### Menus
 
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
-| `data-rask-menu-pointer` | a `[role=menu]` | The row under the pointer gets `data-active` at once and every other row of that menu loses it; none has it once the pointer leaves the menu. Move your own cursor from the row's `OnPointerEnter` and the render agrees with what is already on screen. |
-| `data-rask-safe-area="<flyout id>"` | a row that opens a submenu | While the flyout is showing, the triangle between the pointer and the flyout's near edge belongs to the row, so the diagonal towards the flyout does not touch the rows it crosses. |
+| `role="menu"` | an element holding `[role=menuitem]` / `menuitemcheckbox` / `menuitemradio` rows | The navigation keys (arrows, Home, End, Page keys, Space, Enter) do not scroll the page — your key handler still receives every one. A row that gains `data-active` inside an open popover is focused — unless it says `tabindex="-1"`, which is how a row the POINTER lit is told from the keyboard's — and so is the row a render gives `tabindex="0"`. Enter and Space click the focused row, or the one `aria-activedescendant` names, unless it opens a submenu. ArrowDown on a closed `[popovertarget][aria-haspopup]` button opens its menu and hands the menu the key. A click on a row closes the popover the menu is in; Tab out of it closes it; and a popover that closes with focus nowhere hands it to its button. |
+| `data-rask-keep-open` | a row, or anything around it up to the menu | A click on the row leaves the popover open. |
+| `data-rask-menu-cursor` | the outermost `[role=menu]`, whose rows are rendered with `tabindex="-1"` and no `data-active` | **The runtime keeps the menu's cursor, and the page is sent nothing while the reader moves about it.** Lit row (`data-active`), focused row (`tabindex="0"`, and focus) and open flyouts (`data-open` on the element holding a submenu's row and the `[role=menu]` right after it) are written in the browser and held against the next render. Keys: with focus on the menu either arrow lands on the row the pointer lit, or the first; from a row the arrows count from the LIT row, a row at a time, stopping at the ends and over `disabled` / `aria-disabled` rows; ArrowRight or Enter on a submenu's row opens it onto its first row, Space opens it and stays, ArrowLeft closes the flyout the cursor is in; a letter jumps to the row that starts with it (letters within 500 ms are a prefix; the same letter again goes on to the next); Home, End and the page keys do nothing. Pointer (with `data-rask-menu-pointer`): entering a row lights it, opens its flyout, and closes every flyout the row is not inside; a flyout stays open after the pointer leaves the menu. A press puts the cursor on its row; on a submenu's row a tap opens the flyout and the next closes it. All of it is forgotten when the popover closes. Do not render `data-active`, `tabindex="0"` or `data-open` yourself, and write no key or pointer handler: your page hears the rows' own clicks. |
+| `data-rask-menu-pointer` | a `[role=menu]` | The row under the pointer gets `data-active` at once and every other row of that menu loses it; once the pointer leaves the menu none has it but the row that has focus, which is the keyboard's. Focus is not moved. A flyout is a menu of its own: give it the attribute too. With `data-rask-menu-cursor` there is nothing else to do. A menu whose cursor your PAGE keeps instead moves it from the row's `OnPointerEnter` — a round trip per row — and renders the lit row with `tabindex="-1"` until the keyboard takes it. |
+| `data-rask-safe-area="<flyout id>"` \| `data-rask-safe-area` | a row that opens a submenu; with no value the flyout is the element right after the row | While the flyout is showing, the triangle between the pointer and the flyout's near edge belongs to the row, so the diagonal towards the flyout does not touch the rows it crosses. |
 
 ### Fields
 
@@ -439,7 +443,7 @@ that arrives some other way stands down: its listeners answer nothing and send n
 
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
-| `data-rask-persist="<key>"` | a checkbox | Checked as the reader last left it, from `localStorage[key]` (`"true"` / `"false"`), and stored on every change; a render no longer resets it. The runtime restores it when it loads — in a WebAssembly app that is after boot, so a page that must not flash restores the same key from a script of its own in `<head>`. |
+| `data-rask-persist="<key>"` | a checkbox | Checked as the reader last left it, from `localStorage[key]` (`"true"` / `"false"`), and stored on every change; a render never resets it — the runtime every page loads leaves the box alone from the start, whether or not the hooks have arrived. The hooks restore it when they load — in a WebAssembly app that is after boot, so a page that must not flash restores the same key from a script of its own in `<head>` (`Ui.SidebarScript` does for a sidebar), and that script is enough on its own: nothing puts the box back before the hooks come. |
 | `data-rask-uncheck-on-navigate` | a checkbox | Unchecked (with a `change` event) when the app navigates to another path, and on a press on a link to the page the reader is already on (same path and query, no fragment), which navigates nowhere. |
 | `data-rask-confirm-leave="<message>"` | a `<form>` — written by [`Form.Model(m).ConfirmLeave("…")`](forms.md#ask-before-leaving-unsaved-changes) | From the first `input` or `change` inside it the form is unsaved, and a nav link, `__raskHost.navigate`, Back and Forward ask first — with `confirm(message)`, or in the dialog of a `Ui.ConfirmLeave` on the page (its parts carry `data-rask-leave="message"` and `"go"`: the message is written into the first, the dialog is shown modally, and a press on the second makes the navigation that was refused); staying sends nothing and, after Back, puts the address back. Closing the tab, a reload and a link out of the app get the browser's own prompt (`beforeunload`, listened to only while a form is unsaved). The form's `data-rask-saved`, which the server changes after each accepted submit, makes the edits sent before it saved. |
 

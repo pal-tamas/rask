@@ -57,9 +57,19 @@ export function ownsAttr(el: Element, name: string): boolean {
     return names !== undefined && names.has(name);
 }
 
-/** Whether a hook holds the checked state of `el` (a checkbox restored from storage), so a render does not. */
+/**
+ * Whether the checked state of `el` is not a render's to set: a hook holds it, or the box says
+ * `data-rask-persist` — its state is the READER's, kept across visits.
+ *
+ * The attribute is asked directly, and that is the point. The hook that restores and stores such a box
+ * (rask-persist.ts) arrives in a bundle of its own, some time after the runtime; a page that must not flash
+ * restores the box from a script in its `<head>` before the first paint. Between the two, a WebAssembly app's
+ * first render used to put the box back to the unchecked one it rendered — nothing held it yet — and a
+ * collapsed sidebar was drawn wide for the frames until the hooks came (2 to 12 of them, measured). The
+ * runtime every page loads therefore knows this one thing itself.
+ */
 export function ownsChecked(el: Element): boolean {
-    return ownsAttr(el, "checked");
+    return ownsAttr(el, "checked") || el.hasAttribute("data-rask-persist");
 }
 
 /**
