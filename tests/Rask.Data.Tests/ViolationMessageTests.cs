@@ -75,9 +75,8 @@ public sealed class Badge : Aggregate<int>
 
     public static Badge Numbered(string serial) => new() { Serial = serial };
 
-    // The two-step spelling, kept: IsUnique(message) is this and IsUnique() in one.
     public static void Configure(EntityTypeBuilder<Badge> builder) =>
-        builder.HasIndex(b => b.Serial).IsUnique().HasViolationMessage(SerialTaken);
+        builder.HasIndex(b => b.Serial).IsUnique(SerialTaken);
 }
 
 /// <summary>

@@ -72,18 +72,6 @@ public sealed class UniqueWithAMessageTests
         Assert.Equal(Taken, MessageOf(index.Metadata));
     }
 
-    [Fact]
-    public void It_is_the_two_steps_in_one_and_records_exactly_what_they_do()
-    {
-        var shelf = new ModelBuilder().Entity<Shelf>();
-
-        var one = shelf.HasIndex(s => s.Label).IsUnique(Taken).Metadata;
-        var two = shelf.HasIndex(s => s.Aisle).IsUnique().HasViolationMessage(Taken).Metadata;
-
-        Assert.Equal(two.IsUnique, one.IsUnique);
-        Assert.Equal(MessageOf(two), MessageOf(one));
-    }
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]

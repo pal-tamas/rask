@@ -24,7 +24,7 @@ namespace Rask.Data;
 /// </remarks>
 internal static class UniqueViolation
 {
-    /// <summary>The index annotation <c>HasViolationMessage</c> writes.</summary>
+    /// <summary>The index annotation <c>IsUnique("…")</c> writes.</summary>
     internal const string Annotation = "Rask:ViolationMessage";
 
     private const string PostgresUniqueViolation = "23505";

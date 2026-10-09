@@ -119,6 +119,8 @@ public sealed class PostgresViolationMessageTests
 public sealed class SqlServerViolationMessageTests : IAsyncLifetime
 {
     private const string DatabaseName = "rask_violations";
+    private const int UniqueIndexViolated = 2601;
+    private const int UniqueConstraintViolated = 2627;
 
     public async ValueTask InitializeAsync()
     {
@@ -159,6 +161,32 @@ public sealed class SqlServerViolationMessageTests : IAsyncLifetime
 
         Assert.Equal([Subscriber.EmailTaken], refused.Errors["Email"]);
         Assert.Single(refused.Errors);
+        Assert.Equal(UniqueIndexViolated, ProviderErrorOf(refused));
+    }
+
+    [Fact]
+    public async Task A_duplicate_in_a_unique_constraint_of_the_same_name_fails_with_the_message_too()
+    {
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+        await using var app = App();
+        await using var db = await app.GetRequiredService<IDbContextFactory<SubscriberDbContext>>()
+            .CreateDbContextAsync(TestContext.Current.CancellationToken);
+
+        // A schema somebody else wrote may hold the rule as a UNIQUE constraint rather than a unique index.
+        // SQL Server then reports error 2627 and a differently worded message, naming the same object.
+        await db.Database.ExecuteSqlAsync(
+            $"""
+             DROP INDEX [IX_Subscriber_Email] ON [violations].[Subscriber];
+             ALTER TABLE [violations].[Subscriber] ADD CONSTRAINT [IX_Subscriber_Email] UNIQUE ([Email]);
+             """,
+            TestContext.Current.CancellationToken);
+
+        db.Add(new Subscriber { Email = "ada@example.com", Room = "A", Seat = 2, Nickname = "ada2" });
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal([Subscriber.EmailTaken], refused.Errors["Email"]);
+        Assert.Equal(UniqueConstraintViolated, ProviderErrorOf(refused));
     }
 
     [Fact]
@@ -207,6 +235,10 @@ public sealed class SqlServerViolationMessageTests : IAsyncLifetime
 
         await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
+
+    // The number SQL Server gave the failure Rask translated: DbUpdateException, then the provider's own.
+    private static int ProviderErrorOf(RaskValidationException refused) =>
+        ((Microsoft.Data.SqlClient.SqlException)refused.InnerException!.InnerException!).Number;
 
     private static ServiceProvider App()
     {

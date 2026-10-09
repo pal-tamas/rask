@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace Rask.Data;
 
 /// <summary>
-///     Turns the violation of a unique index that carries a message (<c>HasViolationMessage</c>) into the
+///     Turns the violation of a unique index that carries a message (<c>IsUnique("…")</c>) into the
 ///     failure a validator produces, for every save through the context — Rask's own and plain EF Core's.
 /// </summary>
 /// <remarks>

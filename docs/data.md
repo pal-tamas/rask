@@ -1260,8 +1260,7 @@ whose text names tables and holds the conflicting value. Every save through the 
 - **The message is a constant, and stays one.** It is shown to whoever sent the value, and nothing is appended
   to it — not the value, and not which row it collided with.
 - **An index with no message keeps the provider's error**, exactly as before. `IsUnique()` and `IsUnique(false)`
-  are still EF Core's own; only a string is Rask's. `IsUnique("…")` is `IsUnique().HasViolationMessage("…")` in
-  one step, and the longer form is there for an index made unique somewhere else.
+  are still EF Core's own; only a string is Rask's.
 - **The index is recognised by the provider's own error**, not by the text of a message a server may
   translate: SQLSTATE `23505` and the constraint name on PostgreSQL, error `2601` / `2627` and the index name on
   SQL Server, and on SQLite — which names no index — the table and columns it lists. It needs no provider
