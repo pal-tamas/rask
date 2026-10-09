@@ -3,16 +3,20 @@ using Rask.Core.Routing;
 namespace Rask;
 
 /// <summary>
-/// One link in a <see cref="UiNavmenu" />. Flux UI's <c>flux:navmenu.item</c>.
+/// One row of a <see cref="UiNavmenu" />. Flux UI's <c>flux:navmenu.item</c>.
 /// </summary>
 /// <remarks>
-/// An ordinary link, drawn as a menu's row is. A generated route navigates inside the app; a string is a plain
-/// link.
+/// With an <see cref="Href" /> it is an ordinary link, drawn as a menu's row is: a generated route navigates
+/// inside the app, a string is a plain <c>&lt;a&gt;</c> written as given. Without one it is a
+/// <c>&lt;button&gt;</c>, as Flux's is, and <see cref="OnClick" /> is what it does.
 /// </remarks>
 public sealed partial class UiNavmenuItem : Component
 {
-    /// <summary>Where the link leads.</summary>
-    public required RouteUrl Href { get; set; }
+    /// <summary>Where the link leads. Without one the row is a button.</summary>
+    public RouteUrl? Href { get; set; }
+
+    /// <summary>Runs when the row is pressed. Not for a string <see cref="Href" />: that row is the browser's link.</summary>
+    public Callback OnClick { get; set; }
 
     /// <summary>An icon at the start of the row.</summary>
     public Ui.IconName? Icon { get; set; }
@@ -29,10 +33,28 @@ public sealed partial class UiNavmenuItem : Component
     protected override Component? Render()
     {
         Component?[] content = [Icon is { } icon ? UiMenuRow.LinkIcon(icon, IconVariant) : null, .. Children ?? []];
-        return NavLink
-            .Href(Href)
-            .ActiveClass("")
-            .Class(UiClass.Compose(UiMenuRow.LinkClasses(Variant), Class))
-            .Data("ui-navmenu-item", "")[content];
+        var classes = UiClass.Compose(UiMenuRow.LinkClasses(Variant), Class);
+        return Row(classes).Data("ui-navmenu-item", "")[content];
+    }
+
+    private Element Row(string classes)
+    {
+        if (Href is not { } href)
+        {
+            var button = Button.Type(ButtonType.Button).Class(classes);
+            return OnClick.HasValue ? button.OnClick(OnClick) : button;
+        }
+
+        // A STRING is an ordinary link, written exactly as given with no path base added (#1070): only a
+        // generated route is routed inside the app.
+        // It carries no handler: the runtime keeps the click of an element that has one, and the browser
+        // would never follow the link.
+        if (href.PageType is null)
+        {
+            return A.Href(href.ToString()).Class(classes);
+        }
+
+        var link = NavLink.Href(href).ActiveClass("").Class(classes);
+        return OnClick.HasValue ? link.OnClick(OnClick) : link;
     }
 }

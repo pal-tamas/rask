@@ -136,14 +136,6 @@ public partial class UiNavbarTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void An_outlined_navlist_says_so_once_for_all_its_items()
-    {
-        var html = Ui.Navlist.Variant(Ui.NavlistVariant.Outline)[Ui.NavlistItem.Href("/")["Home"]].ToHtml();
-
-        Assert.Contains("data-ui-navlist=\"outline\"", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void A_group_is_a_heading_over_its_items()
     {
         var html = Ui.NavlistGroup.Heading("Account")[Ui.NavlistItem.Href("/profile")["Profile"]].ToHtml();

@@ -87,16 +87,15 @@ public abstract partial class Component
         // nodes on a page, so this does not pay the per-node cost the note on Cached describes.
         //
         // KeyedTypes is deliberately CUMULATIVE rather than per-frame: once a parent has identified a
-        // child type by key, that type stops being identified by ordinal for the rest of the parent's
-        // life. It has to. A key that is new this frame must get a FRESH instance, and the ordinal path
-        // would hand it a recycled one belonging to whichever item used to sit at that position — which
-        // is the very bug being fixed, moved one step along.
+        // child type by key, that type stops being identified by its ordinal among ALL the parent's
+        // children for the rest of the parent's life. It has to. A key that is new this frame must get a
+        // FRESH instance, and the ordinal path would hand it a recycled one belonging to whichever item
+        // used to sit at that position — which is the very bug being fixed, moved one step along.
         //
-        // The value is that type's SPARE: the instance the last entry built by position and its Key step
-        // then set aside for the one it kept. It never started a lifecycle, so the next entry takes it
-        // instead of constructing another — otherwise every keyed row costs an instance and a LiveState
-        // per render, to be thrown away one step later.
-        public Dictionary<Type, Component?>? KeyedTypes;
+        // The value is what the parent keeps for that type beside the keyed children: the ones written
+        // WITHOUT a key, which keep their instance by their order among themselves (#1215), the spare a
+        // Key step set aside, and the keys written more than once. See KeyedSiblings.
+        public Dictionary<Type, KeyedSiblings>? KeyedTypes;
         public Dictionary<(Type, object), Component>? KeyedChildren;
         public Dictionary<(Type, object), Component>? PreviousKeyedChildren;
 

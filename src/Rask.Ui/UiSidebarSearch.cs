@@ -2,9 +2,15 @@ namespace Rask;
 
 /// <summary>Flux's <c>flux:sidebar.search</c>: the search field at the top of a <see cref="UiSidebar" />.</summary>
 /// <remarks>
+/// <para>
 /// As Flux draws it, it is a button that looks like a field — the way into a search dialog or a command
-/// palette, which a <c>Ui.ModalTrigger</c> around it opens. Given <see cref="OnInput" /> it is a real field
-/// with the same look, for a sidebar that filters its own list.
+/// palette, which a <c>Ui.ModalTrigger</c> around it opens. Narrowed to the rail it is its lens, and the
+/// placeholder is the <see cref="UiTooltip" /> beside it.
+/// </para>
+/// <para>
+/// Given <see cref="OnInput" /> it is a real field, for a sidebar that filters its own list: Flux's filled
+/// <see cref="UiInput{T}" /> with the lens as its icon.
+/// </para>
 /// </remarks>
 public sealed partial class UiSidebarSearch : Component
 {
@@ -27,35 +33,28 @@ public sealed partial class UiSidebarSearch : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var lens = Div.Class("flex items-center justify-center text-xs text-zinc-400/75")[
-            Ui.Icon.Name(Ui.IconName.MagnifyingGlass).Class("size-4")
-        ];
-
         if (OnInput.HasValue)
         {
-            return Label.Class(UiClass.Compose(Root, "cursor-text", Class)).Attributes(("data-ui-sidebar-search", ""))[
-                lens,
-                // Seam: Flux's input. Ui.Input goes here when it lands.
-                Input.Value(Value ?? string.Empty)
-                    .Type(InputType.Search)
-                    .Placeholder(Placeholder ?? "")
-                    .Aria("label", Placeholder ?? "Search")
-                    .Class(
-                        "min-w-0 flex-1 bg-transparent font-medium outline-none placeholder:text-zinc-400 "
-                        + "sidebar-rail:hidden dark:placeholder:text-white/40")
-                    .Attributes(("data-ui-seam", "input"))
-                    .OnInput(OnInput)
-            ];
+            return Ui.Input.Value(Value ?? string.Empty)
+                .Filled
+                .Type(InputType.Search)
+                .Icon(Ui.IconName.MagnifyingGlass)
+                .Placeholder(Placeholder)
+                .OnInput(OnInput)
+                .Class(Class)
+                .Attributes(("data-ui-sidebar-search", null), ("aria-label", Placeholder ?? "Search"));
         }
 
         var button = Button.Type(ButtonType.Button).Class(UiClass.Compose(Root, Class))
             .Attributes(("data-ui-sidebar-search", ""));
-        // Seam: Flux wraps the search in its tooltip, shown beside the rail. Ui.Tooltip goes here when it lands.
-        return Div.Class("flex").Attributes(("data-ui-seam", "tooltip"))[
+        return Ui.Tooltip.Position(Ui.TooltipPosition.Right).Class("flex")[
             button[
-                lens,
+                Div.Class("flex items-center justify-center text-xs text-zinc-400/75")[
+                    Ui.Icon.Name(Ui.IconName.MagnifyingGlass).Class("size-4")
+                ],
                 Div.Class("flex-1 text-start font-medium text-zinc-400 sidebar-rail:sr-only dark:text-white/40")[Placeholder ?? ""]
-            ]
+            ],
+            Ui.TooltipContent.Class(UiSidebarItem.RailTooltip)[Placeholder ?? ""]
         ];
     }
 }

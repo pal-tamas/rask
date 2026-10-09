@@ -61,7 +61,30 @@ public sealed partial class UiDropdown : Component
     /// <summary>Runs when the reader opens or closes it, with the state it is now in.</summary>
     public Callback<bool> OnToggle { get; set; }
 
+    /// <summary>
+    ///     Opens the menu while the pointer is over the trigger or the menu, and closes it over neither. A
+    ///     press and the keyboard still open it, and nothing hovers on a touch screen.
+    /// </summary>
+    public bool? Hover { get; set; }
+
     public string? Class { get; set; }
+
+    // What a part of the kit that draws a dropdown of its own adds to it: a marker beside the dropdown's, and
+    // the selector the root matches while a hover may open it.
+    private (string Marker, string HoverIf)? _owner;
+
+    /// <summary>
+    ///     Makes this the dropdown of another part: marked as that part's, and opened by a hover only while the
+    ///     root matches <paramref name="hoverIf" />. The kit's own chain step.
+    /// </summary>
+    internal UiDropdown OwnedBy(string marker, string hoverIf)
+    {
+        _owner = (marker, hoverIf);
+        // What a generated step does when it writes a new value: the dropdown is drawn again with it.
+        BuilderRuntime.MarkChanged(this);
+
+        return this;
+    }
 
     // _open is a FIELD, which the render cache cannot see.
     /// <inheritdoc />
@@ -71,6 +94,12 @@ public sealed partial class UiDropdown : Component
 
     private string PanelId => Prefix + "-panel";
 
+    /// <summary>
+    ///     The anchor the menu is placed against. The dropdown's own box carries it; a trigger that carries it
+    ///     too is the later of the two in the tree, and so the one the menu follows.
+    /// </summary>
+    internal string AnchorName => "--" + Prefix;
+
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -79,9 +108,10 @@ public sealed partial class UiDropdown : Component
         var host = new UiPopupHost(PanelId, PanelStyle(), Open, Detail: null, ToggledAsync);
 
         var root = Div
-            .Class(UiClass.Compose("inline-flex", Class))
+            // A part that owns the dropdown says how it lays out: its `hidden` must not meet a display of ours.
+            .Class(UiClass.Compose(_owner is null ? "inline-flex" : "", Class))
             .Style("anchor-name:--" + Prefix)
-            .Data(open ? Opened : Closed);
+            .Data(Marks(open));
 
         return root[
             parts.Count > 0 ? Trigger(parts[0]!, open) : null,
@@ -92,6 +122,30 @@ public sealed partial class UiDropdown : Component
     private static readonly Dictionary<string, string?> Closed = new(StringComparer.Ordinal) { ["ui-dropdown"] = "" };
 
     private static readonly Dictionary<string, string?> Opened = new(StringComparer.Ordinal) { ["ui-dropdown"] = "", ["open"] = "" };
+
+    // Flux's marker and its `data-open`, and — for one that opens on hover — the runtime's hook: the root wraps
+    // the trigger and the panel, so "over the root" is over either.
+    private Dictionary<string, string?> Marks(bool open)
+    {
+        if (Hover != true && _owner is null)
+        {
+            return open ? Opened : Closed;
+        }
+
+        var marks = new Dictionary<string, string?>(open ? Opened : Closed, StringComparer.Ordinal);
+        if (Hover == true)
+        {
+            marks["rask-hover"] = PanelId;
+        }
+
+        if (_owner is { } owner)
+        {
+            marks[owner.Marker] = "";
+            marks["rask-hover-if"] = owner.HoverIf;
+        }
+
+        return marks;
+    }
 
     // What makes the caller's element the trigger. It is THEIR element, so what they put on it is kept.
     // `aria-haspopup="true"` whatever it opens, a menu or a list of links: that is what Flux writes.

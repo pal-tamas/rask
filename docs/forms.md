@@ -50,7 +50,10 @@ derives everything from the bound property:
   `Password`) only makes sense on an `HTMLInputElement<string>`; setting one on a non-string bound input is
   [RASK025](diagnostics.md#rask025).
 - **Update timing** — `string` fields update on every keystroke (`OnInput`); every other type
-  updates on `OnChange` (blur). `Textarea(() => …)` always streams on `OnInput`.
+  updates on `OnChange` (blur). `Textarea(() => …)` always streams on `OnInput`. A keystroke is not a
+  promise of one call each: on WASM, what is typed while the handler and render of an earlier value are
+  still running is sent as ONE value when they finish — or at once, ahead of any key, click or `change`
+  that follows — so a slow page hears `"Atlantis"` rather than eight values queued behind the reader.
 
 ### The two modes are exclusive
 

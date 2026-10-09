@@ -233,8 +233,10 @@ public abstract partial class UiSelectControl<T>
                 await CommitAsync([.. view.Picked.Take(view.Picked.Count - 1)]).ConfigureAwait(false);
                 break;
             case Keys.Escape or Keys.Tab:
+                // The browser emptied the input at the key (UiListKeys.PillsClear): emptied from here, a round
+                // trip later, it lost what was typed since.
                 Close();
-                await ForgetTypedAsync(view).ConfigureAwait(false);
+                await ForgetTypedAsync(view, emptied: true).ConfigureAwait(false);
                 break;
             case Keys.ArrowDown or Keys.ArrowUp when !_open:
                 _open = true;
@@ -250,8 +252,8 @@ public abstract partial class UiSelectControl<T>
         }
     }
 
-    // Empties the pillbox's own input, and tells the page that holds the search.
-    private async Task ForgetTypedAsync(View view)
+    // Empties the pillbox's own input — unless the browser already has — and tells the page that holds the search.
+    private async Task ForgetTypedAsync(View view, bool emptied = false)
     {
         if (view.Search.Length == 0)
         {
@@ -262,7 +264,10 @@ public abstract partial class UiSelectControl<T>
         await SearchedAsync(string.Empty, SearchHeard(view), opens: false).ConfigureAwait(false);
         _typing = false;
         _cursor = cursor;
-        await UiInputReach.SayAsync(_input, string.Empty).ConfigureAwait(false);
+        if (!emptied)
+        {
+            await UiInputReach.SayAsync(_input, string.Empty).ConfigureAwait(false);
+        }
     }
 
     private Task RemoveAsync(T value, View view) =>
